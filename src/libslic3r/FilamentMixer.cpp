@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "ColorDecomposeRecipe.hpp"
+#include "Config.hpp"
 #include "FilamentMixerModel.hpp"
 #include "LocalesUtils.hpp"
 
@@ -425,6 +426,59 @@ std::vector<double> parse_mixed_ratios(const std::string &str, size_t n_componen
             r /= sum;
     }
     return ratios;
+}
+
+std::string format_mixed_components(const std::vector<unsigned int> &components)
+{
+    std::string out;
+    for (size_t i = 0; i < components.size(); ++i) {
+        if (i > 0)
+            out += ",";
+        out += std::to_string(components[i]);
+    }
+    return out;
+}
+
+std::string format_mixed_ratios(const std::vector<int> &weights)
+{
+    int sum = std::accumulate(weights.begin(), weights.end(), 0);
+    if (sum <= 0)
+        sum = 100;
+    CNumericLocalesSetter c_locale_setter;
+    std::string           out;
+    for (size_t i = 0; i < weights.size(); ++i) {
+        if (i > 0)
+            out += ",";
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%.4f", float(weights[i]) / float(sum));
+        out += buf;
+    }
+    return out;
+}
+
+int find_fixed_mixed_filament(const ConfigBase                &project_config,
+                              const std::vector<unsigned int> &components,
+                              const std::vector<int>          &weights)
+{
+    const auto *is_mixed = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    const auto *comps    = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    const auto *ratios   = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+    if (is_mixed == nullptr || comps == nullptr || ratios == nullptr)
+        return -1;
+    // Created lazily with the first mixed slot, so an older project may not have it at all.
+    const auto *gradient = project_config.option<ConfigOptionBools>("filament_mixed_gradient");
+
+    const std::string comp_str  = format_mixed_components(components);
+    const std::string ratio_str = format_mixed_ratios(weights);
+    for (size_t i = 0; i < is_mixed->values.size(); ++i) {
+        if (!is_mixed->values[i] || i >= comps->values.size() || i >= ratios->values.size())
+            continue;
+        if (gradient != nullptr && i < gradient->values.size() && gradient->values[i])
+            continue;
+        if (comps->values[i] == comp_str && ratios->values[i] == ratio_str)
+            return int(i);
+    }
+    return -1;
 }
 
 bool has_any_mixed_filament(const std::vector<unsigned char> &is_mixed)

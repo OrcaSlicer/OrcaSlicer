@@ -11,6 +11,8 @@
 
 namespace Slic3r {
 
+class ConfigBase;
+
 // Photoshop-style gradient curve control point in [0,1] x [0,1].
 // (x, y) is the anchor position; (m_in, m_out) are optional cubic Hermite tangent
 // overrides. NaN means "use the PCHIP-computed default", which is the case for plain
@@ -93,6 +95,22 @@ std::vector<unsigned int> parse_mixed_components(const std::string &str);
 // Returns equal ratios (1/n each) when str is empty or invalid.
 // Normalizes so the sum equals 1.0.
 std::vector<double> parse_mixed_ratios(const std::string &str, size_t n_components);
+
+// The text a mixed slot stores in filament_mixed_components, e.g. {1, 3} → "1,3".
+std::string format_mixed_components(const std::vector<unsigned int> &components);
+
+// The text a mixed slot stores in filament_mixed_sublayer_ratios: the weights normalised to sum to 1,
+// four decimals, e.g. {1, 2} → "0.3333,0.6667". A non-positive sum is read as 100.
+std::string format_mixed_ratios(const std::vector<int> &weights);
+
+// The 0-based index of the mixed slot in `project_config` that blends `components` (1-based physical
+// filaments) in `weights` at a fixed ratio, or -1 when there is none. Matched on the stored text, as
+// format_mixed_components() and format_mixed_ratios() write it. A gradient slot never matches: its
+// ratio drifts from layer to layer, so it is not the blend asked for even where its stored ratios
+// are the same.
+int find_fixed_mixed_filament(const ConfigBase                &project_config,
+                              const std::vector<unsigned int> &components,
+                              const std::vector<int>          &weights);
 
 // Returns true if any element in is_mixed is true.
 // ConfigOptionBools stores values as std::vector<unsigned char>.

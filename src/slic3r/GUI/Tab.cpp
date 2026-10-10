@@ -1,6 +1,7 @@
 //#include "slic3r/Utils/Serial.hpp"
 #include "Tab.hpp"
 #include "PresetHints.hpp"
+#include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/BeltTransform.hpp"
@@ -93,6 +94,7 @@
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "EditGCodeDialog.hpp"
+#include "IMEXModesCtrl.hpp"
 #include "MultiChoiceDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
@@ -102,6 +104,8 @@
 #include "Widgets/MultiNozzleSync.hpp"
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/TabCtrl.hpp"
+#include "Widgets/CheckBox.hpp"
+#include "MarkdownTip.hpp"
 #include "BedShapeDialog.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "WipeTowerDialog.hpp"
@@ -551,6 +555,7 @@ void Tab::create_preset_tab()
 
     if (dynamic_cast<TabPrinter *>(this) || dynamic_cast<TabPrint *>(this)) {
         m_extruder_switch = new MultiSwitchButton(panel);
+        m_extruder_switch->SetFont(Label::Body_11);
         m_extruder_switch->SetFitToOptions();
         m_extruder_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
             evt.Skip();
@@ -569,12 +574,17 @@ void Tab::create_preset_tab()
         m_extruder_sync_box = new wxPanel(panel, wxID_ANY);
         m_extruder_sync_box->SetBackgroundColour(panel->GetBackgroundColour());
         m_extruder_sync_box->SetToolTip(_L("Synchronization of different extruder drives or nozzle volume types is not supported."));
-        m_extruder_sync = new ScalableButton(m_extruder_sync_box, wxID_ANY, "extruder_sync");
+        m_extruder_sync = nullptr;
+        add_scaled_button(m_extruder_sync_box, &m_extruder_sync, "extruder_sync");
         m_extruder_sync->SetToolTip(_L("Synchronize the modification of parameters to the corresponding parameters of another extruder."));
         m_extruder_sync->Bind(wxEVT_BUTTON, [this](auto &evt) {
             evt.Skip();
             sync_excluder();
         });
+
+        ScalableButton* icon = nullptr;
+        add_scaled_button(panel, &icon, "multi_extruder");
+        icon->SetToolTip(_L("Parameters with this icon can be configurable per nozzle."));
 
         auto sync_box_sizer = new wxBoxSizer(wxHORIZONTAL);
         sync_box_sizer->Add(m_extruder_sync, 1, wxEXPAND);
@@ -582,17 +592,21 @@ void Tab::create_preset_tab()
 
         m_variant_sizer  = new wxBoxSizer(wxHORIZONTAL);
         auto right_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto left_sizer  = new wxBoxSizer(wxHORIZONTAL);
 
+        m_variant_sizer->Add(left_sizer, 0, wxALIGN_CENTER);
         m_variant_sizer->AddStretchSpacer(1);
         // Orca: proportion 1 lets a narrow row squeeze the switch, which then scrolls its buttons.
         m_variant_sizer->Add(m_extruder_switch, 1, wxALIGN_CENTER, 0);
-        m_variant_sizer->Add(right_sizer, 1, wxALIGN_CENTER);
-        right_sizer->AddStretchSpacer(1);
+        m_variant_sizer->AddStretchSpacer(1);
+        m_variant_sizer->Add(right_sizer, 0, wxALIGN_CENTER);
+        left_sizer->Add(icon               , 0, wxALIGN_CENTER | wxLEFT , m_em_unit);
         right_sizer->Add(m_extruder_sync_box, 0, wxALIGN_CENTER | wxRIGHT, m_em_unit);
 
         m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
     } else if (dynamic_cast<TabFilament *>(this)) {
         m_variant_combo = new MultiSwitchButton(panel);
+        m_variant_combo->SetFont(Label::Body_11);
         m_variant_combo->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
             evt.Skip();
             switch_excluder(evt.GetInt());
@@ -604,13 +618,17 @@ void Tab::create_preset_tab()
             m_page_view->GetParent()->Layout();
         });
 
+        ScalableButton* icon = nullptr;
+        add_scaled_button(panel, &icon, "multi_extruder");
+        icon->SetToolTip(_L("Parameters with this icon can be configurable per nozzle."));
 
-        wxBoxSizer *combo_sizer = new wxBoxSizer(wxHORIZONTAL);
-        combo_sizer->Add(m_variant_combo, 1, wxEXPAND);
         wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
-        top_sizer->Add(combo_sizer, 1, wxEXPAND | wxLEFT, m_em_unit);
-        m_variant_sizer  = new wxBoxSizer(wxVERTICAL);
-        m_variant_sizer->Add(top_sizer, 0, wxLEFT, m_em_unit);
+        top_sizer->Add(icon,            0, wxALIGN_CENTER_VERTICAL);
+        top_sizer->Add(m_variant_combo, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
+
+        m_variant_sizer = new wxBoxSizer(wxVERTICAL);
+        m_variant_sizer->Add(top_sizer, 0, wxEXPAND | wxLEFT, m_em_unit);
+
         m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
     }
 
@@ -1257,43 +1275,30 @@ void Tab::update_extruder_switch_colors()
     }
 
     auto options = generate_extruder_options();
-    auto extruders = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnumsGeneric>("extruder_type");
 
-    for (size_t switch_index = 0; switch_index < options.size(); ++switch_index) {
-        int selection = m_extruder_switch ? m_extruder_switch->GetSelection() : (m_variant_combo ? m_variant_combo->GetSelection() : 0);
-        if (switch_index == selection) continue;
-
-        bool sys_extruder = true;
-        bool modified_extruder = false;
-        std::vector<PageShp> pages_to_check;
-
-        if (m_active_page) {
-            if (m_active_page->title() == "Speed" || m_active_page->title() == "Motion ability" || m_active_page->title() == "Filament" ||
-                m_active_page->title() == "Setting Overrides" || m_active_page->title() == "Multimaterial" || is_printer_extruder_page(m_active_page)) {
-                for (auto page_ptr : m_pages) {
-                    if (page_ptr.get() == m_active_page) {
-                        pages_to_check.push_back(page_ptr);
-                        break;
-                    }
+    std::vector<PageShp> pages_to_check;
+    if (m_active_page) {
+        const wxString t = m_active_page->title();
+        if (t == "Speed" || t == "Motion ability" || t == "Filament" ||
+            t == "Setting Overrides" || t == "Multimaterial" || is_printer_extruder_page(m_active_page)) {
+            for (auto &p : m_pages){
+                if (p.get() == m_active_page) {
+                    pages_to_check.push_back(p);
+                    break;
                 }
             }
         }
-        if (pages_to_check.empty()) {
-            continue;
-        }
-        check_extruder_options_status(switch_index, sys_extruder, modified_extruder, pages_to_check);
+    }
 
-        StateColor default_color(std::make_pair(0x6B6B6B, (int) StateColor::NotChecked), std::make_pair(0xFFFFFE, (int) StateColor::Normal));
-        StateColor color = modified_extruder ? StateColor(m_modified_label_clr) : default_color;
+    for (size_t switch_index = 0; switch_index < options.size(); ++switch_index) {
+        bool sys_extruder = true;
+        bool modified_extruder = false;
+        if (!pages_to_check.empty())
+            check_extruder_options_status((int) switch_index, sys_extruder, modified_extruder, pages_to_check);
+        // no matching page: clear the flag so the tag doesn't keep a stale color
 
-        if (m_extruder_switch)
-            m_extruder_switch->SetButtonTextColor(switch_index, color);
-        if (m_variant_combo) {
-            Button *btn = m_variant_combo->GetButton(switch_index);
-            if (btn) {
-                m_variant_combo->SetButtonTextColor(switch_index, color);
-            }
-        }
+        if (m_extruder_switch) m_extruder_switch->SetModified(switch_index, modified_extruder);
+        if (m_variant_combo)   m_variant_combo->SetModified(switch_index, modified_extruder);
     }
 }
 
@@ -1743,8 +1748,6 @@ void Tab::sys_color_changed()
         bmp->msw_rescale();
     if (m_detach_preset_btn)
         m_detach_preset_btn->msw_rescale();
-    if (m_extruder_sync)
-        m_extruder_sync->msw_rescale();
 
     // update icons for tree_ctrl
     for (ScalableBitmap& bmp : m_scaled_icons_list)
@@ -5737,6 +5740,18 @@ PageShp TabPrinter::build_kinematics_page()
  * but "Motion ability" and "Single extruder MM setup" too
  * (These pages can changes according to the another values of a current preset)
  * */
+// Grid shape for the IMEX modes editor, for the three sites that build or resize the control:
+// build_unregular_pages(), reload_config() and update_fff(). They must read these keys the way
+// compute_imex_zone_layout() does, so this goes through the shared accessors rather than
+// opt_int(), which does not throw on an absent key -- it dereferences the null that
+// option<ConfigOptionInt>() returns (Config.hpp:2991), where every other reader falls back.
+static void imex_grid_shape(const DynamicPrintConfig* cfg, int& n_cols, int& n_rows, int& layout)
+{
+    n_cols = std::max(1, imex_cfg_int(*cfg, "imex_tools_per_gantry"));
+    n_rows = std::max(1, imex_cfg_int(*cfg, "imex_gantry_count"));
+    layout = IMEXModesCtrl::parse_layout(imex_cfg_enum<ImexToolLayout>(*cfg, "imex_tool_layout"));
+}
+
 void TabPrinter::build_unregular_pages(bool from_initial_build/* = false*/)
 {
     size_t		n_before_extruders = 2;			//	Count of pages before Extruder pages
@@ -5893,6 +5908,137 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("machine_load_filament_time", "printer_multimaterial_advanced#filament-load-time");
         optgroup->append_single_option_line("machine_unload_filament_time", "printer_multimaterial_advanced#filament-unload-time");
         optgroup->append_single_option_line("machine_tool_change_time", "printer_multimaterial_advanced#tool-change-time");
+
+        // IDEX/IQEX (IMEX) parallel printing configuration
+        optgroup = page->new_optgroup(L("IDEX/IQEX Configuration"), L"param_advanced");
+        optgroup->append_single_option_line("is_imex", "printer_multimaterial_idex_iqex#idexiqex-printer");
+        optgroup->append_single_option_line("imex_firmware_managed_zones", "printer_multimaterial_idex_iqex#firmware-managed-zones");
+        optgroup->append_single_option_line("imex_gantry_count", "printer_multimaterial_idex_iqex#gantry-count");
+        optgroup->append_single_option_line("imex_tools_per_gantry", "printer_multimaterial_idex_iqex#tools-per-gantry");
+        optgroup->append_single_option_line("imex_tool_layout", "printer_multimaterial_idex_iqex#tool-0-position");
+        optgroup->append_single_option_line("imex_nozzle_clearance_x", "printer_multimaterial_idex_iqex#nozzle-clearance-x");
+        optgroup->append_single_option_line("imex_nozzle_clearance_y", "printer_multimaterial_idex_iqex#nozzle-clearance-y");
+        optgroup->append_single_option_line("imex_carriage_margin", "printer_multimaterial_idex_iqex#safety-margin");
+        {
+            // Toggle for pre-slice IMEX safety warnings (stored in app_config, not printer profile).
+            // We avoid full_width=1 here because that path uses different sizer math from the
+            // rest of the optgroup — it left-pads with 15px instead of aligning to the label
+            // column, which made this row look out-of-place vs. the option lines above. Instead
+            // we register a placeholder Option so option_set.front() (the empty-vector access
+            // that crashes Windows release builds) is satisfied, and let the standard line path
+            // render the label + custom widget with the same column geometry as everything else.
+            // No Field is built for the placeholder because line.widget != nullptr causes
+            // activate_line to return early before build_field.
+            ConfigOptionDef placeholder_def;
+            placeholder_def.label   = L("Pre-slice warnings");
+            placeholder_def.mode    = comAdvanced;
+            placeholder_def.tooltip = L("Show a warning dialog before slicing if IDEX/IQEX parallel mode "
+                                        "concerns are detected (bed temperature conflicts, filament type "
+                                        "mismatches, multi-material conflicts). Can be suppressed from the "
+                                        "dialog itself. Re-enable here if suppressed accidentally.");
+            auto line = Line{ placeholder_def.label, placeholder_def.tooltip };
+            line.label_path = "printer_multimaterial_idex_iqex#pre-slice-warnings";
+            line.append_option(Option{ placeholder_def, "imex_pre_slice_warnings" });
+            line.widget = [](wxWindow* parent) -> wxSizer* {
+                auto* cb = new ::CheckBox(parent);
+                const bool enabled = wxGetApp().app_config->get("imex_pre_slice_warnings") != "false";
+                cb->SetValue(enabled);
+                cb->Bind(wxEVT_TOGGLEBUTTON, [cb](wxCommandEvent& e) {
+                    wxGetApp().app_config->set("imex_pre_slice_warnings", cb->GetValue() ? "true" : "false");
+                    e.Skip(); // CheckBox's own handler redraws the tick
+                });
+                auto* s = new wxBoxSizer(wxHORIZONTAL);
+                s->Add(cb, 0, wxALIGN_CENTER_VERTICAL);
+                return s;
+            };
+            optgroup->append_line(line);
+        }
+        optgroup->append_single_option_line("imex_viz_theme", "printer_multimaterial_idex_iqex#visualization-theme");
+        {
+            // In the configuration group rather than a group of its own: a full-width widget line
+            // records no mode, so a group holding only this line would show in every mode.
+            auto line = Line{ L("Modes"), L("") };
+            line.full_width = 1;
+            line.widget = [this](wxWindow* parent) -> wxSizer* {
+                int n_cols = 0, n_rows = 0, layout = 0;
+                imex_grid_shape(m_config, n_cols, n_rows, layout);
+                m_imex_modes_ctrl = new IMEXModesCtrl(parent, n_cols, n_rows, layout);
+                // Lazy lookup pointing at the *saved* state of the currently-selected
+                // preset (not the parent). Per-row reset means "discard in-session
+                // edits to this row" — matches the page-level reset semantic and works
+                // on any preset, including ones whose parent has no IMEX modes at all.
+                m_imex_modes_ctrl->set_parent_config_lookup([this]() -> const DynamicPrintConfig* {
+                    return m_presets ? &m_presets->get_selected_preset().config : nullptr;
+                });
+                m_imex_modes_ctrl->load_from_config(*m_config);
+                m_imex_modes_ctrl->on_change = [this]() {
+                    auto [names, tools, gcodes] = m_imex_modes_ctrl->get_mode_data();
+                    m_config->set_key_value("imex_mode_names",        new ConfigOptionStrings(names));
+                    m_config->set_key_value("imex_mode_active_tools", new ConfigOptionStrings(tools));
+                    m_config->set_key_value("imex_mode_gcodes",       new ConfigOptionStrings(gcodes));
+                    update_dirty();
+                    on_value_change("imex_mode_names", std::string(""));
+                };
+                // A plate stores its IMEX mode as the mode's *name*, resolved against this
+                // table at slice time, so deleting a row strands every plate that was using
+                // it. Those plates print as Primary either way -- GCode.cpp falls back when
+                // the name resolves to no row -- but until they are reset they keep claiming
+                // a mode that no longer exists: the plate button still shows the old label,
+                // the mode is written back out to the 3MF, and re-adding a different mode at
+                // the same position would not revive it. Resetting them here is what makes
+                // "deleting a mode resets the plates using it to Primary" true.
+                //
+                // Deletion only. Renaming is deliberately not funnelled through here: the
+                // name field notifies on every keystroke, so an in-progress rename would
+                // orphan and reset the plate on the first character typed.
+                //
+                // Because of that, a row can be renamed and only then deleted, and the plate
+                // is still holding the name it was set from. The control therefore reports
+                // every name the deleted row was known by -- its build-time name and its name
+                // at delete time -- already filtered of anything a surviving row still
+                // carries, so matching any of them is safe.
+                m_imex_modes_ctrl->on_mode_removed = [](const std::vector<std::string>& removed_modes) {
+                    Plater* plater = wxGetApp().plater();
+                    if (!plater || removed_modes.empty())
+                        return;
+                    PartPlateList&          plates = plater->get_partplate_list();
+                    std::vector<PartPlate*> affected;
+                    for (int i = 0; i < plates.get_plate_count(); ++i) {
+                        PartPlate* plate = plates.get_plate(i);
+                        if (!plate)
+                            continue;
+                        const std::string mode = plate->get_imex_mode();
+                        if (mode.empty() || mode == kImexPrimaryMode)
+                            continue;
+                        if (std::find(removed_modes.begin(), removed_modes.end(), mode) != removed_modes.end())
+                            affected.push_back(plate);
+                    }
+                    if (affected.empty())
+                        return;
+                    // One snapshot for the whole batch, so a single undo restores every plate.
+                    // Same sequence the plate's own mode button runs (Plater::select_plate_by_hover_id,
+                    // PLATE_IMEX_MODE_ID) -- reset_imex_mode() already invalidates each plate's
+                    // slice result and its zone / ghost caches.
+                    plater->take_snapshot("reset imex mode");
+                    for (PartPlate* plate : affected)
+                        plate->reset_imex_mode();
+                    plater->update_project_dirty_from_presets();
+                    plater->set_plater_dirty(true);
+                    plater->update();
+                };
+                auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+                // Align the left edge with the option-line labels above. A full-width line's
+                // widget is inset by 15 (OptionsGroup::activate_line), while an ordinary line's
+                // custom control is inset by 10 and then paints its label further in again, so
+                // the two do not line up without this. One number, tuned against the settings
+                // page. Unscaled on purpose: the 15 and 10 it compensates for are raw pixels too,
+                // so a DIP-scaled correction here would drift apart from them on a HiDPI display.
+                sizer->Add(m_imex_modes_ctrl, 1, wxEXPAND | wxLEFT, 8);
+                return sizer;
+            };
+            optgroup->append_line(line);
+        }
+
         m_pages.insert(m_pages.end() - n_after_single_extruder_MM, page);
     }
 
@@ -6188,6 +6334,17 @@ void TabPrinter::reload_config()
     if (m_active_page && m_active_page->title() == "Multimaterial")
         m_active_page->set_value("extruders_count", int(m_extruders_count));
 
+    if (m_config) {
+        // imex_tool_layout / imex_viz_theme are now real enum options handled by
+        // standard Choice fields; only the modes grid still needs explicit re-sync
+        // because it spans three options at once and isn't a Field.
+        if (m_imex_modes_ctrl) {
+            int n_cols = 0, n_rows = 0, layout = 0;
+            imex_grid_shape(m_config, n_cols, n_rows, layout);
+            m_imex_modes_ctrl->set_grid_size(n_cols, n_rows, layout);
+            m_imex_modes_ctrl->load_from_config(*m_config);
+        }
+    }
 }
 
 void TabPrinter::activate_selected_page(std::function<void()> throw_if_canceled)
@@ -6205,6 +6362,7 @@ void TabPrinter::clear_pages()
 {
     Tab::clear_pages();
     m_reset_to_filament_color = nullptr;
+    m_imex_modes_ctrl   = nullptr;
 }
 
 std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor)
@@ -6427,6 +6585,60 @@ void TabPrinter::toggle_options()
         toggle_option("extruders_count", !bSEMM);
         toggle_option("manual_filament_change", bSEMM);
         toggle_option("purge_in_prime_tower", bSEMM && supports_wipe_tower_2);
+
+        // IDEX/IQEX: show carriage config options only when is_imex is enabled
+        bool is_imex = m_config->opt_bool("is_imex");
+        for (auto el : {"imex_gantry_count", "imex_tools_per_gantry",
+                        "imex_nozzle_clearance_x", "imex_nozzle_clearance_y",
+                        "imex_carriage_margin"})
+            toggle_option(el, is_imex);
+        toggle_option("imex_tool_layout", is_imex);
+        toggle_option("imex_viz_theme",   is_imex);
+        toggle_option("imex_firmware_managed_zones", is_imex);
+        if (m_imex_modes_ctrl) m_imex_modes_ctrl->set_applicable(is_imex);
+
+        // IDEX/IQEX: the tool_layout dropdown carries 4 corner values
+        // (front-left / front-right / rear-left / rear-right) in storage, but front/rear
+        // is meaningless on single-gantry setups. Collapse the dropdown to just two
+        // items ("Left" / "Right") when imex_gantry_count == 1 — mapped to front-left
+        // and front-right internally — and normalize any stored rear-* selection to its
+        // front-* equivalent so the displayed selection always matches the stored value.
+        if (is_imex) {
+            if (Field* layout_field = get_field("imex_tool_layout"); layout_field) {
+                if (auto* choice = dynamic_cast<Choice*>(layout_field); choice) {
+                    const int gantry_count = std::max(1, imex_cfg_int(*m_config, "imex_gantry_count"));
+                    // Not const: the rear-* -> front-* normalization below reassigns it.
+                    int current_val =
+                        static_cast<int>(imex_cfg_enum<ImexToolLayout>(*m_config, "imex_tool_layout"));
+
+                    // Normalize rear-* → front-* when collapsing to 1 gantry.
+                    if (gantry_count == 1 && (current_val == static_cast<int>(ImexToolLayout::RearLeft)
+                                           || current_val == static_cast<int>(ImexToolLayout::RearRight))) {
+                        ImexToolLayout normalized = (current_val == static_cast<int>(ImexToolLayout::RearLeft))
+                                                  ? ImexToolLayout::FrontLeft
+                                                  : ImexToolLayout::FrontRight;
+                        DynamicPrintConfig new_conf = *m_config;
+                        new_conf.set_key_value("imex_tool_layout",
+                                               new ConfigOptionEnum<ImexToolLayout>(normalized));
+                        load_config(new_conf);
+                        current_val = static_cast<int>(normalized);
+                    }
+
+                    wxArrayString items;
+                    if (gantry_count >= 2) {
+                        items.Add(_L("Front-left"));
+                        items.Add(_L("Front-right"));
+                        items.Add(_L("Rear-left"));
+                        items.Add(_L("Rear-right"));
+                    } else {
+                        items.Add(_L("Left"));
+                        items.Add(_L("Right"));
+                    }
+                    choice->set_values(items);
+                    choice->set_value(boost::any(current_val), false);
+                }
+            }
+        }
 
         // Orca: "Tool change on wipe tower" only makes sense for multi-extruder (multi-toolhead) printers
         // using a Type 2 wipe tower. SEMM already always travels to the tower as part of the purge,
@@ -6667,6 +6879,22 @@ void TabPrinter::update_fff()
     if (m_use_silent_mode != m_config->opt_bool("silent_mode"))	{
         m_rebuild_kinematics_page = true;
         m_use_silent_mode = m_config->opt_bool("silent_mode");
+    }
+
+    // Sync IDEX/IQEX tool grid whenever carriage configuration changes.
+    // set_grid_size() is a no-op when dimensions and layout are unchanged.
+    // load_from_config() is gated on matches_config() — without that guard,
+    // every keystroke in a row's textbox would destroy and rebuild the widget
+    // (because notify() writes config → update_fff() runs → load_from_config()
+    // detaches the textbox the user is typing in). The page-level reset still
+    // refreshes the rows because that path actually changes the config, which
+    // matches_config() then detects.
+    if (m_imex_modes_ctrl) {
+        int n_cols = 0, n_rows = 0, layout = 0;
+        imex_grid_shape(m_config, n_cols, n_rows, layout);
+        m_imex_modes_ctrl->set_grid_size(n_cols, n_rows, layout);
+        if (!m_imex_modes_ctrl->matches_config(*m_config))
+            m_imex_modes_ctrl->load_from_config(*m_config);
     }
 
     // Belt printer: auto-sync build_plate_tilt_{x,y} (which drives support gravity tilt)
@@ -8454,6 +8682,15 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         if (m_extruder_switch_variants || (m_type == Preset::TYPE_PRINTER && extruder_nums >= 2)) {
             auto options = generate_extruder_options();
             m_extruder_switch->SetOptions(options);
+            int item_n = options.empty() ? 0 : options.size();
+            if (m_type == Preset::TYPE_PRINTER){ // we are on printer settings dialog and larger padding can be used
+                int h_pad  = item_n > 8 ? 6 : (item_n > 6 ? 9 : (item_n > 5 ? 12 : (item_n > 4 ? 18 : (item_n > 3 ? 24 : (item_n > 2 ? 36 : 48)))));
+                m_extruder_switch->SetButtonPadding(wxSize(h_pad, 3));
+            }
+            else {
+                int h_pad  = item_n > 6 ? 6 : (item_n > 4 ? 10 : (item_n > 2 ? 20 : 36));
+                m_extruder_switch->SetButtonPadding(wxSize(h_pad, 3));
+            }
 
             int selection_index;
             if (extruder_id >= 0) {
@@ -8480,6 +8717,9 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         const int selection = m_variant_combo->GetSelection();
         auto      options   = generate_extruder_options();
         m_variant_combo->SetOptions(options);
+        int item_n = options.empty() ? 0 : options.size();
+        int h_pad  = item_n > 6 ? 6 : (item_n > 4 ? 8 : (item_n > 2 ? 20 : 36));
+        m_variant_combo->SetButtonPadding(wxSize(h_pad, 3));
 
         if (!options.empty())
             m_variant_combo->SetSelection(selection < 0 || selection >= (int) options.size() ? 0 : selection);
@@ -8553,7 +8793,7 @@ std::vector<wxString> Tab::generate_extruder_options()
                     nozzle = "";
                 }
             }
-            options.push_back(wxString::Format(_L("%s: %s"), _L(drive), short_nozzle_volume_name(nozzle)));
+            options.push_back(wxString::Format(_L("%s %s"), _L(drive), short_nozzle_volume_name(nozzle)));
         }
         return options;
     }
@@ -8587,10 +8827,10 @@ std::vector<wxString> Tab::generate_extruder_options()
         NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
 
         if (volume_type == NozzleVolumeType::nvtHybrid) {
-            options.push_back(wxString::Format(_L("%s: %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtStandard))));
-            options.push_back(wxString::Format(_L("%s: %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtHighFlow))));
+            options.push_back(wxString::Format(_L("%s %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtStandard))));
+            options.push_back(wxString::Format(_L("%s %s"), extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtHighFlow))));
         } else {
-            options.push_back(wxString::Format(_L("%s: %s"), extruder_name,
+            options.push_back(wxString::Format(_L("%s %s"), extruder_name,
                                                short_nozzle_volume_name(get_nozzle_volume_type_string(volume_type))));
         }
     }

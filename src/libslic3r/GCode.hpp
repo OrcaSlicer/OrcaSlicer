@@ -262,6 +262,15 @@ public:
     void            export_layer_filaments(GCodeProcessorResult* result);
     //BBS: set offset for gcode writer
     void set_gcode_offset(double x, double y) { m_writer.set_xy_offset(x, y); m_processor.set_xy_offset(x, y);}
+    // IMEX firmware-managed slice: writer offset is augmented by the IMEX shift so the
+    // emitted gcode is centered at bed origin (firmware fans copies/mirrors out from there).
+    // Processor offset stays at plate_origin only so the gcode-preview visualizer renders
+    // the centered toolpath at bed center, not at the prepare-view zone placement. When
+    // imex_x/imex_y are zero this is byte-identical to set_gcode_offset(x, y).
+    void set_gcode_offset_with_imex_shift(double x, double y, double imex_x, double imex_y) {
+        m_writer.set_xy_offset(x + imex_x, y + imex_y);
+        m_processor.set_xy_offset(x, y);
+    }
 
     // Exported for the helper classes (OozePrevention, Wipe) and for the Perl binding for unit tests.
     const Vec2d&    origin() const { return m_origin; }
@@ -302,7 +311,11 @@ public:
     std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
     // Sets the pressure advance of the filament's extruder variant, if enabled for it.
-    std::string     set_filament_pressure_advance(unsigned int filament_id);
+    // tool addresses one IMEX carriage explicitly. -1 means no carriage: it omits the tool
+    // qualifier on Klipper, Marlin and BBL, and keeps RepRapFirmware's historical `D0`, since a
+    // bare M572 there applies to whatever tool is selected and errors when none is. That is
+    // what every non-IMEX caller wants, and what imex_pem_tool_for() returns off IMEX.
+    std::string     set_filament_pressure_advance(unsigned int filament_id, int tool = -1);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
 
@@ -835,6 +848,14 @@ protected:
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
     
     std::unique_ptr<AdaptivePAProcessor>      m_pa_processor;
+
+    // IMEX: active parallel mode name ("primary", "copy", "iq-copy", etc.).
+    // Set at the start of export. Empty string means non-IMEX or not yet set.
+    // PA and temperature tool-qualification is only applied when this is not "primary".
+    std::string m_imex_parallel_mode;
+    // IMEX: parsed per-plate head→filament overrides (physical T-index → 1-based filament slot).
+    // Cached from imex_head_filament_map at print start. Empty map means "fall back to pem".
+    std::map<int,int> m_imex_head_filament_map;
 
     std::unique_ptr<WipeTowerIntegration> m_wipe_tower;
 

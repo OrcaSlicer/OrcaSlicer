@@ -15,6 +15,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/ParallelResolve.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Model.hpp"
@@ -5852,6 +5853,27 @@ TEST_CASE("Config import confines zip entries, preset names and bundle ids to th
     }
 }
 
+TEST_CASE("A saved printer preset reloads the tool layout it was saved with", "[Preset][Bundle][IMEX]")
+{
+    ScopedTemporaryDir         temp_dir;
+    PresetBundle               bundle;
+    PresetsConfigSubstitutions substitutions;
+
+    DynamicPrintConfig config(bundle.printers.default_preset().config);
+    config.set_deserialize_strict("imex_tool_layout", "rear-left");
+    config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = "";
+    const fs::path file = temp_dir.path() / PRESET_PRINTER_NAME / "ImexPrinter.json";
+    fs::create_directories(file.parent_path());
+    config.save_to_json(file.string(), "ImexPrinter", "User", "1.0.0");
+
+    bundle.printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
+                                 ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *loaded = bundle.printers.find_preset("ImexPrinter");
+    REQUIRE(loaded != nullptr);
+    CHECK(int(imex_cfg_enum<ImexToolLayout>(loaded->config, "imex_tool_layout")) == int(ImexToolLayout::RearLeft));
+}
+
 // A project saved before a key joined filament_options_with_variant stores it once per filament,
 // while the keys that were already per variant store it once per filament variant. Loading such a
 // project gives every variant of a filament that filament's value.
@@ -5886,6 +5908,21 @@ TEST_CASE("A project saved with pressure advance per filament applies it to ever
     check_double_vector(petg.opt<ConfigOptionFloats>("pressure_advance")->values, { 0.043 });
     check_double_vector(pla.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.95, 0.96 });
     check_double_vector(petg.opt<ConfigOptionFloatsNullable>("filament_flow_ratio")->values, { 0.97 });
+}
+
+TEST_CASE("A multi-toolhead project saved without filament self indices loads every filament", "[Preset][Bundle]")
+{
+    const std::vector<std::string> colors = { "#FF0000", "#000000", "#FFFFFF", "#FFFF00" };
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionStrings>("filament_colour")->values = colors;
+    config.opt<ConfigOptionFloats>("nozzle_diameter")->values = std::vector<double>(colors.size(), 0.4);
+    config.option<ConfigOptionBool>("single_extruder_multi_material")->value = false;
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    REQUIRE_NOTHROW(bundle.load_config_model("test.3mf", std::move(config)));
+    CHECK(bundle.filament_presets.size() == colors.size());
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values == colors);
 }
 
 TEST_CASE("A system preset resolves by name from the bundled profiles", "[Preset][Bundle]")

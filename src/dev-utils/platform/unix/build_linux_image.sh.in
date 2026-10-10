@@ -344,7 +344,7 @@ TARGET_BIN="\$1"
 
 if target_missing_runtime_library "\$TARGET_BIN" "libOpenGL.so.0" || ! has_host_runtime_library "libOpenGL.so.0"; then
     echo "Error: missing host OpenGL runtime library libOpenGL.so.0." >&2
-    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0 and libglu1-mesa" >&2
+    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0" >&2
     echo "On Arch/CachyOS, install: libglvnd" >&2
     exit 1
 fi

@@ -114,6 +114,12 @@ static std::vector<std::string> s_project_options {
     "nozzle_volume_type",
     "filament_map_mode",
     "filament_map",
+    // physical_extruder_map intentionally NOT here: it's owned by the printer
+    // preset (s_Preset_printer_options). Listing it project-scoped caused
+    // project_config's default [0] to clobber the preset's authored value
+    // (e.g. AFC-shaped [0,1,1,1,1]) during full_fff_config() merge, and the
+    // clobbered value then rode into saved 3mfs and back into the edited
+    // preset on reload.
     // Per-filament nozzle-volume choice; project-level like filament_map so the per-filament
     // slot resolution survives preset switches.
     "filament_volume_map",
@@ -5381,13 +5387,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     bool process_multi_extruder = false;
     std::vector<int> filament_variant_index;
     size_t extruder_variant_count;
-    if (!config.option<ConfigOptionInts>("filament_self_index")) {
-        std::vector<int>& filament_self_indice = config.option<ConfigOptionInts>("filament_self_index", true)->values;
+    // A config loaded over the full defaults has a one-entry index even when the file has none.
+    ConfigOptionInts* filament_self_index_opt = config.option<ConfigOptionInts>("filament_self_index", true);
+    if (filament_self_index_opt->size() < num_filaments) {
+        std::vector<int>& filament_self_indice = filament_self_index_opt->values;
         filament_self_indice.resize(num_filaments);
         for (int index = 0; index < num_filaments; index++)
             filament_self_indice[index] = index + 1;
     }
-    std::vector<int> filament_self_indice = std::move(config.option<ConfigOptionInts>("filament_self_index")->values);
+    std::vector<int> filament_self_indice = std::move(filament_self_index_opt->values);
     // ORCA: Initialize filament_extruder_variant for backward compatibility with old 3mf files
     // that don't have this option saved or have it with default single-element value
     ConfigOptionStrings* filament_extruder_variant_opt = config.option<ConfigOptionStrings>("filament_extruder_variant");

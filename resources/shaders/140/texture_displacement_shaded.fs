@@ -88,13 +88,11 @@ uniform vec3      palette_lab[64];
 uniform vec3      palette_rgb[64];
 uniform int       palette_count;
 uniform bool      pure_only;      // match against single filaments only (flat-colour image)
-// How each entry prints. Every entry names a single filament: a mix is given its own mixed filament
-// slot, whose components the slicer alternates per print layer, so the fragment just looks that slot's
-// colour up.
+// The entry's two filaments, equal for a single filament - only so a mix can be told apart. An entry's
+// palette_rgb is already the colour it prints in (for a mix, its mixed filament slot's).
 uniform int       palette_a[64];
 uniform int       palette_b[64];
-uniform vec3      filament_rgb[16];
-uniform int       filament_count;
+uniform float     prefer_pure_de; // PREFER_PURE_DE: how much better than a single filament a mix must be
 uniform sampler2D color_tex;     // the layer's colour image, sampled at the same uv as the height
 uniform bool      has_color_tex;
 uniform bool volume_mirrored;
@@ -276,29 +274,14 @@ int nearest_palette_entry(vec3 rgb)
             best = i;
         }
     }
-    // The same bias make_palette_quantizer() applies (PREFER_PURE_DE = 10): a mix is an interleave, so
-    // it is only worth taking when it beats the nearest single filament by a visible step. Without it
-    // this picked a mix for almost every fragment - with four filaments the palette is 4 pure entries
-    // against 30 mixes - while the bake picked a single filament for most of them, so the preview
-    // interleaved the whole wall where the bake interleaves only patches. Compared on the distances
-    // rather than their squares, so the threshold means the same thing as it does on the CPU (up to
-    // CIE76 against CIEDE2000, the approximation already noted above).
-    if (best_pure >= 0 && palette_a[best] != palette_b[best] && sqrt(bd_pure) - sqrt(bd) < 10.0)
+    // The same bias make_palette_quantizer() applies: a mix is an interleave, so it is only worth taking
+    // when it beats the nearest single filament by a visible step - otherwise the preview shows mixes
+    // where the bake prints a single filament. Compared on the distances rather than their squares, so
+    // the margin means the same thing as it does on the CPU (up to CIE76 against CIEDE2000, the
+    // approximation already noted above).
+    if (best_pure >= 0 && palette_a[best] != palette_b[best] && sqrt(bd_pure) - sqrt(bd) < prefer_pure_de)
         best = best_pure;
     return best;
-}
-
-// One 2x2 Bayer cell, {0, 2; 3, 1}, for x and y in {0, 1}.
-
-// The colour the printer lays down at world point `pos` for palette entry `index`. Every entry names a
-// single filament: a mix is given its own mixed filament slot, whose components the slicer alternates
-// per print layer, so there is nothing left to interleave here.
-vec3 printed_color(int index)
-{
-    int a = palette_a[index];
-    if (a < 0 || a >= filament_count)
-        return palette_rgb[index]; // no filament to resolve to: the entry's own colour
-    return filament_rgb[a];
 }
 
 void main()
@@ -442,16 +425,11 @@ void main()
     NdotL = max(dot(eye_normal, LIGHT_FRONT_DIR), 0.0);
     intensity.x += NdotL * LIGHT_FRONT_DIFFUSE;
 
-    // Diffuse albedo: the image's colour at this fragment, snapped to the nearest printable colour -
-    // and, where that is a mix, the filament the interleave puts here, so the pattern that prints shows.
+    // Diffuse albedo: the image's colour at this fragment, snapped to the nearest printable colour.
     // Only the albedo - the specular term (intensity.y) stays white - so a coloured fragment reads as
     // the same material under the same light, and the relief this preview exists to show is unaffected.
     vec3 albedo = uniform_color.rgb;
     if (palette_count > 0 && has_color_tex && have_uv && weight > 0.0)
-        // tex_pos, not world_pos: the bake resolves the interleave in the bake frame (world
-        // orientation and scale about the volume's origin, see texture_displacement_bake_frame()), so
-        // measuring z from the bed instead shifted the band phase by the volume origin's height - a
-        // different filament in the same place than the bake produces.
-        albedo = printed_color(nearest_palette_entry(texture(color_tex, color_uv).rgb));
+        albedo = palette_rgb[nearest_palette_entry(texture(color_tex, color_uv).rgb)];
     out_color = vec4(vec3(intensity.y) + albedo * intensity.x, uniform_color.a);
 }

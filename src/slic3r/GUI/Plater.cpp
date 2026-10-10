@@ -109,6 +109,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <wx/colour.h>
+#include <wx/font.h>
 #include <wx/aui/framemanager.h>
 #include <wx/gdicmn.h>
 #include <wx/anybutton.h>
@@ -177,6 +178,7 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
 #include "libslic3r/ClipperUtils.hpp"
@@ -211,6 +213,7 @@
 #include "3DBed.hpp"
 #include "PartPlate.hpp"
 #include "BeltPurgeTower.hpp"
+#include "IMEXFilamentPickerPopover.hpp"
 #include "Camera.hpp"
 #include "Mouse3DController.hpp"
 #include "Tab.hpp"
@@ -735,8 +738,8 @@ static void use_nozzle_row_font(ComboBox *combo)
 {
     // A read-only combo draws its value with the font of the TextInput it is built on, and its
     // dropped list carries a font of its own.
-    combo->SetFont(Label::Body_10);
-    combo->GetDropDown().SetFont(Label::Body_10);
+    combo->SetFont(Label::Body_13);
+    combo->GetDropDown().SetFont(Label::Body_13);
 
     // A row is as tall as the tags of the variant switch: a line of Body_10 text plus the 3 points of
     // padding they put above and below it. TextInput::messureSize() instead sizes a combo as its
@@ -746,7 +749,7 @@ static void use_nozzle_row_font(ComboBox *combo)
     // arithmetic landing on the small box however often it re-measures.
     const int row_height = combo->GetTextExtent("0.4 mm").y + 2 * combo->FromDIP(3);
     auto *text_ctrl = combo->GetTextCtrl();
-    text_ctrl->SetFont(Label::Body_10);
+    text_ctrl->SetFont(Label::Body_13);
     text_ctrl->SetInitialSize(wxSize(text_ctrl->GetBestSize().x, row_height - 8));
 
     combo->SetMinSize(wxSize(combo->GetMinSize().x, row_height));
@@ -761,6 +764,10 @@ struct ExtruderGroup : StaticBox
     // of the group.
     struct NozzleRow
     {
+        // Fonts of the prefix and the diameter readout, applied when the row is created and again by Rescale().
+        static wxFont prefix_font()   { return Label::Body_12.Bold(); }
+        static wxFont diameter_font() { return Label::Body_12; }
+
         Label *    prefix         = nullptr;
         Label *    diameter_label = nullptr; // read-only nozzle diameter of this extruder
         ComboBox * flow           = nullptr;
@@ -833,8 +840,8 @@ struct ExtruderGroup : StaticBox
         btn_down->msw_rescale();
         combo_diameter->Rescale();
         for (const NozzleRow &row : rows) {
-            row.prefix->SetFont(Label::Body_10.Bold());
-            row.diameter_label->SetFont(Label::Body_10);
+            row.prefix->SetFont(NozzleRow::prefix_font());
+            row.diameter_label->SetFont(NozzleRow::diameter_font());
             row.flow->Rescale();
         }
         update_row_widths();
@@ -1541,12 +1548,12 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     ams_panel->SetBackgroundColour(*wxWHITE);
 
     ams_label  = new wxStaticText(ams_panel, wxID_ANY, _L("AMS"));
-    ams_label->SetFont(Label::Body_14);
+    ams_label->SetFont(Label::Body_13);
     ams_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
 
     // AMS not installed message
     ams_not_installed_msg = new wxStaticText(ams_panel, wxID_ANY, _L("Not installed"));
-    ams_not_installed_msg->SetFont(Label::Body_14);
+    ams_not_installed_msg->SetFont(Label::Body_13);
     ams_not_installed_msg->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
 
     if (index >= 0) {
@@ -1636,9 +1643,9 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     auto rows_sizer = new wxBoxSizer(wxHORIZONTAL);
     for (wxBoxSizer *&column : row_columns) {
         column = new wxBoxSizer(wxVERTICAL);
-        rows_sizer->Add(column, 1, wxEXPAND);
+        rows_sizer->Add(column, 1, wxEXPAND | wxLEFT , FromDIP(5));
     }
-    vsizer->Add(rows_sizer, 0, wxEXPAND);
+    vsizer->Add(rows_sizer, 0, wxEXPAND | wxRIGHT, FromDIP(5));
     sizer = vsizer; // the floating filament-switch icon positions itself against this card
     SetSizer(vsizer);
     SetNozzleRowCount(1);
@@ -1653,12 +1660,12 @@ ExtruderGroup::NozzleRow ExtruderGroup::create_nozzle_row()
     const size_t row_index = rows.size();
     NozzleRow row;
 
-    row.prefix = new Label(this, Label::Body_10.Bold());
+    row.prefix = new Label(this, NozzleRow::prefix_font());
     row.prefix->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     row.prefix->SetLabelText(wxString::Format("T%d", int(row_index) + 1));
     row.prefix->Hide();
 
-    row.diameter_label = new Label(this, Label::Body_10);
+    row.diameter_label = new Label(this, NozzleRow::diameter_font());
     row.diameter_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     row.diameter_label->Hide();
 
@@ -1690,7 +1697,7 @@ ExtruderGroup::NozzleRow ExtruderGroup::create_nozzle_row()
     row_sizer->Add(row.diameter_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
     row_sizer->Add(row.flow, 1);
     // Row-major: T1 T2 on the first line, T3 T4 on the second, and so on.
-    row_columns[row_index % 2]->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(5));
+    row_columns[row_index % 2]->Add(row_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
 
     return row;
 }
@@ -1717,9 +1724,9 @@ void ExtruderGroup::SetRowDiameters(const std::vector<double> &diameters)
 {
     for (size_t i = 0; i < std::min(nozzle_row_count, diameters.size()); ++i) {
         // Spelled like the calibration dialogs spell a nozzle diameter, "0.4 mm".
-        const wxString text = from_u8(get_diameter_string(diameters[i])) + " mm";
+        const wxString text = from_u8(get_diameter_string(diameters[i]));
         rows[i].diameter_label->SetLabelText(text);
-        rows[i].diameter_label->SetToolTip(text);
+        rows[i].diameter_label->SetToolTip(text + " mm");
     }
     update_row_widths();
     Layout();
@@ -5048,35 +5055,15 @@ static bool create_mixed_filament_from_result(
         is_mixed_opt->values[new_idx] = true;
     }
 
-    std::string comp_str;
-    for (size_t i = 0; i < result.components.size(); ++i) {
-        if (i > 0) comp_str += ",";
-        comp_str += std::to_string(result.components[i]);
-    }
     {
         auto* comp_opt = project_config.option<ConfigOptionStrings>("filament_mixed_components");
         while (comp_opt->values.size() <= new_idx) comp_opt->values.push_back(std::string{});
-        comp_opt->values[new_idx] = comp_str;
-    }
-
-    int ratio_sum = 0;
-    for (int r : result.ratios) ratio_sum += r;
-    if (ratio_sum <= 0) ratio_sum = 100;
-
-    std::string ratio_str;
-    {
-        CNumericLocalesSetter c_locale_setter;
-        for (size_t i = 0; i < result.ratios.size(); ++i) {
-            if (i > 0) ratio_str += ",";
-            char buf[32];
-            std::snprintf(buf, sizeof(buf), "%.4f", (float)result.ratios[i] / ratio_sum);
-            ratio_str += buf;
-        }
+        comp_opt->values[new_idx] = format_mixed_components(result.components);
     }
     {
         auto* ratios_opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
         while (ratios_opt->values.size() <= new_idx) ratios_opt->values.push_back(std::string{});
-        ratios_opt->values[new_idx] = ratio_str;
+        ratios_opt->values[new_idx] = format_mixed_ratios(result.ratios);
     }
 
     if (!project_config.option("filament_mixed_gradient"))
@@ -5136,36 +5123,12 @@ int Sidebar::ensure_mixed_filament(const std::vector<unsigned int> &components, 
         return -1;
     if (p->combos_filament.size() < 2)
         return -1;
-
-    // Normalise the way create_mixed_filament_from_result() stores them, so the comparison below sees
-    // the same text the config holds rather than two spellings of one blend.
-    int ratio_sum = 0;
-    for (const int r : ratios)
-        ratio_sum += r;
-    if (ratio_sum <= 0)
+    if (std::accumulate(ratios.begin(), ratios.end(), 0) <= 0)
         return -1;
 
-    std::string comp_str, ratio_str;
-    {
-        CNumericLocalesSetter c_locale_setter;
-        for (size_t i = 0; i < components.size(); ++i) {
-            if (i > 0) { comp_str += ","; ratio_str += ","; }
-            comp_str += std::to_string(components[i]);
-            char buf[32];
-            std::snprintf(buf, sizeof(buf), "%.4f", float(ratios[i]) / float(ratio_sum));
-            ratio_str += buf;
-        }
-    }
-
-    const auto &project_config = wxGetApp().preset_bundle->project_config;
-    const auto *is_mixed_opt   = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    const auto *comp_opt       = project_config.option<ConfigOptionStrings>("filament_mixed_components");
-    const auto *ratios_opt     = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
-    if (is_mixed_opt != nullptr && comp_opt != nullptr && ratios_opt != nullptr)
-        for (size_t i = 0; i < is_mixed_opt->values.size(); ++i)
-            if (is_mixed_opt->values[i] && i < comp_opt->values.size() && i < ratios_opt->values.size() &&
-                comp_opt->values[i] == comp_str && ratios_opt->values[i] == ratio_str)
-                return int(i);
+    if (const int existing = find_fixed_mixed_filament(wxGetApp().preset_bundle->project_config, components, ratios);
+        existing >= 0)
+        return existing;
 
     if (wxGetApp().preset_bundle->filament_presets.size() >= size_t(EnforcerBlockerType::ExtruderMax))
         return -1;
@@ -7872,7 +7835,8 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
         "wipe_tower_wall_type", "wipe_tower_extra_rib_length","wipe_tower_rib_width","wipe_tower_fillet_wall",
         "wipe_tower_filament",
-        "best_object_pos",  "master_extruder_id"
+        "best_object_pos",  "master_extruder_id",
+        "is_imex"
         }))
     , sidebar(new Sidebar(q))
     , notification_manager(std::make_unique<NotificationManager>(q))
@@ -10318,8 +10282,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                      "Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; "
                      "it is kept when the project is saved.")
                 : _L("The file does not contain any geometry data.");
-            MessageDialog msg(wxGetApp().mainframe, text, _L("Warning"), wxYES | wxICON_WARNING);
-            if (msg.ShowModal() == wxID_YES) {}
+            MessageDialog msg(wxGetApp().mainframe, text, _L("Warning"), wxOK | wxICON_WARNING);
+            msg.ShowModal();
         }
     }
     q->schedule_background_process(true);
@@ -11316,6 +11280,40 @@ bool Plater::priv::ensure_belt_purge_tower()
 
 // Update background processing thread from the current config and Model.
 // Returns a bitmask of UpdateBackgroundProcessReturnState.
+namespace {
+
+// IDEX/IQEX placement check, shared by every path that decides whether the plate can be
+// sliced. It must not live in only one of them: update_background_process() and
+// Plater::validate_current_plate() both clear update_apply_result_invalid(false) and close
+// the ValidateError notification on success, so a path that skips this check silently
+// re-enables the Slice button on a plate the slicer will still refuse.
+//
+// The message names both kinds of reserved area because the check covers secondary zones
+// AND the carriage clearance strips, and the strips sit INSIDE the primary zone -- saying
+// "secondary zone" alone sends the user looking in the wrong half of the bed.
+//
+// The null guard mirrors the one it replaced. PartPlateList::get_curr_plate() indexes a
+// vector and cannot actually return null, and the guard is fail-open, so do not read it as
+// making the surrounding code null-safe.
+std::string imex_placement_error(PartPlate* plate)
+{
+    if (!plate)
+        return {};
+    switch (plate->imex_placement_violation()) {
+    case PartPlate::ImexPlacementViolation::Object:
+        return _u8L("Cannot slice: an object overlaps an area reserved for IDEX/IQEX parallel printing "
+                    "(a secondary zone, or a carriage clearance strip inside the primary zone).");
+    case PartPlate::ImexPlacementViolation::PrimeTower:
+        return _u8L("Cannot slice: the prime tower overlaps an area reserved for IDEX/IQEX parallel printing "
+                    "(a secondary zone, or a carriage clearance strip inside the primary zone).");
+    case PartPlate::ImexPlacementViolation::None:
+        break;
+    }
+    return {};
+}
+
+} // namespace
+
 unsigned int Plater::priv::update_background_process(bool force_validation, bool postpone_error_messages, bool switch_print)
 {
     // bitmap of enum UpdateBackgroundProcessReturnState
@@ -11409,6 +11407,9 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         // update string by type
         q->post_process_string_object_exception(err);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warnings=%2%")%err.string%warnings.size();
+
+        if (err.string.empty())
+            err.string = imex_placement_error(partplate_list.get_curr_plate());
 
         if (err.string.empty()) {
             this->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -13503,10 +13504,185 @@ void Plater::priv::on_action_open_project(SimpleEvent&)
 }
 
 //BBS: GUI refactor: slice plate
+// Orca IMEX: Collects all IMEX-related warnings for a plate before slicing.
+// Returns one formatted bullet string per issue. Empty means no concerns.
+// Checks:
+//   1. Bed temperature conflict: primary tool controls the bed; secondary tools warned
+//      if their optimal bed temp differs from the primary's by more than 5°C
+//   2. Filament type mismatch: materials with incompatible requirements
+//
+// Deliberately a thin GUI wrapper, and deliberately still file-static. Everything it once
+// derived for itself -- the active mode, its tool roster, the declared primary, and whether
+// this plate's filaments route to that primary -- now comes from imex_resolve_routing() in
+// libslic3r, which Print::validate() calls too and which tests/libslic3r/test_imex_helpers.cpp
+// covers. What is left here is genuinely GUI: PresetBundle lookups, bed-type resolution,
+// preset -> filament-type strings, and _L() formatting. None of that is worth exposing to a
+// test, and none of it can disagree with the slicer about what the plate is doing.
+static std::vector<wxString> collect_imex_warnings(PartPlate* plate)
+{
+    std::vector<wxString> warnings;
+    if (!plate) return warnings;
+
+    // Multi-material conflicts are now hard-blocked at slice time via
+    // imex_multicolor_block_reason (Print::validate). The pre-slice nanny used to
+    // emit a vague soft warning here, but the hard block surfaces a more
+    // descriptive message at exactly the right moment, so the duplicate warning
+    // was dropped. Bed-temp + filament-type checks below remain useful soft
+    // warnings — they catch user configurations that *will* slice but produce
+    // problematic gcode.
+    // Resolved: a plate on Primary still slices in the process preset's mode, and these
+    // bed-temperature and filament-type warnings are the only notice the user gets.
+    const std::string mode = plate->get_effective_imex_mode();
+    if (mode == kImexPrimaryMode) return warnings;
+
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (!bundle) return warnings;
+
+    // The mode's tool roster, its declared primary, and which logical filament slot the
+    // primary prints with all come from imex_resolve_routing() -- the same library call
+    // Print::validate() makes for its hard block, so the sentence shown here and the refusal
+    // shown at slice time cannot describe the plate differently. An unresolved mode, and a
+    // mode the tools array is too short to cover, both yield an empty roster and no primary,
+    // which is the same "nothing to warn about" answer the open-coded lookup gave.
+    //
+    // The pem source is the GUI's own (effective_physical_extruder_map on the live bundle);
+    // Print::apply() normalises the slicer's copy through the same helper, so the two agree.
+    const ConfigOptionInts pem = effective_physical_extruder_map(*bundle);
+    const ImexRouting routing = imex_resolve_routing(bundle->printers.get_edited_preset().config,
+                                                     mode, plate->get_extruders(true), pem);
+
+    // Upper bound: filament_presets.size() is the practical limit, capped at MAXIMUM_EXTRUDER_NUMBER (64).
+    // GUI-only: every warning below names a filament preset, so a tool with no preset to
+    // name is one this dialog has nothing to say about. The slicer has no such limit --
+    // it refuses the plate outright rather than describing it.
+    const size_t max_tool = std::min(bundle->filament_presets.size(), MAXIMUM_EXTRUDER_NUMBER);
+
+    std::vector<int> active_tools;
+    const int primary_tool = routing.primary_phys;
+    for (const auto& [phys_idx, role] : routing.tools) {
+        (void)role;
+        // parse_imex_active_tools already drops negative indices.
+        if (max_tool == 0 || (size_t)phys_idx < max_tool)
+            active_tools.push_back(phys_idx);
+    }
+
+    // Two or more tools is what makes a primary/secondary comparison meaningful; both checks
+    // below are primary-vs-secondary. A single-tool roster is left to Print::validate.
+    if (active_tools.size() < 2 || primary_tool < 0) return warnings;
+    const DynamicPrintConfig& full_cfg = bundle->full_config();
+    // Bed temps are per-plate-type; resolve the active plate's bed type to get the right key.
+    const BedType bed_type = bundle->project_config.opt_enum<BedType>("curr_bed_type");
+    const std::string bed_temp_key = get_bed_temp_key(bed_type);
+    const auto* bed_temps = bed_temp_key.empty() ? nullptr : full_cfg.option<ConfigOptionInts>(bed_temp_key);
+    const auto& filament_presets = bundle->filament_presets;
+
+    // active_tools and primary_tool are PHYSICAL extruder indices (from
+    // imex_mode_active_tools). filament_presets and bed_temps are indexed by LOGICAL
+    // filament slot. For MMU/AFC layouts where multiple logical slots feed one
+    // physical extruder, looking up filament_presets[physical_idx] returns the wrong
+    // filament. Translate physical -> logical before indexing.
+    //
+    // Primary vs secondary use DIFFERENT translation rules:
+    //   - Primary's filament: routing.primary_logical, the slot the plate's objects put on
+    //     the primary's physical head. -1 there is exactly the condition Print::validate
+    //     refuses the plate on (ImexRouting::primary_unrouted); this dialog runs first and
+    //     still wants a filament to name, so it falls back to the printer's own routing.
+    //   - Secondary's filament: per-plate imex_head_filament_map override (set via
+    //     the IMEX ghost picker). No object owns a secondary in copy/mirror mode —
+    //     the firmware duplicates the primary, so the override is the only source. Stays
+    //     GUI-local: the slicer never has to name a secondary's filament.
+    std::map<int, int> plate_head_map;
+    if (auto* hfm = plate->config()->option<ConfigOptionString>("imex_head_filament_map"))
+        plate_head_map = parse_imex_head_filament_map(hfm->value);
+
+    auto logical_for_secondary = [&](int physical_idx) -> int {
+        const int logical = resolve_filament_for_head(plate_head_map, pem, physical_idx);
+        return logical >= 0 ? logical : physical_idx;
+    };
+
+    // Primary tool's bed temp and filament type (looked up by logical slot). Both lookups
+    // are guarded against a negative slot: first_filament_for_physical_head() returns -1 for
+    // a primary no logical filament reaches at all, and `-1 < size()` would otherwise index
+    // in front of the array.
+    const int primary_logical = routing.routes_to_primary()
+                                    ? routing.primary_logical
+                                    : first_filament_for_physical_head(pem, primary_tool);
+    const int primary_bed_temp = (bed_temps && primary_logical >= 0 &&
+                                  primary_logical < (int)bed_temps->values.size())
+                                    ? bed_temps->values[primary_logical] : 0;
+    std::string primary_display_type;
+    if (primary_logical >= 0 && primary_logical < (int)filament_presets.size()) {
+        Preset* p = bundle->filaments.find_preset(filament_presets[primary_logical]);
+        if (p) p->get_filament_type(primary_display_type);
+    }
+    if (primary_display_type.empty()) primary_display_type = "unknown";
+
+    for (size_t i = 0; i < active_tools.size(); ++i) {
+        const int tool_idx = active_tools[i];
+        if (tool_idx == primary_tool) continue;
+
+        const int secondary_logical = logical_for_secondary(tool_idx);
+
+        std::string secondary_display_type;
+        if (secondary_logical < (int)filament_presets.size()) {
+            Preset* p = bundle->filaments.find_preset(filament_presets[secondary_logical]);
+            if (p) p->get_filament_type(secondary_display_type);
+        }
+        if (secondary_display_type.empty()) secondary_display_type = "unknown";
+
+        // Check 1: bed temperature — primary wins, secondary may not get what it needs
+        if (bed_temps && primary_bed_temp > 0 && secondary_logical < (int)bed_temps->values.size()) {
+            const int secondary_bed_temp = bed_temps->values[secondary_logical];
+            if (secondary_bed_temp > 0 && std::abs(secondary_bed_temp - primary_bed_temp) > 5) {
+                warnings.push_back(wxString::Format(
+                    _L("Bed temperature conflict: T%d (%s) sets the bed to %d\u00B0C \u2014 "
+                       "T%d (%s) requires %d\u00B0C. The primary tool controls the bed; "
+                       "secondary tools print at whatever temperature it sets."),
+                    primary_tool, primary_display_type, primary_bed_temp,
+                    tool_idx, secondary_display_type, secondary_bed_temp));
+            }
+        }
+
+        // Check 2: filament type mismatch
+        if (primary_display_type != secondary_display_type &&
+            primary_display_type != "unknown" && secondary_display_type != "unknown") {
+            warnings.push_back(wxString::Format(
+                _L("Filament type mismatch: T%d uses %s and T%d uses %s. "
+                   "These materials have incompatible requirements and are not designed to print together."),
+                primary_tool, primary_display_type,
+                tool_idx, secondary_display_type));
+        }
+    }
+
+    return warnings;
+}
+
 void Plater::priv::on_action_slice_plate(SimpleEvent&)
 {
     if (q != nullptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice plate event\n" ;
+        // IMEX parallel mode warnings (current plate only)
+        if (wxGetApp().app_config->get("imex_pre_slice_warnings") != "false") {
+            PartPlate* plate = partplate_list.get_curr_plate();
+            std::vector<wxString> warnings = collect_imex_warnings(plate);
+            if (!warnings.empty()) {
+                int plate_num = partplate_list.get_curr_plate_index() + 1;
+                wxString msg = wxString::Format(_L("Plate %d has IDEX/IQEX parallel mode active with the following concerns:\n\n"), plate_num);
+                for (const wxString& w : warnings)
+                    msg += L"\u2022 " + w + "\n\n";
+                msg += _L("Continue slicing?");
+                RichMessageDialog dlg(q, msg, _L("IDEX/IQEX Parallel Mode Warning"), wxICON_WARNING | wxYES | wxNO);
+                dlg.ShowCheckBox(_L("Don't show these warnings again"));
+                int result = dlg.ShowModal();
+                if (dlg.IsCheckBoxChecked())
+                    wxGetApp().app_config->set("imex_pre_slice_warnings", "false");
+                if (result != wxID_YES) {
+                    q->select_view_3D("3D");
+                    return;
+                }
+            }
+        }
+
         //BBS update extruder params and speed table before slicing
         const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
         auto& print = q->get_partplate_list().get_current_fff_print();
@@ -13526,6 +13702,35 @@ void Plater::priv::on_action_slice_all(SimpleEvent&)
 {
     if (q != nullptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice project event\n" ;
+        // IMEX parallel mode warnings (all plates)
+        if (wxGetApp().app_config->get("imex_pre_slice_warnings") != "false") {
+            wxString combined_msg;
+            int plate_count = partplate_list.get_plate_count();
+            for (int i = 0; i < plate_count; ++i) {
+                PartPlate* plate = partplate_list.get_plate(i);
+                std::vector<wxString> warnings = collect_imex_warnings(plate);
+                if (warnings.empty()) continue;
+                combined_msg += wxString::Format(_L("Plate %d:\n"), i + 1);
+                for (const wxString& w : warnings)
+                    combined_msg += L"  \u2022 " + w + "\n";
+                combined_msg += "\n";
+            }
+            if (!combined_msg.empty()) {
+                wxString msg = _L("The following IDEX/IQEX parallel mode concerns were detected:\n\n")
+                               + combined_msg
+                               + _L("Continue slicing?");
+                RichMessageDialog dlg(q, msg, _L("IDEX/IQEX Parallel Mode Warning"), wxICON_WARNING | wxYES | wxNO);
+                dlg.ShowCheckBox(_L("Don't show these warnings again"));
+                int result = dlg.ShowModal();
+                if (dlg.IsCheckBoxChecked())
+                    wxGetApp().app_config->set("imex_pre_slice_warnings", "false");
+                if (result != wxID_YES) {
+                    q->select_view_3D("3D");
+                    return;
+                }
+            }
+        }
+
         //BBS update extruder params and speed table before slicing
         const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
         auto& print = q->get_partplate_list().get_current_fff_print();
@@ -21130,6 +21335,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 {
     bool update_scheduled = false;
     bool bed_shape_changed = false;
+    bool imex_changed = false;
     //bool print_sequence_changed = false;
     t_config_option_keys diff_keys = p->config->diff(config);
 
@@ -21230,10 +21436,30 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
                  opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {
             update_scheduled = true;
         }
+        // IDEX/IQEX: when is_imex toggles the mode icon needs to be repositioned on every plate.
+        // set_shape() short-circuits when the bed geometry is unchanged, so we refresh explicitly.
+        // Defer until after the loop so bed_shape_changed / set_bed_shape() run first if needed.
+        else if (opt_key == "is_imex") {
+            imex_changed = true;
+            update_scheduled = true;
+        }
+        // Orca: the center of mass markers weigh the parts by it.
+        else if (opt_key == "filament_density" && wxGetApp().show_center_of_mass())
+            p->view3D->get_canvas3d()->set_as_dirty();
     }
 
     if (bed_shape_changed)
         set_bed_shape();
+
+    // After any bed-shape or is_imex change, ensure the IMEX mode icon geometry and
+    // raycaster are correct.  set_shape() short-circuits when the bed is unchanged,
+    // so we call refresh_imex_icons() explicitly whenever is_imex is active.
+    // Always done AFTER set_bed_shape() so m_shape is current.
+    if (bed_shape_changed || imex_changed) {
+        auto* is_imex_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
+        if (is_imex_opt && is_imex_opt->value)
+            p->partplate_list.refresh_imex_icons();
+    }
 
     config_change_notification(config, std::string("print_sequence"));
 
@@ -22384,6 +22610,17 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
         post_process_string_object_exception(err);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warnings=%2%, model_fits %3%")%err.string%warnings.size() %model_fits;
 
+        // The same check update_background_process() applies. Without it this path clears
+        // the invalid flag and closes the notification on a plate that is still unslicable.
+        // model_fits is set too, mirroring the missing-plugin block further down: the slice
+        // is already gated by m_apply_invalid, but leaving m_ready_for_slice true would be a
+        // trap for any future consumer that reads it on its own.
+        if (err.string.empty()) {
+            err.string = imex_placement_error(p->partplate_list.get_curr_plate());
+            if (!err.string.empty())
+                model_fits = false;
+        }
+
         if (err.string.empty()) {
             p->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
             p->notification_manager->set_all_slicing_errors_gray(true);
@@ -22998,7 +23235,61 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         update();
         p->partplate_list.select_plate(0);
     }
+    else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
+    {
+        ret = select_plate(plate_index);
+        if (!ret) {
+            PartPlate* curr_plate = p->partplate_list.get_curr_plate();
+            // Ordered mode list: kImexPrimaryMode first, then each named mode once.
+            const std::vector<std::string> modes =
+                imex_plate_mode_choices(wxGetApp().preset_bundle->printers.get_edited_preset().config);
 
+            if (right_click) {
+                // Show a popup menu with all modes.
+                wxMenu menu;
+                std::string current = curr_plate->get_imex_mode();
+                std::vector<int> mode_ids;
+                mode_ids.reserve(modes.size());
+                for (size_t i = 0; i < modes.size(); ++i) {
+                    int id = wxNewId();
+                    mode_ids.push_back(id);
+                    const wxString label = (modes[i] == kImexPrimaryMode) ? _L("Primary") : from_u8(modes[i]);
+                    wxMenuItem* item = menu.AppendRadioItem(id, label);
+                    if (modes[i] == current)
+                        item->Check(true);
+                }
+                menu.Bind(wxEVT_MENU, [this, curr_plate, modes, mode_ids](wxCommandEvent& e) {
+                    auto it = std::find(mode_ids.begin(), mode_ids.end(), e.GetId());
+                    if (it == mode_ids.end()) return;
+                    const size_t idx = std::distance(mode_ids.begin(), it);
+                    take_snapshot("set imex mode");
+                    curr_plate->set_imex_mode(modes[idx]);
+                    update_project_dirty_from_presets();
+                    set_plater_dirty(true);
+                    update();
+                });
+                p->view3D->get_canvas3d()->get_wxglcanvas()->PopupMenu(&menu);
+                ret = 1; // signal to caller: popup was shown, suppress plate context menu
+            } else {
+                // Left-click: always cycles mode. The IMEX ghost renderer exposes
+                // the per-head filament picker on the plate itself; no popover here.
+                const std::string current_mode = curr_plate->get_imex_mode();
+                auto it = std::find(modes.begin(), modes.end(), current_mode);
+                size_t next_idx = (it == modes.end()) ? 0 : ((it - modes.begin() + 1) % modes.size());
+                std::string next_mode = modes[next_idx];
+                if (next_mode != current_mode) {
+                    take_snapshot("set imex mode");
+                    curr_plate->set_imex_mode(next_mode);
+                    update_project_dirty_from_presets();
+                    set_plater_dirty(true);
+                    update();
+                }
+            }
+        } else {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
+            ret = -1;
+        }
+    }
     else
     {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "invalid action %1%, with right_click=%2%" << action << right_click;
@@ -23554,6 +23845,60 @@ bool Plater::PopupObjectTableBySelection()
 void Plater::update_title_dirty_status()
 {
     p->update_title_dirty_status();
+}
+
+Plater::ImexGhostTooltip Plater::format_imex_ghost_tooltip(int physical_head) const
+{
+    ImexGhostTooltip t{physical_head, -1, GLVolume::UNPRINTABLE_COLOR, {}};
+
+    const PartPlate* plate = p->partplate_list.get_curr_plate();
+    if (!plate) {
+        t.label = "T" + std::to_string(physical_head) + " -> (no plate)";
+        return t;
+    }
+
+    const ConfigOptionInts pem = effective_physical_extruder_map(*wxGetApp().preset_bundle);
+    const auto map = plate->get_imex_head_filament_map();
+    const int logical = resolve_filament_for_head(map, pem, physical_head);
+    if (logical < 0) {
+        // No filament slot resolves to this physical head. Usually means the printer's
+        // extruder count is understated relative to the filament palette (user added a
+        // filament without extending printer_extruder_id in the Machine tab).
+        t.label = "T" + std::to_string(physical_head) + " — no filament routed\n"
+                  "Add an extruder in the Machine tab so this head has a filament slot.";
+        return t;
+    }
+    t.filament_slot_1based = logical + 1;
+    // Reuse the pem/map already hoisted above so label and swatch are derived
+    // from one resolution, not two.
+    t.swatch = plate->get_imex_head_filament_color(physical_head, pem, map);
+    t.swatch.a(1.0f);  // tooltip swatch opaque
+    t.label  = "T" + std::to_string(physical_head) +
+               " -> filament " + std::to_string(t.filament_slot_1based);
+    return t;
+}
+
+void Plater::on_imex_ghost_click(int physical_head)
+{
+    const ConfigOptionInts pem = effective_physical_extruder_map(*wxGetApp().preset_bundle);
+
+    int lane_count = 0;
+    for (int pv : pem.values) if (pv == physical_head) ++lane_count;
+    if (lane_count < 2) return;  // single-lane head -> click is a no-op, tooltip conveyed status
+
+    PartPlate* plate = p->partplate_list.get_curr_plate();
+    if (!plate) return;
+
+    auto* picker = new IMEXFilamentPickerPopover(
+        p->view3D->get_canvas3d()->get_wxglcanvas(),
+        plate, pem, physical_head,
+        [this]() {
+            take_snapshot("edit imex head filament");
+            update_project_dirty_from_presets();
+            set_plater_dirty(true);
+            update();
+        });
+    picker->popup_at_cursor();
 }
 
 

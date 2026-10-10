@@ -247,6 +247,20 @@ void smooth_height_pixels(std::vector<uint8_t> &pixels, int width, int height, f
 }
 } // namespace
 
+bool height_texture_has_color(const TextureDisplacementLayer &layer)
+{
+    if (layer.empty())
+        return false;
+    {
+        std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
+        const auto it = g_decoded_texture_cache.entries.find(layer.image_data.get());
+        if (it != g_decoded_texture_cache.entries.end() && it->second.first.lock() == layer.image_data)
+            return it->second.second.has_color();
+    }
+    // Not decoded yet. Decoding caches the raw image, so this happens once per image.
+    return decode_height_texture(layer).has_color();
+}
+
 DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer)
 {
     DecodedHeightTexture result;

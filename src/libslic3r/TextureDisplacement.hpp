@@ -1,6 +1,7 @@
 #ifndef slic3r_TextureDisplacement_hpp_
 #define slic3r_TextureDisplacement_hpp_
 
+#include <cmath>
 #include <cstddef>
 #include <Eigen/Core>
 #include <cstdint>
@@ -387,6 +388,10 @@ struct TextureDisplacementOptions
     // image (TextureDetail::flat_colors): a texture of flat colours prints in single filaments, a
     // photograph or gradient in mixes. Off forces single filaments everywhere.
     bool         color_mix_enabled = true;
+    // The most mixes the palette may offer. Every mix a bake paints with becomes a mixed filament slot,
+    // so this is also the most slots one bake can add. The mixes themselves are picked from the
+    // texture's colours, those that improve the match the most coming first.
+    int          color_mix_count   = 8;
     // Majority-filter passes over the assigned colours. See TextureColorRequest::despeckle_passes -
     // this is the control for it, and 2 is enough to clear the salt-and-pepper an image with detail
     // finer than the mesh leaves behind, without eating features that are genuinely a facet wide.
@@ -396,7 +401,7 @@ struct TextureDisplacementOptions
     {
         ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border,
            pipeline_v2, v2_refine_mm, v2_regularize, v2_max_triangles_k,
-           v2_relocate, color_mix_enabled, color_despeckle);
+           v2_relocate, color_mix_enabled, color_despeckle, color_mix_count);
     }
 };
 
@@ -480,6 +485,10 @@ struct DecodedHeightTexture
 // DecodedHeightTexture if image_data is empty or is not a PNG at all.
 DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer);
 
+// decode_height_texture(layer).has_color(), answered from the decode cache rather than from a copy of the
+// texture - cheap enough to ask every frame. Smoothing does not change it, so the raw decode is what is read.
+bool height_texture_has_color(const TextureDisplacementLayer &layer);
+
 // Maps a linear RGB colour in [0, 1] to an index into the caller's palette, or -1 for "no colour".
 //
 // Deliberately a callback rather than a function here: matching a colour to a filament is a
@@ -494,12 +503,14 @@ using ColorQuantizeFn = std::function<int(const Vec3f &)>;
 // interleaving, which the slicer does per print layer. Plain data, so it can be captured into a job.
 struct PrintableColor
 {
-    Vec3f rgb   = Vec3f::Zero(); // what it looks like; for a mix, the perceptual average of the two
+    Vec3f rgb   = Vec3f::Zero(); // what it looks like; for a mix, the colour its mixed filament slot shows
     int   a     = 0;             // filament index
     int   b     = 0;             // the second filament; == a for a pure entry
     int   num   = 1;             // a's share of the interleave, out of `den`
     int   den   = 1;
     bool  is_mix() const { return a != b; }
+    // a's share in percent, the form a mixed filament slot is created from.
+    int   a_percent() const { return int(std::lround(100.0 * double(num) / double(den))); }
 };
 
 // Everything needed to colour a mesh, captured on the main thread and handed to a job. An empty
@@ -762,9 +773,10 @@ struct TextureColorRequest
     float           min_color_region_mm2 = 0.5f;
     // Filled per *base mesh* triangle (the bake is topology-preserving, so this indexes the returned
     // mesh too): the quantize callback's index plus one, or 0 for "this triangle takes no colour from
-    // the texture". The +1 is not arbitrary - it lines up with EnforcerBlockerType, where 0 is NONE
-    // ("use the volume's own filament") and 1..16 are Extruder1..16, so the caller can hand these
-    // straight to a TriangleSelector without a second mapping table.
+    // the texture". The +1 lines up with EnforcerBlockerType, where 0 is NONE ("use the volume's own
+    // filament"): where every palette entry is a filament, these go straight to a TriangleSelector. A
+    // palette with mixes maps each index to the mix's filament slot first (see
+    // GLGizmoTextureDisplacement::palette_filaments()).
     std::vector<uint8_t> *out_triangle = nullptr;
 };
 

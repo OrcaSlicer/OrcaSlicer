@@ -112,6 +112,8 @@ set(lisbslic3r_sources
     CommonDefs.hpp
     Config.cpp
     Config.hpp
+    ConnectedBodies.cpp
+    ConnectedBodies.hpp
     ContourZ.cpp
     CustomGCode.cpp
     CustomGCode.hpp
@@ -323,6 +325,12 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    IMEXArrange.cpp
+    IMEXArrange.hpp
+    IMEXHelpers.cpp
+    IMEXHelpers.hpp
+    IMEXZones.cpp
+    IMEXZones.hpp
     InstanceLock.cpp
     InstanceLock.hpp
     Int128.hpp

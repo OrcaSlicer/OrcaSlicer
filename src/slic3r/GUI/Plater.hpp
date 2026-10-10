@@ -292,11 +292,12 @@ public:
     // Mixed-color filament sidebar section
     void add_mixed_filament();
     // The filament slot that blends `components` (1-based physical filament indices) in `ratios`
-    // (percentages), creating it when no existing mixed slot already describes that blend. Returns the
-    // 0-based filament index, or -1 when the paint-state cap leaves no room for another one.
+    // (percentages) at a fixed ratio, creating it when no existing fixed mixed slot already describes
+    // that blend (see find_fixed_mixed_filament()). Returns the 0-based filament index, or -1 when the
+    // paint-state cap leaves no room for another one.
     //
     // Exists so a feature that needs a blend can ask for one without going through the modal dialog:
-    // the texture displacement gizmo turns each mix in its palette into a slot, which is what moves the
+    // a texture displacement bake turns each mix it painted with into a slot, which is what moves the
     // interleaving from its own paint mask to the slicer, where it happens per layer.
     int ensure_mixed_filament(const std::vector<unsigned int> &components, const std::vector<int> &ratios);
     void edit_mixed_filament(size_t idx);
@@ -729,6 +730,18 @@ public:
     void set_current_canvas_as_dirty();
     void unbind_canvas_event_handlers();
     void reset_canvas_volumes();
+
+    // Dispatch a left-click on an IMEX ghost volume in the 3D canvas to the plater-level
+    // popover. Implemented in Task 7; stub body for Task 6.
+    void on_imex_ghost_click(int physical_head);
+
+    struct ImexGhostTooltip {
+        int         physical_head;
+        int         filament_slot_1based;  // -1 if no routing
+        ColorRGBA   swatch;
+        std::string label;                 // "T2 -> filament 6" or "T2 -> (no filament)"
+    };
+    ImexGhostTooltip format_imex_ghost_tooltip(int physical_head) const;
 
     PrinterTechnology   printer_technology() const;
     const DynamicPrintConfig * config() const;

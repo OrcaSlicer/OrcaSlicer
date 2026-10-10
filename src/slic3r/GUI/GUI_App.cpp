@@ -1861,6 +1861,17 @@ namespace {
     constexpr int FINAL_DRAIN_TIMEOUT_MS      = 100;  // Final event processing before destruction
     constexpr int POLL_INTERVAL_MS            = 50;   // Polling interval for state checks
     constexpr int MAX_YIELD_ITERATIONS        = 20;   // Maximum wxYield calls per drain cycle
+
+    // The Orca agent's health check reports into GUI_App from a worker thread, and the agent can
+    // outlive GUI_App's use of it (the plugin service keeps a reference), so stop the check before
+    // the agent is deleted or replaced. The cast is null when no Orca agent is attached.
+    void stop_orca_health_check(NetworkAgent* agent)
+    {
+        if (!agent)
+            return;
+        if (auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(agent->get_cloud_agent()))
+            orca_agent->stop_health_check();
+    }
 }
 
 // Process pending wx events with bounded iteration count
@@ -1993,6 +2004,10 @@ bool GUI_App::hot_reload_network_plugin()
     }
 
     if (m_agent) {
+        // Stop the health check first: a result it posts after the Phase 2 drain would run while
+        // m_agent is null or replaced.
+        stop_orca_health_check(m_agent);
+
         // Phase 1: Clear all callbacks (stops new invocations)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 1 - clearing callbacks";
         m_agent->set_on_ssdp_msg_fn(nullptr);
@@ -2860,6 +2875,7 @@ int GUI_App::OnExit()
     NetworkAgentFactory::clear_printer_agent_cache();
 
     if (m_agent) {
+        stop_orca_health_check(m_agent);
         // BBS avoid a crash on mac platform
 #ifdef __WINDOWS__
         m_agent->start_discovery(false, false);
@@ -2891,6 +2907,14 @@ int GUI_App::OnExit()
     }
 
     return wxApp::OnExit();
+}
+
+void GUI_App::CleanUp()
+{
+    // OnExit() does not run when OnInit() fails, and m_agent is then still set. Stop the check before
+    // wxApp::CleanUp() resets wxTheApp, which a result posted from the worker would still be using.
+    stop_orca_health_check(m_agent);
+    wxApp::CleanUp();
 }
 
 class wxBoostLog : public wxLog
@@ -3115,9 +3139,11 @@ bool GUI_App::on_init_inner()
     // OnExit() and ~GUI_App() never run. Shut the plugins and Python down here as ~GUI_App() does. Left to
     // PluginManager's static destructor, the shutdown locks hook state that has already been destroyed and aborts.
     // Unload the Bambu network plugin too. Its static destructors abort if its agent's threads are still running.
+    // Stop the Orca Cloud health check as OnExit() does, so no request is in flight while exit() tears down.
     wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
         stop_sync_user_preset();
+        stop_orca_health_check(m_agent);
         Slic3r::NetworkAgent::unload_network_module();
         Slic3r::PluginManager::instance().shutdown();
         Slic3r::PythonInterpreter::instance().shutdown();
@@ -3975,6 +4001,9 @@ bool GUI_App::on_init_network(bool try_backup)
 
     // m_agent = new Slic3r::NetworkAgent(data_directory);
     std::unique_ptr<Slic3r::NetworkAgent> agent_ptr = Slic3r::create_agent_from_config(data_directory, app_config);
+    // A direct restart_networking() replaces m_agent without deleting it, so a health check in flight
+    // on the old agent would still report into the GUI.
+    stop_orca_health_check(m_agent);
     m_agent = agent_ptr.release();
 
     if (!m_device_manager)

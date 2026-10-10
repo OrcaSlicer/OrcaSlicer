@@ -255,3 +255,39 @@ TEST_CASE("blend_color_multi weights components", "[FilamentMixer]")
             REQUIRE(std::abs(comp(mixed, i) - comp("#123456", i)) <= 8);
     }
 }
+
+TEST_CASE("format_mixed_ratios normalises weights to four decimals", "[FilamentMixer]")
+{
+    REQUIRE(format_mixed_components({1, 3}) == "1,3");
+    REQUIRE(format_mixed_ratios({50, 50}) == "0.5000,0.5000");
+    REQUIRE(format_mixed_ratios({1, 2}) == "0.3333,0.6667");
+    REQUIRE(format_mixed_ratios({1, 1}) == format_mixed_ratios({50, 50}));
+}
+
+TEST_CASE("find_fixed_mixed_filament reuses only a fixed slot of the same blend", "[FilamentMixer]")
+{
+    // Physical slots 0 and 1; slot 2 blends them 50:50 as a gradient, slot 3 at a fixed 50:50.
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("filament_is_mixed", new ConfigOptionBools({false, false, true, true}));
+    cfg.set_key_value("filament_mixed_components", new ConfigOptionStrings({"", "", "1,2", "1,2"}));
+    cfg.set_key_value("filament_mixed_sublayer_ratios",
+                      new ConfigOptionStrings({"", "", format_mixed_ratios({50, 50}), format_mixed_ratios({50, 50})}));
+    cfg.set_key_value("filament_mixed_gradient", new ConfigOptionBools({false, false, true, false}));
+
+    SECTION("The fixed slot is found, whatever scale the weights are given at") {
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {50, 50}) == 3);
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {1, 1}) == 3);
+    }
+    SECTION("A gradient slot with the same components and ratios is not a match") {
+        cfg.option<ConfigOptionBools>("filament_is_mixed")->values[3] = false;
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {50, 50}) == -1);
+    }
+    SECTION("A project without the gradient key still matches its fixed slots") {
+        cfg.erase("filament_mixed_gradient");
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {50, 50}) == 2);
+    }
+    SECTION("Another ratio or another component order is a different blend") {
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {1, 2}) == -1);
+        REQUIRE(find_fixed_mixed_filament(cfg, {2, 1}, {50, 50}) == -1);
+    }
+}

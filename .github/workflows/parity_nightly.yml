@@ -156,7 +156,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libopengl0 libglu1-mesa libgl1 libegl1 libwebkit2gtk-4.1-0
+            libopengl0 libgl1 libegl1 libwebkit2gtk-4.1-0
 
       - uses: actions/setup-python@v6
         with:
@@ -224,7 +224,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             xvfb xdotool imagemagick openbox mesa-utils \
-            libopengl0 libglu1-mesa libgl1 libegl1 libwebkit2gtk-4.1-0
+            libopengl0 libgl1 libegl1 libwebkit2gtk-4.1-0
 
       - name: Run the parity harness
         run: |

@@ -113,7 +113,7 @@ Vec3f GLGizmoPainterBase::get_tilt_up_direction() const
     return build_plate_tilt_up_direction().cast<float>();
 }
 
-void GLGizmoPainterBase::render_triangles(const Selection& selection) const
+void GLGizmoPainterBase::render_triangles(const Selection& selection, const ModelVolume* skip) const
 {
     auto* shader = wxGetApp().get_shader("mm_gouraud");
     if (!shader)
@@ -135,6 +135,8 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection) const
             continue;
 
         ++mesh_id;
+        if (mv == skip)
+            continue;
 
         Transform3d trafo_matrix;
         if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
