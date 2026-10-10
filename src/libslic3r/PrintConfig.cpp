@@ -330,6 +330,14 @@ static t_config_enum_values s_keys_map_IroningType {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(IroningType)
 
+// BBS:
+static t_config_enum_values s_keys_map_TopOneWallType{
+    {"not apply", int(TopOneWallType::None)},
+    {"topmost", int(TopOneWallType::Topmost)},
+    {"all top", int(TopOneWallType::Alltop)
+}};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TopOneWallType)
+
 //BBS
 static t_config_enum_values s_keys_map_WallInfillOrder {
     { "inner wall/outer wall/infill",     int(WallInfillOrder::InnerOuterInfill) },
@@ -1801,11 +1809,18 @@ void PrintConfigDef::init_fff_params()
                        "will be ignored for outer-inner or inner-outer-inner wall sequences.");
     def->set_default_value(new ConfigOptionBool{true});
 
-    def = this->add("only_one_wall_top", coBool);
+    def = this->add("top_one_wall_type", coEnum);
     def->label = L("Only one wall on top surfaces");
-    def->category = L("Quality");
-    def->tooltip = L("Use only one wall on flat top surfaces, to give more space to the top infill pattern.");
-    def->set_default_value(new ConfigOptionBool(false));
+    def->tooltip = L("Use only one wall on flat top surface, to give more space to the top infill pattern. Could be applied on topmost "
+                     "surface or all top surface.");
+    def->enum_keys_map = &ConfigOptionEnum<TopOneWallType>::get_enum_values();
+    def->enum_values.push_back("not apply");
+    def->enum_values.push_back("topmost");
+    def->enum_values.push_back("all top");
+    def->enum_labels.push_back(L("Not apply"));
+    def->enum_labels.push_back(L("Topmost surface"));
+    def->enum_labels.push_back(L("Top surfaces"));
+    def->set_default_value(new ConfigOptionEnum<TopOneWallType>(TopOneWallType::Alltop));
 
     // the tooltip is copied from SuperStudio
     def = this->add("min_width_top_surface", coFloatOrPercent);
@@ -9795,9 +9810,9 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "chamber_temperature";
     } else if (opt_key == "thumbnail_size") {
         opt_key = "thumbnails";
-    } else if (opt_key == "top_one_wall_type" && value != "none") {
-        opt_key = "only_one_wall_top";
-        value = "1";
+    } else if (opt_key == "only_one_wall_top" && value == "1") {
+        opt_key = "top_one_wall_type";
+        value   = "all top";
     } else if (opt_key == "initial_layer_flow_ratio") {
         opt_key = "bottom_solid_infill_flow_ratio";
     } else if (opt_key == "ironing_direction") {
