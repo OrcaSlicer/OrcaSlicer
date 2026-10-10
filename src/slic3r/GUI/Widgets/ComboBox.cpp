@@ -8,11 +8,13 @@
 #include <vector>
 #include <wx/arrstr.h>
 #include <cstddef>
+#include <wx/containr.h>
 #include <wx/dcgraph.h>
 #include <wx/textctrl.h>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 BEGIN_EVENT_TABLE(ComboBox, TextInput)
 

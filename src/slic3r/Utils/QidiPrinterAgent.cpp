@@ -1,15 +1,22 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
+#include "MoonrakerPrinterAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 #include <cctype>
+#include "libslic3r/Preset.hpp"
+#include <map>
 #include <sstream>
-
-using json = nlohmann::json;
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 

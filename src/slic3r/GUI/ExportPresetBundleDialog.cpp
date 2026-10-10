@@ -1,9 +1,7 @@
 #include "ExportPresetBundleDialog.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_App.hpp"
-#include "ConfigWizard.hpp"
 #include "I18N.hpp"
-#include "GUI_App.hpp"
 #include <cstddef>
 #include <chrono>
 #include <ctime>
@@ -12,7 +10,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <deque>
-#include <libslic3r/Config.hpp>
 #include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
 #include <utility>
 #include <string>
@@ -35,6 +32,8 @@
 #include <miniz.h>
 #include <nlohmann/json.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+
+class wxWindow;
 
 using json = nlohmann::json;
 
@@ -76,7 +75,7 @@ void ExportPresetBundleDialog::on_script_message(const nlohmann::json& j)
         OnRequestPresets();
     } else if (strCmd == "export_local") {
         wxFileDialog dlg(this, _L("Save preset bundle"), "", "export.orca_bundle",
-                         "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+                         _L("Orca Preset Bundle (*.orca_bundle)|*.orca_bundle"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
         wxString path;
         wxString name;
         if (dlg.ShowModal() == wxID_OK) {
@@ -478,27 +477,27 @@ void ExportPresetBundleDialog::show_export_result(const ExportCase& export_case)
     switch (export_case) {
     case ExportCase::INITIALIZE_FAIL:
         msg_dlg = new MessageDialog(this, _L("initialize fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::ADD_FILE_FAIL:
         msg_dlg = new MessageDialog(this, _L("add file fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::ADD_BUNDLE_STRUCTURE_FAIL:
         msg_dlg = new MessageDialog(this, _L("add bundle structure file fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::FINALIZE_FAIL:
         msg_dlg = new MessageDialog(this, _L("finalize fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::OPEN_ZIP_WRITTEN_FILE:
         msg_dlg = new MessageDialog(this, _L("open zip written fail"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     case ExportCase::EXPORT_SUCCESS:
         msg_dlg = new MessageDialog(this, _L("Export successful"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                                    wxYES | wxYES_DEFAULT | wxCENTRE);
+                                    wxOK | wxCENTRE);
         break;
     }
 

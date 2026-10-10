@@ -6,6 +6,7 @@
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/containr.h>
 #include <wx/dcclient.h>
 #include <wx/dc.h>
 #include <wx/dcgraph.h>
@@ -16,6 +17,7 @@
 #include <wx/textctrl.h>
 #include <wx/timer.h>
 #include <wx/spinctrl.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"

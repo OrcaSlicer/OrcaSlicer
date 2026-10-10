@@ -2,6 +2,7 @@
 #include "Widgets/Label.hpp"
 
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <utility>
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -13,6 +14,7 @@
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 BEGIN_EVENT_TABLE(TabButton, StaticBox)
 

@@ -1,11 +1,24 @@
 #include "NSVGUtils.hpp"
 #include <array>
+#include <cassert>
 #include <charconv> // to_chars
 
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <nanosvg/nanosvg.h>
+#include <cstddef>
+#include <string>
+#include <memory>
+#include <sstream>
+#include <cstring>
+#include <cmath>
 #include "ClipperUtils.hpp"
 #include "Emboss.hpp" // heal for shape
+#include "Polygon.hpp"
+#include "Polyline.hpp"
+#include "EmbossShape.hpp"
+#include "Point.hpp"
+#include "libslic3r.h"
 
 namespace {    
 using namespace Slic3r; // Polygon
@@ -250,7 +263,6 @@ size_t get_shapes_count(const NSVGimage &image)
 } // namespace Slic3r
 
 namespace {
-using namespace Slic3r; // Polygon + Vec2f
 
 Point::coord_type to_coor(float val, double scale) { return static_cast<Point::coord_type>(std::round(val * scale)); }
 

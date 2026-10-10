@@ -1,16 +1,40 @@
 #include "WipeTower.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
 #include <iostream>
+#include <map>
+#include <string>
+#include <utility>
+#include <limits>
+#include <math.h>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include "libslic3r/Circle.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ArcFitter.hpp"
 #include "GCodeProcessor.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "libslic3r/Line.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "Triangulation.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Config.hpp"
 
 
 namespace Slic3r
@@ -1448,6 +1472,10 @@ public:
     void set_multi_nozzle_group_result(const MultiNozzleUtils::LayeredNozzleGroupResult *multi_nozzle_group_result) { m_multi_nozzle_group_result = multi_nozzle_group_result; }
     void set_physical_extruder_map(const std::vector<int> &physical_extruder_map) { m_physical_extruder_map = physical_extruder_map; }
 
+    // physical_extruder_map defaults to the single element {0} and is only widened to one entry
+    // per extruder on IMEX printers, so indexing it by tool is out of range on any other
+    // multi-extruder machine. Fall back to the tool's own index, matching the bounds-checked
+    // form GCodeProcessor uses for the same map.
 private:
     std::string set_normal_acceleration() {
         std::vector<unsigned int> accelerations = m_is_first_layer ? m_first_layer_normal_accelerations : m_normal_accelerations;

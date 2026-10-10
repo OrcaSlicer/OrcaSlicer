@@ -2,8 +2,12 @@
 #define slic3r_GLCanvas3D_hpp_
 
 #include "libslic3r/Point.hpp"
+#include "libslic3r/ConnectedBodies.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include <cstdlib>
+#include <imgui.h>
 #include <map>
 #include <cmath>
 #include "libslic3r/Geometry.hpp"
@@ -14,12 +18,10 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Model.hpp"
 #include "libvgcode/include/Types.hpp"
-#include "libvgcode/include/PathVertex.hpp"
-#include "libslic3r/Color.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Line.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <stddef.h>
+#include <functional>
 #include <memory>
 #include <chrono>
 #include <cstdint>
@@ -31,8 +33,8 @@
 #include "Gizmos/GLGizmosManager.hpp"
 #include "GUI_ObjectLayers.hpp"
 #include "GLSelectionRectangle.hpp"
+#include "GLModel.hpp"
 #include "MeshUtils.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "GCodeViewer.hpp"
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
@@ -53,6 +55,14 @@
 #include <wx/colour.h>
 #include <wx/time.h>
 #include <wx/timer.h>
+
+namespace Slic3r { class ColorRGBA; }
+namespace Slic3r { class DynamicPrintConfig; }
+namespace Slic3r { class GLShaderProgram; }
+namespace Slic3r { struct GCodeProcessorResult; }
+namespace Slic3r::GUI { class ImGuiWrapper; }
+namespace libvgcode { struct PathVertex; }
+struct ImVec2;
 
 class wxSizeEvent;
 class wxIdleEvent;
@@ -177,13 +187,10 @@ wxDECLARE_EVENT(EVT_GLCANVAS_PLATE_NAME_CHANGE, SimpleEvent);
 //BBS: declare EVT_GLCANVAS_PLATE_SELECT
 wxDECLARE_EVENT(EVT_GLCANVAS_PLATE_SELECT, SimpleEvent);
 
-using Vec2dEvent = Event<Vec2d>;
 // _bool_ value is used as a indicator of selection in the 3DScene
 using RBtnEvent = Event<std::pair<Vec2d, bool>>;
 using RBtnPlateEvent = Event<std::pair<Vec2d, int>>;
-template <size_t N> using Vec2dsEvent = ArrayEvent<Vec2d, N>;
 
-using Vec3dEvent = Event<Vec3d>;
 template <size_t N> using Vec3dsEvent = ArrayEvent<Vec3d, N>;
 
 using HeightProfileSmoothEvent = Event<HeightProfileSmoothingParams>;
@@ -474,6 +481,69 @@ class GLCanvas3D
         void render(const std::vector<const ModelInstance*>& sorted_instances) const;
     };
 
+    class CenterOfMass
+    {
+        using Sum = GCodeProcessorResult::ObjectMass::Sum;
+        enum MarkerKind : size_t { mkPlate, mkObject, mkSupport, mkBody, mkCount };
+        // A marker's mass and the box of what it stands for.
+        struct Marker
+        {
+            Sum           sum;
+            BoundingBoxf3 box;
+            // Of an object, whether it is an assembly.
+            bool assembly{ false };
+
+            Vec3d center() const { return sum.moment / sum.mass; }
+        };
+        // The plates', each object instance's, its supports' and each body of an assembly's.
+        using Markers = std::array<std::vector<Marker>, mkCount>;
+
+        // The marker's two colors of alternating octants.
+        std::array<GLModel, 2> m_octants;
+        // Mass properties at unit density of each ModelVolume's mesh, by ModelVolume id, which a new mesh changes.
+        std::map<size_t, MassProperties> m_meshes;
+        // The connected bodies of each assembly in its own coordinates, by ModelObject id, with the volumes they were sliced from.
+        struct Bodies
+        {
+            struct Volume
+            {
+                size_t      id;
+                bool        negative;
+                double      density;
+                Transform3d trafo;
+
+                bool operator==(const Volume& other) const
+                {
+                    return id == other.id && negative == other.negative && density == other.density && trafo.matrix() == other.trafo.matrix();
+                }
+            };
+            std::vector<Volume>    volumes;
+            size_t                 slabs{ 0 };
+            std::vector<SolidBody> bodies;
+        };
+        std::map<size_t, Bodies> m_bodies;
+        // The markers drawn last: of the finished print and, in Preview, of what is printed up to the top layer shown.
+        std::array<Markers, 2> m_drawn;
+        size_t                 m_top_layer{ 0 };
+        // The marker whose details are shown, with the number of its kind then.
+        struct Pick
+        {
+            size_t set;
+            size_t kind;
+            size_t index;
+            size_t count;
+        };
+        std::optional<Pick> m_picked;
+
+        Markers model_markers(const GLCanvas3D& canvas);
+
+    public:
+        void render(GLCanvas3D& canvas);
+        // Shows the details of the marker under the mouse, else hides them; whether it hit one.
+        bool on_left_down(GLCanvas3D& canvas, const Vec2d& mouse);
+        void render_details(GLCanvas3D& canvas);
+    };
+
     class Tooltip
     {
         std::string m_text;
@@ -594,13 +664,21 @@ private:
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
     bool m_collapse_toolbar_enabled{true};
+    // The collapse button of a sidebar other than Prepare's, from set_collapse_toolbar().
+    GLToolbar*                    m_collapse_toolbar{nullptr};
+    std::function<CollapseSide()> m_collapse_side;
     bool m_plate_chrome_enabled{true};
-    // Design tab: render the world-axis triad at the bed centre (= modeling origin) instead of
-    // the bed corner. Default false preserves the main editor's corner triad.
-    bool m_axes_at_bed_center{false};
+    // This canvas is the Design tab's. Its bed stays at the printer bed's home whichever plate is
+    // current, with the world-axis triad and a CAD grid at the bed centre (= modeling origin) in
+    // place of the corner triad and the plate grid, and the plate data it reads (exclude areas,
+    // the current plate's box) moved onto that bed. Default false leaves the editor tabs untouched.
+    bool m_design_canvas{false};
     // Design tab: draw the printer bed and its plate grid at all. Default true, so the
     // main editor is untouched; the Design tab lets the user hide it to model without a bed.
     bool m_show_bed{true};
+    // Design tab: draw the outline where a volume crosses the bed. GLVolume::SinkingContours slices
+    // the plater model's mesh by the volume's ids, so a canvas over its own Model must turn it off.
+    bool m_sinking_contours_enabled{true};
     // Design tab: CAD grid drawn on the bed plane in place of the plate's corner-origin grid.
     // Two GLModels (10 mm minor / 50 mm major) generated from the bed centre so a line passes
     // exactly through the modeling origin; built once and rebuilt only when the bed shape changes.
@@ -617,6 +695,9 @@ private:
 
     //BBS: add canvas type for assemble view usage
     ECanvasType m_canvas_type;
+    // Objects drawn with the phong shader's studio lighting whatever the realistic-view settings
+    // (the Design tab's canvas). Off for every canvas of the slicer, which render as before.
+    bool m_studio_lighting{false};
     std::array<ClippingPlane, 2> m_clipping_planes;
     ClippingPlane m_camera_clipping_plane;
     bool m_use_clipping_planes;
@@ -654,11 +735,6 @@ private:
     std::array<unsigned int, 2> m_old_size{ 0, 0 };
 
     bool m_is_touchpad_navigation{ false };
-    // CAD navigation (Design tab only): left-drag is a selection rubber band, so orbit moves
-    // to middle-drag and pan to right-drag — the Onshape/SolidWorks mapping. Off everywhere
-    // else, so Prepare/Preview keep the mouse the user already learned.
-    bool m_cad_navigation{ false };
-
     // Screen is only refreshed from the OnIdle handler if it is dirty.
     bool m_dirty;
     // A frame is needed, and only for the overlay.
@@ -700,6 +776,9 @@ private:
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
     std::vector<int> m_hover_plate_idxs;
+    // IMEX ghost hover state (plate-owned transparent ghost volumes).
+    int m_hover_ghost_head  { -1 };  // physical head index, -1 when not hovering a ghost
+    int m_hover_ghost_plate { -1 };  // plate index for the hovered ghost, -1 when none
     //BBS if explosion_ratio is changed, need to update volume bounding box
     mutable float m_explosion_ratio = 1.0;
     mutable Vec3d m_rotation_center{ 0.0, 0.0, 0.0};
@@ -724,6 +803,7 @@ private:
     int m_selected_extruder;
 
     Labels m_labels;
+    CenterOfMass m_center_of_mass;
     Tooltip m_tooltip;
     bool m_tooltip_enabled{ true };
     Slope m_slope;
@@ -861,6 +941,7 @@ public:
 
     void set_context(wxGLContext* context) { m_context = context; }
     void set_type(ECanvasType type) { m_canvas_type = type; }
+    void set_studio_lighting(bool on) { m_studio_lighting = on; }
     ECanvasType get_canvas_type() { return m_canvas_type; }
 
     wxGLCanvas* get_wxglcanvas() { return m_canvas; }
@@ -912,7 +993,7 @@ public:
     //BBS
     GCodeViewer& get_gcode_viewer() { return m_gcode_viewer; }
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
-    void reset_gcode_toolpaths() { m_gcode_viewer.reset(); }
+    void reset_gcode_toolpaths() { _set_shown_canvas_current(); m_gcode_viewer.reset(); }
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
     void update_gcode_sequential_view_current(unsigned int first, unsigned int last) { m_gcode_viewer.update_sequential_view_current(first, last); }
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_gcode_viewer.get_gcode_view_full_range(); }
@@ -1009,13 +1090,20 @@ public:
     void enable_return_toolbar(bool enable);
     void enable_separator_toolbar(bool enable);
     void enable_collapse_toolbar(bool enable);
+    // A canvas beside a sidebar other than Prepare's shows that sidebar's collapse button: `toolbar`,
+    // set up with setup_collapse_toolbar(), on the edge `side` reports. Call before the canvas is
+    // initialized, which loads the toolbar's background.
+    void set_collapse_toolbar(GLToolbar* toolbar, std::function<CollapseSide()> side);
     void enable_plate_chrome(bool enable);
-    void set_axes_at_bed_center(bool b) { m_axes_at_bed_center = b; }
+    void set_design_canvas(bool b) { m_design_canvas = b; }
     void set_show_bed(bool b) { m_show_bed = b; }
     bool get_show_bed() const { return m_show_bed; }
+    void enable_sinking_contours(bool enable) { m_sinking_contours_enabled = enable; }
 #ifdef SLIC3R_CAD
     void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
     DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }
+    // The Design tab frames what it selects itself (DesignCanvas::zoom_to_box), as the Fit button does.
+    void zoom_to_box(const BoundingBoxf3& box) { _zoom_to_box(box); }
 #endif
     void enable_dynamic_background(bool enable) { m_dynamic_background_enabled = enable; }
     void enable_labels(bool enable) { m_labels.enable(enable); }
@@ -1043,6 +1131,9 @@ public:
     bool  is_collapse_toolbar_on_left() const;
     float get_collapse_toolbar_width() const;
     float get_collapse_toolbar_height() const;
+    // Right edge, in canvas pixels, of the bottom-left corner the 3D navigator and the round
+    // canvas buttons own. An overlay along the bottom edge starts past it.
+    float get_canvas_toolbar_right() const;
 
     void update_volumes_colors_by_extruder();
 
@@ -1194,7 +1285,6 @@ public:
     bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
     bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
-    void set_cad_navigation(bool b) { m_cad_navigation = b; }
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;
@@ -1226,6 +1316,8 @@ public:
 
     int get_move_volume_id() const { return m_mouse.drag.move_volume_idx; }
     int get_first_hover_volume_idx() const { return m_hover_volume_idxs.empty() ? -1 : m_hover_volume_idxs.front(); }
+    int get_hover_ghost_head()  const { return m_hover_ghost_head; }
+    int get_hover_ghost_plate() const { return m_hover_ghost_plate; }
     void set_selected_extruder(int extruder) { m_selected_extruder = extruder;}
 
     class WipeTowerInfo {
@@ -1376,6 +1468,8 @@ private:
     // BBS
     //bool _init_view_toolbar();
     bool _init_collapse_toolbar();
+    GLToolbar&   collapse_toolbar() const;
+    CollapseSide collapse_side() const;
 
     bool _set_current();
     bool _set_shown_canvas_current();
@@ -1391,6 +1485,8 @@ private:
 
     void _picking_pass();
     void _rectangular_selection_picking_pass();
+    // IMEX ghost picking (ray vs. ghost bbox). Runs at the end of _picking_pass.
+    void _picking_pass_imex_ghosts();
     bool _is_fxaa_enabled() const;
     bool _is_realistic_view_enabled() const;
     bool _is_ssao_enabled() const;
@@ -1424,12 +1520,20 @@ private:
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
+    // The current plate's box (XY, at z = 0); in the Design tab, its own bed's.
+    BoundingBoxf3 _current_plate_box() const;
     // Design tab: draw the CAD grid (minor 10 mm + major 50 mm) in place of the plate's
-    // corner-origin grid when the axes sit at the bed centre (modeling origin). Rebuilds its
-    // GLModels lazily, only when the bed shape changed.
+    // corner-origin grid, centred on the modeling origin. Rebuilds its GLModels lazily, only
+    // when the bed shape changed.
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    // IMEX ghost volumes owned by PartPlate, drawn through the shader the caller bound:
+    // the shaded pass's transparent half, or the X-Ray pass below.
+    void _render_imex_ghosts(bool xray_pass = false);
+    void _render_imex_ghosts_xray();
+    // IMEX ghost hover tooltip: filament swatch + label drawn as an ImGui overlay.
+    void _render_imex_ghost_tooltip();
     void _render_section_view_caps();
     void _render_wireframe_overlay();
     bool _is_xray_view_active() const;

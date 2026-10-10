@@ -299,3 +299,27 @@ endif()
 if(TARGET dep_ZLIB)
     add_dependencies(dep_python3 dep_ZLIB)
 endif()
+
+if (NOT WIN32 AND NOT APPLE)
+    # CPython's Makefile rules for _ssl and _hashlib depend only on their own
+    # sources, not on the OpenSSL archives, so a rebuilt OpenSSL does not make
+    # them relink and they keep the previous symbols. On an incremental tree,
+    # drop the built modules and relink them against the current OpenSSL; a
+    # fresh build is left alone (its PGO target builds them). "make" alone is a
+    # no-op once PGO has run, so sharedmods is invoked explicitly.
+    ExternalProject_Get_Property(dep_python3 SOURCE_DIR)
+    file(GLOB _python_ssl_modules
+        "${SOURCE_DIR}/Modules/_ssl*.so"
+        "${SOURCE_DIR}/Modules/_hashlib*.so")
+    if (_python_ssl_modules)
+        ExternalProject_Add_Step(dep_python3 relink_ssl_extensions
+            DEPENDEES configure
+            DEPENDERS build
+            COMMAND sh -c "rm -f '${SOURCE_DIR}'/Modules/_ssl*.so '${SOURCE_DIR}'/Modules/_hashlib*.so && make -j${NPROC} sharedmods"
+            WORKING_DIRECTORY "${SOURCE_DIR}"
+            COMMENT "CPython: relinking _ssl/_hashlib against the current OpenSSL"
+            DEPENDS "${CMAKE_CURRENT_LIST_FILE}"
+                    "${CMAKE_CURRENT_LIST_DIR}/../OpenSSL/OpenSSL.cmake"
+        )
+    endif ()
+endif ()

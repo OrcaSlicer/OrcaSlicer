@@ -1,12 +1,35 @@
 #include "../ClipperUtils.hpp"
 #include "../MarchingSquares.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Execution/ExecutionTBB.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "FillTpmsFK.hpp"
+#include "FillTpmsAdaptive.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cstddef>
+#include <math.h>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+
+namespace Slic3r {
+
+// Fischer - Koch S equation:
+// cos(2x)sin(y)cos(z) + cos(2y)sin(z)cos(x) + cos(2z)sin(x)cos(y) = 0
+static float fischer_koch(float x, float y, float z)
+{
+    return cosf(2 * x) * sinf(y) * cosf(z) + cosf(2 * y) * sinf(z) * cosf(x) + cosf(2 * z) * sinf(x) * cosf(y);
+}
+
+} // namespace Slic3r
 
 namespace marchsq {
 using namespace Slic3r;
@@ -32,16 +55,7 @@ struct ScalarField
     {}
 
     // Get the scalar field value at x,y,z in coordf_t coordinates.
-    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const
-    {
-        const float fx = freq * x;
-        const float fy = freq * y;
-        const float fz = freq * z;
-
-        // Fischer - Koch S equation:
-        // cos(2x)sin(y)cos(z) + cos(2y)sin(z)cos(x) + cos(2z)sin(x)cos(y) = 0
-        return cosf(2 * fx) * sinf(fy) * cosf(fz) + cosf(2 * fy) * sinf(fz) * cosf(fx) + cosf(2 * fz) * sinf(fx) * cosf(fy);
-    }
+    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const { return fischer_koch(freq * x, freq * y, freq * z); }
 
     // Get the scalar field value at a Coord for the current z value.
     float get_scalar(Coord p) const
@@ -112,28 +126,40 @@ Polylines get_polylines(const ScalarField& sf, const double tolerance = SCALED_E
 
 namespace Slic3r {
 
-using namespace std;
-
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       unsigned int                   thickness_layers,
                                       const std::pair<float, Point>& direction,
                                       ExPolygon                      expolygon,
                                       Polylines&                     polylines_out)
 {
+    if (params.tpms_adaptive == TpmsAdaptiveMode::SteppedShells && this->tpms_radial_field != nullptr) {
+        fill_tpms_shells(*this->tpms_radial_field, expolygon, this->z - 0.5 * params.layer_height, params, this->spacing,
+                         [&](const FillParams &shell_params, const ExPolygon &shell) {
+                             this->_fill_surface_single(shell_params, thickness_layers, direction, shell, polylines_out);
+                         });
+        return;
+    }
+
     auto infill_angle = float(this->angle + (CorrectionAngle * 2 * M_PI) / 360.);
     if (std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
 
-    float density_factor = std::min(0.9f, params.density);
     // Density (field period) adjusted to have a good %of weight.
-    const float vari_T = 4.18f * spacing * params.multiline / density_factor;
+    auto period = [&params, this](float density) { return 4.18f * spacing * params.multiline / std::min(0.9f, density); };
 
     BoundingBox bbox = expolygon.contour.bounding_box();
     // Enlarge the bounding box by the multi-line width to avoid artifacts at the edges.
     bbox.offset(scale_((params.multiline + 1) * spacing));
-    marchsq::ScalarField sf = marchsq::ScalarField(bbox, this->z, vari_T);
-    // Get simplified lines using coarse tolerance of 0.1mm (this is infill).
-    Polylines polylines = marchsq::get_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
+    Polylines polylines;
+    if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
+        polylines = make_adaptive_tpms({fischer_koch, 2. * PI / period(params.density), 2. * PI / period(params.tpms_interior_density),
+                                        params.tpms_adaptive_gradient},
+                                       *this->tpms_radial_field, bbox, this->z, params.layer_height, spacing, infill_angle);
+    } else {
+        marchsq::ScalarField sf = marchsq::ScalarField(bbox, this->z, period(params.density));
+        // Get simplified lines using coarse tolerance of 0.1mm (this is infill).
+        polylines = marchsq::get_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
+    }
 
     // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);

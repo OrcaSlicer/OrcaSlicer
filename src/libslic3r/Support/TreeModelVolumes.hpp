@@ -9,16 +9,24 @@
 #ifndef slic3r_TreeModelVolumes_hpp
 #define slic3r_TreeModelVolumes_hpp
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <cassert>
+#include <map>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 
 #include <boost/functional/hash.hpp>
+#include <vector>
+#include <utility>
 
 #include "TreeSupportCommon.hpp"
 
 #include "../Point.hpp"
 #include "../Polygon.hpp"
-#include "../PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r
 {
@@ -168,6 +176,9 @@ public:
     }
 
     Polygon m_bed_area;
+    // Belt floor polygons per layer — used for post-generation clipping
+    // in organic_draw_branches(). Public so the organic pipeline can access it.
+    std::vector<Polygons> m_belt_floor;
 
 private:
     // Caching polygons for a range of layers.

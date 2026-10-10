@@ -1,7 +1,7 @@
 #include "CheckList.hpp"
 
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include <wx/anybutton.h>
 #include <wx/arrstr.h>
 #include <wx/checklst.h>
 #include <wx/sizer.h>
@@ -15,6 +15,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <cstddef>
 #include <wx/dynarray.h>
+#include "slic3r/GUI/wxExtensions.hpp"
 
 CheckList::CheckList(
     wxWindow* parent,

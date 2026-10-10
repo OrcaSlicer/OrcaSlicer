@@ -2,11 +2,9 @@
 
 #include "CloudProvider.hpp"
 #include "I18N.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "libslic3r_version.h"
-#include "../Utils/Http.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
@@ -14,6 +12,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <utility>
 #include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
@@ -25,7 +24,7 @@
 #include <wx/filename.h>
 #include <sstream>
 #include <string>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include <functional>
 #include <cstddef>
 #include <wx/dialog.h>
@@ -42,8 +41,10 @@
 #include <wx/webview.h>
 #include <wx/utils.h>
 #include <wx/window.h>
+#include <wx/infobar.h>
 
 namespace pt = boost::property_tree;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -62,10 +63,10 @@ namespace GUI {
 WebViewPanel::WebViewPanel(wxWindow *parent)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
  {
-    wxString url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/homepage/index.html");
+    m_home_url = file_url_from_path(boost::filesystem::path(resources_dir()) / "web/homepage/index.html");
     wxString strlang = wxGetApp().current_language_code_safe();
     if (strlang != "")
-        url += "?lang=" + strlang;
+        m_home_url += "?lang=" + strlang;
 
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
     
@@ -109,12 +110,8 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     m_info = new wxInfoBar(this);
     topsizer->Add(m_info, wxSizerFlags().Expand());
     // Create the webview
-    m_browser = WebView::CreateWebView(this, url);
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
-        return;
-    }
-    m_browser->Hide();
+    create_browser();
+    m_reset_on_show = WebView::NeedsRecreateOnShow();
     SetSizer(topsizer);
 
     topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
@@ -263,6 +260,27 @@ WebViewPanel::~WebViewPanel()
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " End";
 }
 
+
+void WebViewPanel::create_browser()
+{
+    m_browser = WebView::CreateWebView(this, m_home_url);
+    m_browser->Hide();
+}
+
+void WebViewPanel::reset_browser()
+{
+    m_browser->Destroy(); // also removes it from the sizer
+    create_browser();
+    GetSizer()->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
+    Layout();
+}
+
+bool WebViewPanel::Show(bool show)
+{
+    if (show && std::exchange(m_reset_on_show, false))
+        reset_browser();
+    return wxPanel::Show(show);
+}
 
 void WebViewPanel::load_url(wxString& url)
 {
@@ -958,7 +976,7 @@ void WebViewPanel::OnError(wxWebViewEvent& evt)
         wxLogMessage("%s", "Error; url='" + evt.GetURL() + "', error='" + category + " (" + evt.GetString() + ")'");
 
         // Show the info bar with an error
-        m_info->ShowMessage(_L("An error occurred loading ") + evt.GetURL() + "\n" + "'" + category + "'", wxICON_ERROR);
+        m_info->ShowMessage(wxString::Format(_L("An error occurred loading %s"), evt.GetURL()) + "\n" + "'" + category + "'", wxICON_ERROR);
     }
 
     UpdateState();

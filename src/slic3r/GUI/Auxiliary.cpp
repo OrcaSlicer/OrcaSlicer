@@ -26,7 +26,6 @@
 #include "slic3r/GUI/Tabbook.hpp"
 #include <ctime>
 #include <map>
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/app.h>
 #include <wx/bookctrl.h>
@@ -64,6 +63,13 @@
 #include "GUI_ObjectList.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Label.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -850,14 +856,14 @@ void AuxiliaryPanel::Split(const std::string &src, const std::string &separator,
     dest.clear();
     index = str.find_first_of(separator, start);
     do {
-        if (index != string::npos) {
+        if (index != std::string::npos) {
             substring = str.substr(start, index - start);
             dest.push_back(substring);
             start = index + separator.size();
             index = str.find(separator, start);
-            if (start == string::npos) break;
+            if (start == std::string::npos) break;
         }
-    } while (index != string::npos);
+    } while (index != std::string::npos);
 
     // the last part
     substring = str.substr(start);
@@ -1149,6 +1155,7 @@ void AuxiliaryPanel::update_all_cover()
      m_sizer_description->Add(m_text_description, 0, wxALIGN_TOP | wxRIGHT, FromDIP(10));
      m_input_description = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, 
                                           wxSize(FromDIP(450), FromDIP(300)), wxTE_MULTILINE | wxTE_PROCESS_ENTER);
+     m_input_description->SetBackgroundColour(*wxWHITE);
      m_input_description->SetFont(::Label::Body_14);
      m_sizer_description->Add(m_input_description, 0, wxALIGN_CENTER, 0);
 

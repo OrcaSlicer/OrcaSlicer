@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
+#include <limits>
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -85,7 +86,9 @@
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "CameraUtils.hpp"
+#include "GLModel.hpp"
 #include "GLShader.hpp"
+#include "libslic3r/ConnectedBodies.hpp"
 #include "GUI.hpp"
 #include "Tab.hpp"
 #include "GUI_Preview.hpp"
@@ -100,7 +103,6 @@
 #include "Mouse3DController.hpp"
 #include "I18N.hpp"
 #include "NotificationManager.hpp"
-#include "format.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
 #include "Gizmos/GLGizmoUtils.hpp"
@@ -137,6 +139,7 @@
 #include <tbb/spin_mutex.h>
 
 #include <boost/functional/hash.hpp>
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -152,6 +155,24 @@
 #include <imgui/imgui_internal.h>
 
 #include <imguizmo/ImGuizmo.h>
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/SLA/Pad.hpp"
+#include "libslic3r/TextConfiguration.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "slic3r/GUI/3DBed.hpp"
+#include "slic3r/GUI/FrameProfiler.hpp"
+#include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/IMToolbar.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/KeyChord.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/SceneCache.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 #ifdef __WXMSW__
 #if wxUSE_POPUPWIN
@@ -160,6 +181,8 @@ extern wxPopupWindow* wxCurrentPopupWindow;
 #endif
 #endif
 
+using namespace std::string_view_literals;
+
 static constexpr const float TRACKBALLSIZE = 0.8f;
 
 static Slic3r::ColorRGBA DEFAULT_BG_LIGHT_COLOR      = { 0.906f, 0.906f, 0.906f, 1.0f };
@@ -167,12 +190,12 @@ static Slic3r::ColorRGBA DEFAULT_BG_LIGHT_COLOR_DARK = { 0.329f, 0.329f, 0.353f,
 static Slic3r::ColorRGBA ERROR_BG_LIGHT_COLOR        = { 0.753f, 0.192f, 0.039f, 1.0f };
 static Slic3r::ColorRGBA ERROR_BG_LIGHT_COLOR_DARK   = { 0.753f, 0.192f, 0.039f, 1.0f };
 
-void GLCanvas3D::update_render_colors()
+void Slic3r::GUI::GLCanvas3D::update_render_colors()
 {
     DEFAULT_BG_LIGHT_COLOR = ImGuiWrapper::from_ImVec4(RenderColor::colors[RenderCol_3D_Background]);
 }
 
-void GLCanvas3D::load_render_colors()
+void Slic3r::GUI::GLCanvas3D::load_render_colors()
 {
     RenderColor::colors[RenderCol_3D_Background] = ImGuiWrapper::to_ImVec4(DEFAULT_BG_LIGHT_COLOR);
 }
@@ -981,6 +1004,325 @@ void GLCanvas3D::Labels::render(const std::vector<const ModelInstance*>& sorted_
     }
 }
 
+// The sums a solid adds to a marker.
+static GCodeProcessorResult::ObjectMass::Sum mass_sum(const MassProperties& solid)
+{
+    return { solid.mass, solid.volume, solid.mass * solid.center,
+             solid.mass * (solid.spread.diagonal() + solid.center.cwiseProduct(solid.center)) };
+}
+
+// On screen, of the plates, the objects, the supports and the bodies, each smaller than the one before, so that markers at
+// one place still show.
+static constexpr std::array<double, 4> marker_radii{ 9., 7., 6., 5. };
+
+// As the canvas toolbar scales for the display's DPI.
+static double marker_scale(const GLCanvas3D& canvas)
+{
+    double scale = canvas.get_scale();
+#ifdef WIN32
+    scale *= double(get_dpi_for_window(wxGetApp().GetTopWindow())) / double(DPI_DEFAULT);
+#endif // WIN32
+    return scale;
+}
+
+GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const GLCanvas3D& canvas)
+{
+    Markers markers;
+    if (canvas.get_model() == nullptr)
+        return markers;
+
+    struct Instance
+    {
+        Transform3d                   trafo;
+        std::vector<const GLVolume*> volumes;
+    };
+    std::map<int, std::map<int, Instance>> objects;
+    const ModelObjectPtrs&                 model_objects = canvas.get_model()->objects;
+    for (const GLVolume* volume : canvas.get_volumes().volumes) {
+        const int obj_idx = volume->object_idx();
+        const int vol_idx = volume->volume_idx();
+        if (!volume->is_active || volume->is_wipe_tower || obj_idx < 0 || obj_idx >= int(model_objects.size()) || vol_idx < 0 ||
+            vol_idx >= int(model_objects[obj_idx]->volumes.size()))
+            continue;
+        Instance& instance = objects[obj_idx][volume->instance_idx()];
+        instance.trafo     = volume->get_instance_transformation().get_matrix();
+        instance.volumes.emplace_back(volume);
+    }
+
+    // From the filament presets, as the plater config holds the values of the last filament edited only.
+    const PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
+    std::vector<double> filament_densities;
+    for (const std::string& name : preset_bundle.filament_presets)
+        filament_densities.emplace_back(preset_bundle.filaments.find_preset(name, true)->config.opt_float("filament_density", 0));
+    const auto density = [&filament_densities](const ModelVolume& volume) {
+        const size_t filament = size_t(std::max(1, volume.extruder_id()));
+        const double density  = filament <= filament_densities.size() ? filament_densities[filament - 1] : 0.;
+        return density > 0. ? density : double(DEFAULT_FILAMENT_DENSITY);
+    };
+
+    // One per plate, of the instances on it.
+    PartPlateList&                   plate_list = wxGetApp().plater()->get_partplate_list();
+    std::map<int, Marker>            plates;
+    std::map<size_t, MassProperties> meshes;
+    std::map<size_t, Bodies>         bodies;
+    for (const auto& [obj_idx, instances] : objects) {
+        const ModelObject& object = *model_objects[obj_idx];
+        // An assembly is sliced, so that its overlapping parts are united and its negative volumes cut away, in the
+        // order of its volumes, as the later one prints where two overlap.
+        std::vector<const GLVolume*> volumes = instances.begin()->second.volumes;
+        std::sort(volumes.begin(), volumes.end(), [](const GLVolume* l, const GLVolume* r) { return l->volume_idx() < r->volume_idx(); });
+        std::vector<MeshInPlace>    solids;
+        std::vector<double>         densities;
+        std::vector<MeshInPlace>    negatives;
+        std::vector<Bodies::Volume> sliced;
+        for (const GLVolume* volume : volumes) {
+            const ModelVolume& model_volume = *object.volumes[volume->volume_idx()];
+            if (!model_volume.is_model_part() && !model_volume.is_negative_volume())
+                continue;
+            const Transform3d trafo = volume->get_volume_transformation().get_matrix();
+            if (model_volume.is_model_part()) {
+                solids.emplace_back(&model_volume.mesh().its, trafo);
+                densities.emplace_back(density(model_volume));
+            } else
+                negatives.emplace_back(&model_volume.mesh().its, trafo);
+            sliced.push_back({ model_volume.id().id, model_volume.is_negative_volume(), model_volume.is_model_part() ? densities.back() : 0., trafo });
+        }
+        const std::vector<SolidBody>* assembly = nullptr;
+        if (solids.size() > 1 || (!solids.empty() && !negatives.empty())) {
+            // Coarser while a part is dragged.
+            const size_t slabs  = canvas.is_dragging() ? 100 : 500;
+            const auto   cached = m_bodies.find(object.id().id);
+            const bool   valid  = cached != m_bodies.end() && cached->second.slabs >= slabs && cached->second.volumes == sliced;
+            Bodies& entry = bodies[object.id().id];
+            entry = valid ? std::move(cached->second) : Bodies{ std::move(sliced), slabs, solid_bodies(solids, densities, negatives, slabs) };
+            assembly      = &entry.bodies;
+        }
+
+        for (const auto& [inst_idx, instance] : instances) {
+            // The box of its parts, which the object's size shows.
+            Marker object_marker;
+            object_marker.assembly = assembly != nullptr;
+            for (const GLVolume* volume : instance.volumes)
+                if (object.volumes[volume->volume_idx()]->is_model_part())
+                    object_marker.box.merge(volume->transformed_convex_hull_bounding_box());
+            if (assembly != nullptr) {
+                std::vector<Marker> parts;
+                for (const SolidBody& body : *assembly)
+                    if (body.mass > 0.) {
+                        parts.push_back({ mass_sum(body.transformed(instance.trafo)), body.bounding_box(instance.trafo) });
+                        object_marker.sum.add(parts.back().sum);
+                    }
+                if (parts.size() > 1)
+                    append(markers[mkBody], std::move(parts));
+            } else
+                for (const GLVolume* volume : instance.volumes) {
+                    // The parts the object info's volume sums.
+                    const ModelVolume& model_volume = *object.volumes[volume->volume_idx()];
+                    if (!model_volume.is_model_part())
+                        continue;
+                    const auto [it, inserted] = meshes.try_emplace(model_volume.id().id);
+                    if (inserted) {
+                        const auto cached = m_meshes.find(it->first);
+                        it->second = cached != m_meshes.end() ? cached->second : its_mass_properties(model_volume.mesh().its);
+                    }
+                    MassProperties part = it->second.transformed(volume->world_matrix());
+                    part.mass *= density(model_volume);
+                    object_marker.sum.add(mass_sum(part));
+                }
+            if (object_marker.sum.mass > 0.) {
+                if (const int plate = plate_list.find_instance(obj_idx, inst_idx); plate >= 0) {
+                    plates[plate].sum.add(object_marker.sum);
+                    plates[plate].box.merge(object_marker.box);
+                }
+                markers[mkObject].emplace_back(std::move(object_marker));
+            }
+        }
+    }
+    m_meshes = std::move(meshes);
+    m_bodies = std::move(bodies);
+    for (auto& [plate, marker] : plates)
+        markers[mkPlate].emplace_back(std::move(marker));
+    return markers;
+}
+
+void GLCanvas3D::CenterOfMass::render(GLCanvas3D& canvas)
+{
+    m_drawn = {};
+    const bool preview = canvas.m_canvas_type == ECanvasType::CanvasPreview;
+    // The other gizmos work on the surface the marker would cover.
+    const GLGizmosManager::EType gizmo = canvas.get_gizmos_manager().get_current_type();
+    if (!wxGetApp().show_center_of_mass() || canvas.m_design_canvas ||
+        !(canvas.m_canvas_type == ECanvasType::CanvasView3D || (preview && canvas.m_render_preview)) ||
+        (gizmo != GLGizmosManager::Undefined && gizmo != GLGizmosManager::Move && gizmo != GLGizmosManager::Rotate &&
+         gizmo != GLGizmosManager::Scale && gizmo != GLGizmosManager::Flatten))
+        return;
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+    if (shader == nullptr)
+        return;
+
+    // Preview adds markers for what is printed up to the top layer shown.
+    if (preview) {
+        const GCodeViewer& gcode_viewer = canvas.get_gcode_viewer();
+        m_top_layer                     = gcode_viewer.get_layers_z_range()[1];
+        const auto add = [this](const GCodeProcessorResult::ObjectMass& mass, MarkerKind kind) {
+            if (const Sum total = mass.total(); total.mass > 0.)
+                m_drawn[0][kind].push_back({ total, mass.box, mass.assembly });
+            if (!mass.printed_up_to_layer.empty())
+                if (const Sum& sum = mass.printed_up_to_layer[std::min(m_top_layer, mass.printed_up_to_layer.size() - 1)]; sum.mass > 0.)
+                    m_drawn[1][kind].push_back({ sum, mass.box, mass.assembly });
+        };
+        add(gcode_viewer.get_plate_mass(), mkPlate);
+        for (const GCodeProcessorResult::ObjectMass& object : gcode_viewer.get_object_masses())
+            add(object, mkObject);
+        for (const GCodeProcessorResult::ObjectMass& body : gcode_viewer.get_body_masses())
+            add(body, mkBody);
+        for (const GCodeProcessorResult::ObjectMass& support : gcode_viewer.get_support_masses())
+            add(support, mkSupport);
+    } else
+        m_drawn[0] = model_markers(canvas);
+    if (std::all_of(m_drawn.begin(), m_drawn.end(),
+                    [](const Markers& markers) { return std::all_of(markers.begin(), markers.end(), [](const auto& kind) { return kind.empty(); }); }))
+        return;
+
+    if (!m_octants[0].is_initialized()) {
+        // A resolution divisible by 4 puts every triangle within one octant.
+        const GLModel::Geometry          sphere = smooth_sphere(32, 1.f);
+        std::array<GLModel::Geometry, 2> octants;
+        for (size_t i = 0; i + 2 < sphere.indices_count(); i += 3) {
+            const std::array<unsigned int, 3> ids = { sphere.extract_index(i), sphere.extract_index(i + 1), sphere.extract_index(i + 2) };
+            const Vec3f c = sphere.extract_position_3(ids[0]) + sphere.extract_position_3(ids[1]) + sphere.extract_position_3(ids[2]);
+            GLModel::Geometry& octant = octants[c.x() * c.y() * c.z() > 0.f ? 0 : 1];
+            for (const unsigned int id : ids)
+                octant.add_vertex(sphere.extract_position_3(id), sphere.extract_normal_3(id));
+            const auto n = (unsigned int)octant.vertices_count();
+            octant.add_triangle(n - 3, n - 2, n - 1);
+        }
+        for (size_t i = 0; i < octants.size(); ++i)
+            m_octants[i].init_from(std::move(octants[i]));
+    }
+
+    const Camera&      camera      = wxGetApp().plater()->get_camera();
+    const Transform3d& view_matrix = camera.get_view_matrix();
+    const double       scale       = marker_scale(canvas) * camera.get_inv_zoom();
+
+    // Seen through the object it lies in; culling keeps the sphere's far half behind its near one.
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_CULL_FACE));
+    shader->start_using();
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    shader->set_uniform("view_normal_matrix", (Matrix3d)view_matrix.matrix().block(0, 0, 3, 3));
+    shader->set_uniform("emission_factor", 0.1f);
+    const std::array<std::array<ColorRGBA, 2>, mkCount> colors = { {
+        { ColorRGBA(0.1f, 0.1f, 0.1f, 1.f), ColorRGBA::WHITE() },
+        { ColorRGBA(0x5A / 255.f, 0x9B / 255.f, 0xD4 / 255.f, 1.f), ColorRGBA::WHITE() },
+        { ColorRGBA(0.f, 0.6f, 0.f, 1.f), ColorRGBA(0.1f, 0.1f, 0.1f, 1.f) },
+        { ColorRGBA(0.7f, 0.f, 0.f, 1.f), ColorRGBA::YELLOW() },
+    } };
+    const auto draw = [&](const Markers& markers, float alpha) {
+        for (size_t kind = 0; kind < mkCount; ++kind)
+            for (const Marker& marker : markers[kind]) {
+                shader->set_uniform("view_model_matrix", view_matrix * Geometry::translation_transform(marker.center()) *
+                                                             Geometry::scale_transform(marker_radii[kind] * scale));
+                for (size_t i = 0; i < m_octants.size(); ++i) {
+                    ColorRGBA color = colors[kind][i];
+                    color.a(alpha);
+                    m_octants[i].set_color(color);
+                    m_octants[i].render();
+                }
+            }
+    };
+    // Preview fades the finished parts' markers under those of what is printed so far.
+    draw(m_drawn[0], preview ? 0.4f : 1.f);
+    draw(m_drawn[1], 1.f);
+    shader->stop_using();
+    glsafe(::glEnable(GL_DEPTH_TEST));
+}
+
+bool GLCanvas3D::CenterOfMass::on_left_down(GLCanvas3D& canvas, const Vec2d& mouse)
+{
+    const bool    shown  = m_picked.has_value();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const double  scale  = marker_scale(canvas) * camera.get_inv_zoom();
+    m_picked.reset();
+    // In the order they cover each other: what is printed so far over the finished print, smaller kinds over larger ones.
+    for (size_t set = m_drawn.size(); set-- > 0 && !m_picked;)
+        for (size_t kind = mkCount; kind-- > 0 && !m_picked;)
+            for (size_t index = 0; index < m_drawn[set][kind].size(); ++index) {
+                const Vec3d              center = m_drawn[set][kind][index].center();
+                const std::vector<Vec3d> ends   = { center, center + marker_radii[kind] * scale * camera.get_dir_right() };
+                const Points             screen = CameraUtils::project(camera, ends);
+                if ((screen[0].cast<double>() - mouse).norm() <= (screen[1] - screen[0]).cast<double>().norm()) {
+                    m_picked = Pick{ set, kind, index, m_drawn[set][kind].size() };
+                    break;
+                }
+            }
+    if (shown || m_picked)
+        canvas._set_overlay_as_dirty();
+    return m_picked.has_value();
+}
+
+void GLCanvas3D::CenterOfMass::render_details(GLCanvas3D& canvas)
+{
+    if (!m_picked)
+        return;
+    const Pick&                pick    = *m_picked;
+    const std::vector<Marker>& markers = m_drawn[pick.set][pick.kind];
+    // Gone with the markers, or with what it stood for.
+    if (markers.size() != pick.count) {
+        m_picked.reset();
+        return;
+    }
+    const Marker& marker = markers[pick.index];
+    const Sum&    sum    = marker.sum;
+    const Vec3d   center = marker.center();
+    // About the axes through the center, from how far the mass spreads along the two others.
+    const Vec3d spread  = (sum.second / sum.mass - center.cwiseProduct(center)).cwiseMax(0.);
+    const Vec3d inertia = sum.mass * Vec3d(spread.y() + spread.z(), spread.x() + spread.z(), spread.x() + spread.y());
+
+    // Beside the marker.
+    const Point   screen = CameraUtils::project(wxGetApp().plater()->get_camera(), center);
+    ImGuiWrapper& imgui  = *wxGetApp().imgui();
+    imgui.set_next_window_pos(float(screen.x() + 2. * marker_radii[pick.kind] * marker_scale(canvas)), float(screen.y()), ImGuiCond_Always, 0.f, 0.5f);
+    const std::string title = pick.kind == mkPlate  ? _u8L("Plate center of mass") :
+                              pick.kind == mkBody   ? _u8L("Part center of mass") :
+                              pick.kind == mkSupport ? _u8L("Support center of mass") :
+                              marker.assembly       ? _u8L("Assembly center of mass") :
+                                                      _u8L("Object center of mass");
+    bool open = true;
+    imgui.begin(title + "###center_of_mass", &open,
+                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+    if (ImGui::IsWindowAppearing())
+        imgui.set_requires_extra_frame();
+    if (canvas.get_canvas_type() == ECanvasType::CanvasPreview)
+        imgui.text(pick.set == 0 ? _u8L("Finished print") : (boost::format(_u8L("Printed up to layer %1%")) % (m_top_layer + 1)).str());
+    // Masses are in mg, volumes in mm³.
+    const auto xyz = [](const Vec3d& v, const char* format, const std::string& unit) {
+        return (boost::format(format) % v.x() % v.y() % v.z()).str() + " " + unit;
+    };
+    if (ImGui::BeginTable("##center_of_mass_details", 2)) {
+        const auto row = [](const std::string& label, const std::string& value) {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, label);
+            ImGui::TableSetColumnIndex(1);
+            ImGuiWrapper::text(value);
+        };
+        row(_u8L("Weight"), (boost::format("%.2f g") % (sum.mass / 1000.)).str());
+        row(_u8L("Volume"), (boost::format(u8"%.2f cm³") % (sum.volume / 1000.)).str());
+        if (marker.box.defined) {
+            row(_u8L("Center in bounding box"), xyz(center - marker.box.min, "X: %.2f, Y: %.2f, Z: %.2f", _u8L("mm")));
+            row(_u8L("Bounding box size"), xyz(marker.box.size(), "X: %.2f, Y: %.2f, Z: %.2f", _u8L("mm")));
+        }
+        row(_u8L("Moment of inertia"), xyz(inertia / 1000., "X: %.0f, Y: %.0f, Z: %.0f", u8"g·mm²"));
+        ImGui::EndTable();
+    }
+    imgui.end();
+    if (!open) {
+        m_picked.reset();
+        canvas._set_overlay_as_dirty();
+    }
+}
+
 void GLCanvas3D::Tooltip::set_text(const std::string& text)
 {
     // If the mouse is inside an ImGUI dialog, then the tooltip is suppressed.
@@ -1440,7 +1782,7 @@ void GLCanvas3D::on_change_color_mode(bool is_dark, bool reinit) {
             // set dirty to re-generate icon texture
             m_separator_toolbar.set_icon_dirty();
             m_main_toolbar.set_icon_dirty();
-            wxGetApp().plater()->get_collapse_toolbar().set_icon_dirty();
+            collapse_toolbar().set_icon_dirty();
             m_assemble_view_toolbar.set_icon_dirty();
             m_gizmos.set_icon_dirty();
         }
@@ -1858,7 +2200,7 @@ BoundingBoxf3 GLCanvas3D::volumes_bounding_box(bool current_plate_only) const
     bool          is_limit = m_canvas_type != ECanvasType::CanvasAssembleView;
     if (is_limit) {
         if (current_plate_only) {
-            expand_part_plate_list_box = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_bounding_box();
+            expand_part_plate_list_box = _current_plate_box();
         } else {
             auto        plate_list_box = wxGetApp().plater()->get_partplate_list().get_bounding_box();
             auto        horizontal_radius = 0.5 * sqrt(std::pow(plate_list_box.min[0] - plate_list_box.max[0], 2) + std::pow(plate_list_box.min[1] - plate_list_box.max[1], 2));
@@ -1972,6 +2314,12 @@ void GLCanvas3D::enable_collapse_toolbar(bool enable)
     m_collapse_toolbar_enabled = enable;
 }
 
+void GLCanvas3D::set_collapse_toolbar(GLToolbar* toolbar, std::function<CollapseSide()> side)
+{
+    m_collapse_toolbar = toolbar;
+    m_collapse_side    = std::move(side);
+}
+
 void GLCanvas3D::enable_plate_chrome(bool enable)
 {
     m_plate_chrome_enabled = enable;
@@ -2052,24 +2400,52 @@ void GLCanvas3D::update_volumes_colors_by_extruder()
 
 bool GLCanvas3D::is_collapse_toolbar_on_left() const
 {
-    auto state = wxGetApp().plater()->get_sidebar_docking_state();
-    return state == Sidebar::Left;
+    return collapse_side() == CollapseSide::Left;
 }
 
 float GLCanvas3D::get_collapse_toolbar_width() const
 {
-    GLToolbar& collapse_toolbar = wxGetApp().plater()->get_collapse_toolbar();
-    const auto state            = wxGetApp().plater()->get_sidebar_docking_state();
-
-    return state != Sidebar::None ? collapse_toolbar.get_width() : 0;
+    return collapse_side() != CollapseSide::None ? collapse_toolbar().get_width() : 0;
 }
 
 float GLCanvas3D::get_collapse_toolbar_height() const
 {
-    GLToolbar& collapse_toolbar = wxGetApp().plater()->get_collapse_toolbar();
-    const auto state            = wxGetApp().plater()->get_sidebar_docking_state();
+    return collapse_side() != CollapseSide::None ? collapse_toolbar().get_height() : 0;
+}
 
-    return state != Sidebar::None ? collapse_toolbar.get_height() : 0;
+// The bottom-left corner: the 3D navigator, then the column of round canvas buttons beside it, in
+// units of the toolbar scale. Shared by _render_3d_navigator, _render_canvas_toolbar and
+// get_canvas_toolbar_right, so an overlay kept clear of the corner follows its layout.
+static constexpr float NAVIGATOR_SIZE         = 128.f;
+static constexpr float CANVAS_TOOLBAR_MARGIN  = 10.f;   // off the canvas edge, when there is no navigator
+static constexpr float CANVAS_TOOLBAR_PADDING = 2.f;
+static constexpr float CANVAS_TOOLBAR_BUTTON  = 36.f;
+
+float GLCanvas3D::get_canvas_toolbar_right() const
+{
+    // The toolbar scale, which on Windows follows the monitor's DPI where the ImGui style does not.
+    float sc = get_scale();
+#ifdef WIN32
+    sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
+#endif // WIN32
+    const float left = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE : CANVAS_TOOLBAR_MARGIN;
+    return (left + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * sc;
+}
+
+GLToolbar& GLCanvas3D::collapse_toolbar() const
+{
+    return m_collapse_toolbar != nullptr ? *m_collapse_toolbar : wxGetApp().plater()->get_collapse_toolbar();
+}
+
+CollapseSide GLCanvas3D::collapse_side() const
+{
+    if (m_collapse_side)
+        return m_collapse_side();
+    switch (wxGetApp().plater()->get_sidebar_docking_state()) {
+    case Sidebar::Left: return CollapseSide::Left;
+    case Sidebar::Right: return CollapseSide::Right;
+    default: return CollapseSide::None;
+    }
 }
 
 bool GLCanvas3D::make_current_for_postinit() {
@@ -2274,7 +2650,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
             tooltip = m_assemble_view_toolbar.get_tooltip();
 
 	    if (tooltip.empty())
-            tooltip = wxGetApp().plater()->get_collapse_toolbar().get_tooltip();
+            tooltip = collapse_toolbar().get_tooltip();
 
         // BBS
 #if 0
@@ -2283,10 +2659,18 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 #endif
     }
 
+    // Suppress the regular object-name/toolbar tooltip while hovering an IMEX
+    // ghost; the swatch overlay below stands in for it.
+    if (m_hover_ghost_head >= 0)
+        tooltip.clear();
+
     set_tooltip(tooltip);
 
     if (m_tooltip_enabled)
         m_tooltip.render(m_mouse.position, *this);
+
+    // IMEX ghost hover overlay: layered on top of the normal tooltip pass.
+    _render_imex_ghost_tooltip();
 
     wxGetApp().plater()->get_mouse3d_controller().render_settings_dialog(*this);
 
@@ -2363,7 +2747,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     }
     else if (gizmo_type == GLGizmosManager::BrimEars && !camera.is_looking_downward())
         show_grid = false;
-    if (m_axes_at_bed_center)
+    if (m_design_canvas)
         // Design tab: the plate grid is generated from the plate's front-left corner, so it
         // floats mid-cell under the modeling-origin triad. Suppress it here; a CAD grid centred
         // on the origin is rendered in its place (see _render_cad_grid).
@@ -2374,12 +2758,19 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         // m_show_bed gates the plate list too: hiding the bed but leaving its grid and outline
         // floating would read as a rendering fault rather than a deliberate view option.
-        if (show_bed)
-            _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+        if (show_bed) {
+            bool show_axes = m_show_world_axes;
+#ifdef SLIC3R_CAD
+            // Design tab: while its reference planes are up they draw their own axes from the modeling
+            // origin, where the bed's triad would otherwise sit on top of them.
+            show_axes = show_axes && !(m_design_sketch_tool != nullptr && m_design_sketch_tool->draws_reference_axes());
+#endif
+            _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), show_axes);
+        }
         m_frame_profiler.mark("bed");
         if (show_bed) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
-        if (m_axes_at_bed_center && show_bed)
+        if (m_design_canvas && show_bed)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
         m_frame_profiler.mark("plates");
@@ -2460,6 +2851,9 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         m_frame_profiler.mark("ssao");
     }
 
+    // After the occlusion pass, which would shade it as the surface behind it.
+    m_center_of_mass.render(*this);
+
     if (_is_fxaa_enabled()) {
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
         m_frame_profiler.mark("fxaa");
@@ -2491,7 +2885,7 @@ void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
 
 bool GLCanvas3D::_set_shown_canvas_current()
 {
-    // Thumbnails also render outside render(), where another library's GL context (e.g. WebKitGTK's) can be current.
+    // Called before GL work outside render(), where another library's GL context (e.g. WebKitGTK's) can be current.
     // Inside render(), the shown canvas is the one already bound.
     return wxGetApp().plater()->get_current_canvas3D()->_set_current();
 }
@@ -3116,7 +3510,13 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             need_wipe_tower |= dynamic_cast<const ConfigOptionBool*>(dconfig.option("enable_wrapping_detection"))->value;
         }
 
-        if (wt && (need_wipe_tower || filaments_count > 1) && !wxGetApp().plater()->only_gcode_mode() && !wxGetApp().plater()->is_gcode_3mf()) {
+        // Belt printers replace the classic wipe tower with the auto-generated
+        // belt purge prism (a real model object), so never draw the tower widget.
+        bool is_belt_printer = false;
+        if (const auto *belt_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("belt_printer"))
+            is_belt_printer = belt_opt->value;
+
+        if (wt && !is_belt_printer && (need_wipe_tower || filaments_count > 1) && !wxGetApp().plater()->only_gcode_mode() && !wxGetApp().plater()->is_gcode_3mf()) {
             // The tower size estimate reads printer- and filament-scope keys, which the print preset
             // does not carry; built once here rather than per plate.
             const DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config();
@@ -3184,6 +3584,28 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
     }
 
     update_volumes_colors_by_extruder();
+
+    // ORCA-Belt: render the auto-generated belt purge prism like a wipe tower —
+    // semi-transparent, in its (filament) color. It is a real sliced object, so
+    // the G-code preview already shows the actual per-layer purge colors; here in
+    // the editor we just make the block translucent so it reads as a purge tower
+    // rather than a solid part. update_colors_by_extruder() preserves alpha when
+    // not updating alpha, so lowering it once sticks across recolors.
+    if (m_model != nullptr) {
+        for (GLVolume *volume : m_volumes.volumes) {
+            if (volume == nullptr || volume->volume_idx() < 0)
+                continue;
+            const int obj_idx = volume->object_idx();
+            if (obj_idx < 0 || obj_idx >= (int) m_model->objects.size())
+                continue;
+            const ConfigOption *opt = m_model->objects[obj_idx]->config.option("belt_purge_tower_object");
+            if (opt != nullptr && opt->getBool()) {
+                volume->color.a(0.66f);
+                volume->force_transparent = true;
+            }
+        }
+    }
+
 	// Update selection indices based on the old/new GLVolumeCollection.
     if (m_selection.get_mode() == Selection::Instance)
         m_selection.instances_changed(instance_ids_selected);
@@ -3329,6 +3751,7 @@ void GLCanvas3D::load_shells(const Print& print, bool force_previewing)
 {
     if (m_initialized)
     {
+        _set_shown_canvas_current();
         m_gcode_viewer.load_shells(print, m_initialized, force_previewing);
         m_gcode_viewer.update_shells_color_by_extruder(m_config);
     }
@@ -3344,6 +3767,8 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     PartPlateList& partplate_list = wxGetApp().plater()->get_partplate_list();
     PartPlate* plate = partplate_list.get_curr_plate();
     const std::vector<BoundingBoxf3>& exclude_bounding_box = plate->get_exclude_areas();
+
+    _set_shown_canvas_current();
 
     //BBS: init is called in GLCanvas3D.render()
     //when load gcode directly, it is too late
@@ -3475,7 +3900,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     m_overlay_dirty |= m_assemble_view_toolbar.update_items_state();
     // BBS
     //m_dirty |= wxGetApp().plater()->get_view_toolbar().update_items_state();
-    m_overlay_dirty |= wxGetApp().plater()->get_collapse_toolbar().update_items_state();
+    m_overlay_dirty |= collapse_toolbar().update_items_state();
     // apply() DRAINS the 3D-mouse queue, so only the canvas actually on screen may call it: a
     // hidden canvas renders nothing, so the motion it swallowed moves the shared camera without
     // ever being drawn and the next visible frame jumps several states at once.
@@ -3551,68 +3976,10 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         return;
     }
 
-#ifdef SLIC3R_CAD
-    const int ctrlMask  = wxMOD_CONTROL;
-    const int shiftMask = wxMOD_SHIFT;
-#endif
-
-    // Design tab: Delete/Backspace removes the selected sketch entities while a
-    // sketch tool is active and the canvas has focus (dialog text fields are separate
-    // wx controls, so this never eats their editing keys).
-#ifdef SLIC3R_CAD
-    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
-        && (keyCode == WXK_DELETE || keyCode == WXK_BACK)
-        && !m_design_sketch_tool->selection().empty()) {
-        m_design_sketch_tool->delete_selected();
-        m_dirty = true;
-        render();
-        return;
-    }
-#endif
-
-    // Esc exits the active sketch tool (Onshape-like, layered: abort in-progress entity ->
-    // drop to Select -> exit the session back to Feature mode).
-#ifdef SLIC3R_CAD
-    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
-        && keyCode == WXK_ESCAPE) {
-        m_design_sketch_tool->request_exit();
-        m_dirty = true;
-        render();
-        return;
-    }
-#endif
-
-    // Design tab: Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) undo/redo the Design feature
-    // history. Scoped by m_design_sketch_tool — only the Design canvas owns one — so the
-    // main 3D editor's undo/redo (the CanvasView3D-gated cases further below) is untouched.
-    // Handled here, before the generic Ctrl block, so it takes precedence and early-returns.
-#ifdef SLIC3R_CAD
-    if (m_design_sketch_tool != nullptr && (evt.GetModifiers() & ctrlMask) != 0) {
-        const bool is_z = (keyCode == 'z' || keyCode == 'Z' || keyCode == WXK_CONTROL_Z);
-        const bool is_y = (keyCode == 'y' || keyCode == 'Y' || keyCode == WXK_CONTROL_Y);
-        if (is_z || is_y) {
-            const bool redo = is_y || ((evt.GetModifiers() & shiftMask) != 0);
-            m_design_sketch_tool->request_undo_redo(redo);
-            m_dirty = true;
-            render();
-            return;
-        }
-    }
-#endif
-
-    // Design tab: F = Place on Face (Prepare's lay-flat), when the Design viewport is up
-    // and a body face is selected. The tool forwards to DesignPanel::place_on_face; it returns
-    // false (no face picked) so F falls through to the default handler below.
-#ifdef SLIC3R_CAD
-    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display()
-        && (keyCode == 'f' || keyCode == 'F') && (evt.GetModifiers() & ctrlMask) == 0) {
-        if (m_design_sketch_tool->request_place_on_face()) {
-            m_dirty = true;
-            render();
-            return;
-        }
-    }
-#endif
+    // Design tab: Delete, Esc, Ctrl+Z/Y and F are NOT handled here. DesignPanel's CHAR_HOOK owns
+    // them (one route per key, whatever holds focus) and only lets a key through to this canvas
+    // when an in-canvas value field is open -- which is exactly when Backspace must edit the
+    // number rather than delete the geometry it measures.
 
     //BBS: add orient deactivate logic
     if (keyCode == WXK_ESCAPE
@@ -3777,6 +4144,16 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
         get_gcode_viewer().get_layers_slider()->switch_one_layer_mode();
         m_dirty = true;
         break;
+    case Shortcut::ToggleBeltRawGcode:
+        // Same state as the canvas view menu item. The designed-view back-transform is
+        // baked into the toolpaths at load time, so the preview is re-converted.
+        if (m_gcode_viewer.is_belt_view()) {
+            m_gcode_viewer.toggle_belt_show_designed();
+            if (Plater* plater = wxGetApp().plater())
+                plater->refresh_belt_view();
+            m_dirty = true;
+        }
+        break;
     case Shortcut::GoToLayer:
         if (!m_gizmos.is_enabled()) {
             get_gcode_viewer().get_layers_slider()->show_go_to_layer(true);
@@ -3890,19 +4267,6 @@ static void key_released(int key) { s_keys_down.erase(key); }
 
 void GLCanvas3D::on_key(wxKeyEvent& evt)
 {
-    // Design tab: Delete/Backspace removes selected sketch entities. GTK delivers
-    // these as KEY_DOWN rather than CHAR, so handle it here too.
-#ifdef SLIC3R_CAD
-    if (evt.GetEventType() == wxEVT_KEY_DOWN
-        && m_design_sketch_tool != nullptr && m_design_sketch_tool->is_active()
-        && (evt.GetKeyCode() == WXK_DELETE || evt.GetKeyCode() == WXK_BACK)
-        && !m_design_sketch_tool->selection().empty()) {
-        m_design_sketch_tool->delete_selected();
-        m_dirty = true;
-        render();
-        return;
-    }
-#endif
 
     const int keyCode = evt.GetKeyCode();
     if (evt.GetEventType() == wxEVT_KEY_DOWN)
@@ -4338,9 +4702,19 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // (drag/orbit/wheel) so the camera keeps working over the display-only plate.
 #ifdef SLIC3R_CAD
     if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display()) {
+        // Except over the sidebar collapse button, which is drawn over the sketch.
+        if (collapse_toolbar().on_mouse(evt, *this)) {
+            if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
+                mouse_up_cleanup();
+            m_mouse.set_start_position_3D_as_invalid();
+            return;
+        }
         if (evt.LeftDown() && m_canvas != nullptr)
             m_canvas->SetFocus();   // grab keyboard focus so Delete/keys reach this canvas
-        if (m_design_sketch_tool->on_mouse(evt, *this)) {
+        // A Touchpad-style orbit or pan (a plain move with Alt or Shift held) is the camera's,
+        // whatever the tool would make of the move. Only a drag consults the button mappings.
+        const bool camera_move = evt.Moving() && (is_camera_rotate(evt, {}) || is_camera_pan(evt, {}));
+        if (!camera_move && m_design_sketch_tool->on_mouse(evt, *this)) {
             m_dirty = true;
             render();   // force an immediate redraw so the sketch overlay updates live
             return;
@@ -4386,7 +4760,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         return;
     }
 
-    if (!mouse_in_layer_editing && wxGetApp().plater()->get_collapse_toolbar().on_mouse(evt, *this)) {
+    if (!mouse_in_layer_editing && collapse_toolbar().on_mouse(evt, *this)) {
         if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
             mouse_up_cleanup();
         m_mouse.set_start_position_3D_as_invalid();
@@ -4470,6 +4844,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // A gizmo that acts on a click or a drag may not request a frame itself.
         if (!evt.Moving())
             m_dirty = true;
+        return;
+    }
+
+    // A click on a center of mass marker shows its details instead of selecting.
+    if (evt.LeftDown() && !mouse_in_layer_editing && m_center_of_mass.on_left_down(*this, pos.cast<double>())) {
+        m_mouse.ignore_left_up = true;
         return;
     }
 
@@ -4695,6 +5075,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 TransformationType trafo_type;
                 trafo_type.set_relative();
                 m_selection.translate(cur_pos - m_mouse.drag.start_position_3D, trafo_type);
+                // Ghost transforms refresh from _render_imex_ghosts via the live GLVolume
+                // lookup, so no explicit update call is needed here.
                 if (current_printer_technology() == ptFFF) {
                     if (fff_print()->config().print_sequence == PrintSequence::ByObject)
                         update_sequential_clearance();
@@ -4868,6 +5250,13 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
             m_rectangle_selection.stop_dragging();
         }
+        else if (evt.LeftUp() && !m_mouse.dragging && m_hover_ghost_head >= 0) {
+            // IMEX ghost click: dispatch to Plater (filament picker). The else-if chain
+            // already prevents deselect/plate-select from firing on the same event; we
+            // fall through to mouse_up_cleanup() below so mouse capture and drag state
+            // get reset like every other branch in this chain.
+            wxGetApp().plater()->on_imex_ghost_click(m_hover_ghost_head);
+        }
         else if (evt.LeftUp() && !m_mouse.ignore_left_up && !m_mouse.dragging && m_hover_volume_idxs.empty() && m_hover_plate_idxs.empty() && !is_layers_editing_enabled()) {
             // deselect and propagate event through callback
             if (!evt.ShiftDown() && (!any_gizmo_active || !evt.CmdDown()) && m_picking_enabled)
@@ -4912,9 +5301,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             }
 
             //BBS change plate selection
+            bool plate_icon_popup_shown = false;
             if (!m_hover_plate_idxs.empty() && (m_canvas_type == CanvasView3D) && !m_mouse.dragging) {
                 int hover_idx = m_hover_plate_idxs.front();
-                wxGetApp().plater()->select_plate_by_hover_id(hover_idx, true);
+                plate_icon_popup_shown = (wxGetApp().plater()->select_plate_by_hover_id(hover_idx, true) == 1);
                 if (m_hover_volume_idxs.empty())
                     deselect_all();
                 render();
@@ -4934,10 +5324,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
             if (!m_mouse.ignore_right_up && m_gizmos.get_current_type() == GLGizmosManager::EType::Undefined) {
                 //BBS post right click event
-                if (!m_hover_plate_idxs.empty()) {
+                if (!m_hover_plate_idxs.empty() && !plate_icon_popup_shown) {
                     post_event(RBtnPlateEvent(EVT_GLCANVAS_PLATE_RIGHT_CLICK, { logical_pos, m_hover_plate_idxs.front() }));
                 }
-                else {
+                else if (!plate_icon_popup_shown) {
                     // do not post the event if the user is panning the scene
                     // or if right click was done over the wipe tower
                     bool post_right_click_event = m_hover_volume_idxs.empty() || !m_volumes.volumes[get_first_hover_volume_idx()]->is_wipe_tower;
@@ -5058,8 +5448,6 @@ bool GLCanvas3D::is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseB
 {
     if (m_is_touchpad_navigation) {
         return evt.Moving() && evt.AltDown() && !evt.ShiftDown();
-    } else if (m_cad_navigation) {
-        return evt.Dragging() && evt.MiddleIsDown();   // left-drag is the selection rubber band
     } else {
         return evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Rotation, mappings);
     }
@@ -5069,8 +5457,6 @@ bool GLCanvas3D::is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButt
 {
     if (m_is_touchpad_navigation) {
         return evt.Moving() && evt.ShiftDown() && !evt.AltDown();
-    } else if (m_cad_navigation) {
-        return evt.Dragging() && evt.RightIsDown();    // middle now orbits, so pan is right only
     } else {
         return evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Pan, mappings);
         ;
@@ -5251,6 +5637,10 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
 
     reset_sequential_print_clearance();
 
+    // IMEX: selection commit may have moved/added/removed objects — ghost cache key
+    // doesn't encode per-instance transforms, so force a full rebuild on next render.
+    wxGetApp().plater()->get_partplate_list().invalidate_all_imex_ghosts();
+
     m_dirty = true;
 }
 
@@ -5361,6 +5751,9 @@ void GLCanvas3D::do_rotate(const std::string& snapshot_type)
         post_event(SimpleEvent(EVT_GLCANVAS_INSTANCE_ROTATED));
     }
 
+    // IMEX: rotate changes per-instance transforms without touching the ghost cache key.
+    wxGetApp().plater()->get_partplate_list().invalidate_all_imex_ghosts();
+
     m_dirty = true;
 }
 
@@ -5460,6 +5853,9 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
 
         post_event(SimpleEvent(EVT_GLCANVAS_INSTANCE_SCALED));
     }
+
+    // IMEX: scale changes per-instance transforms without touching the ghost cache key.
+    wxGetApp().plater()->get_partplate_list().invalidate_all_imex_ghosts();
 
     m_dirty = true;
 }
@@ -5571,6 +5967,9 @@ void GLCanvas3D::do_mirror(const std::string& snapshot_type)
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 
     post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+
+    // IMEX: mirror changes per-instance transforms without touching the ghost cache key.
+    wxGetApp().plater()->get_partplate_list().invalidate_all_imex_ghosts();
 
     m_dirty = true;
 }
@@ -6355,9 +6754,9 @@ void GLCanvas3D::_render_3d_navigator()
     style.Colors[ImGuizmo::COLOR::DIRECTION_Z] = ImGuiWrapper::to_ImVec4(ColorRGBA::X());
     style.Colors[ImGuizmo::COLOR::TEXT] = m_is_dark ? ImVec4(224 / 255.f, 224 / 255.f, 224 / 255.f, 1.f) : ImVec4(.2f, .2f, .2f, 1.0f);
     style.Colors[ImGuizmo::COLOR::FACE]        = m_is_dark ? ImVec4(0.23f, 0.23f, 0.23f, 1.f) : ImVec4(0.77f, 0.77f, 0.77f, 1);
-    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_X], "Y"); // ORCA use uppercase to match text on tranform widgets
-    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Y], "Z"); // ORCA use uppercase to match text on tranform widgets
-    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Z], "X"); // ORCA use uppercase to match text on tranform widgets
+    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_X], _u8L_CONTEXT("Y", "Axis").c_str()); // ORCA use uppercase to match text on tranform widgets
+    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Y], _u8L_CONTEXT("Z", "Axis").c_str()); // ORCA use uppercase to match text on tranform widgets
+    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Z], _u8L_CONTEXT("X", "Axis").c_str()); // ORCA use uppercase to match text on tranform widgets
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_FRONT], _u8L_CONTEXT("Front", "Camera View").c_str());
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_BACK], _u8L_CONTEXT("Back", "Camera View").c_str());
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_TOP], _u8L_CONTEXT("Top", "Camera View").c_str());
@@ -6388,7 +6787,7 @@ void GLCanvas3D::_render_3d_navigator()
         }
     }
 
-    const float size  = 128 * sc;
+    const float size  = NAVIGATOR_SIZE * sc;
     m_canvas_toolbar_pos[0] = size;
     const auto result = ImGuizmo::ViewManipulate(cameraView, cameraProjection, ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::WORLD, nullptr,
                                                  camDistance, ImVec2(viewManipulateLeft, viewManipulateTop - size), ImVec2(size, size),
@@ -6967,7 +7366,7 @@ void GLCanvas3D::_switch_toolbars_icon_filename()
     m_main_toolbar.init(background_data);
     m_assemble_view_toolbar.init(background_data);
     m_separator_toolbar.init(background_data);
-    wxGetApp().plater()->get_collapse_toolbar().init(background_data);
+    collapse_toolbar().init(background_data);
 
     // main toolbar
     {
@@ -7395,7 +7794,17 @@ bool GLCanvas3D::_init_view_toolbar()
 
 bool GLCanvas3D::_init_collapse_toolbar()
 {
-    return wxGetApp().plater()->init_collapse_toolbar();
+    if (m_collapse_toolbar == nullptr)
+        return wxGetApp().plater()->init_collapse_toolbar();
+
+    // Its owner laid it out; the background needs the GL context.
+    BackgroundTexture::Metadata background_data;
+    background_data.filename = m_is_dark ? "toolbar_background_dark.png" : "toolbar_background.png";
+    background_data.left = 16;
+    background_data.top = 16;
+    background_data.right = 16;
+    background_data.bottom = 16;
+    return m_collapse_toolbar->init(background_data);
 }
 
 bool GLCanvas3D::_set_current()
@@ -7584,6 +7993,11 @@ void GLCanvas3D::_picking_pass()
 
     _update_volumes_hover_state();
 
+    // IMEX ghost picking runs unconditionally after the normal pass: ghosts visually
+    // occlude the main volumes, so their tooltip/click handling must fire even when a
+    // regular volume hit also occurred underneath.
+    _picking_pass_imex_ghosts();
+
 #if ENABLE_RAYCAST_PICKING_DEBUG
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     imgui.begin(std::string("Hit result"), ImGuiWindowFlags_AlwaysAutoResize);
@@ -7682,6 +8096,180 @@ void GLCanvas3D::_picking_pass()
 
     imgui.end();
 #endif // ENABLE_RAYCAST_PICKING_DEBUG
+}
+
+void GLCanvas3D::_picking_pass_imex_ghosts()
+{
+    m_hover_ghost_head  = -1;
+    m_hover_ghost_plate = -1;
+
+    if (!m_picking_enabled || m_mouse.dragging || m_mouse.position == Vec2d(DBL_MAX, DBL_MAX) || m_gizmos.is_dragging())
+        return;
+
+    // Build a world-space ray from the mouse: mouse_ray(pos) returns the near/far
+    // world-space points, so direction is b - a.
+    const Linef3 ray = mouse_ray(Point(static_cast<coord_t>(m_mouse.position.x()),
+                                       static_cast<coord_t>(m_mouse.position.y())));
+    const Vec3d ray_origin = ray.a;
+    const Vec3d ray_dir    = ray.b - ray.a;
+    if (ray_dir.squaredNorm() == 0.0)
+        return;
+
+    // Standard slab ray-vs-AABB test. Accept a hit when the nearest plane entry is
+    // closer than the farthest plane exit and the exit is in front of the origin.
+    auto ray_hits_bbox = [](const Vec3d& o, const Vec3d& d, const BoundingBoxf3& bb) -> bool {
+        double tmin = -std::numeric_limits<double>::infinity();
+        double tmax =  std::numeric_limits<double>::infinity();
+        for (int i = 0; i < 3; ++i) {
+            if (std::abs(d[i]) < 1e-12) {
+                if (o[i] < bb.min[i] || o[i] > bb.max[i])
+                    return false;
+            }
+            else {
+                double t1 = (bb.min[i] - o[i]) / d[i];
+                double t2 = (bb.max[i] - o[i]) / d[i];
+                if (t1 > t2) std::swap(t1, t2);
+                tmin = std::max(tmin, t1);
+                tmax = std::min(tmax, t2);
+                if (tmin > tmax) return false;
+            }
+        }
+        return tmax >= 0.0;
+    };
+
+    // Match _render_imex_ghosts: only hit-test ghosts on the active plate. Picking
+    // through ghosts on background plates would hand the user a stale plate index
+    // for the head-filament popover and let them edit a plate they aren't looking at.
+    PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
+    PartPlate* active_plate = ppl.get_curr_plate();
+    if (active_plate) {
+        const auto& ghosts = active_plate->get_imex_ghost_volumes();
+        for (const auto& g : ghosts) {
+            if (!g || !g->is_active || !g->picking) continue;
+            const BoundingBoxf3 bbox = g->transformed_bounding_box();
+            if (ray_hits_bbox(ray_origin, ray_dir, bbox)) {
+                m_hover_ghost_head  = PartPlate::imex_ghost_head_from_composite_id(g->composite_id.object_id);
+                m_hover_ghost_plate = ppl.get_curr_plate_index();
+                return;  // first hit wins
+            }
+        }
+    }
+}
+
+void GLCanvas3D::_render_imex_ghosts(bool xray_pass)
+{
+    // Draws through whichever shader the caller bound: the shaded pass leaves gouraud current,
+    // the X-Ray pass its own program. Both are fed per volume below; the uniforms a pass sets
+    // once for itself are the caller's (see _render_imex_ghosts_xray for the X-Ray pass's).
+    // GLVolume::render() only binds its mesh, so we must set the per-volume
+    // matrices AND uniform_color that GLVolumeCollection::render would normally
+    // set; otherwise ghosts pick up whatever the last main volume left behind.
+    GLShaderProgram* shader = wxGetApp().get_current_shader();
+    if (shader == nullptr)
+        return;
+
+    // Primary-volume live transform lookup: during a gizmo drag the GLVolume's
+    // instance_transformation is the source of truth (the ModelInstance matrix
+    // only catches up on mouse-up). Returning it from here makes ghosts track
+    // the drag every frame instead of snapping when the user releases.
+    auto primary_live_xf = [this](int obj_idx, int inst_idx) -> std::optional<Transform3d> {
+        for (const GLVolume* v : m_volumes.volumes) {
+            if (!v) continue;
+            if (v->composite_id.object_id == obj_idx &&
+                v->composite_id.instance_id == inst_idx)
+                return v->get_instance_transformation().get_matrix();
+        }
+        return std::nullopt;
+    };
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const Transform3d& view_matrix = camera.get_view_matrix();
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    // Ghosts live outside the build volume check; disable the partly-inside path.
+    shader->set_uniform("print_volume.type", -1);
+    shader->set_uniform("slope.actived", false);
+
+    // Only render ghosts for the active plate. Iterating every plate here causes
+    // ghosts from background plates to bleed through into the active scene
+    // (e.g. when entering paint mode), since the GL state is shared across the
+    // whole canvas. Per-plate ghost volumes still live on each PartPlate so they
+    // round-trip through 3MF saves; we just don't draw them when their plate
+    // isn't the one the user is currently looking at.
+    PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
+    PartPlate* active_plate = ppl.get_curr_plate();
+    if (active_plate) {
+        // Refresh per-frame so ghost positions reflect the primary's live drag state,
+        // and restamp ghost RGB from the live filament palette so color-only changes
+        // (palette edits, late-loading project colors) never leave stale ghosts.
+        active_plate->update_imex_ghost_transforms(primary_live_xf);
+        active_plate->update_imex_ghost_colors();
+        const auto& ghosts = active_plate->get_imex_ghost_volumes();
+        for (const auto& g : ghosts) {
+            if (!g || !g->is_active) continue;
+            const Transform3d model_matrix = g->world_matrix();
+            shader->set_uniform("volume_world_matrix", model_matrix);
+            shader->set_uniform("slope.volume_world_normal_matrix",
+                static_cast<Matrix3f>(model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));
+            shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
+            const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3)
+                * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
+            shader->set_uniform("view_normal_matrix", view_normal_matrix);
+            g->set_render_color();
+            // GLModel::render() pushes its own data.color into uniform_color,
+            // so we must stamp the ghost's color onto the model before render
+            // or it draws black. Pattern matches 3DScene.cpp:1099.
+            // X-Ray derives its own coverage from view angle and multiplies the colour's alpha
+            // into it, so a ghost carrying its translucency as well composites about three times
+            // fainter than the body it mirrors. Hand that pass an opaque colour and let its
+            // density be the only source of translucency.
+            ColorRGBA ghost_color = g->render_color;
+            if (xray_pass)
+                ghost_color.a(1.0f);
+            g->model.set_color(ghost_color);
+            g->render();
+        }
+    }
+}
+
+void GLCanvas3D::_render_imex_ghost_tooltip()
+{
+    if (m_hover_ghost_head < 0)
+        return;
+
+    // Hover state can outlive the ghosts that produced it: _picking_pass_imex_ghosts
+    // only resets m_hover_ghost_head when it runs, and _picking_pass early-returns
+    // (mouse drag, mouse off-canvas, gizmo drag) skip that reset. If the user switches
+    // from an IMEX printer to a non-IMEX one during such a window, the plate clears its
+    // ghost volumes but the stale head index survives — producing an orphan tooltip.
+    // Validate against live ghosts and self-heal before rendering.
+    const PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_plate(m_hover_ghost_plate);
+    if (!plate || plate->get_imex_ghost_volumes().empty()) {
+        m_hover_ghost_head  = -1;
+        m_hover_ghost_plate = -1;
+        return;
+    }
+
+    const auto t = wxGetApp().plater()->format_imex_ghost_tooltip(m_hover_ghost_head);
+
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    const Vec2i32 mouse = m_mouse.position.cast<int>();
+    const float cursor_offset = imgui.scaled(1.6f); // ~16px @ 100%, scales with DPI
+    imgui.set_next_window_pos(float(mouse.x()) + cursor_offset, float(mouse.y()) + cursor_offset,
+                              ImGuiCond_Always, 0.0f, 0.0f);
+    imgui.begin(std::string("##imex_ghost_tooltip"),
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings |
+                ImGuiWindowFlags_NoMouseInputs);
+    // Color swatch + label on the same row. imgui.scaled() keeps it readable on high-DPI.
+    const ImVec4 col(t.swatch.r(), t.swatch.g(), t.swatch.b(), t.swatch.a());
+    const float swatch_size = imgui.scaled(1.4f);
+    ImGui::ColorButton("##swatch", col,
+        ImGuiColorEditFlags_NoBorder | ImGuiColorEditFlags_NoTooltip,
+        ImVec2(swatch_size, swatch_size));
+    ImGui::SameLine();
+    imgui.text(t.label);
+    imgui.end();
 }
 
 void GLCanvas3D::_rectangular_selection_picking_pass()
@@ -7993,9 +8581,16 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
     const float margin = 10.0f * get_scale();
     const ImVec2 display_size = ImGui::GetIO().DisplaySize;
     ImVec2 pos(display_size.x - margin, margin);
+    // Last frame's size; zero until the overlay has been shown once.
+    const ImGuiWindow* self = ImGui::FindWindowByName("###fps_overlay");
+    const float left = pos.x - (self != nullptr ? self->Size.x : 0.0f);
     // The Preview legend takes the top-right corner.
     if (const ImGuiWindow* legend = ImGui::FindWindowByName("Legend"); m_canvas_type == ECanvasType::CanvasPreview && legend != nullptr && legend->Active)
         pos = ImVec2(legend->Pos.x - margin, legend->Pos.y);
+    // The toolbar row can reach the corner on a narrow canvas; stack the overlay below it then.
+    else if (m_main_toolbar.is_enabled() &&
+             get_main_toolbar_offset() + m_main_toolbar.get_width() + m_separator_toolbar.get_width() + m_gizmos.get_scaled_total_width() + m_assemble_view_toolbar.get_width() > left)
+        pos.y = std::max(m_main_toolbar.get_height(), m_gizmos.get_scaled_total_height()) + margin;
     ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.35f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * get_scale());
@@ -8274,7 +8869,7 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
     */
     //bool show_texture = true;
     //BBS set axes mode
-    if (m_axes_at_bed_center) {
+    if (m_design_canvas) {
         // Design tab: triad at the bed centre = modeling origin (set every frame because
         // set_shape/set_axes_mode otherwise reset it to the bed corner).
         const Vec2d bc = m_bed.build_volume().bed_center();
@@ -8287,7 +8882,30 @@ void GLCanvas3D::_render_bed(const Transform3d& view_matrix, const Transform3d& 
 
 void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body, int hover_id, bool render_cali, bool show_grid)
 {
-    wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid, !m_plate_chrome_enabled);
+    PartPlateList& plate_list = wxGetApp().plater()->get_partplate_list();
+    // Design tab: its bed stays at the printer bed's home whichever plate is current, so the
+    // current plate's exclude areas are moved from that plate onto it.
+    PartPlate* curr_plate = plate_list.get_curr_plate();
+    const Transform3d plate_view_matrix = m_design_canvas && curr_plate != nullptr ?
+        Transform3d(view_matrix * Geometry::translation_transform(-curr_plate->get_origin())) : view_matrix;
+    plate_list.render(plate_view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid, !m_plate_chrome_enabled);
+}
+
+BoundingBoxf3 GLCanvas3D::_current_plate_box() const
+{
+    // Design tab: its own bed stands in for the current plate (see _render_platelist).
+    const BuildVolume& build_volume = m_bed.build_volume();
+    if (m_design_canvas && build_volume.valid()) {
+        // Flat at z = 0 like the plate's own box. Merged, as PartPlate builds it: the min/max
+        // constructor leaves a flat box undefined.
+        const BoundingBoxf bb = build_volume.bounding_volume2d();
+        BoundingBoxf3      box;
+        box.merge(Vec3d(bb.min.x(), bb.min.y(), 0.));
+        box.merge(Vec3d(bb.max.x(), bb.max.y(), 0.));
+        return box;
+    }
+    PartPlate* curr_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    return curr_plate != nullptr ? curr_plate->get_bounding_box() : BoundingBoxf3();
 }
 
 // Design tab: CAD grid on the bed plane, drawn in place of the plate's corner-origin grid.
@@ -8793,7 +9411,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     else {
         m_volumes.set_clipping_plane(m_camera_clipping_plane.get_data());
     }
-    if (m_canvas_type == CanvasAssembleView)
+    if (m_canvas_type == CanvasAssembleView || !m_sinking_contours_enabled)
         m_volumes.set_show_sinking_contours(false);
     else
         m_volumes.set_show_sinking_contours(!m_gizmos.is_hiding_instances());
@@ -8803,16 +9421,19 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     if (_is_xray_view_active()) {
         if (type == GLVolumeCollection::ERenderType::Opaque)
             _render_xray_volumes();
+        else
+            _render_imex_ghosts_xray();
         m_camera_clipping_plane = ClippingPlane::ClipsNothing();
         return;
     }
 
     const bool realistic_mode = _is_realistic_view_enabled();
     const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
-    const std::string shader_name = (realistic_mode && realistic_phong) ? "phong" : "gouraud";
+    const std::string shader_name = (m_studio_lighting || (realistic_mode && realistic_phong)) ? "phong" : "gouraud";
     GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
     if (shader == nullptr && shader_name != "gouraud")
         shader = wxGetApp().get_shader("gouraud");
+    const bool studio = m_studio_lighting && shader != nullptr && shader->get_name() == "phong";
     ECanvasType canvas_type = this->m_canvas_type;
     bool                 partly_inside_enable = canvas_type == ECanvasType::CanvasAssembleView ? false : true;
     // The edited printer's per-extruder printable heights feed the object shader's
@@ -8825,6 +9446,13 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
 
         const bool phong_ssao = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
         shader->set_uniform("enable_ssao", phong_ssao);
+        // Set on every use: the program is shared, so a canvas that leaves it unset would inherit
+        // the last canvas's choice.
+        shader->set_uniform("lighting_model", studio ? 1 : 0);
+        if (studio) {
+            const Transform3d& view = wxGetApp().plater()->get_camera().get_view_matrix();
+            shader->set_uniform("world_up_eye", Vec3f((view.matrix().block<3, 3>(0, 0) * Vec3d::UnitZ()).cast<float>()));
+        }
 
         // Object-on-object and self shadows: sample the depth map built in _render_shadow_map_pass().
         // shadow_intensity == 0 disables the effect entirely (unchanged behavior when off / unsupported).
@@ -8922,6 +9550,9 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 }
                 },
                 partly_inside_enable, printable_heights);
+            // IMEX ghosts are transparent and share the same shader/camera state;
+            // render them right after the main transparent pass while the shader is still bound.
+            _render_imex_ghosts();
             break;
         }
         }
@@ -9020,6 +9651,36 @@ void GLCanvas3D::_render_xray_volumes()
         });
     shader->stop_using();
 
+    glsafe(::glDisable(GL_BLEND));
+    glsafe(::glDepthMask(GL_TRUE));
+}
+
+// The IDEX/IQEX ghosts are not in m_volumes, so the X-Ray pass that replaces both shaded passes
+// does not reach them on its own. They go through the X-Ray shader here rather than their own,
+// which is what makes a ghost read as one more see-through body.
+void GLCanvas3D::_render_imex_ghosts_xray()
+{
+    GLShaderProgram* shader = wxGetApp().get_shader("xray");
+    if (shader == nullptr)
+        return;
+
+    // The blend and depth state _render_xray_volumes() uses, plus its two-sided drawing: the
+    // shader shades back faces too, so a hollow ghost shows its far wall like a real body does.
+    glsafe(::glDepthMask(GL_FALSE));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    glsafe(::glDisable(GL_CULL_FACE));
+
+    shader->start_using();
+    // _render_imex_ghosts() sets the per-volume matrices and the color, but the two uniforms
+    // the volume collection would have set for the whole pass are this pass's to supply, and
+    // the vertex shader discards everything outside z_range - an unset one hides every ghost.
+    shader->set_uniform("z_range", m_volumes.get_z_range());
+    shader->set_uniform("clipping_plane", m_volumes.get_clipping_plane());
+    _render_imex_ghosts(/*xray_pass=*/true);
+    shader->stop_using();
+
+    glsafe(::glEnable(GL_CULL_FACE));
     glsafe(::glDisable(GL_BLEND));
     glsafe(::glDepthMask(GL_TRUE));
 }
@@ -9152,11 +9813,12 @@ void GLCanvas3D::_render_sequential_clearance()
 void GLCanvas3D::_check_and_update_toolbar_icon_scale()
 {
     // Update collapse toolbar
-    GLToolbar& collapse_toolbar = wxGetApp().plater()->get_collapse_toolbar();
-    collapse_toolbar.set_enabled(wxGetApp().plater()->get_sidebar_docking_state() != Sidebar::None);
+    GLToolbar& collapse_toolbar = this->collapse_toolbar();
+    collapse_toolbar.set_enabled(collapse_side() != CollapseSide::None);
 
-    // Don't update a toolbar scale, when we are on a Preview
-    if (wxGetApp().plater()->is_preview_shown()) {
+    // Don't update a toolbar scale, when we are on a Preview. Asked of this canvas, not of the
+    // plater: the Design tab's canvas is on screen while the plater's current view may be Preview.
+    if (m_canvas_type == CanvasPreview) {
         IMSlider   *m_layers_slider = get_gcode_viewer().get_layers_slider();
         IMSlider   *m_moves_slider  = get_gcode_viewer().get_moves_slider();
         float sc              = get_scale();
@@ -9228,7 +9890,9 @@ void GLCanvas3D::_check_and_update_toolbar_icon_scale()
     // set minimum scale as a auto scale for the toolbars
     float new_scale = std::min(new_h_scale, new_v_scale);
     new_scale /= get_scale();
-    if (fabs(new_scale - scale) > 0.05) // scale is changed by 5% and more
+    // Only a canvas with toolbars to fit sets the shared size: a collapse button alone (the Design
+    // tab's canvas) always fits at the largest.
+    if (items_cnt > collapse_toolbar.get_visible_items_cnt() && fabs(new_scale - scale) > 0.05) // scale is changed by 5% and more
         wxGetApp().set_auto_toolbar_icon_scale(new_scale);
 }
 
@@ -9276,6 +9940,7 @@ void GLCanvas3D::_render_overlays()
             }*/
     }
     m_labels.render(sorted_instances);
+    m_center_of_mass.render_details(*this);
 
     _render_3d_navigator();
 
@@ -9310,7 +9975,7 @@ size_t GLCanvas3D::_overlay_signature(const ImDrawData* draw_data) const
     size_t hash = ImGuiWrapper::draw_data_signature(draw_data);
     for (size_t state_hash : { m_main_toolbar.get_state_hash(), m_separator_toolbar.get_state_hash(),
                                m_assemble_view_toolbar.get_state_hash(),
-                               wxGetApp().plater()->get_collapse_toolbar().get_state_hash(),
+                               collapse_toolbar().get_state_hash(),
                                m_gizmos.get_overlay_state_hash() })
         boost::hash_combine(hash, state_hash);
     return hash;
@@ -9639,7 +10304,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
     int item_count           = m_sel_plate_toolbar.m_items.size() + (m_sel_plate_toolbar.show_stats_item ? 1 : 0);
     float window_height_calc = (item_count * (button_height + (margin_size + button_margin) * 2.0f) + (item_count - 1) * ImGui::GetStyle().ItemSpacing.y + ImGui::GetStyle().WindowPadding.y * 2.0f);
     bool  show_scroll        = m_sel_plate_toolbar.is_display_scrollbar && (window_height_calc > window_height_max);
-    float scrollbar_size     = 10.0f * f_scale ;
+    float scrollbar_size     = 14.0f * f_scale;
     float window_height      = std::min(window_height_calc, window_height_max);
     float window_width       = button_width + (margin_size + button_margin + ImGui::GetStyle().WindowPadding.x) * 2 + (show_scroll ? scrollbar_size : 0);
 
@@ -9665,7 +10330,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
 
     ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, scrollbar_size);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, show_scroll ? (4.0f * f_scale) : (button_radius + margin_size + frame_padding + ImGui::GetStyle().WindowPadding.x));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, show_scroll ? (6.f * f_scale) : (button_radius + margin_size + frame_padding + ImGui::GetStyle().WindowPadding.x));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, button_radius + margin_size);
 
     imgui.set_next_window_pos(canvas_w * 0 + 5.0f * f_scale, canvas_h * 0 + y_offset, ImGuiCond_Always, 0, 0); // ORCA Add slight gap on left edge so toolbar looks like floating and it creates separation with sidebar
@@ -10050,10 +10715,10 @@ void GLCanvas3D::_render_canvas_toolbar()
         sc *= (float) dpi / (float) DPI_DEFAULT;
     #endif // WIN32
 
-    ImVec2        btn_size = ImVec2(36.f, 36.f) * sc;
-    ImVec2        margin   = ImVec2(m_canvas_toolbar_pos[0] > 0 ? 0.f : (10.f * sc), 10.f * sc);
+    ImVec2        btn_size = ImVec2(CANVAS_TOOLBAR_BUTTON, CANVAS_TOOLBAR_BUTTON) * sc;
+    ImVec2        margin   = ImVec2(m_canvas_toolbar_pos[0] > 0 ? 0.f : (CANVAS_TOOLBAR_MARGIN * sc), CANVAS_TOOLBAR_MARGIN * sc);
     ImVec2        spacing  = ImVec2(6.f, 6.f)  * sc;
-    ImVec2        padding  = ImVec2(2.f, 2.f)  * sc;
+    ImVec2        padding  = ImVec2(CANVAS_TOOLBAR_PADDING, CANVAS_TOOLBAR_PADDING) * sc;
     Vec2i32       pos      = {
         m_canvas_toolbar_pos[0]        + margin.x,
         get_canvas_size().get_height() - margin.y
@@ -10111,14 +10776,25 @@ void GLCanvas3D::_render_canvas_toolbar()
         ImTextureID z_hover_id  = m_gizmos.get_icon_texture_id(m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_ZOOM_DARK_HOVER : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_ZOOM_HOVER);
 
         if (ImGui::ImageButton3(z_normal_id, z_hover_id, btn_size)) {
-            select_view("plate");
-            if (m_selection.is_empty()) {
-                if (m_canvas_type == ECanvasType::CanvasAssembleView)
-                    zoom_to_volumes();
-                else 
-                    zoom_to_bed();
-            } else {
-                zoom_to_selection();
+#ifdef SLIC3R_CAD
+            // The Design tab selects and sketches outside the canvas's selection and volumes, so
+            // it names what to frame. Framed along the current view, which is often square to a
+            // sketch plane; an empty tab falls through to the bed.
+            const BoundingBoxf3 design_box = m_design_sketch_tool != nullptr ? m_design_sketch_tool->fit_box(m_volumes) : BoundingBoxf3();
+            if (design_box.defined)
+                _zoom_to_box(design_box);
+            else
+#endif
+            {
+                select_view("plate");
+                if (m_selection.is_empty()) {
+                    if (m_canvas_type == ECanvasType::CanvasAssembleView)
+                        zoom_to_volumes();
+                    else
+                        zoom_to_bed();
+                } else {
+                    zoom_to_selection();
+                }
             }
         } else if (ImGui::IsItemHovered()) {
             auto tooltip_str_wx = _L("Fit camera to scene or selected object.");
@@ -10144,7 +10820,7 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , ImVec2(4.f, 10.f) * sc);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(0.f, 8.f ) * sc);
 
-    if (ImGui::BeginPopup("CanvasToolbarMenu")) {
+    if (ImGui::BeginPopup("CanvasToolbarMenu", ImGuiWindowFlags_NoMove)) {
         ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
 
         Plater*    p   = wxGetApp().plater();
@@ -10163,6 +10839,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             ImGui::SameLine(12.f * sc);
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
+
 
         create_menu_item( _utf8(L("3D Navigator")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
@@ -10202,6 +10879,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this, p]{p->toggle_show_wireframe(); m_dirty = true;}
         );
 
+        // TRN View toggle that draws models see-through, so hidden parts show.
         create_menu_item( _utf8(L("X-Ray")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             p->is_show_xray(),
@@ -10249,6 +10927,28 @@ void GLCanvas3D::_render_canvas_toolbar()
             p->are_view3D_labels_shown(),
             [p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
         );
+
+        create_menu_item( _utf8(L("Center of mass")),
+            m_canvas_type != ECanvasType::CanvasAssembleView && !m_design_canvas, // work on prepare and preview
+            wxGetApp().show_center_of_mass(),
+            [this]{wxGetApp().toggle_show_center_of_mass(); m_dirty = true;}
+        );
+
+        // Belt printers, G-code preview only: show the raw machine-frame G-code instead of
+        // the designed (upright) view. This menu is the only place the toggle lives (plus
+        // its shortcut); the reload is deferred (CallAfter) so the preview is not rebuilt
+        // mid-render.
+        if (m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.is_belt_view()) {
+            ImGui::Separator();
+            create_menu_item( _utf8(L("Show raw G-code (belt only)")),
+                true,
+                !m_gcode_viewer.is_belt_show_designed(), // eye lit = raw machine-frame G-code (designed view off)
+                [this, p]{
+                    m_gcode_viewer.toggle_belt_show_designed();
+                    p->CallAfter([p]{ p->refresh_belt_view(); });
+                }
+            );
+        }
 
         ImGui::PopItemFlag();
         ImGui::EndPopup();
@@ -10365,18 +11065,17 @@ void GLCanvas3D::_render_collapse_toolbar() const
     if (!m_collapse_toolbar_enabled)
         return;
 
-    auto&      plater              = *wxGetApp().plater();
-    const auto sidebar_docking_dir = plater.get_sidebar_docking_state();
-    if (sidebar_docking_dir == Sidebar::None) {
+    const CollapseSide side = collapse_side();
+    if (side == CollapseSide::None) {
         return;
     }
 
-    GLToolbar& collapse_toolbar = plater.get_collapse_toolbar();
+    GLToolbar& collapse_toolbar = this->collapse_toolbar();
 
     const Size cnv_size = get_canvas_size();
     const float top  = 0.5f * (float)cnv_size.get_height();
-    const float left = sidebar_docking_dir == Sidebar::Right ? 0.5f * (float) cnv_size.get_width() - (float) collapse_toolbar.get_width() :
-                                                               -0.5f * (float) cnv_size.get_width();
+    const float left = side == CollapseSide::Right ? 0.5f * (float) cnv_size.get_width() - (float) collapse_toolbar.get_width() :
+                                                     -0.5f * (float) cnv_size.get_width();
 
     collapse_toolbar.set_position(top, left);
     collapse_toolbar.render(*this);
@@ -11071,10 +11770,9 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
 {
     // Orca: Centralize the pre-existing pivot rules so orbiting and pan fallback cannot
     // choose different reference depths for the same canvas and active tool.
-    PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    const BoundingBoxf3 plate_box = _current_plate_box();
     if (navigation_type == ECameraNavigationType::Gesture)
-        return current_plate == nullptr ? std::nullopt :
-            std::make_optional(current_plate->get_bounding_box().center());
+        return plate_box.defined ? std::make_optional(plate_box.center()) : std::nullopt;
 
     const GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
     const bool use_scene_target = m_canvas_type == ECanvasType::CanvasAssembleView ||
@@ -11094,15 +11792,15 @@ std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType n
 
     Vec3d target = Vec3d::Zero();
     if (m_canvas_type == ECanvasType::CanvasPreview) {
-        if (current_plate != nullptr)
-            target = current_plate->get_bounding_box().center();
+        if (plate_box.defined)
+            target = plate_box.center();
     } else if (!m_selection.is_empty()) {
         target = m_selection.get_bounding_box().center();
     } else {
         // Orca: Match regular mouse orbit: objects on the active plate, then the plate itself.
         BoundingBoxf3 bbox = volumes_bounding_box(true);
-        if (!bbox.defined && current_plate != nullptr)
-            bbox = current_plate->get_bounding_box();
+        if (!bbox.defined)
+            bbox = plate_box;
         if (bbox.defined)
             target = bbox.center();
     }
@@ -11242,7 +11940,11 @@ void GLCanvas3D::_set_warning_notification_if_needed(EWarning warning)
             if (current_printer_technology() != ptSLA) {
                 unsigned int max_z_layer = m_gcode_viewer.get_layers_z_range().back();
                 if (warning == EWarning::ToolHeightOutside) // check if max z_layer height exceed max print height
-                    show = m_gcode_viewer.has_data() && (m_gcode_viewer.get_layers_zs()[max_z_layer] - m_gcode_viewer.get_max_print_height() >= 1e-6);
+                    // Belt printer with active post-gcode machine-frame transform: layer Z values
+                    // live in the machine frame, not the build-volume frame, so the comparison
+                    // against printable_height is meaningless.  Suppress the warning entirely.
+                    show = m_gcode_viewer.has_data() && !m_gcode_viewer.is_machine_frame_transform_active()
+                        && (m_gcode_viewer.get_layers_zs()[max_z_layer] - m_gcode_viewer.get_max_print_height() >= 1e-6);
                 else if (warning == EWarning::ToolpathOutside) { // check if max x,y coords exceed bed area
                     show = m_gcode_viewer.has_data() && !m_gcode_viewer.is_contained_in_bed() &&
                            (m_gcode_viewer.get_max_print_height() -m_gcode_viewer.get_layers_zs()[max_z_layer] >= 1e-6);
@@ -11772,7 +12474,7 @@ bool GLCanvas3D::_deactivate_layersediting_menu()
 
 bool GLCanvas3D::_deactivate_collapse_toolbar_items()
 {
-    GLToolbar& collapse_toolbar = wxGetApp().plater()->get_collapse_toolbar();
+    GLToolbar& collapse_toolbar = this->collapse_toolbar();
     if (collapse_toolbar.is_item_pressed("print")) {
         collapse_toolbar.force_left_action(collapse_toolbar.get_item_id("print"), *this);
         return true;

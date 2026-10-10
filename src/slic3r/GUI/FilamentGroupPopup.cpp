@@ -4,7 +4,6 @@
 #include "wx/dcgraph.h"
 #include "I18N.hpp"
 #include "PartPlate.hpp"
-#include "Widgets/HyperLink.hpp"
 #include <wx/colour.h>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -27,6 +26,7 @@
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
 #include <wx/tglbtn.h>
 
 namespace Slic3r { namespace GUI {
@@ -203,18 +203,24 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
     {
         wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
         // ORCA Unified hyperlinks
-        video_link = new HyperLink(this, _L("Video tutorial"));
-        video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& e)
-            {
-                play_dual_extruder_slice_video();
-                wxGetApp().app_config->set("play_slicing_video", "false");
-            });
-        button_sizer->Add(video_link, 0, wxLEFT, horizontal_margin + FromDIP(3));
-        button_sizer->AddStretchSpacer();
 
-        wiki_link = new HyperLink(this, _L("Wiki Guide"));
-        wiki_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { open_filament_group_wiki(); });
-        button_sizer->Add(wiki_link, 0, wxLEFT, horizontal_margin);
+        auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
+        wiki_btn->SetStyle(ButtonStyle::Confirm, ::ButtonType::Circle);
+        wiki_btn->SetCanFocus(false);
+        wiki_btn->Bind(wxEVT_LEFT_DOWN, ([](auto& e) {open_filament_group_wiki();}));
+
+        auto video_btn  = new Button(this, "", "toolbar_video_guide", 0, 15);
+        video_btn->SetToolTip(_L("Video Guide"));
+        video_btn->SetStyle(ButtonStyle::Confirm, ::ButtonType::Circle);
+        video_btn->SetCanFocus(false);
+        video_btn->Bind(wxEVT_LEFT_DOWN, ([](auto& e) {
+            play_dual_extruder_slice_video();
+            wxGetApp().app_config->set("play_slicing_video", "false");
+        }));
+
+        button_sizer->Add(wiki_btn , 0, wxLEFT, horizontal_margin + FromDIP(3));
+        button_sizer->Add(video_btn, 0, wxLEFT, FromDIP(10));
 
         top_sizer->Add(button_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, horizontal_margin);
     }

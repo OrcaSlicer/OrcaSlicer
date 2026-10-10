@@ -14,7 +14,6 @@
 #include "slic3r/GUI/CameraUtils.hpp"
 #include "slic3r/GUI/Jobs/EmbossJob.hpp"
 #include "slic3r/GUI/Jobs/CreateFontNameImageJob.hpp"
-#include "slic3r/GUI/Jobs/NotificationProgressIndicator.hpp"
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
@@ -24,10 +23,7 @@
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/ClipperUtils.hpp" // union_ex
 #include "libslic3r/AppConfig.hpp"    // store/load font list
-#include "libslic3r/Format/OBJ.hpp" // load obj file for default object
-#include "libslic3r/BuildVolume.hpp"
 
 #include "imgui/imgui_stdlib.h" // using std::string for inputs
 #include <string>
@@ -75,6 +71,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include <cfloat>
+#include <wx/string.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -1582,6 +1579,15 @@ void GLGizmoEmboss::draw_window(float x, float y)
  }
 
 #include "imgui/imgui_internal.h" // scroll bar existence
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoRotate.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/Utils/RaycastManager.hpp"
+
+namespace Slic3r::GUI { struct Camera; }
 
 void GLGizmoEmboss::draw_text_input()
 {

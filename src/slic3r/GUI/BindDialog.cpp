@@ -26,7 +26,7 @@
 #include <memory>
 #include "slic3r/GUI/BBLStatusBarBind.hpp"
 #include "slic3r/GUI/Jobs/BindJob.hpp"
-#include "slic3r/GUI/Printer/PrinterFileSystem.h"
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include <utility>
@@ -46,13 +46,14 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "MainFrame.hpp"
-#include "GUI_App.hpp"
 #include "Plater.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 #include "Widgets/WebView.hpp"
 
 #include "DeviceCore/DevManager.h"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {

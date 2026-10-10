@@ -2,6 +2,9 @@
 #define slic3r_Text_Shape_hpp_
 
 #include "libslic3r/TriangleMesh.hpp"
+#include <vector>
+#include <string>
+#include <map>
 
 namespace Slic3r {
 class TriangleMesh;

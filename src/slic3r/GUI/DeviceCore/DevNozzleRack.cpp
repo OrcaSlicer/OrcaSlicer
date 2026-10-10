@@ -1,7 +1,6 @@
 #include "DevNozzleRack.h"
 #include "DevUtil.h"
 
-#include "slic3r/GUI/DeviceManager.hpp"
 #include <wx/event.h>
 #include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFirmware.h"

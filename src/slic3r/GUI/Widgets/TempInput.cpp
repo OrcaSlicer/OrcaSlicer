@@ -5,6 +5,7 @@
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <utility>
 #include <string>
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 #include <wx/dcclient.h>
@@ -17,7 +18,6 @@
 #include <wx/textctrl.h>
 #include <wx/sizer.h>
 #include <wx/panel.h>
-#include "../GUI.hpp"
 #include "../GUI_App.hpp"
 
 wxDEFINE_EVENT(wxCUSTOMEVT_SET_TEMP_FINISH, wxCommandEvent);

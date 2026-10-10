@@ -1,5 +1,9 @@
 #include "PNGReadWrite.hpp"
 
+#include <cstdint>
+#include <csetjmp>
+#include <cstring>
+#include <cassert>
 #include <memory>
 
 #include <cstdio>
@@ -8,6 +12,8 @@
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <vector>
+#include <string>
 
 namespace Slic3r { namespace png {
 

@@ -1,6 +1,13 @@
 #include "OrcaPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include <string>
+#include <utility>
+#include <memory>
+#include <mutex>
+#include "bambu_networking.hpp"
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 

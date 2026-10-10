@@ -4,7 +4,6 @@
 #include "format.hpp"
 #include "I18N.hpp"
 
-#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Config.hpp"
 #include <memory>
 #include <vector>
@@ -51,12 +50,13 @@
 #include "AboutDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Plater.hpp"
-#include "format.hpp"
 
 #include "WebUserLoginDialog.hpp"
 
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Utils.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 

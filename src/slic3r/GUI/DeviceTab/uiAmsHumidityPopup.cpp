@@ -7,13 +7,12 @@
 
 #include "uiAmsHumidityPopup.h"
 
-#include "slic3r/Utils/WxFontUtils.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include <string>
@@ -22,6 +21,9 @@
 #include <wx/gdicmn.h>
 #include <wx/grid.h>
 #include <wx/sizer.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 

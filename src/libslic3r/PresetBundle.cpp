@@ -1,16 +1,45 @@
 #include <atomic>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/optional/optional.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <cassert>
+#include <cctype>
 #include <chrono>
+#include <cstdio>
+#include <cstdint>
+#include <cmath>
 #include <ctime>
+#include <optional>
+#include <exception>
+#include <memory>
+#include <initializer_list>
+#include <map>
+#include <iterator>
+#include <functional>
+#include <limits>
 #include <sstream>
 
 #include "PresetBundle.hpp"
 
+#include "Config.hpp"
+#include "Exception.hpp"
+#include "AppConfig.hpp"
 #include "ParallelResolve.hpp"
+#include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "PrintConfig.hpp"
 #include "PublishSettings.hpp"
 #include "FilamentMixer.hpp"
+#include "Semver.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
@@ -25,6 +54,11 @@
 #include <numeric>
 #include <set>
 #include <fstream>
+#include <string>
+#include <tuple>
+#include <stdexcept>
+#include <unordered_map>
+#include <system_error>
 #include <unordered_set>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/clamp.hpp>
@@ -43,6 +77,10 @@
 #include <tbb/parallel_for.h>
 #include <tbb/task_group.h>
 #include <tbb/partitioner.h>
+#include <vector>
+#include <utility>
+
+namespace fs = boost::filesystem;
 
 // Mark string for localization and translate.
 #define L(s) Slic3r::I18N::translate(s)
@@ -50,6 +88,8 @@
 // Store the print/filament/printer presets into a "presets" subdirectory of the Slic3rPE config dir.
 // This breaks compatibility with the upstream Slic3r if the --datadir is used to switch between the two versions.
 //#define SLIC3R_PROFILE_USE_PRESETS_SUBDIR
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 
@@ -74,6 +114,12 @@ static std::vector<std::string> s_project_options {
     "nozzle_volume_type",
     "filament_map_mode",
     "filament_map",
+    // physical_extruder_map intentionally NOT here: it's owned by the printer
+    // preset (s_Preset_printer_options). Listing it project-scoped caused
+    // project_config's default [0] to clobber the preset's authored value
+    // (e.g. AFC-shaped [0,1,1,1,1]) during full_fff_config() merge, and the
+    // clobbered value then rode into saved 3mfs and back into the edited
+    // preset on reload.
     // Per-filament nozzle-volume choice; project-level like filament_map so the per-filament
     // slot resolution survives preset switches.
     "filament_volume_map",
@@ -590,13 +636,15 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
         return it->second.get();
 
     // The library loads with no base of its own, so the tree a vendor inherits from
-    // is the same one that resolves the library's own presets.
-    const std::string   library_file = std::string(ORCA_FILAMENT_LIBRARY);
-    const PresetBundle *library      = nullptr;
-    if (vendor_id != ORCA_FILAMENT_LIBRARY &&
-        (boost::filesystem::is_regular_file(root_dir / (library_file + ".json")) ||
-         (allow_cache && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"))))) {
-        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache);
+    // is the same one that resolves the library's own presets. It is only a base, so
+    // it comes from its cache whenever that is all that is installed, even when the
+    // vendor itself is parsed (a vendor updated over the air).
+    const std::string   library_file       = std::string(ORCA_FILAMENT_LIBRARY);
+    const bool          library_json       = boost::filesystem::is_regular_file(root_dir / (library_file + ".json"));
+    const bool          library_cache_only = !library_json && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"));
+    const PresetBundle *library            = nullptr;
+    if (vendor_id != ORCA_FILAMENT_LIBRARY && (library_json || library_cache_only)) {
+        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache || library_cache_only);
         if (library == nullptr) {
             error = "OrcaFilamentLibrary contains invalid presets";
             return nullptr;
@@ -1489,7 +1537,6 @@ bool PresetBundle::apply_vendor_config(
     const std::string& preferred_printer_variant,
     const std::string& preferred_filament)
 {
-    namespace fs = boost::filesystem;
 
     // Get current configuration from AppConfig
     const auto old_vendors = app_config->vendors();
@@ -2540,7 +2587,7 @@ void PresetBundle::clear_printer_hold_aliases()
 
 //BBS: add json related logic, load system presets from json
 std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_presets_from_json(
-    ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache)
+    ForwardCompatibilitySubstitutionRule compatibility_rule, bool write_caches)
 {
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, compatibility_rule %1%")%compatibility_rule;
@@ -2560,14 +2607,14 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     // The vendors below are loaded whole and against each other — the filament
     // library first, then every other vendor with it as the base — so each parse
     // is complete enough to be worth caching.
-    m_generate_vendor_caches = allow_cache && (m_generate_vendor_caches || !validation_mode);
+    m_generate_vendor_caches = write_caches && (m_generate_vendor_caches || !validation_mode);
 
     // Sorted, so any duplicate-preset warning comes out in the same order on every run.
     std::vector<VendorSource> vendors;
     for (const std::string& name : vendor_names_in(dir))
         if (name == ORCA_FILAMENT_LIBRARY || !(validation_mode && !vendor_to_validate.empty() && name != vendor_to_validate))
             vendors.push_back({ name, dir });
-    auto result = this->load_vendors(vendors, compatibility_rule, allow_cache);
+    auto result = this->load_vendors(vendors, compatibility_rule, true);
 
 	this->update_system_maps();
 
@@ -2765,19 +2812,13 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_mod
     boost::filesystem::path    dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
     PresetsConfigSubstitutions substitutions;
     std::string                errors_cummulative;
-    for (auto &dir_entry : boost::filesystem::directory_iterator(dir)) {
-        std::string vendor_file = dir_entry.path().string();
-        if (Slic3r::is_json_file(vendor_file)) {
-            std::string vendor_name = dir_entry.path().filename().string();
-            // Remove the .json suffix.
-            vendor_name.erase(vendor_name.size() - 5);
-            try {
-                // Load the config bundle, flatten it.
-                append(substitutions, load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadVendorOnly, compatibility_rule).first);
-            } catch (const std::runtime_error &err) {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
-            }
+    for (const std::string &vendor_name : vendor_names_in(dir)) {
+        try {
+            // Load the config bundle, flatten it.
+            append(substitutions, load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadVendorOnly, compatibility_rule).first);
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
         }
     }
 
@@ -2800,35 +2841,33 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_fil
     PresetsConfigSubstitutions substitutions;
     std::string                errors_cummulative;
     bool                       first = true;
-    for (auto &dir_entry : boost::filesystem::directory_iterator(dir)) {
-        std::string vendor_file = dir_entry.path().string();
-        if (Slic3r::is_json_file(vendor_file)) {
-            std::string vendor_name = dir_entry.path().filename().string();
-            // Remove the .json suffix.
-            vendor_name.erase(vendor_name.size() - 5);
-            try {
-                if (first) {
-                    // Reset this PresetBundle and load the first vendor config.
-                    append(substitutions, this->load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
-                    first = false;
-                } else {
-                    // Load the other vendor configs, merge them with this PresetBundle.
-                    // Report duplicate profiles.
-                    PresetBundle other;
-                    append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
-                    std::vector<std::string> duplicates = std::move(this->merge_presets({ &other }).front());
-                    if (!duplicates.empty()) {
-                        errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
-                        for (size_t i = 0; i < duplicates.size(); ++i) {
-                            if (i > 0) errors_cummulative += ", ";
-                            errors_cummulative += duplicates[i];
-                        }
+    // The filament library loads first, so the filaments that inherit its bases resolve.
+    std::vector<std::string> vendor_names;
+    for (const std::string &vendor_name : vendor_names_in(dir))
+        vendor_names.insert(vendor_name == ORCA_FILAMENT_LIBRARY ? vendor_names.begin() : vendor_names.end(), vendor_name);
+    for (const std::string &vendor_name : vendor_names) {
+        try {
+            if (first) {
+                // Reset this PresetBundle and load the first vendor config.
+                append(substitutions, this->load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
+                first = false;
+            } else {
+                // Load the other vendor configs, merge them with this PresetBundle.
+                // Report duplicate profiles.
+                PresetBundle other;
+                append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule, this).first);
+                std::vector<std::string> duplicates = std::move(this->merge_presets({ &other }).front());
+                if (!duplicates.empty()) {
+                    errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
+                    for (size_t i = 0; i < duplicates.size(); ++i) {
+                        if (i > 0) errors_cummulative += ", ";
+                        errors_cummulative += duplicates[i];
                     }
                 }
-            } catch (const std::runtime_error &err) {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
             }
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
         }
     }
 
@@ -3592,22 +3631,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     filament_volume_map->values.resize(n, static_cast<int>(NozzleVolumeType::nvtStandard));
     ams_multi_color_filment.resize(n);
 
-    // Mixed-color metadata is a parallel per-filament array set, so it has to grow and shrink
-    // with the filament count exactly like filament_colour above.
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"))
-        opt->values.resize(n, false);
+    resize_mixed_filament_metadata(project_config, old_slot_count, n);
 
     //BBS set new filament color to new_color
     if (!new_color.empty()) {
@@ -3719,18 +3743,19 @@ bool PresetBundle::is_mixed_filament(size_t idx) const
 
 size_t PresetBundle::num_mixed_filaments() const
 {
-    auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    return opt == nullptr ? 0 : size_t(std::count(opt->values.begin(), opt->values.end(), true));
+    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    if (opt == nullptr)
+        return 0;
+    const size_t slot_count = project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    return size_t(std::count(opt->values.begin(), opt->values.begin() + std::min(slot_count, opt->values.size()), true));
 }
 
-// Counted off the mixed flags, not filament_presets: that list is topped up to the nozzle count on
-// its own, so it can sit a slot ahead of the arrays that describe slots. Unlike the sibling
-// physical_filament_config_indices(), which bounds by filament_presets, this ignores that top-up.
+// Colours describe actual slots; filament_presets can be topped up to the nozzle count alone.
+// Imported projects may have fewer mixed flags than slots. Missing flags mean physical filaments.
 size_t PresetBundle::num_physical_filaments() const
 {
-    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    return opt == nullptr ? filament_presets.size()
-                          : size_t(std::count(opt->values.begin(), opt->values.end(), false));
+    const auto *colors = project_config.option<ConfigOptionStrings>("filament_colour");
+    return colors->values.size() - num_mixed_filaments();
 }
 
 std::vector<size_t> PresetBundle::physical_filament_config_indices() const
@@ -5274,7 +5299,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
 
 
 //convert the old filament preset to new one after split
-static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
+void PresetBundle::convert_filament_preset_name(const std::string& machine_name, std::string& filament_name)
 {
     auto machine_iter = filament_preset_convert.find(machine_name);
     if (machine_iter != filament_preset_convert.end())
@@ -5362,13 +5387,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     bool process_multi_extruder = false;
     std::vector<int> filament_variant_index;
     size_t extruder_variant_count;
-    if (!config.option<ConfigOptionInts>("filament_self_index")) {
-        std::vector<int>& filament_self_indice = config.option<ConfigOptionInts>("filament_self_index", true)->values;
+    // A config loaded over the full defaults has a one-entry index even when the file has none.
+    ConfigOptionInts* filament_self_index_opt = config.option<ConfigOptionInts>("filament_self_index", true);
+    if (filament_self_index_opt->size() < num_filaments) {
+        std::vector<int>& filament_self_indice = filament_self_index_opt->values;
         filament_self_indice.resize(num_filaments);
         for (int index = 0; index < num_filaments; index++)
             filament_self_indice[index] = index + 1;
     }
-    std::vector<int> filament_self_indice = std::move(config.option<ConfigOptionInts>("filament_self_index")->values);
+    std::vector<int> filament_self_indice = std::move(filament_self_index_opt->values);
     // ORCA: Initialize filament_extruder_variant for backward compatibility with old 3mf files
     // that don't have this option saved or have it with default single-element value
     ConfigOptionStrings* filament_extruder_variant_opt = config.option<ConfigOptionStrings>("filament_extruder_variant");
@@ -5566,6 +5593,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // Load the project config values. In published mode only the plate/bed geometry keys
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
+        // Older projects inherit one-element mixed defaults, regardless of their filament count.
+        if (!is_published)
+            resize_mixed_filament_metadata(this->project_config, num_filaments, num_filaments);
 
         break;
     }
@@ -7101,22 +7131,38 @@ PresetBundle::VendorRead PresetBundle::read_vendor(const std::string& dir, const
         // Reset this bundle, delete user profile files if SaveImported.
         this->reset(flags.has(LoadConfigBundleAttribute::SaveImported));
 
-    // Orca: only a whole-vendor load has a cache — the vendor-only and filament-only
-    // scans want a slice of one. Validation reads the JSONs whatever is cached.
-    read.cacheable = allow_cache && flags.has(LoadConfigBundleAttribute::LoadSystem) && ! flags.has(LoadConfigBundleAttribute::LoadFilamentOnly);
-    if (read.cacheable && ! validation_mode) {
-        // A vendor is loaded from where it is installed and nowhere else; resources
-        // reaches the app by being installed into `dir` first. The cache there is
-        // judged against the profile beside it — or, where the cache is the whole
-        // of the installation, against nothing, since nothing on disk can then be
+    // Orca: only a whole-vendor load writes a cache, and a vendor-only or filament-only
+    // scan reads one only where it is the whole installation, as in a shipped build.
+    // Validation reads the JSONs whatever is cached.
+    const bool vendor_only   = flags.has(LoadConfigBundleAttribute::LoadVendorOnly);
+    const bool filament_only = flags.has(LoadConfigBundleAttribute::LoadFilamentOnly);
+    read.cacheable = allow_cache && flags.has(LoadConfigBundleAttribute::LoadSystem) && ! filament_only;
+    const boost::filesystem::path dir_path(dir);
+    const boost::filesystem::path profile     = dir_path / (vendor_name + ".json");
+    const bool                    has_profile = boost::filesystem::exists(profile);
+    if (allow_cache && ! validation_mode && (read.cacheable || ((vendor_only || filament_only) && ! has_profile))) {
+        // The cache is judged against the profile beside it, or, where the cache is the
+        // whole of the installation, against nothing, since nothing on disk can then be
         // newer than it. That state is Semver::inf(), which no real profile carries.
-        const boost::filesystem::path dir_path(dir);
-        const boost::filesystem::path profile = dir_path / (vendor_name + ".json");
-        const Semver version = boost::filesystem::exists(profile) ? get_version_from_json(profile.string()) : Semver::inf();
+        const Semver version = has_profile ? get_version_from_json(profile.string()) : Semver::inf();
         read.cache_path = (dir_path / (vendor_name + ".opc")).string();
-        read.from_cache = VendorCacheFile::load(read.cache_path, vendor_name, version, read.data);
-        if (read.from_cache)
+        if (vendor_only) {
+            VendorProfile vendor_profile;
+            if (VendorCacheFile::load_vendor_profile(read.cache_path, vendor_name, version, vendor_profile)) {
+                this->vendors.emplace(vendor_name, std::move(vendor_profile));
+                read.vendor_only = true;
+                return read;
+            }
+        } else if (VendorCacheFile::load(read.cache_path, vendor_name, version, read.data)) {
+            read.from_cache = true;
+            if (filament_only) {
+                read.data.process_entries.clear();
+                read.data.machine_entries.clear();
+                // The stamp counts errors across the whole vendor.
+                read.data.parse_errors = 0;
+            }
             return read;
+        }
     }
     this->parse_vendor_json(read);
     return read;

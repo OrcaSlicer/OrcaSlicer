@@ -193,7 +193,9 @@ ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = {1.0f, 0.3f, 0.3f, 0.4f};
 
 ColorRGBA GLVolume::MODEL_HIDDEN_COL  = {0.f, 0.f, 0.f, 0.3f};
 
-// Precise Seam modifier colors
+// Precise Seam modifier colors. Center, Left and Right are deliberately close shades of one orange:
+// all three are strong modifiers, and distinct hues per mode would turn the scene into a rainbow.
+// The object list icons tell the modes apart.
 ColorRGBA GLVolume::PRECISE_SEAM_CENTER_COL   = {1.0f,   0.627f, 0.082f, 0.6f};  // FFA015 - orange
 ColorRGBA GLVolume::PRECISE_SEAM_LEFT_COL     = {1.0f,   0.753f, 0.0f,   0.6f};  // FFC000 - golden
 ColorRGBA GLVolume::PRECISE_SEAM_RIGHT_COL    = {1.0f,   0.514f, 0.0f,   0.6f};  // FF8300 - dark orange
@@ -308,6 +310,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     , force_native_color(false)
     , force_neutral_color(false)
     , force_sinking_contours(false)
+    , depth_bias(false)
     , picking(false)
     , tverts_range(0, size_t(-1))
 {
@@ -1235,6 +1238,10 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     // default sampler unit 0, which can conflict with other sampler types.
     shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
 
+    // Compute up direction accounting for build plate tilt. This is frame-invariant
+    // (config cannot change mid-render), so compute it once before the volume loop.
+    const Vec3f up_direction = GUI::build_plate_tilt_up_direction().cast<float>();
+
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
         if (type == ERenderType::Transparent) {
@@ -1313,6 +1320,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));
         shader->set_uniform("slope.normal_z", support_normal_z);
+        shader->set_uniform("slope.up_direction", up_direction);
 
 #if ENABLE_ENVIRONMENT_MAP
         unsigned int environment_texture_id = GUI::wxGetApp().plater()->get_environment_texture_id();
@@ -1330,11 +1338,17 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("projection_matrix", projection_matrix);
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        if (volume.first->depth_bias) {
+            glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+            glsafe(::glPolygonOffset(1.0f, 1.0f));
+        }
 		//BBS: add outline related logic
         if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();
+        if (volume.first->depth_bias)
+            glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
 
 #if ENABLE_ENVIRONMENT_MAP
         if (use_environment_texture)
@@ -1578,7 +1592,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     {
                         std::vector<int> result_filaments;
                         //result_filaments.reserve(conflict_filaments.size());
-                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), insert_iterator<vector<int>>(result_filaments, result_filaments.begin()));
+                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), std::insert_iterator<std::vector<int>>(result_filaments, result_filaments.begin()));
                         conflict_filament_vector = result_filaments;
                     }
                 }

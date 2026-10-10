@@ -1,13 +1,33 @@
 #include "../ClipperUtils.hpp"
 #include "../MarchingSquares.hpp"
-#include "../ShortestPath.hpp"
-#include "../Surface.hpp"
 #include <cmath>
 #include <algorithm>
+#include <cstddef>
 #include <iostream>
 #include <limits>
+#include "libslic3r/BoundingBox.hpp"
+#include <vector>
+#include "libslic3r/Execution/ExecutionTBB.hpp"
+#include <math.h>
+#include <utility>
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polyline.hpp"
 #include "FillGyroid.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "FillTpmsAdaptive.hpp"
+
+namespace Slic3r {
+
+static float gyroid(float x, float y, float z)
+{
+    return std::sin(x) * std::cos(y) + std::sin(y) * std::cos(z) + std::sin(z) * std::cos(x);
+}
+
+} // namespace Slic3r
 
 // ---------------------------------------------------------------------------
 // Marching-squares scalar field for the optimized gyroid branch.
@@ -53,10 +73,7 @@ struct GyroidField
 
     float get_scalar(coordf_t x, coordf_t y, coordf_t z_arg) const
     {
-        const float a = fx * float(x);
-        const float b = fy * float(y);
-        const float c = fz * float(z_arg);
-        return std::sin(a) * std::cos(b) + std::sin(b) * std::cos(c) + std::sin(c) * std::cos(a);
+        return gyroid(fx * float(x), fy * float(y), fz * float(z_arg));
     }
 
     float get_scalar(Coord p) const
@@ -298,6 +315,14 @@ void FillGyroid::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
+    if (params.tpms_adaptive == TpmsAdaptiveMode::SteppedShells && this->tpms_radial_field != nullptr) {
+        fill_tpms_shells(*this->tpms_radial_field, expolygon, this->z - 0.5 * params.layer_height, params, this->spacing,
+                         [&](const FillParams &shell_params, const ExPolygon &shell) {
+                             this->_fill_surface_single(shell_params, thickness_layers, direction, shell, polylines_out);
+                         });
+        return;
+    }
+
     auto infill_angle = float(this->angle + (CorrectionAngle * 2*M_PI) / 360.);
     if(std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
@@ -317,7 +342,12 @@ void FillGyroid::_fill_surface_single(
 
     // generate pattern
     Polylines polylines;
-    if (params.gyroid_optimized) {
+    if (params.tpms_adaptive != TpmsAdaptiveMode::Disabled && this->tpms_radial_field != nullptr) {
+        // Radians per mm of the regular pattern at a density.
+        auto frequency = [&params, this](double density) { return density * DensityAdjust / (params.multiline * this->spacing); };
+        polylines = make_adaptive_tpms({gyroid, frequency(params.density), frequency(params.tpms_interior_density), params.tpms_adaptive_gradient},
+                                       *this->tpms_radial_field, bb, this->z, params.layer_height, this->spacing, infill_angle);
+    } else if (params.gyroid_optimized) {
         // Marching-squares path on the gyroid implicit field. Base period matches
         // the standard parametric path's wavelength: 2*pi * spacing / density_adj.
         // omega >= 1 always, so fz >= baseline -> shorter vertical wavelength ->

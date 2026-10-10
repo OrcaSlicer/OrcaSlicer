@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/colour.h>
 #include <wx/dc.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
@@ -10,6 +11,8 @@
 #include <wx/stattext.h>
 #include <wx/gdicmn.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 BEGIN_EVENT_TABLE(SideButton, wxWindow)
 EVT_LEFT_DOWN(SideButton::mouseDown)

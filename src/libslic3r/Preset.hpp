@@ -1,7 +1,13 @@
 #ifndef slic3r_Preset_hpp_
 #define slic3r_Preset_hpp_
 
+#include <cstddef>
+#include <cassert>
+#include <cmath>
+#include <algorithm>
 #include <deque>
+#include <map>
+#include <limits>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -12,10 +18,14 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <vector>
+#include <utility>
 
+#include "Config.hpp"
 #include "PrintConfig.hpp"
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
+#include "libslic3r.h"
 
 //BBS: change system directories
 #define PRESET_SYSTEM_DIR      "system"
@@ -593,7 +603,7 @@ public:
     void            update_after_user_presets_loaded();
     //BBS: get user presets
     int  get_user_presets(PresetBundle *preset_bundle, std::vector<Preset> &result_presets);
-    void set_sync_info_and_save(std::string name, std::string setting_id, std::string syncinfo, long long update_time);
+    void set_sync_info_and_save(std::string name, std::string setting_id, std::string syncinfo, long long update_time, const std::string& user_id);
     bool need_sync(std::string name, std::string setting_id, long long update_time);
 
     //BBS: add function to generate differed preset for save

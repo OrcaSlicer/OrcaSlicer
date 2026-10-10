@@ -2,6 +2,7 @@
 #define slic3r_UpgradePanel_hpp_
 
 #include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/anybutton.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/dynarray.h>

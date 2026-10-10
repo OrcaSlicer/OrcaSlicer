@@ -4,6 +4,7 @@
 #include "../wxExtensions.hpp"
 
 #include "slic3r/GUI/I18N.hpp"
+#include <wx/anybutton.h>
 #include <wx/colour.h>
 #include <utility>
 #include <wx/checklst.h>
@@ -13,6 +14,10 @@
 #include <wx/gdicmn.h>
 #include <wx/string.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+
+class wxWindow;
 
 BEGIN_EVENT_TABLE(ImageSwitchButton, StaticBox)
 

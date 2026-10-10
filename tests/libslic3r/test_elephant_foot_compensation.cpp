@@ -2,7 +2,11 @@
 
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include "libslic3r/libslic3r.h"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ElephantFootCompensation.hpp"
 #include "libslic3r/ExPolygon.hpp"

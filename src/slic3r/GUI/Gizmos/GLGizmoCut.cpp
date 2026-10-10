@@ -32,6 +32,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Line.hpp"
+#include <wx/string.h>
 #include <wx/utils.h>
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
@@ -57,13 +58,21 @@
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/TriangleMeshSlicer.hpp"
 #include "GLGizmoUtils.hpp"
 
 #include "imgui/imgui_internal.h"
-#include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "FixModelByCgal.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include <wx/defs.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -826,7 +835,7 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
 
     float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
     float slot_neck_outer_x = slot_mouth_half_width + flap_taper_offset; // lower_x extension
-    float slot_outer_x_max   = Max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
+    float slot_outer_x_max   = std::max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
 
     float slot_neck_inner_x = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
     float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing
@@ -3642,7 +3651,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                         // model_name     failing reason
                         std::vector<std::pair<std::string, std::string>> failed_models;
                         auto                                             plater = wxGetApp().plater();
-                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
+                        auto fix_and_update_progress = [keep_painting](ModelObject *model_object, const int vol_idx, const std::string &model_name, ProgressDialog &progress_dlg,
                                                                       std::vector<std::string> &succes_models, std::vector<std::pair<std::string, std::string>> &failed_models) {
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";
@@ -4088,8 +4097,6 @@ void GLGizmoCut3D::apply_cut_connectors(ModelObject* mo, const std::string& conn
 {
     if (mo->cut_connectors.empty())
         return;
-
-    using namespace Geometry;
 
     size_t connector_id = mo->cut_id.connectors_cnt();
     for (const CutConnector& connector : mo->cut_connectors) {

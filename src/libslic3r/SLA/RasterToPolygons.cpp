@@ -1,9 +1,18 @@
 #include "RasterToPolygons.hpp"
 
 #include "AGGRaster.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/MarchingSquares.hpp"
-#include "MTUtils.hpp"
 #include "ClipperUtils.hpp"
+#include <cstdint>
+#include <cstddef>
+#include <algorithm>
+#include <vector>
+#include <utility>
+#include "libslic3r/SLA/RasterBase.hpp"
 
 namespace marchsq {
 

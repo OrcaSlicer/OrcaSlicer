@@ -1,8 +1,23 @@
 #include "Http.hpp"
+#include "libslic3r_version.h"
 
+#include <algorithm>
 #include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <cassert>
 #include <cstdlib>
+#include <curl/curlver.h>
+#include <fstream>
 #include <functional>
+#include <memory>
+#include <string>
+#include <stdlib.h>
+#include <map>
+#include <mutex>
+#include <ios>
+#include "libslic3r/Exception.hpp"
+#include <iterator>
+#include <ostream>
 #include <thread>
 #include <deque>
 #include <sstream>
@@ -14,6 +29,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <curl/curl.h>
+#include <utility>
 
 #ifdef OPENSSL_CERT_OVERRIDE
 #include <openssl/x509.h>
@@ -931,13 +947,12 @@ std::string Http::tls_global_init()
 
 std::string Http::tls_system_cert_store()
 {
-    std::string ret;
-
 #ifdef OPENSSL_CERT_OVERRIDE
-    ret = ::getenv(X509_get_default_cert_file_env());
+    if (const char *cert_file = ::getenv(X509_get_default_cert_file_env()))
+        return cert_file;
 #endif
 
-    return ret;
+    return {};
 }
 
 std::string Http::url_encode(const std::string &str)

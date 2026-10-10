@@ -1,6 +1,7 @@
 #include "StaticBox.hpp"
 #include "../GUI.hpp"
 #include <utility>
+#include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include <wx/colour.h>
 #include <wx/dc.h>
@@ -10,6 +11,9 @@
 #include <wx/gdicmn.h>
 #include <wx/peninfobase.h>
 #include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 
 BEGIN_EVENT_TABLE(StaticBox, wxWindow)
 

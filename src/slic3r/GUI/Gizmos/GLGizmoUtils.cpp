@@ -3,6 +3,7 @@
 #include "GLGizmosManager.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include <vector>
 #include <utility>
 #include <imgui.h>
@@ -10,7 +11,9 @@
 #include <string_view>
 #include <cstddef>
 #include <wx/app.h>
+#include <wx/utils.h>
 #include <boost/algorithm/string.hpp>
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 #ifdef WIN32
 #include <wx/msw/winundef.h>
@@ -54,7 +57,6 @@ namespace Slic3r::GUI::GLGizmoUtils {
 
         auto& gizmos_manager = canvas.get_gizmos_manager();
         ImTextureID normal_id = gizmos_manager.get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-        ImTextureID hover_id = gizmos_manager.get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
 
         float scale = canvas.get_scale();
 #ifdef WIN32
@@ -62,13 +64,7 @@ namespace Slic3r::GUI::GLGizmoUtils {
         scale *= (float)dpi / (float)DPI_DEFAULT;
 #endif
 
-        ImVec2 button_size = ImVec2(25 * scale, 25 * scale);
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 });
-
-        ImGui::ImageButton3(normal_id, hover_id, button_size);
-
+        toolbar_circular_button(normal_id, "##tooltip_btn", scale);
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip2(ImVec2(x, caption_y));
             for (const auto& item : shortcuts) {
@@ -78,7 +74,60 @@ namespace Slic3r::GUI::GLGizmoUtils {
             }
             ImGui::EndTooltip();
         }
-        ImGui::PopStyleVar(2);
+    }
+
+    bool render_wiki_guide_button(const GLCanvas3D& canvas, float scale, const char* url)
+    {
+        auto& gm      = canvas.get_gizmos_manager();
+        auto  icon    = gm.get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_WIKI_GUIDE);
+        bool  clicked = toolbar_circular_button(icon, "##wiki_guide_btn", scale);
+        if (url && *url && clicked)
+            wxLaunchDefaultBrowser(wxString::FromUTF8(url));
+        if (ImGui::IsItemHovered()){
+            if(url && *url)
+                ImGui::SetTooltip("%s\n%s", _u8L("Wiki Guide").c_str(), url);
+            else
+                ImGui::SetTooltip("%s", _u8L("Wiki Guide").c_str());
+        }
+        return clicked; // for dynamically generated links
+    }
+
+    bool render_video_guide_button(const GLCanvas3D& canvas, float scale, const char* url)
+    {
+        auto& gm      = canvas.get_gizmos_manager();
+        auto  icon    = gm.get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_VIDEO_GUIDE);
+        bool  clicked = toolbar_circular_button(icon, "##video_guide_btn", scale);
+        if (url && *url && clicked)
+            wxLaunchDefaultBrowser(wxString::FromUTF8(url));
+        if (ImGui::IsItemHovered()){
+            if(url && *url)
+                ImGui::SetTooltip("%s\n%s", _u8L("Video Guide").c_str(), url);
+            else
+                ImGui::SetTooltip("%s", _u8L("Video Guide").c_str());
+        }
+        return clicked; // for dynamically generated links
+    }
+
+    bool toolbar_circular_button(ImTextureID textureID, const char* id, float scale)
+    {
+        ImVec2 btn_sz  = ImVec2(21 * scale, 21 * scale);
+        ImVec2 icon_sz = ImVec2(15 * scale, 15 * scale);
+        float  btn_pad = (btn_sz.x - icon_sz.x) * .5f;
+
+        ImVec2      p       = ImGui::GetCursorScreenPos();
+        bool        clicked = ImGui::InvisibleButton(id, btn_sz);
+        ImDrawList* dl      = ImGui::GetWindowDrawList();
+        bool        is_dark = ImGuiWrapper::COL_WINDOW_BG.x != ImGui::GetStyleColorVec4(ImGuiCol_WindowBg).x;
+        ImVec4      col     = is_dark ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA;
+        ImVec4      col_hvr = is_dark ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER;
+        dl->AddCircleFilled(
+            ImVec2(p.x + btn_sz.x * .5f, p.y + btn_sz.y * .5f),
+            btn_sz.x * .5f,
+            ImGui::ColorConvertFloat4ToU32((ImGui::IsItemActive()||ImGui::IsItemHovered()) ? col_hvr : col)
+        );
+        dl->AddImage(textureID, ImVec2(p.x + btn_pad, p.y + btn_pad), ImVec2(p.x + btn_sz.x - btn_pad, p.y + btn_sz.y - btn_pad));
+
+        return clicked;
     }
 
     void begin_right_aligned_buttons(const std::vector<wxString>& labels)

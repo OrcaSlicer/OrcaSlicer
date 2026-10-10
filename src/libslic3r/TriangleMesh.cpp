@@ -1,5 +1,6 @@
-#include "Exception.hpp"
+#include "BoundingBox.hpp"
 #include "TriangleMesh.hpp"
+#include "Polygon.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "MeshSplitImpl.hpp"
 #include "ClipperUtils.hpp"
@@ -8,16 +9,27 @@
 #include "Point.hpp"
 #include "Execution/ExecutionTBB.hpp"
 #include "Execution/ExecutionSeq.hpp"
-#include "CutUtils.hpp"
 #include "Utils.hpp"
-#include "Format/STL.hpp"
+#include "libslic3r.h"
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <iterator>
+#include <Eigen/Geometry>
+#include <libqhull_r/libqhull_r.h>
+#include <cstdio>
+#include <cstring>
 #include <libqhullcpp/Qhull.h>
 #include <libqhullcpp/QhullFacetList.h>
+#include <libqhullcpp/QhullVertex.h>
+#include <libqhullcpp/QhullPoint.h>
 #include <libqhullcpp/QhullVertexSet.h>
 
 #include <cmath>
 #include <deque>
 #include <queue>
+#include <map>
+#include <math.h>
 #include <vector>
 #include <utility>
 #include <algorithm>
@@ -31,6 +43,7 @@
 #include <Eigen/Dense>
 
 #include <assert.h>
+#include "ExtrusionEntity.hpp"
 
 namespace Slic3r {
 
@@ -1480,6 +1493,40 @@ float its_volume(const indexed_triangle_set &its)
     }
 
     return volume;
+}
+
+MassProperties MassProperties::transformed(const Transform3d &trafo) const
+{
+    const Matrix3d linear = trafo.linear();
+    const double   scale  = std::abs(linear.determinant());
+    return { mass * scale, volume * scale, trafo * center, linear * spread * linear.transpose() };
+}
+
+MassProperties its_mass_properties(const indexed_triangle_set &its)
+{
+    if (its.indices.empty())
+        return {};
+
+    // Signed tetrahedra fanned from a mesh vertex, not the origin, to keep the sums precise far from it.
+    const Vec3d p0        = its.vertices.front().cast<double>();
+    double      volume6   = 0.;
+    Vec3d       moment24  = Vec3d::Zero();
+    Matrix3d    second120 = Matrix3d::Zero();
+    for (const stl_triangle_vertex_indices &face : its.indices) {
+        const Vec3d  a = its.vertices[face(0)].cast<double>() - p0;
+        const Vec3d  b = its.vertices[face(1)].cast<double>() - p0;
+        const Vec3d  c = its.vertices[face(2)].cast<double>() - p0;
+        const Vec3d  s = a + b + c;
+        const double v = a.dot(b.cross(c));
+        volume6 += v;
+        moment24 += v * s;
+        second120 += v * (a * a.transpose() + b * b.transpose() + c * c.transpose() + s * s.transpose());
+    }
+    if (volume6 == 0.)
+        return {};
+    const Vec3d  center = moment24 / (4. * volume6);
+    const double volume = std::abs(volume6) / 6.;
+    return { volume, volume, p0 + center, second120 / (20. * volume6) - center * center.transpose() };
 }
 
 float its_average_edge_length(const indexed_triangle_set &its)

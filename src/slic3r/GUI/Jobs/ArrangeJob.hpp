@@ -10,6 +10,8 @@
 
 #include "Job.hpp"
 #include "libslic3r/Arrange.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/IMEXArrange.hpp"
 
 namespace Slic3r {
 
@@ -29,6 +31,22 @@ class ArrangeJob : public Job
     std::vector<ModelInstance*> m_unarranged;
     std::map<int, ArrangePolygons> m_selected_groups;   // groups of selected items for sequential printing
     std::vector<int> m_uncompatible_plates;  // plate indices with different printing sequence than global
+
+    // IMEX zone snapshot, taken on the main thread in prepare().
+    //
+    // process() runs on the worker thread (see Job::process). PartPlate::imex_primary_zone() is
+    // non-const and calls ensure_imex_zones(), which reads wxGetApp().preset_bundle -- main-thread
+    // GUI state -- on every call, and on a cache miss calls calc_imex_zones(), which destroys and
+    // rebuilds std::vector<GLModel> members. ~GLModel issues glDeleteBuffers/glDeleteVertexArrays,
+    // and no GL context is current on the worker, while the GUI thread may be painting those same
+    // vectors from GLCanvas3D::on_paint. (imex_collision_zones() is itself const and merely reads
+    // the member -- but it is only valid once imex_primary_zone() has warmed the cache, so it
+    // cannot be moved off the main thread on its own.) Snapshotting plain geometry here keeps
+    // every one of those touches on the main thread.
+    //
+    // The zones are stored already converted to plate-local coordinates, which is the space the
+    // arranger works in.
+    ImexArrangeInput m_imex;
 
     arrangement::ArrangeParams params;
     int current_plate_index = 0;
@@ -50,6 +68,8 @@ class ArrangeJob : public Job
     //BBS:prepare the items from current selected partplate
     void prepare_partplate();
     void prepare_wipe_tower();
+    void prepare_belt_regions(int num_plates);
+    void prepare_imex_zones();
 
     ArrangePolygon prepare_arrange_polygon(void* instance);
 

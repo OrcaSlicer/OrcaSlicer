@@ -1,10 +1,12 @@
 #ifndef SRC_LIBSLIC3R_ALGORITHM_REGION_EXPANSION_HPP_
 #define SRC_LIBSLIC3R_ALGORITHM_REGION_EXPANSION_HPP_
 
+#include <cstddef>
 #include <cstdint>
 #include <libslic3r/Point.hpp>
 #include <libslic3r/Polygon.hpp>
 #include <libslic3r/ExPolygon.hpp>
+#include <vector>
 
 namespace Slic3r {
 namespace Algorithm {

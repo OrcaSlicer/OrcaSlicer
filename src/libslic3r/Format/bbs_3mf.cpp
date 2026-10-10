@@ -1,5 +1,6 @@
 #include "../libslic3r.h"
 #include "../Exception.hpp"
+#include "../IMEXHelpers.hpp"
 #include "../Model.hpp"
 #include "../Preset.hpp"
 #include "../Utils.hpp"
@@ -9,13 +10,63 @@
 #include "../Geometry.hpp"
 #include "../GCode/ThumbnailData.hpp"
 #include "../Semver.hpp"
-#include "../Time.hpp"
 
 #include "../I18N.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/BrimEarsPoint.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r_version.h"
 
 #include "bbs_3mf.hpp"
 
+#include <boost/assert/source_location.hpp>
+#include <ios>
+#include <cstring>
+#include <boost/spirit/home/qi/parse.hpp>
+#include <boost/spirit/home/qi/numeric/int.hpp>
+#include <cstdlib>
+#include <cstddef>
+#include <boost/algorithm/string/constants.hpp>
+#include <algorithm>
+#include <boost/thread/lock_types.hpp>
+#include <cassert>
+#include <boost/optional/optional.hpp>
+#include <istream>
+#include <functional>
+#include <boost/algorithm/string/find.hpp>
+#include <cstdio>
+#include <exception>
+#include <boost/filesystem/fstream.hpp>
+#include <cstdint>
+#include <boost/spirit/home/karma/generate.hpp>
+#include <boost/spirit/home/support/common_terminals.hpp>
+#include <boost/spirit/home/karma.hpp>
+#include <deque>
+#include <boost/filesystem/directory.hpp>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/thread/thread_time.hpp>
+#include <boost/core/ref.hpp>
+#include <boost/assign/list_of.hpp>
+#include <cmath>
 #include <limits>
+#include <miniz.h>
+#include <ostream>
+#include <sstream>
+#include <set>
+#include <memory>
+#include <optional>
+#include <map>
+#include <list>
 #include <stdexcept>
 #include <iomanip>
 #include <regex>
@@ -39,6 +90,10 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
 #include <openssl/md5.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <string_view>
 
 namespace pt = boost::property_tree;
 
@@ -58,6 +113,7 @@ namespace pt = boost::property_tree;
 #include "NSVGUtils.hpp"
 
 #include <fast_float/fast_float.h>
+#include "libslic3r/ProjectTask.hpp"
 
 // Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
 // https://github.com/boostorg/spirit/pull/586
@@ -313,6 +369,12 @@ static constexpr const char* FIRST_LAYER_PRINT_SEQUENCE_ATTR = "first_layer_prin
 static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_ATTR = "other_layers_print_sequence";
 static constexpr const char* OTHER_LAYERS_PRINT_SEQUENCE_NUMS_ATTR = "other_layers_print_sequence_nums";
 static constexpr const char* SPIRAL_VASE_MODE = "spiral_mode";
+static constexpr const char* IMEX_PARALLEL_MODE_ATTR = "imex_parallel_mode";
+// The same attribute before the feature was renamed IMEX. Plate metadata is matched by exact
+// string and written with set_key_value, so it never passes through handle_legacy: without this
+// a project saved in that window loads every plate back on the Primary mode, silently.
+static constexpr const char* IXEX_PARALLEL_MODE_ATTR_LEGACY = "ixex_parallel_mode";
+static constexpr const char* IMEX_HEAD_FILAMENT_MAP_ATTR = "imex_head_filament_map";
 static constexpr const char* FILAMENT_MAP_MODE_ATTR = "filament_map_mode";
 static constexpr const char* FILAMENT_MAP_ATTR = "filament_maps";
 static constexpr const char* FILAMENT_VOL_MAP_ATTR = "filament_volume_maps";
@@ -986,10 +1048,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             void _stop_object_xml_parser(const std::string& msg = std::string())
             {
                 assert(! obj_parse_error);
-                assert(obj_parse_error_message.empty());
                 assert(object_xml_parser != nullptr);
                 obj_parse_error = true;
-                obj_parse_error_message = msg;
+                if (! msg.empty() || obj_parse_error_message.empty())   // a handler may have set the message already
+                    obj_parse_error_message = msg;
                 XML_StopParser(object_xml_parser, false);
             }
 
@@ -1340,7 +1402,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         bool _handle_start_relationship(const char** attributes, unsigned int num_attributes);
 
-        void _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
+        bool _generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap& current_objects);
         bool _generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
         //bool _generate_volumes(ModelObject& object, const Geometry& geometry, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
 
@@ -1961,7 +2023,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 else if (boost::algorithm::iequals(name, ORCA_CAD_RECIPE_FILE)
                       || boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE)) {
                     // Restore the editable CAD recipe (optional; absent in non-CAD projects).
-                    if (stat.m_uncomp_size > 0) {
+                    // The current name wins over the legacy one whichever the archive lists
+                    // first, and the size the archive claims is capped before it is allocated.
+                    constexpr mz_uint64 kMaxCadRecipe = mz_uint64(1) << 30;   // 1 GiB
+                    const bool legacy = boost::algorithm::iequals(name, LEGACY_CAD_RECIPE_FILE);
+                    if (stat.m_uncomp_size > kMaxCadRecipe) {
+                        BOOST_LOG_TRIVIAL(error) << "3MF: CAD recipe of " << stat.m_uncomp_size
+                                                 << " bytes exceeds the limit; not loaded";
+                    } else if (stat.m_uncomp_size > 0 && !(legacy && !model.cad_recipe.empty())) {
                         std::string buf((size_t)stat.m_uncomp_size, '\0');
                         if (mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, buf.data(), buf.size(), 0))
                             model.cad_recipe = std::move(buf);
@@ -2055,7 +2124,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         return false;
                     }
                     std::vector<Component> object_id_list;
-                    _generate_current_object_list(object_id_list, object.first, m_current_objects);
+                    if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                        return false;
 
                     ObjectMetadata::VolumeMetadataList volumes;
                     ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -2154,7 +2224,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }*/
 
             std::vector<Component> object_id_list;
-            _generate_current_object_list(object_id_list, object.first, m_current_objects);
+            if (!_generate_current_object_list(object_id_list, object.first, m_current_objects))
+                return false;
 
             ObjectMetadata::VolumeMetadataList volumes;
             ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
@@ -3839,11 +3910,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         // appends the vertex coordinates
         // missing values are set equal to ZERO
-        if (m_curr_object)
-            m_curr_object->geometry.vertices.emplace_back(
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
-                m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+        if (m_curr_object) {
+            const Vec3f v(m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
+                          m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
+                          m_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+            // A non-finite coordinate ("nan", "inf") used to be accepted and crashed
+            // qhull in ModelVolume's convex hull while the file was still loading. Refuse the file.
+            if (! v.allFinite()) {
+                _stop_xml_parser("Invalid vertex coordinate: not a finite number");
+                return true;   // the parser is stopped; returning false would overwrite the message
+            }
+            m_curr_object->geometry.vertices.emplace_back(v);
+        }
         return true;
     }
 
@@ -4306,12 +4384,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
     void _BBS_3MF_Importer::_apply_transform(ModelInstance& instance, const Transform3d& transform)
     {
-        Slic3r::Geometry::Transformation t(transform);
-        // invalid scale value, return
-        if (!t.get_scaling_factor().all())
+        // Validate the affine matrix directly. Decomposing a valid mirrored transform to
+        // rotation and scale is not stable across Eigen versions and may yield a zero diagonal.
+        if (!transform.matrix().allFinite() || !transform.linear().fullPivLu().isInvertible())
             return;
 
-        instance.set_transformation(t);
+        instance.set_transformation(Slic3r::Geometry::Transformation(transform));
     }
 
     bool _BBS_3MF_Importer::_handle_start_config(const char** attributes, unsigned int num_attributes)
@@ -4504,6 +4582,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 bool spiral_mode = false;
                 std::istringstream(value) >> std::boolalpha >> spiral_mode;
                 m_curr_plater->config.set_key_value("spiral_mode", new ConfigOptionBool(spiral_mode));
+            }
+            else if (key == IMEX_PARALLEL_MODE_ATTR || key == IXEX_PARALLEL_MODE_ATTR_LEGACY) {
+                m_curr_plater->config.set_key_value("imex_parallel_mode", new ConfigOptionString(value));
+            }
+            else if (key == IMEX_HEAD_FILAMENT_MAP_ATTR) {
+                m_curr_plater->config.set_key_value("imex_head_filament_map", new ConfigOptionString(value));
             }
             else if (key == FILAMENT_MAP_MODE_ATTR)
             {
@@ -5002,11 +5086,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
-    void _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
+    bool _BBS_3MF_Importer::_generate_current_object_list(std::vector<Component> &sub_objects, Id object_id, IdToCurrentObjectMap &current_objects)
     {
+        // A cycle in the component graph would expand forever, and an acyclic graph can still expand
+        // exponentially, so bound the number of component references queued. Checking before they are
+        // queued bounds the work list itself, whatever the fan-out. A valid file over the budget is
+        // rejected too, but the budget is way above the component references of any real object.
+        static constexpr size_t max_components = 100000;
+
         std::list<std::pair<Component, Transform3d>> id_list;
         id_list.push_back(std::make_pair(Component(object_id, Transform3d::Identity()), Transform3d::Identity()));
 
+        size_t num_components = 0;
         while (!id_list.empty())
         {
             auto current_item = id_list.front();
@@ -5016,6 +5107,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (current_object != current_objects.end()) {
                 //found one
                 if (!current_object->second.components.empty()) {
+                    num_components += current_object->second.components.size();
+                    if (num_components > max_components) {
+                        add_error("invalid 3mf: cyclic or too many component references");
+                        sub_objects.clear();
+                        return false;
+                    }
                     for (const Component &comp : current_object->second.components) {
                         id_list.push_back(std::pair(comp, current_item.second * comp.transform));
                     }
@@ -5027,6 +5124,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 }
             }
         }
+        return true;
     }
 
     bool _BBS_3MF_Importer::_generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions)
@@ -5133,6 +5231,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     }
                 }
 
+                for (const Vec3f &v : sub_object->geometry.vertices)
+                    if (! v.allFinite()) {   // Qhull cannot take a NaN vertex
+                        add_error("invalid (non-finite) vertex in object " + std::to_string(sub_object->id));
+                        return false;
+                    }
                 its.vertices.assign(sub_object->geometry.vertices.begin(), sub_object->geometry.vertices.end());
 
                 // BBS
@@ -5646,11 +5749,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         // appends the vertex coordinates
         // missing values are set equal to ZERO
-        if (current_object)
-            current_object->geometry.vertices.emplace_back(
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
-                object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+        if (current_object) {
+            const Vec3f v(object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, X_ATTR),
+                          object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Y_ATTR),
+                          object_unit_factor * bbs_get_attribute_value_float(attributes, num_attributes, Z_ATTR));
+            // See _BBS_3MF_Importer::_handle_start_vertex: a non-finite coordinate
+            // crashed qhull while the file loaded. The dispatcher stops this parser on `false`.
+            if (! v.allFinite()) {
+                obj_parse_error_message = "Invalid vertex coordinate: not a finite number";
+                return false;
+            }
+            current_object->geometry.vertices.emplace_back(v);
+        }
         return true;
     }
 
@@ -8179,6 +8289,23 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 ConfigOption* spiral_mode_opt = plate_data->config.option("spiral_mode");
                 if (spiral_mode_opt)
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SPIRAL_VASE_MODE << "\" " << VALUE_ATTR << "=\"" << spiral_mode_opt->getBool() << "\"/>\n";
+
+                {
+                    // Mode names are user supplied free text, so the value has to be escaped for an
+                    // attribute. xml_escape_double_quotes_attribute_value() is used rather than
+                    // xml_escape() because it also emits tab/CR/LF as numeric character references:
+                    // XML normalizes literal whitespace in attribute values on read, which would
+                    // silently rename the mode. The reader takes the value straight from expat,
+                    // which resolves both entities and character references, so this round-trips.
+                    auto* imex_mode_opt = plate_data->config.option<ConfigOptionString>("imex_parallel_mode");
+                    if (imex_mode_opt && !imex_mode_opt->value.empty() && imex_mode_opt->value != kImexPrimaryMode)
+                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_PARALLEL_MODE_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(imex_mode_opt->value) << "\"/>\n";
+                }
+                {
+                    auto* imex_hfm_opt = plate_data->config.option<ConfigOptionString>("imex_head_filament_map");
+                    if (imex_hfm_opt && !imex_hfm_opt->value.empty())
+                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMEX_HEAD_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(imex_hfm_opt->value) << "\"/>\n";
+                }
 
                 //filament map related
                 ConfigOption* filament_map_mode_opt = plate_data->config.option("filament_map_mode");

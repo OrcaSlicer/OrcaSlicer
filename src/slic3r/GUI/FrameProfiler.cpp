@@ -1,12 +1,16 @@
-#include "libslic3r/libslic3r.h"
 #include "FrameProfiler.hpp"
 
 #include "3DScene.hpp"
 
+#include <chrono>
+#include <array>
 #include <glad/gl.h>
 
 #include <algorithm>
 #include <cstring>
+#include <ratio>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {

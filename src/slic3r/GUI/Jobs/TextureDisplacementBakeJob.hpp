@@ -7,12 +7,13 @@
 #include "libslic3r/Point.hpp"
 #include <vector>
 
-#include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "Job.hpp"
+
+namespace Slic3r { class ModelVolume; }
 
 namespace Slic3r::GUI {
 
@@ -55,8 +56,9 @@ private:
     TriangleMesh                 m_result;
     // What the bake spent, for the message it leaves behind when the budget capped the detail.
     TextureBakeStats m_stats;
-    // Per triangle of m_result: the filament to print it in, as an EnforcerBlockerType value
-    // (0 = leave alone). Empty unless a layer asked for colour. See TextureColorRequest.
+    // Per triangle of m_result: the palette entry to print it in, as its index + 1 (0 = leave alone).
+    // Empty unless a layer asked for colour. See TextureColorRequest; finalize() turns these into
+    // filaments.
     std::vector<uint8_t>         m_triangle_color;
     std::function<void()>        m_on_finished;
 };

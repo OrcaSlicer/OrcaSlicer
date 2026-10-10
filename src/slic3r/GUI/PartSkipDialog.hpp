@@ -139,11 +139,11 @@ private:
     boost::shared_ptr<PrinterFileSystem> m_file_sys;
     std::string                          m_timestamp;
     std::string                          m_tmp_path;
-    std::vector<string>                  m_local_paths;
-    std::vector<string>                  m_target_paths;
+    std::vector<std::string>             m_local_paths;
+    std::vector<std::string>             m_target_paths;
     std::string                          create_tmp_path();
 
-    bool is_local_file_existed(const std::vector<string> &local_paths);
+    bool is_local_file_existed(const std::vector<std::string> &local_paths);
 
     void DownloadPartsFile();
     void OnFileSystemEvent(wxCommandEvent &event);

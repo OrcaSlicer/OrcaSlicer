@@ -1,10 +1,17 @@
 #ifndef slic3r_ClipperUtils_hpp_
 #define slic3r_ClipperUtils_hpp_
 
+#include "Point.hpp"
+#include "Polyline.hpp"
+#include "Line.hpp"
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
 #include "Surface.hpp"
+#include <cstddef>
+#include <iterator>
+#include <cassert>
+#include <vector>
 
 namespace Slic3r {
 
@@ -15,11 +22,6 @@ enum PolyFillType { pftEvenOdd, pftNonZero, pftPositive, pftNegative };
 enum ClipType { ctIntersection, ctUnion, ctDifference, ctXor };
 
 } // namespace Slic3r
-
-// import these wherever we're included
-using Slic3r::jtMiter;
-using Slic3r::jtRound;
-using Slic3r::jtSquare;
 
 namespace Slic3r {
 

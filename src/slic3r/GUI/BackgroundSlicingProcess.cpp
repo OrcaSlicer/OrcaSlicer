@@ -56,6 +56,13 @@
 
 #include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
+#ifdef _WIN32
+#include <excpt.h>
+#endif
 
 namespace Slic3r {
 
@@ -211,7 +218,7 @@ std::string BackgroundSlicingProcess::output_filepath_for_project(const boost::f
 void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
-    PresetBundle& preset_bundle   = *wxGetApp().preset_bundle;
+    PresetBundle& preset_bundle   = *GUI::wxGetApp().preset_bundle;
     m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
     // BBS: add the logic to process from an existed gcode file
     if (m_print->finished()) {
@@ -276,11 +283,12 @@ void BackgroundSlicingProcess::process_fff()
         m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
         m_fff_print->export_gcode(m_temp_output_path, m_gcode_result,
                                   [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
-        // Orca: BBL printers post-process the g-code in place here and never re-parse it into a fresh
-        // GCodeProcessorResult, so m_gcode_result->nozzle_group_result (consumed by the H2C print-dispatch
-        // nozzle mapping) survives post-processing. No preservation guard is needed on this path.
+        // Orca: BBL printers post-process the g-code in place here, in the file the G-code viewer maps, so
+        // the preview re-reads its moves and line offsets from the edited file. The rest of m_gcode_result,
+        // including nozzle_group_result (consumed by the H2C print-dispatch nozzle mapping), is kept.
         if (m_fff_print->is_BBL_printer()) {
-            run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
+            if (run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config()))
+                m_fff_print->reload_gcode_moves(m_gcode_result);
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");
@@ -720,7 +728,7 @@ StringObjectException BackgroundSlicingProcess::validate(std::vector<StringObjec
     assert(m_print != nullptr);
     assert(m_print == m_fff_print);
 
-    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+    m_fff_print->is_BBL_printer() = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
     return m_print->validate(warnings, collison_polygons, height_polygons);
 }
 

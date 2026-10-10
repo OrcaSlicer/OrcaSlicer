@@ -1,10 +1,15 @@
 #include "Flow.hpp"
-#include "I18N.hpp"
+#include "Exception.hpp"
+#include "Config.hpp"
 #include "Print.hpp"
+#include "libslic3r.h"
 #include <cmath>
 #include <assert.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <string>
+#include <math.h>
+#include "PrintConfig.hpp"
 
 // Mark string for localization and translate.
 #define L(s) Slic3r::I18N::translate(s)
@@ -236,14 +241,14 @@ Flow support_material_flow(const PrintObject *object, float layer_height)
         // The width parameter accepted by new_from_config_width is of type ConfigOptionFloatOrPercent, the Flow class takes care of the percent to value substitution.
         (object->config().support_line_width.value > 0) ? object->config().support_line_width : object->config().line_width,
         // if object->config().support_filament == 0 (which means to not trigger tool change, but use the current extruder instead), get_at will return the 0th component.
-        float(object->print()->config().nozzle_diameter.get_at(object->config().support_filament-1)),
+        float(nozzle_diameter_for_filament(object->print()->config(), object->config().support_filament, object->print()->is_BBL_printer())),
         (layer_height > 0.f) ? layer_height : float(object->config().layer_height.value));
 }
 //BBS
 Flow support_transition_flow(const PrintObject* object)
 {
     //BBS: support transition of tree support is bridge flow
-    float dmr = float(object->print()->config().nozzle_diameter.get_at(object->config().support_filament - 1));
+    float dmr = float(nozzle_diameter_for_filament(object->print()->config(), object->config().support_filament, object->print()->is_BBL_printer()));
     return Flow::bridging_flow(dmr, dmr);
 }
 
@@ -255,7 +260,7 @@ Flow support_material_1st_layer_flow(const PrintObject *object, float layer_heig
         frSupportMaterial,
         // The width parameter accepted by new_from_config_width is of type ConfigOptionFloatOrPercent, the Flow class takes care of the percent to value substitution.
         (width.value > 0) ? width : object->config().line_width,
-        float(print_config.nozzle_diameter.get_at(object->config().support_filament-1)),
+        float(nozzle_diameter_for_filament(print_config, object->config().support_filament, object->print()->is_BBL_printer())),
         (layer_height > 0.f) ? layer_height : float(print_config.initial_layer_print_height.value));
 }
 
@@ -266,7 +271,7 @@ Flow support_material_interface_flow(const PrintObject *object, float layer_heig
         // The width parameter accepted by new_from_config_width is of type ConfigOptionFloatOrPercent, the Flow class takes care of the percent to value substitution.
         (object->config().support_line_width > 0) ? object->config().support_line_width : object->config().line_width,
         // if object->config().support_interface_filament == 0 (which means to not trigger tool change, but use the current extruder instead), get_at will return the 0th component.
-        float(object->print()->config().nozzle_diameter.get_at(object->config().support_interface_filament-1)),
+        float(nozzle_diameter_for_filament(object->print()->config(), object->config().support_interface_filament, object->print()->is_BBL_printer())),
         (layer_height > 0.f) ? layer_height : float(object->config().layer_height.value));
 }
 

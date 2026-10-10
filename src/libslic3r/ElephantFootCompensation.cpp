@@ -1,3 +1,6 @@
+#include "Point.hpp"
+#include "BoundingBox.hpp"
+#include "Polygon.hpp"
 #include "libslic3r.h"
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"
@@ -5,11 +8,17 @@
 #include "ElephantFootCompensation.hpp"
 #include "Flow.hpp"
 #include "Geometry.hpp"
-#include "SVG.hpp"
 #include "Utils.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cassert>
+#include <cstddef>
+#include <vector>
+#include <utility>
+#include <math.h>
+#include <limits>
+#include "ExtrusionEntity.hpp"
 
 // #define CONTOUR_DISTANCE_DEBUG_SVG
 
