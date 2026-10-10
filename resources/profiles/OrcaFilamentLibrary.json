@@ -593,6 +593,10 @@
 			"sub_path": "filament/SUNLU/SUNLU PETG @base.json"
 		},
 		{
+			"name": "School House Spools PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @base.json"
+		},
+		{
 			"name": "eSUN PETG @base",
 			"sub_path": "filament/eSUN/eSUN PETG @base.json"
 		},
@@ -1095,6 +1099,10 @@
 		{
 			"name": "SUNLU Wood PLA @base",
 			"sub_path": "filament/SUNLU/SUNLU Wood PLA @base.json"
+		},
+		{
+			"name": "School House Spools PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @base.json"
 		},
 		{
 			"name": "Valment PLA @base",
@@ -2231,6 +2239,10 @@
 		{
 			"name": "SUNLU PETG @System",
 			"sub_path": "filament/SUNLU/SUNLU PETG @System.json"
+		},
+		{
+			"name": "School House Spools PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @System.json"
 		},
 		{
 			"name": "eSUN PETG @System",
@@ -3771,6 +3783,10 @@
 		{
 			"name": "SUNLU Wood PLA @System",
 			"sub_path": "filament/SUNLU/SUNLU Wood PLA @System.json"
+		},
+		{
+			"name": "School House Spools PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @System.json"
 		},
 		{
 			"name": "Valment PLA @System",
