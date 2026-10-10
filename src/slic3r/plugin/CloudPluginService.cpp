@@ -197,6 +197,7 @@ bool CloudPluginService::download_cloud_plugin(PluginDescriptor& entry,
     Http http = Http::get(download_url);
     http.timeout_connect(30)
         .timeout_max(300)
+        .tls_verify(true)
         .on_complete([&body, &http_status](std::string response_body, unsigned status) {
             body        = std::move(response_body);
             http_status = status;
