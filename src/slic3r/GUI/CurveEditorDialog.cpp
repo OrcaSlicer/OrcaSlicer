@@ -35,6 +35,7 @@
 #include <wx/toplevel.h>
 #include <wx/window.h>
 #include "libslic3r/CurveModel.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "CurveEditorPanel.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
@@ -296,10 +297,22 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         if (event.IsChecked() && m_grid->GetGridCursorRow() >= 0)
             m_grid->MakeCellVisible(m_grid->GetGridCursorRow(), m_grid->GetGridCursorCol());
     });
-    Bind(wxEVT_DPI_CHANGED, [this, show_range, show_table](wxDPIChangedEvent& event) {
+    const bool touchpad_enabled = wxGetApp().app_config && wxGetApp().app_config->get_bool("curve_editor_touchpad_controls");
+    auto* touchpad = make_view_checkbox(_L("Touchpad"), touchpad_enabled, 12);
+    const wxString touchpad_help = _L("Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer.");
+    touchpad->SetToolTip(touchpad_help);
+    m_chart->set_touchpad_controls(touchpad_enabled);
+    touchpad->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& event) {
+        event.Skip();
+        m_chart->set_touchpad_controls(event.IsChecked());
+        if (wxGetApp().app_config)
+            wxGetApp().app_config->set("curve_editor_touchpad_controls", event.IsChecked() ? "1" : "0");
+    });
+    Bind(wxEVT_DPI_CHANGED, [this, show_range, show_table, touchpad](wxDPIChangedEvent& event) {
         event.Skip();
         show_range->Rescale();
         show_table->Rescale();
+        touchpad->Rescale();
         m_content->SendSizeEvent();
     });
     auto make_action_button = [this](wxWindow* parent, const wxString& label, const wxString& icon, int horizontal_padding = 5) {
@@ -324,7 +337,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
            "Show range: enter exact bounds and press Enter or Apply.\n"
            "Show table: show or hide the point values.\n"
            "Reset View: show the full curve.\n"
-           "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift);
+           "Reset to defaults: restore the model's default points."), shift, ctrl, ctrl, shift) + "\n\n" + touchpad_help;
     auto* help_button = make_action_button(m_actions_panel, wxEmptyString, "thermal_question");
     help_button->SetName(_L("Graph controls"));
     help_button->SetToolTip(controls_help);

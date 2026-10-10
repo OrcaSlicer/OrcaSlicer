@@ -38641,3 +38641,8 @@ msgstr "Didž. taškų skaičius: %d."
 msgid "The curve contains too many points."
 msgstr "Kreivėje per daug taškų."
 
+# AI Translated
+# Needs human review: Check point terminology and concise UI phrasing.
+msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgstr "Jutiklinis kilimėlis: dviem pirštais slinkite grafiką. Glaudžiant ar skėčiant keičiasi ašių mastelis ties žymekliu."
+

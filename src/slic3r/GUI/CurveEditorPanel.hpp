@@ -35,6 +35,7 @@ public:
     const CurveEditorView& view() const { return m_view; }
     void select_point(int row);
     void finish_drag();
+    void set_touchpad_controls(bool enabled);
 
     std::function<void()> before_drag;
     std::function<void(int)> on_select;
@@ -50,6 +51,7 @@ private:
     int hit_test(const wxPoint& position) const;
     void drag_point(const wxPoint& position);
     void zoom_view(double steps, bool vertical, const wxPoint& position);
+    void pinch_zoom(double factor, const wxPoint& position);
     void paint_chart();
 
     CurveEditorAppearance m_appearance;
@@ -67,6 +69,8 @@ private:
     double m_drag_x = 0.0;
     double m_drag_y = 0.0;
     wxRecursionGuardFlag m_zoom_depth = 0;
+    bool m_touchpad_controls = false;
+    double m_gesture_zoom_factor = 1.0;
 };
 
 } // namespace Slic3r::GUI

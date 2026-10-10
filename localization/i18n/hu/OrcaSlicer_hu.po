@@ -38799,3 +38799,7 @@ msgstr "Pontok max. száma: %d."
 msgid "The curve contains too many points."
 msgstr "A görbe túl sok pontot tartalmaz."
 
+# AI Translated
+msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgstr "Érintőpad: két ujjal mozgatható a grafikon. Csippentéssel mindkét tengely méretezhető a mutató körül."
+

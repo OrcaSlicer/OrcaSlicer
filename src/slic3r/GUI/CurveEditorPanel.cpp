@@ -17,6 +17,7 @@
 #include <wx/peninfobase.h>
 #include <wx/recguard.h>
 #include <wx/string.h>
+#include <wx/window.h>
 #include "libslic3r/CurveModel.hpp"
 #include "GUI_App.hpp"
 #include "Widgets/StateColor.hpp"
@@ -164,17 +165,68 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
             return;
         }
         if (m_dragged_point >= 0 || event.GetWheelDelta() <= 0 || event.GetWheelRotation() == 0) return;
-        const bool vertical = event.ShiftDown();
+        const bool vertical = m_touchpad_controls && !zoom ?
+            event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL : event.ShiftDown();
         double steps = double(event.GetWheelRotation()) / event.GetWheelDelta();
         if (zoom) {
+            if (m_touchpad_controls && !event.ShiftDown()) {
+                zoom_view(steps, false, event.GetPosition());
+                zoom_view(steps, true, event.GetPosition());
+                return;
+            }
             zoom_view(steps, vertical, event.GetPosition());
             return;
         }
-        // Wheel-up moves toward lower X; Shift+wheel-up moves toward higher Y.
+        // Mouse mode maps wheel-up to lower X; touchpad mode follows native axes.
         if (!vertical && event.GetWheelAxis() != wxMOUSE_WHEEL_HORIZONTAL) steps = -steps;
         const double span = vertical ? m_view.max_y - m_view.min_y : m_view.max_x - m_view.min_x;
         on_pan(steps * span * 0.1, vertical);
     });
+    Bind(wxEVT_MAGNIFY, [this](wxMouseEvent& event) {
+        if (!m_touchpad_controls || !on_zoom) { event.Skip(); return; }
+        if (m_dragged_point < 0) pinch_zoom(1.0 + event.GetMagnification(), event.GetPosition());
+    });
+    Bind(wxEVT_GESTURE_PAN, [this](wxPanGestureEvent& event) {
+        if (!m_touchpad_controls || !on_pan) { event.Skip(); return; }
+        if (m_dragged_point >= 0) return;
+        const wxRect plot = chart_rect();
+        const auto delta = event.GetDelta();
+        const double dx = -double(delta.x) / plot.width * (m_view.max_x - m_view.min_x);
+        const double dy = double(delta.y) / plot.height * (m_view.max_y - m_view.min_y);
+        if (dx != 0.0) on_pan(dx, false);
+        if (dy != 0.0) on_pan(dy, true);
+    });
+    Bind(wxEVT_GESTURE_ZOOM, [this](wxZoomGestureEvent& event) {
+        if (!m_touchpad_controls || !on_zoom) { event.Skip(); return; }
+        if (event.IsGestureStart()) m_gesture_zoom_factor = 1.0;
+        const double factor = event.GetZoomFactor();
+        if (std::isfinite(factor) && factor > 0.0) {
+            if (m_dragged_point < 0) pinch_zoom(factor / m_gesture_zoom_factor, event.GetPosition());
+            m_gesture_zoom_factor = factor;
+        }
+        if (event.IsGestureEnd()) m_gesture_zoom_factor = 1.0;
+    });
+}
+
+void CurveEditorPanel::set_touchpad_controls(bool enabled)
+{
+    if (m_touchpad_controls == enabled) return;
+    finish_drag();
+    m_touchpad_controls = enabled;
+    m_gesture_zoom_factor = 1.0;
+    // Cocoa supplies scrolling and incremental magnification directly. Adding
+    // its gesture recognizers could intercept point dragging or duplicate zoom.
+#ifndef __WXOSX__
+    EnableTouchEvents(enabled ? wxTOUCH_PAN_GESTURES | wxTOUCH_ZOOM_GESTURE : wxTOUCH_NONE);
+#endif
+}
+
+void CurveEditorPanel::pinch_zoom(double factor, const wxPoint& position)
+{
+    if (!std::isfinite(factor) || factor <= 0.0 || factor == 1.0) return;
+    const double steps = std::log(factor) / std::log(1.1);
+    zoom_view(steps, false, position);
+    zoom_view(steps, true, position);
 }
 
 void CurveEditorPanel::zoom_view(double steps, bool vertical, const wxPoint& position)

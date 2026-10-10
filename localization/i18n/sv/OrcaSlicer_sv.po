@@ -41038,3 +41038,7 @@ msgstr "Max. antal punkter: %d."
 msgid "The curve contains too many points."
 msgstr "Kurvan har för många punkter."
 
+# AI Translated
+msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgstr "Styrplatta: två fingrar flyttar grafen åt båda håll. Nyp för att zooma båda axlarna kring pekaren."
+

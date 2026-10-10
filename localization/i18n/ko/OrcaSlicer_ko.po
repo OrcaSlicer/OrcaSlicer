@@ -39139,3 +39139,7 @@ msgstr "최대 점 개수: %d."
 msgid "The curve contains too many points."
 msgstr "곡선에 점이 너무 많습니다."
 
+# AI Translated
+msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgstr "터치패드: 두 손가락으로 그래프를 상하좌우로 이동합니다. 핀치로 포인터 중심의 두 축을 확대·축소합니다."
+
