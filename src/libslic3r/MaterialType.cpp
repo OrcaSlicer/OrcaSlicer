@@ -4,13 +4,17 @@
 #include "Utils.hpp"
 
 #include <algorithm>
+#include <exception>
 #include <vector>
+#include <stdexcept>
 #include <string>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
