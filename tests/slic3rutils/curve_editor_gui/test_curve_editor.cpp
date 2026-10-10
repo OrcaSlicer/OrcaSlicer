@@ -197,6 +197,27 @@ TEST_CASE("Touchpad scrolling routes both native axes and preserves fractional m
     CHECK(f.pans[2].value > 0);
 }
 
+TEST_CASE("Vertical touchpad scrolling matches Shift wheel and leaves the horizontal range unchanged",
+          "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const int rotation = GENERATE(-120, -1, 1, 120);
+    Fixture mouse;
+    mouse.wheel(rotation, false, false, true);
+    const auto expected = mouse.panel->view();
+
+    Fixture touchpad;
+    touchpad.panel->set_touchpad_controls(true);
+    const auto before = touchpad.panel->view();
+    touchpad.wheel(rotation);
+    const auto actual = touchpad.panel->view();
+
+    CHECK_THAT(actual.min_x, WithinAbs(before.min_x, 1e-12));
+    CHECK_THAT(actual.max_x, WithinAbs(before.max_x, 1e-12));
+    CHECK_THAT(actual.min_y, WithinAbs(expected.min_y, 1e-12));
+    CHECK_THAT(actual.max_y, WithinAbs(expected.max_y, 1e-12));
+    CHECK(std::abs(actual.min_y - before.min_y) > 0.0);
+}
+
 TEST_CASE("Touchpad pinch inputs resize both axes around the pointer", "[CurveEditorGUI][RequiresDisplay]")
 {
     const bool magnification = GENERATE(false, true);
