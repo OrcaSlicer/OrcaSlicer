@@ -126,6 +126,13 @@ namespace GUI {
 //        _u8L("Filament")
 //    };
 
+// The AUX fan view only makes sense for a printer that has an auxiliary part cooling fan.
+static bool is_additional_fan_speed_hidden()
+{
+    const PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    return preset_bundle == nullptr || !preset_bundle->printers.get_edited_preset().config.opt_bool("auxiliary_fan");
+}
+
 static std::string get_view_type_string(libvgcode::EViewType view_type)
 {
     if (view_type == libvgcode::EViewType::Summary)
@@ -146,6 +153,8 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Jerk");
     else if (view_type == libvgcode::EViewType::FanSpeed)
         return _u8L("Fan Speed");
+    else if (view_type == libvgcode::EViewType::AdditionalFanSpeed)
+        return _u8L("AUX Fan Speed");
     else if (view_type == libvgcode::EViewType::Temperature)
         return _u8L("Temperature");
     else if (view_type == libvgcode::EViewType::VolumetricFlowRate)
@@ -185,6 +194,7 @@ static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_typ
         { "layer_time_linear",            libvgcode::EViewType::LayerTimeLinear },
         { "layer_time_logarithmic",       libvgcode::EViewType::LayerTimeLogarithmic },
         { "fan_speed",                    libvgcode::EViewType::FanSpeed },
+        { "additional_fan_speed",         libvgcode::EViewType::AdditionalFanSpeed },
         { "temperature",                  libvgcode::EViewType::Temperature },
         { "pressure_advance",             libvgcode::EViewType::PressureAdvance },
     };
@@ -476,6 +486,9 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             case libvgcode::EViewType::FanSpeed:
                 sprintf(detail_buf, "%s%.0f", _u8L("Fan: ").c_str(), vertex.fan_speed);
                 break;
+            case libvgcode::EViewType::AdditionalFanSpeed:
+                sprintf(detail_buf, "%s%.0f", _u8L("AUX Fan: ").c_str(), vertex.additional_fan_speed);
+                break;
             case libvgcode::EViewType::Temperature:
                 sprintf(detail_buf, "%s%.0f", _u8L("Temperature: ").c_str(), vertex.temperature);
                 break;
@@ -554,6 +567,10 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Flow rate"), buff);
             sprintf(buff, "%.0f %%", vertex.fan_speed);
             add_row(_u8L("Fan speed"), buff);
+            if (!is_additional_fan_speed_hidden()) {
+                sprintf(buff, "%.0f %%", vertex.additional_fan_speed);
+                add_row(_u8L("AUX fan speed"), buff);
+            }
             sprintf(buff, ("%.0f " + _u8L("\u2103" /* °C */)).c_str(), vertex.temperature);
             add_row(_u8L("Temperature"), buff);
             sprintf(buff, "%.4f", vertex.pressure_advance);
@@ -1305,6 +1322,7 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     view_type_items.push_back(libvgcode::EViewType::LayerTimeLinear);
     view_type_items.push_back(libvgcode::EViewType::LayerTimeLogarithmic);
     view_type_items.push_back(libvgcode::EViewType::FanSpeed);
+    view_type_items.push_back(libvgcode::EViewType::AdditionalFanSpeed); // hidden by the combo for printers without an auxiliary fan
     view_type_items.push_back(libvgcode::EViewType::Temperature);
 // ORCA: Add Pressure Advance visualization support
     view_type_items.push_back(libvgcode::EViewType::PressureAdvance);
@@ -3325,6 +3343,7 @@ void GCodeViewer::render_toolpaths()
             add_range_property_row("acceleration range", m_viewer.get_color_range(libvgcode::EViewType::Acceleration).get_range());
             add_range_property_row("jerk range", m_viewer.get_color_range(libvgcode::EViewType::Jerk).get_range());
             add_range_property_row("fan speed range", m_viewer.get_color_range(libvgcode::EViewType::FanSpeed).get_range());
+            add_range_property_row("aux fan speed range", m_viewer.get_color_range(libvgcode::EViewType::AdditionalFanSpeed).get_range());
             add_range_property_row("temperature range", m_viewer.get_color_range(libvgcode::EViewType::Temperature).get_range());
 // ORCA: Add Pressure Advance visualization support
             add_range_property_row("pressure advance range", m_viewer.get_color_range(libvgcode::EViewType::PressureAdvance).get_range());
@@ -4410,12 +4429,22 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     //imgui.bold_text(_u8L("Color Scheme"));
     push_combo_style();
 
+    // Leave the AUX fan view when the printer has no auxiliary fan (e.g. after switching printers)
+    const bool hide_additional_fan_speed = is_additional_fan_speed_hidden();
+    if (hide_additional_fan_speed && view_type_items[m_view_type_sel] == libvgcode::EViewType::AdditionalFanSpeed) {
+        select_view_type(libvgcode::EViewType::FeatureType);
+        reset_visible(libvgcode::EViewType::FeatureType);
+        update_moves_slider();
+    }
+
     ImGui::SameLine();
     const char* view_type_value = view_type_items_str[m_view_type_sel].c_str();
     ImGuiComboFlags flags = ImGuiComboFlags_HeightLargest; // ORCA allow to fit all items to prevent scrolling on reaching last elements
     if (ImGui::BBLBeginCombo("", view_type_value, flags)) {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
         for (int i = 0; i < view_type_items_str.size(); i++) {
+            if (hide_additional_fan_speed && view_type_items[i] == libvgcode::EViewType::AdditionalFanSpeed)
+                continue;
             const bool is_selected = (m_view_type_sel == i);
             if (ImGui::BBLSelectable(view_type_items_str[i].c_str(), is_selected)) {
                 m_fold = false;
@@ -4641,6 +4670,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         break;
     }
     case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan speed (%)")); break; }
+    case libvgcode::EViewType::AdditionalFanSpeed: { imgui.title(_u8L("AUX fan speed (%)")); break; }
     case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (℃)")); break; }
 // ORCA: Add Pressure Advance visualization support
     case libvgcode::EViewType::PressureAdvance:{ imgui.title(_u8L("Pressure Advance")); break; }
@@ -4914,6 +4944,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         break;
     }
     case libvgcode::EViewType::FanSpeed:                 { append_range(m_viewer.get_color_range(libvgcode::EViewType::FanSpeed), 0); break; }
+    case libvgcode::EViewType::AdditionalFanSpeed:       { append_range(m_viewer.get_color_range(libvgcode::EViewType::AdditionalFanSpeed), 0); break; }
     case libvgcode::EViewType::Temperature:              { append_range(m_viewer.get_color_range(libvgcode::EViewType::Temperature), 0); break; }
 // ORCA: Add Pressure Advance visualization support
     case libvgcode::EViewType::PressureAdvance:          { append_range(m_viewer.get_color_range(libvgcode::EViewType::PressureAdvance), 3); break; }

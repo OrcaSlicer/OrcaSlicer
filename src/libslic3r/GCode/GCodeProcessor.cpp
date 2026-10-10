@@ -3659,6 +3659,7 @@ void GCodeProcessor::reset()
     m_mm3_per_mm = 0.0f;
     m_travel_dist = 0.0f;
     m_fan_speed = 0.0f;
+    m_additional_fan_speed = 0.0f;
     m_z_offset = 0.0f;
 
     m_extrusion_role = erNone;
@@ -6294,6 +6295,16 @@ void GCodeProcessor::process_VM104(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_M106(const GCodeReader::GCodeLine& line)
 {
+    // M106 P2 drives the auxiliary part cooling fan, tracked separately from the part cooling fan
+    if (line.has('P') && line.p() == 2.0f) {
+        float new_additional_fan_speed;
+        if (line.has_value('S', new_additional_fan_speed))
+            m_additional_fan_speed = (100.0f / 255.0f) * new_additional_fan_speed;
+        else
+            m_additional_fan_speed = 100.0f;
+        return;
+    }
+
     //BBS: for Bambu machine ,we both use M106 P1 and M106 to indicate the part cooling fan
     //So we must not ignore M106 P1
     if (!line.has('P') || (line.has('P') && line.p() == 1.0f)) {
@@ -7254,6 +7265,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_mm3_per_mm,
         m_travel_dist,
         m_fan_speed,
+        m_additional_fan_speed,
         m_extruder_temps[filament_id],
 // ORCA: Add Pressure Advance visualization support
         m_pressure_advance,

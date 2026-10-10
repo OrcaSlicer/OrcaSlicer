@@ -94,6 +94,7 @@ enum class EViewType : uint8_t
     LayerTimeLinear,
     LayerTimeLogarithmic,
     FanSpeed,
+    AdditionalFanSpeed,
     Temperature,
 // ORCA: Add Pressure Advance visualization support
     PressureAdvance,

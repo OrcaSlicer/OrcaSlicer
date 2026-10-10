@@ -247,6 +247,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             float mm3_per_mm{ 0.0f };
             float travel_dist{ 0.0f }; // mm
             float fan_speed{ 0.0f }; // percentage
+            float additional_fan_speed{ 0.0f }; // percentage, auxiliary part cooling fan (M106 P2)
             float temperature{ 0.0f }; // Celsius degrees
 // ORCA: Add Pressure Advance visualization support
             float pressure_advance{ 0.0f };
@@ -1251,6 +1252,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         float m_mm3_per_mm;
         float m_travel_dist; // mm
         float m_fan_speed; // percentage
+        float m_additional_fan_speed; // percentage, auxiliary part cooling fan (M106 P2)
         float m_z_offset; // mm
 // ORCA: Add Pressure Advance visualization support
         float m_pressure_advance;

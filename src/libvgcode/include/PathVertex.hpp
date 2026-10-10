@@ -103,6 +103,10 @@ struct PathVertex
     // Jerk value
     //
     float jerk{ 0.0f };
+    //
+    // Segment auxiliary part cooling fan speed (percentage)
+    //
+    float additional_fan_speed{ 0.0f };
 
     //
     // Return true if the segment is an extrusion move

@@ -1666,6 +1666,10 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_fan_speed_range.get_color_at(v.fan_speed);
     }
+    case EViewType::AdditionalFanSpeed:
+    {
+        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_additional_fan_speed_range.get_color_at(v.additional_fan_speed);
+    }
     case EViewType::Temperature:
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_temperature_range.get_color_at(v.temperature);
@@ -1773,6 +1777,7 @@ const ColorRange& ViewerImpl::get_color_range(EViewType type) const
     case EViewType::Speed:                    { return m_speed_range; }
     case EViewType::ActualSpeed:              { return m_actual_speed_range; }
     case EViewType::FanSpeed:                 { return m_fan_speed_range; }
+    case EViewType::AdditionalFanSpeed:       { return m_additional_fan_speed_range; }
     case EViewType::Temperature:              { return m_temperature_range; }
 // ORCA: Add Pressure Advance visualization support
     case EViewType::PressureAdvance:          { return m_pressure_advance_range; }
@@ -1797,6 +1802,7 @@ void ViewerImpl::set_color_range_palette(EViewType type, const Palette& palette)
     case EViewType::Speed:                    { m_speed_range.set_palette(palette);           break; }
     case EViewType::ActualSpeed:              { m_actual_speed_range.set_palette(palette);    break; }
     case EViewType::FanSpeed:                 { m_fan_speed_range.set_palette(palette);       break; }
+    case EViewType::AdditionalFanSpeed:       { m_additional_fan_speed_range.set_palette(palette); break; }
     case EViewType::Temperature:              { m_temperature_range.set_palette(palette);     break; }
 // ORCA: Add Pressure Advance visualization support
     case EViewType::PressureAdvance:          { m_pressure_advance_range.set_palette(palette); break; }
@@ -1843,6 +1849,7 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += m_speed_range.size_in_bytes_cpu();
     ret += m_actual_speed_range.size_in_bytes_cpu();
     ret += m_fan_speed_range.size_in_bytes_cpu();
+    ret += m_additional_fan_speed_range.size_in_bytes_cpu();
     ret += m_temperature_range.size_in_bytes_cpu();
     // ORCA: Add Pressure Advance visualization support
     ret += m_pressure_advance_range.size_in_bytes_cpu();
@@ -2010,6 +2017,7 @@ void ViewerImpl::update_color_ranges()
     m_speed_range.reset();
     m_actual_speed_range.reset();
     m_fan_speed_range.reset();
+    m_additional_fan_speed_range.reset();
     m_temperature_range.reset();
     // ORCA: Add Pressure Advance visualization support
     m_pressure_advance_range.reset();
@@ -2032,6 +2040,7 @@ void ViewerImpl::update_color_ranges()
                 m_actual_volumetric_rate_range.update(round_to_bin(v.actual_volumetric_rate()));
             }
             m_fan_speed_range.update(round_to_bin(v.fan_speed));
+            m_additional_fan_speed_range.update(round_to_bin(v.additional_fan_speed));
             m_temperature_range.update(round_to_bin(v.temperature));
             // ORCA: Add Pressure Advance visualization support
             if (v.pressure_advance >= 0.0f)
