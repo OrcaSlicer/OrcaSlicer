@@ -38419,6 +38419,10 @@ msgstr "Maximum de points : %d."
 msgid "The curve contains too many points."
 msgstr "La courbe contient trop de points."
 
+# AI Translated
+msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgstr "Pavé tactile : deux doigts déplacent le graphe. Pincez pour zoomer les deux axes autour du pointeur."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Afficher les options lors de l'importation d'un fichier STEP"
 
