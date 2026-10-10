@@ -951,8 +951,12 @@ int decide_audited_event(PluginAuditManager&             mgr,
         for (const auto& target : targets)
             if (!has_permission(*permission_list, target))
                 unresolved.push_back(target);
-        if (!targets.empty() && unresolved.empty())
+        if (!targets.empty() && unresolved.empty()) {
+            // Rebuild the call-site cache, which is empty after a restart, so the cascade covers
+            // this already-persisted target too.
+            mgr.record_approved_call_sites(plugin_key, call_site_ids);
             return 0;
+        }
     }
 
     if (!request_permission(category, plugin_key, plugin_name, event_name, unresolved))
