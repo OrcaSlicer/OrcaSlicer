@@ -1324,7 +1324,8 @@ void TriangleSelectorGUI::update_render_data()
         if (!tr.valid() || tr.is_split() || (tr.get_state() == EnforcerBlockerType::NONE && !tr.is_selected_by_seed_fill()))
             continue;
 
-        int tr_state = int(tr.get_state());
+        // Guard against an out-of-range state indexing the fixed-size seed-fill buffers.
+        const int tr_state = std::clamp(int(tr.get_state()), 0, int(std::min(iva_seed_fills_data.size(), seed_fill_cnt.size())) - 1);
         GLModel::Geometry &iva = tr.is_selected_by_seed_fill()                   ? iva_seed_fills_data[tr_state] :
                                  tr.get_state() == EnforcerBlockerType::ENFORCER ? iva_enforcers_data :
                                                                                    iva_blockers_data;
@@ -1401,12 +1402,12 @@ void TriangleSelectorPatch::render(ImGuiWrapper* imgui, const Transform3d& matri
             const TrianglePatch& patch = m_triangle_patches[buffer_idx];
             ColorRGBA color;
             if (patch.is_fragment() && !patch.neighbor_types.empty()) {
-                size_t color_idx = (size_t)*patch.neighbor_types.begin();
+                size_t color_idx = std::min((size_t)*patch.neighbor_types.begin(), m_ebt_colors.size() - 1);
                 color = m_ebt_colors[color_idx];
                 color.a(0.85);
             }
             else {
-                size_t color_idx = (size_t)patch.type;
+                size_t color_idx = std::min((size_t)patch.type, m_ebt_colors.size() - 1);
                 color = m_ebt_colors[color_idx];
             }
             //to make black not too hard too see
@@ -1435,7 +1436,7 @@ void TriangleSelectorPatch::update_triangles_per_type()
         if (!triangle.valid() || triangle.is_split())
             continue;
 
-        int state = (int)triangle.get_state();
+        const int state = std::clamp((int)triangle.get_state(), 0, int(m_triangle_patches.size()) - 1);
         auto& patch = m_triangle_patches[state];
         //patch.triangle_indices.insert(patch.triangle_indices.end(), triangle.verts_idxs.begin(), triangle.verts_idxs.end());
         for (int i = 0; i < 3; ++i) {
