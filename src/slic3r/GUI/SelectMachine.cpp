@@ -33,6 +33,7 @@
 #include "DeviceCore/DevUtilBackend.h"
 #include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevPrintOptions.h" // smart-nozzle-blob detection option
+#include "DeviceCore/DevFan.h"          // chamber exhaust duct detection
 #include "libslic3r/MultiNozzleUtils.hpp" // filament-change-gap model for the best-position popup
 #include "BackgroundSlicingProcess.hpp"   // complete type for background_process().get_current_gcode_result()
 #include "DeviceCore/DevStorage.h"
@@ -3816,8 +3817,50 @@ void SelectMachineDialog::on_send_print()
         agent->track_update_property(dev_ota_str, obj_->get_ota_version());
     }
 
+    apply_purify_air_at_print_end(obj_);
+
     replace_job(*m_worker, m_print_job);
     BOOST_LOG_TRIVIAL(info) << "print_job: start print job";
+}
+
+// Resolve the per-filament "Air purification" requests of the plate being printed and send the most demanding
+// one to the printer before the job starts. "Follow printer setting" never changes the printer.
+void SelectMachineDialog::apply_purify_air_at_print_end(MachineObject* obj_)
+{
+    if (m_print_type != PrintFromType::FROM_NORMAL || !obj_ || !obj_->GetPrintOptions() || !obj_->GetFan() || !m_plater) return;
+
+    auto* opt = obj_->GetPrintOptions()->GetDetectionOption(PrintOptionEnum::Purify_Air_At_Print_End);
+    if (!opt || !opt->is_support_detect) return;
+
+    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    if (!preset_bundle) return;
+    const DynamicPrintConfig& config = preset_bundle->full_config();
+    if (!config.opt_bool("support_purify_air_at_print_end")) return;
+    const auto* requests = config.option<ConfigOptionEnumsGeneric>("purify_air_at_print_end");
+    if (!requests) return;
+
+    // Exhaust > internal circulation > off; filaments that follow the printer do not vote.
+    int wanted = paeFollowPrinter;
+    for (int filament_id : m_plater->get_partplate_list().get_curr_plate()->get_used_filaments()) { // 1-based
+        const size_t index = static_cast<size_t>(filament_id - 1);
+        if (filament_id < 1 || index >= requests->values.size()) continue;
+        wanted = std::max(wanted, requests->values[index]);
+    }
+    if (wanted == paeFollowPrinter) return;
+
+    int state = static_cast<int>(DevPrintOptions::PurifyAirAtPrintEndState::PurifyAirDisable);
+    if (wanted == paeInternal) {
+        state = static_cast<int>(DevPrintOptions::PurifyAirAtPrintEndState::PurifyAirByInside);
+    } else if (wanted == paeExternal) {
+        // Without a chamber exhaust duct the exhaust mode is not available, so circulate the air internally.
+        const bool has_exhaust = obj_->GetFan()->GetAirDuctData().IsExaustFanExit();
+        state = static_cast<int>(has_exhaust ? DevPrintOptions::PurifyAirAtPrintEndState::PurifyAirByOutside :
+                                               DevPrintOptions::PurifyAirAtPrintEndState::PurifyAirByInside);
+    }
+
+    if (opt->current_detect_value == state) return;
+    BOOST_LOG_TRIVIAL(info) << "print_job: set air purification at print end to " << state;
+    obj_->GetPrintOptions()->command_xcam_control_purify_air_at_print_end(state);
 }
 
 void SelectMachineDialog::clear_ip_address_config(wxCommandEvent& e)

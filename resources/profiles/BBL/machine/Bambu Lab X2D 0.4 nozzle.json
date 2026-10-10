@@ -190,6 +190,7 @@
         "20"
     ],
     "support_chamber_temp_control": "1",
+    "support_purify_air_at_print_end": "1",
     "upward_compatible_machine": [
         "Bambu Lab A1 0.4 nozzle",
         "Bambu Lab P2S 0.4 nozzle",

@@ -584,6 +584,14 @@ static const t_config_enum_values s_keys_map_OverhangFanThreshold = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(OverhangFanThreshold)
 
+static const t_config_enum_values s_keys_map_PurifyAirAtPrintEnd = {
+    { "follow_printer", paeFollowPrinter },
+    { "off",            paeOff           },
+    { "internal",       paeInternal      },
+    { "external",       paeExternal      }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PurifyAirAtPrintEnd)
+
 // BBS
 static const t_config_enum_values s_keys_map_BedType = {
     { "Default Plate",      btDefault },
@@ -2329,6 +2337,24 @@ void PrintConfigDef::init_fff_params()
     def->max=100;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts{80});
+
+    def = this->add("purify_air_at_print_end", coEnums);
+    def->label = L("Air purification");
+    def->tooltip = L("Purify the chamber air when the print finishes. \"Follow printer setting\" leaves the printer's own setting unchanged. "
+                     "When filaments on the plate disagree, Exhaust wins over Internal circulation, which wins over Off. "
+                     "On a printer without a chamber exhaust duct, Exhaust falls back to Internal circulation. "
+                     "The chosen mode is written to the printer's own air purification setting when the print is sent and stays in effect for later prints until it is changed.");
+    def->enum_keys_map = &ConfigOptionEnum<PurifyAirAtPrintEnd>::get_enum_values();
+    def->enum_values.emplace_back("follow_printer");
+    def->enum_values.emplace_back("off");
+    def->enum_values.emplace_back("internal");
+    def->enum_values.emplace_back("external");
+    def->enum_labels.emplace_back(L("Follow printer setting"));
+    def->enum_labels.emplace_back(L("Off"));
+    def->enum_labels.emplace_back(L("Internal circulation"));
+    def->enum_labels.emplace_back(L("Exhaust"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnumsGeneric{ paeFollowPrinter });
 
     def = this->add("close_fan_the_first_x_layers", coInts);
     def->label = L("No cooling for the first");
@@ -4547,6 +4573,14 @@ void PrintConfigDef::init_fff_params()
     def->tooltip=L("Enable this if printer support air filtration\nG-code command: M106 P3 S(0-255)");
     def->mode=comDevelop;
     def->set_default_value(new ConfigOptionBool(true));
+
+    // Printer capability flag: the printer can purify the chamber air at print end (chosen per filament).
+    def = this->add("support_purify_air_at_print_end", coBool);
+    def->label = L("Support air purification at print end");
+    def->tooltip = L("Enable this if the printer can purify the chamber air when a print finishes, "
+                     "so that the filament profile can choose the mode.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
 
     // Printer capability flag: switches the accessory UI between air filtration and the cooling filter.
     def = this->add("support_cooling_filter", coBool);

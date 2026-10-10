@@ -4755,6 +4755,10 @@ void TabFilament::build()
         line.append_option(optgroup->get_option("complete_print_exhaust_fan_speed"));
         line.label_path = "material_cooling#complete-print";
         optgroup->append_line(line);
+
+        optgroup = page->new_optgroup(L("Air purification"), L"param_cooling_exhaust");
+        optgroup->append_single_option_line("purify_air_at_print_end", "material_cooling#air-purification");
+
         //BBS
         add_filament_overrides_page();
         const int gcode_field_height = 15; // 150
@@ -4977,6 +4981,8 @@ void TabFilament::toggle_options()
             toggle_option("activate_air_filtration_on_completion", activate_air_filtration);
             toggle_option("complete_print_exhaust_fan_speed", activate_air_filtration && m_config->opt_bool("activate_air_filtration_on_completion", 0));
         }
+
+        toggle_line("purify_air_at_print_end", printer_cfg.opt_bool("support_purify_air_at_print_end"));
     }
     if (m_active_page->title() == L("Filament"))
     {

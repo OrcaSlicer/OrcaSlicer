@@ -316,6 +316,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "activate_air_filtration_on_completion",
         "during_print_exhaust_fan_speed",
         "complete_print_exhaust_fan_speed",
+        "purify_air_at_print_end", // only applied when the job is sent to the printer
         "activate_chamber_temp_control",
         "manual_filament_change",
         "disable_m73",
