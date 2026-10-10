@@ -8746,9 +8746,12 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                 if ((ee->role() == erIroning) == ironing)
                     extrusions.emplace_back(ee);
             if (! extrusions.empty()) {
-                m_config.apply(print.get_print_region(&region - &by_region.front()).config());
+                const PrintRegionConfig& region_config = print.get_print_region(&region - &by_region.front()).config();
+                m_config.apply(region_config);
                 reversed.clear();
                 chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point(), reversed);
+                if (ironing && region_config.ironing_flow == 0)
+                    gcode += this->writer().emit_retract(-region_config.ironing_retract, " ; ironing retract");
                 // The reversed copies are in chain order.
                 auto next_reversed = reversed.begin();
                 for (const ExtrusionEntity *fill : extrusions) {
@@ -8764,6 +8767,8 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                     } else
                         gcode += this->extrude_entity(*fill, extrusion_name);
                 }
+                if (ironing && region_config.ironing_flow == 0)
+                    gcode += this->writer().emit_unretract(region_config.ironing_retract + region_config.ironing_unretract_extra, " ; ironing retract");
             }
         }
     return gcode;
