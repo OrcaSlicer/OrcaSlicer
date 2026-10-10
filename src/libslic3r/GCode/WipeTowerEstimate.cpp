@@ -1,5 +1,6 @@
 #include "WipeTowerEstimate.hpp"
 
+#include "libslic3r/Polygon.hpp"
 #include "WipeTower.hpp"
 #include "WipeTower2.hpp"
 #include "../Config.hpp"
@@ -8,7 +9,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <set>
+#include <vector>
+#include "libslic3r/clonable_ptr.hpp"
 
 namespace Slic3r {
 
@@ -22,6 +26,28 @@ static const ConfigOption *option_of(const ConfigBase &config, const char *key)
         if (const ConfigOptionDef *opt_def = def->get(key); opt_def != nullptr)
             return opt_def->default_value.get();
     return nullptr;
+}
+
+bool prime_tower_is_printed(const ConfigBase &config, int used_filaments, int num_objects, bool has_mixed_filament)
+{
+    const auto *ept = config.option<ConfigOptionBool>("enable_prime_tower");
+    if (ept == nullptr || !ept->value)
+        return false;
+    // normalize_fdm_2 only reconsiders the option when the plate uses a filament; below that it
+    // leaves the user's choice alone, and there is no tower to reason about either way.
+    if (used_filaments <= 0)
+        return true;
+
+    const ConfigOption *timelapse = option_of(config, "timelapse_type");
+    const bool smooth_timelapse = timelapse != nullptr && timelapse->getInt() == int(TimelapseType::tlSmooth);
+    const auto *wrapping = config.option<ConfigOptionBool>("enable_wrapping_detection");
+    const bool enable_wrapping = wrapping != nullptr && wrapping->value;
+    if (smooth_timelapse || enable_wrapping)
+        return true;
+
+    const ConfigOption *sequence = option_of(config, "print_sequence");
+    const bool by_object = sequence != nullptr && sequence->getInt() == int(PrintSequence::ByObject);
+    return !((used_filaments == 1 && !has_mixed_filament) || (by_object && num_objects > 1));
 }
 
 WipeTowerType resolve_wipe_tower_type(const ConfigBase &config)
@@ -107,6 +133,12 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
     // normalize_fdm_2 clearing enable_prime_tower. Its mixed-filament case is not modelled.
     const bool   need_wipe_tower  = smooth_timelapse || wrapping;
 
+    // Fewer than two filaments cannot make a tool change, so only wrapping detection or smooth
+    // timelapse print a tower then. The flush volume is no proof of one: it is read from the
+    // matrix of every configured slot, nonzero even when a single one of them is used.
+    if (filaments_cnt < 2 && !need_wipe_tower)
+        return footprint;
+
     // A tower printed for one of the reasons above has no tool change to purge for; both
     // planners give it the idle depth below and nothing more.
     const size_t purge_count = filaments_cnt > 1 ? (dual_nozzle ? filaments_cnt : filaments_cnt - 1) : 0;
@@ -151,14 +183,6 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
             purges[longest_ramming].filament_change_length = float(float_at("filament_change_length", filament_ids[longest_ramming], 0.) * double(nozzles.size() - 1));
     }
 
-    // Both wall types decide this together: over-reserving only wastes bed area, but reporting
-    // no tower for one that is built collapses the validation hull to a point.
-    // A tool change is a reason on its own (see the base commit); Type1 already reserves
-    // per filament, Type2 has only the volume, which can resolve to zero.
-    const bool has_purge = type1 ? !purges.empty() : volume > EPSILON;
-    if (!has_purge && filaments_cnt < 2 && !need_wipe_tower)
-        return footprint;
-
     const double min_depth      = WipeTower::get_limit_depth_by_height(float(max_object_height));
     const float  perimeter_width = float(nozzle_diameter) * 1.25f; // Width_To_Nozzle_Ratio
     // With nothing to purge, plan_tower_new sizes the tower for wrapping detection or the
@@ -171,7 +195,10 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
         if (!purges.empty())
             side = WipeTower::estimate_rib_tower_bbox_side(purges, float(width), float(layer_height), float(nozzle_diameter), float(extra_spacing), float(rib_width), float(extra_rib_length), float(max_object_height));
         else {
-            const double square = has_purge ? std::sqrt(volume / layer_height * extra_spacing) : idle_depth;
+            // Type2 squares the tower from its purge volume; Type1 with no purge list (a lone
+            // filament kept for timelapse or wrapping) sizes for the idle depth.
+            const bool   has_purge = !type1 && volume > EPSILON;
+            const double square    = has_purge ? std::sqrt(volume / layer_height * extra_spacing) : idle_depth;
             side = WipeTower::rib_footprint_side(float(square), float(square), float(rib_width), float(extra_rib_length), float(max_object_height));
         }
         footprint.width = footprint.depth = side;

@@ -4,15 +4,17 @@ OrcaSlicer — open-source C++17 3D slicer. wxWidgets GUI, CMake build system.
 
 ## Build Commands
 
+Build the Release configuration unless asked otherwise.
+
 ```bash
 # macOS
-cmake --build build/arm64 --config RelWithDebInfo --target all --
+cmake --build build/arm64 --config Release --target all --
 
 # Linux
-cmake --build build --config RelWithDebInfo --target all --
+cmake --build build --config Release --target all --
 
-# Windows (replace %build_type% with Debug/Release/RelWithDebInfo)
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
+# Windows
+cmake --build . --config Release --target ALL_BUILD -- -m
 ```
 
 ## Testing
@@ -20,9 +22,9 @@ cmake --build . --config %build_type% --target ALL_BUILD -- -m
 Catch2 framework. Tests in `tests/`; see [tests/AGENTS.md](tests/AGENTS.md) for where a new test belongs and the conventions to follow.
 
 ```bash
-cd build && ctest --output-on-failure           # all tests
-ctest --test-dir ./tests/libslic3r              # individual suite
-ctest --test-dir ./tests/fff_print
+cd build && ctest -C Release --output-on-failure    # all tests
+ctest --test-dir ./tests/libslic3r -C Release       # individual suite
+ctest --test-dir ./tests/fff_print -C Release
 ```
 
 ## Documentation
@@ -36,6 +38,7 @@ ctest --test-dir ./tests/fff_print
 
 - C++17, selective C++20. PascalCase classes, snake_case functions/variables
 - `#pragma once` for headers. Smart pointers and RAII preferred
+- Include what you use: include the header for every symbol a file uses, and keep headers compilable on their own. Never rely on the precompiled header or a transitive include. The `clang-tidy` CI job enforces this on changed lines; run the same check locally with `scripts/run_clang_tidy.sh` (`scripts\run_clang_tidy.ps1` on Windows), which sets up everything it needs
 - Parallelization via TBB — be mindful of shared state
 - Always use `SetSizerAndFit(sizer)` instead of `SetSizer(sizer)` on top level window. Unless `SetSizer` must be called before the full layout is built, call `sizer->SetSizeHints(window)` afterwards in this case.
 
@@ -64,16 +67,16 @@ ctest --test-dir ./tests/fff_print
 - Keep code concise and clear. Manually simplify AI generated bloated codes before review.
 - Include targeted tests or documented verification for behavior changes, especially in slicing logic, profiles, formats, and GUI defaults.
 - For profile changes (`resources/profiles/<Vendor>/**`), check that `version` in the sibling `resources/profiles/<Vendor>.json` was bumped.
-- For translation changes (`localization/i18n/**/*.po`), check that recurring terms match the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_glossary.md) for that language.
+- For translation changes (`localization/i18n/**/*.po`), check that recurring terms match the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/localization_glossary.md) for that language.
 
 ## Localization & translations
 
 Catalogs live in `localization/i18n/<lang>/OrcaSlicer_<lang>.po`; the template is `OrcaSlicer.pot`.
-See the [Localization guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_guide.md) for the human-facing version of these principles.
+See the [Localization guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/localization_guide.md) for the human-facing version of these principles.
 
 ### Terminology
 
-- Use the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_glossary.md) as the source of truth for recurring terms, so the same English term is always rendered the same way within a language, and terms that must stay in English (brand/product names, acronyms, materials, file formats, G-code tokens, macros/variables/identifiers) are not translated.
+- Use the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/localization_glossary.md) as the source of truth for recurring terms, so the same English term is always rendered the same way within a language, and terms that must stay in English (brand/product names, acronyms, materials, file formats, G-code tokens, macros/variables/identifiers) are not translated.
 - If a term's established translation changes, update both the affected `.po` files and the glossary (`localization_glossary.tsv`, then regenerate) so they stay in sync.
 - Translate the *meaning*, not the words. Check what the string actually controls before translating it — English reuses one word for different things. `Flow ratio` (multiplier), `Flow Rate` (throughput) and `Flow Dynamics` (pressure compensation) are three different terms; `extruder` may mean the toolhead, the feeder motor, or the nozzle depending on the string.
 - Reuse one template per recurring message shape (`Failed to connect to …`, `Are you sure you want to …?`), even where the English wording varies.
@@ -89,6 +92,7 @@ See the [Localization guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/
 - Plural entries: read `nplurals` from the catalog's `Plural-Forms` header (it is **not** always 2 — ja/ko/zh/th/vi use 1, ru/cs/pl/lt use 3, uk uses 4). Each form must be genuinely inflected for its quantity; repeating one sentence across all forms is a bug in Slavic/Baltic languages, though it is correct for Turkish and Hungarian.
 - An entry whose `msgstr` equals its `msgid` is untranslated even though it is not empty; a plural entry with any empty form is likewise incomplete.
 - Mark machine-produced translations with an `# AI Translated` translator comment. Don't add it to a human translation you didn't actually rewrite.
+- When you can't be sure of a machine translation's meaning or UI wording, also add `# Needs human review: <what to check>`. Never use `fuzzy` for this — fuzzy entries are hidden from users.
 - Don't reflow or re-wrap unrelated entries — keep the diff limited to the strings you changed.
 
 ### Verifying

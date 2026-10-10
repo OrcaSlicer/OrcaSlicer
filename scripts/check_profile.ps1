@@ -9,15 +9,22 @@
     same semantics: every check runs even after an earlier one fails (the workflow's
     continue-on-error), then the script exits non-zero once at the end.
 
-        extra_json_check              scripts/orca_extra_profile_check.py
+        profile_tool                  scripts/orca_profile_tool.py check
         validate_system               validator -p <profiles> -l <level>
         validate_slice                validator -p <profiles> -s -l <level>
         validate_filament_subtypes    validator -p <profiles> -l <level> -f
         validate_custom               validator against every released custom-preset fixture
 
+    profile_tool is the only check that is not the validator binary; it makes the static checks
+    the validator cannot, because the validator loads the tree the way the slicer does and so
+    never sees a profile no <vendor>.json indexes, a preset name two files claim, or a file
+    normalize and update-index would still rewrite.
+
     Everything that has to be downloaded - the profile validator and the custom-preset fixture
-    archives - lands under <repo>\.test\check_profiles and is reused on the next run. That
-    directory also holds one log per check plus a copy of the comment CI would post on the PR.
+    archives - lands under a per-user cache directory (%LOCALAPPDATA%\orca-profile-check) and
+    is reused on the next run. Being outside the checkout, that directory is shared by every
+    worktree on the machine. It also holds one log per check plus a copy of the comment CI would
+    post on the PR.
 
     resources\profiles\user, which the validator creates as its data dir but a CI checkout never
     has, is moved aside for the duration of the run and restored on exit. Only one run per work
@@ -33,15 +40,14 @@
     under emulation on ARM64.
 
 .PARAMETER ProfilesDir
-    Profile tree to validate (default: resources\profiles). extra_json_check always looks at the
-    tree next to the script, so this only redirects the validator checks.
+    Profile tree to validate (default: resources\profiles).
 
 .PARAMETER Vendor
     Check only this vendor, named after its <Vendor>.json (e.g. "Co Print"). validate_custom is
     narrowed with it too, by keeping only that vendor's presets in each fixture tree. The one
     check it cannot narrow is validate_slice for a vendor that ships no printers; the summary
-    reports that one as skipped, and naming it explicitly still runs it. extra_json_check keeps
-    its two cross-vendor checks (setting_id and filament_id) tree-wide, so a scoped run can still
+    reports that one as skipped, and naming it explicitly still runs it. profile_tool keeps its
+    two cross-vendor checks (setting_id and filament_id) tree-wide, so a scoped run can still
     fail on another vendor's files.
 
 .PARAMETER Validator
@@ -56,8 +62,8 @@
     Re-download the validator and fixtures instead of using the cache.
 
 .PARAMETER WorkDir
-    Downloads, logs and fixture trees (default: .test\check_profiles). Point it somewhere short,
-    such as D:\t, if a fixture tree trips Windows' 260-character path limit.
+    Downloads, logs and fixture trees (default: %LOCALAPPDATA%\orca-profile-check). Point it
+    somewhere short, such as D:\t, if a fixture tree trips Windows' 260-character path limit.
 
 .PARAMETER LogLevel
     Validator log level (default: 2, as in CI).
@@ -110,7 +116,7 @@ $HostArch = switch ($HostArch) {
     default { 'x86' }
 }
 
-$AllChecks = @('extra_json_check', 'validate_system', 'validate_slice', 'validate_filament_subtypes', 'validate_custom')
+$AllChecks = @('profile_tool', 'validate_system', 'validate_slice', 'validate_filament_subtypes', 'validate_custom')
 
 $script:LogWriter = $null
 $script:Python = ''
@@ -203,12 +209,15 @@ if ($Vendor) {
     }
 }
 
-# The validator's -v and orca_extra_profile_check.py's --vendor both take that stem; an unscoped
+# The validator's -v and orca_profile_tool.py check's --vendor both take that stem; an unscoped
 # run passes neither, so the checks below splat these in either way.
 $VendorArgs = if ($Vendor) { @('-v', $Vendor) } else { @() }
 $VendorPyArgs = if ($Vendor) { @('--vendor', $Vendor) } else { @() }
 
-if (-not $WorkDir) { $WorkDir = Join-Path $RepoRoot '.test\check_profiles' }
+if (-not $WorkDir) {
+    # Per-user cache dir, so every worktree on the machine shares one set of downloads.
+    $WorkDir = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'orca-profile-check'
+}
 $LogDir = Join-Path $WorkDir 'logs'
 try { New-Item -ItemType Directory -Force -Path $LogDir | Out-Null } catch { Die "cannot create ${LogDir}: $_" }
 $WorkDir = (Resolve-Path -LiteralPath $WorkDir).Path
@@ -434,8 +443,8 @@ function Expand-VendorPresets([string] $Zip, [string] $Tree, [string] $Prefix) {
 
 $CheckBodies = @{
 
-    extra_json_check = {
-        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_extra_profile_check.py')) + $VendorPyArgs)
+    profile_tool = {
+        Invoke-Tool -Exe (Resolve-Python) -Arguments (@((Join-Path $RepoRoot 'scripts\orca_profile_tool.py'), 'check', '--profiles', $ProfilesDir) + $VendorPyArgs)
     }
 
     validate_system = {
@@ -571,7 +580,7 @@ $CheckBodies = @{
 
 # Heading CI puts above this check's log in the PR comment.
 $CommentHeadings = @{
-    extra_json_check           = '### Extra JSON Check Failed'
+    profile_tool               = '### Profile Check Failed (orca_profile_tool.py)'
     validate_system            = '### System Profile Validation Failed'
     validate_slice             = '### Slice Validation Failed (custom g-code expansion)'
     validate_filament_subtypes = '### Filament Subtype Validation Failed'
@@ -618,7 +627,7 @@ try {
     [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
     Push-UserPresets
 
-    if ($Checks | Where-Object { $_ -ne 'extra_json_check' }) { $Validator = Resolve-Validator }
+    if ($Checks | Where-Object { $_ -ne 'profile_tool' }) { $Validator = Resolve-Validator }
 
     # An empty printer set is a failure to the sweep, so validate_slice is recorded as skipped
     # rather than run for a vendor that ships no printers (the filament-only OrcaFilamentLibrary);
@@ -673,7 +682,7 @@ try {
             ''
         }
         '---'
-        '*Please fix the above errors and push a new commit.*'
+        '*Fix the errors above and push a new commit. To reproduce this run locally: `scripts/check_profile.sh`, or `scripts\check_profile.bat` on Windows.*'
     )
     $commentPath = Join-Path $WorkDir 'pr_comment.md'
     [IO.File]::WriteAllLines($commentPath, [string[]] $comment)

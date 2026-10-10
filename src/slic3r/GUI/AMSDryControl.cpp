@@ -1,6 +1,7 @@
 #include "AMSDryControl.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
@@ -18,7 +19,38 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Preset.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/gdicmn.h>
+#include "libslic3r/Exception.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/toplevel.h>
+#include <wx/scrolwin.h>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <utility>
+#include <chrono>
+#include <optional>
+#include <wx/timer.h>
+#include "libslic3r/Utils.hpp"
+#include <unordered_set>
+#include <vector>
+#include <set>
+#include <sstream>
+#include <ios>
+#include <iomanip>
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <limits>
+#include <memory>
 
 namespace Slic3r { namespace GUI {
 
@@ -1196,11 +1228,11 @@ void AMSDryCtrWin::update_normal_description(DevAms* dev_ams)
     for (const auto& lim : ams_limits) {
         if (dev_ams->GetAmsType() == lim.type) {
             if (temp_val > lim.max_temp) {
-                wxString msg = wxString(lim.name) + _L(" maximum drying temperature is ") + wxString::Format(wxT("%d"), lim.max_temp) + wxString::FromUTF8("°C.");
+                wxString msg = wxString::Format(_L("%s maximum drying temperature is %d\u2103." /* °C */), wxString(lim.name), lim.max_temp);
                 warning_text += msg + "\n";
                 can_enable_button = false;
             } else if (temp_val < lim.min_temp) {
-                wxString msg = wxString(lim.name) + _L(" minimum drying temperature is ") + wxString::Format(wxT("%d"), lim.min_temp) + wxString::FromUTF8("°C.");
+                wxString msg = wxString::Format(_L("%s minimum drying temperature is %d\u2103." /* °C */), wxString(lim.name), lim.min_temp);
                 warning_text += msg + "\n";
                 can_enable_button = false;
             }
@@ -1228,7 +1260,7 @@ void AMSDryCtrWin::update_normal_description(DevAms* dev_ams)
             auto limit_temperature = preset.value().filament_dev_ams_drying_heat_distortion_temperature;
             if (temp_val > limit_temperature) {
                 warning_text += _L("The temperature shall not exceed the filament's heat distortion temperature") + "(" +
-                    wxString::Format(wxT("%d"), static_cast<int>(limit_temperature)) + wxString::FromUTF8("°C)\n");
+                    wxString::Format(wxT("%d"), static_cast<int>(limit_temperature)) + wxString::FromUTF8(u8"\u2103" /* °C */) + ")\n";
                 can_enable_button = false;
             }
         }

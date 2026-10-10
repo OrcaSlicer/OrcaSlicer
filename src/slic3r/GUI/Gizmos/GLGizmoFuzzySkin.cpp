@@ -4,7 +4,9 @@
 #include "libslic3r/Print.hpp"
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
@@ -12,8 +14,31 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
+#include <array>
+#include <cassert>
 #include <glad/gl.h>
 #include <algorithm>
+#include <string>
+#include <utility>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include <vector>
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <wx/busycursor.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
 
 namespace Slic3r::GUI {
 
@@ -30,13 +55,11 @@ std::string GLGizmoFuzzySkin::on_get_name() const
 
 bool GLGizmoFuzzySkin::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_H;
+    m_shortcut = Shortcut::GizmoFuzzySkin;
 
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
-    const wxString alt   = GUI::shortkey_alt_prefix();
     const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["reset_direction"]   = _L("Reset direction");
     m_desc["remove_all"]        = _L("Erase all");
     m_desc["circle"]            = _L("Circle");
     m_desc["sphere"]            = _L("Sphere");
@@ -44,7 +67,6 @@ bool GLGizmoFuzzySkin::on_init()
     m_desc["tool_type"]         = _L("Tool type");
     m_desc["tool_brush"]        = _L("Brush");
     m_desc["tool_smart_fill"]   = _L("Smart fill");
-    m_desc["clipping_of_view"]  = _L("Section view");
     m_desc["cursor_size"]       = _L("Brush size");
     m_desc["add_fuzzy_skin"]    = _L("Add fuzzy skin");
     m_desc["remove_fuzzy_skin"] = _L("Remove fuzzy skin");
@@ -52,26 +74,22 @@ bool GLGizmoFuzzySkin::on_init()
 
     std::pair<wxString, wxString> add_fuzzy_skin_shortcut    = {_L("Left mouse button"),         m_desc["add_fuzzy_skin"]};
     std::pair<wxString, wxString> remove_fuzzy_skin_shortcut = {shift + _L("Left mouse button"), m_desc["remove_fuzzy_skin"]};
-    std::pair<wxString, wxString> clipping_shortcut          = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
 
     m_shortcuts_brush = {
         add_fuzzy_skin_shortcut,
         remove_fuzzy_skin_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
-        clipping_shortcut
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]}
     };
 
     m_shortcuts_triangle = {
         add_fuzzy_skin_shortcut, 
-        remove_fuzzy_skin_shortcut, 
-        clipping_shortcut
+        remove_fuzzy_skin_shortcut
     };
 
     m_shortcuts_smart_fill = {
         add_fuzzy_skin_shortcut,
         remove_fuzzy_skin_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
-        clipping_shortcut
+        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]}
     };
 
     return true;
@@ -144,8 +162,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
     // First calculate width of all the texts that are could possibly be shown. We will decide set the dialog width based on that:
     const float space_size = m_imgui->get_style_scaling() * 8;
-    const float clipping_slider_left  = std::max(m_imgui->calc_text_size(m_desc.at("clipping_of_view")).x + m_imgui->scaled(1.5f),
-        m_imgui->calc_text_size(m_desc.at("reset_direction")).x + m_imgui->scaled(1.5f) + ImGui::GetStyle().FramePadding.x * 2);
     const float cursor_slider_left     = m_imgui->calc_text_size(m_desc.at("cursor_size")).x + m_imgui->scaled(1.5f);
     const float smart_fill_slider_left = m_imgui->calc_text_size(m_desc.at("smart_fill_angle")).x + m_imgui->scaled(1.5f);
 
@@ -169,9 +185,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     total_text_max += caption_max + m_imgui->scaled(1.f);
     caption_max    += m_imgui->scaled(1.f);
 
-    const float circle_max_width = std::max(clipping_slider_left, cursor_slider_left);
-
-    const float sliders_left_width = std::max(smart_fill_slider_left, std::max(cursor_slider_left, clipping_slider_left));
+    const float sliders_left_width = std::max(smart_fill_slider_left, cursor_slider_left);
     const float slider_icon_width  = m_imgui->get_slider_icon_size().x;
     float window_width = minimal_slider_width + sliders_left_width + slider_icon_width;
     const float empty_button_width = m_imgui->calc_button_size("").x;
@@ -241,10 +255,10 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc.at("cursor_size"));
-        ImGui::SameLine(circle_max_width);
+        ImGui::SameLine(cursor_slider_left);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width + circle_max_width);
+        ImGui::SameLine(drag_left_width + cursor_slider_left);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
     } else if (m_current_tool == ImGui::TriangleButtonIcon) {
@@ -272,30 +286,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
     }
-
-    ImGui::Separator();
-    if (m_c->object_clipper()->get_position() == 0.f) {
-        ImGui::AlignTextToFramePadding();
-        m_imgui->text(m_desc.at("clipping_of_view"));
-    }
-    else {
-        if (m_imgui->button(m_desc.at("reset_direction"))) {
-            wxGetApp().CallAfter([this](){
-                    m_c->object_clipper()->set_position_by_ratio(-1., false);
-                });
-        }
-    }
-
-    auto clp_dist = float(m_c->object_clipper()->get_position());
-    ImGui::SameLine(sliders_left_width);
-
-    ImGui::PushItemWidth(sliders_width);
-    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-
-    ImGui::SameLine(drag_left_width + sliders_left_width);
-    ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true); }
 
     ImGui::Separator();
 

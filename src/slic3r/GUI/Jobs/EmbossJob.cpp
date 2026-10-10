@@ -1,6 +1,31 @@
 #include "EmbossJob.hpp"
 
+#include <optional>
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include <exception>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Emboss.hpp"
+#include <cstddef>
+#include <cassert>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <memory>
+#include "slic3r/GUI/SurfaceDrag.hpp"
+#include <Eigen/Geometry>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include <cmath>
+#include <math.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Utils.hpp"
+#include <functional>
+#include <limits>
+#include <algorithm>
+#include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <boost/log/trivial.hpp>
 
@@ -9,23 +34,29 @@
 #include <libslic3r/CutSurface.hpp> // use surface cuts
 #include <libslic3r/BuildVolume.hpp> // create object
 #include <libslic3r/SLA/ReprojectPointsOnMesh.hpp>
+#include <vector>
+#include <utility>
+#include <wx/dataview.h>
 
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/Plater.hpp"
-#include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
-#include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmoEmboss.hpp"
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/CameraUtils.hpp"
-#include "slic3r/GUI/format.hpp"
-#include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp" 
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/Utils/RaycastManager.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+
+namespace Slic3r { class GLVolume; }
 
 // #define EXECUTE_UPDATE_ON_MAIN_THREAD // debug execution on main thread
 
@@ -287,7 +318,7 @@ void CreateVolumeJob::finalize(bool canceled, std::exception_ptr &eptr) {
     if (!::finalize(canceled, eptr, *m_input.base))
         return;
     if (m_result.its.empty()) 
-        return create_message("Can't create empty volume.");
+        return create_message(_u8L("Can't create empty volume."));
     create_volume(std::move(m_result), m_input.object_id, m_input.volume_type, m_input.trmat, *m_input.base, m_input.gizmo);
 }
 
@@ -345,7 +376,7 @@ void CreateObjectJob::finalize(bool canceled, std::exception_ptr &eptr)
 
     // only for sure
     if (m_result.empty()) 
-        return create_message("Can't create empty object.");
+        return create_message(_u8L("Can't create empty object."));
 
     GUI_App &app    = wxGetApp();
     Plater  *plater = app.plater();
@@ -964,7 +995,7 @@ TriangleMesh create_mesh(DataBase &input, const Fnc& was_canceled, Job::Ctl& ctl
             return {};
         // only info
         ctl.call_on_main_thread([]() {
-            create_message("It is used default volume for embossed text, try to change text or font to fix it.");
+            create_message(_u8L("It is used default volume for embossed text, try to change text or font to fix it."));
         });
     }
 
@@ -1025,7 +1056,7 @@ void update_volume(TriangleMesh &&mesh, const DataUpdate &data, const Transform3
 {
     // for sure that some object will be created
     if (mesh.its.empty())
-        return create_message("Empty mesh can't be created.");
+        return create_message(_u8L("Empty mesh can't be created."));
 
     Plater *plater = wxGetApp().plater();
     // Check gizmo is still open otherwise job should be canceled
@@ -1084,10 +1115,10 @@ void create_volume(TriangleMesh                    &&mesh,
     // Parent object for text volume was propably removed.
     // Assumption: User know what he does, so text volume is no more needed.
     if (obj == nullptr) 
-        return create_message("Bad object to create volume.");
+        return create_message(_u8L("Bad object to create volume."));
 
     if (mesh.its.empty()) 
-        return create_message("Can't create empty volume.");
+        return create_message(_u8L("Can't create empty volume."));
 
     plater->take_snapshot(_u8L("Add Emboss text Volume"));
 

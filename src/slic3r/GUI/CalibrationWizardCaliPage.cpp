@@ -1,9 +1,33 @@
 #include "CalibrationWizardCaliPage.hpp"
-#include "MainFrame.hpp"
+#include "CalibUtils.hpp"
 #include "I18N.hpp"
-#include "Widgets/Label.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include <wx/string.h>
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <cstddef>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/StatusPanel.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <boost/log/trivial.hpp>
+#include <cassert>
+#include <string>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Utils.hpp"
+#include <wx/panel.h>
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -192,8 +216,10 @@ void CalibrationCaliPage::update(MachineObject* obj)
             set_cali_img();
         }
 
+        // A calibration can run before the Device tab is ever opened, and only its status
+        // panel shows a print error.
         if (obj->print_error > 0) {
-            StatusPanel* status_panel = Slic3r::GUI::wxGetApp().mainframe->m_monitor->get_status_panel();
+            StatusPanel* status_panel = MonitorPanel::ensure()->get_status_panel();
             status_panel->obj = obj;
             status_panel->update_error_message();
         }

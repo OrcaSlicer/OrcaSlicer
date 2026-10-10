@@ -1,4 +1,5 @@
 #include "ColorDecomposeSupport.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "MixedFilamentDialog.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
@@ -9,9 +10,21 @@
 
 #include "nlohmann/json.hpp"
 
+#include <cstddef>
 #include <fstream>
 #include <algorithm>
 #include <cctype>
+#include <string>
+#include "slic3r/GUI/ColorDecomposeDialog.hpp"
+#include <wx/string.h>
+#include <vector>
+#include "libslic3r/Config.hpp"
+#include <wx/colour.h>
+#include <utility>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/ColorDecomposeRecipe.hpp"
+#include "libslic3r/FilamentMixer.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using json = nlohmann::json;
 
@@ -394,8 +407,9 @@ bool confirm_create_decompose_missing_components(wxWindow* parent, const std::ve
         missing_text += missing[i].display_name;
     }
 
-    wxString message = _L("The current filament list does not contain ") + missing_text +
-        _L(". A project filament required by the mixed filament will be created automatically after decomposition.");
+    wxString message = wxString::Format(_L("The current filament list does not contain %s. A project filament required by "
+                                           "the mixed filament will be created automatically after decomposition."),
+                                        missing_text);
 
     MessageDialog dlg(parent, message, _L("Tip"), wxOK | wxCANCEL | wxICON_INFORMATION);
     dlg.show_dsa_button();

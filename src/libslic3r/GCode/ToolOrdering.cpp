@@ -1,4 +1,9 @@
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Config.hpp"
 #include "ExtrusionEntity.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/FilamentGroup.hpp"
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
 #include "Layer.hpp"
@@ -9,10 +14,24 @@
 #include "MultiNozzleUtils.hpp"
 #include "FilamentMixer.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "Utils.hpp"
+#include "format.hpp"
 #include "I18N.hpp"
+#include "../BeltBrim.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <optional>
+#include <functional>
+#include <exception>
+#include <memory>
+#include <tuple>
+#include <iostream>
 
 // #define SLIC3R_DEBUG
 
@@ -34,6 +53,11 @@
 #include <unordered_map>
 
 #include <libslic3r.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace Slic3r {
 
@@ -82,8 +106,9 @@ bool check_filament_printable_after_group(const std::vector<unsigned int> &used_
         int printable_status = print_config->filament_printable.get_at(filament_id);
         int extruder_idx = filament_maps[filament_id];
         if (!(printable_status >> extruder_idx & 1)) {
-            std::string extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
-            std::string error_msg     = _L("Grouping error: ") + filament_type + _L(" can not be placed in the ") + extruder_name + _L(" nozzle");
+            std::string error_msg = extruder_idx == 0 ?
+                                        Slic3r::format(_L("Grouping error: %1% cannot be placed in the left nozzle"), filament_type) :
+                                        Slic3r::format(_L("Grouping error: %1% cannot be placed in the right nozzle"), filament_type);
             throw Slic3r::RuntimeError(error_msg);
         }
     }
@@ -395,6 +420,10 @@ bool ToolOrdering::insert_wipe_tower_extruder()
 {
     if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
         return false;
+    // Belt mode has no classic wipe tower; the dedicated wipe tower filament
+    // must not inject extra toolchanges into the purge prism planning.
+    if (m_print_config_ptr->belt_printer)
+        return false;
     if (m_print_config_ptr->wipe_tower_filament == 0)
         return false;
 
@@ -492,6 +521,11 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
             zs.emplace_back(layer->print_z);
         for (auto layer : object.support_layers())
             zs.emplace_back(layer->print_z);
+        // Belt brim apron bands sit below the object's first layer and have no
+        // layer of their own, but tools_for_layer() asserts an exact Z match, so
+        // their print_z must be part of the ordering.
+        for (const BeltBrimBand &band : object.belt_brim_prologue())
+            zs.emplace_back(band.print_z);
         this->initialize_layers(zs);
     }
 
@@ -536,6 +570,10 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
                 zs.emplace_back(layer->print_z);
             for (auto layer : object->support_layers())
                 zs.emplace_back(layer->print_z);
+            // See the single-object ctor: belt brim apron bands need their own
+            // ordering entries or tools_for_layer() will assert.
+            for (const BeltBrimBand &band : object->belt_brim_prologue())
+                zs.emplace_back(band.print_z);
 
             max_layer_height = std::max(max_layer_height, object->config().layer_height.value);
         }
@@ -970,6 +1008,42 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         }
     }
 
+    // Belt brim apron bands own their layers outright: they print below the
+    // object's first layer, so no object or support layer claims an extruder there
+    // and process_layer() would bail out at "Nothing to extrude".  Claim the
+    // object's outer wall filament, in the same raw 1-based domain the loops above
+    // push.  Deliberately not layer_tools.has_object, which drives skirt marking
+    // and wiping overrides.
+    if (! object.belt_brim_prologue().empty()) {
+        // 1-based, same domain the object/support pushes above use; reindexed to 0-based
+        // with the rest of the list later.
+        const unsigned int brim_filament = object.belt_brim_filament();
+        for (const BeltBrimBand &band : object.belt_brim_prologue()) {
+            if (band.fills.empty())
+                continue;
+            LayerTools &layer_tools = this->tools_for_layer(band.print_z);
+            layer_tools.extruders.push_back(brim_filament);
+        }
+    }
+
+    // Coincident brim bands (belt_brim_by_layer) print ON an object layer rather than
+    // below it, but that layer can produce no InstanceVisit in process_layer - a
+    // zero-extrusion lead-in slice with no coinciding support - and the band would then
+    // be silently dropped.  Register the brim filament on every layer that carries a
+    // coincident band, in the same 1-based domain as the prologue push above, so a brim
+    // pass always exists there.
+    if (object.has_belt_brim()) {
+        const unsigned int brim_filament = object.belt_brim_filament();
+        const auto        &by_layer      = object.belt_brim_by_layer();
+        const size_t       n             = std::min(by_layer.size(), object.layers().size());
+        for (size_t i = 0; i < n; ++ i) {
+            if (by_layer[i].empty())
+                continue;
+            LayerTools &layer_tools = this->tools_for_layer(object.layers()[i]->print_z);
+            layer_tools.extruders.push_back(brim_filament);
+        }
+    }
+
     for (auto& layer : m_layer_tools) {
         // Sort and remove duplicates
         sort_remove_duplicates(layer.extruders);
@@ -1012,12 +1086,28 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
     }
 
     //FIXME this is a hack to get the ball rolling.
+    // The `print_z < object_bottom_z` clause reads "below the object" as "raft
+    // gap".  On a belt printer that is wrong: the brim apron legitimately prints
+    // below the object's first layer, and treating those layers as raft would put a
+    // wipe tower at negative Z.  A belt printer never prints the classic
+    // prime tower (Print::has_wipe_tower()), so simply drop the clause there.
+    //
+    // Gate on config.belt_printer, NOT on has_belt_brim: every layer below the
+    // object bottom on a belt printer is legitimately a sub-object stream - brim
+    // apron, belt support printed below Z0, or the object's own lead-in - and none of
+    // them is ever raft, because Print::validate() rejects raft_layers>0 on a belt
+    // printer outright.  Narrowing this to has_belt_brim would reclassify
+    // belt-support-below-floor layers as raft on brim-less belt prints and reintroduce
+    // the negative-Z wipe tower, so the broad belt_printer gate is correct.
+    const bool belt_no_raft_gap = config.belt_printer.value;
     for (LayerTools &lt : m_layer_tools)
         lt.has_wipe_tower |= ((lt.has_object || lt.has_support) && (config.timelapse_type == TimelapseType::tlSmooth || lt.wipe_tower_partitions > 0))
-            || lt.print_z < object_bottom_z + EPSILON;
+            || (! belt_no_raft_gap && lt.print_z < object_bottom_z + EPSILON);
 
     // Test for a raft, insert additional wipe tower layer to fill in the raft separation gap.
-    for (size_t i = 0; i + 1 < m_layer_tools.size(); ++ i) {
+    // Skipped on belt printers for the same reason as the clause above: layers
+    // below the object are brim apron, not raft.
+    for (size_t i = 0; ! belt_no_raft_gap && i + 1 < m_layer_tools.size(); ++ i) {
         const LayerTools &lt      = m_layer_tools[i];
         const LayerTools &lt_next = m_layer_tools[i + 1];
         if (lt.print_z < object_bottom_z + EPSILON && lt_next.print_z >= object_bottom_z + EPSILON) {
@@ -1228,15 +1318,21 @@ void ToolOrdering::cal_most_used_extruder(const PrintConfig &config)
 
 float ToolOrdering::cal_max_additional_fan(const PrintConfig &config)
 {
-    // record
+    std::set<unsigned int> used_filaments;
+    for (const LayerTools &layer_tools : m_layer_tools)
+        used_filaments.insert(layer_tools.extruders.begin(), layer_tools.extruders.end());
+    if (used_filaments.empty())
+        return 0;
+
+    // Orca: additional_cooling_fan_speed can hold one value per extruder variant a filament prints with;
+    // filament_self_index maps such a column to its filament.
+    const std::vector<int> &self_index = config.filament_self_index.values;
+    const size_t columns = std::max(config.additional_cooling_fan_speed.size(), size_t(*used_filaments.rbegin()) + 1);
     float max_fan = 0;
-    for (LayerTools &layer_tools : m_layer_tools) {
-        std::vector<unsigned int> filaments = layer_tools.extruders;
-        std::set<int>             layer_extruder_count;
-        // count once only
-        for (unsigned int &filament : filaments)
-            if (max_fan < config.additional_cooling_fan_speed.get_at(filament))
-                max_fan = config.additional_cooling_fan_speed.get_at(filament);
+    for (size_t column = 0; column < columns; ++column) {
+        const unsigned int filament_id = self_index.size() == columns ? self_index[column] - 1 : column;
+        if (used_filaments.count(filament_id) && max_fan < config.additional_cooling_fan_speed.get_at(column))
+            max_fan = config.additional_cooling_fan_speed.get_at(column);
     }
     return max_fan;
 }
@@ -1452,7 +1548,6 @@ static FilamentGroupContext build_filament_group_context(
     FilamentMapMode                                  mode,
     const std::unordered_map<int, int>&              nozzle_status)
 {
-    using namespace MultiNozzleUtils;
     using namespace FilamentGroupUtils;
 
     FilamentGroupContext context;
@@ -1488,10 +1583,10 @@ static FilamentGroupContext build_filament_group_context(
 
     auto machine_filament_info = build_machine_filaments(print->get_extruder_filament_info(), extruder_ams_counts, ignore_ext_filament);
 
-    std::vector<std::string>   filament_types      = print_config.filament_type.values;
-    std::vector<std::string>   filament_colours    = print_config.filament_colour.values;
-    std::vector<unsigned char> filament_is_support = print_config.filament_is_support.values;
-    std::vector<std::string>   filament_ids        = print_config.filament_ids.values;
+    // The grouping code walks filament_ids and indexes filament_info by the same position.
+    std::vector<std::string> filament_ids = print_config.filament_ids.values;
+    if (filament_ids.size() > filament_nums)
+        filament_ids.resize(filament_nums);
 
     FGMode fg_mode = mode == FilamentMapMode::fmmAutoForMatch ? FGMode::MatchMode : FGMode::FlushMode;
     context.model_info.flush_matrix          = std::move(nozzle_flush_mtx);
@@ -1500,11 +1595,14 @@ static FilamentGroupContext build_filament_group_context(
     context.model_info.filament_ids          = filament_ids;
     context.model_info.unprintable_volumes   = unprintable_volumes;
 
-    for (size_t idx = 0; idx < filament_types.size(); ++idx) {
+    // Consumers index filament_info by filament id, so it must span the filament count: a partial
+    // or legacy config can leave any of these arrays short, and get_at clamps.
+    context.model_info.filament_info.reserve(filament_nums);
+    for (size_t idx = 0; idx < filament_nums; ++idx) {
         FilamentGroupUtils::FilamentInfo info;
-        info.color      = filament_colours[idx];
-        info.type       = filament_types[idx];
-        info.is_support = filament_is_support[idx];
+        info.color      = print_config.filament_colour.get_at(idx);
+        info.type       = print_config.filament_type.get_at(idx);
+        info.is_support = print_config.filament_is_support.get_at(idx);
         context.model_info.filament_info.emplace_back(std::move(info));
     }
 
@@ -1658,7 +1756,6 @@ static std::vector<int> apply_master_extruder_preference(const FilamentGroupCont
 // multi-nozzle (H2C/A2L) resolves to a nozzle-granular result.
 MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filament_maps(const std::vector<std::vector<unsigned int>>& layer_filaments, const Print* print, const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables, const std::map<int, std::set<NozzleVolumeType>>& unprintable_volumes, const std::unordered_map<int, int>& nozzle_status)
 {
-    using namespace FilamentGroupUtils;
     using namespace MultiNozzleUtils;
 
     if (!print || layer_filaments.empty())
@@ -2732,6 +2829,28 @@ void ToolOrdering::enforce_mixed_component_order()
     }
 }
 
+// Declared in ToolOrdering.hpp (exposed for unit testing).
+std::vector<unsigned int> parse_cyclic_order(const std::string& str, unsigned int number_of_extruders)
+{
+    std::vector<unsigned int> order;
+    for (const std::string& token : split_string(str, ',')) {
+        try {
+            size_t pos      = 0;
+            int    filament = std::stoi(token, &pos); // stoi skips leading whitespace by itself
+            // stoi stops at the first non-digit, so "2x" would parse as 2. Require the whole token to be
+            // consumed (bar trailing whitespace) to drop it like any other garbage.
+            if (token.find_first_not_of(" \t\r\n", pos) != std::string::npos)
+                continue;
+            if (filament >= 1 && (unsigned int)filament <= number_of_extruders
+                && std::find(order.begin(), order.end(), (unsigned int)(filament - 1)) == order.end())
+                order.emplace_back((unsigned int)(filament - 1));
+        } catch (const std::exception&) {
+            // Not a number, ignore it.
+        }
+    }
+    return order;
+}
+
 void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer)
 {
     const PrintConfig* print_config = m_print_config_ptr;
@@ -2829,11 +2948,41 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
     const bool use_cyclic_ordering =
         (print_config->toolchange_ordering == ToolChangeOrderingType::Cyclic);
 
+    // By default the first layer keeps its adhesion-optimized order (and any custom first layer
+    // sequence); the cyclic sequence is only forced onto it when the user opts in.
+    const bool cyclic_first_layer = use_cyclic_ordering && print_config->toolchange_cyclic_first_layer.value;
+
+    // Optional user defined cyclic sequence, given as 1-based filament numbers ("3,2,1,4"). Filaments
+    // missing from it keep their ascending order after the listed ones, so a partial or bogus entry
+    // still yields the default cyclic order.
+    const std::vector<unsigned int> cyclic_order =
+        use_cyclic_ordering ? parse_cyclic_order(print_config->toolchange_cyclic_order.value, number_of_extruders)
+                            : std::vector<unsigned int>();
+
+    // Reorder a layer's filaments (0-based) for cyclic ordering: ascending by default, or following the
+    // user defined sequence when one was given. Filaments absent from the sequence keep ascending order
+    // after the listed ones.
+    auto apply_cyclic_order = [&cyclic_order](std::vector<unsigned int>& filaments) {
+        std::sort(filaments.begin(), filaments.end());
+        if (!cyclic_order.empty())
+            std::stable_sort(filaments.begin(), filaments.end(), [&cyclic_order](unsigned int lhs, unsigned int rhs) {
+                auto rank = [&cyclic_order](unsigned int filament) {
+                    return size_t(std::find(cyclic_order.begin(), cyclic_order.end(), filament) - cyclic_order.begin());
+                };
+                return rank(lhs) < rank(rhs);
+            });
+    };
+
     // other_layers_seq: the layer_idx and extruder_idx are base on 1
-    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments, &layer_filaments, use_cyclic_ordering](int layer_idx, std::vector<int>& out_seq) -> bool {
+    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments, &layer_filaments, use_cyclic_ordering, cyclic_first_layer, &apply_cyclic_order](int layer_idx, std::vector<int>& out_seq) -> bool {
         if (!reorder_first_layer && layer_idx == 0) {
-            out_seq.resize(first_layer_filaments.size());
-            std::transform(first_layer_filaments.begin(), first_layer_filaments.end(), out_seq.begin(), [](auto item) {return item + 1; });
+            // The first layer tool order is already decided (adhesion-optimized, plus any custom first
+            // layer sequence). Only override it with the cyclic sequence when the user opted in.
+            std::vector<unsigned int> ordered = first_layer_filaments;
+            if (cyclic_first_layer)
+                apply_cyclic_order(ordered);
+            out_seq.resize(ordered.size());
+            std::transform(ordered.begin(), ordered.end(), out_seq.begin(), [](auto item) {return int(item) + 1; });
             return true;
         }
         for (size_t idx = other_layers_seqs.size() - 1; idx != size_t(-1); --idx) {
@@ -2844,9 +2993,12 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
             }
         }
 
-        if (use_cyclic_ordering && layer_idx >= 0 && size_t(layer_idx) < layer_filaments.size()) {
+        // Skip the first layer here (layer_idx == 0 only reaches this point on the reorder_first_layer
+        // path) unless the user asked for cyclic order on it, so it keeps the default flush ordering.
+        if (use_cyclic_ordering && layer_idx >= 0 && (layer_idx != 0 || cyclic_first_layer)
+            && size_t(layer_idx) < layer_filaments.size()) {
             std::vector<unsigned int> ordered = layer_filaments[size_t(layer_idx)];
-            std::sort(ordered.begin(), ordered.end());
+            apply_cyclic_order(ordered);
             out_seq.resize(ordered.size());
             std::transform(ordered.begin(), ordered.end(), out_seq.begin(), [](auto item) { return int(item) + 1; });
             return true;

@@ -8,7 +8,6 @@
 #include "libslic3r/Preset.hpp"
 #include "ParamsPanel.hpp"
 #include "Tab.hpp"
-#include "format.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
@@ -17,6 +16,27 @@
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/Button.hpp"
 #include "GUI_Factories.hpp"
+#include "I18N.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <map>
+#include <wx/string.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/anybutton.h>
+#include <wx/timer.h>
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include <wx/wupdlock.h>
+#include <vector>
 
 
 namespace Slic3r {
@@ -290,7 +310,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_compare_btn = new ScalableButton(m_top_panel, wxID_ANY, "compare", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_compare_btn->SetToolTip(_L("Compare presets"));
-        m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { wxGetApp().mainframe->diff_dialog.show(); }));
+        m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { DiffPresetDialog::ensure()->show(); }));
 
         m_setting_btn = new ScalableButton(m_top_panel, wxID_ANY, "table", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_setting_btn->SetToolTip(_L("View all object's settings"));
@@ -324,7 +344,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
                                wxID_ANY,
                                wxDefaultPosition,
                                wxDefaultSize,
-                               wxVSCROLL) // hide hori-bar will cause hidden field mis-position
+                               wxVSCROLL            // hide hori-bar will cause hidden field mis-position
+                               | wxTAB_TRAVERSAL    // Allows for traversal via tab key
+                            ) 
         {
             // ShowScrollBar(GetHandle(), SB_BOTH, FALSE);
             Bind(wxEVT_SCROLL_CHANGED, [this](auto &e) {
@@ -389,7 +411,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
     m_page_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_page_view->SetSizer(m_page_sizer);
-    m_page_view->SetScrollbars(1, 20, 1, 2);
+    m_page_view->SetScrollbars(1, FromDIP(20), 1, 2);
     //m_page_view->SetScrollRate( 5, 5 );
 
     if (m_mode_region)
@@ -548,16 +570,34 @@ void ParamsPanel::clear_page()
 void ParamsPanel::OnActivate()
 {
     if (m_current_tab == NULL)
-    {
-        //the first time
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
-        // BBS: open/close tab
-        //m_current_tab = m_tab_print;
-        set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
-    }
+        select_default_tab();
     Tab* cur_tab = dynamic_cast<Tab *> (m_current_tab);
     if (cur_tab)
         cur_tab->OnActivate();
+}
+
+void ParamsPanel::select_default_tab()
+{
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
+    // BBS: open/close tab
+    //m_current_tab = m_tab_print;
+    set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
+}
+
+bool ParamsPanel::SettingsPagePrebuild::built() const
+{
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && !tab->page_build_pending();
+}
+
+bool ParamsPanel::SettingsPagePrebuild::build_step()
+{
+    if (m_panel.m_current_tab == nullptr) {
+        m_panel.select_default_tab();
+        return !built();
+    }
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && tab->page_build_step();
 }
 
 void ParamsPanel::OnToggled(wxCommandEvent& event)

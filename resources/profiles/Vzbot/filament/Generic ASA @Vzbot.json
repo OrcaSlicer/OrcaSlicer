@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Vzbot",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "Vzbot Generic ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "0MutZpaR9XVzUGGS",
 	"filament_id": "OFLPAxz3",

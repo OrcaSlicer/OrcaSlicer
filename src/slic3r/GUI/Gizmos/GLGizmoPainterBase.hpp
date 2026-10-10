@@ -9,10 +9,20 @@
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Model.hpp"
 
+#include <array>
+#include <cassert>
 #include <cereal/types/vector.hpp>
+#include <cstddef>
 #include <glad/gl.h>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Color.hpp"
 #include <memory>
+#include <vector>
+#include <set>
+#include <string>
+#include <wx/event.h>
+#include <wx/string.h>
 
 
 namespace Slic3r::GUI {
@@ -27,7 +37,8 @@ enum class PainterGizmoType {
     FDM_SUPPORTS,
     SEAM,
     MM_SEGMENTATION,
-    FUZZY_SKIN
+    FUZZY_SKIN,
+    TEXTURE_DISPLACEMENT
 };
 
 class TriangleSelectorGUI : public TriangleSelector {
@@ -37,6 +48,9 @@ public:
     virtual ~TriangleSelectorGUI() = default;
 
     virtual void render(ImGuiWrapper* imgui, const Transform3d& matrix);
+    // The seed-fill contour alone, as render() last built it - for a gizmo that draws over the selector
+    // and has to put the contour back on top.
+    void         render_paint_contour(const Transform3d& matrix);
     //void         render(const Transform3d& matrix) { this->render(nullptr, matrix); }
     void         set_wireframe_needed(bool need_wireframe) { m_need_wireframe = need_wireframe; }
     bool         get_wireframe_needed() { return m_need_wireframe; }
@@ -79,7 +93,6 @@ protected:
     GLModel                      m_paint_contour;
 
     void update_paint_contour();
-    void render_paint_contour(const Transform3d& matrix);
 
     bool                                m_need_wireframe {false};
 };
@@ -192,6 +205,8 @@ public:
     ~GLGizmoPainterBase() override;
     void data_changed(bool is_serializing) override;
     virtual bool gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down);
+    // Switches the painting tool a Painting-context shortcut names; false when this gizmo has no such tool.
+    virtual bool on_tool_shortcut(Shortcut shortcut) { return false; }
 
     // Following function renders the triangles and cursor. Having this separated
     // from usual on_render method allows to render them before transparent
@@ -218,7 +233,8 @@ public:
     bool on_mouse(const wxMouseEvent &mouse_event) override;
 
 protected:
-    virtual void render_triangles(const Selection& selection) const;
+    // Draws every model part's selector, except `skip`'s when given.
+    virtual void render_triangles(const Selection& selection, const ModelVolume* skip = nullptr) const;
     void render_cursor();
     void render_cursor_circle();
     void render_cursor_sphere(const Transform3d& trafo) const;
@@ -281,6 +297,9 @@ protected:
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;
 
+    // Returns the up direction accounting for build plate tilt (default: UnitZ)
+    Vec3f get_tilt_up_direction() const;
+
     GLModel m_circle;
     Vec2d m_old_center{ Vec2d::Zero() };
     float m_old_cursor_radius{ 0.0f };
@@ -312,12 +331,17 @@ protected:
 
     TriangleSelector::ClippingPlane get_clipping_plane_in_volume_coordinates(const Transform3d &trafo) const;
 
+    // True while a paint or erase stroke is under way.
+    bool is_painting() const { return m_button_down != Button::None; }
+
 private:
     std::vector<std::vector<ProjectedMousePosition>> get_projected_mouse_positions(const Vec2d &mouse_position, double resolution, const std::vector<Transform3d> &trafo_matrices) const;
 
     std::vector<ProjectedHeightRange> get_projected_height_range(const Vec2d& mouse_position, double resolution, const std::vector<const ModelVolume*>& part_volumes, const std::vector<Transform3d>& trafo_matrices) const;
 
     bool is_mesh_point_clipped(const Vec3d& point, const Transform3d& trafo) const;
+    // World transforms of the model parts, in mo->volumes order.
+    std::vector<Transform3d> mesh_trafo_matrices() const;
     void update_raycast_cache(const Vec2d& mouse_position,
                               const Camera& camera,
                               const std::vector<Transform3d>& trafo_matrices) const;
@@ -370,6 +394,7 @@ protected:
     virtual PainterGizmoType get_painter_type() const = 0;
 
     bool on_is_activable() const override;
+    bool render_follows_cursor() const override;
     bool on_is_selectable() const override;
     void on_load(cereal::BinaryInputArchive& ar) override;
     void on_save(cereal::BinaryOutputArchive& ar) const override {}

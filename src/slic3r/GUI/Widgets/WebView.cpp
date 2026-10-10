@@ -1,17 +1,48 @@
 #include "WebView.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
 
+#include <cassert>
+#include <chrono>
+#include <cstddef>
+#include <exception>
+#include <thread>
+
+#include <wx/setup.h>
+#include <wx/webview.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sharedptr.h>
+#include <wx/vector.h>
+#include <wx/event.h>
+#include <vector>
+#include <wx/object.h>
+#include <wx/log.h>
+#include <utility>
 #include <wx/webviewarchivehandler.h>
 #include <wx/webviewfshandler.h>
+#include <wx/weakref.h>
 #if wxUSE_WEBVIEW_EDGE
 #include <wx/msw/webview_edge.h>
 #elif defined(__WXMAC__)
 #include <wx/osx/webview_webkit.h>
 #endif
 #include <wx/uri.h>
+#include <wx/filename.h>
+#include <wx/stdpaths.h>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <string>
+#include <wx/versioninfo.h>
+
+namespace fs = boost::filesystem;
 #if defined(__WIN32__) || defined(__WXMAC__)
 #include "wx/private/jsscriptwrapper.h"
 #endif
@@ -73,7 +104,7 @@ DWORD DownloadAndInstallWV2RT() {
       })
       .perform_sync();
   // Sleep for 1 second to wait for the buffer writen into disk
-  std::this_thread::sleep_for(1000ms);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   if (downloaded) {
     // Either Package the WebView2 Bootstrapper with your app or download it using fwlink
     // Then invoke install at Runtime.
@@ -229,7 +260,9 @@ class FakeWebView : public wxWebView
 wxDEFINE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 static std::vector<wxWebView*> g_webviews;
-static std::vector<wxWebView*> g_delay_webviews;
+// Webviews waiting for their script handler while another one is added; adding it yields, so a
+// view can be destroyed while it waits.
+static std::vector<wxWeakRef<wxWebView>> g_delay_webviews;
 
 class WebViewRef : public wxObjectRefData
 {
@@ -334,8 +367,9 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
                 addScriptMessageHandler(webView);
                 while (!g_delay_webviews.empty()) {
                     auto views = std::move(g_delay_webviews);
-                    for (auto wv : views)
-                        addScriptMessageHandler(wv);
+                    for (const wxWeakRef<wxWebView>& wv : views)
+                        if (wv)
+                            addScriptMessageHandler(wv.get());
                 }
             }
 #ifndef __WIN32__
@@ -355,6 +389,17 @@ void WebView::MarkScriptMessageHandlerAdded(wxWebView * webView)
 {
     if (WebViewRef *ref = webview_ref(webView))
         ref->m_script_handler_added = true;
+}
+
+bool WebView::NeedsRecreateOnShow()
+{
+    const bool recreating = Slic3r::GUI::wxGetApp().is_recreating_gui();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": is_recreating_gui = " << recreating;
+#ifdef __WIN32__
+    return recreating;
+#else
+    return false;
+#endif
 }
 #if wxUSE_WEBVIEW_EDGE
 bool WebView::CheckWebViewRuntime()

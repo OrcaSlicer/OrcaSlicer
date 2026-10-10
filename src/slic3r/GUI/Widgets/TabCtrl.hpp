@@ -2,6 +2,16 @@
 #define slic3r_GUI_TabCtrl_hpp_
 
 #include "Button.hpp"
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <vector>
+#include <wx/sizer.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/dc.h>
 
 wxDECLARE_EVENT(wxEVT_TAB_SEL_CHANGING, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_TAB_SEL_CHANGED, wxCommandEvent);
@@ -14,7 +24,6 @@ class TabCtrl : public StaticBox
 
     int sel = -1;
     wxFont bold;
-    int item_space = 2; // space around each button, both sides (SetItemSpace)
 
 public:
     TabCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = 0);
@@ -63,10 +72,6 @@ public:
     int GetFirstVisibleItem() const;
     int GetNextVisible(int item) const;
     bool IsVisible(unsigned int item) const;
-
-    // Extra space around each tab button (in px on both sides). Defaults to the control-wide
-    // standard; call before appending items so every button picks it up.
-    void SetItemSpace(int space);
 
     int GetFullSize() const;
 

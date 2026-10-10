@@ -9,11 +9,30 @@
 #include "slic3r/GUI/I18N.hpp" // Orca: explicit _L() catalog include
 
 #include <chrono>
+#include <memory>
+#include "libslic3r/PresetBundle.hpp"
+#include <map>
 #include <optional>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
+#include <vector>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/simplebook.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/timer.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <unordered_map>
+#include <wx/colour.h>
+#include <wx/scrolwin.h>
 
 
 //Previous defintions
 class wxGrid;
+class ProgressBar;
 
 namespace Slic3r {
 

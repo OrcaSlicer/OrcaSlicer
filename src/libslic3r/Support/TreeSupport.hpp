@@ -1,12 +1,26 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
+#include <cstddef>
+#include <cmath>
 #include <forward_list>
+#include <list>
+#include <memory>
+#include <unordered_map>
+#include <functional>
+#include <map>
+#include <math.h>
 #include <unordered_set>
+#include <vector>
+#include <utility>
 #include "ExPolygon.hpp"
 #include "Point.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "Slicing.hpp"
 #include "MinimumSpanningTree.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Support/TreeSupportCommon.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
 #include "tbb/concurrent_unordered_map.h"
 #include "Flow.hpp"
 #include "PrintConfig.hpp"
@@ -445,6 +459,17 @@ private:
     bool  is_strong = false;
     bool  is_slim                            = false;
     bool  with_infill                        = false;
+
+    // Belt printer: compute the belt floor print_z at a given XY position (in slicing coords).
+    // Returns -infinity if belt floor is not active.
+    double belt_floor_print_z(const Point &pos_slicing) const;
+    // Whether a node's whole circle (radius in mm) sits at or below the belt at
+    // print_z.  The belt is a tilted plane, so the circle's leading edge crosses it
+    // |shear| * radius lower than its centre; stopping a node when its centre crosses
+    // would leave that edge floating a radius above the belt.
+    bool belt_node_landed(const Point &pos_slicing, double radius, double print_z) const;
+    // The same for a polygon: every point of it is at or below the belt.
+    bool belt_polygon_landed(const ExPolygon &poly, double print_z) const;
 
 
 

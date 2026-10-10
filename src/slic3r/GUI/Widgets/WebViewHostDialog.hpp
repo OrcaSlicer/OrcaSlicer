@@ -7,8 +7,17 @@
 #include <exception>
 #include <string>
 
+#include <wx/event.h>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
 #include <wx/string.h>
+#include <wx/toplevel.h>
 #include <wx/webview.h>
+
+class wxCommandEvent;
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -49,9 +58,11 @@ public:
                                                const std::string& prelude   = {},
                                                const std::string& on_inject = {});
 
-    // Shared by modeless Pages tabs and PluginWebDialog.
+    // Shared by WebPanel hosts and WebDialog.
     static std::string theme_user_script();
-    static std::string plugin_defaults_user_script();
+    static std::string element_defaults_user_script();
+    // Re-themes an already-loaded page in place, for web views hosted outside a dialog.
+    static std::string theme_apply_script();
 
 protected:
     wxWebView* browser() const { return m_browser; }

@@ -1,9 +1,9 @@
-#include "libslic3r/libslic3r.h"
 #include "GLGizmosManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -22,17 +22,47 @@
 //#include "slic3r/GUI/Gizmos/GLGizmoHollow.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSeam.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMmuSegmentation.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSimplify.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoEmboss.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMeshBoolean.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoAssembly.hpp"
+#include <initializer_list>
+#include <wx/timer.h>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoMeasure.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include <utility>
+#include <map>
+#include <imgui.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <algorithm>
+#include <memory>
+#include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
+#include <cassert>
+#include <boost/container_hash/hash.hpp>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <optional>
+#include "libslic3r/AppConfig.hpp"
 
-#include "libslic3r/format.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PresetBundle.hpp"
+
+#include <boost/functional/hash.hpp>
 
 #include <wx/glcanvas.h>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "slic3r/GUI/GLToolbar.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/KeyChord.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -164,6 +194,13 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case(EType::FuzzySkin):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_fuzzy_skin_paint_dark.svg" : "toolbar_fuzzy_skin_paint.svg");
             break;
+        case(EType::TextureDisplacement):
+            // One shared icon in both themes (no dedicated dark variant yet) - but it must still be
+            // *this* gizmo's icon. Handing it the fuzzy-skin one here quietly replaced the icon set at
+            // construction, so the toolbar ended up showing two identical fuzzy-skin buttons after any
+            // light/dark switch.
+            gizmo->set_icon_filename("toolbar_texture_displacement.svg");
+            break;
         case(EType::MeshBoolean):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_meshboolean_dark.svg" : "toolbar_meshboolean.svg");
             break;
@@ -213,6 +250,8 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoSeam(m_parent, m_is_dark ? "toolbar_seam_dark.svg" : "toolbar_seam.svg", EType::Seam));
     m_gizmos.emplace_back(new GLGizmoFuzzySkin(m_parent, m_is_dark ? "toolbar_fuzzy_skin_paint_dark.svg" : "toolbar_fuzzy_skin_paint.svg", EType::FuzzySkin));
     m_gizmos.emplace_back(new GLGizmoMmuSegmentation(m_parent, m_is_dark ? "mmu_segmentation_dark.svg" : "mmu_segmentation.svg", EType::MmSegmentation));
+    // One shared icon (no dedicated dark variant yet); it recolours acceptably in both themes.
+    m_gizmos.emplace_back(new GLGizmoTextureDisplacement(m_parent, "toolbar_texture_displacement.svg", EType::TextureDisplacement));
     m_gizmos.emplace_back(new GLGizmoEmboss(m_parent, m_is_dark ? "toolbar_text_dark.svg" : "toolbar_text.svg", EType::Emboss));
     m_gizmos.emplace_back(new GLGizmoSVG(m_parent));
     m_gizmos.emplace_back(new GLGizmoMeasure(m_parent, m_is_dark ? "toolbar_measure_dark.svg" : "toolbar_measure.svg", EType::Measure));
@@ -224,8 +263,6 @@ bool GLGizmosManager::init()
     //m_gizmos.emplace_back(new GLGizmoHollow(m_parent, "hollow.svg", sprite_id++));
 
     m_common_gizmos_data.reset(new CommonGizmosDataPool(&m_parent));
-    if(!m_assemble_view_data)
-        m_assemble_view_data.reset(new AssembleViewDataPool(&m_parent));
 
     for (auto& gizmo : m_gizmos) {
         if (! gizmo->init()) {
@@ -271,13 +308,18 @@ bool GLGizmosManager::init_icon_textures()
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_tooltip.svg", 25, 25, texture_id)) // ORCA: Use same resolution with gizmos to prevent blur on icon
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_tooltip.svg", 15, 15, texture_id)) // ORCA: Use same resolution with gizmos to prevent blur on icon
         icon_list.insert(std::make_pair((int)IC_TOOLBAR_TOOLTIP, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_tooltip_hover.svg", 25, 25, texture_id)) // ORCA: Use same resolution with gizmos to prevent blur on icon
-        icon_list.insert(std::make_pair((int)IC_TOOLBAR_TOOLTIP_HOVER, texture_id));
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_wiki.svg", 15, 15, texture_id))
+        icon_list.insert(std::make_pair((int)IC_TOOLBAR_WIKI_GUIDE, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_video_guide.svg", 15, 15, texture_id))
+        icon_list.insert(std::make_pair((int)IC_TOOLBAR_VIDEO_GUIDE, texture_id));
     else
         return false;
 
@@ -320,7 +362,17 @@ bool GLGizmosManager::init_icon_textures()
         icon_list.insert(std::make_pair((int) IC_CANVAS_ZOOM_DARK_HOVER, texture_id));
     else
         return false;
-    
+
+    for (const auto& [icon, name] : std::initializer_list<std::pair<MENU_ICON_NAME, const char*>>{
+             { IC_CANVAS_SECTION, "canvas_section" }, { IC_CANVAS_SECTION_HOVER, "canvas_section_hover" },
+             { IC_CANVAS_SECTION_DARK, "canvas_section_dark" }, { IC_CANVAS_SECTION_DARK_HOVER, "canvas_section_dark_hover" },
+             { IC_CANVAS_SECTION_ACTIVE, "canvas_section_active" }, { IC_CANVAS_SECTION_ACTIVE_HOVER, "canvas_section_active_hover" },
+             { IC_CANVAS_SECTION_ACTIVE_DARK, "canvas_section_active_dark" }, { IC_CANVAS_SECTION_ACTIVE_DARK_HOVER, "canvas_section_active_dark_hover" } }) {
+        if (!IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/" + name + ".svg", 72, 72, texture_id))
+            return false;
+        icon_list.insert(std::make_pair((int) icon, texture_id));
+    }
+
     return true;
 }
 
@@ -422,14 +474,17 @@ void GLGizmosManager::set_hover_id(int id)
     m_gizmos[m_current]->set_hover_id(id);
 }
 
-void GLGizmosManager::update_assemble_view_data()
+void GLGizmosManager::update_section_view()
 {
-    if (m_assemble_view_data) {
-        if (!wxGetApp().plater()->get_assmeble_canvas3D()->get_wxglcanvas()->IsShown())
-            m_assemble_view_data->update(AssembleViewDataID(0));
-        else
-            m_assemble_view_data->update(AssembleViewDataID((int)AssembleViewDataID::ModelObjectsInfo | (int)AssembleViewDataID::ModelObjectsClipper));
-    }
+    if (m_current != FdmSupports && m_current != Seam && m_current != MmSegmentation && m_current != FuzzySkin && m_current != BrimEars)
+        return;
+
+    CommonGizmosDataObjects::ObjectClipper* clipper = m_common_gizmos_data ? m_common_gizmos_data->object_clipper() : nullptr;
+    if (clipper == nullptr)
+        return;
+
+    // Brim ears always cut horizontally.
+    clipper->set_position_by_ratio(m_parent.get_section_view_ratio(), m_current == BrimEars ? Vec3d::UnitZ() : m_parent.get_section_view_normal());
 }
 
 void GLGizmosManager::update_data()
@@ -442,6 +497,7 @@ void GLGizmosManager::update_data()
         m_common_gizmos_data->update(get_current()
                                    ? get_current()->get_requirements()
                                    : CommonGizmosDataID(0));
+    update_section_view();
     if (m_current != Undefined) m_gizmos[m_current]->data_changed(m_serializing);
 
     // Orca: hack: Fix issue that flatten gizmo faces not updated after reload from disk
@@ -464,15 +520,13 @@ bool GLGizmosManager::is_running() const
     return m_current != Undefined;
 }
 
-bool GLGizmosManager::handle_shortcut(int key)
+bool GLGizmosManager::open_gizmo_by_shortcut(Shortcut shortcut)
 {
     if (!m_enabled)
         return false;
 
-    auto is_key = [pressed_key = key](int gizmo_key) { return (gizmo_key == pressed_key - 64) || (gizmo_key == pressed_key - 96); };
-    // allowe open shortcut even when selection is empty    
-    if (GLGizmoBase* gizmo_emboss = m_gizmos[Emboss].get();
-        is_key(gizmo_emboss->get_shortcut_key())) {
+    // The text tool opens without a selection because it creates its own object.
+    if (GLGizmoBase* gizmo_emboss = m_gizmos[Emboss].get(); gizmo_emboss->shortcut() == shortcut) {
         dynamic_cast<GLGizmoEmboss *>(gizmo_emboss)->on_shortcut_key();
         return true;
     }
@@ -480,16 +534,21 @@ bool GLGizmosManager::handle_shortcut(int key)
     if (m_parent.get_selection().is_empty())
         return false;
 
-    auto is_gizmo = [is_key](const std::unique_ptr<GLGizmoBase> &gizmo) {
-        return gizmo->is_activable() && is_key(gizmo->get_shortcut_key());
-    };
-    auto it = std::find_if(m_gizmos.begin(), m_gizmos.end(), is_gizmo);
-
+    auto it = std::find_if(m_gizmos.begin(), m_gizmos.end(), [shortcut](const std::unique_ptr<GLGizmoBase> &gizmo) {
+        return gizmo->is_activable() && gizmo->shortcut() == shortcut;
+    });
     if (it == m_gizmos.end())
         return false;
 
-    EType gizmo_type = EType(it - m_gizmos.begin());
-    return open_gizmo(gizmo_type);
+    return open_gizmo(EType(it - m_gizmos.begin()));
+}
+
+bool GLGizmosManager::on_delete_key()
+{
+    const bool processed = (m_current == Cut || m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Delete);
+    if (processed)
+        m_parent.set_as_dirty();
+    return processed;
 }
 
 bool GLGizmosManager::is_dragging() const
@@ -524,6 +583,8 @@ bool GLGizmosManager::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_p
         return dynamic_cast<GLGizmoCut3D*>(m_gizmos[Cut].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else if (m_current == FuzzySkin)
         return dynamic_cast<GLGizmoFuzzySkin*>(m_gizmos[FuzzySkin].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
+    else if (m_current == TextureDisplacement)
+        return dynamic_cast<GLGizmoTextureDisplacement*>(m_gizmos[TextureDisplacement].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else if (m_current == MeshBoolean)
         return dynamic_cast<GLGizmoMeshBoolean*>(m_gizmos[MeshBoolean].get())->gizmo_event(action, mouse_position, shift_down, alt_down, control_down);
     else if (m_current == BrimEars)
@@ -537,6 +598,7 @@ bool GLGizmosManager::is_paint_gizmo()
     return m_current == EType::FdmSupports ||
            m_current == EType::MmSegmentation ||
            m_current == EType::FuzzySkin ||
+           m_current == EType::TextureDisplacement ||
            m_current == EType::Seam;
 }
 
@@ -549,26 +611,14 @@ bool GLGizmosManager::is_allow_select_all() {
     return false;
 }
 
-ClippingPlane GLGizmosManager::get_clipping_plane() const
+std::optional<ClippingPlane> GLGizmosManager::get_clipping_plane() const
 {
-    if (! m_common_gizmos_data
-     || ! m_common_gizmos_data->object_clipper()
-     || m_common_gizmos_data->object_clipper()->get_position() == 0.)
+    if (! m_common_gizmos_data || ! m_common_gizmos_data->object_clipper())
+        return std::nullopt;
+    else if (m_common_gizmos_data->object_clipper()->get_position() == 0.)
         return ClippingPlane::ClipsNothing();
     else {
         const ClippingPlane& clp = *m_common_gizmos_data->object_clipper()->get_clipping_plane();
-        return ClippingPlane(-clp.get_normal(), clp.get_data()[3]);
-    }
-}
-
-ClippingPlane GLGizmosManager::get_assemble_view_clipping_plane() const
-{
-    if (!m_assemble_view_data
-        || !m_assemble_view_data->model_objects_clipper()
-        || m_assemble_view_data->model_objects_clipper()->get_position() == 0.)
-        return ClippingPlane::ClipsNothing();
-    else {
-        const ClippingPlane& clp = *m_assemble_view_data->model_objects_clipper()->get_clipping_plane();
         return ClippingPlane(-clp.get_normal(), clp.get_data()[3]);
     }
 }
@@ -605,12 +655,7 @@ void GLGizmosManager::render_painter_gizmo()
     gizmo->render_painter_gizmo();
 }
 
-void GLGizmosManager::render_painter_assemble_view() const
-{
-    if (m_assemble_view_data && m_assemble_view_data->model_objects_clipper())
-        m_assemble_view_data->model_objects_clipper()->render_cut();
-}
-
+// The icon bar, drawn with GL.
 void GLGizmosManager::render_overlay()
 {
     if (!m_enabled)
@@ -619,7 +664,27 @@ void GLGizmosManager::render_overlay()
     if (m_icons_texture_dirty)
         generate_icons_texture();
 
-    do_render_overlay();
+    do_render_overlay(true);
+}
+
+// The open gizmo's settings panel, ImGui.
+void GLGizmosManager::render_overlay_input_window()
+{
+    if (!m_enabled)
+        return;
+
+    do_render_overlay(false);
+}
+
+size_t GLGizmosManager::get_overlay_state_hash() const
+{
+    size_t hash = 0;
+    boost::hash_combine(hash, m_enabled);
+    boost::hash_combine(hash, (int)m_hover);
+    boost::hash_combine(hash, (int)m_current);
+    boost::hash_combine(hash, (int)m_highlight.first);
+    boost::hash_combine(hash, m_highlight.second);
+    return hash;
 }
 
 std::string GLGizmosManager::get_tooltip() const
@@ -813,15 +878,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             }
             break;
         }
-        //skip some keys when gizmo
-        case 'A':
-        case 'a':
-        {
-            if (is_running()) {
-                processed = true;
-            }
-            break;
-        }
         //case WXK_RETURN:
         //{
         //    if ((m_current == SlaSupports) && gizmo_event(SLAGizmoEventType::ApplyChanges))
@@ -840,12 +896,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
         //}
 
 
-        case WXK_BACK:
-        case WXK_DELETE: {
-            if ((m_current == Cut || m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Delete))
-                processed = true;
-            break;
-        }
         //case 'A':
         //case 'a':
         //{
@@ -887,11 +937,6 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             break;
         }
         }
-    }
-
-    if (!processed && !evt.HasModifiers()) {
-        if (handle_shortcut(keyCode))
-            processed = true;
     }
 
     if (processed)
@@ -1034,39 +1079,23 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
                         processed = select(digit);
                     }
                 }
-                else if (keyCode == 'F' || keyCode == 'T' || keyCode == 'S' || keyCode == 'C' || keyCode == 'H' || keyCode == 'G') {
-                    processed = mmu_seg->on_key_down_select_tool_type(keyCode);
-                    if (processed) {
-                        // force extra frame to automatically update window size
-                        wxGetApp().imgui()->set_requires_extra_frame();
-                    }
-                }
             }
         }
-        else if (m_current == FdmSupports) {
-            GLGizmoFdmSupports* fdm_support = dynamic_cast<GLGizmoFdmSupports*>(get_current());
-            if (fdm_support != nullptr && (keyCode == 'F' || keyCode == 'S' || keyCode == 'C' || keyCode == 'G')) {
-                processed = fdm_support->on_key_down_select_tool_type(keyCode);
-            }
-            if (processed) {
-                // force extra frame to automatically update window size
-                wxGetApp().imgui()->set_requires_extra_frame();
-            }
-        }
-        else if (m_current == Seam) {
-            GLGizmoSeam* seam = dynamic_cast<GLGizmoSeam*>(get_current());
-            if (seam != nullptr && (keyCode == 'S' || keyCode == 'C')) {
-                processed = seam->on_key_down_select_tool_type(keyCode);
-            }
-            if (processed) {
-                // force extra frame to automatically update window size
-                wxGetApp().imgui()->set_requires_extra_frame();
-            }
-        } else if (m_current == Measure || m_current == Assembly) {
+        else if (m_current == Measure || m_current == Assembly) {
             if (keyCode == WXK_CONTROL)
                 gizmo_event(SLAGizmoEventType::CtrlDown, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
             else if (keyCode == WXK_SHIFT)
                 gizmo_event(SLAGizmoEventType::ShiftDown, Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), evt.CmdDown());
+        }
+
+        if (!processed) {
+            if (auto painter = dynamic_cast<GLGizmoPainterBase*>(get_current()); painter != nullptr) {
+                const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::Painting, KeyChord::from_event(evt));
+                processed = shortcut.has_value() && painter->on_tool_shortcut(*shortcut);
+                if (processed)
+                    // force extra frame to automatically update window size
+                    wxGetApp().imgui()->set_requires_extra_frame();
+            }
         }
     }
 
@@ -1202,7 +1231,9 @@ void GLGizmosManager::render_arrow(const GLCanvas3D& parent, EType highlighted_t
 
 //BBS: GUI refactor: GLToolbar&&Gizmo adjust
 //when rendering, {0, 0} is at the center, {-0.5, 0.5} at the left-top
-void GLGizmosManager::do_render_overlay() const
+// draw_icons selects the icon bar (GL) or the open gizmo's input window (ImGui), placed by the same
+// layout walk.
+void GLGizmosManager::do_render_overlay(bool draw_icons) const
 {
     const std::vector<size_t> selectable_idxs = get_selectable_idxs();
     if (selectable_idxs.empty())
@@ -1241,7 +1272,8 @@ void GLGizmosManager::do_render_overlay() const
     }
     float top_y = 1.0f;
 
-    render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
+    if (draw_icons)
+        render_background(top_x, top_y, top_x + width, top_y - height, border_w, border_h);
 
     top_x += border_w;
     top_y -= border_h;
@@ -1278,7 +1310,8 @@ void GLGizmosManager::do_render_overlay() const
         const float v_top    = v_offset + sprite_id * dv;
         const float v_bottom = v_top + dv - v_offset;
 
-        GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
+        if (draw_icons)
+            GLTexture::render_sub_texture(icons_texture_id, top_x, top_x + icons_size_x, top_y - icons_size_y, top_y, { { u_left, v_bottom }, { u_right, v_bottom }, { u_right, v_top }, { u_left, v_top } });
         if (idx == m_current
             // Orca: Show Svg dialog at the same place as emboss gizmo
             || (m_current == Svg && idx == Emboss)) {
@@ -1286,7 +1319,8 @@ void GLGizmosManager::do_render_overlay() const
             //render_input_window uses a different coordination(imgui)
             //1. no need to scale by camera zoom, set {0,0} at left-up corner for imgui
             //gizmo->render_input_window(width, 0.5f * cnv_h - zoomed_top_y * zoom, toolbar_top);
-            m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
+            if (!draw_icons)
+                m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
 
             is_render_current = true;
         }
@@ -1294,7 +1328,7 @@ void GLGizmosManager::do_render_overlay() const
     }
 
     // BBS simplify gizmo is not a selected gizmo and need to render input window
-    if (!is_render_current && m_current != Undefined) {
+    if (!draw_icons && !is_render_current && m_current != Undefined) {
         m_gizmos[m_current]->render_input_window(0.5 * cnv_w + 0.5f * top_x * cnv_w, get_scaled_total_height(), cnv_h);
     }
 }
@@ -1514,6 +1548,8 @@ std::string get_name_from_gizmo_etype(GLGizmosManager::EType type)
         return "Color Painting";
     case GLGizmosManager::EType::FuzzySkin:
         return "Fuzzy Skin Painting";
+    case GLGizmosManager::EType::TextureDisplacement:
+        return "Texture Displacement";
     default:
         return "";
     }

@@ -1,6 +1,15 @@
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <map>
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <wx/event.h>
+#include <boost/smart_ptr/weak_ptr.hpp>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
 #include <wx/webrequest.h>
@@ -130,11 +139,11 @@ private:
     boost::shared_ptr<PrinterFileSystem> m_file_sys;
     std::string                          m_timestamp;
     std::string                          m_tmp_path;
-    std::vector<string>                  m_local_paths;
-    std::vector<string>                  m_target_paths;
+    std::vector<std::string>             m_local_paths;
+    std::vector<std::string>             m_target_paths;
     std::string                          create_tmp_path();
 
-    bool is_local_file_existed(const std::vector<string> &local_paths);
+    bool is_local_file_existed(const std::vector<std::string> &local_paths);
 
     void DownloadPartsFile();
     void OnFileSystemEvent(wxCommandEvent &event);

@@ -3,6 +3,7 @@
 #include "PluginManager.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/OrcaCloudServiceAgent.hpp"
+#include "../Utils/NetworkAgent.hpp"
 #include "../GUI/GUI.hpp"
 #include "../GUI/GUI_App.hpp"
 #include "../GUI/I18N.hpp"
@@ -10,9 +11,14 @@
 #include "../GUI/NotificationManager.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <cstddef>
 #include <libslic3r/Config.hpp>
+#include "libslic3r/Preset.hpp"
 #include <libslic3r/PresetBundle.hpp>
-#include <slic3r/plugin/PluginLoader.hpp>
+#include <memory>
+#include <string>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <utility>
 #include <vector>
 #include <wx/utils.h>
 
@@ -23,6 +29,8 @@
 #include <thread>
 #include <tuple>
 #include <unordered_map>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/plugin/PluginDescriptor.hpp"
 
 namespace Slic3r {
 

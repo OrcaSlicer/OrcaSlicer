@@ -1,3 +1,8 @@
+#include "Technologies.hpp"
+#include "Config.hpp"
+#include "PrintConfig.hpp"
+#include "calib.hpp"
+#include "Semver.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Format/DRC.hpp"
@@ -5,12 +10,22 @@
 //BBS
 #include "Preset.hpp"
 #include "Exception.hpp"
+#include "InstanceLock.hpp"
 #include "LocalesUtils.hpp"
 #include "Thread.hpp"
 #include "format.hpp"
+#include "libslic3r_version.h"
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
+#include <string>
+#include <exception>
+#include <boost/none.hpp>
+#include <cstddef>
+#include <system_error>
+#include <chrono>
+#include <map>
+#include <cstring>
 #include <utility>
 #include <vector>
 #include <stdexcept>
@@ -27,6 +42,9 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <cassert>
+#include <iterator>
+#include <string_view>
 
 #ifdef WIN32
 //FIXME replace the two following includes with <boost/md5.hpp> after it becomes mainstream.
@@ -224,6 +242,12 @@ void AppConfig::set_defaults()
         set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
+    // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
+    // multi material prints, Line Type for single material ones), "last" restores the view type the user
+    // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
+    if (get("preview_default_view_type").empty())
+        set("preview_default_view_type", "auto");
+
     if (get("filaments_area_preferred_count").empty())
         set("filaments_area_preferred_count", "10");
 
@@ -283,11 +307,22 @@ void AppConfig::set_defaults()
         set(SETTING_OPENGL_FPS_CAP, std::to_string(fps_cap));
     }
 
+    if (get(SETTING_OPENGL_SCENE_CACHE).empty())
+        set_bool(SETTING_OPENGL_SCENE_CACHE, true);
+
+    if (get(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES).empty())
+        set_bool(SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, true);
+
     // The getter already defaults, parses and clamps; write back what it resolves to.
     set(SETTING_PLUGIN_PAGES_VISIBLE_COUNT, std::to_string(get_plugin_pages_visible_count()));
 
+    set(SETTING_SPEED_DIAL_RECENT_COUNT, std::to_string(get_speed_dial_recent_count()));
+
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
+
+    if (get(SETTING_OPENGL_SHOW_RENDER_TIMINGS).empty())
+        set_bool(SETTING_OPENGL_SHOW_RENDER_TIMINGS, false);
 
     if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
         set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
@@ -295,11 +330,15 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_REALISTIC_PHONG).empty())
         set_bool(SETTING_OPENGL_REALISTIC_PHONG, true);
 
+    if (get(SETTING_OPENGL_REALISTIC_PREVIEW).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PREVIEW, false);
+
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
 
-    if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
-        set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+    // Replaces the on/off setting, whose shadows turned with the camera.
+    if (get(SETTING_OPENGL_REALISTIC_SHADOWS).empty())
+        set(SETTING_OPENGL_REALISTIC_SHADOWS, get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS) ? "orbit" : "off");
 
     if (get(SETTING_OPENGL_PHONG_SMOOTH_NORMALS).empty())
         set_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS, false);
@@ -312,6 +351,30 @@ void AppConfig::set_defaults()
 
     if (get("zoom_to_mouse").empty())
         set_bool("zoom_to_mouse", false);
+
+#ifdef SLIC3R_CAD
+    // Experimental parametric Design tab. Off by default: the tab is not created at all
+    // until this is turned on, so nothing it builds reaches an unsuspecting user.
+    if (get("enable_cad_feature").empty())
+        set_bool("enable_cad_feature", false);
+
+    // Auto-weld sketch endpoints within kSketchJoinTol when building closed loops.
+    // Default ON: it is what the ~90% case wants; OFF makes the kernel demand an exact
+    // joint. The GUI pushes it into SketchEngine via set_sketch_auto_close().
+    if (get("auto_close_sketch_loops").empty())
+        set_bool("auto_close_sketch_loops", true);
+
+    // Design tab: draw a mate connector as a face rather than as the abstract disc + roll
+    // quadrant. Defaults ON — face orientation is hardwired perception, so the roll and the
+    // verse read without being learned, which no abstract glyph achieves. Turning it off
+    // restores the conventional CAD representation for users who expect it (x0kd).
+    if (get("design_connector_face_glyph").empty())
+        set_bool("design_connector_face_glyph", true);
+
+    // Design tab: draw the printer bed and its plate grid (the Feature tree's Bed row).
+    if (get("design_show_bed").empty())
+        set_bool("design_show_bed", true);
+#endif
 
 //#ifdef SUPPORT_SHOW_HINTS
     if (get("show_hints").empty())
@@ -347,6 +410,9 @@ void AppConfig::set_defaults()
 
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);
+
+    if (get("show_center_of_mass").empty())
+        set_bool("show_center_of_mass", false);
 
 #ifdef _WIN32
 
@@ -472,6 +538,10 @@ void AppConfig::set_defaults()
 
     if (get("enable_high_low_temp_mixed_printing").empty()){
         set_bool("enable_high_low_temp_mixed_printing", false);
+    }
+
+    if (get("remember_print_action").empty()) {
+        set_bool("remember_print_action", false);
     }
 
     if (get("ignore_ext_filament_in_filament_map").empty()){
@@ -702,9 +772,12 @@ static bool verify_config_file_checksum(boost::nowide::ifstream &ifs)
 
 
 #ifdef USE_JSON_CONFIG
-std::string AppConfig::load()
+std::string AppConfig::load(bool read_only)
 {
     json j;
+
+    // Keep another instance from replacing or restoring the file mid-read.
+    InstanceLock instance_lock(read_only ? std::string() : lock_path());
 
     // 1) Read the complete config file into a boost::property_tree.
     namespace pt = boost::property_tree;
@@ -955,7 +1028,6 @@ void AppConfig::save()
     // The config is first written to a file with a PID suffix and then moved
     // to avoid race conditions with multiple instances of Slic3r
     const auto path = config_path();
-    std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
 
     json j;
 
@@ -1085,43 +1157,18 @@ void AppConfig::save()
 
         j["local_machines"][local_machine.first] = m_json;
     }
-    boost::nowide::ofstream c;
-    c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << j.dump(1, '\t') << std::endl;
-
-#ifdef WIN32
-    // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
-    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
-    // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(j.dump(1, '\t'));
-#endif
-
-    c.close();
-    if (c.fail()) {
-      BOOST_LOG_TRIVIAL(error) << "Failed to write new configuration to " << path_pid << "; aborting attempt to overwrite original configuration";
-      return;
-    }
-
-#ifdef WIN32
-    // Make a backup of the configuration file before copying it to the final destination.
-    std::string error_message;
-    std::string backup_path = (boost::format("%1%.bak") % path).str();
-    // Copy configuration file with PID suffix into the configuration file with "bak" suffix.
-    if (copy_file(path_pid, backup_path, error_message, false) != SUCCESS)
-        BOOST_LOG_TRIVIAL(error) << "Copying from " << path_pid << " to " << backup_path << " failed. Failed to create a backup configuration.";
-#endif
-
-    // Rename the config atomically.
-    // On Windows, the rename is likely NOT atomic, thus it may fail if PrusaSlicer crashes on another thread in the meanwhile.
-    // To cope with that, we already made a backup of the config on Windows.
-    rename_file(path_pid, path);
-    m_dirty = false;
+    const std::string config_str = j.dump(1, '\t');
+    if (write_config_file(path, config_str + "\n", config_str))
+        m_dirty = false;
 }
 
 #else
 
-std::string AppConfig::load()
+std::string AppConfig::load(bool read_only)
 {
+    // Keep another instance from replacing or restoring the file mid-read.
+    InstanceLock instance_lock(read_only ? std::string() : lock_path());
+
     // 1) Read the complete config file into a boost::property_tree.
     namespace pt = boost::property_tree;
     pt::ptree tree;
@@ -1259,7 +1306,6 @@ void AppConfig::save()
     // The config is first written to a file with a PID suffix and then moved
     // to avoid race conditions with multiple instances of Slic3r
     const auto path = config_path();
-    std::string path_pid = (boost::format("%1%.%2%") % path % get_current_pid()).str();
 
     std::stringstream config_ss;
     if (m_mode == EAppMode::Editor)
@@ -1295,38 +1341,38 @@ void AppConfig::save()
     // One empty line before the MD5 sum.
     config_ss << std::endl;
 
-    std::string config_str = config_ss.str();
-    boost::nowide::ofstream c;
-    c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << config_str;
-#ifdef WIN32
-    // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
-    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
-    // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(config_str);
-#endif
-    c.close();
-    if (c.fail()) {
-      BOOST_LOG_TRIVIAL(error) << "Failed to write new configuration to " << path_pid << "; aborting attempt to overwrite original configuration";
-      return;
-    }
-
-#ifdef WIN32
-    // Make a backup of the configuration file before copying it to the final destination.
-    std::string error_message;
-    std::string backup_path = (boost::format("%1%.bak") % path).str();
-    // Copy configuration file with PID suffix into the configuration file with "bak" suffix.
-    if (copy_file(path_pid, backup_path, error_message, false) != SUCCESS)
-        BOOST_LOG_TRIVIAL(error) << "Copying from " << path_pid << " to " << backup_path << " failed. Failed to create a backup configuration.";
-#endif
-
-    // Rename the config atomically.
-    // On Windows, the rename is likely NOT atomic, thus it may fail if PrusaSlicer crashes on another thread in the meanwhile.
-    // To cope with that, we already made a backup of the config on Windows.
-    rename_file(path_pid, path);
-    m_dirty = false;
+    const std::string config_str = config_ss.str();
+    if (write_config_file(path, config_str, config_str))
+        m_dirty = false;
 }
 #endif
+
+bool AppConfig::write_config_file(const std::string &path, std::string body, const std::string &checksum_source)
+{
+    // Everything before this is assembly; only the writes need the other instances kept out.
+    InstanceLock instance_lock(lock_path());
+#ifdef WIN32
+    // WIN32 specific: the final replace is not safe in case of an application crash, there is no atomic "rename file" API
+    // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
+    // we save the config file into a backup first before moving it to the final destination.
+    body += appconfig_md5_hash_line(checksum_source);
+#endif
+    // Not flushed to the device: the idle handler saves on the GUI thread after
+    // any change, and the rename already gives a complete old or new file.
+    if (const std::error_code ec = write_file_atomically(path, body)) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to write the configuration " << path << ": " << ec.message() << "; trying again in 10 s";
+        m_retry_save_at = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        return false;
+    }
+    m_retry_save_at = {};
+#ifdef WIN32
+    // Written after the config, so the backup never holds a state that was not confirmed written.
+    const std::string backup_path = (boost::format("%1%.bak") % path).str();
+    if (const std::error_code ec = write_file_atomically(backup_path, body))
+        BOOST_LOG_TRIVIAL(error) << "Failed to write the backup configuration " << backup_path << ": " << ec.message();
+#endif
+    return true;
+}
 
 bool AppConfig::get_variant(const std::string &vendor, const std::string &model, const std::string &variant) const
 {
@@ -1664,6 +1710,22 @@ int AppConfig::get_plugin_pages_visible_count() const
     return std::clamp(visible_count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
 }
 
+int AppConfig::get_speed_dial_recent_count() const
+{
+    std::string value = get(SETTING_SPEED_DIAL_RECENT_COUNT);
+    if (value.empty())
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+
+    int recent_count = SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    try {
+        recent_count = std::stoi(value);
+    }
+    catch (...) {
+        return SPEED_DIAL_RECENT_COUNT_DEFAULT;
+    }
+    return std::clamp(recent_count, SPEED_DIAL_RECENT_COUNT_MIN, SPEED_DIAL_RECENT_COUNT_MAX);
+}
+
 std::vector<std::string> AppConfig::get_skipped_network_versions() const
 {
     std::vector<std::string> result;
@@ -1800,6 +1862,11 @@ void AppConfig::reset_selections()
     }
 }
 
+std::string AppConfig::lock_path()
+{
+    return Slic3r::data_dir().empty() ? std::string() : config_path() + ".lock";
+}
+
 std::string AppConfig::config_path()
 {
 #ifdef USE_JSON_CONFIG
@@ -1836,7 +1903,7 @@ bool AppConfig::exists()
 
 std::string AppConfig::load_if_exists()
 {
-    return boost::filesystem::exists(loading_path()) ? load() : std::string();
+    return boost::filesystem::exists(loading_path()) ? load(/*read_only=*/true) : std::string();
 }
 
 }; // namespace Slic3r

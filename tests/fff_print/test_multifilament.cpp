@@ -1,5 +1,8 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 
@@ -12,8 +15,17 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Print.hpp"
+#include <libslic3r/PrintBase.hpp>
+#include <libslic3r/CustomGCode.hpp>
 #include <limits>
+#include <map>
 #include <optional>
+#include <regex>
 #include <set>
 #include <sstream>
 #include <string>
@@ -715,3 +727,945 @@ TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", 
     REQUIRE_FALSE(print.objects().front()->layers().empty());
 }
 
+
+// Shared IMEX printer geometry: 7 logical extruders across 4 physical heads.
+// physical_extruder_map is only honoured when its length matches the nozzle count
+// (PrintApply feeds effective_physical_extruder_map the nozzle_diameter size), so the
+// nozzle keys must be sized to 7 or the map is silently replaced with the identity and
+// every logical slot resolves to its own head -- which hides the defects under test.
+static void imex_7x4_printer(DynamicPrintConfig &config)
+{
+    config.set_deserialize_strict({
+        { "nozzle_diameter",           "0.4,0.4,0.4,0.4,0.4,0.4,0.4" },
+        { "printer_extruder_id",       "1,2,3,4,5,6,7" },
+        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard,Direct Drive Standard,"
+                                       "Direct Drive Standard,Direct Drive Standard,Direct Drive Standard,"
+                                       "Direct Drive Standard" },
+        { "extruder_printable_height", "0,0,0,0,0,0,0" },
+        { "physical_extruder_map",     "0,0,0,0,1,2,3" },
+        { "is_imex",                   "1" },
+        { "imex_mode_names",           "primary;copy" },
+        { "imex_mode_active_tools",    "0:P;0:P,1:C" },
+        { "skirt_loops",               "0" },
+        { "brim_type",                 "no_brim" },
+        // Temperature assertions below spell "M104 S<t> T<n>"; RepRapFirmware would emit
+        // "G10 S<t> P<n>" from the same code, so the flavor is pinned rather than defaulted.
+        { "gcode_flavor",              "klipper" },
+    });
+    size_flush_to_nozzles(config);
+}
+
+// Route every region to one filament. An unset *_filament_id is not "inherit":
+// clamp_feature_filament_to_valid rewrites <=0 to 1, which would drag tool 0 into
+// tool_ordering and mask what these tests assert. PrintObject.cpp's call to that
+// function is the source of truth for this key list -- a new one has to be added here.
+static void all_regions_on_filament(DynamicPrintConfig &config, int filament_1based)
+{
+    for (const char *key : { "outer_wall_filament_id", "inner_wall_filament_id",
+                             "sparse_infill_filament_id", "internal_solid_filament_id",
+                             "top_surface_filament_id", "bottom_surface_filament_id" })
+        config.set_deserialize_strict({ { key, std::to_string(filament_1based) } });
+}
+
+// IMEX parallel modes emit per-carriage temperatures from a branch that is mutually
+// exclusive with the standard per-extruder path, and that branch skipped the head the
+// print's own toolpaths run on. That head therefore never received its 1st->2nd layer
+// transition and held nozzle_temperature_initial_layer for the whole job.
+TEST_CASE("Parallel-mode IMEX prints transition the printing head to its second-layer temperature",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1); // filament 1 => logical slot 0 => physical head 0
+    // The multi-extruder normalization collapses per-filament temperature vectors to a
+    // single value, so heads are told apart by their tool qualifier, not by temperature.
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",                "copy" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // Head 0 runs the print's own toolpaths and must step 200 -> 240 at the second layer.
+    CHECK(gcode.find("M104 S240 T0") != std::string::npos);
+    // Head 1 is the copy carriage; it already worked and must keep working.
+    CHECK(gcode.find("M104 S240 T1") != std::string::npos);
+}
+
+// IMEX supplements is_extruder_used for the secondary carriages a parallel mode drives.
+// `primary` drives exactly one tool, so the supplement must not run: routing every region
+// to filament 6 puts the initial tool on physical head 2, while the mode's only declared
+// head is 0, which the unguarded supplement resolved back to filament slot 0.
+TEST_CASE("Primary-mode IMEX prints mark only the filament slot they print with",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 6); // filament 6 => logical slot 5 => physical head 2
+    config.set_deserialize_strict({
+        { "imex_parallel_mode", "primary" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find(";USED5:1") != std::string::npos);
+    CHECK(gcode.find(";USED0:0") != std::string::npos);
+}
+
+// Guard rail for the fix above: the modes the supplement exists for must keep marking their
+// secondaries. Printed on filament 1 (slot 0), which pem routes to head 0 -- the head `copy`
+// declares Primary -- so the plate is well-formed and validate() lets it through. Head 0 is
+// the initial tool's head and is skipped (tool_ordering already marked slot 0); head 1 is the
+// secondary and resolves to slot 4.
+//
+// This case previously printed on filament 6, which routes to head 2 while `copy` declares
+// head 0 Primary. Print::validate() now refuses that plate outright (no filament on it can
+// feed the Primary tool), so asserting it slices correctly would contradict
+// "An IMEX plate whose filament never routes to the primary carriage is blocked" below.
+// slice() does not surface validate()'s return, so the contradiction would have gone unnoticed.
+TEST_CASE("Copy-mode IMEX prints still mark every secondary carriage's filament slot",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode", "copy" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED4:{if is_extruder_used[4]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find(";USED0:1") != std::string::npos);  // the filament actually printed
+    CHECK(gcode.find(";USED4:1") != std::string::npos);  // head 1, the secondary carriage
+    CHECK(gcode.find(";USED5:0") != std::string::npos);
+}
+
+// The two IMEX changes are coupled: get_imex_active_tools() now returns an empty roster in
+// primary mode, so if the temperature branch ever stopped excluding primary it would enter,
+// emit nothing, skip the standard path, and silently restore the bug the copy-mode case above
+// covers -- with every other test still green.
+TEST_CASE("Primary-mode IMEX prints still transition to the second-layer temperature",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",                "primary" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    CHECK(gcode.find("M104 S240") != std::string::npos);
+}
+
+// A plate carries its IMEX mode as a name, matched against the printer's imex_mode_names at
+// slice time, so a mode renamed or deleted underneath the plate -- or a project opened against a
+// preset that names its modes differently -- leaves the plate pointing at nothing. That used to
+// take every "not Primary" branch in the exporter while every name-keyed lookup came back empty,
+// which is worse than either interpretation on its own:
+//   * the 1st->2nd layer temperature branch is mutually exclusive with the standard one, so an
+//     empty active-tool roster meant NO head was transitioned and every one of them held
+//     nozzle_temperature_initial_layer for the whole print; and
+//   * the initial T<n> was suppressed on the assumption that the mode's setup script would
+//     select the tool, while that script -- resolved by the same name -- did not exist.
+// Print::validate() does not catch it either: the unresolved name yields an empty tools string,
+// so there is no declared primary and its IMEX routing guard is skipped.
+//
+// Falling back to Primary is what makes the file coherent again. Asserted on the two emissions
+// that were actually broken rather than on the mode string, which the placeholder test in
+// test_imex_mode_gcode.cpp covers.
+TEST_CASE("An IMEX plate set to a mode the printer no longer defines slices as Primary",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1); // filament 1 => logical slot 0 => physical head 0
+    config.set_deserialize_strict({
+        // imex_mode_names is "primary;copy" -- this is `copy` after a rename.
+        { "imex_parallel_mode",                "copy-renamed" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // The head the toolpaths run on steps 200 -> 240 at the second layer, via the standard
+    // per-extruder path a Primary-mode print uses.
+    CHECK(gcode.find("M104 S240") != std::string::npos);
+    // ...and only that head, addressed the way a single-head print addresses it: nothing drives
+    // a copy carriage here, so the fallback goes through the standard per-extruder path, where
+    // only filament slot 0 prints. GCodeWriter::set_temperature therefore sees
+    // multiple_extruders == false and emits no tool qualifier at all. Excluding the whole
+    // " T" suffix rather than " T1" is what makes that the assertion: a regression that routed
+    // the transition to T2 or T3 instead would satisfy an exclusion of T1, and the unqualified
+    // find above is itself prefix-satisfied by any "M104 S240 T<n>".
+    CHECK(gcode.find("M104 S240 T") == std::string::npos);
+
+    // The initial tool selection is emitted. Matched as a line-leading token rather than a whole
+    // line so the assertion does not depend on the trailing "; change extruder" comment, which
+    // is switched off by a global unrelated to IMEX.
+    bool               selects_initial_tool = false;
+    std::istringstream tool_lines(gcode);
+    std::string        line;
+    while (std::getline(tool_lines, line))
+        if (line.rfind("T0", 0) == 0) {
+            selects_initial_tool = true;
+            break;
+        }
+    CHECK(selects_initial_tool);
+}
+
+// IQEX: when the second gantry is active the mode drives all four carriages, so every one of
+// them needs its own filament resolved -- for the first layer via is_extruder_used (consumed by
+// machine_start_gcode) and for the second via the per-tool transition. pem routes filament 1 to
+// head 0, and heads 1/2/3 to filament slots 4/5/6, so all four slots must appear.
+TEST_CASE("IQEX modes emit first- and second-layer temperatures for every active carriage",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1);
+    config.set_deserialize_strict({
+        { "imex_mode_names",                   "primary;copy;iq-copy" },
+        { "imex_mode_active_tools",            "0:P;0:P,1:C;0:P,1:C,2:C,3:C" },
+        { "imex_parallel_mode",                "iq-copy" },
+        { "nozzle_temperature_initial_layer",  "200" },
+        { "nozzle_temperature",                "240" },
+        { "machine_start_gcode",
+          ";USED0:{if is_extruder_used[0]}1{else}0{endif}\n"
+          ";USED4:{if is_extruder_used[4]}1{else}0{endif}\n"
+          ";USED5:{if is_extruder_used[5]}1{else}0{endif}\n"
+          ";USED6:{if is_extruder_used[6]}1{else}0{endif}\n" },
+    });
+
+    const std::string gcode = slice({ cube(20) }, config);
+
+    // First layer: every active carriage's filament is declared to machine_start_gcode.
+    CHECK(gcode.find(";USED0:1") != std::string::npos);
+    CHECK(gcode.find(";USED4:1") != std::string::npos);
+    CHECK(gcode.find(";USED5:1") != std::string::npos);
+    CHECK(gcode.find(";USED6:1") != std::string::npos);
+
+    // Second layer: every active carriage gets its own transition.
+    CHECK(gcode.find("M104 S240 T0") != std::string::npos);
+    CHECK(gcode.find("M104 S240 T1") != std::string::npos);
+    CHECK(gcode.find("M104 S240 T2") != std::string::npos);
+    CHECK(gcode.find("M104 S240 T3") != std::string::npos);
+}
+
+// M104/M109 name a physical heater, but every caller of the instance set_temperature overload
+// addresses filaments by logical id. pem routes filament 5 (logical 4) to head 1, so a
+// toolchange between filaments 1 and 5 must cool and wait on T1 -- never T4, which on this
+// machine is an AFC lane index and names no heater at all.
+//
+// Regression: the same-physical short-circuit in set_extruder hides this for lane swaps within
+// one head (filaments 1-4 all map to head 0, so no cool-down is emitted), so only a toolchange
+// that CROSSES heads reaches the emission. Ooze prevention must be on for pre/post_toolchange
+// to run at all.
+TEST_CASE("IMEX heater commands name the physical head, not the logical filament",
+          "[MultiFilament][IMEX][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",                "primary" },
+        { "ooze_prevention",                   "1" },
+        { "standby_temperature_delta",         "-50" },
+        { "single_extruder_multi_material",    "0" },
+        { "nozzle_temperature_initial_layer",  "200,200,200,200,200,200,200" },
+        { "nozzle_temperature",                "240,240,240,240,240,240,240" },
+    });
+
+    // Two objects on filaments 1 and 5: logical 0 -> head 0, logical 4 -> head 1.
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        { { "extruder", "1" } },
+        { { "extruder", "5" } },
+    };
+    const std::string gcode = slice_with_object_overrides({ cube(20), cube(20) }, config, overrides);
+
+    // The bare toolchange stays LOGICAL -- it is an AFC lane selector, not a heater.
+    CHECK(gcode.find("\nT4") != std::string::npos);
+
+    // Every heater command carrying a tool must name a configured head (0-3 here), never a
+    // logical slot above the head count. Scanning beats a fixed-string check: it fails on any
+    // stray unmapped emission, not just the two sites this test was written for.
+    std::istringstream ss(gcode);
+    std::string        line;
+    std::vector<std::string> offenders;
+    while (std::getline(ss, line)) {
+        if (line.rfind("M104", 0) != 0 && line.rfind("M109", 0) != 0)
+            continue;
+        const size_t t = line.find(" T");
+        if (t == std::string::npos || t + 2 >= line.size() || !std::isdigit((unsigned char) line[t + 2]))
+            continue;
+        if (std::stoi(line.substr(t + 2)) > 3)
+            offenders.push_back(line);
+    }
+    INFO("heater commands naming a non-existent head: " << offenders.size()
+         << (offenders.empty() ? "" : " e.g. " + offenders.front()));
+    CHECK(offenders.empty());
+}
+
+// The other half of that translation, and the half nothing else covers: GCodeWriter::set_temperature
+// passes `this->config.is_imex.value` as the guard, NOT a constant, so a printer that is not an
+// IMEX printer keeps addressing heaters by logical filament id exactly as upstream does.
+//
+// physical_extruder_map is not an IMEX-only key. Shipping dual-nozzle BBL profiles author it --
+// fdm_bbl_3dp_002_common ships {1, 0} -- for the inherited BBL reading of the key, and PrintApply
+// deliberately leaves a non-IMEX printer's map exactly as it arrives (IMEXHelpers.hpp spells out
+// the two readings). Hardcode `true` at that call site and this whole suite still passes, because
+// every other case here runs either on an IMEX printer or on one with no authored map -- while
+// those profiles start sending filament 0's M104/M109 to heater 1 and filament 1's to heater 0.
+//
+// The two filaments carry DIFFERENT idle temperatures, so the S value and the T index cross-check
+// each other: a remap moves both onto the other tool and fails both halves, and no assertion can
+// be satisfied by a prefix.
+//
+// Idle temperature rather than nozzle_temperature, for a reason specific to THIS HARNESS. Keys in
+// filament_options_with_variant are rewritten at apply time by
+// update_values_to_printer_extruders_for_multiple_filaments, which sets each filament's value to
+// `opt->get_at(variant_index[f])` -- it RE-INDEXES per filament by that filament's extruder
+// variant, it does not flatten. Per-filament nozzle temperature is a real, working feature and
+// survives that pass on a printer whose filaments resolve to different variant slots.
+// multifilament_config pins nozzle_diameter to a single 0.4, so every filament here resolves to
+// the SAME variant slot and therefore ends up with the same value -- which is why the IMEX cases
+// above tell heads apart by tool qualifier rather than by temperature. idle_temperature is not in
+// that key set, so "151,173" reaches the emitter intact and the two filaments stay distinguishable.
+// Ooze prevention is what puts the idle temperatures into the file at all.
+TEST_CASE("Heater commands keep the logical filament id on a non-IMEX printer",
+          "[MultiFilament][IMEX][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "nozzle_diameter",                  "0.4,0.4" },
+        { "printer_extruder_id",              "1,2" },
+        { "printer_extruder_variant",         "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height",        "0,0" },
+        // The shipping two-nozzle profile: not an IMEX printer, but it authors the swap map.
+        { "is_imex",                          "0" },
+        { "physical_extruder_map",            "1,0" },
+        { "single_extruder_multi_material",   "0" },
+        // Ooze prevention drops the outgoing filament to its idle temperature on every tool
+        // change, through the instance set_temperature overload that carries the guard.
+        { "ooze_prevention",                  "1" },
+        { "standby_temperature_delta",        "-50" },  // unused while idle_temperature is set
+        // Per filament and distinct: these are the values the assertions pair with a heater.
+        { "idle_temperature",                 "151,173" },
+        { "nozzle_temperature_initial_layer", "215,215" },
+        { "nozzle_temperature",               "240,240" },
+        // GCodeProcessor's preheat pass rewrites the tool-change temperature commands and drops
+        // the ";cooldown" M104s outright, applying physical_extruder_map itself as it does. That
+        // pass is not the code under test, so switch it off and let the writer's emissions stand.
+        { "preheat_time",                     "0" },
+        { "enable_prime_tower",               "0" },
+        // The assertions spell "M104 S<t> T<n>"; RepRapFirmware emits "G10 S<t> P<n>" from the
+        // same code, so the flavor is pinned rather than defaulted.
+        { "gcode_flavor",                     "klipper" },
+    });
+
+    // One filament per object, so both heaters are addressed and a tool change happens in both
+    // directions. Assigned at the object level: a region-level filament id would not raise the
+    // used-filament count the tool ordering works from.
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        { { "extruder", "1" } },
+        { { "extruder", "2" } },
+    };
+    const std::string gcode = slice_with_object_overrides({ cube(20), cube(20) }, config, overrides);
+
+    // Every heater command that names a tool, collected as temperature -> the tools it was
+    // addressed to. Scanning beats fixed-string finds: "M104 S151" on its own is prefix-satisfied
+    // by "M104 S151 T1", and excluding just " T1" would let a command routed to some third tool
+    // through. Mirrors the offender scan in the IMEX case above.
+    std::map<int, std::set<int>> tools_by_temp;
+    std::istringstream           ss(gcode);
+    for (std::string line; std::getline(ss, line);) {
+        if (line.rfind("M104", 0) != 0 && line.rfind("M109", 0) != 0)
+            continue;
+        const size_t s = line.find('S');
+        const size_t t = line.find(" T");
+        if (s == std::string::npos || t == std::string::npos)
+            continue;
+        if (s + 1 >= line.size() || !std::isdigit((unsigned char) line[s + 1]))
+            continue;
+        if (t + 2 >= line.size() || !std::isdigit((unsigned char) line[t + 2]))
+            continue;
+        tools_by_temp[std::stoi(line.substr(s + 1))].insert(std::stoi(line.substr(t + 2)));
+    }
+
+    std::string seen;
+    for (const auto& [temperature, tools] : tools_by_temp) {
+        seen += " S" + std::to_string(temperature) + "->";
+        for (int tool : tools)
+            seen += "T" + std::to_string(tool);
+    }
+    INFO("heater commands naming a tool:" << seen);
+
+    // Both idle temperatures have to be in the file, or the pairing below would prove nothing.
+    REQUIRE(tools_by_temp.count(151) == 1);
+    REQUIRE(tools_by_temp.count(173) == 1);
+    // Filament 0's idle temperature goes to heater 0 and nowhere else, filament 1's to heater 1.
+    // Applying physical_extruder_map {1, 0} here would swap both.
+    CHECK(tools_by_temp[151] == std::set<int>{ 0 });
+    CHECK(tools_by_temp[173] == std::set<int>{ 1 });
+}
+
+// The IMEX Primary tool prints the sliced paths directly, so it can only use a filament the
+// printer's physical_extruder_map routes to it. The ghost filament picker enforces that for
+// the secondary tools; the primary's filament comes from the ordinary object selector, which
+// has no IMEX awareness. `copy` declares T0 Primary, but every filament this plate uses --
+// filament 6, slot 5 -- routes to head 2, so nothing can feed T0 and validate() must refuse.
+//
+// The object's own extruder is pinned too: ModelVolume::get_extruders() reports the volume's
+// extruder_id (1 by default), which would put slot 0 on the plate. Slot 0 routes to head 0,
+// the declared primary, so the plate would be well-formed and correctly NOT blocked.
+TEST_CASE("An IMEX plate whose filament never routes to the Primary tool is blocked",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 6);
+    config.set_deserialize_strict({ { "imex_parallel_mode", "copy" } });
+
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(cube(20));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", "6" } } };
+
+    Slic3r::Model model;
+    Slic3r::Print print;
+    init_print(std::move(meshes), print, model, config, &overrides, false);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = print.validate(&warnings);
+
+    REQUIRE_FALSE(err.string.empty());
+    CHECK(err.string.find("T0") != std::string::npos);   // the declared primary
+    CHECK(err.string.find("T2") != std::string::npos);   // where the filament actually lives
+}
+
+// A mixed filament is blended at the nozzle by its component toolheads, which a parallel
+// mode is already using to print copies. Unsupported regardless of where the components
+// route, so this must refuse even though component filament 1 sits on the declared primary
+// T0 -- and it must refuse with the mixed message, not the routing one. Mixed slots normally
+// sit past the end of physical_extruder_map, so the routing rule would call them unrouted.
+TEST_CASE("An IMEX plate using a mixed filament is blocked", "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(8);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 8);
+    config.set_deserialize_strict({
+        { "imex_parallel_mode",               "copy" },
+        { "filament_is_mixed",                "0,0,0,0,0,0,0,1" },
+        { "filament_mixed_components",        ";;;;;;;1,5" },
+        // The mixed arrays run parallel to filament_colour and must be sized to the filament
+        // count (see test_mixed_filament.cpp). validate() returns before the other five are
+        // read, but that is a property of where the rule sits, not something to rely on.
+        { "filament_mixed_sublayer_ratios",   ";;;;;;;" },
+        { "filament_mixed_gradient",          "0,0,0,0,0,0,0,0" },
+        { "filament_mixed_gradient_range",    ";;;;;;;" },
+        { "filament_mixed_gradient_curve",    ";;;;;;;" },
+        { "filament_mixed_gradient_per_part", "0,0,0,0,0,0,0,0" },
+    });
+
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(cube(20));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", "8" } } };
+
+    Slic3r::Model model;
+    Slic3r::Print print;
+    init_print(std::move(meshes), print, model, config, &overrides, false);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = print.validate(&warnings);
+
+    REQUIRE_FALSE(err.string.empty());
+    CHECK(err.string.find("Mixed filaments") != std::string::npos);
+}
+
+// Filament 8 (slot 7) is the blend, filament 1 (slot 0) is ordinary, so used_filaments is > 1
+// and the multi-color rule's gate opens too. This pins that the mixed rule still wins: with the
+// two the other way round the user is told the mode's active tools all sit on one gantry --
+// a lecture about a multi-color print they never asked for -- and never learns the blend is
+// the problem.
+//
+// The second half is what keeps this honest. The multi-color rule only fires here because this
+// fixture's `copy` mode is degenerate (imex_tools_per_gantry defaults to 2, so "0:P,1:C" puts
+// both tools on gantry 0). Give the mode a Span tool and it returns nothing, and this test would
+// pass under EITHER ordering while appearing to guard it. So assert the rule is actually armed.
+TEST_CASE("A mixed filament outranks the multi-color rule on the same plate",
+          "[MultiFilament][IMEX][Regression]")
+{
+    // Two cubes, offset: make_cube() is corner-at-origin, so identical meshes would be exactly
+    // coincident. validate() returns from the IMEX block before any geometry check today, but a
+    // future check landing earlier would fail this test for a reason it is not about.
+    const auto build = [](bool blend_slot_8) {
+        DynamicPrintConfig config = multifilament_config(8);
+        imex_7x4_printer(config);
+        all_regions_on_filament(config, 8);
+        config.set_deserialize_strict({
+            { "imex_parallel_mode",               "copy" },
+        { "filament_is_mixed",                "0,0,0,0,0,0,0,1" },
+        { "filament_mixed_components",        ";;;;;;;1,5" },
+        // The mixed arrays run parallel to filament_colour and must be sized to the filament
+        // count (see test_mixed_filament.cpp). validate() returns before the other five are
+        // read, but that is a property of where the rule sits, not something to rely on.
+        { "filament_mixed_sublayer_ratios",   ";;;;;;;" },
+        { "filament_mixed_gradient",          "0,0,0,0,0,0,0,0" },
+        { "filament_mixed_gradient_range",    ";;;;;;;" },
+        { "filament_mixed_gradient_curve",    ";;;;;;;" },
+        { "filament_mixed_gradient_per_part", "0,0,0,0,0,0,0,0" },
+        });
+        if (!blend_slot_8)
+            config.set_deserialize_strict({ { "filament_is_mixed", "0,0,0,0,0,0,0,0" } });
+        return config;
+    };
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{
+        { { "extruder", "8" } }, { { "extruder", "1" } },
+    };
+    const auto validate_plate = [&](const DynamicPrintConfig& config, Slic3r::Print& print,
+                                    Slic3r::Model& model) {
+        std::vector<TriangleMesh> meshes;
+        meshes.push_back(cube(20));
+        TriangleMesh second = cube(20);
+        second.translate(30.0, 0.0, 0.0);
+        meshes.push_back(second);
+        init_print(std::move(meshes), print, model, config, &overrides, false);
+        std::vector<StringObjectException> warnings;
+        return print.validate(&warnings);
+    };
+
+    // The multi-color rule IS armed for this plate -- without that, the check below proves nothing.
+    {
+        Slic3r::Model model;
+        Slic3r::Print print;
+        const StringObjectException err = validate_plate(build(false), print, model);
+        REQUIRE_FALSE(err.string.empty());
+        CHECK(err.string.find("Multi-color") != std::string::npos);
+    }
+
+    // With the blend present the mixed rule takes precedence over it.
+    {
+        Slic3r::Model model;
+        Slic3r::Print print;
+        const StringObjectException err = validate_plate(build(true), print, model);
+        REQUIRE_FALSE(err.string.empty());
+        CHECK(err.string.find("not supported in IDEX/IQEX parallel modes") != std::string::npos);
+        CHECK(err.string.find("Multi-color") == std::string::npos);
+        // The two rules differ in more than wording: the mixed path attaches an object (for the
+        // notification's "Jump to" link), the multi-color path returns none. Pins which fired
+        // independently of the message text.
+        CHECK(err.object == print.objects().front());
+    }
+}
+
+// A tool change added from the layer slider switches heads mid-print just as a painted color
+// does, so a parallel mode has to judge it with the plate's other filaments. Before it counted,
+// a one-filament plate with a slider change to a copying head's filament passed validate().
+TEST_CASE("A layer slider tool change counts as a color in a parallel mode", "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1); // filament 1 => logical slot 0 => physical head 0
+    config.set_deserialize_strict({ { "imex_parallel_mode", "copy" } });
+
+    Slic3r::Model model;
+    Slic3r::Print print;
+    init_print({ cube(20) }, print, model, config);
+    std::vector<StringObjectException> warnings;
+    REQUIRE(print.validate(&warnings).string.empty());
+
+    // Filament 5 routes to head 1, which copies the primary in this mode.
+    model.plates_custom_gcodes[model.curr_plate_index].gcodes.push_back(
+        { 5.0, CustomGCode::Type::ToolChange, 5, "", "" });
+    print.apply(model, print.full_print_config());
+    REQUIRE_FALSE(print.validate(&warnings).string.empty());
+}
+
+// Guard rail: the block must not fire on a well-formed plate. Filament 1 (slot 0) routes to
+// head 0, which `copy` declares Primary, so the Primary tool has something to print with.
+TEST_CASE("An IMEX plate whose filament routes to the Primary tool validates",
+          "[MultiFilament][IMEX]")
+{
+    DynamicPrintConfig config = multifilament_config(7);
+    imex_7x4_printer(config);
+    all_regions_on_filament(config, 1);
+    config.set_deserialize_strict({ { "imex_parallel_mode", "copy" } });
+
+    Slic3r::Model model;
+    Slic3r::Print print;
+    init_print({ cube(20) }, print, model, config);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = print.validate(&warnings);
+
+    CHECK(err.string.empty());
+}
+// A filament can define several variants (Standard, High Flow). Each filament prints with its
+// variant of the extruder's variant string, or with its own first variant when it defines none, on a
+// printer listing a single variant as on one listing several.
+TEST_CASE("Each filament prints with its variant of the extruder's variant string", "[MultiFilament]")
+{
+    auto [variant_list, nozzle_volume_type, filament, temperature, resolved] = GENERATE(table<std::string, NozzleVolumeType, int, int, std::string>({
+        { "Direct Drive Standard",                        nvtStandard, 1, 211, "211,223" },
+        { "Direct Drive Standard",                        nvtStandard, 2, 223, "211,223" },
+        { "Direct Drive High Flow",                       nvtHighFlow, 1, 239, "239,223" },
+        { "Direct Drive High Flow",                       nvtHighFlow, 2, 223, "239,223" }, // filament 2 defines no High Flow variant
+        { "Direct Drive Standard,Direct Drive High Flow", nvtHighFlow, 1, 239, "239,223" },
+        { "Direct Drive Standard,Direct Drive High Flow", nvtHighFlow, 2, 223, "239,223" },
+    }));
+    DYNAMIC_SECTION(variant_list << " printer, " << get_nozzle_volume_type_string(nozzle_volume_type) << " nozzle, filament " << filament) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "extruder_variant_list",            variant_list },
+            // filament 1 defines Standard (211) and High Flow (239), filament 2 Standard (223)
+            { "filament_extruder_variant",        "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard" },
+            { "filament_self_index",              "1,1,2" },
+            { "nozzle_temperature",               "211,239,223" },
+            { "nozzle_temperature_initial_layer", "211,239,223" },
+            { "sparse_infill_filament_id",        filament },
+            { "internal_solid_filament_id",       filament },
+            { "top_surface_filament_id",          filament },
+            { "bottom_surface_filament_id",       filament },
+            { "outer_wall_filament_id",           filament },
+            { "inner_wall_filament_id",           filament },
+            { "enable_prime_tower",               0 },
+            { "skirt_loops",                      0 },
+            { "brim_type",                        "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",              "; start temperature {nozzle_temperature_initial_layer[initial_extruder]}" },
+        });
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nozzle_volume_type };
+        const std::string gcode = slice({ cube(20) }, config);
+
+        std::set<int> temperatures;
+        std::istringstream stream(gcode);
+        for (std::string line; std::getline(stream, line);) {
+            if (line.rfind("M104 ", 0) != 0 && line.rfind("M109 ", 0) != 0)
+                continue;
+            const size_t s = line.find(" S");
+            if (s != std::string::npos && std::stoi(line.substr(s + 2)) > 0)
+                temperatures.insert(std::stoi(line.substr(s + 2)));
+        }
+        CHECK(temperatures == std::set<int>{ temperature });
+        CHECK(gcode.find("; start temperature " + std::to_string(temperature) + "\n") != std::string::npos);
+        // The config the slice ran with holds one value per filament, as the readers that index
+        // it by filament (the wipe tower, the filament compatibility check) expect.
+        CHECK(gcode.find("; nozzle_temperature = " + resolved + "\n") != std::string::npos);
+    }
+}
+
+// An adaptive pressure advance model predicting the same pressure advance at every flow and acceleration.
+static std::string constant_pressure_advance_model(const std::string &pa)
+{
+    return pa + ",1,1000\n" + pa + ",500,1000\n" + pa + ",1,100000\n" + pa + ",500,100000";
+}
+
+// The pressure advance values a Klipper G-code sets.
+static std::set<std::string> pressure_advance_values(const std::string &gcode)
+{
+    const std::string token = "SET_PRESSURE_ADVANCE ADVANCE=";
+    std::set<std::string> values;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);)
+        if (line.rfind(token, 0) == 0)
+            values.insert(line.substr(token.size(), line.find(';') - token.size()));
+    return values;
+}
+
+// Pressure advance, and the adaptive pressure advance model, are tuned per extruder variant like the
+// other filament variant settings.
+TEST_CASE("Each filament sets the pressure advance of its extruder variant", "[MultiFilament]")
+{
+    auto [nozzle_volume_type, filament, pressure_advance, adaptive_pressure_advance] = GENERATE(table<NozzleVolumeType, int, std::string, std::string>({
+        { nvtStandard, 1, "0.021", "0.012" },
+        { nvtHighFlow, 1, "0.037", "0.034" },
+        { nvtHighFlow, 2, "0.043", "0.056" }, // filament 2 defines no High Flow variant
+    }));
+    const bool adaptive = GENERATE(false, true);
+    DYNAMIC_SECTION(get_nozzle_volume_type_string(nozzle_volume_type) << " nozzle, filament " << filament << (adaptive ? ", adaptive" : "")) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "gcode_flavor",               "klipper" },
+            { "extruder_variant_list",      "Direct Drive Standard,Direct Drive High Flow" },
+            // filament 1 defines Standard (0.021) and High Flow (0.037), filament 2 Standard (0.043)
+            { "filament_extruder_variant",  "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard" },
+            { "filament_self_index",        "1,1,2" },
+            { "enable_pressure_advance",    "1,1,1" },
+            { "pressure_advance",           "0.021,0.037,0.043" },
+            { "adaptive_pressure_advance",  adaptive ? "1,1,1" : "0,0,0" },
+            { "sparse_infill_filament_id",  filament },
+            { "internal_solid_filament_id", filament },
+            { "top_surface_filament_id",    filament },
+            { "bottom_surface_filament_id", filament },
+            { "outer_wall_filament_id",     filament },
+            { "inner_wall_filament_id",     filament },
+            { "enable_prime_tower",         0 },
+            { "skirt_loops",                0 },
+            { "brim_type",                  "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",        "; start pressure advance {pressure_advance[initial_extruder]}" },
+        });
+        config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = {
+            constant_pressure_advance_model("0.012"), constant_pressure_advance_model("0.034"), constant_pressure_advance_model("0.056") };
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nozzle_volume_type };
+        const std::string gcode = slice({ cube(20) }, config);
+
+        // The toolchange sets the variant's pressure advance; with adaptive pressure advance, the
+        // prediction of the variant's model then replaces it.
+        std::set<std::string> expected{ pressure_advance };
+        if (adaptive)
+            expected.insert(adaptive_pressure_advance);
+        CHECK(pressure_advance_values(gcode) == expected);
+        CHECK(gcode.find("; start pressure advance " + pressure_advance + "\n") != std::string::npos);
+    }
+}
+
+// A two-extruder printer, Standard nozzle on extruder 1 and High Flow on extruder 2, whose per-variant arrays
+// hold filament 1 Standard, filament 1 High Flow, filament 2 Standard and filament 2 High Flow.
+static DynamicPrintConfig two_extruder_pressure_advance_config(const std::string &filament_map, const std::string &adaptive_pressure_advance,
+                                                               int wall_filament, int infill_filament)
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "gcode_flavor",                   "klipper" },
+        { "single_extruder_multi_material", 0 },
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "extruder_printable_height",      "0,0" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard;Direct Drive High Flow" },
+        { "extruder_variant_list",          "Direct Drive Standard;Direct Drive High Flow" },
+        { "filament_map",                   filament_map },
+        { "filament_extruder_variant",      "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard;Direct Drive High Flow" },
+        { "filament_self_index",            "1,1,2,2" },
+        { "enable_pressure_advance",        "1,1,1,1" },
+        { "pressure_advance",               "0.021,0.037,0.043,0.049" },
+        { "adaptive_pressure_advance",      adaptive_pressure_advance },
+        { "sparse_infill_filament_id",      infill_filament },
+        { "internal_solid_filament_id",     infill_filament },
+        { "top_surface_filament_id",        infill_filament },
+        { "bottom_surface_filament_id",     infill_filament },
+        { "outer_wall_filament_id",         wall_filament },
+        { "inner_wall_filament_id",         wall_filament },
+        { "enable_prime_tower",             0 },
+        { "skirt_loops",                    0 },
+        { "brim_type",                      "no_brim" },
+        // custom G-code indexes the per-filament arrays by filament
+        { "machine_start_gcode",            "; start pressure advance {pressure_advance[initial_extruder]}" },
+    });
+    config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values = {
+        constant_pressure_advance_model("0.012"), constant_pressure_advance_model("0.034"),
+        constant_pressure_advance_model("0.056"), constant_pressure_advance_model("0.078") };
+    config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = { etDirectDrive, etDirectDrive };
+    config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nvtStandard, nvtHighFlow };
+    // print each filament on the extruder filament_map gives it
+    config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = fmmManual;
+    return config;
+}
+
+// On a printer with two extruders, a filament takes the pressure advance of the variant of the extruder
+// it is mapped to, whichever filament and extruder that is.
+TEST_CASE("Each filament sets the pressure advance of its extruder variant on a two-extruder printer", "[MultiFilament]")
+{
+    auto [filament, extruder, pressure_advance, adaptive_pressure_advance] = GENERATE(table<int, int, std::string, std::string>({
+        { 1, 1, "0.021", "0.012" },
+        { 1, 2, "0.037", "0.034" },
+        { 2, 1, "0.043", "0.056" },
+        { 2, 2, "0.049", "0.078" },
+    }));
+    const bool adaptive = GENERATE(false, true);
+    DYNAMIC_SECTION("filament " << filament << " on extruder " << extruder << (adaptive ? ", adaptive" : "")) {
+        // the other filament goes on the other extruder
+        const std::string filament_map = filament == 1 ? std::to_string(extruder) + "," + std::to_string(3 - extruder) :
+                                                         std::to_string(3 - extruder) + "," + std::to_string(extruder);
+        const std::string gcode = slice({ cube(20) },
+            two_extruder_pressure_advance_config(filament_map, adaptive ? "1,1,1,1" : "0,0,0,0", filament, filament));
+
+        std::set<std::string> expected{ pressure_advance };
+        if (adaptive)
+            expected.insert(adaptive_pressure_advance);
+        CHECK(pressure_advance_values(gcode) == expected);
+        CHECK(gcode.find("; start pressure advance " + pressure_advance + "\n") != std::string::npos);
+    }
+}
+
+// Without a dynamic nozzle map the hotend placeholders carry no hotend index (-1) on a BBL printer: Bambu
+// firmware reads an explicit index as a request for the Filament Track Switch and rejects the job. Any other
+// printer gets the extruder index of the filament.
+TEST_CASE("Hotend placeholders resolve to -1 on a BBL printer and to the extruder index elsewhere", "[MultiFilament]")
+{
+    // filament 1 prints the walls on extruder 2, filament 2 the infill on extruder 1
+    auto [is_bbl, start, changes] = GENERATE(table<bool, std::string, std::set<std::string>>({
+        { true,  "; hotend start filament 0: -1 -1 -1",
+          { "; hotend change filament 0: -1 -1", "; hotend change filament 1: -1 -1" } },
+        // the first change loads filament 1 with no filament before it, so there is no outgoing extruder
+        { false, "; hotend start filament 0: 1 1 1",
+          { "; hotend change filament -1: -1 1", "; hotend change filament 0: 1 0", "; hotend change filament 1: 0 1" } },
+    }));
+    DynamicPrintConfig config = two_extruder_pressure_advance_config("2,1", "0,0,0,0", 1, 2);
+    config.set_key_value("machine_start_gcode", new ConfigOptionString(
+        "; hotend start filament [initial_no_support_extruder]: [initial_no_support_hotend] [current_hotend] {first_non_support_hotend[0]}"));
+    config.set_key_value("change_filament_gcode", new ConfigOptionString(
+        "; hotend change filament [current_filament_id]: [current_hotend] [next_hotend]"));
+    Print print;
+    print.is_BBL_printer() = is_bbl;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    INFO("BBL printer: " << is_bbl);
+    std::vector<std::string> starts;
+    std::set<std::string>    found;
+    std::istringstream       stream(gcode);
+    for (std::string line; std::getline(stream, line);) {
+        if (line.rfind("; hotend start ", 0) == 0)
+            starts.push_back(line);
+        else if (line.rfind("; hotend change ", 0) == 0)
+            found.insert(line);
+    }
+    CHECK(starts == std::vector<std::string>{ start });
+    CHECK(found == changes);
+}
+
+// Filament 1 prints the walls on extruder 1 (variant index 0), filament 2 the infill on extruder 2 (variant index 3).
+TEST_CASE("Adaptive pressure advance on one extruder leaves the other extruder's pressure advance alone", "[MultiFilament]")
+{
+    auto [adaptive, expected] = GENERATE(table<std::string, std::set<std::string>>({
+        { "1,0,0,0", { "0.021", "0.049", "0.012" } },
+        { "0,0,0,1", { "0.021", "0.049", "0.078" } },
+    }));
+    DYNAMIC_SECTION("adaptive " << adaptive) {
+        const std::string gcode = slice({ cube(20) }, two_extruder_pressure_advance_config("1,2", adaptive, 1, 2));
+        CHECK(pressure_advance_values(gcode) == expected);
+    }
+}
+
+// The pressure advance values a Klipper G-code sets while `tool` is active, in order, without repeating the value already set.
+static std::vector<std::string> pressure_advance_sequence(const std::string &gcode, int tool)
+{
+    const std::string token = "SET_PRESSURE_ADVANCE ADVANCE=";
+    std::vector<std::string> values;
+    int current_tool = 0;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);) {
+        if (line.size() > 1 && line[0] == 'T' && std::isdigit((unsigned char) line[1]))
+            current_tool = std::stoi(line.substr(1));
+        else if (current_tool == tool && line.rfind(token, 0) == 0) {
+            std::string value = line.substr(token.size(), line.find(';') - token.size());
+            if (values.empty() || values.back() != value)
+                values.push_back(std::move(value));
+        }
+    }
+    return values;
+}
+
+TEST_CASE("Adaptive pressure advance predicts the same values after layers only a non-adaptive extruder prints", "[MultiFilament]")
+{
+    auto slice_with = [](const std::string &adaptive) {
+        DynamicPrintConfig config = two_extruder_pressure_advance_config("1,2", adaptive, 1, 1);
+        config.set_deserialize_strict({
+            { "print_sequence",                "by object" },
+            // extruder 2 moves at one speed on its first layer, so no G1 F follows its first PA_CHANGE tag
+            { "filament_max_volumetric_speed", "100" },
+            { "slow_down_for_layer_cooling",   "0" },
+            { "travel_speed",                  "120,40" },
+            { "retraction_speed",              "30,40" },
+            { "deretraction_speed",            "30,40" },
+            { "initial_layer_speed",           "30,40" },
+            { "initial_layer_infill_speed",    "60,40" },
+        });
+        auto &models = config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values;
+        // with adaptive pressure advance on, filament 1 gets PA_CHANGE tags on every layer but keeps its pressure advance
+        models[0] = constant_pressure_advance_model("0.021");
+        // a prediction that rises with flow, so it depends on the print speed
+        models[3] = "0.01,1,1000\n0.09,40,1000\n0.01,1,100000\n0.09,40,100000";
+        return slice_with_object_overrides({ cube(20), cube(20) }, config,
+            { {}, { { "outer_wall_filament_id", 2 }, { "inner_wall_filament_id", 2 }, { "sparse_infill_filament_id", 2 },
+                    { "internal_solid_filament_id", 2 }, { "top_surface_filament_id", 2 }, { "bottom_surface_filament_id", 2 } } });
+    };
+    const std::vector<std::string> expected = pressure_advance_sequence(slice_with("1,0,0,1"), 1);
+    REQUIRE(expected.size() > 2);
+    CHECK(pressure_advance_sequence(slice_with("0,0,0,1"), 1) == expected);
+}
+
+TEST_CASE("Adaptive pressure advance on an unused extruder variant leaves the G-code unchanged", "[MultiFilament]")
+{
+    const std::string adaptive = GENERATE("0,1,0,0", "0,0,1,0");
+    DYNAMIC_SECTION("adaptive " << adaptive) {
+        // the time and object ids differ between any two slices, and the config block lists the setting itself
+        auto masked = [](const std::string &gcode) {
+            return std::regex_replace(gcode.substr(0, gcode.find("; CONFIG_BLOCK_START")), std::regex("; generated by .*| id:\\d+"), "");
+        };
+        const std::string reference = masked(slice({ cube(20) }, two_extruder_pressure_advance_config("1,2", "0,0,0,0", 1, 2)));
+        const std::string gcode     = masked(slice({ cube(20) }, two_extruder_pressure_advance_config("1,2", adaptive, 1, 2)));
+        REQUIRE(reference.find("SET_PRESSURE_ADVANCE") != std::string::npos);
+        CHECK(gcode == reference);
+    }
+}
+
+// The speeds, in percent, a G-code turns a fan on at: the part cooling fan for `M106 S`, the auxiliary
+// fan for `M106 P2 S`.
+static std::set<int> fan_speeds(const std::string &gcode, const std::string &command)
+{
+    std::set<int> speeds;
+    std::istringstream stream(gcode);
+    for (std::string line; std::getline(stream, line);)
+        if (line.rfind(command, 0) == 0)
+            if (const int pwm = std::stoi(line.substr(command.size())); pwm > 0)
+                speeds.insert(int(std::lround(pwm * 100. / 255.)));
+    return speeds;
+}
+
+// The fan speeds and the recommended nozzle temperature range are tuned per extruder variant like the
+// other filament variant settings.
+TEST_CASE("Each filament cools with the fan speeds of its extruder variant", "[MultiFilament]")
+{
+    auto [nozzle_volume_type, filament, fan_min_speed, fan_max_speed, additional_fan_speed, range_high] = GENERATE(table<NozzleVolumeType, int, int, int, int, int>({
+        { nvtStandard, 1, 15, 25, 10, 240 },
+        { nvtHighFlow, 1, 35, 45, 20, 260 },
+        { nvtHighFlow, 2, 55, 65, 40, 280 }, // filament 2 defines no High Flow variant
+    }));
+    // Layers printed faster than slow_down_layer_time run the fan at its maximum speed, layers slower than
+    // fan_cooling_layer_time at its minimum.
+    const bool fast_layers = GENERATE(false, true);
+    DYNAMIC_SECTION(get_nozzle_volume_type_string(nozzle_volume_type) << " nozzle, filament " << filament << (fast_layers ? ", fast layers" : ", slow layers")) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "extruder_variant_list",          "Direct Drive Standard,Direct Drive High Flow" },
+            // filament 1 defines Standard and High Flow, filament 2 Standard
+            { "filament_extruder_variant",      "Direct Drive Standard;Direct Drive High Flow;Direct Drive Standard" },
+            { "filament_self_index",            "1,1,2" },
+            { "fan_min_speed",                  "15,35,55" },
+            { "fan_max_speed",                  "25,45,65" },
+            { "additional_cooling_fan_speed",   "10,20,40" },
+            { "nozzle_temperature_range_high",  "240,260,280" },
+            { "auxiliary_fan",                  1 },
+            { "reduce_fan_stop_start_freq",     "1,1" },
+            { "slow_down_layer_time",           fast_layers ? "1000,1000" : "0,0" },
+            { "fan_cooling_layer_time",         fast_layers ? "1000,1000" : "0,0" },
+            { "slow_down_for_layer_cooling",    "0,0" },
+            { "enable_overhang_bridge_fan",     "0,0" },
+            { "sparse_infill_filament_id",      filament },
+            { "internal_solid_filament_id",     filament },
+            { "top_surface_filament_id",        filament },
+            { "bottom_surface_filament_id",     filament },
+            { "outer_wall_filament_id",         filament },
+            { "inner_wall_filament_id",         filament },
+            { "enable_prime_tower",             0 },
+            { "skirt_loops",                    0 },
+            { "brim_type",                      "no_brim" },
+            // custom G-code indexes the per-filament arrays by filament
+            { "machine_start_gcode",            "; start range high {nozzle_temperature_range_high[initial_extruder]}" },
+        });
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = { nozzle_volume_type };
+        const std::string gcode = slice({ cube(20) }, config);
+
+        CHECK(fan_speeds(gcode, "M106 S") == std::set<int>{ fast_layers ? fan_max_speed : fan_min_speed });
+        CHECK(fan_speeds(gcode, "M106 P2 S") == std::set<int>{ additional_fan_speed });
+        CHECK(gcode.find("; start range high " + std::to_string(range_high) + "\n") != std::string::npos);
+    }
+}

@@ -1,15 +1,28 @@
 #ifndef slic3r_SliceInfoPanel_hpp_
 #define slic3r_SliceInfoPanel_hpp_
 
-#include "slic3r/GUI/MonitorBasePanel.h"
-#include "libslic3r/ProjectTask.hpp"
-#include "DeviceManager.hpp"
-#include "GUI.hpp"
+#include <wx/gdicmn.h>
+#include <cstddef>
+#include <wx/event.h>
+#include <memory>
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
+#include <wx/scrolwin.h>
+#include <wx/rtti.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/webrequest.h>
 #include "Widgets/PopupWindow.hpp"
+
+class ImageTransientPopup;
+class wxBoxSizer;
+class wxGridSizer;
+class wxScrolledWindow;
+class wxStaticBitmap;
+class wxStaticText;
+class wxWindow;
+namespace Slic3r { class BBLSliceInfo; }
 
 namespace Slic3r {
 namespace GUI {

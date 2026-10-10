@@ -88,8 +88,18 @@ if(WIN32)
         list(APPEND _python_env_args "PreferredToolArchitecture=${_python_tool_arch}")
     endif()
 
+    # MSBuild reads extra switches from PCbuild/msbuild.rsp.
+    set(_python_rsp "/p:PlatformToolset=${_python_platform_toolset}\n")
+    # VS 2026's ARM64 code generator needs about 27 GB for one function in
+    # Objects/unicodectype.c (python/cpython#153668); the property sheet compiles
+    # that file without optimisation.
+    if(_python_pcbuild_platform STREQUAL "ARM64")
+        file(TO_NATIVE_PATH "${CMAKE_CURRENT_LIST_DIR}/arm64-unicodectype.props" _python_arm64_props)
+        string(APPEND _python_rsp "/p:ForceImportAfterCppTargets=\"${_python_arm64_props}\"\n")
+    endif()
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/python3-msbuild.rsp" "${_python_rsp}")
     set(_conf_cmd
-        cmd /c "echo /p:PlatformToolset=${_python_platform_toolset}>PCbuild\\msbuild.rsp"
+        ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/python3-msbuild.rsp" <SOURCE_DIR>/PCbuild/msbuild.rsp
     )
     set(_build_cmd
         ${CMAKE_COMMAND} -E env ${_python_env_args}
@@ -141,6 +151,12 @@ elseif(APPLE)
     # the post-install -add_rpath below.
     set(_python_ldflags "${_python_arch_flags} -Wl,-headerpad_max_install_names")
 
+    # The macOS 27 SDK declares pipe2() and dup3() as available from macOS 27, so
+    # configure finds them and CPython 3.12 calls them without a runtime check.
+    # Below a macOS 27 deployment target they are weak-linked and resolve to NULL
+    # on older systems, where os.pipe() then segfaults -- in `make install`
+    # (compileall, ensurepip) and in the shipped app alike. Every configure below
+    # keeps the pipe()/dup2() fallbacks (python/cpython#153711).
     if(IS_CROSS_COMPILE)
         set(_python_build_tgt --build=${_python_build_arch}-apple-darwin --host=${_python_host_arch}-apple-darwin)
         set(_python_build_arch_flags "-arch ${_python_build_arch_flag} -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
@@ -164,7 +180,8 @@ elseif(APPLE)
                  --enable-shared \
                  --without-static-libpython \
                  --disable-test-modules \
-                 --build=${_python_build_arch}-apple-darwin && \
+                 --build=${_python_build_arch}-apple-darwin \
+                 ac_cv_func_pipe2=no ac_cv_func_dup3=no && \
              make -j${NPROC} python && \
              cd '<SOURCE_DIR>' && \
              env \
@@ -181,6 +198,7 @@ elseif(APPLE)
                  --without-static-libpython \
                  --with-openssl='${DESTDIR}' \
                  --disable-test-modules \
+                 ac_cv_func_pipe2=no ac_cv_func_dup3=no \
                  ${_python_build_tgt} \
                  --with-build-python='${_python_build_python}' \
                  py_cv_module__tkinter=n/a"
@@ -203,6 +221,8 @@ elseif(APPLE)
             --with-openssl=${DESTDIR}
             --disable-test-modules
             ${_python_build_tgt}
+            ac_cv_func_pipe2=no
+            ac_cv_func_dup3=no
             # Tcl/Tk 9.0 (e.g. from Homebrew) is incompatible with CPython 3.12's
             # _tkinter; OrcaSlicer's embedded Python does not need tkinter anyway.
             py_cv_module__tkinter=n/a
@@ -279,3 +299,27 @@ endif()
 if(TARGET dep_ZLIB)
     add_dependencies(dep_python3 dep_ZLIB)
 endif()
+
+if (NOT WIN32 AND NOT APPLE)
+    # CPython's Makefile rules for _ssl and _hashlib depend only on their own
+    # sources, not on the OpenSSL archives, so a rebuilt OpenSSL does not make
+    # them relink and they keep the previous symbols. On an incremental tree,
+    # drop the built modules and relink them against the current OpenSSL; a
+    # fresh build is left alone (its PGO target builds them). "make" alone is a
+    # no-op once PGO has run, so sharedmods is invoked explicitly.
+    ExternalProject_Get_Property(dep_python3 SOURCE_DIR)
+    file(GLOB _python_ssl_modules
+        "${SOURCE_DIR}/Modules/_ssl*.so"
+        "${SOURCE_DIR}/Modules/_hashlib*.so")
+    if (_python_ssl_modules)
+        ExternalProject_Add_Step(dep_python3 relink_ssl_extensions
+            DEPENDEES configure
+            DEPENDERS build
+            COMMAND sh -c "rm -f '${SOURCE_DIR}'/Modules/_ssl*.so '${SOURCE_DIR}'/Modules/_hashlib*.so && make -j${NPROC} sharedmods"
+            WORKING_DIRECTORY "${SOURCE_DIR}"
+            COMMENT "CPython: relinking _ssl/_hashlib against the current OpenSSL"
+            DEPENDS "${CMAKE_CURRENT_LIST_FILE}"
+                    "${CMAKE_CURRENT_LIST_DIR}/../OpenSSL/OpenSSL.cmake"
+        )
+    endif ()
+endif ()

@@ -16,8 +16,17 @@
 #include "GLShader.hpp"
 #include "MeshUtils.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cmath>
 #include <functional>
+#include <map>
+#include "libslic3r/BoundingBox.hpp"
+#include <memory>
 #include <optional>
+#include <vector>
+#include <string>
+#include <utility>
 
 #ifndef NDEBUG
 #define HAS_GLSAFE
@@ -93,6 +102,13 @@ public:
     static ColorRGBA SUPPORT_ENFORCER_COL;
     static ColorRGBA SUPPORT_BLOCKER_COL;
     static ColorRGBA MODEL_HIDDEN_COL;
+    // Precise Seam modifier colors
+    static ColorRGBA PRECISE_SEAM_CENTER_COL;
+    static ColorRGBA PRECISE_SEAM_LEFT_COL;
+    static ColorRGBA PRECISE_SEAM_RIGHT_COL;
+    static ColorRGBA PRECISE_SEAM_ENFORCED_COL;
+    static ColorRGBA PRECISE_SEAM_NEUTRAL_COL;
+    static ColorRGBA PRECISE_SEAM_BLOCKED_COL;
 
     static void update_render_colors();
     static void load_render_colors();
@@ -216,6 +232,10 @@ public:
         bool                force_neutral_color : 1;
         // Whether or not to force rendering of sinking contours
         bool                force_sinking_contours : 1;
+        // Orca: draw this volume with a positive depth bias (glPolygonOffset, pushed away from the
+        // camera), so on a surface it shares with another volume the other volume wins the depth
+        // test instead of z-fighting it
+        bool                depth_bias : 1;
         // Is render for picking
         bool                picking : 1;
         // slice error

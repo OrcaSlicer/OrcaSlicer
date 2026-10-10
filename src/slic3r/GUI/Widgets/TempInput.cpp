@@ -2,8 +2,22 @@
 #include "Label.hpp"
 #include "PopupWindow.hpp"
 #include "../I18N.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include <string>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
 #include <wx/dcgraph.h>
-#include "../GUI.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
 #include "../GUI_App.hpp"
 
 wxDEFINE_EVENT(wxCUSTOMEVT_SET_TEMP_FINISH, wxCommandEvent);
@@ -275,9 +289,9 @@ void TempInput::Warning(bool warn, WarningType type)
 
         wxString warning_string;
         if (type == WarningType::WARNING_TOO_HIGH)
-             warning_string = _L("The maximum temperature cannot exceed ") + wxString::Format("%d", max_temp);
+             warning_string = wxString::Format(_L("The maximum temperature cannot exceed %d"), max_temp);
         else if (type == WarningType::WARNING_TOO_LOW)
-             warning_string = _L("The minmum temperature should not be less than ") + wxString::Format("%d", min_temp);
+             warning_string = wxString::Format(_L("The minimum temperature should not be less than %d"), min_temp);
         warning_text->SetLabel(warning_string);
         warning_text->Wrap(-1);
         warning_text->Fit();

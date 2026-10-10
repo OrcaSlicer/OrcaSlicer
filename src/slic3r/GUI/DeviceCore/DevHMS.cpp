@@ -1,5 +1,12 @@
 //#include "D:/dev/bamboo_slicer/build_release/src/slic3r/CMakeFiles/libslic3r_gui.dir/Release/cmake_pch.hxx"
 #include "DevHMS.h"
+#include <string>
+#include <cstdio>
+#include <nlohmann/json.hpp>
+#include <exception>
+#include <cassert>
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {

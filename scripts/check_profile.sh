@@ -7,8 +7,9 @@
 # continue-on-error), then the script exits non-zero once at the end.
 #
 # Everything that has to be downloaded - the profile validator and the custom-preset fixture
-# archives - lands under <repo>/.test/check_profiles/ and is reused on the next run. That
-# directory also holds one log per check plus a copy of the comment CI would post on the PR.
+# archives - lands under a per-user cache directory and is reused on the next run. Being outside
+# the checkout, that directory is shared by every worktree on the machine. It also holds one log
+# per check plus a copy of the comment CI would post on the PR.
 #
 # resources/profiles/user, which the validator creates as its data dir but a CI checkout never
 # has, is moved aside for the duration of the run and restored on exit. Only one run per work
@@ -33,12 +34,23 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 HOST_ARCH="$(uname -m)"
+HOST_OS="$(uname -s)"
+case "${HOST_OS}" in
+    Darwin*) HOST_OS=Darwin ;;
+    MINGW*|MSYS*|CYGWIN*) HOST_OS=Windows ;;
+    Linux*) HOST_OS=Linux ;;
+esac
 
 PROFILES_DIR="${REPO_ROOT}/resources/profiles"
-WORK_DIR="${REPO_ROOT}/.test/check_profiles"
+case "${HOST_OS}" in
+    Darwin) DEFAULT_WORK_DIR="${HOME}/Library/Caches/orca-profile-check" ;;
+    Windows) DEFAULT_WORK_DIR="${LOCALAPPDATA:-${HOME}/AppData/Local}/orca-profile-check" ;;
+    *) DEFAULT_WORK_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/orca-profile-check" ;;
+esac
+WORK_DIR="${DEFAULT_WORK_DIR}"
 VALIDATOR="${ORCA_PROFILE_VALIDATOR:-}"
 # Vendor to check, named after its <Vendor>.json - empty means every vendor, which is exactly what
-# both the validator's -v and orca_extra_profile_check.py's --vendor take an empty value to mean.
+# both the validator's -v and orca_profile_tool.py check's --vendor take an empty value to mean.
 # So the flag is passed unconditionally below rather than kept in an array bash 3.2 cannot expand
 # empty under `set -u`.
 VENDOR=""
@@ -46,7 +58,7 @@ LOG_LEVEL=2
 PREFER_DOWNLOAD=0
 REFRESH=0
 
-ALL_CHECKS=(extra_json_check validate_system validate_slice validate_filament_subtypes validate_custom)
+ALL_CHECKS=(profile_tool validate_system validate_slice validate_filament_subtypes validate_custom)
 CHECKS=()
 # "<check><TAB>pass|fail" per check that ran, plus "<check><TAB>skip<TAB>why" for one a vendor
 # scope left out; a string rather than an array because bash 3.2 (still the /bin/bash on macOS)
@@ -60,7 +72,7 @@ Run the profile checks from .github/workflows/check_profiles.yml locally.
 Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
 Checks (default: all, in this order):
-  extra_json_check              scripts/orca_extra_profile_check.py
+  profile_tool                  scripts/orca_profile_tool.py check
   validate_system               validator -p <profiles> -l <level>
   validate_slice                validator -p <profiles> -s -l <level>
   validate_filament_subtypes    validator -p <profiles> -l <level> -f
@@ -75,18 +87,20 @@ Options:
                        downloaded for this platform
       --download       ignore local builds and use the downloaded nightly validator
       --refresh        re-download the validator and fixtures instead of using the cache
-      --work-dir DIR   downloads, logs and fixture trees (default: .test/check_profiles)
+      --work-dir DIR   downloads, logs and fixture trees (default: ${DEFAULT_WORK_DIR})
   -l, --log-level N    validator log level (default: ${LOG_LEVEL}, as in CI)
   -h, --help           show this help
 
-Note: extra_json_check always looks at the tree next to the script
-(<repo>/resources/profiles); --profiles only redirects the validator checks.
+Note: profile_tool is the only check that is not the validator binary; it makes the static
+checks the validator cannot, because the validator loads the tree the way the slicer does
+and so never sees a profile no <vendor>.json indexes, a preset name two files claim, or a
+file normalize and update-index would still rewrite.
 
 Note: --vendor narrows validate_custom too, by keeping only that vendor's presets in each
 fixture tree. The one check it cannot narrow is validate_slice for a vendor that ships no
 printers; the summary reports that one as skipped, and naming it explicitly still runs it.
-extra_json_check keeps its two cross-vendor checks (setting_id and filament_id) tree-wide,
-so a scoped run can still fail on another vendor's files.
+profile_tool keeps its two cross-vendor checks (setting_id and filament_id) tree-wide, so a
+scoped run can still fail on another vendor's files.
 EOF
 }
 
@@ -302,8 +316,8 @@ EOF
 # holding the signed .app, Windows an .exe.
 download_validator() {
     local dest="${WORK_DIR}/validator" binary dmg app mounted app_src
-    case "$(uname -s)" in
-        Linux*)
+    case "${HOST_OS}" in
+        Linux)
             case "${HOST_ARCH}" in
                 arm64|aarch64) msg "the nightly Linux validator is x86_64; build it locally for ${HOST_ARCH}" ;;
             esac
@@ -311,7 +325,7 @@ download_validator() {
             fetch "${VALIDATOR_RELEASE_URL}/OrcaSlicer_profile_validator_Linux_Ubuntu2404_nightly" "${binary}" || return 1
             chmod +x "${binary}" || return 1
             ;;
-        Darwin*)
+        Darwin)
             dmg="${dest}/OrcaSlicer_profile_validator.dmg"
             app="${dest}/OrcaSlicer_profile_validator.app"
             binary="${app}/Contents/MacOS/OrcaSlicer_profile_validator"
@@ -330,13 +344,13 @@ download_validator() {
                 [ -x "${binary}" ] || { msg "no validator app inside ${dmg}"; return 1; }
             fi
             ;;
-        MINGW*|MSYS*|CYGWIN*)
+        Windows)
             binary="${dest}/OrcaSlicer_profile_validator.exe"
             fetch "${VALIDATOR_RELEASE_URL}/OrcaSlicer_profile_validator_Windows_nightly.exe" "${binary}" || return 1
             chmod +x "${binary}" || return 1
             ;;
         *)
-            msg "no nightly validator published for $(uname -s); build it (-DORCA_TOOLS=ON) and pass --validator"
+            msg "no nightly validator published for ${HOST_OS}; build it (-DORCA_TOOLS=ON) and pass --validator"
             return 1
             ;;
     esac
@@ -361,8 +375,8 @@ resolve_validator() {
 
 # ---------------------------------------------------------------------------- checks
 
-check_extra_json_check() {
-    python3 "${REPO_ROOT}/scripts/orca_extra_profile_check.py" --vendor "${VENDOR}"
+check_profile_tool() {
+    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" check --profiles "${PROFILES_DIR}" --vendor "${VENDOR}"
 }
 
 check_validate_system() {
@@ -548,7 +562,7 @@ EOF
 # Heading CI puts above this check's log in the PR comment.
 comment_heading() {
     case "$1" in
-        extra_json_check) echo "### Extra JSON Check Failed" ;;
+        profile_tool) echo "### Profile Check Failed (orca_profile_tool.py)" ;;
         validate_system) echo "### System Profile Validation Failed" ;;
         validate_slice) echo "### Slice Validation Failed (custom g-code expansion)" ;;
         validate_filament_subtypes) echo "### Filament Subtype Validation Failed" ;;
@@ -638,7 +652,9 @@ fi
 ${RESULTS}
 INNER
     echo "---"
-    echo "*Please fix the above errors and push a new commit.*"
+    # Single-quoted on purpose: the backticks below are markdown, not command substitution.
+    # shellcheck disable=SC2016
+    echo '*Fix the errors above and push a new commit. To reproduce this run locally: `scripts/check_profile.sh`, or `scripts\check_profile.bat` on Windows.*'
 } > "${WORK_DIR}/pr_comment.md"
 
 printf '\n%sOne or more profile checks failed.%s Logs: %s\n' "${C_RED}" "${C_RESET}" "${LOG_DIR}"

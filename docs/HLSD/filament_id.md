@@ -9,7 +9,7 @@ OrcaFilamentLibrary (OFL), Qidi, or Snapmaker bundle. The granularity is the nam
 not the brand behind it: `AAA PLA Lite` and `AAA PLA Pro` are two filaments with two ids, not
 variants of one.
 
-**How it is generated:** an id is computed, never invented. `scripts/orca_id_tool.py`
+**How it is generated:** an id is computed, never invented. `scripts/orca_profile_tool.py`
 mints it as a deterministic hash of the product's identity — the triple
 `(filament_vendor, filament_type, filament name)`, where the filament name is the preset name
 with its `@...` variant suffix stripped — producing an 8-character `OF*` code that is the
@@ -34,23 +34,19 @@ This page is the rule for authoring `filament_id` in system profiles
 
 > [!IMPORTANT]
 > **Never write a `filament_id` value by hand.** A new filament gets its id from
-> `python scripts/orca_id_tool.py --generate`; one already in the tree has one — inherit it.
+> `python scripts/orca_profile_tool.py generate-id`; one already in the tree has one — inherit it.
 
-## The design, in two pieces
+## The design
 
 Because several consumers match **globally by id alone, first hit wins** (see the next
 section), any two materials sharing one id feed wrong data somewhere — a wrong tray name, a
 wrong support-material flag, a wrong nozzle grouping — and inside one printer a duplicated id
 makes AMS spool matching a coin toss. Hand-written ids produce such collisions constantly, so
-the system is built to make them impossible:
-
-1. **Deterministic minting.** An id is a pure hash of the product's identity — no registry to
-   maintain, no next-free-number ceremony, no way for two concurrent PRs to race for the same
-   number, and no way to get it wrong by hand, because you never write it by hand.
-2. **A sanctioned snapshot.** The complete id landscape derived from the tree must equal
-   `scripts/filament_id_snapshot.json` exactly, so every change to ids, claims (which bundles
-   ship which id, and for which filament), or product identity surfaces as a reviewable diff to
-   one file — the maintainer gate.
+the system is built to make them impossible: an id is a pure hash of the product's identity —
+no registry to maintain, no next-free-number ceremony, no way for two concurrent PRs to race
+for the same number, and no way to get it wrong by hand, because you never write it by hand.
+CI holds every id in the tree to that rule, so the profiles themselves are the whole record of
+which products exist and which bundles ship them.
 
 ## Who consumes the id
 
@@ -160,8 +156,8 @@ key needed). Tuning a generic material → **join the OrcaFilamentLibrary filame
    different product by rule 5, so it then needs its own id.
 5. **Ids follow the product identity.** The id is a pure function of the product triple
    `(filament_vendor, filament_type, filament name)`, so correcting any of them re-mints the id
-   **by design**, applied by `--generate` (preview with `--dry-run`, confine with `--vendor`) and
-   gated by the `--update-snapshot` diff; the exact sequence is in the FAQ. Nothing forwards
+   **by design**, applied by `generate-id` (preview with `--dry-run`, confine with `--vendor`);
+   the exact sequence is in the FAQ. Nothing forwards
    the old value, so anything outside the tree that stored it — a device tray, a calibration
    record, a saved project — falls back to matching by filament type until the user re-selects
    the filament. Re-mint deliberately, and only to fix a genuinely wrong identity.
@@ -170,7 +166,7 @@ key needed). Tuning a generic material → **join the OrcaFilamentLibrary filame
 ## Minting — nobody invents ids
 
 New ids are deterministic, computed exactly like the `setting_id` precedent
-(the `setting_id` half of `scripts/orca_id_tool.py`):
+(the `setting_id` half of `scripts/orca_profile_tool.py generate-id`):
 
 ```text
 FILAMENT_ID_NAMESPACE = uuid5(setting-id NAMESPACE, "filament_id")
@@ -196,13 +192,13 @@ Snapmaker bundles alike; the OFL generic `Generic/PLA/Generic PLA` mints `OFDSrz
 by 35 bundles — most by independent declarations converging on the same mint, the rest
 purely through inheritance from the OFL preset.
 
-Nothing but the triple feeds the mint — not the rest of the tree, not the snapshot, not what
-another preset of the product happens to carry. Determined triple, determined id: one product
+Nothing but the triple feeds the mint — not the rest of the tree, not what another preset of
+the product happens to carry. Determined triple, determined id: one product
 carries one id and there is no second acceptable value for it, so any other value on a preset
-is a mismatch `--check` reports and `--generate` pulls back. Two *different* products whose
+is a mismatch `check` reports and `generate-id` pulls back. Two *different* products whose
 triples mint the same base62 value would be a collision (a roughly 36-bit id space against a
-few thousand products); nothing salts past it: `--check` reports it naming both products,
-`--generate` refuses to write it, and the remedy is a rename so their triples differ. Where
+few thousand products); nothing salts past it: `check` reports it naming both products,
+`generate-id` refuses to write it, and the remedy is a rename so their triples differ. Where
 two presets of one product would be AMS-ambiguous on a printer, the fix is likewise in the
 profiles — make their `compatible_printers` disjoint (structure rule 3), retire the redundant
 preset, or, if they really are different products, give them different names so their triples
@@ -212,80 +208,76 @@ Workflow for a new filament:
 
 ```bash
 # 1. Author the filament with NO filament_id key anywhere.
-python scripts/orca_id_tool.py --dry-run          # 2. preview the ids — writes nothing
-python scripts/orca_id_tool.py --generate         # 3. apply them to the profile file(s)
-python scripts/orca_id_tool.py --update-snapshot  # 4. record the new claims in the snapshot
-python scripts/orca_id_tool.py --check            # 5. validate the filament_id state
-python scripts/orca_extra_profile_check.py        # 6. ...and everything else CI checks
-# 7. Commit the profile edits together with scripts/filament_id_snapshot.json, for review.
+python scripts/orca_profile_tool.py generate-id --dry-run  # 2. preview the ids — writes nothing
+python scripts/orca_profile_tool.py generate-id           # 3. apply them to the profile file(s)
+python scripts/orca_profile_tool.py check                 # 4. validate — everything CI checks
 ```
 
-`--generate` makes every filament's id equal the mint of its own
+`generate-id` makes every filament's id equal the mint of its own
 `(filament_vendor, filament_type, filament name)` triple: it inserts one where an instantiated
 filament resolves none, and re-derives one that does not match. A preset that *inherits* a
-mismatching id is the one case left to the author — check 3b names it, and the fix is to inherit
+mismatching id is the one case left to the author — check 2b names it, and the fix is to inherit
 a preset of the same filament or to give the preset its own key. A declaration is left alone
-exactly when it already equals the one id its triple mints, and a collision (check 3d) is
+exactly when it already equals the one id its triple mints, and a collision (check 2d) is
 reported and left unwritten. The same run assigns
 `generate_preset_setting_id(vendor, type, name)` to every instantiated filament, process
 and machine preset of every vendor except BBL, which keeps its authoritative `G*` ids, strips
 `setting_id` from base profiles, and fixes the misspelled `settings_id` key — dropped, or, for
 BBL, whose ids have no formula to fall back on, restored under the correct name. It is idempotent and
 byte-preserving (indentation, BOM, and line endings intact, every edited file re-parsed to fail
-loudly), and a no-op on a tree that already passes `scripts/orca_extra_profile_check.py` — the
-check CI runs over both id kinds, of which `--check` is the `filament_id` half.
+loudly), and a no-op on a tree that already passes `check`.
 
 - `--filament-id` limits the run to `filament_id`.
 - `--setting-id` limits the run to `setting_id`. The two exclude each other; pass neither to
   write both.
 - `--vendor VENDOR` confines the run to that bundle; repeatable. The id is a function of the
-  triple alone, so a narrowed run writes exactly what a full one would; `--check` reports
+  triple alone, so a narrowed run writes exactly what a full one would; `check` reports
   whatever it left outside.
-- `--dry-run` reports what `--generate` would do and writes nothing; with no mode of its own it
-  implies `--generate`, so `--dry-run --vendor <Vendor>` previews just that bundle.
+- `--dry-run` reports what the run would do and writes nothing, so
+  `generate-id --dry-run --vendor <Vendor>` previews just that bundle.
 - `--profiles DIR` points the tooling at a different profile tree (default
-  `resources/profiles`). `--check` and `--update-snapshot` read and write the sanctioned state of
-  the tree they are given, so pointing them elsewhere needs `--snapshot PATH` for that tree too —
-  `scripts/filament_id_snapshot.json` describes `resources/profiles` and no other tree.
+  `resources/profiles`).
 
-**Identity fixes need no separate mode.** `--generate` re-derives an id that no longer matches its
-triple exactly the way it fills in a missing one, so a rename or a `filament_vendor` /
-`filament_type` correction is just: fix the config, run `--generate` (confine it with `--vendor`,
-preview it with `--dry-run`), then `--update-snapshot` and review the diff.
+The tool's other commands maintain the tree around the ids: `fix` normalises profile files,
+`trim` drops files no `<vendor>.json` list references, and `update-index` rebuilds those lists.
+They do not touch ids; `--help` documents them.
+
+**Identity fixes need no separate command.** `generate-id` re-derives an id that no longer matches
+its triple exactly the way it fills in a missing one, so a rename or a `filament_vendor` /
+`filament_type` correction is just: fix the config and run `generate-id` (confine it with
+`--vendor`, preview it with `--dry-run`).
 
 If you skip the tooling, CI fails and prints the remedy: the expected id for your filament and
-the instruction to run `python scripts/orca_id_tool.py --generate`; once the id is minted, the
-snapshot checks likewise point at `--update-snapshot` and tell you to commit the resulting
-diff.
+the instruction to run `python scripts/orca_profile_tool.py generate-id`.
 
-## Reserved namespaces — never mint or hand-write into
+## Ids other systems compose
 
-A **reserved namespace** is an id space no system profile may declare, because an external
-catalog or a device protocol owns the values. None of them has an owning vendor: there is no
-bundle — not even the one whose printers use the catalog — that may write one into a profile.
+Every filament profile carries a minted id, with no exceptions and no spellings held back for
+anyone. There is therefore no reserved namespace to respect and no bundle that owns one: an id
+some other system composes for its own purposes is simply not the mint of a triple, so it
+cannot be a system profile's `filament_id`, and the format check rejects it for that reason
+alone — same error, same remedy, whoever wrote it.
 
-| Space | Status | Rule |
-| --- | --- | --- |
-| `GF*` | Bambu AMS/RFID catalog | declarable by **nobody**, BBL included: Bambu's own ids live in the generated catalog map, never in a profile |
-| `QD_*` | Qidi device protocol | declarable by **nobody**, Qidi included: the box composes these ids at runtime and they are not preset ids |
-| `P` + 7 hex chars (case-insensitive), `"null"` | user-created custom filaments (`CreatePresetsDialog.cpp`) | never appears in system profiles |
+Three such spaces exist around us, and are worth recognising so nobody mistakes one for an id
+to copy into a profile:
 
-The two device namespaces, in detail:
-
-- **Bambu (`GF*`).** Bambu's device/RFID/cloud catalog is external and opaque, which is a
-  reason to keep it out of the profiles rather than to let one bundle own it. Every BBL filament
-  mints an `OF` id from its triple like every other vendor's, and the correspondence to Bambu's
-  catalog ids lives in one generated file the app applies at the printer boundary — the next
-  section. Nothing under `resources/profiles/**` carries a `GF*` id today and nothing can be
-  exempted, so a `GF*` id appearing anywhere in the tree is a mistake, whoever wrote it.
-- **Qidi (`QD_*`).** `QD_*` is a device-*protocol* namespace, not a preset id space: the
-  Qidi box path composes `QD_<series>_<vendor>_<typeidx>` ids at runtime (slot vendor and
-  type indices reported by the device, the series digit inferred client-side from the printer
-  model/name). Qidi presets carry ordinary minted `OF*` ids (generics share the OFL ids), so
-  a composed id matches no preset and the slot falls back to filament type; translating it to
-  the filament's id belongs in `QidiPrinterAgent`. The alternative — treating per-series
-  protocol ids as preset ids — would put one product under five ids (`QIDI PLA Rapido` would
-  be `QD_0_1_1` through `QD_4_1_1`), exactly the fragmentation the mint rule removes.
+- **Bambu's `GF*` catalog.** Bambu's device / RFID / cloud catalog is external and opaque. Every
+  BBL filament mints an `OF` id from its triple like every other vendor's, and the
+  correspondence to Bambu's catalog ids lives in one generated file the app applies at the
+  printer boundary — the next section. Note that `GF` is a *prefix*, not a namespace the tree
+  avoids: BBL's authoritative `setting_id` values include `GF`-prefixed ones, and
+  `resources/profiles/blacklist.json` and `BBL/filament/filaments_color_codes.json` both
+  reference Bambu catalog ids by design. The rule is about `filament_id` and nothing else.
+- **Qidi's `QD_*` protocol ids.** The Qidi box composes `QD_<series>_<vendor>_<typeidx>` at
+  runtime (slot vendor and type indices reported by the device, the series digit inferred
+  client-side from the printer model/name). Qidi presets carry ordinary minted `OF*` ids
+  (generics share the OFL ids), so a composed id matches no preset and the slot falls back to
+  filament type; translating it to the filament's id belongs in `QidiPrinterAgent`. Treating
+  per-series protocol ids as preset ids would put one product under five ids
+  (`QIDI PLA Rapido` would be `QD_0_1_1` through `QD_4_1_1`) — exactly the fragmentation the
+  mint rule removes.
+- **`P` + 7 hex chars, and `"null"`.** What `CreatePresetsDialog.cpp` gives a filament a *user*
+  creates. Those are user presets, not system profiles, and the two never meet in the tree.
 
 ## The Bambu catalog map
 
@@ -337,7 +329,7 @@ OrcaFilamentLibrary. **135 is the number to expect at every regeneration** — 1
 one-off size of the transition and stopped being computable from the tree once the BBL bundle
 was re-minted, so do not "fix" the report to print it.
 
-**Check 6** lives in `check_filament_ids`, so profile CI runs it alongside the other five. It
+**Check 4** lives in `check_filament_ids`, so profile CI runs it alongside the other three. It
 holds the file to its contract: it parses, carries `source` / `bambustudio_commit` /
 `generated`, keys only `OF`-format ids, maps each Bambu id at most once, and — for every row
 whose key the tree actually claims — agrees with the tree on that id's `(vendor, type, name)`
@@ -426,23 +418,14 @@ map would silently reproduce the bug.
 ## How CI enforces this
 
 Profile CI (`check_profiles.yml`) runs `check_filament_ids()` tree-wide via
-`scripts/orca_extra_profile_check.py`. Its ground truth is
-**`scripts/filament_id_snapshot.json` — the sanctioned state**: the id state derived from the
-tree must equal the snapshot exactly, in both directions. Any change to the id landscape
-therefore surfaces as a diff to that file, and **that snapshot diff is what maintainers review
-and gate in a PR**. Never edit the snapshot by hand — `--update-snapshot` regenerates it
-deterministically (running it twice changes nothing). The snapshot holds one map, `ids`: each
-entry is the product the id is minted from (`filament_vendor`, `filament_type`, `name`) and the
-`filaments` claiming it (`Vendor/Filament`), and it sanctions *state*, never exceptions: no check
-consults it to excuse a preset from a rule, and there is no grandfather list of any kind.
+`scripts/orca_profile_tool.py check`. Every check judges the tree against the rules on this
+page and nothing else — there is no recorded id state to match and no grandfather list of any
+kind.
 
 The checks, in brief:
 
-- **Format** — every id occurring in the tree is `OF` + 6 base62 chars. No exceptions: not a
-  snapshot entry, not BBL.
-- **Snapshot equality** — tree claims == snapshot claims **and** each id's declared triple ==
-  its snapshot entry, both directions: any `filament_vendor`/`filament_type`/name change
-  surfaces as a snapshot diff.
+- **Format** — every id occurring in the tree is `OF` + 6 base62 chars. No exceptions, not
+  even BBL.
 - **Identity** — the id is a function of the triple alone. A declared `OF*` id must equal the
   one id its declarer's own triple mints, with no second acceptable value; the id an
   instantiated preset *inherits* must equal the mint of *its* own triple, however it inherits
@@ -450,8 +433,6 @@ The checks, in brief:
   system filament must resolve an effective id at all (recall: an id-less one is a hard load
   error in C++ that discards the whole vendor bundle); and no two products mint one id (a
   base62 collision, resolved by renaming one of them). The errors print the expected id.
-- **Reserved namespaces** — `GF*`, `QD_*`, `P<7-hex>` or `"null"` claimed by any vendor,
-  BBL and Qidi included.
 - **Triple integrity** — every declarer must resolve a non-empty `filament_vendor` and
   `filament_type` (generics use `"Generic"`), and all declarers of one filament within a
   bundle must agree on the triple.
@@ -461,16 +442,14 @@ The checks, in brief:
   tree claims. See [The Bambu catalog map](#the-bambu-catalog-map); the remedy is always to
   regenerate, never to hand-edit.
 
-A profile that declares a **reserved-namespace** id — `GF*`, `QD_*` or `P<7-hex>`, whatever
-its vendor — cannot pass the format check, so `--update-snapshot` refuses to sanction it
-rather than hide the mistake until CI. For a Bambu-cataloged product, the catalog map is where
-the correspondence belongs. Any other new sharing via a *declared* id is caught by the identity
-check; sharing through inheritance carries no declaration to check and surfaces only as a new
-claim in the snapshot diff — which is exactly why that diff is the gate.
+A profile that declares an id no triple mints — a Bambu catalog id, a composed Qidi one, a
+hand-typed value, whatever its vendor — fails the format check. For a Bambu-cataloged product
+the catalog map is where the correspondence belongs. Two products sharing one id are caught by
+the identity check whether the id is declared or inherited.
 
-`orca_extra_profile_check.py` separately holds every declared id to the AMS 8-character limit,
-tree-wide and for every vendor alike, scoped to the presets a vendor's index actually
-references (a file the index never loads cannot break AMS matching).
+The same `check` run holds every declared id to the AMS 8-character limit, tree-wide and for
+every vendor alike, scoped to the presets a vendor's index actually references (a file the index
+never loads cannot break AMS matching).
 
 Complementing the Python checks, CI also runs the C++ profile validator with `-f`
 (`check_filament_subtypes`): it loads the bundle exactly as the app does and flags any printer
@@ -488,21 +467,21 @@ ambiguity check behind structure rule 3.
   `Generic PLA` base name, set `compatible_printers`; no id key needed.
 - **A branded filament that borrows a generic's settings?** Fine — inherit `Generic X @System`
   (or any real filament) for the settings and declare the id of your own filament; run
-  `python scripts/orca_id_tool.py --generate` to mint it. Inheritance never changes the id.
+  `python scripts/orca_profile_tool.py generate-id` to mint it. Inheritance never changes the id.
 - **I need to fix a filament's `filament_vendor` or `filament_type`.** Fix the config, run
-  `--generate --vendor <Vendor>` (preview with `--dry-run`), then `--update-snapshot`, and commit
-  the profile and snapshot diffs together. The id re-derives from the corrected identity, and
+  `generate-id --vendor <Vendor>` (preview with `--dry-run`), and commit the result. The id
+  re-derives from the corrected identity, and
   nothing forwards the old value, so a tray or record still holding it falls back to matching by
   filament type.
 - **I need to rename a filament.** Rename the presets (adding `renamed_from`, which keeps the
-  preset *name* resolving), then `--generate --vendor <Vendor>` (preview with `--dry-run`), then
-  `--update-snapshot`. The id follows the new filament name; as with any identity fix, the old id
+  preset *name* resolving), then `generate-id --vendor <Vendor>` (preview with `--dry-run`). The
+  id follows the new filament name; as with any identity fix, the old id
   is not forwarded.
-- **Can I reuse a `QD_*` id for a Qidi profile?** No — nobody can. It is the device protocol's
-  own id space: the box composes those values at runtime and no preset carries one. Author
-  Qidi filaments like any other vendor's.
-- **CI says my filament needs an id.** Run `python scripts/orca_id_tool.py --generate`, then
-  `--update-snapshot`, and commit both diffs. Do not type an id by hand.
+- **Can I reuse a `QD_*` id for a Qidi profile?** No — it is not a mint, so it is not a
+  `filament_id`. Those values are composed by the box at runtime, and no preset carries one.
+  Author Qidi filaments like any other vendor's.
+- **CI says my filament needs an id.** Run `python scripts/orca_profile_tool.py generate-id` and
+  commit the result. Do not type an id by hand.
 
 For general profile authoring, see the profile development guide on the
 [OrcaSlicer wiki](https://www.orcaslicer.com/wiki).
