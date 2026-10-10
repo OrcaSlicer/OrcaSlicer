@@ -2680,7 +2680,8 @@ int MachineObject::connect()
 {
     if (get_dev_ip().empty()) return -1;
     std::string username = m_agent ? m_agent->default_lan_username() : std::string();
-    std::string password = get_access_code();
+    // The stored access code may be the "no API key" sentinel; agents expect an empty credential.
+    std::string password = normalize_access_code(get_access_code());
 
     std::string port;
     std::string input = get_dev_ip();

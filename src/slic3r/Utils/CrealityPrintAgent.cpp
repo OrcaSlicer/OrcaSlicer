@@ -288,22 +288,27 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     return true;
 }
 
-bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
+bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)
 {
-    if (device_info.dev_ip.empty()) {
+    if (sync_mode != get_filament_sync_mode())
+        return false;
+
+    const MoonrakerDeviceInfo info = snapshot_device_info();
+
+    if (info.dev_ip.empty()) {
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent::fetch_filament_info: no device IP, falling back to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     // Build a CrealityPrint helper so we can use its model detection + WS helpers
     // (added in upstream PR #13291).
     DynamicPrintConfig cfg;
-    cfg.set_key_value("print_host",                  new ConfigOptionString("http://" + device_info.dev_ip));
+    cfg.set_key_value("print_host",                  new ConfigOptionString("http://" + info.dev_ip));
     cfg.set_key_value("print_host_webui",            new ConfigOptionString(""));
     cfg.set_key_value("printhost_cafile",            new ConfigOptionString(""));
     cfg.set_key_value("printhost_port",              new ConfigOptionString(""));
-    cfg.set_key_value("printhost_apikey",            new ConfigOptionString(device_info.api_key));
+    cfg.set_key_value("printhost_apikey",            new ConfigOptionString(info.api_key));
     cfg.set_key_value("printhost_ssl_ignore_revoke", new ConfigOptionBool(false));
 
     CrealityPrint host(&cfg);
@@ -313,7 +318,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: " << host.model_name()
             << " is not CFS-capable, deferring to base Moonraker agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     BOOST_LOG_TRIVIAL(info)
@@ -328,7 +333,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         BOOST_LOG_TRIVIAL(warning)
             << "CrealityPrintAgent: CFS query failed (" << parse_err << "), "
             << "falling back to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     if (box_count == 0) {
@@ -337,7 +342,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         // Moonraker exposes.
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: no active CFS boxes, deferring to base agent";
-        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id));
+        return MoonrakerPrinterAgent::fetch_filament_info(std::move(dev_id), sync_mode);
     }
 
     BOOST_LOG_TRIVIAL(info)
@@ -382,7 +387,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
         }
     }
 
-    build_ams_payload(box_count, max_slots - 1, trays);
+    build_ams_payload(box_count, max_slots - 1, trays, sync_mode == FilamentSyncMode::pull);
     return true;
 }
 
