@@ -216,6 +216,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoUtils.hpp
     GUI/GLCanvas3D.cpp
     GUI/GLCanvas3D.hpp
+    GUI/SequentialPrintClearance.hpp
     GUI/GLModel.cpp
     GUI/GLModel.hpp
     GUI/GLSelectionRectangle.cpp

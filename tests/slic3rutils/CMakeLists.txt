@@ -39,6 +39,7 @@ add_executable(${_TEST_NAME}_tests
     test_texture_color_palette.cpp
     test_file_url.cpp
     test_user_manager.cpp
+    test_sequential_clearance.cpp
     ../fff_print/test_helpers.cpp
     )
 
