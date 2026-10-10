@@ -1,0 +1,177 @@
+name: Build RPM (Fedora)
+
+on:
+  push:
+    branches:
+      - rpm
+      - main
+      - release/*
+    paths:
+      - 'deps/**'
+      - 'src/**'
+      - '**/CMakeLists.txt'
+      - 'version.inc'
+      - 'resources/**'
+      - 'packaging/rpm/**'
+      - '.github/workflows/build_rpm.yml'
+      - 'build_linux.sh'
+      - 'scripts/linux.d/fedora'
+
+  pull_request:
+    branches:
+      - main
+      - release/*
+    paths:
+      - 'deps/**'
+      - 'src/**'
+      - '**/CMakeLists.txt'
+      - 'version.inc'
+      - 'resources/**'
+      - 'packaging/rpm/**'
+      - '.github/workflows/build_rpm.yml'
+      - 'build_linux.sh'
+      - 'scripts/linux.d/fedora'
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_rpm:
+    name: Build Fedora RPM
+    runs-on: ubuntu-24.04
+    container:
+      image: fedora:43
+
+    env:
+      ver: ''
+      ver_pure: ''
+      rpm_version: ''
+      RPMBUILD_DIR: /github/home/rpmbuild
+
+    steps:
+      - name: Install git
+        run: dnf install -y git git-lfs nodejs
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: 'true'
+
+      - name: Get version
+        run: |
+          ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2 | sed 's/-dev//')
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            ver="PR-${{ github.event.number }}"
+          else
+            ver="V${ver_pure}"
+          fi
+          # RPM version must not contain hyphens; replace with tilde (RPM pre-release convention)
+          rpm_version=$(echo "${ver_pure}" | tr '-' '~')
+          echo "ver=${ver}" >> $GITHUB_ENV
+          echo "ver_pure=${ver_pure}" >> $GITHUB_ENV
+          echo "rpm_version=${rpm_version}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            autoconf \
+            automake \
+            cmake \
+            dbus-devel \
+            eglexternalplatform-devel \
+            extra-cmake-modules \
+            file \
+            gcc \
+            gcc-c++ \
+            gettext \
+            git \
+            gstreamer1-devel \
+            gstreamermm-devel \
+            gtk3-devel \
+            libmspack-devel \
+            libquadmath-devel \
+            libsecret-devel \
+            libspnav-devel \
+            libtool \
+            m4 \
+            mesa-libGLU-devel \
+            ninja-build \
+            openssl-devel \
+            perl-FindBin \
+            rpm-build \
+            texinfo \
+            wayland-protocols-devel \
+            webkit2gtk4.1-devel \
+            patchelf \
+            wget \
+            libcurl-devel
+
+      - name: Install CMake 3.28
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28.0"
+
+      - name: Compute deps hash
+        id: deps_hash
+        run: |
+          hash=$(find deps -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
+          echo "hash=${hash}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache dependencies
+        id: cache_deps
+        uses: actions/cache@v4
+        with:
+          path: deps/build/OrcaSlicer_dep
+          key: fedora43-cache-orcaslicer_deps-${{ steps.deps_hash.outputs.hash }}
+
+      - name: Build dependencies
+        if: steps.cache_deps.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p deps/build/destdir
+          ./build_linux.sh -dr
+        shell: bash
+
+      - name: Build OrcaSlicer
+        run: ./build_linux.sh -sr
+        shell: bash
+
+      - name: Prepare RPM build tree
+        run: |
+          mkdir -p ${{ env.RPMBUILD_DIR }}/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          # Stage built artifacts under BUILD so the spec %install can reference them
+          cp -a build/package/. ${{ env.RPMBUILD_DIR }}/BUILD/package/
+          cp -a resources       ${{ env.RPMBUILD_DIR }}/BUILD/resources
+          mkdir -p ${{ env.RPMBUILD_DIR }}/BUILD/src/dev-utils
+          cp -a src/dev-utils/. ${{ env.RPMBUILD_DIR }}/BUILD/src/dev-utils/
+          # Copy spec into SPECS
+          cp packaging/rpm/orca-slicer.spec ${{ env.RPMBUILD_DIR }}/SPECS/
+        shell: bash
+
+      - name: Build RPM
+        run: |
+          rpmbuild -bb \
+            --define "_topdir ${{ env.RPMBUILD_DIR }}" \
+            --define "src_artifacts ${{ env.RPMBUILD_DIR }}/BUILD" \
+            --define "rpm_version ${{ env.rpm_version }}" \
+            ${{ env.RPMBUILD_DIR }}/SPECS/orca-slicer.spec
+        shell: bash
+
+      - name: Collect RPM
+        run: |
+          rpm_path=$(find ${{ env.RPMBUILD_DIR }}/RPMS -name "*.rpm" | head -1)
+          rpm_name=$(basename "$rpm_path")
+          cp "$rpm_path" .
+          echo "rpm_name=${rpm_name}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrcaSlicer_Fedora_${{ env.ver }}
+          path: ${{ env.rpm_name }}
+          if-no-files-found: error
