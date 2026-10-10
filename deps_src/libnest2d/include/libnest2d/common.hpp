@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <limits>
 
-#define MAX_NUM_PLATES 36
+#define MAX_NUM_PLATES 100
 
 #if defined(_MSC_VER) &&  _MSC_VER <= 1800 || __cplusplus < 201103L
     #define BP2D_NOEXCEPT
@@ -204,27 +204,27 @@ struct ScalarTag {};
 struct BigIntTag {};
 struct RationalTag {};
 
-template<class T> struct _NumTag { 
-    using Type = 
-        enable_if_t<std::is_arithmetic<T>::value, ScalarTag>; 
+template<class T> struct _NumTag {
+    using Type =
+        enable_if_t<std::is_arithmetic<T>::value, ScalarTag>;
 };
 
 template<class T> using NumTag = typename _NumTag<remove_cvref_t<T>>::Type;
 
 /// A local version for abs that is garanteed to work with libnest2d types
-template <class T> inline T abs(const T& v, ScalarTag) 
-{ 
-    return std::abs(v); 
+template <class T> inline T abs(const T& v, ScalarTag)
+{
+    return std::abs(v);
 }
 
 template<class T> inline T abs(const T& v) { return abs(v, NumTag<T>()); }
 
-template<class T2, class T1> inline T2 cast(const T1& v, ScalarTag, ScalarTag) 
+template<class T2, class T1> inline T2 cast(const T1& v, ScalarTag, ScalarTag)
 {
-    return static_cast<T2>(v);    
+    return static_cast<T2>(v);
 }
 
-template<class T2, class T1> inline T2 cast(const T1& v) { 
+template<class T2, class T1> inline T2 cast(const T1& v) {
     return cast<T2, T1>(v, NumTag<T1>(), NumTag<T2>());
 }
 
