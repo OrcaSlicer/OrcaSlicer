@@ -25,6 +25,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <set>
+#include <string>
 #include <cstdlib>
 #include <functional>
 #include <memory>
@@ -1286,6 +1287,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //new_full_config.normalize_fdm(used_filaments);
     new_full_config.normalize_fdm_1();
+    // Orca: used_filaments and objects() still describe the previous model. The check after the
+    // region update normalizes this copy again by the current ones.
+    DynamicPrintConfig unnormalized_config = new_full_config;
     t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(objects().size(), used_filaments.size());
     if (changed_keys.size() > 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got changed_keys, size=%1%")%changed_keys.size();
@@ -1946,53 +1950,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
     }
 
-    //BBS: check the config again
-    int new_used_filaments = this->extruders(true).size();
-    t_config_option_keys new_changed_keys = new_full_config.normalize_fdm_2(objects().size(), new_used_filaments);
-    if (new_changed_keys.size() > 0) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got new_changed_keys, size=%1%")%new_changed_keys.size();
-        for (int i = 0; i < new_changed_keys.size(); i++)
-        {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %new_changed_keys[i];
-        }
-
-        update_apply_status(false);
-
-        // The following call may stop the background processing.
-        update_apply_status(this->invalidate_state_by_config_options(new_full_config, new_changed_keys));
-
-        update_apply_status(this->invalidate_step(psGCodeExport));
-
-        if (full_config_diff.empty()) {
-            //BBS: previous empty
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: full_config_diff previous empty, need to apply now.")%__LINE__;
-
-            m_placeholder_parser.clear_config();
-            // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
-            m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
-            // Set the profile aliases for the PrintBase::output_filename()
-            m_placeholder_parser.set("print_preset",              new_full_config.option("print_settings_id")->clone());
-            m_placeholder_parser.set("filament_preset",           new_full_config.option("filament_settings_id")->clone());
-            m_placeholder_parser.set("printer_preset",            new_full_config.option("printer_settings_id")->clone());
-
-            //m_placeholder_parser.apply_config(filament_overrides);
-        }
-        // It is also safe to change m_config now after this->invalidate_state_by_config_options() call.
-        m_config.apply_only(new_full_config, new_changed_keys, true);
-        // Handle changes to object config defaults
-        m_default_object_config.apply_only(new_full_config, new_changed_keys, true);
-        // Handle changes to regions config defaults
-        m_default_region_config.apply_only(new_full_config, new_changed_keys, true);
-        // Orca: keep the pre-expansion snapshot in sync with this late normalization pass.
-        // The engine map write-back rebuilds m_full_print_config from m_ori_full_print_config
-        // after slicing; a stale snapshot would resurrect the un-normalized values (e.g.
-        // enable_prime_tower on a single-filament print) in the dumped config and spuriously
-        // re-invalidate the g-code on the next apply.
-        m_ori_full_print_config.apply_only(new_full_config, new_changed_keys, true);
-        m_full_print_config = std::move(new_full_config);
-        update_filament_self_index_cache();
-    }
-
     // Per-part gradient: compute the per-slot enable bit vector once for this Print::apply pass.
     // Used by generate_print_object_regions to decide which volumes deserve their own PrintRegion.
     std::vector<bool> slot_per_part_enabled;
@@ -2139,6 +2096,59 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                         print_region->m_print_region_id = (*it)->print_region_id();
                     }
             }
+    }
+
+    //BBS: check the config again
+    int new_used_filaments = this->extruders(true).size();
+    t_config_option_keys new_changed_keys = unnormalized_config.normalize_fdm_2(objects().size(), new_used_filaments);
+    // Compare both passes with what was applied above, so a key disabled there can be enabled again.
+    append(new_changed_keys, changed_keys);
+    new_changed_keys.erase(std::remove_if(new_changed_keys.begin(), new_changed_keys.end(), [&](const std::string &key) {
+        return *new_full_config.option(key) == *unnormalized_config.option(key);
+    }), new_changed_keys.end());
+    new_full_config.apply_only(unnormalized_config, new_changed_keys);
+    if (new_changed_keys.size() > 0) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got new_changed_keys, size=%1%")%new_changed_keys.size();
+        for (int i = 0; i < new_changed_keys.size(); i++)
+        {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %new_changed_keys[i];
+        }
+
+        update_apply_status(false);
+
+        // The following call may stop the background processing.
+        update_apply_status(this->invalidate_state_by_config_options(new_full_config, new_changed_keys));
+
+        update_apply_status(this->invalidate_step(psGCodeExport));
+
+        if (full_config_diff.empty()) {
+            //BBS: previous empty
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: full_config_diff previous empty, need to apply now.")%__LINE__;
+
+            m_placeholder_parser.clear_config();
+            // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
+            m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
+            // Set the profile aliases for the PrintBase::output_filename()
+            m_placeholder_parser.set("print_preset",              new_full_config.option("print_settings_id")->clone());
+            m_placeholder_parser.set("filament_preset",           new_full_config.option("filament_settings_id")->clone());
+            m_placeholder_parser.set("printer_preset",            new_full_config.option("printer_settings_id")->clone());
+
+            //m_placeholder_parser.apply_config(filament_overrides);
+        }
+        // It is also safe to change m_config now after this->invalidate_state_by_config_options() call.
+        m_config.apply_only(new_full_config, new_changed_keys, true);
+        // Handle changes to object config defaults
+        m_default_object_config.apply_only(new_full_config, new_changed_keys, true);
+        // Handle changes to regions config defaults
+        m_default_region_config.apply_only(new_full_config, new_changed_keys, true);
+        // Orca: keep the pre-expansion snapshot in sync with this late normalization pass.
+        // The engine map write-back rebuilds m_full_print_config from m_ori_full_print_config
+        // after slicing; a stale snapshot would resurrect the un-normalized values (e.g.
+        // enable_prime_tower on a single-filament print) in the dumped config and spuriously
+        // re-invalidate the g-code on the next apply.
+        m_ori_full_print_config.apply_only(new_full_config, new_changed_keys, true);
+        m_full_print_config = std::move(new_full_config);
+        update_filament_self_index_cache();
     }
 
     // Update SlicingParameters for each object where the SlicingParameters is not valid.

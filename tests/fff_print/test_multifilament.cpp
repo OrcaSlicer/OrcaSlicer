@@ -20,6 +20,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintBase.hpp"
 #include <limits>
 #include <optional>
 #include <regex>
@@ -1083,5 +1084,31 @@ TEST_CASE("Each filament cools with the fan speeds of its extruder variant", "[M
         CHECK(fan_speeds(gcode, "M106 S") == std::set<int>{ fast_layers ? fan_max_speed : fan_min_speed });
         CHECK(fan_speeds(gcode, "M106 P2 S") == std::set<int>{ additional_fan_speed });
         CHECK(gcode.find("; start range high " + std::to_string(range_high) + "\n") != std::string::npos);
+    }
+}
+
+// An object moved onto a second filament makes the plate need a prime tower, and moving it back
+// makes the tower unnecessary again. One apply has to settle each move, so that applying the same
+// model once more leaves the print untouched.
+TEST_CASE("The prime tower follows an object switching filaments within one apply", "[MultiFilament]")
+{
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",               1 },
+        { "independent_support_layer_height", 1 },
+        { "gcode_comments",                   1 }, // init_print sets it, so re-applying config differs in nothing else
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config);
+    REQUIRE_FALSE(print.config().enable_prime_tower.value); // both objects on filament 1
+
+    for (const int filament : { 2, 1 }) {
+        INFO("second object moved to filament " << filament);
+        model.objects.back()->config.set("extruder", filament);
+        print.apply(model, config);
+        const bool two_filaments = filament == 2;
+        CHECK(print.config().enable_prime_tower.value == two_filaments);
+        CHECK(print.config().independent_support_layer_height.value != two_filaments);
+        CHECK(print.apply(model, config) == PrintBase::APPLY_STATUS_UNCHANGED);
     }
 }

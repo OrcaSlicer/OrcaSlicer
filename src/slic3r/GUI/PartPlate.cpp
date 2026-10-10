@@ -3721,9 +3721,6 @@ int PartPlate::load_gcode_from_file(const std::string& filename)
 	DynamicPrintConfig full_config   = preset_bundle->full_config(false, filament_maps, f_volume_maps);
 	full_config.apply(m_config, true);
 	m_print->apply(*m_model, full_config, false);
-	//BBS: need to apply two times, for after the first apply, the m_print got its object,
-	//which will affect the config when new_full_config.normalize_fdm(used_filaments);
-	m_print->apply(*m_model, full_config, false);
 
 	// BBS: use backup path to save temp gcode
     // auto path = get_tmp_gcode_path();
