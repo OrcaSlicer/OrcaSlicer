@@ -33,6 +33,7 @@
 #include <wx/string.h>
 #include <wx/event.h>
 #include <cstddef>
+#include <functional>
 #include <boost/filesystem/path.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
@@ -363,7 +364,7 @@ wxBitmap SettingsFactory::get_category_bitmap(const std::string& category_name, 
 //-------------------------------------
 
 // Note: id accords to type of the sub-object (adding volume), so sequence of the menu items is important
-static const constexpr std::array<std::pair<const char *, const char *>, 11> ADD_VOLUME_MENU_ITEMS = {{
+static const constexpr std::array<std::pair<const char *, const char *>, 12> ADD_VOLUME_MENU_ITEMS = {{
     //       menu_item Name              menu_item bitmap name
         {L("Add Part"),              "menu_add_part" },           // ~ModelVolumeType::MODEL_PART
         {L("Add Negative Part"),     "menu_add_negative" },       // ~ModelVolumeType::NEGATIVE_VOLUME
@@ -377,6 +378,7 @@ static const constexpr std::array<std::pair<const char *, const char *>, 11> ADD
         {L("Add Precise Seam"),      "menu_precise_seam_enforced"},   // ~ModelVolumeType::PRECISE_SEAM_ENFORCED
         {L("Add Precise Seam"),      "menu_precise_seam_blocked"},    // ~ModelVolumeType::PRECISE_SEAM_BLOCKED
         {L("Add Precise Seam"),      "menu_precise_seam_neutral"},    // ~ModelVolumeType::PRECISE_SEAM_NEUTRAL
+        {L("Add Painted Modifier"),  "menu_add_painted_modifier"},    // ~ModelVolumeType::PAINTED_MODIFIER
 }};
 
 // Note: id accords to type of the sub-object (adding volume), so sequence of the menu items is important
@@ -778,6 +780,9 @@ void MenuFactory::append_menu_items_add_volume(wxMenu* menu)
         if (type >= int(ModelVolumeType::PRECISE_SEAM_LEFT) &&
             type <= int(ModelVolumeType::PRECISE_SEAM_NEUTRAL))
             continue;
+        // Added next to the mesh modifiers below, as it has no shape to choose.
+        if (type == int(ModelVolumeType::PAINTED_MODIFIER))
+            continue;
 
         auto& item = ADD_VOLUME_MENU_ITEMS[type];
 
@@ -789,9 +794,19 @@ void MenuFactory::append_menu_items_add_volume(wxMenu* menu)
         wxMenu* sub_menu = append_submenu_add_generic(menu, ModelVolumeType(type));
         append_submenu(menu, sub_menu, wxID_ANY, _(item.first), "", icon_name,
             []() { return obj_list()->is_instance_or_object_selected(); }, m_parent);
+
+        if (type == int(ModelVolumeType::PARAMETER_MODIFIER))
+            append_menu_item_add_painted_modifier(menu, []() { return obj_list()->is_instance_or_object_selected(); });
     }
 
     append_menu_item_layers_editing(menu);
+}
+
+wxMenuItem* MenuFactory::append_menu_item_add_painted_modifier(wxMenu* menu, std::function<bool()> enable_condition)
+{
+    const auto &item = ADD_VOLUME_MENU_ITEMS[int(ModelVolumeType::PAINTED_MODIFIER)];
+    return append_menu_item(menu, wxID_ANY, _(item.first), _L("Add a modifier whose shape is painted on the part"),
+        [](wxCommandEvent&) { obj_list()->add_painted_modifier(); }, item.second, menu, enable_condition, m_parent);
 }
 
 wxMenuItem* MenuFactory::append_menu_item_layers_editing(wxMenu* menu)
@@ -1806,6 +1821,10 @@ void MenuFactory::create_bbl_part_menu()
     wxMenu* menu = &m_part_menu;
 
     append_menu_item_delete(menu);
+    append_menu_item_add_painted_modifier(menu, []() {
+        const ModelVolume *volume = obj_list()->get_selected_model_volume();
+        return volume != nullptr && volume->is_model_part();
+    });
     append_menu_item_edit_text(menu);
     append_menu_item_fix_through_cgal(menu);
     append_menu_item_simplify(menu);
@@ -1833,6 +1852,23 @@ void MenuFactory::create_bbl_part_menu()
     append_menu_item_reload_from_disk(menu);
     append_menu_item_replace_with_stl(menu);
     append_menu_item_replace_all_with_stl(menu);
+}
+
+void MenuFactory::create_painted_modifier_menu()
+{
+    wxMenu* menu = &m_painted_modifier_menu;
+
+    append_menu_item(menu, wxID_ANY, _L("Edit Painting"), _L("Paint the area of the selected painted modifier"),
+        [](wxCommandEvent&) {
+            if (const ModelVolume *volume = obj_list()->get_selected_model_volume(); volume != nullptr && volume->is_painted_modifier())
+                obj_list()->open_painted_modifier_tool(*volume);
+        }, "", menu);
+    append_menu_item_rename(menu);
+    // The scene selects the whole instance while a painted modifier is selected, so delete through the list.
+    append_menu_item(menu, wxID_ANY, _L("Delete"), _L("Delete the selected painted modifier"),
+        [](wxCommandEvent&) { obj_list()->remove(); }, "menu_delete", menu);
+    menu->AppendSeparator();
+    append_menu_item_per_object_process(menu);
 }
 
 void MenuFactory::create_bbl_assemble_part_menu()
@@ -2009,6 +2045,7 @@ void MenuFactory::init(wxWindow* parent)
     create_svg_part_menu();
     create_extra_object_menu();
     create_bbl_part_menu();
+    create_painted_modifier_menu();
     create_bbl_assemble_object_menu();
     create_bbl_assemble_part_menu();
 
@@ -2061,6 +2098,12 @@ wxMenu* MenuFactory::part_menu()
     append_menu_item_precise_seam_submenu(&m_part_menu);
     append_menu_item_per_object_settings(&m_part_menu);
     return &m_part_menu;
+}
+
+wxMenu* MenuFactory::painted_modifier_menu()
+{
+    append_menu_item_change_filament(&m_painted_modifier_menu);
+    return &m_painted_modifier_menu;
 }
 
 wxMenu* MenuFactory::text_part_menu()
@@ -2411,7 +2454,7 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
 
     if (sels.Count() == 1) {
         const auto sel_vol = obj_list()->get_selected_model_volume();
-        if (sel_vol && sel_vol->type() != ModelVolumeType::MODEL_PART && sel_vol->type() != ModelVolumeType::PARAMETER_MODIFIER)
+        if (sel_vol && ! sel_vol->is_model_part() && ! sel_vol->is_region_modifier())
             return;
     }
 
@@ -2431,7 +2474,7 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
         const ModelConfig& config = obj_list()->get_item_config(sels[0]);
         // BBS
         const auto sel_vol = obj_list()->get_selected_model_volume();
-        if (sel_vol && sel_vol->type() == ModelVolumeType::PARAMETER_MODIFIER)
+        if (sel_vol && sel_vol->is_region_modifier())
             initial_extruder = config.has("extruder") ? config.extruder() : 0;
         else
             initial_extruder = config.has("extruder") ? config.extruder() : 1;
@@ -2440,7 +2483,8 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
     // BBS
     bool has_modifier = false;
     for (auto sel : sels) {
-        if (obj_list()->GetModel()->GetVolumeType(sel) == ModelVolumeType::PARAMETER_MODIFIER) {
+        if (const ModelVolumeType type = obj_list()->GetModel()->GetVolumeType(sel);
+            type == ModelVolumeType::PARAMETER_MODIFIER || type == ModelVolumeType::PAINTED_MODIFIER) {
             has_modifier = true;
             break;
         }

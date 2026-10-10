@@ -1036,6 +1036,7 @@ public:
     wxMenu* part_menu();
     wxMenu* text_part_menu();
     wxMenu* svg_part_menu();
+    wxMenu* painted_modifier_menu();
     wxMenu* sla_object_menu();
     wxMenu* default_menu();
     wxMenu* instance_menu();

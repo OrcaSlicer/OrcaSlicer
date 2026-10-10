@@ -128,6 +128,9 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                 on_progress(_u8L("Repairing model object"), 10);
 
                 ModelVolume *volume = model_object.volumes[ivolume];
+                // A painted modifier follows the mesh of its host.
+                if (volume->is_painted_modifier())
+                    continue;
 
                 // Orca: Split splittable volumes into parts for individual processing.
                 size_t parts_count = 1;
