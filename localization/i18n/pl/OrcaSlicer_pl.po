@@ -39217,3 +39217,7 @@ msgstr "Maks. liczba punktów: %d."
 msgid "The curve contains too many points."
 msgstr "Krzywa zawiera za dużo punktów."
 
+# AI Translated
+msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
+msgstr "Touchpad: dwa palce przesuwają wykres w obu kierunkach. Szczypanie skaluje obie osie wokół wskaźnika."
+
