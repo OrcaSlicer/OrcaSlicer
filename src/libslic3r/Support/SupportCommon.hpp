@@ -7,6 +7,8 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
+#include "../Point.hpp"
+#include "../libslic3r.h"
 #include <utility>
 #include <algorithm>
 #include <vector>
@@ -151,6 +153,16 @@ int idx_lower_or_equal(const std::vector<T*> &vec, int idx, FN_LOWER_EQUAL fn_lo
 {
     return idx_lower_or_equal(vec.begin(), vec.end(), idx, fn_lower_equal);
 }
+
+// Belt floor: compute the belt-side half-plane polygon at a given print_z.
+// Used to clip support polygons against the belt surface.
+Polygons belt_floor_surface_polygon(
+    const SlicingParameters &slicing_params, const PrintConfig &print_config,
+    const PrintObject &object, coordf_t print_z);
+
+// Build plate tilt: XY drift of gravity per unit of layer height, zero on a level plate.
+// The tilt is capped below 90 degrees to keep the drift finite.
+Vec2d build_plate_tilt_slope(const PrintConfig &print_config);
 
 } // namespace Slic3r
 

@@ -30,6 +30,7 @@
 #include <set>
 #include "slic3r/GUI/MeshUtils.hpp"
 #include <string>
+#include <tuple>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -116,6 +117,9 @@ public:
 
             bool is_visible() const { return m_visible; }
             void set_visible(bool visible) { m_visible = visible; }
+            // What a marker looks like when no IDEX/IQEX carriage colour applies to it.
+            static ColorRGBA default_color() { return { 1.0f, 1.0f, 1.0f, 0.5f }; }
+            void set_color(const ColorRGBA& color) { m_model.set_color(color); }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
             void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
@@ -164,6 +168,7 @@ public:
         };
 
         Marker marker;
+        std::vector<Marker> m_imex_secondary_markers; // one per active secondary carriage in IDEX/IQEX mode
         GCodeWindow gcode_window;
         float m_scale = 1.0;
         bool m_show_marker = false;
@@ -199,6 +204,10 @@ private:
     std::vector<int> m_plater_extruder;
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
+    // Belt printers: the view the loaded result was converted for (see load_as_gcode).
+    bool m_last_belt_show_designed{ true };
+    // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
+    std::vector<double> m_belt_layer_zs;
     //BBS: save m_gcode_result as well
     const GCodeProcessorResult* m_gcode_result;
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
@@ -219,10 +228,100 @@ private:
     //BBS: add shell bounding box
     BoundingBoxf3 m_shell_bounding_box;
     float m_max_print_height{ 0.0f };
+    bool  m_machine_frame_transform_active{ false };
     float m_z_offset{ 0.0f };
 
     ConfigOptionMode m_user_mode;
     bool m_fold = {false};
+    std::string m_marker_filename;      // cached for lazy secondary marker init
+
+    // IDEX/IQEX: everything render_scene() needs to place the secondary carriage markers and the
+    // toolhead footprint boxes, resolved from the printer preset, the active mode and the
+    // plate bed. Resolving it walks the mode string through compute_imex_zone_layout()
+    // (several string parses plus a zone-grid rebuild), and none of its inputs change
+    // between frames, so it is resolved once per input change -- see ImexMarkerKey -- and
+    // replayed on every other frame.
+    struct ImexMarkerPlan
+    {
+        // One entry per secondary carriage that owns a zone, in marker order. Each axis
+        // either TRACKS the primary (pos + term) or MIRRORS it about the boundary the two
+        // zones share (term - pos); which of the two, and the term itself, depend only on
+        // the zone geometry, so both are resolved up front.
+        struct Carriage
+        {
+            int   phys_head    = -1;   // physical head this carriage is, for its filament colour
+            bool  mirror_x     = false;
+            bool  mirror_y     = false;
+            float x_term       = 0.0f;
+            float y_term       = 0.0f;
+            float box_offset_x = 0.0f;
+            float box_offset_y = 0.0f;
+        };
+        std::vector<Carriage> carriages;        // empty => no secondary carriages to draw
+        int   pri_head = -1;                    // the primary's physical head, same purpose
+        float pri_box_offset_x = 0.0f;
+        float pri_box_offset_y = 0.0f;
+        float box_wx = 0.0f;                    // imex_nozzle_clearance_x / _y
+        float box_wy = 0.0f;
+    };
+
+    // Invalidation key for the plan above: every input the plan is derived from, and
+    // nothing that changes between frames. A stale plan would put the preview markers
+    // somewhere the plate's own zones and ghosts do not agree with, which is exactly the
+    // drift the shared layout call exists to prevent -- so this deliberately mirrors
+    // PartPlate::build_imex_cache_key(). The two keys are not field-for-field identical, and
+    // the differences are deliberate rather than incidental:
+    //   - bed extents and plate_index are here and not there. Zone centres scale with the
+    //     extents, and one preview serves every plate, so the preview must key what the plate
+    //     gets for free -- it re-bakes on set_shape() and is keyed by being that plate.
+    //   - mode_names / mode_active_tools hold the printer's WHOLE mode table; the plate resolves
+    //     one active mode and keys that roster plus its primary head. Same information reached
+    //     two ways, so a change to the active mode moves both keys.
+    //   - imex_carriage_margin is there and not here: it only sizes the plate's advisory bands,
+    //     which the preview never draws.
+    // imex_tool_layout is in both, which the plate's key gained for the reason this one has it:
+    // the T0-corner flip moves every zone rectangle while nothing else keyed changes.
+    struct ImexMarkerKey
+    {
+        // Scalar half. Built fresh on the stack each frame -- it allocates nothing -- and
+        // compared as a tuple.
+        struct Scalars
+        {
+            int    plate_index      = -1;
+            int    gantry_count     = 0;
+            int    tools_per_gantry = 0;
+            int    tool_layout      = -1;
+            double clearance_x      = 0.0;
+            double clearance_y      = 0.0;
+            bool   firmware_managed = false;
+            double bed_min_x = 0.0, bed_min_y = 0.0, bed_max_x = 0.0, bed_max_y = 0.0;
+
+            auto tied() const {
+                return std::tie(plate_index, gantry_count, tools_per_gantry, tool_layout,
+                                clearance_x, clearance_y, firmware_managed,
+                                bed_min_x, bed_min_y, bed_max_x, bed_max_y);
+            }
+            bool operator==(const Scalars& rhs) const { return tied() == rhs.tied(); }
+        };
+        Scalars s;
+        // Resolved active mode (the plate's mode beats the process preset), plus the printer
+        // preset's whole mode table. The name alone is not identity: two presets can carry
+        // the same mode name over different tool rosters, and editing a roster in place
+        // moves neither the name nor any scalar above. Compared by value, never copied
+        // unless something actually changed.
+        std::string              mode;
+        std::vector<std::string> mode_names;
+        std::vector<std::string> mode_active_tools;
+    };
+    ImexMarkerKey  m_imex_marker_key;
+    ImexMarkerPlan m_imex_marker_plan;
+    static ImexMarkerPlan resolve_imex_marker_plan(const DynamicPrintConfig& printer_cfg,
+                                                   const std::string&        mode,
+                                                   const BoundingBoxf&       bed_extents);
+
+    GLModel     m_imex_toolhead_box;    // shared box mesh for all carriage footprint overlays
+    float       m_imex_box_mesh_wx{ 0.0f };  // clearance dimensions m_imex_toolhead_box was built for
+    float       m_imex_box_mesh_wy{ 0.0f };
 
     size_t m_extruders_count;
     std::vector<float> m_filament_diameters;
@@ -255,10 +354,19 @@ private:
     GCodeProcessorResult::SettingsIds m_settings_ids;
 
     std::vector<CustomGCode::Item> m_custom_gcode_per_print_z;
+    GCodeProcessorResult::ObjectMass              m_plate_mass;
+    std::vector<GCodeProcessorResult::ObjectMass> m_object_masses;
+    std::vector<GCodeProcessorResult::ObjectMass> m_body_masses;
+    std::vector<GCodeProcessorResult::ObjectMass> m_support_masses;
 
     bool m_contained_in_bed{ true };
 mutable bool m_no_render_path { false };
     bool m_is_dark = false;
+
+    bool  m_belt_view_enabled = false;
+    bool  m_belt_show_designed = true;   // Designed (upright, back-transformed) view by default; off shows
+                                         // the raw machine-frame G-code (canvas view menu, hotkey B).
+    float m_belt_angle_deg = 0.f;
 
     libvgcode::Viewer m_viewer;
     // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
@@ -292,7 +400,7 @@ public:
     //BBS: add all plates filament statistics
     void render_all_plates_stats(const std::vector<const GCodeProcessorResult*>& gcode_result_list, bool show = true) const;
     //BBS: GUI refactor: add canvas width and height
-    // Shells, toolpaths and the sequential marker, drawn in 3D.
+    // Shells, toolpaths, the sequential markers and the IDEX/IQEX toolhead boxes, drawn in 3D.
     void render_scene(int canvas_width, int canvas_height);
     // Legend, sliders, the marker's position window and the G-code window, all ImGui.
     void render_overlay(int canvas_width, int canvas_height, int right_margin);
@@ -316,10 +424,15 @@ public:
     std::vector<int> get_plater_extruder();
 
     const float                get_max_print_height() const { return m_max_print_height; }
+    bool                       is_machine_frame_transform_active() const { return m_machine_frame_transform_active; }
     const BoundingBoxf3& get_paths_bounding_box() const { return m_paths_bounding_box; }
     const BoundingBoxf3& get_max_bounding_box() const { return m_max_bounding_box; }
     const BoundingBoxf3& get_shell_bounding_box() const { return m_shell_bounding_box; }
     std::vector<double> get_layers_zs() const {
+        // Belt printers: the layer Z the slider labels and the colour-change ticks
+        // use is the layer's print Z (see load_as_gcode), not a toolpath height.
+        if (! m_belt_layer_zs.empty())
+            return m_belt_layer_zs;
         const std::vector<float> zs = m_viewer.get_layers_zs();
         std::vector<double> ret;
         std::transform(zs.begin(), zs.end(), std::back_inserter(ret), [](float z) { return static_cast<double>(z); });
@@ -328,6 +441,10 @@ public:
     std::vector<float> get_layers_times() const { return m_viewer.get_layers_estimated_times(); }
 
     const std::array<size_t,2> &get_layers_z_range() const { return m_viewer.get_layers_view_range(); }
+    const GCodeProcessorResult::ObjectMass&              get_plate_mass() const { return m_plate_mass; }
+    const std::vector<GCodeProcessorResult::ObjectMass>& get_object_masses() const { return m_object_masses; }
+    const std::vector<GCodeProcessorResult::ObjectMass>& get_body_masses() const { return m_body_masses; }
+    const std::vector<GCodeProcessorResult::ObjectMass>& get_support_masses() const { return m_support_masses; }
     size_t get_vertices_count() const { return m_viewer.get_vertices_count(); }
     size_t get_layers_count() const { return m_viewer.get_layers_count(); }
     // ORCA: realistic view. Changes whenever the toolpaths casting shadows do.
@@ -394,6 +511,11 @@ public:
     float get_legend_height() { return m_legend_height; }
 
     void export_toolpaths_to_obj(const char* filename) const;
+
+    void set_belt_printer(bool enabled, float angle_deg) { m_belt_view_enabled = enabled; m_belt_angle_deg = angle_deg; }
+    bool is_belt_view() const { return m_belt_view_enabled && m_belt_angle_deg > 0.f; }
+    void toggle_belt_show_designed() { if (m_belt_view_enabled) m_belt_show_designed = !m_belt_show_designed; }
+    bool is_belt_show_designed() const { return m_belt_show_designed; }
 
     size_t get_extruders_count() { return m_extruders_count; }
     void push_combo_style();

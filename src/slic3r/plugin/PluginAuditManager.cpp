@@ -351,8 +351,20 @@ std::vector<std::string> PluginAuditManager::default_denied_path_keywords()
     // must never be able to reach a secret, a certificate, or a configuration file just because
     // it happens to live inside an otherwise-allowed root (e.g. the bundled TLS client cert at
     // resources_dir()/cert/..., which would become reachable the moment resources_dir() is
-    // granted as a read-only allowed root).
-    return {"secret", "cert", "conf"};
+    // granted as a read-only allowed root). Match as whole path components, not substrings, so
+    // imports such as numpy/__config__.py and stdlib configparser.py remain usable.
+    return {"secret", "secrets", "cert", "certs", "certificate", "certificates", "conf", "config"};
+}
+
+static bool has_denied_config_extension(std::string name)
+{
+    const size_t stream_pos = name.find(':');
+    if (stream_pos != std::string::npos)
+        name.erase(stream_pos);
+
+    const boost::filesystem::path path(name);
+    const std::string extension = path.extension().string();
+    return extension == ".conf" || extension == ".ini";
 }
 
 bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& candidate) const
@@ -377,7 +389,7 @@ bool PluginAuditManager::is_denied_path_keyword(const boost::filesystem::path& c
             continue;
         std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
         for (const auto& keyword : m_denied_path_keywords) {
-            if (name.find(keyword) != std::string::npos)
+            if (name == keyword || (keyword == "conf" && has_denied_config_extension(name)))
                 return true;
         }
     }
@@ -810,7 +822,8 @@ bool persist_permission(const std::string&        plugin_key,
 
 int report_denied(PluginAuditManager&            mgr,
                   const std::string&             event_name,
-                  const AuditDecision&           decision)
+                  const AuditDecision&           decision,
+                  const std::string&             target = {})
 {
     AuditViolation violation;
     violation.plugin_key = mgr.current_plugin();
@@ -818,7 +831,13 @@ int report_denied(PluginAuditManager&            mgr,
     violation.reason     = decision.reason;
     mgr.report_violation(violation);
 
-    PyErr_SetString(PyExc_PermissionError, "Plugin attempted an audited operation without permission");
+    std::string message = "Plugin attempted audited operation \"" + event_name + "\" without permission";
+    if (!decision.reason.empty())
+        message += ": " + decision.reason;
+    if (!target.empty())
+        message += ": " + target;
+
+    PyErr_SetString(PyExc_PermissionError, message.c_str());
     return -1;
 }
 
@@ -987,7 +1006,7 @@ int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user
     if (fs_category) {
         for (const auto& target : targets) {
             if (mgr->is_denied_path(boost::filesystem::path(target)))
-                return PluginAuditDetail::report_denied(*mgr, event_name, {false, "denied path"});
+                return PluginAuditDetail::report_denied(*mgr, event_name, {false, "denied path"}, target);
         }
     }
 

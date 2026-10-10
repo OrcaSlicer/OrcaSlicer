@@ -144,3 +144,43 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     read_install_state(plugin_dir, scanned);
     CHECK(scanned.installed_version == "1.2.0");
 }
+
+TEST_CASE("a local plugin's installed version follows its entry file header", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("local-installed-version");
+
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    // Sidecar written when the local plugin was first installed at 1.0.0.
+    PluginInstallState state;
+    state.installed_from    = "local";
+    state.installed_version = "1.0.0";
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    // The user then edited the plugin file: the freshly scanned header says 1.1.0.
+    PluginDescriptor scanned;
+    scanned.version = "1.1.0";
+    REQUIRE(read_install_state(plugin_dir, scanned));
+    CHECK(scanned.installed_version == "1.1.0");
+}
+
+TEST_CASE("an unsubscribed cloud plugin follows its header version", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("unsubscribed-installed-version");
+
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    // What keep_installed_plugin_as_local leaves behind: a normal local package. The sidecar still
+    // holds the version fetched from the cloud (1.2.0), but the header (1.0.0) is the source of truth.
+    PluginInstallState state;
+    state.installed_from    = "local";
+    state.installed_version = "1.2.0";
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    PluginDescriptor scanned;
+    scanned.version = "1.0.0";
+    REQUIRE(read_install_state(plugin_dir, scanned));
+    CHECK(scanned.installed_version == "1.0.0");
+}

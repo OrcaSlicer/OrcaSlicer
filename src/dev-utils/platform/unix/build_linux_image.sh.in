@@ -303,10 +303,11 @@ else
 fi
 
 has_host_runtime_library() {
-    local lib_name path
+    local lib_name="\$1"
+    local path
 
     if command -v ldconfig >/dev/null 2>&1; then
-        if ldconfig -p 2>/dev/null | grep -Fq " \$lib_name"; then
+        if ldconfig -p 2>/dev/null | grep -Fq "\$lib_name ("; then
             return 0
         fi
     fi
@@ -343,7 +344,7 @@ TARGET_BIN="\$1"
 
 if target_missing_runtime_library "\$TARGET_BIN" "libOpenGL.so.0" || ! has_host_runtime_library "libOpenGL.so.0"; then
     echo "Error: missing host OpenGL runtime library libOpenGL.so.0." >&2
-    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0 and libglu1-mesa" >&2
+    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0" >&2
     echo "On Arch/CachyOS, install: libglvnd" >&2
     exit 1
 fi

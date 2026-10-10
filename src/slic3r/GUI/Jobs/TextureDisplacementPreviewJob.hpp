@@ -26,13 +26,13 @@ struct TextureDisplacementPreviewInput
     // Mesh coordinates -> world millimetres, so the preview is displaced in the same space the bake
     // is and the two cannot disagree. See build_texture_displacement().
     Transform3d                           volume_to_world = Transform3d::Identity();
-    // Empty unless a layer is colouring, in which case the preview reports the filament per triangle
-    // alongside the mesh, so the Normal view shows what the bake will produce - interleaving included.
+    // Empty unless a layer is colouring, in which case the preview reports the palette entry per
+    // triangle alongside the mesh, so the Normal view shows the colours the bake will produce.
     TextureColorSettings                  color;
 };
 
-// A preview result: the displaced mesh, and - when the input carried a palette - one filament index
-// per triangle (an EnforcerBlockerType value; 0 means "no colour from the texture").
+// A preview result: the displaced mesh, and - when the input carried a palette - one palette entry per
+// triangle (its index + 1; 0 means "no colour from the texture").
 struct TextureDisplacementPreviewResult
 {
     indexed_triangle_set  mesh;

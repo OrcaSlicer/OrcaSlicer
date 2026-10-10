@@ -68,6 +68,28 @@ static std::shared_ptr<std::vector<unsigned char>> make_flat_gray_png(uint8_t va
     return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
 }
 
+// The same round trip for a flat colour image, which decode_height_texture() reads through its colour path.
+static std::shared_ptr<std::vector<unsigned char>> make_flat_rgb_png(uint8_t r, uint8_t g, uint8_t b, size_t w = 4, size_t h = 4)
+{
+    std::vector<uint8_t> rgb;
+    for (size_t i = 0; i < w * h; ++i)
+        rgb.insert(rgb.end(), { r, g, b });
+    const boost::filesystem::path tmp_path = boost::filesystem::temp_directory_path()
+        / boost::filesystem::unique_path("texdisp_test_%%%%%%%%.png");
+    REQUIRE(Slic3r::png::write_rgb_to_file(tmp_path.string(), w, h, rgb));
+
+    std::vector<unsigned char> bytes;
+    {
+        std::ifstream ifs(tmp_path.string(), std::ios::binary);
+        bytes.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    boost::system::error_code ec;
+    boost::filesystem::remove(tmp_path, ec);
+
+    REQUIRE_FALSE(bytes.empty());
+    return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
+}
+
 // A hard-edged black/white checkerboard, the worst case for a height map: every texel boundary is a
 // step, which is precisely the relief the post-process smoothing exists to round off.
 static std::shared_ptr<std::vector<unsigned char>> make_checkerboard_png(size_t w = 16, size_t h = 16)
@@ -2135,3 +2157,20 @@ TEST_CASE("A second bake beside a first comes out as fine as a single bake", "[T
     CHECK(second <= single * 5 / 4);
 }
 
+TEST_CASE("whether a layer's texture has colour agrees with its decode", "[TextureDisplacement]")
+{
+    TextureDisplacementLayer gray;
+    gray.image_data = make_flat_gray_png(128);
+    CHECK_FALSE(height_texture_has_color(gray));
+
+    TextureDisplacementLayer color;
+    color.image_data = make_flat_rgb_png(200, 40, 10);
+    // Before the image is decoded and after, and whatever the smoothing.
+    CHECK(height_texture_has_color(color));
+    CHECK(decode_height_texture(color).has_color());
+    CHECK(height_texture_has_color(color));
+    color.smoothing = 0.5f;
+    CHECK(height_texture_has_color(color));
+
+    CHECK_FALSE(height_texture_has_color(TextureDisplacementLayer{}));
+}

@@ -199,6 +199,7 @@ UVEditorCanvas::UVEditorCanvas(wxWindow *parent)
     Bind(wxEVT_MIDDLE_DOWN, &UVEditorCanvas::on_mouse, this);
     Bind(wxEVT_MIDDLE_UP, &UVEditorCanvas::on_mouse, this);
     Bind(wxEVT_MOTION, &UVEditorCanvas::on_mouse, this);
+    Bind(wxEVT_MOUSE_CAPTURE_LOST, &UVEditorCanvas::on_capture_lost, this);
     Bind(wxEVT_MOUSEWHEEL, &UVEditorCanvas::on_mouse, this);
     Bind(wxEVT_LEAVE_WINDOW, &UVEditorCanvas::on_leave, this);
     Bind(wxEVT_KEY_DOWN, &UVEditorCanvas::on_key, this);
@@ -750,8 +751,45 @@ void UVEditorCanvas::end_gesture()
     m_rot_raw_deg       = 0.f;
     m_rot_applied_deg   = 0.f;
     m_modal_scale_accum = 1.f;
+    drop_mouse();
+}
+
+void UVEditorCanvas::cancel_gesture()
+{
+    // Undo what the gesture already applied live, as the Esc path does, and commit nothing.
+    if (m_on_island_edit) {
+        if (m_gesture == Gesture::RotateIslandModal && m_rot_applied_deg != 0.f)
+            m_on_island_edit(m_selected_island, Vec2f::Zero(), -m_rot_applied_deg, 1.f, false);
+        if (m_gesture == Gesture::ScaleIslandModal && m_modal_scale_accum != 1.f)
+            m_on_island_edit(m_selected_island, Vec2f::Zero(), 0.f, 1.f / m_modal_scale_accum, false);
+    }
+
+    m_gesture           = Gesture::None;
+    m_rot_raw_deg       = 0.f;
+    m_rot_applied_deg   = 0.f;
+    m_modal_scale_accum = 1.f;
+    m_vertex_edit_moved = false;
+}
+
+void UVEditorCanvas::grab_mouse()
+{
+    if (!HasCapture())
+        CaptureMouse();
+}
+
+void UVEditorCanvas::drop_mouse()
+{
     if (HasCapture())
         ReleaseMouse();
+}
+
+// The capture was taken from us (a dialog opened, another application grabbed the pointer). wx
+// requires this to cancel the gesture: no commit, no Skip(), and no ReleaseMouse() - the capture is
+// already gone, and releasing it again would unbalance the stack.
+void UVEditorCanvas::on_capture_lost(wxMouseCaptureLostEvent &)
+{
+    cancel_gesture();
+    Refresh();
 }
 
 void UVEditorCanvas::on_key(wxKeyEvent &evt)
@@ -932,7 +970,7 @@ void UVEditorCanvas::on_mouse(wxMouseEvent &evt)
             }
             m_gesture = (m_selected_island >= 0) ? Gesture::MoveIsland : Gesture::Pan;
         }
-        CaptureMouse();
+        grab_mouse();
         Refresh();
     } else if (type == wxEVT_RIGHT_DOWN && m_selected_island >= 0 && m_select_mode == SelectMode::Island) {
         const Vec2f rel      = screen_to_uv(pos) - island_centroid(m_selected_island);
@@ -942,12 +980,16 @@ void UVEditorCanvas::on_mouse(wxMouseEvent &evt)
         m_rot_base_deg       = island_rotation_deg(m_selected_island);
         m_rot_display_deg    = m_rot_base_deg;
         m_gesture_last_angle = std::atan2(rel.y(), rel.x());
-        CaptureMouse();
+        grab_mouse();
     } else if (type == wxEVT_MIDDLE_DOWN) {
         m_gesture      = Gesture::Pan;
         m_drag_last_px = pos;
-        CaptureMouse();
+        grab_mouse();
     } else if (type == wxEVT_LEFT_UP || type == wxEVT_RIGHT_UP || type == wxEVT_MIDDLE_UP) {
+        // The drag is over either way. A modal R/S keeps running until a click confirms it, but it
+        // tracks the pointer over this canvas and needs no capture to do so, so the capture goes back
+        // here rather than waiting for that click - which may never come.
+        drop_mouse();
         if (m_gesture != Gesture::RotateIslandModal && m_gesture != Gesture::ScaleIslandModal) {
             end_gesture();
             Refresh();
@@ -1735,7 +1777,7 @@ public:
                  bool toggle, bool accent = false, int size_dip = 26)
         : wxWindow(parent, id, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxFULL_REPAINT_ON_RESIZE)
         , m_icon_name(icon), m_icon_dip(size_dip >= 26 ? 16 : 14), m_label(label), m_toggle(toggle), m_accent(accent)
-        , m_size_dip(size_dip)
+        , m_size_dip(size_dip), m_tip(tip)
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
         SetToolTip(tip);
@@ -1748,7 +1790,7 @@ public:
         Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent &) { m_hover = true; Refresh(); });
         Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent &) { m_hover = false; m_pressed = false; Refresh(); });
         Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &) {
-            if (IsEnabled()) {
+            if (usable()) {
                 m_pressed = true;
                 Refresh();
             }
@@ -1757,7 +1799,7 @@ public:
             const bool was_pressed = m_pressed;
             m_pressed              = false;
             Refresh();
-            if (!was_pressed || !IsEnabled() || !GetClientRect().Contains(e.GetPosition()))
+            if (!was_pressed || !usable() || !GetClientRect().Contains(e.GetPosition()))
                 return;
             if (m_toggle)
                 m_on = !m_on;
@@ -1797,6 +1839,30 @@ public:
             Refresh();
         return changed;
     }
+    // Soft-disable: the button is drawn faded and swallows clicks, but stays a live window, so hovering it
+    // still raises its tooltip - now with `reason` appended, saying what to do to make it usable. A window
+    // really disabled with Enable(false) gets no mouse events at all on GTK and MSW, which leaves the user
+    // guessing; this is the same trade-off the gizmo panel's icon_toggle() makes with its `unavailable`.
+    // An empty reason makes the button usable again.
+    void SetUnavailable(const wxString &reason)
+    {
+        if (reason == m_unavailable)
+            return;
+        m_unavailable = reason;
+        SetToolTip(reason.empty() || m_tip.empty() ? m_tip : m_tip + "\n\n" + reason);
+        if (!m_unavailable.empty())
+            m_pressed = false; // a reason appearing mid-press cancels the press
+        Refresh();
+    }
+    // Replaces the plain tooltip, keeping whatever reason is currently appended to it.
+    void SetTip(const wxString &tip)
+    {
+        if (tip == m_tip)
+            return;
+        m_tip = tip;
+        SetToolTip(m_unavailable.empty() || m_tip.empty() ? m_tip : m_tip + "\n\n" + m_unavailable);
+    }
+    bool usable() const { return IsEnabled() && m_unavailable.empty(); }
 
 protected:
     wxSize DoGetBestSize() const override
@@ -1815,7 +1881,7 @@ private:
         const PaneColors c    = PaneColors::current();
         const wxRect     r    = GetClientRect();
         const wxColour   teal(0x00, 0x96, 0x88);
-        const bool       enabled = IsEnabled();
+        const bool       enabled = usable();
 
         wxColour fill = c.bg, border = c.frame, text = c.ink;
         if (m_accent) {
@@ -1875,6 +1941,8 @@ private:
     bool           m_toggle   = false;
     bool           m_accent   = false;
     int            m_size_dip = 26;
+    wxString       m_tip;        // the tooltip without any m_unavailable reason appended
+    wxString       m_unavailable; // non-empty: faded and unclickable, and why (see SetUnavailable())
     bool           m_on       = false;
     bool           m_badge    = false;
     bool           m_hover    = false;
@@ -1920,6 +1988,9 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
     });
     m_layer_name->SetMinSize(wxSize(FromDIP(30), -1));
     m_tile = text(wxEmptyString, c.dim);
+    m_tile->SetToolTip(_L("The active layer's tile size: how much of the model one repeat of the texture covers. The "
+                          "canvas is measured in tiles, so one grid cell is one repeat. Change it with Tiling in the "
+                          "layer's settings."));
     header->Add(m_thumb, 0, wxALIGN_CENTER_VERTICAL);
     header->Add(m_layer_name, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
     header->Add(m_tile, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
@@ -1973,9 +2044,19 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
         strip->Add(r, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(11));
         strip->AddSpacer(FromDIP(7));
     };
-    m_select[0] = tool(ID_UV_SELECT_ISLAND, "texture_displacement_uv_select_island", _L("Island - move, rotate and scale whole islands"), true);
-    m_select[1] = tool(ID_UV_SELECT_VERTEX, "texture_displacement_uv_select_vertex", _L("Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"), true);
-    m_select[2] = tool(ID_UV_SELECT_EDGE, "texture_displacement_uv_select_edge", _L("Edge - drag edges to reshape; Shift/Ctrl to multi-select"), true);
+    m_select[0] = tool(ID_UV_SELECT_ISLAND, "texture_displacement_uv_select_island",
+                       _L("Island - work on whole islands. Click one to select it, then drag to move it, right-drag to "
+                          "rotate it, or press R to rotate and S to scale with the mouse (click or Enter to confirm, Esc "
+                          "to cancel)."),
+                       true);
+    m_select[1] = tool(ID_UV_SELECT_VERTEX, "texture_displacement_uv_select_vertex",
+                       _L("Vertex - drag vertices to reshape an island by hand; Shift adds to the selection, Ctrl "
+                          "toggles one in or out of it."),
+                       true);
+    m_select[2] = tool(ID_UV_SELECT_EDGE, "texture_displacement_uv_select_edge",
+                       _L("Edge - drag edges to reshape an island by hand; Shift adds to the selection, Ctrl toggles "
+                          "one in or out of it."),
+                       true);
     strip_rule();
     m_mark_seams = tool(ID_UV_MARK_SEAMS, "texture_displacement_uv_seam",
                         _L("Mark seams - click edges on the model to cut the unwrap along them. The edge under the cursor is "
@@ -1996,7 +2077,11 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
     m_clear_edits = tool(ID_UV_CLEAR_EDITS, "texture_displacement_uv_clear_edits",
                          _L("Clear UV edits - discard all manual vertex/edge moves and return the unwrap to its automatic shape"), false);
     m_snap  = tool(ID_UV_SNAP, "texture_displacement_uv_snap", _L("Snap - stick islands together when dragging one against another"), true);
-    m_frame = tool(ID_UV_FRAME, "texture_displacement_uv_frame", _L("Frame all islands (Home)"), false);
+    m_frame = tool(ID_UV_FRAME, "texture_displacement_uv_frame",
+                   _L("Frame all islands, fitting every one of them in view (Home or F).\n"
+                      "Elsewhere on the canvas: scroll to zoom around the cursor, and middle-drag - or drag empty space - "
+                      "to pan."),
+                   false);
     strip->AddSpacer(FromDIP(4));
 
     m_canvas   = new UVEditorCanvas(this);
@@ -2007,6 +2092,7 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
 
     // ---- status line: the current gesture on the left, the unwrap summary on the right ----
     m_status = text(wxEmptyString, c.dim, wxST_ELLIPSIZE_END);
+    m_status->SetToolTip(_L("What is selected, and the exact figures of the move, rotation or scale while you drag one."));
     m_status->SetMinSize(wxSize(FromDIP(40), -1));
     m_stats      = text(wxEmptyString, c.dim);
     auto *status = new wxBoxSizer(wxHORIZONTAL);
@@ -2082,19 +2168,25 @@ void UVEditorPanel::apply_state(const UVEditorCanvas::PaneState &s)
     } else {
         m_thumb->SetBitmap(wxNullBitmap);
     }
-    m_thumb->Enable(s.has_layer);
+    // Every tool that cannot be used right now is faded with the reason appended to its tooltip, rather than
+    // being hard-disabled (which would hide the tooltip too - see UVToolButton::SetUnavailable()).
+    const wxString no_layer = s.has_layer ? wxString() :
+                                            _L("The pane follows the active texture layer, and that layer has to be mapped "
+                                               "with Unwrap (LSCM). Add a layer and set its Mapping to Unwrap.");
+    m_thumb->SetUnavailable(no_layer);
+    m_layer_name->SetToolTip(s.has_layer ? m_thumb->GetToolTipText() : no_layer);
 
     for (int i = 0; i < 3; ++i) {
         m_background[i]->SetValue(int(s.background) == i);
-        m_background[i]->Enable(s.has_layer);
+        m_background[i]->SetUnavailable(no_layer);
     }
-    m_unwrap->Enable(s.has_layer);
+    m_unwrap->SetUnavailable(no_layer);
     m_unwrap->SetBadge(s.unwrap_stale);
-    m_unwrap->SetToolTip(s.unwrap_stale ?
-                             _L("Out of date - the paint, the seams or the seam angle changed since this unwrap was made. "
-                                "Press to unwrap again.") :
-                             _L("Flatten the painted area into UV islands. It is computed only when you press this, not on "
-                                "every edit - so paint, change the seam angle or mark seams first, then press Unwrap."));
+    m_unwrap->SetTip(s.unwrap_stale ?
+                         _L("Out of date - the paint, the seams or the seam angle changed since this unwrap was made. "
+                            "Press to unwrap again.") :
+                         _L("Flatten the painted area into UV islands. It is computed only when you press this, not on "
+                            "every edit - so paint, change the seam angle or mark seams first, then press Unwrap."));
 
     if (m_seam_angle->GetValue() != int(std::lround(s.seam_angle_deg)))
         m_seam_angle->SetValue(int(std::lround(s.seam_angle_deg)));
@@ -2103,15 +2195,26 @@ void UVEditorPanel::apply_state(const UVEditorCanvas::PaneState &s)
     m_connect->Enable(s.has_layer);
 
     m_mark_seams->SetValue(s.mark_seams);
-    m_mark_seams->Enable(s.has_layer);
+    m_mark_seams->SetUnavailable(no_layer);
     m_seam_path->SetValue(s.seam_path);
-    m_seam_path->Enable(s.has_layer && s.mark_seams);
-    m_clear_seams->Enable(s.has_layer && s.has_seams);
-    m_clear_edits->Enable(s.has_layer && s.has_uv_edits);
+    m_seam_path->SetUnavailable(!no_layer.empty() ? no_layer :
+                                s.mark_seams     ? wxString() :
+                                                   _L("Turn Mark seams on first - Path is a quicker way of marking them."));
+    m_clear_seams->SetUnavailable(!no_layer.empty() ? no_layer :
+                                  s.has_seams      ? wxString() :
+                                                     _L("No seams are marked on this layer."));
+    m_clear_edits->SetUnavailable(!no_layer.empty() ? no_layer :
+                                  s.has_uv_edits   ? wxString() :
+                                                     _L("No islands have been reshaped by hand, so there is nothing to "
+                                                        "discard."));
 
     m_stats->SetLabel(s.unwrapped ? wxString::Format(_L("%d islands, %s faces"), s.island_count,
                                                      wxString(std::to_string(s.face_count))) :
                                     wxString());
+    m_stats->SetToolTip(s.unwrapped ? _L("How the painted area came out of the unwrap: the number of separate pieces it "
+                                         "was cut into (at the seams and at edges sharper than the seam angle), and how "
+                                         "many triangles they hold in total.") :
+                                      wxString());
     refresh_selection_tools();
     if (relayout)
         Layout();
@@ -2121,19 +2224,24 @@ void UVEditorPanel::refresh_selection_tools()
 {
     const bool has_islands = m_canvas->has_islands();
     const int  mode        = int(m_canvas->select_mode());
+    // Faded rather than hard-disabled, so the tooltip still says what is missing (see apply_state()).
+    const wxString not_unwrapped = has_islands ? wxString() : _L("Press Unwrap first - there are no islands to work on yet.");
     for (int i = 0; i < 3; ++i) {
         m_select[i]->SetValue(i == mode);
-        m_select[i]->Enable(has_islands);
+        m_select[i]->SetUnavailable(not_unwrapped);
     }
     const bool island_picked = has_islands && m_canvas->select_mode() == UVEditorCanvas::SelectMode::Island &&
                                m_canvas->selected_island() >= 0;
-    m_avg_scale->Enable(has_islands);
-    m_cut->Enable(island_picked);
-    m_join->Enable(island_picked);
-    m_unjoin->Enable(island_picked);
-    m_snap->Enable(has_islands);
+    const wxString no_island = !not_unwrapped.empty() ? not_unwrapped :
+                               island_picked          ? wxString() :
+                                                        _L("Click an island on the canvas first, in Island mode.");
+    m_avg_scale->SetUnavailable(not_unwrapped);
+    m_cut->SetUnavailable(no_island);
+    m_join->SetUnavailable(no_island);
+    m_unjoin->SetUnavailable(no_island);
+    m_snap->SetUnavailable(not_unwrapped);
     m_snap->SetValue(m_canvas->snap_enabled());
-    m_frame->Enable(has_islands);
+    m_frame->SetUnavailable(not_unwrapped);
 }
 
 void UVEditorPanel::on_tool(wxCommandEvent &evt)

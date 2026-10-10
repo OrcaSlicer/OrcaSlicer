@@ -1,6 +1,7 @@
 #ifndef slic3r_TextureDisplacement_hpp_
 #define slic3r_TextureDisplacement_hpp_
 
+#include <cmath>
 #include <cstddef>
 #include <Eigen/Core>
 #include <cstdint>
@@ -321,25 +322,6 @@ struct TextureDisplacementLayer
     }
 };
 
-// How a *mixed* palette entry - one that names two filaments rather than one - is turned into real
-// per-facet paint. An MMU extrudes one filament at a time, so an intermediate colour exists only by
-// interleaving two of them finely enough that the eye does the blending.
-enum class ColorMixMode : int
-{
-    // Horizontal bands: which of the two filaments a point takes depends on its height, so
-    // consecutive print layers alternate. This is how filament-blend prints actually work, and on a
-    // vertical-ish surface it reads as a genuinely smooth colour. On a near-horizontal surface a whole
-    // layer is one band, so the blend disappears - that is what XYDither is for.
-    ZBands   = 0,
-    // An ordered (Bayer) checkerboard across the surface, at any orientation. Independent of layer
-    // height, but its cell is around the size of one facet, so a fine mix can read as texture rather
-    // than as a clean blend.
-    XYDither = 1,
-    // Per triangle, by its orientation: bands where the surface is upright enough for consecutive
-    // layers to alternate, the checkerboard where it faces up or down and a layer would be one band.
-    // The default - a flat-topped part with a mix on top gets no blend at all from bands alone.
-    Auto     = 2,
-};
 
 // Settings that apply to the whole layer stack rather than to one layer, held per ModelVolume next
 // to texture_displacement_layers and consumed by build_texture_displacement().
@@ -406,7 +388,10 @@ struct TextureDisplacementOptions
     // image (TextureDetail::flat_colors): a texture of flat colours prints in single filaments, a
     // photograph or gradient in mixes. Off forces single filaments everywhere.
     bool         color_mix_enabled = true;
-    ColorMixMode color_mix_mode    = ColorMixMode::Auto;
+    // The most mixes the palette may offer. Every mix a bake paints with becomes a mixed filament slot,
+    // so this is also the most slots one bake can add. The mixes themselves are picked from the
+    // texture's colours, those that improve the match the most coming first.
+    int          color_mix_count   = 8;
     // Majority-filter passes over the assigned colours. See TextureColorRequest::despeckle_passes -
     // this is the control for it, and 2 is enough to clear the salt-and-pepper an image with detail
     // finer than the mesh leaves behind, without eating features that are genuinely a facet wide.
@@ -414,11 +399,9 @@ struct TextureDisplacementOptions
 
     template<class Archive> void serialize(Archive &ar)
     {
-        int mix_mode = int(color_mix_mode);
         ar(displace_border, smooth_enabled, smooth_strength, smooth_iterations, smooth_skip_border,
            pipeline_v2, v2_refine_mm, v2_regularize, v2_max_triangles_k,
-           v2_relocate, color_mix_enabled, mix_mode, color_despeckle);
-        color_mix_mode = ColorMixMode(mix_mode);
+           v2_relocate, color_mix_enabled, color_despeckle, color_mix_count);
     }
 };
 
@@ -502,6 +485,10 @@ struct DecodedHeightTexture
 // DecodedHeightTexture if image_data is empty or is not a PNG at all.
 DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer);
 
+// decode_height_texture(layer).has_color(), answered from the decode cache rather than from a copy of the
+// texture - cheap enough to ask every frame. Smoothing does not change it, so the raw decode is what is read.
+bool height_texture_has_color(const TextureDisplacementLayer &layer);
+
 // Maps a linear RGB colour in [0, 1] to an index into the caller's palette, or -1 for "no colour".
 //
 // Deliberately a callback rather than a function here: matching a colour to a filament is a
@@ -511,25 +498,19 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
 // is. See GLGizmoTextureDisplacement::make_palette_quantizer().
 using ColorQuantizeFn = std::function<int(const Vec3f &)>;
 
-// Resolves a palette index plus a surface position to the filament index that position should print
-// in. A pure entry ignores the position; a mixed one interleaves its two filaments per ColorMixMode.
-//
-// Deliberately separate from ColorQuantizeFn, and deliberately *not* used by the subdivision's colour
-// criterion: that criterion asks where the **perceived** colour changes, and must not see the
-// interleaving. Refining on every band or dither-cell boundary would spend the whole triangle budget
-// drawing a pattern the eye is supposed to blend away.
-using ColorResolveFn = std::function<int(int palette_index, const Vec3f &pos, const Vec3f &normal)>;
 
 // One printable colour: either a loaded filament on its own, or a blend of two of them realised by
-// interleaving (see ColorMixMode). Plain data, so it can be captured into a background job.
+// interleaving, which the slicer does per print layer. Plain data, so it can be captured into a job.
 struct PrintableColor
 {
-    Vec3f rgb   = Vec3f::Zero(); // what it looks like; for a mix, the perceptual average of the two
+    Vec3f rgb   = Vec3f::Zero(); // what it looks like; for a mix, the colour its mixed filament slot shows
     int   a     = 0;             // filament index
     int   b     = 0;             // the second filament; == a for a pure entry
     int   num   = 1;             // a's share of the interleave, out of `den`
     int   den   = 1;
     bool  is_mix() const { return a != b; }
+    // a's share in percent, the form a mixed filament slot is created from.
+    int   a_percent() const { return int(std::lround(100.0 * double(num) / double(den))); }
 };
 
 // Everything needed to colour a mesh, captured on the main thread and handed to a job. An empty
@@ -538,9 +519,6 @@ struct TextureColorSettings
 {
     std::vector<PrintableColor> palette;
     std::vector<PrintableColor> palette_pure; // the filaments alone, for flat-colour images
-    ColorMixMode                mix_mode         = ColorMixMode::ZBands;
-    float                       layer_height     = 0.2f; // sizes the Z bands
-    float                       dither_cell_mm   = 0.4f; // sizes the XY dither cells
     int                         despeckle_passes = 2;
 
     bool empty() const { return palette.empty(); }
@@ -780,9 +758,6 @@ struct TextureColorRequest
     // made of flat colours (TextureDetail::flat_colors) is matched with this one, so a tile or a logo
     // prints in single filaments while a photograph on another layer may still use mixes.
     ColorQuantizeFn quantize_pure;
-    // Palette index + position -> filament. Optional: without it a palette index is taken to be a
-    // filament index directly, which is the no-mixing case.
-    ColorResolveFn  resolve;
     // Majority-filter passes over the *perceived* colour, before any interleaving is resolved.
     //
     // Sampling a detailed image once per triangle leaves salt-and-pepper wherever the image's own
@@ -798,9 +773,10 @@ struct TextureColorRequest
     float           min_color_region_mm2 = 0.5f;
     // Filled per *base mesh* triangle (the bake is topology-preserving, so this indexes the returned
     // mesh too): the quantize callback's index plus one, or 0 for "this triangle takes no colour from
-    // the texture". The +1 is not arbitrary - it lines up with EnforcerBlockerType, where 0 is NONE
-    // ("use the volume's own filament") and 1..16 are Extruder1..16, so the caller can hand these
-    // straight to a TriangleSelector without a second mapping table.
+    // the texture". The +1 lines up with EnforcerBlockerType, where 0 is NONE ("use the volume's own
+    // filament"): where every palette entry is a filament, these go straight to a TriangleSelector. A
+    // palette with mixes maps each index to the mix's filament slot first (see
+    // GLGizmoTextureDisplacement::palette_filaments()).
     std::vector<uint8_t> *out_triangle = nullptr;
 };
 

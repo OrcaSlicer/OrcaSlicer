@@ -172,6 +172,8 @@ inline bool is_separable_infill_pattern(InfillPattern pattern)
 
 // Orca: Infill patterns laid out by an octree, which each connected body always gets of its own.
 inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == ipAdaptiveCubic || pattern == ipSupportCubic; }
+// Orca: Infill patterns graded by the "tpms_adaptive" option.
+inline bool is_tpms_adaptive_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK; }
 
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
 // Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
@@ -248,6 +250,26 @@ enum class WallDirection
     Count,
 };
 
+// IMEX: physical bed corner where tool T0 sits. Determines how tool indices
+// map to bed zones (front = lower Y near operator, rear = higher Y).
+enum class ImexToolLayout {
+    FrontLeft,
+    FrontRight,
+    RearLeft,
+    RearRight,
+    Count,
+};
+
+// IMEX: color theme for the bed-zone visualization. Colorblind-friendly variants
+// are provided for users with color-vision differences.
+enum class ImexVizTheme {
+    Standard,
+    Deuteranopia,
+    Tritanopia,
+    HighContrast,
+    Count,
+};
+
 // Orca: print order of surface fill loops/fragments for center-based fill patterns
 // (Concentric, Archimedean Chords, Octagram Spiral).
 enum class SurfaceFillOrder {
@@ -255,6 +277,26 @@ enum class SurfaceFillOrder {
     Outward,
     Inward,
     Count,
+};
+
+// Orca: what the adaptive TPMS density follows: the 3D shape of the object, or its 2D sections normal to an axis.
+enum class TpmsAdaptiveMode {
+    Disabled,
+    DistanceWarp,
+    SmoothBlend,
+    SteppedShells,
+    Lobes,
+    NormalZ,
+    NormalY,
+    NormalX,
+    Count,
+};
+
+// Orca: how the adaptive TPMS density changes from the object surface to its deepest point.
+enum class TpmsAdaptiveGradient {
+    Linear,
+    Quadratic,
+    Exponential,
 };
 
 //BBS
@@ -282,6 +324,25 @@ enum class SlicingMode
     EvenOdd,
     // Orienting all contours CCW, thus closing all holes.
     CloseHoles,
+};
+
+// Axis around which the mesh is rotated before slicing, when
+// `belt_slice_rotation` is set.  None disables the rotation stage.  This is the
+// single "belt tilt" axis: it drives both the pre-slice mesh rotation and the
+// post-slice machine-frame transform (shear + scale derived from the tilt angle).
+enum class BeltRotationAxis
+{
+    None = 0,
+    X    = 1,
+    Y    = 2,
+    Z    = 3,
+};
+
+enum class RemapAxis
+{
+    PosX = 0, PosY = 1, PosZ = 2,
+    NegX = 3, NegY = 4, NegZ = 5,
+    RevX = 6, RevY = 7, RevZ = 8,  // Reversed: max - pos
 };
 
 enum SupportMaterialPattern {
@@ -391,6 +452,10 @@ enum BrimType {
     btInnerOnly,
     btOuterAndInner,
     btNoBrim,
+    // Belt printers: brim only where the part first touches the belt, nothing after
+    // that.  Appended last so no existing value shifts.  On a non-belt printer this
+    // has no meaning and behaves as btOuterOnly.
+    btLeadingEdgeOnly,
 };
 
 enum TimelapseType : int {
@@ -724,6 +789,8 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BeltRotationAxis)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RemapAxis)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
@@ -749,6 +816,8 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TpmsAdaptiveMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TpmsAdaptiveGradient)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1195,6 +1264,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                brim_use_efc_outline))
     ((ConfigOptionEnum<BrimType>,      brim_type))
     ((ConfigOptionFloat,               brim_width))
+    ((ConfigOptionFloat,               leading_brim_length))
+    ((ConfigOptionFloat,               extra_brim_width))
     ((ConfigOptionFloat,               brim_ears_detection_length))
     ((ConfigOptionFloat,               brim_ears_max_angle))
     ((ConfigOptionBool,                brim_ears_outer_only))
@@ -1278,6 +1349,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     // BBS
     ((ConfigOptionBool,                flush_into_infill))
     ((ConfigOptionBool,                flush_into_support))
+    // Marker for the auto-generated belt purge prism; identifies the object to
+    // the auto-manager (GUI) and the layer-grid alignment step (backend).
+    ((ConfigOptionBool,                belt_purge_tower_object))
     // BBS
     ((ConfigOptionFloat,              tree_support_branch_distance))
     ((ConfigOptionFloat,              tree_support_tip_diameter))
@@ -1342,6 +1416,13 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
+
+    // IDEX/IQEX parallel print mode (per-print selection, stores mode name or "primary")
+    ((ConfigOptionString,              imex_parallel_mode))
+    // Per-plate head→filament override for MMU-equipped printers.
+    // Serialized as compact "phys:slot,phys:slot" (1-based filament slots, matches UI).
+    // Empty string means "use first_filament_for_physical_head defaults everywhere".
+    ((ConfigOptionString,              imex_head_filament_map))
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
@@ -1420,6 +1501,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
+    ((ConfigOptionEnum<TpmsAdaptiveMode>, tpms_adaptive))
+    ((ConfigOptionPercent,              tpms_interior_density))
+    ((ConfigOptionEnum<TpmsAdaptiveGradient>, tpms_adaptive_gradient))
     ((ConfigOptionBool,                 gyroid_optimized))
     // Ironing options
     ((ConfigOptionEnum<IroningType>, ironing_type))
@@ -1711,6 +1795,19 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
+    // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers
+    ((ConfigOptionBool,                is_imex))
+    ((ConfigOptionBool,                imex_firmware_managed_zones))
+    ((ConfigOptionInt,                 imex_gantry_count))
+    ((ConfigOptionInt,                 imex_tools_per_gantry))
+    ((ConfigOptionFloat,               imex_nozzle_clearance_x))
+    ((ConfigOptionFloat,               imex_nozzle_clearance_y))
+    ((ConfigOptionFloat,               imex_carriage_margin))
+    ((ConfigOptionEnum<ImexToolLayout>, imex_tool_layout))
+    ((ConfigOptionEnum<ImexVizTheme>,  imex_viz_theme))
+    ((ConfigOptionStrings,             imex_mode_names))
+    ((ConfigOptionStrings,             imex_mode_active_tools))
+    ((ConfigOptionStrings,             imex_mode_gcodes))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionString,              toolchange_cyclic_order))
@@ -1835,6 +1932,33 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     PrintConfig,
     (MachineEnvelopeConfig, GCodeConfig),
 
+    // Build plate tilt for off-axis gravity support generation (printer-level setting).
+    ((ConfigOptionFloat,               build_plate_tilt_x))
+    ((ConfigOptionFloat,               build_plate_tilt_y))
+    // Belt printer settings (printer-level).
+    ((ConfigOptionBool,                belt_printer))
+    ((ConfigOptionBool,                belt_printer_infinite_y))
+    // Mesh rotation applied before slicing — the single source of truth for the
+    // physical belt tilt.  Its angle + axis drive bed rendering, support gravity
+    // tilt, the bed-exclusion projection, AND the post-slice machine-frame
+    // transform (shear + scale, derived from the tilt angle; see
+    // MachineFrameTransform).  Isometric (no distortion) on the mesh side; the
+    // g-code back-transform inverts the rotation before the machine-frame stage.
+    ((ConfigOptionEnum<BeltRotationAxis>, belt_slice_rotation))
+    ((ConfigOptionFloat,                  belt_slice_rotation_angle))
+    // Expert override: decouple the machine-frame tilt angle from the pre-slice
+    // rotation angle.  When disabled, the machine frame uses belt_slice_rotation_angle.
+    ((ConfigOptionBool,                   belt_frame_tilt_decouple))
+    ((ConfigOptionFloat,                  belt_frame_tilt_angle))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_x))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_y))
+    ((ConfigOptionEnum<RemapAxis>,  gcode_remap_z))
+    ((ConfigOptionFloat,                          belt_support_floor_offset))
+    // Width (machine X, across the belt) of the auto-generated belt purge prism.
+    ((ConfigOptionFloat,                          belt_purge_tower_width))
+    // Belt-printer-only "type" of purge tower: enables the auto-generated belt
+    // purge prism (the belt replacement for the classic wipe/prime tower).
+    ((ConfigOptionBool,                           enable_belt_purge_tower))
     //BBS
     ((ConfigOptionInts,               additional_cooling_fan_speed))
     ((ConfigOptionInts,               close_additional_fan_first_x_layers))

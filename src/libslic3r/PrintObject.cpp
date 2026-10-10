@@ -8,8 +8,11 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 #include "Print.hpp"
+#include "BeltTransform.hpp"
+
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "ConnectedBodies.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
@@ -18,6 +21,7 @@
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
+#include "Support/SupportCommon.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
 #include "Surface.hpp"
@@ -28,6 +32,7 @@
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/Fill.hpp"
 #include "Fill/FillLightning.hpp"
+#include "Fill/FillTpmsAdaptive.hpp"
 #include "format.hpp"
 #include "AABBTreeIndirect.hpp"
 #include "AABBTreeLines.hpp"
@@ -81,6 +86,7 @@
 #include "Fill/Lightning/Generator.hpp"
 #include "SurfaceCollection.hpp"
 #include "TriangleMesh.hpp"
+#include "BeltBrim.hpp"
 
 namespace Slic3r { enum class EnforcerBlockerType : int8_t; }
 
@@ -742,69 +748,19 @@ void PrintObject::prepare_infill()
     for (Layer *layer : m_layers)
         layer->lslices_separated_component_ids.clear();
     if (needs_separated_components) {
-        const size_t        nl = m_layers.size();
-        std::vector<size_t> offset(nl + 1, 0); // Orca: flat index of the first island of each layer
-        for (size_t i = 0; i < nl; ++ i)
-            offset[i + 1] = offset[i] + m_layers[i]->lslices.size();
-        const size_t nreg = offset[nl];
-        // Orca: Union-find over every (layer, island).
-        std::vector<size_t> parent(nreg);
-        for (size_t i = 0; i < nreg; ++ i) parent[i] = i;
-        auto find = [&parent](size_t x) {
-            while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
-            return x;
-        };
-        auto unite = [&](size_t a, size_t b) { a = find(a); b = find(b); if (a != b) parent[a] = b; };
-        // Orca: Index the smaller of two consecutive layers instead of scanning every
-        // pair of islands. The tree prunes distant boxes on fragmented models; exact
-        // polygon intersections still decide connectivity for the remaining candidates.
-        for (size_t i = 0; i + 1 < nl; ++ i) {
-            m_print->throw_if_canceled();
-            size_t layer_a = i, layer_b = i + 1;
-            if (m_layers[layer_a]->lslices.size() < m_layers[layer_b]->lslices.size())
-                std::swap(layer_a, layer_b);
-            const Layer *la = m_layers[layer_a], *lb = m_layers[layer_b];
-            if (lb->lslices.empty())
-                continue;
-
-            using IslandTree = AABBTreeIndirect::Tree<2, coord_t>;
-            std::vector<AABBTreeIndirect::BoundingBoxWrapper> bboxes;
-            bboxes.reserve(lb->lslices.size());
-            for (size_t b = 0; b < lb->lslices.size(); ++ b)
-                bboxes.emplace_back(b, lb->lslices_bboxes[b]);
-            IslandTree tree;
-            tree.build_modify_input(bboxes);
-            for (size_t a = 0; a < la->lslices.size(); ++ a) {
-                const IslandTree::BoundingBox query(la->lslices_bboxes[a].min, la->lslices_bboxes[a].max);
-                AABBTreeIndirect::traverse(tree,
-                    [&query](const IslandTree::Node &node) { return node.bbox.intersects(query); },
-                    [&](const IslandTree::Node &node) {
-                        const size_t b = node.idx;
-                        // Orca: Tree boxes include an epsilon, so retain the original box
-                        // filter. Already-connected islands cannot change the partition
-                        // and need no further polygon intersection.
-                        if (la->lslices_bboxes[a].overlap(lb->lslices_bboxes[b]) &&
-                            find(offset[layer_a] + a) != find(offset[layer_b] + b) &&
-                            ! intersection_ex(la->lslices[a], lb->lslices[b]).empty())
-                            unite(offset[layer_a] + a, offset[layer_b] + b);
-                        return true;
-                    });
-            }
-        }
-        // Orca: Number the bodies by their first island and merge the bounding boxes of their islands.
-        std::vector<size_t> body_of_root(nreg, size_t(-1));
-        for (size_t i = 0; i < nl; ++ i) {
+        std::vector<const ExPolygons *> islands;
+        islands.reserve(m_layers.size());
+        for (const Layer *layer : m_layers)
+            islands.emplace_back(&layer->lslices);
+        size_t                           bodies = 0;
+        std::vector<std::vector<size_t>> ids    = connected_bodies(islands, bodies, [this]() { m_print->throw_if_canceled(); });
+        // Orca: Merge the bounding boxes of the islands of each body.
+        m_separated_body_bboxes.assign(bodies, BoundingBox());
+        for (size_t i = 0; i < m_layers.size(); ++ i) {
             Layer *layer = m_layers[i];
-            layer->lslices_separated_component_ids.resize(layer->lslices.size());
-            for (size_t a = 0; a < layer->lslices.size(); ++ a) {
-                size_t &body = body_of_root[find(offset[i] + a)];
-                if (body == size_t(-1)) {
-                    body = m_separated_body_bboxes.size();
-                    m_separated_body_bboxes.emplace_back();
-                }
-                m_separated_body_bboxes[body].merge(layer->lslices_bboxes[a]);
-                layer->lslices_separated_component_ids[a] = body;
-            }
+            for (size_t a = 0; a < layer->lslices.size(); ++ a)
+                m_separated_body_bboxes[ids[i][a]].merge(layer->lslices_bboxes[a]);
+            layer->lslices_separated_component_ids = std::move(ids[i]);
         }
     }
 
@@ -848,7 +804,7 @@ void PrintObject::infill()
             [this](const tbb::blocked_range<size_t>& range) {
                 for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
                     m_print->throw_if_canceled();
-                    m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees.first, &m_adaptive_fill_octrees.second, this->m_lightning_generator.get());
+                    m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees, this->m_lightning_generator.get());
                 }
             }
         );
@@ -983,7 +939,7 @@ void PrintObject::detect_overhangs_for_lift()
     }
 }
 
-void PrintObject::generate_support_material()
+void PrintObject::generate_support_material(bool with_belt_brim)
 {
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
@@ -1026,8 +982,28 @@ void PrintObject::generate_support_material()
             this->_generate_support_material();
             m_print->throw_if_canceled();
         }
+        // Belt brim rides here rather than in the brim step because its apron
+        // prologue introduces print_z values below the object's first layer, and
+        // those must exist before ToolOrdering is built at psWipeTower - one step
+        // ahead of psSkirtBrim.  The brim options already invalidate
+        // posSupportMaterial, so this needs no extra invalidation edges.
+        m_belt_brim_pending = true;
+        if (with_belt_brim)
+            this->generate_belt_brim();
         this->set_done(posSupportMaterial);
     }
+}
+
+void PrintObject::generate_belt_brim()
+{
+    if (! m_belt_brim_pending)
+        return;
+    // belt_brim_obstacles() looks up the layers and support layers of every object
+    // on the plate by print_z.  Another object's support step rebuilds those (and
+    // temporarily shifts its layer Z values), so this must not overlap with it.
+    make_belt_brim(*this);
+    m_print->throw_if_canceled();
+    m_belt_brim_pending = false;
 }
 
 void PrintObject::estimate_curled_extrusions()
@@ -1168,19 +1144,35 @@ static std::vector<indexed_triangle_set> split_mesh_by_body(const PrintObject &o
     return bodies;
 }
 
-std::pair<FillAdaptive::Octrees, FillAdaptive::Octrees> PrintObject::prepare_adaptive_infill_data(
+FillAdaptive::RegionOctrees PrintObject::prepare_adaptive_infill_data(
     const std::vector<std::pair<const Surface *, const Layer *>> &surfaces_w_layer) const
 {
     using namespace FillAdaptive;
 
-    auto [adaptive_line_spacing, support_line_spacing] = adaptive_fill_line_spacing(*this);
-    if ((adaptive_line_spacing == 0. && support_line_spacing == 0.) || this->layers().empty())
+    // Orca: Each region fills with the octrees of its own line spacing, shared by the regions of equal spacing.
+    const std::vector<double>            line_spacing = adaptive_fill_line_spacing(*this);
+    std::vector<std::pair<double, bool>> spacings; // Line spacing, support cubic.
+    RegionOctrees                        octrees;
+    octrees.region_set.assign(line_spacing.size(), -1);
+    for (size_t region_id = 0; region_id < line_spacing.size(); ++ region_id)
+        if (line_spacing[region_id] > 0.) {
+            const std::pair<double, bool> spacing(line_spacing[region_id], this->printing_region(region_id).config().sparse_infill_pattern == ipSupportCubic);
+            const auto                    it = std::find(spacings.begin(), spacings.end(), spacing);
+            octrees.region_set[region_id]    = int(it - spacings.begin());
+            if (it == spacings.end())
+                spacings.push_back(spacing);
+        }
+    if (spacings.empty() || this->layers().empty())
         return {};
+    octrees.sets.resize(spacings.size());
 
     indexed_triangle_set mesh = this->model_object()->raw_indexed_triangle_set();
     // Rotate mesh and build octree on it with axis-aligned (standart base) cubes.
     auto to_octree = transform_to_octree().toRotationMatrix();
-    its_transform(mesh, to_octree * this->trafo_centered(), true);
+    // Overhangs below are placed at Layer::bottom_z(), which includes the belt global Z offset.
+    Transform3d object_trafo = this->trafo_sliced();
+    object_trafo.translation().z() += m_belt_global_z_offset;
+    its_transform(mesh, to_octree * object_trafo, true);
 
     // Triangulate internal bridging surfaces.
     std::vector<std::vector<Vec3d>> overhangs(std::max(surfaces_w_layer.size(), size_t(1)));
@@ -1198,44 +1190,50 @@ std::pair<FillAdaptive::Octrees, FillAdaptive::Octrees> PrintObject::prepare_ada
             }
         });
 
-    // Orca: Each body gets the octree it has when sliced on its own, from its own triangles.
-    std::pair<Octrees, Octrees> octrees;
-    const size_t                num_bodies  = m_separated_body_bboxes.size();
-    bool                        need_object = num_bodies <= 1;
+    // Orca: Each body gets the octree it has when sliced on its own, from its own triangles, for each line spacing
+    // its regions fill with. Body num_bodies stands for the whole object, which serves an object of a single body
+    // and the surfaces of bodies that have no octree of their own.
+    const size_t                           num_bodies = m_separated_body_bboxes.size();
+    std::vector<std::pair<size_t, size_t>> to_build; // Set, body.
+    std::vector<indexed_triangle_set>      body_meshes;
+    std::vector<std::vector<Vec3d>>        body_overhangs(num_bodies);
     if (num_bodies > 1) {
-        const std::vector<indexed_triangle_set> body_meshes = split_mesh_by_body(*this, mesh, num_bodies);
-        need_object = std::any_of(body_meshes.begin(), body_meshes.end(), [](const indexed_triangle_set &its) { return its.indices.empty(); });
-        std::vector<std::vector<Vec3d>>         body_overhangs(num_bodies);
+        body_meshes = split_mesh_by_body(*this, mesh, num_bodies);
         for (size_t i = 0; i < surfaces_w_layer.size(); ++ i)
             if (const int body = separated_body_at(*surfaces_w_layer[i].second, surfaces_w_layer[i].first->expolygon.contour.points.front()); body >= 0)
                 append(body_overhangs[body], overhangs[i]);
-        if (adaptive_line_spacing)
-            octrees.first.bodies.resize(num_bodies);
-        if (support_line_spacing)
-            octrees.second.bodies.resize(num_bodies);
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, num_bodies), [&, adaptive_spacing = adaptive_line_spacing, support_spacing = support_line_spacing](
-                                                                        const tbb::blocked_range<size_t> &range) {
-            for (size_t body = range.begin(); body < range.end(); ++ body) {
-                m_print->throw_if_canceled();
-                if (body_meshes[body].indices.empty())
-                    continue;
-                if (adaptive_spacing)
-                    octrees.first.bodies[body] = build_octree(body_meshes[body], body_overhangs[body], adaptive_spacing, false);
-                if (support_spacing)
-                    octrees.second.bodies[body] = build_octree(body_meshes[body], body_overhangs[body], support_spacing, true);
-            }
-        });
-    }
+        std::vector<std::vector<char>> fills(spacings.size(), std::vector<char>(num_bodies + 1, false));
+        for (const Layer *layer : m_layers)
+            for (size_t region_id = 0; region_id < layer->regions().size() && region_id < octrees.region_set.size(); ++ region_id)
+                if (const int set = octrees.region_set[region_id]; set >= 0)
+                    for (const Surface &surface : layer->regions()[region_id]->fill_surfaces) {
+                        const int body = separated_body_at(*layer, surface.expolygon.contour.points.front());
+                        fills[set][body >= 0 && ! body_meshes[body].indices.empty() ? size_t(body) : num_bodies] = true;
+                    }
+        for (size_t set = 0; set < spacings.size(); ++ set) {
+            octrees.sets[set].bodies.resize(num_bodies);
+            for (size_t body = 0; body <= num_bodies; ++ body)
+                if (fills[set][body])
+                    to_build.emplace_back(set, body);
+        }
+    } else
+        for (size_t set = 0; set < spacings.size(); ++ set)
+            to_build.emplace_back(set, num_bodies);
 
     // and gather them.
     for (size_t i = 1; i < overhangs.size(); ++ i)
         append(overhangs.front(), std::move(overhangs[i]));
 
-    // Orca: The object's octree only serves bodies that have none of their own.
-    if (need_object && adaptive_line_spacing)
-        octrees.first.object = build_octree(mesh, overhangs.front(), adaptive_line_spacing, false);
-    if (need_object && support_line_spacing)
-        octrees.second.object = build_octree(mesh, overhangs.front(), support_line_spacing, true);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, to_build.size()), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t i = range.begin(); i < range.end(); ++ i) {
+            m_print->throw_if_canceled();
+            const auto [set, body] = to_build[i];
+            const bool object      = body == num_bodies;
+            (object ? octrees.sets[set].object : octrees.sets[set].bodies[body]) =
+                build_octree(object ? mesh : body_meshes[body], object ? overhangs.front() : body_overhangs[body], spacings[set].first,
+                             spacings[set].second);
+        }
+    });
     return octrees;
 }
 
@@ -1251,12 +1249,54 @@ FillLightning::GeneratorPtr PrintObject::prepare_lightning_infill_data()
     return has_lightning_infill ? FillLightning::build_generator(std::as_const(*this), [this]() -> void { this->throw_if_canceled(); }) : FillLightning::GeneratorPtr();
 }
 
+TpmsRadialFields PrintObject::prepare_tpms_radial_fields() const
+{
+    TpmsRadialFields fields;
+    std::array<bool, size_t(TpmsAdaptiveMode::Count)> modes{};
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
+        if (const PrintRegionConfig &config = this->printing_region(region_id).config();
+            config.sparse_infill_density > 0 && config.sparse_infill_density < 100 && is_tpms_adaptive_pattern(config.sparse_infill_pattern))
+            modes[size_t(config.tpms_adaptive.value)] = true;
+    modes[size_t(TpmsAdaptiveMode::Disabled)] = false;
+    if (std::find(modes.begin(), modes.end(), true) == modes.end() || m_layers.empty())
+        return fields;
+
+    std::vector<TpmsRadialField::Slice> slices;
+    slices.reserve(m_layers.size());
+    BoundingBox bbox;
+    for (const Layer *layer : m_layers) {
+        slices.push_back({layer->bottom_z(), layer->print_z, &layer->lslices});
+        bbox.merge(get_extents(layer->lslices));
+    }
+    if (!bbox.defined)
+        return fields;
+    for (size_t mode = 0; mode < modes.size(); ++mode) {
+        if (!modes[mode])
+            continue;
+        // Without a field, the infill falls back to the regular pattern.
+        auto field = std::make_unique<TpmsRadialField>(slices, bbox, TpmsAdaptiveMode(mode), [this]() { m_print->throw_if_canceled(); });
+        if (!field->empty())
+            fields[mode] = std::move(field);
+    }
+    return fields;
+}
+
 void PrintObject::clear_layers()
 {
     if (!m_shared_object) {
         for (Layer *l : m_layers)
             delete l;
         m_layers.clear();
+        for (Layer *l : m_belt_truncated_layers)
+            delete l;
+        m_belt_truncated_layers.clear();
+        // Fills dropped for plastic saving are owned by the stash while they sit
+        // outside their layer's collection, so they are freed here too. Order
+        // matters only in that these point at layers deleted just above, and we
+        // never dereference the layer -- just the entity.
+        for (const BeltDroppedFill &d : m_belt_dropped_fills)
+            delete d.entity;
+        m_belt_dropped_fills.clear();
     }
 }
 
@@ -1290,6 +1330,75 @@ void PrintObject::clear_support_layers()
             l->cantilevers.clear();
         }
     }
+    // Belt brim is owned by the same step, so it must die with it or an
+    // invalidate-without-rerun would leave stale bands (and stale prologue Zs)
+    // behind.  Unconditional: unlike support layers it is never shared.
+    this->clear_belt_brim();
+}
+
+// Belt brim ------------------------------------------------------------------
+//
+// The tilt test is answered from the print CONFIG, not from SlicingParameters:
+// invalidating posSupportMaterial clears m_slicing_params.valid, and this is
+// queried from Print::process() dispatch, Brim.cpp and the G-code emitter, where
+// a stale zero shear factor would silently drop the brim.  BeltBrim.cpp itself
+// reads the real belt floor through BeltFloorContext, where the parameters are
+// guaranteed current.
+bool PrintObject::has_belt_brim() const
+{
+    if (! m_print->has_tilted_belt())
+        return false;
+    // The purge prism is sacrificial and sits at the plate's edge; its generator sets no_brim, and
+    // this keeps it brimless whatever its config says, so a brim on the parts never blocks purging.
+    if (m_config.belt_purge_tower_object.value)
+        return false;
+    if (m_config.brim_type == btNoBrim)
+        return false;
+    // An inner-only brim has no leading/extra geometry: leading_brim_length and
+    // extra_brim_width both widen the OUTER ring, which btInnerOnly never emits, so it
+    // produces nothing unless brim_width itself is positive.  Every other brim type is
+    // satisfied by any one of the three widths.  Requiring the width here (instead of
+    // "any width") stops has_belt_brim() - and therefore Print::validate() - from
+    // rejecting the prime tower / spiral vase for a brim that would never be drawn.
+    if (m_config.brim_type == btInnerOnly) {
+        if (m_config.brim_width.value <= 0.)
+            return false;
+    } else if (m_config.brim_width.value <= 0. && m_config.leading_brim_length.value <= 0.
+               && m_config.extra_brim_width.value <= 0.) {
+        return false;
+    }
+    return ! this->has_raft();
+}
+
+unsigned int PrintObject::belt_brim_filament() const
+{
+    // 1-based, matching PrintRegion::outer_wall_filament_id and the raw values pushed
+    // into LayerTools::extruders in ToolOrdering::collect_extruders (the whole list is
+    // reindexed to 0-based later).  Lowest positive outer-wall filament over the
+    // printing regions; 1 when none is explicitly set.
+    unsigned int brim_filament = 0;
+    for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
+        const unsigned int f = this->printing_region(i).config().outer_wall_filament_id.value;
+        if (f > 0 && (brim_filament == 0 || f < brim_filament))
+            brim_filament = f;
+    }
+    return brim_filament == 0 ? 1u : brim_filament;
+}
+
+void PrintObject::clear_belt_brim()
+{
+    m_belt_brim_by_layer.clear();
+    m_belt_brim_areas_by_layer.clear();
+    m_belt_brim_prologue.clear();
+}
+
+void PrintObject::set_belt_brim(std::vector<ExtrusionEntityCollection> &&by_layer,
+                                std::vector<ExPolygons>                &&areas,
+                                std::vector<BeltBrimBand>              &&prologue)
+{
+    m_belt_brim_by_layer       = std::move(by_layer);
+    m_belt_brim_areas_by_layer = std::move(areas);
+    m_belt_brim_prologue       = std::move(prologue);
 }
 
 std::shared_ptr<TreeSupportData> PrintObject::alloc_tree_support_preview_cache()
@@ -1332,6 +1441,8 @@ bool PrintObject::invalidate_state_by_config_options(
     bool invalidated = false;
     for (const t_config_option_key &opt_key : opt_keys) {
         if (   opt_key == "brim_width"
+            || opt_key == "leading_brim_length"
+            || opt_key == "extra_brim_width"
             || opt_key == "brim_object_gap"
             || opt_key == "brim_use_efc_outline"
             || opt_key == "brim_type"
@@ -1356,7 +1467,10 @@ bool PrintObject::invalidate_state_by_config_options(
                 const auto* new_brim_type = new_config.option<ConfigOptionEnum<BrimType>>(opt_key);
                 //BBS: When switch to manual brim, the object must have brim, then re-generate perimeter
                 //to make the wall order of first layer to be outer-first
-                if (old_brim_type->value == btOuterOnly || new_brim_type->value == btOuterOnly)
+                // btLeadingEdgeOnly is printed as an outer brim (Brim.cpp, BeltBrim.cpp), so it
+                // takes part in the same first-layer wall order rule.
+                if (old_brim_type->value == btOuterOnly || new_brim_type->value == btOuterOnly ||
+                    old_brim_type->value == btLeadingEdgeOnly || new_brim_type->value == btLeadingEdgeOnly)
                     steps.emplace_back(posPerimeters);
             }
         } else if (
@@ -1570,6 +1684,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "tpms_adaptive"
+                   || opt_key == "tpms_interior_density"
+                   || opt_key == "tpms_adaptive_gradient"
                    // Orca: Body centering now also determines bridge anchors during preparation.
                    // Invalidating preparation also invalidates infill, including top/bottom surfaces.
                    || opt_key == "center_of_surface_pattern"
@@ -1716,7 +1833,8 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
-            || opt_key == "flush_into_support") {
+            || opt_key == "flush_into_support"
+            || opt_key == "belt_purge_tower_object") {
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {
@@ -1746,12 +1864,25 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posSlice) {
-		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
+        // posSimplifySupportPath is listed with posSupportMaterial: invalidate_steps() does not
+        // propagate, so without it a re-slice regenerated the supports but kept the step done,
+        // and the new support paths were exported unsimplified, unlike a fresh slice.
+		// posDetectOverhangsForLift reads the layers' overhang regions, which a re-slice
+		// starts over empty: without it here the step stayed done and the lift logic in
+		// GCode::needs_retraction() had no overhangs to test against until something else
+		// invalidated it.
+		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill, posSimplifySupportPath, posDetectOverhangsForLift });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
+        // The exact belt_floor_z_shift is recomputed when slice() runs again.
+        m_belt_floor_z_shift_cache_valid = false;
     } else if (step == posSupportMaterial) {
         invalidated |= this->invalidate_steps({ posSimplifySupportPath });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
+        // SlicingParameters depend on support config (enable_support /
+        // raft_layers / enforce_support_layers feed min/max layer height in
+        // Slicing.cpp), so invalidate them here.  The vertex-scan
+        // belt_floor_z_shift is preserved via m_belt_floor_z_shift_cached.
         m_slicing_params.valid = false;
     }
 
@@ -1772,6 +1903,7 @@ bool PrintObject::invalidate_all_steps()
     bool result = inherited_invalidated || print_invalidated;
 	// Then reset some of the depending values.
 	m_slicing_params.valid = false;
+	m_belt_floor_z_shift_cache_valid = false;
 	return result;
 }
 
@@ -3062,6 +3194,7 @@ void PrintObject::bridge_over_infill()
         }
 
         this->m_adaptive_fill_octrees = this->prepare_adaptive_infill_data(surfaces_w_layer);
+        this->m_tpms_radial_fields    = this->prepare_tpms_radial_fields();
 
         std::vector<size_t> layers_to_generate_infill;
         for (const auto &pair : surfaces_by_layer) {
@@ -3077,8 +3210,7 @@ void PrintObject::bridge_over_infill()
             for (size_t job_idx = r.begin(); job_idx < r.end(); job_idx++) {
                 size_t lidx = layers_to_generate_infill[job_idx];
                 infill_lines.at(
-                    lidx) = po->get_layer(lidx)->generate_sparse_infill_polylines_for_anchoring(&po->m_adaptive_fill_octrees.first,
-                                                                                                &po->m_adaptive_fill_octrees.second,
+                    lidx) = po->get_layer(lidx)->generate_sparse_infill_polylines_for_anchoring(&po->m_adaptive_fill_octrees,
                                                                                                 po->m_lightning_generator.get());
             }
         });
@@ -4109,8 +4241,36 @@ void PrintObject::update_slicing_parameters()
 {
     // Orca: updated function call for XYZ shrinkage compensation
     if (!m_slicing_params.valid) {
-          m_slicing_params = SlicingParameters::create_from_config(this->print()->config(), m_config, this->model_object()->max_z(),
+          coordf_t object_height = this->model_object()->max_z();
+          BeltTransformPipeline::BeltFloorParams belt_floor;
+          const auto &pcfg = this->print()->config();
+          if (pcfg.belt_printer.value) {
+              // The box of the mesh in the frame it is sliced in: XY centred and Z as
+              // placed on the bed (trafo_centered()).  raw_bounding_box() has the
+              // instance's Z offset removed, and the belt floor is not invariant to a
+              // Z shift (a point's z and the floor under it move in opposite
+              // directions under the rotation), so an offset box under-estimates the
+              // height by twice the shift and the layers stop part way up the object.
+              BoundingBoxf3     bb;
+              const Transform3d trafo = this->trafo_centered();
+              for (const ModelVolume *v : this->model_object()->volumes)
+                  if (v->is_model_part())
+                      bb.merge(v->mesh().transformed_bounding_box(trafo * v->get_matrix()));
+              auto hr = BeltTransformPipeline::compute_belt_height_and_floor(pcfg, bb, object_height);
+              object_height = hr.object_height;
+              belt_floor    = hr.floor_params;
+          }
+          m_slicing_params = SlicingParameters::create_from_config(pcfg, m_config, object_height,
                                                                    this->object_extruders(), this->print()->shrinkage_compensation());
+          // Populate belt floor parameters into slicing params for support clipping.
+          m_slicing_params.belt_floor_shear_factor = belt_floor.shear_factor;
+          m_slicing_params.belt_floor_from_axis    = belt_floor.from_axis;
+          m_slicing_params.belt_floor_z_shift     = belt_floor.z_shift;
+          // Prefer the vertex-scan z_shift over the bbox approximation when
+          // slice() has already produced one (e.g. this rebuild was triggered
+          // by a support-config change, which doesn't move the belt floor).
+          if (m_belt_floor_z_shift_cache_valid)
+              m_slicing_params.belt_floor_z_shift = m_belt_floor_z_shift_cached;
       }
 }
 
@@ -4151,9 +4311,28 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
     sort_remove_duplicates(object_extruders);
     //FIXME add painting extruders
 
-    if (object_max_z <= 0.f)
-        object_max_z = (float)model_object.raw_bounding_box().size().z();
-    return SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
+    BeltTransformPipeline::BeltFloorParams belt_floor;
+    if (object_max_z <= 0.f) {
+        BoundingBoxf3 bb = model_object.raw_bounding_box();
+        object_max_z = (float)bb.size().z();
+        if (print_config.belt_printer.value) {
+            // Z as placed on the bed, XY around the instance origin: the belt floor
+            // depends on where the box sits in Z (see update_slicing_parameters()).
+            if (! model_object.instances.empty()) {
+                bb = model_object.instance_bounding_box(0, false);
+                const Vec3d off = model_object.instances.front()->get_offset();
+                bb.translate(-off.x(), -off.y(), 0.);
+            }
+            auto hr = BeltTransformPipeline::compute_belt_height_and_floor(print_config, bb, object_max_z);
+            object_max_z = (float)hr.object_height;
+            belt_floor   = hr.floor_params;
+        }
+    }
+    SlicingParameters params = SlicingParameters::create_from_config(print_config, object_config, object_max_z, object_extruders, object_shrinkage_compensation);
+    params.belt_floor_shear_factor = belt_floor.shear_factor;
+    params.belt_floor_from_axis    = belt_floor.from_axis;
+    params.belt_floor_z_shift     = belt_floor.z_shift;
+    return params;
 }
 
 // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
@@ -4670,9 +4849,58 @@ void PrintObject::_generate_support_material()
         tree_support.generate();
     }
     else {
-        PrintObjectSupportMaterial support_material(this, m_slicing_params);
-        support_material.generate(*this);
+        // The normal generator anchors its layer grid at the slicing frame origin
+        // (SlicingParameters: first layer at first_print_layer_height, raft at
+        // z = 0), so it has to see the object layers in that frame.  On a belt the
+        // object layers carry the global Z offset (PrintObject::slice()), which is
+        // negative for the leading half of the belt: a top contact below z = 0
+        // then turns the intermediate-layer count negative and the generator
+        // allocates layers until memory runs out.  Lift the offset off the object
+        // layers and the belt floor for the duration of the run and put it back
+        // on everything, including the new support layers, afterwards (organic
+        // tree support is shifted the same way below).
+        const double global_z = m_belt_global_z_offset;
+        const bool   unshift  = std::abs(global_z) > EPSILON;
+        auto shift_object_frame = [this, global_z](double sign) {
+            for (Layer *layer : m_layers)
+                layer->print_z += sign * global_z;
+            m_slicing_params.belt_floor_z_shift += sign * global_z;
+        };
+        if (unshift)
+            shift_object_frame(-1.);
+        try {
+            PrintObjectSupportMaterial support_material(this, m_slicing_params);
+            support_material.generate(*this);
+        } catch (...) {
+            if (unshift)
+                shift_object_frame(1.);
+            throw;
+        }
+        if (unshift) {
+            shift_object_frame(1.);
+            for (SupportLayer *sl : m_support_layers)
+                sl->print_z += global_z;
+        }
     }
+    // Global Z offset for support layers:
+    // - Normal support: generated in the object frame above and shifted afterwards.
+    // - Non-organic tree support (slim/strong/hybrid): plan_layer_heights() reads
+    //   from globally-offset object layers, so support layers already have it.
+    // - Organic tree support: generate_tree_support_3D() computes its own Z values
+    //   independently and does NOT inherit the offset — apply it here.
+    // Belt floor polygon clipping for non-organic tree support is done inside
+    // draw_circles() before area_groups and toolpaths are built.
+    if (is_tree(m_config.support_type.value) && std::abs(m_belt_global_z_offset) > EPSILON) {
+        // Resolve effective support style (same logic as SupportParameters).
+        auto style = m_config.support_style.value;
+        if (style == smsDefault)
+            style = smsTreeOrganic;
+        if (style == smsTreeOrganic) {
+            for (SupportLayer *sl : m_support_layers)
+                sl->print_z += m_belt_global_z_offset;
+        }
+    }
+
 }
 
 // BBS
@@ -5022,6 +5250,7 @@ static void project_triangles_to_slabs(ConstLayerPtrsAdaptor layers, const index
 void PrintObject::project_and_append_custom_facets(
         bool seam, EnforcerBlockerType type, std::vector<Polygons>& out, std::vector<std::pair<Vec3f, Vec3f>>* vertical_points) const
 {
+    const Transform3d object_trafo = this->trafo_sliced();
     for (const ModelVolume* mv : this->model_object()->volumes)
         if (mv->is_model_part()) {
             const indexed_triangle_set custom_facets = seam
@@ -5030,12 +5259,12 @@ void PrintObject::project_and_append_custom_facets(
             if (! custom_facets.indices.empty()) {
                 if (seam)
                     project_triangles_to_slabs(this->layers(), custom_facets,
-                        (this->trafo_centered() * mv->get_matrix()).cast<float>(),
+                        (object_trafo * mv->get_matrix()).cast<float>(),
                         seam, out);
                 else {
                     std::vector<Polygons> projected;
                     // Support blockers or enforcers. Project downward facing painted areas upwards to their respective slicing plane.
-                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), this->trafo_centered() * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
+                    slice_mesh_slabs(custom_facets, zs_from_layers(this->layers()), object_trafo * mv->get_matrix(), nullptr, &projected, vertical_points, [](){});
                     // Merge these projections with the output, layer by layer.
                     assert(! projected.empty());
                     assert(out.empty() || out.size() == projected.size());

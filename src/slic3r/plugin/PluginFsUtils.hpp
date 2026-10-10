@@ -25,10 +25,18 @@ extern const char* const INSTALL_STATE_FILE;
 // Plugin config and orca.host.ui payloads both cross the boundary as plain JSON-compatible
 // values, so both go through these.
 
-inline pybind11::object json_to_py(const nlohmann::json& j)
+// Maximum nesting depth for JSON <-> Python conversion. A self-referential or pathologically
+// deep value would otherwise recurse until the native C stack overflows, an uncatchable crash;
+// past this bound we raise instead. 200 is far beyond any legitimate plugin config or UI payload.
+inline constexpr int kMaxJsonConversionDepth = 200;
+
+inline pybind11::object json_to_py(const nlohmann::json& j, int depth = 0)
 {
     namespace py = pybind11;
     using json   = nlohmann::json;
+
+    if (depth > kMaxJsonConversionDepth)
+        throw py::value_error("Plugin JSON value nested too deeply");
 
     switch (j.type()) {
     case json::value_t::null:            return py::none();
@@ -40,23 +48,26 @@ inline pybind11::object json_to_py(const nlohmann::json& j)
     case json::value_t::array: {
         py::list lst;
         for (const auto& e : j)
-            lst.append(json_to_py(e));
+            lst.append(json_to_py(e, depth + 1));
         return lst;
     }
     case json::value_t::object: {
         py::dict d;
         for (auto it = j.begin(); it != j.end(); ++it)
-            d[py::str(it.key())] = json_to_py(it.value());
+            d[py::str(it.key())] = json_to_py(it.value(), depth + 1);
         return d;
     }
     default: return py::none();
     }
 }
 
-inline nlohmann::json py_to_json(const pybind11::handle& o)
+inline nlohmann::json py_to_json(const pybind11::handle& o, int depth = 0)
 {
     namespace py = pybind11;
     using json   = nlohmann::json;
+
+    if (depth > kMaxJsonConversionDepth)
+        throw py::value_error("Plugin value nested too deeply (possible cycle)");
 
     if (o.is_none())
         return json(nullptr);
@@ -73,13 +84,13 @@ inline nlohmann::json py_to_json(const pybind11::handle& o)
     if (py::isinstance<py::dict>(o)) {
         json obj = json::object();
         for (auto item : py::reinterpret_borrow<py::dict>(o))
-            obj[py::str(item.first).cast<std::string>()] = py_to_json(item.second);
+            obj[py::str(item.first).cast<std::string>()] = py_to_json(item.second, depth + 1);
         return obj;
     }
     if (py::isinstance<py::list>(o) || py::isinstance<py::tuple>(o)) {
         json arr = json::array();
         for (auto e : o)
-            arr.push_back(py_to_json(e));
+            arr.push_back(py_to_json(e, depth + 1));
         return arr;
     }
     return py::str(o).cast<std::string>(); // fallback: str()

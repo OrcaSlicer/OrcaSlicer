@@ -202,6 +202,7 @@ Vec2d place_wipe_tower(DynamicPrintConfig &cfg, const Vec2d &center)
 std::string slice_two_color_cube_and_export(DynamicPrintConfig cfg, bool is_bbl, bool by_object)
 {
     const Vec2d        center = printable_area_center(cfg);
+    const bool         belt   = cfg.opt_bool("belt_printer");
     std::vector<Vec2d> cube_mins;
     if (by_object) {
         // By-object printing fires the hook only without a wipe tower, and rules out clumping detection and
@@ -212,6 +213,12 @@ std::string slice_two_color_cube_and_export(DynamicPrintConfig cfg, bool is_bbl,
         cfg.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
         cfg.set_key_value("skirt_loops", new ConfigOptionInt(0));
         cube_mins = {center + Vec2d(-20., -5.), center + Vec2d(10., -5.)};
+    } else if (belt) {
+        // A belt object's slicing Z starts at the belt below its leading end, well below its first
+        // printed layer, so a height range in slicing Z does not map onto the part. Two cubes one
+        // behind the other along the belt, the second on filament 2, give the one filament change
+        // instead (the purge prism is an object the GUI adds, so there is no tower to place).
+        cube_mins = {center - Vec2d(5., 15.), center + Vec2d(-5., 5.)};
     } else {
         // Clumping detection changes the tower footprint, so turn it on before placing the tower.
         if (!cfg.opt_string("wrapping_detection_gcode").empty())
@@ -229,14 +236,20 @@ std::string slice_two_color_cube_and_export(DynamicPrintConfig cfg, bool is_bbl,
         obj->name = "cube"; // populates [input_filename_base] the way a loaded model does
         obj->add_volume(m);
         obj->add_instance();
-        // Filament 2 is used only above z=4, so the upper layers carry a single filament change.
-        DynamicPrintConfig range_config;
-        range_config.set_key_value("extruder",     new ConfigOptionInt(2));
-        // Every range must carry a layer_height; use the process's own so a fine nozzle (e.g. 0.15 mm
-        // printing ~0.1 mm layers) isn't forced to a height its extrusion width can't support - that
-        // trips Flow::with_spacing.
-        range_config.set_key_value("layer_height", new ConfigOptionFloat(cfg.opt_float("layer_height")));
-        obj->layer_config_ranges[{4.0, 10.0}].assign_config(std::move(range_config));
+        if (belt && !by_object) {
+            // The second cube along the belt is on filament 2 (see cube_mins above).
+            if (&cube_min == &cube_mins.back())
+                obj->config.set_key_value("extruder", new ConfigOptionInt(2));
+        } else {
+            // Filament 2 is used only above z=4, so the upper layers carry a single filament change.
+            DynamicPrintConfig range_config;
+            range_config.set_key_value("extruder",     new ConfigOptionInt(2));
+            // Every range must carry a layer_height; use the process's own so a fine nozzle (e.g. 0.15 mm
+            // printing ~0.1 mm layers) isn't forced to a height its extrusion width can't support - that
+            // trips Flow::with_spacing.
+            range_config.set_key_value("layer_height", new ConfigOptionFloat(cfg.opt_float("layer_height")));
+            obj->layer_config_ranges[{4.0, 10.0}].assign_config(std::move(range_config));
+        }
         obj->ensure_on_bed();
         print.auto_assign_extruders(obj);
     }
@@ -521,11 +534,16 @@ int slice_all_printers(const std::string &vendor, const std::string &outdir)
         const std::string filament_name = bundle.filaments.get_selected_preset_name();
         const std::string what          = "Printer \"" + printer + "\"";
         const std::string file_base     = sanitize_filename(vendor_name) + "__" + sanitize_filename(printer);
+        // A belt printer has no wipe tower (it purges into a prism object on the belt), so its
+        // filament change is the plain tool change set_extruder() emits rather than the tower's block.
+        const bool        belt   = bundle.printers.get_selected_preset().config.opt_bool("belt_printer");
+        const std::string marker = belt ? "\nT1\n" : "CP TOOLCHANGE START";
         if (const std::string out = slice_selection(bundle, what, false, outdir, file_base); out.empty())
             ++failures;
-        else if (out.find("CP TOOLCHANGE START") == std::string::npos) {
-            // The filament change never rode the tower, so change_filament_gcode was not exercised.
-            BOOST_LOG_TRIVIAL(error) << what << " sliced but the filament change never fired (no CP TOOLCHANGE START)";
+        else if (out.find(marker) == std::string::npos) {
+            // The filament change never fired, so change_filament_gcode was not exercised.
+            BOOST_LOG_TRIVIAL(error) << what << " sliced but the filament change never fired (no "
+                                     << (belt ? "T1" : "CP TOOLCHANGE START") << ")";
             ++failures;
         }
         cover(bundle.prints.get_selected_preset());

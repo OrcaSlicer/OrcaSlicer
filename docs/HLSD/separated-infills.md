@@ -18,8 +18,8 @@ each body on its own (see Octree infill).
 ## Bodies
 
 `PrintObject::prepare_infill()` groups the islands of every layer (`lslices`)
-into 3D connected bodies before bridges are detected, so bridge anchors and
-printed infill share one origin. Islands on adjacent layers belong to one body
+into 3D connected bodies with `connected_bodies()` before bridges are detected,
+so bridge anchors and printed infill share one origin. Islands on adjacent layers belong to one body
 when their slices overlap. Parts that touch or overlap form one body. Separate
 parts, disconnected islands of one mesh, and interleaved parts that never touch,
 such as chain links, each form their own. Every island stores the index of its
@@ -78,6 +78,13 @@ to the body of its island. The fill takes the octree of the region's body, from
 the same `infill_body()`. The octree of the whole object is built only for an
 object of a single body, or when some body received no triangles, which then
 uses it.
+
+The line spacing of an octree comes from the density, line width and multiline
+count of a region, so a modifier or a part with its own density needs octrees of
+its own. `adaptive_fill_line_spacing()` gives the spacing of each region, and
+`FillAdaptive::RegionOctrees` holds one set of octrees per distinct spacing,
+shared by the regions that have it. A set is built only for the bodies its
+regions fill. The fill takes the set of its region, then the octree of its body.
 
 ## Patterns left out
 

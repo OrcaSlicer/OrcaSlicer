@@ -559,7 +559,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 else if(m_opt_id == "filament_retraction_distances_when_cut" || opt_key_without_idx == "retraction_distances_when_cut"){
                     if (m_value.empty() || boost::any_cast<double>(m_value) != val) {
                         wxString msg_text = format_wxstr(_L("Value %s is out of range. The valid range is from %d to %d."), str, m_opt.min, m_opt.max);
-                        WarningDialog dialog(m_parent, msg_text, _L("Parameter validation") + ": " + m_opt_id, wxYES);
+                        WarningDialog dialog(m_parent, msg_text, _L("Parameter validation") + ": " + m_opt_id, wxOK);
                         if (dialog.ShowModal()) {
                             if (m_value.empty()) {
                                 if (m_opt.min > val) val = m_opt.min;

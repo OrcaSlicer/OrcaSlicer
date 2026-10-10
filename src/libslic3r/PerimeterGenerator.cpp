@@ -1839,8 +1839,10 @@ void PerimeterGenerator::process_classic()
             bool is_outer_wall_first = this->config->wall_sequence == WallSequence::OuterInner;
             if (is_outer_wall_first ||
                 //BBS: always print outer wall first when there indeed has brim.
+                // btLeadingEdgeOnly is an outer brim too (a belt brim at the part's first contact).
                 (this->layer_id == 0 &&
-                    this->object_config->brim_type == BrimType::btOuterOnly &&
+                    (this->object_config->brim_type == BrimType::btOuterOnly ||
+                     this->object_config->brim_type == BrimType::btLeadingEdgeOnly) &&
                     this->object_config->brim_width.value > 0))
                 entities.reverse();
             // Orca: sandwich mode. Apply after 1st layer.

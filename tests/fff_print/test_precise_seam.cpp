@@ -23,9 +23,11 @@
 #include "libslic3r/GCode/SeamPlacer.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <cstdlib>
 
 using namespace Slic3r;
 
@@ -1426,4 +1428,45 @@ TEST_CASE("Full containment warns for Blocked but not for Enforced", "[PreciseSe
         CHECK(fixture.warning().find("Seam Blocked") != std::string::npos);
     else
         CHECK(fixture.warning().empty());
+}
+
+TEST_CASE("Belt printers slice Precise Seam modifiers in the frame the object was sliced in", "[PreciseSeam][belt]")
+{
+    Model model;
+    Print print;
+    Test::init_print({Test::cube(20)}, print, model, {
+        { "belt_printer",               1 },
+        { "belt_slice_rotation",        "x" },
+        { "belt_slice_rotation_angle",  45 },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        // Keep the first layer's islands the raw slice, like the modifier's.
+        { "elefant_foot_compensation",  0 },
+    });
+    print.process();
+    const PrintObject *object = print.get_object(0);
+    REQUIRE(object->layer_count() > 0);
+
+    // A modifier with the object's own mesh and placement must slice to the object's own islands
+    // on every layer. Sliced without the belt rotation it would give 20 mm squares on the lower
+    // layers and nothing above 20 mm, while the tilted cube reaches about 28 mm.
+    Model modifiers;
+    ModelVolume *modifier = modifiers.add_object()->add_volume(*model.objects.front()->volumes.front());
+    modifier->set_type(ModelVolumeType::PRECISE_SEAM_BLOCKED);
+    const std::vector<ExPolygons> slices = object->slice_single_volume_regions(modifier);
+    REQUIRE(slices.size() == object->layer_count());
+
+    const double tolerance = scale_(0.05) * scale_(20.);
+    for (size_t i = 0; i < slices.size(); ++i) {
+        CAPTURE(i, object->get_layer(int(i))->slice_z);
+        const ExPolygons &islands = object->get_layer(int(i))->lslices;
+        double object_area = 0., modifier_area = 0.;
+        for (const ExPolygon &island : islands)
+            object_area += island.area();
+        for (const ExPolygon &region : slices[i])
+            modifier_area += region.area();
+        CHECK(std::abs(modifier_area - object_area) < tolerance);
+        CHECK(get_extents(slices[i]).inflated(scale_(0.05)).contains(get_extents(islands)));
+    }
 }

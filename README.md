@@ -68,6 +68,10 @@ If you come across any of these in search results, please <b>report them</b> as 
   Regular updates fueled by continuous community contributions.
 - **Wide Printer Compatibility**  
   Supports a broad range of printers: Bambu Lab, Prusa, Creality, Voron, and more.
+- **[Belt Printer Support](https://www.orcaslicer.com/wiki/belt_printing)**  
+  Slice for belt / conveyor (infinite-Z) printers, with belt-aware supports and a tilted-bed preview. Contributed by [Joseph Robertson (@HarrierPigeon)](https://github.com/HarrierPigeon).
+- **[IDEX/IQEX Parallel Printing Support](https://www.orcaslicer.com/wiki/idex_iqex_parallel_printing)**  
+  Print copies or mirror images of a part on every carriage of an IDEX or IQEX printer at once, with the mode chosen per plate and nozzle clearance zones shown on the bed. Contributed by [Clifford (@cgarwood82)](https://github.com/cgarwood82).
 - Additional features can be found in the [change notes](https://github.com/OrcaSlicer/OrcaSlicer/releases/).
 
 # Wiki
@@ -88,17 +92,6 @@ Visit our GitHub Releases page for the latest stable version of OrcaSlicer, reco
 
 🌙 **[Download the Latest Nightly Build](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds)**  
 Explore the latest developments in OrcaSlicer with our nightly builds. Feedback on these versions is highly appreciated.
-
-### Belt Printer Builds
-
-The [nightly release](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds) ships **two parallel builds**: the standard build and a belt-printer build. Both are attached to the same release — tell them apart by the filename suffix:
-
-- **Standard** — no suffix (e.g. `OrcaSlicer_Windows_Installer_x64_nightly.exe`)
-- **Belt** — `_belt` suffix (e.g. `OrcaSlicer_Windows_Installer_x64_nightly_belt.exe`)
-
-The `_belt` builds add **experimental support for belt / conveyor (infinite-Z) printers**, where the model is sliced against a tilted belt surface instead of a flat horizontal bed. They include ready-to-use belt printer profiles, the full belt slicing pipeline (mesh rotation and G-code transforms), belt-aware support generation, and a tilted-bed preview.
-
-> ⚠️ Belt printer support is under active development and is **not yet merged into `main`** — it currently ships only in these parallel `_belt` builds, produced from the [`belt-printer`](https://github.com/OrcaSlicer/OrcaSlicer/tree/belt-printer) branch. See tracking PR [#14394](https://github.com/OrcaSlicer/OrcaSlicer/pull/14394) and the original documentation in [#12998](https://github.com/OrcaSlicer/OrcaSlicer/pull/12998).
 
 # How to install
 
