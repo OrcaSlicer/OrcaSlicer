@@ -162,6 +162,7 @@ private:
 
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_cfs_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
 
     // JSON helper methods
