@@ -1,4 +1,9 @@
 #include "AMSMaterialsSetting.hpp"
+#include "ColorPickerDialog.hpp"
+#include "libslic3r/Color.hpp"
+#include <optional>
+#include <variant>
+#include <cstdint>
 #include "ExtrusionCalibration.hpp"
 #include "MsgDialog.hpp"
 #include "GUI_App.hpp"
@@ -35,11 +40,9 @@
 #include <cmath>
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
-#include <wx/colordlg.h>
 #include <wx/dcclient.h>
 #include <wx/dc.h>
 #include <wx/colour.h>
-#include <wx/colourdata.h>
 #include <wx/dcgraph.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -1839,11 +1842,6 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     sizer_custom->Add(m_ts_stbitmap_custom, 0, wxEXPAND, 0);
     m_custom_cp->Layout();
 
-    m_clrData = new wxColourData();
-    m_clrData->SetChooseFull(true);
-    m_clrData->SetChooseAlpha(false);
-
-
     m_sizer_box->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_sizer_box->Add(m_sizer_ams, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
     m_sizer_box->Add(m_ams_fg_sizer, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(10));
@@ -1867,46 +1865,34 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     wxGetApp().UpdateDarkUIWin(this);
 }
 
-void ColorPickerPopup::on_custom_clr_picker(wxMouseEvent& event)
+void ColorPickerPopup::on_custom_clr_picker(wxMouseEvent& /*event*/)
 {
-    std::vector<std::string> colors = wxGetApp().app_config->get_custom_color_from_config();
-    for (int i = 0; i < colors.size(); i++) {
-        m_clrData->SetCustomColour(i, string_to_wxColor(colors[i]));
+    const bool was_shown = IsShown();
+    std::optional<wxColour> picker_color;
+    {
+        const ColorRGBA initial(m_def_col.Red(), m_def_col.Green(), m_def_col.Blue(), static_cast<unsigned char>(255));
+        // Snapshot the custom control's anchor before releasing the transient popup grab.
+        ColorPickerDialog dialog(GetParent(), initial, {}, false, m_custom_cp);
+        Dismiss();
+        if (dialog.ShowModal() == wxID_OK && dialog.selection()) {
+            const auto& result = std::get<ColorRGBA>(*dialog.selection());
+            picker_color = wxColour(static_cast<unsigned char>(std::lround(result.r() * 255.f)),
+                                    static_cast<unsigned char>(std::lround(result.g() * 255.f)),
+                                    static_cast<unsigned char>(std::lround(result.b() * 255.f)));
+        }
+    } // Destroy the modal before restoring the first-level popup and its focus/grab.
+    if (!picker_color) {
+        if (was_shown) Popup();
+        return;
     }
-    auto clr_dialog = new wxColourDialog(nullptr, m_clrData);
-    wxColour picker_color;
 
-    if (clr_dialog->ShowModal() == wxID_OK) {
-        m_clrData = &(clr_dialog->GetColourData());
-        if (colors.size() != CUSTOM_COLOR_COUNT) {
-            colors.resize(CUSTOM_COLOR_COUNT);
-        }
-        for (int i = 0; i < CUSTOM_COLOR_COUNT; i++) {
-            colors[i] = color_to_string(m_clrData->GetCustomColour(i));
-        }
-        wxGetApp().app_config->save_custom_color_to_config(colors);
-
-        picker_color = wxColour(
-            m_clrData->GetColour().Red(),
-            m_clrData->GetColour().Green(),
-            m_clrData->GetColour().Blue(),
-            255
-        );
-
-        if (picker_color.Alpha() == 0) {
-             m_ts_stbitmap_custom->Show();
-        }
-        else {
-            m_ts_stbitmap_custom->Hide();
-            m_custom_cp->SetBackgroundColor(picker_color);
-        }
-
-        set_def_colour(picker_color);
-        wxCommandEvent evt(EVT_SELECTED_COLOR);
-        unsigned long g_col = ((picker_color.Red() & 0xff) << 24) + ((picker_color.Green() & 0xff) << 16) + ((picker_color.Blue() & 0xff) << 8) + (picker_color.Alpha() & 0xff);
-        evt.SetInt(g_col);
-        wxPostEvent(GetParent(), evt);
-    }
+    set_def_colour(*picker_color);
+    wxCommandEvent evt(EVT_SELECTED_COLOR);
+    const std::uint32_t packed = (std::uint32_t(picker_color->Red()) << 24) |
+                                 (std::uint32_t(picker_color->Green()) << 16) |
+                                 (std::uint32_t(picker_color->Blue()) << 8) | 255u;
+    evt.SetInt(static_cast<int>(packed));
+    wxPostEvent(GetParent(), evt);
 }
 
 void ColorPickerPopup::set_ams_colours(std::vector<wxColour> ams)

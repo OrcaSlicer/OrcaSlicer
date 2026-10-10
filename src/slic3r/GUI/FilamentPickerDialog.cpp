@@ -1,4 +1,8 @@
 #include "FilamentPickerDialog.hpp"
+#include "ColorPickerDialog.hpp"
+#include "libslic3r/Color.hpp"
+#include <optional>
+#include <utility>
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
@@ -79,7 +83,8 @@ void FilamentPickerDialog::StartFlashing()
     m_flash_timer->Start(50);
 }
 
-FilamentPickerDialog::FilamentPickerDialog(wxWindow *parent, const wxString& fila_id, const FilamentColor& fila_color, const std::string& fila_type)
+FilamentPickerDialog::FilamentPickerDialog(wxWindow *parent, const wxString& fila_id, const FilamentColor& fila_color, const std::string& fila_type,
+                                           std::optional<FilamentColorPickerValue> ordered_color)
     : DPIDialog(parent ? parent : wxGetApp().mainframe,
         wxID_ANY,
         _L("Select Filament"),
@@ -92,6 +97,7 @@ FilamentPickerDialog::FilamentPickerDialog(wxWindow *parent, const wxString& fil
     m_color_query = new FilamentColorCodeQuery();
     m_is_data_loaded = LoadFilamentData(fila_id);
     m_cur_filament_color = fila_color;
+    m_ordered_color = std::move(ordered_color);
     wxString color_name = m_color_query->GetFilaColorName(fila_id, fila_color);
     m_cur_color_name = new wxString(color_name);
 
@@ -441,6 +447,9 @@ wxScrolledWindow* FilamentPickerDialog::CreateColorGrid()
 
                 // Bind click
                 btn->Bind(wxEVT_LEFT_DOWN, [this, btn, color_code](wxMouseEvent& evt) {
+                    m_selection_changed = true;
+                    m_ordered_color.reset();
+                    m_custom_selection.reset();
                     m_cur_filament_color = color_code->GetFilaColor();
                     UpdatePreview(*color_code);
                     UpdateButtonStates(btn);
@@ -511,24 +520,27 @@ void FilamentPickerDialog::UpdatePreview(const FilamentColorCode& color_code)
     Layout();
 }
 
-void FilamentPickerDialog::UpdateCustomColorPreview(const wxColour& custom_color)
+void FilamentPickerDialog::UpdateCustomColorPreview(const std::vector<wxColour>& wx_colors, bool gradient)
 {
-    std::vector<wxColour> wx_colors = {custom_color};
-
     // Update preview bitmap
-    wxBitmap bmp = create_filament_bitmap(wx_colors, COLOR_DEMO_SIZE, false);
+    wxBitmap bmp = create_filament_bitmap(wx_colors, COLOR_DEMO_SIZE, gradient);
 
     if (bmp.IsOk()) {
         BOOST_LOG_TRIVIAL(debug) << "Custom color bitmap created successfully: " << bmp.GetWidth() << "x" << bmp.GetHeight();
         m_color_demo->SetBitmap(bmp);
-        m_color_demo->SetBackgroundColour(custom_color);
+        m_color_demo->SetBackgroundColour(wx_colors.front());
         m_color_demo->Refresh();
     } else {
         BOOST_LOG_TRIVIAL(error) << "Failed to create custom color bitmap";
     }
 
     // Update preview labels for custom color
-    m_label_preview_color->SetLabel(custom_color.GetAsString(wxC2S_HTML_SYNTAX));
+    wxString label;
+    for (const auto& color : wx_colors) {
+        if (!label.empty()) label += " / ";
+        label += color.GetAsString(wxC2S_HTML_SYNTAX);
+    }
+    m_label_preview_color->SetLabel(label);
     m_label_preview_idx->SetLabel("");
     Layout();
 }
@@ -557,16 +569,6 @@ void FilamentPickerDialog::CreateMoreInfoButton()
     m_more_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
 }
 
-wxColourData FilamentPickerDialog::GetSingleColorData()
-{
-    wxColourData data;
-    data.SetChooseFull(true);
-    if (m_cur_filament_color.ColorCount() > 0) {
-        data.SetColour(*m_cur_filament_color.m_colors.begin());
-    }
-    return data;
-}
-
 void FilamentPickerDialog::BindEvents()
 {
     // Bind mouse events for window dragging
@@ -588,27 +590,37 @@ void FilamentPickerDialog::BindEvents()
             // Pause click detection while color picker is open
             StopClickDetection();
 
-            wxColourData original_data = GetSingleColorData();
-            wxColourData result = show_sys_picker_dialog(this, original_data);
-
-            // Resume click detection after color picker closes
-            StartClickDetection();
-
-            // Check if user actually selected a different color
-            if (result.GetColour() != original_data.GetColour()) {
-                wxColour selected_color = result.GetColour();
-
-                // Update m_current_filament_color with the selected color
-                m_cur_filament_color.m_colors.clear();
-                m_cur_filament_color.m_colors.insert(selected_color);
-                m_cur_filament_color.m_color_type = FilamentColor::ColorType::SINGLE_CLR;
-
-                // Update preview
-                UpdateCustomColorPreview(selected_color);
-
-                // Clear currently selected button since custom color selected
-                UpdateButtonStates(nullptr);
+            FilamentColorPickerValue current;
+            if (m_ordered_color) {
+                current = *m_ordered_color;
+            } else {
+                for (const auto& color : m_cur_filament_color.m_colors)
+                    current.colors.push_back(color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
+                current.gradient = m_cur_filament_color.m_color_type == FilamentColor::ColorType::GRADIENT_CLR;
             }
+            const auto initial = filament_color_picker_initial(current);
+            std::optional<ColorSelection> selected;
+            {
+                ColorPickerDialog dialog(this, initial, {true, true}, !filament_color_picker_selection(current), m_more_btn);
+                if (dialog.ShowModal() == wxID_OK)
+                    selected = dialog.selection();
+            }
+            StartClickDetection();
+            if (!filament_color_picker_changed(initial, selected))
+                return;
+
+            m_custom_selection = selected;
+            m_ordered_color = filament_color_picker_result(*selected);
+            m_selection_changed = true;
+            std::vector<wxColour> colors;
+            m_cur_filament_color.m_colors.clear();
+            for (const auto& color : m_ordered_color->colors) {
+                colors.emplace_back(wxString::FromUTF8(color));
+                m_cur_filament_color.m_colors.insert(colors.back());
+            }
+            m_cur_filament_color.m_color_type = m_ordered_color->gradient ? FilamentColor::ColorType::GRADIENT_CLR : FilamentColor::ColorType::SINGLE_CLR;
+            UpdateCustomColorPreview(colors, m_ordered_color->gradient);
+            UpdateButtonStates(nullptr);
         });
     }
 

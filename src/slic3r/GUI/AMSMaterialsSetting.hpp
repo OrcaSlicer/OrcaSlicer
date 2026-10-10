@@ -84,7 +84,6 @@ public:
     ScalableBitmap m_ts_bitmap_custom;
     wxStaticBitmap* m_ts_stbitmap_custom;
     StaticBox* m_custom_cp;
-    wxColourData* m_clrData;
     StaticBox* m_def_color_box;
     wxFlexGridSizer* m_ams_fg_sizer;
     wxColour m_def_col;

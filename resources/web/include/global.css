@@ -59,6 +59,29 @@
 }
 }
 
+/* Opt-in host contract for the color picker. Legacy pages retain their existing
+   system-theme behavior until they explicitly adopt this scope. */
+:root[data-orca-page="color-picker"] {
+	--main-color: var(--orca-accent, #009688);
+	--main-color-hover: var(--orca-accent, #009688);
+	--bg-color: var(--orca-bg, #ffffff);
+	--bg-color-secondary: var(--footer-bg, #fafafa);
+	--bg-color-alt: var(--footer-bg, #fafafa);
+	--fg-color-text: var(--orca-fg, #262e30);
+	--fg-color-label: var(--orca-muted, #363636);
+	--fg-color-disabled: var(--orca-muted, #acacac);
+	--focus-bg-item: var(--row-selected, #eaf2ff);
+	--focus-bg-box: var(--row-selected, #eaf2ff);
+	--border-color: var(--border, var(--orca-border, #dbdbdb));
+	--icon-color: var(--orca-muted, #7c8282);
+	--button-fg-light: var(--orca-accent-fg, #ffffff);
+	--button-fg-text: var(--orca-fg, #262e30);
+	--button-bg-normal: var(--btn-bg, #ffffff);
+	--button-bg-hover: var(--btn-hover, #f0f0f0);
+	color-scheme: light;
+}
+:root[data-orca-page="color-picker"][data-orca-theme="dark"] { color-scheme: dark; }
+
 /*////////////////////////////*/
 /*           ICONS            */
 /*////////////////////////////*/

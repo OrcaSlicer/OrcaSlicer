@@ -2,6 +2,7 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "Field.hpp"
+#include "ColorPickerDialog.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
@@ -45,7 +46,11 @@
 #include <wx/arrstr.h>
 #include <wx/anybutton.h>
 #include <wx/colour.h>
-#include <wx/clrpicker.h>
+#include <wx/button.h>
+#include <wx/brush.h>
+#include <wx/pen.h>
+#include <optional>
+#include <variant>
 #include <wx/image.h>
 #include <wx/dcmemory.h>
 #include <wx/dc.h>
@@ -2618,92 +2623,39 @@ void PluginConfigField::msw_rescale()
 
 void ColourPicker::BUILD()
 {
-    auto size = wxSize(def_width_wider() * m_em_unit, -1); // ORCA match color picker width
+    wxSize size(def_width_wider() * m_em_unit, -1);
     if (m_opt.height >= 0) size.SetHeight(m_opt.height*m_em_unit);
     if (m_opt.width >= 0) size.SetWidth(m_opt.width*m_em_unit);
 
-	// Validate the color
-	wxString clr_str(m_opt.type == coString ? m_opt.get_default_value<ConfigOptionString>()->value : m_opt.get_default_value<ConfigOptionStrings>()->get_at(m_opt_idx));
-	wxColour clr(clr_str);
-	if (clr_str.IsEmpty() || !clr.IsOk()) {
-		clr = wxTransparentColour;
-	}
-
-	auto temp = new wxColourPickerCtrl(m_parent, wxID_ANY, clr, wxDefaultPosition, size);
+    const wxString clr_str(m_opt.type == coString ? m_opt.get_default_value<ConfigOptionString>()->value :
+                                                   m_opt.get_default_value<ConfigOptionStrings>()->get_at(m_opt_idx));
+    auto* button = new wxButton(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, size, wxBORDER_NONE);
+    window = button;
+    button->SetBitmapMargins(0, 0);
     if (parent_is_custom_ctrl && m_opt.height < 0)
-        opt_height = (double)temp->GetSize().GetHeight() / m_em_unit;
-    temp->SetFont(Slic3r::GUI::wxGetApp().normal_font());
-    convert_to_picker_widget(temp);
-    if (!wxOSX) temp->SetBackgroundStyle(wxBG_STYLE_PAINT);
-
-	wxGetApp().UpdateDarkUI(temp->GetPickerCtrl());
-
-	// 	// recast as a wxWindow to fit the calling convention
-	window = dynamic_cast<wxWindow*>(temp);
-
-	temp->Bind(wxEVT_COLOURPICKER_CHANGED, ([
-        #ifdef __WXMSW__
-            temp,
-        #endif
-        this](wxCommandEvent e) {
-        #ifdef __WXMSW__
-            draw_bmp_btn(temp, temp->GetColour());
-        #endif
-        on_change_field();
-    }), temp->GetId());
-
-    // ORCA reset value to default on right click. previously no way to switch back on windows
-    temp->GetPickerCtrl()->Bind(wxEVT_RIGHT_DOWN, [this, temp](wxMouseEvent e){
-        #ifdef __WXMSW__
-            temp->SetColour(wxTransparentColour);
-            draw_bmp_btn(temp, wxTransparentColour);
-        #else
-            set_undef_value(temp);
-        #endif
-        on_change_field();
-        e.Skip();
+        opt_height = double(button->GetSize().GetHeight()) / m_em_unit;
+    button->SetFont(wxGetApp().normal_font());
+    if (!wxOSX) button->SetBackgroundStyle(wxBG_STYLE_PAINT);
+    set_value(boost::any(clr_str));
+    button->Bind(wxEVT_BUTTON, &ColourPicker::on_button_click, this);
+    button->Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& event) {
+        apply_user_color(wxTransparentColour);
+        event.Skip();
     });
-
-	temp->SetToolTip(get_tooltip_text(clr_str));
+    // Native layouts may assign the final field size after construction.
+    button->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
+        draw_bmp_btn();
+        event.Skip();
+    });
+    button->SetToolTip(get_tooltip_text(clr_str));
 }
 
-void ColourPicker::set_undef_value(wxColourPickerCtrl* field)
+void ColourPicker::draw_bmp_btn()
 {
-    field->SetColour(wxTransparentColour);
-
-    wxButton* btn = dynamic_cast<wxButton*>(field->GetPickerCtrl());
-    if (!btn->GetBitmap().IsOk()) return;
-
-    wxImage image(btn->GetBitmap().GetSize());
-    image.InitAlpha();
-    memset(image.GetAlpha(), 0, image.GetWidth() * image.GetHeight());
-    wxBitmap   bmp(std::move(image));
-    wxMemoryDC dc(bmp);
-    if (!dc.IsOk()) return;
-#ifdef __WXMSW__
-    wxGCDC dc2(dc);
-#else
-    wxDC &dc2(dc);
-#endif
-    dc2.SetPen(wxPen("#F1754E", 1));
-
-    const wxRect rect = wxRect(0, 0, bmp.GetWidth(), bmp.GetHeight());
-    dc2.DrawLine(rect.GetLeftBottom(), rect.GetTopRight());
-
-    dc.SelectObject(wxNullBitmap);
-    btn->SetBitmapLabel(bmp);
-}
-
-// ORCA match style with button on windows
-void ColourPicker::draw_bmp_btn(wxColourPickerCtrl* field, wxColour color)
-{
-    wxButton* btn = dynamic_cast<wxButton*>(field->GetPickerCtrl());
-
-    if (!btn->GetBitmap().IsOk()) return;
-    btn->SetWindowStyle(wxBORDER_NONE); // ORCA just in case to prevent any overflow
-    btn->SetBackgroundColour(*wxWHITE);
+    if (!window) return;
+    auto* btn = static_cast<wxButton*>(window);
+    if (btn->GetSize().x <= 0 || btn->GetSize().y <= 0) return;
     wxGetApp().UpdateDarkUI(btn);
-
     auto create_bitmap = [btn](const wxColour& picker_color,const wxColour& bg_color, bool focus) -> wxBitmap {
         wxSize  btn_sz = btn->GetSize();
         wxImage image(btn_sz);
@@ -2712,11 +2664,11 @@ void ColourPicker::draw_bmp_btn(wxColourPickerCtrl* field, wxColour color)
         wxBitmap   bmp(std::move(image));
         wxMemoryDC dc(bmp);
         if (!dc.IsOk()) return bmp;
-        wxGCDC dc2(dc); // just use wxGCDC since bitmap button only used for windows
+        wxGCDC dc2(dc);
 
         dc2.SetPen(focus ? wxPen(wxColour(StateColor::darkModeColorFor(wxColour("#009688"))), 1) : *wxTRANSPARENT_PEN);
         dc2.SetBrush(wxBrush(StateColor::darkModeColorFor(bg_color)));
-        dc2.DrawRoundedRectangle(btn->GetRect(), btn->FromDIP(4));
+        dc2.DrawRoundedRectangle(wxRect(wxPoint(0, 0), btn_sz), btn->FromDIP(4));
 
         int padding = btn->FromDIP(5);
         dc2.SetPen(*wxTRANSPARENT_PEN);
@@ -2735,117 +2687,72 @@ void ColourPicker::draw_bmp_btn(wxColourPickerCtrl* field, wxColour color)
         return bmp;
     };
 
-    btn->SetBitmap(        create_bitmap(color, wxColour("#DFDFDF"), false)); // Normal
-    btn->SetBitmapFocus(   create_bitmap(color, wxColour("#DFDFDF"), true )); // Focus
-    btn->SetBitmapCurrent( create_bitmap(color, wxColour("#D4D4D4"), false)); // Hover
+    btn->SetBitmap(        create_bitmap(m_colour, wxColour("#DFDFDF"), false)); // Normal
+    btn->SetBitmapFocus(   create_bitmap(m_colour, wxColour("#DFDFDF"), true )); // Focus
+    btn->SetBitmapCurrent( create_bitmap(m_colour, wxColour("#D4D4D4"), false)); // Hover
 }
 
-void ColourPicker::set_value(const boost::any& value, bool change_event)
+void ColourPicker::set_value(const std::string& value, bool change_event)
 {
-    m_disable_change_event = !change_event;
-    const wxString clr_str(boost::any_cast<wxString>(value));
-    auto field = dynamic_cast<wxColourPickerCtrl*>(window);
+    set_value(boost::any(wxString::FromUTF8(value)), change_event);
+}
 
-    #ifdef __WXMSW__
-        const wxColour parsed_clr(clr_str);
-        wxColour clr = (clr_str.IsEmpty() || !parsed_clr.IsOk()) ? wxTransparentColour : parsed_clr;
-        field->SetColour(clr);
-        draw_bmp_btn(field, clr);
-    #else
-        wxColour clr(clr_str);
-        if (clr_str.IsEmpty() || !clr.IsOk())
-            set_undef_value(field);
-        else
-            field->SetColour(clr);
-    #endif
-
-    m_disable_change_event = false;
+void ColourPicker::set_value(const boost::any& value, bool /*change_event*/)
+{
+    // Like wxColourPickerCtrl::SetColour, programmatic assignment is silent.
+    const wxString clr_str = boost::any_cast<wxString>(value);
+    const wxColour parsed(clr_str);
+    m_colour = clr_str.IsEmpty() || !parsed.IsOk() ? wxTransparentColour : parsed;
+    draw_bmp_btn();
 }
 
 boost::any& ColourPicker::get_value()
 {
-    save_colors_to_config();
-	auto colour = static_cast<wxColourPickerCtrl*>(window)->GetColour();
-    if (colour == wxTransparentColour)
-        m_value = std::string("");
-    else {
-        m_value = encode_color(ColorRGB(colour.Red(), colour.Green(), colour.Blue()));
-    }
-	return m_value;
+    m_value = m_colour == wxTransparentColour ? std::string() :
+        encode_color(ColorRGB(m_colour.Red(), m_colour.Green(), m_colour.Blue()));
+    return m_value;
+}
+
+void ColourPicker::apply_user_color(const std::optional<wxColour>& color)
+{
+    if (!color || !color->IsOk() || *color == m_colour) return;
+    const std::string previous = boost::any_cast<std::string>(get_value());
+    m_colour = *color;
+    draw_bmp_btn();
+    if (previous != boost::any_cast<std::string>(get_value())) on_change_field();
 }
 
 void ColourPicker::msw_rescale()
 {
     Field::msw_rescale();
-
-	wxColourPickerCtrl* field = dynamic_cast<wxColourPickerCtrl*>(window);
-    auto size = wxSize(def_width_wider() * m_em_unit, -1); // ORCA match color picker width with parameters
+    wxSize size(def_width_wider() * m_em_unit, -1);
     if (m_opt.height >= 0)
         size.SetHeight(m_opt.height * m_em_unit);
     else if (parent_is_custom_ctrl && opt_height > 0)
         size.SetHeight(lround(opt_height * m_em_unit));
     if (m_opt.width >= 0) size.SetWidth(m_opt.width * m_em_unit);
-    if (parent_is_custom_ctrl)
-        field->SetSize(size);
-    else
-        field->SetMinSize(size);
-
-    #ifdef __WXMSW__
-        draw_bmp_btn(field, field->GetColour());
-    #else
-        if (field->GetColour() == wxTransparentColour)
-            set_undef_value(field);
-    #endif
-
+    if (parent_is_custom_ctrl) window->SetSize(size);
+    else window->SetMinSize(size);
+    draw_bmp_btn();
 }
 
 void ColourPicker::sys_color_changed()
 {
-#ifdef _WIN32
-    if (wxWindow* win = this->getWindow())
-        if (wxColourPickerCtrl* picker = dynamic_cast<wxColourPickerCtrl*>(win)){
-            wxGetApp().UpdateDarkUI(picker->GetPickerCtrl(), true);
-            draw_bmp_btn(picker, picker->GetColour());
-        }
-#endif
+    if (window) wxGetApp().UpdateDarkUI(window, true);
+    draw_bmp_btn();
 }
 
-void ColourPicker::on_button_click(wxCommandEvent &event) {
-#if !defined(__linux__) && !defined(__LINUX__)
-    if (m_clrData) {
-        std::vector<std::string> colors = wxGetApp().app_config->get_custom_color_from_config();
-        for (int i = 0; i < colors.size(); i++) {
-            m_clrData->SetCustomColour(i, string_to_wxColor(colors[i]));
-        }
-    }
-    m_picker_widget->OnButtonClick(event);
-#endif
-}
-
-void ColourPicker::convert_to_picker_widget(wxColourPickerCtrl *widget)
+void ColourPicker::on_button_click(wxCommandEvent& /*event*/)
 {
-#if !defined(__linux__) && !defined(__LINUX__)
-    m_picker_widget = dynamic_cast<wxColourPickerWidget*>(widget->GetPickerCtrl());
-    if (m_picker_widget) {
-        m_picker_widget->Bind(wxEVT_BUTTON, &ColourPicker::on_button_click, this);
-        m_clrData = m_picker_widget->GetColourData();
+    const wxColour initial = m_colour == wxTransparentColour ? wxColour(0, 0, 0) : m_colour;
+    const ColorRGBA color(initial.Red(), initial.Green(), initial.Blue(), static_cast<unsigned char>(255));
+    ColorPickerDialog dialog(m_parent, color, {}, false, window);
+    if (dialog.ShowModal() == wxID_OK && dialog.selection()) {
+        const auto& result = std::get<ColorRGBA>(*dialog.selection());
+        apply_user_color(wxColour(static_cast<unsigned char>(std::lround(result.r() * 255.f)),
+                                  static_cast<unsigned char>(std::lround(result.g() * 255.f)),
+                                  static_cast<unsigned char>(std::lround(result.b() * 255.f))));
     }
-#endif
-}
-
-void ColourPicker::save_colors_to_config() {
-#if !defined(__linux__) && !defined(__LINUX__)
-    if (m_clrData) {
-        std::vector<std::string> colors;
-        if (colors.size() != CUSTOM_COLOR_COUNT) {
-            colors.resize(CUSTOM_COLOR_COUNT);
-        }
-        for (int i = 0; i < CUSTOM_COLOR_COUNT; i++) {
-            colors[i] = color_to_string(m_clrData->GetCustomColour(i));
-        }
-        wxGetApp().app_config->save_custom_color_to_config(colors);
-    }
-#endif
 }
 
 void PointCtrl::BUILD()

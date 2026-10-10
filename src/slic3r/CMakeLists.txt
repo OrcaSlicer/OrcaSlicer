@@ -127,6 +127,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Shortcuts.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
+    GUI/ColorPickerDialog.cpp
+    GUI/ColorPickerDialog.hpp
     GUI/ActionRegistry.cpp
     GUI/ActionRegistry.hpp
     GUI/NativeCommands.cpp

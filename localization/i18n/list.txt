@@ -311,6 +311,7 @@ src/slic3r/GUI/BaseTransparentDPIFrame.cpp
 src/slic3r/GUI/CloneDialog.cpp
 src/slic3r/GUI/ColorDecomposeDialog.cpp
 src/slic3r/GUI/ColorDecomposeSupport.cpp
+src/slic3r/GUI/ColorPickerDialog.cpp
 src/slic3r/GUI/ConfigWizard.cpp
 src/slic3r/GUI/DeviceCore/DevCalib.cpp
 src/slic3r/GUI/DeviceCore/DevUpgrade.cpp
