@@ -2214,6 +2214,23 @@ bool MainFrame::get_remembered_print_select(PrintSelectType& out) const
     return false;
 }
 
+bool MainFrame::get_preferred_print_select(PrintSelectType& out) const
+{
+    if (get_remembered_print_select(out))
+        return true;
+
+    const std::string preferred = wxGetApp().app_config->get("default_print_action");
+    if (preferred.empty() || preferred == "auto")
+        return false;
+    for (PrintSelectType type : available_print_actions()) {
+        if (preferred == print_select_type_key(type)) {
+            out = type;
+            return true;
+        }
+    }
+    return false;
+}
+
 wxBoxSizer* MainFrame::create_side_tools()
 {
     enable_multi_machine = wxGetApp().is_enable_multi_machine();
@@ -2233,11 +2250,11 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_print_btn = new SideButton(print_panel, _L("Print plate"), "");
     m_print_option_btn = new SideButton(print_panel, "", "sidebutton_dropdown", 0, 14);
 
-    // Orca: restore the last used print/export action if the user opted to remember it
-    PrintSelectType remembered_print_select;
-    if (get_remembered_print_select(remembered_print_select)) {
-        m_print_select = remembered_print_select;
-        m_print_btn->SetLabel(print_select_type_label(remembered_print_select));
+    // Orca: start on the remembered print/export action or the configured default print action
+    PrintSelectType preferred_print_select;
+    if (get_preferred_print_select(preferred_print_select)) {
+        m_print_select = preferred_print_select;
+        m_print_btn->SetLabel(print_select_type_label(preferred_print_select));
         fit_tab_labels(); // ORCA on label change
     }
 
@@ -4347,11 +4364,11 @@ void MainFrame::on_config_changed(DynamicPrintConfig* config) const
 
 void MainFrame::set_print_button_to_default(PrintSelectType select_type)
 {
-    // Orca: keep the user's remembered print/export action instead of resetting it to the computed
-    // default. get_remembered_print_select() already rejects anything this printer does not offer.
-    PrintSelectType remembered;
-    if (get_remembered_print_select(remembered))
-        select_type = remembered;
+    // Orca: keep the user's remembered or configured print/export action instead of resetting it to the
+    // computed default. get_preferred_print_select() already rejects anything this printer does not offer.
+    PrintSelectType preferred;
+    if (get_preferred_print_select(preferred))
+        select_type = preferred;
 
     if (select_type == eUploadGcode)
         return; // unsupported: no dropdown entry exists for this action

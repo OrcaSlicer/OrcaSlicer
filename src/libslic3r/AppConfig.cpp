@@ -544,6 +544,11 @@ void AppConfig::set_defaults()
         set_bool("remember_print_action", false);
     }
 
+    // "auto" keeps the per-printer default of the print button; otherwise a print action key (see print_select_type_key)
+    if (get("default_print_action").empty()) {
+        set("default_print_action", "auto");
+    }
+
     if (get("ignore_ext_filament_in_filament_map").empty()){
         set_bool("ignore_ext_filament_in_filament_map", false);
     }

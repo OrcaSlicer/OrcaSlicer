@@ -1877,6 +1877,17 @@ void PreferencesDialog::create_items()
     auto item_remember_print_action = create_item_checkbox(_L("Remember last print action"), _L("If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."), "remember_print_action");
     g_sizer->Add(item_remember_print_action);
 
+    std::vector<wxString>    DefaultPrintActionLabels = {_L("Automatic"), _L("Print plate"), _L("Print all"), _L("Send"), _L("Send all"),
+                                                         _L("Export plate sliced file"), _L("Export G-code file")};
+    std::vector<std::string> DefaultPrintActionValues = {"auto", "print_plate", "print_all", "send_to_printer", "send_to_printer_all",
+                                                         "export_sliced_file", "export_gcode"};
+    auto item_default_print_action = create_item_combobox(_L("Default print action"),
+        _L("Action selected by default on the print button. You can still change it from the button's dropdown. "
+           "Automatic picks the default that suits the selected printer. If the selected printer does not offer the action, "
+           "the automatic default is used. \"Remember last print action\" takes precedence when enabled."),
+        "default_print_action", DefaultPrintActionLabels, DefaultPrintActionValues);
+    g_sizer->Add(item_default_print_action);
+
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
 

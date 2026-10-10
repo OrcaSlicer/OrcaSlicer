@@ -451,6 +451,10 @@ public:
     // Orca: remember the user's preferred print/export action across sessions (see "remember_print_action" preference)
     void        remember_print_select(PrintSelectType select_type);
     bool        get_remembered_print_select(PrintSelectType& out) const;
+    // Orca: the action the print button should start on, if the user expressed a preference: the remembered
+    // action first, then the "default_print_action" preference. Both are only honoured when the current
+    // printer offers the action; returns false to keep the computed per-printer default.
+    bool        get_preferred_print_select(PrintSelectType& out) const;
 
     bool can_save() const;
     bool can_save_as() const;
