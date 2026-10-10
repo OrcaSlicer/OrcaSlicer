@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <wx/colour.h>
+#include <wx/cursor.h>
 #include <wx/dc.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
@@ -180,12 +181,14 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
     #endif
     Bind(wxEVT_PAINT, [this](wxPaintEvent&) { paint_chart(); });
     Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
+        if (m_middle_panning) finish_drag();
         m_hovered_point = -1;
         SetCursor(wxCursor(wxCURSOR_ARROW));
         Refresh();
         event.Skip();
     });
     Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& event) {
+        if (m_middle_panning || m_dragged_point >= 0) return;
         flush_pan();
         if (before_drag) before_drag();
         m_dragged_point = hit_test(event.GetPosition());
@@ -200,8 +203,33 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         SetFocus();
         CaptureMouse();
     });
+    Bind(wxEVT_MIDDLE_DOWN, [this](wxMouseEvent& event) {
+        if (m_middle_panning || m_dragged_point >= 0) return;
+        if (!on_pan || !chart_rect().Contains(event.GetPosition())) {
+            event.Skip();
+            return;
+        }
+        flush_pan();
+        if (before_drag) before_drag();
+        m_middle_panning = true;
+        m_drag_previous = event.GetPosition();
+        m_hovered_point = -1;
+        SetFocus();
+        SetCursor(wxCursor(wxCURSOR_SIZING));
+        CaptureMouse();
+        Refresh();
+    });
     Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
-        if (m_dragged_point >= 0) {
+        if (m_middle_panning) {
+            if (event.MiddleIsDown()) {
+                const wxPoint delta = event.GetPosition() - m_drag_previous;
+                m_drag_previous = event.GetPosition();
+                if (delta != wxPoint(0, 0)) queue_pan(-double(delta.x), double(delta.y));
+            } else {
+                flush_pan();
+                finish_drag();
+            }
+        } else if (m_dragged_point >= 0) {
             if (event.LeftIsDown()) drag_point(event.GetPosition());
             else finish_drag();
         } else {
@@ -215,14 +243,22 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
     });
     Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) {
         m_hovered_point = -1;
-        if (m_dragged_point < 0) SetCursor(wxCursor(wxCURSOR_ARROW));
+        if (m_dragged_point < 0 && !m_middle_panning) SetCursor(wxCursor(wxCURSOR_ARROW));
         Refresh();
     });
     Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& event) {
+        if (m_middle_panning) return;
         finish_drag();
         m_hovered_point = hit_test(event.GetPosition());
         SetCursor(wxCursor(m_hovered_point >= 0 ? wxCURSOR_HAND : wxCURSOR_ARROW));
         Refresh();
+    });
+    Bind(wxEVT_MIDDLE_UP, [this](wxMouseEvent& event) {
+        if (!m_middle_panning) return;
+        const wxPoint delta = event.GetPosition() - m_drag_previous;
+        queue_pan(-double(delta.x), double(delta.y));
+        flush_pan();
+        finish_drag();
     });
     Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { finish_drag(); });
     Bind(wxEVT_MOUSEWHEEL, [this](wxMouseEvent& event) {
@@ -231,7 +267,7 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
             event.Skip();
             return;
         }
-        if (m_dragged_point >= 0 || event.GetWheelDelta() <= 0) return;
+        if (m_dragged_point >= 0 || m_middle_panning || event.GetWheelDelta() <= 0) return;
         // A native gesture already owns this input sequence; don't also apply
         // its compatibility wheel messages.
         if (m_pan_gesture_active || m_zoom_gesture_active) return;
@@ -267,11 +303,11 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
     });
     Bind(wxEVT_MAGNIFY, [this](wxMouseEvent& event) {
         if ((!m_touchpad_controls && !m_automatic_touchpad_controls) || !on_zoom) { event.Skip(); return; }
-        if (m_dragged_point < 0) pinch_zoom(1.0 + event.GetMagnification(), event.GetPosition());
+        if (m_dragged_point < 0 && !m_middle_panning) pinch_zoom(1.0 + event.GetMagnification(), event.GetPosition());
     });
     Bind(wxEVT_GESTURE_PAN, [this](wxPanGestureEvent& event) {
         if ((!m_touchpad_controls && !m_automatic_touchpad_controls) || !on_pan) { event.Skip(); return; }
-        if (m_dragged_point >= 0) {
+        if (m_dragged_point >= 0 || m_middle_panning) {
             if (event.IsGestureEnd()) m_pan_gesture_active = false;
             return;
         }
@@ -285,7 +321,7 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
     });
     Bind(wxEVT_GESTURE_ZOOM, [this](wxZoomGestureEvent& event) {
         if ((!m_touchpad_controls && !m_automatic_touchpad_controls) || !on_zoom) { event.Skip(); return; }
-        if (m_dragged_point >= 0) {
+        if (m_dragged_point >= 0 || m_middle_panning) {
             if (event.IsGestureEnd()) {
                 m_zoom_gesture_active = false;
                 m_gesture_zoom_factor = 1.0;
@@ -324,7 +360,7 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
 
 CurveEditorPanel::~CurveEditorPanel()
 {
-    cancel_pan();
+    finish_drag();
 #ifdef __WXMSW__
     if (m_automatic_touchpad_controls) register_touchpad_input(false);
 #endif
@@ -372,6 +408,8 @@ void CurveEditorPanel::queue_pan(double pixels_x, double pixels_y)
 
 void CurveEditorPanel::flush_pan()
 {
+    wxRecursionGuard guard(m_pan_depth);
+    if (guard.IsInside()) return;
     const double pixels_x = m_pending_pan_x;
     const double pixels_y = m_pending_pan_y;
     cancel_pan();
@@ -429,7 +467,7 @@ void CurveEditorPanel::set_data(const std::vector<double>& x, const std::vector<
     m_y = y;
     m_tooltips = tooltips;
     m_interpolate = std::move(interpolate);
-    if (m_dragged_point < 0) {
+    if (m_dragged_point < 0 && !m_middle_panning) {
         m_hovered_point = -1;
         SetCursor(wxCursor(wxCURSOR_ARROW));
     }
@@ -439,7 +477,8 @@ void CurveEditorPanel::set_data(const std::vector<double>& x, const std::vector<
 void CurveEditorPanel::set_view(const CurveEditorView& view)
 {
     wxCHECK_RET(CurveModel::valid_view(view), "Invalid curve viewport");
-    finish_drag();
+    // Updating the viewport from a pan callback must retain middle-button capture.
+    if (!m_middle_panning || m_pan_depth == 0) finish_drag();
     m_view = view;
     m_hovered_point = -1;
     Refresh();
@@ -453,7 +492,8 @@ void CurveEditorPanel::select_point(int row)
 
 void CurveEditorPanel::set_view_limits(const CurveViewLimits& limits)
 {
-    cancel_pan();
+    if (m_middle_panning) finish_drag();
+    else cancel_pan();
     m_view_limits = limits;
     Refresh();
 }
@@ -462,6 +502,7 @@ void CurveEditorPanel::finish_drag()
 {
     cancel_pan();
     m_dragged_point = -1;
+    m_middle_panning = false;
     if (HasCapture()) ReleaseMouse();
     SetCursor(wxCursor(wxCURSOR_ARROW));
     Refresh();

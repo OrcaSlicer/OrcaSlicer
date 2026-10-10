@@ -32839,3 +32839,6 @@ msgid ""
 "Pinch zooms both axes around the pointer."
 msgstr ""
 
+msgid "Middle mouse button: drag to pan both axes."
+msgstr ""
+
