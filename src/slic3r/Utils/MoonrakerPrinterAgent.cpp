@@ -814,10 +814,16 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
-        auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        // An optional "filament_id" names the exact filament product (see docs/HLSD/filament_id.md),
+        // so the sync picks that product's preset instead of a generic one for the material type.
+        // An unknown id is harmless: the sync falls back by material type, as without the field.
+        tray.tray_info_idx = safe_json_string(lane_obj, "filament_id");
+        if (tray.tray_info_idx.empty()) {
+            auto* bundle = GUI::wxGetApp().preset_bundle;
+            tray.tray_info_idx = bundle
+                ? bundle->filaments.filament_id_by_type(tray.tray_type)
+                : map_filament_type_to_generic_id(tray.tray_type);
+        }
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
