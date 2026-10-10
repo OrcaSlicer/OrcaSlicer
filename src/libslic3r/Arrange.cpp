@@ -300,12 +300,10 @@ template<class PConf>
 void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
         if (params.is_belt) {
-            // Pack from the end of the belt that prints first, and keep the pile on the
-            // bed when it is larger than the room around that end.
+            // Pack from the end of the belt that prints first.
             pcfg.starting_point = !params.belt_reversed    ? PConf::Alignment::BOTTOM_LEFT :
                                   params.belt_axis == 1    ? PConf::Alignment::TOP_LEFT :
                                                              PConf::Alignment::BOTTOM_RIGHT;
-            pcfg.clamp_to_bin = true;
         }
         else if (params.is_seq_print) {
             // Start placing the items from the center of the print bed

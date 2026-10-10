@@ -89,18 +89,6 @@ struct NfpPConfig {
     bool explore_holes = false;
 
     /**
-     * @brief Keep the final pile on the bin.
-     *
-     * The final alignment centres the pile on the alignment target. A target
-     * near an edge (a belt printer starts its parts at the leading end of the
-     * belt) would push part of a pile that is larger than the room around that
-     * point off the bed; with this set the pile stops at the edge instead, and a
-     * pile that does not fit along an axis is centred on it. Off by default, so
-     * the alignment of every other printer is unchanged.
-     */
-    bool clamp_to_bin = false;
-
-    /**
      * @brief If true, use all CPUs available. Run on a single core otherwise.
      */
     bool parallel = true;
@@ -1125,22 +1113,22 @@ private:
 
         auto d = cb - ci;
 
-        // Keep the pile on the bin (see Config::clamp_to_bin). The items' boxes carry
-        // their inflation, which is the margin left at the edge.
-        if (config_.clamp_to_bin) {
-            auto on_bin = [](Coord lo, Coord hi, Coord bin_lo, Coord bin_hi, Coord shift) {
-                if (hi - lo >= bin_hi - bin_lo)
-                    return (bin_lo + bin_hi) / 2 - (lo + hi) / 2;
-                if (lo + shift < bin_lo)
-                    shift = bin_lo - lo;
-                if (hi + shift > bin_hi)
-                    shift = bin_hi - hi;
-                return shift;
-            };
-            setX(d, on_bin(getX(bb.minCorner()), getX(bb.maxCorner()), getX(bbin.minCorner()), getX(bbin.maxCorner()), getX(d)));
-            setY(d, on_bin(getY(bb.minCorner()), getY(bb.maxCorner()), getY(bbin.minCorner()), getY(bbin.maxCorner()), getY(d)));
-            cb = ci + d;
-        }
+        // Keep the pile on the bin. Centring it on a target near an edge (a belt
+        // printer starts its parts at the leading end of the belt) would push a pile
+        // larger than the room around that point off the bed, so it stops at the
+        // edge instead; a pile that does not fit along an axis is centred on it.
+        // The items' boxes carry their inflation, which is the margin left at the edge.
+        auto on_bin = [](Coord lo, Coord hi, Coord bin_lo, Coord bin_hi, Coord shift) {
+            if (hi - lo >= bin_hi - bin_lo)
+                return (bin_lo + bin_hi) / 2 - (lo + hi) / 2;
+            if (lo + shift < bin_lo)
+                shift = bin_lo - lo;
+            if (hi + shift > bin_hi)
+                shift = bin_hi - hi;
+            return shift;
+        };
+        setX(d, on_bin(getX(bb.minCorner()), getX(bb.maxCorner()), getX(bbin.minCorner()), getX(bbin.maxCorner()), getX(d)));
+        setY(d, on_bin(getY(bb.minCorner()), getY(bb.maxCorner()), getY(bbin.minCorner()), getY(bbin.maxCorner()), getY(d)));
 
         // BBS make sure the item won't clash with excluded regions
         // do we have wipe tower after arranging?
@@ -1169,9 +1157,7 @@ private:
                 return;
             }
             Item   objs_convex_hull_item(objs_convex_hull);
-            Vertex objs_convex_hull_ref = objs_convex_hull_item.referenceVertex();
-            Vertex diff                 = objs_convex_hull_ref - sl::boundingBox(objs_convex_hull).center();
-            Vertex ref_aligned = cb + diff;  // reference point when pile center aligned with bed center
+            Vertex ref_aligned = objs_convex_hull_item.referenceVertex() + d;
             bool ref_aligned_is_ok = std::any_of(nfps.begin(), nfps.end(), [&ref_aligned](auto& nfp) {return sl::isInside(ref_aligned, nfp); });
             if (!ref_aligned_is_ok) {
                 // ref_aligned is not good, then find a nearest point on nfp boundary

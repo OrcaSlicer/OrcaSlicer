@@ -261,17 +261,44 @@ TEST_CASE("Arrange without final alignment keeps items disjoint", "[Arrange]")
     require_no_overlap(items);
 }
 
-TEST_CASE("Arrange aligns the pile to a custom center", "[Arrange]")
+TEST_CASE("Arrange centers a pile that fits on the custom alignment point", "[Arrange]")
 {
-    // align_center != (0.5, 0.5) selects Alignment::USER_DEFINED.
-    ArrangePolygons items  = squares(5, 30.);
+    ArrangePolygons items  = squares(4, 30.);
     ArrangeParams   params = quiet_params(scaled(2.));
     params.align_center    = Vec2d(0.3, 0.7);
 
     arrange(items, bed(250, 250), params);
 
-    for (const ArrangePolygon &ap : items)
+    BoundingBox pile;
+    for (const ArrangePolygon &ap : items) {
         REQUIRE(ap.bed_idx == 0);
+        pile.merge(ap.transformed_poly().contour.bounding_box());
+    }
+    // best_object_pos is align_center scaled to the bed.
+    const Point expected(scaled(250. * 0.3), scaled(250. * 0.7));
+    REQUIRE(std::abs(pile.center().x() - expected.x()) <= scaled(0.5));
+    REQUIRE(std::abs(pile.center().y() - expected.y()) <= scaled(0.5));
+    require_no_overlap(items);
+}
+
+// Arranging a selection leaves the unselected parts where they are, but the final alignment
+// centres the box around both, so the selection does not move by its own centring. The check
+// against the bed and the fixed part must test where the selection actually lands.
+TEST_CASE("Arrange keeps a selection on the bed and clear of a fixed part", "[Arrange]")
+{
+    ArrangePolygons fixed = squares(1, 40.);
+    fixed.front().translation = {scaled(80.), scaled(80.)};
+    ArrangePolygons items = squares(3, 40.);
+    for (ArrangePolygon &ap : items)
+        ap.inflation = scaled(1.);
+
+    arrange(items, fixed, bed(200, 200), quiet_params());
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    items.insert(items.end(), fixed.begin(), fixed.end());
     require_no_overlap(items);
 }
 
@@ -303,10 +330,9 @@ TEST_CASE("Arrange keeps a pile aligned near an edge on the bed", "[Arrange][bel
     require_no_overlap(items);
 }
 
-// The clamp is a belt feature. Printers whose best_object_pos is off-centre (the A1 mini
-// and the H2 family) keep their final alignment: the pile is centred on that point, even
-// when that puts part of it outside the bed.
-TEST_CASE("Arrange leaves the final alignment of a flat bed unclamped", "[Arrange]")
+// Flat-bed printers with an off-centre best_object_pos (the A1 mini and the H2 family) get
+// the same clamp: centring the pile on that point used to push it off the bed (#15727).
+TEST_CASE("Arrange keeps a flat-bed pile aligned near an edge on the bed", "[Arrange]")
 {
     const BoundingBox bed_   = bed(95, 500);
     ArrangePolygons   items  = squares(4, 90.);
@@ -315,14 +341,15 @@ TEST_CASE("Arrange leaves the final alignment of a flat bed unclamped", "[Arrang
 
     arrange(items, bed_, params);
 
-    BoundingBox pile;
+    coord_t lowest = std::numeric_limits<coord_t>::max();
     for (const ArrangePolygon &ap : items) {
         REQUIRE(ap.bed_idx == 0);
-        pile.merge(ap.transformed_poly().contour.bounding_box());
+        const BoundingBox bb = ap.transformed_poly().contour.bounding_box();
+        CHECK(bed_.contains(bb));
+        lowest = std::min(lowest, bb.min.y());
     }
-    // Centred on the 5% mark of the bed's length, not pushed inside it.
-    CHECK_THAT(unscaled<double>(pile.center().y()), Catch::Matchers::WithinAbs(0.05 * 500., 15.));
-    CHECK(pile.min.y() < 0);
+    // Stopped at the edge it was aimed at, not re-centred.
+    CHECK(lowest < scaled(10.));
     require_no_overlap(items);
 }
 
