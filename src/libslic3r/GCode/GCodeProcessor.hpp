@@ -14,6 +14,7 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/GCode/MachineFrameTransform.hpp"
+#include "libslic3r/GCode/OverhangSeamLoops.hpp"
 
 #include <cstddef>
 #include <cassert>
@@ -386,6 +387,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::unordered_map<SkipType, float> skippable_part_time;
 
         BedType bed_type = BedType::btCount;
+        // Orca: diagnostics of seam markers on outer walls that start on an overhang.
+        OverhangSeamStats overhang_seam_stats;
         void reset();
 
         //BBS: add mutex for protection of gcode result
@@ -445,6 +448,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             belt_tilt_angle = std::forward<Other>(other).belt_tilt_angle;
             belt_z_origin = std::forward<Other>(other).belt_z_origin;
             machine_frame_transform_active = std::forward<Other>(other).machine_frame_transform_active;
+            overhang_seam_stats = std::forward<Other>(other).overhang_seam_stats;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = std::forward<Other>(other).time;
 #endif
@@ -1035,6 +1039,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
             bool is_active() const { return m_active; }
             bool has_first_vertex() const { return m_first_vertex.has_value(); }
+            // Orca: activate(false) keeps the first vertex; a new export must not inherit it.
+            void reset() { m_active = false; m_first_vertex.reset(); }
         };
 
         // Helper class used to fix the z for color change, pause print and
@@ -1275,6 +1281,13 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         unsigned int m_layer_id;
         CpColor m_cp_color;
         SeamsDetector m_seams_detector;
+        OverhangSeamChannel m_overhang_seam_channel;
+        OverhangSeamMatcher m_overhang_seams;
+        size_t m_overhang_seam_layer_tags{0};
+        // Orca: first vertex of an "Overhang wall" path not yet known to be an outer wall.
+        std::optional<Vec3f> m_overhang_path_start;
+        // Orca: the seam detector candidate is an outer wall that started on an overhang.
+        bool m_outer_overhang_candidate{false};
         OptionsZCorrector m_options_z_corrector;
         size_t m_last_default_color_id;
         bool m_detect_layer_based_on_tag {false};
@@ -1386,6 +1399,12 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // Orca: if true, only change new layer if ETags::Layer_Change occurs
         // otherwise when we got a lift of z during extrusion, a new layer will be added
         void detect_layer_based_on_tag(bool enabled) { m_detect_layer_based_on_tag = enabled; }
+
+        // Orca: outer walls that start on an overhang, handed over by the G-code generator
+        // beside the text (OverhangSeamLoops.hpp). The generator publishes into the channel and
+        // reports how many layer change tags it wrote before finalize().
+        OverhangSeamChannel& overhang_seam_channel() { return m_overhang_seam_channel; }
+        void set_overhang_seam_layer_tags(size_t count) { m_overhang_seam_layer_tags = count; }
 
     private:
         void register_commands();

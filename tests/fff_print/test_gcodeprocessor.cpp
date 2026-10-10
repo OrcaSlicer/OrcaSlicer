@@ -9,6 +9,8 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCode/OverhangSeamLoops.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -21,6 +23,7 @@
 #include <cstddef>
 #include <fstream>
 #include <initializer_list>
+#include <iterator>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 #include <sstream>
@@ -501,4 +504,372 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
     const Vec3d light = center_of(masses[0]->total());
     const Vec3d dense = center_of(masses[1]->total());
     CHECK_THAT((plate - light).dot(dense - light) / (dense - light).squaredNorm(), Catch::Matchers::WithinAbs(0.75, 0.01));
+}
+
+namespace {
+
+// One layer with a closed square wall printed in `role`, then an inner-wall move that closes the
+// seam candidate. `outer_tag_first` puts an "Outer wall" tag with no move before the wall's own
+// tag, which leaves the seam detector active without a first vertex. `sloped` starts the wall
+// with a short rise in Z, as a scarf seam does.
+std::string square_wall(ExtrusionRole role, bool outer_tag_first, bool sloped)
+{
+    std::ostringstream gcode;
+    gcode << "M83\nG90\n;" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) << "\n"
+          << "G1 X10 Y10 Z0.2 F12000\n";
+    if (outer_tag_first)
+        gcode << "; FEATURE: Outer wall\n";
+    gcode << "; FEATURE: " << ExtrusionEntity::role_to_string(role) << "\n";
+    if (sloped)
+        gcode << "G1 X10.1 Y10 Z0.3 E0.01 F3000\nG1 X50 Y10 E2\n";
+    else
+        gcode << "G1 X10.1 Y10 E0.01 F3000\nG1 X50 Y10 E2\n";
+    gcode << "G1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n"
+          << "; FEATURE: Inner wall\nG1 X12 Y12 E0.1\nG1 X30 Y12 E1\n";
+    return gcode.str();
+}
+
+// The loop square_wall() prints, as the generator hands it over.
+OverhangSeamLoop square_loop(bool sloped)
+{
+    const double z_end = sloped ? 0.3 : 0.2;
+    return { OverhangSeamKey::from_gcode(10., 10., 0.2, 0), OverhangSeamKey::from_gcode(10., 10., z_end, 0), 1, "square" };
+}
+
+// Streams `gcode` through the processor as an export does, with `loops` handed over for the
+// first layer and `layer_tags` reported as written by the generator.
+// The parts of a GCodeProcessorResult the tests read; the result itself cannot be returned by value.
+struct StreamResult
+{
+    std::vector<GCodeProcessorResult::MoveVertex> moves;
+    OverhangSeamStats                             overhang_seam_stats;
+};
+
+StreamResult process_stream(const std::string &gcode, const std::vector<OverhangSeamLoop> &loops, size_t layer_tags,
+                                    bool sloped = false, bool reset_after_publish = false, bool spiral_vase = false)
+{
+    FullPrintConfig config;
+    config.gcode_flavor.value = gcfMarlinFirmware;
+    config.spiral_mode.value  = spiral_vase;
+    // s_IsBBLPrinter selects the "; FEATURE: " role tags this G-code uses.
+    const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
+    GCodeProcessor::s_IsBBLPrinter = true;
+    GCodeProcessor processor;
+    processor.reset();
+    processor.initialize("stream.gcode");
+    processor.overhang_seam_channel().publish(1, loops);
+    if (reset_after_publish)
+        processor.reset();
+    processor.initialize_result_moves();
+    processor.apply_config(config);
+    // A scarf seam turns this on; the detector then follows the loop start up in Z.
+    processor.detect_layer_based_on_tag(sloped || spiral_vase);
+    processor.set_overhang_seam_layer_tags(layer_tags);
+    processor.process_buffer(gcode);
+    processor.finalize(false);
+    return { std::move(processor.result().moves), processor.get_result().overhang_seam_stats };
+}
+
+template<class Result> std::vector<GCodeProcessorResult::MoveVertex> seams_of(const Result &result)
+{
+    std::vector<GCodeProcessorResult::MoveVertex> seams;
+    std::copy_if(result.moves.begin(), result.moves.end(), std::back_inserter(seams),
+                 [](const GCodeProcessorResult::MoveVertex &move) { return move.type == EMoveType::Seam; });
+    return seams;
+}
+
+} // namespace
+
+TEST_CASE("A handed-over overhang outer wall gets the seam an outer wall would get", "[GCodeProcessor][OverhangSeam]")
+{
+    const bool outer_tag_first = GENERATE(false, true);
+    const bool sloped          = GENERATE(false, true);
+    INFO("outer tag first " << outer_tag_first << ", sloped " << sloped);
+
+    const StreamResult overhang = process_stream(square_wall(erOverhangPerimeter, outer_tag_first, sloped), { square_loop(sloped) }, 1, sloped);
+    const StreamResult outer    = process_stream(square_wall(erExternalPerimeter, outer_tag_first, sloped), {}, 1, sloped);
+
+    const auto expected = seams_of(outer);
+    const auto actual   = seams_of(overhang);
+    REQUIRE(expected.size() == 1);
+    REQUIRE(actual.size() == expected.size());
+    CHECK(actual[0].gcode_id == expected[0].gcode_id);
+    CHECK_THAT(actual[0].position.x(), Catch::Matchers::WithinAbs(expected[0].position.x(), 1e-5));
+    CHECK_THAT(actual[0].position.y(), Catch::Matchers::WithinAbs(expected[0].position.y(), 1e-5));
+    CHECK_THAT(actual[0].position.z(), Catch::Matchers::WithinAbs(expected[0].position.z(), 1e-5));
+    CHECK_THAT(actual[0].actual_feedrate, Catch::Matchers::WithinAbs(expected[0].actual_feedrate, 1e-4));
+
+    // The wall keeps its real role.
+    CHECK(std::any_of(overhang.moves.begin(), overhang.moves.end(), [](const GCodeProcessorResult::MoveVertex &move) {
+        return move.type == EMoveType::Extrude && move.extrusion_role == erOverhangPerimeter;
+    }));
+    const OverhangSeamStats &stats = overhang.overhang_seam_stats;
+    CHECK(stats.registered == 1);
+    CHECK(stats.end_consistent == 1);
+    CHECK(stats.missed == 0);
+    CHECK(stats.suspect == 0);
+    CHECK_FALSE(stats.needs_warning());
+}
+
+TEST_CASE("An overhang wall that is not handed over gets no seam", "[GCodeProcessor][OverhangSeam]")
+{
+    const StreamResult result = process_stream(square_wall(erOverhangPerimeter, false, false), {}, 1);
+    CHECK(seams_of(result).empty());
+    CHECK(result.overhang_seam_stats.registered == 0);
+    CHECK_FALSE(result.overhang_seam_stats.needs_warning());
+}
+
+TEST_CASE("Handed-over loops that do not fit the G-code are reported", "[GCodeProcessor][OverhangSeam]")
+{
+    const std::string gcode = square_wall(erOverhangPerimeter, false, false);
+
+    SECTION("a start no move begins at is missed")
+    {
+        OverhangSeamLoop loop = square_loop(false);
+        loop.start            = OverhangSeamKey::from_gcode(20., 20., 0.2, 0);
+        const StreamResult result = process_stream(gcode, { loop }, 1);
+        CHECK(seams_of(result).empty());
+        CHECK(result.overhang_seam_stats.missed == 1);
+        CHECK(result.overhang_seam_stats.needs_warning());
+        REQUIRE(result.overhang_seam_stats.problem_objects.size() == 1);
+        CHECK(result.overhang_seam_stats.problem_objects[0].object == "square");
+        CHECK(result.overhang_seam_stats.problem_objects[0].first_layer == 1);
+        CHECK(result.overhang_seam_stats.problem_objects[0].count == 1);
+    }
+    SECTION("a start of another filament is missed")
+    {
+        OverhangSeamLoop loop = square_loop(false);
+        loop.start.filament   = 1;
+        const StreamResult result = process_stream(gcode, { loop }, 1);
+        CHECK(seams_of(result).empty());
+        CHECK(result.overhang_seam_stats.missed == 1);
+    }
+    SECTION("a loop that ends elsewhere is suspect")
+    {
+        OverhangSeamLoop loop = square_loop(false);
+        loop.end              = OverhangSeamKey::from_gcode(11., 11., 0.2, 0);
+        const StreamResult result = process_stream(gcode, { loop }, 1);
+        CHECK(seams_of(result).size() == 1);
+        CHECK(result.overhang_seam_stats.suspect == 1);
+        CHECK(result.overhang_seam_stats.needs_warning());
+    }
+    SECTION("layer tags that differ from the generator's count are reported")
+    {
+        const StreamResult result = process_stream(gcode, { square_loop(false) }, 2);
+        CHECK(result.overhang_seam_stats.end_consistent == 1);
+        CHECK(result.overhang_seam_stats.layer_tags_mismatch());
+        CHECK(result.overhang_seam_stats.needs_warning());
+    }
+}
+
+TEST_CASE("A handed-over loop merged into the previous seam candidate is suspect", "[GCodeProcessor][OverhangSeam]")
+{
+    // Two walls with no move between them: the detector keeps the first wall's candidate.
+    const auto two_walls = [](ExtrusionRole second) {
+        std::ostringstream gcode;
+        gcode << "M83\nG90\n;" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) << "\n"
+              << "G1 X10 Y10 Z0.2 F12000\n; FEATURE: Outer wall\n"
+              << "G1 X50 Y10 E2 F3000\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n"
+              << "; FEATURE: " << ExtrusionEntity::role_to_string(second) << "\n"
+              << "G1 X30 Y10 E1\nG1 X30 Y30 E1\nG1 X10 Y30 E1\nG1 X10 Y10 E1\n"
+              << "; FEATURE: Inner wall\nG1 X12 Y12 E0.1\nG1 X30 Y12 E1\n";
+        return gcode.str();
+    };
+    const StreamResult overhang = process_stream(two_walls(erOverhangPerimeter), { square_loop(false) }, 1);
+    const StreamResult outer    = process_stream(two_walls(erExternalPerimeter), {}, 1);
+
+    const auto expected = seams_of(outer);
+    const auto actual   = seams_of(overhang);
+    REQUIRE_FALSE(expected.empty());
+    REQUIRE(actual.size() == expected.size());
+    for (size_t i = 0; i < actual.size(); ++i) {
+        INFO("seam " << i);
+        CHECK(actual[i].gcode_id == expected[i].gcode_id);
+        CHECK_THAT(actual[i].position.x(), Catch::Matchers::WithinAbs(expected[i].position.x(), 1e-5));
+        CHECK_THAT(actual[i].position.y(), Catch::Matchers::WithinAbs(expected[i].position.y(), 1e-5));
+        CHECK_THAT(actual[i].position.z(), Catch::Matchers::WithinAbs(expected[i].position.z(), 1e-5));
+        CHECK_THAT(actual[i].actual_feedrate, Catch::Matchers::WithinAbs(expected[i].actual_feedrate, 1e-4));
+    }
+    CHECK(overhang.overhang_seam_stats.suspect == 1);
+    CHECK(overhang.overhang_seam_stats.missed == 0);
+}
+
+TEST_CASE("A processor reset drops loops handed over before it", "[GCodeProcessor][OverhangSeam]")
+{
+    const StreamResult result = process_stream(square_wall(erOverhangPerimeter, false, false), { square_loop(false) }, 1, false, true);
+    CHECK(seams_of(result).empty());
+    CHECK(result.overhang_seam_stats.registered == 0);
+}
+
+TEST_CASE("Outer walls of a sphere's lower half are all matched on export", "[GCodeProcessor][OverhangSeam]")
+{
+    // The lower half of a sphere has outer walls that start on an overhang.
+    Print print;
+    Model model;
+    Test::init_print({ Test::TestMesh::sphere_50mm }, print, model,
+                     { { "detect_overhang_wall", true }, { "layer_height", 0.4 }, { "initial_layer_print_height", 0.4 },
+                       { "wall_loops", 2 }, { "sparse_infill_density", "0%" }, { "top_shell_layers", 0 }, { "bottom_shell_layers", 0 } });
+    GCodeProcessorResult result;
+    Test::gcode(print, &result);
+
+    const OverhangSeamStats &stats = result.overhang_seam_stats;
+    REQUIRE(stats.registered > 0);
+    CHECK(stats.missed == 0);
+    CHECK(stats.suspect == 0);
+    CHECK(stats.end_consistent == stats.registered);
+    CHECK_FALSE(stats.layer_tags_mismatch());
+}
+
+namespace {
+
+// A closed square wall whose first two moves are printed in `start` and the rest in `rest`.
+std::string mixed_wall(ExtrusionRole start, ExtrusionRole rest, bool sloped)
+{
+    std::ostringstream gcode;
+    gcode << "M83\nG90\n;" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) << "\n"
+          << "G1 X10 Y10 Z0.2 F12000\n; FEATURE: " << ExtrusionEntity::role_to_string(start) << "\n";
+    if (sloped)
+        gcode << "G1 X10.1 Y10 Z0.3 E0.01 F3000\nG1 X50 Y10 E2\n";
+    else
+        gcode << "G1 X10.1 Y10 E0.01 F3000\nG1 X50 Y10 E2\n";
+    gcode << "; FEATURE: " << ExtrusionEntity::role_to_string(rest) << "\n"
+          << "G1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n"
+          << "; FEATURE: Inner wall\nG1 X12 Y12 E0.1\nG1 X30 Y12 E1\n";
+    return gcode.str();
+}
+
+} // namespace
+
+TEST_CASE("An outer wall that starts on an overhang gets the seam an outer wall would get", "[GCodeProcessor][OverhangSeam]")
+{
+    // No loops are handed over, as for a G-code file: the "Outer wall" segment tells the loop apart.
+    const bool sloped = GENERATE(false, true);
+    INFO("sloped " << sloped);
+    const StreamResult overhang = process_stream(mixed_wall(erOverhangPerimeter, erExternalPerimeter, sloped), {}, 1, sloped);
+    const StreamResult outer    = process_stream(mixed_wall(erExternalPerimeter, erExternalPerimeter, sloped), {}, 1, sloped);
+
+    const auto expected = seams_of(outer);
+    const auto actual   = seams_of(overhang);
+    REQUIRE(expected.size() == 1);
+    REQUIRE(actual.size() == expected.size());
+    CHECK(actual[0].gcode_id == expected[0].gcode_id);
+    CHECK_THAT(actual[0].position.x(), Catch::Matchers::WithinAbs(expected[0].position.x(), 1e-5));
+    CHECK_THAT(actual[0].position.y(), Catch::Matchers::WithinAbs(expected[0].position.y(), 1e-5));
+    CHECK_THAT(actual[0].position.z(), Catch::Matchers::WithinAbs(expected[0].position.z(), 1e-5));
+    CHECK_THAT(actual[0].actual_feedrate, Catch::Matchers::WithinAbs(expected[0].actual_feedrate, 1e-4));
+}
+
+TEST_CASE("A spiral vase print keeps the old seam detection", "[GCodeProcessor][OverhangSeam]")
+{
+    // A mixed wall starting on an overhang, which a non-vase print would mark.
+    const StreamResult result = process_stream(mixed_wall(erOverhangPerimeter, erExternalPerimeter, false), {}, 1, false, false, true);
+    CHECK(seams_of(result).empty());
+    CHECK_FALSE(result.overhang_seam_stats.overhang_only_paths);
+}
+
+TEST_CASE("An inner wall that starts on an overhang gets no seam", "[GCodeProcessor][OverhangSeam]")
+{
+    const StreamResult result = process_stream(mixed_wall(erOverhangPerimeter, erPerimeter, false), {}, 1);
+    CHECK(seams_of(result).empty());
+}
+
+TEST_CASE("A path printed only as overhang wall is flagged for G-code files", "[GCodeProcessor][OverhangSeam]")
+{
+    // The path ends with a travel while still printed as "Overhang wall".
+    const auto wall_then_travel = [](ExtrusionRole rest) {
+        std::ostringstream gcode;
+        gcode << "M83\nG90\n;" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) << "\n"
+              << "G1 X10 Y10 Z0.2 F12000\n; FEATURE: Overhang wall\nG1 X50 Y10 E2 F3000\n"
+              << "; FEATURE: " << ExtrusionEntity::role_to_string(rest) << "\n"
+              << "G1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\nG1 X80 Y80 F12000\n";
+        return gcode.str();
+    };
+    CHECK(process_stream(wall_then_travel(erOverhangPerimeter), {}, 1).overhang_seam_stats.overhang_only_paths);
+    CHECK_FALSE(process_stream(wall_then_travel(erExternalPerimeter), {}, 1).overhang_seam_stats.overhang_only_paths);
+    CHECK_FALSE(process_stream(wall_then_travel(erPerimeter), {}, 1).overhang_seam_stats.overhang_only_paths);
+}
+
+TEST_CASE("A missed loop does not stop later loops of the layer from matching", "[GCodeProcessor][OverhangSeam]")
+{
+    OverhangSeamLoop missed = square_loop(false);
+    missed.start            = OverhangSeamKey::from_gcode(20., 20., 0.2, 0);
+    const StreamResult result = process_stream(square_wall(erOverhangPerimeter, false, false), { missed, square_loop(false) }, 1);
+    CHECK(seams_of(result).size() == 1);
+    CHECK(result.overhang_seam_stats.missed == 1);
+    CHECK(result.overhang_seam_stats.end_consistent == 1);
+}
+
+TEST_CASE("The warning names an object's earliest problem layer", "[GCodeProcessor][OverhangSeam]")
+{
+    // A loop of layer 1 opens a candidate that never closes; a loop of layer 2 is never found.
+    // The layer 2 miss is reported first, at the layer change, the layer 1 problem only at the end.
+    OverhangSeamLoop layer_1 = square_loop(false);
+    OverhangSeamLoop layer_2 = square_loop(false);
+    layer_2.start            = OverhangSeamKey::from_gcode(20., 20., 0.4, 0);
+    layer_2.layer_num        = 2;
+    OverhangSeamChannel channel;
+    channel.publish(1, { layer_1 });
+    channel.publish(2, { layer_2 });
+    OverhangSeamMatcher matcher;
+    matcher.on_layer_change(channel);
+    REQUIRE(matcher.match_start(layer_1.start, false));
+    matcher.on_layer_change(channel);
+    matcher.finish(channel, 2);
+
+    const OverhangSeamStats &stats = matcher.stats();
+    CHECK(stats.missed == 1);
+    CHECK(stats.suspect == 1);
+    REQUIRE(stats.problem_objects.size() == 1);
+    CHECK(stats.problem_objects[0].first_layer == 1);
+    CHECK(stats.problem_objects[0].count == 2);
+}
+
+TEST_CASE("A G-code file ending on a path printed only as overhang wall is flagged", "[GCodeProcessor][OverhangSeam]")
+{
+    std::ostringstream gcode;
+    gcode << "M83\nG90\n;" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) << "\n"
+          << "G1 X10 Y10 Z0.2 F12000\n; FEATURE: Overhang wall\n"
+          << "G1 X50 Y10 E2 F3000\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\nM400\nM84\n";
+    CHECK(process_stream(gcode.str(), {}, 1).overhang_seam_stats.overhang_only_paths);
+}
+
+TEST_CASE("Exported overhang outer walls get the seams of outer walls", "[GCodeProcessor][OverhangSeam]")
+{
+    // One wall, so every wall is an outer wall, and no skirt, brim or scarf. Replaying the same
+    // G-code with "Overhang wall" relabelled "Outer wall" gives the reference seams.
+    Print print;
+    Model model;
+    Test::init_print({ Test::TestMesh::sphere_50mm }, print, model,
+                     { { "detect_overhang_wall", true }, { "layer_height", 0.4 }, { "initial_layer_print_height", 0.4 },
+                       { "wall_loops", 1 }, { "sparse_infill_density", "0%" }, { "top_shell_layers", 0 }, { "bottom_shell_layers", 0 },
+                       { "skirt_loops", 0 }, { "brim_type", "no_brim" }, { "seam_slope_type", "none" }, { "seam_gap", "10%" },
+                       { "z_offset", 0 } });
+    GCodeProcessorResult exported;
+    std::string          gcode = Test::gcode(print, &exported);
+    REQUIRE(exported.overhang_seam_stats.registered > 0);
+
+    const std::string overhang = ExtrusionEntity::role_to_string(erOverhangPerimeter);
+    const std::string outer    = ExtrusionEntity::role_to_string(erExternalPerimeter);
+    for (size_t pos = gcode.find(overhang); pos != std::string::npos; pos = gcode.find(overhang, pos + outer.size()))
+        gcode.replace(pos, overhang.size(), outer);
+    ScopedTemporaryFile temp(".gcode");
+    std::ofstream(temp.string()) << gcode;
+    GCodeProcessor processor;
+    processor.process_file(temp.string());
+    GCodeProcessorResult relabelled;
+    relabelled = std::move(processor.extract_result());
+
+    const auto actual   = seams_of(exported);
+    const auto expected = seams_of(relabelled);
+    REQUIRE_FALSE(expected.empty());
+    REQUIRE(actual.size() == expected.size());
+    for (size_t i = 0; i < actual.size(); ++i) {
+        INFO("seam " << i);
+        CHECK(actual[i].gcode_id == expected[i].gcode_id);
+        CHECK_THAT(actual[i].actual_feedrate, Catch::Matchers::WithinAbs(expected[i].actual_feedrate, 1e-4));
+        CHECK_THAT(actual[i].position.x(), Catch::Matchers::WithinAbs(expected[i].position.x(), 1e-4));
+        CHECK_THAT(actual[i].position.y(), Catch::Matchers::WithinAbs(expected[i].position.y(), 1e-4));
+        CHECK_THAT(actual[i].position.z(), Catch::Matchers::WithinAbs(expected[i].position.z(), 1e-4));
+    }
 }

@@ -3,6 +3,7 @@
 #include "Circle.hpp"
 #include "Config.hpp"
 #include "GCode/GCodeProcessor.hpp"
+#include "GCode/OverhangSeamLoops.hpp"
 #include "Flow.hpp"
 #include "GCode/ThumbnailData.hpp"
 #include "GCode/ToolOrdering.hpp"
@@ -2898,7 +2899,38 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     // single-nozzle prints, where the injector is gated off anyway (enable_pre_heating false).
     m_processor.result().nozzle_group_result = m_print->get_layered_nozzle_group_result();
 
+    m_processor.set_overhang_seam_layer_tags(m_layer_change_tags);
     m_processor.finalize(true);
+    // Orca: seam markers on outer walls that start on an overhang rest on a heuristic match;
+    // report the discrepancies it found (GCode/OverhangSeamLoops.hpp).
+    if (const OverhangSeamStats &stats = m_processor.get_result().overhang_seam_stats; stats.needs_warning()) {
+        // The affected objects, "; "-separated; without such objects the layer tags did not match.
+        std::string message;
+        if (stats.problem_objects.empty())
+            message = _u8L("Seam markers in the preview may be missing or inaccurate on overhanging outer walls.");
+        else {
+            message = _u8L("Seam markers in the preview may be missing or inaccurate on overhanging outer walls of:");
+            for (size_t i = 0; i < stats.problem_objects.size(); ++i) {
+                const OverhangSeamStats::ProblemObject &problem = stats.problem_objects[i];
+                message += (i == 0 ? " " : "; ") + (boost::format(_u8L("\"%1%\", starting at layer %2% (%3% in total)")) %
+                                                    problem.object % problem.first_layer % problem.count).str();
+            }
+            message += '.';
+        }
+        print->active_step_add_warning(PrintStateBase::WarningLevel::NON_CRITICAL, message,
+                                       PrintStateBase::SlicingOverhangSeamPreviewWarning);
+    }
+    // Orca: loops at command Z 0 were not handed over; one warning lists their layers.
+    if (!m_overhang_seam_zero_z_layers.empty()) {
+        std::string message;
+        for (const int layer : m_overhang_seam_zero_z_layers) {
+            if (!message.empty())
+                message += '\n';
+            message += (boost::format(_u8L("On layer %1%, the seam marker may not be shown if the seam falls on an overhang.")) % layer).str();
+        }
+        print->active_step_add_warning(PrintStateBase::WarningLevel::NON_CRITICAL, message,
+                                       PrintStateBase::SlicingOverhangSeamZeroZWarning);
+    }
 //    DoExport::update_print_estimated_times_stats(m_processor, print->m_print_statistics);
     DoExport::update_print_estimated_stats(m_processor, m_writer.extruders(), print->m_print_statistics, print->config());
     // Printed-mass safety check. Flushed filament leaves the bed, so subtract it
@@ -3269,6 +3301,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled,
                                    print.get_layered_nozzle_group_result());
     set_mass_locator(m_processor, print);
+    m_layer_change_tags = 0;
+    m_overhang_seam_loops.clear();
+    m_overhang_seam_zero_z_layers.clear();
     const bool is_bbl_printers = print.is_BBL_printer();
     const bool skip_config_block = print.config().gcode_skip_config_block;
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
@@ -4404,6 +4439,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
         std::string gcode;
         gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
+        ++m_layer_change_tags;
         if ((NOZZLE_CONFIG(outer_wall_acceleration) > 0 && NOZZLE_CONFIG(outer_wall_acceleration) > 0)) {
             gcode += m_writer.set_print_acceleration((unsigned int)floor(NOZZLE_CONFIG(outer_wall_acceleration) + 0.5));
         }
@@ -4432,6 +4468,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         if (belt_world_coords)
             install_belt_kinematics(m_writer, print.config(), /*world_coordinates=*/true);
         gcode += pa_test.generate_test(params.start, params.step, std::llround(std::ceil((params.end - params.start) / params.step)) + 1);
+        // Orca: the PA Line numbers are printed after a layer change tag of their own.
+        if (pa_test.draw_numbers())
+            ++m_layer_change_tags;
         if (belt_world_coords)
             install_belt_kinematics(m_writer, print.config(), /*world_coordinates=*/false);
 
@@ -5962,6 +6001,7 @@ LayerResult GCode::process_belt_brim_layer(
     {
         char buf[64];
         gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
+        ++m_layer_change_tags;
         sprintf(buf, ";Z:%g\n", print_z);
         gcode += buf;
         const float band_height = float(height);
@@ -6430,6 +6470,7 @@ LayerResult GCode::process_layer(
 
     // add tag for processor
     gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
+    ++m_layer_change_tags;
     // export layer z
     char buf[80];
     sprintf(buf, print.is_BBL_printer() ? "; Z_HEIGHT: %g\n" : ";Z:%g\n", print_z);
@@ -8033,6 +8074,10 @@ LayerResult GCode::process_layer(
         gcode += insert_timelapse_gcode();
     }
 
+    // Orca: the processor reads this layer only after the generator returns it.
+    m_processor.overhang_seam_channel().publish(m_layer_change_tags, std::move(m_overhang_seam_loops));
+    m_overhang_seam_loops.clear();
+
     result.gcode = std::move(gcode);
     result.cooling_buffer_flush = object_layer || raft_layer || last_layer;
     return result;
@@ -8464,9 +8509,30 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
     
+    // Orca: an outer wall that starts on an overhang reads as "Overhang wall" in the text, like
+    // an inner one; hand it to the processor's seam detector (GCode/OverhangSeamLoops.hpp).
+    // Outer is judged before the seam gap clipped the paths; whether the loop starts on an
+    // overhang, by its first printing move below.
+    const auto has_role = [](const ExtrusionPaths &loop_paths, ExtrusionRole role) {
+        return std::any_of(loop_paths.begin(), loop_paths.end(), [role](const ExtrusionPath &path) { return path.role() == role; });
+    };
+    // Conservatively exclude full-XYZ mappings: capture is not defined in their machine frame.
+    const bool capture_overhang_start = description == "perimeter" && !m_config.spiral_mode && m_layer != nullptr &&
+        !m_writer.has_axis_remap() &&
+        has_role(paths, erOverhangPerimeter) && (loop_ref.inset_idx == 0 || has_role(loop_ref.paths, erExternalPerimeter));
+    std::optional<ExtrusionRole> first_printing_role;
+    if (capture_overhang_start)
+        m_writer.start_extrusion_capture();
+    // After each path: the path that emitted the first printing move gives the loop's start role.
+    const auto note_printing_start = [&](const ExtrusionPath &path) {
+        if (capture_overhang_start && !first_printing_role && m_writer.extrusion_capture_started())
+            first_printing_role = path.role();
+    };
+
     if (!enable_seam_slope) {
         for (const ExtrusionPath& path : paths) {
             gcode += this->_extrude(path, description, speed_for_path(path));
+            note_printing_start(path);
             // Orca: Adaptive PA - dont adapt PA after the first multipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -8504,6 +8570,7 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         // Then extrude it
         for (const ExtrusionPath* path : new_loop.get_all_paths()) {
             gcode += this->_extrude(*path, description, speed_for_path(*path));
+            note_printing_start(*path);
             // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -8517,6 +8584,23 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
             paths.reserve(new_loop.paths.size() + new_loop.ends.size());
             paths.insert(paths.end(), new_loop.paths.begin(), new_loop.paths.end());
             paths.insert(paths.end(), new_loop.ends.begin(), new_loop.ends.end());
+        }
+    }
+
+    // Orca: the loop ends here; wipe moves after it are not part of it.
+    if (capture_overhang_start) {
+        const std::optional<ExtrusionCapture> capture = m_writer.stop_extrusion_capture();
+        if (capture && capture->start && first_printing_role == erOverhangPerimeter) {
+            const Vec3d &start = *capture->start;
+            const Vec3d &end   = capture->end;
+            // Conservative limit: the processor replaces a printing move's Z of 0 by the layer
+            // height, so loops at command Z 0 are excluded; warn about their layer instead.
+            if (start.z() == 0. || capture->zero_z)
+                m_overhang_seam_zero_z_layers.insert(m_layer_index + 1);
+            else
+                m_overhang_seam_loops.push_back({ OverhangSeamKey::from_gcode(start.x(), start.y(), start.z(), capture->filament),
+                                                  OverhangSeamKey::from_gcode(end.x(), end.y(), end.z(), capture->filament),
+                                                  m_layer_index + 1, m_layer->object()->model_object()->name });
         }
     }
 

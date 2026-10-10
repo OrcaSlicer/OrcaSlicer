@@ -18173,6 +18173,15 @@ void Plater::load_gcode(const wxString& filename)
         set_project_filename(_L(DEFAULT_PROJECT_NAME));
     } else {
         set_project_filename(filename);
+        // Orca: a G-code file cannot tell an outer wall that overhangs all the way round from an
+        // inner one, so it has no seam marker (docs/HLSD/overhang-seam-preview.md). Once per session.
+        static bool overhang_seam_notice_shown = false;
+        if (!overhang_seam_notice_shown && current_result->overhang_seam_stats.overhang_only_paths) {
+            overhang_seam_notice_shown = true;
+            get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                          NotificationManager::NotificationLevel::WarningNotificationLevel,
+                                                          _u8L("Seam markers on overhangs are not shown for G-code files."));
+        }
     }
 
     // Orca: Fix crash when loading gcode file multiple times

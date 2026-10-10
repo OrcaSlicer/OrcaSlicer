@@ -1748,3 +1748,28 @@ TEST_CASE("Percent accelerations resolve against the option they are a percentag
         REQUIRE(accelerations_by_role[role_name] == std::set<int>{ value });
     }
 }
+
+TEST_CASE("Extrusion capture skips a move the G-code reader cannot tell from travel", "[GCodeWriter][OverhangSeam]")
+{
+    // GCodeReader passes E to the processor as a float: at an absolute E of 1024 a step of
+    // 0.00001 is lost, so the processor reads that move as travel and the loop starts after it.
+    const double e_before_loop = GENERATE(0., 1024.);
+    INFO("absolute E before the loop " << e_before_loop);
+    GCodeWriter writer;
+    writer.config.use_relative_e_distances.value = false;
+    writer.set_extruders({ 0 });
+    writer.set_extruder(0);
+    std::string gcode;
+    writer.extrude_to_xy(gcode, Vec2d(10., 10.), e_before_loop);
+
+    writer.start_extrusion_capture();
+    writer.extrude_to_xy(gcode, Vec2d(10.1, 10.), 0.00001);
+    writer.extrude_to_xy(gcode, Vec2d(20., 10.), 0.1);
+    const auto capture = writer.stop_extrusion_capture();
+
+    REQUIRE(capture);
+    REQUIRE(capture->start);
+    const double expected_start_x = e_before_loop > 0. ? 10.1 : 10.;
+    CHECK_THAT(capture->start->x(), Catch::Matchers::WithinAbs(expected_start_x, 1e-9));
+    CHECK_THAT(capture->end.x(), Catch::Matchers::WithinAbs(20., 1e-9));
+}

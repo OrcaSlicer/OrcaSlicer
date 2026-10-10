@@ -1283,6 +1283,9 @@ std::string GCodeWriter::extrude_to_xy(const Vec2d &point, double dE, const std:
 
 void GCodeWriter::extrude_to_xy(std::string &out, const Vec2d &point, double dE, const std::string &comment, bool force_no_extrusion)
 {
+    // Orca: command position and emitted E before the move, for the extrusion capture.
+    const Vec3d  capture_from = { m_pos(0) - m_x_offset, m_pos(1) - m_y_offset, m_pos(2) };
+    const double capture_e    = m_extrusion_capture ? emitted_e_before_move() : 0.;
     m_pos(0) = point(0);
     m_pos(1) = point(1);
     if(std::abs(dE) <= std::numeric_limits<double>::epsilon())
@@ -1306,6 +1309,9 @@ void GCodeWriter::extrude_to_xy(std::string &out, const Vec2d &point, double dE,
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
+
+    if (m_extrusion_capture && !force_no_extrusion)
+        capture_extrusion(capture_from, { point_on_plate(0), point_on_plate(1), m_pos(2) }, capture_e, false);
 }
 
 // Approximate an arc with linear extrusions, for machine mappings that cannot
@@ -1373,6 +1379,9 @@ void GCodeWriter::extrude_arc_to_xy(std::string &out, const Vec2d& point, const 
         return;
     }
 
+    // Orca: command position and emitted E before the move, for the extrusion capture.
+    const Vec3d  capture_from = { m_pos(0) - m_x_offset, m_pos(1) - m_y_offset, m_pos(2) };
+    const double capture_e    = m_extrusion_capture ? emitted_e_before_move() : 0.;
     m_pos(0) = point(0);
     m_pos(1) = point(1);
     if (!force_no_extrusion)
@@ -1388,6 +1397,9 @@ void GCodeWriter::extrude_arc_to_xy(std::string &out, const Vec2d& point, const 
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
+
+    if (m_extrusion_capture && !force_no_extrusion)
+        capture_extrusion(capture_from, { point_on_plate(0), point_on_plate(1), m_pos(2) }, capture_e, true);
 }
 
 std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment, bool force_no_extrusion)
@@ -1404,6 +1416,9 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
     // segments share the same quantized Z — emitting it every time is redundant.
     bool z_changed = (GCodeG1Formatter::quantize_xyzf(point(2)) != GCodeG1Formatter::quantize_xyzf(m_pos(2)));
 
+    // Orca: command position and emitted E before the move, for the extrusion capture.
+    const Vec3d  capture_from = { m_pos(0) - m_x_offset, m_pos(1) - m_y_offset, m_pos(2) };
+    const double capture_e    = m_extrusion_capture ? emitted_e_before_move() : 0.;
     m_pos = point;
     m_lifted = 0;
     if (!force_no_extrusion)
@@ -1430,6 +1445,31 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
+
+    if (m_extrusion_capture && !force_no_extrusion)
+        capture_extrusion(capture_from, point_on_plate, capture_e, false);
+}
+
+void GCodeWriter::capture_extrusion(const Vec3d &from, const Vec3d &to, double e_before, bool arc)
+{
+    // Mirror GCodeProcessor: a move prints only if the emitted E grows and XY changes. E is
+    // compared at the single precision GCodeReader passes to the processor.
+    if (float(GCodeFormatter::quantize_e(filament()->E())) <= float(GCodeFormatter::quantize_e(e_before)))
+        return;
+    auto quantize = [](const Vec3d &p) {
+        return Vec3d(GCodeFormatter::quantize_xyzf(p.x()), GCodeFormatter::quantize_xyzf(p.y()), GCodeFormatter::quantize_xyzf(p.z()));
+    };
+    const Vec3d a = quantize(from);
+    const Vec3d b = quantize(to);
+    if (!arc && a.x() == b.x() && a.y() == b.y())
+        return;
+    if (!m_extrusion_capture->start) {
+        m_extrusion_capture->start    = a;
+        m_extrusion_capture->filament = int(filament()->id());
+    }
+    m_extrusion_capture->end = b;
+    if (b.z() == 0.)
+        m_extrusion_capture->zero_z = true;
 }
 
 std::string GCodeWriter::retract(bool before_wipe, double retract_length)

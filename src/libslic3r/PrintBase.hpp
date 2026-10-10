@@ -70,7 +70,9 @@ public:
         SlicingNeedSupportOn,
         SlicingEmptyGcodeLayers,
         SlicingGcodeOverlap,
-        SlicingPreciseSeamWarning
+        SlicingPreciseSeamWarning,
+        SlicingOverhangSeamPreviewWarning,
+        SlicingOverhangSeamZeroZWarning
     };
 
     typedef size_t TimeStamp;

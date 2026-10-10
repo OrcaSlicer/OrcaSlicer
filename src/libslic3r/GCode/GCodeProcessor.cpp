@@ -20,6 +20,7 @@
 #include "libslic3r/format.hpp"
 #include "libslic3r_version.h"
 #include "GCodeProcessor.hpp"
+#include "OverhangSeamLoops.hpp"
 
 #include <algorithm>
 #include <array>
@@ -2639,6 +2640,7 @@ void GCodeProcessorResult::reset() {
     optimal_assignment.clear();
     filament_change_count_map.clear();
     warnings.clear();
+    overhang_seam_stats = {};
     // keep the grouping-result field default-empty across resets.
     nozzle_group_result.reset();
     // per-extruder hotend types (pre-heat injector input); repopulated by apply_config.
@@ -3706,6 +3708,12 @@ void GCodeProcessor::reset()
     m_layer_id = 0;
     m_cp_color.reset();
     m_mass_locator = nullptr;
+    m_seams_detector.reset();
+    m_overhang_path_start.reset();
+    m_outer_overhang_candidate = false;
+    m_overhang_seam_channel.clear();
+    m_overhang_seams.reset();
+    m_overhang_seam_layer_tags = 0;
 
     m_producer = EProducer::Unknown;
 
@@ -3846,6 +3854,14 @@ void GCodeProcessor::finalize(bool post_process)
 {
     m_result.z_offset = m_z_offset;
     finalize_object_masses();
+
+    // A G-code file may end on a path still printed as "Overhang wall" only.
+    if (m_overhang_path_start) {
+        m_overhang_seams.note_overhang_only_path();
+        m_overhang_path_start.reset();
+    }
+    m_overhang_seams.finish(m_overhang_seam_channel, m_overhang_seam_layer_tags);
+    m_result.overhang_seam_stats = m_overhang_seams.stats();
 
     // update width/height of wipe moves
     for (GCodeProcessorResult::MoveVertex& move : m_result.moves) {
@@ -4548,6 +4564,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // layer change tag
     if (comment == reserved_tag(ETags::Layer_Change)) {
         ++m_layer_id;
+        m_overhang_seams.on_layer_change(m_overhang_seam_channel);
         return;
     }
 }
@@ -5433,11 +5450,51 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
     const Vec3f plate_offset = {(float) m_x_offset, (float) m_y_offset, 0.0f};
 
+    // Orca: an outer wall that starts on an overhang is an outer wall for the seam detector from
+    // its first move once it is known to be one (docs/HLSD/overhang-seam-preview.md).
+    const bool overhang_move = type == EMoveType::Extrude && m_extrusion_role == erOverhangPerimeter;
+    if (overhang_move && m_overhang_seams.has_unmatched()) {
+        const OverhangSeamKey start = OverhangSeamKey::from_gcode(m_start_position[X] - m_origin[X], m_start_position[Y] - m_origin[Y],
+                                                                  m_start_position[Z] - m_origin[Z], filament_id);
+        m_overhang_seams.match_start(start, m_seams_detector.is_active() && m_seams_detector.has_first_vertex());
+    }
+    const bool overhang_seam_candidate = m_overhang_seams.in_candidate();
+    // A handed-over loop already is an outer wall; no path start to confirm.
+    if (overhang_seam_candidate)
+        m_overhang_path_start.reset();
+    // The detector's first vertex for this move: where the previous move ended. Evaluated only
+    // where the detector needs it, as before: other moves may have no valid filament offset.
+    const auto seam_vertex = [&]() -> Vec3f { return m_result.moves.back().position - m_extruder_offsets[filament_id] - plate_offset; };
+    if (m_overhang_path_start) {
+        if (overhang_move) {
+            // Follow a sloped start up in Z, as the detector does on an outer wall.
+            if (m_detect_layer_based_on_tag && seam_vertex().z() > m_overhang_path_start->z())
+                m_overhang_path_start = seam_vertex();
+        } else {
+            if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
+                m_seams_detector.activate(true);
+                m_seams_detector.set_first_vertex(*m_overhang_path_start);
+                m_outer_overhang_candidate = true;
+            } else if (type != EMoveType::Extrude)
+                m_overhang_seams.note_overhang_only_path();
+            m_overhang_path_start.reset();
+        }
+    } else if (overhang_move && !overhang_seam_candidate && !m_result.spiral_vase_mode &&
+               !(m_seams_detector.is_active() && m_seams_detector.has_first_vertex()))
+        m_overhang_path_start = seam_vertex();
+    // Track the end of the printing moves that continue the candidate (the detector's own rule).
+    if (overhang_seam_candidate && type == EMoveType::Extrude &&
+        (m_extrusion_role == erExternalPerimeter || m_extrusion_role == erOverhangPerimeter))
+        m_overhang_seams.on_candidate_extrusion(OverhangSeamKey::from_gcode(m_end_position[X] - m_origin[X], m_end_position[Y] - m_origin[Y],
+                                                                            m_end_position[Z] - m_origin[Z], filament_id));
+    const bool external_for_seam = m_extrusion_role == erExternalPerimeter ||
+                                   (m_extrusion_role == erOverhangPerimeter && (overhang_seam_candidate || m_outer_overhang_candidate));
+
     if (m_seams_detector.is_active()) {
         // check for seam starting vertex
-        if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
+        if (type == EMoveType::Extrude && external_for_seam) {
             //BBS: m_result.moves.back().position has plate offset, must minus plate offset before calculate the real seam position
-            const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[filament_id] - plate_offset;
+            const Vec3f new_pos = seam_vertex();
             if (!m_seams_detector.has_first_vertex()) {
                 m_seams_detector.set_first_vertex(new_pos);
             } else if (m_detect_layer_based_on_tag) {
@@ -5456,7 +5513,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
             const Vec3f curr_pos(m_end_position[X], m_end_position[Y], m_end_position[Z]);
             //BBS: m_result.moves.back().position has plate offset, must minus plate offset before calculate the real seam position
-            const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[filament_id] - plate_offset;
+            const Vec3f new_pos = seam_vertex();
             const std::optional<Vec3f> first_vertex = m_seams_detector.get_first_vertex();
             // the threshold value = 0.0625f == 0.25 * 0.25 is arbitrary, we may find some smarter condition later
 
@@ -5467,11 +5524,14 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
             }
 
             m_seams_detector.activate(false);
+            m_outer_overhang_candidate = false;
+            if (overhang_seam_candidate)
+                m_overhang_seams.on_candidate_end();
         }
     }
-    else if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
+    else if (type == EMoveType::Extrude && external_for_seam) {
         m_seams_detector.activate(true);
-        m_seams_detector.set_first_vertex(m_result.moves.back().position - m_extruder_offsets[filament_id] - plate_offset);
+        m_seams_detector.set_first_vertex(seam_vertex());
     }
 
     if (type == EMoveType::Extrude)
