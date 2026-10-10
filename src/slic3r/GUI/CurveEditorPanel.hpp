@@ -7,6 +7,7 @@
 #include <wx/panel.h>
 #include <wx/recguard.h>
 #include <wx/string.h>
+#include <wx/timer.h>
 #include "libslic3r/CurveModel.hpp"
 
 namespace Slic3r::GUI {
@@ -28,6 +29,7 @@ class CurveEditorPanel : public wxPanel
 public:
     using Interpolator = CurveModel::Interpolator;
     CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance& appearance, const CurveViewLimits& view_limits);
+    ~CurveEditorPanel() override;
     void set_data(const std::vector<double>& x, const std::vector<double>& y,
                   const std::vector<wxString>& tooltips, Interpolator interpolate);
     void set_view(const CurveEditorView& view);
@@ -36,12 +38,13 @@ public:
     void select_point(int row);
     void finish_drag();
     void set_touchpad_controls(bool enabled);
+    bool has_automatic_touchpad_controls() const { return m_automatic_touchpad_controls; }
 
     std::function<void()> before_drag;
     std::function<void(int)> on_select;
     std::function<void(int, double, double)> on_move;
-    // Offset in model units; true selects the Y axis.
-    std::function<void(double, bool)> on_pan;
+    // Apply both offsets in model units together, once per navigation frame.
+    std::function<void(double, double)> on_pan;
     std::function<void(double, bool, double)> on_zoom;
 
 private:
@@ -52,6 +55,17 @@ private:
     void drag_point(const wxPoint& position);
     void zoom_view(double steps, bool vertical, const wxPoint& position);
     void pinch_zoom(double factor, const wxPoint& position);
+    struct NativeScroll {
+        bool touchpad;
+        std::optional<double> pixels;
+    };
+    NativeScroll scroll_input(bool horizontal) const;
+#ifdef __WXOSX__
+    std::optional<NativeScroll> mac_scroll_input(bool horizontal) const;
+#endif
+    void queue_pan(double pixels_x, double pixels_y);
+    void flush_pan();
+    void cancel_pan();
     void paint_chart();
 
     CurveEditorAppearance m_appearance;
@@ -70,6 +84,12 @@ private:
     double m_drag_y = 0.0;
     wxRecursionGuardFlag m_zoom_depth = 0;
     bool m_touchpad_controls = false;
+    bool m_automatic_touchpad_controls = false;
+    bool m_pan_gesture_active = false;
+    bool m_zoom_gesture_active = false;
+    wxTimer m_pan_timer;
+    double m_pending_pan_x = 0.0;
+    double m_pending_pan_y = 0.0;
     double m_gesture_zoom_factor = 1.0;
 };
 

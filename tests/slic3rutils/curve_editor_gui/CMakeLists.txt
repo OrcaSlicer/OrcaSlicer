@@ -30,6 +30,17 @@ target_include_directories(curve_editor_gui_tests PRIVATE "${ORCA_SOURCE_DIR}/sr
 target_compile_definitions(curve_editor_gui_tests PRIVATE wxDEBUG_LEVEL=0)
 target_link_libraries(curve_editor_gui_tests PRIVATE curve_editor_catch wx::core wx::base Boost::headers)
 
+if(APPLE)
+    enable_language(OBJCXX)
+    set_target_properties(curve_editor_gui_tests PROPERTIES OBJCXX_STANDARD 17 OBJCXX_STANDARD_REQUIRED ON)
+    target_sources(curve_editor_gui_tests PRIVATE "${ORCA_SOURCE_DIR}/src/slic3r/GUI/CurveEditorPanelMac.mm")
+    target_link_libraries(curve_editor_gui_tests PRIVATE "-framework AppKit")
+elseif(UNIX)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(CURVE_GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
+    target_link_libraries(curve_editor_gui_tests PRIVATE PkgConfig::CURVE_GTK)
+endif()
+
 enable_testing()
 list(APPEND CMAKE_MODULE_PATH "${ORCA_SOURCE_DIR}/tests/catch2/extras")
 include(Catch)
