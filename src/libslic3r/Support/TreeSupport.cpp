@@ -1526,10 +1526,12 @@ void TreeSupport::generate_toolpaths()
 
     // calculate fill areas for raft layers
     ExPolygons raft_areas;
+    ExPolygons object_first_layer;
     if (m_object->layer_count() > 0) {
         const Layer *layer = m_object->layers().front();
         for (const ExPolygon &expoly : layer->lslices) {
             raft_areas.push_back(expoly);
+            object_first_layer.push_back(expoly);
         }
     }
 
@@ -1586,6 +1588,8 @@ void TreeSupport::generate_toolpaths()
     ExPolygons raft_interface_areas = diff_ex(raft_areas, raft_base_areas);
 
 
+    BoundingBox bbox_object(Point(-scale_(1.), -scale_(1.0)), Point(scale_(1.), scale_(1.)));
+
     // raft interfaces
     for (layer_nr = m_slicing_params.base_raft_layers;
          layer_nr < m_slicing_params.base_raft_layers + m_slicing_params.interface_raft_layers;
@@ -1608,6 +1612,15 @@ void TreeSupport::generate_toolpaths()
         fill_params.density = object_config.raft_first_layer_density * 0.01;
         fill_expolygons_generate_paths(ts_layer->support_fills.entities, raft_base_areas,
             filler_interface, fill_params, erSupportMaterial, support_flow);
+
+        // Iron the raft top under the object, the surface the object sits on, like the organic support does.
+        if (m_support_params.ironing &&
+            layer_nr + 1 == m_slicing_params.base_raft_layers + m_slicing_params.interface_raft_layers)
+            generate_support_ironing(ts_layer->support_fills.entities,
+                offset_ex(intersection_ex(raft_interface_areas, offset_ex(object_first_layer, scale_(object_config.raft_first_layer_expansion))),
+                          -0.5 * support_flow.scaled_spacing(), jtSquare),
+                m_support_params, bbox_object, ts_layer->id(), ts_layer->print_z,
+                m_support_params.support_interface_angle(ts_layer->interface_id()));
     }
 
     // layers between raft and object
@@ -1624,7 +1637,6 @@ void TreeSupport::generate_toolpaths()
     if (m_object->support_layer_count() <= m_raft_layers)
         return;
 
-    BoundingBox bbox_object(Point(-scale_(1.), -scale_(1.0)), Point(scale_(1.), scale_(1.)));
     // ORCA: base angle used for explicit interlaced interface orientation.
     const float base_support_angle = Geometry::deg2rad(object_config.support_angle.value);
 
@@ -1660,6 +1672,31 @@ void TreeSupport::generate_toolpaths()
                 filler_interface->set_bounding_box(bbox_object);
                 filler_Roof1stLayer->set_bounding_box(bbox_object);
 
+                // ORCA: Like the organic pass in SupportCommon.cpp, iron only the top contact surface: the
+                // roof area that no support layer directly above already covers.
+                ExPolygons support_above;
+                if (m_support_params.ironing && layer_id + 1 < m_object->support_layer_count()) {
+                    const SupportLayer *upper_layer = m_object->get_support_layer(layer_id + 1);
+                    if (upper_layer->bottom_z() <= ts_layer->print_z + EPSILON)
+                        for (const auto &upper_group : upper_layer->area_groups)
+                            support_above.push_back(*upper_group.area);
+                }
+                // Roofs printed as base material do not touch the model, so they are not ironed.
+                auto iron_uncovered_roof = [&](const SupportLayer::AreaGroup &area_group) {
+                    if (!m_support_params.ironing || area_group.interface_as_base)
+                        return;
+                    ExPolygons polys_to_iron = offset_ex(*area_group.area, -0.5 * interface_flow.scaled_spacing(), jtSquare);
+                    if (!support_above.empty())
+                        polys_to_iron = diff_ex(polys_to_iron, support_above);
+                    if (polys_to_iron.empty())
+                        return;
+                    generate_support_ironing(ts_layer->support_fills.entities, std::move(polys_to_iron), m_support_params,
+                        bbox_object, ts_layer->id(), ts_layer->print_z, m_support_params.support_interface_angle(area_group.interface_id));
+                };
+
+                // Ironing needs a solid surface under it, so the roof is filled solid when it is on.
+                const coordf_t roof_density = m_support_params.ironing ? m_support_params.top_interface_density : interface_density;
+
                 for (auto& area_group : ts_layer->area_groups) {
                     ExPolygon& poly = *area_group.area;
                     ExPolygons polys;
@@ -1692,7 +1729,7 @@ void TreeSupport::generate_toolpaths()
                         // roof_1st_layer
                         // ORCA: Roof1stLayer may be printed with base material when it acts as a contact layer.
                         bool interface_as_base = area_group.interface_as_base;
-                        fill_params.density = interface_density;
+                        fill_params.density = roof_density;
                         // Note: spacing means the separation between two lines as if they are tightly extruded
                         filler_Roof1stLayer->spacing = interface_flow.spacing();
                         filler_Roof1stLayer->angle = m_support_params.support_interface_angle(area_group.interface_id);
@@ -1704,12 +1741,14 @@ void TreeSupport::generate_toolpaths()
                         // generate a perimeter first to support interface better
                         ExtrusionEntityCollection* temp_support_fills = new ExtrusionEntityCollection();
                         make_perimeter_and_infill(temp_support_fills->entities, poly, 1, interface_base_flow, interface_role,
-                            filler_Roof1stLayer.get(), interface_density, false);
+                            filler_Roof1stLayer.get(), roof_density, false);
                         temp_support_fills->no_sort = true; // make sure loops are first
                         if (!temp_support_fills->entities.empty())
                             ts_layer->support_fills.entities.push_back(temp_support_fills);
                         else
                             delete temp_support_fills;
+
+                        iron_uncovered_roof(area_group);
                     } else if (area_group.type == SupportLayer::FloorType) {
                         // floor_areas
                         bool interface_as_base = area_group.interface_as_base;
@@ -1729,7 +1768,7 @@ void TreeSupport::generate_toolpaths()
                     } else if (area_group.type == SupportLayer::RoofType) {
                         // roof_areas
                         bool interface_as_base = area_group.interface_as_base;
-                        fill_params.density       = interface_density;
+                        fill_params.density       = roof_density;
                         filler_interface->spacing = interface_flow.spacing();
 
                         fill_params.dont_sort = (m_object_config->support_interface_pattern == smipGrid ||
@@ -1742,6 +1781,7 @@ void TreeSupport::generate_toolpaths()
                         ExtrusionRole interface_role = interface_as_base ? erSupportMaterial : erSupportMaterialInterface;
                         fill_expolygons_generate_paths(ts_layer->support_fills.entities, polys, filler_interface.get(), fill_params, interface_role,
                                                        interface_base_flow);
+                        iron_uncovered_roof(area_group);
                     }
                     else {
                         // base_areas
