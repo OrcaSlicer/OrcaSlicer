@@ -1,0 +1,45 @@
+{
+  "type": "filament",
+  "name": "Food Medium Stainless Steel  Syringe  @4.00mm",
+  "inherits": "fdm_filament_food",
+  "from": "system",
+  "instantiation": "true",
+  "compatible_printers": [
+    "FELIX Food Single 4.00mm nozzle",
+    "FELIX Food Double 4.00mm nozzle",
+    "FELIX Food Switch 4.00mm nozzle"
+  ],
+  "filament_diameter": [
+    "25.4"
+  ],
+  "filament_flow_ratio": [
+    "1.05"
+  ],
+  "filament_retraction_length": [
+    "1.0"
+  ],
+  "filament_retract_restart_extra": [
+    "0.0"
+  ],
+  "filament_retraction_speed": [
+    "10.0"
+  ],
+  "filament_deretraction_speed": [
+    "10.0"
+  ],
+  "filament_retract_length_toolchange": [
+    "2.0"
+  ],
+  "filament_retract_restart_extra_toolchange": [
+    "0.0"
+  ],
+  "filament_wipe_distance": [
+    "6.0"
+  ],
+  "filament_vendor": [
+    "FELIX Printers"
+  ],
+  "filament_max_volumetric_speed": [
+    "432.0"
+  ]
+}

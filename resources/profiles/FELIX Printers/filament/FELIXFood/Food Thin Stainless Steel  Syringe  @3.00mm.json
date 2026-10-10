@@ -1,0 +1,45 @@
+{
+  "type": "filament",
+  "name": "Food Thin Stainless Steel  Syringe  @3.00mm",
+  "inherits": "fdm_filament_food",
+  "from": "system",
+  "instantiation": "true",
+  "compatible_printers": [
+    "FELIX Food Single 3.00mm nozzle",
+    "FELIX Food Double 3.00mm nozzle",
+    "FELIX Food Switch 3.00mm nozzle"
+  ],
+  "filament_diameter": [
+    "25.4"
+  ],
+  "filament_flow_ratio": [
+    "1.1"
+  ],
+  "filament_retraction_length": [
+    "0.2"
+  ],
+  "filament_retract_restart_extra": [
+    "0.0"
+  ],
+  "filament_retraction_speed": [
+    "10.0"
+  ],
+  "filament_deretraction_speed": [
+    "10.0"
+  ],
+  "filament_retract_length_toolchange": [
+    "0.4"
+  ],
+  "filament_retract_restart_extra_toolchange": [
+    "0.0"
+  ],
+  "filament_wipe_distance": [
+    "4.5"
+  ],
+  "filament_vendor": [
+    "FELIX Printers"
+  ],
+  "filament_max_volumetric_speed": [
+    "324.0"
+  ]
+}

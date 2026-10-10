@@ -1,0 +1,79 @@
+{
+  "type": "filament",
+  "name": "FORMFUTURA TitanX ABS Hardened Steel @ 0.50mm",
+  "inherits": "fdm_filament_abs",
+  "from": "system",
+  "instantiation": "true",
+  "compatible_printers": [
+    "FELIX Pro 3 0.50mm nozzle",
+    "FELIX Pro L 3.0 0.50mm nozzle",
+    "FELIX Pro XL 3.0 0.50mm nozzle",
+    "FELIX Tec 4 0.50mm nozzle"
+  ],
+  "nozzle_temperature": [
+    "250.0"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "250.0"
+  ],
+  "hot_plate_temp": [
+    "85.0"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "85.0"
+  ],
+  "cool_plate_temp": [
+    "85.0"
+  ],
+  "cool_plate_temp_initial_layer": [
+    "85.0"
+  ],
+  "eng_plate_temp": [
+    "85.0"
+  ],
+  "eng_plate_temp_initial_layer": [
+    "85.0"
+  ],
+  "textured_plate_temp": [
+    "85.0"
+  ],
+  "textured_plate_temp_initial_layer": [
+    "85.0"
+  ],
+  "chamber_temperature": [
+    "28.0"
+  ],
+  "idle_temperature": [
+    "140"
+  ],
+  "filament_retract_length": [
+    "2.0"
+  ],
+  "filament_retract_speed": [
+    "50.0"
+  ],
+  "filament_retraction_speed": [
+    "50.0"
+  ],
+  "filament_retract_restart_extra": [
+    "0.0"
+  ],
+  "filament_flow_ratio": [
+    "0.97"
+  ],
+  "filament_max_volumetric_speed": [
+    "12.0"
+  ],
+  "fan_min_speed": [
+    "40.0"
+  ],
+  "fan_max_speed": [
+    "40.0"
+  ],
+  "filament_density": [
+    "1.1"
+  ],
+  "filament_vendor": [
+    "FORMFUTURA"
+  ]
+}

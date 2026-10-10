@@ -1,0 +1,50 @@
+{
+  "type": "process",
+  "name": "FELIX Food Coarse @ 2.00mm",
+  "inherits": "fdm_process_felix_food_common",
+  "from": "system",
+  "instantiation": "true",
+  "compatible_printers": [
+    "FELIX Food Single 2.00mm nozzle",
+    "FELIX Food Double 2.00mm nozzle",
+    "FELIX Food Switch 2.00mm nozzle"
+  ],
+  "layer_height": "1.5",
+  "initial_layer_print_height": "1.5",
+  "line_width": "2.4",
+  "outer_wall_line_width": "2.4",
+  "inner_wall_line_width": "2.4",
+  "top_surface_line_width": "2.4",
+  "sparse_infill_line_width": "2.4",
+  "internal_solid_infill_line_width": "2.4",
+  "initial_layer_line_width": "2.4",
+  "support_line_width": "2.4",
+  "top_shell_layers": "2",
+  "bottom_shell_layers": "2",
+  "support_top_z_distance": "1.5",
+  "support_bottom_z_distance": "1.5",
+  "inner_wall_speed": [
+    "60.0"
+  ],
+  "sparse_infill_speed": [
+    "60.0"
+  ],
+  "support_speed": [
+    "60.0"
+  ],
+  "outer_wall_speed": [
+    "60.0"
+  ],
+  "internal_solid_infill_speed": [
+    "60.0"
+  ],
+  "top_surface_speed": [
+    "60.0"
+  ],
+  "initial_layer_speed": [
+    "60.0"
+  ],
+  "initial_layer_infill_speed": [
+    "60.0"
+  ]
+}

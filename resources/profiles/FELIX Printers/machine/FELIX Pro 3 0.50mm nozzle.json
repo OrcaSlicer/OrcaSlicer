@@ -1,0 +1,31 @@
+{
+  "type": "machine",
+  "name": "FELIX Pro 3 0.50mm nozzle",
+  "inherits": "fdm_felix_pro_3_common",
+  "from": "system",
+  "instantiation": "true",
+  "printer_model": "FELIX Pro 3",
+  "printer_variant": "0.5",
+  "gcode_flavor": "repetier",
+  "single_extruder_multi_material": "0",
+  "extruder_type": [
+    "Direct Drive",
+    "Direct Drive"
+  ],
+  "nozzle_diameter": [
+    "0.5",
+    "0.5"
+  ],
+  "min_layer_height": [
+    "0.1",
+    "0.1"
+  ],
+  "max_layer_height": [
+    "0.4",
+    "0.4"
+  ],
+  "extruder_offset": [
+    "0x0",
+    "0x0"
+  ]
+}
