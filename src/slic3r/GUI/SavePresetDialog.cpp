@@ -18,7 +18,9 @@
 #include "slic3r/GUI/OptionsGroup.hpp"
 #include <vector>
 #include <string>
+#include <set>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <wx/anybutton.h>
@@ -118,8 +120,10 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_valid_label = new wxStaticText(m_parent, wxID_ANY, "");
     m_valid_label->SetForegroundColour(wxColor(255, 111, 0));
 
-    sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, BORDER_W);
+    sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP, BORDER_W);
+    sizer->AddSpacer(FromDIP(5));
     sizer->Add(input_sizer_h, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, BORDER_W);
+    sizer->AddSpacer(FromDIP(5));
     sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT, BORDER_W);
 
     if (m_type == Preset::TYPE_PRINTER) m_parent->add_info_for_edit_ph_printer(sizer);
@@ -242,6 +246,46 @@ void SavePresetDialog::Item::update()
         m_valid_type = NoValid;
     }
 
+    // Control characters (ASCII 0-31 and DEL) that can be included via copy paste. most possible ones; tab, line feed
+    if (m_valid_type == Valid) {
+        for (unsigned char c : m_preset_name) {
+            if (c < 0x20 || c == 0x7F) {
+                info_line    = _L("Name is invalid;") + "\n" + _L("control characters are not allowed.");
+                m_valid_type = NoValid;
+                break;
+            }
+        }
+    }
+
+    // Windows reserved device names (case-insensitive)
+    // windows 11 relaxed this limitation but still not allowed on earlier systems
+    if (m_valid_type == Valid) {
+        // "CON.foo.json" is also reserved, so compare only the part before the first dot
+        std::string base = m_preset_name.substr(0, m_preset_name.find('.'));
+        // trim trailing spaces
+        while (!base.empty() && base.back() == ' ') base.pop_back();
+        boost::to_upper(base);
+
+        static const std::set<std::string> reserved = {
+            "CON", "PRN", "AUX", "NUL",
+            "COM0","COM1","COM2","COM3","COM4","COM5","COM6","COM7","COM8","COM9",
+            "LPT0","LPT1","LPT2","LPT3","LPT4","LPT5","LPT6","LPT7","LPT8","LPT9"
+        };
+        if(reserved.count(base) > 0){
+            info_line    = _L("The name is a reserved system name.");
+            m_valid_type = NoValid;
+        }
+    }
+
+    // Length limit (bytes, leave room for extension ".json")
+    // Any name over 250 bytes	e.g. 251 ASCII characters
+    // 84 or more Chinese, Japanese or Korean characters	3 bytes each in UTF-8, so 84 × 3 = 252 bytes
+    // About 63 or more emoji	4 bytes each, so 63 × 4 = 252 bytes
+    if (m_valid_type == Valid && m_preset_name.size() > 250) {
+        info_line    = _L("The name is too long.");
+        m_valid_type = NoValid;
+    }
+
     if (m_valid_type == Valid && m_preset_name.find_first_of(' ') == 0) {
         info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
@@ -274,6 +318,15 @@ void SavePresetDialog::Item::update()
 
     m_valid_label->SetLabel(info_line);
     m_valid_label->Show(!info_line.IsEmpty());
+
+    if (!m_ok_btn)
+        m_ok_btn = static_cast<Button*>(wxWindow::FindWindowById(wxID_OK, m_parent));
+    if (m_ok_btn){
+        if(m_valid_type == NoValid && m_ok_btn->IsEnabled())
+            m_ok_btn->Disable();
+        else if(m_valid_type != NoValid && !m_ok_btn->IsEnabled())
+            m_ok_btn->Enable();
+    }
 
     // update_valid_bmp();
 
@@ -341,14 +394,13 @@ void SavePresetDialog::build(std::vector<Preset::Type> types, std::string suffix
 
     m_presets_sizer = new wxBoxSizer(wxVERTICAL);
 
+    // create dialog buttons before item to make it available for changing enable/disable
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
+
     // Add first item
     for (Preset::Type type : types) AddItem(type, suffix);
-
-    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
-
-    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
-
-    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
 
     m_Sizer_main->Add(m_presets_sizer, 0, wxEXPAND | wxALL, BORDER_W);
     m_Sizer_main->Add(dlg_btns, 0, wxEXPAND);
