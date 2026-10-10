@@ -470,7 +470,7 @@ void ArrangeJob::prepare_wipe_tower()
 
 
 //BBS: prepare current part plate for arranging
-void ArrangeJob::prepare_partplate() {
+void ArrangeJob::prepare_partplate(bool only_selection) {
     clear_input();
 
     PartPlateList& plate_list = m_plater->get_partplate_list();
@@ -494,6 +494,13 @@ void ArrangeJob::prepare_partplate() {
 
     Model& model = m_plater->model();
 
+    std::vector<const Selection::InstanceIdxsList*> obj_sel(model.objects.size(), nullptr);
+    if (only_selection) {
+        for (const auto& s : m_plater->get_selection().get_content())
+            if (s.first >= 0 && s.first < int(obj_sel.size()))
+                obj_sel[size_t(s.first)] = &s.second;
+    }
+
     // Go through the objects and check if inside the selection
     for (size_t oidx = 0; oidx < model.objects.size(); ++oidx)
     {
@@ -503,16 +510,25 @@ void ArrangeJob::prepare_partplate() {
         for (size_t inst_idx = 0; inst_idx < mo->instances.size(); ++inst_idx)
         {
             bool             in_plate = plate->contain_instance(oidx, inst_idx) || plate->intersect_instance(oidx, inst_idx);
+            const bool       is_selected = in_plate && (!only_selection || (obj_sel[oidx] != nullptr && obj_sel[oidx]->count(int(inst_idx)) > 0));
             ArrangePolygon&& ap = prepare_arrange_polygon(mo->instances[inst_idx]);
 
             ArrangePolygons& cont = mo->instances[inst_idx]->printable ?
-                (in_plate ? m_selected : m_unselected) :
+                (is_selected ? m_selected : m_unselected) :
                 m_unprintable;
-            bool locked = plate_list.preprocess_arrange_polygon_other_locked(oidx, inst_idx, ap, in_plate);
+            bool locked = plate_list.preprocess_arrange_polygon_other_locked(oidx, inst_idx, ap, is_selected);
             if (!locked)
             {
                 ap.itemid = cont.size();
                 cont.emplace_back(std::move(ap));
+            }
+            else if (only_selection && in_plate && mo->instances[inst_idx]->printable && ap.bed_idx == current_plate_index)
+            {
+                // Not selected but on this plate: an obstacle at its plate-local position that is never moved
+                ap.bed_idx = 0;
+                ap.setter  = nullptr;
+                ap.itemid  = m_unselected.size();
+                m_unselected.emplace_back(std::move(ap));
             }
             else
             {
@@ -594,6 +610,10 @@ void ArrangeJob::prepare()
     else if (state == Job::JobPrepareState::PREPARE_STATE_MENU) {
         only_on_partplate = true;   // only arrange items on current plate
         prepare_partplate();
+    }
+    else if (state == Job::JobPrepareState::PREPARE_STATE_SELECTION) {
+        only_on_partplate = true;   // the selection is arranged on the current plate
+        prepare_partplate(true);
     }
 
     // After prepare_all(), which locks the plates it must leave alone.
@@ -950,7 +970,7 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
     }
 
     int state = p->get_prepare_state();
-    if (state == Job::JobPrepareState::PREPARE_STATE_MENU) {
+    if (state == Job::JobPrepareState::PREPARE_STATE_MENU || state == Job::JobPrepareState::PREPARE_STATE_SELECTION) {
         PartPlateList &plate_list = p->get_partplate_list();
         PartPlate *    plate      = plate_list.get_curr_plate();
         bool plate_same_as_global = true;

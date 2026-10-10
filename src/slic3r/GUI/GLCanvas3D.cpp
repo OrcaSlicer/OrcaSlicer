@@ -1477,6 +1477,7 @@ wxDEFINE_EVENT(EVT_GLCANVAS_REMOVE_OBJECT, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_ARRANGE, SimpleEvent);
 //BBS: add arrange and orient event
 wxDEFINE_EVENT(EVT_GLCANVAS_ARRANGE_PARTPLATE, SimpleEvent);
+wxDEFINE_EVENT(EVT_GLCANVAS_ARRANGE_SELECTION, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_ORIENT, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_ORIENT_PARTPLATE, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL, SimpleEvent);
@@ -4098,6 +4099,10 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
     case Shortcut::ArrangePlate:
         if (!m_gizmos.is_running())
             post_event(SimpleEvent(EVT_GLCANVAS_ARRANGE_PARTPLATE));
+        break;
+    case Shortcut::ArrangeSelection:
+        if (m_canvas_type == CanvasView3D && !m_gizmos.is_running() && !m_selection.is_empty())
+            post_event(SimpleEvent(EVT_GLCANVAS_ARRANGE_SELECTION));
         break;
     case Shortcut::Orient:       post_event(SimpleEvent(EVT_GLCANVAS_ORIENT)); break;
     case Shortcut::OrientPlate:  post_event(SimpleEvent(EVT_GLCANVAS_ORIENT_PARTPLATE)); break;

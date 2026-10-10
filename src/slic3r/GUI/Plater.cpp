@@ -8057,6 +8057,9 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             //BBS arrange from EVT set default state.
             this->q->set_prepare_state(Job::PREPARE_STATE_MENU);
             this->q->arrange(); });
+        view3D_canvas->Bind(EVT_GLCANVAS_ARRANGE_SELECTION, [this](SimpleEvent& evt) {
+            this->q->set_prepare_state(Job::PREPARE_STATE_SELECTION);
+            this->q->arrange(); });
         view3D_canvas->Bind(EVT_GLCANVAS_ORIENT, [this](SimpleEvent& evt) {
             //BBS orient from EVT set default state.
             this->q->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
