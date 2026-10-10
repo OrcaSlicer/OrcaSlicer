@@ -6156,7 +6156,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                                                 std::vector<std::string> const &targets = {},
                                                 std::vector<std::string> const &types   = {},
                                                 PackingTemporaryData            data    = PackingTemporaryData(),
-                                                int export_plate_idx = -1) const;
+                                                int                             export_plate_idx = -1,
+                                                bool                            plate_thumbnail_written = false,
+                                                bool                            plate_small_thumbnail_written = false) const;
         bool _add_model_file_to_archive(const std::string& filename, mz_zip_archive& archive, const Model& model, ObjectToObjectDataMap& objects_data, Export3mfProgressFn proFn = nullptr, BBLProject* project = nullptr) const;
         bool _add_object_to_model_stream(mz_zip_writer_staged_context &context, ObjectData const &object_data) const;
         void _add_object_components_to_stream(std::stringstream &stream, ObjectData const &object_data) const;
@@ -6366,6 +6368,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",top&&pick thumbnails, count %1%")%top_thumbnail_data.size();
 
         //BBS: add thumbnail for each plate
+        //ORCA: the relationships file may only reference thumbnail parts that really were
+        //      written -- a CLI export renders none. Track the plate the relationships will
+        //      point at: plate 1 for a whole-project export, otherwise the exported plate.
+        const size_t rels_plate_idx = (export_plate_idx < 0) ? 0 : static_cast<size_t>(export_plate_idx);
+        bool rels_thumbnail_written = false;
+        bool rels_small_thumbnail_written = false;
         if (!m_skip_static) {
             std::vector<bool> thumbnail_status(plate_data_list.size(), false);
             std::vector<bool> no_light_thumbnail_status(plate_data_list.size(), false);
@@ -6414,6 +6422,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",add thumbnail %1%'s data into 3mf")%(index+1);
                     thumbnail_status[index] = true;
+                    if (static_cast<size_t>(index) == rels_plate_idx) {
+                        //ORCA: this call also writes the _small companion
+                        rels_thumbnail_written       = true;
+                        rels_small_thumbnail_written = true;
+                    }
                 }
             }
 
@@ -6460,6 +6473,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", add thumbnail %1% from file %2% failed\n") % (i+1) %plate_data->thumbnail_file;
                         return false;
                     }
+                    //ORCA: copied from file, so there is no _small companion for this plate
+                    if (static_cast<size_t>(i) == rels_plate_idx)
+                        rels_thumbnail_written = true;
                 }
 
                 if (!no_light_thumbnail_status[i] && !plate_data->no_light_thumbnail_file.empty() && (boost::filesystem::exists(plate_data->no_light_thumbnail_file))){
@@ -6754,7 +6770,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Adds relationships file ("_rels/.rels").
         // The content of this file is the same for each OrcaSlicer 3mf.
         // The relationshis file contains a reference to the geometry file "3D/3dmodel.model", the name was chosen to be compatible with CURA.
-        if (!_add_relationships_file_to_archive(archive, {}, {}, {}, temp_data, export_plate_idx)) {
+        if (!_add_relationships_file_to_archive(archive, {}, {}, {}, temp_data, export_plate_idx, rels_thumbnail_written, rels_small_thumbnail_written)) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", _add_relationships_file_to_archive failed\n");
             return false;
         }
@@ -6926,7 +6942,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     }
 
     bool _BBS_3MF_Exporter::_add_relationships_file_to_archive(
-        mz_zip_archive &archive, std::string const &from, std::vector<std::string> const &targets, std::vector<std::string> const &types, PackingTemporaryData data, int export_plate_idx) const
+        mz_zip_archive &archive, std::string const &from, std::vector<std::string> const &targets, std::vector<std::string> const &types, PackingTemporaryData data, int export_plate_idx,
+        bool plate_thumbnail_written, bool plate_small_thumbnail_written) const
     {
         std::stringstream stream;
         stream << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
@@ -6937,7 +6954,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (export_plate_idx < 0) {
                 //use cover image if have
                 if (data._3mf_thumbnail.empty()) {
-                    stream << " <Relationship Target=\"/Metadata/plate_1.png"
+                    // ORCA: only point at the plate thumbnail if it really was written. A CLI export
+                    // renders no thumbnails, so declaring one here left every CLI-exported 3mf with a
+                    // relationship to a part that is not in the package.
+                    if (plate_thumbnail_written)
+                        stream << " <Relationship Target=\"/Metadata/plate_1.png"
                                << "\" Id=\"rel-2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail\"/>\n";
                 } else {
                     stream << " <Relationship Target=\"/" << xml_escape(data._3mf_thumbnail)
@@ -6945,22 +6966,24 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 }
 
                 if (data._3mf_printer_thumbnail_middle.empty()) {
-                    stream << " <Relationship Target=\"/Metadata/plate_1.png"
-                           << "\" Id=\"rel-4\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-middle\"/>\n";
+                    if (plate_thumbnail_written)
+                        stream << " <Relationship Target=\"/Metadata/plate_1.png"
+                               << "\" Id=\"rel-4\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-middle\"/>\n";
                 } else {
                     stream << " <Relationship Target=\"/" << xml_escape(data._3mf_printer_thumbnail_middle)
                            << "\" Id=\"rel-4\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-middle\"/>\n";
                 }
 
                 if (data._3mf_printer_thumbnail_small.empty()) {
-                    stream << "<Relationship Target=\"/Metadata/plate_1_small.png"
-                           << "\" Id=\"rel-5\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-small\"/>\n";
+                    if (plate_small_thumbnail_written)
+                        stream << "<Relationship Target=\"/Metadata/plate_1_small.png"
+                               << "\" Id=\"rel-5\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-small\"/>\n";
                 } else {
                     stream << " <Relationship Target=\"/" << xml_escape(data._3mf_printer_thumbnail_small)
                            << "\" Id=\"rel-5\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-small\"/>\n";
                 }
             }
-            else {
+            else if (plate_thumbnail_written) {
                 //always use plate thumbnails
                 std::string thumbnail_file_str = (boost::format("Metadata/plate_%1%.png") % (export_plate_idx + 1)).str();
                 stream << " <Relationship Target=\"/" << xml_escape(thumbnail_file_str)
@@ -6970,9 +6993,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << " <Relationship Target=\"/" << xml_escape(thumbnail_file_str)
                    << "\" Id=\"rel-4\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-middle\"/>\n";
 
-                thumbnail_file_str = (boost::format("Metadata/plate_%1%_small.png") % (export_plate_idx + 1)).str();
-                stream << " <Relationship Target=\"/" << xml_escape(thumbnail_file_str)
-                   << "\" Id=\"rel-5\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-small\"/>\n";
+                if (plate_small_thumbnail_written) {
+                    thumbnail_file_str = (boost::format("Metadata/plate_%1%_small.png") % (export_plate_idx + 1)).str();
+                    stream << " <Relationship Target=\"/" << xml_escape(thumbnail_file_str)
+                       << "\" Id=\"rel-5\" Type=\"http://schemas.bambulab.com/package/2021/cover-thumbnail-small\"/>\n";
+                }
             }
         }
         else if (targets.empty()) {
