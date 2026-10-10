@@ -39895,6 +39895,10 @@ msgstr ""
 "Тачпад: два пальці рухають графік в обох напрямках.\n"
 "Зведення й розведення масштабує обидві осі біля курсора."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Середня кнопка: зсув графіка по обох осях."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Показувати параметри під час імпортування файлу STEP"
 

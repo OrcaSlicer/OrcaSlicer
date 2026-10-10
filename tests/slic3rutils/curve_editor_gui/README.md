@@ -75,7 +75,7 @@ human review, including legitimate borrowed labels that equal the English text.
 | CSV separators, recognized headers, BOM, malformed rows, physical line errors, import limit | Core model suite |
 | CSV precision, Unicode paths, embedded nulls, safe file replacement | Core model suite; standalone file checks |
 | Pan/zoom bounds, minimum spans, cursor anchor, adaptive bed/model limits | Core model suite |
-| Mouse modifiers, fractional wheel deltas, two-axis touchpad input, pinch-in/out, cumulative gestures | Standalone panel checks |
+| Mouse modifiers, fractional wheel deltas, middle-button pan/capture/cancellation, two-axis touchpad input, pinch-in/out, cumulative gestures | Standalone panel checks |
 | Paired axis packets, equal pixel distances, closed circular motion, gesture/wheel overlap, discarded pending pan | Standalone panel checks with the native navigation timer |
 | Stable plot geometry, point selection/dragging, capture cancellation, gestures during dragging | Standalone panel checks |
 | Dirty/revert state, complete option transfer, unchanged inactive feature | Preset/GUI integration and FFF suites |
@@ -110,6 +110,13 @@ Use a disposable print preset. Keep any fixture project separate from normal use
    event; negative/scientific tick labels must not move the plot. Reset View must recover
    a useful viewport. Change the printer/bed and reopen: limits/tooltips must update while
    keeping model points beyond the bed dimensions reachable.
+   On Windows, Linux (X11 and Wayland) and macOS with a three-button mouse, hold the
+   middle button inside the plot and drag horizontally, vertically and diagonally.
+   The graph must follow the pointer with unchanged zoom, point values and selection.
+   Release outside the panel, interrupt capture, resize and reset the view: movement
+   must stop without delayed jumps. Left-button point dragging, wheel modifiers and
+   touchpad gestures must still work after release. A trackpad without a middle-button
+   event continues to use its existing two-finger and pinch gestures.
 8. With supported native input detection, the Touchpad checkbox
    must be hidden: mouse controls retain their axis modifiers while touchpad input follows
    its native axes without switching modes. Test mouse and touchpad in turn, including

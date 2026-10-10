@@ -148,6 +148,14 @@ public:
         event.SetPosition({300, 160});
         panel->GetEventHandler()->ProcessEvent(event);
     }
+    void mouse(wxEventType type, wxPoint position, bool middle = false, bool left = false)
+    {
+        wxMouseEvent event(type);
+        event.SetPosition(position);
+        event.SetMiddleDown(middle);
+        event.SetLeftDown(left);
+        panel->GetEventHandler()->ProcessEvent(event);
+    }
     void pinch(double factor, bool start = false, bool end = false)
     {
         wxZoomGestureEvent event;
@@ -197,6 +205,143 @@ public:
 } // namespace
 
 wxIMPLEMENT_APP_NO_MAIN(InputApp);
+
+TEST_CASE("Middle-button dragging follows the pointer on both axes without editing points", "[CurveEditorGUI][RequiresDisplay]")
+{
+    Fixture f;
+    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto plot = f.plot_rect();
+    const auto start = f.middle_point();
+    const auto before = f.panel->view();
+    int selected = 0, moved = 0;
+    f.panel->on_select = [&](int) { ++selected; };
+    f.panel->on_move = [&](int, double, double) { ++moved; };
+    f.mouse(wxEVT_MIDDLE_DOWN, start, true);
+    REQUIRE(f.panel->HasCapture());
+    f.mouse(wxEVT_MOTION, start, true);
+    f.drain();
+    CHECK(f.pan_frames == 0);
+    f.mouse(wxEVT_MOTION, start + wxPoint(30, 20), true);
+    f.drain(true);
+    REQUIRE(f.pan_frames == 1);
+    CHECK(f.panel->HasCapture());
+    CHECK_THAT(f.panel->view().min_x, WithinAbs(before.min_x - 30.0 / plot.width * 20, 1e-12));
+    CHECK_THAT(f.panel->view().min_y, WithinAbs(before.min_y + 20.0 / plot.height * .6, 1e-12));
+    f.mouse(wxEVT_MOTION, start + wxPoint(50, 10), true);
+    f.drain(true);
+    REQUIRE(f.pan_frames == 2);
+    CHECK(f.panel->HasCapture());
+    // Include the final release position even if no motion packet preceded it.
+    f.mouse(wxEVT_MIDDLE_UP, start + wxPoint(55, 7));
+    CHECK_FALSE(f.panel->HasCapture());
+    REQUIRE(f.pan_frames == 3);
+    CHECK_THAT(f.panel->view().min_x, WithinAbs(before.min_x - 55.0 / plot.width * 20, 1e-12));
+    CHECK_THAT(f.panel->view().min_y, WithinAbs(before.min_y + 7.0 / plot.height * .6, 1e-12));
+    CHECK_THAT(f.panel->view().max_x - f.panel->view().min_x, WithinAbs(20, 1e-12));
+    CHECK_THAT(f.panel->view().max_y - f.panel->view().min_y, WithinAbs(.6, 1e-12));
+    CHECK(selected == 0);
+    CHECK(moved == 0);
+    CHECK(f.zooms.empty());
+    f.drain();
+    CHECK(f.pan_frames == 3);
+}
+
+TEST_CASE("Middle-button navigation cancels capture and pending motion when interrupted", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const int interruption = GENERATE(0, 1, 2, 3, 4);
+    Fixture f;
+    const auto start = f.middle_point();
+    f.mouse(wxEVT_MIDDLE_DOWN, start, true);
+    f.mouse(wxEVT_MOTION, start + wxPoint(30, 20), true);
+    REQUIRE(f.panel->HasCapture());
+    switch (interruption) {
+    case 0: {
+        wxMouseCaptureLostEvent lost;
+        f.panel->GetEventHandler()->ProcessEvent(lost);
+        break;
+    }
+    case 1: f.panel->finish_drag(); break;
+    case 2: f.panel->set_view({20, 40, .2, .8}); break;
+    case 3: f.panel->set_view_limits(f.model.view_limits()); break;
+    case 4: f.panel->SetSize(800, 450); break;
+    }
+    CHECK_FALSE(f.panel->HasCapture());
+    f.mouse(wxEVT_MOTION, start + wxPoint(40, 30), true);
+    f.drain();
+    CHECK(f.pans.empty());
+    CHECK_THAT(f.panel->view().min_x, WithinAbs(20, 1e-12));
+    CHECK_THAT(f.panel->view().min_y, WithinAbs(.2, 1e-12));
+    f.wheel(120);
+    CHECK(f.pan_frames == 1);
+}
+
+TEST_CASE("Middle-button dragging stops when a motion event reports the button released", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    const auto start = f.middle_point();
+    f.mouse(wxEVT_MIDDLE_DOWN, start, true);
+    f.mouse(wxEVT_MOTION, start + wxPoint(30, 20), true);
+    f.mouse(wxEVT_MOTION, start + wxPoint(40, 30));
+    REQUIRE(f.pan_frames == 1);
+    CHECK_FALSE(f.panel->HasCapture());
+    f.mouse(wxEVT_MOTION, start + wxPoint(60, 60));
+    f.mouse(wxEVT_MIDDLE_UP, start + wxPoint(60, 60));
+    f.drain();
+    CHECK(f.pan_frames == 1);
+}
+
+TEST_CASE("Captured middle-button dragging stays within viewport limits outside the panel", "[CurveEditorGUI][RequiresDisplay]")
+{
+    Fixture f;
+    const auto start = f.middle_point();
+    f.mouse(wxEVT_MIDDLE_DOWN, start, true);
+    f.mouse(wxEVT_MOTION, start + wxPoint(100000, 100000), true);
+    f.drain(true);
+    CHECK(f.panel->HasCapture());
+    CHECK_THAT(f.panel->view().min_x, WithinAbs(0, 1e-12));
+    CHECK_THAT(f.panel->view().max_y, WithinAbs(2, 1e-12));
+    f.mouse(wxEVT_MIDDLE_UP, start - wxPoint(100000, 100000));
+    CHECK_FALSE(f.panel->HasCapture());
+    CHECK_THAT(f.panel->view().max_x, WithinAbs(100, 1e-12));
+    CHECK_THAT(f.panel->view().min_y, WithinAbs(-1, 1e-12));
+}
+
+TEST_CASE("Middle-button dragging keeps other mouse and touchpad actions from taking over", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    const auto start = f.middle_point();
+    f.mouse(wxEVT_MIDDLE_DOWN, {0, 0}, true);
+    CHECK_FALSE(f.panel->HasCapture());
+    f.mouse(wxEVT_MOTION, start, true);
+    f.drain();
+    CHECK(f.pans.empty());
+    f.mouse(wxEVT_MIDDLE_DOWN, start, true);
+    REQUIRE(f.panel->HasCapture());
+    f.mouse(wxEVT_LEFT_DOWN, start, true, true);
+    f.mouse(wxEVT_LEFT_UP, start, true);
+    f.wheel(120, false, false, false, start, false);
+    f.wheel(120, false, true, false, start, false);
+    f.magnify(.25);
+    f.pinch(1, true);
+    f.pinch(1.25, false, true);
+    wxPanGestureEvent pan;
+    pan.SetDelta({20, 10});
+    pan.SetGestureStart(true);
+    f.panel->GetEventHandler()->ProcessEvent(pan);
+    pan.SetGestureStart(false);
+    pan.SetGestureEnd(true);
+    f.panel->GetEventHandler()->ProcessEvent(pan);
+    f.drain();
+    CHECK(f.panel->HasCapture());
+    CHECK(f.pans.empty());
+    CHECK(f.zooms.empty());
+    f.mouse(wxEVT_MOTION, start + wxPoint(20, 10), true);
+    f.mouse(wxEVT_MIDDLE_UP, start + wxPoint(20, 10));
+    REQUIRE(f.pan_frames == 1);
+    f.wheel(120);
+    CHECK(f.pan_frames == 2);
+}
 
 TEST_CASE("Mouse navigation retains its axis modifiers when touchpad mode is disabled", "[CurveEditorGUI][RequiresDisplay]")
 {
@@ -484,6 +629,9 @@ TEST_CASE("Graph point selection and dragging release capture when cancelled", "
     f.panel->GetEventHandler()->ProcessEvent(down);
     REQUIRE(selected == 1);
     REQUIRE(f.panel->HasCapture());
+    f.mouse(wxEVT_MIDDLE_DOWN, position, true, true);
+    f.mouse(wxEVT_MIDDLE_UP, position, false, true);
+    CHECK(f.panel->HasCapture());
     f.wheel(120);
     CHECK(f.pans.empty());
     f.magnify(.25);
@@ -510,9 +658,10 @@ TEST_CASE("Graph point selection and dragging release capture when cancelled", "
     CHECK(f.pans.size() == 1);
 }
 
-TEST_CASE("A gesture ending during point dragging does not block later wheel navigation", "[CurveEditorGUI][RequiresDisplay][Regression]")
+TEST_CASE("A gesture ending during mouse dragging does not block later wheel navigation", "[CurveEditorGUI][RequiresDisplay][Regression]")
 {
     const bool zoom_gesture = GENERATE(false, true);
+    const bool middle = GENERATE(false, true);
     Fixture f;
     f.panel->set_touchpad_controls(true);
     f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
@@ -524,7 +673,7 @@ TEST_CASE("A gesture ending during point dragging does not block later wheel nav
     else
         f.panel->GetEventHandler()->ProcessEvent(pan);
 
-    wxMouseEvent down(wxEVT_LEFT_DOWN);
+    wxMouseEvent down(middle ? wxEVT_MIDDLE_DOWN : wxEVT_LEFT_DOWN);
     down.SetPosition(position);
     f.panel->GetEventHandler()->ProcessEvent(down);
     REQUIRE(f.panel->HasCapture());

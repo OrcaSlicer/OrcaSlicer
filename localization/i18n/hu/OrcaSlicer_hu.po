@@ -39404,6 +39404,10 @@ msgstr ""
 "Érintőpad: két ujjal mozgatható a grafikon.\n"
 "Csippentéssel mindkét tengely méretezhető a mutató körül."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Középső gomb: húzza mindkét tengelyt."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Beállítások megjelenítése STEP fájl importálásakor"
 
