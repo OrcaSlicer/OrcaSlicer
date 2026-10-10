@@ -199,6 +199,7 @@ struct Caninfo
     std::string     can_id;
     wxString        material_name;
     wxColour        material_colour = {*wxWHITE};
+    bool            material_colour_unset = false; // the printer reported no colour; material_colour is only the white placeholder
     AMSCanType      material_state;
     int             ctype=0;
     int             material_remain = 100;
@@ -214,6 +215,7 @@ public:
         if (can_id == other.can_id &&
             material_name == other.material_name &&
             material_colour == other.material_colour &&
+            material_colour_unset == other.material_colour_unset &&
             material_state == other.material_state &&
             ctype == other.ctype &&
             material_remain == other.material_remain &&
@@ -572,6 +574,10 @@ protected:
     void render(wxDC &dc);
     void render_lite_text(wxDC& dc);
     void render_generic_text(wxDC& dc);
+    // Orca: hex value(s) of the slot filament colour for the slot tooltip; empty when there is no real colour
+    wxString get_filament_color_tooltip() const;
+    // Orca: slot tooltip = filament name plus its colour, refreshed whenever the slot info changes
+    void update_tooltip();
     void doRender(wxDC& dc);
     void render_lite_lib(wxDC& dc);
     void render_generic_lib(wxDC& dc);
