@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <memory>
 #include <utility>
 #include <vector>
 #include <wx/colour.h>
@@ -17,13 +18,77 @@
 #include <wx/peninfobase.h>
 #include <wx/recguard.h>
 #include <wx/string.h>
+#include <wx/timer.h>
 #include <wx/window.h>
+#ifdef __WXMSW__
+#include <wx/msw/wrapwin.h>
+#endif
+#ifdef __WXGTK__
+#include <gdk/gdk.h>
+#include <glib.h>
+#include <gtk/gtk.h>
+#endif
 #include "libslic3r/CurveModel.hpp"
 #include "GUI_App.hpp"
 #include "Widgets/StateColor.hpp"
 
 namespace Slic3r::GUI {
 namespace {
+
+#ifdef __WXMSW__
+bool register_touchpad_input(bool enabled)
+{
+    // Thread registration is required for GetCurrentInputMessageSource to
+    // distinguish a Precision Touchpad from a mouse. Balance it per panel;
+    // older Windows versions retain the manual mode without loading a new API.
+    using RegisterTouchpad = BOOL (WINAPI*)(BOOL);
+    static const auto register_thread = reinterpret_cast<RegisterTouchpad>(
+        ::GetProcAddress(::GetModuleHandleW(L"user32.dll"), "RegisterTouchpadCapableThread"));
+    return register_thread && register_thread(enabled ? TRUE : FALSE);
+}
+
+bool enable_automatic_touchpad_input()
+{
+    if (!register_touchpad_input(true)) return false;
+    struct Registration {
+        bool retained = false;
+        ~Registration() { if (!retained) register_touchpad_input(false); }
+    } registration;
+    UINT32 count = 0;
+    bool detected = false;
+    if (::GetPointerDevices(&count, nullptr) && count != 0) {
+        std::vector<POINTER_DEVICE_INFO> devices(count);
+        if (::GetPointerDevices(&count, devices.data())) {
+            devices.resize(count);
+            detected = std::any_of(devices.begin(), devices.end(), [](const auto& device) {
+                // POINTER_DEVICE_TYPE_TOUCH_PAD is gated by the SDK target version.
+                return device.pointerDeviceType == static_cast<POINTER_DEVICE_TYPE>(4);
+            });
+        }
+    }
+    // A legacy driver can still report a touchpad as a mouse. Preserve the
+    // manual fallback unless Windows exposes an actual Precision Touchpad.
+    registration.retained = detected;
+    return detected;
+}
+#endif
+
+#ifdef __WXGTK__
+#if GTK_CHECK_VERSION(3, 20, 0)
+bool gtk_has_touchpad()
+{
+    auto* display = gdk_display_get_default();
+    auto* seat = display ? gdk_display_get_default_seat(display) : nullptr;
+    if (!seat) return false;
+    const auto devices = std::unique_ptr<GList, decltype(&g_list_free)>(
+        gdk_seat_get_slaves(seat, GDK_SEAT_CAPABILITY_POINTER), g_list_free);
+    for (GList* item = devices.get(); item; item = item->next) {
+        if (gdk_device_get_source(GDK_DEVICE(item->data)) == GDK_SOURCE_TOUCHPAD) return true;
+    }
+    return false;
+}
+#endif
+#endif
 
 struct AxisTick {
     double value;
@@ -106,8 +171,9 @@ int axis_label_width(double minimum, double maximum, double minimum_span, int pi
 } // namespace
 
 CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance& appearance, const CurveViewLimits& view_limits)
-    : wxPanel(parent), m_appearance(appearance), m_view_limits(view_limits)
+    : wxPanel(parent), m_appearance(appearance), m_view_limits(view_limits), m_pan_timer(this)
 {
+    Bind(wxEVT_TIMER, [this](wxTimerEvent&) { flush_pan(); }, m_pan_timer.GetId());
     SetMinSize(FromDIP(wxSize(420, 180)));
     #ifndef __WXOSX__
         SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -120,6 +186,7 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         event.Skip();
     });
     Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& event) {
+        flush_pan();
         if (before_drag) before_drag();
         m_dragged_point = hit_test(event.GetPosition());
         if (m_dragged_point < 0) return;
@@ -164,12 +231,20 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
             event.Skip();
             return;
         }
-        if (m_dragged_point >= 0 || event.GetWheelDelta() <= 0 || event.GetWheelRotation() == 0) return;
-        const bool vertical = m_touchpad_controls && !zoom ?
+        if (m_dragged_point >= 0 || event.GetWheelDelta() <= 0) return;
+        // A native gesture already owns this input sequence; don't also apply
+        // its compatibility wheel messages.
+        if (m_pan_gesture_active || m_zoom_gesture_active) return;
+        const auto input = scroll_input(event.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL);
+        const bool vertical = input.touchpad && !zoom ?
             event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL : event.ShiftDown();
-        double steps = double(event.GetWheelRotation()) / event.GetWheelDelta();
+        // Native precise input can retain a fraction that wxMouseEvent's
+        // integer wheel rotation has rounded away.
+        double steps = input.pixels ? *input.pixels / FromDIP(30) :
+                                      double(event.GetWheelRotation()) / event.GetWheelDelta();
+        if (!std::isfinite(steps) || steps == 0.0) return;
         if (zoom) {
-            if (m_touchpad_controls && !event.ShiftDown()) {
+            if (input.touchpad && !event.ShiftDown()) {
                 zoom_view(steps, false, event.GetPosition());
                 zoom_view(steps, true, event.GetPosition());
                 return;
@@ -177,35 +252,139 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
             zoom_view(steps, vertical, event.GetPosition());
             return;
         }
-        // Mouse mode maps wheel-up to lower X; touchpad mode follows native axes.
+        // Mouse mode maps wheel-up to lower X; touchpad input follows native axes.
         if (!vertical && event.GetWheelAxis() != wxMOUSE_WHEEL_HORIZONTAL) steps = -steps;
-        const double span = vertical ? m_view.max_y - m_view.min_y : m_view.max_x - m_view.min_x;
-        on_pan(steps * span * 0.1, vertical);
+        // Equal screen distances on both axes keep a circular gesture circular,
+        // regardless of the plot's aspect ratio or the current numeric ranges.
+        double pixels = steps * FromDIP(30);
+        if (!input.touchpad) {
+            // Keep the existing mouse sensitivity: one notch moves 10% of
+            // the visible range. Gesture input instead uses screen distances.
+            const wxRect plot = chart_rect();
+            pixels = steps * 0.1 * (vertical ? plot.height : plot.width);
+        }
+        queue_pan(vertical ? 0.0 : pixels, vertical ? pixels : 0.0);
     });
     Bind(wxEVT_MAGNIFY, [this](wxMouseEvent& event) {
-        if (!m_touchpad_controls || !on_zoom) { event.Skip(); return; }
+        if ((!m_touchpad_controls && !m_automatic_touchpad_controls) || !on_zoom) { event.Skip(); return; }
         if (m_dragged_point < 0) pinch_zoom(1.0 + event.GetMagnification(), event.GetPosition());
     });
     Bind(wxEVT_GESTURE_PAN, [this](wxPanGestureEvent& event) {
-        if (!m_touchpad_controls || !on_pan) { event.Skip(); return; }
-        if (m_dragged_point >= 0) return;
-        const wxRect plot = chart_rect();
+        if ((!m_touchpad_controls && !m_automatic_touchpad_controls) || !on_pan) { event.Skip(); return; }
+        if (m_dragged_point >= 0) {
+            if (event.IsGestureEnd()) m_pan_gesture_active = false;
+            return;
+        }
+        if (event.IsGestureStart()) {
+            cancel_pan();
+            m_pan_gesture_active = true;
+        }
         const auto delta = event.GetDelta();
-        const double dx = -double(delta.x) / plot.width * (m_view.max_x - m_view.min_x);
-        const double dy = double(delta.y) / plot.height * (m_view.max_y - m_view.min_y);
-        if (dx != 0.0) on_pan(dx, false);
-        if (dy != 0.0) on_pan(dy, true);
+        if (!m_zoom_gesture_active) queue_pan(-double(delta.x), double(delta.y));
+        if (event.IsGestureEnd()) m_pan_gesture_active = false;
     });
     Bind(wxEVT_GESTURE_ZOOM, [this](wxZoomGestureEvent& event) {
-        if (!m_touchpad_controls || !on_zoom) { event.Skip(); return; }
-        if (event.IsGestureStart()) m_gesture_zoom_factor = 1.0;
+        if ((!m_touchpad_controls && !m_automatic_touchpad_controls) || !on_zoom) { event.Skip(); return; }
+        if (m_dragged_point >= 0) {
+            if (event.IsGestureEnd()) {
+                m_zoom_gesture_active = false;
+                m_gesture_zoom_factor = 1.0;
+            }
+            return;
+        }
+        if (event.IsGestureStart()) {
+            cancel_pan();
+            m_gesture_zoom_factor = 1.0;
+            m_zoom_gesture_active = true;
+        }
         const double factor = event.GetZoomFactor();
         if (std::isfinite(factor) && factor > 0.0) {
-            if (m_dragged_point < 0) pinch_zoom(factor / m_gesture_zoom_factor, event.GetPosition());
+            pinch_zoom(factor / m_gesture_zoom_factor, event.GetPosition());
             m_gesture_zoom_factor = factor;
         }
-        if (event.IsGestureEnd()) m_gesture_zoom_factor = 1.0;
+        if (event.IsGestureEnd()) {
+            m_gesture_zoom_factor = 1.0;
+            m_zoom_gesture_active = false;
+        }
     });
+#ifdef __WXMSW__
+    m_automatic_touchpad_controls = enable_automatic_touchpad_input();
+#elif defined(__WXOSX__)
+    m_automatic_touchpad_controls = true;
+#elif defined(__WXGTK__)
+#if GTK_CHECK_VERSION(3, 20, 0)
+    m_automatic_touchpad_controls = gtk_has_touchpad();
+#endif
+#endif
+#ifndef __WXOSX__
+    if (m_automatic_touchpad_controls)
+        EnableTouchEvents(wxTOUCH_PAN_GESTURES | wxTOUCH_ZOOM_GESTURE);
+#endif
+}
+
+CurveEditorPanel::~CurveEditorPanel()
+{
+    cancel_pan();
+#ifdef __WXMSW__
+    if (m_automatic_touchpad_controls) register_touchpad_input(false);
+#endif
+}
+
+CurveEditorPanel::NativeScroll CurveEditorPanel::scroll_input([[maybe_unused]] bool horizontal) const
+{
+#ifdef __WXMSW__
+    INPUT_MESSAGE_SOURCE source{};
+    if (::GetCurrentInputMessageSource(&source) && source.deviceType != IMDT_UNAVAILABLE) {
+        // IMDT_TOUCHPAD is absent from headers targeting Windows 7.
+        if (source.deviceType == static_cast<INPUT_MESSAGE_DEVICE_TYPE>(0x10)) return {true, {}};
+        if (m_automatic_touchpad_controls) return {false, {}};
+    }
+#elif defined(__WXOSX__)
+    if (const auto input = mac_scroll_input(horizontal)) return *input;
+#elif defined(__WXGTK__)
+#if GTK_CHECK_VERSION(3, 20, 0)
+    const auto event = std::unique_ptr<GdkEvent, decltype(&gdk_event_free)>(gtk_get_current_event(), gdk_event_free);
+    if (event && event->type == GDK_SCROLL) {
+        auto* device = gdk_event_get_source_device(event.get());
+        bool touchpad = m_touchpad_controls;
+        if (device) {
+            if (gdk_device_get_source(device) == GDK_SOURCE_TOUCHPAD) touchpad = true;
+            else if (m_automatic_touchpad_controls) touchpad = false;
+        }
+        double dx = 0.0, dy = 0.0;
+        if (touchpad && gdk_event_get_scroll_deltas(event.get(), &dx, &dy))
+            return {true, (horizontal ? dx : -dy) * FromDIP(30)};
+        return {touchpad, {}};
+    }
+#endif
+#endif
+    return {m_touchpad_controls, {}};
+}
+
+void CurveEditorPanel::queue_pan(double pixels_x, double pixels_y)
+{
+    m_pending_pan_x += pixels_x;
+    m_pending_pan_y += pixels_y;
+    // Start once rather than restarting: continuous input must not postpone
+    // every frame. Horizontal and vertical packets share a single update.
+    if (!m_pan_timer.IsRunning()) m_pan_timer.StartOnce(16);
+}
+
+void CurveEditorPanel::flush_pan()
+{
+    const double pixels_x = m_pending_pan_x;
+    const double pixels_y = m_pending_pan_y;
+    cancel_pan();
+    if (!on_pan || (pixels_x == 0.0 && pixels_y == 0.0)) return;
+    const wxRect plot = chart_rect();
+    on_pan(pixels_x / plot.width * (m_view.max_x - m_view.min_x),
+           pixels_y / plot.height * (m_view.max_y - m_view.min_y));
+}
+
+void CurveEditorPanel::cancel_pan()
+{
+    m_pan_timer.Stop();
+    m_pending_pan_x = m_pending_pan_y = 0.0;
 }
 
 void CurveEditorPanel::set_touchpad_controls(bool enabled)
@@ -214,10 +393,11 @@ void CurveEditorPanel::set_touchpad_controls(bool enabled)
     finish_drag();
     m_touchpad_controls = enabled;
     m_gesture_zoom_factor = 1.0;
+    m_pan_gesture_active = m_zoom_gesture_active = false;
     // Cocoa supplies scrolling and incremental magnification directly. Adding
     // its gesture recognizers could intercept point dragging or duplicate zoom.
 #ifndef __WXOSX__
-    EnableTouchEvents(enabled ? wxTOUCH_PAN_GESTURES | wxTOUCH_ZOOM_GESTURE : wxTOUCH_NONE);
+    EnableTouchEvents((enabled || m_automatic_touchpad_controls) ? wxTOUCH_PAN_GESTURES | wxTOUCH_ZOOM_GESTURE : wxTOUCH_NONE);
 #endif
 }
 
@@ -231,6 +411,7 @@ void CurveEditorPanel::pinch_zoom(double factor, const wxPoint& position)
 
 void CurveEditorPanel::zoom_view(double steps, bool vertical, const wxPoint& position)
 {
+    flush_pan();
     wxRecursionGuard guard(m_zoom_depth);
     if (guard.IsInside()) return;
     const wxRect plot = chart_rect();
@@ -272,12 +453,14 @@ void CurveEditorPanel::select_point(int row)
 
 void CurveEditorPanel::set_view_limits(const CurveViewLimits& limits)
 {
+    cancel_pan();
     m_view_limits = limits;
     Refresh();
 }
 
 void CurveEditorPanel::finish_drag()
 {
+    cancel_pan();
     m_dragged_point = -1;
     if (HasCapture()) ReleaseMouse();
     SetCursor(wxCursor(wxCURSOR_ARROW));

@@ -11,6 +11,15 @@ includes: painting depends on full application startup. It does not copy or reim
 the event handlers. Changes to the production panel regenerate the tested translation
 unit. These checks cannot establish pixel appearance or how a real driver delivers gestures.
 
+Native input adapters preserve ordinary wheel modifiers and use native axes for gesture
+scrolling. Ordinary mouse notches retain the existing 10% viewport step; gestures use
+equal screen distances on both axes. Windows uses scoped thread registration and input-source metadata when it
+exposes a Precision Touchpad. GTK uses the source device when a touchpad is exposed by
+the seat. Cocoa uses AppKit's scroll/momentum phases (including gesture-capable mice)
+and retains precise fractional screen deltas. The manual Touchpad fallback remains available
+when reliable native identification is unavailable; it is not inferred from delta size
+or event frequency. Hardware/backend recognition still needs platform testing.
+
 ## Automated checks
 
 From the repository root, with the existing dependency install:
@@ -26,6 +35,8 @@ On Windows, use a Visual Studio developer shell and optionally `-G Ninja
 `xvfb-run -a ctest --test-dir build/curve-editor-gui-tests -C Release --output-on-failure`
 on a headless machine. GUI cases have the `RequiresDisplay` label. This optional suite
 is not added to the application's default/headless build.
+Linux builds also need GTK 3 development headers. macOS builds include the Objective-C++
+adapter and link AppKit.
 
 To exercise all cases in one process and detect fixture-order dependencies:
 
@@ -65,6 +76,7 @@ human review, including legitimate borrowed labels that equal the English text.
 | CSV precision, Unicode paths, embedded nulls, safe file replacement | Core model suite; standalone file checks |
 | Pan/zoom bounds, minimum spans, cursor anchor, adaptive bed/model limits | Core model suite |
 | Mouse modifiers, fractional wheel deltas, two-axis touchpad input, pinch-in/out, cumulative gestures | Standalone panel checks |
+| Paired axis packets, equal pixel distances, closed circular motion, gesture/wheel overlap, discarded pending pan | Standalone panel checks with the native navigation timer |
 | Stable plot geometry, point selection/dragging, capture cancellation, gestures during dragging | Standalone panel checks |
 | Dirty/revert state, complete option transfer, unchanged inactive feature | Preset/GUI integration and FFF suites |
 | Shared PCHIP, role eligibility, saved models above the editor limit, malformed inactive settings | FFF suite |
@@ -98,11 +110,19 @@ Use a disposable print preset. Keep any fixture project separate from normal use
    event; negative/scientific tick labels must not move the plot. Reset View must recover
    a useful viewport. Change the printer/bed and reopen: limits/tooltips must update while
    keeping model points beyond the bed dimensions reachable.
-8. Enable Touchpad. Test vertical, horizontal and diagonal two-finger motion, small deltas,
+8. With supported native input detection, the Touchpad checkbox
+   must be hidden: mouse controls retain their axis modifiers while touchpad input follows
+   its native axes without switching modes. Test mouse and touchpad in turn, including
+   after closing/reopening the dialog. Test both Wayland and X11 on Linux. On macOS,
+   check precise/momentum scrolling and ordinary mouse wheel modifiers. If detection
+   is unavailable (including legacy drivers or a backend that merges device sources),
+   enable the manual Touchpad fallback. Test vertical, horizontal and diagonal
+   two-finger motion, circular paths, small deltas,
    inertia and repeated pinch-in/out on actual Windows, macOS and Linux hardware where
    available. Check cursor anchoring, limits, no duplicate zoom and normal point dragging.
-   Disable it and confirm original mouse controls. Reopen the editor/app and verify the
-   selected mode is remembered. Driver-specific behavior is not established by synthetic events.
+   Confirm original mouse controls in automatic mode; in manual mode, disable Touchpad
+   to check them. Reopen the editor/app and verify the selected fallback mode is remembered.
+   Driver-specific identification and behavior are not established by synthetic events.
 9. Close with OK, Cancel, Escape and the title-bar button. Check saved size/position, then
    change resolution/monitor layout and reopen. The dialog must remain reachable and
    respect minimum size. Cancel/Escape/title close must leave the preset unchanged; OK
