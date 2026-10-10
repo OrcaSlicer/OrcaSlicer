@@ -151,7 +151,14 @@ public:
     Label*                 m_clr_name;
     std::vector<PACalibResult>  m_pa_profile_items;
 
+    // Refresh the K profile dropdown once the PA history requested in Popup() has arrived
+    void TryRefreshPAProfiles();
+
 protected:
+    bool m_pa_data_pending{false};
+    int  m_pa_pending_selection{-1};
+    // true while the K profile should follow the slot setting reported by the printer, false once the user picks a filament
+    bool m_select_from_printer{false};
     void create_panel_normal(wxWindow* parent);
     void create_panel_kn(wxWindow* parent);
     void on_dpi_changed(const wxRect &suggested_rect) override;
