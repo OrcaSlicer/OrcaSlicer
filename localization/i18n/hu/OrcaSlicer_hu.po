@@ -39397,9 +39397,12 @@ msgstr "Pontok max. száma: %d."
 msgid "The curve contains too many points."
 msgstr "A görbe túl sok pontot tartalmaz."
 
-# AI Translated
-msgid "Touchpad: two-finger scroll moves the graph in both directions. Pinch zooms both axes around the pointer."
-msgstr "Érintőpad: két ujjal mozgatható a grafikon. Csippentéssel mindkét tengely méretezhető a mutató körül."
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Érintőpad: két ujjal mozgatható a grafikon.\n"
+"Csippentéssel mindkét tengely méretezhető a mutató körül."
 
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Beállítások megjelenítése STEP fájl importálásakor"
