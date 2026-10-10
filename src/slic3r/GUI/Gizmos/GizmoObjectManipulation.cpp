@@ -289,30 +289,35 @@ void GizmoObjectManipulation::update_if_dirty()
     m_dirty = false;
 }
 
+// Lowest point of the current selection in world coordinates. Only a single full instance
+// or a single part / modifier is supported, anything else reports no offset.
+double GizmoObjectManipulation::get_selection_min_z() const
+{
+    const Selection& selection = m_glcanvas.get_selection();
+    if (selection.is_single_full_instance())
+        return selection.get_scaled_instance_bounding_box().min.z();
+    if (selection.is_single_volume_or_modifier())
+        return get_volume_min_z(selection.get_first_volume());
+    return 0.;
+}
+
 void GizmoObjectManipulation::update_reset_buttons_visibility()
 {
     const Selection& selection = m_glcanvas.get_selection();
 
+    m_show_drop_to_bed = false;
+
     if (selection.is_single_full_instance() || selection.is_single_volume_or_modifier()) {
-        const GLVolume *               volume = selection.get_first_volume();
+        const GLVolume* volume = selection.get_first_volume();
 
-        Vec3d rotation;
-        Vec3d scale;
-        double min_z = 0.;
+        const Vec3d rotation = selection.is_single_full_instance()
+            ? volume->get_instance_rotation()
+            : volume->get_volume_rotation();
 
-        if (selection.is_single_full_instance()) {
-            rotation = volume->get_instance_rotation();
-            scale = volume->get_instance_scaling_factor();
-        }
-        else {
-            rotation = volume->get_volume_rotation();
-            scale = volume->get_volume_scaling_factor();
-            min_z = get_volume_min_z(volume);
-        }
         m_show_clear_rotation = !rotation.isApprox(m_init_rotation);
         m_show_reset_0_rotation = !rotation.isApprox(Vec3d::Zero());
         m_show_clear_scale = (m_cache.scale / 100.0f - Vec3d::Ones()).norm() > 0.001;
-        m_show_drop_to_bed = (std::abs(min_z) > EPSILON);
+        m_show_drop_to_bed = std::abs(get_selection_min_z()) > EPSILON;
     }
 }
 
@@ -577,6 +582,31 @@ void GizmoObjectManipulation::reset_position_value()
 
     // Copy position values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
     wxGetApp().plater()->take_snapshot(_u8L("Reset position"), UndoRedo::SnapshotType::GizmoAction);
+    m_glcanvas.do_move("");
+
+    UpdateAndShow(true);
+}
+
+void GizmoObjectManipulation::drop_to_bed()
+{
+    Selection& selection = m_glcanvas.get_selection();
+
+    if (!selection.is_single_full_instance() && !selection.is_single_volume_or_modifier())
+        return;
+
+    const double min_z = get_selection_min_z();
+    if (std::abs(min_z) <= EPSILON)
+        return;
+
+    selection.setup_cache();
+
+    TransformationType transformation_type;
+    transformation_type.set_relative();
+
+    // Drop along the global Z axis regardless of the coordinate system shown in the panel.
+    selection.translate(-min_z * Vec3d::UnitZ(), transformation_type);
+
+    wxGetApp().plater()->take_snapshot(_u8L("Drop to Bed"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_move("");
 
     UpdateAndShow(true);
@@ -896,6 +926,9 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         update(current_active_id, "position", original_position, m_buffered_position);
     }
     // the init position values are not zero, won't add reset button
+
+    if (m_show_drop_to_bed && imgui_wrapper->button(_L("Drop to Bed"), _L("Move the selection along Z so that its lowest point touches the bed.")))
+        drop_to_bed();
 
     // send focus to m_glcanvas
     bool focued_on_text = false;
