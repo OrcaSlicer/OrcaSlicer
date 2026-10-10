@@ -319,7 +319,9 @@ public:
                              ForwardCompatibilitySubstitutionRule rule,
                              int& overwrite,
                              std::vector<std::string>& result,
-                             const std::string& bundle_dir = "");
+                             const std::string& bundle_dir = "",
+                             const std::map<std::string, std::string> &bed_asset_paths = {},
+                             bool *bed_paths_loaded = nullptr);
                              
     void save_user_presets(AppConfig& config, std::map<std::string, std::string>& need_to_delete_list);
     void check_and_fix_user_presets_syncinfo(const std::string& user_id);

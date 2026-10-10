@@ -405,6 +405,7 @@ set(lisbslic3r_sources
     Polyline.hpp
     PresetBundle.cpp
     PresetBundle.hpp
+    PrinterBedAssets.hpp
     PresetCacheFormat.cpp
     PresetCacheFormat.hpp
     Preset.cpp

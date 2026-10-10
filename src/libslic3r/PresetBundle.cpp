@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cmath>
 #include <ctime>
+#include <ios>
 #include <optional>
 #include <exception>
 #include <memory>
@@ -29,6 +30,7 @@
 #include <sstream>
 
 #include "PresetBundle.hpp"
+#include "PrinterBedAssets.hpp"
 
 #include "Config.hpp"
 #include "Exception.hpp"
@@ -64,6 +66,7 @@
 #include <boost/algorithm/clamp.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/adaptor/transformed.hpp>
+#include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
@@ -1678,6 +1681,258 @@ bool PresetBundle::apply_vendor_config(
     return true;
 }
 
+namespace {
+
+// The two bed files a printer bundle can carry. Zip names are bed/<n>/<stem><ext>, never the source basename.
+struct BedAssetSlot {
+    const char *option;
+    const char *stem;
+};
+
+constexpr BedAssetSlot k_bed_asset_slots[] = {
+    {"bed_custom_texture", "texture"},
+    {"bed_custom_model", "model"},
+};
+
+std::string zip_slashes(std::string name)
+{
+    for (char &c : name)
+        if (c == '\\')
+            c = '/';
+    return name;
+}
+
+// The bed dialog loads only png/svg textures and stl models. Anything else is not a bed asset.
+bool bed_extension_allowed(const char *option, const std::string &ext)
+{
+    if (std::string(option) == "bed_custom_texture")
+        return boost::iequals(ext, ".png") || boost::iequals(ext, ".svg");
+    if (std::string(option) == "bed_custom_model")
+        return boost::iequals(ext, ".stl");
+    return false;
+}
+
+// Extension including the dot, or empty when this option may not use it.
+std::string bed_asset_extension(const std::string &path, const char *option)
+{
+    const auto slash = path.find_last_of("/\\");
+    const auto base  = slash == std::string::npos ? 0 : slash + 1;
+    const auto dot   = path.find_last_of('.');
+    if (dot == std::string::npos || dot < base || dot + 1 >= path.size())
+        return {};
+    const std::string ext = path.substr(dot);
+    if (!bed_extension_allowed(option, ext))
+        return {};
+    return ext;
+}
+
+bool utf8_is_file(const std::string &path)
+{
+    if (path.empty())
+        return false;
+    boost::system::error_code ec;
+#ifdef _WIN32
+    // A narrow path is the ANSI code page unless nowide_filesystem() has run.
+    const std::wstring wide = boost::nowide::widen(path);
+    if (wide.empty())
+        return false;
+    return boost::filesystem::is_regular_file(boost::filesystem::path(wide), ec) && !ec;
+#else
+    return boost::filesystem::is_regular_file(path, ec) && !ec;
+#endif
+}
+
+std::string bed_asset_dest_utf8(const fs::path &dest)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(dest.wstring());
+#else
+    return dest.string();
+#endif
+}
+
+// True only for bed/<digits>/<stem><ext> with an extension the bed dialog accepts for this field.
+bool accepted_bed_zip_name(const std::string &raw, const BedAssetSlot &slot, const fs::path &bundle_dir,
+                           std::string &zip_name, std::string &folder)
+{
+    const std::string name = zip_slashes(raw);
+    if (name.find("..") != std::string::npos)
+        return false;
+    if (name.size() < 8 || name.compare(0, 4, "bed/") != 0)
+        return false;
+    const auto slash = name.find('/', 4);
+    if (slash == std::string::npos || slash == 4 || name.find('/', slash + 1) != std::string::npos)
+        return false;
+    const std::string digits = name.substr(4, slash - 4);
+    for (unsigned char c : digits) {
+        if (!std::isdigit(c))
+            return false;
+    }
+    const std::string filename = name.substr(slash + 1);
+    const std::string ext = bed_asset_extension(filename, slot.option);
+    if (ext.empty() || filename != std::string(slot.stem) + ext)
+        return false;
+    if (!is_path_within_root(name, bundle_dir))
+        return false;
+    zip_name = name;
+    folder = digits;
+    return true;
+}
+
+struct PendingBedAsset {
+    std::string option;
+    std::string zip_name;
+    std::string dest;
+    std::string printer_key;
+    fs::path    final_path;
+    fs::path    staged;
+};
+
+// Validated asset names only. A raw manifest value that fails the check is not skipped later,
+// so a value like printer/Name.json cannot hide that preset.
+// printer_asset is keyed by printer_config zip entry. A flat (unkeyed) object is not read.
+std::vector<PendingBedAsset> pending_bed_assets(const json &bundle_json, const fs::path &bundle_dir,
+                                                std::unordered_set<std::string> &skip_names,
+                                                const std::unordered_set<std::string> &zip_entries)
+{
+    std::vector<PendingBedAsset> pending;
+    if (!bundle_json.contains("printer_asset") || !bundle_json["printer_asset"].is_object())
+        return pending;
+    const json &assets = bundle_json["printer_asset"];
+    for (auto it = assets.begin(); it != assets.end(); ++it) {
+        const std::string printer_key = it.key();
+        if (zip_entries.count(printer_key) == 0) {
+            BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset entry is ignored, no matching printer in the zip: " << printer_key;
+            continue;
+        }
+        if (!it.value().is_object())
+            continue;
+        const json &per_printer = it.value();
+        for (const BedAssetSlot &slot : k_bed_asset_slots) {
+            if (!per_printer.contains(slot.option) || !per_printer[slot.option].is_string())
+                continue;
+            const std::string raw = per_printer[slot.option].get<std::string>();
+            std::string zip_name;
+            std::string folder;
+            if (!accepted_bed_zip_name(raw, slot, bundle_dir, zip_name, folder)) {
+                BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset path is rejected: " << raw;
+                continue;
+            }
+            const std::string filename = zip_name.substr(zip_name.rfind('/') + 1);
+            const fs::path final_path = fs::absolute(bundle_dir / "bed" / folder / filename);
+            pending.push_back({slot.option, zip_name, bed_asset_dest_utf8(final_path), printer_key, final_path, {}});
+            skip_names.insert(zip_name);
+        }
+    }
+    return pending;
+}
+
+// Stage under temp_folder. The bundle bed/ directory is not touched until a printer preset keeps the path.
+bool stage_bed_asset(mz_zip_archive &zip, PendingBedAsset &asset, const fs::path &temp_folder)
+{
+    size_t size = 0;
+    void *buf = mz_zip_reader_extract_file_to_heap(&zip, asset.zip_name.c_str(), &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
+    if (buf == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset is missing, skipping " << asset.option << ": " << asset.zip_name;
+        return false;
+    }
+    const std::string filename = asset.zip_name.substr(asset.zip_name.rfind('/') + 1);
+    asset.staged = temp_folder / "bed" / asset.final_path.parent_path().filename() / filename;
+    boost::system::error_code ec;
+    fs::create_directories(asset.staged.parent_path(), ec);
+    const std::string staged_utf8 = bed_asset_dest_utf8(asset.staged);
+    bool wrote = false;
+    if (!ec) {
+        boost::nowide::ofstream out(staged_utf8, std::ios::binary | std::ios::trunc);
+        wrote = static_cast<bool>(out);
+        if (wrote && size > 0)
+            wrote = static_cast<bool>(out.write(static_cast<const char *>(buf), static_cast<std::streamsize>(size)));
+    }
+    mz_free(buf);
+    if (!wrote) {
+        BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset could not be written, skipping " << asset.option << ": " << staged_utf8;
+        fs::remove(asset.staged, ec);
+        return false;
+    }
+    return true;
+}
+
+bool install_bed_asset(const PendingBedAsset &asset)
+{
+    boost::system::error_code ec;
+    fs::create_directories(asset.final_path.parent_path(), ec);
+    if (!ec)
+        fs::copy_file(asset.staged, asset.final_path, fs::copy_options::overwrite_existing, ec);
+    if (ec) {
+        BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset could not be installed: " << asset.dest;
+        return false;
+    }
+    return true;
+}
+
+bool is_pending_bed_asset_entry(const std::string &entry, const std::unordered_set<std::string> &names)
+{
+    return names.count(entry) != 0 || names.count(zip_slashes(entry)) != 0;
+}
+
+bool printer_kept_bed_paths(const PresetCollection &printers, const std::map<std::string, std::string> &paths)
+{
+    if (paths.empty())
+        return false;
+    for (const Preset &preset : printers.get_presets()) {
+        for (const auto &entry : paths)
+            if (preset.config.opt_string(entry.first) == entry.second)
+                return true;
+    }
+    return false;
+}
+
+} // namespace
+
+bool append_printer_bed_assets(mz_zip_archive &zip, const DynamicPrintConfig &config, json &bundle_structure,
+                               const std::string &printer_config_entry, int printer_index)
+{
+    if (printer_config_entry.empty() || printer_index < 0)
+        return true;
+    json assets = json::object();
+    for (const BedAssetSlot &slot : k_bed_asset_slots) {
+        if (!config.has(slot.option))
+            continue;
+        const std::string stored = config.opt_string(slot.option);
+        if (stored.empty())
+            continue;
+        if (!utf8_is_file(stored)) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset file is missing, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        const std::string ext = bed_asset_extension(stored, slot.option);
+        if (ext.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset extension is not packable, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        boost::nowide::ifstream in(stored, std::ios::binary);
+        if (!in) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset file cannot be read, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        const std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        if (in.bad()) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset file cannot be read, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        const std::string zip_name = std::string("bed/") + std::to_string(printer_index) + "/" + slot.stem + ext;
+        const void *data = bytes.empty() ? static_cast<const void *>("") : static_cast<const void *>(bytes.data());
+        if (mz_zip_writer_add_mem(&zip, zip_name.c_str(), data, bytes.size(), MZ_DEFAULT_COMPRESSION) == MZ_FALSE) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to add bed asset to printer bundle: " << zip_name;
+            return false;
+        }
+        assets[slot.option] = zip_name;
+    }
+    if (!assets.empty())
+        bundle_structure["printer_asset"][printer_config_entry] = std::move(assets);
+    return true;
+}
+
 // Import presets from UI control
 PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string> &              files,
                                                         std::function<int(std::string const &)> override_confirm,
@@ -1773,14 +2028,44 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " No bundle_structure.json found, importing presets into the user preset directory";
             }
 
+            json bundle_json = json::object();
+            std::unordered_set<std::string> bed_asset_entries;
+            std::vector<PendingBedAsset> bed_assets;
+            std::map<std::string, std::map<std::string, std::string>> bed_paths_by_printer;
+            bool bed_paths_loaded = false;
+            if (has_bundle_structure && !bundle_base_dir.empty()) {
+                try {
+                    boost::nowide::ifstream manifest_in(metadata_path.string());
+                    manifest_in >> bundle_json;
+                } catch (const std::exception &err) {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " failed to read bundle manifest: " << err.what();
+                    bundle_json = json::object();
+                }
+                std::unordered_set<std::string> zip_entries;
+                const int zip_file_count = mz_zip_reader_get_num_files(&zip_archive);
+                for (int zi = 0; zi < zip_file_count; ++zi) {
+                    mz_zip_archive_file_stat st;
+                    if (mz_zip_reader_file_stat(&zip_archive, zi, &st))
+                        zip_entries.insert(zip_slashes(st.m_filename));
+                }
+                bed_assets = pending_bed_assets(bundle_json, bundle_base_dir, bed_asset_entries, zip_entries);
+                for (PendingBedAsset &asset : bed_assets)
+                    if (stage_bed_asset(zip_archive, asset, temp_folder))
+                        bed_paths_by_printer[asset.printer_key].emplace(asset.option, asset.dest);
+            }
+
             // Extract Files
             int num_files = mz_zip_reader_get_num_files(&zip_archive);
+            const std::map<std::string, std::string> no_bed_paths;
             for (int i = 0; i < num_files; i++) {
                 mz_zip_archive_file_stat file_stat;
                 status = mz_zip_reader_file_stat(&zip_archive, i, &file_stat);
                 if (status) {
                     std::string file_name = file_stat.m_filename;
+                    const std::string zip_entry = zip_slashes(file_name);
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " From zip file: " << file << ". Read file name: " << file_stat.m_filename;
+                    if (is_pending_bed_asset_entry(file_name, bed_asset_entries))
+                        continue;
                     size_t index = file_name.find_last_of("/\\");
                     if (std::string::npos != index) {
                         file_name = file_name.substr(index + 1);
@@ -1798,10 +2083,23 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Failed to open target file: " << target_file_path;
                     } else {
+                        const auto paths_it = bed_paths_by_printer.find(zip_entry);
+                        const std::map<std::string, std::string> &this_bed_paths =
+                            paths_it != bed_paths_by_printer.end() ? paths_it->second : no_bed_paths;
                         bool is_success = import_json_presets(substitutions, target_file_path, override_confirm, rule, overwrite, result,
-                                                              has_bundle_structure ? bundle_base_dir.string() : std::string());
+                                                              has_bundle_structure ? bundle_base_dir.string() : std::string(),
+                                                              this_bed_paths, &bed_paths_loaded);
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " import target file: " << target_file_path << " import result" << is_success;
                     }
+                }
+            }
+
+            // Copy into bed/ only after this import loads a printer that still holds the staged path.
+            // A preset left from an earlier import must not count: declining this import leaves its files alone.
+            if (bed_paths_loaded) {
+                for (const PendingBedAsset &asset : bed_assets) {
+                    if (printer_kept_bed_paths(printers, {{asset.option, asset.dest}}))
+                        install_bed_asset(asset);
                 }
             }
 
@@ -1846,7 +2144,9 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
                                        ForwardCompatibilitySubstitutionRule    rule,
                                        int &                                   overwrite,
                                        std::vector<std::string> &              result,
-                                       const std::string &                     bundle_dir)
+                                       const std::string &                     bundle_dir,
+                                       const std::map<std::string, std::string> &      bed_asset_paths,
+                                       bool *                                          bed_paths_loaded)
 {
     try {
         DynamicPrintConfig config;
@@ -1910,6 +2210,10 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             if (inherit_preset)
                 inherits_value = inherit_preset->name;  // keep the base_id redo below in sync
         }
+        if (collection == &printers) {
+            for (const auto &entry : bed_asset_paths)
+                config.option<ConfigOptionString>(entry.first, true)->value = entry.second;
+        }
         if (inherit_preset) {
             new_config = inherit_preset->config;
             new_config.apply(std::move(config));
@@ -1927,6 +2231,8 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             new_config.apply(std::move(config));
             extend_default_config_length(new_config, true, default_preset.config);
         }
+        if (bed_paths_loaded != nullptr && collection == &printers && !bed_asset_paths.empty())
+            *bed_paths_loaded = true;
 
         Preset &preset     = collection->load_preset(collection->path_from_name(name, inherit_preset == nullptr), preset_name, std::move(new_config), false);
         preset.bundle_id = load_origin.bundle_id;

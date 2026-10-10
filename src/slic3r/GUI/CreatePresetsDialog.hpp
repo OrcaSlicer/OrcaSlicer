@@ -271,6 +271,7 @@ protected:
 private:
     void        data_init();
     void        select_curr_radiobox(std::vector<std::pair<RadioBox *, wxString>> &radiobox_list, int btn_idx);
+    void        update_include_bed_assets_enabled();
     void        on_dpi_changed(const wxRect &suggested_rect) override;
     void        show_export_result(const ExportCase &export_case);
     bool        has_check_box_selected();
@@ -284,7 +285,7 @@ private:
     int         initial_zip_archive(mz_zip_archive &zip_archive, const std::string &file_path);
     ExportCase  save_zip_archive_to_file(mz_zip_archive &zip_archive);
     ExportCase  save_presets_to_zip(const std::string &export_file, const std::vector<std::pair<std::string, std::string>> &config_paths);
-    ExportCase  archive_preset_bundle_to_file(const wxString &path);
+    ExportCase  archive_preset_bundle_to_file(const wxString &path, bool include_bed_assets);
     ExportCase  archive_filament_bundle_to_file(const wxString &path);
     ExportCase  archive_printer_preset_to_file(const wxString &path);
     ExportCase  archive_filament_preset_to_file(const wxString &path);
@@ -304,6 +305,8 @@ private:
     wxGridSizer *                                          m_preset_sizer   = nullptr;
     wxPanel *                                              m_presets_window = nullptr;
     wxStaticText *                                         m_serial_text    = nullptr;
+    ::CheckBox *                                           m_include_bed_assets       = nullptr;
+    wxStaticText *                                         m_include_bed_assets_label = nullptr;
 };
 
 class CreatePresetForPrinterDialog : public DPIDialog
