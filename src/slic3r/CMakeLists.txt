@@ -871,6 +871,16 @@ if (WIN32)
         )
 endif ()
 
+if (ORCA_BAMBU_NETWORK_BRIDGE)
+    if (NOT WIN32)
+        message(FATAL_ERROR "ORCA_BAMBU_NETWORK_BRIDGE requires Windows")
+    endif ()
+    list(APPEND SLIC3R_GUI_SOURCES
+        Utils/BambuBridge/Client.cpp
+        Utils/BambuBridge/WinPipe.cpp
+    )
+endif ()
+
 if (APPLE)
     list(APPEND SLIC3R_GUI_SOURCES
             Utils/RetinaHelperImpl.mm
@@ -1059,6 +1069,10 @@ endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
+if (ORCA_BAMBU_NETWORK_BRIDGE)
+    target_compile_definitions(libslic3r_gui PRIVATE ORCA_BAMBU_NETWORK_BRIDGE NOMINMAX _WIN32_WINNT=0x0602)
+    target_link_libraries(libslic3r_gui bcrypt advapi32)
+endif ()
 
 if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
     add_library(orca_stubgen MODULE

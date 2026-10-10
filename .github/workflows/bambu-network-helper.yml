@@ -1,0 +1,43 @@
+name: Bambu network helper experiment
+
+on:
+  push:
+    branches: [experiment/bambu-network-helper]
+    paths:
+      - '.github/workflows/bambu-network-helper.yml'
+      - 'src/slic3r/Utils/BambuBridge/**'
+      - 'src/slic3r/Utils/BBLNetworkFunctions.hpp'
+      - 'src/slic3r/Utils/BambuNetworkTypes.hpp'
+      - 'src/libslic3r/BambuNetworkVersion.hpp'
+      - 'tests/slic3rutils/*bambu_bridge*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-rpc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure portable RPC tests
+        run: cmake -S src/slic3r/Utils/BambuBridge -B build/bridge-tests -DBAMBU_BRIDGE_TESTS_ONLY=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build/bridge-tests --parallel 2
+      - name: Test
+        run: ctest --test-dir build/bridge-tests -C Release --output-on-failure
+
+  windows-process:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure x64 helper and ABI fixture
+        run: cmake -S src/slic3r/Utils/BambuBridge -B build/bridge -A x64 -DBAMBU_BRIDGE_WINDOWS_SMOKE=ON
+      - name: Build
+        run: cmake --build build/bridge --config Release --parallel 2
+      - name: Test real process and named-pipe boundary
+        run: ctest --test-dir build/bridge -C Release --output-on-failure
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bambu-network-helper-x64
+          path: build/bridge/Release/orca-bambu-network-helper.exe
