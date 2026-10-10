@@ -36673,3 +36673,7 @@ msgstr ""
 "Touchpad: dois dedos movem o gráfico nas duas direções.\n"
 "A pinça muda a escala dos dois eixos no ponteiro."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Botão do meio: arraste para mover os eixos."
+

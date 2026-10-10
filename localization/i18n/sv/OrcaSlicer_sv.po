@@ -41045,3 +41045,7 @@ msgstr ""
 "Styrplatta: två fingrar flyttar grafen åt båda håll.\n"
 "Nyp för att zooma båda axlarna kring pekaren."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Mittknapp: dra för att flytta båda axlarna."
+

@@ -38939,3 +38939,7 @@ msgstr ""
 "Ratolí tàctil: mou el gràfic amb dos dits.\n"
 "Pessiga per canviar el zoom dels dos eixos al voltant del punter."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Botó central: arrossega tots dos eixos."
+

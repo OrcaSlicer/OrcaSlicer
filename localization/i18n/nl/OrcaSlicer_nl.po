@@ -40827,3 +40827,7 @@ msgstr ""
 "Touchpad: twee vingers bewegen de grafiek in beide richtingen.\n"
 "Knijpen zoomt beide assen bij de aanwijzer."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Middelste muisknop: sleep beide assen."
+

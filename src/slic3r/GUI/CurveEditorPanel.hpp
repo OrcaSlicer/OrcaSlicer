@@ -83,6 +83,8 @@ private:
     double m_drag_x = 0.0;
     double m_drag_y = 0.0;
     wxRecursionGuardFlag m_zoom_depth = 0;
+    wxRecursionGuardFlag m_pan_depth = 0;
+    bool m_middle_panning = false;
     bool m_touchpad_controls = false;
     bool m_automatic_touchpad_controls = false;
     bool m_pan_gesture_active = false;

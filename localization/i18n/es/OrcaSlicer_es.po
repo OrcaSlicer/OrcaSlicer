@@ -37890,3 +37890,7 @@ msgstr ""
 "Panel táctil: dos dedos mueven el gráfico en ambos sentidos.\n"
 "Un pellizco cambia el zoom de los ejes al cursor."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Botón central: arrastra ambos ejes."
+

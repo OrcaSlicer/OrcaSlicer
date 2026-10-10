@@ -39591,3 +39591,7 @@ msgstr ""
 "Bàn di chuột: hai ngón tay cuộn đồ thị hai hướng.\n"
 "Chụm hoặc mở ngón tay thu phóng cả hai trục quanh con trỏ."
 
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Nút chuột giữa: kéo để di chuyển hai trục."
+
