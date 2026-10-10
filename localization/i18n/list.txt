@@ -360,3 +360,8 @@ src/slic3r/GUI/PostProcessor.cpp
 src/slic3r/GUI/TaskManager.cpp
 src/slic3r/GUI/Widgets/ProgressDialog.hpp
 src/slic3r/GUI/Widgets/StepCtrl.cpp
+src/slic3r/GUI/CurveEditorDialog.cpp
+src/slic3r/GUI/CurveEditorPanel.cpp
+src/slic3r/GUI/SmallAreaInfillFlowCompensationDialog.cpp
+src/libslic3r/CurveModel.cpp
+src/libslic3r/GCode/SmallAreaInfillFlowCompensationModel.cpp

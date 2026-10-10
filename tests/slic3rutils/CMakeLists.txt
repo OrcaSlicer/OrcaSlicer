@@ -38,6 +38,7 @@ add_executable(${_TEST_NAME}_tests
     test_shortcuts.cpp
     test_texture_color_palette.cpp
     test_file_url.cpp
+    test_small_area_infill_flow_compensation.cpp
     test_user_manager.cpp
     ../fff_print/test_helpers.cpp
     )

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 13:47+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -32019,16 +32019,8 @@ msgstr ""
 #~ msgid "Left click"
 #~ msgstr "Clic sinistro"
 
-# AI Translated
-#~ msgid "Add point"
-#~ msgstr "Aggiungi punto"
-
 #~ msgid "Right click"
 #~ msgstr "Clic destro"
-
-# AI Translated
-#~ msgid "Remove point"
-#~ msgstr "Rimuovi punto"
 
 # AI Translated
 #~ msgid "Move point"
@@ -34852,3 +34844,210 @@ msgstr ""
 
 #~ msgid "Do not recommend bed temperature of other layer to be lower than initial layer for more than this threshold. Too low bed temperature of other layer may cause the model broken free from build plate"
 #~ msgstr "Non è consigliabile che la temperatura del piano degli altri layer sia inferiore a quella del primo layer di oltre questa soglia. Una temperatura del piano troppo bassa degli altri layer può causare il distacco dell'oggetto dal piatto."
+
+# AI Translated
+msgid "Visible range"
+msgstr "Campo grafico"
+
+# AI Translated
+msgid "Minimum"
+msgstr "Minimo"
+
+# AI Translated
+msgid "Maximum"
+msgstr "Massimo"
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "Cambia solo il campo del grafico, non il modello. Premi Invio o «Applica» per aggiornare."
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Allowed range: %s to %s."
+msgstr "Limiti: da %s a %s."
+
+# AI Translated
+msgid "Show range"
+msgstr "Campo"
+
+# AI Translated
+msgid "Show table"
+msgstr "Tabella"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"Trascina un punto o modifica i valori in tabella.\n"
+"\n"
+"Rotella del mouse: sposta in orizzontale.\n"
+"%s + rotella: sposta in verticale.\n"
+"%s + rotella: zoom in orizzontale.\n"
+"%s + %s + rotella: zoom in verticale.\n"
+"\n"
+"Campo: inserisci limiti esatti e premi Invio o «Applica».\n"
+"Tabella: mostra o nascondi i valori dei punti.\n"
+"Vista intera: mostra tutta la curva.\n"
+"Punti predefiniti: ripristina i punti iniziali del modello."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "Comandi"
+
+# AI Translated
+msgid "Reset View"
+msgstr "Vista intera"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "Vedi tutta la curva."
+
+# AI Translated
+msgid "Add point"
+msgstr "Aggiungi punto"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Rimuovi punto"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "Punti predefiniti"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Table row %d: "
+msgstr "Riga tabella %d: "
+
+# AI Translated
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"Trascina i punti del grafico o modifica lunghezza estrusa e fattore di correzione flusso nella tabella.\n"
+"Lunghezze e fattori devono crescere strettamente. Prima lunghezza: 0; ultimo fattore: 1."
+
+# AI Translated
+msgid "Extrusion length"
+msgstr "Lungh. estrusa"
+
+# AI Translated
+msgid "Flow correction factor"
+msgstr "Fatt. corr. del flusso"
+
+# AI Translated
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "Inserisci limiti finiti: minimo minore del massimo."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "Il campo visibile supera i limiti consentiti."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "Campo visibile troppo piccolo."
+
+# AI Translated
+msgid "Enter a finite number in each cell."
+msgstr "Un numero finito per ogni cella."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "Il modello richiede almeno due punti."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "Prima lunghezza estrusa: deve essere 0."
+
+# AI Translated
+msgid "Extrusion lengths must strictly increase."
+msgstr "Lunghezze estruse: crescita stretta."
+
+# AI Translated
+msgid "Flow correction factors must strictly increase."
+msgstr "Fattori di correzione flusso: crescita stretta."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "Ultimo fattore corr. flusso: deve essere 1."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "Modello vuoto. Nessuna compensazione del flusso."
+
+# AI Translated
+msgid "Import CSV"
+msgstr "Importa CSV"
+
+# AI Translated
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Importa punti da due colonne CSV in ordine di tabella. Separatori: virgola o punto e virgola."
+
+# AI Translated
+msgid "Export CSV"
+msgstr "Esporta CSV"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Esporta i punti in CSV. Non salva le modifiche al profilo."
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "File CSV (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "Impossibile leggere il CSV."
+
+# AI Translated
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "Riga CSV %d: %s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "Impossibile scrivere il CSV."
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "Ogni riga CSV deve avere due colonne."
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "Il file CSV non contiene punti."
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Il limite della lunghezza di estrusione dipende dal letto della stampante attuale e dai punti del modello."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Numero massimo di punti: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "La curva contiene troppi punti."
+
+# AI Translated
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Touchpad: due dita spostano il grafico in entrambe le direzioni.\n"
+"Il pizzico scala i due assi al cursore."
+
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Tasto centrale: trascina entrambi gli assi."

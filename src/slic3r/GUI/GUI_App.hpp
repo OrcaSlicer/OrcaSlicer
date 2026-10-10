@@ -620,6 +620,10 @@ public:
     static bool     catch_error(std::function<void()> cb, const std::string& err);
 
     void            persist_window_geometry(wxTopLevelWindow *window, bool default_maximized = false);
+    // Shared geometry storage for the main window and persistent dialogs.
+    void            window_pos_save(wxTopLevelWindow* window, const std::string &name);
+    bool            window_pos_restore(wxTopLevelWindow* window, const std::string &name, bool default_maximized = false);
+    void            window_pos_sanitize(wxTopLevelWindow* window);
     void            update_ui_from_settings();
 
     bool            load_language(wxString language, bool initial);
@@ -847,9 +851,6 @@ private:
     bool            wait_for_network_idle(int timeout_ms);
     bool            check_older_app_config(Semver current_version, bool backup);
     void            copy_older_config();
-    void            window_pos_save(wxTopLevelWindow* window, const std::string &name);
-    bool            window_pos_restore(wxTopLevelWindow* window, const std::string &name, bool default_maximized = false);
-    void            window_pos_sanitize(wxTopLevelWindow* window);
     void            window_pos_center(wxTopLevelWindow *window);
 
     // Dynamic printer agent selection - internal helpers for switch_printer_agent

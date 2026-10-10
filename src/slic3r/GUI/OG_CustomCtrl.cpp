@@ -212,13 +212,11 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             int blinking_button_width = m_bmp_blinking_sz.GetWidth() + m_h_gap;
 
             if (line.widget) {
-#ifndef DISABLE_BLINKING
-                h_pos += (line.has_undo_ui() ? 3 : 1) * blinking_button_width;
-#else
-                // When blinking is disabled, widget lines still need to honour
-                // option_label_at_right the same way regular lines do below.
-                if (opt_group->option_label_at_right)
+                if (line.has_undo_ui() && opt_group->option_label_at_right)
                     add_buttons_width(blinking_button_width);
+#ifndef DISABLE_BLINKING
+                else if (!line.has_undo_ui())
+                    h_pos += blinking_button_width;
 #endif
 
                 for (auto child : line.widget_sizer->GetChildren())
@@ -862,13 +860,23 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         h_pos = draw_text(dc, wxPoint(h_pos, v_pos), label /* + ":" */, text_clr, h_pos + ctrl->opt_group->label_width * ctrl->m_em_unit - h_pos, is_url_string, true);
     }
 
-    // If there's a widget, build it and set result to the correct position.
-#ifndef DISABLE_BLINKING
+    // Widget rows have no Field; use the line's undo state and reserve the same
+    // space as get_pos(), so the widget cannot cover the icon or its hit area.
     if (og_line.widget != nullptr) {
-        draw_blinking_bmp(dc, wxPoint(h_pos, v_pos), og_line.blink);
+        if (og_line.has_undo_ui()) {
+            if (!ctrl->opt_group->option_label_at_right)
+                for (auto* child : og_line.widget_sizer->GetChildren())
+                    if (child->IsWindow())
+                        h_pos += child->GetWindow()->GetSize().x + ctrl->m_h_gap;
+            draw_act_bmps(dc, wxPoint(h_pos, v_pos), og_line.undo_to_sys_bitmap()->bmp(),
+                          og_line.undo_bitmap()->bmp(), og_line.blink());
+        }
+#ifndef DISABLE_BLINKING
+        else
+            draw_blinking_bmp(dc, wxPoint(h_pos, v_pos), og_line.blink());
+#endif
         return;
     }
-#endif
 
     // If we're here, we have more than one option or a single option with sidetext
     // so we need a horizontal sizer to arrange these things

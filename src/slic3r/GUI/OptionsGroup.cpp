@@ -21,6 +21,7 @@
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/CurveModel.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <utility>
@@ -840,6 +841,15 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
         set_value(opt_key, saved_id);
         this->change_opt_value(opt_key, saved_id);
         OptionsGroup::on_change_OG(opt_key, saved_id);
+        return;
+    }
+    else if (opt_key == "small_area_infill_flow_compensation_model") {
+        // The curve widget has no Field to read back. Restore the whole model through
+        // the serialized GUI value path, including empty models and every point.
+        const auto& points = config.option<ConfigOptionStrings>(opt_key)->values;
+        const std::string serialized = CurveModel::serialize_parameters(points);
+        this->change_opt_value(opt_key, serialized);
+        OptionsGroup::on_change_OG(opt_key, serialized);
         return;
     }
     else if (m_opt_map.find(opt_key) == m_opt_map.end() ||

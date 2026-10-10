@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 15:16-0300\n"
+"POT-Creation-Date: 2026-10-08 13:47+0200\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -32414,16 +32414,8 @@ msgstr ""
 #~ msgid "Left click"
 #~ msgstr "Клацніть лівою кнопкою миші"
 
-# AI Translated
-#~ msgid "Add point"
-#~ msgstr "Додати точку"
-
 #~ msgid "Right click"
 #~ msgstr "Клацніть правою кнопкою миші"
-
-# AI Translated
-#~ msgid "Remove point"
-#~ msgstr "Вилучити точку"
 
 # AI Translated
 #~ msgid "Move point"
@@ -34302,3 +34294,210 @@ msgstr ""
 
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "Встановіть тип кайми на \"Мальована\""
+
+# AI Translated
+msgid "Visible range"
+msgstr "Діапазон"
+
+# AI Translated
+msgid "Minimum"
+msgstr "Мінімум"
+
+# AI Translated
+msgid "Maximum"
+msgstr "Макс."
+
+# AI Translated
+msgid "Changes only the visible range of the graph, not the model values. Press Enter or Apply to update."
+msgstr "Змінює лише діапазон графіка, не значення моделі. Натисніть Enter або «Застосувати»."
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Allowed range: %s to %s."
+msgstr "Допустимо: від %s до %s."
+
+# AI Translated
+msgid "Show range"
+msgstr "Діапазон"
+
+# AI Translated
+msgid "Show table"
+msgstr "Таблиця"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid ""
+"Drag a point to move it, or edit its values in the table.\n"
+"\n"
+"Mouse wheel: move horizontally.\n"
+"%s + mouse wheel: move vertically.\n"
+"%s + mouse wheel: zoom horizontally.\n"
+"%s + %s + mouse wheel: zoom vertically.\n"
+"\n"
+"Show range: enter exact bounds and press Enter or Apply.\n"
+"Show table: show or hide the point values.\n"
+"Reset View: show the full curve.\n"
+"Reset to defaults: restore the model's default points."
+msgstr ""
+"Перетягніть точку або змініть значення в таблиці.\n"
+"\n"
+"Колесо миші: зсув по горизонталі.\n"
+"%s + колесо миші: зсув по вертикалі.\n"
+"%s + колесо миші: масштаб по горизонталі.\n"
+"%s + %s + колесо миші: масштаб по вертикалі.\n"
+"\n"
+"Діапазон: задайте межі й натисніть Enter або «Застосувати».\n"
+"Таблиця: показати чи сховати значення точок.\n"
+"Скинути вид: показати всю криву.\n"
+"Типові точки: відновити типові точки моделі."
+
+# AI Translated
+msgid "Graph controls"
+msgstr "Графік"
+
+# AI Translated
+msgid "Reset View"
+msgstr "Скинути вид"
+
+# AI Translated
+msgid "Show the full curve."
+msgstr "Показати всю криву."
+
+# AI Translated
+msgid "Add point"
+msgstr "Додати точку"
+
+# AI Translated
+msgid "Remove point"
+msgstr "Вилучити точку"
+
+# AI Translated
+msgid "Reset to defaults"
+msgstr "Типові точки"
+
+# AI Translated
+#, possible-c-format, possible-boost-format
+msgid "Table row %d: "
+msgstr "Рядок таблиці %d: "
+
+# AI Translated
+msgid ""
+"Drag points on the graph or edit their extrusion length and flow correction factor in the table.\n"
+"Lengths and factors must strictly increase. The first length must be 0 and the last factor must be 1."
+msgstr ""
+"Перетягуйте точки графіка або змінюйте довжину екструзії та коеф. корекції потоку в таблиці.\n"
+"Довжини й коефіцієнти мають строго зростати. Перша довжина — 0, останній коефіцієнт — 1."
+
+# AI Translated
+msgid "Extrusion length"
+msgstr "Довж. екструзії"
+
+# AI Translated
+msgid "Flow correction factor"
+msgstr "Коеф. корекції потоку"
+
+# AI Translated
+msgid "Enter finite bounds with minimum less than maximum."
+msgstr "Введіть скінченні межі: мінімум менший за максимум."
+
+# AI Translated
+msgid "Visible range bounds are outside the allowed limits."
+msgstr "Межі видимого діапазону поза допустимими межами."
+
+# AI Translated
+msgid "The visible range is too small."
+msgstr "Видимий діапазон замалий."
+
+# AI Translated
+msgid "Enter a finite number in each cell."
+msgstr "Скінченне число в кожній комірці."
+
+# AI Translated
+msgid "The model must contain at least two points."
+msgstr "Модель має містити щонайменше дві точки."
+
+# AI Translated
+msgid "The first extrusion length must be 0."
+msgstr "Перша довжина екструзії має бути 0."
+
+# AI Translated
+msgid "Extrusion lengths must strictly increase."
+msgstr "Довжини екструзії мають строго зростати."
+
+# AI Translated
+msgid "Flow correction factors must strictly increase."
+msgstr "Коеф. корекції потоку мають строго зростати."
+
+# AI Translated
+msgid "The last flow correction factor must be 1."
+msgstr "Останній коеф. корекції потоку має бути 1."
+
+# AI Translated
+msgid "The model is empty. No flow compensation will be applied."
+msgstr "Модель порожня. Компенсація потоку не діє."
+
+# AI Translated
+msgid "Import CSV"
+msgstr "Імпорт CSV"
+
+# AI Translated
+msgid "Import points from two CSV columns in table order. Comma or semicolon separators are supported."
+msgstr "Імпорт точок із двох стовпців CSV у порядку таблиці. Роздільник: кома або крапка з комою."
+
+# AI Translated
+msgid "Export CSV"
+msgstr "Експорт CSV"
+
+# AI Translated
+msgid "Export the current points to CSV. This does not save changes to the preset."
+msgstr "Експорт поточних точок у CSV. Зміни пресета не зберігаються."
+
+# AI Translated
+msgid "CSV files (*.csv)|*.csv"
+msgstr "Файли CSV (*.csv)|*.csv"
+
+# AI Translated
+msgid "Could not read the CSV file."
+msgstr "Не вдалося прочитати CSV."
+
+# AI Translated
+#, c-format, boost-format
+msgid "CSV line %d: %s"
+msgstr "Рядок CSV %d: %s"
+
+# AI Translated
+msgid "Could not write the CSV file."
+msgstr "Не вдалося записати CSV."
+
+# AI Translated
+msgid "CSV must contain exactly two columns per line."
+msgstr "Кожен рядок CSV має містити два стовпці."
+
+# AI Translated
+msgid "The CSV file contains no points."
+msgstr "У файлі CSV немає точок."
+
+# AI Translated
+msgid "The extrusion length limit depends on the current printer's bed size and model points."
+msgstr "Межа довжини екструзії залежить від розміру столу поточного принтера й точок моделі."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Maximum number of points: %d."
+msgstr "Максимум точок: %d."
+
+# AI Translated
+msgid "The curve contains too many points."
+msgstr "Крива містить забагато точок."
+
+# AI Translated
+msgid ""
+"Touchpad: two-finger scroll moves the graph in both directions.\n"
+"Pinch zooms both axes around the pointer."
+msgstr ""
+"Тачпад: два пальці рухають графік в обох напрямках.\n"
+"Зведення й розведення масштабує обидві осі біля курсора."
+
+# AI Translated
+msgid "Middle mouse button: drag to pan both axes."
+msgstr "Середня кнопка: зсув графіка по обох осях."

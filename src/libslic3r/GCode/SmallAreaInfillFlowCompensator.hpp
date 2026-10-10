@@ -2,11 +2,10 @@
 #define slic3r_GCode_SmallAreaInfillFlowCompensator_hpp_
 
 #include "../PrintConfig.hpp"
-#include <memory>
+#include "libslic3r/CurveModel.hpp"
 #include <vector>
 #include <cstdint>
 
-class PchipInterpolatorHelper;
 namespace Slic3r { enum ExtrusionRole : uint8_t; }
 
 namespace Slic3r {
@@ -25,7 +24,7 @@ private:
     std::vector<double> eLengths;
     std::vector<double> flowComps;
 
-    std::unique_ptr<PchipInterpolatorHelper> flowModel;
+    CurveModel::Interpolator flowModel;
 
     double flow_comp_model(const double line_length);
 
