@@ -3140,7 +3140,7 @@ void SelectMachineDialog::update_option_opts(MachineObject *obj)
     m_checkbox_list["nozzle_offset_cali"]->Show(support_cali_nozzle_offset);
 
     /*flow_cali*/
-    if (obj->is_support_pa_calibration) {
+    if (obj->is_support_pa_calibration || obj->is_support_flow_calibration) {
         if (obj->GetConfig()->SupportCalibrationPA_FlowAuto() && can_support_pa_auto_cali())
         {
             m_checkbox_list["flow_cali"]->update_options(ops_auto, _L("This process determines the dynamic flow values to improve overall print quality.\n*Automatic mode: Skip if the filament was calibrated recently."));
@@ -3148,7 +3148,8 @@ void SelectMachineDialog::update_option_opts(MachineObject *obj)
             m_checkbox_list["flow_cali"]->update_options(ops_no_auto, _L("This process determines the dynamic flow values to improve overall print quality."));
         }
     }
-    m_checkbox_list["flow_cali"]->Show(obj->is_support_pa_calibration);
+    m_checkbox_list["flow_cali"]->Show(obj->is_support_pa_calibration || obj->is_support_flow_calibration);
+
 
     update_options_layout();
 }
