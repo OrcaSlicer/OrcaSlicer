@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PHA @System",
+	"from": "system",
+	"setting_id": "IsJviNGLgaChQB3x",
+	"instantiation": "true",
+	"inherits": "Goofoo TurboM PHA @base",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo GP1 ABS-GF @System",
+	"from": "system",
+	"setting_id": "KfW3H3bw6lIp3gWs",
+	"instantiation": "true",
+	"inherits": "Goofoo GP1 ABS-GF @base",
+	"compatible_printers": []
+}
