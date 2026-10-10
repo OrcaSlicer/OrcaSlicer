@@ -8968,6 +8968,16 @@ static float overhang_fan_overlap_threshold(int overhang_fan_threshold)
     }
 }
 
+static bool overhang_fan_active(float overlap, int overhang_fan_threshold, ExtrusionRole role)
+{
+    if (role == erBridgeInfill || role == erOverhangPerimeter)
+        return true;
+    if (overhang_fan_threshold == Overhang_threshold_none)
+        return is_external_perimeter(role);
+    const float overlap_threshold = overhang_fan_overlap_threshold(overhang_fan_threshold);
+    return overlap_threshold >= 0.f && overlap <= overlap_threshold;
+}
+
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
 {
     std::string gcode;
@@ -9326,7 +9336,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     }
 }
     
-    bool variable_speed = false;
+    bool requires_segmented_extrusion = false;
+    // A uniform fan state can be represented by the normal path-wide marker. Only a
+    // transition within the path requires point-by-point emission.
+    bool path_overhang_fan_active = false;
     std::vector<ProcessedPoint> new_points {};
 
     const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
@@ -9398,13 +9411,21 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
                                                                               fan_overlap_threshold);
             }
-            variable_speed = std::any_of(new_points.begin(), new_points.end(),
-                                         [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
-            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
-                if (!NOZZLE_CONFIG(enable_overhang_speed))
-                    for (ProcessedPoint &point : new_points)
-                        point.speed = speed;
-                variable_speed = new_points.size() > 1;
+            if (!NOZZLE_CONFIG(enable_overhang_speed))
+                for (ProcessedPoint &point : new_points)
+                    point.speed = speed;
+            requires_segmented_extrusion = std::any_of(new_points.begin(), new_points.end(),
+                [speed](const ProcessedPoint &point) { return fabs(double(point.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
+            if (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers && fan_overlap_threshold >= 0.f &&
+                !new_points.empty()) {
+                path_overhang_fan_active = new_points.front().overlap <= fan_overlap_threshold;
+                // An overhang-fan state change needs separate extrusion moves so the cooling buffer can insert
+                // the corresponding fan command between them.
+                requires_segmented_extrusion = requires_segmented_extrusion ||
+                    std::adjacent_find(new_points.begin(), new_points.end(), [fan_overlap_threshold](const ProcessedPoint &previous,
+                                                                                                      const ProcessedPoint &current) {
+                        return (previous.overlap <= fan_overlap_threshold) != (current.overlap <= fan_overlap_threshold);
+                    }) != new_points.end();
             }
     }
 
@@ -9542,22 +9563,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     auto overhang_fan_threshold = FILAMENT_CONFIG(overhang_fan_threshold);
     auto enable_overhang_bridge_fan = FILAMENT_CONFIG(enable_overhang_bridge_fan);
 
+    if (enable_overhang_bridge_fan &&
+        (path.role() == erBridgeInfill || path.role() == erOverhangPerimeter ||
+         (overhang_fan_threshold == Overhang_threshold_none && is_external_perimeter(path.role()))))
+        path_overhang_fan_active = true;
+
     //    { "0%", Overhang_threshold_none },
     //    { "10%", Overhang_threshold_1_4 },
     //    { "25%", Overhang_threshold_2_4 },
     //    { "50%", Overhang_threshold_3_4 },
     //    { "75%", Overhang_threshold_4_4 },
     //    { "95%", Overhang_threshold_bridge }
-    auto check_overhang_fan = [&overhang_fan_threshold](float overlap, ExtrusionRole role) {
-      if (role == erBridgeInfill || role == erOverhangPerimeter) { // ORCA: Split out bridge infill to internal and external to apply separate fan settings
-        return true;
-      }
-      if (overhang_fan_threshold == Overhang_threshold_none)
-        return is_external_perimeter(role);
-      const float overlap_threshold = overhang_fan_overlap_threshold(overhang_fan_threshold);
-      return overlap_threshold >= 0.f && overlap <= overlap_threshold;
-    };
-
     std::string comment;
     if (m_enable_cooling_markers) {
         comment = ";_EXTRUDE_SET_SPEED";
@@ -9628,7 +9644,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
         }
     };
 
-    if (!variable_speed) {
+    if (!requires_segmented_extrusion) {
         // F is mm per minute.
         if( (std::abs(writer().get_current_speed() - F) > EPSILON) || (std::abs(_mm3_per_mm - m_last_mm3_mm) > EPSILON) ){
             // ORCA: Adaptive PA code segment when adjusting PA within the same feature
@@ -9678,11 +9694,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
         {
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
-                    // BBS: Overhang_threshold_none means Overhang_threshold_1_4 and forcing cooling for all external
-                    // perimeter
-                    append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv,
-                                                 (overhang_fan_threshold == Overhang_threshold_none && is_external_perimeter(path.role())) ||
-                                                 (path.role() == erBridgeInfill || path.role() == erOverhangPerimeter)); // ORCA: Add support for separate internal bridge fan speed control
+                    append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv, path_overhang_fan_active);
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
@@ -9832,7 +9844,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
         bool pre_fan_enabled = false;
         bool cur_fan_enabled = false;
         if( m_enable_cooling_markers && enable_overhang_bridge_fan)
-            pre_fan_enabled = check_overhang_fan(new_points[0].overlap, path.role());
+            pre_fan_enabled = overhang_fan_active(new_points[0].overlap, overhang_fan_threshold, path.role());
         
         if(path.role() == erInternalBridgeInfill) // ORCA: Add support for separate internal bridge fan speed control
             pre_fan_enabled = true;
@@ -9846,7 +9858,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             tag_belt_band((pre_processed_point.p.x() + processed_point.p.x()) / 2, (pre_processed_point.p.y() + processed_point.p.y()) / 2);
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
-                    cur_fan_enabled = check_overhang_fan(processed_point.overlap, path.role());
+                    cur_fan_enabled = overhang_fan_active(processed_point.overlap, overhang_fan_threshold, path.role());
                     append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv, pre_fan_enabled && cur_fan_enabled);
                     pre_fan_enabled = cur_fan_enabled;
 
@@ -9949,7 +9961,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 m_writer.extrude_to_xyz(gcode, dest3d, dE * e_ratio, flow_description.empty() ? description : flow_description);
             }
 
-            // Inline farthest-point snapshot on the variable-speed emission path. Inert unless the
+            // Inline farthest-point snapshot on the segmented emission path. Inert unless the
             // farthest-point subsystem is on, matching the other paths.
             check_and_insert_timelapse(processed_point.p.to_point());
 

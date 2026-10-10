@@ -4,6 +4,7 @@
 #include "test_helpers.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -33,6 +34,64 @@ TEST_CASE("Cooling consumes its internal speed markers", "[Cooling]")
 {
     const std::string gcode = slice({ cube(20) }, { { "layer_height", 0.2 } });
     CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
+}
+
+TEST_CASE("Arc fitting remains active with overhang fan control", "[Cooling][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_arc_fitting",             true },
+        { "enable_overhang_bridge_fan",     true },
+        { "enable_overhang_speed",          true },
+        { "initial_layer_print_height",     0.2 },
+        { "layer_height",                   0.2 },
+        { "slow_down_for_layer_cooling",    false },
+    });
+    config.set_key_value("fan_max_speed", new ConfigOptionFloats{20.0});
+    config.set_key_value("fan_min_speed", new ConfigOptionFloats{20.0});
+    config.set_key_value("overhang_fan_speed", new ConfigOptionInts{100});
+    config.set_key_value("overhang_fan_threshold", new ConfigOptionEnumsGeneric{Overhang_threshold_2_4});
+    config.set_key_value("layer_change_gcode", new ConfigOptionString{";TEST_LAYER=[layer_num]"});
+
+    const auto has_arc_after_first_layer = [](const std::string &gcode) {
+        std::istringstream input(gcode);
+        std::string line;
+        size_t layers_seen = 0;
+        while (std::getline(input, line)) {
+            if (line.rfind(";TEST_LAYER=", 0) == 0)
+                ++layers_seen;
+            else if (layers_seen > 1 && (line.rfind("G2 ", 0) == 0 || line.rfind("G3 ", 0) == 0))
+                return true;
+        }
+        return false;
+    };
+    const auto has_arc_with_overhang_fan = [](const std::string &gcode) {
+        std::istringstream input(gcode);
+        std::string line;
+        bool overhang_fan_active = false;
+        bool outer_wall = false;
+        while (std::getline(input, line)) {
+            if (line.rfind("M106 S255", 0) == 0)
+                overhang_fan_active = true;
+            else if (line.rfind("M106 S0", 0) == 0 || line.rfind("M107", 0) == 0)
+                overhang_fan_active = false;
+            else if (line.rfind(";TYPE:", 0) == 0)
+                outer_wall = line == ";TYPE:Outer wall";
+            else if (overhang_fan_active && outer_wall && (line.rfind("G2 ", 0) == 0 || line.rfind("G3 ", 0) == 0))
+                return true;
+        }
+        return false;
+    };
+
+    const std::string with_overhang_speed = slice({ make_cylinder(25.0, 10.0, 2.0 * PI / 72.0) }, config);
+    CHECK(has_arc_after_first_layer(with_overhang_speed));
+
+    config.set_deserialize_strict({ { "enable_overhang_speed", false } });
+    const std::string without_overhang_speed = slice({ make_cylinder(25.0, 10.0, 2.0 * PI / 72.0) }, config);
+    CHECK(has_arc_after_first_layer(without_overhang_speed));
+
+    const std::string uniform_overhang_gcode = slice({ make_sphere(50.0, 2.0 * PI / 72.0) }, config);
+    CHECK(has_arc_with_overhang_fan(uniform_overhang_gcode));
 }
 
 TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling][Regression]")
