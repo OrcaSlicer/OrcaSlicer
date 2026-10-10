@@ -965,7 +965,8 @@ private:
     UserPresetLoad  resolve_user_preset(const boost::filesystem::path &file, const std::string &canonical_name,
                                         const PresetOrigin &load_origin, ForwardCompatibilitySubstitutionRule substitution_rule,
                                         const std::string &extruder_id_name, const std::string &extruder_variant_name,
-                                        std::set<std::string> *key_set1, std::set<std::string> *key_set2) const;
+                                        std::set<std::string> *key_set1, std::set<std::string> *key_set2,
+                                        bool read_only) const;
 
     // Install one resolved preset. The collection, its alias maps, the error count
     // and the preset files on disk are touched here and only here.
