@@ -5,7 +5,7 @@
 #ifndef UTILS_EXTRUSION_LINE_H
 #define UTILS_EXTRUSION_LINE_H
 
-#include <clipper/clipper_z.hpp>
+#include "../../ClipperZUtils.hpp"
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -19,9 +19,8 @@
 #include "ExtrusionJunction.hpp"
 #include "../../Polyline.hpp"
 #include "../../Polygon.hpp"
-#include "../../BoundingBox.hpp"
 #include "../../ExtrusionEntity.hpp"
-#include "../../Flow.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 
 namespace Slic3r {
@@ -294,7 +293,7 @@ using VariableWidthLines = std::vector<ExtrusionLine>; //<! The ExtrusionLines g
 
 namespace Slic3r {
 
-void extrusion_paths_append(ExtrusionPaths &dst, const ClipperLib_Z::Paths &extrusion_paths, const ExtrusionRole role, const Flow &flow);
+void extrusion_paths_append(ExtrusionPaths &dst, const ClipperZUtils::ZPaths &extrusion_paths, const ExtrusionRole role, const Flow &flow);
 void extrusion_paths_append(ExtrusionPaths &dst, const Arachne::ExtrusionLine &extrusion, const ExtrusionRole role, const Flow &flow);
 
 } // namespace Slic3r

@@ -1,7 +1,17 @@
 #include "EncodedFilament.hpp"
+#include "libslic3r/Utils.hpp"
+#include <fstream>
+#include <boost/log/trivial.hpp>
+#include <cassert>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 
 using json = nlohmann::json;
 
@@ -156,7 +166,7 @@ wxString FilamentColorCode::GetFilaColorName() const
     if (it != m_fila_color_names.end() && !it->second.empty()) {  return it->second; }
 
     it = m_fila_color_names.find("en");// retry with English as fallback
-    return (it != m_fila_color_names.end()) ? it->second : "Unknown";
+    return (it != m_fila_color_names.end()) ? it->second : _L("Unknown");
 }
 
 FilamentColorCode::FilamentColorCode(const wxString& color_code, FilamentColorCodes* owner, FilamentColor&& color, std::unordered_map<wxString, wxString>&& name_map)

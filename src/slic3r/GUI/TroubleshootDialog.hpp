@@ -1,6 +1,17 @@
 #ifndef slic3r_GUI_TroublesootDialog_hpp_
 #define slic3r_GUI_TroublesootDialog_hpp_
 
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <string>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/arrstr.h>
+#include <wx/types.h>
+#include <cstddef>
+#include <wx/dcclient.h>
 #include <wx/wx.h>
 #include <wx/zipstrm.h>
 #include <wx/dir.h>

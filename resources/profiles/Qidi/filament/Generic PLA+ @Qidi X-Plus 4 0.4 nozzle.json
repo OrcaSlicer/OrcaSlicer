@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA+ @Qidi X-Plus 4 0.4 nozzle",
-	"inherits": "Generic PLA+ @Qidi",
 	"renamed_from": "Qidi Generic PLA+ @Qidi X-Plus 4 0.4 nozzle;Qidi Generic PLA+ Qidi X-Plus 4 0.4 nozzle",
+	"inherits": "Generic PLA+ @Qidi",
 	"from": "system",
 	"setting_id": "Dyf2Y7pDd4UWIIJ5",
 	"filament_id": "OFEWYR89",

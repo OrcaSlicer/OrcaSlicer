@@ -3,6 +3,12 @@
 
 #include "CalibrationWizardPage.hpp"
 #include "StatusPanel.hpp"
+#include "libslic3r/calib.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/ReleaseNote.hpp"
 
 namespace Slic3r { namespace GUI {
 

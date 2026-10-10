@@ -55,21 +55,6 @@ modules:
         url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.22.8.tar.xz
         sha256: e305b9f07f52743ca481da0a4e0c76c35efd60adaf1b0694eb3bb021e2137e39
 
-  - name: glu
-    build-options:
-      cxxflags: -Wno-register
-    config-opts:
-      - --disable-static
-    sources:
-      - type: archive
-        url: https://ftp.osuosl.org/pub/blfs/conglomeration/glu/glu-9.0.2.tar.xz
-        sha256: 6e7280ff585c6a1d9dfcdf2fca489251634b3377bfc33c29e4002466a38d02d4
-    cleanup:
-      - /include
-      - /lib/*.a
-      - /lib/*.la
-      - /lib/pkgconfig
-
   - name: kde-extra-cmake-modules
     buildsystem: cmake-ninja
     sources:
@@ -217,11 +202,11 @@ modules:
         sha256: a133ddc3d3c66143eba9035621db8e0bcf34dba1ee9514a9e23e96afd39fd57a
         dest: external-packages/GLFW
 
-      # OpenCSG 1.4.2
+      # SolveSpace libslvs (2D sketch constraint solver, Design tab)
       - type: file
-        url: https://github.com/floriankirsch/OpenCSG/archive/refs/tags/opencsg-1-4-2-release.zip
-        sha256: 51afe0db79af8386e2027d56d685177135581e0ee82ade9d7f2caff8deab5ec5
-        dest: external-packages/OpenCSG
+        url: https://github.com/JacobStoren/SolveSpaceLib/archive/4d8704523e4bf212fadf5189f92484244f670fea.zip
+        sha256: 1c4bdde9c3c6ef20ea4b50b73601de56769f2eb131b36927d7c6489f102e6c30
+        dest: external-packages/SLVS
 
       # Blosc 1.17.0 (tamasmeszaros fork)
       - type: file
@@ -253,10 +238,10 @@ modules:
         sha256: 9ad62c7dc910303cd384ff8f1f4767a655124980bb6d8650fe62c815a231bb7b
         dest: external-packages/MPFR
 
-      # CGAL 5.6.3
+      # CGAL 6.2.1
       - type: file
-        url: https://github.com/CGAL/cgal/releases/download/v5.6.3/CGAL-5.6.3.zip
-        sha256: 5d577acb4a9918ccb960491482da7a3838f8d363aff47e14d703f19fd84733d4
+        url: https://github.com/CGAL/cgal/releases/download/v6.2.1/CGAL-6.2.1.zip
+        sha256: eebd737d9b7f0199647ba5c1f9f6c7a3d0651aacef9c2fd4dedc52da6c25edbe
         dest: external-packages/CGAL
 
       # NLopt v2.5.0
@@ -295,10 +280,10 @@ modules:
         sha256: a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
         dest: external-packages/CURL
 
-      # OCCT (OpenCASCADE) V7_6_0
+      # OCCT (OpenCASCADE) V8_0_1
       - type: file
-        url: https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V7_6_0.zip
-        sha256: 28334f0e98f1b1629799783e9b4d21e05349d89e695809d7e6dfa45ea43e1dbc
+        url: https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V8_0_1.zip
+        sha256: 7c033d917ee8f040c0512d289dcc5f02c148889d5bac17c3e25639accb44f0da
         dest: external-packages/OCCT
 
       # OpenCV 4.6.0
@@ -324,6 +309,15 @@ modules:
         url: https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.0.3.tar.gz
         sha256: deedcabe339165214a3637df4c86a507aef0d793cf8774ff68735f4737e8ddbc
         dest: external-packages/FFMPEG
+
+      # libdatachannel v0.24.5
+      # The Git checkout includes the submodules that are missing from the
+      # GitHub source archive. DataChannel.cmake consumes it as SOURCE_DIR.
+      - type: git
+        url: https://github.com/paullouisageneau/libdatachannel.git
+        tag: v0.24.5
+        commit: 443f6934d9007eb7076ab7825ba330f355fcbead
+        dest: external-packages/DataChannel
 
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
@@ -378,7 +372,7 @@ modules:
       - cmake --build build_flatpak --target generate_system_cache -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/build_preset_cache.sh -n -b build_flatpak /app/share/OrcaSlicer/profiles
 
-    # Built (not run) here via the action's run-tests, then shipped to a separate
+    # Built (not run) here when CI injects run-tests, then shipped to a separate
     # test job. Only the test sources compile; nothing installs to /app.
     test-commands:
       - cmake . -B build_flatpak -DBUILD_TESTS=ON

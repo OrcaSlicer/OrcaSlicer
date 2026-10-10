@@ -5,25 +5,36 @@
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
-#include "slic3r/GUI/Widgets/WebView.hpp"
-#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
-#include <libslic3r/Utils.hpp>
-
 #include <algorithm>
 
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
+#include <memory>
+#include <exception>
+#include <cstddef>
 #include <nlohmann/json.hpp>
 
+#include "slic3r/plugin/pluginTypes/pages/PagesPluginCapability.hpp"
+#include "slic3r/GUI/WebPanel.hpp"
+#include <optional>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/GUI/LazyPage.hpp"
 #include <stdexcept>
+#include <string>
+#include <wx/app.h>
+#include <vector>
 #include <wx/bookctrl.h>
+#include <wx/event.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
 #include <utility>
+#include <wx/webview.h>
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace {
@@ -66,27 +77,11 @@ constexpr char PLUGIN_PAGE_BRIDGE_JS[] = R"JS(
 } // namespace
 
 PluginPage::PluginPage(wxWindow* parent, std::shared_ptr<PagesPluginCapability> capability)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+    : GUI::WebPanel(parent, PLUGIN_PAGE_BRIDGE_JS)
     , m_cap(std::move(capability))
     , m_lifetime(std::make_shared<std::atomic<PluginPage*>>(this))
 {
-    auto* topsizer = new wxBoxSizer(wxVERTICAL);
-    SetSizer(topsizer);
-
-    m_browser = WebView::CreateWebView(this, bootstrap_url());
-    if (m_browser == nullptr) {
-        wxLogError("Could not initialize plugin page web view");
-        return;
-    }
-
-    topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-    m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PluginPage::on_bootstrap_event, this);
-    m_browser->Bind(wxEVT_WEBVIEW_ERROR, &PluginPage::on_bootstrap_event, this);
-    m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PluginPage::on_new_window, this);
-    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PluginPage::on_script_message, this);
-    m_browser->AddUserScript(wxString::FromUTF8(GUI::WebViewHostDialog::theme_user_script()));
-    m_browser->AddUserScript(wxString::FromUTF8(GUI::WebViewHostDialog::plugin_defaults_user_script()));
-    m_browser->AddUserScript(PLUGIN_PAGE_BRIDGE_JS);
+    browser()->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PluginPage::on_new_window, this);
 
     const std::shared_ptr<std::atomic<PluginPage*>> lifetime = m_lifetime;
     m_cap->set_message_sender([lifetime](const std::string& message) {
@@ -117,89 +112,54 @@ void PluginPage::detach_capability()
     m_cap.reset();
 }
 
-wxString PluginPage::web_base_url() const
+std::optional<std::string> PluginPage::page_html()
 {
-    const auto path = (boost::filesystem::path(resources_dir()) / "web").make_preferred().string();
-    return wxString("file://") + GUI::from_u8(path) + "/";
-}
+    if (m_cap == nullptr)
+        return std::nullopt;
 
-wxString PluginPage::bootstrap_url() const
-{
-    const auto path = (boost::filesystem::path(resources_dir()) / "web/dialog/PluginWebDialog/blank.html").make_preferred().string();
-    return wxString("file://") + GUI::from_u8(path);
-}
-
-void PluginPage::on_bootstrap_event(wxWebViewEvent& event)
-{
-    load_plugin_content();
-    event.Skip();
-}
-
-void PluginPage::load_plugin_content()
-{
-    if (m_content_loaded || m_browser == nullptr || m_cap == nullptr)
-        return;
-
-    m_content_loaded = true;
     try {
-        m_browser->SetPage(wxString::FromUTF8(m_cap->get_ui()), web_base_url());
+        return m_cap->get_ui();
     } catch (const std::exception& error) {
         BOOST_LOG_TRIVIAL(error) << "Failed to load plugin page '" << m_cap->name() << "': " << error.what();
-        detach_capability();
     } catch (...) {
         BOOST_LOG_TRIVIAL(error) << "Failed to load plugin page '" << m_cap->name() << "'";
-        detach_capability();
     }
+    detach_capability();
+    return std::nullopt;
 }
 
 void PluginPage::on_new_window(wxWebViewEvent& event)
 {
     const wxString url = event.GetURL();
-    if (!url.empty() && m_browser != nullptr)
-        m_browser->LoadURL(url);
+    if (!url.empty())
+        browser()->LoadURL(url);
     event.Veto();
 }
 
-void PluginPage::on_script_message(wxWebViewEvent& event)
+bool PluginPage::on_page_message(const std::string& kind, const nlohmann::json& data)
 {
+    if (kind != "message")
+        return false;
     if (!m_cap)
-        return;
+        return true;
 
-    const wxString payload = event.GetString();
-    nlohmann::json root    = nlohmann::json::parse(payload.utf8_string(), nullptr, false);
-    if (root.is_discarded() || root.value("channel", std::string()) != "orca" ||
-        root.value("kind", std::string()) != "message")
-        return;
-
-    const auto data = root.find("data");
     try {
-        m_cap->on_message(data == root.end()
-                              ? "null"
-                              : data->dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
+        m_cap->on_message(data.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
     } catch (const std::exception& error) {
         BOOST_LOG_TRIVIAL(error) << "Plugin page message handler failed for '" << m_cap->name() << "': " << error.what();
     } catch (...) {
         BOOST_LOG_TRIVIAL(error) << "Plugin page message handler failed for '" << m_cap->name() << "'";
     }
+    return true;
 }
 
 void PluginPage::push_message(const std::string& message)
 {
-    if (m_browser == nullptr)
-        return;
-
     // PagesPluginCapability::post_message() already dumps JSON, so accept it as-is; only a
     // non-JSON payload needs wrapping as a string literal.
-    const std::string payload = nlohmann::json::accept(message)
-                                    ? message
-                                    : nlohmann::json(message).dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
-
-    WebView::RunScript(m_browser, wxString::Format(
-        "(function dispatch(payload, attempts) {\n"
-        "  if (typeof window.__orcaDispatch === 'function') { window.__orcaDispatch(payload); return; }\n"
-        "  if (attempts < 100) window.setTimeout(function() { dispatch(payload, attempts + 1); }, 25);\n"
-        "})({data: %s}, 0);",
-        wxString::FromUTF8(payload)));
+    post_to_page(nlohmann::json::accept(message)
+                     ? message
+                     : nlohmann::json(message).dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
 }
 
 PluginPages::~PluginPages()
@@ -225,8 +185,10 @@ void PluginPages::initialize(Notebook* parent)
 
 void PluginPages::shutdown()
 {
-    while (!m_pages.empty())
-        remove_page(m_pages.begin()->first);
+    // Removing the selected tab selects the tab to its left. In tab order that is a built-in tab,
+    // never an unbuilt plugin page that is removed next and would be built only to be destroyed.
+    for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
+        remove_page(id);
     m_parent = nullptr;
 }
 
@@ -267,12 +229,7 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to get icon for plugin " << id.plugin_key;
     }
 
-    auto* page = new PluginPage(m_parent, std::move(capability));
-    if (!page->is_valid()) {
-        page->Destroy();
-        return false;
-    }
-
+    wxBitmap bitmap;
     if (!icon.empty()) {
         try {
             boost::filesystem::path icon_path(icon);
@@ -280,7 +237,7 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
             if (extension == ".svg" || extension == ".png")
                 icon_path.replace_extension();
 
-            page->set_icon(create_scaled_bitmap(icon_path.string(), m_parent, 20));
+            bitmap = create_scaled_bitmap(icon_path.string(), m_parent, 20);
         } catch (const std::exception& error) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to load icon for plugin " << id.plugin_key << ": " << error.what();
         } catch (...) {
@@ -288,7 +245,15 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
         }
     }
 
-    m_pages.emplace(id, page);
+    // Built the first time its tab is shown, so a language switch never creates the page's browser
+    // while the main window is being rebuilt. Never prebuilt: the idle queue cannot drop a page
+    // that remove_page() destroys.
+    auto* page = new GUI::LazyPage<PluginPage>(m_parent, GUI::into_u8(page_tab_id(id)), -1,
+                                               [capability = std::move(capability)](wxWindow* parent) {
+                                                   return new PluginPage(parent, capability);
+                                               });
+
+    m_pages.emplace(id, Page{page, bitmap});
     m_order.push_back(id);
     return true;
 }
@@ -317,16 +282,10 @@ void PluginPages::on_plugin_register(const std::string& plugin_key)
 
 void PluginPages::on_plugin_deregister(const std::string& plugin_key)
 {
-    for (auto it = m_pages.begin(); it != m_pages.end();) {
-        if (it->first.plugin_key != plugin_key) {
-            ++it;
-            continue;
-        }
-
-        const PluginCapabilityId id = it->first;
-        ++it;
-        remove_page(id);
-    }
+    // In tab order, as in shutdown().
+    for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
+        if (id.plugin_key == plugin_key)
+            remove_page(id);
 }
 
 void PluginPages::remove_page(const PluginCapabilityId& id)
@@ -335,8 +294,10 @@ void PluginPages::remove_page(const PluginCapabilityId& id)
     if (it == m_pages.end())
         return;
 
-    PluginPage* page = it->second;
-    page->detach_capability();
+    GUI::LazyPage<PluginPage>* page = it->second.page;
+    // Only a built page has installed a message sender on the capability.
+    if (PluginPage* built = page->get())
+        built->detach_capability();
 
     m_pages.erase(it);
     m_order.erase(std::remove(m_order.begin(), m_order.end(), id), m_order.end());
@@ -394,26 +355,27 @@ void PluginPages::relayout()
     bool up_to_date = page_count >= tab_ids.size();
     for (size_t i = 0; up_to_date && i < tab_ids.size(); ++i)
         up_to_date = m_parent->GetPageName(page_count - tab_ids.size() + i) == page_tab_id(tab_ids[i]);
-    for (const auto& [id, page] : m_pages) {
+    for (const auto& [id, entry] : m_pages) {
         if (!up_to_date)
             break;
         const bool wanted = std::find(tab_ids.begin(), tab_ids.end(), id) != tab_ids.end();
-        up_to_date = (m_parent->FindPage(page) != wxNOT_FOUND) == wanted;
+        up_to_date = entry.page->in_book() == wanted;
     }
 
     if (!up_to_date) {
         const wxString id_to_reselect = m_parent->GetSelectedPageName();
 
-        for (const auto& [id, page] : m_pages) {
-            const int idx = m_parent->FindPage(page);
+        // In tab order, as in shutdown().
+        for (const auto& id : m_order) {
+            const int idx = m_parent->FindPage(m_pages.at(id).page);
             if (idx != wxNOT_FOUND)
                 m_parent->RemovePage(idx);
         }
 
         for (const auto& id : tab_ids) {
-            PluginPage* page = m_pages.at(id);
-            m_parent->InsertPage(m_parent->GetPageCount(), page_tab_id(id), page, wxString::FromUTF8(id.name), "",
-                                 false, page->icon());
+            const Page& entry = m_pages.at(id);
+            m_parent->InsertPage(m_parent->GetPageCount(), page_tab_id(id), entry.page, wxString::FromUTF8(id.name), "",
+                                 false, entry.icon);
         }
 
         if (!id_to_reselect.empty())
@@ -436,6 +398,17 @@ void PluginPages::relayout()
         m_overflow_button->Destroy();
         m_overflow_button = nullptr;
     }
+}
+
+void PluginPages::select_page(const PluginCapabilityId& id)
+{
+    if (m_parent == nullptr || m_pages.find(id) == m_pages.end())
+        return;
+
+    // Swap the page into the visible slot first when it lives behind the overflow menu.
+    m_swapped_in_id = id;
+    relayout();
+    m_parent->SelectPageByName(page_tab_id(id));
 }
 
 void PluginPages::show_overflow_menu()

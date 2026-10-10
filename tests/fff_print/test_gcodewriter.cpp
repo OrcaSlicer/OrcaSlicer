@@ -1,28 +1,89 @@
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cstdlib>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include "nlohmann/json.hpp"
+
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
 #include "test_helpers.hpp"
+#include <cmath>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include <algorithm>
+#include <limits>
+#include "libslic3r/GCode/BeltKinematics.hpp"
+#include "libslic3r/BeltTransform.hpp"
+#include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Arrange.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-// Arrange on a finite bed, not an unbounded InfiniteBed: the latter places items
-// near INT64_MIN/4 (~2.3e18), which reaches ClipperLib's coordinate limit and throws
-// "Coordinate outside allowed range" on Windows/arm64. A 500x500 bed keeps coordinates
-// small while still covering large printers.
+TEST_CASE("Belt machine coordinates retain a non-45-degree slicing angle", "[GCodeWriter][belt]")
+{
+    PrintConfig config;
+    config.belt_printer.value               = true;
+    config.belt_slice_rotation.value        = BeltRotationAxis::X;
+    config.belt_slice_rotation_angle.value  = 30.;
+    config.gcode_remap_x.value              = RemapAxis::PosX;
+    config.gcode_remap_y.value              = RemapAxis::PosZ;
+    config.gcode_remap_z.value              = RemapAxis::PosY;
+
+    GCodeWriter writer;
+    install_belt_kinematics(writer, config);
+    writer.set_axis_remap(int(config.gcode_remap_x.value),
+                          int(config.gcode_remap_y.value),
+                          int(config.gcode_remap_z.value));
+
+    // Start with a point in the unrotated model frame, then feed the writer the
+    // same rotated coordinate produced by the pre-slice mesh transform. The
+    // back-transform must recover the model point before the axis swap and
+    // machine-frame shear/scale are applied.
+    const Vec3d model(4., 10., 3.);
+    Transform3d forward = BeltTransformPipeline::build_forward_transform(config);
+    const Vec3d machine = writer.kinematics().to_machine(forward * model);
+
+    // The conventional X-tilt remap produces (x, z, y). At 30 degrees the
+    // gantry coordinate is z/sin(30) and belt travel is y + z*cot(30).
+    // The complementary tan/inv-cos formulas accidentally used by the unified
+    // transform are indistinguishable at 45 degrees, but fail this case.
+    REQUIRE_THAT(machine.x(), Catch::Matchers::WithinAbs(4., 1e-9));
+    REQUIRE_THAT(machine.y(), Catch::Matchers::WithinAbs(3. / std::sin(Geometry::deg2rad(30.)), 1e-9));
+    REQUIRE_THAT(machine.z(), Catch::Matchers::WithinAbs(10. + 3. / std::tan(Geometry::deg2rad(30.)), 1e-9));
+}
+
+// Arrange on a 500x500 bed, which keeps coordinates small while still covering large printers.
 static void arrange_objects_on_test_bed(Model &model, const DynamicPrintConfig &config)
 {
     const BoundingBox bed{Point::new_scale(0., 0.), Point::new_scale(500., 500.)};
@@ -94,6 +155,22 @@ SCENARIO("Origin manipulation", "[GCodeWriter]") {
     		REQUIRE(gcodegen.origin() == Vec2d(15,5));
     	}
     }
+}
+
+TEST_CASE("A cached config slot is looked up again whenever its key changes", "[GCodeWriter]")
+{
+    GCode::ConfigIndexCache cache;
+    int lookups = 0;
+    auto slot = [&](int filament, size_t layer, size_t generation) {
+        return cache.get(filament, layer, generation, [&] { ++lookups; return filament * 100 + int(layer) * 10 + int(generation); });
+    };
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(slot(1, 2, 3) == 123);
+    REQUIRE(lookups == 1);
+    REQUIRE(slot(4, 2, 3) == 423);
+    REQUIRE(slot(4, 5, 3) == 453);
+    REQUIRE(slot(4, 5, 6) == 456);
+    REQUIRE(lookups == 4);
 }
 
 // Verify that emit_machine_limits_to_gcode emits the correct max value across
@@ -420,6 +497,65 @@ TEST_CASE("EXTRUDER_LIMIT per-extruder clamping and max fallback", "[GCodeWriter
     }
 }
 
+TEST_CASE("Acceleration and velocity limit commands print their values in general notation", "[GCodeWriter]")
+{
+    enum class Command { Print, Travel, KlipperLimits };
+    struct Case
+    {
+        GCodeFlavor              flavor;
+        Command                  command;
+        unsigned int             acceleration;
+        double                   jerk;
+        bool                     comments;
+        std::vector<std::string> present;
+        std::vector<std::string> absent;
+    };
+    // accel_to_decel_factor is 50%, so ACCEL_TO_DECEL is half the acceleration.
+    const Case c = GENERATE(values<Case>({
+        {gcfKlipper, Command::KlipperLimits, 2000000, 25. / 3., false,
+         {"SET_VELOCITY_LIMIT ACCEL=2000000 ", "ACCEL_TO_DECEL=1e+06 ", "SQUARE_CORNER_VELOCITY=8.33333\n"}, {}},
+        {gcfKlipper, Command::KlipperLimits, 12345, 0., false, {"ACCEL=12345 ", "ACCEL_TO_DECEL=6172.5\n"}, {"SQUARE_CORNER_VELOCITY"}},
+        {gcfKlipper, Command::KlipperLimits, 0, 0.25, true, {"SQUARE_CORNER_VELOCITY=0.25 ", "; adjust VELOCITY_LIMIT"}, {"ACCEL"}},
+        {gcfKlipper, Command::Print, 3001, 0., true, {"ACCEL=3001 ", "ACCEL_TO_DECEL=1500.5 ", "; adjust ACCEL_TO_DECEL", "; adjust acceleration"}, {}},
+        {gcfMarlinFirmware, Command::Print, 2500, 0., false, {"M204 P2500\n"}, {}},
+        {gcfMarlinFirmware, Command::Travel, 7000, 0., false, {"M204 T7000\n"}, {}},
+        {gcfRepRapFirmware, Command::Travel, 7000, 0., true, {"M204 T7000 ", "; adjust acceleration"}, {}},
+        {gcfMarlinLegacy, Command::Print, 2500, 0., false, {"M204 S2500\n"}, {}},
+        {gcfRepetier, Command::Print, 2500, 0., false, {"M201 X2500 Y2500\n"}, {}},
+        {gcfRepetier, Command::Travel, 7000, 0., false, {"M202 X7000 Y7000\n"}, {}},
+    }));
+
+    struct CommentGuard
+    {
+        bool saved = GCodeWriter::full_gcode_comment;
+        ~CommentGuard() { GCodeWriter::full_gcode_comment = saved; }
+    } comment_guard;
+    GCodeWriter::full_gcode_comment = c.comments;
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("gcode_flavor", new ConfigOptionEnum<GCodeFlavor>(c.flavor));
+    config.set_key_value("accel_to_decel_enable", new ConfigOptionBool(true));
+    config.set_key_value("accel_to_decel_factor", new ConfigOptionPercent(50));
+    for (const char *limit : {"machine_max_acceleration_extruding", "machine_max_acceleration_travel", "machine_max_acceleration_x",
+                              "machine_max_acceleration_y", "machine_max_jerk_x", "machine_max_jerk_y"}) {
+        std::vector<double> &values = config.option<ConfigOptionFloats>(limit)->values;
+        std::fill(values.begin(), values.end(), 0.);
+    }
+    PrintConfig print_config;
+    print_config.apply(config, true);
+    GCodeWriter writer;
+    writer.apply_print_config(print_config);
+
+    const std::string line = c.command == Command::Print         ? writer.set_print_acceleration(c.acceleration) :
+                             c.command == Command::Travel        ? writer.set_travel_acceleration(c.acceleration) :
+                                                                   writer.set_accel_and_jerk(c.acceleration, c.jerk);
+    INFO(line);
+    for (const std::string &token : c.present)
+        CHECK_THAT(line, Catch::Matchers::ContainsSubstring(token));
+    for (const std::string &token : c.absent)
+        CHECK_THAT(line, !Catch::Matchers::ContainsSubstring(token));
+}
+
 SCENARIO("Extruder reads the injected config column", "[GCodeWriter][H2C]") {
     GIVEN("A writer whose per-variant arrays hold three columns for two filaments") {
         GCodeWriter writer;
@@ -726,20 +862,41 @@ static std::string slice_two_object_bbl(DynamicPrintConfig &config)
 }
 
 // The real change_filament_gcode of a shipped "<printer> 0.4 nozzle" machine profile.
+// The profile does not state it inline any more: it names the template carrying it in
+// `include`, and the loader layers that template under the preset. Follow the same list
+// - so a profile that stops naming one fails here instead of silently slicing G-code it
+// no longer ships.
 static std::string shipped_change_filament_gcode(const std::string &printer)
 {
-    const std::string path = std::string(PROFILES_DIR) + "/BBL/machine/Bambu Lab " + printer + " 0.4 nozzle.json";
+    const std::string machine_dir   = std::string(PROFILES_DIR) + "/BBL/machine/";
+    const std::string machine_path  = machine_dir + "Bambu Lab " + printer + " 0.4 nozzle.json";
+    const std::string template_name = "Bambu Lab " + printer + " 0.4 nozzle template change_filament_gcode";
     // PROFILES_DIR is an absolute path baked in at build time; a sparse test checkout
     // without resources/ leaves it missing. Skip rather than dereference a config that
     // never loaded - this is the only fff_print test that reads a shipped profile.
-    if (!boost::filesystem::exists(path))
-        SKIP("shipped profile not present in this checkout: " << path);
-    DynamicPrintConfig                 config;
-    std::map<std::string, std::string> key_values;
-    std::string                        reason;
-    config.load_from_json(path, ForwardCompatibilitySubstitutionRule::Enable, key_values, reason);
-    // Fail loudly on a malformed/renamed profile instead of null-dereferencing in opt_string.
-    INFO("profile: " << path << (reason.empty() ? "" : ("  load reason: " + reason)));
+    if (!boost::filesystem::exists(machine_path))
+        SKIP("shipped profile not present in this checkout: " << machine_path);
+
+    auto load = [](const std::string &file, std::map<std::string, std::string> &key_values) {
+        DynamicPrintConfig        config;
+        ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+        std::string               reason;
+        // false: `inherits` and `include` stay out of the config and land in key_values,
+        // for the loader to resolve - neither is a slicing setting.
+        config.load_from_json(file, substitutions, false, key_values, reason);
+        // Fail loudly on a malformed/renamed profile instead of null-dereferencing in opt_string.
+        INFO("profile: " << file << (reason.empty() ? "" : ("  load reason: " + reason)));
+        return config;
+    };
+
+    std::map<std::string, std::string> machine_values;
+    load(machine_path, machine_values);
+    REQUIRE(machine_values.count("include") == 1);
+    const nlohmann::json includes = nlohmann::json::parse(machine_values["include"]);
+    REQUIRE(std::find(includes.begin(), includes.end(), nlohmann::json(template_name)) != includes.end());
+
+    std::map<std::string, std::string> template_values;
+    const DynamicPrintConfig           config = load(machine_dir + template_name + ".json", template_values);
     REQUIRE(config.has("change_filament_gcode"));
     return config.opt_string("change_filament_gcode");
 }
@@ -849,4 +1006,481 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(custom_gcode_pos != std::string::npos);
     REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
+}
+
+// Regression test for the belt-printer "illegal gantry move at print start" bug.
+//
+// On a belt printer the layer-change z-hop is deferred (lazy_lift) and consumed
+// by the first travel_to_xyz, whose NormalLift branch lifts in place via
+// _travel_to_z(). On a normal printer _travel_to_z emits a Z-only move, but in
+// belt mode Z is coupled to Y/X, so _travel_to_z re-emits the current m_pos
+// through the belt shear. At print start (and after custom gcode)
+// is_current_position_clear() is false and m_pos.xy is still the uninitialised
+// origin (0,0), which shears into machine (X=bed_max, Y=layer_z) — a move far up
+// the gantry, e.g. "G1 X95 Y168.19 Z237.857". The fix guards that lift on
+// is_current_position_clear(), mirroring the SlopeLift branch.
+SCENARIO("Belt: the first travel does not lift through the uninitialised origin", "[GCodeWriter][belt]")
+{
+    GIVEN("A fresh belt-kinematics GCodeWriter configured for an X-tilt 45 degree belt") {
+        // Machine-frame + slicer->world back-transform config (X tilt, 45 deg).
+        PrintConfig belt_config;
+        belt_config.belt_printer.value               = true;
+        belt_config.belt_slice_rotation.value        = BeltRotationAxis::X;
+        belt_config.belt_slice_rotation_angle.value  = 45.0;
+        belt_config.belt_frame_tilt_decouple.value   = false;
+        belt_config.belt_frame_tilt_angle.value      = 45.0;
+
+        GCodeWriter writer;
+        install_belt_kinematics(writer, belt_config);
+
+        std::vector<unsigned int> extruder_ids { 0 };
+        writer.set_extruders(extruder_ids);
+        writer.set_extruder(0);
+        // travel_speed became per-extruder (ConfigOptionFloatsNullable) upstream.
+        writer.config.travel_speed.values       = { 100.0 };
+        writer.config.z_hop.values              = { 0.4 };
+        writer.config.retract_lift_above.values = { 0.0 };
+        writer.config.retract_lift_below.values = { 0.0 };
+
+        // A fresh writer has not established its planar position yet — this is the
+        // precondition that made the origin leak into the first move.
+        REQUIRE_FALSE(writer.is_current_position_clear());
+
+        WHEN("a layer-change z-hop is pending and we travel to the first object point") {
+            // Defer a z-hop, exactly as a retract on layer change leaves it.
+            writer.lazy_lift(LiftType::NormalLift);
+
+            // First object point in slicing coordinates: a near-belt point (y ~= -z)
+            // so its transformed gantry Y is small (~1mm). The bogus origin lift, in
+            // contrast, would shear to machine Y ~= nominal_z.
+            const double nominal_z = 100.0;
+            std::string gcode = writer.travel_to_xyz(Vec3d(10.0, -(nominal_z - 1.0), nominal_z));
+
+            THEN("no emitted move flies up the gantry; machine Y stays near the part") {
+                double max_y = std::numeric_limits<double>::lowest();
+                GCodeReader reader;
+                reader.parse_buffer(gcode, [&max_y](GCodeReader &, const GCodeReader::GCodeLine &line) {
+                    if (line.cmd_is("G1") && line.has(Y))
+                        max_y = std::max(max_y, double(line.y()));
+                });
+                // The destination shears to machine Y ~= 1mm. The old origin-lift bug
+                // produced a separate move at machine Y ~= nominal_z (100mm), so any
+                // Y well above the part means the origin leaked into a move.
+                REQUIRE(max_y > 0.0);   // the destination move was emitted and parsed
+                REQUIRE(max_y < 10.0);  // ... and nothing flew up the gantry
+            }
+        }
+    }
+}
+
+// Regression test for the belt-printer "phantom extrusion line from Y=0" bug.
+//
+// GCodeProcessor::store_move_vertex pins a move's stored Z to the first-layer
+// height while m_processing_start_custom_gcode is set (the start G-code "prepare"
+// stage), because on a normal printer the toolhead Z there is not yet a real print
+// height. On a belt printer that override is wrong: Z is written explicitly and the
+// designed-view back-transform couples machine Z into the rendered model Y (the
+// belt tilt mixes the height and belt-feed axes). Overriding it back-transforms the
+// last prepare-stage move (the unretract right before the first extrusion) to
+// model Y ~= 0, and libvgcode then draws a phantom extrusion segment from Y ~= 0 to
+// the first real toolpath — rendered in the first extrusion role's color. The fix
+// keeps the real Z for belt printers (gated on belt_tilt_angle). Here we assert the
+// prepare-stage move keeps its real Z so it can no longer leak to Y ~= 0.
+SCENARIO("Belt: start-gcode prepare-stage moves keep their real Z", "[GCode][belt]")
+{
+    // Belt printers are non-Bambu, so the G-code uses the "compatible" reserved
+    // tags ("TYPE:" for the extrusion role). The processor selects the tag table
+    // from the static s_IsBBLPrinter flag, so mirror the belt-printer setting here
+    // (saved/restored so test ordering stays unaffected).
+    struct BBLPrinterGuard {
+        bool prev = GCodeProcessor::s_IsBBLPrinter;
+        BBLPrinterGuard()  { GCodeProcessor::s_IsBBLPrinter = false; }
+        ~BBLPrinterGuard() { GCodeProcessor::s_IsBBLPrinter = prev; }
+    } bbl_guard;
+
+    GIVEN("A belt G-code whose start sequence travels to a high machine Z before the first extrusion") {
+        // The leading "; belt_slice_rotation_angle = 45" header sets belt_tilt_angle
+        // (parsed before the body), enabling the belt code path. ;TYPE:Custom before
+        // any G1 turns on the prepare stage; ;TYPE:Outer wall turns it off, exactly
+        // as a sliced belt print is laid out.
+        const std::string gcode =
+            "; belt_slice_rotation_angle = 45\n"
+            "G90\n"
+            "G21\n"
+            "M83\n"
+            ";TYPE:Custom\n"
+            "G1 E-1.5 F2100\n"            // retract at the (0,0,0) origin
+            "G1 X45 Y0.3 Z50 F12000\n"   // travel to the approach point (prepare stage)
+            "G1 E1.5 F1800\n"            // unretract in place (prepare stage)
+            ";TYPE:Outer wall\n"
+            "G1 X46 Y0.3 Z50 E0.05\n";   // first extrusion, same Z as the approach
+
+        GCodeProcessor processor;
+        processor.process_buffer(gcode);
+        const GCodeProcessorResult& result = processor.get_result();
+
+        THEN("the belt code path is active") {
+            REQUIRE_THAT(result.belt_tilt_angle, Catch::Matchers::WithinAbs(45.0, 1e-4));
+        }
+
+        WHEN("locating the first extrusion and the move that precedes it") {
+            size_t first_extrude = result.moves.size();
+            for (size_t i = 0; i < result.moves.size(); ++i)
+                if (result.moves[i].type == EMoveType::Extrude) { first_extrude = i; break; }
+
+            THEN("an extrusion and a preceding move exist") {
+                REQUIRE(first_extrude < result.moves.size());
+                REQUIRE(first_extrude > 0);
+            }
+
+            THEN("the preceding prepare-stage move shares the extrusion's real Z (no leak to Y=0)") {
+                const float extrude_z = result.moves[first_extrude].position.z();
+                const float prev_z    = result.moves[first_extrude - 1].position.z();
+                // The first extrusion is at the real Z=50; before the fix the
+                // prepare-stage move's Z was pinned to the first-layer height
+                // (0 here) instead, which back-transforms to model Y ~= 0 and
+                // produces the phantom extrusion segment.
+                REQUIRE_THAT(extrude_z, Catch::Matchers::WithinAbs(50.0, 1e-3));
+                REQUIRE_THAT(prev_z,    Catch::Matchers::WithinAbs(50.0, 1e-3));
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Regression tests for the two latent bugs the MachineKinematics refactor
+// preserved deliberately and the follow-up commit fixed.
+// ---------------------------------------------------------------------------
+
+// Bug 1. _travel_to_z() emits full XYZ whenever the mapping must emit every
+// axis, and it builds that point from m_pos. While the position is unknown,
+// m_pos.xy is the uninitialised origin, which a reverse remap maps to the far
+// corner of the bed. Belt kinematics guarded this; a Cartesian writer with an
+// axis remap did not, and would command a rapid across the whole bed.
+static void configure_lift_writer(GCodeWriter &writer)
+{
+    std::vector<unsigned int> extruder_ids { 0 };
+    writer.set_extruders(extruder_ids);
+    writer.set_extruder(0);
+    writer.config.travel_speed.values       = { 100.0 };
+    writer.config.travel_speed_z.values     = { 100.0 };
+    writer.config.z_hop.values              = { 0.4 };
+    writer.config.retract_lift_above.values = { 0.0 };
+    writer.config.retract_lift_below.values = { 0.0 };
+}
+
+// Largest X word in a chunk of emitted G-code, or lowest() if none.
+static double max_emitted_x(const std::string &gcode)
+{
+    double max_x = std::numeric_limits<double>::lowest();
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&max_x](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1") && line.has(X))
+            max_x = std::max(max_x, double(line.x()));
+    });
+    return max_x;
+}
+
+static size_t count_g1(const std::string &gcode)
+{
+    size_t n = 0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&n](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1")) ++n;
+    });
+    return n;
+}
+
+SCENARIO("Axis remap: no lift is commanded through the uninitialised origin", "[GCodeWriter][remap]")
+{
+    // Reverse X: machine X = build_vol_max.x - logical X, so the uninitialised
+    // origin maps to the far edge of the bed and is unmistakable in the output.
+    const double bed_x = 250.0;
+
+    GIVEN("a writer with a reverse-X remap and an unknown current position") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        writer.set_axis_remap(6, 1, 2);
+        writer.set_build_volume_max(Vec3d(bed_x, 250.0, 250.0));
+        REQUIRE(writer.kinematics().must_emit_all_axes());
+        REQUIRE_FALSE(writer.is_current_position_clear());
+
+        WHEN("a z-hop is pending and we travel to the first point") {
+            writer.lazy_lift(LiftType::NormalLift);
+            const std::string gcode = writer.travel_to_xyz(Vec3d(10.0, 10.0, 5.0));
+
+            THEN("nothing is commanded at the image of the origin") {
+                // The destination maps to machine X = 250 - 10 = 240; the bogus
+                // origin lift would have mapped to machine X = 250.
+                REQUIRE(max_emitted_x(gcode) < bed_x - 1.0);
+            }
+            THEN("only the destination move is emitted") {
+                REQUIRE(count_g1(gcode) == 1);
+            }
+        }
+    }
+
+    GIVEN("the same writer once its position is known") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        writer.set_axis_remap(6, 1, 2);
+        writer.set_build_volume_max(Vec3d(bed_x, 250.0, 250.0));
+        writer.travel_to_xyz(Vec3d(20.0, 20.0, 5.0));
+        REQUIRE(writer.is_current_position_clear());
+
+        WHEN("a z-hop is pending and we travel again") {
+            writer.lazy_lift(LiftType::NormalLift);
+            const std::string gcode = writer.travel_to_xyz(Vec3d(30.0, 30.0, 5.0));
+
+            THEN("the separate lift move is still emitted") {
+                // Suppression must be pinned to the unknown position, not to the
+                // presence of a remap.
+                REQUIRE(count_g1(gcode) == 2);
+            }
+        }
+    }
+
+    GIVEN("an identity-mapping writer with an unknown position") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        REQUIRE_FALSE(writer.kinematics().must_emit_all_axes());
+        REQUIRE_FALSE(writer.is_current_position_clear());
+
+        WHEN("a z-hop is pending and we travel to the first point") {
+            writer.lazy_lift(LiftType::NormalLift);
+            const std::string gcode = writer.travel_to_xyz(Vec3d(10.0, 10.0, 5.0));
+
+            THEN("behaviour is unchanged: the lift is still emitted") {
+                // Three moves, not two: with no remap and an unknown position the
+                // destination is emitted as a separate XY move followed by its own
+                // Z move, on top of the lift. That split is the pre-existing
+                // identity-mapping path and must not change.
+                REQUIRE(count_g1(gcode) == 3);
+            }
+        }
+    }
+}
+
+SCENARIO("Axis remap: eager_lift does not lift, or record a lift, at an unknown position",
+         "[GCodeWriter][remap]")
+{
+    GIVEN("a writer with a reverse-X remap and an unknown current position") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        writer.set_axis_remap(6, 1, 2);
+        writer.set_build_volume_max(Vec3d(250.0, 250.0, 250.0));
+        REQUIRE_FALSE(writer.is_current_position_clear());
+
+        WHEN("an eager lift is requested") {
+            const std::string lift = writer.eager_lift(LiftType::NormalLift);
+
+            THEN("no move is emitted") {
+                REQUIRE(lift.empty());
+            }
+            THEN("no lift is recorded, so unlift does not descend from it") {
+                // If m_lifted had been set while nothing was commanded, unlift()
+                // would emit a descent from a height the machine never reached.
+                REQUIRE(writer.unlift().empty());
+            }
+        }
+    }
+
+    GIVEN("an identity-mapping writer with an unknown position") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+
+        WHEN("an eager lift is requested") {
+            const std::string lift = writer.eager_lift(LiftType::NormalLift);
+
+            THEN("behaviour is unchanged: the lift is emitted and can be undone") {
+                REQUIRE_FALSE(lift.empty());
+                REQUIRE_FALSE(writer.unlift().empty());
+            }
+        }
+    }
+}
+
+// Bug 2. extrude_arc_to_xy() emits G2/G3 with logical X/Y and I/J and never
+// consulted the mapping. An arc is only representable when logical X and Y reach
+// the machine unchanged -- which is a narrower question than "is the remap the
+// identity", because a mapping that only touches Z leaves every emitted word alone.
+SCENARIO("Arc support is decided by whether the mapping leaves X and Y alone", "[GCodeWriter][remap]")
+{
+    GIVEN("a Cartesian writer") {
+        GCodeWriter writer;
+
+        THEN("the identity mapping supports arcs") {
+            REQUIRE(writer.kinematics().supports_arc_moves());
+        }
+        THEN("a Z-only negation still supports arcs") {
+            // (+X, +Y, -Z): non-identity, but X, Y, I and J are all untouched.
+            writer.set_axis_remap(0, 1, 5);
+            REQUIRE(writer.kinematics().must_emit_all_axes());
+            REQUIRE(writer.kinematics().supports_arc_moves());
+        }
+        THEN("a Z-only reversal still supports arcs") {
+            writer.set_axis_remap(0, 1, 8);
+            REQUIRE(writer.kinematics().supports_arc_moves());
+        }
+        THEN("swapping X and Y does not support arcs") {
+            writer.set_axis_remap(1, 0, 2);
+            REQUIRE_FALSE(writer.kinematics().supports_arc_moves());
+        }
+        THEN("the X-tilt style (x, z, y) remap does not support arcs") {
+            writer.set_axis_remap(0, 2, 1);
+            REQUIRE_FALSE(writer.kinematics().supports_arc_moves());
+        }
+    }
+
+    GIVEN("a belt writer") {
+        PrintConfig belt_config;
+        belt_config.belt_printer.value              = true;
+        belt_config.belt_slice_rotation.value       = BeltRotationAxis::X;
+        belt_config.belt_slice_rotation_angle.value = 45.0;
+
+        GCodeWriter writer;
+        install_belt_kinematics(writer, belt_config);
+
+        THEN("arcs are never supported, because the frame shears") {
+            REQUIRE_FALSE(writer.kinematics().supports_arc_moves());
+        }
+    }
+}
+
+SCENARIO("An unrepresentable arc degrades to its chord rather than emitting a wrong G2/G3",
+         "[GCodeWriter][remap]")
+{
+    auto emitted_commands = [](const std::string &gcode) {
+        std::vector<std::string> cmds;
+        GCodeReader reader;
+        reader.parse_buffer(gcode, [&cmds](GCodeReader &, const GCodeReader::GCodeLine &line) {
+            if (! line.cmd().empty()) cmds.emplace_back(line.cmd());
+        });
+        return cmds;
+    };
+
+    GIVEN("an identity-mapping writer") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+
+        WHEN("an arc is extruded") {
+            const std::string gcode = writer.extrude_arc_to_xy(
+                Vec2d(10.0, 0.0), Vec2d(5.0, 0.0), 0.0, /*is_ccw=*/true, "", /*force_no_extrusion=*/true);
+
+            THEN("it is still a G3") {
+                const auto cmds = emitted_commands(gcode);
+                REQUIRE(cmds.size() == 1);
+                REQUIRE(cmds.front() == "G3");
+            }
+        }
+    }
+
+    GIVEN("a writer whose mapping swaps X and Y") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        writer.set_axis_remap(1, 0, 2);
+
+        WHEN("an arc is extruded") {
+            const std::string gcode = writer.extrude_arc_to_xy(
+                Vec2d(10.0, 0.0), Vec2d(5.0, 0.0), 0.0, /*is_ccw=*/true, "", /*force_no_extrusion=*/true);
+
+            THEN("no arc is emitted; it is approximated with linear moves") {
+                const auto cmds = emitted_commands(gcode);
+                REQUIRE(! cmds.empty());
+                for (const auto &c : cmds)
+                    REQUIRE(c == "G1");
+            }
+        }
+    }
+
+    // The first version of this test used dE = 0 with force_no_extrusion, which
+    // hid a real bug: the capability check sat AFTER filament()->extrude(dE), so
+    // the fallback into extrude_to_xy() advanced E twice. Extrusion accounting has
+    // to be asserted with a positive dE.
+    GIVEN("a writer whose mapping cannot express arcs, extruding a real amount") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        writer.set_axis_remap(1, 0, 2);
+        const double dE = 1.5;
+        // used_filament() accumulates across moves; E() is reset per line in
+        // relative-E mode, so it would only show the last segment.
+        const double used_before = writer.filament()->used_filament();
+
+        WHEN("an arc carrying that extrusion is emitted") {
+            const std::string gcode = writer.extrude_arc_to_xy(
+                Vec2d(10.0, 0.0), Vec2d(5.0, 0.0), dE, /*is_ccw=*/true, "", /*force_no_extrusion=*/false);
+
+            THEN("exactly dE is accounted for, not twice dE") {
+                REQUIRE_THAT(writer.filament()->used_filament() - used_before,
+                             Catch::Matchers::WithinAbs(dE, 1e-6));
+            }
+            THEN("no G2/G3 survives") {
+                REQUIRE(gcode.find("G2") == std::string::npos);
+                REQUIRE(gcode.find("G3") == std::string::npos);
+            }
+        }
+    }
+
+    GIVEN("a writer whose mapping CAN express arcs, extruding a real amount") {
+        GCodeWriter writer;
+        configure_lift_writer(writer);
+        const double dE = 1.5;
+        // used_filament() accumulates across moves; E() is reset per line in
+        // relative-E mode, so it would only show the last segment.
+        const double used_before = writer.filament()->used_filament();
+
+        WHEN("an arc carrying that extrusion is emitted") {
+            const std::string gcode = writer.extrude_arc_to_xy(
+                Vec2d(10.0, 0.0), Vec2d(5.0, 0.0), dE, /*is_ccw=*/true, "", /*force_no_extrusion=*/false);
+
+            THEN("it is still a single arc and accounts for dE once") {
+                REQUIRE(emitted_commands(gcode).size() == 1);
+                REQUIRE_THAT(writer.filament()->used_filament() - used_before,
+                             Catch::Matchers::WithinAbs(dE, 1e-6));
+            }
+        }
+    }
+}
+
+TEST_CASE("Percent accelerations resolve against the option they are a percentage of", "[GCodeWriter]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor",                       "marlin" },
+        { "machine_max_acceleration_extruding", "20000,20000" },
+        { "default_acceleration",               "4000" },
+        { "initial_layer_acceleration",         "0" },
+        { "outer_wall_acceleration",            "3000" },
+        { "bridge_acceleration",                "50%" },
+        { "sparse_infill_acceleration",         "25%" },
+        { "internal_solid_infill_acceleration", "60%" },
+        { "sparse_infill_density",              "20%" },
+    });
+    // get_abs_value_at() resolves each percentage through the ratio_over in the config definitions.
+    const std::map<std::string, int> expected = {
+        { "Bridge",                int(config.get_abs_value_at("bridge_acceleration", 0)) },
+        { "Sparse infill",         int(config.get_abs_value_at("sparse_infill_acceleration", 0)) },
+        { "Internal solid infill", int(config.get_abs_value_at("internal_solid_infill_acceleration", 0)) },
+    };
+    REQUIRE(expected.at("Bridge") == 1500);
+    REQUIRE(expected.at("Sparse infill") == 1000);
+    REQUIRE(expected.at("Internal solid infill") == 2400);
+
+    std::map<std::string, std::set<int>> accelerations_by_role;
+    std::string role;
+    int         acceleration = 0;
+    GCodeReader reader;
+    reader.parse_buffer(Slic3r::Test::slice({ TestMesh::bridge }, config), [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        float value;
+        if (boost::starts_with(line.raw(), ";TYPE:"))
+            role = line.raw().substr(6);
+        else if (line.cmd_is("M204") && line.has_value('S', value))
+            acceleration = int(value);
+        else if (line.extruding(self) && line.dist_XY(self) > 0)
+            accelerations_by_role[role].insert(acceleration);
+    });
+    for (const auto &[role_name, value] : expected) {
+        INFO(role_name);
+        REQUIRE(accelerations_by_role[role_name] == std::set<int>{ value });
+    }
 }

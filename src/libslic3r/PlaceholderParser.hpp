@@ -1,13 +1,16 @@
 #ifndef slic3r_PlaceholderParser_hpp_
 #define slic3r_PlaceholderParser_hpp_
 
-#include "libslic3r.h"
+#include "Config.hpp"
 #include <map>
+#include <memory>
 #include <random>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
-#include "PrintConfig.hpp"
+
+namespace Slic3r { class DynamicPrintConfig; }
 
 namespace Slic3r {
 
@@ -24,7 +27,14 @@ public:
         // If defined, then this dictionary is used by the scripts to define user variables and persist them
         // between PlaceholderParser evaluations.
         std::unique_ptr<DynamicConfig>  global_config;
+        // Global variables declared in {if} branches that were not taken, see check_inactive_branches.
+        std::set<std::string>           inactive_global_variables;
     };
+
+    // Orca: when set, variable names inside {if} branches that are not taken must resolve too, so a single
+    // expansion checks every branch of a template. Only the profile validator's slice sweep sets it.
+    // It does not apply to evaluate_boolean_expression(), where an error reads as "compatible".
+    static inline bool check_inactive_branches = false;
 
     PlaceholderParser(const DynamicConfig *external_config = nullptr);
     

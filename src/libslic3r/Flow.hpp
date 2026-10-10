@@ -5,6 +5,8 @@
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "ExtrusionEntity.hpp"
+#include <string>
+#include <cassert>
 
 namespace Slic3r {
 

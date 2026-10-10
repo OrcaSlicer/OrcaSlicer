@@ -1,3 +1,7 @@
+#include <array>
+#include <algorithm>
+#include <functional>
+#include <cmath>
 #include <glad/gl.h>
 
 #include "3DScene.hpp"
@@ -25,6 +29,30 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <optional>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <math.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
+#include <set>
+#include <iterator>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Exception.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +64,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <Eigen/Dense>
+#include <vector>
+#include <utility>
+#include <string>
 
 #ifdef HAS_GLSAFE
 void glAssertRecentCallImpl(const char* file_name, unsigned int line, const char* function_name)
@@ -162,6 +193,16 @@ ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = {1.0f, 0.3f, 0.3f, 0.4f};
 
 ColorRGBA GLVolume::MODEL_HIDDEN_COL  = {0.f, 0.f, 0.f, 0.3f};
 
+// Precise Seam modifier colors. Center, Left and Right are deliberately close shades of one orange:
+// all three are strong modifiers, and distinct hues per mode would turn the scene into a rainbow.
+// The object list icons tell the modes apart.
+ColorRGBA GLVolume::PRECISE_SEAM_CENTER_COL   = {1.0f,   0.627f, 0.082f, 0.6f};  // FFA015 - orange
+ColorRGBA GLVolume::PRECISE_SEAM_LEFT_COL     = {1.0f,   0.753f, 0.0f,   0.6f};  // FFC000 - golden
+ColorRGBA GLVolume::PRECISE_SEAM_RIGHT_COL    = {1.0f,   0.514f, 0.0f,   0.6f};  // FF8300 - dark orange
+ColorRGBA GLVolume::PRECISE_SEAM_ENFORCED_COL = {0.412f, 0.820f, 0.412f, 0.6f};  // 69D169 - green
+ColorRGBA GLVolume::PRECISE_SEAM_NEUTRAL_COL  = {0.655f, 0.655f, 0.655f, 0.6f};  // A7A7A7 - gray
+ColorRGBA GLVolume::PRECISE_SEAM_BLOCKED_COL  = {0.820f, 0.412f, 0.412f, 0.6f};  // D16969 - red
+
 std::array<ColorRGBA, 5> GLVolume::MODEL_COLOR = { {
     { 1.0f, 1.0f, 0.0f, 1.f },
     { 1.0f, 0.5f, 0.5f, 1.f },
@@ -269,6 +310,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     , force_native_color(false)
     , force_neutral_color(false)
     , force_sinking_contours(false)
+    , depth_bias(false)
     , picking(false)
     , tverts_range(0, size_t(-1))
 {
@@ -363,6 +405,28 @@ ColorRGBA color_from_model_volume(const ModelVolume& model_volume)
     ColorRGBA color;
     if (model_volume.is_negative_volume())
         return GLVolume::MODEL_NEGTIVE_COL;
+    else if (model_volume.is_precise_seam()) {
+        // Return color based on Precise Seam subtype.
+        // Exhaustive switch (no default) so -Wswitch flags any future PRECISE_SEAM_* additions.
+        switch (model_volume.type()) {
+            case ModelVolumeType::PRECISE_SEAM_CENTER:   return GLVolume::PRECISE_SEAM_CENTER_COL;
+            case ModelVolumeType::PRECISE_SEAM_LEFT:     return GLVolume::PRECISE_SEAM_LEFT_COL;
+            case ModelVolumeType::PRECISE_SEAM_RIGHT:    return GLVolume::PRECISE_SEAM_RIGHT_COL;
+            case ModelVolumeType::PRECISE_SEAM_ENFORCED: return GLVolume::PRECISE_SEAM_ENFORCED_COL;
+            case ModelVolumeType::PRECISE_SEAM_NEUTRAL:  return GLVolume::PRECISE_SEAM_NEUTRAL_COL;
+            case ModelVolumeType::PRECISE_SEAM_BLOCKED:  return GLVolume::PRECISE_SEAM_BLOCKED_COL;
+            // Non-seam types are unreachable due to the outer is_precise_seam() guard;
+            // listed explicitly so this switch stays exhaustive over ModelVolumeType.
+            case ModelVolumeType::INVALID:
+            case ModelVolumeType::MODEL_PART:
+            case ModelVolumeType::NEGATIVE_VOLUME:
+            case ModelVolumeType::PARAMETER_MODIFIER:
+            case ModelVolumeType::SUPPORT_BLOCKER:
+            case ModelVolumeType::SUPPORT_ENFORCER:
+                break;
+        }
+        return GLVolume::MODEL_MIDIFIER_COL; // unreachable fallback
+    }
     else if (model_volume.is_modifier())
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
         return GLVolume::MODEL_MIDIFIER_COL;
@@ -507,10 +571,10 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     glsafe(::glClearStencil(0));
     glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
     glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
-    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render(shader);
-    else
-        model.render(this->tverts_range, shader);
+    // This pass paints the visible surface, so it must go through simple_render() to keep
+    // per-triangle MMU paint colors; the later is_outline passes only draw the flat silhouette
+    // highlight and are fine using the single-color model.
+    simple_render(shader, model_objects, colors);
     glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
     glsafe(::glStencilMask(0x00));
     shader->set_uniform("is_outline", true);
@@ -670,6 +734,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
     } while (0);
 
     if (color_volume && !picking) {
+        const bool brighten_selected = selected && !disabled && !force_native_color && !force_neutral_color;
+
         // when force_transparent, we need to keep the alpha
         if (force_native_color && render_color.is_transparent()) {
             for (auto &extruder_color : extruder_colors)
@@ -691,6 +757,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                         int color_idx = std::clamp(extruder_id - 1, 0, int(extruder_colors.size()) - 1);
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - color_idx)/255.0f;
                         }
@@ -702,6 +770,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     if (idx <= extruder_colors.size()) {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[idx - 1]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - (idx - 1))/255.0f;
                         }
@@ -711,6 +781,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     else {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[0]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - 0) / 255.0f;
                         }
@@ -1058,8 +1130,17 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
         );
     }
     else if (type == GLVolumeCollection::ERenderType::Opaque && list.size() > 1) {
+        // Orca: nearest first after the selected ones, so the depth test skips shading hidden surfaces.
+        for (GLVolumeWithIdAndZ& volume : list) {
+            volume.second.second = volume.first->transformed_bounding_box().transformed(view_matrix).max(2);
+        }
+
         std::sort(list.begin(), list.end(),
-            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool { return v1.first->selected && !v2.first->selected; }
+            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool {
+                if (v1.first->selected != v2.first->selected)
+                    return v1.first->selected;
+                return v1.second.second > v2.second.second;
+            }
         );
     }
 
@@ -1149,9 +1230,17 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
 
     const float support_normal_z = get_selection_support_normal_z();
 
+    // The outline passes below are driven by is_outline, which only the object shaders have; with an
+    // overlay one (wireframe, x-ray) bound they would just draw the volume again.
+    const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
+
     // Prime depth_tex on every frame so non-outline draws do not keep the
     // default sampler unit 0, which can conflict with other sampler types.
     shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
+
+    // Compute up direction accounting for build plate tilt. This is frame-invariant
+    // (config cannot change mid-render), so compute it once before the volume loop.
+    const Vec3f up_direction = GUI::build_plate_tilt_up_direction().cast<float>();
 
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
@@ -1231,6 +1320,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));
         shader->set_uniform("slope.normal_z", support_normal_z);
+        shader->set_uniform("slope.up_direction", up_direction);
 
 #if ENABLE_ENVIRONMENT_MAP
         unsigned int environment_texture_id = GUI::wxGetApp().plater()->get_environment_texture_id();
@@ -1248,11 +1338,17 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("projection_matrix", projection_matrix);
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        if (volume.first->depth_bias) {
+            glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+            glsafe(::glPolygonOffset(1.0f, 1.0f));
+        }
 		//BBS: add outline related logic
-        if (volume.first->selected && GUI::wxGetApp().show_outline())
+        if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();
+        if (volume.first->depth_bias)
+            glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
 
 #if ENABLE_ENVIRONMENT_MAP
         if (use_environment_texture)
@@ -1496,7 +1592,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     {
                         std::vector<int> result_filaments;
                         //result_filaments.reserve(conflict_filaments.size());
-                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), insert_iterator<vector<int>>(result_filaments, result_filaments.begin()));
+                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), std::insert_iterator<std::vector<int>>(result_filaments, result_filaments.begin()));
                         conflict_filament_vector = result_filaments;
                     }
                 }

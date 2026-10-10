@@ -44,6 +44,7 @@ struct SlopeDetection
     bool actived;
     float normal_z;
     mat3 volume_world_normal_matrix;
+    vec3 up_direction;
 };
 
 uniform vec4 uniform_color;
@@ -74,12 +75,20 @@ uniform PrintVolumeDetection print_volume;
 uniform float z_far;
 uniform float z_near;
 uniform bool enable_ssao;
+// 1 = the Design tab's studio lighting (studio_shade below); 0 = the two-light model above, which
+// every other canvas keeps. world_up_eye is world +Z in eye space, for the hemisphere ambient.
+uniform int lighting_model;
+uniform vec3 world_up_eye;
 
 // Depth-based shadow map (object-on-object and self shadows). shadow_intensity == 0 disables it.
 uniform sampler2D shadow_map;
 uniform mat4 shadow_light_vp;
 uniform float shadow_intensity;
 uniform float shadow_map_texel;
+// ORCA: realistic view - static shadows also light the scene from their fixed light.
+uniform bool use_static_light;
+uniform vec3 static_light_dir;
+vec3 top_light_dir() { return use_static_light ? static_light_dir : LIGHT_TOP_DIR; }
 
 in vec3 clipping_planes_dots;
 in float color_clip_plane_dot;
@@ -250,7 +259,7 @@ float shadow_shade()
     // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
     // suppresses self-shadow acne without discarding real shadows cast by other objects onto
     // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
-    float NdotL = dot(normalize(eye_normal), LIGHT_TOP_DIR);
+    float NdotL = dot(normalize(eye_normal), top_light_dir());
     float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
     // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
     float sum = 0.0;
@@ -261,6 +270,27 @@ float shadow_shade()
         }
     }
     return 1.0 - shadow_intensity * (sum / 25.0);
+}
+
+// Studio lighting for the Design tab. The default model lights every face from near the camera,
+// so the sides of a part come out in nearly the same tone and its form is hard to read. This one
+// separates faces by their orientation in the WORLD (a sky/ground hemisphere: up-facing faces
+// cool and bright, down-facing ones warm and dark), keeps a strong key light from the upper left
+// and a weak fill from the right, gives a plastic-like highlight, and darkens the base colour
+// toward the silhouette while adding a faint sheen there, so curved faces read as round.
+vec3 studio_shade(vec3 base, vec3 n, vec3 v)
+{
+    vec3 key  = normalize(vec3(-0.45, 0.60, 0.66));
+    vec3 fill = normalize(vec3(0.70, -0.15, 0.70));
+    float hemi = 0.5 + 0.5 * dot(n, normalize(world_up_eye));
+    vec3 ambient = mix(vec3(0.16, 0.15, 0.14), vec3(0.40, 0.42, 0.46), hemi);
+    float kd = max(dot(n, key), 0.0);
+    float fd = max(dot(n, fill), 0.0);
+    vec3 diffuse = ambient + vec3(0.60) * kd + vec3(0.20) * fd;
+    float spec = 0.28 * pow(max(dot(n, normalize(key + v)), 0.0), 48.0)
+               + 0.06 * pow(max(dot(n, normalize(fill + v)), 0.0), 24.0);
+    float rim = pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 3.0);
+    return base * diffuse * (1.0 - 0.30 * rim) + vec3(spec + 0.08 * rim);
 }
 
 void main()
@@ -305,9 +335,9 @@ void main()
     vec3 normal = normalize(eye_normal);
     vec3 view_dir = normalize(-eye_position);
 
-    float NdotL_top = max(dot(normal, LIGHT_TOP_DIR), 0.0);
+    float NdotL_top = max(dot(normal, top_light_dir()), 0.0);
     float diffuse = INTENSITY_AMBIENT + NdotL_top * LIGHT_TOP_DIFFUSE;
-    vec3 half_top = normalize(LIGHT_TOP_DIR + view_dir);
+    vec3 half_top = normalize(top_light_dir() + view_dir);
     float specular = LIGHT_TOP_SPECULAR * pow(max(dot(normal, half_top), 0.0), LIGHT_TOP_SHININESS);
 
     float NdotL_front = max(dot(normal, LIGHT_FRONT_DIR), 0.0);
@@ -319,9 +349,11 @@ void main()
     // SSAO is applied in post-process pass. Keep base lighting unchanged here.
 
     float shade = shadow_shade();
+    vec3 lit = (lighting_model == 1) ? studio_shade(color.rgb, normal, view_dir)
+                                     : (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
 
     if (is_outline) {
-        vec3 shaded_rgb = (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS * shade;
+        vec3 shaded_rgb = lit * shade;
         vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
         float s = DetectSilho(gl_FragCoord.xy);
         if (s < 0.01)
@@ -333,5 +365,5 @@ void main()
         out_color = vec4(clamp((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
 #endif
     else
-        out_color = vec4(clamp((vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
+        out_color = vec4(clamp(lit * shade, vec3(0.0), vec3(1.0)), color.a);
 }

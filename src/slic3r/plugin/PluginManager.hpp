@@ -1,26 +1,30 @@
 #ifndef slic3r_PluginManager_hpp_
 #define slic3r_PluginManager_hpp_
 
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <libslic3r/Config.hpp>
+#include <libslic3r/LifecycleEvents.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <pybind11/embed.h>
 
 #include "CloudPluginService.hpp"
-#include "PluginFsUtils.hpp"
 #include "PluginDescriptor.hpp"
 #include "PluginLoader.hpp"
 #include "PluginConfig.hpp"
@@ -209,6 +213,8 @@ public:
     bool delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
+
+    void dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx);
 
 private:
     PluginManager()                                = default;

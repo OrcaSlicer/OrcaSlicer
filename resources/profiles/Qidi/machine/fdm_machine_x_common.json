@@ -133,7 +133,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"wipe_tower_type": "type1",
 	"support_air_filtration": [

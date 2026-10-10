@@ -9,8 +9,12 @@
 */
 
 #pragma once
+#include <functional>
+#include <cstddef>
 #include <string>
 #include <nlohmann/json.hpp>
+#include <utility>
+#include <unordered_map>
 
 // Reserved for future usage
 #define DEV_RESERVED_FOR_FUTURE(...) /* stripped */
@@ -194,6 +198,3 @@ template<> struct std::hash<NozzleDef>
         return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
     };
 };
-
-// key(extruder_id) -> { key1(nozzle type info), val1( number of the nozzle type)}
-using ExtruderNozzleInfos = std::unordered_map<int, std::unordered_map<NozzleDef, int>>;

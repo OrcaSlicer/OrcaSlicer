@@ -4,7 +4,18 @@
 // #define PRUSASLICER_TRIANGLE_SELECTOR_DEBUG
 
 
+#include <array>
+#include <cassert>
+#include <cereal/access.hpp>
+#include <algorithm>
 #include <cfloat>
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+#include <memory>
+#include <utility>
+#include <optional>
+#include <functional>
 #include "Point.hpp"
 #include "TriangleMesh.hpp"
 
@@ -297,8 +308,20 @@ public:
             std::fill(used_states.begin(), used_states.end(), false);
         }
 
-        // Update used states based on the bitstream. It just iterated over the bitstream from the bitstream_start_idx till the end.
-        void update_used_states(size_t bitstream_start_idx);
+        // Update used states from the triangle trees stored between bitstream_start_idx and the end of the bitstream.
+        // Returns false and leaves used states untouched if a tree is truncated or malformed.
+        bool update_used_states(size_t bitstream_start_idx);
+
+        // Read the 4-bit code at bit index ibit (LSB first) and advance ibit past it.
+        // Returns false without advancing when fewer than 4 bits remain.
+        bool read_nibble(int &ibit, int &nibble) const {
+            if (ibit < 0 || static_cast<size_t>(ibit) + 4 > bitstream.size())
+                return false;
+            nibble = 0;
+            for (int i = 0; i < 4; ++i)
+                nibble |= static_cast<int>(bitstream[ibit++]) << i;
+            return true;
+        }
 
     private:
         friend class cereal::access;
@@ -327,6 +350,7 @@ public:
                       const Transform3d        &trafo_no_translate,            // matrix to get from mesh to world without translation
                       bool                      triangle_splitting,            // If triangles will be split base on the cursor or not
                       float                     highlight_by_angle_deg = 0.f,  // The maximal angle of overhang. If it is set to a non-zero value, it is possible to paint only the triangles of overhang defined by this angle in degrees.
+                      const Vec3f              &up_direction = Vec3f::UnitZ(), // Up direction for overhang detection (accounts for build plate tilt)
                       bool                      select_partially = false);     // Select a triangle if it's partially in the cursor but too small to be subdivided
 
     void seed_fill_select_triangles(const Vec3f        &hit,                          // point where to start
@@ -335,6 +359,7 @@ public:
                                     const ClippingPlane &clp,                         // Clipping plane to limit painting to not clipped facets only
                                     float               seed_fill_angle,              // the maximal angle between two facets to be painted by the same color
                                     float               highlight_by_angle_deg = 0.f, // The maximal angle of overhang. If it is set to a non-zero value, it is possible to paint only the triangles of overhang defined by this angle in degrees.
+                                    const Vec3f        &up_direction = Vec3f::UnitZ(), // Up direction for overhang detection (accounts for build plate tilt)
                                     bool                force_reselection = false);   // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
 
     void bucket_fill_select_triangles(const Vec3f         &hit,                        // point where to start
@@ -350,7 +375,14 @@ public:
     // Get facets at a given state. Don't triangulate T-joints.
     indexed_triangle_set get_facets(EnforcerBlockerType state) const;
     // Get facets at a given state. Triangulate T-joints.
-    indexed_triangle_set get_facets_strict(EnforcerBlockerType state) const;
+    // Sub-triangles in `state`, with the *whole* mesh's referenced vertex array (only .indices is
+    // filtered by state, so two calls with different states share one indexing).
+    //
+    // `out_source`, when given, is filled parallel to the returned .indices with the index of the
+    // original mesh triangle each sub-triangle came from. That is what lets a caller carry partial
+    // paint - the pieces of a triangle a brush stroke only partly covered - across a refinement of
+    // the same surface, instead of having to round each source triangle to wholly painted or not.
+    indexed_triangle_set get_facets_strict(EnforcerBlockerType state, std::vector<int> *out_source = nullptr) const;
     // Get edges around the selected area by seed fill.
     std::vector<Vec2i32> get_seed_fill_contour() const;
 

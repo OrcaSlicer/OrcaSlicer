@@ -8,10 +8,13 @@
 #include "ConfigValueFormatter.hpp"
 #include "FilamentBitmapUtils.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/Button.hpp"
+#include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/StateColor.hpp"
+#include "Widgets/SwitchButton.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
@@ -20,12 +23,33 @@
 #include "libslic3r/Model.hpp"
 
 #include <boost/algorithm/string/trim.hpp>
+#include <wx/colour.h>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <vector>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/TabCtrl.hpp"
 #include <wx/display.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/tglbtn.h>
+#include <wx/treebase.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/textctrl.h>
+#include <wx/stattext.h>
+#include <wx/geometry.h>
 #include <wx/utils.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcmemory.h>
 #include <wx/dcgraph.h>
 #include <wx/image.h>
+#include <wx/wrapsizer.h>
 #include <set>
 #include <algorithm>
 #include <cmath>
@@ -37,6 +61,48 @@
 
 namespace Slic3r { namespace GUI {
 namespace {
+
+// Orca's bitmap checkbox has the established teal checked state on every platform. Keep the
+// label separate so it stays clickable like a native wxCheckBox, while the control itself
+// remains accessible by keyboard.
+wxStaticText* add_checkbox_label(wxWindow* parent,
+                                 wxBoxSizer* sizer,
+                                 ::CheckBox* check,
+                                 const wxString& label,
+                                 const wxString& tooltip,
+                                 int label_width = 0)
+{
+    check->SetToolTip(tooltip);
+    sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, parent->FromDIP(2));
+
+    auto* text = new wxStaticText(parent, wxID_ANY, label);
+    text->SetFont(Label::Body_14);
+    text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    if (label_width > 0) {
+        text->SetMinSize(wxSize(label_width, -1));
+        text->SetMaxSize(wxSize(label_width, -1));
+        text->Wrap(label_width);
+    }
+    text->SetToolTip(tooltip);
+    text->SetCursor(wxCURSOR_HAND);
+    const auto toggle = [check]() {
+        if (!check->IsEnabled())
+            return;
+        check->SetValue(!check->GetValue());
+        wxCommandEvent event(wxEVT_TOGGLEBUTTON, check->GetId());
+        event.SetEventObject(check);
+        check->GetEventHandler()->ProcessEvent(event);
+    };
+    text->Bind(wxEVT_LEFT_DOWN, [toggle](wxMouseEvent& event) {
+        if (!event.LeftDClick())
+            toggle();
+    });
+    text->Bind(wxEVT_LEFT_DCLICK, [toggle](wxMouseEvent&) {
+        toggle();
+    });
+    sizer->Add(text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, parent->FromDIP(5));
+    return text;
+}
 
 // Menu ids for show_menu(): dedicated range so the popup cannot collide with application-level
 // bindings (e.g. MainFrame's recent-files wxID_FILE1.. range).
@@ -416,12 +482,54 @@ std::set<size_t> project_used_filament_slots(const PresetBundle& bundle, const D
     return used;
 }
 
+// Lays a translated sentence out along `row`, replacing each "%1%"-style placeholder with the
+// matching window from `chips`. Keeping the sentence in one msgid lets a translation put the
+// placeholders wherever its own grammar needs them; spacing comes from the translation itself.
+void add_sentence_with_chips(wxWindow* parent, wxSizer* row, const wxString& sentence, const std::vector<wxWindow*>& chips)
+{
+    std::vector<bool> placed(chips.size(), false);
+    auto add_text = [&](wxString text) {
+        text.Replace("%%", "%"); // the sentence is a format string
+        if (text.IsEmpty())
+            return;
+        auto* label = new wxStaticText(parent, wxID_ANY, text);
+        label->SetFont(Label::Body_12);
+        label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        row->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+    };
+    auto add_chip = [&](size_t i) {
+        if (i < chips.size() && chips[i] != nullptr && !placed[i]) {
+            placed[i] = true;
+            row->Add(chips[i], 0, wxALIGN_CENTER_VERTICAL);
+        }
+    };
+
+    size_t literal = 0, pos = 0;
+    while ((pos = sentence.find('%', pos)) != wxString::npos) {
+        size_t end = pos + 1;
+        while (end < sentence.length() && sentence[end] >= '0' && sentence[end] <= '9')
+            ++end;
+        if (end == pos + 1 || end >= sentence.length() || sentence[end] != '%') {
+            ++pos; // a bare '%'
+            continue;
+        }
+        long index = 0;
+        sentence.Mid(pos + 1, end - pos - 1).ToLong(&index);
+        add_text(sentence.Mid(literal, pos - literal));
+        add_chip(size_t(index - 1));
+        literal = pos = end + 1;
+    }
+    add_text(sentence.Mid(literal));
+    for (size_t i = 0; i < chips.size(); ++i) // whatever the translation left out
+        add_chip(i);
+}
+
 } // namespace
 
 // Warning shown on OK when an enabled mixed-filament slot relies on a filament that would ship
-// without its material. One row per unmet dependency: the mixed slot's colour chip, the
-// component filament's colour chip, and the reason. "Cancel" is the safe choice and keeps the
-// dialog open; "Publish anyway" continues.
+// without its material. One row per unmet dependency, each a single translated sentence whose
+// two placeholders are the mixed slot's and the component filament's colour chips. "Cancel" is
+// the safe choice and keeps the dialog open; "Publish anyway" continues.
 class MixedFilamentWarningDialog : public MsgDialog
 {
 public:
@@ -437,47 +545,37 @@ public:
         content->AddSpacer(FromDIP(10));
 
         const int swatch = FromDIP(20);
-        for (const MixedDependencyIssue& issue : issues) {
-            auto* row = new wxBoxSizer(wxHORIZONTAL);
-
-            // The mixed slot as just its own chip (gradient-aware, numbered like its tab);
-            // falls back to a plain label when the chip cannot be built.
-            const wxString mix_label = wxString::Format(_L("Filament %d (mixed)"), int(issue.mixed_slot) + 1);
-            const wxBitmap mix_bmp   = mixed_filament_chip_bitmap(full, issue.mixed_slot, swatch);
-            if (mix_bmp.IsOk()) {
-                auto* bmp = new wxStaticBitmap(this, wxID_ANY, mix_bmp);
-                bmp->SetToolTip(mix_label);
-                row->Add(bmp, 0, wxALIGN_CENTER_VERTICAL);
-            } else {
-                auto* label = new wxStaticText(this, wxID_ANY, mix_label);
-                label->SetFont(Label::Body_12);
-                row->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+        // The slot's colour swatch, numbered like its tab, with the slot name on hover; falls
+        // back to a label so the sentence always names both filaments.
+        auto make_chip = [&](const wxBitmap& bmp, const wxString& name) -> wxWindow* {
+            if (bmp.IsOk()) {
+                auto* chip = new wxStaticBitmap(this, wxID_ANY, bmp);
+                chip->SetToolTip(name);
+                return chip;
             }
+            auto* label = new wxStaticText(this, wxID_ANY, name);
+            label->SetFont(Label::Body_12);
+            return label;
+        };
 
-            auto* needs = new wxStaticText(this, wxID_ANY, _L("needs"));
-            needs->SetFont(Label::Body_12);
-            needs->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
-            row->Add(needs, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(6));
-
-            // The component filament's colour chip, numbered like the tab strips; the slot
-            // name stays on hover to keep the row itself short.
+        for (const MixedDependencyIssue& issue : issues) {
             std::string hex = filament_color_hex(full, issue.component_slot);
             if (hex.empty())
                 hex = "#D9D9D9";
-            if (wxBitmap* chip = get_extruder_color_icon(hex, std::to_string(issue.component_slot + 1), swatch, swatch)) {
-                auto* comp_bmp = new wxStaticBitmap(this, wxID_ANY, *chip);
-                comp_bmp->SetToolTip(wxString::Format(_L("Filament %d"), int(issue.component_slot) + 1));
-                row->Add(comp_bmp, 0, wxALIGN_CENTER_VERTICAL);
-            }
+            const wxBitmap* comp_bmp = get_extruder_color_icon(hex, std::to_string(issue.component_slot + 1), swatch, swatch);
 
-            auto* reason = new wxStaticText(this, wxID_ANY,
-                                            issue.reason == MixedDependencyIssue::Reason::Disabled ? _L("not enabled") :
-                                                                                                     _L("material not published"));
-            reason->SetFont(Label::Body_12);
-            reason->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#989898")));
-            row->Add(reason, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+            wxWindow* mix_chip  = make_chip(mixed_filament_chip_bitmap(full, issue.mixed_slot, swatch),
+                                            wxString::Format(_L("Filament %d (mixed)"), int(issue.mixed_slot) + 1));
+            wxWindow* comp_chip = make_chip(comp_bmp != nullptr ? *comp_bmp : wxNullBitmap,
+                                            wxString::Format(_L("Filament %d"), int(issue.component_slot) + 1));
 
-            content->Add(row, 0, wxLEFT, FromDIP(10));
+            auto* row = new wxWrapSizer(wxHORIZONTAL);
+            add_sentence_with_chips(this, row,
+                                    issue.reason == MixedDependencyIssue::Reason::Disabled ?
+                                        _L("%1% needs %2%, which is not enabled.") :
+                                        _L("%1% needs %2%, whose material will not be published."),
+                                    {mix_chip, comp_chip});
+            content->Add(row, 0, wxEXPAND | wxLEFT, FromDIP(10));
             content->AddSpacer(FromDIP(6));
         }
 
@@ -616,6 +714,9 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
     m_outer_tabs->SetBackgroundColour(GetBackgroundColour());
 
     m_outer_host = new wxPanel(this, wxID_ANY);
+#ifdef __WINDOWS__
+    m_outer_host->SetDoubleBuffered(true);
+#endif
     m_outer_host->SetBackgroundColour(GetBackgroundColour());
     m_outer_host_sizer = new wxBoxSizer(wxVERTICAL);
     m_outer_host->SetSizer(m_outer_host_sizer);
@@ -655,24 +756,35 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
 
     // Guide links, bottom-left, sharing the footer row with the OK/Cancel buttons (pushed right).
-    auto make_link = [this](const wxString& label, const char* url) {
-        wxStaticText* link = new wxStaticText(this, wxID_ANY, label);
-        link->SetFont(Label::Body_13);
-        link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
-        link->SetCursor(wxCURSOR_HAND);
-        link->Bind(wxEVT_LEFT_DOWN, [url](wxMouseEvent&) { wxLaunchDefaultBrowser(url, wxBROWSER_NEW_WINDOW); });
-        return link;
-    };
-    wxBoxSizer* links_sizer = new wxBoxSizer(wxVERTICAL);
-    links_sizer->Add(make_link(_L("Publish 3MF Wiki"), "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html"), 0, wxALIGN_LEFT);
-    links_sizer->Add(make_link(_L("Publish 3MF Video Guide"), "https://www.youtube.com/watch?v=-xt1N29UIOg"), 0,
-                     wxTOP | wxALIGN_LEFT, FromDIP(4));
+    wxBoxSizer* links_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    auto video_btn  = new Button(this, "", "toolbar_video_guide", 0, 15);
+    auto video_url = "https://www.youtube.com/watch?v=-xt1N29UIOg";
+    video_btn->SetToolTip(_L("Video Guide") + "\n" + video_url);
+    video_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    video_btn->SetCanFocus(false);
+    video_btn->Bind(wxEVT_LEFT_DOWN, ([video_url](auto& e) {wxLaunchDefaultBrowser(video_url);}));
+
+    links_sizer->Add(wiki_btn , 0, wxLEFT, FromDIP(10));
+    links_sizer->Add(video_btn, 0, wxLEFT, FromDIP(10));
 
     wxBoxSizer* footer = new wxBoxSizer(wxHORIZONTAL);
     footer->Add(links_sizer, 0, wxALIGN_CENTER_VERTICAL);
     footer->AddStretchSpacer();
     footer->Add(dlg_btns, 0, wxALIGN_CENTER_VERTICAL);
-    w_sizer->Add(footer, 0, wxRIGHT | wxLEFT | wxBOTTOM | wxEXPAND, FromDIP(10));
+    auto* footer_line = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
+    footer_line->SetBackgroundColour(wxColour("#CECECE"));
+    footer_line->SetMinSize(wxSize(-1, 1));
+    footer_line->SetMaxSize(wxSize(-1, 1));
+    w_sizer->Add(footer_line, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
+    w_sizer->Add(footer, 0, wxEXPAND, FromDIP(10));
 
     SetSizerAndFit(w_sizer);
     fit_to_content(); // initial size only; the dialog is resizable
@@ -685,14 +797,14 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
 
 // Size the window to its content: width follows the widest tab strip so no filament tab is
 // hidden (TabCtrl::relayout hides overflowing buttons), height scales proportionally. Both
-// are floored at the 600x500 base and capped at hard DIP limits - deliberately not the whole
+// are floored at the 530x530 base and capped at hard DIP limits - deliberately not the whole
 // display - with one last-resort clamp so the dialog can never open larger than the screen.
 // Also owns the resize floor: the window cannot be resized below what the tabs need, so
 // shrinking never re-hides a filament tab.
 void PublishSettingsDialog::fit_to_content()
 {
-    static const wxSize BASE{600, 500};
-    static const wxSize CAP{1300, 850};
+    static const wxSize BASE{530, 530}; // base size in DIP, the minimum the dialog can shrink to
+    static const wxSize CAP{1300, 850}; // hard cap in DIP, the maximum the dialog can grow to
 
     int strip = m_outer_tabs->GetFullSize();
     for (const SectionGroup& section : m_sections) {
@@ -760,38 +872,31 @@ void PublishSettingsDialog::build_option_model()
             return false;
         value = get_string_value(opt_id, full);
         unit  = _(def->sidetext);
+        if (unit == "%" && value.EndsWith("%"))
+            unit.clear();
         return true;
     };
 
     // --- Phase 1: printer per-extruder retraction settings (first, mirroring the sidebar's
-    // Printer group), from the printer tab's "Extruder"/"Extruder N" pages. One inner tab per
-    // extruder (e.g. "Left Extruder"/"Right Extruder" via Tab::translate_category), each holding
-    // that extruder's Retraction and Z-Hop rows with per-extruder "#N" values.
+    // Printer group), from the printer tab's "Extruder" page. One inner tab per extruder (named
+    // as on the printer tab's switch, e.g. "Left Extruder"/"Right Extruder" via
+    // Tab::translate_category), each holding that extruder's Retraction and Z-Hop rows with
+    // per-extruder "#N" values.
     {
         size_t g = section_group_for(Section::Printer);
         std::set<std::string> printer_added;
         for (Tab* tab : wxGetApp().tabs_list) {
-            if (tab->m_type != Preset::TYPE_PRINTER)
+            // The page's controls edit the extruder chosen on the printer tab's switch, so its
+            // option list is read once per extruder.
+            auto*       printer_tab = dynamic_cast<TabPrinter*>(tab);
+            const Page* page        = printer_tab ? printer_tab->extruder_page() : nullptr;
+            if (page == nullptr)
                 continue;
-            for (const PageShp& page : tab->m_pages) {
-                if (!page->title().StartsWith("Extruder"))
-                    continue;
-                // The extruder index of this page: its options are appended with the same
-                // "#N" opt_index (opt.second.second), so derive the tab's index from the first
-                // allowlisted option; skip the page when none is found (defensive).
-                int extruder_idx = -1;
-                for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
-                    if (optgroup->title != "Retraction" && optgroup->title != "Z-Hop")
-                        continue;
-                    for (const auto& opt : optgroup->opt_map())
-                        if (extruder_idx < 0)
-                            extruder_idx = opt.second.second;
-                    if (extruder_idx >= 0)
-                        break;
-                }
-                if (extruder_idx < 0)
-                    continue;
-                const wxString page_title = Tab::translate_category(page->title(), tab->m_type);
+            const size_t extruders_count = printer_tab->m_extruders_count;
+            for (size_t extruder_idx = 0; extruder_idx < extruders_count; ++extruder_idx) {
+                const wxString page_title = Tab::translate_category(extruders_count > 1 ? wxString::Format("Extruder %d", int(extruder_idx + 1)) : wxString("Extruder"), tab->m_type);
+                // Retraction and Z-Hop values are stored per variant column, not per extruder.
+                const int variant_index = printer_tab->extruder_variant_index(int(extruder_idx));
                 for (const ConfigOptionsGroupShp& optgroup : page->m_optgroups) {
                     // Allowlist on the untranslated optgroup title; the "Retraction when
                     // switching material" group is intentionally skipped.
@@ -799,17 +904,17 @@ void PublishSettingsDialog::build_option_model()
                         continue;
                     const wxString subcategory = _(optgroup->title);
                     for (const auto& opt : optgroup->opt_map()) {
-                        const std::string& opt_id   = opt.first;
                         const std::string& pure_key = opt.second.first;
                         // Rows are keyed by the full per-extruder "#N" opt_id so each extruder
                         // tab publishes its own value; GetPublishedKeys() emits the checked rows
                         // as-is.
+                        const std::string opt_id = pure_key + "#" + std::to_string(variant_index);
                         if (!printer_added.insert(opt_id).second)
                             continue;
                         wxString label, value, unit;
                         if (!option_text(opt_id, pure_key, label, value, unit))
                             continue;
-                        size_t cat_index = category_index_for(page_title, Section::Printer, g, size_t(extruder_idx));
+                        size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx);
                         size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
                         add_row_ui(opt_id, label, value, unit, cat_index, sub_index);
                     }
@@ -972,13 +1077,19 @@ void PublishSettingsDialog::build_option_model()
     // stays valid even if the vector is reallocated later.
     for (size_t c = 0; c < m_categories.size(); ++c)
         if (m_categories[c].enable_check != nullptr)
-            m_categories[c].enable_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_enable_toggle(c); });
+            m_categories[c].enable_check->Bind(wxEVT_TOGGLEBUTTON, [this, c](wxCommandEvent& event) {
+                on_enable_toggle(c);
+                event.Skip();
+            });
 
     // Wire the "Full Publish" checkboxes (physical slots): toggling one disables/enables the
     // material's rows.
     for (size_t c = 0; c < m_categories.size(); ++c)
         if (m_categories[c].full_check != nullptr)
-            m_categories[c].full_check->Bind(wxEVT_CHECKBOX, [this, c](wxCommandEvent&) { on_full_toggle(c); });
+            m_categories[c].full_check->Bind(wxEVT_TOGGLEBUTTON, [this, c](wxCommandEvent& event) {
+                on_full_toggle(c);
+                event.Skip();
+            });
 
     // No filter is active at startup: every row matches until the user types.
     for (Row& row : m_rows)
@@ -992,6 +1103,10 @@ void PublishSettingsDialog::build_option_model()
     for (SectionGroup& section : m_sections)
         if (!section.categories.empty())
             section.tabs->SelectItem(0);
+    // Orca: the Printer section shows its extruders on the same switch as the printer tab's Extruder page.
+    for (size_t s = 0; s < m_sections.size(); ++s)
+        if (m_sections[s].kind == Section::Printer && m_sections[s].categories.size() > 1)
+            setup_variant_switch(s);
     if (!m_sections.empty()) {
         m_outer_tabs->SelectItem(0);
         show_outer_page(0);
@@ -1041,6 +1156,9 @@ size_t PublishSettingsDialog::section_group_for(Section kind)
         section.mixed_tabs->Hide();
     }
     section.page_host = new wxPanel(section.page, wxID_ANY);
+#ifdef __WINDOWS__
+    section.page_host->SetDoubleBuffered(true);
+#endif
     section.page_host->SetBackgroundColour(GetBackgroundColour());
     section.page_host_sizer = new wxBoxSizer(wxVERTICAL);
     section.page_host->SetSizer(section.page_host_sizer);
@@ -1103,10 +1221,9 @@ size_t PublishSettingsDialog::category_index_for(
         if (is_mixed) {
             // No chip/title: the lone "Enable" checkbox tops the page.
             auto* enable_sizer    = new wxBoxSizer(wxHORIZONTAL);
-            category.enable_check = new wxCheckBox(category.page, wxID_ANY, _L("Enable"));
-            category.enable_check->SetFont(Label::Body_13);
-            category.enable_check->SetToolTip(_L("Publish this mixed filament and enable + Full Publish its component filaments"));
-            enable_sizer->Add(category.enable_check, 0, wxALIGN_CENTER_VERTICAL);
+            category.enable_check = new ::CheckBox(category.page, wxID_ANY);
+            category.enable_label = add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
+                                                       _L("Publish this mixed filament and enable + Full Publish its component filaments"));
             page_sizer->Add(enable_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         } else {
             // Line 1: [chip] [title] [Enable]. The Enable checkbox gates the whole slot: while
@@ -1119,25 +1236,25 @@ size_t PublishSettingsDialog::category_index_for(
             category.title_label = new wxStaticText(category.page, wxID_ANY, title);
             category.title_label->SetFont(Label::Head_14);
             header_sizer->Add(category.title_label, 0, wxALIGN_CENTER_VERTICAL);
-            category.enable_check = new wxCheckBox(category.page, wxID_ANY, _L("Enable"));
-            category.enable_check->SetFont(Label::Body_13);
-            category.enable_check->SetToolTip(_L("Publish this filament slot in the 3MF file"));
-            header_sizer->Add(category.enable_check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
+            auto* enable_sizer    = new wxBoxSizer(wxHORIZONTAL);
+            category.enable_check = new ::CheckBox(category.page, wxID_ANY);
+            category.enable_label = add_checkbox_label(category.page, enable_sizer, category.enable_check, _L("Enable"),
+                                                       _L("Publish this filament slot in the 3MF file"));
+            header_sizer->Add(enable_sizer, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
             page_sizer->Add(header_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
 
             // Line 2: the "Full Publish" toggle, on its own line below the title (hidden until
             // the slot is enabled), aligned with the colour chip above it.
             auto* full_sizer    = new wxBoxSizer(wxHORIZONTAL);
-            category.full_check = new wxCheckBox(category.page, wxID_ANY, _L("Full Publish"));
-            category.full_check->SetFont(Label::Body_13);
-            category.full_check->SetToolTip(_L("Embed the entire filament of this slot in the 3MF file"));
-            full_sizer->Add(category.full_check, 0, wxALIGN_CENTER_VERTICAL);
+            category.full_check = new ::CheckBox(category.page, wxID_ANY);
+            category.full_label = add_checkbox_label(category.page, full_sizer, category.full_check, _L("Full Publish"),
+                                                     _L("Embed the entire filament of this slot in the 3MF file"));
             category.full_line_item = page_sizer->Add(full_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(6));
         }
     }
 
     category.scroll = new wxScrolledWindow(category.page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
-    category.scroll->SetScrollRate(0, 10);
+    category.scroll->SetScrollRate(0, FromDIP(20));
     category.scroll->SetBackgroundColour(GetBackgroundColour());
     category.list_sizer = new wxBoxSizer(wxVERTICAL);
     category.scroll->SetSizer(category.list_sizer);
@@ -1147,7 +1264,7 @@ size_t PublishSettingsDialog::category_index_for(
     category.info->SetFont(Label::Body_13);
     category.list_sizer->Add(category.info, 1, wxALIGN_CENTER_HORIZONTAL | wxALL, FromDIP(10));
     category.info->Hide();
-    page_sizer->Add(category.scroll, 1, wxEXPAND | wxALL, FromDIP(4));
+    page_sizer->Add(category.scroll, 1, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(4));
     // A material slot starts disabled: its rows (and its Full Publish line) stay hidden until
     // "Enable" is checked.
     if (section == Section::Material)
@@ -1208,7 +1325,7 @@ size_t PublishSettingsDialog::subcategory_index_for(size_t category_index, const
         sub.header->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
         auto* wrap = new wxBoxSizer(wxVERTICAL);
         wrap->Add(sub.header, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(6));
-        sub.item = category.list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(22));
+        sub.item = category.list_sizer->Add(wrap, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
     }
     category.subs.push_back(std::move(sub));
     return category.subs.size() - 1;
@@ -1238,15 +1355,18 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
     const size_t row_index = m_rows.size();
     m_rows.push_back(std::move(row));
     Row& current  = m_rows[row_index];
-    current.check = new wxCheckBox(category.scroll, wxID_ANY, label);
-    current.check->SetFont(Label::Body_13);
-    current.check->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { refresh_tab_indicators(); });
+    current.check = new ::CheckBox(category.scroll, wxID_ANY);
+    current.check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& event) {
+        refresh_tab_indicators();
+        event.Skip();
+    });
     auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
-    row_sizer->Add(current.check, 0, wxALIGN_CENTER_VERTICAL);
+    current.check_label = add_checkbox_label(category.scroll, row_sizer, current.check, label + ":", wxEmptyString,
+                                             24 * wxGetApp().em_unit());
     // The value is read-only text (incl. the Type row: the published type is the slot's
     // normalized type, not author-editable).
     current.value_label = new wxStaticText(category.scroll, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-    current.value_label->SetFont(Label::Body_13);
+    current.value_label->SetFont(Label::Body_14);
     current.value_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
     current.value_label->SetToolTip(unit.IsEmpty() ? value : value + " " + unit);
     if (kind == RowKind::Color && !value.IsEmpty()) {
@@ -1257,14 +1377,14 @@ void PublishSettingsDialog::add_row_ui(const std::string& key,
             row_sizer->Add(current.color_chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
         }
     }
-    row_sizer->Add(current.value_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+    row_sizer->Add(current.value_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
     if (!unit.IsEmpty()) {
         current.unit_label = new wxStaticText(category.scroll, wxID_ANY, unit);
-        current.unit_label->SetFont(Label::Body_13);
+        current.unit_label->SetFont(Label::Body_14);
         current.unit_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
         row_sizer->Add(current.unit_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
     }
-    current.item = category.list_sizer->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(38));
+    current.item = category.list_sizer->Add(row_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
     category.rows.push_back(row_index);
     category.subs[subcategory_index].rows.push_back(row_index);
 }
@@ -1273,8 +1393,10 @@ void PublishSettingsDialog::on_full_toggle(size_t category_index)
 {
     Category& cat   = m_categories[category_index];
     const bool full = cat.full_check->GetValue();
-    for (size_t r : cat.rows)
+    for (size_t r : cat.rows) {
         m_rows[r].check->Enable(!full);
+        m_rows[r].check_label->Enable(!full);
+    }
     refresh_tab_indicators();
 }
 
@@ -1468,7 +1590,7 @@ void PublishSettingsDialog::add_mixed_visual(size_t category_index, const MixedV
 void PublishSettingsDialog::set_row_bold(Row& row, bool bold)
 {
     // Rebase on the dialog's body font so clearing bold restores the exact original font.
-    row.check->SetFont(bold ? Label::Body_13.Bold() : Label::Body_13);
+    row.check_label->SetFont(bold ? Label::Body_13.Bold() : Label::Body_13);
 }
 
 void PublishSettingsDialog::save_scroll_position(Category& category)
@@ -1517,6 +1639,8 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
         section.selected_mixed = -1;
     }
     section.selected_inner = inner_index;
+    if (section.variant_switch != nullptr)
+        section.variant_switch->SetSelection(inner_index); // fires its event, which ignores the shown page
     Category& category     = m_categories[section.categories[inner_index]];
     category.page->Show();
     category.scroll->FitInside();
@@ -1524,6 +1648,32 @@ void PublishSettingsDialog::show_inner_page(size_t section_index, int inner_inde
     if (section.mixed_tabs != nullptr)
         section.mixed_tabs->Unselect();
     section.page_host_sizer->Layout();
+}
+
+void PublishSettingsDialog::setup_variant_switch(size_t section_index)
+{
+    SectionGroup& section = m_sections[section_index];
+    std::vector<wxString> titles;
+    for (size_t category : section.categories)
+        titles.push_back(m_categories[category].title);
+
+    section.variant_switch = new MultiSwitchButton(section.page);
+    section.variant_switch->SetFitToOptions();
+    section.variant_switch->SetOptions(titles);
+    section.variant_switch->SetSelection(section.selected_inner);
+    section.variant_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this, section_index](wxCommandEvent& evt) {
+        evt.Skip();
+        // The hidden tab strip stays the selection model; its event shows the page.
+        SectionGroup& sec = m_sections[section_index];
+        if (evt.GetInt() != sec.selected_inner)
+            sec.tabs->SelectItem(evt.GetInt());
+    });
+
+    // The switch takes the place of the tab strip, centered like on the printer tab.
+    wxSizer* page_sizer = section.page->GetSizer();
+    page_sizer->Insert(1, section.variant_switch, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(4));
+    section.tabs->Hide();
+    section.page->Layout();
 }
 
 void PublishSettingsDialog::show_mixed_page(size_t section_index, int mixed_index)
@@ -1716,7 +1866,7 @@ void PublishSettingsDialog::select_all(bool value)
     for (Category& cat : m_categories)
         if (cat.section == Section::Material && cat.enable_check != nullptr)
             cat.enable_check->SetValue(value);
-    // wxCheckBox::SetValue does not emit wxEVT_CHECKBOX, so re-run the enable handlers to
+    // CheckBox::SetValue does not emit wxEVT_TOGGLEBUTTON, so re-run the enable handlers to
     // propagate mixed-slot components and refresh visibility as if the user had clicked.
     for (size_t c = 0; c < m_categories.size(); ++c)
         if (m_categories[c].section == Section::Material)
@@ -2071,6 +2221,13 @@ void PublishSettingsDialog::refresh_tab_indicators()
         for (size_t i = 0; i < section.categories.size(); ++i) {
             const bool on = category_has_selection(m_categories[section.categories[i]]);
             section.tabs->SetItemIndicator(static_cast<unsigned int>(i), on);
+            // The switch has no indicator dot; mark its option text instead.
+            if (section.variant_switch != nullptr) {
+                const wxString& title = m_categories[section.categories[i]].title;
+                const wxString  text  = on ? title + wxString(" ") + wxString(wxUniChar(0x2022)) : title;
+                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(i)) != text)
+                    section.variant_switch->SetOptionText(static_cast<unsigned int>(i), text);
+            }
             any = any || on;
         }
         if (section.mixed_tabs != nullptr)
@@ -2135,6 +2292,8 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
         section.tabs->Rescale();
         if (section.mixed_tabs != nullptr)
             section.mixed_tabs->Rescale();
+        if (section.variant_switch != nullptr)
+            section.variant_switch->Rescale();
     }
 
     // Refresh the per-row Color chips at the new DPI (they carry the slot number too).

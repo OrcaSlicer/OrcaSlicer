@@ -5,6 +5,7 @@
 	"family": "Snapmaker",
 	"url": "https://github.com/macdylan",
 	"model_id": "199828459",
+	"default_materials": "PolyTerra J1 PLA @0.2 nozzle;PolyTerra J1 PLA",
 	"bed_model": "Snapmaker J1_bed.stl",
 	"bed_texture": "Snapmaker J1_texture.svg",
 	"nozzle_diameter": "0.2;0.4;0.6;0.8"

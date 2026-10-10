@@ -56,9 +56,9 @@ You can do this in Environment Variables settings.
 endif ()
 
 if (APPLE)
-    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 11.3
+    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 12.0 (the lowest Xcode 27 accepts)
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.3" CACHE STRING "Minimum OS X deployment version" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum OS X deployment version" FORCE)
     endif ()
     message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif ()
@@ -69,6 +69,9 @@ endif ()
 if (POLICY CMP0092)
     cmake_policy(SET CMP0092 NEW)
 endif ()
+
+# project() reads this, so set it first.
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/ClangClShowIncludes.cmake")
 
 project(OrcaSlicer)
 
@@ -107,6 +110,7 @@ endif()
 
 option(SLIC3R_STATIC            "Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
+option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT ModelingAlgorithms)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
@@ -131,6 +135,7 @@ set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee3
 set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
 set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397")
 set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
+set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "74e443f8004022dde57a1bd0d10c097830f9ea8feb4ec927db52cd5d805c2f48")
 set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "ace861f360c6de2babedc1607d0f454b6b09a820dbc8182dc15af927e4df9589")
 
 # Version-scoped cache dir so a version bump invalidates the cached binary.
@@ -169,7 +174,10 @@ if(NOT ORCA_BUNDLED_UV_EXECUTABLE)
                 set(ORCA_UV_ARCH "x86_64-unknown-linux-gnu")
             endif()
         elseif(_orca_uv_proc MATCHES "aarch64|arm64|ARM64")
-            if(APPLE)
+            if(WIN32)
+                set(ORCA_UV_ARCH "aarch64-pc-windows-msvc")
+                set(ORCA_UV_EXT "zip")
+            elseif(APPLE)
                 set(ORCA_UV_ARCH "aarch64-apple-darwin")
             else()
                 set(ORCA_UV_ARCH "aarch64-unknown-linux-gnu")
@@ -275,6 +283,11 @@ if (APPLE)
     endif()
     SET(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.orcaslicer.OrcaSlicer")
 
+    # The macOS CI jobs build with Ninja (build_release_macos.sh -x), so the Xcode generator
+    # is not covered. Xcode adds -Wshorten-64-to-32 by default ("Implicit Conversion to 32 Bit
+    # Type"); Ninja/-Wall does not, and under -Werror it fails Xcode builds on code CI accepts.
+    set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_64_TO_32_BIT_CONVERSION "NO")
+
     message(STATUS "Orca: IS_CROSS_COMPILE: ${IS_CROSS_COMPILE}")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CMAKE_INSTALL_RPATH "$ORIGIN")
@@ -306,6 +319,10 @@ endforeach()
 
 if (SLIC3R_GUI)
     add_definitions(-DSLIC3R_GUI)
+endif ()
+
+if (SLIC3R_CAD)
+    add_definitions(-DSLIC3R_CAD)
 endif ()
 
 if(SLIC3R_DESKTOP_INTEGRATION)
@@ -806,7 +823,9 @@ if(SLIC3R_STATIC)
     set(TBB_STATIC 1)
 endif()
 set(TBB_DEBUG 1)
-set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO RelWithDebInfo Release "")
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo" OR MSVC)
+    set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO RelWithDebInfo Release "")
+endif()
 find_package(TBB REQUIRED)
 # include_directories(SYSTEM ${TBB_INCLUDE_DIRS})
 # add_definitions(${TBB_DEFINITIONS})
@@ -820,6 +839,37 @@ find_package(TBB REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Freetype REQUIRED)
+
+if (SLIC3R_GUI)
+    # LibDataChannel's installed export references its bundled dependencies,
+    # but does not install their CMake targets. Recreate those targets from
+    # the same dependency prefix before loading the LibDataChannel config.
+    if (NOT TARGET Usrsctp::usrsctp)
+        find_library(_ORCA_USRSCTP_LIBRARY NAMES usrsctp
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_USRSCTP_LIBRARY)
+            add_library(Usrsctp::usrsctp UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(Usrsctp::usrsctp PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_USRSCTP_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    if (NOT TARGET LibJuice::LibJuice)
+        find_library(_ORCA_LIBJUICE_LIBRARY NAMES juice
+            PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+        if (_ORCA_LIBJUICE_LIBRARY)
+            add_library(LibJuice::LibJuice UNKNOWN IMPORTED GLOBAL)
+            set_target_properties(LibJuice::LibJuice PROPERTIES
+                IMPORTED_LOCATION "${_ORCA_LIBJUICE_LIBRARY}"
+                IMPORTED_LINK_INTERFACE_LANGUAGES C
+                INTERFACE_LINK_LIBRARIES "Threads::Threads")
+        endif()
+    endif()
+
+    find_package(LibDataChannel CONFIG REQUIRED)
+endif()
 
 
 add_library(libcurl INTERFACE)
@@ -1034,10 +1084,10 @@ endif ()
 
 find_path(SPNAV_INCLUDE_DIR spnav.h)
 if (SPNAV_INCLUDE_DIR)
-    find_library(SPNAV_LIB NAMES libspnav.a) # Force linking libspnav statically
+    find_library(SPNAV_LIB NAMES libspnav.a spnav)
     if (SPNAV_LIB)
         add_definitions(-DHAVE_SPNAV)
-        message(STATUS "SPNAV library found")
+        message(STATUS "SPNAV library found: ${SPNAV_LIB}")
     else()
         message(STATUS "SPNAV library NOT found, Spacenavd not supported")
     endif()
@@ -1076,78 +1126,53 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${TOP_LEVEL_PROJECT_DIR}/deps/WebView2/lib/win-${_arch}/WebView2Loader.dll
         DESTINATION ${_out_dir})
 
-    file(COPY ${CMAKE_PREFIX_PATH}/bin/occt/TKBO.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKBRep.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKCDF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKernel.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKG2d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKG3d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKGeomAlgo.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKGeomBase.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKHLR.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKLCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKMath.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKMesh.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKPrim.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKService.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKShHealing.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEP.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEP209.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEPAttr.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEPBase.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKTopAlgo.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKV3d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKVCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXDESTEP.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXSBase.dll
+    # Stage the OCCT toolkits libslic3r links (published as OCCT_LIBS), not whatever the
+    # deps prefix happens to hold, and fail the configure if one of them is missing.
+    if (NOT OCCT_LIBS)
+        message(FATAL_ERROR "OCCT_LIBS is not set; libslic3r must be configured first.")
+    endif ()
+    string(TOUPPER "${config}" _config_upper)
+    set(_occt_bin "${OCCT_BIN_DIR_${_config_upper}}")
+    set(_occt_dlls "")
+    set(_occt_staged "")
+    set(_missing_occt "")
+    foreach (_tk IN LISTS OCCT_LIBS)
+        if (EXISTS "${_occt_bin}/${_tk}.dll")
+            list(APPEND _occt_dlls "${_occt_bin}/${_tk}.dll")
+            list(APPEND _occt_staged "${_out_dir}/${_tk}.dll")
+        else ()
+            list(APPEND _missing_occt "${_tk}.dll")
+        endif ()
+    endforeach ()
+    if (_missing_occt)
+        message(FATAL_ERROR
+            "OCCT DLLs missing from ${_occt_bin}/: ${_missing_occt}\n"
+            "Rebuild the dependencies (build_release_vs2022.bat deps) with the same "
+            "SLIC3R_CAD setting as this project.")
+    endif ()
+    file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
+            ${CMAKE_PREFIX_PATH}/bin/avformat-61.dll
             ${CMAKE_PREFIX_PATH}/bin/avcodec-61.dll
             ${CMAKE_PREFIX_PATH}/bin/swresample-5.dll
             ${CMAKE_PREFIX_PATH}/bin/swscale-8.dll
             ${CMAKE_PREFIX_PATH}/bin/avutil-59.dll
          DESTINATION ${_out_dir})
 
-    set(${output_dlls}
+    set(_dll_list
         ${_out_dir}/libgmp-10.dll
         ${_out_dir}/libmpfr-4.dll
         ${_out_dir}/WebView2Loader.dll
 
-        ${_out_dir}/TKBO.dll
-        ${_out_dir}/TKBRep.dll
-        ${_out_dir}/TKCAF.dll
-        ${_out_dir}/TKCDF.dll
-        ${_out_dir}/TKernel.dll
-        ${_out_dir}/TKG2d.dll
-        ${_out_dir}/TKG3d.dll
-        ${_out_dir}/TKGeomAlgo.dll
-        ${_out_dir}/TKGeomBase.dll
-        ${_out_dir}/TKHLR.dll
-        ${_out_dir}/TKLCAF.dll
-        ${_out_dir}/TKMath.dll
-        ${_out_dir}/TKMesh.dll
-        ${_out_dir}/TKPrim.dll
-        ${_out_dir}/TKService.dll
-        ${_out_dir}/TKShHealing.dll
-        ${_out_dir}/TKSTEP.dll
-        ${_out_dir}/TKSTEP209.dll
-        ${_out_dir}/TKSTEPAttr.dll
-        ${_out_dir}/TKSTEPBase.dll
-        ${_out_dir}/TKTopAlgo.dll
-        ${_out_dir}/TKV3d.dll
-        ${_out_dir}/TKVCAF.dll
-        ${_out_dir}/TKXCAF.dll
-        ${_out_dir}/TKXDESTEP.dll
-        ${_out_dir}/TKXSBase.dll
-
         ${_out_dir}/freetype.dll
+        ${_out_dir}/avformat-61.dll
         ${_out_dir}/avcodec-61.dll
         ${_out_dir}/swresample-5.dll
         ${_out_dir}/swscale-8.dll
         ${_out_dir}/avutil-59.dll
-        PARENT_SCOPE
     )
+    list(APPEND _dll_list ${_occt_staged})
+    set(${output_dlls} ${_dll_list} PARENT_SCOPE)
 
 endfunction()
 
@@ -1164,7 +1189,10 @@ function(orcaslicer_copy_sos target config postfix output_sos)
         set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
     endif ()
 
-    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavformat.so
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61
+            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.1.100
+            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
             ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
             ${CMAKE_PREFIX_PATH}/lib/libavutil.so
@@ -1179,6 +1207,9 @@ function(orcaslicer_copy_sos target config postfix output_sos)
          DESTINATION ${_out_dir})
 
     set(${output_sos}
+        ${_out_dir}/libavformat.so
+        ${_out_dir}/libavformat.so.61
+        ${_out_dir}/libavformat.so.61.1.100
         ${_out_dir}/libavcodec.so
         ${_out_dir}/libavcodec.so.61
         ${_out_dir}/libavcodec.so.61.3.100
@@ -1277,6 +1308,14 @@ if (WIN32)
     endif()
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
     include(InstallRequiredSystemLibraries)
+    # A missing MSVC runtime is an error because an installer without it cannot start on a clean machine.
+    set(_orca_runtime_names ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+    list(TRANSFORM _orca_runtime_names REPLACE "^.*/" "")
+    if (MSVC AND (NOT "msvcp140.dll" IN_LIST _orca_runtime_names OR NOT "vcruntime140.dll" IN_LIST _orca_runtime_names))
+        set(_orca_runtime_error "CMake ${CMAKE_VERSION} did not find msvcp140.dll and vcruntime140.dll for MSVC ${MSVC_VERSION}. Update CMake to a release that supports this Visual Studio.")
+        message(WARNING "${_orca_runtime_error}")
+        install(CODE "message(FATAL_ERROR \"${_orca_runtime_error}\")")
+    endif ()
     install (PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ".")
 elseif (SLIC3R_FHS)
     # CMAKE_INSTALL_FULL_DATAROOTDIR: read-only architecture-independent data root (share)
@@ -1308,6 +1347,8 @@ endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LIBRARY_FILES
+    ${LIBDIR_BIN}/libavformat.so.61
+    ${LIBDIR_BIN}/libavformat.so.61.1.100
     ${LIBDIR_BIN}/libavcodec.so.61
     ${LIBDIR_BIN}/libavcodec.so.61.3.100
     ${LIBDIR_BIN}/libavutil.so.59

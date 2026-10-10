@@ -1,6 +1,10 @@
 #include "CheckBox.hpp"
 
 #include "../wxExtensions.hpp"
+#include <wx/anybutton.h>
+#include <wx/gdicmn.h>
+#include <wx/checklst.h>
+#include <wx/tglbtn.h>
 
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"

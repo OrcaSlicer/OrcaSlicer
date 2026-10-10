@@ -14,6 +14,9 @@ on:
     # this workflow.
     - 'resources/printers/**'
     - 'scripts/**'
+    # orca_profile_tool.py reads the variant key sets from PrintConfig.cpp, and its
+    # tests the obsolete keys, so a PR changing either must be checked against the profiles.
+    - 'src/libslic3r/PrintConfig.cpp'
     - ".github/workflows/check_profiles.yml"
 
   workflow_dispatch:
@@ -71,17 +74,33 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
           exit ${PIPESTATUS[0]}
-      # Slice a two-colour cube through every printer so all custom g-code (incl. change_filament_gcode)
-      # is expanded - catches undefined-placeholder / invalid-flow bugs the static checks above cannot see.
+      # The validator above is the nightly build of main, so it cannot slice profiles that use
+      # settings a PR adds to the engine: it reports their placeholders as undefined. A PR that
+      # changes src/ also runs Build all, whose Slice check runs this same sweep with the
+      # validator built from the PR, so the sweep below only runs for the other PRs.
+      - name: Detect engine changes
+        id: engine_changes
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          base=${{ github.event.pull_request.base.sha }}
+          if git fetch --no-tags --depth=1 origin "$base" && ! git diff --quiet "$base" HEAD -- src/; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::This PR changes src/, so Build all's Slice check slices the profiles with the PR-built validator."
+          fi
+      # Slice a two-colour cube through every printer, and through every system process/filament whose
+      # templates no printer's own slice reaches, so every custom g-code and filename_format shipped is
+      # expanded (names in {if} branches not taken included) - catches undefined-placeholder /
+      # invalid-flow bugs the static checks above cannot see.
       - name: validate slice (expand custom g-code)
         id: validate_slice
+        if: ${{ steps.engine_changes.outputs.changed != 'true' }}
         continue-on-error: true
         run: |
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -s -l 2 2>&1 | tee ${{ runner.temp }}/validate_slice.log
           exit ${PIPESTATUS[0]}
-      # All vendors' filament_id collisions were fixed (see scripts/filament_id_snapshot.json),
-      # so the duplicate-filament-subtype check runs tree-wide.
+      # All vendors' filament_id collisions were fixed, so the duplicate-filament-subtype
+      # check runs tree-wide.
       - name: validate filament subtype check
         id: validate_filament_subtypes
         continue-on-error: true

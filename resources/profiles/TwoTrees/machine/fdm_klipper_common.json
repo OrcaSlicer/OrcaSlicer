@@ -118,7 +118,6 @@
 		"30"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "PAUSE\n",
@@ -126,7 +125,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"TwoTrees Generic PLA"
+		"Generic PLA @System"
 	],
 	"bed_exclude_area": [
 		"0x0"

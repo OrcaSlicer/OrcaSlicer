@@ -4,11 +4,26 @@
 #include "libslic3r/Utils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "I18N.hpp"
+#include "libslic3r_version.h"
 #include "slic3r/Utils/Http.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include <boost/asio/ip/address.hpp>
 #include <boost/log/trivial.hpp>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/wx.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/dialog.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+#include <exception>
+#include <wx/utils.h>
+#include <string>
 
 namespace Slic3r {
 namespace GUI {
@@ -257,7 +272,8 @@ void NetworkTestDialog::start_all_job_sequence()
 void NetworkTestDialog::start_test_url(TestJob job, wxString name, wxString url)
 {
 	m_in_testing[job] = true;
-	wxString info = wxString::Format("test %s start...", name);
+	// TRN %s is the name of the tested website
+	wxString info = wxString::Format(_L("test %s start..."), name);
 
 	update_status(job, info);
 
@@ -279,16 +295,16 @@ void NetworkTestDialog::start_test_url(TestJob job, wxString name, wxString url)
 			}
 		})
 		.on_ip_resolve([this,name,job](std::string ip) {
-			wxString ip_report = wxString::Format("test %s ip resolved = %s", name, ip);
+			wxString ip_report = wxString::Format(_L("test %s ip resolved = %s"), name, ip);
 			update_status(job, ip_report);
 		})
 		.on_error([this,name,job](std::string body, std::string error, unsigned int status) {
 		wxString info = wxString::Format("status=%u, body=%s, error=%s", status, body, error);
-        this->update_status(job, wxString::Format("test %s failed", name));
+        this->update_status(job, wxString::Format(_L("test %s failed"), name));
         this->update_status(-1, info);
 	}).perform_sync();
 	if (result == 0) {
-        update_status(job, wxString::Format("test %s ok", name));
+        update_status(job, wxString::Format(_L("test %s ok"), name));
     }
 	m_in_testing[job] = false;
 }

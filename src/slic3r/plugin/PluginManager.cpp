@@ -1,7 +1,13 @@
 #include "PluginManager.hpp"
 
-#include <libslic3r/Utils.hpp>
+#include <atomic>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <functional>
+#include "libslic3r/LifecycleEvents.hpp"
 #include <memory>
+#include <optional>
 #include <pybind11/embed.h>
 
 #include "PluginFsUtils.hpp"
@@ -20,14 +26,21 @@
 #include <algorithm>
 #include <chrono>
 #include <mutex>
+#include "slic3r/plugin/CloudPluginService.hpp"
 #include <slic3r/plugin/PluginConfig.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
+#include <stdexcept>
 #include <thread>
+#include <unordered_set>
 #include <utility>
 #include <vector>
+#include <wx/app.h>
+#include <wx/thread.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
 namespace {
@@ -134,7 +147,8 @@ void PluginManager::shutdown()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": PluginManager shutdown enter";
 
     // Detach the libslic3r hooks first so nothing dispatches into Python while (or after) plugins
-    // unload. Callers stop background slicing before this.
+    // unload. The lifecycle-event hook also drains callbacks already in progress before returning;
+    // the remaining hook seams retain their existing shutdown requirements.
     plugin_hooks::uninstall();
 
     // Reject new plugin loads before we drain.
@@ -2042,6 +2056,8 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
         return false;
     }
 
+    unload_plugin(plugin_key);
+
     if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
         set_plugin_error(plugin_key, error);
         return false;
@@ -2085,6 +2101,35 @@ ExecutionResult PluginManager::run_script_capability(const std::string& plugin_k
     }
 
     return result;
+}
+
+void PluginManager::dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx) {
+    const auto is_canceled = [&ctx]() {
+        return ctx.cancellation_check && ctx.cancellation_check();
+    };
+
+    if (is_canceled())
+        return;
+
+    for (const auto& cap : get_plugin_capabilities()) {
+        if (!cap || !cap->is_enabled()) continue;
+        if (is_canceled())
+            break;
+        try {
+            cap->on_lifecycle_event(evt, ctx);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": plugin '" << cap->audit_plugin_key() << "/" << cap->name()
+                                       << "' on_lifecycle_event(" << lifecycle_event_to_string(evt) << ") threw: " << ex.what()
+                                       << " [ctx name='" << ctx.name << "', code=" << lifecycle_evt_code_to_string(ctx.code)
+                                       << ", msg='" << ctx.msg << "']";
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": plugin '" << cap->audit_plugin_key() << "/" << cap->name()
+                                       << "' on_lifecycle_event(" << lifecycle_event_to_string(evt)
+                                       << ") threw a non-standard exception"
+                                       << " [ctx name='" << ctx.name << "', code=" << lifecycle_evt_code_to_string(ctx.code)
+                                       << ", msg='" << ctx.msg << "']";
+        }
+    }
 }
 
 } // namespace Slic3r

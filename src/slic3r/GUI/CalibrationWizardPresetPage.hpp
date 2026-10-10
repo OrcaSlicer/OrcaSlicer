@@ -2,6 +2,30 @@
 #define slic3r_GUI_CalibrationWizardPresetPage_hpp_
 
 #include "CalibrationWizardPage.hpp"
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "libslic3r/calib.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/string.h>
+#include <wx/arrstr.h>
+#include <functional>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <vector>
+#include <string>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <memory>
+#include "slic3r/GUI/Jobs/ProgressIndicator.hpp"
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <cstddef>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <unordered_map>
+#include "slic3r/GUI/wxExtensions.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -152,7 +176,8 @@ enum CaliPresetPageStatus
     CaliPresetStatusInConnecting, 
     CaliPresetStatusFilamentIncompatible,
     CaliPresetStatusLanModeSDcardNotAvailable,
-    CaliPresetStatusDifferentNozzleDiameters
+    CaliPresetStatusDifferentNozzleDiameters,
+    CaliPresetStatusOptionalPrinterModel
 };
 
 class CalibrationPresetPage : public CalibrationWizardPage
@@ -268,7 +293,6 @@ protected:
     bool is_nozzle_info_synced() const;
     void show_status(CaliPresetPageStatus status);
     void Enable_Send_Button(bool enable);
-    bool is_blocking_printing();
     bool need_check_sdcard(MachineObject* obj);
     
     CaliPresetPageStatus  get_status() { return m_page_status; }

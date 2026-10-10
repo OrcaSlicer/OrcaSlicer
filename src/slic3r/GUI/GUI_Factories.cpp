@@ -6,6 +6,7 @@
 #include "GUI_Factories.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_App.hpp"
+#include "Shortcuts.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "ObjectDataViewModel.hpp"
@@ -13,13 +14,37 @@
 #include "OptionsGroup.hpp"
 #include "GLCanvas3D.hpp"
 #include "Selection.hpp"
-#include "format.hpp"
 //BBS: add partplate related logic
 #include "PartPlate.hpp"
 #include "Gizmos/GLGizmoEmboss.hpp"
 #include "Gizmos/GLGizmoSVG.hpp"
 
+#include <algorithm>
+#include <array>
 #include <boost/algorithm/string.hpp>
+#include <string>
+#include <map>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <utility>
+#include <wx/dataview.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <cassert>
+#include "libslic3r/Point.hpp"
+#include <cstdlib>
+#include <boost/log/trivial.hpp>
 #include "slic3r/GUI/Tab.hpp"
 #include "ParamsPanel.hpp"
 #include "MsgDialog.hpp"
@@ -85,14 +110,14 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"make_overhang_printable_angle","", 8},{"make_overhang_printable_hole_size","",9}, {"wall_sequence","",10},
                     {"precise_z_height", "",10}
                     }},
-    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"brim_object_gap", "",3},{"brim_flow_ratio", "",4},{"brim_use_efc_outline", "",5},
-                    {"enable_support", "",6},{"support_type", "",7},{"support_threshold_angle", "",8}, {"support_threshold_overlap", "",9}, {"support_on_build_plate_only", "",10},
-                    {"support_filament", "",11},{"support_interface_filament", "",12},{"support_expansion", "",13},{"support_style", "",14},
-                    {"tree_support_brim_width", "",15}, {"tree_support_branch_angle", "",16},{"tree_support_branch_angle_organic","",17}, {"tree_support_wall_count", "",18},{"tree_support_branch_diameter_angle", "",19},//tree support
-                    {"support_bottom_z_distance", "",20},{"support_top_z_distance", "",21},{"support_base_pattern", "",22},{"support_base_pattern_spacing", "",23},
-                    {"support_interface_top_layers", "",24},{"support_interface_bottom_layers", "",25},{"support_interface_spacing", "",26},{"support_bottom_interface_spacing", "",27},
-                    {"support_object_xy_distance", "",28}, {"bridge_no_support", "",29},{"max_bridge_length", "",30},{"support_critical_regions_only", "",31},{"support_remove_small_overhang","",32},
-                    {"support_object_first_layer_gap","",33}
+    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"leading_brim_length", "",3},{"extra_brim_width", "",4},{"brim_object_gap", "",5},{"brim_flow_ratio", "",6},{"brim_use_efc_outline", "",7},
+                    {"enable_support", "",8},{"support_type", "",9},{"support_threshold_angle", "",10}, {"support_threshold_overlap", "",11}, {"support_on_build_plate_only", "",12},
+                    {"support_filament", "",13},{"support_interface_filament", "",14},{"support_expansion", "",15},{"support_style", "",16},
+                    {"tree_support_brim_width", "",17}, {"tree_support_branch_angle", "",18},{"tree_support_branch_angle_organic","",19}, {"tree_support_wall_count", "",20},{"tree_support_branch_diameter_angle", "",21},//tree support
+                    {"support_bottom_z_distance", "",22},{"support_top_z_distance", "",23},{"support_base_pattern", "",24},{"support_base_pattern_spacing", "",25},
+                    {"support_interface_top_layers", "",26},{"support_interface_bottom_layers", "",27},{"support_interface_spacing", "",28},{"support_bottom_interface_spacing", "",29},
+                    {"support_object_xy_distance", "",30}, {"bridge_no_support", "",31},{"max_bridge_length", "",32},{"support_critical_regions_only", "",33},{"support_remove_small_overhang","",34},
+                    {"support_object_first_layer_gap","",35}
                     }},
     { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13}
                   }}
@@ -123,6 +148,9 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"sparse_infill_density", "", 1},
        {"fill_multiline", "", 1},
        {"sparse_infill_pattern", "", 1},
+       {"tpms_adaptive", "", 1},
+       {"tpms_interior_density", "", 1},
+       {"tpms_adaptive_gradient", "", 1},
        {"sparse_infill_smooth_factor", "", 1},
        {"lateral_lattice_angle_1", "", 1},
        {"lateral_lattice_angle_2", "", 1},
@@ -335,13 +363,20 @@ wxBitmap SettingsFactory::get_category_bitmap(const std::string& category_name, 
 //-------------------------------------
 
 // Note: id accords to type of the sub-object (adding volume), so sequence of the menu items is important
-static const constexpr std::array<std::pair<const char *, const char *>, 5> ADD_VOLUME_MENU_ITEMS = {{
+static const constexpr std::array<std::pair<const char *, const char *>, 11> ADD_VOLUME_MENU_ITEMS = {{
     //       menu_item Name              menu_item bitmap name
         {L("Add Part"),              "menu_add_part" },           // ~ModelVolumeType::MODEL_PART
         {L("Add Negative Part"),     "menu_add_negative" },       // ~ModelVolumeType::NEGATIVE_VOLUME
         {L("Add Modifier"),          "menu_add_modifier"},         // ~ModelVolumeType::PARAMETER_MODIFIER
         {L("Add Support Blocker"),   "menu_support_blocker"},     // ~ModelVolumeType::SUPPORT_BLOCKER
         {L("Add Support Enforcer"),  "menu_support_enforcer"},     // ~ModelVolumeType::SUPPORT_ENFORCER
+        // Precise Seam modifiers (all 6 subtypes - only first one shown in menu, others used for tree icons)
+        {L("Add Precise Seam"),      "menu_precise_seam_center"},     // ~ModelVolumeType::PRECISE_SEAM_CENTER
+        {L("Add Precise Seam"),      "menu_precise_seam_left"},       // ~ModelVolumeType::PRECISE_SEAM_LEFT
+        {L("Add Precise Seam"),      "menu_precise_seam_right"},      // ~ModelVolumeType::PRECISE_SEAM_RIGHT
+        {L("Add Precise Seam"),      "menu_precise_seam_enforced"},   // ~ModelVolumeType::PRECISE_SEAM_ENFORCED
+        {L("Add Precise Seam"),      "menu_precise_seam_blocked"},    // ~ModelVolumeType::PRECISE_SEAM_BLOCKED
+        {L("Add Precise Seam"),      "menu_precise_seam_neutral"},    // ~ModelVolumeType::PRECISE_SEAM_NEUTRAL
 }};
 
 // Note: id accords to type of the sub-object (adding volume), so sequence of the menu items is important
@@ -578,113 +613,131 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
     return sub_menu;
 }
 
+// Orca: handy models shipped under <resources>/handy_models. Defining everything in one table keeps
+// the menu label, the files to load and the per-model behavior in a single place. Labels are wrapped
+// in L() so they are picked up for translation. Shared with the command palette.
+const std::vector<MenuFactory::HandyModel>& MenuFactory::handy_models()
+{
+    static const std::vector<HandyModel> models = {
+        {"orca_cube",           L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
+        {"orcasliced_combo",    L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
+        {"orca_badge",          L("Orca Badge"),          {"OrcaBadge.3mf"}},
+        {"orca_tolerance_test", L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
+        {"3dbenchy",            L("3DBenchy"),            {"3DBenchy.drc"}},
+        {"cali_cat",            L("Cali Cat"),            {"calicat.drc"}},
+        {"autodesk_fdm_test",   L("Autodesk FDM Test"),   {"ksr_fdmtest_v4.drc"}},
+        {"voron_cube",          L("Voron Cube"),          {"Voron_Design_Cube_v7.drc"}},
+        {"stanford_bunny",      L("Stanford Bunny"),      {"Stanford_Bunny.drc"}},
+        {"orca_string_hell",    L("Orca String Hell"),    {"Orca_stringhell.drc"},                                   false, true},
+    };
+    return models;
+}
+
+void MenuFactory::load_handy_model(std::size_t index)
+{
+    const std::vector<HandyModel>& models = handy_models();
+    if (index >= models.size())
+        return;
+    const HandyModel& model = models[index];
+
+    std::vector<boost::filesystem::path> input_files;
+    input_files.reserve(model.file_names.size());
+    for (const auto& file_name : model.file_names)
+        input_files.push_back((boost::filesystem::path(Slic3r::resources_dir()) / "handy_models" / file_name));
+
+    Plater* pl = plater();
+    if (!pl)
+        return;
+    pl->load_files(input_files, LoadStrategy::LoadModel);
+    if (model.arrange_after_import) {
+        pl->set_prepare_state(Job::PREPARE_STATE_MENU);
+        pl->arrange();
+    }
+
+    // Suggest to change settings for stringhell
+    // This serves as mini tutorial for new users
+    if (model.is_stringhell) {
+        wxGetApp().CallAfter([=] {
+            DynamicPrintConfig* m_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+
+            bool is_only_one_wall_top  = m_config->opt_bool("only_one_wall_top");
+            auto min_width_top_surface = m_config->option<ConfigOptionFloatOrPercent>("min_width_top_surface")->value;
+            if (is_only_one_wall_top && min_width_top_surface > 0) {
+                wxString msg_text = _L("This model features text embossment on the top surface. For optimal results, it is "
+                                       "advisable to set the 'One Wall Threshold (min_width_top_surface)' "
+                                       "to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
+                                       "Yes - Change these settings automatically\n"
+                                       "No  - Do not change these settings for me");
+
+                MessageDialog dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
+                if (dialog.ShowModal() == wxID_YES) {
+                    m_config->set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0, false));
+                    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
+                    wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
+                }
+                wxGetApp().plater()->update();
+            }
+        });
+    }
+}
+
 // Orca: add submenu for adding handy models
 wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeType type) {
     auto sub_menu = new wxMenu;
 
-    // Orca: handy models shipped under <resources>/handy_models. Defining everything in one table
-    // keeps the menu label, the files to load and the per-model behavior in a single place and
-    // avoids repeating the label strings (and the value-vs-pointer comparison pitfalls that come
-    // with that). Labels are wrapped in L() so they are picked up for translation.
-    struct HandyModel
-    {
-        const char*              label;
-        std::vector<std::string> file_names;
-        bool                     arrange_after_import = false;
-        bool                     is_stringhell        = false;
-    };
-    static const std::vector<HandyModel> handy_models = {
-        {L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
-        {L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
-        {L("Orca Badge"),          {"OrcaBadge.3mf"}},
-        {L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
-        {L("3DBenchy"),            {"3DBenchy.drc"}},
-        {L("Cali Cat"),            {"calicat.drc"}},
-        {L("Autodesk FDM Test"),   {"ksr_fdmtest_v4.drc"}},
-        {L("Voron Cube"),          {"Voron_Design_Cube_v7.drc"}},
-        {L("Stanford Bunny"),      {"Stanford_Bunny.drc"}},
-        {L("Orca String Hell"),    {"Orca_stringhell.drc"},                                   false, true},
-    };
-
-    for (const auto& model : handy_models) {
-        append_menu_item(
-            sub_menu, wxID_ANY, _(model.label), "",
-            [&model](wxCommandEvent&) {
-                std::vector<boost::filesystem::path> input_files;
-                input_files.reserve(model.file_names.size());
-                for (const auto& file_name : model.file_names)
-                    input_files.push_back((boost::filesystem::path(Slic3r::resources_dir()) / "handy_models" / file_name));
-
-                plater()->load_files(input_files, LoadStrategy::LoadModel);
-                if (model.arrange_after_import) {
-                    plater()->set_prepare_state(Job::PREPARE_STATE_MENU);
-                    plater()->arrange();
-                }
-
-                // Suggest to change settings for stringhell
-                // This serves as mini tutorial for new users
-                if (model.is_stringhell) {
-                    wxGetApp().CallAfter([=] {
-                        DynamicPrintConfig* m_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
-
-                        bool is_only_one_wall_top  = m_config->opt_bool("only_one_wall_top");
-                        auto min_width_top_surface = m_config->option<ConfigOptionFloatOrPercent>("min_width_top_surface")->value;
-                        if (is_only_one_wall_top && min_width_top_surface > 0) {
-                            wxString msg_text = _L("This model features text embossment on the top surface. For optimal results, it is "
-                                                   "advisable to set the 'One Wall Threshold (min_width_top_surface)' "
-                                                   "to 0 for the 'Only One Wall on Top Surfaces' to work best.\n"
-                                                   "Yes - Change these settings automatically\n"
-                                                   "No  - Do not change these settings for me");
-
-                            MessageDialog dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
-                            if (dialog.ShowModal() == wxID_YES) {
-                                m_config->set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0, false));
-                                wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
-                                wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
-                            }
-                            wxGetApp().plater()->update();
-                        }
-                    });
-                }
-            },
-            "", menu);
+    const std::vector<HandyModel>& models = handy_models();
+    for (std::size_t i = 0; i < models.size(); ++i) {
+        append_menu_item(sub_menu, wxID_ANY, _(models[i].label), "",
+            [i](wxCommandEvent&) { MenuFactory::load_handy_model(i); }, "", menu);
     }
-
 
     return sub_menu;
 }
+
+// Create a Text/SVG volume through the matching gizmo. `type == INVALID` means "create a new object".
+// Shared by the add menu and the command palette.
+static void add_volume_with_gizmo(GLGizmosManager::EType gizmo_type, ModelVolumeType type)
+{
+    Plater* pl = plater();
+    if (!pl)
+        return;
+    const GLCanvas3D* canvas = pl->canvas3D();
+    if (!canvas)
+        return;
+    GLGizmoBase* gizmo_base = canvas->get_gizmos_manager().get_gizmo(gizmo_type);
+    if (!gizmo_base)
+        return;
+
+    ModelVolumeType volume_type = type;
+    // no selected object means create new object
+    if (volume_type == ModelVolumeType::INVALID)
+        volume_type = ModelVolumeType::MODEL_PART;
+
+    auto screen_position = canvas->get_popup_menu_position();
+    if (gizmo_type == GLGizmosManager::Emboss) {
+        auto* emboss = dynamic_cast<GLGizmoEmboss*>(gizmo_base);
+        if (emboss == nullptr)
+            return;
+        if (screen_position.has_value())
+            emboss->create_volume(volume_type, *screen_position);
+        else
+            emboss->create_volume(volume_type);
+    } else if (gizmo_type == GLGizmosManager::Svg) {
+        auto* svg = dynamic_cast<GLGizmoSVG*>(gizmo_base);
+        if (svg == nullptr)
+            return;
+        if (screen_position.has_value())
+            svg->create_volume(volume_type, *screen_position);
+        else
+            svg->create_volume(volume_type);
+    }
+}
+
+void MenuFactory::add_text_volume(ModelVolumeType type) { add_volume_with_gizmo(GLGizmosManager::Emboss, type); }
+void MenuFactory::add_svg_volume(ModelVolumeType type) { add_volume_with_gizmo(GLGizmosManager::Svg, type); }
+
 static void append_menu_itemm_add_(const wxString& name, GLGizmosManager::EType gizmo_type, wxMenu *menu, ModelVolumeType type, bool is_submenu_item) {
-    auto add_ = [type, gizmo_type](const wxCommandEvent & /*unnamed*/) {
-        const GLCanvas3D *canvas = plater()->canvas3D();
-        const GLGizmosManager &mng = canvas->get_gizmos_manager();
-        GLGizmoBase *gizmo_base = mng.get_gizmo(gizmo_type);
-
-        ModelVolumeType volume_type = type;
-        // no selected object means create new object
-        if (volume_type == ModelVolumeType::INVALID)
-            volume_type = ModelVolumeType::MODEL_PART;
-
-        auto screen_position = canvas->get_popup_menu_position();
-        if (gizmo_type == GLGizmosManager::Emboss) {
-            auto emboss = dynamic_cast<GLGizmoEmboss *>(gizmo_base);
-            assert(emboss != nullptr);
-            if (emboss == nullptr) return;
-            if (screen_position.has_value()) {
-                emboss->create_volume(volume_type, *screen_position);
-            } else {
-                emboss->create_volume(volume_type);
-            }
-        } else if (gizmo_type == GLGizmosManager::Svg) {
-            auto svg = dynamic_cast<GLGizmoSVG *>(gizmo_base);
-            assert(svg != nullptr);
-            if (svg == nullptr) return;
-            if (screen_position.has_value()) {
-                svg->create_volume(volume_type, *screen_position);
-            } else {
-                svg->create_volume(volume_type);
-            }
-        }
-    };
+    auto add_ = [type, gizmo_type](const wxCommandEvent & /*unnamed*/) { add_volume_with_gizmo(gizmo_type, type); };
 
     if (type == ModelVolumeType::MODEL_PART || type == ModelVolumeType::NEGATIVE_VOLUME || type == ModelVolumeType::PARAMETER_MODIFIER ||
         type == ModelVolumeType::INVALID // cannot use gizmo without selected object
@@ -721,10 +774,20 @@ void MenuFactory::append_menu_items_add_volume(wxMenu* menu)
 
     for (size_t type = 0; type < ADD_VOLUME_MENU_ITEMS.size(); type++)
     {
+        // Skip Precise Seam subtypes except the first one (CENTER) - they are only used for tree icons
+        if (type >= int(ModelVolumeType::PRECISE_SEAM_LEFT) &&
+            type <= int(ModelVolumeType::PRECISE_SEAM_NEUTRAL))
+            continue;
+
         auto& item = ADD_VOLUME_MENU_ITEMS[type];
 
+        // Use special icon for "Add Precise Seam" menu (different from tree icon)
+        std::string icon_name = item.second;
+        if (type == int(ModelVolumeType::PRECISE_SEAM_CENTER))
+            icon_name = "menu_precise_seam_add";
+
         wxMenu* sub_menu = append_submenu_add_generic(menu, ModelVolumeType(type));
-        append_submenu(menu, sub_menu, wxID_ANY, _(item.first), "", item.second,
+        append_submenu(menu, sub_menu, wxID_ANY, _(item.first), "", icon_name,
             []() { return obj_list()->is_instance_or_object_selected(); }, m_parent);
     }
 
@@ -824,11 +887,16 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
     };
 
     std::vector<TypeInfo> types = {
-        { ModelVolumeType::MODEL_PART,         _L("Part") },
-        { ModelVolumeType::NEGATIVE_VOLUME,    _L("Negative Part") },
-        { ModelVolumeType::PARAMETER_MODIFIER, _L("Modifier") },
-        { ModelVolumeType::SUPPORT_BLOCKER,    _L("Support Blocker") },
-        { ModelVolumeType::SUPPORT_ENFORCER,   _L("Support Enforcer") }
+        { ModelVolumeType::MODEL_PART,          _L("Part") },
+        { ModelVolumeType::NEGATIVE_VOLUME,     _L("Negative Part") },
+        { ModelVolumeType::PARAMETER_MODIFIER,  _L("Modifier") },
+        { ModelVolumeType::SUPPORT_BLOCKER,     _L("Support Blocker") },
+        { ModelVolumeType::SUPPORT_ENFORCER,    _L("Support Enforcer") },
+        // Single "Precise Seam" entry that maps to PRECISE_SEAM_CENTER as the default subtype.
+        // set_volume_type() preserves the existing subtype (LEFT/RIGHT/etc.) for volumes that
+        // are already Precise Seam; subtype picking is done via the separate
+        // "Precise Seam Type" submenu (see append_menu_item_precise_seam_submenu).
+        { ModelVolumeType::PRECISE_SEAM_CENTER, _L("Precise Seam") }
     };
 
     for (const auto& info : types) {
@@ -844,7 +912,13 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
             obj_list()->GetSelections(sels);
             for (auto item : sels) {
                 ModelVolumeType vol_type = model->GetVolumeType(item);
-                if (vol_type == type) {
+                // The "Precise Seam" entry represents all six PS subtypes, so any subtype
+                // among selected volumes counts as a match (keeps the checkbox ticked when
+                // user has PS_LEFT/RIGHT/etc. selected, not only plain CENTER).
+                const bool match = (type == ModelVolumeType::PRECISE_SEAM_CENTER)
+                    ? is_precise_seam(vol_type)
+                    : (vol_type == type);
+                if (match) {
                     has_type = true;
                     break;
                 }
@@ -852,6 +926,7 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
             evt.Check(has_type);
 
             // ORCA Fix crash caused by SVG/TEXT volumes cant be Support Enforcer/Blocker type
+            // The same applies to Precise Seam subtypes.
             for (auto item : sels) {
                 if (model->GetItemType(item) == itVolume){
                     auto vol_idx = model->GetVolumeIdByItem(item);
@@ -862,7 +937,8 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
                     auto vol = (*objs)[obj_idx]->volumes[vol_idx];
 
                     // disable Support Enforcer/Blocker if selection contains svg or text
-                    if (vol != nullptr && (vol->is_svg() || vol->is_text()) && (type == ModelVolumeType::SUPPORT_BLOCKER || type == ModelVolumeType::SUPPORT_ENFORCER)){
+                    // (same applies to Precise Seam)
+                    if (vol != nullptr && (vol->is_svg() || vol->is_text()) && (type == ModelVolumeType::SUPPORT_BLOCKER || type == ModelVolumeType::SUPPORT_ENFORCER || is_precise_seam(type))){
                         evt.Enable(false);
                         break;
                     }
@@ -1290,6 +1366,131 @@ void MenuFactory::append_menu_items_mirror(wxMenu* menu)
         []() { return plater()->can_mirror(); }, m_parent);
 }
 
+void MenuFactory::append_menu_item_precise_seam_submenu(wxMenu* menu)
+{
+    wxString submenu_name = _L("Precise Seam Type");
+
+    // Remove existing submenu if present (menu is rebuilt on every right-click)
+    const int menu_item_id = menu->FindItem(submenu_name);
+    if (menu_item_id != wxNOT_FOUND)
+        menu->Destroy(menu_item_id);
+
+    // --- Precondition: ALL selected volumes must be Precise Seam ---
+    // Mixed selections (PS + non-PS) are ambiguous for subtype switching: applying a subtype
+    // would implicitly convert the non-PS volumes to PS, which is not what the user expects
+    // from a subtype picker. For mixed selections the user should first use
+    // "Change type → Precise Seam" to unify them, then come back to this submenu.
+    wxDataViewItemArray sels;
+    obj_list()->GetSelections(sels);
+    if (sels.IsEmpty())
+        return;
+
+    // A right-click on a volume in the 3D view routes through Plater::show_context_menu
+    // → ObjectList::update_selections(), which intentionally preserves a pre-existing
+    // settings-row selection alongside the clicked volume. As a result GetSelections()
+    // may return settings-row items that are children of a volume. Treat each settings
+    // row as selecting its parent volume (same pattern used by set_volume_type()
+    // internally). Without this resolution, GetVolumeType(settings_row) returns INVALID
+    // and the submenu would hide even when a valid PS volume is in the selection.
+    //
+    // Precomputing the resolved PS types once here also lets the checkmark loop below
+    // display checks correctly for selections that contain settings rows.
+    std::vector<ModelVolumeType> selected_ps_types;
+    selected_ps_types.reserve(sels.size());
+
+    auto* model = obj_list()->GetModel();
+    for (const auto& sel_item : sels) {
+        wxDataViewItem vol_item  = sel_item;
+        const ItemType type_mask = model->GetItemType(sel_item);
+        if (!(type_mask & itVolume)) {
+            // Only settings rows whose parent is a volume map to "selecting that volume".
+            // Any other non-volume item (object, instance, etc.) means the selection is
+            // not purely PS-volume-based — hide the submenu.
+            if ((type_mask & itSettings) && (model->GetItemType(model->GetParent(sel_item)) & itVolume))
+                vol_item = model->GetParent(sel_item);
+            else
+                return;
+        }
+        const ModelVolumeType vol_type = model->GetVolumeType(vol_item);
+        if (!is_precise_seam(vol_type))
+            return;
+        selected_ps_types.push_back(vol_type);
+    }
+
+    // Match the label used by append_menu_item_change_type, including its translation.
+    int insert_pos     = wxNOT_FOUND;
+    int change_type_id = menu->FindItem(_L("Change Type"));
+    if (change_type_id != wxNOT_FOUND) {
+        for (size_t i = 0; i < menu->GetMenuItemCount(); i++) {
+            wxMenuItem* item = menu->FindItemByPosition(i);
+            if (item && item->GetId() == change_type_id) {
+                insert_pos = i + 1;  // insert directly after the Change Type entry
+                break;
+            }
+        }
+    }
+
+    // --- Build the subtype submenu ---
+    wxMenu* ps_menu = new wxMenu();
+
+    // Array of all 6 Precise Seam subtypes with labels.
+    // "Seam ..." prefix disambiguates from other i18n contexts (extruder Left/Right, "Center on bed", etc.)
+    static const std::array<std::pair<const char*, ModelVolumeType>, 6> PS_TYPES = {{
+        {L("Seam Center"),   ModelVolumeType::PRECISE_SEAM_CENTER},
+        {L("Seam Left"),     ModelVolumeType::PRECISE_SEAM_LEFT},
+        {L("Seam Right"),    ModelVolumeType::PRECISE_SEAM_RIGHT},
+        {L("Seam Enforced"), ModelVolumeType::PRECISE_SEAM_ENFORCED},
+        {L("Seam Blocked"),  ModelVolumeType::PRECISE_SEAM_BLOCKED},
+        {L("Seam Neutral"),  ModelVolumeType::PRECISE_SEAM_NEUTRAL},
+    }};
+
+    for (const auto& ps_type : PS_TYPES) {
+        wxString label = _(ps_type.first);
+
+        // Check-items (not radio): radio groups in wxWidgets auto-select the first item when
+        // no item is explicitly checked, which misleads the user into seeing "Seam Center"
+        // as the active subtype for mixed-subtype selections. With check-items we can leave
+        // every item unchecked in that case, and the menu matches the pattern of the
+        // neighbouring "Change type" submenu (see append_menu_item_change_type).
+        //
+        // Handler: delegate to set_volume_type() with preserve_ps_subtype=false. The user
+        // explicitly picked a subtype here, so "Seam Center" must set every selected PS
+        // volume to CENTER verbatim — preservation (the default for "Change type") would
+        // keep existing subtypes and make CENTER unreachable on mixed-subtype selections.
+        // set_volume_type() already handles multi-select iteration, the last-solid-part
+        // guard, and the PS group-change reordering via move_volume_to_end().
+        wxMenuItem* item = append_menu_check_item(ps_menu, wxID_ANY, label, "",
+            [ps_type](wxCommandEvent&) {
+                obj_list()->set_volume_type(ps_type.second, /*preserve_ps_subtype=*/false);
+            },
+            ps_menu);
+
+        // Tick every subtype that is present in the current selection. Same pattern as the
+        // neighbouring "Change type" submenu (where selecting [Part + Modifier] ticks both
+        // "Part" and "Modifier" boxes). For homogeneous selections exactly one checkbox is
+        // ticked; for mixed subtype selections (e.g. PS_LEFT + PS_RIGHT) both "Seam Left"
+        // and "Seam Right" appear checked, so the user sees at a glance which subtypes are
+        // currently in the selection.
+        //
+        // Uses the precomputed selected_ps_types (which resolved settings rows to their
+        // parent volumes); iterating sels directly would miss subtypes for selections that
+        // arrive via settings rows from right-click-in-3D-view.
+        const bool is_present = std::find(selected_ps_types.begin(), selected_ps_types.end(),
+                                          ps_type.second) != selected_ps_types.end();
+        if (is_present && item)
+            item->Check(true);
+    }
+
+    // Add submenu to parent menu
+    append_submenu(menu, ps_menu, wxID_ANY,
+                   submenu_name,
+                   _L("Choose precise seam subtype"),
+                   "menu_precise_seam_type",
+                   []() { return true; },
+                   m_parent,
+                   insert_pos);
+}
+
 void MenuFactory::append_menu_item_edit_text(wxMenu *menu)
 {
     wxString name        = _L("Edit text");
@@ -1559,6 +1760,7 @@ void MenuFactory::create_part_menu()
 
     menu->AppendSeparator();
     append_menu_item_change_type(menu);
+    append_menu_item_precise_seam_submenu(menu);
     append_menu_items_mirror(&m_part_menu);
     append_menu_item(&m_part_menu, wxID_ANY, _L("Split"), _L("Split the selected object into multiple parts"),
         [](wxCommandEvent&) { plater()->split_volume(); }, "split_parts", nullptr,
@@ -1651,7 +1853,7 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     while (menu->GetMenuItemCount() > 0)
         menu->Destroy(menu->FindItemByPosition(0));
 
-    //if (init) { // 
+    //if (init) { //
         append_menu_item(
             menu, wxID_ANY, _L("Edit"), "", [](wxCommandEvent&) {
                 plater()->sidebar().edit_filament(); }, "", nullptr,
@@ -1856,6 +2058,7 @@ wxMenu* MenuFactory::part_menu()
 {
     append_menu_items_convert_unit(&m_part_menu);
     append_menu_item_change_filament(&m_part_menu);
+    append_menu_item_precise_seam_submenu(&m_part_menu);
     append_menu_item_per_object_settings(&m_part_menu);
     return &m_part_menu;
 }
@@ -1970,6 +2173,10 @@ wxMenu* MenuFactory::multi_selection_menu()
         append_menu_item_per_object_process(menu);
         menu->AppendSeparator();
         append_menu_item_change_type(menu);
+        // Subtype picker for Precise Seam — shown only when all selected volumes are PS.
+        // Must be paired with Change Type here (as in single-volume part_menu), otherwise
+        // the user cannot switch PS subtypes (LEFT/RIGHT/etc.) on multi-selection.
+        append_menu_item_precise_seam_submenu(menu);
         append_menu_item_change_filament(menu);
     }
     return menu;
@@ -2065,13 +2272,8 @@ wxMenu* MenuFactory::assemble_part_menu()
 
 void MenuFactory::append_menu_item_clone(wxMenu* menu)
 {
-#ifdef __APPLE__
-    static const wxString ctrl = ("Ctrl+");
-#else
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    static const wxString ctrl = _L("Ctrl+");
-#endif
-    append_menu_item(menu, wxID_ANY, _L("Clone") + "\t" + ctrl + "K", "",
+    const std::string accel = wxGetApp().shortcuts().accelerator(Shortcut::CloneSelected);
+    append_menu_item(menu, wxID_ANY, _L("Clone") + (accel.empty() ? wxString() : "\t" + from_u8(accel)), "",
         [](wxCommandEvent&) {
             plater()->clone_selection();
         }, "", nullptr,

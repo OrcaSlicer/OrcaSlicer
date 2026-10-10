@@ -2,7 +2,11 @@
 #define ARRANGEJOB_HPP
 
 
+#include <map>
+#include "libslic3r/Polygon.hpp"
+#include <exception>
 #include <optional>
+#include <vector>
 
 #include "Job.hpp"
 #include "libslic3r/Arrange.hpp"
@@ -46,6 +50,7 @@ class ArrangeJob : public Job
     //BBS:prepare the items from current selected partplate
     void prepare_partplate();
     void prepare_wipe_tower();
+    void prepare_belt_regions(int num_plates);
 
     ArrangePolygon prepare_arrange_polygon(void* instance);
 

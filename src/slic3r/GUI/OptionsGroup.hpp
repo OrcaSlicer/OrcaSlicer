@@ -1,11 +1,20 @@
 #ifndef slic3r_OptionsGroup_hpp_
 #define slic3r_OptionsGroup_hpp_
 
+#include <exception>
+#include <wx/sizer.h>
+#include <memory>
+#include <string>
+#include <cstddef>
+#include <vector>
+#include <utility>
+#include <boost/any.hpp>
 #include <wx/stattext.h>
 #include <wx/settings.h>
 
 #include <map>
 #include <functional>
+#include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -45,7 +54,6 @@ struct Option {
 	Option(const ConfigOptionDef& _opt, t_config_option_key id) :
 		opt(_opt), opt_id(id) {}
 };
-using t_option = std::unique_ptr<Option>;	//!
 
 /// Represents option lines
 class Line : public UndoValueUIManager
@@ -112,7 +120,7 @@ public:
     bool split_multi_line{false};
     bool option_label_at_right{false};
     // BBS: new layout
-    wxWindow *     stb;
+    wxWindow *     stb{ nullptr };
     const wxString  icon;
     const wxString  title;
     bool            m_labels_hidden{false};
@@ -250,6 +258,10 @@ protected:
 	virtual void		back_to_initial_value(const std::string& opt_key) {}
 	virtual void		back_to_sys_value(const std::string& opt_key) {}
 
+	// Preset::Type of a settings group; -1 for groups not tied to a preset. Used by append_line to
+	// register each option's wiki path with the searcher. Overridden by ConfigOptionsGroup.
+	virtual int			config_type() const { return -1; }
+
 public:
 	static wxString		get_url(const std::string& path_end);
 	static bool			launch_browser(const std::string& path_end);
@@ -273,7 +285,7 @@ public:
 		OptionsGroup(parent, wxEmptyString, wxEmptyString, true, nullptr) {}
 
 	const wxString& config_category() const throw() { return m_config_category; }
-	int config_type() const throw() { return m_config_type; }
+	int config_type() const throw() override { return m_config_type; }
 	const t_opt_map&   opt_map() const throw() { return m_opt_map; }
 
 	void 		set_config_category_and_type(const wxString &category, int type) { m_config_category = category; m_config_type = type; }

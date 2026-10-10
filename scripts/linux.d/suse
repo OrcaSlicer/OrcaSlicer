@@ -21,7 +21,7 @@ REQUIRED_DEV_PACKAGES=(
     libspnav-devel
     libtool
     m4
-    glu-devel
+    Mesa-libGL-devel
     ninja-build
     openssl-devel
     perl-FindBin-Real

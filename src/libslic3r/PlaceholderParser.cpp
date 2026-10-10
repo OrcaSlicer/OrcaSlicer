@@ -1,12 +1,52 @@
 #include "PlaceholderParser.hpp"
+#include "Config.hpp"
 #include "Exception.hpp"
 #include "Flow.hpp"
+#include "PrintConfig.hpp"
+#include "Point.hpp"
 #include "Utils.hpp"
+#include "libslic3r_version.h"
+#include <cassert>
+#include <boost/range/iterator_range_core.hpp>
+#include <cmath>
+#include <cstdlib>
+#include <boost/throw_exception.hpp>
+#include <boost/spirit/home/support/info.hpp>
+#include <algorithm>
+#include <cstdio>
+#include <boost/algorithm/string/predicate.hpp>
+#include "libslic3r.h"
+#include <boost/spirit/home/qi/numeric/real_policies.hpp>
+#include <boost/spirit/home/qi/parser.hpp>
+#include <boost/assert/source_location.hpp>
+#include <boost/spirit/home/qi/nonterminal/grammar.hpp>
+#include <boost/spirit/home/qi/nonterminal/rule.hpp>
+#include <boost/spirit/home/support/common_terminals.hpp>
+#include <boost/spirit/home/qi/auxiliary/eps.hpp>
+#include <boost/spirit/home/qi/directive/raw.hpp>
+#include <boost/spirit/home/qi/char/char.hpp>
+#include <boost/spirit/home/qi/directive/lexeme.hpp>
+#include <boost/spirit/home/qi/directive/no_skip.hpp>
+#include <boost/spirit/home/qi/numeric/real.hpp>
+#include <boost/spirit/repository/home/qi/primitive/iter_pos.hpp>
+#include <boost/spirit/repository/home/qi/directive/distinct.hpp>
+#include <boost/spirit/home/qi/copy.hpp>
+#include <boost/spirit/home/qi/action/action.hpp>
+#include <boost/spirit/home/qi/nonterminal/error_handler.hpp>
+#include <boost/spirit/home/qi/nonterminal/debug_handler.hpp>
+#include <boost/spirit/home/qi/string/symbols.hpp>
+#include <boost/spirit/home/qi/parse.hpp>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
+#include <random>
+#include <set>
+#include <memory>
+#include <iterator>
 #include <sstream>
 #include <map>
+#include <vector>
+#include <utility>
 #ifdef _MSC_VER
     #include <stdlib.h>  // provides **_environ
 #else
@@ -851,6 +891,8 @@ namespace client
         // If true, the macro processor will evaluate just a boolean condition using the full expressive power of the macro processor.
         bool                     just_boolean_expression = false;
         std::string              error_message;
+        // Local variables declared in {if} branches that were not taken, see PlaceholderParser::check_inactive_branches.
+        mutable std::set<std::string> inactive_local_variables;
 
         // Table to translate symbol tag to a human readable error message.
         static std::map<std::string, std::string> tag_to_error_message;
@@ -892,6 +934,8 @@ namespace client
         }
         // Inside a block, which is conditionally suppressed?
         bool skipping() const { return m_depth_suppressed > 0; }
+        // Are variable names resolved inside the suppressed blocks too?
+        bool check_inactive_names() const { return PlaceholderParser::check_inactive_branches && ! just_boolean_expression; }
 
         const ConfigOption* 	optptr(const t_config_option_key &opt_key) const override
         {
@@ -927,7 +971,7 @@ namespace client
 
         static void legacy_variable_expansion(const MyContext *ctx, IteratorRange &opt_key, std::string &output)
         {
-            if (ctx->skipping())
+            if (ctx->skipping() && ! ctx->check_inactive_names())
                 return;
 
             std::string         opt_key_str(opt_key.begin(), opt_key.end());
@@ -949,7 +993,9 @@ namespace client
                 }
             }
             if (opt == nullptr)
-                ctx->throw_exception("Variable does not exist", opt_key);
+                ctx->throw_exception(ctx->skipping() ? "Variable does not exist (in an inactive branch)" : "Variable does not exist", opt_key);
+            if (ctx->skipping())
+                return;
             if (opt->is_scalar()) {
                 if (opt->is_nil())
                     ctx->throw_exception("Trying to reference an undefined (nil) optional variable", opt_key);
@@ -972,9 +1018,10 @@ namespace client
             IteratorRange   &opt_vector_index,
             std::string     &output)
         {
-            if (ctx->skipping())
+            if (ctx->skipping() && ! ctx->check_inactive_names())
                 return;
 
+            const char         *not_found = ctx->skipping() ? "Variable does not exist (in an inactive branch)" : "Variable does not exist";
             std::string         opt_key_str(opt_key.begin(), opt_key.end());
             const ConfigOption *opt = ctx->resolve_symbol(opt_key_str);
             if (opt == nullptr) {
@@ -984,18 +1031,20 @@ namespace client
                     opt = ctx->resolve_symbol(opt_key_str);
                 }
                 if (opt == nullptr)
-                    ctx->throw_exception("Variable does not exist", opt_key);
+                    ctx->throw_exception(not_found, opt_key);
             }
             if (! opt->is_vector())
                 ctx->throw_exception("Trying to index a scalar variable", opt_key);
+            const ConfigOption *opt_index = ctx->resolve_symbol(std::string(opt_vector_index.begin(), opt_vector_index.end()));
+            if (opt_index == nullptr)
+                ctx->throw_exception(not_found, opt_key);
+            if (opt_index->type() != coInt)
+                ctx->throw_exception("Indexing variable has to be integer", opt_key);
+            if (ctx->skipping())
+                return;
             const ConfigOptionVectorBase *vec = static_cast<const ConfigOptionVectorBase*>(opt);
             if (vec->empty())
                 ctx->throw_exception("Indexing an empty vector variable", opt_key);
-            const ConfigOption *opt_index = ctx->resolve_symbol(std::string(opt_vector_index.begin(), opt_vector_index.end()));
-            if (opt_index == nullptr)
-                ctx->throw_exception("Variable does not exist", opt_key);
-            if (opt_index->type() != coInt)
-                ctx->throw_exception("Indexing variable has to be integer", opt_key);
 			int idx = opt_index->getInt();
 			if (idx < 0)
                 ctx->throw_exception("Negative vector index", opt_key);
@@ -1021,6 +1070,13 @@ namespace client
                     output.writable = true;
                 }
                 output.opt = opt;
+            } else if (ctx->check_inactive_names()) {
+                // Only check the name. Back tracking may resolve the same identifier twice, so there are no side effects.
+                const std::string key{ opt_key.begin(), opt_key.end() };
+                if (ctx->resolve_symbol(key) == nullptr && ctx->resolve_output_symbol(key) == nullptr &&
+                    ctx->inactive_local_variables.count(key) == 0 &&
+                    (ctx->context_data == nullptr || ctx->context_data->inactive_global_variables.count(key) == 0))
+                    ctx->throw_exception("Not a variable name (in an inactive branch)", opt_key);
             }
             output.it_range = opt_key;
         }
@@ -1426,6 +1482,13 @@ namespace client
                     out.opt = ctx->config_local.optptr(key);
                 }
                 out.name     = std::move(key);
+            } else if (ctx->check_inactive_names()) {
+                // Declared in a branch that is not taken: the name still counts as defined for the names that follow.
+                std::string key(it_range.begin(), it_range.end());
+                if (global_variable && ctx->context_data != nullptr)
+                    ctx->context_data->inactive_global_variables.insert(std::move(key));
+                else
+                    ctx->inactive_local_variables.insert(std::move(key));
             }
             out.it_range = it_range;
         }
@@ -1660,8 +1723,8 @@ namespace client
             const OptWithPos  &rhs)
         {
             if (ctx->skipping())
-                // Skipping, continue parsing.
-                return true;
+                // Skipping, let conditional_expression parse the whole right hand side, which may continue after the variable reference.
+                return false;
 
             if (lhs.opt) {
                 assert(lhs.opt->is_vector());
@@ -2112,7 +2175,6 @@ namespace client
     {
         macro_processor() : macro_processor::base_type(start)
         {
-            using namespace qi::labels;
             qi::alpha_type              alpha;
             qi::alnum_type              alnum;
             qi::eps_type                eps;

@@ -9,10 +9,24 @@
 #include "../SelectMachine.hpp"
 #include "../DeviceManager.hpp"
 #include "slic3r/GUI/Event.hpp"
+#include <wx/anybutton.h>
+#include <wx/gdicmn.h>
+#include <wx/checklst.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <vector>
+#include <wx/image.h>
+#include <memory>
+#include <unordered_map>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/panel.h>
+#include <map>
 #include <wx/simplebook.h>
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 #include "../DeviceCore/DevFan.h"
 
 namespace Slic3r {

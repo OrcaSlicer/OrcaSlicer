@@ -1,17 +1,24 @@
 #ifndef slic3r_GUI_Preview_hpp_
 #define slic3r_GUI_Preview_hpp_
 
+#include <vector>
+#include "libslic3r/libslic3r.h"
+#include <functional>
+#include <wx/event.h>
 #include <wx/panel.h>
 
-#include "libslic3r/Point.hpp"
 #include "libslic3r/CustomGCode.hpp"
 
 //BBS: add print base
-#include "libslic3r/PrintBase.hpp"
 
 #include <string>
-#include "libslic3r/GCode/GCodeProcessor.hpp"
-#include <slic3r/GUI/GCodeViewer.hpp>
+#include <wx/window.h>
+
+class wxDropTarget;
+class wxSizeEvent;
+class wxWindow;
+namespace Slic3r { class PrintBase; }
+namespace Slic3r { struct GCodeProcessorResult; }
 
 class wxGLCanvas;
 class wxBoxSizer;
@@ -141,6 +148,8 @@ public:
     //BBS: add only gcode mode
     void load_print(bool keep_z_range = false, bool only_gcode = false);
     void reload_print(bool only_gcode = false);
+    // Belt printers: re-convert the G-code preview so the "designed view" toggle takes effect.
+    void refresh_belt_view();
     //BBS: always load shell at preview
     void load_shells(const Print& print, bool force_previewing = false);
     void reset_shells();
@@ -151,7 +160,7 @@ public:
     //BBS: add m_loaded_print logic
     bool is_loaded() const { return (m_loaded_print != nullptr); }
     //BBS
-    void on_tick_changed(Type type);
+    void on_tick_changed(CustomGCode::Type type);
 
     void show_sliders(bool show = true);
     void show_moves_sliders(bool show = true);
@@ -171,7 +180,6 @@ private:
 
     void update_layers_slider(const std::vector<double>& layers_z, bool keep_z_range = false);    
     void update_layers_slider_mode();
-    void update_layers_slider_from_canvas(wxKeyEvent &event);
     //BBS: add only gcode mode
     void load_print_as_fff(bool keep_z_range = false, bool only_gcode = false);
 };
