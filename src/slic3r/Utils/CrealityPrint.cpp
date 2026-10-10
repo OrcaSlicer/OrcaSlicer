@@ -118,14 +118,23 @@ bool CrealityPrint::test(wxString& msg) const
                 }
             } catch (const json::exception& e) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse /info response: %2%") % name % e.what();
+                // Fail instead of silently accepting an unparseable body as a successful connection.
+                if (boost::algorithm::icontains(body, "<html")) {
+                    res = false;
+                    msg = _L("This address returned a web page instead of the printer's native API. "
+                             "If this is the printer's web UI address, set it in \"Device UI\" instead of "
+                             "\"Hostname, IP or URL\".");
+                }
             }
         })
 #ifdef WIN32
         .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
         .on_ip_resolve([&](std::string address) {
             // Workaround for Windows 10/11 mDNS resolve issue, where two mDNS resolves in succession fail.
-            // Remember resolved address to be reused at successive REST API call.
-            msg = GUI::from_u8(address);
+            // Remember resolved address to be reused at successive REST API call. Only follows a 2xx
+            // response (on_complete), so it must not clobber the message on_complete already set there.
+            if (res)
+                msg = GUI::from_u8(address);
         })
 #endif // WIN32
         .perform_sync();
@@ -288,19 +297,28 @@ void CrealityPrint::query_model() const
     test(msg);
 }
 
-// CFS-capable models. One table for capability checks, display names and
-// LAN-discovery labelling -- keep additions here only.
-static const std::map<std::string, std::string>& cfs_capable_models()
+namespace {
+struct CrealityModelInfo
 {
-    static const std::map<std::string, std::string> models = {
-        {"F008", "K2 Plus"},
-        {"F012", "K2 Pro"},
-        {"F021", "K2"},
-        {"F022", "SPARKX i7"},
-        {"K1", "K1"},
-        {"K1 SE", "K1 SE"},
-        {"K1C", "K1C"},
-        {"K1_CFS-C", "K1_CFS-C"},
+    std::string display_name;
+    // Whether the model's web UI defaults to :4408 (unconfirmed for K1-family, so false there).
+    bool        is_k2_platform;
+};
+} // namespace
+
+// CFS-capable models. One table for capability checks, display names, K2-platform detection and
+// LAN-discovery labelling -- keep additions here only.
+static const std::map<std::string, CrealityModelInfo>& cfs_capable_models()
+{
+    static const std::map<std::string, CrealityModelInfo> models = {
+        {"F008", {"K2 Plus", true}},
+        {"F012", {"K2 Pro", true}},
+        {"F021", {"K2", true}},
+        {"F022", {"SPARKX i7", false}},
+        {"K1", {"K1", false}},
+        {"K1 SE", {"K1 SE", false}},
+        {"K1C", {"K1C", false}},
+        {"K1_CFS-C", {"K1_CFS-C", false}},
     };
     return models;
 }
@@ -312,9 +330,16 @@ bool CrealityPrint::model_supports_multi_color(const std::string& model)
 
 std::string CrealityPrint::model_display_name(const std::string& model)
 {
-    auto& names = cfs_capable_models();
-    auto it = names.find(model);
-    return it != names.end() ? it->second : std::string{};
+    auto& models = cfs_capable_models();
+    auto it = models.find(model);
+    return it != models.end() ? it->second.display_name : std::string{};
+}
+
+bool CrealityPrint::model_is_k2_platform(const std::string& model)
+{
+    auto& models = cfs_capable_models();
+    auto it = models.find(model);
+    return it != models.end() && it->second.is_k2_platform;
 }
 
 bool CrealityPrint::supports_multi_color_print() const
