@@ -1,0 +1,147 @@
+{
+  "schema": "1.0",
+  "suite": {
+    "started_at": "2026-09-28T18:05:44.310Z",
+    "duration_ns": 13980000000
+  },
+  "measurement": {
+    "affinity": "none",
+    "corpus": "embedded,handy",
+    "iterations": "3",
+    "metrics": "wall,rss,hash,work",
+    "policy": "quick",
+    "sampling": "5ms",
+    "stages": "load,process,export",
+    "threads": "8",
+    "warmup": "1"
+  },
+  "build": {
+    "revision": "9f1c2d3e4a",
+    "dirty": false,
+    "compiler": "Clang",
+    "compiler_version": "22.1.3",
+    "config": "Release",
+    "flags": "/DWIN32 /D_WINDOWS /GR /EHsc /W4 /MD /O2 /Ob2 /DNDEBUG",
+    "properties": {
+      "pgo": "none"
+    }
+  },
+  "machine": {
+    "host": "BENCH-PC",
+    "os": "Windows 10.0.26200",
+    "cpu": "13th Gen Intel(R) Core(TM) i5-13600K",
+    "logical_cores": 20,
+    "properties": {
+      "cores": "6P+8E"
+    }
+  },
+  "workloads": [
+    {
+      "name": "slice/extruder-idler/standard-0.20",
+      "output_hash": "91c02e7f5d3a6b28",
+      "work": {
+        "moves": 611204,
+        "layers": 190,
+        "gcode_bytes": 12604416,
+        "travel_moves": 41233,
+        "extrusion_mm3": 48211.7,
+        "metrics": {
+          "extrusion_mm3.support": 3910.2,
+          "moves.perimeter": 219119.0
+        }
+      },
+      "iterations": [
+        {
+          "wall_ns": 1181200000,
+          "peak_rss_bytes": 431906816,
+          "cpu_ns": 8412290000,
+          "spans": [
+            {
+              "stage": "posSlice",
+              "scope": "object:0",
+              "at_ns": 0,
+              "duration_ns": 12900000
+            },
+            {
+              "stage": "posInfill",
+              "scope": "object:0",
+              "at_ns": 231400000,
+              "duration_ns": 93000000,
+              "metrics": {
+                "peak_rss_bytes": 431906816.0
+              }
+            },
+            {
+              "stage": "psGCodeExport",
+              "scope": "print",
+              "at_ns": 324600000,
+              "duration_ns": 808900000
+            }
+          ],
+          "unfinished": [
+            {
+              "stage": "posEstimateCurledExtrusions",
+              "scope": "object:0",
+              "at_ns": 324500000
+            }
+          ],
+          "not_run": [
+            {
+              "stage": "posContouring",
+              "scope": "object:0"
+            }
+          ]
+        },
+        {
+          "wall_ns": 1175400000,
+          "peak_rss_bytes": 430071808,
+          "cpu_ns": 8398010000,
+          "spans": [
+            {
+              "stage": "posSlice",
+              "scope": "object:0",
+              "at_ns": 0,
+              "duration_ns": 12400000
+            },
+            {
+              "stage": "posInfill",
+              "scope": "object:0",
+              "at_ns": 229800000,
+              "duration_ns": 90000000,
+              "metrics": {
+                "peak_rss_bytes": 430071808.0
+              }
+            },
+            {
+              "stage": "psGCodeExport",
+              "scope": "print",
+              "at_ns": 320000000,
+              "duration_ns": 804600000
+            }
+          ],
+          "unfinished": [
+            {
+              "stage": "posEstimateCurledExtrusions",
+              "scope": "object:0",
+              "at_ns": 319900000
+            }
+          ],
+          "not_run": [
+            {
+              "stage": "posContouring",
+              "scope": "object:0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "slice/benchy/standard-0.20",
+      "skipped": "fixture not available: corpus 'external' not fetched"
+    },
+    {
+      "name": "slice/overhangs/tree-supports",
+      "failed": "threw std::bad_alloc in posSupportMaterial"
+    }
+  ]
+}

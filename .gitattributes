@@ -13,3 +13,7 @@
 
 # OCCT BRep fixtures, kept byte for byte as OCCT wrote them.
 *.brep -text
+
+# The OrcaBench fixture is compared with what the writer produces, whose lines end in LF,
+# so keep it LF whatever the platform.
+tests/data/orcabench/*.json text eol=lf

@@ -321,6 +321,9 @@ endif ()
 option(SLIC3R_BUILD_SANDBOXES   "Build development sandboxes" OFF)
 option(BUILD_TESTS       "Build unit tests" OFF)
 option(ORCA_TOOLS       "Build Orca tools" OFF)
+# Defaults to BUILD_TESTS in a new build directory, and the build scripts turn it on with the tests, so
+# their test builds compile and test the framework.
+option(ORCA_BENCHMARKS   "Build the slicing benchmark framework" ${BUILD_TESTS})
 
 if (FLATPAK)
     set(SLIC3R_FHS ON CACHE BOOL "" FORCE)
@@ -1280,6 +1283,30 @@ elseif (MSVC AND NOT IS_CLANG_CL)
     add_compile_options(/W3 /we4715)
 endif ()
 
+# The commit headers of the slicer and of the benchmarks.
+set(ORCA_GIT_COMMIT_HASH_DIR "${CMAKE_BINARY_DIR}/git_commit_hash")
+set(ORCABENCH_GIT_COMMIT_HASH_DIR "${CMAKE_BINARY_DIR}/orcabench_git_commit_hash")
+set(_orcabench_git_commit_hash_header)
+set(_orcabench_git_commit_hash_command)
+if (ORCA_BENCHMARKS)
+    # orca_bench compiles its kinds by glob, so an untracked one makes its build dirty too.
+    set(_orcabench_git_commit_hash_header "${ORCABENCH_GIT_COMMIT_HASH_DIR}/git_commit_hash.h")
+    set(_orcabench_git_commit_hash_command
+        COMMAND ${CMAKE_COMMAND}
+            "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+            "-DOUT_FILE=${_orcabench_git_commit_hash_header}"
+            "-DGLOBBED_DIRS=benchmarks/kinds"
+            -P "${CMAKE_SOURCE_DIR}/cmake/modules/GitCommitHash.cmake")
+endif ()
+add_custom_target(git_commit_hash_header
+    BYPRODUCTS "${ORCA_GIT_COMMIT_HASH_DIR}/git_commit_hash.h" ${_orcabench_git_commit_hash_header}
+    COMMAND ${CMAKE_COMMAND}
+        "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DOUT_FILE=${ORCA_GIT_COMMIT_HASH_DIR}/git_commit_hash.h"
+        -P "${CMAKE_SOURCE_DIR}/cmake/modules/GitCommitHash.cmake"
+    ${_orcabench_git_commit_hash_command}
+    COMMENT "Resolving the git commit hash")
+
 add_subdirectory(src)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
 
@@ -1287,6 +1314,10 @@ add_dependencies(gettext_make_pot hintsToPot)
 
 if(SLIC3R_BUILD_SANDBOXES)
     add_subdirectory(sandboxes)
+endif()
+
+if(ORCA_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()
 
 if(BUILD_TESTS)

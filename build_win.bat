@@ -43,6 +43,7 @@ call :add_arg build_slicer bool s slicer "Build OrcaSlicer"
 call :add_arg build_tests bool "" tests "Build the unit tests"
 call :add_arg run_tests bool "" run-tests "Build the unit tests and run them"
 call :add_arg make_installer bool "" installer "Build OrcaSlicer and package it into an NSIS installer"
+call :add_arg build_bench bool "" bench "Build the benchmarking framework"
 call :add_arg pack_deps bool p pack "Bundle the built dependencies into a zip file"
 call :add_arg install_deps bool u install-deps "Install or update CMake, Perl and Git with WinGet"
 call :add_arg install_vs string "" install-vs "Also install Visual Studio: buildtools or ide"
@@ -179,11 +180,12 @@ if "%kill_jobs%" == "ON" (
 	exit /b 0
 )
 
-REM Neither test option can happen without building the slicer, so asking for
-REM one asks for that, unless another action was already named.
+REM None of these can happen without building the slicer, so asking for one
+REM asks for that, unless another action was already named.
 if "%build_deps%%build_slicer%%pack_deps%%install_deps%%install_vs%" == "" (
     if "%build_tests%" == "ON" set "build_slicer=ON"
     if "%run_tests%" == "ON" set "build_slicer=ON"
+    if "%build_bench%" == "ON" set "build_slicer=ON"
 )
 
 REM The installer packages the slicer build, so it always needs one.
@@ -556,6 +558,11 @@ set "TESTS_FLAG=-DBUILD_TESTS=OFF"
 if "%build_tests%" == "ON" set "TESTS_FLAG=-DBUILD_TESTS=ON"
 if "%run_tests%" == "ON" set "TESTS_FLAG=-DBUILD_TESTS=ON"
 
+REM The unit tests include the benchmark framework's, as the CMake default does.
+set "BENCH_FLAG=-DORCA_BENCHMARKS=OFF"
+if "%build_bench%" == "ON" set "BENCH_FLAG=-DORCA_BENCHMARKS=ON"
+if "%TESTS_FLAG%" == "-DBUILD_TESTS=ON" set "BENCH_FLAG=-DORCA_BENCHMARKS=ON"
+
 set "SLICER_TARGET_FLAG="
 if not "%slicer_target%" == "" set "SLICER_TARGET_FLAG=--target %slicer_target%"
 
@@ -744,7 +751,7 @@ if "%build_slicer%" == "ON" (
     )
 
     if not "%no_configure%" == "ON" (
-        call :print_and_run cmake -B "%build_dir%" -G "%generator%" %gen_args% -DORCA_TOOLS=ON %SIG_FLAG% %TESTS_FLAG% %DEP_TREE_FLAG% -DCMAKE_BUILD_TYPE=%build_type% !slicer_args! %ORCA_SLICER_CMAKE_ARGS%
+        call :print_and_run cmake -B "%build_dir%" -G "%generator%" %gen_args% -DORCA_TOOLS=ON %SIG_FLAG% %TESTS_FLAG% %BENCH_FLAG% %DEP_TREE_FLAG% -DCMAKE_BUILD_TYPE=%build_type% !slicer_args! %ORCA_SLICER_CMAKE_ARGS%
         %error_check%
     )
 
@@ -978,6 +985,7 @@ REM get_str_len <string> -> length in %ret%
     echo    %script_name% -s --slicer-target glad   Compile one target to check the toolchain
     echo    %script_name% -l -x --run-tests         Test that toolchain's build, not the default one
     echo    %script_name% -s -l -x --cache ccache   Rebuild through a compiler cache
+    echo    %script_name% -s --bench --tests        Build the benchmarks and their tests
     echo.
     echo Environment:
     echo    ORCA_DEPS_CMAKE_ARGS      Extra arguments for the deps configure

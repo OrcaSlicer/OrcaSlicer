@@ -25,6 +25,7 @@
 #include "test_utils.hpp"
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Exception.hpp"
 #include "libslic3r/Geometry.hpp"
 #include <cstddef>
 #include "libslic3r/Point.hpp"
@@ -38,6 +39,7 @@
 #include <ios>
 #include <nlohmann/json.hpp>
 
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/file_status.hpp>   // no_perms, owner_all
 #include <boost/nowide/fstream.hpp>
@@ -2899,4 +2901,17 @@ SCENARIO("a rendered no-light thumbnail does not suppress the plate thumbnail", 
             }
         }
     }
+}
+
+TEST_CASE("A 3MF that fails to read leaves no backup folder", "[3mf][Regression]")
+{
+    ScopedSlic3rTemporaryDir temporary("orca_backup");
+    ScopedTemporaryFile      broken(".3mf");
+    boost::nowide::ofstream(broken.string(), std::ios::binary) << "not a zip archive";
+    CHECK_THROWS_AS(Model::read_from_file(broken.string()), Slic3r::RuntimeError);
+    std::vector<std::string> files;
+    for (const auto& entry : boost::filesystem::recursive_directory_iterator(temporary.path()))
+        if (boost::filesystem::is_regular_file(entry.status()))
+            files.push_back(entry.path().string());
+    CHECK(files.empty());
 }

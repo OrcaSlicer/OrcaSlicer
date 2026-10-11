@@ -1,0 +1,49 @@
+{
+  "entries": [
+    {
+      "name": "load/3dbenchy/drc",
+      "kind": "load",
+      "fixture": "handy:3DBenchy.drc",
+      "tags": ["handy"]
+    },
+    {
+      "name": "load/3dbenchy/stl",
+      "kind": "load",
+      "fixture": "handy:3DBenchy.drc",
+      "tags": ["handy"],
+      "config": {"format": "stl"}
+    },
+    {
+      "name": "load/3dbenchy/stl-ascii",
+      "kind": "load",
+      "fixture": "handy:3DBenchy.drc",
+      "tags": ["handy"],
+      "config": {"format": "stl-ascii"}
+    },
+    {
+      "name": "load/stanford-bunny/drc",
+      "kind": "load",
+      "fixture": "handy:Stanford_Bunny.drc",
+      "tags": ["handy"]
+    },
+    {
+      "name": "load/orcabadge/3mf",
+      "kind": "load",
+      "fixture": "handy:OrcaBadge.3mf",
+      "tags": ["handy"]
+    },
+    {
+      "name": "load/orcasliced/3mf",
+      "kind": "load",
+      "fixture": "handy:OrcaSliced.3mf",
+      "tags": ["handy"]
+    },
+    {
+      "name": "load/fine-sphere/stl",
+      "kind": "load",
+      "fixture": "procedural:fine-sphere",
+      "tags": ["procedural"],
+      "config": {"format": "stl"}
+    }
+  ]
+}

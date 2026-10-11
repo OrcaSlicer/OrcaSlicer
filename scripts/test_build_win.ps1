@@ -293,6 +293,18 @@ $cases = @(
        Contains = @('-DBUILD_TESTS=OFF') }
     @{ Name = '--tests turns the unit tests on'; Args = @('-s', '--tests')
        Contains = @('-DBUILD_TESTS=ON') }
+    @{ Name = 'the benchmarks are off unless asked for'; Args = @('-s')
+       Contains = @('-DORCA_BENCHMARKS=OFF') }
+    @{ Name = '--bench turns the benchmarking framework on'; Args = @('-s', '--bench')
+       Contains = @('-DORCA_BENCHMARKS=ON') }
+    @{ Name = '--bench alone leaves the unit tests off'; Args = @('-s', '--bench')
+       Contains = @('-DORCA_BENCHMARKS=ON', '-DBUILD_TESTS=OFF') }
+    @{ Name = 'asking for both builds both'; Args = @('-s', '--bench', '--tests')
+       Contains = @('-DORCA_BENCHMARKS=ON', '-DBUILD_TESTS=ON') }
+    @{ Name = '--tests turns the benchmarks on as well'; Args = @('-s', '--tests')
+       Contains = @('-DORCA_BENCHMARKS=ON', '-DBUILD_TESTS=ON') }
+    @{ Name = 'and so does --run-tests'; Args = @('-s', '--run-tests')
+       Contains = @('-DORCA_BENCHMARKS=ON', '-DBUILD_TESTS=ON') }
     @{ Name = '-a enables ASAN for the slicer'; Args = @('-s', '-a')
        Contains = @('-DSLIC3R_ASAN=ON') }
     @{ Name = '--no-pch turns the precompiled header off'; Args = @('-s', '--no-pch')
@@ -499,6 +511,9 @@ $cases = @(
     @{ Name = '--tests is too'; Args = @('--tests')
        Contains = @('-DBUILD_TESTS=ON')
        NotContains = @('Nothing to do', 'ctest --test-dir') }
+    @{ Name = 'and so is --bench'; Args = @('--bench')
+       Contains = @('-DORCA_BENCHMARKS=ON')
+       NotContains = @('Nothing to do', 'ctest --test-dir') }
     # Naming an action means that action, not a fuller build.
     @{ Name = 'they do not add a slicer build to one already asked for'; Args = @('-d', '--tests')
        Contains = @('cmake -S deps')
@@ -653,6 +668,8 @@ $cases = @(
        Contains = @('Neither form supports a value containing an ampersand') }
     @{ Name = 'the help lists the environment overrides'; Args = @('--help'); DryRun = $false
        Contains = @('Environment:', 'ORCA_DEPS_CMAKE_ARGS', 'ORCA_SLICER_CMAKE_ARGS') }
+    @{ Name = 'the help documents --bench'; Args = @('--help'); DryRun = $false
+       Contains = @('--bench', 'Build the benchmarking framework') }
 
     'running the unit tests'
     @{ Name = '--tests builds them without running them'; Args = @('-s', '--tests')

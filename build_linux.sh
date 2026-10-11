@@ -620,7 +620,9 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
         BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
     if [[ -n "${BUILD_TESTS}" ]] ; then
-        BUILD_ARGS+=(-DBUILD_TESTS=ON)
+        # The unit tests include the benchmark framework's, which a build directory first
+        # configured without the tests would otherwise keep off.
+        BUILD_ARGS+=(-DBUILD_TESTS=ON -DORCA_BENCHMARKS=ON)
     fi
     if [[ -n "${ORCA_UPDATER_SIG_KEY}" ]] ; then
         BUILD_ARGS+=(-DORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY}")
@@ -645,6 +647,8 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
     if [[ -n "${BUILD_TESTS}" ]] ; then
 	echo "Building tests ..."
 	print_and_run cmake --build ${BUILD_DIR} --config "${BUILD_CONFIG}" --target tests/all
+	echo "Building orca_bench, which tests/orcabench runs ..."
+	print_and_run cmake --build ${BUILD_DIR} --config "${BUILD_CONFIG}" --target orca_bench
     fi
     echo "done"
 fi
