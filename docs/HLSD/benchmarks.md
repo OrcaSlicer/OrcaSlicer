@@ -384,8 +384,8 @@ comments print an object id that only the cancel-object feature sets, which othe
 between passes. The entry's keys go on top, and one the slicer does not know fails the workload,
 since the config's strict setter only records an unknown key. So does a number that does not read
 whole, such as `2.5` for a whole number or `200mm/s` in a list, which the slicer's parser would cut
-short or read as 0. The defaults are applied option by
-option, so each enum list keeps the names it reads and writes, which the copies
+short or read as 0. A legacy key is checked as the setting the slicer renames it to. The defaults
+are applied option by option, so each enum list keeps the names it reads and writes, which the copies
 `full_print_config()` makes lack.
 
 Catalogs live in `benchmarks/catalog/`, and `core/Catalog.cpp` reads every `.json` file there as one

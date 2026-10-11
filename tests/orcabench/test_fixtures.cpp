@@ -147,6 +147,12 @@ TEST_CASE("the hermetic config refuses a number that does not read whole, and ta
         CHECK_THROWS_WITH(hermetic_config({{key, value}}), "the setting '" + key + "' cannot be '" + value + "'");
 }
 
+TEST_CASE("the hermetic config sets a legacy key as the setting it was renamed to, and reads its number there", "[OrcaBench][Fixtures]")
+{
+    CHECK_THAT(hermetic_config({{"wipe_tower_width", "35"}}).opt_float("prime_tower_width"), WithinAbs(35., 1e-9));
+    CHECK_THROWS_WITH(hermetic_config({{"wipe_tower_width", "35mm"}}), "the setting 'wipe_tower_width' cannot be '35mm'");
+}
+
 TEST_CASE("every fixture and config a slice in the catalog names loads", "[OrcaBench][Fixtures]")
 {
     const TreeResources   resources;

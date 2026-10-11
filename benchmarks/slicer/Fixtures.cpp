@@ -164,7 +164,12 @@ DynamicPrintConfig hermetic_config(const Properties& keys)
         config.set_deserialize(key, value, context);
         if (!context.unrecogized_keys.empty())
             throw std::invalid_argument("the slicer has no setting called '" + key + "'");
-        if (!reads_whole(*config.def()->get(key), value))
+        // The setter renames a legacy key and may rewrite its value, so the check reads what it set.
+        t_config_option_key set_key   = key;
+        std::string         set_value = value;
+        PrintConfigDef::handle_legacy(set_key, set_value);
+        const ConfigOptionDef* def = config.def()->get(set_key);
+        if (def == nullptr || !reads_whole(*def, set_value))
             throw std::invalid_argument("the setting '" + key + "' cannot be '" + value + "'");
     }
     return config;
