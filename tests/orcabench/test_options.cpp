@@ -132,6 +132,18 @@ TEST_CASE("the allow-mismatch flag without the compare flag is refused", "[OrcaB
     CHECK_THROWS_WITH(parse_options({"--list", "--allow-mismatch"}), "--allow-mismatch needs --compare");
 }
 
+TEST_CASE("a flag given twice is refused, whatever it takes", "[OrcaBench][Options]")
+{
+    const auto [arguments, refusal] = GENERATE(table<std::vector<std::string_view>, std::string>({
+        {{"--policy", "quick", "--filter", "slice/a/*", "--filter", "slice/b/*"}, "--filter is given twice"},
+        {{"--policy", "quick", "--exclude", "slice/a/*", "--exclude", "slice/b/*"}, "--exclude is given twice"},
+        {{"--policy", "quick", "--policy", "precise"}, "--policy is given twice"},
+        {{"--list", "--list"}, "--list is given twice"},
+    }));
+    CAPTURE(arguments);
+    CHECK_THROWS_WITH(parse_options(arguments), refusal);
+}
+
 TEST_CASE("an unknown argument is refused", "[OrcaBench][Options]")
 {
     const std::string argument = GENERATE(as<std::string> {}, "--bogus", "list", "-l", "--list=1", "");

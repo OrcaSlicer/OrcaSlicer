@@ -29,6 +29,8 @@ orca_bench --policy quick --filter "slice/3dbenchy/*"
 orca_bench --policy quick --kind load --tag handy  # selection flags combine
 ```
 
+Each flag can be given once, so `--filter` and `--exclude` each take one pattern.
+
 A policy decides how a run measures:
 
 | Policy | Threads | Warmup | Timed passes | Collects |

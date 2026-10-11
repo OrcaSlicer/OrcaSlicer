@@ -9,6 +9,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <locale>
+#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -168,12 +169,16 @@ std::vector<std::string_view> program_arguments(int argc, const char* const* arg
 
 Options parse_options(const std::vector<std::string_view>& arguments)
 {
-    Options options;
+    Options               options;
+    std::set<std::string> given;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         const std::string_view argument = arguments[i];
         const auto found = std::find_if(std::begin(flags), std::end(flags), [argument](const Flag& flag) { return argument == flag.name; });
         if (found == std::end(flags))
             throw OptionsError("unknown argument '" + std::string(argument) + "'");
+        // Only one of the values would count.
+        if (!given.insert(found->name).second)
+            throw OptionsError(std::string(found->name) + " is given twice");
         const std::size_t count = value_count(*found);
         // An argument starting with -- is a flag, never a value.
         for (std::size_t k = 1; k <= count; ++k)

@@ -132,7 +132,8 @@ ending the process, so a registrar keeps a failed registration, such as a kind a
 `orca_bench` reads its arguments with a parser that shares one table of flags with the usage
 text, prints the catalog's workloads with `--list`, and prints the usage for `--help`, even beside
 `--list`. `--list` refuses `--policy`, `--compare` and `--check-determinism`, which it would
-otherwise replace without a word. An argument it does not know exits 2 with the usage, and any other error exits 1
+otherwise replace without a word, and a flag given twice is refused, since only one of its values
+would count. An argument it does not know exits 2 with the usage, and any other error exits 1
 without it.
 
 ## The Runner
