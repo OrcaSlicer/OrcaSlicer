@@ -9,6 +9,8 @@
 
 namespace Slic3r { namespace GUI {
 
+class Plater;
+
 // A built-in speed-dial command: identity + how to run it. make_action() wraps a value as a thin
 // AppAction for the registry, so this catalog is the single source of truth for the behaviour
 // (runner => an owner method), the presentation (title/group/input), and the tile pictogram
@@ -39,5 +41,9 @@ AppActionRunResult run(const std::string& key, const std::string& param = {});
 // dispatches the result. UI thread only.
 std::unique_ptr<AppAction> make_action(const NativeCommand& command);
 } // namespace NativeCommands
+
+// Switch to the Prepare (3D) panel so object/calibration ops have a live canvas + selection, and
+// the notebook page label matches. A no-op when the 3D panel is already shown. UI thread only.
+void ensure_3d_view(Plater* plater);
 
 }} // namespace Slic3r::GUI

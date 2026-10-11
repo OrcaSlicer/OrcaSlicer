@@ -51,7 +51,7 @@ enum CUSTOM_ID
     ID_TOP_DROPDOWN_MENU,
     ID_TITLE,
     ID_MODEL_STORE,
-    ID_CALIB,
+    ID_PUBLISH,
     ID_TOOL_BAR = 3200,
     ID_AMS_NOTEBOOK,
 };
@@ -247,7 +247,6 @@ void BBLTopbar::Init(wxFrame* parent)
     m_frame = parent;
     m_skip_popup_file_menu = false;
     m_skip_popup_dropdown_menu = false;
-    m_skip_popup_calib_menu    = false;
 
     wxInitAllImageHandlers();
 
@@ -326,12 +325,6 @@ void BBLTopbar::Init(wxFrame* parent)
     m_redo_item->SetDisabledBitmap(redo_inactive_bitmap);
 
     this->AddSpacer(FromDIP(10));
-
-    wxBitmap calib_bitmap          = create_scaled_bitmap("calib_sf", nullptr, TOPBAR_ICON_SIZE);
-    wxBitmap calib_bitmap_inactive = create_scaled_bitmap("calib_sf_inactive", nullptr, TOPBAR_ICON_SIZE);
-    m_calib_item                   = this->AddTool(ID_CALIB, _L("Calibration"), calib_bitmap);
-    m_calib_item->SetDisabledBitmap(calib_bitmap_inactive);
-
     this->AddSpacer(FromDIP(25));
     //this->AddStretchSpacer(1);
 
@@ -387,7 +380,6 @@ void BBLTopbar::Init(wxFrame* parent)
     this->Bind(wxEVT_MENU_CLOSE, &BBLTopbar::OnMenuClose, this);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnFileToolItem, this, ID_TOP_FILE_MENU);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnDropdownToolItem, this, ID_TOP_DROPDOWN_MENU);
-    this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnCalibToolItem, this, ID_CALIB);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnIconize, this, wxID_ICONIZE_FRAME);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnFullScreen, this, wxID_MAXIMIZE_FRAME);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnCloseFrame, this, wxID_CLOSE_FRAME);
@@ -450,7 +442,6 @@ void BBLTopbar::EnableUndoRedoItems()
 {
     this->EnableTool(m_undo_item->GetId(), true);
     this->EnableTool(m_redo_item->GetId(), true);
-    this->EnableTool(m_calib_item->GetId(), true);
     Refresh();
 }
 
@@ -465,22 +456,12 @@ void BBLTopbar::DisableUndoRedoItems()
 {
     this->EnableTool(m_undo_item->GetId(), false);
     this->EnableTool(m_redo_item->GetId(), false);
-    this->EnableTool(m_calib_item->GetId(), false);
     Refresh();
 }
 
 void BBLTopbar::SaveNormalRect()
 {
     m_normalRect = m_frame->GetRect();
-}
-
-void BBLTopbar::ShowCalibrationButton(bool show)
-{
-    m_calib_item->GetSizerItem()->Show(show);
-    m_sizer->Layout();
-    if (!show)
-        m_calib_item->GetSizerItem()->SetDimension({-1000, 0}, {0, 0});
-    Refresh();
 }
 
 void BBLTopbar::OnModelStoreClicked(wxAuiToolBarEvent& event)
@@ -506,11 +487,6 @@ void BBLTopbar::AddDropDownMenuItem(wxMenuItem* menu_item)
 wxMenu* BBLTopbar::GetTopMenu()
 {
     return &m_top_menu;
-}
-
-wxMenu* BBLTopbar::GetCalibMenu()
-{
-    return &m_calib_menu;
 }
 
 void BBLTopbar::SetTitle(wxString title)
@@ -561,10 +537,6 @@ void BBLTopbar::Rescale() {
     item = this->FindTool(wxID_REDO);
     item->SetBitmap(create_scaled_bitmap("topbar_redo", this, TOPBAR_ICON_SIZE));
     item->SetDisabledBitmap(create_scaled_bitmap("topbar_redo_inactive", this, TOPBAR_ICON_SIZE));
-
-    item = this->FindTool(ID_CALIB);
-    item->SetBitmap(create_scaled_bitmap("calib_sf", this, TOPBAR_ICON_SIZE));
-    item->SetDisabledBitmap(create_scaled_bitmap("calib_sf_inactive", this, TOPBAR_ICON_SIZE));
 
     if (m_title_ctrl)
         m_title_ctrl->SetTitle(m_titleText);
@@ -674,23 +646,6 @@ void BBLTopbar::OnDropdownToolItem(wxAuiToolBarEvent& evt)
     }
     else {
         m_skip_popup_dropdown_menu = false;
-    }
-
-    // make sure the button is "un-stuck"
-    tb->SetToolSticky(evt.GetId(), false);
-}
-
-void BBLTopbar::OnCalibToolItem(wxAuiToolBarEvent &evt)
-{
-    wxAuiToolBar *tb = static_cast<wxAuiToolBar *>(evt.GetEventObject());
-
-    tb->SetToolSticky(evt.GetId(), true);
-
-    if (!m_skip_popup_calib_menu) {
-        auto rec = this->GetToolRect(ID_CALIB);
-        GetParent()->PopupMenu(&m_calib_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
-    } else {
-        m_skip_popup_calib_menu = false;
     }
 
     // make sure the button is "un-stuck"

@@ -197,7 +197,6 @@ class MainFrame : public DPIFrame
 
     wxMenuBar*  m_menubar{ nullptr };
     //wxMenu* publishMenu{ nullptr };
-    wxMenu *    m_calib_menu{nullptr};
     bool        enable_multi_machine{ false };
 
 #if 0
@@ -468,10 +467,12 @@ public:
 
     void        technology_changed();
 
-    // Opens the calibration wizard for `kind`. Single source of truth for the wizard lifecycle:
-    // the Calibration menu handlers and the Speed Dial native commands both call this. Most wizards
-    // are cached members; cornering/input-shaping are transient. Call while the Prepare (3D) panel
-    // is shown (menu items are gated on is_view3D_shown; the speed dial ensures it first).
+    // Opens the calibration wizard for `kind`. 
+    // Single source of truth for the wizard lifecycle:
+    // - the Calibration menu handlers, the Speed Dial native commands and the homepage tile all call this. 
+    // - Most wizards are cached members;
+    // - cornering/input-shaping are transient. 
+    // - Switches to the "Prepare (3D) panel" itself when needed, since the wizards drive the canvas. UI thread only.
     void        run_calibration(CalibKind calib_kind);
 
     //BBS
