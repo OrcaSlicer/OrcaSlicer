@@ -9484,10 +9484,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             }
     }
 
-    // Orca: Keep visualization independent of the speed/fan options. When no variable-speed path is emitted,
+    // Orca: Keep visualization independent of the speed/fan options. When no segmented path is emitted,
     // sample each original segment without changing the toolpath geometry.
     std::vector<float> overhang_percentages;
-    if (emit_overhangs && !variable_speed && can_estimate_overhang)
+    if (emit_overhangs && !requires_segmented_extrusion && can_estimate_overhang)
         overhang_percentages = m_extrusion_quality_estimator.estimate_overhang_percentages(path);
 
     double F = speed * 60;  // convert mm/sec to mm/min
