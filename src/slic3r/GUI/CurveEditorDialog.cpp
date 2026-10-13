@@ -36,6 +36,7 @@
 #include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
+#include <wx/wupdlock.h>
 #include "libslic3r/CurveModel.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "CurveEditorPanel.hpp"
@@ -59,6 +60,21 @@ namespace {
 bool read_number(wxString text, double& value)
 {
     return CurveModel::read_number(into_u8(text), value);
+}
+
+void size_editor_button(Button& button, int horizontal_padding = 5)
+{
+    // Button retains its own minimum and padding in pixels, outside wx's DPI scaling.
+    button.SetMinSize(wxDefaultSize);
+    button.SetFont(Label::Body_12);
+    button.SetCornerRadius(button.FromDIP(4));
+    int spacing = 0;
+    if (button.GetType() == ButtonType::Icon) {
+        spacing = button.GetLabel().empty() ? 0 : button.FromDIP(4);
+        button.SetIconSpacing(spacing);
+        button.SetPaddingSize(button.FromDIP(wxSize(horizontal_padding, 5)));
+    }
+    button.SetMinSize(wxSize(button.GetMinSize().x + spacing, button.FromDIP(26)));
 }
 
 // Native grid header bevels ignore the dialog's border colour on Windows.
@@ -172,12 +188,15 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     });
     plot_sizer->Add(m_chart, 1, wxEXPAND);
 
-    auto make_button = [this](wxWindow* button_parent, const wxString& label) {
+    auto make_button = [](wxWindow* button_parent, const wxString& label) {
         auto* button = new Button(button_parent, label);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
-        button->SetFont(Label::Body_12);
-        button->SetCornerRadius(FromDIP(4));
-        button->SetMinSize(wxSize(-1, FromDIP(26)));
+        size_editor_button(*button);
+        button->Bind(wxEVT_DPI_CHANGED, [button](wxDPIChangedEvent& event) {
+            button->Rescale();
+            size_editor_button(*button);
+            event.Skip();
+        });
         return button;
     };
 
@@ -267,6 +286,10 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     auto* view_actions = new wxBoxSizer(wxHORIZONTAL);
     auto make_view_checkbox = [this, plot_panel, view_actions](const wxString& label, bool checked, int spacing) {
         auto* checkbox = new CheckBox(plot_panel);
+        checkbox->Bind(wxEVT_DPI_CHANGED, [checkbox](wxDPIChangedEvent& event) {
+            checkbox->Rescale();
+            event.Skip();
+        });
         checkbox->SetName(label);
         checkbox->SetValue(checked);
         auto* text = new wxStaticText(plot_panel, wxID_ANY, label);
@@ -318,22 +341,15 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         if (wxGetApp().app_config)
             wxGetApp().app_config->set("curve_editor_touchpad_controls", event.IsChecked() ? "1" : "0");
     });
-    Bind(wxEVT_DPI_CHANGED, [this, show_range, show_table, touchpad](wxDPIChangedEvent& event) {
-        event.Skip();
-        show_range->Rescale();
-        show_table->Rescale();
-        touchpad->Rescale();
-        m_content->SendSizeEvent();
-    });
-    auto make_action_button = [this](wxWindow* parent, const wxString& label, const wxString& icon, int horizontal_padding = 5) {
+    auto make_action_button = [](wxWindow* parent, const wxString& label, const wxString& icon, int horizontal_padding = 5) {
         auto* button = new Button(parent, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
-        button->SetFont(Label::Body_12);
-        const int spacing = label.empty() ? 0 : FromDIP(4);
-        button->SetIconSpacing(spacing);
-        button->SetPaddingSize(FromDIP(wxSize(horizontal_padding, 5)));
-        // Include icon/text spacing in the button's minimum width.
-        button->SetMinSize(wxSize(button->GetMinSize().x + spacing, FromDIP(26)));
+        size_editor_button(*button, horizontal_padding);
+        button->Bind(wxEVT_DPI_CHANGED, [button, horizontal_padding](wxDPIChangedEvent& event) {
+            button->Rescale();
+            size_editor_button(*button, horizontal_padding);
+            event.Skip();
+        });
         return button;
     };
     const wxString ctrl = wxString::FromUTF8(KeyChord::modifier_name(wxMOD_CONTROL));
@@ -370,6 +386,11 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     grid_frame->SetCornerRadius(FromDIP(4));
     grid_frame->SetBorderWidth(FromDIP(1));
     grid_frame->SetBorderColorNormal(wxColour("#DFDFDF"));
+    grid_frame->Bind(wxEVT_DPI_CHANGED, [grid_frame](wxDPIChangedEvent& event) {
+        grid_frame->SetCornerRadius(grid_frame->FromDIP(4));
+        grid_frame->SetBorderWidth(grid_frame->FromDIP(1));
+        event.Skip();
+    });
     auto* grid_sizer = new wxBoxSizer(wxVERTICAL);
     m_grid = new wxGrid(grid_frame, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
     m_grid->SetFont(Label::Body_12);
@@ -378,25 +399,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
     m_grid->GetTable()->SetAttrProvider(new FlatGridAttributes);
     m_grid->SetLabelFont(Label::Body_12);
-    m_grid->SetDefaultRowSize(std::max(FromDIP(22), m_grid->GetCharHeight() + FromDIP(6)), true);
     m_grid->SetColLabelValue(0, appearance.x_label);
     m_grid->SetColLabelValue(1, appearance.y_label);
-    m_grid->SetRowLabelSize(FromDIP(32));
-    wxClientDC grid_dc(m_grid);
-    grid_dc.SetFont(m_grid->GetLabelFont());
-    // Reserve enough room for full-precision values, including scientific notation.
-    const int number_width = grid_dc.GetTextExtent(wxString::FromUTF8(
-        CurveModel::format_number(std::numeric_limits<double>::lowest()))).x + FromDIP(12);
-    const std::array<int, 2> column_widths = {
-        std::max(number_width, grid_dc.GetTextExtent(appearance.x_label).x + FromDIP(12)),
-        std::max(number_width, grid_dc.GetTextExtent(appearance.y_label).x + FromDIP(12))
-    };
-    m_grid->SetColSize(0, column_widths[0]);
-    m_grid->SetColSize(1, column_widths[1]);
-    m_grid->SetColLabelSize(grid_dc.GetTextExtent("Ag").y + FromDIP(8));
-    // Reserve room for row labels and the vertical scrollbar without wrapping column headers.
-    m_grid->SetMinSize(wxSize(std::max(FromDIP(280), column_widths[0] + column_widths[1] +
-        m_grid->GetRowLabelSize() + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_grid)), FromDIP(180)));
+    update_grid_metrics();
     m_grid->DisableDragRowSize();
     m_grid->Bind(wxEVT_GRID_CELL_CHANGED, [this](wxGridEvent& event) { update_preview(); event.Skip(); });
     m_grid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& event) {
@@ -405,13 +410,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         m_chart->select_point(event.GetRow());
         event.Skip();
     });
-    m_grid->GetGridWindow()->Bind(wxEVT_SIZE, [this, column_widths](wxSizeEvent& event) {
+    m_grid->GetGridWindow()->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
         event.Skip();
         wxRecursionGuard guard(m_grid_resize_depth);
         if (guard.IsInside()) return;
         const int available = m_grid->GetGridWindow()->GetClientSize().x;
         if (available > 0) {
-            const int first = available * column_widths[0] / (column_widths[0] + column_widths[1]);
+            const int first = available * m_column_widths[0] / (m_column_widths[0] + m_column_widths[1]);
             if (m_grid->GetColSize(0) != first)
                 m_grid->SetColSize(0, first);
             if (m_grid->GetColSize(1) != available - first)
@@ -555,6 +560,37 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         EndModal(wxID_OK);
     }, wxID_OK);
 
+    Bind(wxEVT_DPI_CHANGED, [this, ranges, actions_area, plot_panel](wxDPIChangedEvent& event) {
+        event.Skip();
+        // wx 3.3 updates native fonts, window constraints and sizer borders before
+        // this event. Complete its lifecycle for custom widgets and cached metrics,
+        // without scaling those native values a second time.
+        wxWindowUpdateLocker freeze(this);
+        m_chart->finish_drag();
+        m_content->SetScrollRate(FromDIP(10), FromDIP(10));
+        ranges->SetVGap(FromDIP(6));
+        ranges->SetHGap(FromDIP(8));
+        for (int index = 0; index < 4; ++index) {
+            auto* field = m_range_fields[index];
+            auto* text = field->GetTextCtrl();
+            text->SetMinSize(wxDefaultSize);
+            text->SetInitialSize(wxDefaultSize);
+            field->Rescale();
+            const wxSize size(FromDIP(78), std::max(FromDIP(26), text->GetSize().y + FromDIP(8)));
+            field->SetMinSize(size);
+            m_range_arrows[index]->SetMinSize(wxSize(FromDIP(18), size.y));
+        }
+        update_grid_metrics();
+        m_actions_panel->SetMinSize(m_actions_panel->GetSizer()->GetMinSize());
+        m_actions_panel->GetSizer()->Fit(m_actions_panel);
+        actions_area->SetMinSize(m_actions_panel->GetMinSize());
+        plot_panel->SetMinSize(wxSize(std::max(m_chart->GetMinSize().x, m_actions_panel->GetMinSize().x), -1));
+        GetSizer()->SetSizeHints(this);
+        Layout();
+        m_content->SendSizeEvent();
+        Refresh();
+    });
+
     load_points(m_model->rows());
     update_preview();
     fit_chart();
@@ -586,6 +622,28 @@ CurveEditorDialog::~CurveEditorDialog()
     m_chart->on_zoom = {};
     // Modal OK/Cancel/Escape hide the window without sending a close event.
     wxGetApp().window_pos_save(this, m_geometry_key);
+}
+
+void CurveEditorDialog::update_grid_metrics()
+{
+    m_grid->SetDefaultCellFont(m_grid->GetFont());
+    m_grid->SetLabelFont(m_grid->GetFont());
+    m_grid->SetDefaultRowSize(std::max(FromDIP(22), m_grid->GetCharHeight() + FromDIP(6)), true);
+    m_grid->SetRowLabelSize(FromDIP(32));
+    wxClientDC dc(m_grid);
+    dc.SetFont(m_grid->GetLabelFont());
+    // Reserve enough room for full-precision values, headers and the scrollbar.
+    const int number_width = dc.GetTextExtent(wxString::FromUTF8(
+        CurveModel::format_number(std::numeric_limits<double>::lowest()))).x + FromDIP(12);
+    m_column_widths = {
+        std::max(number_width, dc.GetTextExtent(m_appearance.x_label).x + FromDIP(12)),
+        std::max(number_width, dc.GetTextExtent(m_appearance.y_label).x + FromDIP(12))
+    };
+    m_grid->SetColSize(0, m_column_widths[0]);
+    m_grid->SetColSize(1, m_column_widths[1]);
+    m_grid->SetColLabelSize(dc.GetTextExtent("Ag").y + FromDIP(8));
+    m_grid->SetMinSize(wxSize(std::max(FromDIP(280), m_column_widths[0] + m_column_widths[1] +
+        m_grid->GetRowLabelSize() + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_grid)), FromDIP(180)));
 }
 
 void CurveEditorDialog::import_csv()

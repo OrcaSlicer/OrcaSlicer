@@ -3,12 +3,14 @@
 #include <functional>
 #include <optional>
 #include <vector>
+#include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/panel.h>
 #include <wx/recguard.h>
 #include <wx/string.h>
 #include <wx/timer.h>
+#include <wx/window.h>
 #include "libslic3r/CurveModel.hpp"
 
 namespace Slic3r::GUI {
@@ -49,6 +51,7 @@ public:
     std::function<void(double, bool, double)> on_zoom;
 
 private:
+    void on_activate(wxActivateEvent& event);
     wxRect chart_rect() const;
     wxPoint chart_point(double x, double y, const wxRect& plot) const;
     bool point_visible(double x, double y) const;
@@ -70,6 +73,7 @@ private:
     void paint_chart();
 
     CurveEditorAppearance m_appearance;
+    wxWindow* m_top_level = nullptr;
     CurveViewLimits m_view_limits;
     CurveEditorView m_view;
     std::vector<double> m_x;
