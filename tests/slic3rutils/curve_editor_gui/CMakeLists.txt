@@ -56,8 +56,13 @@ enable_testing()
 list(APPEND CMAKE_MODULE_PATH "${ORCA_SOURCE_DIR}/tests/catch2/extras")
 include(Catch)
 # Pointer capture belongs to the display, so parallel processes must not steal it.
+set(_curve_test_properties RESOURCE_LOCK curve_editor_display)
+if(UNIX AND NOT APPLE)
+    # Headless GTK checks do not use AT-SPI; an absent accessibility bus can stall startup.
+    list(APPEND _curve_test_properties ENVIRONMENT NO_AT_BRIDGE=1)
+endif()
 catch_discover_tests(curve_editor_gui_tests ADD_TAGS_AS_LABELS
-    PROPERTIES RESOURCE_LOCK curve_editor_display)
+    PROPERTIES ${_curve_test_properties})
 
 find_program(CURVE_XGETTEXT NAMES xgettext HINTS "${ORCA_SOURCE_DIR}/tools")
 find_program(CURVE_MSGFMT NAMES msgfmt HINTS "${ORCA_SOURCE_DIR}/tools")
@@ -74,5 +79,7 @@ if(CURVE_XGETTEXT AND CURVE_MSGFMT)
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_localization.py"
                 --xgettext "${CURVE_XGETTEXT}" --msgfmt "${CURVE_MSGFMT}"
             VERBATIM)
+        # Flatpak builds explicit test targets instead of ALL.
+        add_dependencies(curve_editor_gui_tests curve_editor_localization_check)
     endif()
 endif()
