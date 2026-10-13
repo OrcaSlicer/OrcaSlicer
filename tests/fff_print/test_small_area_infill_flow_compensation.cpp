@@ -17,6 +17,7 @@
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/I18N.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -107,7 +108,34 @@ TEST_CASE("Flow parsing errors identify the bad point and its entered values", "
         FAIL("Invalid point must be rejected.");
     } catch (const Slic3r::InvalidArgument& error) {
         const std::string message = error.what();
-        CHECK(message.find("point 2") != std::string::npos);
+        CHECK(message.find("Table row 2") != std::string::npos);
+        CHECK(message.find("5,bad") != std::string::npos);
+    }
+}
+
+TEST_CASE("Flow parsing diagnostics translate the model name row and validation reason", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    struct RestoreTranslation {
+        I18N::translate_fn_type previous = I18N::translate_fn;
+        ~RestoreTranslation() { I18N::set_translate_callback(previous); }
+    } restore;
+    I18N::set_translate_callback([](const char* text) -> std::string {
+        const std::string key(text);
+        if (key == "Flow Compensation Model") return "Translated model";
+        if (key == "Table row %d: ") return "Translated row %d: ";
+        if (key == "Enter a finite number in each cell.") return "Translated validation reason";
+        return key;
+    });
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = {"0,0", "", "5,bad", "10,1"};
+    try {
+        SmallAreaInfillFlowCompensator compensator(config);
+        FAIL("Invalid point must be rejected.");
+    } catch (const InvalidArgument& error) {
+        const std::string message = error.what();
+        CHECK(message.find("Translated model") != std::string::npos);
+        CHECK(message.find("Translated row 2") != std::string::npos);
+        CHECK(message.find("Translated validation reason") != std::string::npos);
         CHECK(message.find("5,bad") != std::string::npos);
     }
 }
