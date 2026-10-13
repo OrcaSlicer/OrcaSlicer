@@ -33,6 +33,14 @@ static const std::set<std::string> per_filament_extra_keys = {
     "filament_colour",          // deliberately commented out of filament_options()
     "filament_colour_type",
     "filament_multi_colour",
+    // Mixed-colour slot metadata: one entry per slot, kept in step by PresetBundle's slot sizing.
+    "filament_is_mixed",
+    "filament_mixed_components",
+    "filament_mixed_sublayer_ratios",
+    "filament_mixed_gradient",
+    "filament_mixed_gradient_range",
+    "filament_mixed_gradient_curve",
+    "filament_mixed_gradient_per_part",
 };
 
 // Vector options the sizer must NOT resize (matrices, geometry, bookkeeping). Listed explicitly so
@@ -83,6 +91,11 @@ static const std::set<std::string> custom_keys = {
     // Plugin name/capability lists (print options, not one-per-N).
     "plugins",
     "slicing_pipeline_plugin",
+
+    // IDEX/IQEX parallel-print modes: one entry per user-defined mode, not per extruder.
+    "imex_mode_names",
+    "imex_mode_active_tools",
+    "imex_mode_gcodes",
 
     // --- LATENT per-N: currently Custom to preserve behavior, but each is really per-N. Promote in a follow-up. ---
     "extruder_variant_list",        // per-extruder

@@ -171,7 +171,11 @@ TEST_CASE("ConfigCardinality classifies every vector option, and none is left un
     auto in = [](const std::set<std::string> &s, const std::string &k) { return s.count(k) > 0; };
     const std::set<std::string> landmines_ext = { "extruder_offset", "extruder_colour" };
     const std::set<std::string> landmines_fil = { "filament_map", "filament_colour",
-                                                  "filament_colour_type", "filament_multi_colour" };
+                                                  "filament_colour_type", "filament_multi_colour",
+                                                  "filament_is_mixed", "filament_mixed_components",
+                                                  "filament_mixed_sublayer_ratios", "filament_mixed_gradient",
+                                                  "filament_mixed_gradient_range", "filament_mixed_gradient_curve",
+                                                  "filament_mixed_gradient_per_part" };
     const std::set<std::string> fil(Preset::filament_options().begin(), Preset::filament_options().end());
     // Preset::normalize skips these when sizing filament options: compatible_* and the dev/AMS drying
     // options (filament_dev_options), so they are Custom (owner-sized), not PerFilament.
