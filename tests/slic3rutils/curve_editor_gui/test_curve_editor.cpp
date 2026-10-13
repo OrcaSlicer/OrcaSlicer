@@ -321,7 +321,7 @@ TEST_CASE("Middle-button dragging follows the pointer on both axes without editi
 
 TEST_CASE("Middle-button navigation cancels capture and pending motion when interrupted", "[CurveEditorGUI][RequiresDisplay][Regression]")
 {
-    const int interruption = GENERATE(0, 1, 2, 3, 4);
+    const int interruption = GENERATE(0, 1, 2, 3, 4, 5);
     Fixture f;
     const auto start = f.middle_point();
     f.mouse(wxEVT_MIDDLE_DOWN, start, true);
@@ -337,6 +337,11 @@ TEST_CASE("Middle-button navigation cancels capture and pending motion when inte
     case 2: f.panel->set_view({20, 40, .2, .8}); break;
     case 3: f.panel->set_view_limits(f.model.view_limits()); break;
     case 4: f.resize({800, 450}); break;
+    case 5: {
+        wxDPIChangedEvent dpi({96, 96}, {144, 144});
+        f.panel->GetEventHandler()->ProcessEvent(dpi);
+        break;
+    }
     }
     CHECK_FALSE(f.panel->HasCapture());
     f.mouse(wxEVT_MOTION, start + wxPoint(40, 30), true);
@@ -729,6 +734,63 @@ TEST_CASE("Graph point selection and dragging release capture when cancelled", "
     CHECK(moved == -1);
     f.wheel(120);
     CHECK(f.pans.size() == 1);
+}
+
+TEST_CASE("Window deactivation cancels point dragging and middle-button navigation", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const bool middle = GENERATE(false, true);
+    Fixture f;
+    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto position = f.middle_point();
+    int moved = 0;
+    f.panel->on_move = [&](int, double, double) { ++moved; };
+    f.mouse(middle ? wxEVT_MIDDLE_DOWN : wxEVT_LEFT_DOWN, position, middle, !middle);
+    REQUIRE(f.panel->HasCapture());
+    if (middle) f.mouse(wxEVT_MOTION, position + wxPoint(20, 10), true);
+    wxActivateEvent inactive(wxEVT_ACTIVATE, false);
+    f.frame->GetEventHandler()->ProcessEvent(inactive);
+    CHECK_FALSE(f.panel->HasCapture());
+    f.mouse(wxEVT_MOTION, position + wxPoint(40, 20), middle, !middle);
+    f.drain();
+    CHECK(moved == 0);
+    CHECK(f.pans.empty());
+    wxActivateEvent active(wxEVT_ACTIVATE, true);
+    f.frame->GetEventHandler()->ProcessEvent(active);
+    f.wheel(120);
+    CHECK(f.pan_frames == 1);
+}
+
+TEST_CASE("Window deactivation clears unfinished touchpad gestures", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const bool zoom = GENERATE(false, true);
+    Fixture f;
+    f.panel->set_touchpad_controls(true);
+    if (zoom) f.pinch(1, true);
+    else {
+        wxPanGestureEvent pan;
+        pan.SetGestureStart(true);
+        pan.SetDelta({20, 10});
+        f.panel->GetEventHandler()->ProcessEvent(pan);
+    }
+    wxActivateEvent inactive(wxEVT_ACTIVATE, false);
+    f.frame->GetEventHandler()->ProcessEvent(inactive);
+    f.drain();
+    CHECK(f.pans.empty());
+    f.wheel(120);
+    CHECK(f.pan_frames == 1);
+}
+
+TEST_CASE("Starting a drag with existing mouse capture does not stack capture", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const bool middle = GENERATE(false, true);
+    Fixture f;
+    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto position = f.middle_point();
+    f.panel->CaptureMouse();
+    f.mouse(middle ? wxEVT_MIDDLE_DOWN : wxEVT_LEFT_DOWN, position, middle, !middle);
+    REQUIRE(f.panel->HasCapture());
+    f.panel->finish_drag();
+    CHECK_FALSE(f.panel->HasCapture());
 }
 
 TEST_CASE("A gesture ending during mouse dragging does not block later wheel navigation", "[CurveEditorGUI][RequiresDisplay][Regression]")
