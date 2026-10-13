@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     project(curve_editor_gui_checks LANGUAGES CXX)
+    if(APPLE)
+        enable_language(OBJCXX)
+    endif()
     set(CURVE_STANDALONE TRUE)
 endif()
 
@@ -42,7 +45,6 @@ target_compile_definitions(curve_editor_gui_tests PRIVATE wxDEBUG_LEVEL=0)
 target_link_libraries(curve_editor_gui_tests PRIVATE curve_editor_catch wx::core wx::base Boost::headers)
 
 if(APPLE)
-    enable_language(OBJCXX)
     set_target_properties(curve_editor_gui_tests PROPERTIES OBJCXX_STANDARD 17 OBJCXX_STANDARD_REQUIRED ON)
     target_sources(curve_editor_gui_tests PRIVATE "${ORCA_SOURCE_DIR}/src/slic3r/GUI/CurveEditorPanelMac.mm")
     target_link_libraries(curve_editor_gui_tests PRIVATE "-framework AppKit")
