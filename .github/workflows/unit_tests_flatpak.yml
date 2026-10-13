@@ -30,6 +30,21 @@ jobs:
         timeout-minutes: 20
         shell: bash
         run: |
+          if ! command -v Xvfb >/dev/null 2>&1; then
+            if command -v dnf >/dev/null 2>&1; then
+              dnf install -y xorg-x11-server-Xvfb
+            else
+              apt-get update && apt-get install -y xvfb
+            fi
+          fi
+          Xvfb :99 -screen 0 1280x720x24 -ac -nolisten tcp &
+          display_pid=$!
+          trap 'kill "$display_pid" 2>/dev/null || true' EXIT
+          export DISPLAY=:99
+          for attempt in $(seq 1 100); do
+            [ -S /tmp/.X11-unix/X99 ] && break
+            sleep 0.1
+          done
           tar -xf flatpak-test-asset.tar
           # Recreate the stable module symlink so /run/build/OrcaSlicer resolves.
           d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
@@ -41,7 +56,8 @@ jobs:
             org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.llvm21//25.08 || true
           # `flatpak build` uses bwrap (no rofiles-fuse, which this container
           # rejects); bind-mount the build tree so the baked TEST_DATA_DIR resolves.
-          flatpak build --die-with-parent --share=network \
+          flatpak build --die-with-parent --share=network --share=ipc --socket=x11 \
+            --env=DISPLAY="$DISPLAY" --env=GDK_BACKEND=x11 \
             --bind-mount=/run/build="$PWD/.flatpak-builder/build" \
             flatpak_app \
             bash -c 'cd /run/build/OrcaSlicer && scripts/run_unit_tests.sh build_flatpak/tests'
