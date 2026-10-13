@@ -844,7 +844,7 @@ void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, 
         OptionsGroup::on_change_OG(opt_key, saved_id);
         return;
     }
-    else if (opt_key == "small_area_infill_flow_compensation_model") {
+    else if (const auto* definition = config.def()->get(opt_key); definition && definition->is_curve()) {
         // The curve widget has no Field to read back. Restore the whole model through
         // the serialized GUI value path, including empty models and every point.
         const auto& points = config.option<ConfigOptionStrings>(opt_key)->values;

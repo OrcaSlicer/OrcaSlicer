@@ -4128,7 +4128,7 @@ bool is_edited_as_whole_list(const ConfigDef *def, const std::string &opt_key)
         return true;
     const ConfigOptionDef *opt_def = def ? def->get(opt_key) : nullptr;
     return opt_def != nullptr &&
-           (opt_def->gui_flags == "serialized" || opt_def->gui_type == ConfigOptionDef::GUIType::plugin_picker);
+           (opt_def->gui_flags == "serialized" || opt_def->gui_type == ConfigOptionDef::GUIType::plugin_picker || opt_def->is_curve());
 }
 
 // Use deep_diff to correct return of changed options, considering individual options for each extruder.

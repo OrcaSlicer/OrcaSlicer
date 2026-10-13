@@ -17,6 +17,9 @@
 #include <wx/filename.h>
 #include <wx/frame.h>
 #include <wx/gdicmn.h>
+#include <wx/font.h>
+#include <wx/grid.h>
+#include <wx/textctrl.h>
 #include <wx/init.h>
 #include <wx/string.h>
 #include <wx/strconv.h>
@@ -25,6 +28,7 @@
 
 #include "libslic3r/CurveModel.hpp"
 #include "slic3r/GUI/CurveEditorPanel.hpp"
+#include "slic3r/GUI/CurveEditorDialog.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -36,6 +40,10 @@ class InputApp : public wxApp
 {
 public:
     bool OnInit() override { return true; }
+};
+
+struct EditorHooks : CurveEditorDialog {
+    using CurveEditorDialog::cancel_cell_edit;
 };
 
 class WxRuntime
@@ -98,6 +106,11 @@ public:
             zooms.push_back({vertical, value, anchor});
             panel->set_view(model.zoomed_view(panel->view(), std::pow(1.1, -value), anchor, vertical));
         };
+#ifndef __WXMSW__
+        // GTK/AppKit capture requires a mapped window. Linux CI supplies Xvfb.
+        frame->Show();
+        drain();
+#endif
     }
     ~Fixture()
     {
@@ -205,6 +218,49 @@ public:
 } // namespace
 
 wxIMPLEMENT_APP_NO_MAIN(InputApp);
+
+TEST_CASE("Escape abandons only the active table cell edit and preserves other draft changes", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    wxGrid grid(f.frame.get(), wxID_ANY);
+    grid.SetSize(500, 300);
+    grid.CreateGrid(2, 2);
+    grid.SetCellValue(0, 0, "earlier change");
+    grid.SetCellValue(1, 1, "saved cell");
+    grid.SetGridCursor(1, 1);
+    grid.EnableCellEditControl();
+    REQUIRE(grid.IsCellEditControlEnabled());
+    auto* editor = grid.GetCellEditor(1, 1);
+    auto* text = dynamic_cast<wxTextCtrl*>(editor->GetControl());
+    editor->DecRef();
+    REQUIRE(text);
+    text->ChangeValue("pending edit");
+    REQUIRE(EditorHooks::cancel_cell_edit(grid));
+    CHECK_FALSE(grid.IsCellEditControlEnabled());
+    CHECK(grid.GetCellValue(1, 1) == "saved cell");
+    CHECK(grid.GetCellValue(0, 0) == "earlier change");
+    CHECK_FALSE(EditorHooks::cancel_cell_edit(grid));
+}
+
+TEST_CASE("Cached graph geometry follows changes to its font size and navigation limits", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    Fixture f;
+    const auto before = f.plot_rect();
+    CHECK(f.plot_rect() == before);
+    auto font = f.panel->GetFont();
+    font.SetPointSize(font.GetPointSize() + 4);
+    f.panel->SetFont(font);
+    const auto larger_font = f.plot_rect();
+    CHECK(larger_font.y > before.y);
+    CHECK(larger_font.height < before.height);
+    auto limits = f.model.view_limits();
+    limits.bounds.min_y = -100000000;
+    limits.bounds.max_y = 200000000;
+    f.panel->set_view_limits(limits);
+    CHECK(f.plot_rect().x > larger_font.x);
+    f.panel->SetSize(800, 450);
+    CHECK(f.plot_rect().height > larger_font.height);
+}
 
 TEST_CASE("Middle-button dragging follows the pointer on both axes without editing points", "[CurveEditorGUI][RequiresDisplay]")
 {

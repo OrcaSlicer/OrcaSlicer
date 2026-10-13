@@ -368,6 +368,10 @@ CurveEditorPanel::~CurveEditorPanel()
 
 CurveEditorPanel::NativeScroll CurveEditorPanel::scroll_input([[maybe_unused]] bool horizontal) const
 {
+    // wxMouseEvent carries an axis but no device identity. A vertical packet pans X
+    // for the existing mouse scheme and Y for a touchpad; only native metadata can
+    // keep both mappings without a manual mode switch. Magnification already uses
+    // wxEVT_MAGNIFY where the backend supplies it.
 #ifdef __WXMSW__
     INPUT_MESSAGE_SOURCE source{};
     if (::GetCurrentInputMessageSource(&source) && source.deviceType != IMDT_UNAVAILABLE) {
@@ -492,6 +496,7 @@ void CurveEditorPanel::select_point(int row)
 
 void CurveEditorPanel::set_view_limits(const CurveViewLimits& limits)
 {
+    m_plot_rect.reset();
     if (m_middle_panning) finish_drag();
     else cancel_pan();
     m_view_limits = limits;
@@ -530,9 +535,12 @@ bool CurveEditorPanel::point_visible(double x, double y) const
 
 wxRect CurveEditorPanel::chart_rect() const
 {
-    wxClientDC dc(const_cast<CurveEditorPanel*>(this));
-    dc.SetFont(GetFont());
     const wxSize size = GetClientSize();
+    const wxSize dpi = GetDPI();
+    const wxFont font = GetFont();
+    if (m_plot_rect && m_plot_size == size && m_plot_dpi == dpi && m_plot_font == font) return *m_plot_rect;
+    wxClientDC dc(const_cast<CurveEditorPanel*>(this));
+    dc.SetFont(font);
     const int gap = FromDIP(8);
     const int top = dc.GetCharHeight() + gap + dc.GetCharHeight() / 2;
     const int bottom = 2 * dc.GetCharHeight() + 3 * gap;
@@ -544,7 +552,11 @@ wxRect CurveEditorPanel::chart_rect() const
     const int right = gap;
     // Tick length, label spacing and a small outer padding.
     const int left = label_width + 3 * FromDIP(2);
-    return wxRect(left, top, std::max(1, size.x - left - right), height);
+    m_plot_size = size;
+    m_plot_dpi = dpi;
+    m_plot_font = font;
+    m_plot_rect = wxRect(left, top, std::max(1, size.x - left - right), height);
+    return *m_plot_rect;
 }
 
 wxPoint CurveEditorPanel::chart_point(double x_value, double y_value, const wxRect& plot) const
