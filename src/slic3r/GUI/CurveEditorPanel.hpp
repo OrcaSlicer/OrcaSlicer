@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 #include <wx/gdicmn.h>
+#include <wx/font.h>
 #include <wx/panel.h>
 #include <wx/recguard.h>
 #include <wx/string.h>
@@ -93,6 +94,10 @@ private:
     double m_pending_pan_x = 0.0;
     double m_pending_pan_y = 0.0;
     double m_gesture_zoom_factor = 1.0;
+    mutable std::optional<wxRect> m_plot_rect;
+    mutable wxSize m_plot_size;
+    mutable wxSize m_plot_dpi;
+    mutable wxFont m_plot_font;
 };
 
 } // namespace Slic3r::GUI

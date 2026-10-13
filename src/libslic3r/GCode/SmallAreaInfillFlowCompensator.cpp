@@ -9,6 +9,7 @@
 #include "SmallAreaInfillFlowCompensator.hpp"
 
 #include <exception>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <boost/log/trivial.hpp>
@@ -29,11 +30,15 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
 {
     try {
         // Use the editor's complete, locale-independent parser as well as its constraints.
-        int error_row;
+        int error_row = -1;
         const SmallAreaInfillFlowCompensationModel model;
-        if (const char* error = model.read_points(CurveModel::decode_rows(config.small_area_infill_flow_compensation_model.values),
-                                                 eLengths, flowComps, error_row))
-            throw Slic3r::InvalidArgument(std::string("Small Area Flow Compensation: ") + error);
+        const auto rows = CurveModel::decode_rows(config.small_area_infill_flow_compensation_model.values);
+        if (const char* error = model.read_points(rows, eLengths, flowComps, error_row)) {
+            std::string message = std::string("Small Area Flow Compensation: ") + error;
+            if (error_row >= 0 && size_t(error_row) < rows.size())
+                message += " (point " + std::to_string(error_row + 1) + ": " + rows[error_row].first + "," + rows[error_row].second + ")";
+            throw Slic3r::InvalidArgument(message);
+        }
 
         // GCode skips empty settings; constructing a consumer directly still requires points.
         if (eLengths.empty())

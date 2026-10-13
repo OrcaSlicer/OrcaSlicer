@@ -7,6 +7,9 @@
 #include <ios>
 
 #include <charconv>
+#include <cmath>
+#include <limits>
+#include <locale>
 #include <iomanip>
 #include <sstream>
 #include <system_error>
@@ -105,16 +108,37 @@ double atof_decimal_point(std::string_view str)
     return string_to_double_decimal_point(str.substr(i));
 }
 
+bool try_parse_double_decimal_point(std::string_view str, double& value)
+{
+    if (!str.empty() && str.front() == '+') {
+        str.remove_prefix(1);
+        if (!str.empty() && (str.front() == '-' || str.front() == '+')) return false;
+    }
+    if (str.empty()) return false;
+    double parsed = 0;
+    const auto result = fast_float::from_chars(str.data(), str.data() + str.size(), parsed);
+    if (result.ec != std::errc() || result.ptr != str.data() + str.size() || !std::isfinite(parsed)) return false;
+    value = parsed;
+    return true;
+}
+
 std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
+{
+    return float_to_string_decimal_point(value, precision, false);
+}
+
+std::string float_to_string_decimal_point(double value, int precision, bool shortest)
 {
     // Every branch prints the same digits in the classic locale as the stream at the end, which takes over when a branch
     // is compiled out or the value is too long for the buffer.
 #if defined(SLIC3R_FLOAT_TO_CHARS)
-    constexpr size_t SIZE = 20;
+    constexpr size_t SIZE = 64;
     char out[SIZE] = "";
     std::to_chars_result res;
     if (precision >=0)
         res = std::to_chars(out, out+SIZE, value, std::chars_format::fixed, precision);
+    else if (shortest)
+        res = std::to_chars(out, out+SIZE, value, std::chars_format::general);
     else
         res = std::to_chars(out, out+SIZE, value, std::chars_format::general, 6);
     if (res.ec == std::errc())
@@ -122,7 +146,7 @@ std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
 #elif defined(__APPLE__)
     // Formats in the C locale, as libc++'s stream does, switching only this thread's locale for the call.
     static const locale_t c_locale = newlocale(LC_NUMERIC_MASK, "C", (locale_t) 0);
-    if (c_locale != (locale_t) 0) {
+    if (!shortest && c_locale != (locale_t) 0) {
         constexpr size_t SIZE = 20;
         char           out[SIZE];
         const locale_t previous = uselocale(c_locale);
@@ -133,6 +157,18 @@ std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
     }
 #endif
     std::stringstream buf;
+    buf.imbue(std::locale::classic());
+    if (shortest && precision < 0 && std::isfinite(value)) {
+        // Older libc++ lacks floating-point to_chars. Find the first significant-digit
+        // representation that the shared parser reads back as the same double.
+        for (int digits = 1; digits <= std::numeric_limits<double>::max_digits10; ++digits) {
+            buf.str("");
+            buf.clear();
+            buf << std::setprecision(digits) << value;
+            double parsed;
+            if (try_parse_double_decimal_point(buf.str(), parsed) && parsed == value) return buf.str();
+        }
+    }
     if (precision >= 0)
         buf << std::fixed << std::setprecision(precision);
     buf << value;

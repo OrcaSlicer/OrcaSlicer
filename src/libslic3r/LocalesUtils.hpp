@@ -46,8 +46,12 @@ bool is_decimal_separator_point();
 // to be sure that decimal point is used as a separator.
 // (We use user C locales and "C" C++ locales in most of the code.)
 std::string float_to_string_decimal_point(double value, int precision = -1);
+// With shortest=true and no fixed precision, preserve the double using its shortest round-trip spelling.
+std::string float_to_string_decimal_point(double value, int precision, bool shortest);
 //std::string float_to_string_decimal_point(float value,  int precision = -1);
 double string_to_double_decimal_point(const std::string_view str, size_t* pos = nullptr);
+// Parse a complete finite number, including an optional leading '+', without a locale lookup.
+bool try_parse_double_decimal_point(std::string_view str, double& value);
 // Parses like atof in the C locale, skipping leading whitespace and a '+',
 // without the C runtime's per-call locale lookup.
 double atof_decimal_point(std::string_view str);

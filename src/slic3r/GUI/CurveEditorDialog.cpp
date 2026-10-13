@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 #include <wx/colour.h>
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
 #include <wx/dc.h>
 #include <wx/dcclient.h>
 #include <wx/defs.h>
@@ -156,9 +158,14 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     SetEscapeId(wxID_CANCEL);
     Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& event) {
         if (event.GetKeyCode() == WXK_ESCAPE) {
+            if (cancel_cell_edit(*m_grid)) return;
             m_chart->finish_drag();
             if (IsModal()) EndModal(wxID_CANCEL);
             else Close();
+            return;
+        }
+        if ((event.GetKeyCode() == 'V' || event.GetKeyCode() == 'v') && event.CmdDown() && !event.AltDown() && !event.ShiftDown() && m_chart->HasFocus()) {
+            paste_points();
             return;
         }
         event.Skip();
@@ -418,6 +425,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     table_sizer->Add(grid_frame, 1, wxEXPAND);
     auto* csv_actions = new wxBoxSizer(wxHORIZONTAL);
     csv_actions->AddStretchSpacer();
+    auto* paste_button = make_action_button(table_panel, _L("Paste"), "menu_paste", 10);
+    paste_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { paste_points(); });
+    csv_actions->Add(paste_button, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
     auto* export_button = make_action_button(table_panel, _L("Export CSV"), "design_export", 10);
     export_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { export_csv(); });
     export_button->SetToolTip(_L("Export the current points to CSV. This does not save changes to the preset."));
@@ -620,6 +630,26 @@ void CurveEditorDialog::export_csv()
         show_error(this, _L("Could not write the CSV file."));
 }
 
+void CurveEditorDialog::paste_points()
+{
+    wxTextDataObject data;
+    {
+        wxClipboardLocker clipboard;
+        if (!clipboard || !wxTheClipboard->IsSupported(wxDF_TEXT) || !wxTheClipboard->GetData(data)) return;
+    }
+    Rows rows;
+    int line = 0;
+    if (const char* message = m_model->read_csv(into_u8(data.GetText()), rows, line)) {
+        const wxString error = line > 0 ? wxString::Format(_L("CSV line %d: %s"), line, _L(message)) : _L(message);
+        show_error(this, error);
+        return;
+    }
+    finish_edit();
+    load_points(rows);
+    update_preview();
+    fit_chart();
+}
+
 void CurveEditorDialog::finish_edit()
 {
     if (m_grid->IsCellEditControlEnabled()) {
@@ -658,16 +688,21 @@ bool CurveEditorDialog::read_points(std::vector<double>& x, std::vector<double>&
     if (!error.empty() && error_row >= 0)
         error = wxString::Format(_L("Table row %d: "), error_row + 1) + error;
     const char* empty_message = m_model->empty_message();
-    m_status->SetLabel(error.empty() && x.empty() && empty_message != nullptr ? _L(empty_message) : error);
-    // Reset the cached wrap width after replacing the message.
-    m_status->Wrap(-1);
-    m_status->Show(!m_status->GetLabel().empty());
-    layout_content();
+    const wxString status = error.empty() && x.empty() && empty_message != nullptr ? _L(empty_message) : error;
+    if (m_status_text != status) {
+        m_status_text = status;
+        m_status->SetLabel(status);
+        m_status->Wrap(-1);
+        m_status->Show(!status.empty());
+        layout_content();
+    }
     return error.empty();
 }
 
 void CurveEditorDialog::refresh_chart_data(const std::vector<double>& x, const std::vector<double>& y)
 {
+    m_points_x = x;
+    m_points_y = y;
     if (m_model->expand_view_limits(x)) {
         m_chart->set_view_limits(m_model->view_limits());
         update_range_tooltips();
@@ -693,8 +728,11 @@ void CurveEditorDialog::update_preview()
 
 void CurveEditorDialog::move_point(int row, double proposed_x, double proposed_y)
 {
-    std::vector<double> x, y;
-    if (!read_points(x, y) || row < 0 || row >= int(x.size())) return;
+    if (row < 0 || row >= int(m_points_x.size())) return;
+    auto x = m_points_x;
+    auto y = m_points_y;
+    const wxString old_x = m_grid->GetCellValue(row, 0);
+    const wxString old_y = m_grid->GetCellValue(row, 1);
     const CurveEditorView bounds = m_model->drag_bounds(row, x, y, m_chart->view());
     if (bounds.min_x > bounds.max_x || bounds.min_y > bounds.max_y) return;
     auto set_value = [this, row](int column, double value, double lower, double upper, double& current) {
@@ -713,6 +751,13 @@ void CurveEditorDialog::move_point(int row, double proposed_x, double proposed_y
     };
     set_value(0, proposed_x, bounds.min_x, bounds.max_x, x[row]);
     set_value(1, proposed_y, bounds.min_y, bounds.max_y, y[row]);
+    if (x[row] == m_points_x[row] && y[row] == m_points_y[row]) return;
+    int error_row;
+    if (m_model->validate_points(x, y, error_row)) {
+        m_grid->SetCellValue(row, 0, old_x);
+        m_grid->SetCellValue(row, 1, old_y);
+        return;
+    }
     refresh_chart_data(x, y);
 }
 

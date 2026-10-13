@@ -4,10 +4,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <iomanip>
 #include <istream>
-#include <limits>
-#include <locale>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -15,6 +12,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include "I18N.hpp"
 #include "GCode/PchipInterpolatorHelper.hpp"
+#include "LocalesUtils.hpp"
 
 namespace Slic3r {
 namespace {
@@ -92,16 +90,21 @@ CurveModel::Rows CurveModel::decode_rows(const std::vector<std::string>& paramet
 {
     Rows rows;
     for (const auto& parameter : parameters)
-        rows.push_back(split_point(parameter));
+        if (!boost::algorithm::trim_copy(parameter).empty())
+            rows.push_back(split_point(parameter));
     return rows;
 }
 
 std::vector<std::string> CurveModel::encode_rows(const Rows& rows, const std::vector<std::string>& initial_parameters)
 {
     std::vector<std::string> output;
+    if (!rows.empty() && rows == decode_rows(initial_parameters)) return initial_parameters;
+    std::vector<std::string> initial;
+    for (const auto& parameter : initial_parameters)
+        if (!boost::algorithm::trim_copy(parameter).empty()) initial.push_back(parameter);
     for (size_t row = 0; row < rows.size(); ++row) {
-        if (row < initial_parameters.size() && rows[row] == split_point(initial_parameters[row]))
-            output.push_back(initial_parameters[row]);
+        if (row < initial.size() && rows[row] == split_point(initial[row]))
+            output.push_back(initial[row]);
         else {
             std::string x = boost::algorithm::trim_copy(rows[row].first);
             std::string y = boost::algorithm::trim_copy(rows[row].second);
@@ -125,19 +128,12 @@ bool CurveModel::read_number(std::string text, double& value)
 {
     boost::algorithm::trim(text);
     std::replace(text.begin(), text.end(), ',', '.');
-    std::istringstream stream(text);
-    stream.imbue(std::locale::classic());
-    if (!(stream >> value) || !std::isfinite(value)) return false;
-    stream >> std::ws;
-    return stream.eof();
+    return try_parse_double_decimal_point(text, value);
 }
 
 std::string CurveModel::format_number(double value)
 {
-    std::ostringstream stream;
-    stream.imbue(std::locale::classic());
-    stream << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
-    return stream.str();
+    return float_to_string_decimal_point(value, -1, true);
 }
 
 bool CurveModel::insert_point(Rows& rows, int& row) const
@@ -178,6 +174,7 @@ const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line)
     std::string record;
     char separator = 0;
     bool header = false;
+    bool legacy = false;
     line = 0;
     int current_line = 0;
     const auto columns = csv_column_names();
@@ -185,19 +182,37 @@ const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line)
         ++current_line;
         boost::algorithm::trim(record);
         if (record.empty()) continue;
-        if (!separator) separator = record.find(';') == std::string::npos ? ',' : ';';
-        Row point;
-        line = current_line;
-        if (!split_csv_row(record, separator, point))
-            return L("CSV must contain exactly two columns per line.");
-        if (candidate.empty() && !header &&
-            ((point.first == columns[0] && point.second == columns[1]) || point == Row{"x", "y"})) {
-            header = true;
-            continue;
+        if (!separator) {
+            // The documented preset format terminates comma-separated pairs with ';'.
+            // Keep semicolon CSV (including decimal commas) as a separate dialect.
+            Row trial;
+            double first, second;
+            legacy = record.back() == ';' && record.find(',') != std::string::npos &&
+                !(split_csv_row(record, ';', trial) && read_number(trial.first, first) && read_number(trial.second, second));
+            separator = legacy || record.find(';') == std::string::npos ? ',' : ';';
         }
-        if (candidate.size() >= maximum_point_count()) return L("The curve contains too many points.");
-        candidate.push_back(std::move(point));
-        line_numbers.push_back(current_line);
+        line = current_line;
+        std::vector<std::string> records;
+        if (legacy) {
+            std::istringstream pairs(record);
+            std::string pair;
+            while (std::getline(pairs, pair, ';'))
+                if (!boost::algorithm::trim_copy(pair).empty()) records.push_back(std::move(pair));
+        } else {
+            records.push_back(record);
+        }
+        for (const auto& pair : records) {
+            Row point;
+            if (!split_csv_row(pair, separator, point)) return L("CSV must contain exactly two columns per line.");
+            if (candidate.empty() && !header &&
+                ((point.first == columns[0] && point.second == columns[1]) || point == Row{"x", "y"})) {
+                header = true;
+                continue;
+            }
+            if (candidate.size() >= maximum_point_count()) return L("The curve contains too many points.");
+            candidate.push_back(std::move(point));
+            line_numbers.push_back(current_line);
+        }
     }
     line = 0;
     if (candidate.empty() && !header) return L("The CSV file contains no points.");

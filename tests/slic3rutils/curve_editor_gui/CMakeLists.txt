@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
-project(curve_editor_gui_checks LANGUAGES CXX)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    project(curve_editor_gui_checks LANGUAGES CXX)
+    set(CURVE_STANDALONE TRUE)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,13 +23,21 @@ add_custom_command(OUTPUT "${_test_panel}"
     VERBATIM)
 
 # Use the same vendored Catch2 version without rebuilding the main application.
-add_library(curve_editor_catch STATIC "${ORCA_SOURCE_DIR}/tests/catch2/extras/catch_amalgamated.cpp")
-target_include_directories(curve_editor_catch PUBLIC "${ORCA_SOURCE_DIR}/tests/catch2/extras")
+if(CURVE_STANDALONE)
+    add_library(curve_editor_catch STATIC "${ORCA_SOURCE_DIR}/tests/catch2/extras/catch_amalgamated.cpp")
+    target_include_directories(curve_editor_catch PUBLIC "${ORCA_SOURCE_DIR}/tests/catch2/extras")
+else()
+    add_library(curve_editor_catch INTERFACE)
+    target_link_libraries(curve_editor_catch INTERFACE Catch2::Catch2WithMain)
+    target_include_directories(curve_editor_catch INTERFACE "${ORCA_SOURCE_DIR}/tests/catch2/extras")
+endif()
 add_executable(curve_editor_gui_tests test_curve_editor.cpp "${_test_panel}"
     "${ORCA_SOURCE_DIR}/src/libslic3r/CurveModel.cpp"
+    "${ORCA_SOURCE_DIR}/src/libslic3r/LocalesUtils.cpp"
     "${ORCA_SOURCE_DIR}/src/libslic3r/GCode/PchipInterpolatorHelper.cpp")
 target_include_directories(curve_editor_gui_tests PRIVATE "${ORCA_SOURCE_DIR}/src"
     "${ORCA_SOURCE_DIR}/src/slic3r/GUI")
+target_include_directories(curve_editor_gui_tests SYSTEM PRIVATE "${ORCA_SOURCE_DIR}/deps_src")
 target_compile_definitions(curve_editor_gui_tests PRIVATE wxDEBUG_LEVEL=0)
 target_link_libraries(curve_editor_gui_tests PRIVATE curve_editor_catch wx::core wx::base Boost::headers)
 
@@ -44,13 +55,24 @@ endif()
 enable_testing()
 list(APPEND CMAKE_MODULE_PATH "${ORCA_SOURCE_DIR}/tests/catch2/extras")
 include(Catch)
-catch_discover_tests(curve_editor_gui_tests ADD_TAGS_AS_LABELS)
+# Pointer capture belongs to the display, so parallel processes must not steal it.
+catch_discover_tests(curve_editor_gui_tests ADD_TAGS_AS_LABELS
+    PROPERTIES RESOURCE_LOCK curve_editor_display)
 
 find_program(CURVE_XGETTEXT NAMES xgettext HINTS "${ORCA_SOURCE_DIR}/tools")
 find_program(CURVE_MSGFMT NAMES msgfmt HINTS "${ORCA_SOURCE_DIR}/tools")
 if(CURVE_XGETTEXT AND CURVE_MSGFMT)
-    add_test(NAME curve_editor_localization
-        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_localization.py"
-            --xgettext "${CURVE_XGETTEXT}" --msgfmt "${CURVE_MSGFMT}")
-    set_tests_properties(curve_editor_localization PROPERTIES LABELS "Localization")
+    if(CURVE_STANDALONE)
+        add_test(NAME curve_editor_localization
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_localization.py"
+                --xgettext "${CURVE_XGETTEXT}" --msgfmt "${CURVE_MSGFMT}")
+        set_tests_properties(curve_editor_localization PROPERTIES LABELS "Localization")
+    else()
+        # CI's runtime artifact has no source/catalog checkout or build-host Python.
+        # Validate these contracts during its build, then package only native event tests.
+        add_custom_target(curve_editor_localization_check ALL
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_localization.py"
+                --xgettext "${CURVE_XGETTEXT}" --msgfmt "${CURVE_MSGFMT}"
+            VERBATIM)
+    endif()
 endif()

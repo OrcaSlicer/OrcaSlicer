@@ -174,6 +174,14 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
     case coStrings: {
         const ConfigOptionStrings* strings = config.opt<ConfigOptionStrings>(pure_key);
         if (strings) {
+            if (opt->is_curve() && orig_opt_idx < 0) {
+                for (const auto& point : strings->values) {
+                    const wxString text = from_u8(point).Strip(wxString::both);
+                    if (!text.empty()) out += text + ";\n";
+                }
+                if (!out.empty()) out.RemoveLast();
+                return out;
+            }
             if (pure_key == "compatible_printers" || pure_key == "compatible_prints") {
                 if (strings->empty())
                     return _L("All");
