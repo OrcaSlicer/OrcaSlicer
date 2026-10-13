@@ -280,8 +280,8 @@
             id="extruders"
             onchange="handleExtruderSelect(document.getElementById('extruders').value)"
           >
-            <option value="left" id="extruder_label_0">Left Nozzle</option>
-            <option value="right" id="extruder_label_1">Right Nozzle</option>
+            <option value="0" id="extruder_label_0">Left Nozzle</option>
+            <option value="1" id="extruder_label_1">Right Nozzle</option>
           </select>
         </div>
       </div>
@@ -308,6 +308,12 @@
             style="margin-top: 5px;"
           >
             Suggestion: Flushing Volume in range [50, 999]
+          </div>
+          <div style="margin-top: 8px; display: none;" id="sync_row">
+            <label style="font-size: 12px;">
+              <input type="checkbox" id="sync_extruders" onchange="onSyncChange()" />
+              <span id="sync_label">Same flushing volumes for all extruders</span>
+            </label>
           </div>
           <div style="margin-top: 8px;">
             <label
@@ -353,6 +359,8 @@
       let m_flush_multipiers // 冲刷系数
       let m_cell_inputs = []; //显示的内容
       let m_curr_extruder_id = 0
+      let m_extruder_labels = []   // E1..En for a toolchanger; empty strings keep Left/Right
+      let m_synced = false         // one matrix for every extruder
       let m_min_flush_volumes = []
       let m_max_flush_volumes = []
       let m_min_flush_multiplier = 0.50
@@ -364,7 +372,8 @@
           msg: 'storeData',
           number_of_extruders: m_number_of_extruders,
           raw_matrix: m_raw_matrix,
-          flush_multiplier: m_flush_multipiers
+          flush_multiplier: m_flush_multipiers,
+          synced: m_synced
         })
         window.wipingDialog.postMessage(data);
       }
@@ -433,8 +442,15 @@
         document.getElementById('multiplier_range_panel').innerText = data.multiplier_range_panel
         document.getElementById('auto_flush_tip').innerText = data.auto_flush_tip
         document.getElementById('calc_btn').innerText = data.calc_btn_panel
-        document.getElementById('extruder_label_0').innerText = data.extruder_label_0
-        document.getElementById('extruder_label_1').innerText = data.extruder_label_1
+        // Bambu's dual head keeps Left/Right; every other printer's options were named E<n> in
+        // buildTable and must not be renamed here.
+        if (!m_extruder_labels.length || !m_extruder_labels[0]) {
+          const first = document.getElementById('extruder_label_0')
+          const second = document.getElementById('extruder_label_1')
+          if (first) first.innerText = data.extruder_label_0
+          if (second) second.innerText = data.extruder_label_1
+        }
+        if (data.sync_label) document.getElementById('sync_label').innerText = data.sync_label
         document.getElementById('multiplier_label').innerText = data.multiplier_label
         document.getElementById('ok_btn').innerText = data.ok_btn_label
         document.getElementById('cancel_btn').innerText = data.cancel_btn_label
@@ -511,11 +527,28 @@
         updateFlushMultiplier(m_curr_extruder_id)
 
         const selectElement = document.getElementById('extruders');
+        m_extruder_labels = data.extruder_labels || []
+        if (m_extruder_labels.length && m_extruder_labels[0]) {
+          // A toolchanger: one option per physical extruder, named E<n>.
+          selectElement.innerHTML = ''
+          for (let e = 0; e < m_number_of_extruders; e++) {
+            const opt = document.createElement('option')
+            opt.value = e
+            opt.id = 'extruder_label_' + e
+            opt.innerText = m_extruder_labels[e]
+            selectElement.appendChild(opt)
+          }
+        }
+        m_synced = !!data.synced
+        const syncRow = document.getElementById('sync_row')
+        syncRow.style.display = data.show_sync ? 'block' : 'none'
+        document.getElementById('sync_extruders').checked = m_synced
         if (m_number_of_extruders > 1) {
           selectElement.style.display = 'inline-block';
         } else {
           selectElement.style.display = 'none';
         }
+        applySyncState()
 
         var thead = document.querySelector("#flushTable thead tr");
         var tbody = document.querySelector("#flushTable tbody");
@@ -584,12 +617,33 @@
           var index = m_number_of_filaments*i+j
           m_raw_matrix[m_curr_extruder_id][index] = displayToRaw(val, m_flush_multipiers[m_curr_extruder_id])
           m_display_matrix[index] = val;
+          if (m_synced) for (let e = 1; e < m_raw_matrix.length; e++) m_raw_matrix[e][index] = m_raw_matrix[0][index]
         }
         updateWarningTexts();
       }
 
+      // With one matrix for every extruder, the first block is the one edited; the others
+      // follow it on every change and the extruder choice is moot.
+      function applySyncState() {
+        const selectElement = document.getElementById('extruders')
+        if (m_synced) {
+          for (let e = 1; e < m_raw_matrix.length; e++) {
+            m_raw_matrix[e] = m_raw_matrix[0].slice()
+            m_flush_multipiers[e] = m_flush_multipiers[0]
+          }
+          if (m_curr_extruder_id !== 0) handleExtruderSelect(0)
+          selectElement.value = 0
+        }
+        selectElement.disabled = m_synced
+      }
+
+      function onSyncChange() {
+        m_synced = document.getElementById('sync_extruders').checked
+        applySyncState()
+      }
+
       function handleExtruderSelect(extruder) {
-        m_curr_extruder_id = extruder == 'left' ? 0 : 1
+        m_curr_extruder_id = parseInt(extruder, 10) || 0
         updateVolumeRange(m_min_flush_volumes[m_curr_extruder_id],m_max_flush_volumes[m_curr_extruder_id])
         updateFlushMultiplier(m_min_flush_multiplier[m_curr_extruder_id],m_max_flush_multiplier[m_curr_extruder_id])
         updateFlushMultiplier(m_curr_extruder_id)
@@ -608,6 +662,7 @@
           document.getElementById("multiplierInput").value = m_max_flush_multiplier;
         }
         m_flush_multipiers[m_curr_extruder_id] = val;
+        if (m_synced) for (let e = 0; e < m_flush_multipiers.length; e++) m_flush_multipiers[e] = val
         for (let i = 0; i < m_number_of_filaments; i++) {
           for (let j = 0; j < m_number_of_filaments; j++) {
             if (i === j) continue;

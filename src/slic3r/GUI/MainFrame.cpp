@@ -2109,7 +2109,7 @@ const char* print_select_type_key(MainFrame::PrintSelectType type)
     case MainFrame::eSendToPrinter:       return "send_to_printer";
     case MainFrame::eSendToPrinterAll:    return "send_to_printer_all";
     case MainFrame::ePrintMultiMachine:   return "print_multi_machine";
-    case MainFrame::eUploadGcode:         break; // Orca: no dropdown entry, never selectable
+    case MainFrame::eUploadGcode:         return "upload_gcode";
     }
     return "";
 }
@@ -2127,7 +2127,7 @@ wxString print_select_type_label(MainFrame::PrintSelectType type)
     case MainFrame::eSendToPrinter:       return _L("Send");
     case MainFrame::eSendToPrinterAll:    return _L("Send all");
     case MainFrame::ePrintMultiMachine:   return _L("Send to Multi-device");
-    case MainFrame::eUploadGcode:         break; // Orca: no dropdown entry, never selectable
+    case MainFrame::eUploadGcode:         return _L("Upload");
     }
     return _L("Print plate");
 }
@@ -2142,6 +2142,15 @@ std::vector<MainFrame::PrintSelectType> MainFrame::available_print_actions() con
     if (preset_bundle && !preset_bundle->is_bbl_vendor() && !use_printer_agents) {
         // ThirdParty actions
         actions.push_back(eSendGcode);
+        // Orca: a plain upload, for printers that declare print-start options (mapping, bed
+        // leveling, ...). "Print" collects those; choosing "Upload" says the user will start the
+        // job from the printer's own screen instead, so it must not ask for any of them. Printers
+        // that declare nothing keep the plain send dialog under "Print", which already offers both
+        // actions -- their menu is unchanged.
+        if (const DynamicPrintConfig& cfg = preset_bundle->printers.get_edited_preset().config;
+            !device_print_spec(filament_mapping_protocol_of(cfg),
+                               effective_map_delivery(filament_mapping_protocol_of(cfg), reported_changer_of(cfg))).empty())
+            actions.push_back(eUploadGcode);
         // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
         // also offer exporting the sliced .gcode.3mf bundle
         const auto* use_3mf_opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("use_3mf");

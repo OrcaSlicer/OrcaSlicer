@@ -1,8 +1,11 @@
 #include "Moonraker.hpp"
 
 #include <exception>
+#include <algorithm>
+#include <cctype>
 #include <sstream>
 
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -114,16 +117,28 @@ bool Moonraker::test(wxString &msg) const
     return res;
 }
 
+//ORCA: Moonraker's /server/files/roots can return non-print roots ("config", "logs", "timelapse",
+//      "camera", ...) alongside "gcodes", all writable. Writability alone can't identify a gcode
+//      destination, so match by name instead: the canonical root is "gcodes", and a
+//      case-insensitive substring match on "gcode" also covers variants like "usb_gcodes".
+bool MoonrakerStorage::is_gcode_destination_root(const std::string &root_name)
+{
+    std::string lower = root_name;
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+    return lower.find("gcode") != std::string::npos;
+}
+
 bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_name) const
 {
     //ORCA: GET /server/files/roots enumerates Moonraker's storage roots (default "gcodes" plus any
     //      configured extras like "config", "logs", "timelapse"). Only roots with permissions
-    //      including "rw" or "rwd" can receive uploads; we filter to those so the UI dropdown only
-    //      offers usable destinations. The base class returns false (no per-host storage); returning
-    //      true here populates the storage picker in PrintHostDialogs's send-to-print dialog.
-    //      Failures (404 — older Moonraker, or a buddy-fork that doesn't implement the endpoint)
-    //      gracefully degrade to false so upload() falls back to the hardcoded "gcodes" default.
+    //      including "rw" or "rwd" and that look like a gcode destination
+    //      (MoonrakerStorage::is_gcode_destination_root) are print-job candidates. Returning true
+    //      populates the storage picker in PrintHostDialogs's send-to-print dialog; failures (404 —
+    //      older Moonraker, or a buddy-fork that doesn't implement the endpoint) gracefully degrade
+    //      to false so upload() falls back to the hardcoded "gcodes" default.
     const char *name = get_name();
+    wxArrayString candidate_path, candidate_name;
     bool got_any = false;
     auto url = make_url("server/files/roots");
 
@@ -157,10 +172,10 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
             for (const auto &child : *result_node) {
                 const std::string &root = child.second.get<std::string>("name", "");
                 const std::string &perms = child.second.get<std::string>("permissions", "");
-                if (root.empty() || perms.find('w') == std::string::npos)
+                if (root.empty() || perms.find('w') == std::string::npos || !MoonrakerStorage::is_gcode_destination_root(root))
                     continue;
-                storage_path.Add(wxString::FromUTF8(root));
-                storage_name.Add(wxString::FromUTF8(root));
+                candidate_path.Add(wxString::FromUTF8(root));
+                candidate_name.Add(wxString::FromUTF8(root));
                 got_any = true;
             }
         } catch (const std::exception &ex) {
@@ -172,6 +187,11 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
 #endif
     .perform_sync();
 
+    //ORCA: populate unconditionally; a single-candidate picker is suppressed one layer up in
+    //      PrintHostSendDialog, which needs the actual candidate name/path rather than a hardcoded
+    //      "gcodes" fallback (e.g. a printer whose only print root is "usb_gcodes").
+    storage_path = std::move(candidate_path);
+    storage_name = std::move(candidate_name);
     return got_any;
 }
 
@@ -214,6 +234,44 @@ bool Moonraker::start_print(wxString &error_msg, const std::string &filename) co
     return res;
 }
 
+bool Moonraker::start_print_with_script(wxString &error_msg, const std::string &script) const
+{
+    //ORCA: POST /printer/gcode/script with JSON body { "script": "<script>" }. `script` is a
+    //      fully-rendered gcode macro call the GUI caller built (e.g. a device-owned filament
+    //      mapping protocol's print-start command); this class doesn't parse or construct it.
+    const char *name = get_name();
+    bool res = true;
+    auto url = make_url("printer/gcode/script");
+
+    pt::ptree body_tree;
+    body_tree.put("script", script);
+    std::ostringstream body_ss;
+    pt::write_json(body_ss, body_tree, /*pretty=*/false);
+    std::string body = body_ss.str();
+
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Starting print via custom start script at %2%") % name % url;
+
+    auto http = Http::post(std::move(url));
+    set_auth(http);
+    http.header("Content-Type", "application/json")
+        .set_post_body(body)
+        .on_complete([&](std::string body, unsigned status) {
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: gcode/script HTTP %2%: %3%") % name % status % body;
+        })
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error starting print via custom start script at %2%: %3%, HTTP %4%, body: `%5%`")
+                % name % url % error % status % body;
+            res = false;
+            error_msg = format_error(body, error, status);
+        })
+#ifdef WIN32
+        .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+#endif
+        .perform_sync();
+
+    return res;
+}
+
 bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
     // POST /server/files/upload with `print=true` so Moonraker starts the print
@@ -241,6 +299,11 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     const std::string root = upload_data.storage.empty() ? std::string("gcodes") : upload_data.storage;
 
     const bool want_start = upload_data.post_action == PrintHostPostUploadAction::StartPrint;
+    //ORCA: extended_info["start_script"], when present, is a fully-rendered gcode script run via
+    //      gcode/script instead of the plain print/start call -- it carries the filament mapping the
+    //      print has to begin with. That has to run before the job starts, so a script start never
+    //      hands the start over to Moonraker's `print` flag below; we issue it ourselves.
+    std::string start_script = upload_data.extended("start_script");
 
     std::string url = make_url("server/files/upload");
     bool result = true;
@@ -266,7 +329,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     http.form_add("root", root);
     if (!plateindex.empty())
         http.form_add("plateindex", plateindex);
-    http.form_add("print", want_start ? "true" : "false");
+    http.form_add("print", want_start && start_script.empty() ? "true" : "false");
     http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: upload HTTP %2%: %3%") % name % status % body;
@@ -324,11 +387,19 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     if (!result)
         return false;
 
-    // Fallback only when Moonraker neither started nor queued the print. If the
-    // printer cannot start it, the error from this request is what the user sees.
-    if (want_start && !uploaded_path.empty() && !moonraker_started_print) {
+    // A script start is always ours to issue; the plain start is a fallback only when Moonraker
+    // neither started nor queued the print. If the printer cannot start it, the error from this
+    // request is what the user sees.
+    if (want_start && !uploaded_path.empty() && (!start_script.empty() || !moonraker_started_print)) {
+        //ORCA: the script may embed PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER (PrintHost.hpp) in place
+        //      of the uploaded file's name; substitute the server-confirmed `uploaded_path` before
+        //      running it so a server-side collision rename can't leave it pointing at a stale file.
+        if (!start_script.empty())
+            boost::replace_first(start_script, PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, uploaded_path);
         wxString start_msg;
-        if (!start_print(start_msg, uploaded_path)) {
+        const bool started = start_script.empty() ? start_print(start_msg, uploaded_path)
+                                                   : start_print_with_script(start_msg, start_script);
+        if (!started) {
             error_fn(std::move(start_msg));
             return false;
         }

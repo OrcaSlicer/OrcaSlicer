@@ -16,6 +16,7 @@
 #include "libslic3r/libslic3r.h"
 #include <atomic>
 #include <memory>
+#include <optional>
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include <string>
@@ -333,6 +334,7 @@ private:
     bool            m_need_auto_sync_after_connect_printer{false};
 };
 
+
 class Plater: public wxPanel
 {
 public:
@@ -614,7 +616,10 @@ public:
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+    // Orca: upload_only skips the print-start dialog a printer's profile declares (mapping,
+    // bed leveling, ...) and offers a plain upload -- the user starts the job from the printer's
+    // own screen, so asking here would be asking for choices that never get sent.
+    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool upload_only = false);
     int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);
@@ -669,7 +674,12 @@ public:
     // editor previews rather than a straight blend of two endpoints. A slot that is not a
     // gradient mixed filament gets an empty ramp. Cached; recomputed when the config changes.
     const std::vector<std::vector<wxColour>>& get_filament_gradient_ramps() const;
-    std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result = nullptr) const;
+    // `filament_colors` replaces the palette's leading per-filament entries. The G-code preview
+    // passes the colours of the g-code's TOOLS, which a compacted plate (FilamentCompaction)
+    // renumbers away from the project's slots; everything else wants the project's own list and
+    // leaves it unset.
+    std::vector<std::string> get_colors_for_color_print(const GCodeProcessorResult* const result = nullptr,
+                                                        std::optional<std::vector<std::string>> filament_colors = std::nullopt) const;
 
     void set_global_filament_map_mode(FilamentMapMode mode);
     void set_global_filament_map(const std::vector<int>& filament_map);
@@ -843,6 +853,9 @@ public:
     // True when the active preset references plugins that are missing and not yet acknowledged, as
     // of the last validate_current_plate. Other slice-ready writers consult this to stay consistent.
     bool plugins_block_slicing() const;
+    // Orca: applies `plate` (filament/volume/physical maps) to background_process. Shared by
+    // apply_background_progress, select_plate, and select_plate_by_hover_id.
+    PrintBase::ApplyStatus apply_plate_to_background_process(PartPlate* plate, PresetBundle& preset_bundle);
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);
     //BBS: update progress result
