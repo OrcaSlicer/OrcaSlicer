@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CurveEditorPanel.hpp"
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -63,6 +64,7 @@ private:
     void paste_points();
     void layout_content();
     void layout_actions();
+    void update_grid_metrics();
 
     CurveEditorAppearance m_appearance;
     std::unique_ptr<CurveModel> m_model;
@@ -70,6 +72,7 @@ private:
     wxScrolledWindow* m_content;
     CurveEditorPanel* m_chart;
     wxGrid* m_grid;
+    std::array<int, 2> m_column_widths{};
     wxPanel* m_table_panel;
     wxPanel* m_actions_panel;
     Button* m_add_point;

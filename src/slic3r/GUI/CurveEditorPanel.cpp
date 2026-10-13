@@ -20,6 +20,7 @@
 #include <wx/recguard.h>
 #include <wx/string.h>
 #include <wx/timer.h>
+#include <wx/utils.h>
 #include <wx/window.h>
 #ifdef __WXMSW__
 #include <wx/msw/wrapwin.h>
@@ -174,8 +175,18 @@ int axis_label_width(double minimum, double maximum, double minimum_span, int pi
 CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance& appearance, const CurveViewLimits& view_limits)
     : wxPanel(parent), m_appearance(appearance), m_view_limits(view_limits), m_pan_timer(this)
 {
+    // Cocoa doesn't emit capture-lost events when another window becomes active.
+    m_top_level = wxGetTopLevelParent(this);
+    if (m_top_level)
+        m_top_level->Bind(wxEVT_ACTIVATE, &CurveEditorPanel::on_activate, this);
     Bind(wxEVT_TIMER, [this](wxTimerEvent&) { flush_pan(); }, m_pan_timer.GetId());
     SetMinSize(FromDIP(wxSize(420, 180)));
+    Bind(wxEVT_DPI_CHANGED, [this](wxDPIChangedEvent& event) {
+        finish_drag();
+        m_plot_rect.reset();
+        SetMinSize(FromDIP(wxSize(420, 180)));
+        event.Skip();
+    });
     #ifndef __WXOSX__
         SetBackgroundStyle(wxBG_STYLE_PAINT);
     #endif
@@ -201,7 +212,7 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         select_point(m_dragged_point);
         if (on_select) on_select(m_dragged_point);
         SetFocus();
-        CaptureMouse();
+        if (!HasCapture()) CaptureMouse();
     });
     Bind(wxEVT_MIDDLE_DOWN, [this](wxMouseEvent& event) {
         if (m_middle_panning || m_dragged_point >= 0) return;
@@ -216,7 +227,7 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         m_hovered_point = -1;
         SetFocus();
         SetCursor(wxCursor(wxCURSOR_SIZING));
-        CaptureMouse();
+        if (!HasCapture()) CaptureMouse();
         Refresh();
     });
     Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
@@ -360,10 +371,23 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
 
 CurveEditorPanel::~CurveEditorPanel()
 {
+    if (m_top_level)
+        m_top_level->Unbind(wxEVT_ACTIVATE, &CurveEditorPanel::on_activate, this);
     finish_drag();
 #ifdef __WXMSW__
     if (m_automatic_touchpad_controls) register_touchpad_input(false);
 #endif
+}
+
+void CurveEditorPanel::on_activate(wxActivateEvent& event)
+{
+    event.Skip();
+    if (!event.GetActive()) {
+        finish_drag();
+        m_hovered_point = -1;
+        m_pan_gesture_active = m_zoom_gesture_active = false;
+        m_gesture_zoom_factor = 1.0;
+    }
 }
 
 CurveEditorPanel::NativeScroll CurveEditorPanel::scroll_input([[maybe_unused]] bool horizontal) const

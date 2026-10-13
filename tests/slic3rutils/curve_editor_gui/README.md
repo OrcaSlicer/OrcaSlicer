@@ -38,6 +38,8 @@ build includes this target under `slic3rutils`, so packaged CI artifacts run the
 native cases. Headless Linux CI supplies Xvfb; self-hosted runners need a display or Xvfb.
 Linux builds also need GTK 3 development headers. macOS builds include the Objective-C++
 adapter and link AppKit.
+Linux discovers wxWidgets through `wx-config`, including system installs without
+`wxWidgetsConfig.cmake`; Windows/macOS use the dependency install's CONFIG package.
 CTest disables the unused GTK accessibility bridge (`NO_AT_BRIDGE=1`) for these native
 checks so a missing AT-SPI bus does not delay each process. The mapped test frames keep
 their client area aligned with the panel, including after resizing.
@@ -98,7 +100,7 @@ human review, including legitimate borrowed labels that equal the English text.
 | Pan/zoom bounds, minimum spans, cursor anchor, adaptive bed/model limits | Core model suite |
 | Mouse modifiers, fractional wheel deltas, middle-button pan/capture/cancellation, two-axis touchpad input, pinch-in/out, cumulative gestures | Standalone panel checks |
 | Paired axis packets, equal pixel distances, closed circular motion, gesture/wheel overlap, discarded pending pan | Standalone panel checks with the native navigation timer |
-| Stable plot geometry, point selection/dragging, capture cancellation, gestures during dragging | Standalone panel checks |
+| Stable plot geometry, point selection/dragging, capture cancellation/deactivation, existing capture, DPI interruption, gestures during dragging | Standalone panel checks |
 | Dirty/revert state, complete option transfer, unchanged inactive feature | Preset/GUI integration and FFF suites |
 | Shared PCHIP, role eligibility, saved models above the editor limit, malformed inactive settings | FFF suite |
 | Source/catalog coverage and formatting contracts | Localization script |
@@ -110,6 +112,12 @@ Use a disposable print preset. Keep any fixture project separate from normal use
 1. Open the editor with default, empty and invalid point data. Check that the description,
    axis labels and single-line table headers are readable in light/dark themes and at
    different DPI/font sizes. Test a locale with longer labels.
+   On Windows, move the open dialog between monitors at 100%, 150% and 200% scaling,
+   then move it back, with table/range shown and hidden. Check fonts, icons, compact
+   buttons, range fields/arrows, row heights, headers and footer alignment. Draft values,
+   selection and view must survive, and size hints/scrollbars must follow the new scale.
+   On Linux and macOS, repeat between displays with different scale/backing factors
+   supported by the desktop and check that native font scaling is not applied twice.
 2. Select a graph point and a table row in turn. Both selections must agree. Edit both
    columns, drag a point, add/remove points, restore defaults and use Reset View. Reset
    View and navigation must change only the viewport. Stationary/horizontal/vertical
@@ -138,6 +146,9 @@ Use a disposable print preset. Keep any fixture project separate from normal use
    must stop without delayed jumps. Left-button point dragging, wheel modifiers and
    touchpad gestures must still work after release. A trackpad without a middle-button
    event continues to use its existing two-finger and pinch gestures.
+   During both point dragging and middle-button panning, switch to another window/app
+   before releasing the button (Alt+Tab or Command+Tab), then return. The pointer must
+   be released, pending movement discarded, and the dialog must remain clickable.
 8. With supported native input detection, the Touchpad checkbox
    must be hidden: mouse controls retain their axis modifiers while touchpad input follows
    its native axes without switching modes. Test mouse and touchpad in turn, including
