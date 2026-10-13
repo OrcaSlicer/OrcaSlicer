@@ -38,6 +38,9 @@ build includes this target under `slic3rutils`, so packaged CI artifacts run the
 native cases. Headless Linux CI supplies Xvfb; self-hosted runners need a display or Xvfb.
 Linux builds also need GTK 3 development headers. macOS builds include the Objective-C++
 adapter and link AppKit.
+CTest disables the unused GTK accessibility bridge (`NO_AT_BRIDGE=1`) for these native
+checks so a missing AT-SPI bus does not delay each process. The mapped test frames keep
+their client area aligned with the panel, including after resizing.
 
 To exercise all cases in one process and detect fixture-order dependencies:
 
@@ -46,6 +49,21 @@ build/curve-editor-gui-tests/curve_editor_gui_tests --order rand
 ```
 
 For multi-config Windows builds the executable is in `Release/`.
+On headless Linux, run the same-process check with:
+
+```text
+NO_AT_BRIDGE=1 xvfb-run -a build/curve-editor-gui-tests/curve_editor_gui_tests --order rand
+```
+
+To rebuild/run only the native cases from the normal application build tree:
+
+```text
+cmake --build build --config Release --target curve_editor_gui_tests
+xvfb-run -a ctest --test-dir build/tests -C Release -L CurveEditorGUI --output-on-failure
+```
+
+Use `-R "<case name>" -VV` to get a single case's full output. Flatpak's explicit test
+target list includes `curve_editor_gui_tests`, so it is built before packaging the asset.
 
 The ordinary suites use the `SmallAreaInfillFlowCompensation` tag in
 `tests/libslic3r/test_small_area_infill_flow_compensation.cpp`,
@@ -66,6 +84,7 @@ Windows or tools on `PATH`; `--xgettext` and `--msgfmt` allow explicit paths.
 When both tools are found at configuration time, standalone CTest runs this check with
 the `Localization` label. The normal test build runs it as an `ALL` target because the
 runtime artifact has neither the source catalogs nor the build-host Python installation.
+It is also a dependency of `curve_editor_gui_tests`, including explicit Flatpak builds.
 English intentionally falls back to the source. Correctness of wording still needs
 human review, including legitimate borrowed labels that equal the English text.
 
