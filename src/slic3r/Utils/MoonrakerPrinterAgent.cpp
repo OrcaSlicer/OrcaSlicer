@@ -7,6 +7,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/miniz_extension.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -65,6 +66,7 @@
 #include <mutex>
 #include <memory>
 #include <sstream>
+#include <regex>
 #include <set>
 #include <thread>
 #include <vector>
@@ -151,6 +153,26 @@ uint64_t steady_now_ms()
 {
     return static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+}
+
+// Writes the sliced plate's G-code (Metadata/plate_<n>.gcode) out of a .gcode.3mf bundle.
+bool extract_plate_gcode(const std::string& archive_path, const std::string& gcode_path)
+{
+    static const std::regex plate_gcode(R"(Metadata/plate_\d+\.gcode)");
+
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+    if (!Slic3r::open_zip_reader(&archive, archive_path))
+        return false;
+
+    bool extracted = false;
+    for (mz_uint i = 0, n = mz_zip_reader_get_num_files(&archive); i < n && !extracted; ++i) {
+        mz_zip_archive_file_stat stat;
+        if (mz_zip_reader_file_stat(&archive, i, &stat) && std::regex_match(stat.m_filename, plate_gcode))
+            extracted = mz_zip_reader_extract_to_file(&archive, i, Slic3r::encode_path(gcode_path.c_str()).c_str(), 0);
+    }
+    Slic3r::close_zip_reader(&archive);
+    return extracted;
 }
 
 } // namespace
@@ -383,8 +405,25 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
     }
 
-    // Extract filename for upload (relative to gcodes root)
-    std::string upload_filename = source_path.filename().string();
+    // The print dialog hands over the plate as a .gcode.3mf bundle; Klipper needs the plain G-code
+    // inside it, or it reads the zip as G-code and aborts on the first "command".
+    // Extract next to the bundle under a name of our own: the plate's live .gcode sits beside it
+    // under the bundle's stem, and Orca holds that file open.
+    fs::path extracted;
+    if (boost::iends_with(gcode_path, ".3mf")) {
+        extracted = source_path;
+        extracted.replace_extension(".upload.gcode");
+        if (!extract_plate_gcode(gcode_path, extracted.string())) {
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: no plate G-code in " << gcode_path;
+            return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
+        }
+        gcode_path  = extracted.string();
+        source_path = extracted;
+    }
+
+    // Extract filename for upload (relative to gcodes root); prefer the job name the dialog shows
+    // over the temp file's name.
+    std::string upload_filename = params.project_name.empty() ? source_path.filename().string() : params.project_name;
     if (!boost::iends_with(upload_filename, ".gcode")) {
         upload_filename += ".gcode";
     }
@@ -394,7 +433,12 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
     // Upload file
     if (update_fn)
         update_fn(PrintingStageUpload, 0, _u8L("Uploading G-code..."));
-    if (!upload_gcode(gcode_path, upload_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn)) {
+    const bool uploaded = upload_gcode(gcode_path, upload_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn);
+    if (!extracted.empty()) {
+        boost::system::error_code ec;
+        fs::remove(extracted, ec);
+    }
+    if (!uploaded) {
         return BAMBU_NETWORK_ERR_PRINT_LP_UPLOAD_FTP_FAILED;
     }
 
