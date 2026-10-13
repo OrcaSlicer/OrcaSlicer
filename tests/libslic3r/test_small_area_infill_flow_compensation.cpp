@@ -70,6 +70,55 @@ TEST_CASE("CSV import accepts common numeric spreadsheet formats", "[SmallAreaIn
     CHECK_FALSE(model.is_modified());
 }
 
+TEST_CASE("Documented semicolon-terminated point text imports without empty cells", "[SmallAreaInfillFlowCompensation][CurveModel][CSV][Regression]")
+{
+    const std::string text = GENERATE(as<std::string>{}, "0,0;\n10,1;", "0,0; 5,0.5; 10,1;", "\n0, 0;\r\n\r\n10, 1;\n");
+    FlowModel model;
+    CurveModel::Rows rows;
+    int line;
+    REQUIRE(model.read_csv(text, rows, line) == nullptr);
+    CHECK(rows.front() == CurveModel::Row{"0", "0"});
+    CHECK(rows.back() == CurveModel::Row{"10", "1"});
+    CHECK_FALSE(model.is_modified());
+}
+
+TEST_CASE("Saved curve rows skip blank delimiter entries without losing unchanged precision", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    const std::vector<std::string> values = {"", " 0,0.0000 ", "\t", "\n10,1.0000", "", " \n"};
+    FlowModel model(values);
+    const auto rows = model.rows();
+    REQUIRE(rows.size() == 2);
+    std::vector<double> x, y;
+    int row;
+    REQUIRE(model.read_points(rows, x, y, row) == nullptr);
+    model.accept_rows(rows);
+    CHECK(model.parameters() == values);
+    CHECK_FALSE(model.is_modified());
+    auto edited = rows;
+    edited.back().first = "11";
+    model.accept_rows(edited);
+    CHECK(model.parameters().front() == values[1]);
+    CHECK(model.parameters().back() == "\n11,1.0000");
+    CHECK(model.is_modified());
+    CHECK(model.read_points({{"0", "0"}, {"", ""}, {"10", "1"}}, x, y, row) != nullptr);
+    CHECK(row == 1);
+}
+
+TEST_CASE("Generated point numbers use short round-trip text without collapsing adjacent doubles", "[SmallAreaInfillFlowCompensation][CurveModel][Regression]")
+{
+    CHECK(CurveModel::format_number(0.1) == "0.1");
+    const double value = GENERATE(0.1, std::nextafter(0.1, 1.0), 1e-100, std::numeric_limits<double>::max());
+    double parsed;
+    REQUIRE(CurveModel::read_number(CurveModel::format_number(value), parsed));
+    CHECK_THAT(parsed, WithinAbs(value, 0.0));
+    CHECK(CurveModel::format_number(0.1) != CurveModel::format_number(std::nextafter(0.1, 1.0)));
+    FlowModel model;
+    auto rows = CurveModel::Rows{{"0", "0"}, {"0.2", "0.5"}, {"10", "1"}};
+    int row = 1;
+    REQUIRE(model.insert_point(rows, row));
+    CHECK(rows[1].first == "0.1");
+}
+
 TEST_CASE("Malformed CSV leaves existing points and parameters untouched", "[SmallAreaInfillFlowCompensation][CurveModel][CSV]")
 {
     const std::string invalid = GENERATE(
@@ -202,7 +251,7 @@ TEST_CASE("Curve numbers accept decimal commas signed values and scientific nota
 
 TEST_CASE("Curve numbers reject missing malformed and nonfinite input", "[SmallAreaInfillFlowCompensation][CurveModel]")
 {
-    const std::string input = GENERATE(as<std::string>{}, "", " ", "nan", "inf", "-inf", "1e9999", "2mm", "1,2,3", "1.2.3");
+    const std::string input = GENERATE(as<std::string>{}, "", " ", "nan", "inf", "-inf", "1e9999", "+-1", "++1", "2mm", "1,2,3", "1.2.3");
     double value;
     CHECK_FALSE(CurveModel::read_number(input, value));
 }
