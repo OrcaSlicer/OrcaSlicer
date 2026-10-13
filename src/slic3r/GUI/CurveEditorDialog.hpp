@@ -5,18 +5,18 @@
 #include <string>
 #include <vector>
 #include <wx/dialog.h>
+#include <wx/grid.h>
 #include <wx/recguard.h>
 #include <wx/string.h>
 #include "libslic3r/CurveModel.hpp"
-#include "Widgets/TextInput.hpp"
 
-class wxGrid;
 class wxPanel;
 class wxStaticText;
 class wxTextCtrl;
 class wxScrolledWindow;
 class wxSpinButton;
 class Button;
+class TextInput;
 
 namespace Slic3r::GUI {
 
@@ -30,6 +30,16 @@ public:
     bool is_modified() const { return m_model->is_modified(); }
 
 protected:
+    // Escape first abandons only the active cell edit; other dialog changes remain intact.
+    static bool cancel_cell_edit(wxGrid& grid) {
+        if (!grid.IsCellEditControlEnabled()) return false;
+        auto* editor = grid.GetCellEditor(grid.GetGridCursorRow(), grid.GetGridCursorCol());
+        editor->Reset();
+        editor->DecRef();
+        grid.DisableCellEditControl();
+        grid.SetFocus();
+        return true;
+    }
     // Use a stable, non-localized geometry key for each dialog; an empty key disables persistence.
     CurveEditorDialog(wxWindow* parent, const wxString& title, const wxString& help,
                       const CurveEditorAppearance& appearance, std::unique_ptr<CurveModel> model,
@@ -50,6 +60,7 @@ private:
     void update_range_tooltips();
     void import_csv();
     void export_csv();
+    void paste_points();
     void layout_content();
     void layout_actions();
 
@@ -66,6 +77,9 @@ private:
     TextInput* m_range_fields[4];
     wxSpinButton* m_range_arrows[4];
     wxStaticText* m_range_status;
+    wxString m_status_text;
+    std::vector<double> m_points_x;
+    std::vector<double> m_points_y;
     wxRecursionGuardFlag m_layout_depth = 0;
     wxRecursionGuardFlag m_grid_resize_depth = 0;
 };
