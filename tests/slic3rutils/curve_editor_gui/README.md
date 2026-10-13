@@ -33,8 +33,9 @@ ctest --test-dir build/curve-editor-gui-tests -C Release --output-on-failure
 On Windows, use a Visual Studio developer shell and optionally `-G Ninja
 -DCMAKE_CXX_COMPILER=clang-cl`. On Linux, the window tests need a display; use
 `xvfb-run -a ctest --test-dir build/curve-editor-gui-tests -C Release --output-on-failure`
-on a headless machine. GUI cases have the `RequiresDisplay` label. This optional suite
-is not added to the application's default/headless build.
+on a headless machine. GUI cases have the `RequiresDisplay` label. The normal test
+build includes this target under `slic3rutils`, so packaged CI artifacts run the same
+native cases. Headless Linux CI supplies Xvfb; self-hosted runners need a display or Xvfb.
 Linux builds also need GTK 3 development headers. macOS builds include the Objective-C++
 adapter and link AppKit.
 
@@ -62,8 +63,9 @@ It extracts dialog/model messages from the production source, checks template/ca
 coverage, fuzzy/empty translations, placeholder order, newlines and edge whitespace,
 and runs `msgfmt --check-format` on every catalog. It uses bundled gettext tools on
 Windows or tools on `PATH`; `--xgettext` and `--msgfmt` allow explicit paths.
-When both tools are found at configuration time, CTest also runs this check with the
-`Localization` label.
+When both tools are found at configuration time, standalone CTest runs this check with
+the `Localization` label. The normal test build runs it as an `ALL` target because the
+runtime artifact has neither the source catalogs nor the build-host Python installation.
 English intentionally falls back to the source. Correctness of wording still needs
 human review, including legitimate borrowed labels that equal the English text.
 
@@ -137,6 +139,14 @@ Use a disposable print preset. Keep any fixture project separate from normal use
 10. Import/export through the real file pickers with Unicode filenames, overwrite an existing
     CSV, and test read/write failure. Import/export must not save preset changes until OK.
     Check localized control tips and errors, including the point-limit and touchpad help.
+11. Paste CSV and documented `x,y;` model text with Paste or Ctrl/Cmd+V on the graph.
+    Invalid text must leave the model intact. While editing a cell, Escape must cancel
+    only that edit and keep the dialog and previous edits open; a second Escape cancels
+    the dialog. Search for the model setting and check that its Set button gets focus.
+12. Revert a changed model and inspect Unsaved Changes: both complete curves must be
+    displayed. Check printable area, compatibility and ramming widgets for unchanged
+    undo behavior. Slice a saved model with blank/trailing semicolon entries; invalid
+    points must identify both the point number and its values in the slicing error.
 
 These checks are explicit coverage of the dialog wiring and presentation; they are not
 a claim of automated line coverage or evidence of a successful hardware test.
