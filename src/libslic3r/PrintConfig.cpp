@@ -369,11 +369,11 @@ static t_config_enum_values s_keys_map_SupportMaterialStyle {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialStyle)
 
-static t_config_enum_values s_keys_map_RibSupportStyle {
-    { "simulated", rssSimulated },
-    { "simple", rssSimple }
+static t_config_enum_values s_keys_map_FinSupportStyle {
+    { "simulated", fssSimulated },
+    { "simple", fssSimple }
 };
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(RibSupportStyle)
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FinSupportStyle)
 
 static t_config_enum_values s_keys_map_SupportMaterialInterfacePattern {
     { "auto",           smipAuto },
@@ -390,7 +390,7 @@ static t_config_enum_values s_keys_map_SupportType{
     { "tree(auto)", stTreeAuto },
     { "normal(manual)", stNormal },
     { "tree(manual)", stTree },
-    { "rib", stRib }
+    { "fin", stFin }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportType)
 
@@ -6807,18 +6807,18 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Support");
     def->tooltip = L("Normal (auto) and Tree (auto) generate support automatically. "
                      "Normal (manual) and Tree (manual) use support enforcers. "
-                     "Rib generates thin, bed-anchored braces with intermittent contacts on painted side faces.");
+                     "Fin generates thin, bed-anchored braces with intermittent contacts on painted side faces.");
     def->enum_keys_map = &ConfigOptionEnum<SupportType>::get_enum_values();
     def->enum_values.push_back("normal(auto)");
     def->enum_values.push_back("tree(auto)");
     def->enum_values.push_back("normal(manual)");
     def->enum_values.push_back("tree(manual)");
-    def->enum_values.push_back("rib");
+    def->enum_values.push_back("fin");
     def->enum_labels.push_back(L("Normal (auto)"));
     def->enum_labels.push_back(L("Tree (auto)"));
     def->enum_labels.push_back(L("Normal (manual)"));
     def->enum_labels.push_back(L("Tree (manual)"));
-    def->enum_labels.push_back(L("Rib"));
+    def->enum_labels.push_back(L("Fin"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
@@ -7127,42 +7127,41 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SupportMaterialStyle>(smsDefault));
 
-    def = this->add("rib_support_style", coEnum);
+    def = this->add("fin_support_style", coEnum);
     def->label = L("Style");
     def->category = L("Support");
-    def->tooltip = L("Simple selects candidates directly from the remaining painted side regions. Simulated uses the directional printed-prefix planner. Both styles use the same contact validation, rib geometry, collision checks and toolpath generation after candidate selection.");
-    def->enum_keys_map = &ConfigOptionEnum<RibSupportStyle>::get_enum_values();
+    def->tooltip = L("Simple selects candidates directly from the remaining painted side regions. Simulated uses the directional printed-prefix planner. Both styles use the same contact validation, fin geometry, collision checks and toolpath generation after candidate selection.");
+    def->enum_keys_map = &ConfigOptionEnum<FinSupportStyle>::get_enum_values();
     def->enum_values = { "simple", "simulated" };
     def->enum_labels = { L("Simple"), L("Simulated") };
-    // Rib type is available in Simple UI mode, so its style must be available there too.
+    // Fin type is available in Simple UI mode, so its style must be available there too.
     def->mode = comSimple;
-    // Missing keys in older rib projects retain their existing geometry.
-    def->set_default_value(new ConfigOptionEnum<RibSupportStyle>(rssSimulated));
+    def->set_default_value(new ConfigOptionEnum<FinSupportStyle>(fssSimulated));
 
-    def = this->add("rib_support_contact_height", coFloat);
-    def->label = L("Rib contact height");
+    def = this->add("fin_support_contact_height", coFloat);
+    def->label = L("Fin contact height");
     def->category = L("Support");
-    def->tooltip = L("Height of each intermittent side contact between a rib and the painted model surface.");
+    def->tooltip = L("Height of each intermittent side contact between a fin and the painted model surface.");
     def->sidetext = L("mm");
     def->min = 0.1;
     def->max = 10;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.6));
 
-    def = this->add("rib_support_contact_start_height", coFloat);
-    def->label = L("Rib contact start height");
+    def = this->add("fin_support_contact_start_height", coFloat);
+    def->label = L("Fin contact start height");
     def->category = L("Support");
-    def->tooltip = L("Height above the build plate of the top of the first periodic rib contact band. Later bands use the rib contact spacing. The default zero-height band is below the printable volume and is naturally clipped by the build plate.");
+    def->tooltip = L("Height above the build plate of the top of the first periodic fin contact band. Later bands use the fin contact spacing. The default zero-height band is below the printable volume and is naturally clipped by the build plate.");
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 1000;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
-    def = this->add("rib_support_contact_width", coFloatOrPercent);
-    def->label = L("Rib contact length");
+    def = this->add("fin_support_contact_width", coFloatOrPercent);
+    def->label = L("Fin contact length");
     def->category = L("Support");
-    def->tooltip = L("Contact length along the painted model surface, in millimeters or as a percentage of that region's outer-wall line width. The front centerline segment has this length; only 0 makes a pointed contact. Its endpoints connect to the rib's inner corners. Must not exceed rib thickness. The physical contact depends on extrusion.");
+    def->tooltip = L("Contact length along the painted model surface, in millimeters or as a percentage of that region's outer-wall line width. The front centerline segment has this length; only 0 makes a pointed contact. Its endpoints connect to the fin's inner corners. Must not exceed fin thickness. The physical contact depends on extrusion.");
     def->sidetext = L("mm or %");
     def->ratio_over = "outer_wall_line_width";
     def->min = 0;
@@ -7171,10 +7170,10 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
 
-    def = this->add("rib_support_thickness", coFloatOrPercent);
-    def->label = L("Rib thickness");
+    def = this->add("fin_support_thickness", coFloatOrPercent);
+    def->label = L("Fin thickness");
     def->category = L("Support");
-    def->tooltip = L("Geometric thickness of the rib body, in millimeters or as a percentage of the painted region's outer-wall line width. Support wall count controls the closed loops generated inside every accepted rib.");
+    def->tooltip = L("Geometric thickness of the fin body, in millimeters or as a percentage of the painted region's outer-wall line width. Support wall count controls the closed loops generated inside every accepted fin.");
     def->sidetext = L("mm or %");
     def->ratio_over = "outer_wall_line_width";
     def->min = 0.1;
@@ -7183,46 +7182,46 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(1.2, false));
 
-    def = this->add("rib_support_contact_spacing", coFloat);
-    def->label = L("Rib contact spacing");
+    def = this->add("fin_support_contact_spacing", coFloat);
+    def->label = L("Fin contact spacing");
     def->category = L("Support");
-    def->tooltip = L("Vertical distance between periodic side contact bands. Their top heights are shared by all ribs and measured upward from the rib contact start height. The seed contact remains at the top of each rib.");
+    def->tooltip = L("Vertical distance between periodic side contact bands. Their top heights are shared by all fins and measured upward from the fin contact start height. The seed contact remains at the top of each fin.");
     def->sidetext = L("mm");
     def->min = 1;
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(8));
 
-    def = this->add("rib_support_contact_projection_angle", coFloat);
-    def->label = L("Rib contact projection angle");
+    def = this->add("fin_support_contact_projection_angle", coFloat);
+    def->label = L("Fin contact projection angle");
     def->category = L("Support");
-    def->tooltip = L("Angle rotated downward from the local outward surface normal at each contact band's lowest layer, from 0 to 90 degrees. Both rib styles follow that ray directly; a horizontal or upward ray has no lower-layer projection.");
+    def->tooltip = L("Angle rotated downward from the local outward surface normal at each contact band's lowest layer, from 0 to 90 degrees. Both fin styles follow that ray directly; a horizontal or upward ray has no lower-layer projection.");
     def->sidetext = u8"°";
     def->min = 0;
     def->max = 90;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(30));
 
-    def = this->add("rib_support_depth", coFloat);
+    def = this->add("fin_support_depth", coFloat);
     def->label = L("Top layer depth");
     def->category = L("Support");
-    def->tooltip = L("Outward depth of the rib at its top layer. Lower layers expand outward according to the rib expansion factor while the inner edge follows the model surface.");
+    def->tooltip = L("Outward depth of the fin at its top layer. Lower layers expand outward according to the fin expansion factor while the inner edge follows the model surface.");
     def->sidetext = L("mm");
     def->min = 2;
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(4));
 
-    def = this->add("rib_support_expansion_factor", coFloat);
-    def->label = L("Rib expansion factor");
+    def = this->add("fin_support_expansion_factor", coFloat);
+    def->label = L("Fin expansion factor");
     def->category = L("Support");
-    def->tooltip = L("Multiplier for outward rib expansion toward the build plate. Simple currently uses a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
+    def->tooltip = L("Multiplier for outward fin expansion toward the build plate. Simple currently uses a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.05));
 
-    def = this->add("rib_support_max_spacing", coFloat);
-    def->label = L("Rib placement distance");
+    def = this->add("fin_support_max_spacing", coFloat);
+    def->label = L("Fin placement distance");
     def->category = L("Support");
     def->tooltip = L("Simple subtracts unavailable ranges along the selected island contour near a seed and its downward wall intersections. This distance limits how far each subtraction travels. Simulated uses it as preferred spacing and to scale the capacity penalty for long contact necks.");
     def->sidetext = L("mm");
@@ -7389,7 +7388,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_wall_count", coInt);
     def->label = L("Support wall loops");
     def->category = L("Support");
-    def->tooltip = L("Number of support wall loops. 0 means auto for tree supports. Rib supports use at least one loop; 1, 2, 3 request that many loops, and loops that do not fit are omitted.");
+    def->tooltip = L("Number of support wall loops. 0 means auto for tree supports. Fin supports use at least one loop; 1, 2, 3 request that many loops, and loops that do not fit are omitted.");
     def->min = 0;
     def->max = 10;
     def->mode = comAdvanced;

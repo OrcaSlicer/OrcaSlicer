@@ -455,8 +455,8 @@ set(lisbslic3r_sources
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp
     Support/SupportMaterial.cpp
-    Support/RibSupport.cpp
-    Support/RibSupport.hpp
+    Support/FinSupport.cpp
+    Support/FinSupport.hpp
     Support/SupportMaterial.hpp
     Support/SupportParameters.hpp
     Support/SupportSpotsGenerator.cpp

@@ -24,7 +24,7 @@
 using namespace Slic3r::Test;
 using namespace Slic3r;
 
-struct RibRun {
+struct FinRun {
     size_t first_layer_paths = 0;
     size_t first_layer_closed_paths = 0;
     size_t first_layer_islands = 0;
@@ -59,12 +59,12 @@ struct RibRun {
     bool lower_y_contact = false;
     bool upper_y_contact = false;
     std::vector<double> top_contact_y;
-    double max_rib_center_overlap = 0;
+    double max_fin_center_overlap = 0;
     double max_projection_side_overrun = 0;
     size_t bounded_projection_vertices = 0;
 };
 
-static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
+static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
                          double thickness = 1.2, double contact_width = 1.2,
                          int wall_count = 0, double projection_angle = 30,
                          bool contact_percent = false, bool thickness_percent = false, double outer_width = 0.4,
@@ -74,28 +74,28 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                          bool paint_all_sides = false, bool measure_projection_bounds = false, bool half_painted_face = false,
                          bool zaa_enabled = false, double zaa_min_z = 0,
                          double painted_max_z = std::numeric_limits<double>::infinity(),
-                          const char *rib_style = "simulated",
+                          const char *fin_style = "simulated",
                           double painted_min_z = -std::numeric_limits<double>::infinity(),
                           double object_gap = 0.6, double first_layer_expansion = 2.)
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-        { "enable_support", 1 }, { "support_type", "rib" }, { "rib_support_style", rib_style },
-        { "rib_support_max_spacing", max_spacing },
-        { "rib_support_depth", 8.0 },
-        { "rib_support_expansion_factor", expansion_factor },
+        { "enable_support", 1 }, { "support_type", "fin" }, { "fin_support_style", fin_style },
+        { "fin_support_max_spacing", max_spacing },
+        { "fin_support_depth", 8.0 },
+        { "fin_support_expansion_factor", expansion_factor },
         { "outer_wall_line_width", outer_width },
         { "support_object_xy_distance", object_gap }, { "support_line_width", 0.4 },
         { "raft_first_layer_expansion", first_layer_expansion },
-        { "rib_support_contact_height", 0.6 }, { "rib_support_contact_start_height", 0.0 },
-        { "rib_support_contact_spacing", contact_spacing },
-        { "tree_support_wall_count", wall_count }, { "rib_support_contact_projection_angle", projection_angle },
+        { "fin_support_contact_height", 0.6 }, { "fin_support_contact_start_height", 0.0 },
+        { "fin_support_contact_spacing", contact_spacing },
+        { "tree_support_wall_count", wall_count }, { "fin_support_contact_projection_angle", projection_angle },
         { "layer_height", 0.2 },
         { "initial_layer_print_height", 0.2 },
         { "zaa_enabled", zaa_enabled ? 1 : 0 }, { "zaa_min_z", zaa_min_z },
     });
-    config.set_key_value("rib_support_contact_width", new ConfigOptionFloatOrPercent(contact_width, contact_percent));
-    config.set_key_value("rib_support_thickness", new ConfigOptionFloatOrPercent(thickness, thickness_percent));
+    config.set_key_value("fin_support_contact_width", new ConfigOptionFloatOrPercent(contact_width, contact_percent));
+    config.set_key_value("fin_support_thickness", new ConfigOptionFloatOrPercent(thickness, thickness_percent));
     Model model;
     Print print;
     indexed_triangle_set mesh = custom_mesh == nullptr ? its_make_cube(model_width, 60, model_height) : *custom_mesh;
@@ -131,7 +131,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
     print.process();
     const PrintObject *object = print.objects().front();
     const auto layers = object->support_layers();
-    RibRun result;
+    FinRun result;
     if (layers.empty())
         return result;
     result.first_layer_paths = layers.front()->support_fills.entities.size();
@@ -149,7 +149,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
     double min_outer = std::numeric_limits<double>::infinity();
     double max_outer = -std::numeric_limits<double>::infinity();
     const auto model_layers = object->layers();
-    const double rib_half_width = 0.5 * support_material_flow(object).width();
+    const double fin_half_width = 0.5 * support_material_flow(object).width();
     const SupportLayer *previous_layer = nullptr;
     std::vector<Points> projection_rings;
     for (const SupportLayer *layer : layers) {
@@ -176,13 +176,13 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                 return std::abs(unscale<double>(point.x() - model_bounds.center().x())) < 1 && gap > 0 && gap < 0.45;
             });
         const coord_t face_x = model_bounds.max.x();
-        const double distance = unscale<double>(min_x - face_x) - rib_half_width;
+        const double distance = unscale<double>(min_x - face_x) - fin_half_width;
         result.contact_layers += distance < 0.01;
         if (distance < 0.01)
             result.contact_top_z = std::max(result.contact_top_z, layer->print_z);
         result.gap_layers += distance > 0.4;
         if (layer != layers.front()) {
-            ExPolygons rib_center_areas;
+            ExPolygons fin_center_areas;
             if (result.first_body_z == 0) {
                 result.first_body_z = layer->print_z;
                 result.first_body_paths = layer->support_fills.entities.size();
@@ -194,7 +194,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                 REQUIRE(path != nullptr);
                 result.closed_paths += (path->first_point() - path->last_point()).squaredNorm() == 0;
                 result.open_paths += (path->first_point() - path->last_point()).squaredNorm() != 0;
-                result.contact_starts += unscale<double>(path->first_point().x() - face_x) < rib_half_width + 0.01;
+                result.contact_starts += unscale<double>(path->first_point().x() - face_x) < fin_half_width + 0.01;
                 const Polyline ring_path = path->polyline.to_polyline();
                 const Points &ring = ring_path.points;
                 if (measure_projection_bounds)
@@ -205,13 +205,13 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                     Polygon polygon(std::move(contour));
                     polygon.make_counter_clockwise();
                     const ExPolygon center_area(std::move(polygon));
-                    for (const ExPolygon &other : rib_center_areas) {
+                    for (const ExPolygon &other : fin_center_areas) {
                         const ExPolygons overlap = intersection_ex(ExPolygons{center_area}, ExPolygons{other});
                         for (const ExPolygon &area : overlap)
-                            result.max_rib_center_overlap = std::max(result.max_rib_center_overlap,
+                            result.max_fin_center_overlap = std::max(result.max_fin_center_overlap,
                                 area.area() * SCALING_FACTOR * SCALING_FACTOR);
                     }
-                    rib_center_areas.push_back(center_area);
+                    fin_center_areas.push_back(center_area);
                 }
                 const BoundingBox bounds = get_extents(ring);
                 Vec2d longest_edge = Vec2d::Zero();
@@ -232,7 +232,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                     double front_min_y = std::numeric_limits<double>::infinity();
                     double front_max_y = -std::numeric_limits<double>::infinity();
                     for (const Point &point : ring)
-                        if (unscale<double>(point.x() - face_x) < rib_half_width + 0.01) {
+                        if (unscale<double>(point.x() - face_x) < fin_half_width + 0.01) {
                             front_min_y = std::min(front_min_y, unscale<double>(point.y()));
                             front_max_y = std::max(front_max_y, unscale<double>(point.y()));
                         }
@@ -240,7 +240,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                         result.top_contact_y.push_back(0.5 * (front_min_y + front_max_y) -
                             unscale<double>(model_bounds.center().y()));
                 }
-                const double front_gap = unscale<double>(bounds.min.x() - face_x) - rib_half_width;
+                const double front_gap = unscale<double>(bounds.min.x() - face_x) - fin_half_width;
                 if (front_gap > 0.01 && front_gap < 0.4) {
                     result.min_projection_gap = std::min(result.min_projection_gap, front_gap);
                     double front_min_y = std::numeric_limits<double>::infinity();
@@ -263,12 +263,12 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                         minimum = std::min(minimum, position);
                         maximum = std::max(maximum, position);
                     }
-                    result.body_thickness = std::max(result.body_thickness, maximum - minimum + 2 * rib_half_width);
+                    result.body_thickness = std::max(result.body_thickness, maximum - minimum + 2 * fin_half_width);
                 }
                 double front_min = std::numeric_limits<double>::infinity();
                 double front_max = -std::numeric_limits<double>::infinity();
                 for (const Point &point : ring) {
-                    if (unscale<double>(point.x() - face_x) - rib_half_width < 0.01) {
+                    if (unscale<double>(point.x() - face_x) - fin_half_width < 0.01) {
                         front_min = std::min(front_min, unscale<double>(point.y()));
                         front_max = std::max(front_max, unscale<double>(point.y()));
                     }
@@ -279,7 +279,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                 if (previous_layer != nullptr) {
                     const ExPolygons supporting_area = offset_ex(previous_layer->support_islands, float(SCALED_EPSILON));
                     for (const Point &point : ring) {
-                        if (std::abs(unscale<double>(point.x() - face_x) - rib_half_width) >= 0.01)
+                        if (std::abs(unscale<double>(point.x() - face_x) - fin_half_width) >= 0.01)
                             continue;
                         ++result.contact_tip_vertices;
                         const bool supported = std::any_of(supporting_area.begin(), supporting_area.end(),
@@ -287,8 +287,8 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                         result.unsupported_contact_vertices += !supported;
                     }
                     for (size_t i = 1; i < ring.size(); ++i) {
-                        const double a_gap = unscale<double>(ring[i - 1].x() - face_x) - rib_half_width;
-                        const double b_gap = unscale<double>(ring[i].x() - face_x) - rib_half_width;
+                        const double a_gap = unscale<double>(ring[i - 1].x() - face_x) - fin_half_width;
+                        const double b_gap = unscale<double>(ring[i].x() - face_x) - fin_half_width;
                         if (std::abs(a_gap) >= 0.01 || std::abs(b_gap) >= 0.01)
                             continue;
                         Polyline front;
@@ -300,10 +300,10 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                 }
             }
             for (const Point &point : points) {
-                if (unscale<double>(point.x() - face_x) - rib_half_width < 0.2) {
+                if (unscale<double>(point.x() - face_x) - fin_half_width < 0.2) {
                     const double clearance = std::min(unscale<double>(point.y() - model_bounds.min.y()),
                                                       unscale<double>(model_bounds.max.y() - point.y()));
-                    result.contact_edge_overrun = std::max(result.contact_edge_overrun, rib_half_width - clearance);
+                    result.contact_edge_overrun = std::max(result.contact_edge_overrun, fin_half_width - clearance);
                 }
             }
             const coord_t outer_x = std::max_element(points.begin(), points.end(),
@@ -311,7 +311,7 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
             min_outer = std::min(min_outer, unscale<double>(outer_x));
             max_outer = std::max(max_outer, unscale<double>(outer_x));
             if (layer == layers.back())
-                result.top_outer_depth = unscale<double>(outer_x - face_x) + rib_half_width;
+                result.top_outer_depth = unscale<double>(outer_x - face_x) + fin_half_width;
         }
         previous_layer = layer;
     }
@@ -324,9 +324,9 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
         const BoundingBox top_bounds = get_extents(model_layers.back()->lslices);
         const Vec2d seed(unscale<double>(top_bounds.max.x()),
                          unscale<double>(top_bounds.center().y()) + result.top_contact_y.front());
-        const double actual_thickness = config.option<ConfigOptionFloatOrPercent>("rib_support_thickness")->get_abs_value(outer_width);
+        const double actual_thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness")->get_abs_value(outer_width);
         const double overlap_end = (0.6 + 0.5 * actual_thickness * std::abs(tangent.x())) / direction.x() +
-                                   3 * rib_half_width;
+                                   3 * fin_half_width;
         for (const Points &ring : projection_rings)
             for (const Point &point : ring) {
                 const Vec2d relative = unscale(point) - seed;
@@ -334,41 +334,41 @@ static RibRun slice_ribs(double max_spacing, bool paint = true, double lean = 0,
                     continue;
                 ++result.bounded_projection_vertices;
                 result.max_projection_side_overrun = std::max(result.max_projection_side_overrun,
-                    std::abs(relative.dot(tangent)) - 0.5 * actual_thickness + rib_half_width);
+                    std::abs(relative.dot(tangent)) - 0.5 * actual_thickness + fin_half_width);
             }
     }
     return result;
 }
 
-TEST_CASE("Rib style defaults to the existing simulated planner", "[SupportMaterial]")
+TEST_CASE("Fin style defaults to the existing simulated planner", "[SupportMaterial]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    REQUIRE(config.opt_enum<RibSupportStyle>("rib_support_style") == rssSimulated);
-    config.set_deserialize("rib_support_style", "simple");
-    REQUIRE(config.opt_enum<RibSupportStyle>("rib_support_style") == rssSimple);
+    REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssSimulated);
+    config.set_deserialize("fin_support_style", "simple");
+    REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssSimple);
 }
 
-TEST_CASE("Simple ribs require painting and emit closed sheets from selected sites", "[SupportMaterial]")
+TEST_CASE("Simple fins require painting and emit closed sheets from selected sites", "[SupportMaterial]")
 {
     auto slice_simple = [](bool paint) {
-        return slice_ribs(20, paint, 0, 1.2, 0.4, 1, 30,
+        return slice_fins(20, paint, 0, 1.2, 0.4, 1, 30,
                           false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
                           false, false, false, false, 0,
                           std::numeric_limits<double>::infinity(), "simple");
     };
     REQUIRE(slice_simple(false).first_layer_paths == 0);
-    const RibRun painted = slice_simple(true);
+    const FinRun painted = slice_simple(true);
     REQUIRE(painted.first_layer_paths > 0);
     REQUIRE(painted.top_body_paths > 0);
     REQUIRE(painted.contact_layers > 0);
     REQUIRE(painted.open_paths == 0);
 }
 
-TEST_CASE("Simple rib contacts fit on the painted island edge", "[SupportMaterial]")
+TEST_CASE("Simple fin contacts fit on the painted island edge", "[SupportMaterial]")
 {
     const indexed_triangle_set mesh = its_make_cube(6, 1, 30);
     auto slice_simple = [&](double contact_width) {
-        return slice_ribs(20, true, 0, 2, contact_width, 1, 30,
+        return slice_fins(20, true, 0, 2, contact_width, 1, 30,
                           false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
                           false, false, false, false, 0,
                           std::numeric_limits<double>::infinity(), "simple");
@@ -377,17 +377,17 @@ TEST_CASE("Simple rib contacts fit on the painted island edge", "[SupportMateria
     REQUIRE(slice_simple(0.2).first_layer_paths > 0);
 }
 
-TEST_CASE("Simple ribs reach the highest painted layer on an upward-leaning side", "[SupportMaterial]")
+TEST_CASE("Simple fins reach the highest painted layer on an upward-leaning side", "[SupportMaterial]")
 {
     const double height = 20.;
-    const RibRun result = slice_ribs(20, true, -0.2, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, -0.2, 1.2, 0.2, 1, 30,
                                      false, false, 0.4, 8, 0, height, 6, nullptr, 0,
                                      false, false, false, false, 0,
                                      std::numeric_limits<double>::infinity(), "simple");
     REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(height, 0.001));
 }
 
-TEST_CASE("Simple ribs start in the top layer when only that layer is painted", "[SupportMaterial]")
+TEST_CASE("Simple fins start in the top layer when only that layer is painted", "[SupportMaterial]")
 {
     indexed_triangle_set mesh;
     for (float z : {0.f, 19.8f, 19.98f, 20.f}) {
@@ -408,7 +408,7 @@ TEST_CASE("Simple ribs start in the top layer when only that layer is painted", 
             mesh.indices.emplace_back(a, a + 4, b + 4);
         }
 
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.4, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
                                       false, false, 0.4, 8, 0, 20, 6, &mesh, 0,
                                       false, false, false, false, 0,
                                       19.98, "simple", 19.8);
@@ -418,13 +418,13 @@ TEST_CASE("Simple ribs start in the top layer when only that layer is painted", 
     REQUIRE(result.projection_layers > 0);
 }
 
-TEST_CASE("Simple ribs unite overlapping first-layer feet", "[SupportMaterial]")
+TEST_CASE("Simple fins unite overlapping first-layer feet", "[SupportMaterial]")
 {
     indexed_triangle_set mesh = its_make_cube(6, 1.2, 30);
     indexed_triangle_set other = its_make_cube(6, 1.2, 30);
     its_transform(other, identity3f().translate(Vec3f{0.f, 1.5f, 0.f}));
     its_merge(mesh, other);
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.4, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
                                       false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
                                       false, false, false, false, 0,
                                       std::numeric_limits<double>::infinity(), "simple");
@@ -432,65 +432,65 @@ TEST_CASE("Simple ribs unite overlapping first-layer feet", "[SupportMaterial]")
     REQUIRE(result.first_layer_closed_paths == 1);
 }
 
-TEST_CASE("Simple rib feet use first-layer expansion and contacts follow their projection angle", "[SupportMaterial]")
+TEST_CASE("Simple fin feet use first-layer expansion and contacts follow their projection angle", "[SupportMaterial]")
 {
     auto slice_simple = [](double expansion) {
-        return slice_ribs(20, true, 0, 1.2, 0.4, 1, 60,
+        return slice_fins(20, true, 0, 1.2, 0.4, 1, 60,
                           false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
                           false, false, false, false, 0,
                           std::numeric_limits<double>::infinity(), "simple",
                           -std::numeric_limits<double>::infinity(), 0.6, expansion);
     };
-    const RibRun compact = slice_simple(0.);
-    const RibRun expanded = slice_simple(2.);
+    const FinRun compact = slice_simple(0.);
+    const FinRun expanded = slice_simple(2.);
     REQUIRE(expanded.first_layer_paths > 0);
     REQUIRE(expanded.foot_long_span > compact.foot_long_span + 1.8);
     REQUIRE(expanded.projection_layers > 0);
     REQUIRE_THAT(expanded.min_projection_gap, Catch::Matchers::WithinAbs(0.2 / std::tan(M_PI / 3), 0.005));
 }
 
-TEST_CASE("Simple rib unavailable ranges stay on their island contour", "[SupportMaterial]")
+TEST_CASE("Simple fin unavailable ranges stay on their island contour", "[SupportMaterial]")
 {
     indexed_triangle_set mesh = its_make_cube(6, 6, 30);
     indexed_triangle_set other = its_make_cube(6, 6, 30);
     its_transform(other, identity3f().translate(Vec3f{0.f, 10.f, 0.f}));
     its_merge(mesh, other);
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.4, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
                                      false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
                                      false, false, false, false, 0,
                                      std::numeric_limits<double>::infinity(), "simple");
     REQUIRE(result.top_body_paths >= 2);
 }
 
-TEST_CASE("Rib support does not create contacts without painted sides", "[SupportMaterial]")
+TEST_CASE("Fin support does not create contacts without painted sides", "[SupportMaterial]")
 {
-    REQUIRE(slice_ribs(20, false).first_layer_paths == 0);
+    REQUIRE(slice_fins(20, false).first_layer_paths == 0);
 }
 
-TEST_CASE("Rib count follows directional demand rather than uniform face spacing", "[SupportMaterial]")
+TEST_CASE("Fin count follows directional demand rather than uniform face spacing", "[SupportMaterial]")
 {
-    const RibRun first = slice_ribs(30);
-    const RibRun second = slice_ribs(10);
+    const FinRun first = slice_fins(30);
+    const FinRun second = slice_fins(10);
     REQUIRE(first.top_body_paths > 0);
     REQUIRE(first.top_body_paths <= 8);
     REQUIRE(second.top_body_paths == first.top_body_paths);
     const indexed_triangle_set wide = its_make_cube(6, 120, 60);
-    const RibRun large_face = slice_ribs(30, true, 0, 1.2, 1.2, 1, 30,
+    const FinRun large_face = slice_fins(30, true, 0, 1.2, 1.2, 1, 30,
                                       false, false, 0.4, 8, 0, 60, 6, &wide);
     REQUIRE(large_face.top_body_paths == first.top_body_paths);
 }
 
-TEST_CASE("The first rib attaches near the middle of a large painted plane", "[SupportMaterial]")
+TEST_CASE("The first fin attaches near the middle of a large painted plane", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20);
+    const FinRun result = slice_fins(20);
     REQUIRE(!result.top_contact_y.empty());
     REQUIRE_THAT(result.top_contact_y.front(), Catch::Matchers::WithinAbs(0, 0.05));
 }
 
-TEST_CASE("Half painting a leaning plane does not rotate its ribs", "[SupportMaterial]")
+TEST_CASE("Half painting a leaning plane does not rotate its fins", "[SupportMaterial]")
 {
     const bool half_painted = GENERATE(false, true);
-    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, nullptr, 0,
                                   false, false, half_painted);
     REQUIRE(!result.top_body_directions.empty());
@@ -499,20 +499,20 @@ TEST_CASE("Half painting a leaning plane does not rotate its ribs", "[SupportMat
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("A full painted side starts the rib at its highest printable layer", "[SupportMaterial]")
+TEST_CASE("A full painted side starts the fin at its highest printable layer", "[SupportMaterial]")
 {
     const double height = 60.;
-    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, height);
     REQUIRE(result.top_body_paths > 0);
     REQUIRE_THAT(result.contact_top_z, Catch::Matchers::WithinAbs(height, 0.001));
 }
 
-TEST_CASE("Rib directions follow a continuous lean instead of angular bins", "[SupportMaterial]")
+TEST_CASE("Fin directions follow a continuous lean instead of angular bins", "[SupportMaterial]")
 {
     const double angle = GENERATE(7., 17., 26.);
     const double radians = angle * M_PI / 180.;
-    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(radians));
     REQUIRE(!result.top_body_directions.empty());
     const Vec2d expected(std::cos(radians), std::sin(radians));
@@ -524,7 +524,7 @@ TEST_CASE("An unavailable lean direction does not hide other feasible support", 
 {
     const double angle = GENERATE(45., 61., 75., 90.);
     const double radians = angle * M_PI / 180.;
-    const RibRun result = slice_ribs(20, true, 0.2 * std::cos(radians), 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0.2 * std::cos(radians), 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::sin(radians));
     REQUIRE(result.top_body_paths > 0);
     // The unavailable lean is not rotated to fit the face. The independently
@@ -533,7 +533,7 @@ TEST_CASE("An unavailable lean direction does not hide other feasible support", 
         REQUIRE(std::abs(direction.y()) < 0.002);
 }
 
-TEST_CASE("A cube resting on an edge receives ribs on both sides of its narrow base", "[SupportMaterial]")
+TEST_CASE("A cube resting on an edge receives fins on both sides of its narrow base", "[SupportMaterial]")
 {
     const double side = 40.;
     indexed_triangle_set mesh = its_make_cube(side, side, side);
@@ -544,12 +544,12 @@ TEST_CASE("A cube resting on an edge receives ribs on both sides of its narrow b
         vertex.x() = float(c * (x + z));
         vertex.z() = float(c * (z - x) + side * c);
     }
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, side * std::sqrt(2.), side,
                                   &mesh, 0, true);
     REQUIRE(result.positive_x_sheet);
     REQUIRE(result.negative_x_sheet);
-    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
     REQUIRE(result.open_paths == 0);
 }
 
@@ -578,18 +578,18 @@ TEST_CASE("Centered upper expansion supplies a direction beyond the bed axes", "
     mesh.indices.emplace_back(4, 6, 7);
     // Opposite vertices preserve the same XY centroid at every height.
     // The square bed has no preference for the rotated upper long axis.
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 15, &mesh, 0, true);
     REQUIRE(!result.top_body_directions.empty());
     const Vec2d expansion(c, sn);
     REQUIRE(std::abs(result.top_body_directions.front().dot(expansion)) > std::cos(M_PI / 18.));
-    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("Ribs stay within thirty degrees of the only available painted face normal", "[SupportMaterial]")
+TEST_CASE("Fins stay within thirty degrees of the only available painted face normal", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20, true, 0.2, 1.2, 1.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0.2, 1.2, 1.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(M_PI / 9.));
     REQUIRE(!result.top_body_directions.empty());
     const double minimum_alignment = std::cos(M_PI / 6.);
@@ -601,16 +601,16 @@ TEST_CASE("Ribs stay within thirty degrees of the only available painted face no
     REQUIRE(result.contact_width > 1.1);
     REQUIRE(result.open_paths == 0);
     REQUIRE(result.contact_starts == 0);
-    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
 }
 
-TEST_CASE("Ribs at different seed heights do not emit overlapping sheet contours", "[SupportMaterial]")
+TEST_CASE("Fins at different seed heights do not emit overlapping sheet contours", "[SupportMaterial]")
 {
     const double lean = GENERATE(0., 0.2);
-    const RibRun result = slice_ribs(20, true, lean, 1.2, 0.4, 1, 30,
+    const FinRun result = slice_fins(20, true, lean, 1.2, 0.4, 1, 30,
                                   false, false, 0.4, 8, 0.05);
     REQUIRE(result.closed_paths > 0);
-    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
     REQUIRE(result.contact_layers > 6);
 }
 
@@ -618,7 +618,7 @@ TEST_CASE("Oblique contact projections stay inside the sheet after the neck over
 {
     const double angle = GENERATE(30., 60., 80.);
     const double contact_length = GENERATE(0., 0.2);
-    const RibRun result = slice_ribs(20, true, 0.2, 2.4, contact_length, 1, angle,
+    const FinRun result = slice_fins(20, true, 0.2, 2.4, contact_length, 1, angle,
                                   false, false, 0.4, 8, 0, 60, 6, nullptr, 0.2 * std::tan(M_PI / 9.), false, true);
     REQUIRE(result.top_body_paths == 1);
     REQUIRE(std::abs(result.top_body_directions.front().y()) > 0.1);
@@ -630,7 +630,7 @@ TEST_CASE("Oblique contact projections stay inside the sheet after the neck over
 
 TEST_CASE("A new demand direction selects a differently facing painted side", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 1.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, nullptr, 0.4, true);
     REQUIRE(!result.top_body_directions.empty());
     // With a +Y-facing side available, the first sheet follows +Y instead of
@@ -641,18 +641,18 @@ TEST_CASE("A new demand direction selects a differently facing painted side", "[
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("Thicker ribs reduce remaining directional demand without creating more sheets", "[SupportMaterial]")
+TEST_CASE("Thicker fins reduce remaining directional demand without creating more sheets", "[SupportMaterial]")
 {
-    const RibRun thin = slice_ribs(20, true, 0, 1.2, 0.2);
-    const RibRun thick = slice_ribs(20, true, 0, 2.4, 0.2);
+    const FinRun thin = slice_fins(20, true, 0, 1.2, 0.2);
+    const FinRun thick = slice_fins(20, true, 0, 2.4, 0.2);
     REQUIRE(thin.top_body_paths > 0);
     REQUIRE(thick.top_body_paths > 0);
     REQUIRE(thick.top_body_paths <= thin.top_body_paths);
 }
 
-TEST_CASE("A centered column with painted sides receives ribs in multiple broad directions", "[SupportMaterial]")
+TEST_CASE("A centered column with painted sides receives fins in multiple broad directions", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, nullptr, 0, true);
     REQUIRE(result.top_body_paths > 1);
     REQUIRE(result.top_body_paths <= 8);
@@ -663,55 +663,55 @@ TEST_CASE("A centered column with painted sides receives ribs in multiple broad 
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("A centered narrow column can start several ribs on one layer", "[SupportMaterial]")
+TEST_CASE("A centered narrow column can start several fins on one layer", "[SupportMaterial]")
 {
     const indexed_triangle_set column = its_make_cube(6, 6, 60);
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, &column, 0, true);
     REQUIRE(result.first_body_z > 0);
     REQUIRE(result.first_body_paths >= 2);
-    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("Rib support alternates painted side contacts with side gaps", "[SupportMaterial]")
+TEST_CASE("Fin support alternates painted side contacts with side gaps", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20);
+    const FinRun result = slice_fins(20);
     REQUIRE(result.contact_layers > 0);
     REQUIRE(result.gap_layers > 0);
 }
 
-TEST_CASE("Rib support has a filled first-layer foot", "[SupportMaterial]")
+TEST_CASE("Fin support has a filled first-layer foot", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(100);
+    const FinRun result = slice_fins(100);
     REQUIRE(result.foot_short_span > 3.0);
     REQUIRE(result.foot_long_span > 7.0);
 }
 
-TEST_CASE("Rib feet share one perimeter per merged bed island", "[SupportMaterial]")
+TEST_CASE("Fin feet share one perimeter per merged bed island", "[SupportMaterial]")
 {
     const double spacing = GENERATE(2.0, 20.0);
     CAPTURE(spacing);
-    const RibRun result = slice_ribs(spacing, true, 0, 1.2, 1.2, 1);
+    const FinRun result = slice_fins(spacing, true, 0, 1.2, 1.2, 1);
     REQUIRE(result.first_layer_islands > 0);
     REQUIRE(result.min_body_paths > 0);
     REQUIRE(result.first_layer_closed_paths == result.first_layer_islands);
     REQUIRE(result.first_layer_paths > result.first_layer_closed_paths);
 }
 
-TEST_CASE("Rib outer edge stays vertical while contacts fit a leaning wall", "[SupportMaterial]")
+TEST_CASE("Fin outer edge stays vertical while contacts fit a leaning wall", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20, true, 0.2);
+    const FinRun result = slice_fins(20, true, 0.2);
     REQUIRE(result.contact_layers > 0);
     REQUIRE(result.gap_layers > 0);
     REQUIRE(result.outer_edge_spread < 0.001);
 }
 
-TEST_CASE("Rib expansion widens lower layers and their foot without changing top depth", "[SupportMaterial]")
+TEST_CASE("Fin expansion widens lower layers and their foot without changing top depth", "[SupportMaterial]")
 {
     const double factor = GENERATE(0.025, 0.05);
-    const RibRun vertical = slice_ribs(20);
-    const RibRun expanded = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, factor);
+    const FinRun vertical = slice_fins(20);
+    const FinRun expanded = slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, factor);
     REQUIRE(expanded.contact_layers > 0);
     REQUIRE_THAT(expanded.top_outer_depth, Catch::Matchers::WithinAbs(8, 0.001));
     // Constant 6x60mm cross-section: no XY centroid offset, so tan(theta) = k*H/sqrt(A0).
@@ -723,14 +723,14 @@ TEST_CASE("Rib expansion widens lower layers and their foot without changing top
     REQUIRE(expanded.contact_starts == 0);
 }
 
-TEST_CASE("Rib expansion increases with height and smaller base area", "[SupportMaterial]")
+TEST_CASE("Fin expansion increases with height and smaller base area", "[SupportMaterial]")
 {
     auto slice = [](double height, double width) {
-        return slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, height, width);
+        return slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, height, width);
     };
-    const RibRun reference = slice(60, 6);
-    const RibRun taller = slice(80, 6);
-    const RibRun narrower = slice(60, 3);
+    const FinRun reference = slice(60, 6);
+    const FinRun taller = slice(80, 6);
+    const FinRun narrower = slice(60, 3);
     REQUIRE(reference.contact_layers > 0);
     REQUIRE(taller.contact_layers > 0);
     REQUIRE(narrower.contact_layers > 0);
@@ -738,10 +738,10 @@ TEST_CASE("Rib expansion increases with height and smaller base area", "[Support
     REQUIRE(narrower.outer_edge_spread > reference.outer_edge_spread);
 }
 
-TEST_CASE("The seed face outward tilt reduces expansion for the whole rib", "[SupportMaterial]")
+TEST_CASE("The seed face outward tilt reduces expansion for the whole fin", "[SupportMaterial]")
 {
-    const RibRun centered = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
-    const RibRun leaning = slice_ribs(20, true, 0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    const FinRun centered = slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    const FinRun leaning = slice_fins(20, true, 0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
     REQUIRE(centered.contact_layers > 0);
     REQUIRE(leaning.contact_layers > 0);
     REQUIRE_THAT(leaning.support_top_z, Catch::Matchers::WithinAbs(centered.support_top_z, 0.001));
@@ -757,20 +757,20 @@ TEST_CASE("The seed face outward tilt reduces expansion for the whole rib", "[Su
                  Catch::Matchers::WithinAbs(slope * (leaning.support_top_z - leaning.first_body_z), 0.002));
 }
 
-TEST_CASE("Outward tilt of thirty degrees or more leaves the rib outer edge vertical", "[SupportMaterial]")
+TEST_CASE("Outward tilt of thirty degrees or more leaves the fin outer edge vertical", "[SupportMaterial]")
 {
     const double tilt = GENERATE(30., 40.);
     const double lean = std::tan(tilt * M_PI / 180.);
-    const RibRun result = slice_ribs(20, true, lean, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    const FinRun result = slice_fins(20, true, lean, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
     REQUIRE(result.contact_layers > 0);
     REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(0, 0.001));
     REQUIRE(result.open_paths == 0);
     REQUIRE(result.contact_starts == 0);
 }
 
-TEST_CASE("Painted patches containing only upward facing normals do not create ribs", "[SupportMaterial]")
+TEST_CASE("Painted patches containing only upward facing normals do not create fins", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20, true, -0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
+    const FinRun result = slice_fins(20, true, -0.2, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05);
     REQUIRE(result.first_layer_paths == 0);
     REQUIRE(result.contact_layers == 0);
 }
@@ -796,15 +796,15 @@ TEST_CASE("An L shaped profile retains lower contacts and adds upper contacts", 
     mesh.indices.emplace_back(0, 3, 2);
     mesh.indices.emplace_back(12, 13, 14);
     mesh.indices.emplace_back(12, 14, 15);
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, &mesh, 0, true);
     REQUIRE(result.lower_y_contact);
     REQUIRE(result.upper_y_contact);
-    REQUIRE(result.max_rib_center_overlap < 1e-6);
+    REQUIRE(result.max_fin_center_overlap < 1e-6);
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("An active rib stops at the last painted height", "[SupportMaterial]")
+TEST_CASE("An active fin stops at the last painted height", "[SupportMaterial]")
 {
     indexed_triangle_set mesh;
     for (float z : {0.f, 30.f, 60.f}) {
@@ -823,7 +823,7 @@ TEST_CASE("An active rib stops at the last painted height", "[SupportMaterial]")
     mesh.indices.emplace_back(0, 3, 2);
     mesh.indices.emplace_back(8, 9, 10);
     mesh.indices.emplace_back(8, 10, 11);
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 0.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.2, 1, 30,
                                   false, false, 0.4, 8, 0, 60, 6, &mesh, 0,
                                   false, false, false, false, 0, 30);
     REQUIRE(result.first_layer_paths > 0);
@@ -833,12 +833,12 @@ TEST_CASE("An active rib stops at the last painted height", "[SupportMaterial]")
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("Rib contact layers stay below the painted face top", "[SupportMaterial]")
+TEST_CASE("Fin contact layers stay below the painted face top", "[SupportMaterial]")
 {
     const double height = GENERATE(60., 60.1, 60.15);
     const double lean = GENERATE(0., 0.6);
     const double slice_offset = GENERATE(-1., 0., 0.05);
-    const RibRun result = slice_ribs(20, true, lean, 1.2, 1.2, 1, 30,
+    const FinRun result = slice_fins(20, true, lean, 1.2, 1.2, 1, 30,
                                     false, false, 0.4, 8, 0.05, height, 6, nullptr, 0,
                                     false, false, false, slice_offset >= 0, std::max(0., slice_offset));
     REQUIRE(result.contact_layers > 0);
@@ -876,7 +876,7 @@ TEST_CASE("Curved seed patches allow different normals across width and layer he
         mesh.indices.emplace_back(bottom, (i + 1) % sides, i);
         mesh.indices.emplace_back(top, 2 * sides + i, 2 * sides + (i + 1) % sides);
     }
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 1.2, 1, 30,
+    const FinRun result = slice_fins(20, true, 0, 1.2, 1.2, 1, 30,
                                     false, false, 0.4, 8, 0, 60, 6, &mesh);
     REQUIRE(result.first_layer_paths > 0);
     REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(60, 0.001));
@@ -913,10 +913,10 @@ TEST_CASE("An upward facing neighbor does not change a downward facing contact n
     // The last layer's top section is upward-facing, while the middle and
     // bottom lie on the original downward-facing wall. Only its normal applies.
     auto slice = [](const indexed_triangle_set &mesh) {
-        return slice_ribs(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, 60, 6, &mesh);
+        return slice_fins(20, true, 0, 1.2, 1.2, 1, 30, false, false, 0.4, 8, 0.05, 60, 6, &mesh);
     };
-    const RibRun reference = slice(straight);
-    const RibRun result = slice(creased);
+    const FinRun reference = slice(straight);
+    const FinRun result = slice(creased);
     REQUIRE(reference.contact_layers > 0);
     REQUIRE(result.contact_layers > 0);
     REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(60, 0.001));
@@ -924,53 +924,53 @@ TEST_CASE("An upward facing neighbor does not change a downward facing contact n
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("Rib contact bead stays inside the wall edges", "[SupportMaterial]")
+TEST_CASE("Fin contact bead stays inside the wall edges", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20);
+    const FinRun result = slice_fins(20);
     REQUIRE(result.contact_layers > 0);
     REQUIRE(result.contact_edge_overrun < 0.0001);
 }
 
-TEST_CASE("Rib layers print closed outlines starting away from contacts", "[SupportMaterial]")
+TEST_CASE("Fin layers print closed outlines starting away from contacts", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20);
+    const FinRun result = slice_fins(20);
     REQUIRE(result.closed_paths > 0);
     REQUIRE(result.open_paths == 0);
     REQUIRE(result.contact_starts == 0);
 }
 
-TEST_CASE("Rib geometry uses separate body thickness and contact width", "[SupportMaterial]")
+TEST_CASE("Fin geometry uses separate body thickness and contact width", "[SupportMaterial]")
 {
-    const RibRun result = slice_ribs(20, true, 0, 2.4, 1.2);
+    const FinRun result = slice_fins(20, true, 0, 2.4, 1.2);
     REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(2.4, 0.02));
     REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(1.2, 0.02));
 }
 
-TEST_CASE("Rib wall loops use the requested count with a minimum of one", "[SupportMaterial]")
+TEST_CASE("Fin wall loops use the requested count with a minimum of one", "[SupportMaterial]")
 {
-    const size_t one = slice_ribs(20, true, 0, 3.2, 3.2, 1).min_body_paths;
+    const size_t one = slice_fins(20, true, 0, 3.2, 3.2, 1).min_body_paths;
     REQUIRE(one > 0);
     REQUIRE(one != std::numeric_limits<size_t>::max());
-    REQUIRE(slice_ribs(20, true, 0, 3.2, 3.2, 0).min_body_paths == one);
-    REQUIRE(slice_ribs(20, true, 0, 3.2, 3.2, 2).min_body_paths == 2 * one);
-    REQUIRE(slice_ribs(20, true, 0, 3.2, 3.2, 3).min_body_paths == 3 * one);
+    REQUIRE(slice_fins(20, true, 0, 3.2, 3.2, 0).min_body_paths == one);
+    REQUIRE(slice_fins(20, true, 0, 3.2, 3.2, 2).min_body_paths == 2 * one);
+    REQUIRE(slice_fins(20, true, 0, 3.2, 3.2, 3).min_body_paths == 3 * one);
 }
 
-TEST_CASE("Thin ribs retain the loops that fit and omit the rest", "[SupportMaterial]")
+TEST_CASE("Thin fins retain the loops that fit and omit the rest", "[SupportMaterial]")
 {
-    const RibRun one = slice_ribs(20, true, 0, 1.2, 1.2, 1);
-    const RibRun three = slice_ribs(20, true, 0, 1.2, 1.2, 3);
+    const FinRun one = slice_fins(20, true, 0, 1.2, 1.2, 1);
+    const FinRun three = slice_fins(20, true, 0, 1.2, 1.2, 3);
     REQUIRE(one.min_body_paths > 0);
     REQUIRE(one.min_body_paths != std::numeric_limits<size_t>::max());
     REQUIRE(three.min_body_paths == one.min_body_paths);
     REQUIRE(three.contact_layers == one.contact_layers);
 }
 
-TEST_CASE("Rib contact front paths overlap the extrusion on the layer below", "[SupportMaterial]")
+TEST_CASE("Fin contact front paths overlap the extrusion on the layer below", "[SupportMaterial]")
 {
     const double angle = GENERATE(60., 80., 90.);
     const double contact_width = GENERATE(0., 0.1, 0.2, 1.2);
-    const RibRun result = slice_ribs(20, true, 0, 1.2, contact_width, 1, angle);
+    const FinRun result = slice_fins(20, true, 0, 1.2, contact_width, 1, angle);
     REQUIRE(result.contact_tip_vertices > 0);
     REQUIRE(result.unsupported_contact_vertices == 0);
     REQUIRE(result.unsupported_contact_length < 0.001);
@@ -980,10 +980,10 @@ TEST_CASE("Rib contact front paths overlap the extrusion on the layer below", "[
     REQUIRE(result.contact_starts == 0);
 }
 
-TEST_CASE("Rib contact spans preserve positive widths below one extrusion line", "[SupportMaterial]")
+TEST_CASE("Fin contact spans preserve positive widths below one extrusion line", "[SupportMaterial]")
 {
     const double contact_width = GENERATE(0., 0.05, 0.1, 0.2, 0.4, 0.8);
-    const RibRun result = slice_ribs(20, true, 0, 2.4, contact_width, 3);
+    const FinRun result = slice_fins(20, true, 0, 2.4, contact_width, 3);
     REQUIRE(result.contact_layers > 0);
     REQUIRE(result.contact_tip_vertices > 0);
     REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(contact_width, 0.001));
@@ -993,10 +993,10 @@ TEST_CASE("Rib contact spans preserve positive widths below one extrusion line",
     REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(2.4, 0.02));
 }
 
-TEST_CASE("Rib contact projection angle controls how quickly the side gap returns", "[SupportMaterial]")
+TEST_CASE("Fin contact projection angle controls how quickly the side gap returns", "[SupportMaterial]")
 {
-    const RibRun normal = slice_ribs(20, true, 0, 1.2, 1.2, 1, 0);
-    const RibRun downward = slice_ribs(20, true, 0, 1.2, 1.2, 1, 80);
+    const FinRun normal = slice_fins(20, true, 0, 1.2, 1.2, 1, 0);
+    const FinRun downward = slice_fins(20, true, 0, 1.2, 1.2, 1, 80);
     REQUIRE(normal.contact_layers > 0);
     REQUIRE(downward.contact_layers == normal.contact_layers);
     REQUIRE(normal.gap_layers > downward.gap_layers);
@@ -1006,11 +1006,11 @@ TEST_CASE("Rib contact projection angle controls how quickly the side gap return
     REQUIRE(normal.open_paths == 0);
 }
 
-TEST_CASE("Rib projections use the requested angle without a line width retreat cap", "[SupportMaterial]")
+TEST_CASE("Fin projections use the requested angle without a line width retreat cap", "[SupportMaterial]")
 {
     // With 0.2mm layers and 0.4mm lines, a 30-degree projection advances
     // 0.2 * cot(30) = 0.3464mm, beyond the former half-line (0.2mm) cap.
-    const RibRun result = slice_ribs(20, true, 0, 2.4, 0.1, 1, 30);
+    const FinRun result = slice_fins(20, true, 0, 2.4, 0.1, 1, 30);
     REQUIRE(result.contact_layers > 0);
     REQUIRE_THAT(result.min_projection_gap,
                  Catch::Matchers::WithinAbs(0.2 / std::tan(M_PI / 6), 0.001));
@@ -1018,12 +1018,12 @@ TEST_CASE("Rib projections use the requested angle without a line width retreat 
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("Surface normal contact projections preserve the selected rib height", "[SupportMaterial]")
+TEST_CASE("Surface normal contact projections preserve the selected fin height", "[SupportMaterial]")
 {
     const double lean = GENERATE(0., 0.2);
     const double angle = GENERATE(0., 0.001, 0.01, 0.1, 1., 79., 80., 90.);
-    const RibRun reference = slice_ribs(20, true, lean, 2.4, 0.1, 1, 30);
-    const RibRun result = slice_ribs(20, true, lean, 2.4, 0.1, 1, angle);
+    const FinRun reference = slice_fins(20, true, lean, 2.4, 0.1, 1, 30);
+    const FinRun result = slice_fins(20, true, lean, 2.4, 0.1, 1, angle);
     REQUIRE(reference.contact_layers > 0);
     REQUIRE(result.contact_layers > 0);
     REQUIRE_THAT(result.support_top_z, Catch::Matchers::WithinAbs(reference.support_top_z, 0.001));
@@ -1031,13 +1031,13 @@ TEST_CASE("Surface normal contact projections preserve the selected rib height",
     REQUIRE(result.outer_edge_spread < 0.001);
 }
 
-TEST_CASE("Contact projections merge into the body without lowering the rib", "[SupportMaterial]")
+TEST_CASE("Contact projections merge into the body without lowering the fin", "[SupportMaterial]")
 {
     // A 0.6mm side gap retracts over about 2mm at this angle. Perturb the
     // layer alignment to cover very short residual sections at the merge.
     const double angle = GENERATE(73.29, 73.30, 73.31);
-    const RibRun reference = slice_ribs(20, true, 0, 2.4, 0.1, 1, 30);
-    const RibRun result = slice_ribs(20, true, 0, 2.4, 0.1, 1, angle);
+    const FinRun reference = slice_fins(20, true, 0, 2.4, 0.1, 1, 30);
+    const FinRun result = slice_fins(20, true, 0, 2.4, 0.1, 1, angle);
     REQUIRE(reference.contact_layers > 0);
     REQUIRE(result.contact_layers == reference.contact_layers);
     REQUIRE(result.gap_layers > 0);
@@ -1046,12 +1046,12 @@ TEST_CASE("Contact projections merge into the body without lowering the rib", "[
     REQUIRE(result.open_paths == 0);
 }
 
-TEST_CASE("Overlapping rib contact projections remain supported on all bands", "[SupportMaterial]")
+TEST_CASE("Overlapping fin contact projections remain supported on all bands", "[SupportMaterial]")
 {
     // At 80 degrees from a vertical wall's normal, retracting the 0.6mm
     // gap needs about 3.4mm, exceeding these contact band spacings.
     const double spacing = GENERATE(2., 3.);
-    const RibRun result = slice_ribs(20, true, 0, 2.4, 0.1, 3, 80, false, false, 0.4, spacing);
+    const FinRun result = slice_fins(20, true, 0, 2.4, 0.1, 3, 80, false, false, 0.4, spacing);
     REQUIRE(result.contact_layers > 3);
     REQUIRE(result.supported_contact_fronts > 0);
     REQUIRE(result.unsupported_contact_vertices == 0);
@@ -1061,42 +1061,42 @@ TEST_CASE("Overlapping rib contact projections remain supported on all bands", "
     REQUIRE(result.outer_edge_spread < 0.001);
 }
 
-TEST_CASE("Rib percentages resolve against the outer wall width", "[SupportMaterial]")
+TEST_CASE("Fin percentages resolve against the outer wall width", "[SupportMaterial]")
 {
     // 50% of 0.6mm is 0.3mm; 200% is 1.2mm. Support lines remain 0.4mm.
-    const RibRun result = slice_ribs(20, true, 0, 200, 50, 1, 30, true, true, 0.6);
+    const FinRun result = slice_fins(20, true, 0, 200, 50, 1, 30, true, true, 0.6);
     REQUIRE(result.contact_layers > 0);
     REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.3, 0.001));
     REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(1.2, 0.02));
 }
 
-TEST_CASE("Rib defaults use full outer wall contact length and absolute thickness", "[SupportMaterial]")
+TEST_CASE("Fin defaults use full outer wall contact length and absolute thickness", "[SupportMaterial]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
-    const auto *contact = config.option<ConfigOptionFloatOrPercent>("rib_support_contact_width");
-    const auto *thickness = config.option<ConfigOptionFloatOrPercent>("rib_support_thickness");
+    const auto *contact = config.option<ConfigOptionFloatOrPercent>("fin_support_contact_width");
+    const auto *thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness");
     REQUIRE(contact->percent);
     REQUIRE_FALSE(thickness->percent);
     REQUIRE_THAT(contact->value, Catch::Matchers::WithinAbs(100, 0.001));
     REQUIRE_THAT(thickness->value, Catch::Matchers::WithinAbs(1.2, 0.001));
-    const RibRun result = slice_ribs(20, true, 0, 1.2, 100, 1, 30, true, false, 0.6);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 100, 1, 30, true, false, 0.6);
     REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.6, 0.001));
     REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(1.2, 0.02));
     // Old project values without a percent suffix remain absolute millimeters.
-    config.set_deserialize("rib_support_contact_width", "0.2");
-    config.set_deserialize("rib_support_thickness", "1.4");
-    contact = config.option<ConfigOptionFloatOrPercent>("rib_support_contact_width");
-    thickness = config.option<ConfigOptionFloatOrPercent>("rib_support_thickness");
+    config.set_deserialize("fin_support_contact_width", "0.2");
+    config.set_deserialize("fin_support_thickness", "1.4");
+    contact = config.option<ConfigOptionFloatOrPercent>("fin_support_contact_width");
+    thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness");
     REQUIRE_FALSE(contact->percent);
     REQUIRE_FALSE(thickness->percent);
     REQUIRE_THAT(contact->get_abs_value(0.6), Catch::Matchers::WithinAbs(0.2, 0.001));
     REQUIRE_THAT(thickness->get_abs_value(0.6), Catch::Matchers::WithinAbs(1.4, 0.001));
 }
 
-TEST_CASE("Rib projections retain just the projected front segment or point", "[SupportMaterial]")
+TEST_CASE("Fin projections retain just the projected front segment or point", "[SupportMaterial]")
 {
     const double length = GENERATE(0., 0.1, 0.2);
-    const RibRun result = slice_ribs(20, true, 0, 2.4, length, 1, 60);
+    const FinRun result = slice_fins(20, true, 0, 2.4, length, 1, 60);
     REQUIRE(result.projection_layers > 0);
     REQUIRE_THAT(result.projection_front_span, Catch::Matchers::WithinAbs(length, 0.001));
     REQUIRE(result.unsupported_contact_vertices == 0);

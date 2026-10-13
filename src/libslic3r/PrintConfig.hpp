@@ -263,8 +263,8 @@ enum SupportMaterialStyle {
     smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
 };
 
-enum RibSupportStyle {
-    rssSimple, rssSimulated
+enum FinSupportStyle {
+    fssSimple, fssSimulated
 };
 
 enum LongRectrationLevel
@@ -280,7 +280,7 @@ enum SupportMaterialInterfacePattern {
 
 // BBS
 enum SupportType {
-    stNormalAuto, stTreeAuto, stNormal, stTree, stRib
+    stNormalAuto, stTreeAuto, stNormal, stTree, stFin
 };
 inline bool is_tree(SupportType stype)
 {
@@ -676,7 +676,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
-CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(RibSupportStyle)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FinSupportStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
 // BBS
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportType)
@@ -1168,16 +1168,16 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloatsNullable,      support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
-    ((ConfigOptionEnum<RibSupportStyle>, rib_support_style))
-    ((ConfigOptionFloat,               rib_support_contact_height))
-    ((ConfigOptionFloat,               rib_support_contact_start_height))
-    ((ConfigOptionFloatOrPercent,      rib_support_contact_width))
-    ((ConfigOptionFloatOrPercent,      rib_support_thickness))
-    ((ConfigOptionFloat,               rib_support_contact_spacing))
-    ((ConfigOptionFloat,               rib_support_contact_projection_angle))
-    ((ConfigOptionFloat,               rib_support_depth))
-    ((ConfigOptionFloat,               rib_support_expansion_factor))
-    ((ConfigOptionFloat,               rib_support_max_spacing))
+    ((ConfigOptionEnum<FinSupportStyle>, fin_support_style))
+    ((ConfigOptionFloat,               fin_support_contact_height))
+    ((ConfigOptionFloat,               fin_support_contact_start_height))
+    ((ConfigOptionFloatOrPercent,      fin_support_contact_width))
+    ((ConfigOptionFloatOrPercent,      fin_support_thickness))
+    ((ConfigOptionFloat,               fin_support_contact_spacing))
+    ((ConfigOptionFloat,               fin_support_contact_projection_angle))
+    ((ConfigOptionFloat,               fin_support_depth))
+    ((ConfigOptionFloat,               fin_support_expansion_factor))
+    ((ConfigOptionFloat,               fin_support_max_spacing))
 
     // Orca: a flag enabling the ability to override flow ratios
     ((ConfigOptionBool,     set_other_flow_ratios))
