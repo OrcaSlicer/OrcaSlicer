@@ -90,6 +90,28 @@ TEST_CASE("Constructing a flow compensator without parsed points remains an erro
     REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), std::invalid_argument);
 }
 
+TEST_CASE("Legacy flow models with trailing and interleaved blanks remain usable during slicing", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = {"", "0,0.2", " \n", "10,1", ""};
+    SmallAreaInfillFlowCompensator compensator(config);
+    CHECK_THAT(compensator.modify_flow(5, 3, erSolidInfill), WithinAbs(1.8, 1e-12));
+}
+
+TEST_CASE("Flow parsing errors identify the bad point and its entered values", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    GCodeConfig config;
+    config.small_area_infill_flow_compensation_model.values = {"0,0", "", "5,bad", "10,1", ""};
+    try {
+        SmallAreaInfillFlowCompensator compensator(config);
+        FAIL("Invalid point must be rejected.");
+    } catch (const Slic3r::InvalidArgument& error) {
+        const std::string message = error.what();
+        CHECK(message.find("point 2") != std::string::npos);
+        CHECK(message.find("5,bad") != std::string::npos);
+    }
+}
+
 TEST_CASE("Flow compensation only changes eligible infill roles within the model range", "[SmallAreaInfillFlowCompensation]")
 {
     GCodeConfig config;
@@ -107,7 +129,7 @@ TEST_CASE("Flow compensation only changes eligible infill roles within the model
 TEST_CASE("The G-code consumer rejects malformed points instead of silently using partial numbers", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     GCodeConfig config;
-    const std::string point = GENERATE(as<std::string>{}, "5junk,0.5", "5,0.5junk", "5", " ", "5,0.5,extra");
+    const std::string point = GENERATE(as<std::string>{}, "5junk,0.5", "5,0.5junk", "5", "5,0.5,extra");
     config.small_area_infill_flow_compensation_model.values = {"0,0", point, "10,1"};
     REQUIRE_THROWS_AS(SmallAreaInfillFlowCompensator(config), InvalidArgument);
     config.small_area_infill_flow_compensation_model.values = {"0", " "};
@@ -139,7 +161,7 @@ TEST_CASE("G-code accepts saved flow models above the editor point limit", "[Sma
     CHECK_THAT(compensator.modify_flow(length, extrusion, erSolidInfill), WithinAbs(extrusion * 0.6, 1e-12));
 }
 
-TEST_CASE("Disabled flow compensation ignores a malformed stored model", "[SmallAreaInfillFlowCompensation][Regression]")
+TEST_CASE("Disabled flow compensation ignores a malformed stored model", "[SmallAreaInfillFlowCompensation][Regression][Slicing]")
 {
     auto config = flow_config();
     const double baseline = exported_volume(config);
@@ -149,7 +171,7 @@ TEST_CASE("Disabled flow compensation ignores a malformed stored model", "[Small
     CHECK_THAT(exported_volume(config), WithinAbs(baseline, 1e-9));
 }
 
-TEST_CASE("Inactive flow models leave exported extrusion unchanged", "[SmallAreaInfillFlowCompensation][Regression]")
+TEST_CASE("Inactive flow models leave exported extrusion unchanged", "[SmallAreaInfillFlowCompensation][Regression][Slicing]")
 {
     auto config = flow_config();
     const double baseline = exported_volume(config);
@@ -161,7 +183,7 @@ TEST_CASE("Inactive flow models leave exported extrusion unchanged", "[SmallArea
     CHECK_THAT(exported_volume(config), WithinAbs(baseline, 1e-6));
 }
 
-TEST_CASE("Enabling an edited flow model reduces extrusion in small solid infill areas", "[SmallAreaInfillFlowCompensation]")
+TEST_CASE("Enabling an edited flow model reduces extrusion in small solid infill areas", "[SmallAreaInfillFlowCompensation][Slicing]")
 {
     auto config = flow_config();
     const double baseline = exported_volume(config);

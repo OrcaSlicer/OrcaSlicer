@@ -938,7 +938,8 @@ void Tab::update_label_colours()
             else
                 color = &m_modified_label_clr;
         }
-        if (opt.first == "printable_area" || opt.first == "small_area_infill_flow_compensation_model" ||
+        const auto* definition = m_config->def()->get(opt.first);
+        if (opt.first == "printable_area" || (definition && definition->is_curve()) ||
             opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ) {
             if (Line* line = get_line(opt.first))
                 line->set_label_colour(color);
@@ -982,7 +983,8 @@ void Tab::decorate()
         Field*      field = nullptr;
         bool        option_without_field = false;
 
-        if (opt.first == "printable_area" || opt.first == "small_area_infill_flow_compensation_model" ||
+        const auto* definition = m_config->def()->get(opt.first);
+        if (opt.first == "printable_area" || (definition && definition->is_curve()) ||
             opt.first == "compatible_prints" || opt.first == "compatible_printers")
             option_without_field = true;
 
@@ -2748,6 +2750,15 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
             wxScrollEvent evt(wxEVT_SCROLL_CHANGED);
             evt.SetEventObject(field->getWindow());
             wxPostEvent(m_page_view, evt);
+        }
+    }
+    else if (Line* line = get_line(opt_key); line && line->widget_sizer) {
+        // Focusing a widget also lets wxScrolledWindow bring the setting into view.
+        for (auto* child : line->widget_sizer->GetChildren()) {
+            if (child->IsWindow() && child->GetWindow()->IsShown() && child->GetWindow()->IsEnabled()) {
+                set_focus(child->GetWindow());
+                break;
+            }
         }
     }
     else if (category == "Single extruder MM setup") {
