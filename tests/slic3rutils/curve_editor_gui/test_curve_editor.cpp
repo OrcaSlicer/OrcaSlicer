@@ -90,6 +90,9 @@ public:
     {
         static WxRuntime runtime;
         frame = std::make_unique<wxFrame>(nullptr, wxID_ANY, "Hidden curve editor check");
+        // wxFrame sizes its only child to the client area when mapped on GTK/AppKit.
+        // Give the parent the same viewport instead of letting Show() shrink the panel.
+        frame->SetClientSize(700, 400);
         panel = std::make_unique<CurveEditorPanel>(frame.get(), CurveEditorAppearance{"Length", "Factor", 1.0, "1.0", 0, 1},
                                                    model.view_limits());
         panel->SetSize(700, 400);
@@ -124,6 +127,13 @@ public:
         pans.clear();
         zooms.clear();
         pan_frames = 0;
+    }
+    void resize(const wxSize& size)
+    {
+        frame->SetClientSize(size);
+        panel->SetSize(size);
+        drain();
+        REQUIRE(panel->GetClientSize() == size);
     }
     void drain(bool wait_for_pan = false)
     {
@@ -181,6 +191,11 @@ public:
     wxRect plot_rect()
     {
         const auto callback = panel->on_zoom;
+        const auto size = panel->GetClientSize();
+        // Probe inside the current client area so zoom-anchor clamping cannot
+        // turn an out-of-window point into a false plot dimension.
+        const wxPoint first(size.x / 3, size.y / 3);
+        const wxPoint second(2 * size.x / 3, 2 * size.y / 3);
         double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
         panel->on_zoom = [&](double, bool vertical, double anchor) {
             if (vertical)
@@ -188,20 +203,22 @@ public:
             else
                 x1 = anchor;
         };
-        wheel(1, false, true, false, {100, 100});
-        wheel(1, false, true, true, {100, 100});
+        wheel(1, false, true, false, first);
+        wheel(1, false, true, true, first);
         panel->on_zoom = [&](double, bool vertical, double anchor) {
             if (vertical)
                 y2 = anchor;
             else
                 x2 = anchor;
         };
-        wheel(1, false, true, false, {500, 300});
-        wheel(1, false, true, true, {500, 300});
+        wheel(1, false, true, false, second);
+        wheel(1, false, true, true, second);
         panel->on_zoom   = callback;
-        const int width  = int(std::lround(400 / (x2 - x1)));
-        const int height = int(std::lround(200 / (y1 - y2)));
-        return {int(std::lround(100 - x1 * width)), int(std::lround(100 - (1 - y1) * height)), width, height};
+        REQUIRE(x2 > x1);
+        REQUIRE(y1 > y2);
+        const int width  = int(std::lround((second.x - first.x) / (x2 - x1)));
+        const int height = int(std::lround((second.y - first.y) / (y1 - y2)));
+        return {int(std::lround(first.x - x1 * width)), int(std::lround(first.y - (1 - y1) * height)), width, height};
     }
     wxPoint middle_point()
     {
@@ -258,7 +275,7 @@ TEST_CASE("Cached graph geometry follows changes to its font size and navigation
     limits.bounds.max_y = 200000000;
     f.panel->set_view_limits(limits);
     CHECK(f.plot_rect().x > larger_font.x);
-    f.panel->SetSize(800, 450);
+    f.resize({800, 450});
     CHECK(f.plot_rect().height > larger_font.height);
 }
 
@@ -319,7 +336,7 @@ TEST_CASE("Middle-button navigation cancels capture and pending motion when inte
     case 1: f.panel->finish_drag(); break;
     case 2: f.panel->set_view({20, 40, .2, .8}); break;
     case 3: f.panel->set_view_limits(f.model.view_limits()); break;
-    case 4: f.panel->SetSize(800, 450); break;
+    case 4: f.resize({800, 450}); break;
     }
     CHECK_FALSE(f.panel->HasCapture());
     f.mouse(wxEVT_MOTION, start + wxPoint(40, 30), true);
