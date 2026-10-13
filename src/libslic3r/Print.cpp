@@ -5018,6 +5018,8 @@ void Print::update_to_config_by_nozzle_group_result(const MultiNozzleUtils::Laye
                                                                              extruder_count, extruder_volume_type_count,
                                                                              filament_keys, "filament_self_index", "filament_extruder_variant",
                                                                              &slot_machine_indices);
+    // Rebuilt from the pre-enforcement snapshot, so size its per-N arrays like the static branch above.
+    m_full_print_config.enforce_cardinality();
 
     const std::vector<std::string> &extruder_retract_keys = print_config_def.extruder_retract_keys();
     const std::string               filament_prefix       = "filament_";
