@@ -141,13 +141,15 @@ TEST_CASE("Preset::normalize sizes per-filament options to the filament count on
 TEST_CASE("expected_size(cardinality_of) reproduces get_parameter_size on its domain", "[Cardinality]")
 {
     // get_parameter_size's domain is the extruder + variant options; plain PerFilament is sized by
-    // normalize, so it is not in the comparison list below.
+    // normalize, so it is not in the comparison list below. get_parameter_size takes the variant lists as
+    // authoritative (its caller has just rebuilt them), so the two agree wherever the base-count floor
+    // of axis_counts is a no-op: every variant list at least as long as its base count.
     DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
-    cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4,0.4" } });                 // extruders = 3
-    cfg.set_key_value("printer_extruder_variant",  new ConfigOptionStrings(std::vector<std::string>(2, "x")));
+    cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" } });                     // extruders = 2
+    cfg.set_key_value("printer_extruder_variant",  new ConfigOptionStrings(std::vector<std::string>(3, "x")));
     cfg.set_key_value("filament_extruder_variant", new ConfigOptionStrings(std::vector<std::string>(4, "x")));
     cfg.set_key_value("print_extruder_variant",    new ConfigOptionStrings(std::vector<std::string>(5, "x")));
-    const size_t E = 3;
+    const size_t E = 2;
     const AxisCounts n = axis_counts(cfg);
 
     for (const char *k : { "max_layer_height", "retraction_length", "machine_max_jerk_x",

@@ -169,18 +169,27 @@ static size_t vector_size_or(const ConfigBase &config, const std::string &key, s
     return vec->empty() ? fallback : vec->size();
 }
 
-AxisCounts axis_counts(const ConfigBase &config)
+// The counts as the config states them, with no floor applied.
+static AxisCounts raw_axis_counts(const ConfigBase &config)
 {
     AxisCounts n;
-    n.extruders = vector_size_or(config, "nozzle_diameter",   n.extruders);
-    n.filaments = vector_size_or(config, "filament_diameter", n.filaments);
+    n.extruders        = vector_size_or(config, "nozzle_diameter",           n.extruders);
+    n.filaments        = vector_size_or(config, "filament_diameter",         n.filaments);
+    n.extruder_variant = vector_size_or(config, "printer_extruder_variant",  n.extruder_variant);
+    n.filament_variant = vector_size_or(config, "filament_extruder_variant", n.filament_variant);
+    n.process_variant  = vector_size_or(config, "print_extruder_variant",    n.process_variant);
+    return n;
+}
 
+AxisCounts axis_counts(const ConfigBase &config)
+{
+    AxisCounts n = raw_axis_counts(config);
     // A variant list normally holds at least one slot per extruder/filament (more with multiple variants per
     // slot), so take its size but never below the base count: an absent or stale (default size-1) list must
     // not shrink per-variant options below the extruder/filament count. On the normal path the max() is a no-op.
-    n.extruder_variant = std::max(vector_size_or(config, "printer_extruder_variant",  n.extruder_variant), n.extruders);
-    n.filament_variant = std::max(vector_size_or(config, "filament_extruder_variant", n.filament_variant), n.filaments);
-    n.process_variant  = std::max(vector_size_or(config, "print_extruder_variant",    n.process_variant),  n.extruders);
+    n.extruder_variant = std::max(n.extruder_variant, n.extruders);
+    n.filament_variant = std::max(n.filament_variant, n.filaments);
+    n.process_variant  = std::max(n.process_variant,  n.extruders);
     return n;
 }
 
@@ -283,8 +292,10 @@ void DynamicPrintConfig::enforce_per_filament_cardinality()
 // extruders. New code should prefer enforce_cardinality() / expected_size().
 size_t DynamicPrintConfig::get_parameter_size(const std::string &param_name, size_t extruder_nums)
 {
-    AxisCounts n = axis_counts(*this);
-    n.extruders = extruder_nums;
+    // The caller has already rebuilt the variant lists for extruder_nums, so they are authoritative here and
+    // the base-count floor must not read the extruder arrays still waiting to be resized.
+    AxisCounts n = raw_axis_counts(*this);
+    n.extruders  = extruder_nums;
     const size_t size = expected_size(cardinality_of(param_name), n);
 
     // expected_size returns 0 for Scalar/Custom, but the caller resizes to the result, so fall back to the
