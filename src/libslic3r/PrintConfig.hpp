@@ -1028,6 +1028,12 @@ void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<cons
 // old_slot_count values; an option the config lacks is created.
 void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count);
 
+// Size flush_volumes_matrix to num_filaments^2 cells per nozzle, flush_volumes_vector to two values per
+// filament and flush_multiplier to one per nozzle, keeping the cells the old layout had for the pairs and
+// nozzles it shares with the new one; a new cell is the sum of the pair's per-filament flush volumes.
+// to_delete_filament_id is the slot the old layout had and the new one lacks, or size_t(-1) for none.
+void resize_flush_volumes_matrix(DynamicPrintConfig &config, size_t num_filaments, size_t nozzle_nums, size_t to_delete_filament_id = size_t(-1));
+
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
     t_config_option_keys& diff_keys, DynamicPrintConfig& filament_overrides, std::vector<int>& f_map_indices);

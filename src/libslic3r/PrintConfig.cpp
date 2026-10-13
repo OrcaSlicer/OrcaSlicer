@@ -11351,6 +11351,52 @@ void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_
     resize(config.option<ConfigOptionBools>("filament_mixed_gradient_per_part", true));
 }
 
+void resize_flush_volumes_matrix(DynamicPrintConfig &config, size_t num_filaments, size_t nozzle_nums, size_t to_delete_filament_id)
+{
+    if (to_delete_filament_id == size_t(-1))
+        to_delete_filament_id = num_filaments;
+
+    // The old layout is read off the matrix itself: one block per nozzle, each old_filaments^2 cells.
+    const std::vector<double> old_matrix   = config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values;
+    std::vector<double>      &multipliers  = config.option<ConfigOptionFloats>("flush_multiplier", true)->values;
+    const size_t old_nozzle_nums           = std::max<size_t>(multipliers.size(), 1);
+    const size_t old_number_of_filaments   = size_t(std::sqrt(double(old_matrix.size()) / double(old_nozzle_nums)) + EPSILON);
+    if (multipliers.size() != nozzle_nums)
+        multipliers.resize(nozzle_nums, 1.);
+
+    if (old_matrix.size() == num_filaments * num_filaments * nozzle_nums)
+        return;
+
+    // Two values per filament: the flush it needs after another filament and before one.
+    std::vector<double> &filaments = config.option<ConfigOptionFloats>("flush_volumes_vector", true)->values;
+    while (filaments.size() < 2 * num_filaments) {
+        filaments.push_back(filaments.size() > 1 ? filaments[0] : 140.);
+        filaments.push_back(filaments.size() > 1 ? filaments[1] : 140.);
+    }
+    while (filaments.size() > 2 * num_filaments) {
+        filaments.pop_back();
+        filaments.pop_back();
+    }
+
+    const size_t        old_matrix_size = old_number_of_filaments * old_number_of_filaments;
+    const size_t        new_matrix_size = num_filaments * num_filaments;
+    std::vector<double> new_matrix(new_matrix_size * nozzle_nums, 0.);
+    for (size_t i = 0; i < num_filaments; ++i)
+        for (size_t j = 0; j < num_filaments; ++j) {
+            const bool   old_pair = i < old_number_of_filaments && j < old_number_of_filaments;
+            const size_t old_i    = i >= to_delete_filament_id ? i + 1 : i;
+            const size_t old_j    = j >= to_delete_filament_id ? j + 1 : j;
+            for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
+                double &cell = new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id];
+                if (old_pair && nozzle_id < old_nozzle_nums && old_i < old_number_of_filaments && old_j < old_number_of_filaments)
+                    cell = old_matrix[old_i * old_number_of_filaments + old_j + old_matrix_size * nozzle_id];
+                else
+                    cell = i == j ? 0. : filaments[2 * i] + filaments[2 * j + 1];
+            }
+        }
+    config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values = new_matrix;
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single

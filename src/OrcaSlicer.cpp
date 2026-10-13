@@ -4031,6 +4031,18 @@ int CLI::run(int argc, char **argv)
         BOOST_LOG_TRIVIAL(warning) << boost::format("no filament colors found in projects");
     }
 
+    // The matrix can still be sized for another filament count: the one a project's presets shipped, the
+    // schema default (a 4x4 table) the defaults merge adds, or one computed above for fewer colours than
+    // filaments. G-code export rejects a matrix that is not filaments^2 x extruders, so bring it to the
+    // loaded counts the way the GUI does, keeping the pairs it had. One filament needs no matrix.
+    const ConfigOptionFloats *filament_diameter_option = m_print_config.option<ConfigOptionFloats>("filament_diameter");
+    if (filament_count > 1 && filament_diameter_option && filament_diameter_option->values.size() == static_cast<size_t>(filament_count)) {
+        for (const char *key : { "flush_volumes_matrix", "flush_volumes_vector", "flush_multiplier" })
+            if (!m_print_config.has(key))
+                m_print_config.set_key_value(key, print_config_def.get(key)->default_value->clone());
+        resize_flush_volumes_matrix(m_print_config, static_cast<size_t>(filament_count), static_cast<size_t>(new_extruder_count));
+    }
+
     //BBS: set default to ptFFF
     if (printer_technology == ptUnknown)
         printer_technology = ptFFF;
