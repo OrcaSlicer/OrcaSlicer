@@ -16,6 +16,7 @@
 #include "Selection.hpp"
 //BBS: add partplate related logic
 #include "PartPlate.hpp"
+#include "PlateSettingsDialog.hpp"
 #include "Gizmos/GLGizmoEmboss.hpp"
 #include "Gizmos/GLGizmoSVG.hpp"
 
@@ -2243,6 +2244,7 @@ wxMenu* MenuFactory::plate_menu()
 {
     append_menu_item_locked(&m_plate_menu);
     append_menu_item_plate_name(&m_plate_menu);
+    append_menu_item_move_plate(&m_plate_menu);
     return &m_plate_menu;
 }
 
@@ -2600,6 +2602,28 @@ void MenuFactory::append_menu_item_plate_name(wxMenu *menu)
             plater()->set_current_canvas_as_dirty();
         },
         item->GetId());
+}
+
+void MenuFactory::append_menu_item_move_plate(wxMenu *menu)
+{
+    const wxString name = _L("Move Plate");
+    // Delete old menu item
+    const int item_id = menu->FindItem(name);
+    if (item_id != wxNOT_FOUND) menu->Destroy(item_id);
+
+    append_menu_item(
+        menu, wxID_ANY, name, _L("Move the selected plate to another position"),
+        [](wxCommandEvent &) {
+            const int hover_idx = plater()->canvas3D()->GetHoverId();
+            const int plate_idx = hover_idx == -1 ? plater()->GetPlateIndexByRightMenuInLeftUI() : hover_idx / PartPlate::GRABBER_COUNT;
+            const int plate_count = plater()->get_partplate_list().get_plate_count();
+            if (plate_idx < 0 || plate_idx >= plate_count)
+                return;
+            PlateMoveDialog dlg(plater(), plate_count, plate_idx);
+            if (dlg.ShowModal() == wxID_YES)
+                plater()->move_plate(plate_idx, dlg.get_target_index());
+        },
+        "", nullptr, []() { return plater()->get_partplate_list().get_plate_count() >= 2; }, m_parent);
 }
 
 void MenuFactory::update_object_menu()

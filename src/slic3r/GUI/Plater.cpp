@@ -23247,14 +23247,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         }
     } else if ((action == 7) && (!right_click)) {
         // move plate to the front
-        take_snapshot("move plate to the front");
-        ret = p->partplate_list.move_plate_to_index(plate_index,0);
-        p->partplate_list.update_slice_context_to_current_plate(p->background_process);
-        p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
-        p->sidebar->obj_list()->reload_all_plates();
-        p->partplate_list.update_plates();
-        update();
-        p->partplate_list.select_plate(0);
+        ret = move_plate(plate_index, 0);
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {
@@ -23318,6 +23311,23 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: return %2%")%__LINE__ % ret;
+    return ret;
+}
+
+int Plater::move_plate(int plate_index, int new_index)
+{
+    const int plate_count = p->partplate_list.get_plate_count();
+    if (plate_index < 0 || plate_index >= plate_count || new_index < 0 || new_index >= plate_count || plate_index == new_index)
+        return -1;
+
+    take_snapshot(new_index == 0 ? "move plate to the front" : "move plate");
+    int ret = p->partplate_list.move_plate_to_index(plate_index, new_index);
+    p->partplate_list.update_slice_context_to_current_plate(p->background_process);
+    p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
+    p->sidebar->obj_list()->reload_all_plates();
+    p->partplate_list.update_plates();
+    update();
+    p->partplate_list.select_plate(new_index);
     return ret;
 }
 
