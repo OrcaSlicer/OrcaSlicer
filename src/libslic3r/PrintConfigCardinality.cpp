@@ -1,12 +1,16 @@
 #include "PrintConfigCardinality.hpp"
 
+#include "Config.hpp"
 #include "PrintConfig.hpp"
 #include "Preset.hpp"
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <map>
 #include <set>
+#include <string>
+#include <vector>
 
 namespace Slic3r {
 

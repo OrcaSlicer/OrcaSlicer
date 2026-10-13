@@ -11,10 +11,16 @@
 #pragma once
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/core.hpp>
 
 #include <algorithm>
+#include <cstdlib>
+#include <exception>
 #include <functional>
+#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/Config.hpp>
 #include <sstream>
 #include <string>
 #include <utility>

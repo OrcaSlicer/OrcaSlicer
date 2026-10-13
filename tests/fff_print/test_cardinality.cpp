@@ -2,7 +2,11 @@
 // enforce_cardinality, which sizes every per-N array (per-extruder printable height, machine limits,
 // filament_map, ...) to its declared cardinality, so the multi-extruder slice completes.
 #include <catch2/catch_all.hpp>
+#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/Config.hpp>
+#include <libslic3r/Point.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"

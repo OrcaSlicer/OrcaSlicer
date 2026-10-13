@@ -10,10 +10,15 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <ios>
 #include <map>
+#include <set>
+#include <ostream>
 #include <string>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigCardinality.hpp"
