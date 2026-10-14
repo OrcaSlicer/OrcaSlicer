@@ -5577,6 +5577,8 @@ void Print::reload_gcode_moves(GCodeProcessorResult* result) const
     std::lock_guard<std::mutex> lock(result->result_mutex);
     result->moves      = std::move(reloaded.moves);
     result->lines_ends = std::move(reloaded.lines_ends);
+    // Keep export diagnostics; record the risk in the final, file-based preview separately.
+    result->overhang_seam_reload_risk = reloaded.overhang_seam_markers_may_be_missing();
 }
 
 std::tuple<float, float> Print::object_skirt_offset(double margin_height) const

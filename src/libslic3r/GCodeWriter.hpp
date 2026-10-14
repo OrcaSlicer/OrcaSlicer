@@ -9,6 +9,7 @@
 #include <cstring>
 #include <string>
 #include <charconv>
+#include <optional>
 #include <vector>
 #include <functional>
 #include <utility>
@@ -22,6 +23,17 @@
 
 namespace Slic3r {
 
+// Orca: first and last printing moves GCodeWriter emits while a capture is on, in G-code command
+// coordinates (as written: plate offset subtracted, quantized). Hands outer walls that start on
+// an overhang to the G-code processor (GCode/OverhangSeamLoops.hpp). At namespace scope: as a
+// nested class, clang with libstdc++ does not see it default-constructible for std::optional.
+struct ExtrusionCapture
+{
+    std::optional<Vec3d> start;    // start of the first printing move
+    Vec3d                end{ Vec3d::Zero() }; // end of the last printing move
+    int                  filament{ -1 };
+    bool                 zero_z{ false };      // some printing move ends at Z 0
+};
 
 class GCodeWriter {
 public:
@@ -184,6 +196,12 @@ public:
 
     // Returns whether this flavor supports separate print and travel acceleration.
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);
+
+    // Orca: capture of the printing moves of an extrusion, see ExtrusionCapture.
+    void start_extrusion_capture() { m_extrusion_capture.emplace(); }
+    std::optional<ExtrusionCapture> stop_extrusion_capture() { return std::exchange(m_extrusion_capture, std::nullopt); }
+    bool extrusion_capture_started() const { return m_extrusion_capture && m_extrusion_capture->start; }
+
 protected:
     // Position/lift/offset state.
     Vec3d           m_pos = Vec3d::Zero();
@@ -297,6 +315,12 @@ private:
     bool spiral_lift_fits_printable_area(const Vec2d &center, double radius) const;
     std::string _retract(double length, double restart_extra, const std::string &comment);
     std::string set_acceleration_internal(Acceleration type, unsigned int acceleration);
+
+    std::optional<ExtrusionCapture> m_extrusion_capture;
+    // E as last emitted before a move: relative E restarts from zero.
+    double emitted_e_before_move() const { return config.use_relative_e_distances ? 0. : filament()->E(); }
+    // `from`/`to` in command coordinates; `arc` moves even when its ends coincide.
+    void   capture_extrusion(const Vec3d &from, const Vec3d &to, double e_before, bool arc);
 
 };
 

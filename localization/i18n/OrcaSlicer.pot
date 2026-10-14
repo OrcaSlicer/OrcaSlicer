@@ -8743,6 +8743,9 @@ msgstr ""
 msgid "An Error has occurred while loading the G-code file."
 msgstr ""
 
+msgid "Seam markers may be missing in the preview for outer walls that overhang all the way round. Printed seams are not affected."
+msgstr ""
+
 #. TRN %1% is archive path
 #, possible-boost-format
 msgid "Loading of a ZIP archive on path %1% has failed."
@@ -12594,6 +12597,24 @@ msgid ""
 "Failed to rename the output G-code file from %1% to %2%.\n"
 "Error: %3%\n"
 "Is %1% locked?"
+msgid ""
+"Seam markers in the preview may be missing or inaccurate on overhanging outer "
+"walls."
+msgstr ""
+
+msgid ""
+"Seam markers in the preview may be missing or inaccurate on overhanging outer "
+"walls of:"
+msgstr ""
+
+#, possible-boost-format
+msgid "\"%1%\", starting at layer %2% (%3% in total)"
+msgstr ""
+
+#, possible-boost-format
+msgid ""
+"On layer %1%, the seam marker may not be shown if the seam falls on an "
+"overhang."
 msgstr ""
 
 msgid "No object can be printed. It may be too small."
