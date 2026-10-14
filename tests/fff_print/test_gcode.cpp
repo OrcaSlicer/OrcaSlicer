@@ -16,9 +16,12 @@
 
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Point.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <fstream>
 #include <ios>
+#include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -209,4 +212,81 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     REQUIRE(multiplier.size() == 1);
     CHECK_THAT(matrix[1] * multiplier[0], Catch::Matchers::WithinAbs(140., 1e-6));
     CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
+}
+
+// Klipper keeps the last value each SET_PRINT_STATS_INFO parameter was given. Returns the
+// "current/total" layer it holds whenever an object starts printing, per object label.
+static std::map<std::string, std::vector<std::string>> print_stats_info_per_object(const std::string &gcode)
+{
+    std::map<std::string, std::vector<std::string>> info;
+    int total = 0, current = 0;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);) {
+        if (line.rfind("SET_PRINT_STATS_INFO", 0) == 0) {
+            if (size_t pos = line.find("TOTAL_LAYER="); pos != std::string::npos)
+                total = std::stoi(line.substr(pos + 12));
+            if (size_t pos = line.find("CURRENT_LAYER="); pos != std::string::npos)
+                current = std::stoi(line.substr(pos + 14));
+        } else if (line.rfind("EXCLUDE_OBJECT_START NAME=", 0) == 0) {
+            const std::string state = std::to_string(current) + "/" + std::to_string(total);
+            std::vector<std::string> &seen = info[line.substr(26)];
+            if (seen.empty() || seen.back() != state)
+                seen.push_back(state);
+        }
+    }
+    return info;
+}
+
+TEST_CASE("Sequential Klipper prints report the layer within each object", "[GCode]")
+{
+    // A profile reporting the whole-print layer on layer change must not override the per-object values.
+    const std::string layer_change_gcode = GENERATE(std::string(), std::string("SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}"));
+    INFO("layer_change_gcode: " << layer_change_gcode);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"gcode_flavor", "klipper"},
+        {"exclude_object", "1"},
+        {"print_sequence", "by object"},
+        {"layer_height", "0.25"},
+        {"initial_layer_print_height", "0.25"},
+        {"raft_layers", "0"},
+        {"enable_support", "0"},
+    });
+    config.set_key_value("layer_change_gcode", new ConfigOptionString(layer_change_gcode));
+
+    // At 0.25 mm layers the 20 mm cube has 80 layers and the 10 mm block 40.
+    const auto info = print_stats_info_per_object(Test::slice({make_cube(20., 20., 20.), make_cube(20., 20., 10.)}, config));
+    REQUIRE(info.size() == 2);
+    std::vector<int> totals;
+    for (const auto &[label, seen] : info) {
+        INFO(label);
+        const int total = int(seen.size());
+        std::vector<std::string> expected;
+        for (int layer = 1; layer <= total; ++layer)
+            expected.push_back(std::to_string(layer) + "/" + std::to_string(total));
+        CHECK(seen == expected);
+        totals.push_back(total);
+    }
+    std::sort(totals.begin(), totals.end());
+    CHECK(totals == std::vector<int>{40, 80});
+}
+
+TEST_CASE("Prints other than sequential Klipper prints emit no SET_PRINT_STATS_INFO", "[GCode]")
+{
+    const auto [print_sequence, gcode_flavor] = GENERATE(table<std::string, std::string>({
+        {"by layer", "klipper"},
+        {"by object", "marlin2"},
+    }));
+    INFO(print_sequence << ", " << gcode_flavor);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"gcode_flavor", gcode_flavor},
+        {"exclude_object", "1"},
+        {"print_sequence", print_sequence},
+        {"machine_start_gcode", ""},
+        {"layer_change_gcode", ""},
+    });
+
+    const std::string gcode = Test::slice({make_cube(20., 20., 20.), make_cube(20., 20., 10.)}, config);
+    CHECK(gcode.find("SET_PRINT_STATS_INFO") == std::string::npos);
 }
