@@ -142,6 +142,9 @@ bool CurveModel::insert_point(Rows& rows, int& row) const
     std::vector<double> x, y;
     int error_row;
     if (read_points(rows, x, y, error_row) || x.size() < 2) return false;
+    const auto x_limits = std::minmax_element(x.begin(), x.end());
+    const auto y_limits = std::minmax_element(y.begin(), y.end());
+    const CurveView point_view = {*x_limits.first, *x_limits.second, *y_limits.first, *y_limits.second};
     const int count = int(x.size());
     const int preferred = std::clamp(row, 1, count - 1);
     auto midpoint = [](double a, double b) {
@@ -150,15 +153,20 @@ bool CurveModel::insert_point(Rows& rows, int& row) const
     for (int distance = 0; distance < count - 1; ++distance) {
         for (int position : std::array<int, 2>{preferred + distance, preferred - distance}) {
             if (position < 1 || position >= count) continue;
-            const double new_x = midpoint(x[position - 1], x[position]);
-            const double new_y = midpoint(y[position - 1], y[position]);
+            Row point = {format_point_number(midpoint(x[position - 1], x[position])),
+                         format_point_number(midpoint(y[position - 1], y[position]))};
+            double new_x, new_y;
+            if (!read_number(point.first, new_x) || !read_number(point.second, new_y)) continue;
             auto candidate_x = x;
             auto candidate_y = y;
             candidate_x.insert(candidate_x.begin() + position, new_x);
             candidate_y.insert(candidate_y.begin() + position, new_y);
-            // At floating-point resolution a midpoint can equal a neighbor.
+            // Rounding a midpoint can collapse it onto a neighbor. Also honor the
+            // model's editing bounds, which may reserve a larger gap than validation.
             if (validate_points(candidate_x, candidate_y, error_row)) continue;
-            rows.insert(rows.begin() + position, {format_number(new_x), format_number(new_y)});
+            const auto bounds = drag_bounds(position, candidate_x, candidate_y, point_view);
+            if (new_x < bounds.min_x || new_x > bounds.max_x || new_y < bounds.min_y || new_y > bounds.max_y) continue;
+            rows.insert(rows.begin() + position, std::move(point));
             row = position;
             return true;
         }

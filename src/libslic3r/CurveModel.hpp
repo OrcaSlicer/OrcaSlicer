@@ -48,6 +48,8 @@ public:
     static std::string serialize_parameters(const std::vector<std::string>& parameters);
     static bool read_number(std::string text, double& value);
     static std::string format_number(double value);
+    // Models may round generated/dragged coordinates without altering saved or typed rows.
+    virtual std::string format_point_number(double value) const { return format_number(value); }
     static bool valid_view(const CurveView& view);
 
     // A null message means success; row identifies the offending point, or -1.

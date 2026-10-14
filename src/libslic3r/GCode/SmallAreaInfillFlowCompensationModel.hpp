@@ -14,6 +14,7 @@ public:
     explicit SmallAreaInfillFlowCompensationModel(std::vector<std::string> parameters = {}, double bed_diagonal = 0.0);
 
     const char* validate_points(const std::vector<double>& x, const std::vector<double>& y, int& row) const override;
+    std::string format_point_number(double value) const override;
     size_t maximum_point_count() const override { return 50; }
     CurveView fitted_view(const std::vector<double>& x, const std::vector<double>& y) const override;
     CurveViewLimits view_limits() const override;
