@@ -12,12 +12,14 @@
 #include "libslic3r/CurveModel.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;
@@ -43,6 +45,25 @@ public:
 
 private:
     size_t m_limit;
+};
+
+class NonmonotoneModel : public CurveModel
+{
+public:
+    const char* validate_points(const std::vector<double>&, const std::vector<double>&, int& row) const override
+    {
+        row = -1;
+        return nullptr;
+    }
+    size_t maximum_point_count() const override { return 50; }
+    CurveView fitted_view(const std::vector<double>&, const std::vector<double>&) const override { return {0, 2, 0, 1}; }
+    CurveViewLimits view_limits() const override { return {{0, 2, 0, 1}}; }
+    CurveView drag_bounds(int, const std::vector<double>&, const std::vector<double>&, const CurveView& view) const override
+    {
+        return view;
+    }
+    Rows default_rows() const override { return seed_rows(); }
+    Rows seed_rows() const override { return {{"0", "1"}, {"1", "0.5"}, {"2", "1"}}; }
 };
 
 } // namespace
@@ -438,6 +459,95 @@ TEST_CASE("Dragging flow points preserves endpoints strict ordering and the visi
     CHECK_THAT(clipped.max_x, WithinAbs(8.0, 1e-12));
     CHECK_THAT(clipped.min_y, WithinAbs(0.2, 1e-12));
     CHECK_THAT(clipped.max_y, WithinAbs(0.8, 1e-12));
+}
+
+TEST_CASE("Dragging adjacent flow points stops one decimal step from each neighbor", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    const std::vector<double> x = {0, 3, 4, 5, 10}, y = {0, 0.9231, 0.95, 0.99, 1};
+    const auto bounds = model.drag_bounds(2, x, y, {0, 11, 0, 1});
+    CHECK_THAT(bounds.min_x, WithinAbs(3.0001, 1e-12));
+    CHECK_THAT(bounds.min_y, WithinAbs(0.9232, 1e-12));
+    CHECK_THAT(bounds.max_x, WithinAbs(4.9999, 1e-12));
+    CHECK_THAT(bounds.max_y, WithinAbs(0.9899, 1e-12));
+    CHECK(model.format_point_number(bounds.min_x) == "3.0001");
+    CHECK(model.format_point_number(bounds.min_y) == "0.9232");
+    const auto clipped = model.drag_bounds(2, x, y, {3.00015, 4.99985, 0.92325, 0.98985});
+    CHECK_THAT(clipped.min_x, WithinAbs(3.0002, 1e-12));
+    CHECK_THAT(clipped.max_x, WithinAbs(4.9998, 1e-12));
+    CHECK_THAT(clipped.min_y, WithinAbs(0.9233, 1e-12));
+    CHECK_THAT(clipped.max_y, WithinAbs(0.9898, 1e-12));
+}
+
+TEST_CASE("Generated flow coordinates use at most four decimal places", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const auto sample = GENERATE(std::pair<double, std::string>{0.7229999999999986, "0.723"},
+                                std::pair<double, std::string>{0.9231000000000001, "0.9231"},
+                                std::pair<double, std::string>{3.0000000000000004, "3"},
+                                std::pair<double, std::string>{-0.00001, "0"},
+                                std::pair<double, std::string>{-0.123456, "-0.1235"});
+    CHECK(FlowModel().format_point_number(sample.first) == sample.second);
+}
+
+TEST_CASE("Flow point insertion skips intervals without room at four decimal precision", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const bool narrow_length = GENERATE(false, true);
+    const FlowModel model;
+    CurveModel::Rows rows = {{"0", "0"}, {"3", "0.9231"},
+                            {narrow_length ? "3.0001" : "4", narrow_length ? "0.95" : "0.9232"}, {"10", "1"}};
+    const auto original = rows;
+    int row = 2;
+    REQUIRE(model.insert_point(rows, row));
+    CHECK(row == 3);
+    std::vector<double> x, y;
+    int error_row;
+    REQUIRE(model.read_points(rows, x, y, error_row) == nullptr);
+    CHECK(x[row] - x[row - 1] >= EPSILON - 1e-12);
+    CHECK(x[row + 1] - x[row] >= EPSILON - 1e-12);
+    CHECK(y[row] - y[row - 1] >= EPSILON - 1e-12);
+    CHECK(y[row + 1] - y[row] >= EPSILON - 1e-12);
+    rows.erase(rows.begin() + row);
+    CHECK(rows == original);
+}
+
+TEST_CASE("One decimal step on either side leaves room for a flow point", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    CurveModel::Rows rows = {{"0", "0"}, {"3", "0.9231"}, {"3.0002", "0.9233"}, {"10", "1"}};
+    int row = 2;
+    REQUIRE(model.insert_point(rows, row));
+    CHECK(row == 2);
+    CHECK(rows[row] == CurveModel::Row{"3.0001", "0.9232"});
+}
+
+TEST_CASE("Flow points cannot split an interval containing only one decimal step", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const bool narrow_length = GENERATE(false, true);
+    const FlowModel model;
+    CurveModel::Rows rows = {{"0", narrow_length ? "0" : "0.9999"}, {narrow_length ? "0.0001" : "10", "1"}};
+    const auto original = rows;
+    int row = 1;
+    CHECK_FALSE(model.insert_point(rows, row));
+    CHECK(row == 1);
+    CHECK(rows == original);
+}
+
+TEST_CASE("Generic curve operations support decreasing factors without rounding their precision", "[SmallAreaInfillFlowCompensation][CurveModel]")
+{
+    const NonmonotoneModel model;
+    auto rows = model.seed_rows();
+    rows.front().second = "0.9231000000000001";
+    int row = 1;
+    REQUIRE(model.insert_point(rows, row));
+    std::vector<double> x, y;
+    int error_row;
+    REQUIRE(model.read_points(rows, x, y, error_row) == nullptr);
+    CHECK(y[row] < y[row - 1]);
+    CHECK(y[row] > y[row + 1]);
+    const auto interpolate = model.make_interpolator(x, y);
+    CHECK_THAT(interpolate(x[row]), WithinAbs(y[row], 1e-12));
+    CHECK(model.format_point_number(std::nextafter(3.0, 4.0)) == "3.0000000000000004");
+    CHECK(rows.front().second == "0.9231000000000001");
 }
 
 TEST_CASE("Curve viewports reject reversed degenerate nonfinite and overflowing ranges", "[SmallAreaInfillFlowCompensation][CurveModel]")
