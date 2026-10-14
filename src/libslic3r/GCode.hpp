@@ -489,6 +489,7 @@ protected:
         const int                        most_used_extruder);
 
     std::string process_layer_change_gcode(const Print &print, coordf_t print_z, int most_used_extruder, bool has_wipe_tower);
+    std::string object_layer_info_gcode() const;
 
     // Emit the apron bands carried by these layers whose brim filament is extruder_id
     // (0-based).  Called from both the brim-only branch and the ordinary path, since a
@@ -833,6 +834,9 @@ protected:
     unsigned int                        m_layer_count;
     // Progress bar indicator. Increments from -1 up to layer_count.
     int                                 m_layer_index;
+    // Orca: layers of the object being printed in sequential mode, for Klipper's SET_PRINT_STATS_INFO
+    unsigned int                        m_object_layer_count{0};
+    unsigned int                        m_object_layer_index{0};
     // Current layer processed. In sequential printing mode, only a single copy will be printed.
     // In non-sequential mode, all its copies will be printed.
     const Layer*                        m_layer;
