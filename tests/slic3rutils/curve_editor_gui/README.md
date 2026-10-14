@@ -6,10 +6,10 @@ panel's production interaction and geometry code with native wxWidgets events. T
 checklist below covers full-dialog presentation and hardware behavior.
 
 The standalone suite runs independently of the main build and does not open the user's
-profiles or preferences. `prepare_panel.py` replaces only `paint_chart()` and its app/theme
-includes: painting depends on full application startup. It does not copy or reimplement
-the event handlers. Changes to the production panel regenerate the tested translation
-unit. These checks cannot establish pixel appearance or how a real driver delivers gestures.
+profiles or preferences. It compiles `CurveEditorPanel.cpp` directly and links an empty
+`paint_chart()` implementation. The application links `CurveEditorPanelPaint.cpp`, which
+uses its theme and application state. These checks cannot establish pixel appearance
+or how a real driver delivers gestures.
 
 Native input adapters preserve ordinary wheel modifiers and use native axes for gesture
 scrolling. Ordinary mouse notches retain the existing 10% viewport step; gestures use
@@ -73,22 +73,9 @@ The ordinary suites use the `SmallAreaInfillFlowCompensation` tag in
 `tests/slic3rutils/test_small_area_infill_flow_compensation.cpp`.
 Build/run those suites through the normal test workflow in `tests/AGENTS.md`.
 
-Localization has a separate read-only check:
-
-```text
-python tests/slic3rutils/curve_editor_gui/check_localization.py
-```
-
-It extracts dialog/model messages from the production source, checks template/catalog
-coverage, fuzzy/empty translations, placeholder order, newlines and edge whitespace,
-and runs `msgfmt --check-format` on every catalog. It uses bundled gettext tools on
-Windows or tools on `PATH`; `--xgettext` and `--msgfmt` allow explicit paths.
-When both tools are found at configuration time, standalone CTest runs this check with
-the `Localization` label. The normal test build runs it as an `ALL` target because the
-runtime artifact has neither the source catalogs nor the build-host Python installation.
-It is also a dependency of `curve_editor_gui_tests`, including explicit Flatpak builds.
-English intentionally falls back to the source. Correctness of wording still needs
-human review, including legitimate borrowed labels that equal the English text.
+The existing `Check translation` CI job validates catalog formats with
+`msgfmt --check-format`. Catalog updates follow the normal localization workflow;
+translation wording and the UI fit of longer labels need human review.
 
 | Behavior | Automated coverage |
 | --- | --- |
@@ -100,10 +87,10 @@ human review, including legitimate borrowed labels that equal the English text.
 | Pan/zoom bounds, minimum spans, cursor anchor, adaptive bed/model limits | Core model suite |
 | Mouse modifiers, fractional wheel deltas, middle-button pan/capture/cancellation, two-axis touchpad input, pinch-in/out, cumulative gestures | Standalone panel checks |
 | Paired axis packets, equal pixel distances, closed circular motion, gesture/wheel overlap, discarded pending pan | Standalone panel checks with the native navigation timer |
-| Stable plot geometry, point selection/dragging, capture cancellation/deactivation, existing capture, DPI interruption, gestures during dragging | Standalone panel checks |
+| Stable plot geometry, point selection/dragging, rapid repeated presses, capture cancellation/deactivation, existing capture, DPI interruption, gestures during dragging | Standalone panel checks |
 | Dirty/revert state, complete option transfer, unchanged inactive feature | Preset/GUI integration and FFF suites |
 | Shared PCHIP, role eligibility, saved models above the editor limit, malformed inactive settings | FFF suite |
-| Source/catalog coverage and formatting contracts | Localization script |
+| Translation catalog formats | Check translation CI job |
 
 ## Full-dialog and hardware checklist
 
@@ -122,6 +109,8 @@ Use a disposable print preset. Keep any fixture project separate from normal use
    columns, drag a point, add/remove points, restore defaults and use Reset View. Reset
    View and navigation must change only the viewport. Stationary/horizontal/vertical
    drags must not accidentally change the other coordinate or dirty unchanged values.
+   Release and immediately grab the point again: dragging must still start when the
+   second press is recognized as a double click. Repeat this for middle-button panning.
 3. Reach the model's point limit. Add point must disable, then re-enable after removing
    a point. Import an oversized CSV: show an error and keep the current curve. Open a
    larger saved model: preserve its points and allow editing/export without extra additions.

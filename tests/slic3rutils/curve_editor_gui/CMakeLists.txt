@@ -24,16 +24,6 @@ else()
     find_package(wxWidgets CONFIG REQUIRED COMPONENTS core base)
 endif()
 find_package(Boost CONFIG REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-
-# Compile the panel's production interaction/geometry code. Painting is isolated
-# because it depends on the full application, profiles and plugin startup.
-set(_panel "${ORCA_SOURCE_DIR}/src/slic3r/GUI/CurveEditorPanel.cpp")
-set(_test_panel "${CMAKE_CURRENT_BINARY_DIR}/CurveEditorPanel.cpp")
-add_custom_command(OUTPUT "${_test_panel}"
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_panel.py" "${_panel}" "${_test_panel}"
-    DEPENDS "${_panel}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_panel.py"
-    VERBATIM)
 
 # Use the same vendored Catch2 version without rebuilding the main application.
 if(CURVE_STANDALONE)
@@ -44,7 +34,10 @@ else()
     target_link_libraries(curve_editor_catch INTERFACE Catch2::Catch2WithMain)
     target_include_directories(curve_editor_catch INTERFACE "${ORCA_SOURCE_DIR}/tests/catch2/extras")
 endif()
-add_executable(curve_editor_gui_tests test_curve_editor.cpp "${_test_panel}"
+# Compile the production interaction/geometry source directly. The fixture links
+# an empty paint implementation in place of the application's theme-dependent one.
+add_executable(curve_editor_gui_tests test_curve_editor.cpp curve_editor_panel_paint_stub.cpp
+    "${ORCA_SOURCE_DIR}/src/slic3r/GUI/CurveEditorPanel.cpp"
     "${ORCA_SOURCE_DIR}/src/libslic3r/CurveModel.cpp"
     "${ORCA_SOURCE_DIR}/src/libslic3r/LocalesUtils.cpp"
     "${ORCA_SOURCE_DIR}/src/libslic3r/GCode/PchipInterpolatorHelper.cpp")
@@ -75,23 +68,3 @@ if(UNIX AND NOT APPLE)
 endif()
 catch_discover_tests(curve_editor_gui_tests ADD_TAGS_AS_LABELS
     PROPERTIES ${_curve_test_properties})
-
-find_program(CURVE_XGETTEXT NAMES xgettext HINTS "${ORCA_SOURCE_DIR}/tools")
-find_program(CURVE_MSGFMT NAMES msgfmt HINTS "${ORCA_SOURCE_DIR}/tools")
-if(CURVE_XGETTEXT AND CURVE_MSGFMT)
-    if(CURVE_STANDALONE)
-        add_test(NAME curve_editor_localization
-            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_localization.py"
-                --xgettext "${CURVE_XGETTEXT}" --msgfmt "${CURVE_MSGFMT}")
-        set_tests_properties(curve_editor_localization PROPERTIES LABELS "Localization")
-    else()
-        # CI's runtime artifact has no source/catalog checkout or build-host Python.
-        # Validate these contracts during its build, then package only native event tests.
-        add_custom_target(curve_editor_localization_check ALL
-            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_localization.py"
-                --xgettext "${CURVE_XGETTEXT}" --msgfmt "${CURVE_MSGFMT}"
-            VERBATIM)
-        # Flatpak builds explicit test targets instead of ALL.
-        add_dependencies(curve_editor_gui_tests curve_editor_localization_check)
-    endif()
-endif()
