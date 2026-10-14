@@ -796,12 +796,9 @@ void CurveEditorDialog::move_point(int row, double proposed_x, double proposed_y
     auto set_value = [this, row](int column, double value, double lower, double upper, double& current) {
         value = std::clamp(value, lower, upper);
         if (value == current) return;
-        wxString text = wxString::FromCDouble(value, 4);
+        const wxString text = wxString::FromUTF8(m_model->format_point_number(value));
         double rounded;
-        if (!read_number(text, rounded) || rounded < lower || rounded > upper) {
-            text = wxString::FromUTF8(CurveModel::format_number(value));
-            rounded = value;
-        }
+        if (!read_number(text, rounded) || rounded < lower || rounded > upper) return;
         if (rounded != current) {
             current = rounded;
             m_grid->SetCellValue(row, column, text);

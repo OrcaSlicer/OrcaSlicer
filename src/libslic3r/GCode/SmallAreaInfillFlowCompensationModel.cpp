@@ -10,7 +10,9 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CurveModel.hpp"
 #include "libslic3r/I18N.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r {
 namespace {
@@ -22,6 +24,18 @@ bool nearly_equal(double a, double b)
     // Keep the endpoint tolerance of existing compensation models.
     return std::nextafter(a, std::numeric_limits<double>::lowest()) <= b &&
            std::nextafter(a, std::numeric_limits<double>::max()) >= b;
+}
+
+double decimal_bound(double value, bool lower)
+{
+    const double scale = 1.0 / EPSILON;
+    const double scaled = value * scale;
+    if (!std::isfinite(scaled)) return value;
+    // Discard one ULP of arithmetic roundoff so an exact decimal boundary does
+    // not jump an extra step (e.g. 3 + EPSILON must allow 3.0001).
+    const double direction = lower ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+    const double ticks = std::nextafter(scaled, direction);
+    return (lower ? std::ceil(ticks) : std::floor(ticks)) / scale;
 }
 
 } // namespace
@@ -42,6 +56,8 @@ SmallAreaInfillFlowCompensationModel::SmallAreaInfillFlowCompensationModel(
 const char* SmallAreaInfillFlowCompensationModel::validate_points(
     const std::vector<double>& x, const std::vector<double>& y, int& row) const
 {
+    // Keep legacy models with sub-EPSILON spacing valid. New point generation
+    // and dragging use decimal formatting and the larger gaps in drag_bounds().
     row = -1;
     if (x.size() != y.size()) return L("Enter a finite number in each cell.");
     if (x.size() == 1) return L("The model must contain at least two points.");
@@ -54,6 +70,13 @@ const char* SmallAreaInfillFlowCompensationModel::validate_points(
         if (i == x.size() - 1 && !nearly_equal(y[i], 1.0)) return L("The last flow correction factor must be 1.");
     }
     return nullptr;
+}
+
+std::string SmallAreaInfillFlowCompensationModel::format_point_number(double value) const
+{
+    double rounded = value;
+    read_number(float_to_string_decimal_point(value, 4), rounded);
+    return format_number(rounded == 0.0 ? 0.0 : rounded);
 }
 
 CurveView SmallAreaInfillFlowCompensationModel::fitted_view(
@@ -102,11 +125,11 @@ CurveView SmallAreaInfillFlowCompensationModel::drag_bounds(
     const int last = int(x.size()) - 1;
     const double infinity = std::numeric_limits<double>::infinity();
     if (row == 0) bounds.min_x = bounds.max_x = 0.0;
-    else bounds.min_x = std::max(view.min_x, std::nextafter(x[row - 1], infinity));
-    if (row != last && row != 0) bounds.max_x = std::min(view.max_x, std::nextafter(x[row + 1], -infinity));
+    else bounds.min_x = std::max(view.min_x, x[row - 1] + EPSILON);
+    if (row != last && row != 0) bounds.max_x = std::min(view.max_x, x[row + 1] - EPSILON);
     if (row == last) bounds.min_y = bounds.max_y = 1.0;
-    else bounds.max_y = std::min(view.max_y, std::nextafter(y[row + 1], -infinity));
-    if (row > 0 && row != last) bounds.min_y = std::max(view.min_y, std::nextafter(y[row - 1], infinity));
+    else bounds.max_y = std::min(view.max_y, y[row + 1] - EPSILON);
+    if (row > 0 && row != last) bounds.min_y = std::max(view.min_y, y[row - 1] + EPSILON);
     if (row == 1) {
         // Keep the first interval outside the zero endpoint tolerance and its
         // slope finite, including legacy models with negative initial factors.
@@ -114,7 +137,8 @@ CurveView SmallAreaInfillFlowCompensationModel::drag_bounds(
             (bounds.max_y - y.front()) / std::numeric_limits<double>::max());
         bounds.min_x = std::max(bounds.min_x, x.front() + std::nextafter(gap, infinity));
     }
-    return bounds;
+    return {decimal_bound(bounds.min_x, true), decimal_bound(bounds.max_x, false),
+            decimal_bound(bounds.min_y, true), decimal_bound(bounds.max_y, false)};
 }
 
 CurveModel::Rows SmallAreaInfillFlowCompensationModel::default_rows() const
