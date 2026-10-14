@@ -736,6 +736,48 @@ TEST_CASE("Graph point selection and dragging release capture when cancelled", "
     CHECK(f.pans.size() == 1);
 }
 
+TEST_CASE("Rapid consecutive mouse presses restart point dragging and panning", "[CurveEditorGUI][RequiresDisplay][Regression]")
+{
+    const bool middle = GENERATE(false, true);
+    Fixture f;
+    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto position = f.middle_point();
+    int selected = 0, moved = 0;
+    double moved_x = 0, moved_y = 0;
+    f.panel->on_select = [&](int row) { CHECK(row == 1); ++selected; };
+    f.panel->on_move = [&](int row, double x, double y) {
+        CHECK(row == 1);
+        ++moved;
+        moved_x = x;
+        moved_y = y;
+    };
+    f.mouse(middle ? wxEVT_MIDDLE_DOWN : wxEVT_LEFT_DOWN, position, middle, !middle);
+    REQUIRE(f.panel->HasCapture());
+    f.mouse(middle ? wxEVT_MIDDLE_UP : wxEVT_LEFT_UP, position);
+    CHECK_FALSE(f.panel->HasCapture());
+    // Native backends replace the second DOWN with DCLICK within the double-click interval.
+    f.mouse(middle ? wxEVT_MIDDLE_DCLICK : wxEVT_LEFT_DCLICK, position, middle, !middle);
+    REQUIRE(f.panel->HasCapture());
+    f.mouse(middle ? wxEVT_MIDDLE_DCLICK : wxEVT_LEFT_DCLICK, position, middle, !middle);
+    f.mouse(wxEVT_MOTION, position + wxPoint(20, 10), middle, !middle);
+    if (middle) {
+        f.drain(true);
+        CHECK(f.pan_frames == 1);
+        CHECK(f.panel->view().min_x < 20);
+        CHECK(f.panel->view().min_y > .2);
+        CHECK(selected == 0);
+        CHECK(moved == 0);
+    } else {
+        CHECK(selected == 2);
+        CHECK(moved == 1);
+        CHECK(moved_x > 30);
+        CHECK(moved_y < .5);
+        CHECK(f.pans.empty());
+    }
+    f.mouse(middle ? wxEVT_MIDDLE_UP : wxEVT_LEFT_UP, position + wxPoint(20, 10));
+    CHECK_FALSE(f.panel->HasCapture());
+}
+
 TEST_CASE("Window deactivation cancels point dragging and middle-button navigation", "[CurveEditorGUI][RequiresDisplay][Regression]")
 {
     const bool middle = GENERATE(false, true);
