@@ -198,7 +198,7 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         Refresh();
         event.Skip();
     });
-    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& event) {
+    auto begin_point_drag = [this](wxMouseEvent& event) {
         if (m_middle_panning || m_dragged_point >= 0) return;
         flush_pan();
         if (before_drag) before_drag();
@@ -213,8 +213,10 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         if (on_select) on_select(m_dragged_point);
         SetFocus();
         if (!HasCapture()) CaptureMouse();
-    });
-    Bind(wxEVT_MIDDLE_DOWN, [this](wxMouseEvent& event) {
+    };
+    Bind(wxEVT_LEFT_DOWN, begin_point_drag);
+    Bind(wxEVT_LEFT_DCLICK, begin_point_drag);
+    auto begin_middle_pan = [this](wxMouseEvent& event) {
         if (m_middle_panning || m_dragged_point >= 0) return;
         if (!on_pan || !chart_rect().Contains(event.GetPosition())) {
             event.Skip();
@@ -229,7 +231,9 @@ CurveEditorPanel::CurveEditorPanel(wxWindow* parent, const CurveEditorAppearance
         SetCursor(wxCursor(wxCURSOR_SIZING));
         if (!HasCapture()) CaptureMouse();
         Refresh();
-    });
+    };
+    Bind(wxEVT_MIDDLE_DOWN, begin_middle_pan);
+    Bind(wxEVT_MIDDLE_DCLICK, begin_middle_pan);
     Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
         if (m_middle_panning) {
             if (event.MiddleIsDown()) {
