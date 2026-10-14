@@ -13,6 +13,8 @@
 #include <wx/window.h>
 #include "libslic3r/CurveModel.hpp"
 
+class wxDC;
+
 namespace Slic3r::GUI {
 
 using CurveEditorView = CurveView;
@@ -51,6 +53,12 @@ public:
     std::function<void(double, bool, double)> on_zoom;
 
 private:
+    struct AxisTick {
+        double value;
+        wxString label;
+    };
+    static std::vector<AxisTick> axis_ticks(double minimum, double maximum, int pixels, wxDC& dc, bool horizontal, int gap);
+    static int axis_label_width(double minimum, double maximum, double minimum_span, int pixels, wxDC& dc, int gap);
     void on_activate(wxActivateEvent& event);
     wxRect chart_rect() const;
     wxPoint chart_point(double x, double y, const wxRect& plot) const;
