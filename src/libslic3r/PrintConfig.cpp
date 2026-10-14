@@ -242,6 +242,13 @@ static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
+static t_config_enum_values s_keys_map_CoolingPolicy {
+    {"default",     int(CoolingPolicy::Default) },
+    {"always_off",  int(CoolingPolicy::AlwaysOff) },
+    {"always_on",   int(CoolingPolicy::AlwaysOn) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CoolingPolicy)
+
 static t_config_enum_values s_keys_map_CenterOfSurfacePattern{
     {"each_surface", int(CenterOfSurfacePattern::Each_Surface)},
     {"each_model", int(CenterOfSurfacePattern::Each_Model)},
@@ -2338,7 +2345,7 @@ void PrintConfigDef::init_fff_params()
                      "This can be used to improve build plate adhesion.");
     def->sidetext = L("layers");
     def->min = 0;
-    def->max = 1000;
+    def->max = 10000;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts { 1 });
 
@@ -2968,6 +2975,22 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Keep fan always on");
     def->tooltip = L("Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping.");
     def->set_default_value(new ConfigOptionBools { false });
+
+    def                = this->add("cooling_policy", coEnums);
+    def->label         = L("Cooling policy");
+    def->tooltip       = L("Choose how cooling is applied: \n"
+                           "Default: Uses standard logic based on layer time.\n"
+                           "Always off: Forces fan to 0% for the entire print.\n"
+                           "Always on: Fan runs at least at the minimum speed at all times.");
+    def->enum_keys_map = &ConfigOptionEnum<CoolingPolicy>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.push_back("always_off");
+    def->enum_values.push_back("always_on");
+    def->enum_labels.push_back(L("Default"));
+    def->enum_labels.push_back(L("Always off"));
+    def->enum_labels.push_back(L("Always on"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnumsGeneric{(int) CoolingPolicy::Default});
 
     def = this->add("dont_slow_down_outer_wall", coBools);
     def->label = L("Don't slow down outer walls");
@@ -9976,7 +9999,7 @@ void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
         }
         config.set_key_value("wiping_volumes_use_custom_matrix", new ConfigOptionBool(custom));
     }
-
+   
     // Orca: a config saved before a key joined filament_options_with_variant stores it once per filament
     // rather than once per filament variant, and one exported by an older CLI may store a single value.
     normalize_filament_values_to_variants(config);
@@ -10070,7 +10093,7 @@ std::set<std::string> filament_options_with_variant = {
     "filament_long_retractions_when_cut",
     "filament_retraction_distances_when_cut",
     "long_retractions_when_ec",
-    "retraction_distances_when_ec",
+    "retraction_distances_when_ec", 
     "nozzle_temperature_initial_layer",
     "nozzle_temperature",
     "filament_flush_volumetric_speed",
