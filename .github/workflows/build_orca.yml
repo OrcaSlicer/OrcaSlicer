@@ -534,7 +534,7 @@ jobs:
         # to release-signing with a production CA-issued certificate.
         run: ./scripts/verify-authenticode.ps1 -ArtifactDirectory '${{ github.workspace }}/${{ env.BUILD_DIR }}/signpath/windows-portable' -AllowUntrustedRoot
 
-      - name: Replace Windows portable bundle with signed output
+      - name: Replace Windows binaries with signed output
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'Windows' && !vars.SELF_HOSTED
         shell: pwsh
         run: |
@@ -545,6 +545,16 @@ jobs:
           }
           Get-ChildItem -LiteralPath $source -Force | Copy-Item -Destination $destination -Recurse -Force
 
+          # cpack's install rules take the binaries from the build output, not from
+          # the portable bundle, so the installer needs the signed copies there too.
+          $buildOutput = Join-Path "${{ github.workspace }}" "${{ env.BUILD_DIR }}/src/Release"
+          if (-not (Test-Path -LiteralPath $buildOutput -PathType Container)) {
+              throw "Build output directory not found: $buildOutput"
+          }
+          foreach ($name in "orca-slicer.exe", "OrcaSlicer.dll") {
+              Copy-Item -LiteralPath (Join-Path $source $name) -Destination $buildOutput -Force
+          }
+
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
       - name: Create installer Win
@@ -552,6 +562,42 @@ jobs:
         working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
         run: |
           cpack -G NSIS
+
+      - name: Upload unsigned Windows installer for SignPath
+        id: upload-windows-installer
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'Windows' && !vars.SELF_HOSTED
+        uses: actions/upload-artifact@v7
+        with:
+          name: OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}_unsigned
+          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe
+          if-no-files-found: error
+
+      - name: Submit Windows installer to SignPath
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'Windows' && !vars.SELF_HOSTED
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: OrcaSlicer
+          signing-policy-slug: test-signing
+          artifact-configuration-slug: windows-installer-v1
+          github-artifact-id: ${{ steps.upload-windows-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}/signpath/windows-installer
+
+      - name: Verify SignPath Windows installer signature
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'Windows' && !vars.SELF_HOSTED
+        shell: pwsh
+        # -AllowUntrustedRoot: see "Verify SignPath Windows portable signatures".
+        run: ./scripts/verify-authenticode.ps1 -ArtifactDirectory '${{ github.workspace }}/${{ env.BUILD_DIR }}/signpath/windows-installer' -Files 'OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe' -AllowUntrustedRoot
+
+      - name: Replace Windows installer with signed output
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'Windows' && !vars.SELF_HOSTED
+        shell: pwsh
+        run: |
+          $name = "OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe"
+          $source = Join-Path "${{ github.workspace }}" "${{ env.BUILD_DIR }}/signpath/windows-installer/$name"
+          Copy-Item -LiteralPath $source -Destination (Join-Path "${{ github.workspace }}" "${{ env.BUILD_DIR }}/$name") -Force
 
       - name: Pack app
         if: runner.os == 'Windows'
