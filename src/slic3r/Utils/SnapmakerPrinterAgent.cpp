@@ -74,6 +74,17 @@ bool contains_word_ci(const std::string& haystack, const std::string& needle)
     return false;
 }
 
+// Tags written by older tools (or as a workaround) carry the full product name in the vendor
+// field, e.g. vendor "Anycubic PLA Basic" with an empty sub type, while profiles may use either
+// "Anycubic" or "Anycubic PLA Basic". Treat the vendors as matching when they are equal or when
+// either contains the other as whole words, ignoring case.
+bool vendor_matches(const std::string& tag_vendor, const std::string& profile_vendor)
+{
+    if (tag_vendor.empty() || profile_vendor.empty())
+        return false;
+    return contains_word_ci(tag_vendor, profile_vendor) || contains_word_ci(profile_vendor, tag_vendor);
+}
+
 std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
                                                          const std::string&      vendor_name,
                                                          const std::string&      filament_type,
@@ -98,7 +109,7 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
         // only to break ties between equal colour distances. Requiring a detached preset here
         // excluded essentially every user-made profile.
         if (p.is_visible && p.is_compatible && !p.filament_id.empty() &&
-            p.config.opt_string("filament_vendor", 0u) == vendor_name &&
+            vendor_matches(vendor_name, p.config.opt_string("filament_vendor", 0u)) &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
             // Default to black when the profile specifies no color, or one that cannot be
             // parsed. Assume other profiles might be a closer color match. Could be a problem
@@ -121,7 +132,13 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
             // whose name mentions the spool's sub type, and rank by colour within that
             // preference, so a matte spool stops resolving to whichever variant happens to
             // sit nearest in colour.
-            const bool matches_sub = contains_word_ci(p.name, sub_type);
+            // A profile's own filament_subtype counts too. When the tag has no sub type, a
+            // legacy tag may still name the variant in its vendor field ("Anycubic PLA Silk"),
+            // so look for the profile's subtype, or the whole tag vendor, there instead.
+            const std::string p_sub = p.config.has("filament_subtype") ? p.config.opt_string("filament_subtype", 0u) : std::string();
+            const bool matches_sub  = !sub_type.empty() ? (contains_word_ci(p.name, sub_type) || contains_word_ci(p_sub, sub_type))
+                                                        : (contains_word_ci(vendor_name, p_sub) || contains_word_ci(p.name, vendor_name) ||
+                                                           contains_word_ci(vendor_name, p.name));
             if (best_matches_sub && !matches_sub)
                 continue;
 
