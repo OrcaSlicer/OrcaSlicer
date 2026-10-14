@@ -75,7 +75,9 @@ void SettingsIndex::append_options(DynamicPrintConfig *config, Preset::Type type
 
         int cnt = 0;
 
-        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT) && opt_key != "printable_area")
+        // A curve's vector stores its points as one setting, registered under
+        // the base key by the editor, rather than individual indexed fields.
+        if (!opt.is_curve() && (type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT) && opt_key != "printable_area")
             switch (config->option(opt_key)->type()) {
             case coInts: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             case coBools: change_opt_key<ConfigOptionBools>(opt_key, config, cnt); break;
