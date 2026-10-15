@@ -1420,7 +1420,7 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
     // Check if Z actually changes (at export precision) before emitting it.
     // ZAA sloped extrusions call this for every segment, but many consecutive
     // segments share the same quantized Z — emitting it every time is redundant.
-    bool z_changed = (GCodeG1Formatter::quantize_xyzf(point(2)) != GCodeG1Formatter::quantize_xyzf(m_pos(2)));
+    bool z_changed = (GCodeG1Formatter::quantize_xyz(point(2)) != GCodeG1Formatter::quantize_xyz(m_pos(2)));
 
     m_pos = point;
     m_lifted = 0;
