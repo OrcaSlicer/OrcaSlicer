@@ -2,12 +2,14 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Extruder.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/libslic3r.h"
 #include <map>
@@ -115,6 +117,68 @@ SCENARIO("set_speed emits values with fixed-point output.", "[GCodeWriter]") {
             }
         }
     }
+}
+
+TEST_CASE("Short circular extrusion moves retain their requested flow after export", "[GCodeWriter][Regression]")
+{
+    const bool relative_e = GENERATE(false, true);
+    CAPTURE(relative_e);
+
+    PrintConfig config;
+    config.gcode_flavor.value                   = gcfKlipper;
+    config.use_relative_e_distances.value       = relative_e;
+    config.single_extruder_multi_material.value = false;
+    config.filament_diameter.values             = {1.75};
+    config.filament_flow_ratio.values           = {1.0};
+    config.filament_map.values                  = {1};
+
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    writer.set_extruders({0});
+    writer.set_extruder(0);
+
+    // A thin layer makes the E increment small enough for export rounding to
+    // distort the flow, even when the source segments form a regular polygon.
+    constexpr int segment_count = 180;
+    constexpr double radius = 4.89;
+    constexpr double speed = 60.;
+    const Flow flow(0.22f, 0.02f, 0.2f);
+    const double filament_area = PI * std::pow(config.filament_diameter.get_at(0) / 2., 2);
+    const double e_per_mm = flow.mm3_per_mm() / filament_area;
+    const Vec2d center(66.035532, 54.9999352);
+    Vec2d previous = center + Vec2d(radius, 0.);
+    std::string gcode = writer.preamble();
+    gcode += writer.travel_to_xyz(Vec3d(previous.x(), previous.y(), flow.height()));
+    gcode += writer.set_speed(speed * MM_PER_MIN);
+    double expected_e = 0.;
+    for (int i = 1; i <= segment_count; ++i) {
+        const double angle = 2. * PI * i / segment_count;
+        const Vec2d point = center + radius * Vec2d(std::cos(angle), std::sin(angle));
+        const double e = e_per_mm * (point - previous).norm();
+        gcode += writer.extrude_to_xy(point, e);
+        expected_e += e;
+        previous = point;
+    }
+
+    const double expected_flow = flow.mm3_per_mm() * speed;
+    double max_relative_error = 0.;
+    double exported_e = 0.;
+    std::size_t extrusion_count = 0;
+    GCodeReader reader;
+    reader.apply_config(writer.config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (!line.extruding(self) || line.dist_XY(self) <= 0.)
+            return;
+        const double e = line.dist_E(self);
+        const double actual_flow = filament_area * e / line.dist_XY(self) * line.new_F(self) / MM_PER_MIN;
+        max_relative_error = std::max(max_relative_error, std::abs(actual_flow / expected_flow - 1.));
+        exported_e += e;
+        ++extrusion_count;
+    });
+
+    CHECK(extrusion_count == segment_count);
+    CHECK(max_relative_error < 0.004);
+    CHECK_THAT(exported_e, Catch::Matchers::WithinRel(expected_e, 0.001));
 }
 
 SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {

@@ -9087,13 +9087,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     if (path.z_contoured && !path.polyline.lines().empty()) {
         double current_z = m_writer.get_position().z();
         double first_z = unscale_(path.polyline.lines().begin()->a.z()) + m_nominal_z;
-        if (GCodeFormatter::quantize_xyzf(first_z) != GCodeFormatter::quantize_xyzf(current_z)) {
+        if (GCodeFormatter::quantize_xyz(first_z) != GCodeFormatter::quantize_xyz(current_z)) {
             gcode += m_writer.travel_to_z(first_z, "set Z for contouring", true);
         }
     }
     if (!path.z_contoured && sloped == nullptr) {
         double current_z = m_writer.get_position().z();
-        if (GCodeFormatter::quantize_xyzf(current_z) != GCodeFormatter::quantize_xyzf(m_nominal_z)) {
+        if (GCodeFormatter::quantize_xyz(current_z) != GCodeFormatter::quantize_xyz(m_nominal_z)) {
             gcode += this->writer().travel_to_z(m_nominal_z, "reset Z after contouring", true);
         }
     }
@@ -11238,13 +11238,13 @@ Point GCode::gcode_to_point(const Vec2d &point) const
 Vec2d GCode::point_to_gcode_quantized(const Point& point) const
 {
     Vec2d p = this->point_to_gcode(point);
-    return { GCodeFormatter::quantize_xyzf(p.x()), GCodeFormatter::quantize_xyzf(p.y()) };
+    return { GCodeFormatter::quantize_xyz(p.x()), GCodeFormatter::quantize_xyz(p.y()) };
 }
 
 Vec3d GCode::point_to_gcode_quantized(const Point3& point) const
 {
     Vec3d p = this->point_to_gcode(point);
-    return {GCodeFormatter::quantize_xyzf(p.x()), GCodeFormatter::quantize_xyzf(p.y()), GCodeFormatter::quantize_xyzf(p.z())};
+    return {GCodeFormatter::quantize_xyz(p.x()), GCodeFormatter::quantize_xyz(p.y()), GCodeFormatter::quantize_xyz(p.z())};
 }
 
 // Goes through by_region std::vector and returns reference to a subvector of entities, that are to be printed

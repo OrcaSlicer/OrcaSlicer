@@ -953,7 +953,7 @@ void PressureEqualizer::push_line_to_output(const size_t line_idx, float new_fee
     GCodeG1Formatter extrusion_formatter;
     for (size_t axis_idx = 0; axis_idx < 3; ++axis_idx)
         if (line.pos_provided[axis_idx])
-            extrusion_formatter.emit_axis(char('X' + axis_idx), line.pos_end[axis_idx], GCodeFormatter::XYZF_EXPORT_DIGITS);
+            extrusion_formatter.emit_axis(char('X' + axis_idx), line.pos_end[axis_idx], GCodeFormatter::XYZ_EXPORT_DIGITS);
     extrusion_formatter.emit_axis('E', m_use_relative_e_distances ? (line.pos_end[3] - line.pos_start[3]) : line.pos_end[3], GCodeFormatter::E_EXPORT_DIGITS);
 
     if (comment != nullptr)
