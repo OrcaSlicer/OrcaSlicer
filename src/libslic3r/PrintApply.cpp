@@ -1292,6 +1292,11 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
             const unsigned int i = (unsigned int)std::max(0, id - 1);
             extruders.emplace_back(i >= num_extruders ? 0 : i);
         }
+        // "Default" (0) irons with the surface's filament, which is already listed.
+        if (config.ironing_filament.value > 0) {
+            const unsigned int i = (unsigned int)config.ironing_filament.value - 1;
+            extruders.emplace_back(i >= num_extruders ? 0 : i);
+        }
     };
     for (const ModelObject *model_object : m_model.objects) {
         if (std::none_of(model_object->instances.begin(), model_object->instances.end(), [](const ModelInstance *mi) { return mi->is_printable(); }))
@@ -1311,7 +1316,7 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
             }
         }
         append_model_object_extruders(*model_object, extruders);
-        const PrintObjectConfig object_config = PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, variant_index);
+        const PrintObjectConfig object_config = PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, variant_index, &this->config());
         if (PrintObject::has_support_material(object_config))
             append_support_extruders(object_config, (unsigned int)num_extruders, extruders);
     }
