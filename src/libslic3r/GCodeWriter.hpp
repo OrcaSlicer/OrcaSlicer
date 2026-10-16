@@ -309,7 +309,7 @@ private:
 
 class GCodeFormatter {
 public:
-    GCodeFormatter() {
+    explicit GCodeFormatter(bool high_precision = false) : m_high_precision(high_precision) {
         this->buf_end = buf + buflen;
         this->ptr_err.ptr = this->buf;
     }
@@ -317,38 +317,37 @@ public:
     GCodeFormatter(const GCodeFormatter&) = delete;
     GCodeFormatter& operator=(const GCodeFormatter&) = delete;
 
-    // Short segments in thin layers need this precision to keep rounding of
-    // coordinates and extrusion from introducing visible flow variations.
-    static constexpr const int XYZ_EXPORT_DIGITS  = 4;
-    static constexpr const int E_EXPORT_DIGITS    = 6;
+    // Keep precision local to each print, including its quantization and post-processors.
+    static constexpr int xyz_digits(bool high_precision) { return high_precision ? 4 : 3; }
+    static constexpr int e_digits(bool high_precision) { return high_precision ? 6 : 5; }
     static constexpr const int F_EXPORT_DIGITS    = 3;
     static constexpr const std::array<double, 10> pow_10 { 1., 10., 100., 1000., 10000., 100000., 1000000., 10000000., 100000000., 1000000000. };
     static constexpr const std::array<double, 10> pow_10_inv { 1. / 1., 1. / 10., 1. / 100., 1. / 1000., 1. / 10000., 1. / 100000., 1. / 1000000., 1. / 10000000., 1. / 100000000., 1. / 1000000000. };
 
     // Quantize doubles to a resolution of the G-code.
     static double quantize(double v, size_t ndigits) { return std::round(v * pow_10[ndigits]) * pow_10_inv[ndigits]; }
-    static double quantize_xyz(double v) { return quantize(v, XYZ_EXPORT_DIGITS); }
-    static double quantize_e(double v) { return quantize(v, E_EXPORT_DIGITS); }
+    static double quantize_xyz(double v, bool high_precision = false) { return quantize(v, xyz_digits(high_precision)); }
+    static double quantize_e(double v, bool high_precision = false) { return quantize(v, e_digits(high_precision)); }
 
     void emit_axis(const char axis, const double v, size_t digits);
 
     void emit_xy(const Vec2d &point) {
-        this->emit_axis('X', point.x(), XYZ_EXPORT_DIGITS);
-        this->emit_axis('Y', point.y(), XYZ_EXPORT_DIGITS);
+        this->emit_axis('X', point.x(), xyz_digits(m_high_precision));
+        this->emit_axis('Y', point.y(), xyz_digits(m_high_precision));
     }
 
     void emit_xyz(const Vec3d &point) {
-        this->emit_axis('X', point.x(), XYZ_EXPORT_DIGITS);
-        this->emit_axis('Y', point.y(), XYZ_EXPORT_DIGITS);
+        this->emit_axis('X', point.x(), xyz_digits(m_high_precision));
+        this->emit_axis('Y', point.y(), xyz_digits(m_high_precision));
         this->emit_z(point.z());
     }
 
     void emit_z(const double z) {
-        this->emit_axis('Z', z, XYZ_EXPORT_DIGITS);
+        this->emit_axis('Z', z, xyz_digits(m_high_precision));
     }
 
     void emit_e(double v) {
-        this->emit_axis('E', v, E_EXPORT_DIGITS);
+        this->emit_axis('E', v, e_digits(m_high_precision));
     }
 
     void emit_f(double speed) {
@@ -356,8 +355,8 @@ public:
     }
     //BBS
     void emit_ij(const Vec2d &point) {
-        this->emit_axis('I', point.x(), XYZ_EXPORT_DIGITS);
-        this->emit_axis('J', point.y(), XYZ_EXPORT_DIGITS);
+        this->emit_axis('I', point.x(), xyz_digits(m_high_precision));
+        this->emit_axis('J', point.y(), xyz_digits(m_high_precision));
     }
 
     void emit_string(const std::string &s) {
@@ -384,6 +383,7 @@ public:
     }
 
 protected:
+    const bool                      m_high_precision;
     static constexpr const size_t   buflen = 256;
     char                            buf[buflen];
     char* buf_end;
@@ -392,7 +392,7 @@ protected:
 
 class GCodeG1Formatter : public GCodeFormatter {
 public:
-    GCodeG1Formatter() {
+    explicit GCodeG1Formatter(bool high_precision = false) : GCodeFormatter(high_precision) {
         this->buf[0] = 'G';
         this->buf[1] = '1';
         this->buf_end = buf + buflen;
@@ -405,7 +405,7 @@ public:
 
 class GCodeG2G3Formatter : public GCodeFormatter {
 public:
-    GCodeG2G3Formatter(bool is_ccw) {
+    GCodeG2G3Formatter(bool is_ccw, bool high_precision = false) : GCodeFormatter(high_precision) {
         this->buf[0] = 'G';
         this->buf[1] = is_ccw ? '3' : '2';
         this->buf_end = buf + buflen;
