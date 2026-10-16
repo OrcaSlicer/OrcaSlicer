@@ -4637,6 +4637,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(0));
 
+    def = this->add("high_precision_gcode", coBool);
+    def->label = L("High precision G-code (experimental)");
+    def->tooltip = L("This experimental option is intended only for printing with nozzles of 0.25 mm or smaller and layer heights "
+                     "of 0.08 mm or less. It may help stabilize extrusion by reducing G-code rounding errors. "
+                     "Thinner layers require a smaller extrusion volume per move, so the potential benefit is greater. "
+                     "Results depend strongly on the other print settings; the effect may be difficult to notice unless "
+                     "the print profile is well calibrated. Enabling this option increases the G-code file size and may "
+                     "reduce performance on older printers.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
     //BBS
     def = this->add("infill_combination", coBool);
     def->label = L("Infill combination");

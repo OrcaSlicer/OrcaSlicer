@@ -857,7 +857,7 @@ void GCodeWriter::set_speed(std::string &out, double F, const std::string &comme
     assert(F < 100000.);
     
     m_current_speed = F;
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(config.high_precision_gcode.value);
     w.emit_f(F);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -874,7 +874,7 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     //BBS: take plate offset into consider
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(config.high_precision_gcode.value);
     if (has_axis_remap()) {
         // Axis remap may couple XY with Z; emit full XYZ in machine coordinates.
         Vec3d machine = apply_axis_remap(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z()));
@@ -1039,7 +1039,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 //  /       to make the z list early to avoid to hit some warping place when travel is long.
                 Vec2d temp = delta_no_z.normalized() * delta(2) / tan(this->filament()->travel_slope());
                 Vec3d slope_top_point = Vec3d(temp(0), temp(1), delta(2)) + source;
-                GCodeG1Formatter w0;
+                GCodeG1Formatter w0(config.high_precision_gcode.value);
                 // A slope lift is a straight (linear) diagonal move, so remapping its
                 // endpoint is exact. Route the destination through apply_axis_remap()
                 // when a remap is active (no-op at identity).
@@ -1063,7 +1063,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
 
         std::string xy_z_move;
         {
-            GCodeG1Formatter w0;
+            GCodeG1Formatter w0(config.high_precision_gcode.value);
             if (has_axis_remap()) {
                 // Remap may couple XY with Z; emit full XYZ in machine coordinates.
                 w0.emit_xyz(apply_axis_remap(target));
@@ -1108,7 +1108,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
     std::string out_string;
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(config.high_precision_gcode.value);
     if (has_axis_remap()) {
         // Remap may couple XY with Z; emit full XYZ in machine coordinates.
         w.emit_xyz(apply_axis_remap(point_on_plate));
@@ -1123,7 +1123,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string() + _travel_to_z(point_on_plate.z(), comment);
     } else {
-        GCodeG1Formatter w;
+        GCodeG1Formatter w(config.high_precision_gcode.value);
         w.emit_xyz(point_on_plate);
         w.emit_f(final_travel_speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -1165,7 +1165,7 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
                     : this->config.travel_speed.get_at(m_cached_extruder_idx);
     }
 
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(config.high_precision_gcode.value);
     if (has_axis_remap()) {
         // Remap may couple Z with other axes; emit full XYZ.
         Vec3d machine = apply_axis_remap(Vec3d(m_pos.x() - m_x_offset, m_pos.y() - m_y_offset, z));
@@ -1217,15 +1217,15 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
 
         const double a0 = std::atan2(py - cy, px - cx); // start angle
 
-        auto emit_point = [&output](const Vec3d &point) {
-            GCodeG1Formatter w;
+        auto emit_point = [this, &output](const Vec3d &point) {
+            GCodeG1Formatter w(config.high_precision_gcode.value);
             w.emit_xyz(point);
             output += w.string();
         };
 
         output.reserve(size_t(segments) * 40);          // ~40 characters per emitted G1 line
 
-        GCodeG1Formatter w;                             // set feedrate
+        GCodeG1Formatter w(config.high_precision_gcode.value); // set feedrate
         w.emit_f(speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         output += w.string();
@@ -1243,7 +1243,7 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
     } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
         output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
 
-        GCodeG2G3Formatter w(true);
+        GCodeG2G3Formatter w(true, config.high_precision_gcode.value);
         w.emit_z(z);
         w.emit_ij(ij_offset);
         w.emit_string(" P1 ");
@@ -1294,7 +1294,7 @@ void GCodeWriter::extrude_to_xy(std::string &out, const Vec2d &point, double dE,
     //BBS: take plate offset into consider
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(config.high_precision_gcode.value);
     if (has_axis_remap()) {
         Vec3d machine = apply_axis_remap(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z()));
         w.emit_xyz(machine);
@@ -1380,7 +1380,7 @@ void GCodeWriter::extrude_arc_to_xy(std::string &out, const Vec2d& point, const 
 
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG2G3Formatter w(is_ccw);
+    GCodeG2G3Formatter w(is_ccw, config.high_precision_gcode.value);
     w.emit_xy(point_on_plate);
     w.emit_ij(center_offset);
     if (!force_no_extrusion)
@@ -1402,7 +1402,8 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
     // Check if Z actually changes (at export precision) before emitting it.
     // ZAA sloped extrusions call this for every segment, but many consecutive
     // segments share the same quantized Z — emitting it every time is redundant.
-    bool z_changed = (GCodeG1Formatter::quantize_xyz(point(2)) != GCodeG1Formatter::quantize_xyz(m_pos(2)));
+    const bool high_precision = config.high_precision_gcode.value;
+    bool z_changed = (GCodeFormatter::quantize_xyz(point(2), high_precision) != GCodeFormatter::quantize_xyz(m_pos(2), high_precision));
 
     m_pos = point;
     m_lifted = 0;
@@ -1412,7 +1413,7 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset, point(2) };
 
-    GCodeG1Formatter w;
+    GCodeG1Formatter w(high_precision);
     if (has_axis_remap()) {
         // z_changed was computed from the ORIGINAL slicing Z, but an axis remap can
         // make machine-Z depend on slicing X/Y. An X/Y-only move (slicing-Z
@@ -1469,7 +1470,7 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
         }
         else {
             // BBS
-            GCodeG1Formatter w;
+            GCodeG1Formatter w(config.high_precision_gcode.value);
             w.emit_e(filament()->E());
             w.emit_f(filament()->retract_speed() * 60.);
             // BBS
@@ -1499,7 +1500,7 @@ std::string GCodeWriter::unretract(float extra_retract)
         else {
             //BBS
             // use G1 instead of G0 because G0 will blend the restart with the previous travel move
-            GCodeG1Formatter w;
+            GCodeG1Formatter w(config.high_precision_gcode.value);
             // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
             // default -> identical to the plain deretract E position.
             w.emit_e(filament()->E() + extra_retract);
