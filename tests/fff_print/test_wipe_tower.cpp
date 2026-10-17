@@ -282,9 +282,9 @@ TEST_CASE("The wipe tower's flow tags keep a decimal point in a comma-decimal lo
     CHECK(widths > 0);
 }
 
-// Orca: Wipe-tower output bypasses model-path metadata generation, so returning to a model must
-// force the producer to repeat its percentage even when the value is unchanged. A vertical cube
-// deliberately keeps the cached value at 0%, so omitting that reset would suppress the next tag.
+// Wipe-tower output bypasses model-path metadata generation, so returning to a model must
+// repeat its percentage even when the value is unchanged. This cube's vertical walls stay at 0%,
+// while infill can overhang the gaps between lower-layer extrusion paths.
 TEST_CASE("Overhang metadata resets across wipe tower toolchanges", "[WipeTower][Overhang][Regression]")
 {
     DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
@@ -295,14 +295,16 @@ TEST_CASE("Overhang metadata resets across wipe tower toolchanges", "[WipeTower]
     });
     const std::string exported = slice_with_prime_tower(config);
 
-    // Orca: Every first model extrusion after a tower must be preceded by a fresh scalar tag. The
-    // unchanged 0% value proves this came from the wipe-tower reset rather than a percentage change.
+    // Every first model extrusion after a tower needs a fresh scalar tag. Only the vertical walls
+    // are guaranteed to stay at 0%; infill has its own support reference and may report nonzero values.
     const std::string &tower_end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End);
     const std::string &overhang_tag  = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang);
     const std::string &role_tag      = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
     bool awaiting_model_extrusion = false;
     bool saw_fresh_percentage = false;
+    float percentage = 0.0f;
     size_t checked_returns = 0;
+    size_t checked_wall_returns = 0;
     std::string lines_after_tower;
     ExtrusionRole role = erNone;
     GCodeReader reader;
@@ -320,17 +322,21 @@ TEST_CASE("Overhang metadata resets across wipe tower toolchanges", "[WipeTower]
         lines_after_tower += line.raw() + "\n";
         if (line.comment().find(overhang_tag) == 0) {
             saw_fresh_percentage = true;
-            CHECK_THAT(std::stof(std::string(line.comment().substr(overhang_tag.size()))),
-                Catch::Matchers::WithinAbs(0.0, 1e-6));
+            percentage = std::stof(std::string(line.comment().substr(overhang_tag.size())));
         }
         if (role != erWipeTower && role != erNone && line.extruding(self) && (line.has_x() || line.has_y())) {
             CAPTURE(lines_after_tower);
             CHECK(saw_fresh_percentage);
+            if (is_perimeter(role)) {
+                CHECK_THAT(percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
+                ++checked_wall_returns;
+            }
             ++checked_returns;
             awaiting_model_extrusion = false;
         }
     });
     REQUIRE(checked_returns > 0);
+    REQUIRE(checked_wall_returns > 0);
 }
 
 // What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
