@@ -3117,9 +3117,12 @@ bool NotificationManager::push_notification_data(std::unique_ptr<NotificationMan
 	bool retval = false;
 	if (this->activate_existing(notification.get())) {
 		if (m_initialized && m_imgui_ready) {
-			// Precise Seam already aggregates all causes; replace it on repeated warning events.
+			// Precise Seam and the overhang seam preview warnings already aggregate all causes;
+			// replace them on repeated warning events.
 			if (notification->get_type() == NotificationType::SlicingWarning &&
-                notification->get_data().sub_msg_id != PrintStateBase::SlicingPreciseSeamWarning) {
+                notification->get_data().sub_msg_id != PrintStateBase::SlicingPreciseSeamWarning &&
+                notification->get_data().sub_msg_id != PrintStateBase::SlicingOverhangSeamPreviewWarning &&
+                notification->get_data().sub_msg_id != PrintStateBase::SlicingOverhangSeamZeroZWarning) {
 				m_pop_notifications.back()->append(notification->get_data().ori_text);
 			} else {
                 m_pop_notifications.back()->update(notification->get_data());
