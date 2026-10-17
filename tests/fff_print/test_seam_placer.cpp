@@ -405,3 +405,174 @@ TEST_CASE("Precise Seam volume changes invalidate only G-code export", "[SeamPla
     CHECK(object->is_step_done(posSlice));
     CHECK(object->is_step_done(posPerimeters));
 }
+
+namespace {
+// One wall loop with a single path of the given role; inset_idx is set the way the perimeter generators do.
+ExtrusionLoop make_wall_loop(Points points, ExtrusionRole role, int inset_idx)
+{
+    REQUIRE(points.size() >= 3);
+    points.push_back(points.front());
+    ExtrusionPath path(role, 0.08, 0.4f, 0.2f);
+    path.polyline = Polyline3(Polyline(std::move(points)));
+    ExtrusionLoop loop(std::move(path));
+    loop.inset_idx = inset_idx;
+    return loop;
+}
+
+// Axis-aligned rectangle given by two opposite corners in layer coordinates, as placed by the fixture.
+BoundingBoxf layer_rectangle(const PipelineFixture &fixture, const PrintObject &object, const Vec2d &a, const Vec2d &b)
+{
+    const Points corners = fixture.points_in_layer(object, {a, b});
+    return BoundingBoxf(Vec2d(unscale<double>(corners[0].x()), unscale<double>(corners[0].y())),
+                        Vec2d(unscale<double>(corners[1].x()), unscale<double>(corners[1].y())));
+}
+
+// True if the point lies within `tolerance` mm of the boundary of the rectangle.
+bool near_rectangle_boundary(const Vec3f &p, const BoundingBoxf &rect, double tolerance)
+{
+    const double dx = std::min(std::abs(p.x() - rect.min.x()), std::abs(p.x() - rect.max.x()));
+    const double dy = std::min(std::abs(p.y() - rect.min.y()), std::abs(p.y() - rect.max.y()));
+    const bool inside_x = p.x() > rect.min.x() - tolerance && p.x() < rect.max.x() + tolerance;
+    const bool inside_y = p.y() > rect.min.y() - tolerance && p.y() < rect.max.y() + tolerance;
+    return (dx < tolerance && inside_y) || (dy < tolerance && inside_x);
+}
+
+// Checks that every seam candidate of the layer lies on the boundary of exactly one rectangle and that
+// a perimeter never mixes candidates of two rectangles (a merged fallback polygon would). Rectangles
+// must be at least 1 mm apart. Returns how many perimeters draw their candidates from each rectangle.
+template<class LayerSeamsT>
+std::vector<size_t> perimeters_per_rectangle(const LayerSeamsT &data, const std::vector<BoundingBoxf> &rects)
+{
+    std::vector<size_t> result(rects.size(), 0);
+    for (const auto &perimeter : data.perimeters) {
+        std::vector<size_t> hits(rects.size(), 0);
+        for (size_t i = perimeter.start_index; i < perimeter.end_index; ++i) {
+            const Vec3f &p = data.points[i].position;
+            size_t matched = 0;
+            for (size_t r = 0; r < rects.size(); ++r)
+                if (near_rectangle_boundary(p, rects[r], 0.5)) {
+                    ++hits[r];
+                    ++matched;
+                }
+            CAPTURE(p.x(), p.y());
+            CHECK(matched == 1); // A candidate off every outline comes from an inner loop.
+        }
+        size_t used = 0;
+        for (size_t r = 0; r < rects.size(); ++r)
+            if (hits[r] > 0) {
+                ++used;
+                ++result[r];
+            }
+        CHECK(used <= 1);
+    }
+    return result;
+}
+} // namespace
+
+TEST_CASE("Fully overhanging outer loop is its own seam perimeter regardless of island order", "[SeamPlacer][Regression]")
+{
+    const bool overhang_first = GENERATE(false, true);
+    CAPTURE(overhang_first);
+    PipelineFixture fixture;
+    PrintObject &object = fixture.prepare();
+    auto &region = clear_first_layer(object);
+
+    // Island A: ordinary outer wall. Island B: the outer wall is entirely overhang but keeps inset_idx 0,
+    // followed by an inner wall that is overhang as well.
+    ExtrusionEntityCollection island_a, island_b;
+    island_a.append(make_wall_loop(fixture.points_in_layer(object, {{2, 2}, {8, 2}, {8, 8}, {2, 8}}), erExternalPerimeter, 0));
+    island_b.append(make_wall_loop(fixture.points_in_layer(object, {{12, 2}, {18, 2}, {18, 8}, {12, 8}}), erOverhangPerimeter, 0));
+    island_b.append(make_wall_loop(fixture.points_in_layer(object, {{13.5, 3.5}, {16.5, 3.5}, {16.5, 6.5}, {13.5, 6.5}}), erOverhangPerimeter, 1));
+    if (overhang_first) {
+        region.perimeters.append(std::move(island_b));
+        region.perimeters.append(std::move(island_a));
+    } else {
+        region.perimeters.append(std::move(island_a));
+        region.perimeters.append(std::move(island_b));
+    }
+
+    SeamPlacer placer;
+    placer.init(fixture.print, [] {});
+    const auto &data = placer.m_seam_per_object.at(&object).layers.front();
+    // Exactly the two outer loops are registered; the inner loop is not merged into either of them.
+    REQUIRE(data.perimeters.size() == 2);
+    const auto counts = perimeters_per_rectangle(data, {layer_rectangle(fixture, object, {2, 2}, {8, 8}),
+                                                        layer_rectangle(fixture, object, {12, 2}, {18, 8})});
+    CHECK(counts == std::vector<size_t>{1, 1});
+}
+
+TEST_CASE("External role selects the outer loop when inset_idx is unknown", "[SeamPlacer][Regression]")
+{
+    PipelineFixture fixture;
+    PrintObject &object = fixture.prepare();
+    auto &region = clear_first_layer(object);
+
+    // Thin-wall style loops carry the external role without a stored depth.
+    ExtrusionEntityCollection island;
+    island.append(make_wall_loop(fixture.points_in_layer(object, {{2, 2}, {8, 2}, {8, 8}, {2, 8}}), erExternalPerimeter, -1));
+    island.append(make_wall_loop(fixture.points_in_layer(object, {{3.5, 3.5}, {6.5, 3.5}, {6.5, 6.5}, {3.5, 6.5}}), erPerimeter, -1));
+    region.perimeters.append(std::move(island));
+
+    SeamPlacer placer;
+    placer.init(fixture.print, [] {});
+    const auto &data = placer.m_seam_per_object.at(&object).layers.front();
+    REQUIRE(data.perimeters.size() == 1);
+    const auto counts = perimeters_per_rectangle(data, {layer_rectangle(fixture, object, {2, 2}, {8, 8})});
+    CHECK(counts == std::vector<size_t>{1});
+}
+
+TEST_CASE("A collection without a recognizable outer loop gets its own fallback polygon", "[SeamPlacer][Regression]")
+{
+    PipelineFixture fixture;
+    PrintObject &object = fixture.prepare();
+    auto &region = clear_first_layer(object);
+
+    // The second collection has neither an external path nor a stored depth (for example, a loop loaded
+    // from the slicing cache). It must not be skipped just because an earlier collection added polygons.
+    ExtrusionEntityCollection island_a, island_b;
+    island_a.append(make_wall_loop(fixture.points_in_layer(object, {{2, 2}, {8, 2}, {8, 8}, {2, 8}}), erExternalPerimeter, 0));
+    island_b.append(make_wall_loop(fixture.points_in_layer(object, {{12, 2}, {18, 2}, {18, 8}, {12, 8}}), erOverhangPerimeter, -1));
+    region.perimeters.append(std::move(island_a));
+    region.perimeters.append(std::move(island_b));
+
+    SeamPlacer placer;
+    placer.init(fixture.print, [] {});
+    const auto &data = placer.m_seam_per_object.at(&object).layers.front();
+    REQUIRE(data.perimeters.size() == 2);
+    const auto counts = perimeters_per_rectangle(data, {layer_rectangle(fixture, object, {2, 2}, {8, 8}),
+                                                        layer_rectangle(fixture, object, {12, 2}, {18, 8})});
+    CHECK(counts == std::vector<size_t>{1, 1});
+}
+
+TEST_CASE("Mixed overhang and external outer loop is taken once", "[SeamPlacer][Regression]")
+{
+    // Whether or not the generator stored the depth, the external path alone identifies the loop.
+    const int outer_inset_idx = GENERATE(0, -1);
+    CAPTURE(outer_inset_idx);
+    PipelineFixture fixture;
+    PrintObject &object = fixture.prepare();
+    auto &region = clear_first_layer(object);
+
+    // The outer loop consists of one overhang path and external paths.
+    const Points square = fixture.points_in_layer(object, {{2, 2}, {8, 2}, {8, 8}, {2, 8}});
+    ExtrusionPaths paths;
+    for (size_t i = 0; i < square.size(); ++i) {
+        ExtrusionPath path(i == 0 ? erOverhangPerimeter : erExternalPerimeter, 0.08, 0.4f, 0.2f);
+        path.polyline = Polyline3(Polyline(Points{square[i], square[(i + 1) % square.size()]}));
+        paths.push_back(std::move(path));
+    }
+    ExtrusionLoop mixed(std::move(paths));
+    mixed.inset_idx = outer_inset_idx;
+    ExtrusionEntityCollection island;
+    island.append(std::move(mixed));
+    island.append(make_wall_loop(fixture.points_in_layer(object, {{3.5, 3.5}, {6.5, 3.5}, {6.5, 6.5}, {3.5, 6.5}}), erPerimeter,
+                                 outer_inset_idx == 0 ? 1 : -1));
+    region.perimeters.append(std::move(island));
+
+    SeamPlacer placer;
+    placer.init(fixture.print, [] {});
+    const auto &data = placer.m_seam_per_object.at(&object).layers.front();
+    REQUIRE(data.perimeters.size() == 1);
+    const auto counts = perimeters_per_rectangle(data, {layer_rectangle(fixture, object, {2, 2}, {8, 8})});
+    CHECK(counts == std::vector<size_t>{1});
+}

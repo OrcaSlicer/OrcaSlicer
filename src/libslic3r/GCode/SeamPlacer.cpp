@@ -444,6 +444,7 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
   for (const LayerRegion *layer_region : layer->regions()) {
     for (const ExtrusionEntity *ex_entity : layer_region->perimeters.entities) {
       if (ex_entity->is_collection()) { //collection of inner, outer, and overhang perimeters
+        const size_t collection_begin = polygons.size(); // The fallback below applies per collection, not per layer.
         for (const ExtrusionEntity *perimeter : static_cast<const ExtrusionEntityCollection*>(ex_entity)->entities) {
           ExtrusionRole role = perimeter->role();
           if (perimeter->is_loop()) {
@@ -452,6 +453,9 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
                 role = ExtrusionRole::erExternalPerimeter;
               }
             }
+            // A fully overhanging outer loop has no external paths but keeps inset_idx 0.
+            if (perimeter->inset_idx == 0)
+              role = ExtrusionRole::erExternalPerimeter;
           }
 
           if (role == ExtrusionRole::erExternalPerimeter) {
@@ -461,7 +465,7 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
             corresponding_regions_out.push_back(layer_region);
           }
         }
-        if (polygons.empty()) {
+        if (polygons.size() == collection_begin) {
           Points p;
           ex_entity->collect_points(p);
           polygons.emplace_back(std::move(p));
