@@ -386,6 +386,47 @@ struct Segment
     bool is_valid() const { return start.y() < end.y(); }
 };
 
+// Closed loops such as the rib wall are entered at the corner nearest the head. The ring's
+// starting vertex is whatever the polygon union left behind, so "the first corner at the
+// smallest distance" depends on ring order when two corners are equally near, which the
+// symmetric rib outline makes common. Break exact ties by the corner's own coordinates
+// (smaller x, then smaller y) so the choice depends on geometry only.
+template<typename PointType>
+static bool is_closer_corner(double distance, double best_distance, const PointType &here, const PointType &best)
+{
+    if (distance != best_distance)
+        return distance < best_distance;
+    return here.x() < best.x() || (here.x() == best.x() && here.y() < best.y());
+}
+
+static int closest_corner_index(const std::vector<Segment> &corners, const Vec2f &anchor)
+{
+    int   closest_idx   = -1;
+    float best_distance = std::numeric_limits<float>::max();
+    for (int i = 0; i < int(corners.size()); ++i) {
+        const float distance = (corners[i].start - anchor).squaredNorm();
+        if (closest_idx < 0 || is_closer_corner(distance, best_distance, corners[i].start, corners[closest_idx].start)) {
+            best_distance = distance;
+            closest_idx   = i;
+        }
+    }
+    return closest_idx;
+}
+
+static int closest_point_index_stable(const Polygon &polygon, const Point &anchor)
+{
+    int    closest_idx   = -1;
+    double best_distance = std::numeric_limits<double>::max();
+    for (int i = 0; i < int(polygon.points.size()); ++i) {
+        const double distance = (polygon.points[i] - anchor).cast<double>().squaredNorm();
+        if (closest_idx < 0 || is_closer_corner(distance, best_distance, polygon.points[i], polygon.points[closest_idx])) {
+            best_distance = distance;
+            closest_idx   = i;
+        }
+    }
+    return closest_idx;
+}
+
 std::vector<Segment> remove_points_from_segment(const Segment &segment, const std::vector<Vec2f> &skip_points, double range)
 {
     std::vector<Segment> result;
@@ -611,7 +652,7 @@ Polylines remove_points_from_polygon(const Polygon &polygon_ori, const std::vect
     std::vector<Vec2f>            points;
     {
         points.reserve(polygon.points.size());
-        int idx = polygon.closest_point_index(anchor_point);
+        int idx = closest_point_index_stable(polygon, anchor_point);
         Polyline tmp_poly = polygon.split_at_index(idx);
         for (auto &p : tmp_poly) points.push_back(unscale(p).cast<float>());
         points.pop_back();
@@ -1122,17 +1163,7 @@ public:
         }
 
         auto get_closet_idx = [this](std::vector<Segment> &corners) -> int {
-            Vec2f anchor{this->m_current_pos.x(), this->m_current_pos.y()};
-            int   closestIndex = -1;
-            float minDistance  = std::numeric_limits<float>::max();
-            for (int i = 0; i < corners.size(); ++i) {
-                float distance = (corners[i].start - anchor).squaredNorm();
-                if (distance < minDistance) {
-                    minDistance  = distance;
-                    closestIndex = i;
-                }
-            }
-            return closestIndex;
+            return closest_corner_index(corners, Vec2f(this->m_current_pos.x(), this->m_current_pos.y()));
         };
         std::vector<Segment> segments;
         for (int i = 0; i < pl.fitting_result.size(); i++) {
@@ -1355,17 +1386,7 @@ public:
     void generate_path(Polylines &pls, float feedrate, float retract_length, float retract_speed, bool used_fillet)
     {
         auto get_closet_idx = [this](std::vector<Segment> &corners) -> int {
-            Vec2f anchor{this->m_current_pos.x(), this->m_current_pos.y()};
-            int   closestIndex = -1;
-            float minDistance  = std::numeric_limits<float>::max();
-            for (int i = 0; i < corners.size(); ++i) {
-                float distance = (corners[i].start - anchor).squaredNorm();
-                if (distance < minDistance) {
-                    minDistance  = distance;
-                    closestIndex = i;
-                }
-            }
-            return closestIndex;
+            return closest_corner_index(corners, Vec2f(this->m_current_pos.x(), this->m_current_pos.y()));
         };
         if (m_enable_arc_fitting) {
             for (auto &pl : pls) pl.simplify_by_fitting_arc(SCALED_WIPE_TOWER_RESOLUTION);
