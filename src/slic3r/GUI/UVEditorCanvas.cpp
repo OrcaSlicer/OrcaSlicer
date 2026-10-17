@@ -297,9 +297,12 @@ void UVEditorCanvas::set_island_fill_colors(std::vector<ColorRGBA> colors)
     Refresh();
 }
 
-void UVEditorCanvas::set_uv_transform(float tiling_scale, float rotation_deg, bool tile_enabled, bool tile_mirrored)
+void UVEditorCanvas::set_uv_transform(float tiling_scale, float tiling_scale_v, const Vec2f &mirror_sign,
+                                      float rotation_deg, bool tile_enabled, bool tile_mirrored)
 {
     m_tiling_scale          = (std::abs(tiling_scale) > 1e-6f) ? tiling_scale : 1.f;
+    m_tiling_scale_v        = (tiling_scale_v > 1e-6f) ? tiling_scale_v : m_tiling_scale;
+    m_mirror_sign           = mirror_sign;
     m_rotation_deg          = rotation_deg;
     m_tile_enabled          = tile_enabled;
     m_tile_mirrored         = tile_mirrored;
@@ -661,11 +664,18 @@ Vec2f UVEditorCanvas::island_centroid(int island) const
 
 Vec2f UVEditorCanvas::uv_delta_to_unwrap(const Vec2f &delta_uv) const
 {
-    // apply_uv_transform() maps unwrap -> uv as  uv = R(unwrap / tiling) + offset, so the inverse of
-    // a *delta* (the translation drops out) is  unwrap = tiling * R^-1(delta_uv).
+    // apply_uv_transform() maps unwrap -> uv as  uv = S^-1 R(unwrap) + offset, with S the tile
+    // extents, so the inverse of a *delta* (the translation drops out) is  unwrap = R^-1(S delta_uv).
+    // The extents therefore multiply *before* the inverse rotation, which is the mirror image of the
+    // forward order; with a square tile the two are interchangeable, with a rectangular one they are
+    // not.
     const float rad = m_rotation_deg * float(M_PI) / 180.f;
     const float cs = std::cos(rad), sn = std::sin(rad);
-    return Vec2f(delta_uv.x() * cs + delta_uv.y() * sn, -delta_uv.x() * sn + delta_uv.y() * cs) * m_tiling_scale;
+    // The mirror is its own sign on the same axis, and a negation is its own inverse, so it comes
+    // back out here exactly as it went in.
+    const Vec2f scaled(delta_uv.x() * m_tiling_scale * m_mirror_sign.x(),
+                       delta_uv.y() * m_tiling_scale_v * m_mirror_sign.y());
+    return Vec2f(scaled.x() * cs + scaled.y() * sn, -scaled.x() * sn + scaled.y() * cs);
 }
 
 Vec2f UVEditorCanvas::snap_correction(int island) const
@@ -2180,7 +2190,10 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
 void UVEditorPanel::apply_state(const UVEditorCanvas::PaneState &s)
 {
     const wxString name = s.has_layer ? s.layer_name : _L("No layer mapped with Unwrap");
-    const wxString tile = s.has_layer ? wxString::Format(_L("%.1f mm tile"), s.tile_mm) : wxString();
+    // A square tile reads as one number; only a genuinely rectangular one is worth two.
+    const wxString tile = !s.has_layer                         ? wxString() :
+                          std::abs(s.tile_mm_v - s.tile_mm) < 0.005f ? wxString::Format(_L("%.1f mm tile"), s.tile_mm) :
+                          wxString::Format(_L("%.1f x %.1f mm tile"), s.tile_mm, s.tile_mm_v);
     const bool     relayout = m_layer_name->GetLabel() != name || m_tile->GetLabel() != tile;
     m_layer_name->SetLabel(name);
     m_tile->SetLabel(tile);

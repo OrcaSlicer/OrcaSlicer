@@ -91,7 +91,10 @@ public:
     // space, back into the unwrap's mm space - which is where a TextureIsland's offset actually
     // lives (see apply_uv_transform()). The tile settings come along because the background has to
     // repeat exactly the way the height sampler does, or the pane would stop showing what gets baked.
-    void set_uv_transform(float tiling_scale, float rotation_deg, bool tile_enabled, bool tile_mirrored);
+    // `tiling_scale_v` is the tile's extent along v; pass <= 0 for a square tile, matching
+    // layer_tile_mm().
+    void set_uv_transform(float tiling_scale, float tiling_scale_v, const Vec2f &mirror_sign,
+                          float rotation_deg, bool tile_enabled, bool tile_mirrored);
 
     // Same 8-bit grayscale pixels build_texture_displacement()'s height sampling uses, shown
     // beneath the wireframe (expanded to RGBA on upload) so the unwrap can be checked against the
@@ -129,7 +132,8 @@ public:
     {
         bool                       has_layer       = false; // an active layer mapped with Unwrap
         wxString                   layer_name;
-        float                      tile_mm         = 0.f;
+        float                      tile_mm         = 0.f; // tile extent along u
+        float                      tile_mm_v       = 0.f; // along v; equal to tile_mm for a square tile
         std::vector<unsigned char> thumbnail_rgb;           // thumbnail_px square, 3 bytes per pixel; empty for none
         int                        thumbnail_px    = 0;
         float                      seam_angle_deg  = 40.f;
@@ -292,8 +296,10 @@ private:
     GLModel m_grid_glmodel;
     float   m_grid_step = 0.f; // the UV step m_grid_glmodel was built for; 0 = not built
 
-    float m_tiling_scale  = 1.f;
-    float m_rotation_deg  = 0.f;
+    float m_tiling_scale   = 1.f;
+    float m_tiling_scale_v = 1.f; // already resolved: never the "unset" sentinel, see set_uv_transform()
+    Vec2f m_mirror_sign    = Vec2f::Ones(); // +1 or -1 per axis, see layer_mirror_sign()
+    float m_rotation_deg   = 0.f;
     bool  m_tile_enabled  = true;
     bool  m_tile_mirrored = false;
     bool  m_snap_enabled  = false;

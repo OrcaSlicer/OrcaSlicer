@@ -225,7 +225,17 @@ struct TextureDisplacementLayer
     std::shared_ptr<std::vector<unsigned char>> image_data;
 
     float depth_mm     = 0.4f; // maximum displacement along the surface normal, in mm
-    float tiling_scale = 12.5f; // size of one texture tile, in mm
+    float tiling_scale = 12.5f; // size of one texture tile along u, in mm
+    // Size of one tile along v, in mm. Anything <= 0 means "whatever tiling_scale is", which is both
+    // the default and what a layer created before the tile could be non-square meant - so an older
+    // undo snapshot still comes back as the square tile it was.
+    float tiling_scale_v = -1.f;
+    // Mirror the texture along one axis of the tile. Set by dragging a width or height handle back
+    // through the tile's middle, which is how a side handle behaves in an image editor: the extent
+    // cannot go negative, so the sign lives here instead. Both default to off, which is what every
+    // layer written before this meant.
+    bool  mirror_u = false;
+    bool  mirror_v = false;
     float rotation_deg = 0.f;
     Vec2f offset       = Vec2f::Zero();
     bool  invert       = false;
@@ -362,7 +372,8 @@ struct TextureDisplacementLayer
            static_cast<int>(tile_method), static_cast<int>(projection_method), lscm_seam_angle_deg, islands,
            static_cast<int>(blend_mode), midlevel, island_padding_mm, lscm_seam_edges, view_project_right,
            view_project_up, smoothing, edge_smoothing, edge_smoothing_amount, auto_connect_islands, island_groups,
-           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled);
+           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled, tiling_scale_v,
+           mirror_u, mirror_v);
     }
     template<class Archive> void load(Archive &ar)
     {
@@ -374,7 +385,7 @@ struct TextureDisplacementLayer
            tile_method_int, projection_method_int, lscm_seam_angle_deg, islands, blend_mode_int, midlevel,
            island_padding_mm, lscm_seam_edges, view_project_right, view_project_up, smoothing, edge_smoothing,
            edge_smoothing_amount, auto_connect_islands, island_groups, lscm_uv_overrides, view_project_projective,
-           view_project_matrix, color_enabled);
+           view_project_matrix, color_enabled, tiling_scale_v, mirror_u, mirror_v);
         image_data        = blob.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(blob.begin(), blob.end());
         tile_method       = static_cast<TextureTileMethod>(tile_method_int);
         projection_method = static_cast<TextureProjectionMethod>(projection_method_int);
@@ -382,6 +393,25 @@ struct TextureDisplacementLayer
     }
 };
 
+
+// The layer's tile extents in mm, u first. The v extent falls back to the u one whenever
+// tiling_scale_v is unset, so "unset means square" is written down once and every consumer - the
+// bake, the preview shaders, the UV pane and the placement gizmo - agrees on what a layer with no
+// v extent means.
+inline Vec2f layer_tile_mm(const TextureDisplacementLayer &layer)
+{
+    const float su = (layer.tiling_scale > 1e-6f) ? layer.tiling_scale : 1.f;
+    return Vec2f(su, (layer.tiling_scale_v > 1e-6f) ? layer.tiling_scale_v : su);
+}
+
+// +1 or -1 per axis, for the layer's mirroring. A separate factor from the extents rather than a
+// signed extent: the extents are a size the panel shows and the refinement measures texels against,
+// and letting one of them go negative would mean every one of those places had to remember to take
+// the magnitude.
+inline Vec2f layer_mirror_sign(const TextureDisplacementLayer &layer)
+{
+    return Vec2f(layer.mirror_u ? -1.f : 1.f, layer.mirror_v ? -1.f : 1.f);
+}
 
 // Settings that apply to the whole layer stack rather than to one layer, held per ModelVolume next
 // to texture_displacement_layers and consumed by build_texture_displacement().
@@ -669,14 +699,19 @@ Vec2f project_planar(const Vec3f &position, const Vec3f &normal);
 // projection method, without going through project_texture_displacement_uv()'s own dispatch
 // (which only knows how to compute the *analytic* methods from a single vertex + normal).
 // `aspect` is the height map's width / height. It scales the v axis so a non-square image is not
-// squeezed into a square tile: `tiling_scale` is the tile's size along u, and the tile is
-// `tiling_scale * height / width` mm along v, which keeps texels square. 1 (the default) is the
-// square case and leaves the coordinate exactly as it always was.
+// squeezed into a square tile: the tile is `layer_tile_mm().y() * height / width` mm along v, which
+// keeps texels square. 1 (the default) is the square case and leaves the coordinate exactly as it
+// always was.
+//
+// The tile extents divide *after* the rotation, not before. With one extent that made no difference
+// (R is linear, so R(p / s) == R(p) / s), but with two it is what keeps a non-square tile a rotated
+// rectangle on the surface instead of a sheared parallelogram. The layer's mirroring is a sign on
+// that same division.
 //
 // `normalized_uv` says the coordinate is already a uv rather than a millimetre measurement on the
-// model - which is what TextureProjectionMethod::ModelUV hands in. Then neither the tiling scale (mm
+// model - which is what TextureProjectionMethod::ModelUV hands in. Then neither the tile extents (mm
 // per tile is meaningless for it) nor the aspect correction (the artist's layout already accounts for
-// the image's proportions) applies, and only the rotation and offset are left.
+// the image's proportions) applies, and only the rotation, the mirroring and the offset are left.
 Vec2f apply_uv_transform(const Vec2f &planar, const TextureDisplacementLayer &layer, float aspect = 1.f,
                          bool normalized_uv = false);
 
@@ -1048,6 +1083,10 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
 Transform3d texture_displacement_volume_to_world(const ModelVolume &volume);
 // The frame the bake and the previews project the texture in: `volume_to_world` with its translation
 // removed, i.e. world orientation and scale about the volume's own origin. See build_texture_displacement().
+// The rotation that carries a world direction into the texture's frame, i.e. the inverse of the
+// placement's own rotation. Exposed because the preview shaders rebuild the frame themselves from a
+// world position and have to turn it the same way the bake does, or the two disagree.
+Matrix3d texture_displacement_frame_rotation(const Transform3d &volume_to_world);
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world);
 
 // Area-weighted vertex normals of `its` - the directions the bake both projects and displaces along.

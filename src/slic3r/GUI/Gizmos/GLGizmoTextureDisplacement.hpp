@@ -512,25 +512,120 @@ private:
     // is where the live adjustment is applied. Called whenever the panel moves or reverts it.
     void invalidate_adjust_textures();
 
-    // "Adjust Texture" mode: instead of painting, dragging an on-canvas handle changes the active
-    // layer's offset. The handle is a flat panel lying in the paint patch's own tangent plane
-    // (a "pan" - drag anywhere on it for free 2D movement), plus two arrows along the patch's
-    // own U/V axes that constrain the drag to just that one axis for precise nudging. Anchored to
-    // the centroid/average-normal of the active layer's current paint patch (see
-    // libslic3r::compute_layer_paint_anchor()), so nothing is drawn if it has nothing painted yet.
+    // "Adjust Texture" mode: instead of painting, the active layer's placement is a control lying
+    // on the model. The gizmo is one tile of the texture in the paint patch's own tangent plane:
+    // where it sits is the layer's offset, how it is turned is rotation_deg, how big it is is the
+    // tile extents - so each handle is one of the values it edits rather than a stand-in for it.
+    // Anchored to the centroid/average-normal of the active layer's paint patch (see
+    // libslic3r::compute_layer_paint_anchor()), so nothing is drawn until something is painted.
     //
-    // NOTE: the drag direction/sign below is this session's best-effort reasoning about which way
-    // the texture should appear to move as the handle is dragged - it could not be visually
-    // confirmed while writing it (no way to render/see pixels in this environment), so it may
-    // need a one-line sign flip once actually tested.
+    // Drawn through ImGui's foreground draw list rather than the "flat" shader, which is what gives
+    // it antialiased sub-pixel strokes, rounded joins, a contrast halo and the numeric readout. The
+    // cost is that render_adjust_texture_gizmo() has to be called from inside the gizmo's ImGui
+    // frame (see on_render_input_window()), not from on_render() with the rest of the GL drawing.
+    // Move is the whole interior, free in both axes. AxisMove is the four arrows, each holding a
+    // move to one of the tile's axes. EdgeScale is the four edge bars, one tile extent each, and
+    // CornerScale the four corner grips, which take both extents at once.
+    //
+    // The arrows and the bars share the same four rays out of the tile, so they are kept apart by
+    // distance rather than direction: the bar hugs its edge, then a clear gap, then the arrow well
+    // outside it. adjust_pick() leans on that - see the order it tests them in.
+    enum class AdjustHandle { None, Move, AxisMove, EdgeScale, CornerScale, Rotate };
+
+    // The gizmo's geometry for one frame, in screen pixels. Worked out once and shared by the
+    // drawing and the hit test, so the two cannot disagree about where a handle is. Everything
+    // except the frame itself is a fixed number of pixels, which is what keeps the control equally
+    // usable on a 5 mm part and a 500 mm one - the old handle scaled with the volume's bounding box
+    // and so was unusable at both ends.
+    struct AdjustFrame
+    {
+        bool  valid  = false;
+        Vec2d center = Vec2d::Zero();
+        // +u+v, +u-v, -u-v, -u+v. A scale grip sits on each.
+        std::array<Vec2d, 4> corner{};
+        // +u, -u, +v, -v: the middle of each edge, and the two ends of the bar that sits just
+        // outside it. The bar's ends are kept rather than recomputed so the drawing and the hit test
+        // cannot end up with it in two different places.
+        std::array<Vec2d, 4> edge_mid{};
+        std::array<Vec2d, 4> bar_a{};
+        std::array<Vec2d, 4> bar_b{};
+        // The axis arrow further out on the same ray: where its shaft starts and where its chevron
+        // ends. Kept, like the bar's ends, so the drawing and the hit test cannot disagree.
+        std::array<Vec2d, 4> arm_base{};
+        std::array<Vec2d, 4> arm_tip{};
+        std::array<Vec2d, 4> arm_dir{}; // unit, pointing outward from the centre
+        // A ring is placed off every corner, but only one is drawn and only that one can be picked:
+        // four marks for a single operation is clutter, and whichever corner the cursor is near is
+        // the one worth offering. `rotate_shown` says which, and see update_rotate_corner() for why
+        // it does not simply track the nearest.
+        std::array<Vec2d, 4> rotate_at{};
+        int                  rotate_shown = 0;
+        // The tile projects to less than ADJUST_MIN_TILE_PX across, so the frame was drawn at that
+        // floor instead. It is dashed to say so, and the readout still gives the true millimetres.
+        bool clamped = false;
+        // What the frame was built from, in mesh-local mm: the tile's own (rotated) edge directions
+        // and its extents. The drag arithmetic reuses these rather than recomputing them, so it
+        // cannot end up working against a different tile than the one on screen.
+        Vec3f e_u = Vec3f::UnitX(), e_v = Vec3f::UnitY();
+        Vec2f tile_mm = Vec2f::Ones();     // (u, v) as stored on the layer
+        Vec2f half_planar = Vec2f::Ones(); // half extents in planar mm, v already aspect-corrected
+        Vec2f center_planar = Vec2f::Zero();
+    };
+
     bool update_adjust_anchor(); // recomputes m_adjust_anchor_pos/normal; false if nothing painted
+    // The selected instance's volume-to-world transform, which the bake frame is derived from.
+    bool adjust_volume_to_world(Transform3d &out) const;
+    // The anchor, carried from mesh-local into the bake frame. Converted on every use rather than
+    // stored converted: the object can be moved, rotated or scaled while this mode is open, and a
+    // stored copy would quietly describe the shape it used to be. The expensive part - finding the
+    // paint patch's centroid - stays cached in the local members.
+    bool adjust_anchor_in_frame(Vec3f &pos, Vec3f &normal) const;
+    // Drops every scrap of live gizmo state. Called from each of the several ways out of the mode -
+    // the panel's toggle, collapsing the card, switching to seam marking, closing the gizmo - so a
+    // stale hover highlight or a half-finished drag cannot survive into the next time it is opened.
+    void end_adjust_texture_mode();
     bool on_mouse_adjust_texture(const wxMouseEvent &mouse_event);
     void render_adjust_texture_gizmo();
+    // This frame's gizmo geometry, or an invalid frame when there is nothing to draw.
+    AdjustFrame adjust_frame() const;
+    // Which handle is under `mouse`, with `index` set to the arm or corner it belongs to. Tested
+    // outermost first; see the hit-area board of the design for the order and the radii.
+    AdjustHandle adjust_pick(const Vec2d &mouse, const AdjustFrame &f, int &index) const;
+    // Chooses which corner carries the rotate ring. The nearest to the cursor, but it only moves once
+    // the newcomer is clearly nearer, because without that margin the ring flits between two corners
+    // every time the cursor wanders along the line equidistant from both. Never moves during a drag.
+    void update_rotate_corner(const AdjustFrame &f, const Vec2d &mouse);
+
+    // Where the tile's centre sits, in planar mm relative to the anchor, for a layer's placement.
+    // Not the patch centroid: the gizmo *is* the texture's placement, so it has to travel as the
+    // offset changes - pinning it to the centroid is what made the old handle look broken, the
+    // texture sliding while the handle stayed put.
+    static Vec2f adjust_handle_planar(const TextureDisplacementLayer &layer, float aspect);
+    // The exact inverse: the offset that puts the tile's centre at `planar`. Rotating or resizing
+    // the tile changes where a given offset places it, so every drag recomputes the offset from the
+    // centre it wants to keep - which is what makes rotate and scale act *in place* rather than
+    // swinging the tile around the anchor.
+    static Vec2f adjust_offset_for_planar(const Vec2f &planar, float rot_deg, const Vec2f &tile_mm,
+                                          const Vec2f &mirror_sign, float aspect);
+    // The mesh-local-to-world transform of the selected instance, the (unrotated) tangent basis and
+    // the lifted anchor the whole gizmo is built on. False when there is nothing to build on - which
+    // is the single place that decides the gizmo is not drawable, so the drawing, the hit test and
+    // the drag cannot disagree about it.
+    bool adjust_basis(Transform3d &trafo, Vec3f &u_axis, Vec3f &v_axis, Vec3f &base) const;
+    // Screen-space quad of a tile with the given placement. Used for the pre-drag ghost, which is
+    // drawn from the captured start placement rather than from the layer, the layer having already
+    // been moved by then.
+    bool adjust_quad_for(const Vec2f &center_planar, float rot_deg, const Vec2f &tile_mm,
+                         std::array<Vec2d, 4> &out) const;
+    // Where the cursor meets the drag plane, in planar mm relative to the anchor. The plane is
+    // deliberately the *fixed* anchor plane rather than the tile's current position: measuring a
+    // drag against a plane the drag itself moves is a feedback loop.
+    bool adjust_planar_under(const Vec2d &mouse, Vec2f &planar) const;
     // Draws a small '+'/'-' next to the mouse over the 3D view while painting/selecting, so it is
     // obvious whether the next stroke adds paint (default) or erases it (Shift). Uses ImGui's
     // foreground draw list, so it must be called from inside the gizmo's ImGui frame.
     void render_paint_cursor_hint();
-    // Mesh-local tangent-plane basis at m_adjust_anchor_normal: box_projection_axes(), so dragging
+    // Bake-frame tangent-plane basis at m_adjust_anchor_normal: box_projection_axes(), so dragging
     // on-canvas maps consistently onto offset whichever face the anchor is on.
     void adjust_tangent_basis(Vec3f &u_axis, Vec3f &v_axis) const;
 
@@ -1127,23 +1222,47 @@ private:
     // See the "Adjust Texture" block of private methods above.
     bool  m_adjust_texture_mode      = false;
     bool  m_adjust_anchor_valid      = false;
-    Vec3f m_adjust_anchor_pos        = Vec3f::Zero();  // mesh-local
-    Vec3f m_adjust_anchor_normal     = Vec3f::UnitZ(); // mesh-local
+    // Mesh-local, as compute_layer_paint_anchor() produces them. Everything else about the gizmo
+    // works in the bake frame - world orientation and scale, origin at the volume's own, which is
+    // where the texture is projected (texture_displacement_bake_frame()) - so these go through
+    // adjust_anchor_in_frame() at the point of use. A tile is so many *printed* millimetres whatever
+    // the instance's scale, which is why measuring the gizmo in mesh-local millimetres made its tile
+    // differ from the rendered one by exactly that scale.
+    Vec3f m_adjust_anchor_pos        = Vec3f::Zero();
+    Vec3f m_adjust_anchor_normal     = Vec3f::UnitZ();
 
-    // Pan: free drag anywhere on the flat panel, moves offset along both axes. AxisU/AxisV: drag
-    // the corresponding arrow, moves offset along only that one axis.
-    enum class AdjustHandle { None, Pan, AxisU, AxisV };
-    AdjustHandle m_adjust_drag_handle       = AdjustHandle::None;
-    Vec2f        m_adjust_drag_start_offset = Vec2f::Zero();
-    // Anchor-relative planar position (see project_planar()) of the point under the mouse at the
-    // moment the current drag started; every subsequent frame's delta is measured against this,
-    // rather than accumulated frame-to-frame, to avoid drift.
-    Vec2f m_adjust_drag_start_planar = Vec2f::Zero();
+    // What the cursor is over, and what is being dragged. `index` picks the arm or the corner
+    // (0..3, in AdjustFrame's order); it is -1 for Move and Rotate, which have only one of each.
+    // Only ever one of each is set, so two handles can never both look live.
+    // Which corner currently carries the rotate ring. Persists between frames, which is what gives
+    // update_rotate_corner() something to apply its margin against.
+    int          m_adjust_rotate_corner = 0;
+    AdjustHandle m_adjust_hover_kind  = AdjustHandle::None;
+    int          m_adjust_hover_index = -1;
+    AdjustHandle m_adjust_drag_kind   = AdjustHandle::None;
+    int          m_adjust_drag_index  = -1;
 
-    // Lazily-built unit quad (the pan panel) and unit line-with-arrowhead (reused, rotated, for
-    // both the U and V axis arrows), transformed into place at render time.
-    GLModel m_adjust_panel_glmodel;
-    GLModel m_adjust_arrow_glmodel;
+    // Everything the live drag is measured against, captured once on mouse-down. Every frame's
+    // delta is taken from these rather than accumulated frame to frame, so a long drag cannot
+    // drift away from the cursor.
+    Vec2f m_adjust_drag_start_center = Vec2f::Zero(); // tile centre, planar mm
+    Vec2f m_adjust_drag_start_grab   = Vec2f::Zero(); // the grabbed point, planar mm
+    // How far the grab landed from the handle's own position, in planar mm. A scale drag reads the
+    // extents straight off the cursor, so without subtracting this the tile would jump by however
+    // far inside the generous hit radius the click happened to fall.
+    Vec2f m_adjust_drag_grab_bias    = Vec2f::Zero();
+    float m_adjust_drag_start_rot    = 0.f;
+    Vec2f m_adjust_drag_start_tile   = Vec2f::Ones(); // (u, v) extents as stored
+    float m_adjust_drag_start_angle  = 0.f;           // planar angle of the grab, radians
+    // The mirroring the layer had when the drag began. A width or height handle dragged back through
+    // the tile's middle toggles its axis against this, rather than against whatever the last frame
+    // left behind, so dragging back and forth across the middle cannot ratchet the flag.
+    bool  m_adjust_drag_start_mirror_u = false;
+    bool  m_adjust_drag_start_mirror_v = false;
+
+    // The live value to put in the readout pill, built by the drag and drawn by the renderer in the
+    // same frame. Empty when no drag is running, which is also when no pill is drawn.
+    std::string m_adjust_readout;
 
     std::map<std::string, wxString> m_desc;
 

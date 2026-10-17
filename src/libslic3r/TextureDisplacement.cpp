@@ -1,6 +1,7 @@
 #include "TextureDisplacement.hpp"
 
 #include <Eigen/Core>
+#include <Eigen/SVD>
 #include <Eigen/Geometry>
 #include <algorithm>
 #include <array>
@@ -724,7 +725,10 @@ V2Resolution recommend_v2_resolution(const indexed_triangle_set                 
         const DecodedHeightTexture &tex = decode_height_texture(layer);
         if (tex.width <= 0)
             continue;
-        const float texel = layer.tiling_scale / float(tex.width);
+        // Texels are square in both axes (the aspect correction is what keeps them so), so the finer
+        // of the two tile extents sets the finest texel the refinement has to resolve.
+        const Vec2f tile  = layer_tile_mm(layer);
+        const float texel = std::min(tile.x(), tile.y()) / float(tex.width);
         if (out.texel_mm <= 0.f || texel < out.texel_mm) {
             out.texel_mm        = texel;
             out.pixels_per_edge = analyze_texture_detail(layer).pixels_per_edge;
@@ -2166,7 +2170,7 @@ namespace {
 // of them was most of the per-sample arithmetic.
 struct UVTransform
 {
-    float scale, cs, sn, aspect;
+    float inv_u, inv_v, cs, sn, aspect;
     Vec2f offset;
 
     // `normalized_uv` drops the two steps that only mean something for a coordinate measured on the
@@ -2174,7 +2178,18 @@ struct UVTransform
     // rotation and offset. See apply_uv_transform(); TextureProjectionMethod::ModelUV is what needs it.
     UVTransform(const TextureDisplacementLayer &layer, float aspect_, bool normalized_uv = false)
     {
-        scale = (normalized_uv || layer.tiling_scale <= 1e-6f) ? 1.f : (1.f / layer.tiling_scale);
+        // The mirror folds into the reciprocal: it is a negation of the same coordinate, so there is
+        // nothing to do per sample beyond carrying the sign here. A normalized uv has no millimetre
+        // tiling to divide by, but a mirror is still a mirror, so the sign applies either way.
+        const Vec2f sign = layer_mirror_sign(layer);
+        if (normalized_uv) {
+            inv_u = sign.x();
+            inv_v = sign.y();
+        } else {
+            const Vec2f tile = layer_tile_mm(layer);
+            inv_u = sign.x() / tile.x();
+            inv_v = sign.y() / tile.y();
+        }
         const float rad = layer.rotation_deg * float(M_PI) / 180.f;
         cs     = std::cos(rad);
         sn     = std::sin(rad);
@@ -2183,9 +2198,11 @@ struct UVTransform
     }
     Vec2f operator()(const Vec2f &planar) const
     {
-        const Vec2f scaled = planar * scale;
-        Vec2f       rotated(scaled.x() * cs - scaled.y() * sn, scaled.x() * sn + scaled.y() * cs);
-        // See apply_uv_transform() for why the aspect correction follows the rotation.
+        // See apply_uv_transform() for why both the tile extents and the aspect correction follow
+        // the rotation rather than preceding it.
+        Vec2f rotated(planar.x() * cs - planar.y() * sn, planar.x() * sn + planar.y() * cs);
+        rotated.x() *= inv_u;
+        rotated.y() *= inv_v;
         if (aspect > 0.f && aspect != 1.f)
             rotated.y() *= aspect;
         return rotated + offset;
@@ -2205,26 +2222,43 @@ inline Vec3f triplanar_weights(const Vec3f &normal)
 
 Vec2f apply_uv_transform(const Vec2f &planar, const TextureDisplacementLayer &layer, float aspect, bool normalized_uv)
 {
-    // A uv that is already normalized has no millimetre scale to divide by and no aspect to correct -
-    // see the header. UVTransform does the same, and the two must stay in step.
-    const float scale = (normalized_uv || layer.tiling_scale <= 1e-6f) ? 1.f : (1.f / layer.tiling_scale);
-    const Vec2f scaled = planar * scale;
-
     const float rad = layer.rotation_deg * float(M_PI) / 180.f;
     const float cs  = std::cos(rad);
     const float sn  = std::sin(rad);
-    Vec2f       rotated(scaled.x() * cs - scaled.y() * sn, scaled.x() * sn + scaled.y() * cs);
+    Vec2f       rotated(planar.x() * cs - planar.y() * sn, planar.x() * sn + planar.y() * cs);
+
+    // The tile extents. Dividing here rather than before the rotation is what makes a non-square
+    // tile a rotated *rectangle* on the surface: scaling the two axes of an already-rotated
+    // coordinate by different amounts would be a shear, so the rotation has to come first and the
+    // extents divide in the tile's own frame. With a square tile the two orders agree exactly,
+    // R being linear - which is why this is not a change in behaviour for any existing layer.
+    //
+    // The mirror rides along as a sign on the same division. It is in the tile's own frame too, so
+    // it mirrors along the tile's axes rather than the world's, and because the offset is what
+    // positions the tile, mirroring about the tile's middle is a matter of the offset the gizmo
+    // writes alongside it, not of anything here.
+    // A uv that is already normalized has no millimetre scale to divide by - see the header - but it
+    // can still be mirrored, so the sign is applied in both cases and only the extents are skipped.
+    // UVTransform does the same, and the two must stay in step.
+    const Vec2f sign = layer_mirror_sign(layer);
+    if (normalized_uv) {
+        rotated.x() *= sign.x();
+        rotated.y() *= sign.y();
+    } else {
+        const Vec2f tile = layer_tile_mm(layer);
+        rotated.x() *= sign.x() / tile.x();
+        rotated.y() *= sign.y() / tile.y();
+    }
 
     // Non-square textures. Without this the [0,1] square of uv covers the whole image whatever its
-    // proportions, so a 2:1 image is squeezed into a square tile and every feature in it comes out
-    // half as wide as it should be. `tiling_scale` is the tile's size along u; the tile is
-    // `tiling_scale * height / width` mm along v, which is exactly what keeps texels square - so
-    // dividing v by that extent is the same as multiplying it by width / height. A square texture has
-    // aspect 1 and is untouched, which is why this changes nothing for the shipped library.
+    // proportions, so a 2:1 image is squeezed into one tile and every feature in it comes out half
+    // as wide as it should be. The tile is `layer_tile_mm().y() * height / width` mm along v, which
+    // is exactly what keeps texels square - so dividing v by that extent is the same as multiplying
+    // it by width / height. A square texture has aspect 1 and is untouched, which is why this
+    // changes nothing for the shipped library.
     //
-    // Applied after the rotation, not before: scaling one axis of an already-rotated coordinate is a
-    // shear, and doing it the other way round would make "Rotation" skew the pattern instead of
-    // turning it.
+    // Applied after the rotation, like the extents, and for the same reason: scaling one axis of an
+    // already-rotated coordinate before turning it would be a shear.
     if (!normalized_uv && aspect > 0.f && aspect != 1.f)
         rotated.y() *= aspect;
 
@@ -3568,13 +3602,36 @@ void texture_displacement_patch_frame(const indexed_triangle_set &patch, const s
            (an.y() <= an.x() && an.y() <= an.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
 }
 
+Matrix3d texture_displacement_frame_rotation(const Transform3d &volume_to_world)
+{
+    // Separated out by polar decomposition rather than by assuming the linear part is a clean
+    // rotation times a scale: a sheared or mirrored placement is legal here. A reflection is left
+    // behind with the scale on purpose, so a mirrored instance still makes the bake frame's
+    // determinant negative and the bake still knows to flip the normals it derives.
+    const Matrix3d                   linear = volume_to_world.linear();
+    Eigen::JacobiSVD<Matrix3d>       svd(linear, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Matrix3d                         rotation = svd.matrixU() * svd.matrixV().transpose();
+    if (rotation.determinant() < 0.0) {
+        Matrix3d u = svd.matrixU();
+        u.col(2) *= -1.0;
+        rotation = u * svd.matrixV().transpose();
+    }
+    return rotation.transpose(); // world -> texture frame
+}
+
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world)
 {
-    // World orientation and scale, but the origin moved to where the volume's own origin sits: the
-    // texture then rides with the model when it is moved about the plate (and a single, untiled stamp
-    // starts on the model rather than at the plate's corner), while a tile is still `tiling_scale`
-    // printed millimetres whatever the instance's scale.
-    return Eigen::Translation3d(-volume_to_world.translation()) * volume_to_world;
+    // The model's own orientation, world scale, and the origin moved to where the volume's origin
+    // sits. So the texture rides with the model however it is moved *and* however it is turned,
+    // while a tile is still `tiling_scale` printed millimetres whatever the instance's scale, and a
+    // single untiled stamp starts on the model rather than at the plate's corner.
+    //
+    // Orientation used to come from the world too, which meant turning a part on the plate slid the
+    // decoration across its surface. Turning a part is a print-time decision - clearance, supports,
+    // warping - and it should not be a design one.
+    Transform3d unrotate = Transform3d::Identity();
+    unrotate.linear()    = texture_displacement_frame_rotation(volume_to_world);
+    return unrotate * Eigen::Translation3d(-volume_to_world.translation()) * volume_to_world;
 }
 
 Transform3d texture_displacement_volume_to_world(const ModelVolume &volume)
@@ -5785,7 +5842,13 @@ std::string texture_displacement_layers_to_json(const std::vector<TextureDisplac
 
         j["depth_mm"]     = l.depth_mm;
         j["tiling_scale"] = l.tiling_scale;
-        j["rotation_deg"] = l.rotation_deg;
+        // The v extent and the mirroring. Written unconditionally, including the <= 0 "same as u"
+        // sentinel, so a project says plainly that the tile was square rather than leaving a reader
+        // to infer it from a missing key.
+        j["tiling_scale_v"] = l.tiling_scale_v;
+        j["mirror_u"]       = l.mirror_u;
+        j["mirror_v"]       = l.mirror_v;
+        j["rotation_deg"]   = l.rotation_deg;
         j["offset"]       = vec2_to_json(l.offset);
         j["invert"]       = l.invert;
         j["midlevel"]     = l.midlevel;
@@ -5893,6 +5956,12 @@ bool texture_displacement_layers_from_json(const std::string                    
 
                 read(j, "depth_mm", l.depth_mm);
                 read(j, "tiling_scale", l.tiling_scale);
+                // Absent in a project written before the tile could be rectangular or mirrored, and
+                // then each keeps its default: -1 for the v extent, which layer_tile_mm() reads as
+                // "square", and false for the mirrors. So an older project loads as what it was.
+                read(j, "tiling_scale_v", l.tiling_scale_v);
+                read(j, "mirror_u", l.mirror_u);
+                read(j, "mirror_v", l.mirror_v);
                 read(j, "rotation_deg", l.rotation_deg);
                 if (const auto o = j.find("offset"); o != j.end())
                     l.offset = vec2_from_json(*o, l.offset);

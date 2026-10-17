@@ -16,7 +16,16 @@ uniform bool volume_mirrored;
 uniform int   mode;
 uniform float checker_freq;
 uniform float tiling_scale;
+// Tile extent along v, in mm. Zero or negative means "the same as tiling_scale" - see
+// layer_tile_mm() on the CPU side, so an unset uniform behaves exactly as this shader always did.
+uniform float tiling_scale_v;
+// Mirror along one tile axis; false by default, so an unset uniform is the old behaviour.
+uniform bool  mirror_u;
+uniform bool  mirror_v;
 uniform vec3  tex_anchor; // the volume's origin in world space
+// The placement's rotation, so this overlay projects the same frame the bake does. Identity, which
+// is what an unset uniform gives, leaves the old world-aligned behaviour.
+uniform mat3  tex_rot;    // world -> texture frame
 uniform float rotation_rad;
 uniform vec2  uv_offset;
 uniform bool  use_vertex_uv;
@@ -79,13 +88,30 @@ vec2 projection_raw(vec3 p, vec3 n)
     return vec2(box_face_sign(n.z) * p.x, -p.y);
 }
 
+
+// Tile extents in mm, u then v, with the v fallback layer_tile_mm() applies.
+vec2 tile_mm()
+{
+    float su = (tiling_scale > 1e-6) ? tiling_scale : 1.0;
+    return vec2(su, (tiling_scale_v > 1e-6) ? tiling_scale_v : su);
+}
+
+// +1 or -1 per axis, matching layer_mirror_sign() on the CPU side.
+vec2 mirror_sign()
+{
+    return vec2(mirror_u ? -1.0 : 1.0, mirror_v ? -1.0 : 1.0);
+}
+
 vec2 project_uv(vec3 p, vec3 n)
 {
     vec2 planar = projection_raw(p, n);
-    planar *= (tiling_scale > 1e-6) ? (1.0 / tiling_scale) : 1.0;
     float cs = cos(rotation_rad);
     float sn = sin(rotation_rad);
     vec2 r = vec2(planar.x * cs - planar.y * sn, planar.x * sn + planar.y * cs);
+    // Extents divide after the rotation, so a tile whose two sides differ stays a rotated rectangle
+    // instead of shearing. With a square tile the two orders agree exactly. The mirror is a sign on
+    // the same division, in the tile's own frame.
+    r *= mirror_sign() / tile_mm();
     r.y *= tex_aspect; // after the rotation, so the rotation stays a rotation rather than a shear
     return r + uv_offset;
 }
@@ -105,7 +131,7 @@ void main()
 
     // World space anchored at the volume's origin, like the bake and the shaded preview.
     vec3 triangle_normal = normalize(cross(dFdx(world_pos.xyz), dFdy(world_pos.xyz)));
-    vec3 tex_pos = world_pos.xyz - tex_anchor;
+    vec3 tex_pos = tex_rot * (world_pos.xyz - tex_anchor);
     if (volume_mirrored)
         triangle_normal = -triangle_normal;
 
@@ -113,7 +139,7 @@ void main()
     if (mode == 1) {
         base = heatmap(distortion);
     } else {
-        vec2 uv = use_vertex_uv ? vertex_uv : project_uv(tex_pos, triangle_normal);
+        vec2 uv = use_vertex_uv ? vertex_uv : project_uv(tex_pos, tex_rot * triangle_normal);
         vec2 c  = floor(uv * checker_freq);
         float check = mod(c.x + c.y, 2.0);
         base = (check < 0.5) ? vec3(0.22, 0.23, 0.26) : vec3(0.82, 0.83, 0.86);
