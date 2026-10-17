@@ -44,7 +44,10 @@ are retained. Floor row ends extend into nearby previous-layer perimeter bead
 footprints when reachable; sparse slice interiors are not treated as solid support.
 This does not select bridge flow or guarantee support at both ends.
 
-Individual wall segments and complete floor groups are ordered together by Orca's shared path-ordering helper, using
+Wall graph vertices snap to fixed representatives. Branch pairing favours
+straight crossings; three-way junctions cycle turns across layers using their
+generating points. Trails traverse each wall edge once. Wall trails and complete
+floor groups are ordered together by Orca's shared path-ordering helper, using
 each group's actual entry and exit. Walls may reverse; floors retain their supported-side-first sweep.
 Ordering is local to a fill surface, and disconnected paths still require travel.
 
@@ -55,7 +58,7 @@ Infill reports completed layers with throttled UI updates and cancellation.
 
 ## Wall thickness
 
-Fill Multiline uses Orca's native offset outlines around wall segments. Odd
+Fill Multiline uses Orca's native offset outlines around routed wall paths. Odd
 counts retain the central wall; even counts use half-spacing offsets. Native
 boundary connectors respect the infill anchor length and maximum anchor length;
 a zero maximum disables these connectors.

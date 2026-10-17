@@ -306,7 +306,7 @@ TEST_CASE("Voronoi shallow face bands overlap adjacent layers by half", "[FillVo
     const auto below = infill.fill_geometry(bounds, region, 0.4, 0.2, 4.8, 0.45, 0.2);
     const auto current = infill.fill_geometry(bounds, region, 0.4, 0.2, 5., 0.45, 0.2);
     const auto above = infill.fill_geometry(bounds, region, 0.4, 0.2, 5.2, 0.45, 0.2);
-    REQUIRE(current.walls.empty());
+    REQUIRE(path_length(current.walls) < SCALED_EPSILON);
     REQUIRE(current.bands.size() == 1);
     REQUIRE(below.bands.size() == 1);
     REQUIRE(above.bands.size() == 1);
@@ -359,7 +359,7 @@ TEST_CASE("Voronoi faces retain a single line when bead overlap is sufficient", 
     // At the same height a narrower bead needs a band instead; cached geometry
     // must include extrusion dimensions, not just the layer Z coordinate.
     const auto narrow = infill.fill_geometry(region.contour.bounding_box(), region, 0.2, 0.2, 10., 0.3, 0.2);
-    REQUIRE(narrow.walls.empty());
+    REQUIRE(path_length(narrow.walls) < SCALED_EPSILON);
     REQUIRE(narrow.bands.size() == 1);
 }
 
@@ -459,6 +459,102 @@ TEST_CASE("Voronoi overlapping bands have reproducible ownership across independ
             area += polygon.area();
         REQUIRE(area < scale_(EPSILON) * scale_(1.));
     }
+}
+
+TEST_CASE("Voronoi snaps short edges without transitive vertex drift", "[FillVoronoi]")
+{
+    const Polylines walls {Polyline(Points{Point(0, 0), Point(6, 0), Point(12, 0), Point(0, 100)})};
+    const auto graph = Voronoi::build_wall_graph(walls, 8);
+    REQUIRE(graph.indices.at(Point(6, 0)) == graph.indices.at(Point(0, 0)));
+    REQUIRE(graph.indices.at(Point(12, 0)) != graph.indices.at(Point(0, 0)));
+    REQUIRE(graph.edges.size() == 2);
+    for (const auto &entry : graph.indices)
+        REQUIRE((entry.first.cast<double>() - graph.vertices[entry.second].point.cast<double>()).norm() <= 8.);
+}
+
+TEST_CASE("Voronoi prints straight through rounded four way and six way crossings", "[FillVoronoi]")
+{
+    const size_t degree = GENERATE(size_t(4), size_t(6));
+    const bool rounded = GENERATE(false, true);
+    Polylines walls;
+    for (size_t i = 0; i < degree; ++i) {
+        const double angle = 2. * M_PI * double(i) / double(degree);
+        const Point center = rounded && i % 2 ? Point(3, 0) : Point(0, 0);
+        walls.emplace_back(Points{center, Point::new_scale(20. * std::cos(angle), 20. * std::sin(angle))});
+    }
+    if (rounded) walls.emplace_back(Points{Point(0, 0), Point(3, 0)});
+    const auto graph = Voronoi::build_wall_graph(walls);
+    const auto connections = Voronoi::pair_junctions(graph, {}, 0);
+    const auto trails = Voronoi::trace_trails(graph, connections, 0);
+    REQUIRE(trails.size() == degree / 2);
+    REQUIRE(segments(trails).size() == degree);
+    for (const Polyline &trail : trails) {
+        REQUIRE(trail.points.size() == 3);
+        const Vec2d a = (trail.points[0] - trail.points[1]).cast<double>();
+        const Vec2d b = (trail.points[2] - trail.points[1]).cast<double>();
+        REQUIRE(a.dot(b) / (a.norm() * b.norm()) < -0.99999);
+    }
+}
+
+TEST_CASE("Voronoi cycles actual three way connections using persistent generating sites", "[FillVoronoi]")
+{
+    const BoundingBox bounds(Point::new_scale(-20., -20.), Point::new_scale(20., 20.));
+    std::vector<Vec3d> sites {Vec3d(0., 2., 0.), Vec3d(-std::sqrt(3.), -1., 0.), Vec3d(std::sqrt(3.), -1., 0.)};
+    const bool rounded_metadata = GENERATE(false, true);
+    const bool duplicate_site = GENERATE(false, true);
+    if (duplicate_site) sites.push_back(sites.front());
+    std::set<Point> unpaired;
+    Segments expected;
+    for (size_t layer_id = 0; layer_id < 3; ++layer_id) {
+        // Reordered point insertion and a changing Z plane must not change
+        // which physical branch occupies each position in the three-layer cycle.
+        std::rotate(sites.begin(), sites.begin() + 1, sites.end());
+        auto section = Voronoi::section(sites, bounds, .2 * layer_id);
+        const Point junction_point = section.junctions.front().point;
+        if (rounded_metadata) section.junctions.front().point += Point(1, 0);
+        const auto graph = Voronoi::build_wall_graph(section.walls);
+        const auto connections = Voronoi::pair_junctions(graph, section.junctions, layer_id);
+        auto trails = Voronoi::trace_trails(graph, connections, layer_id);
+        REQUIRE(trails.size() == 2);
+        if (layer_id == 0) expected = segments(trails);
+        REQUIRE(segments(trails) == expected);
+        REQUIRE(section.junctions.size() == 1);
+        const size_t center = graph.indices.at(junction_point);
+        size_t open = 0;
+        for (size_t e : graph.vertices[center].edges) {
+            const size_t side = graph.edges[e][0] == center ? 0 : 1;
+            if (connections[e][side] == Voronoi::no_connection) {
+                ++open;
+                unpaired.insert(graph.vertices[graph.edges[e][1 - side]].point);
+            }
+        }
+        REQUIRE(open == 1);
+        // Test actual traced paths, not only the intended pairing table.
+        size_t endpoints_at_center = 0;
+        for (const auto &trail : trails) {
+            endpoints_at_center += trail.first_point() == graph.vertices[center].point;
+            endpoints_at_center += trail.last_point() == graph.vertices[center].point;
+        }
+        REQUIRE(endpoints_at_center == 1);
+    }
+    REQUIRE(unpaired.size() == 3);
+}
+
+TEST_CASE("Voronoi tracing keeps parallel edges and changes closed trail starts", "[FillVoronoi]")
+{
+    const Polylines walls {Polyline(Points{Point(0, 0), Point(100, 0)}),
+                          Polyline(Points{Point(0, 0), Point(100, 0)})};
+    const auto graph = Voronoi::build_wall_graph(walls);
+    const auto connections = Voronoi::pair_junctions(graph, {}, 0);
+    const auto first = Voronoi::trace_trails(graph, connections, 0);
+    const auto second = Voronoi::trace_trails(graph, connections, 1);
+    REQUIRE(first.size() == 1);
+    REQUIRE(second.size() == 1);
+    REQUIRE(first.front().points.size() == 3);
+    REQUIRE(first.front().first_point() != second.front().first_point());
+    REQUIRE(first.front().first_point() == first.front().last_point());
+    REQUIRE_THAT(path_length(first), Catch::Matchers::WithinAbs(200., 1e-9));
+    REQUIRE_THAT(path_length(second), Catch::Matchers::WithinAbs(200., 1e-9));
 }
 
 TEST_CASE("Voronoi orders whole floor groups without reversing their supported sweep", "[FillVoronoi]")

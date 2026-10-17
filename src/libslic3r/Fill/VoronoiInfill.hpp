@@ -31,6 +31,7 @@ public:
     Voronoi::Layer fill_geometry(const BoundingBox &object_bounds, const ExPolygon &region,
                                 double spacing, double density, double z, double width, double height,
                                 double reference_height = -1., double row_spacing = -1., int wall_count = 1);
+    Polylines route_walls(Polylines walls, size_t layer_id) const;
 
 private:
     std::shared_ptr<const Voronoi::PointCloudProvider> m_provider;

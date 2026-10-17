@@ -13,8 +13,13 @@
 namespace Slic3r::Voronoi {
 
 // Geometry metadata only: no traversal or pairing decisions in the slicer.
+struct Junction {
+    Point point;
+    std::array<Vec3d, 3> sites;
+};
 struct Section {
     Polylines walls;
+    std::vector<Junction> junctions;
 };
 
 struct Band {

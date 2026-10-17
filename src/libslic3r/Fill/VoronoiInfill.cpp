@@ -2,6 +2,7 @@
 
 #include "../ClipperUtils.hpp"
 #include "VoronoiInfillCgal.hpp"
+#include "VoronoiRouting.hpp"
 #include <cstddef>
 #include <vector>
 #include <algorithm>
@@ -11,6 +12,14 @@
 #include "../Polygon.hpp"
 
 namespace Slic3r {
+Polylines VoronoiInfill::route_walls(Polylines walls, size_t layer_id) const
+{
+    if (walls.empty()) return walls;
+    const Voronoi::WallGraph graph = Voronoi::build_wall_graph(walls);
+    return Voronoi::trace_trails(graph,
+        Voronoi::pair_junctions(graph, m_section.junctions, layer_id), layer_id);
+}
+
 Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, const ExPolygon &region,
                                           double spacing, double density, double z, double width, double height,
                                           double reference_height, double row_spacing, int wall_count)
@@ -72,8 +81,6 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
     for (const Voronoi::Band &band : result.bands)
         append(wall_mask, offset_ex(band.polygon, -1.f));
     result.walls = diff_pl(intersection_pl(m_section.walls, region), wall_mask);
-    result.walls.erase(std::remove_if(result.walls.begin(), result.walls.end(),
-        [](const Polyline &wall) { return wall.length() <= scale_(0.000008); }), result.walls.end());
     return result;
 }
 
