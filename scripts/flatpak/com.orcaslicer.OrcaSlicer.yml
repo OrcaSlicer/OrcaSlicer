@@ -178,10 +178,10 @@ modules:
         sha256: 0dbb1f9e3aaad66f352c03227d8c983f6f0b49e0b07e71a7300f4abcc01aee12
         dest: external-packages/Eigen
 
-      # TBB v2021.5.0
+      # TBB v2021.13.0
       - type: file
-        url: https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.5.0.zip
-        sha256: 83ea786c964a384dd72534f9854b419716f412f9d43c0be88d41874763e7bb47
+        url: https://github.com/uxlfoundation/oneTBB/archive/refs/tags/v2021.13.0.zip
+        sha256: f8dba2602f61804938d40c24d8f9b1f1cc093cd003b24901d5c3cc75f3dbb952
         dest: external-packages/TBB
 
       # Cereal v1.3.0
