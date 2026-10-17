@@ -522,7 +522,17 @@ public:
 
     // Helpers to slice support enforcer / blocker meshes by the support generator.
     std::vector<Polygons>       slice_support_volumes(const ModelVolumeType model_volume_type) const;
-    std::vector<Polygons>       slice_support_blockers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_BLOCKER); }
+    std::vector<Polygons> slice_support_blockers() const
+    {
+        auto blockers = this->slice_support_volumes(ModelVolumeType::SUPPORT_BLOCKER);
+        if (!m_fin_support_reserved.empty()) {
+            blockers.resize(m_layers.size());
+            for (Polygons& layer : blockers)
+                layer.insert(layer.end(), m_fin_support_reserved.begin(), m_fin_support_reserved.end());
+        }
+        return blockers;
+    }
+    const Polygons& fin_support_reserved() const { return m_fin_support_reserved; }
     std::vector<Polygons>       slice_support_enforcers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_ENFORCER); }
     // Preserve each connected region and its holes for perimeter clipping.
     std::vector<ExPolygons>     slice_single_volume_regions(const ModelVolume* volume) const;
@@ -690,6 +700,7 @@ private:
     };
     std::vector<BeltDroppedFill>            m_belt_dropped_fills;
     SupportLayerPtrs                        m_support_layers;
+    Polygons m_fin_support_reserved;
     // Belt brim, generated in posSupportMaterial by BeltBrim.cpp.  Object-local
     // slicing frame, one entry per object layer plus a prologue of brim-only
     // bands that print below the object's first layer.

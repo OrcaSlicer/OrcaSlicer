@@ -487,6 +487,8 @@ set(lisbslic3r_sources
     Support/BeltFloorContext.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
+    Support/SupportFins.cpp
+    Support/SupportFins.hpp
     Support/SupportLayer.hpp
     Support/SupportMaterial.cpp
     Support/SupportMaterial.hpp

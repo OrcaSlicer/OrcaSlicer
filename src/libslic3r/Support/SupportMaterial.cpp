@@ -3415,6 +3415,7 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                 // perimeter's width. $support contains the full shape of support
                 // material, thus including the width of its foremost extrusion.
                 // We leave a gap equal to a full extrusion width.
+                append(polygons_trimming, object.fin_support_reserved());
                 support_layer.polygons = diff(support_layer.polygons, polygons_trimming);
             }
         });

@@ -1586,7 +1586,9 @@ void generate_support_toolpaths(
         // Filler for the base interface (to be used for soluble interface / non soluble base, to produce non soluble interface layer below soluble interface layer).
         auto filler_base_interface  = std::unique_ptr<Fill>(base_interface_layers.empty() ? nullptr :
             Fill::new_from_type(base_interface_density > 0.95 || support_params.with_sheath ? ipRectilinear : ipSupportBase));
-        auto filler_support         = std::unique_ptr<Fill>(Fill::new_from_type(support_params.base_fill_pattern));
+        // Fins are printed solid with concentric loops, so each fin and its tines are one continuous bead.
+        const bool fins     = support_params.fins;
+        auto filler_support = std::unique_ptr<Fill>(Fill::new_from_type(fins ? ipConcentric : support_params.base_fill_pattern));
         filler_interface->set_bounding_box(bbox_object);
         if (filler_first_layer_ptr)
             filler_first_layer_ptr->set_bounding_box(bbox_object);
@@ -1644,10 +1646,15 @@ void generate_support_toolpaths(
                         base_layer = std::move(top_contact_layer);
                 }
             } else {
-                if (support_params.ironing && !top_contact_layer.empty()) {
-                    // Orca: save the top surface to be ironed later
+                if (support_params.ironing && (!top_contact_layer.empty() || (fins && !interface_layer.empty()))) {
+                    // Orca: save the top surface to be ironed later.
+                    // Fin decks have interface layers but no separate contact layer. Covered
+                    // areas are removed below before ironing, leaving only the exposed deck.
                     layer_cache.ironing_angle = support_interface_angle; // TODO: should we rotate 90 degrees?
-                    layer_cache.polys_to_iron = top_contact_layer.polygons_to_extrude();
+                    if (!top_contact_layer.empty())
+                        layer_cache.polys_to_iron = top_contact_layer.polygons_to_extrude();
+                    if (fins && !interface_layer.empty())
+                        append(layer_cache.polys_to_iron, interface_layer.polygons_to_extrude());
                 }
 
                 loop_interface_processor.generate(top_contact_layer, support_params.support_material_interface_flow);
@@ -1801,8 +1808,8 @@ void generate_support_toolpaths(
                 auto flow = support_params.support_material_flow.with_height(float(base_layer.layer->height));
                 filler->spacing = support_params.support_material_flow.spacing();
                 filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / support_params.support_density));
-                float density = float(support_params.support_density);
-                bool  sheath  = support_params.with_sheath;
+                float density           = fins ? 1.f : float(support_params.support_density);
+                bool sheath             = support_params.with_sheath && !fins;
                 bool  no_sort = false;
                 bool  done    = false;
                 // Belt printers have no flat bed first layer — the belt is the tilted
@@ -1830,12 +1837,23 @@ void generate_support_toolpaths(
                     tree_supports_generate_paths(base_layer.extrusions, base_layer.polygons_to_extrude(), flow, support_params);
                     done = true;
                 }
+                Polygons base_polygons = base_layer.polygons_to_extrude();
+                if (fins && base_layer.layer->fin_contact_polygons) {
+                    const Polygons contacts = intersection(base_polygons, *base_layer.layer->fin_contact_polygons);
+                    base_polygons           = diff(base_polygons, contacts);
+                    const Flow contact_flow = support_params.support_material_interface_flow.with_height(float(base_layer.layer->height));
+                    std::unique_ptr<Fill> contact_filler(Fill::new_from_type(ipConcentric));
+                    contact_filler->set_bounding_box(bbox_object);
+                    contact_filler->spacing = contact_flow.spacing();
+                    fill_expolygons_generate_paths(base_layer.extrusions, union_ex(contacts), contact_filler.get(), 1.f,
+                                                   ExtrusionRole::erSupportMaterialInterface, contact_flow);
+                }
                 if (! done)
                     fill_expolygons_with_sheath_generate_paths(
                         // Destination
                         base_layer.extrusions,
                         // Regions to fill
-                        base_layer.polygons_to_extrude(),
+                        base_polygons,
                         // Filler and its parameters
                         filler, density,
                         // Extrusion parameters

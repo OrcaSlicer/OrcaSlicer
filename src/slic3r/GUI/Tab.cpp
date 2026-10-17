@@ -3114,6 +3114,18 @@ void TabPrint::build()
         optgroup->append_single_option_line("support_ironing_flow", "support_settings_ironing#flow");
         optgroup->append_single_option_line("support_ironing_spacing", "support_settings_ironing#line-spacing");
 
+        optgroup = page->new_optgroup(L("Fins"), L"param_support");
+        optgroup->append_single_option_line("support_fin_fallback", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_spacing", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_thickness", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_tine_spacing", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_tine_base_rows", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_tine_depth", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_height", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_lean_side_only", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_cross_spacing", "support_settings_advanced#fins");
+        optgroup->append_single_option_line("support_fin_interface_layers", "support_settings_advanced#fins");
+
         //optgroup = page->new_optgroup(L("Options for support material and raft"));
 
         // Support

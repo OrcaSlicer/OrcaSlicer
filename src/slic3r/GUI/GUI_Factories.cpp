@@ -79,20 +79,35 @@ static bool is_improper_category(const std::string& category, const int filament
 //-------------------------------------
 
 // pt_FFF
-static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_FFF =
-{
-    //BBS
-    { L("Quality"), { "layer_height" } },
-    { L("Shell"), { "wall_loops", "top_shell_layers", "bottom_shell_layers"} },
-    { L("Infill")               , { "sparse_infill_density", "sparse_infill_pattern" } },
-    // BBS
-    { L("Support")     , { "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap",
-                                    "support_base_pattern", "support_on_build_plate_only","support_critical_regions_only",
-                                    "support_remove_small_overhang",
-                                    "support_base_pattern_spacing", "support_expansion"}},
-    //BBS
-    { L("Flush options")         , { "flush_into_infill", "flush_into_objects", "flush_into_support"} }
-};
+static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_FFF = {// BBS
+                                                           {L("Quality"), {"layer_height"}},
+                                                           {L("Shell"), {"wall_loops", "top_shell_layers", "bottom_shell_layers"}},
+                                                           {L("Infill"), {"sparse_infill_density", "sparse_infill_pattern"}},
+                                                           // BBS
+                                                           {L("Support"),
+                                                            {"enable_support",
+                                                             "support_type",
+                                                             "support_threshold_angle",
+                                                             "support_threshold_overlap",
+                                                             "support_base_pattern",
+                                                             "support_on_build_plate_only",
+                                                             "support_critical_regions_only",
+                                                             "support_remove_small_overhang",
+                                                             "support_base_pattern_spacing",
+                                                             "support_expansion",
+                                                             "support_fin_spacing",
+                                                             "support_fin_thickness",
+                                                             "support_fin_tine_spacing",
+                                                             "support_fin_tine_base_rows",
+                                                             "support_fin_tine_depth",
+                                                             "support_fin_height",
+                                                             "support_fin_lean_side_only",
+                                                             "support_fin_cross_spacing",
+                                                             "support_fin_interface_layers",
+                                                             "support_fin_fallback"}},
+                                                           // BBS
+                                                           {L("Flush options"),
+                                                            {"flush_into_infill", "flush_into_objects", "flush_into_support"}}};
 
 // pt_SLA
 static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_SLA =
