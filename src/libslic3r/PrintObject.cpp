@@ -4245,6 +4245,7 @@ void PrintObject::update_slicing_parameters()
           coordf_t object_height = this->model_object()->max_z();
           BeltTransformPipeline::BeltFloorParams belt_floor;
           const auto &pcfg = this->print()->config();
+          const Vec3d shrinkage_compensation = this->print()->shrinkage_compensation();
           if (pcfg.belt_printer.value) {
               // The box of the mesh in the frame it is sliced in: XY centred and Z as
               // placed on the bed (trafo_centered()).  raw_bounding_box() has the
@@ -4257,12 +4258,14 @@ void PrintObject::update_slicing_parameters()
               for (const ModelVolume *v : this->model_object()->volumes)
                   if (v->is_model_part())
                       bb.merge(v->mesh().transformed_bounding_box(trafo * v->get_matrix()));
-              auto hr = BeltTransformPipeline::compute_belt_height_and_floor(pcfg, bb, object_height);
-              object_height = hr.object_height;
+              // trafo() already carries the shrinkage compensation, so the belt height is
+              // compensated, while create_from_config() expects object_height without it.
+              auto hr = BeltTransformPipeline::compute_belt_height_and_floor(pcfg, bb, object_height * shrinkage_compensation.z());
+              object_height = hr.object_height / shrinkage_compensation.z();
               belt_floor    = hr.floor_params;
           }
           m_slicing_params = SlicingParameters::create_from_config(pcfg, m_config, object_height,
-                                                                   this->object_extruders(), this->print()->shrinkage_compensation());
+                                                                   this->object_extruders(), shrinkage_compensation);
           // Populate belt floor parameters into slicing params for support clipping.
           m_slicing_params.belt_floor_shear_factor = belt_floor.shear_factor;
           m_slicing_params.belt_floor_from_axis    = belt_floor.from_axis;
