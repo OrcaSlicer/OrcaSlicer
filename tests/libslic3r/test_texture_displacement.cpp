@@ -94,6 +94,33 @@ static std::shared_ptr<std::vector<unsigned char>> make_flat_rgb_png(uint8_t r, 
     return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
 }
 
+// An RGB image built by a caller-supplied function of the pixel position, written through the same
+// temp-file round trip the flat helpers above use.
+static std::shared_ptr<std::vector<unsigned char>> make_rgb_png(
+    size_t w, size_t h, const std::function<std::array<uint8_t, 3>(size_t, size_t)> &at)
+{
+    std::vector<uint8_t> rgb;
+    rgb.reserve(w * h * 3);
+    for (size_t y = 0; y < h; ++y)
+        for (size_t x = 0; x < w; ++x) {
+            const std::array<uint8_t, 3> c = at(x, y);
+            rgb.insert(rgb.end(), { c[0], c[1], c[2] });
+        }
+    const boost::filesystem::path tmp_path = boost::filesystem::temp_directory_path()
+        / boost::filesystem::unique_path("texdisp_test_%%%%%%%%.png");
+    REQUIRE(Slic3r::png::write_rgb_to_file(tmp_path.string(), w, h, rgb));
+
+    std::vector<unsigned char> bytes;
+    {
+        std::ifstream ifs(tmp_path.string(), std::ios::binary);
+        bytes.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    boost::system::error_code ec;
+    boost::filesystem::remove(tmp_path, ec);
+    REQUIRE_FALSE(bytes.empty());
+    return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
+}
+
 // A hard-edged black/white checkerboard, the worst case for a height map: every texel boundary is a
 // step, which is precisely the relief the post-process smoothing exists to round off.
 static std::shared_ptr<std::vector<unsigned char>> make_checkerboard_png(size_t w = 16, size_t h = 16)
@@ -2624,6 +2651,61 @@ TEST_CASE("TextureDisplacement: a texture of flat colours is told apart from a c
     const TextureDetail d = analyze_texture_detail(gradient);
     CHECK_FALSE(d.flat_colors);
     CHECK(d.flat_share < 0.85f);
+}
+
+TEST_CASE("A mirrored tile folds at its seam instead of wrapping to the far edge", "[TextureDisplacement]")
+{
+    // Mirrored repeat exists so a tile edge lines up with itself, which means the texel past the edge
+    // is the edge again. Wrapping the bilinear neighbour instead blends the image's two opposite edges
+    // together: on a ramp from black to white it turned the white edge into near-black at every seam,
+    // a visible line and a disagreement with the preview, where the GPU binds GL_MIRRORED_REPEAT.
+    TextureDisplacementLayer layer;
+    layer.image_data = make_rgb_png(8, 8, [](size_t x, size_t) {
+        const uint8_t v = uint8_t(x * 36); // 0 at the left edge, 252 at the right
+        return std::array<uint8_t, 3>{ v, v, v };
+    });
+    const DecodedHeightTexture tex = decode_height_texture(layer);
+    REQUIRE(tex.width == 8);
+    const float bright = 252.f / 255.f;
+
+    // Either side of a seam the fold puts the bright edge, not a blend with the dark one.
+    for (const float u : { 0.999f, 1.001f, 2.999f, 3.001f }) {
+        INFO("u = " << u);
+        CHECK_THAT(tex.sample(Vec2f(u, 0.5f), true, TextureTileMethod::MirroredRepeat),
+                   WithinAbs(bright, 0.02f));
+    }
+
+    // Plain repeat is the opposite case and must keep wrapping: its next tile really does start at the
+    // far edge, so just inside the seam the neighbour is the dark one.
+    CHECK(tex.sample(Vec2f(0.999f, 0.5f), true, TextureTileMethod::Repeat) < 0.1f);
+}
+
+TEST_CASE("A two-colour ramp is not mistaken for an image of flat colours", "[TextureDisplacement]")
+{
+    // The histogram alone cannot tell these two apart: a ramp between two colours visits as few
+    // coarse bins as the two colours on their own, and both score far above the flat-share
+    // threshold. What separates them is that the ramp fills its colour axis and the pair does not.
+    const std::array<uint8_t, 3> a{ 0x4f, 0xc3, 0x08 };
+    const std::array<uint8_t, 3> b{ 0xd4, 0x2f, 0x25 };
+
+    TextureDisplacementLayer ramp;
+    ramp.image_data = make_rgb_png(96, 96, [&](size_t, size_t y) {
+        const float t = float(y) / 95.f;
+        return std::array<uint8_t, 3>{ uint8_t(std::lround(a[0] + (b[0] - a[0]) * t)),
+                                       uint8_t(std::lround(a[1] + (b[1] - a[1]) * t)),
+                                       uint8_t(std::lround(a[2] + (b[2] - a[2]) * t)) };
+    });
+    const TextureDetail ramp_detail = analyze_texture_detail(ramp);
+    CHECK(ramp_detail.flat_share >= 0.85f);     // the old signal, on its own, calls this flat
+    CHECK(ramp_detail.axis_coverage > 0.8f);    // but its colours run the length of the axis
+    CHECK_FALSE(ramp_detail.flat_colors);       // so mixes stay available
+
+    // The same two colours as areas rather than a ramp: nothing in between, so no mix would serve it.
+    TextureDisplacementLayer two_tone;
+    two_tone.image_data = make_rgb_png(96, 96, [&](size_t, size_t y) { return y < 48 ? a : b; });
+    const TextureDetail two_tone_detail = analyze_texture_detail(two_tone);
+    CHECK(two_tone_detail.axis_coverage < 0.25f);
+    CHECK(two_tone_detail.flat_colors);
 }
 
 TEST_CASE("Each layer's texture is sampled only on its own painted area", "[TextureDisplacement]")
