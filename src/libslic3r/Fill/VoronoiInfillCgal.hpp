@@ -14,8 +14,13 @@
 namespace Slic3r::Voronoi {
 
 // Geometry metadata only: no traversal or pairing decisions in the slicer.
+struct Junction {
+    Point point;
+    std::array<Vec3d, 3> sites;
+};
 struct Section {
     Polylines walls;
+    std::vector<Junction> junctions;
     // Maximum nearest-site distance over the bounded XY section, including
     // clipped boundary vertices. Infinity means that no site is known.
     double covering_radius { std::numeric_limits<double>::infinity() };

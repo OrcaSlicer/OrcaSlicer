@@ -7,6 +7,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "VoronoiInfillCgal.hpp"
+#include "VoronoiRouting.hpp"
 #include <cstddef>
 #include <memory>
 #include <vector>
@@ -30,6 +31,14 @@ ExPolygons Voronoi::floor_interiors(const std::vector<Band> &bands)
     for (const Band &band : bands)
         append(interiors, offset_ex(band.polygon, -1.f));
     return interiors;
+}
+
+Polylines VoronoiInfill::route_walls(Polylines walls, size_t layer_id) const
+{
+    if (walls.empty()) return walls;
+    const Voronoi::WallGraph graph = Voronoi::build_wall_graph(walls);
+    return Voronoi::trace_trails(graph,
+        Voronoi::pair_junctions(graph, m_section.junctions, layer_id), layer_id);
 }
 
 Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, const ExPolygon &region,
@@ -110,8 +119,6 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
     }
     const ExPolygons wall_mask = Voronoi::floor_interiors(result.bands);
     result.walls = diff_pl(intersection_pl(m_section.walls, region), wall_mask);
-    result.walls.erase(std::remove_if(result.walls.begin(), result.walls.end(),
-        [](const Polyline &wall) { return wall.length() <= scale_(0.000008); }), result.walls.end());
     return result;
 }
 
