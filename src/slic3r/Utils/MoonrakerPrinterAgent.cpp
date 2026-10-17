@@ -1830,7 +1830,12 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         if (homed.find('Z') != std::string::npos)
             home_flag |= 4; // bit 2
     }
+    // Bits 8-9 carry the storage state, and the parser resets it from them on every push. Klipper
+    // prints from its virtual_sdcard, which is always there, so report it present; otherwise the
+    // print dialog blocks with "Storage needs to be inserted" between filament syncs.
+    home_flag |= DevStorage::HAS_SDCARD_NORMAL << 8;
     payload["print"]["home_flag"] = home_flag;
+    payload["print"]["sdcard"]    = true;
 
     // Moonraker doesn't provide temperature ranges via API - use hardcoded defaults
     payload["print"]["nozzle_temp_range"] = {100, 370}; // Typical Klipper range
