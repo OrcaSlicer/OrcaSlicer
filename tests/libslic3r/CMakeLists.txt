@@ -67,6 +67,7 @@ add_executable(${_TEST_NAME}_tests
     test_wipe_path.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
+    test_shortest_path.cpp
     # test_png_io.cpp
     test_indexed_triangle_set.cpp
     test_connected_bodies.cpp

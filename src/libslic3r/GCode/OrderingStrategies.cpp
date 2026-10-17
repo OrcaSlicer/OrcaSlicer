@@ -8,6 +8,7 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -151,6 +152,41 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
         std::reverse(path.begin() + ci + 1, path.begin() + cj + 1);
     }
     return improved;
+}
+
+std::vector<size_t> tsp_exact_cycle(const Points& centers)
+{
+    const size_t n = centers.size();
+    std::vector<size_t> path(n);
+    std::iota(path.begin(), path.end(), 0);
+    if (n <= 3) return path;
+    // State mask * m + j: the points 1..m of mask visited after point 0, the last one j + 1.
+    const size_t m = n - 1;
+    assert(m <= 16);
+    std::vector<double> cost((size_t(1) << m) * m, std::numeric_limits<double>::max());
+    std::vector<size_t> from(cost.size(), size_t(-1));
+    auto dist = [&centers](size_t a, size_t b) { return (centers[a].cast<double>() - centers[b].cast<double>()).norm(); };
+    for (size_t j = 0; j < m; ++j)
+        cost[(size_t(1) << j) * m + j] = dist(0, j + 1);
+    for (size_t mask = 1; mask < (size_t(1) << m); ++mask)
+        for (size_t j = 0; j < m; ++j)
+            if (const double c = cost[mask * m + j]; c < std::numeric_limits<double>::max())
+                for (size_t k = 0; k < m; ++k)
+                    if (!(mask >> k & 1)) {
+                        const size_t next = (mask | size_t(1) << k) * m + k;
+                        if (const double nc = c + dist(j + 1, k + 1); nc < cost[next]) {
+                            cost[next] = nc;
+                            from[next] = mask * m + j;
+                        }
+                    }
+    const size_t full = (size_t(1) << m) - 1;
+    size_t best = full * m;
+    for (size_t j = 1; j < m; ++j)
+        if (cost[full * m + j] + dist(j + 1, 0) < cost[best] + dist(best % m + 1, 0))
+            best = full * m + j;
+    for (size_t s = best, k = n; k-- > 1; s = from[s])
+        path[k] = s % m + 1;
+    return path;
 }
 
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers)

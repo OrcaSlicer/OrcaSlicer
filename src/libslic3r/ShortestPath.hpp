@@ -23,9 +23,12 @@ std::vector<size_t> 				 chain_expolygons(const ExPolygons &input_exploy);
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near = nullptr);
 void                                 reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const std::vector<std::pair<size_t, bool>> &chain);
+// From start_near, the greedy chain is refined by 2-opt and or-opt moves, which shortens the travel at some extra cost.
 void                                 chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point &start_near);
+// The greedy chain only.
 void                                 chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near = nullptr);
-// Each entity the chain reverses is replaced by a reversed clone that reversed_clones owns, so the originals stay unchanged.
+// Refined as above. Each entity the chain reverses is replaced by a reversed clone that reversed_clones owns, so the
+// originals stay unchanged.
 void                                 chain_and_reorder_extrusion_entities(std::vector<const ExtrusionEntity*> &entities, const Point &start_near,
                                                                           std::vector<std::unique_ptr<ExtrusionEntity>> &reversed_clones);
 
