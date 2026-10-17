@@ -262,14 +262,15 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
     ret.tools_colors = convert_filament_colors(str_tool_colors);
     ret.color_print_colors = convert_filament_colors(str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors);
 
-    const std::vector<Slic3r::GCodeProcessorResult::MoveVertex>& moves = result.moves;
     // One vertex per move after the first, plus a phantom in front of every path start. Reserving
     // the exact count leaves nothing to shrink afterwards, and shrinking would copy the whole array
     // while both copies are alive.
-    size_t vertices_count = moves.empty() ? 0 : moves.size() - 1;
-    for (size_t i = 1; i < moves.size(); ++i)
-        if (starts_path(moves[i - 1], moves[i], i == 1, result.has_overhang_metadata))
+    size_t vertices_count = 0;
+    result.for_each_preview_move([&](const auto &prev, const auto &curr, bool first) {
+        ++vertices_count;
+        if (starts_path(prev, curr, first, result.has_overhang_metadata))
             ++vertices_count;
+    });
     ret.vertices.reserve(vertices_count);
     // libvgcode numbers its layers from the vertices it is given and expects them to
     // arrive one layer after the other with consecutive ids: a layer without any move
@@ -278,16 +279,14 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
     // the ids consecutively over the moves that exist.
     uint32_t src_layer_id = std::numeric_limits<uint32_t>::max();
     uint32_t layer_id     = 0;
-    for (size_t i = 1; i < moves.size(); ++i) {
-        const Slic3r::GCodeProcessorResult::MoveVertex& curr = moves[i];
-        const Slic3r::GCodeProcessorResult::MoveVertex& prev = moves[i - 1];
+    result.for_each_preview_move([&](const auto &prev, const auto &curr, bool first) {
         const EMoveType curr_type = convert(curr.type);
         if (curr.layer_id != src_layer_id) {
             if (src_layer_id != std::numeric_limits<uint32_t>::max())
                 ++ layer_id;
             src_layer_id = curr.layer_id;
         }
-        if (starts_path(prev, curr, i == 1, result.has_overhang_metadata)) {
+        if (starts_path(prev, curr, first, result.has_overhang_metadata)) {
             // to allow libvgcode to properly detect the start/end of a path we need to add a 'phantom' vertex
             // equal to the current one with the exception of the position, which should match the previous move position,
             // and the times, which are set to zero
@@ -338,7 +337,7 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
             curr.overhang_percentage, curr.overhang_z_distance };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
         ret.vertices.emplace_back(vertex);
-    }
+    });
     assert(ret.vertices.size() == vertices_count);
     // A no-op when the count above is exact; restores the exact fit if the count ever drifts.
     ret.vertices.shrink_to_fit();
