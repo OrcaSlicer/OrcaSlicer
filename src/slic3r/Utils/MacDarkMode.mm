@@ -102,6 +102,15 @@ void WKWebView_setTransparentBackground(void * web)
     [webView registerForDraggedTypes: @[NSFilenamesPboardType]];
 }
 
+// Give a WKWebViewConfiguration its own in-memory website data store, so the view's cookies and
+// storage neither come from nor leak into the shared default store. Used to isolate plugin web views.
+void WKWebViewConfiguration_setNonPersistentDataStore(void * configuration)
+{
+    WKWebViewConfiguration * config = (WKWebViewConfiguration*)configuration;
+    if (config)
+        config.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
+}
+
 // Force a WKWebView to re-lay-out and repaint. Needed for chrome-less popups: the window is
 // transparent, so a WKWebView whose layer has no pending frame leaves the whole window invisible
 // until the user generates input (scroll/arrow). setNeedsDisplay alone does not always reach the

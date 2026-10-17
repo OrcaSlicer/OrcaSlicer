@@ -49,7 +49,8 @@ public:
               SubmitHandler      on_submit,
               CloseHandler       on_close,
               CloseHandler       on_destroyed,
-              long               wx_style = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxMAXIMIZE_BOX | wxRESIZE_BORDER);
+              long               wx_style = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxMAXIMIZE_BOX | wxRESIZE_BORDER,
+              const wxString&    profile  = wxEmptyString);
     ~WebDialog() override;
 
     static void post_message(WebDialog* dialog, const nlohmann::json& data);

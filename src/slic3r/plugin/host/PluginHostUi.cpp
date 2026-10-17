@@ -390,7 +390,8 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
 
         auto* dlg = new GUI::WebDialog(ui_parent(), wxString::FromUTF8(title), html,
                                        wxSize(w, h), std::move(msg_adapter), std::move(submit_adapter),
-                                       std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE);
+                                       std::move(on_close), std::move(on_destroyed), PLUGIN_WX_STYLE,
+                                       wxString::FromUTF8(plugin_key));
         UiRegistry::instance().bind(new_id, dlg, plugin_key);
         if (modal) {
             dlg->ShowModal();
@@ -487,7 +488,7 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
 
         auto  on_destroyed = [new_id]() { UiRegistry::instance().remove(new_id); };
         auto* panel = new GUI::DockPanel(plater, html, std::move(msg_adapter), make_close_adapter(close_holder),
-                                         std::move(on_destroyed));
+                                         std::move(on_destroyed), wxString::FromUTF8(plugin_key));
         UiRegistry::instance().bind(new_id, panel, plugin_key);
         plater->add_dock_pane(panel, GUI::plugin_pane_name(plugin_key, title), wxString::FromUTF8(title), dock,
                               wxSize(w, h), [panel]() { panel->fire_close(); });
