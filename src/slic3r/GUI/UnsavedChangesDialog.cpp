@@ -1653,6 +1653,14 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
             m_presetitems.push_back(pi);
 
         }
+
+        // filament_id is not a config option, so it is never among the dirty options above.
+        if (type == Preset::TYPE_FILAMENT) {
+            const std::string &old_id = presets->get_selected_preset().filament_id;
+            const std::string &new_id = presets->get_edited_preset().filament_id;
+            if (old_id != new_id)
+                m_presetitems.push_back({type, "filament_id", _L("Filament"), _L("Basic information"), _L("Filament ID"), from_u8(old_id), from_u8(new_id)});
+        }
     }
 
     // Revert sort of index back

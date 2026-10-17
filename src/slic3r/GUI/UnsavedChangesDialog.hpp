@@ -390,7 +390,8 @@ public:
         //return m_tree->options(type, true);
          std::vector<std::string> tmp;
         for (int i = 0; i < m_presetitems.size(); i++) {
-            if (m_presetitems[i].type == type) {
+            // filament_id is listed for information only: it is not a config option and is never transferred.
+            if (m_presetitems[i].type == type && m_presetitems[i].opt_key != "filament_id") {
                 tmp.push_back(m_presetitems[i].opt_key);
             }
         }
@@ -403,7 +404,8 @@ public:
         std::vector<std::string> tmp;
         for (int i = 0; i < m_presetitems.size(); i++)
         {
-           tmp.push_back(m_presetitems[i].opt_key);
+           if (m_presetitems[i].opt_key != "filament_id")
+               tmp.push_back(m_presetitems[i].opt_key);
         }
 
         return tmp;

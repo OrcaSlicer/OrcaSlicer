@@ -651,6 +651,13 @@ private:
 
     std::map<std::string, ::CheckBox*> m_overrides_options;
 
+    // filament_id is preset metadata, not a config option, so it has its own row.
+    ::TextInput*    m_filament_id_input {nullptr};
+    bool            m_applying_filament_id {false};
+    static bool     can_edit_filament_id(const Preset& preset);
+    void            update_filament_id_line();
+    void            apply_filament_id();
+
 public:
 	//BBS: GUI refactor
 	TabFilament(ParamsPanel* parent) :
