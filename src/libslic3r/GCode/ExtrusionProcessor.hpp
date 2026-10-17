@@ -671,6 +671,23 @@ public:
         }
     }
 
+    // Preview-only material reference. Slice outlines include the empty spaces inside sparse
+    // infill, so use the widths of actual extrusion paths instead. Keep speed/fan contour trees separate.
+    void prepare_for_infill_layer(const PrintObject *object, const Layer *lower_layer)
+    {
+        Polygons covered;
+        const auto add_path = [&covered](const ExtrusionPath &path) {
+            if (!path.is_force_no_extrusion() && path.mm3_per_mm > 0.0 && path.width > EPSILON)
+                path.polygons_covered_by_width(covered, 0.f);
+        };
+        if (lower_layer != nullptr)
+            for (const LayerRegion *region : lower_layer->regions()) {
+                for_each_extrusion_path(region->perimeters, add_path);
+                for_each_extrusion_path(region->fills, add_path);
+            }
+        prev_layer_boundaries[object] = std::make_shared<const Boundaries>(to_unscaled_linesf3(union_ex(covered)));
+    }
+
     // Orca: Return the unsupported part of the extrusion width for every original path segment, in percent.
     // This uses the same signed-distance calculation as the overhang speed estimator. Probe interiors too:
     // supported endpoints can hide a recessed support contour. Each unchanged segment gets its largest
@@ -686,6 +703,21 @@ public:
             percentages[i] = segment_overhang_percentage(unscaled(path.polyline.points[i]),
                 unscaled(path.polyline.points[i + 1]), path.width, is_perimeter(path.role()));
         }
+        return percentages;
+    }
+
+    // Sample equal-length cells independently instead of attributing their maximum to the whole G1.
+    // These percentages describe preview spans; the original extrusion remains one printer move.
+    std::vector<float> estimate_overhang_line_percentages(const Vec3d &start, const Vec3d &end, float width,
+                                                          size_t intervals, bool associate_current_contour = false)
+    {
+        if (width <= EPSILON || intervals == 0)
+            return {};
+        std::vector<float> percentages(intervals);
+        const Vec2d direction = (end - start).head<2>();
+        for (size_t i = 0; i < intervals; ++i)
+            percentages[i] = overhang_percentage_at(start + (end - start) * ((double(i) + 0.5) / intervals),
+                width, direction, associate_current_contour);
         return percentages;
     }
 
