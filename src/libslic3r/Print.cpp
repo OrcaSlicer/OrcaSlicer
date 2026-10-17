@@ -395,101 +395,45 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         } else if (
                opt_key == "belt_support_floor_offset") {
             osteps.emplace_back(posSupportMaterial);
-        } else if (
-               opt_key == "print_sequence"
-            || opt_key == "filament_type"
-            || opt_key == "chamber_temperature"
-            || opt_key == "nozzle_temperature_initial_layer"
-            || opt_key == "filament_minimal_purge_on_wipe_tower"
-            || opt_key == "filament_max_volumetric_speed"
-            || opt_key == "filament_adaptive_volumetric_speed"
-            || opt_key == "filament_loading_speed"
-            || opt_key == "filament_loading_speed_start"
-            || opt_key == "filament_unloading_speed"
-            || opt_key == "filament_unloading_speed_start"
-            || opt_key == "filament_toolchange_delay"
-            || opt_key == "filament_cooling_moves"
-            || opt_key == "filament_stamping_loading_speed"
-            || opt_key == "filament_stamping_distance"
-            || opt_key == "filament_cooling_initial_speed"
-            || opt_key == "filament_cooling_final_speed"
-            || opt_key == "filament_ramming_parameters"
-            || opt_key == "filament_multitool_ramming"
-            || opt_key == "filament_multitool_ramming_volume"
-            || opt_key == "filament_multitool_ramming_flow"
-            || opt_key == "filament_max_volumetric_speed"
-            || opt_key == "gcode_flavor"
-            || opt_key == "single_extruder_multi_material"
-            || opt_key == "nozzle_temperature"
-            // BBS
-            || opt_key == "supertack_plate_temp"
-            || opt_key == "cool_plate_temp"
-            || opt_key == "textured_cool_plate_temp"
-            || opt_key == "eng_plate_temp"
-            || opt_key == "hot_plate_temp"
-            || opt_key == "textured_plate_temp"
-            || opt_key == "enable_prime_tower"
-            || opt_key == "enable_belt_purge_tower"
-            || opt_key == "enable_wrapping_detection"
-            || opt_key == "prime_tower_enable_framework"
-            || opt_key == "prime_tower_width"
-            || opt_key == "prime_tower_brim_width"
-            || opt_key == "wipe_tower_type"
-            || opt_key == "prime_tower_skip_points"
-            || opt_key == "prime_tower_flat_ironing"
-            || opt_key == "enable_tower_interface_features"
-            || opt_key == "first_layer_print_sequence"
-            || opt_key == "other_layers_print_sequence"
-            || opt_key == "other_layers_print_sequence_nums" 
-            || opt_key == "toolchange_ordering"
-            || opt_key == "toolchange_cyclic_order"
-            || opt_key == "toolchange_cyclic_first_layer"
-            || opt_key == "extruder_ams_count"
-            || opt_key == "extruder_nozzle_stats"
-            || opt_key == "filament_map_mode"
-            || opt_key == "filament_map"
-            || opt_key == "filament_nozzle_map"
-            || opt_key == "filament_volume_map"
-            || opt_key == "filament_adhesiveness_category"
-            || opt_key == "filament_tower_interface_pre_extrusion_dist"
-            || opt_key == "filament_tower_interface_pre_extrusion_length"
-            || opt_key == "filament_tower_ironing_area"
-            || opt_key == "filament_tower_interface_purge_volume"
-            || opt_key == "filament_tower_interface_print_temp"
-            || opt_key == "wipe_tower_bridging"
-            || opt_key == "wipe_tower_extra_flow"
-            || opt_key == "wipe_tower_no_sparse_layers"
-            || opt_key == "wipe_tower_sparse_layers_combination"
-            || opt_key == "flush_volumes_matrix"
-            || opt_key == "prime_volume"
-            || opt_key == "flush_into_infill"
-            || opt_key == "flush_into_support"
-            || opt_key == "belt_purge_tower_width"
-            || opt_key == "initial_layer_infill_speed"
-            || opt_key == "travel_speed"
-            || opt_key == "travel_speed_z"
-            || opt_key == "initial_layer_speed"
-            || opt_key == "initial_layer_travel_speed"
-            || opt_key == "initial_layer_travel_acceleration"
-            || opt_key == "initial_layer_travel_jerk"
-            || opt_key == "slow_down_layers"
-            || opt_key == "idle_temperature"
-            || opt_key == "wipe_tower_cone_angle"
-            || opt_key == "wipe_tower_extra_spacing"
-            || opt_key == "wipe_tower_max_purge_speed"
-            || opt_key == "wipe_tower_wall_type"
-            || opt_key == "wipe_tower_extra_rib_length"
-            || opt_key == "wipe_tower_rib_width"
-            || opt_key == "wipe_tower_fillet_wall"
-            || opt_key == "wipe_tower_filament"
-            || opt_key == "wiping_volumes_extruders"
-            || opt_key == "enable_filament_ramming"
-            || opt_key == "tool_change_on_wipe_tower"
-            || opt_key == "wait_for_temp_on_wipe_tower"
-            || opt_key == "purge_in_prime_tower"
-            || opt_key == "z_offset"
-            || opt_key == "support_multi_bed_types"
-            ) {
+        } else if (opt_key == "print_sequence" || opt_key == "filament_type" || opt_key == "chamber_temperature" ||
+                   opt_key == "nozzle_temperature_initial_layer" || opt_key == "filament_minimal_purge_on_wipe_tower" ||
+                   opt_key == "filament_max_volumetric_speed" || opt_key == "filament_adaptive_volumetric_speed" ||
+                   opt_key == "filament_loading_speed" || opt_key == "filament_loading_speed_start" ||
+                   opt_key == "filament_unloading_speed" || opt_key == "filament_unloading_speed_start" ||
+                   opt_key == "filament_toolchange_delay" || opt_key == "filament_cooling_moves" ||
+                   opt_key == "filament_stamping_loading_speed" || opt_key == "filament_stamping_distance" ||
+                   opt_key == "filament_cooling_initial_speed" || opt_key == "filament_cooling_final_speed" ||
+                   opt_key == "filament_ramming_parameters" || opt_key == "filament_multitool_ramming" ||
+                   opt_key == "filament_multitool_ramming_volume" || opt_key == "filament_multitool_ramming_flow" ||
+                   opt_key == "filament_max_volumetric_speed" || opt_key == "gcode_flavor" || opt_key == "single_extruder_multi_material" ||
+                   opt_key == "nozzle_temperature"
+                   // BBS
+                   || opt_key == "supertack_plate_temp" || opt_key == "cool_plate_temp" || opt_key == "textured_cool_plate_temp" ||
+                   opt_key == "eng_plate_temp" || opt_key == "hot_plate_temp" || opt_key == "textured_plate_temp" ||
+                   opt_key == "enable_prime_tower" || opt_key == "enable_belt_purge_tower" || opt_key == "enable_wrapping_detection" ||
+                   opt_key == "prime_tower_enable_framework" || opt_key == "prime_tower_include_support" ||
+                   opt_key == "prime_tower_width" || opt_key == "prime_tower_brim_width" || opt_key == "wipe_tower_type" ||
+                   opt_key == "prime_tower_skip_points" || opt_key == "prime_tower_flat_ironing" ||
+                   opt_key == "enable_tower_interface_features" || opt_key == "first_layer_print_sequence" ||
+                   opt_key == "other_layers_print_sequence" || opt_key == "other_layers_print_sequence_nums" ||
+                   opt_key == "toolchange_ordering" || opt_key == "toolchange_cyclic_order" || opt_key == "toolchange_cyclic_first_layer" ||
+                   opt_key == "extruder_ams_count" || opt_key == "extruder_nozzle_stats" || opt_key == "filament_map_mode" ||
+                   opt_key == "filament_map" || opt_key == "filament_nozzle_map" || opt_key == "filament_volume_map" ||
+                   opt_key == "filament_adhesiveness_category" || opt_key == "filament_tower_interface_pre_extrusion_dist" ||
+                   opt_key == "filament_tower_interface_pre_extrusion_length" || opt_key == "filament_tower_ironing_area" ||
+                   opt_key == "filament_tower_interface_purge_volume" || opt_key == "filament_tower_interface_print_temp" ||
+                   opt_key == "wipe_tower_bridging" || opt_key == "wipe_tower_extra_flow" || opt_key == "wipe_tower_no_sparse_layers" ||
+                   opt_key == "wipe_tower_sparse_layers_combination" || opt_key == "flush_volumes_matrix" || opt_key == "prime_volume" ||
+                   opt_key == "flush_into_infill" || opt_key == "flush_into_support" || opt_key == "belt_purge_tower_width" ||
+                   opt_key == "initial_layer_infill_speed" || opt_key == "travel_speed" || opt_key == "travel_speed_z" ||
+                   opt_key == "initial_layer_speed" || opt_key == "initial_layer_travel_speed" ||
+                   opt_key == "initial_layer_travel_acceleration" || opt_key == "initial_layer_travel_jerk" ||
+                   opt_key == "slow_down_layers" || opt_key == "idle_temperature" || opt_key == "wipe_tower_cone_angle" ||
+                   opt_key == "wipe_tower_extra_spacing" || opt_key == "wipe_tower_max_purge_speed" || opt_key == "wipe_tower_wall_type" ||
+                   opt_key == "wipe_tower_extra_rib_length" || opt_key == "wipe_tower_rib_width" || opt_key == "wipe_tower_fillet_wall" ||
+                   opt_key == "wipe_tower_filament" || opt_key == "wiping_volumes_extruders" || opt_key == "enable_filament_ramming" ||
+                   opt_key == "tool_change_on_wipe_tower" || opt_key == "wait_for_temp_on_wipe_tower" ||
+                   opt_key == "purge_in_prime_tower" || opt_key == "z_offset" || opt_key == "support_multi_bed_types") {
             steps.emplace_back(psWipeTower);
             steps.emplace_back(psSkirtBrim);
         } else if (opt_key == "filament_soluble"
@@ -4990,6 +4934,53 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
 }
 
 // Wipe tower support.
+bool Print::exclude_support_from_prime_tower() const
+{
+    if (m_config.prime_tower_include_support || m_config.single_extruder_multi_material || is_BBL_printer() ||
+        wipe_tower_type() != WipeTowerType::Type2)
+        return false;
+    // This predicate is called by has_wipe_tower(): never call extruders() or
+    // is_dynamic_group_reorder(), which themselves query tower participation.
+    const auto* dynamic_map = m_full_print_config.option<ConfigOptionBool>("enable_filament_dynamic_map");
+    if (dynamic_map && dynamic_map->value)
+        return false;
+    auto used_filaments = object_extruders();
+    append(used_filaments, support_material_extruders());
+    append_tool_change_extruders(used_filaments);
+    used_filaments = expand_mixed_filaments(used_filaments, m_config.filament_is_mixed.values,
+                                           m_config.filament_mixed_components.values);
+    // A nozzle shared by multiple filaments still needs its normal purge transitions.
+    const auto maps = get_filament_maps();
+    std::set<int> nozzles;
+    for (unsigned int filament : used_filaments) {
+        if (filament >= maps.size() || maps[filament] <= 0 || !nozzles.insert(maps[filament]).second)
+            return false;
+    }
+    return true;
+}
+
+bool Print::is_prime_tower_extruder(unsigned int extruder) const
+{
+    if (!exclude_support_from_prime_tower())
+        return true;
+    const auto model_tools = prime_tower_extruders();
+    // A material used by both a model and its supports must still prime normally.
+    return std::binary_search(model_tools.begin(), model_tools.end(), extruder);
+}
+
+std::vector<unsigned int> Print::prime_tower_extruders() const
+{
+    if (!exclude_support_from_prime_tower())
+        return extruders();
+    std::vector<unsigned int> model_tools = object_extruders();
+    const auto custom                     = m_model.plates_custom_gcodes.find(m_model.curr_plate_index);
+    if (custom != m_model.plates_custom_gcodes.end())
+        for (const auto& item : custom->second.gcodes)
+            if (item.type == CustomGCode::Type::ToolChange && item.extruder > 0)
+                model_tools.push_back(unsigned(item.extruder - 1));
+    return expand_mixed_filaments(model_tools, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values);
+}
+
 bool Print::has_wipe_tower() const
 {
     // Belt printers never get the classic wipe tower: its G-code is generated
@@ -5006,7 +4997,8 @@ bool Print::has_wipe_tower() const
         if (enable_timelapse_print())
             return true;
 
-        return !m_config.spiral_mode.value && m_config.filament_diameter.values.size() > 1;
+        return !m_config.spiral_mode.value &&
+               (exclude_support_from_prime_tower() ? prime_tower_extruders().size() > 1 : m_config.filament_diameter.values.size() > 1);
     }
     return false;
 }
@@ -5028,7 +5020,10 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
     if (max_height < EPSILON)
         return m_wipe_tower_data;
 
-    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, this->wipe_tower_type(), this->extruders(true), layer_height, max_height);
+    const WipeTowerFootprint footprint = estimate_wipe_tower_footprint(m_config, this->wipe_tower_type(),
+                                                                       exclude_support_from_prime_tower() ? prime_tower_extruders() :
+                                                                                                            this->extruders(true),
+                                                                       layer_height, max_height);
     WipeTowerData &data = const_cast<Print *>(this)->m_wipe_tower_data;
     data.depth      = float(footprint.depth);
     data.width      = float(footprint.width);
@@ -5315,9 +5310,18 @@ void Print::_make_wipe_tower()
                 }
             }
         }
+        std::vector<unsigned int> tower_extruders = m_wipe_tower_data.tool_ordering.all_extruders();
+        tower_extruders.erase(std::remove_if(tower_extruders.begin(), tower_extruders.end(),
+                                             [this](unsigned int tool) { return !is_prime_tower_extruder(tool); }),
+                              tower_extruders.end());
+        if (tower_extruders.empty())
+            return;
+        // A support-only material explicitly selected for tower walls must also be excluded.
+        PrintConfig tower_config = m_config;
+        if (tower_config.wipe_tower_filament > 0 && !is_prime_tower_extruder(unsigned(tower_config.wipe_tower_filament.value - 1)))
+            tower_config.wipe_tower_filament.value = 0;
         // Initialize the wipe tower.
-        WipeTower2 wipe_tower(m_config, m_default_region_config, m_plate_index, m_origin, wipe_volumes,
-                              m_wipe_tower_data.tool_ordering.first_extruder());
+        WipeTower2 wipe_tower(tower_config, m_default_region_config, m_plate_index, m_origin, wipe_volumes, tower_extruders.front());
 
         // wipe_tower.set_retract();
         // wipe_tower.set_zhop();
@@ -5327,21 +5331,20 @@ void Print::_make_wipe_tower()
             wipe_tower.set_extruder(i, m_config);
 
         m_wipe_tower_data.priming = Slic3r::make_unique<std::vector<WipeTower::ToolChangeResult>>(
-            wipe_tower.prime((float)this->skirt_first_layer_height(), m_wipe_tower_data.tool_ordering.all_extruders(), false));
+            wipe_tower.prime((float) this->skirt_first_layer_height(), tower_extruders, false));
 
         // Lets go through the wipe tower layers and determine pairs of extruder changes for each
         // to pass to wipe_tower (so that it can use it for planning the layout of the tower)
         {
-            unsigned int current_extruder_id = m_wipe_tower_data.tool_ordering.all_extruders().back();
+            unsigned int current_extruder_id = tower_extruders.back();
             for (auto &layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
                 if (!layer_tools.has_wipe_tower)
                     continue;
                 bool first_layer = &layer_tools == &m_wipe_tower_data.tool_ordering.front();
                 wipe_tower.plan_toolchange((float) layer_tools.print_z, (float) layer_tools.wipe_tower_layer_height, current_extruder_id,
                                            current_extruder_id, false);
-                for (const auto extruder_id : layer_tools.extruders) {
-                    if ((first_layer && extruder_id == m_wipe_tower_data.tool_ordering.all_extruders().back()) || extruder_id !=
-                        current_extruder_id) {
+                for (const auto extruder_id : layer_tools.wipe_tower_extruders) {
+                    if ((first_layer && extruder_id == tower_extruders.back()) || extruder_id != current_extruder_id) {
                         float volume_to_wipe = m_config.prime_volume;
                         if (m_config.purge_in_prime_tower && m_config.single_extruder_multi_material) {
                             volume_to_wipe = wipe_volumes[current_extruder_id][extruder_id]; // total volume to wipe after this toolchange

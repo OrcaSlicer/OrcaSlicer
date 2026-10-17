@@ -1156,7 +1156,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         && preset_bundle->printers.get_edited_preset().config.has("enable_belt_purge_tower")
         && preset_bundle->printers.get_edited_preset().config.opt_bool("enable_belt_purge_tower");
     toggle_line("belt_purge_tower_width", have_belt_purge_tower);
-    for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
+    for (auto el : {"prime_tower_include_support", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points",
+                    "wipe_tower_wall_type", "prime_tower_infill_gap", "prime_tower_enable_framework", "enable_tower_interface_features"})
         toggle_line(el, have_prime_tower && !is_belt_printer);
 
     toggle_line("enable_tower_interface_cooldown_during_tower",

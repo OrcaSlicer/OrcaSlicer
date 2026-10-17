@@ -3325,7 +3325,14 @@ WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintCo
     // An explicit count is a floor: init-time and arrange estimates size an empty plate for that
     // many generic filaments, the lowest ids not already on the plate.
     std::vector<int> plate_extruders = get_extruders(true, config, config);
-    for (int id = 1; int(plate_extruders.size()) < plate_extruder_size; ++id)
+    const Print* print               = fff_print();
+    const bool exclude_support       = print && print->exclude_support_from_prime_tower();
+    if (exclude_support) {
+        plate_extruders.clear();
+        for (unsigned int tool : print->prime_tower_extruders())
+            plate_extruders.push_back(int(tool + 1));
+    }
+    for (int id = 1; !exclude_support && int(plate_extruders.size()) < plate_extruder_size; ++id)
         if (std::find(plate_extruders.begin(), plate_extruders.end(), id) == plate_extruders.end())
             plate_extruders.push_back(id);
     // The wipe tower filament joins the tool ordering even when unused (Print::extruders), so
@@ -3334,8 +3341,8 @@ WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintCo
     const ConfigOption *wipe_tower_filament_opt = config.option("wipe_tower_filament");
     const ConfigOption *enable_prime_tower_opt  = config.option("enable_prime_tower");
     const int           wipe_tower_filament     = wipe_tower_filament_opt != nullptr ? wipe_tower_filament_opt->getInt() : 0;
-    if (enable_prime_tower_opt != nullptr && enable_prime_tower_opt->getBool() && plate_extruders.size() > 1 && wipe_tower_filament > 0 &&
-        std::find(plate_extruders.begin(), plate_extruders.end(), wipe_tower_filament) == plate_extruders.end())
+    if (!exclude_support && enable_prime_tower_opt != nullptr && enable_prime_tower_opt->getBool() && plate_extruders.size() > 1 &&
+        wipe_tower_filament > 0 && std::find(plate_extruders.begin(), plate_extruders.end(), wipe_tower_filament) == plate_extruders.end())
         plate_extruders.push_back(wipe_tower_filament);
     if (plate_extruders.empty())
         return WipeTowerFootprint();

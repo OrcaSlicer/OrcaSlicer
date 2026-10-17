@@ -3571,6 +3571,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
 
                 const Print* current_print = part_plate->fff_print();
+                if (current_print && current_print->exclude_support_from_prime_tower() && !current_print->has_wipe_tower())
+                    continue;
                 if (part_plate->get_objects_on_this_plate().empty()) continue;
 
                 // Body and brim from this plate's own estimate: m_process->fff_print() is the

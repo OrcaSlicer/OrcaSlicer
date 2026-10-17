@@ -1592,6 +1592,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
 
         std::string gcode;
+        if (gcodegen.m_curr_print->exclude_support_from_prime_tower() && tcr.initial_tool >= 0 &&
+            gcodegen.writer().need_toolchange(unsigned(tcr.initial_tool)))
+            gcode += gcodegen.set_extruder(unsigned(tcr.initial_tool), tcr.print_z);
 
         // Toolchangeresult.gcode assumes the wipe tower corner is at the origin (except for priming lines)
         // We want to rotate and shift all extrusions (gcode postprocessing) and starting and ending position
@@ -1984,6 +1987,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         assert(m_layer_idx >= 0);
         if (m_layer_idx >= (int) m_tool_changes.size())
             return gcode;
+        if (gcodegen.m_curr_print->exclude_support_from_prime_tower() &&
+            (size_t(m_tool_change_idx) >= m_tool_changes[m_layer_idx].size() ||
+             (m_tool_changes[m_layer_idx][m_tool_change_idx].new_tool != extruder_id &&
+              m_tool_changes[m_layer_idx][m_tool_change_idx].initial_tool == extruder_id)))
+            return gcodegen.set_extruder(unsigned(extruder_id), gcodegen.writer().get_position().z() - gcodegen.config().z_offset.value);
         if (gcodegen.wipe_tower_type() == WipeTowerType::Type2) {
             if (gcodegen.writer().need_toolchange(extruder_id) || finish_layer) {
                 if (m_layer_idx < (int) m_tool_changes.size()) {
@@ -2041,6 +2049,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     {
         assert(m_layer_idx >= 0);
         if (m_layer_idx >= (int) m_tool_changes.size())
+            return true;
+
+        if (gcodegen.m_curr_print->exclude_support_from_prime_tower() &&
+            (size_t(m_tool_change_idx) >= m_tool_changes[m_layer_idx].size() ||
+             (m_tool_changes[m_layer_idx][m_tool_change_idx].new_tool != extruder_id &&
+              m_tool_changes[m_layer_idx][m_tool_change_idx].initial_tool == extruder_id)))
             return true;
 
         bool   ignore_sparse = wipe_tower_layer_is_combined_away(m_tool_changes[m_layer_idx]);
@@ -3541,6 +3555,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             tool_ordering.all_extruders().back() :
             // Don't skip the priming towers.
             tool_ordering.first_extruder();
+        if (has_wipe_tower && print.exclude_support_from_prime_tower() && !print.config().single_extruder_multi_material_priming) {
+            const auto last_tower_tool = std::find_if(tool_ordering.all_extruders().rbegin(), tool_ordering.all_extruders().rend(),
+                                                      [&print](unsigned int tool) { return print.is_prime_tower_extruder(tool); });
+            if (last_tower_tool != tool_ordering.all_extruders().rend())
+                initial_extruder_id = *last_tower_tool;
+        }
 
         //BBS: try to find the non-support filament extruder if is multi color and initial_extruder is support filament
         if (initial_extruder_id != static_cast<unsigned int>(-1)) {
@@ -7359,8 +7379,11 @@ LayerResult GCode::process_layer(
         has_insert_timelapse_gcode |= m_farthest_point_timelapse.inserted_this_layer;
 
         std::string gcode_toolchange;
-        if (has_wipe_tower) {
-            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, extruder_id == layer_tools.extruders.back())) {
+        const auto last_tower_tool    = std::find_if(layer_tools.extruders.rbegin(), layer_tools.extruders.rend(),
+                                                     [&print](unsigned int tool) { return print.is_prime_tower_extruder(tool); });
+        const bool finish_tower_layer = last_tower_tool != layer_tools.extruders.rend() && extruder_id == *last_tower_tool;
+        if (has_wipe_tower && print.is_prime_tower_extruder(extruder_id)) {
+            if (!m_wipe_tower->is_empty_wipe_tower_gcode(*this, extruder_id, finish_tower_layer)) {
                 if (need_insert_timelapse_gcode_for_traditional && !has_insert_timelapse_gcode
                     && !(m_farthest_point_timelapse.enabled && m_farthest_point_timelapse.farthest_is_photo_head)) {
                     bool should_insert = true;
@@ -7388,7 +7411,10 @@ LayerResult GCode::process_layer(
                     gcode += insert_wrapping_detection_gcode();
                     has_insert_wrapping_detection_gcode = true;
                 }
-                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, extruder_id == layer_tools.extruders.back());
+                gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, finish_tower_layer);
+            } else if (print.exclude_support_from_prime_tower()) {
+                // Returning from an excluded support tool may need no tower extrusion.
+                gcode_toolchange = this->set_extruder(extruder_id, print_z);
             }
         } else {
             // Same case-A/case-B split for the non-wipe-tower path. With the subsystem off,

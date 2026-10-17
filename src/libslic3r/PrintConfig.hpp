@@ -2064,28 +2064,17 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,               nozzle_temperature))
     ((ConfigOptionBools,              wipe))
     // BBS
-    ((ConfigOptionInts,               nozzle_temperature_range_low))
-    ((ConfigOptionInts,               nozzle_temperature_range_high))
-    ((ConfigOptionFloats,             wipe_distance))
-    ((ConfigOptionBool,               enable_mixed_color_sublayer))
-    ((ConfigOptionBool,               enable_prime_tower))
-    ((ConfigOptionBool,               prime_tower_enable_framework))
+    ((ConfigOptionInts, nozzle_temperature_range_low))((ConfigOptionInts, nozzle_temperature_range_high))(
+        (ConfigOptionFloats, wipe_distance))((ConfigOptionBool, enable_mixed_color_sublayer))((ConfigOptionBool, enable_prime_tower))(
+        (ConfigOptionBool, prime_tower_enable_framework))((ConfigOptionBool, prime_tower_include_support))
     // BBS: change wipe_tower_x and wipe_tower_y data type to floats to add partplate logic
-    ((ConfigOptionFloats,             wipe_tower_x))
-    ((ConfigOptionFloats,             wipe_tower_y))
-    ((ConfigOptionFloat,              prime_tower_width))
-    ((ConfigOptionFloat,              wipe_tower_per_color_wipe))
-    ((ConfigOptionFloat,              wipe_tower_rotation_angle))
-    ((ConfigOptionFloat,              prime_tower_brim_width))
-    ((ConfigOptionPercent,            prime_tower_infill_gap))
-    ((ConfigOptionBool,               prime_tower_skip_points))
-    ((ConfigOptionBool,               prime_tower_flat_ironing))
-    ((ConfigOptionBool,               enable_tower_interface_features))
-    ((ConfigOptionBool,               enable_tower_interface_cooldown_during_tower))
-    ((ConfigOptionFloat,              wipe_tower_bridging))
-    ((ConfigOptionPercent,            wipe_tower_extra_flow))
-    ((ConfigOptionFloats,             flush_volumes_matrix))
-    ((ConfigOptionFloats,             flush_volumes_vector))
+    ((ConfigOptionFloats, wipe_tower_x))((ConfigOptionFloats, wipe_tower_y))((ConfigOptionFloat, prime_tower_width))(
+        (ConfigOptionFloat, wipe_tower_per_color_wipe))((ConfigOptionFloat, wipe_tower_rotation_angle))(
+        (ConfigOptionFloat, prime_tower_brim_width))((ConfigOptionPercent, prime_tower_infill_gap))(
+        (ConfigOptionBool, prime_tower_skip_points))((ConfigOptionBool, prime_tower_flat_ironing))((ConfigOptionBool,
+                                                                                                    enable_tower_interface_features))(
+        (ConfigOptionBool, enable_tower_interface_cooldown_during_tower))((ConfigOptionFloat, wipe_tower_bridging))((
+        ConfigOptionPercent, wipe_tower_extra_flow))((ConfigOptionFloats, flush_volumes_matrix))((ConfigOptionFloats, flush_volumes_vector))
 
     // Orca: mmu support
     ((ConfigOptionFloat,              wipe_tower_cone_angle))
