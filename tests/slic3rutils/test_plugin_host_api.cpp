@@ -142,7 +142,7 @@ TEST_CASE("Plugin host API reports unavailable GUI objects before Orca app initi
     py::object host = import_orca_module().attr("host");
     py::object bundles = host.attr("preset").attr("bundles");
 
-    for (const char* function_name : { "preset_bundle", "plater", "model", "app_info", "selected_printer" }) {
+    for (const char* function_name : { "preset_bundle", "plater", "model", "app_info", "selected_printer", "slice_statistics" }) {
         CAPTURE(function_name);
         try {
             host.attr(function_name)();
