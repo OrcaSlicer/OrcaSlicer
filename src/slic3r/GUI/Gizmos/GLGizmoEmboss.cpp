@@ -2601,12 +2601,17 @@ bool GLGizmoEmboss::rev_input(const std::string &name, T &value, const T *defaul
     const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags) const
 {
     // draw offseted input
-    auto draw_offseted_input = [&offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
+    auto draw_offseted_input = [this, &offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
                                 &name, &value, &step, &step_fast, format, flags](){
         ImGui::SameLine(offset);
         ImGui::SetNextItemWidth(width);
-        return imgui_input(("##" + name).c_str(),
+        bool changed = imgui_input(("##" + name).c_str(),
             &value, step, step_fast, format, flags);
+        // ImGui repeats the +/- step buttons only on new frames, but the canvas renders on events,
+        // so keep rendering while the mouse is held on the input to make the buttons auto-repeat.
+        if (ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+            m_imgui->set_requires_extra_frame();
+        return changed;
     };
     return revertible(name, value, default_value, undo_tooltip, 
                       0.0f, draw_offseted_input);
