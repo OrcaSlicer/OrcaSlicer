@@ -3764,6 +3764,28 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<VoronoiCloudMethod>(VoronoiCloudMethod::Random));
 
+    def = this->add("voronoi_relaxation_iterations", coInt);
+    def->label = L("Voronoi relaxation iterations");
+    def->category = L("Strength");
+    def->tooltip = L("Spring-relax the three-dimensional control points to balance Delaunay edge lengths according to local density. Zero disables relaxation. Try 3 to 5 iterations initially; more iterations increase preparation time.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("voronoi_snap_to_wall", coBool);
+    def->label = L("Voronoi snap points to walls");
+    def->category = L("Strength");
+    def->tooltip = L("Move control points within half of nominal point spacing towards the model boundary. Uses the approximate raw wall-distance field, after optional relaxation. Interior and exterior points can snap; density and inner-hull settings are unchanged.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("voronoi_trace_shell", coBool);
+    def->label = L("Voronoi trace model shell");
+    def->category = L("Strength");
+    def->tooltip = L("Add one infill bead along the inside of the model shell and connect touching Voronoi walls to it. Junction turns vary between layers. Adds material along the shell; modifier boundaries are not traced.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("voronoi_modifier_blend", coFloat);
     def->label = L("Voronoi material density blend width");
     def->category = L("Strength");

@@ -855,6 +855,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // hide the whole line otherwise.
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid && !have_tpms_adaptive);
     toggle_line("voronoi_cloud_method", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_relaxation_iterations", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_snap_to_wall", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_trace_shell", have_infill && pattern == ipVoronoi);
     toggle_line("voronoi_wall_decay", have_infill && pattern == ipVoronoi);
     toggle_line("voronoi_smoothing_sigma", have_infill && pattern == ipVoronoi);
 

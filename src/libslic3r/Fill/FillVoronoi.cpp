@@ -10,6 +10,7 @@
 #include <cmath>
 #include <utility>
 #include <vector>
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
 
@@ -23,6 +24,10 @@ void FillVoronoi::_fill_surface_single(const FillParams &params, unsigned int,
                                       const std::pair<float, Point> &, ExPolygon expolygon,
                                       Polylines &polylines_out)
 {
+    const size_t initial_paths = polylines_out.size();
+    BOOST_LOG_TRIVIAL(warning) << "Voronoi diagnostic: fill z=" << z << " density=" << params.density
+        << " spacing=" << spacing << " width=" << params.flow.width() << " height=" << params.flow.height()
+        << " multiline=" << params.multiline << " area_mm2=" << expolygon.area() * SCALING_FACTOR * SCALING_FACTOR;
     if (!(params.density > 0.)) return;
     const double height = params.flow.height();
     const double reference_height = print_object_config ? print_object_config->layer_height.value : height;
@@ -35,8 +40,18 @@ void FillVoronoi::_fill_surface_single(const FillParams &params, unsigned int,
     ExPolygons excluded;
     for (const auto &band : layer.bands) append(excluded, offset_ex(band.polygon, -1.f));
     if (!excluded.empty()) layer.walls = diff_pl(layer.walls, excluded);
+    Points boundary_nodes;
+    if (!m_shell_boundaries.empty()) {
+        const auto centers = offset_ex(m_shell_boundaries, float(scale_(overlap - 0.5 * spacing)));
+        auto boundary = intersection_pl(to_polylines(centers), m_surface_boundary);
+        boundary_nodes = Voronoi::join_boundary(layer.walls, boundary);
+    }
+    if (!m_shell_boundaries.empty())
+        layer.walls = m_infill->route_walls(std::move(layer.walls), layer_id, boundary_nodes);
     if (!params.dont_connect() && !layer.walls.empty()) {
         Polylines connected;
+        // Include the complete shell trace when trimming occupied boundary arcs.
+        // Its endpoints may lie beyond the generic half-spacing inset.
         connect_infill(std::move(layer.walls), to_polygons(expolygon),
                        m_surface_boundary.contour.bounding_box(), connected, params.flow.spacing(), params);
         layer.walls = std::move(connected);
@@ -45,6 +60,7 @@ void FillVoronoi::_fill_surface_single(const FillParams &params, unsigned int,
     auto groups = fill_paths(std::move(layer), params);
     for (Voronoi::PathGroup &group : Voronoi::order_groups(std::move(groups), start))
         append(polylines_out, std::move(group.paths));
+    BOOST_LOG_TRIVIAL(warning) << "Voronoi diagnostic: output z=" << z << " paths=" << polylines_out.size() - initial_paths;
 }
 
 std::vector<Voronoi::PathGroup> FillVoronoi::fill_paths(Voronoi::Layer layer, const FillParams &params) const

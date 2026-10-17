@@ -1,6 +1,8 @@
 #include "VoronoiWallDistance.hpp"
 #include "VoronoiMaterialDensity.hpp"
 #include "VoronoiLattice.hpp"
+#include "VoronoiWallSnap.hpp"
+#include "VoronoiRelaxation.hpp"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -246,9 +248,13 @@ std::vector<double> CubicWallDistance::sample(const std::vector<Vec3d> &points) 
 }
 
 std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std::function<std::vector<WallSlice>()> &load_slices,
-                                                                   double decay, double sigma, const WallDistanceProgress &progress, VoronoiCloudMethod method,
-                                                                   double angle, double material_density, const std::vector<DensityModifier> &modifiers, int region_id)
+                                                                   double decay, double sigma, const WallDistanceProgress &progress,
+                                                                   double site_spacing, VoronoiCloudMethod method, int relaxation_iterations,
+                                                                   double angle, bool snap, double material_density, const std::vector<DensityModifier> &modifiers, int region_id)
 {
+    if (!std::isfinite(site_spacing) || site_spacing < 0. || relaxation_iterations < 0 ||
+        ((snap || relaxation_iterations > 0) && site_spacing == 0.))
+        throw std::invalid_argument("Invalid Voronoi point preparation settings");
     if (!std::isfinite(material_density) || material_density <= 0. || material_density > 1. ||
         !std::isfinite(decay) || decay < 0. || !std::isfinite(sigma) || sigma < 0.)
         throw std::invalid_argument("Invalid Voronoi distance settings");
@@ -270,13 +276,13 @@ std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std:
     std::shared_ptr<const CubicWallDistance> table;
     WallDistanceSamples sample;
     const bool fused = std::any_of(modifiers.begin(), modifiers.end(), [region_id](const auto &m) { return m.region_id == region_id; });
-    if (decay != 0. || sigma != 0. || fused) {
+    if (decay != 0. || sigma != 0. || snap || fused) {
         auto &cached = m_tables[{decay, sigma, material_density, region_id}];
         if (!cached) cached = std::make_shared<CubicWallDistance>(load_slices(), sigma, progress, decay, material_density, modifiers, region_id);
         table = cached;
         sample = [table](const auto &points) { return table->sample_fields(points); };
     }
-    auto &provider = m_providers[{decay, sigma, material_density, region_id, method, angle}];
+    auto &provider = m_providers[{decay, sigma, material_density, region_id, 0., method, 0, angle, false}];
     if (!provider) {
         Vec2d center = Vec2d::Zero();
         if (angle != 0.) {
@@ -291,7 +297,21 @@ std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std:
         else
             provider = std::make_shared<PoissonPointCloud>(angle, center);
     }
-    return provider;
+    std::shared_ptr<const PointCloudProvider> result = provider;
+    if (relaxation_iterations > 0) {
+        auto &relaxed = m_providers[{decay, sigma, material_density, region_id, site_spacing, method, relaxation_iterations, angle, false}];
+        if (!relaxed)
+            relaxed = std::make_shared<RelaxedPointCloud>(provider, bounds(), site_spacing, relaxation_iterations,
+                [&](double fraction) { report(progress, WallDistanceStage::Relaxation, fraction); });
+        result = relaxed;
+    }
+    if (snap) {
+        auto &snapped = m_providers[{decay, sigma, material_density, region_id, site_spacing, method, relaxation_iterations, angle, true}];
+        if (!snapped)
+            snapped = std::make_shared<SnappedPointCloud>(result, sample, site_spacing, table->grid_spacing());
+        result = snapped;
+    }
+    return result;
 }
 
 void WallDistanceCloudCache::clear()

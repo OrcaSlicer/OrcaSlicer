@@ -6,6 +6,8 @@
 #include "libslic3r/Fill/VoronoiWallDistance.hpp"
 #include "libslic3r/Fill/VoronoiMaterialDensity.hpp"
 #include "libslic3r/Fill/VoronoiLattice.hpp"
+#include "libslic3r/Fill/VoronoiWallSnap.hpp"
+#include "libslic3r/Fill/VoronoiRelaxation.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/EdgeGrid.hpp"
 #include <algorithm>
@@ -1119,13 +1121,13 @@ TEST_CASE("Point-cloud orientation uses the object centre and shares wall-distan
     const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{-6., 6., &outlines}}; };
     const double decay = GENERATE(0., 6.);
     const double angle = 0.37;
-    const auto original = cache.get(slices, decay, 0., {}, method);
+    const auto original = cache.get(slices, decay, 0., {}, 0., method);
     const auto rotated = cache.get(slices, decay, 0., [](auto stage, double) {
         if (stage == Voronoi::WallDistanceStage::Distance) throw std::runtime_error("Distances already cached");
-    }, method, angle);
+    }, 0., method, 0, angle);
     REQUIRE(rotated != original);
-    REQUIRE(rotated == cache.get(slices, decay, 0., {}, method, angle));
-    REQUIRE(original == cache.get(slices, decay, 0., {}, method, 2. * std::acos(-1.)));
+    REQUIRE(rotated == cache.get(slices, decay, 0., {}, 0., method, 0, angle));
+    REQUIRE(original == cache.get(slices, decay, 0., {}, 0., method, 0, 2. * std::acos(-1.)));
     const BoundingBoxf3 box(Vec3d(-20., -20., -10.), Vec3d(20., 20., 10.));
     if (decay == 0.) {
         if (method == VoronoiCloudMethod::Random)
@@ -1134,9 +1136,101 @@ TEST_CASE("Point-cloud orientation uses the object centre and shares wall-distan
             REQUIRE(rotated->points_in(box, 3.) == Voronoi::LatticePointCloud(method, {}, 1., angle, Vec2d(4., -3.)).points_in(box, 3.));
     }
     REQUIRE(rotated->relative_density({Vec3d(4., -3., 0.)}) == original->relative_density({Vec3d(4., -3., 0.)}));
-    const auto relaxed = cache.get(slices, decay, 0., {}, method, angle);
-    REQUIRE(relaxed == cache.get(slices, decay, 0., {}, method, angle));
-    REQUIRE(relaxed != cache.get(slices, decay, 0., {}, method));
+    const auto relaxed = cache.get(slices, decay, 0., {}, 3., method, 1, angle);
+    REQUIRE(relaxed == cache.get(slices, decay, 0., {}, 3., method, 1, angle));
+    REQUIRE(relaxed != cache.get(slices, decay, 0., {}, 3., method, 1));
+}
+
+TEST_CASE("Spring relaxation balances interior edges while holding the cloud boundary", "[FillVoronoi][Relaxation]")
+{
+    auto source = std::make_shared<FixedProvider>();
+    for (double x : {-3., 3.})
+        for (double y : {-3., 3.})
+            for (double z : {-3., 3.}) source->sites.emplace_back(x, y, z);
+    const Vec3d off_center(0.8, 0.4, 0.);
+    source->sites.push_back(off_center);
+    const BoundingBoxf3 all(Vec3d::Constant(-4.), Vec3d::Constant(4.));
+    Voronoi::RelaxedPointCloud cloud(source, all, 2., 5);
+    const auto sites = cloud.points_in(all, 2.);
+    REQUIRE(sites.size() == source->sites.size());
+    for (size_t i = 0; i < 8; ++i) REQUIRE(std::find(sites.begin(), sites.end(), source->sites[i]) != sites.end());
+    const auto center = std::find_if(sites.begin(), sites.end(), [](const Vec3d &p) { return p.cwiseAbs().maxCoeff() < 3.; });
+    REQUIRE(center != sites.end());
+    REQUIRE(center->norm() < off_center.norm());
+    REQUIRE((*center - off_center).norm() <= 5. * 0.1 * 2.);
+    auto split = cloud.points_in(BoundingBoxf3(all.min, Vec3d(4., 4., 0.)), 2.);
+    append(split, cloud.points_in(BoundingBoxf3(Vec3d(-4., -4., 0.), all.max), 2.));
+    REQUIRE(split == sites);
+    const Voronoi::RelaxedPointCloud rebuilt(source, all, 2., 5);
+    REQUIRE(rebuilt.points_in(all, 2.) == sites);
+}
+
+TEST_CASE("Spring relaxation follows the provider's preferred local spacing", "[FillVoronoi][Relaxation]")
+{
+    class SpacedProvider : public FixedProvider {
+    public:
+        double target = 2.;
+        std::vector<double> local_spacing(const std::vector<Vec3d> &points, double) const override
+            { return std::vector<double>(points.size(), target); }
+    };
+    auto source = std::make_shared<SpacedProvider>();
+    for (double x : {-3., 3.})
+        for (double y : {-3., 3.})
+            for (double z : {-3., 3.}) source->sites.emplace_back(x, y, z);
+    const Vec3d initial(0.8, 0.4, 0.);
+    source->sites.push_back(initial);
+    const BoundingBoxf3 all(Vec3d::Constant(-4.), Vec3d::Constant(4.));
+    const auto moved_center = [&](double target) {
+        source->target = target;
+        const Voronoi::RelaxedPointCloud cloud(source, all, 2., 1);
+        const auto points = cloud.points_in(all, 2.);
+        const auto center = std::find_if(points.begin(), points.end(), [](const Vec3d &p) { return p.cwiseAbs().maxCoeff() < 3.; });
+        REQUIRE(center != points.end());
+        return Vec3d(*center);
+    };
+    REQUIRE(moved_center(2.).norm() < initial.norm());
+    REQUIRE(moved_center(16.).norm() > initial.norm());
+}
+
+TEST_CASE("Relaxation spacing retains the density falloff outside the model", "[FillVoronoi][Relaxation]")
+{
+    const Voronoi::WallDistancePointCloud source([](const std::vector<Vec3d> &points) {
+        std::vector<Voronoi::WallDistanceSample> result;
+        for (const auto &p : points) result.push_back({p.x(), Voronoi::WallDistancePointCloud::density_ratio(p.x(), p.x())});
+        return result;
+    });
+    const auto spacing = source.local_spacing({Vec3d(-10., 0., 0.), Vec3d(10., 0., 0.), Vec3d(-1., 0., 0.)}, 4.);
+    REQUIRE_THAT(spacing[0], Catch::Matchers::WithinAbs(spacing[1], EPSILON));
+    REQUIRE(spacing[0] > spacing[2]);
+    REQUIRE_THAT(spacing[2], Catch::Matchers::WithinAbs(4., EPSILON));
+}
+
+TEST_CASE("Zero relaxation retains the original provider without preparing an object cloud", "[FillVoronoi][Relaxation]")
+{
+    Voronoi::WallDistanceCloudCache cache;
+    int loads = 0;
+    const auto slices = [&] { ++loads; return std::vector<Voronoi::WallSlice>{}; };
+    const auto original = cache.get(slices, 0., 0.);
+    REQUIRE(cache.get(slices, 0., 0., {}, 4., VoronoiCloudMethod::Random, 0) == original);
+    REQUIRE_FALSE(original->extent().has_value());
+    REQUIRE(loads == 0);
+}
+
+TEST_CASE("Canceled point relaxation leaves the generated provider reusable", "[FillVoronoi][Relaxation]")
+{
+    const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
+    const ExPolygons outlines {rectangle(0., 0., 12., 12.)};
+    Voronoi::WallDistanceCloudCache cache;
+    const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{0., 12., &outlines}}; };
+    const auto original = cache.get(slices, 0., 0., {}, 3., method);
+    REQUIRE_THROWS_AS(cache.get(slices, 0., 0., [](Voronoi::WallDistanceStage stage, double fraction) {
+        if (stage == Voronoi::WallDistanceStage::Relaxation && fraction > 0.1) throw std::runtime_error("Canceled");
+    }, 3., method, 3), std::runtime_error);
+    REQUIRE(original == cache.get(slices, 0., 0., {}, 3., method));
+    const auto relaxed = cache.get(slices, 0., 0., {}, 3., method, 3);
+    REQUIRE(relaxed == cache.get(slices, 0., 0., {}, 3., method, 3));
+    REQUIRE(relaxed != original);
+    REQUIRE(relaxed->extent()->defined);
 }
 
 TEST_CASE("FCC has twelve nearest neighbours and a vertical body diagonal", "[FillVoronoi][Fcc]")
@@ -1266,6 +1360,85 @@ TEST_CASE("Lattice thinning follows density and preserves partitioned queries", 
     REQUIRE(cloud.points_in(box, 3.) == whole);
 }
 
+TEST_CASE("Boundary snapping moves nearby points on either side of a wall and preserves queries", "[FillVoronoi][WallSnap]")
+{
+    auto source = std::make_shared<FixedProvider>();
+    source->sites = {Vec3d(-0.9, 0., 0.), Vec3d(0.9, 1., 0.), Vec3d(-1.4, 2., 0.),
+                     Vec3d(1.6, 3., 0.), Vec3d(0., 4., 0.)};
+    const auto raw_plane = [](const std::vector<Vec3d> &points) {
+        std::vector<Voronoi::WallDistanceSample> result;
+        for (const auto &p : points) result.push_back({p.x(), p.x() - 5.});
+        return result;
+    };
+    const Voronoi::SnappedPointCloud cloud(source, raw_plane, 3., 1.);
+    const BoundingBoxf3 box(Vec3d(-2., -1., -1.), Vec3d(2., 5., 1.));
+    const auto sites = cloud.points_in(box, 3.);
+    REQUIRE(sites.size() == source->sites.size());
+    REQUIRE_THAT(sites[0].x(), Catch::Matchers::WithinAbs(0., 1e-12));
+    REQUIRE_THAT(sites[1].x(), Catch::Matchers::WithinAbs(0., 1e-12));
+    REQUIRE_THAT(sites[2].x(), Catch::Matchers::WithinAbs(0., 1e-12));
+    REQUIRE(sites[3] == source->sites[3]);
+    REQUIRE(sites[4] == source->sites[4]);
+    REQUIRE(cloud.relative_density({Vec3d::Zero()}) == source->relative_density({Vec3d::Zero()}));
+    const double split = GENERATE(0., 0.5);
+    const auto left = cloud.points_in(BoundingBoxf3(box.min, Vec3d(split, 5., 1.)), 3.);
+    const auto right = cloud.points_in(BoundingBoxf3(Vec3d(split, -1., -1.), box.max), 3.);
+    REQUIRE(left.size() + right.size() == sites.size());
+    for (const auto &p : sites) {
+        const size_t occurrences = std::count(left.begin(), left.end(), p) + std::count(right.begin(), right.end(), p);
+        REQUIRE(occurrences == 1);
+    }
+}
+
+TEST_CASE("Boundary snapping caps displacement and leaves undefined normals unchanged", "[FillVoronoi][WallSnap]")
+{
+    auto source = std::make_shared<FixedProvider>();
+    source->sites = {Vec3d(-2., 0., 0.), Vec3d(0., 0., 0.)};
+    const bool flat = GENERATE(false, true);
+    const auto field = [flat](const std::vector<Vec3d> &points) {
+        std::vector<Voronoi::WallDistanceSample> result;
+        for (const auto &p : points) {
+            const double d = flat ? 0.5 : 0.1 * p.x();
+            result.push_back({d, d});
+        }
+        return result;
+    };
+    const Voronoi::SnappedPointCloud cloud(source, field, 3., 1.);
+    const auto sites = cloud.points_in(BoundingBoxf3(Vec3d::Constant(-4.), Vec3d::Constant(4.)), 3.);
+    REQUIRE(sites.size() == 2);
+    REQUIRE_THAT((sites[0] - source->sites[0]).norm(), Catch::Matchers::WithinAbs(flat ? 0. : 1.5, 1e-12));
+    REQUIRE(sites[1] == source->sites[1]);
+}
+
+TEST_CASE("Shell tees share boundary edges and cycle all three pairings", "[FillVoronoi][Boundary]")
+{
+    const bool persistent_sites = GENERATE(false, true);
+    const auto boundary = to_polylines(rectangle(0., -2., 2., 2.));
+    std::set<size_t> unpaired;
+    int turns = 0;
+    for (size_t layer = 0; layer < 3; ++layer) {
+        const double y = persistent_sites ? 0.11 * layer : 0.;
+        Polylines walls {Polyline{Points{Point::new_scale(1., y), Point::new_scale(0., y)}}};
+        const Points nodes = Voronoi::join_boundary(walls, boundary);
+        const auto graph = Voronoi::build_wall_graph(walls);
+        const size_t vertex = graph.indices.at(Point::new_scale(0., y));
+        REQUIRE(graph.vertices[vertex].edges.size() == 3);
+        std::vector<std::array<Vec3d, 2>> sites;
+        if (persistent_sites) sites.assign(nodes.size(), {Vec3d(-1., 0., 0.), Vec3d(1., 0., 0.)});
+        const auto connections = Voronoi::pair_junctions(graph, {}, layer, nodes, sites);
+        for (size_t edge : graph.vertices[vertex].edges) {
+            const size_t partner = connections[edge][graph.edges[edge][0] == vertex ? 0 : 1];
+            if (partner == Voronoi::no_connection) unpaired.insert(edge);
+            if (edge == 0 && partner != Voronoi::no_connection) ++turns;
+        }
+        double length = 0.;
+        for (const auto &path : Voronoi::trace_trails(graph, connections, layer)) length += path.length();
+        REQUIRE_THAT(unscale<double>(length), Catch::Matchers::WithinAbs(13., 1e-6));
+    }
+    REQUIRE(unpaired.size() == 3);
+    REQUIRE(turns == 2);
+}
+
 TEST_CASE("Material density bytes preserve zero and sparse tails and reserve escape codes", "[FillVoronoi][MaterialDensity]")
 {
     using namespace Voronoi;
@@ -1343,12 +1516,12 @@ TEST_CASE("Fused point clouds accommodate higher modifier density and empty inte
     const Voronoi::DensityModifier modifier {3, target, 0., {{0., 40., {rectangle(0., -20., 20., 20.)}}}};
     Voronoi::WallDistanceCloudCache cache;
     const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{0., 40., &model}}; };
-    const auto field = cache.get(slices, 0., 0., {}, method, 0., 0.1, {modifier}, 3);
+    const auto field = cache.get(slices, 0., 0., {}, 0., method, 0, 0., false, 0.1, {modifier}, 3);
     const BoundingBoxf3 box(Vec3d(4., -5., 15.), Vec3d(14., 5., 25.));
     const auto points = field->points_in(box, 3.);
     if (target == 0.) REQUIRE(points.empty());
     else {
-        const auto uniform = cache.get(slices, 0., 0., {}, method)->points_in(box, 3.);
+        const auto uniform = cache.get(slices, 0., 0., {}, 0., method)->points_in(box, 3.);
         REQUIRE(points.size() > 50 * uniform.size());
     }
     REQUIRE_THAT(field->relative_density({Vec3d(10., 0., 20.)}).front(), Catch::Matchers::WithinRel(target / 0.1, 0.022));

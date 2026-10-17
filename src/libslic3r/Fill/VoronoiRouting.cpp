@@ -1,6 +1,8 @@
 #include "VoronoiRouting.hpp"
 #include "../KDTreeIndirect.hpp"
 #include "../ShortestPath.hpp"
+#include "../AABBTreeLines.hpp"
+#include "../Line.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -10,6 +12,8 @@
 #include <cstdint>
 #include <limits>
 #include <utility>
+#include <tuple>
+#include <unordered_map>
 #include <vector>
 
 namespace Slic3r::Voronoi {
@@ -105,8 +109,55 @@ WallGraph build_wall_graph(const Polylines &walls, coord_t tolerance)
     return graph;
 }
 
-Connections pair_junctions(const WallGraph &graph, const std::vector<Junction> &junctions, size_t layer_id)
+Points join_boundary(Polylines &walls, const Polylines &boundary)
 {
+    Lines segments;
+    for (const auto &path : boundary) append(segments, path.lines());
+    if (segments.empty()) return {};
+    const AABBTreeLines::LinesDistancer<Line> nearest(segments);
+    std::vector<Points> cuts(segments.size());
+    Points nodes;
+    for (auto &wall : walls) {
+        if (wall.points.size() < 2) continue;
+        for (Point *endpoint : {&wall.points.front(), &wall.points.back()}) {
+            const auto [distance, index, xy] = nearest.distance_from_lines_extra<false>(*endpoint);
+            if (distance > scale_(0.000008)) continue;
+            const Point point(coord_t(std::round(xy.x())), coord_t(std::round(xy.y())));
+            *endpoint = point;
+            cuts[index].push_back(point);
+            nodes.push_back(point);
+        }
+    }
+    for (size_t i = 0; i < segments.size(); ++i) {
+        Points points {segments[i].a, segments[i].b};
+        append(points, std::move(cuts[i]));
+        const Vec2d direction = segments[i].b.cast<double>() - segments[i].a.cast<double>();
+        std::sort(points.begin(), points.end(), [&](const Point &a, const Point &b) {
+            return direction.dot(a.cast<double>()) < direction.dot(b.cast<double>());
+        });
+        points.erase(std::unique(points.begin(), points.end()), points.end());
+        if (points.size() > 1) walls.emplace_back(std::move(points));
+    }
+    return nodes;
+}
+
+Connections pair_junctions(const WallGraph &graph, const std::vector<Junction> &junctions, size_t layer_id, const Points &boundary_nodes,
+                           const std::vector<std::array<Vec3d, 2>> &boundary_sites)
+{
+    assert(boundary_sites.empty() || boundary_sites.size() == boundary_nodes.size());
+    std::unordered_map<size_t, uint64_t> boundary;
+    for (size_t i = 0; i < boundary_nodes.size(); ++i) {
+        const Point &point = boundary_nodes[i];
+        auto found = graph.indices.find(point);
+        if (found == graph.indices.end()) continue;
+        uint64_t hash = mix(uint64_t(point.x()) ^ mix(uint64_t(point.y())));
+        if (!boundary_sites.empty()) {
+            auto sites = boundary_sites[i];
+            if (site_less(sites[1], sites[0])) std::swap(sites[0], sites[1]);
+            hash = site_hash({sites[0], sites[1], sites[0]});
+        }
+        boundary.emplace(found->second, hash);
+    }
     Connections connections(graph.edges.size(), {no_connection, no_connection});
     // Multiple generating triples at one snapped vertex are degenerate, not a
     // genuine three-way junction. They use straight pairing / stable fallback.
@@ -137,6 +188,16 @@ Connections pair_junctions(const WallGraph &graph, const std::vector<Junction> &
         const auto &incident = graph.vertices[v].edges;
         if (incident.size() < 3) {
             if (incident.size() == 2) pair(v, incident[0], incident[1]);
+            continue;
+        }
+        // A physical boundary tee must sometimes turn into the shell bead,
+        // instead of always pairing its two collinear boundary branches.
+        const auto boundary_node = boundary.find(v);
+        if (incident.size() == 3 && boundary_node != boundary.end()) {
+            const uint64_t hash = boundary_node->second;
+            const size_t step = (hash >> 8) & 1 ? 1 : 2;
+            const size_t unpaired = (hash % 3 + step * (layer_id % 3)) % 3;
+            pair(v, incident[(unpaired + 1) % 3], incident[(unpaired + 2) % 3]);
             continue;
         }
         std::vector<Vec2d> directions;

@@ -1,4 +1,5 @@
 #include <catch2/catch_all.hpp>
+#include "libslic3r/VoronoiCloudMethod.hpp"
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -10,6 +11,7 @@
 #include <utility>
 
 #include "libslic3r/Fill/FillVoronoi.hpp"
+#include "libslic3r/Fill/VoronoiWallDistance.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Surface.hpp"
 #include "libslic3r/ShortestPath.hpp"
@@ -296,50 +298,151 @@ TEST_CASE("Voronoi fills shallow bands with continuous coverage and configured f
     }
 }
 
-TEST_CASE("Worker-local Voronoi caches survive temporary fillers and isolate clones", "[FillVoronoi][Incremental]")
+TEST_CASE("Voronoi wall distribution reduces material through native extrusion", "[FillVoronoi]")
 {
-    class CountingCloud : public Voronoi::PoissonPointCloud {
-    public:
-        mutable size_t queries = 0;
-        std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override
-            { ++queries; return PoissonPointCloud::points_in(box, spacing); }
-    };
-    auto provider = std::make_shared<CountingCloud>();
-    VoronoiInfillCache cache;
+    const ExPolygons outlines {ExPolygon{Point::new_scale(-40., -40.), Point::new_scale(40., -40.),
+                                        Point::new_scale(40., 40.), Point::new_scale(-40., 40.)}};
+    auto field = std::make_shared<Voronoi::CubicWallDistance>(std::vector<Voronoi::WallSlice>{{-100., 100., &outlines}});
+    FillVoronoi uniform, biased;
+    const Voronoi::WallDistanceSamples distance = [field](const auto &points) { return field->sample_fields(points); };
+    std::shared_ptr<const Voronoi::PointCloudProvider> cloud = std::make_shared<Voronoi::WallDistancePointCloud>(distance);
+    biased.set_point_cloud(std::move(cloud));
     FillParams params;
+    params.density = 0.2f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.using_internal_flow = true;
+    for (auto *filler : {&uniform, &biased}) {
+        filler->set_bounding_box(outlines.front().contour.bounding_box());
+        filler->spacing = params.flow.spacing();
+        filler->angle = 0.f;
+        filler->z = 4.;
+        filler->layer_id = 20;
+    }
+    Surface surface(stInternal, outlines.front());
+    ExtrusionEntityCollection original, thinned, repeat;
+    uniform.fill_surface_extrusion(&surface, params, original.entities);
+    biased.fill_surface_extrusion(&surface, params, thinned.entities);
+    REQUIRE_FALSE(thinned.entities.empty());
+    REQUIRE(thinned.total_volume() > 0.);
+    REQUIRE(thinned.total_volume() < original.total_volume());
+    biased.fill_surface_extrusion(&surface, params, repeat.entities);
+    REQUIRE_THAT(repeat.total_volume(), Catch::Matchers::WithinAbs(thinned.total_volume(), EPSILON));
+}
+
+namespace {
+class CellularCavity : public Voronoi::WallDistancePointCloud {
+public:
+    CellularCavity() : WallDistancePointCloud([](const auto &points) {
+        std::vector<Voronoi::WallDistanceSample> samples;
+        for (const auto &p : points) samples.push_back({-1., p.norm() < 2. ? 0.1 : 1.});
+        return samples;
+    }, 1., 0., Vec2d::Zero(), 0.5) {}
+    std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double) const override
+    {
+        std::vector<Vec3d> result;
+        for (int x = -1; x <= 1; ++x)
+            for (int y = -1; y <= 1; ++y)
+                for (int z = -1; z <= 1; ++z) {
+                    const Vec3d point(8. * x, 8. * y, 8. * z);
+                    if ((point.array() >= box.min.array()).all() && (point.array() < box.max.array()).all())
+                        result.push_back(point);
+                }
+        return result;
+    }
+    std::optional<BoundingBoxf3> extent() const override
+        { return BoundingBoxf3(Vec3d(-8., -8., -8.), Vec3d(8., 8., 8.)); }
+};
+}
+
+TEST_CASE("Voronoi extrudes prepared point clouds with native flow and clipping", "[FillVoronoi][Fcc][WallSnap]")
+{
+    const int iterations = GENERATE(0, 3);
+    const double repulsion = GENERATE(0., 1.);
+    const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
+    const bool snap = GENERATE(false, true);
+    const ExPolygon region {Point::new_scale(0., 0.), Point::new_scale(20., 0.),
+                            Point::new_scale(20., 20.), Point::new_scale(0., 20.)};
+    const ExPolygons outlines {region};
+    FillParams params;
+    params.pattern = ipVoronoi;
+    params.multiline = GENERATE(1, 2, 3);
     params.density = 0.25f;
     params.flow = Flow(0.45f, 0.2f, 0.4f);
     params.using_internal_flow = true;
-    const ExPolygon outline {Point::new_scale(-10., -10.), Point::new_scale(10., -10.),
-                             Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
-    const Surface surface(stInternal, outline);
-    const auto configure = [&](FillVoronoi &fill) {
-        fill.set_point_cloud(provider, &cache);
-        fill.set_bounding_box(outline.contour.bounding_box());
-        fill.spacing = params.flow.spacing();
-        fill.angle = 0.f;
-        fill.z = 1.1;
-        fill.layer_id = 5;
-    };
-    Polylines expected;
-    {
-        FillVoronoi temporary;
-        configure(temporary);
-        expected = temporary.fill_surface(&surface, params);
+    const double spacing = Voronoi::PoissonPointCloud().spacing(params.flow.spacing() * params.multiline, params.flow.height(), params.density);
+    Voronoi::WallDistanceCloudCache cache;
+    const double decay = GENERATE(0., 6.);
+    const auto cloud = cache.get([&] { return std::vector<Voronoi::WallSlice>{{0., 20., &outlines}}; }, decay, 0., {}, spacing, method, iterations, 0., snap);
+    FillVoronoi filler;
+    filler.set_point_cloud(cloud);
+    filler.set_bounding_box(region.contour.bounding_box());
+    filler.spacing = params.flow.spacing();
+    filler.angle = 0.f;
+    const Surface surface(stInternal, region);
+    for (int layer : {5, 50, 95}) {
+        filler.layer_id = layer;
+        filler.z = 0.2 * layer;
+        ExtrusionEntityCollection result;
+        filler.fill_surface_extrusion(&surface, params, result.entities);
+        REQUIRE(result.total_volume() > 0.);
+        const auto flat = result.flatten();
+        REQUIRE_FALSE(flat.entities.empty());
+        for (const auto *entity : flat.entities) {
+            const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+            REQUIRE(path != nullptr);
+            REQUIRE_THAT(path->width, Catch::Matchers::WithinAbs(params.flow.width(), 1e-6));
+            REQUIRE(diff_pl(Polylines{path->polyline.to_polyline()}, region).empty());
+        }
     }
-    REQUIRE(provider->queries > 0);
-    REQUIRE(cache.clouds.size() == 1);
-    const size_t initial_queries = provider->queries;
-    FillVoronoi next;
-    configure(next);
-    REQUIRE(next.fill_surface(&surface, params) == expected);
-    REQUIRE(provider->queries == initial_queries);
-    std::unique_ptr<Fill> clone(next.clone());
-    clone->z = 1000.;
-    REQUIRE_FALSE(clone->fill_surface(&surface, params).empty());
-    const size_t after_clone = provider->queries;
-    REQUIRE(next.fill_surface(&surface, params) == expected);
-    REQUIRE(provider->queries == after_clone);
+}
+
+
+TEST_CASE("Shell tracing connects foam walls without tracing modifier cuts", "[FillVoronoi][Boundary]")
+{
+    const ExPolygon model {Point::new_scale(-10., -10.), Point::new_scale(10., -10.),
+                           Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
+    const ExPolygon modifier {Point::new_scale(-10., -10.), Point::new_scale(3., -10.),
+                              Point::new_scale(3., 10.), Point::new_scale(-10., 10.)};
+    FillParams params;
+    params.density = 0.2f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.using_internal_flow = true;
+    FillVoronoi filler;
+    filler.set_point_cloud(std::make_shared<FiniteWallSites>());
+    filler.set_bounding_box(model.contour.bounding_box());
+    filler.spacing = params.flow.spacing();
+    filler.z = 0.;
+    filler.angle = 0.f;
+    const Surface surface(stInternal, modifier);
+    params.anchor_length_max = 0.f;
+    const auto plain = filler.fill_surface(&surface, params);
+    REQUIRE(plain.size() == 1);
+    filler.set_shell_boundaries({model});
+    bool turn = false;
+    for (size_t layer = 0; layer < 3; ++layer) {
+        filler.layer_id = layer;
+        const auto paths = filler.fill_surface(&surface, params);
+        double length = 0., original_length = 0.;
+        for (const auto &path : plain) original_length += path.length();
+        for (const auto &path : paths) {
+            length += path.length();
+            for (size_t i = 1; i < path.points.size(); ++i) {
+                const Point &a = path.points[i - 1], &b = path.points[i];
+                if (std::abs(unscale<double>(a.x()) - 3.) < 1.) {
+                    if (std::abs(unscale<double>(b.x()) - 3.) < 1.) REQUIRE(a.y() == b.y());
+                }
+            }
+            for (size_t i = 1; i + 1 < path.points.size(); ++i) {
+                const Point &a = path.points[i - 1], &b = path.points[i], &c = path.points[i + 1];
+                turn |= b.x() == 0 && a.x() == b.x() && b.y() == c.y() && b.x() != c.x();
+                turn |= b.x() == 0 && a.y() == b.y() && b.x() == c.x() && b.y() != c.y();
+            }
+        }
+        REQUIRE(length > original_length);
+    }
+    REQUIRE(turn);
+    params.density = 0.f;
+    REQUIRE(filler.fill_surface(&surface, params).empty());
 }
 
 
@@ -405,6 +508,36 @@ TEST_CASE("Voronoi honours native boundary anchor lengths", "[FillVoronoi][Ancho
     REQUIRE(diff_pl(anchored, offset_ex(region, float(SCALED_EPSILON))).empty());
 }
 
+TEST_CASE("A shell trace reaches the shared modifier cut without a half-spacing gap", "[FillVoronoi][Boundary]")
+{
+    const ExPolygon model {Point::new_scale(-10., -10.), Point::new_scale(10., -10.),
+                           Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
+    FillParams params;
+    params.density = 0.2f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.anchor_length_max = 0.f;
+    const double cut = 3.;
+    for (bool right : {false, true}) {
+        ExPolygon region = model;
+        for (Point &p : region.contour.points)
+            if ((right && p.x() < 0) || (!right && p.x() > 0)) p.x() = scale_(cut);
+        FillVoronoi filler;
+        filler.set_point_cloud(std::make_shared<FiniteWallSites>());
+        filler.set_bounding_box(model.contour.bounding_box());
+        filler.set_shell_boundaries({model});
+        filler.spacing = params.flow.spacing();
+        filler.z = 0.;
+        filler.angle = 0.f;
+        const Surface surface(stInternal, region);
+        const auto paths = filler.fill_surface(&surface, params);
+        int touching = 0;
+        for (const auto &path : paths)
+            for (const Point &p : path.points)
+                if (p.x() == scale_(cut)) ++touching;
+        REQUIRE(touching >= 2);
+    }
+}
+
 TEST_CASE("Floor rows use existing wall anchors without reversing their sweep", "[FillVoronoi][Floors][Anchors]")
 {
     const bool both_ends = GENERATE(false, true);
@@ -442,4 +575,50 @@ TEST_CASE("Floor rows use existing wall anchors without reversing their sweep", 
             }
     }
     REQUIRE(has_rows);
+}
+
+TEST_CASE("Worker-local Voronoi caches survive temporary fillers and isolate clones", "[FillVoronoi][Incremental]")
+{
+    class CountingCloud : public Voronoi::PoissonPointCloud {
+    public:
+        mutable size_t queries = 0;
+        std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override
+            { ++queries; return PoissonPointCloud::points_in(box, spacing); }
+    };
+    auto provider = std::make_shared<CountingCloud>();
+    VoronoiInfillCache cache;
+    FillParams params;
+    params.density = 0.25f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.using_internal_flow = true;
+    const ExPolygon outline {Point::new_scale(-10., -10.), Point::new_scale(10., -10.),
+                             Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
+    const Surface surface(stInternal, outline);
+    const auto configure = [&](FillVoronoi &fill) {
+        fill.set_point_cloud(provider, &cache);
+        fill.set_bounding_box(outline.contour.bounding_box());
+        fill.spacing = params.flow.spacing();
+        fill.angle = 0.f;
+        fill.z = 1.1;
+        fill.layer_id = 5;
+    };
+    Polylines expected;
+    {
+        FillVoronoi temporary;
+        configure(temporary);
+        expected = temporary.fill_surface(&surface, params);
+    }
+    REQUIRE(provider->queries > 0);
+    REQUIRE(cache.clouds.size() == 1);
+    const size_t initial_queries = provider->queries;
+    FillVoronoi next;
+    configure(next);
+    REQUIRE(next.fill_surface(&surface, params) == expected);
+    REQUIRE(provider->queries == initial_queries);
+    std::unique_ptr<Fill> clone(next.clone());
+    clone->z = 1000.;
+    REQUIRE_FALSE(clone->fill_surface(&surface, params).empty());
+    const size_t after_clone = provider->queries;
+    REQUIRE(next.fill_surface(&surface, params) == expected);
+    REQUIRE(provider->queries == after_clone);
 }

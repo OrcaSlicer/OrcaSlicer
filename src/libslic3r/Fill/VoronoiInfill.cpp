@@ -3,21 +3,35 @@
 #include "../ClipperUtils.hpp"
 #include "VoronoiInfillCgal.hpp"
 #include "VoronoiRouting.hpp"
+#include "../KDTreeIndirect.hpp"
 #include <cstddef>
+#include <array>
 #include <vector>
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <boost/log/trivial.hpp>
 #include <utility>
 #include "../Polygon.hpp"
 
 namespace Slic3r {
-Polylines VoronoiInfill::route_walls(Polylines walls, size_t layer_id) const
+Polylines VoronoiInfill::route_walls(Polylines walls, size_t layer_id, const Points &boundary_nodes) const
 {
     if (walls.empty()) return walls;
+    std::vector<std::array<Vec3d, 2>> boundary_sites;
+    const auto &sites = m_cloud.sites();
+    if (!boundary_nodes.empty() && sites.size() >= 2) {
+        auto coordinate = [&sites](size_t i, size_t axis) { return sites[i][axis]; };
+        KDTreeIndirect<3, double, decltype(coordinate)> tree(coordinate, sites.size());
+        for (const Point &point : boundary_nodes) {
+            const Vec3d position(unscale<double>(point.x()), unscale<double>(point.y()), m_layer_z);
+            const auto nearest = find_closest_points<2>(tree, position);
+            boundary_sites.push_back({sites[nearest[0]], sites[nearest[1]]});
+        }
+    }
     const Voronoi::WallGraph graph = Voronoi::build_wall_graph(walls);
     return Voronoi::trace_trails(graph,
-        Voronoi::pair_junctions(graph, m_section.junctions, layer_id), layer_id);
+        Voronoi::pair_junctions(graph, m_section.junctions, layer_id, boundary_nodes, boundary_sites), layer_id);
 }
 
 Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, const ExPolygon &region,
@@ -85,6 +99,10 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
     for (const Voronoi::Band &band : result.bands)
         append(wall_mask, offset_ex(band.polygon, -1.f));
     result.walls = diff_pl(intersection_pl(m_section.walls, region), wall_mask);
+    BOOST_LOG_TRIVIAL(warning) << "Voronoi diagnostic: geometry z=" << z << " density=" << density
+        << " spacing=" << spacing << " site_spacing=" << site_spacing << " sites=" << m_cloud.sites().size()
+        << " section_walls=" << m_section.walls.size() << " floors=" << result.bands.size()
+        << " clipped_walls=" << result.walls.size() << " bounds=" << bounds.min.transpose() << ';' << bounds.max.transpose();
     return result;
 }
 

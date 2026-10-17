@@ -32,7 +32,7 @@ struct DensityModifier {
     std::optional<double> decay, smoothing_sigma;
 };
 
-enum class WallDistanceStage { Distance, Encoding, SmoothXY, SmoothZ, MaterialDensity, Modifiers, Complete };
+enum class WallDistanceStage { Distance, Encoding, SmoothXY, SmoothZ, MaterialDensity, Modifiers, Relaxation, Complete };
 // Called synchronously during construction, including within long phases.
 // The callback may throw to cancel construction; no partial table is cached.
 using WallDistanceProgress = std::function<void(WallDistanceStage, double)>;
@@ -59,14 +59,14 @@ class WallDistanceCloudCache {
 public:
     std::shared_ptr<const PointCloudProvider> get(const std::function<std::vector<WallSlice>()> &load_slices,
                                                   double decay = 6., double sigma = 8.,
-                                                  const WallDistanceProgress &progress = {},
-                                                  VoronoiCloudMethod method = VoronoiCloudMethod::Random, double angle = 0., double material_density = 0.25,
+                                                  const WallDistanceProgress &progress = {}, double site_spacing = 0.,
+                                                  VoronoiCloudMethod method = VoronoiCloudMethod::Random, int relaxation_iterations = 0, double angle = 0., bool snap = false, double material_density = 0.25,
                                                   const std::vector<DensityModifier> &modifiers = {}, int region_id = -1);
     void clear();
 private:
     std::mutex m_mutex;
     std::map<std::tuple<double, double, double, int>, std::shared_ptr<const CubicWallDistance>> m_tables;
-    std::map<std::tuple<double, double, double, int, VoronoiCloudMethod, double>, std::shared_ptr<const PointCloudProvider>> m_providers;
+    std::map<std::tuple<double, double, double, int, double, VoronoiCloudMethod, int, double, bool>, std::shared_ptr<const PointCloudProvider>> m_providers;
 };
 
 } // namespace Slic3r::Voronoi

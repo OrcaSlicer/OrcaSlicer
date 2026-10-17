@@ -36,6 +36,21 @@ for each section. Points are retired before updating the persistent 3D network,
 which supplies shallow-face floor polygons. Geometry clipping removes overlapping
 floors and wall sections within floors while retaining their supporting boundaries.
 
+## Optional point relaxation
+
+Relaxation iterations defaults to zero, leaving the original provider unchanged.
+A nonzero count prepares a saved object-wide constellation, including exterior
+neighbours, after point generation. Each iteration rebuilds its 3D Delaunay
+mesh and balances edge lengths against the density-dependent preferred spacing.
+Damped simultaneous steps are limited to 10% of nominal site spacing per pass;
+convex-hull sites remain fixed to prevent the field shrinking at its boundary.
+Three to five iterations are a useful starting range.
+
+Relaxed points are cached and queried consistently across layers. The density
+field remains unchanged; cell boundaries follow the relaxed points. Preparation checks cancellation
+and reports progress. Relaxation costs additional memory and computation and
+cannot eliminate every acute section of a 3D cell.
+
 ## Extrusion and routing
 
 At one bead, faces become single wall lines when successive layers have at least half-bead
@@ -106,10 +121,17 @@ these foams.
 Sparse infill direction rotates either lattice about Z through the object's
 bounding-box centre. Complete FCC lattices have vertical Voronoi faces and faces
 inclined about 35 degrees above horizontal. Complete Cubic lattices have faces
-inclined about 55 degrees. Thinning can create shallower faces;
+inclined about 55 degrees. Thinning and relaxation can create shallower faces;
 none of the distributions guarantees self-supporting infill.
 
-## Wall thickness
+Snap points to walls defaults off. After optional relaxation, points within half
+of nominal spacing on either side of a wall take a bounded step towards
+the raw distance field's zero contour. Flat walls are the simplest case; the
+approximate table, curves and corners limit accuracy. The density field remains
+unchanged; cell boundaries follow the snapped points. Queries include nearby source points before
+snapping so that partitioned requests reproduce the same field.
+
+## Wall thickness and shell bonding
 
 Fill Multiline uses Orca's native offset outlines around routed wall paths. Odd
 counts retain the central wall; even counts use half-spacing offsets. Native
@@ -119,6 +141,15 @@ Floor bands cover the wider footprint and are filled once at native solid row
 spacing; they bypass wall offsets and connectors to retain their sweep order.
 Nominal point spacing grows with bead count to approximately retain the selected
 density.
+
+Trace model shell defaults off. It adds one native infill bead at the physical
+shell interface, including hole walls. Combined layer fill outlines exclude
+modifier boundaries. Touching foam walls split the boundary bead into graph
+edges; three-way boundary junctions use their generating control-point pair to
+cycle pairings across layers, allowing
+foam trails to turn along the shell. Traces are clipped to the original fill
+surface so neighbouring modifier regions meet at their shared cut. The additional
+boundary bead adds material.
 
 ## Fused density modifiers
 
@@ -144,7 +175,8 @@ Overlapping modifiers blend successively. Ordinary modifiers still clip regions
 normally.
 
 One constellation follows the combined field. Candidate intensity is bounded by
-the parent and modifier settings, including their maximum corner boost.
+the parent and modifier settings, including their maximum corner boost. Optional
+relaxation follows local spacing.
 Density is a statistical target; removing control points does not itself clip
 walls out of a region.
 A conservative large-cloud warning considers object bounds and the densest

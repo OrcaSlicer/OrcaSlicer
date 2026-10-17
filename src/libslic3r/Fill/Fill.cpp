@@ -315,6 +315,9 @@ struct SurfaceFillParams
     bool gyroid_optimized = false;
     VoronoiCloudMethod voronoi_cloud_method = VoronoiCloudMethod::Random;
     double voronoi_cloud_angle = 0.;
+    int voronoi_relaxation_iterations = 0;
+    bool voronoi_snap_to_wall = false;
+    bool voronoi_trace_shell = false;
     double voronoi_wall_decay = 0.;
     double voronoi_smoothing_sigma = 0.;
     int voronoi_density_region = -1;
@@ -371,6 +374,9 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(tpms_adaptive_gradient);
         RETURN_COMPARE_NON_EQUAL(voronoi_cloud_method);
         RETURN_COMPARE_NON_EQUAL(voronoi_cloud_angle);
+        RETURN_COMPARE_NON_EQUAL(voronoi_relaxation_iterations);
+        RETURN_COMPARE_NON_EQUAL(voronoi_snap_to_wall);
+        RETURN_COMPARE_NON_EQUAL(voronoi_trace_shell);
         RETURN_COMPARE_NON_EQUAL(voronoi_wall_decay);
         RETURN_COMPARE_NON_EQUAL(voronoi_smoothing_sigma);
         RETURN_COMPARE_NON_EQUAL(voronoi_density_region);
@@ -412,6 +418,9 @@ struct SurfaceFillParams
                 this->tpms_adaptive_gradient  == rhs.tpms_adaptive_gradient  &&
                 this->voronoi_cloud_method     == rhs.voronoi_cloud_method     &&
                 this->voronoi_cloud_angle      == rhs.voronoi_cloud_angle      &&
+                this->voronoi_relaxation_iterations == rhs.voronoi_relaxation_iterations &&
+                this->voronoi_snap_to_wall == rhs.voronoi_snap_to_wall &&
+                this->voronoi_trace_shell == rhs.voronoi_trace_shell &&
                 this->voronoi_wall_decay       == rhs.voronoi_wall_decay       &&
                 this->voronoi_smoothing_sigma == rhs.voronoi_smoothing_sigma &&
                 this->voronoi_density_region == rhs.voronoi_density_region &&
@@ -428,8 +437,15 @@ static void configure_voronoi_cloud(Fill &fill, const SurfaceFillParams &params,
     const PrintObject &object = *layer.object();
     if (params.pattern != ipVoronoi) return;
     auto &voronoi = static_cast<FillVoronoi &>(fill);
-    voronoi.set_point_cloud(object.voronoi_point_cloud(params.voronoi_wall_decay, params.voronoi_smoothing_sigma, params.voronoi_cloud_method, params.voronoi_cloud_angle, 0.01 * params.density, params.voronoi_density_region), cache);
-
+    const double site_spacing = params.voronoi_snap_to_wall || params.voronoi_relaxation_iterations > 0 ?
+        Voronoi::PoissonPointCloud().spacing(params.spacing * params.multiline, object.config().layer_height.value, 0.01 * params.density) : 0.;
+    voronoi.set_point_cloud(object.voronoi_point_cloud(params.voronoi_wall_decay, params.voronoi_smoothing_sigma,
+        site_spacing, params.voronoi_cloud_method, params.voronoi_relaxation_iterations, params.voronoi_cloud_angle, params.voronoi_snap_to_wall, 0.01 * params.density, params.voronoi_density_region), cache);
+    if (params.voronoi_trace_shell) {
+        ExPolygons boundaries;
+        for (const LayerRegion *region : layer.regions()) append(boundaries, region->fill_expolygons);
+        voronoi.set_shell_boundaries(union_ex(boundaries));
+    }
     if (layer.lower_layer) {
         // Perimeters are complete before parallel infill generation; lower-layer
         // infill is not. Use bead footprints rather than solid slice outlines.
@@ -1054,6 +1070,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // A 3D constellation keeps one orientation across layers.
                 params.voronoi_cloud_angle = params.pattern == ipVoronoi ?
                     Geometry::deg2rad(region_config.infill_direction.value) : 0.;
+                params.voronoi_relaxation_iterations = params.pattern == ipVoronoi ? region_config.voronoi_relaxation_iterations.value : 0;
+                params.voronoi_snap_to_wall = params.pattern == ipVoronoi && region_config.voronoi_snap_to_wall.value;
+                params.voronoi_trace_shell = params.pattern == ipVoronoi && region_config.voronoi_trace_shell.value;
                 params.voronoi_wall_decay = params.pattern == ipVoronoi ? region_config.voronoi_wall_decay.value : 0.;
                 params.voronoi_smoothing_sigma = params.pattern == ipVoronoi ? region_config.voronoi_smoothing_sigma.value : 0.;
 

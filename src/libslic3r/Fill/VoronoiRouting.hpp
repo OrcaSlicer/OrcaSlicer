@@ -22,7 +22,10 @@ constexpr size_t no_connection = size_t(-1);
 // Fixed representatives prevent transitive drift. Zero-length edges disappear;
 // every other segment, including parallel duplicates, remains a distinct edge.
 WallGraph build_wall_graph(const Polylines &walls, coord_t tolerance = scale_(0.000008));
-Connections pair_junctions(const WallGraph &graph, const std::vector<Junction> &junctions, size_t layer_id);
+Connections pair_junctions(const WallGraph &graph, const std::vector<Junction> &junctions, size_t layer_id, const Points &boundary_nodes = {},
+                           const std::vector<std::array<Vec3d, 2>> &boundary_sites = {});
+// Split the physical boundary at touching wall endpoints before graph construction.
+Points join_boundary(Polylines &walls, const Polylines &boundary);
 Polylines trace_trails(const WallGraph &graph, const Connections &connections, size_t layer_id);
 struct PathGroup {
     Polylines paths;

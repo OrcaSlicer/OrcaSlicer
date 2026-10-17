@@ -819,6 +819,9 @@ void PrintObject::infill()
             if (config.sparse_infill_density > 0 && config.sparse_infill_pattern == ipVoronoi) {
                 has_voronoi = true;
                 const VoronoiCloudMethod method = config.voronoi_cloud_method.value;
+                const double site_spacing = config.voronoi_snap_to_wall || config.voronoi_relaxation_iterations > 0 ?
+                    Voronoi::PoissonPointCloud().spacing(printing_region(region_id).flow(*this, frInfill, m_config.layer_height.value).spacing() * config.fill_multiline.value,
+                                                       m_config.layer_height.value, 0.01 * float(config.sparse_infill_density.value)) : 0.;
                 double maximum_density = 0.01 * config.sparse_infill_density.value;
                 for (const auto &modifier : m_voronoi_density_modifiers)
                     if (modifier.region_id == int(object_region)) maximum_density = std::max(maximum_density, modifier.material_density);
@@ -837,7 +840,8 @@ void PrintObject::infill()
                     const float align_offset = atan2((float)m(1, 0), (float)m(0, 0));
                     angle += align_offset;
                 }
-                voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value, method, angle,
+                voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value,
+                                    site_spacing, method, config.voronoi_relaxation_iterations.value, angle, config.voronoi_snap_to_wall.value,
                                     0.01 * float(config.sparse_infill_density.value), voronoi_density_region(printing_region(region_id).print_object_region_id()));
             }
         }
@@ -1346,7 +1350,7 @@ int PrintObject::voronoi_density_region(int region_id) const
                       [region_id](const auto &m) { return m.region_id == region_id; }) ? region_id : -1;
 }
 
-std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, VoronoiCloudMethod method, double angle, double material_density, int density_region) const
+std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, double site_spacing, VoronoiCloudMethod method, int relaxation_iterations, double angle, bool snap, double material_density, int density_region) const
 {
     const int percent = is_step_done(posPrepareInfill) ? 35 : 25;
     auto last_report = std::chrono::steady_clock::now();
@@ -1369,13 +1373,14 @@ std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cl
             case Voronoi::WallDistanceStage::SmoothZ: message = L("Smoothing Voronoi wall distances (Z)"); break;
             case Voronoi::WallDistanceStage::MaterialDensity: message = L("Preparing Voronoi material density"); break;
             case Voronoi::WallDistanceStage::Modifiers: message = L("Blending Voronoi material density modifiers"); break;
+            case Voronoi::WallDistanceStage::Relaxation: message = L("Relaxing Voronoi control points"); break;
             case Voronoi::WallDistanceStage::Complete: message = L("Finalizing Voronoi wall distances"); break;
             default: return;
             }
             m_print->set_status(percent, message + " (" + std::to_string(int(100. * fraction)) + "%)");
             last_report = now;
             last_stage = stage;
-        }, method, angle, material_density, m_voronoi_density_modifiers, density_region);
+        }, site_spacing, method, relaxation_iterations, angle, snap, material_density, m_voronoi_density_modifiers, density_region);
 }
 
 void PrintObject::clear_layers()
@@ -1783,6 +1788,7 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (opt_key == "voronoi_modifier_blend") {
             steps.emplace_back(posSlice);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "voronoi_relaxation_iterations" || opt_key == "voronoi_trace_shell" || opt_key == "voronoi_snap_to_wall"
                    || opt_key == "voronoi_cloud_method"
                    || opt_key == "voronoi_wall_decay" || opt_key == "voronoi_smoothing_sigma"
                    || opt_key == "tpms_adaptive"
