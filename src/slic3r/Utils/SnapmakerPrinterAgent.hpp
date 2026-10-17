@@ -18,6 +18,12 @@ public:
 
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
+protected:
+    int  start_uploaded_print(const PrintParams& params, const std::string& filename) override;
+    bool supports_flow_calibration() const override { return true; }
+    bool supports_timelapse() const override { return true; }
+    bool firmware_maps_tools() const override { return true; }
+
 private:
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);

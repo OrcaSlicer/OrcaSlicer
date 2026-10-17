@@ -5,6 +5,11 @@
 #include "bambu_networking.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/miniz_extension.hpp"
+#include "libslic3r/GCode/ToolRemap.hpp"
+#include "libslic3r/GCode/ZmodHeader.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -33,6 +38,7 @@
 #include <boost/beast/websocket/rfc6455.hpp>
 #include <boost/beast/websocket/error.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
@@ -42,12 +48,14 @@
 #include <cctype>
 #include <ios>
 #include <functional>
+#include <iterator>
 #include <exception>
 #include <map>
 #include <string>
 #include <mutex>
 #include <memory>
 #include <sstream>
+#include <regex>
 #include <set>
 #include <thread>
 #include <vector>
@@ -118,6 +126,26 @@ std::string map_moonraker_state(std::string state)
         return "FAILED";
     }
     return "IDLE";
+}
+
+// Writes the sliced plate's G-code (Metadata/plate_<n>.gcode) out of a .gcode.3mf bundle.
+bool extract_plate_gcode(const std::string& archive_path, const std::string& gcode_path)
+{
+    static const std::regex plate_gcode(R"(Metadata/plate_\d+\.gcode)");
+
+    mz_zip_archive archive;
+    mz_zip_zero_struct(&archive);
+    if (!Slic3r::open_zip_reader(&archive, archive_path))
+        return false;
+
+    bool extracted = false;
+    for (mz_uint i = 0, n = mz_zip_reader_get_num_files(&archive); i < n && !extracted; ++i) {
+        mz_zip_archive_file_stat stat;
+        if (mz_zip_reader_file_stat(&archive, i, &stat) && std::regex_match(stat.m_filename, plate_gcode))
+            extracted = mz_zip_reader_extract_to_file(&archive, i, Slic3r::encode_path(gcode_path.c_str()).c_str(), 0);
+    }
+    Slic3r::close_zip_reader(&archive);
+    return extracted;
 }
 
 } // namespace
@@ -342,37 +370,194 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
     }
 
-    // Extract filename for upload (relative to gcodes root)
-    std::string upload_filename = source_path.filename().string();
+    // The print dialog hands over the plate as a .gcode.3mf bundle; Klipper needs the plain G-code
+    // inside it, or it reads the zip as G-code and aborts on the first "command".
+    // Extract next to the bundle under a name of our own: the plate's live .gcode sits beside it
+    // under the bundle's stem, and Orca holds that file open.
+    fs::path extracted;
+    if (boost::iends_with(gcode_path, ".3mf")) {
+        extracted = source_path;
+        extracted.replace_extension(".upload.gcode");
+        if (!extract_plate_gcode(gcode_path, extracted.string())) {
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: no plate G-code in " << gcode_path;
+            return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
+        }
+        gcode_path  = extracted.string();
+        source_path = extracted;
+    }
+
+    // Edits on a copy of the G-code, never on the plate's live file:
+    // - the Zmod header, for a printer on the Zmod agent;
+    // - for a tool changer that assigns filaments to tools at print time, on firmware that cannot
+    //   remap tool numbers itself, the tools renumbered to the physical ones the print dialog chose.
+    fs::path   remapped;
+    const auto tool_map    = upload_tool_map(params);
+    const bool zmod_header = GUI::wxGetApp().preset_bundle &&
+                             printer_wants_zmod_header(GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config);
+    if (!tool_map.empty() || zmod_header) {
+        remapped = source_path;
+        remapped.replace_extension(".prepared.gcode");
+        if (!write_prepared_gcode(gcode_path, remapped.string(), tool_map, zmod_header)) {
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: failed to write " << remapped.string();
+            return BAMBU_NETWORK_ERR_FILE_NOT_EXIST;
+        }
+        gcode_path = remapped.string();
+    }
+
+    // Extract filename for upload (relative to gcodes root); prefer the job name the dialog shows
+    // over the temp file's name.
+    std::string upload_filename = params.project_name.empty() ? source_path.filename().string() : params.project_name;
     if (!boost::iends_with(upload_filename, ".gcode")) {
         upload_filename += ".gcode";
     }
     // Sanitize filename to prevent path traversal attacks (extra safety)
     upload_filename = sanitize_filename(upload_filename);
 
-    // Upload file
+    const int result = upload_and_start(params, gcode_path, upload_filename, update_fn, cancel_fn);
+    for (const fs::path& temp : {extracted, remapped}) {
+        boost::system::error_code ec;
+        if (!temp.empty())
+            fs::remove(temp, ec);
+    }
+    if (result == BAMBU_NETWORK_SUCCESS && update_fn)
+        update_fn(PrintingStageFinished, 100, _u8L("Print started"));
+    return result;
+}
+
+int MoonrakerPrinterAgent::upload_and_start(const PrintParams&      params,
+                                            const std::string&      gcode_path,
+                                            const std::string&      filename,
+                                            const OnUpdateStatusFn& update_fn,
+                                            const WasCancelledFn&   cancel_fn)
+{
     if (update_fn)
         update_fn(PrintingStageUpload, 0, _u8L("Uploading G-code..."));
-    if (!upload_gcode(gcode_path, upload_filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn)) {
+    if (!upload_gcode(gcode_path, filename, device_info.base_url, device_info.api_key, update_fn, cancel_fn))
         return BAMBU_NETWORK_ERR_PRINT_LP_UPLOAD_FTP_FAILED;
-    }
 
     // Check cancellation
-    if (cancel_fn && cancel_fn()) {
+    if (cancel_fn && cancel_fn())
         return BAMBU_NETWORK_ERR_CANCELED;
-    }
 
-    // Start print via gcode script (simpler than JSON-RPC)
     if (update_fn)
         update_fn(PrintingStageSending, 0, _u8L("Starting print..."));
-    std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
-    if (!send_gcode_sync(device_info.dev_id, gcode)) {
+    return start_uploaded_print(params, filename);
+}
+
+std::map<int, int> MoonrakerPrinterAgent::parse_tool_mapping(const std::string& ams_mapping, int tool_count)
+{
+    // The dialog's array is indexed by filament and holds the tray each filament was matched to,
+    // or -1 when it is unused. Moonraker agents report one tray per tool, so a tray id is a tool.
+    std::map<int, int> tool_map;
+    const auto         mapping = nlohmann::json::parse(ams_mapping, nullptr, false);
+    if (!mapping.is_array())
+        return tool_map;
+    for (size_t filament = 0; filament < mapping.size(); ++filament) {
+        if (!mapping[filament].is_number_integer())
+            continue;
+        const int tool = mapping[filament].get<int>();
+        if (tool >= 0 && tool < tool_count)
+            tool_map[int(filament)] = tool;
+    }
+    return tool_map;
+}
+
+std::map<int, int> MoonrakerPrinterAgent::upload_tool_map(const PrintParams& params) const
+{
+    if (firmware_maps_tools() || !GUI::wxGetApp().preset_bundle)
+        return {};
+    const DynamicPrintConfig& printer = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const auto*               mapping = printer.option<ConfigOptionBool>("filament_tool_mapping");
+    const auto*               nozzles = printer.option<ConfigOptionFloats>("nozzle_diameter");
+    if (mapping == nullptr || !mapping->value || nozzles == nullptr)
+        return {};
+    return parse_tool_mapping(params.ams_mapping, int(nozzles->size()));
+}
+
+bool MoonrakerPrinterAgent::has_klipper_object(const std::string& name) const
+{
+    std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+    return available_objects.count(name) != 0;
+}
+
+bool MoonrakerPrinterAgent::write_prepared_gcode(const std::string& source, const std::string& target, const std::map<int, int>& tool_map, bool zmod_header) const
+{
+    boost::nowide::ifstream in(source, std::ios::binary);
+    if (!in)
+        return false;
+    std::string gcode((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    // The header first: its colour data describes the project's filaments, which the renumbering
+    // then moves onto the physical tools along with the tool changes, refreshing the MD5.
+    if (zmod_header)
+        gcode = add_zmod_header(gcode);
+    if (!tool_map.empty())
+        gcode = remap_gcode_tools(gcode, tool_map, [&tool_map](std::string& line) { remap_zmod_color_data(line, tool_map); });
+    boost::nowide::ofstream out(target, std::ios::binary);
+    out.write(gcode.data(), std::streamsize(gcode.size()));
+    return bool(out);
+}
+
+int MoonrakerPrinterAgent::start_uploaded_print(const PrintParams& /*params*/, const std::string& filename)
+{
+    // Start print via gcode script (simpler than JSON-RPC)
+    if (!send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=" + filename))
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+bool MoonrakerPrinterAgent::call_jsonrpc_ws(const std::string& method, const nlohmann::json& params, nlohmann::json& result, std::string& error) const
+{
+    WsEndpoint endpoint;
+    if (!parse_ws_endpoint(device_info.base_url, endpoint) || endpoint.secure) {
+        error = "unsupported websocket endpoint for " + device_info.base_url;
+        return false;
     }
 
-    if (update_fn)
-        update_fn(PrintingStageFinished, 100, _u8L("Print started"));
-    return BAMBU_NETWORK_SUCCESS;
+    try {
+        net::io_context   ioc;
+        tcp::resolver     resolver{ioc};
+        beast::tcp_stream stream{ioc};
+        stream.expires_after(std::chrono::seconds(10));
+        stream.connect(resolver.resolve(endpoint.host, endpoint.port));
+
+        websocket::stream<beast::tcp_stream> ws{std::move(stream)};
+        const std::string api_key = device_info.api_key;
+        ws.set_option(websocket::stream_base::decorator([&api_key](websocket::request_type& req) {
+            req.set(http::field::user_agent, "OrcaSlicer");
+            if (!api_key.empty())
+                req.set("X-Api-Key", api_key);
+        }));
+        std::string host_header = endpoint.host;
+        if (endpoint.port != "80")
+            host_header += ":" + endpoint.port;
+        ws.handshake(host_header, endpoint.target);
+        ws.text(true);
+
+        constexpr int request_id = 1;
+        nlohmann::json request{{"jsonrpc", "2.0"}, {"method", method}, {"params", params}, {"id", request_id}};
+        ws.write(net::buffer(request.dump()));
+
+        // Moonraker interleaves status notifications; read until our reply arrives.
+        for (;;) {
+            beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(30));
+            beast::flat_buffer buffer;
+            ws.read(buffer);
+            auto reply = nlohmann::json::parse(beast::buffers_to_string(buffer.data()), nullptr, false);
+            if (!reply.is_object() || reply.value("id", -1) != request_id)
+                continue;
+            result = reply.contains("result") ? reply["result"] : reply.value("error", nlohmann::json::object());
+            beast::error_code ec;
+            ws.close(websocket::close_code::normal, ec);
+            if (reply.contains("error")) {
+                error = reply["error"].value("message", "JSON-RPC error");
+                return false;
+            }
+            return true;
+        }
+    } catch (const std::exception& e) {
+        error = e.what();
+        return false;
+    }
 }
 
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
@@ -1830,7 +2015,19 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         if (homed.find('Z') != std::string::npos)
             home_flag |= 4; // bit 2
     }
-    payload["print"]["home_flag"] = home_flag;
+    // Bits 8-9 carry the storage state, and the parser resets it from them on every push. Klipper
+    // prints from its virtual_sdcard, which is always there, so report it present; otherwise the
+    // print dialog blocks with "Storage needs to be inserted" between filament syncs.
+    home_flag |= DevStorage::HAS_SDCARD_NORMAL << 8;
+    // Bit 16 and support_flow_calibration both set the printer's flow-calibration capability, so
+    // they have to agree or one push clears what the other set.
+    const bool flow_calibration = supports_flow_calibration();
+    if (flow_calibration)
+        home_flag |= 1 << 16;
+    payload["print"]["home_flag"]                = home_flag;
+    payload["print"]["sdcard"]                   = true;
+    payload["print"]["support_flow_calibration"] = flow_calibration;
+    payload["print"]["support_timelapse"]        = supports_timelapse();
 
     // Moonraker doesn't provide temperature ranges via API - use hardcoded defaults
     payload["print"]["nozzle_temp_range"] = {100, 370}; // Typical Klipper range

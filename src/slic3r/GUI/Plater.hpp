@@ -233,6 +233,7 @@ public:
     void get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size);
     // Orca
     static bool should_show_SEMM_buttons();
+    static bool can_edit_filament_list();
     void show_SEMM_buttons();
     void enable_purge_mode_btn(bool enable);
     // Sidebar nozzle-count badge on the extruder cards (multi-nozzle printers only).
