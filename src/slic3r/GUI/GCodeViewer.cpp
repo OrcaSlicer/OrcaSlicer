@@ -195,6 +195,7 @@ static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_typ
         { "jerk",                         libvgcode::EViewType::Jerk },
         { "height",                       libvgcode::EViewType::Height },
         { "width",                        libvgcode::EViewType::Width },
+        { "overhang",                     libvgcode::EViewType::Overhang },
         { "volumetric_flow_rate",         libvgcode::EViewType::VolumetricFlowRate },
         { "actual_volumetric_flow_rate",  libvgcode::EViewType::ActualVolumetricFlowRate },
         { "layer_time_linear",            libvgcode::EViewType::LayerTimeLinear },
@@ -484,12 +485,13 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 break;
             // Orca: Match the active legend units at the sequential marker; non-extrusion moves have no overhang.
             case libvgcode::EViewType::Overhang:
-                if (is_extrusion)
-                    sprintf(detail_buf, "%s%.1f %s", _u8L("Overhang: ").c_str(),
-                        viewer->is_overhang_percentage() ? vertex.overhang_percentage : vertex.overhang_degree(),
-                        viewer->is_overhang_percentage() ? "%" : "°");
-                else
-                    sprintf(detail_buf, "%s%s", _u8L("Overhang: ").c_str(), NA_CSTR);
+                if (is_extrusion) {
+                    if (viewer->is_overhang_percentage())
+                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), vertex.overhang_percentage);
+                    else
+                        sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), vertex.overhang_degree());
+                } else
+                    sprintf(detail_buf, _u8L("Overhang: %s").c_str(), NA_CSTR);
                 break;
             case libvgcode::EViewType::VolumetricFlowRate:
                 if (is_extrusion)
@@ -548,9 +550,9 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             // availability rule, but retain both representations for files that actually provide them.
             if (has_overhang_metadata) {
                 if (is_extrusion) sprintf(buff, "%.1f %%", vertex.overhang_percentage); else strcpy(buff, NA_CSTR);
-                add_row(_u8L("Overhang") + " (%)", buff);
+                add_row(_u8L("Overhang (%)"), buff);
                 if (is_extrusion) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
-                add_row(_u8L("Overhang") + " (°)", buff);
+                add_row(_u8L("Overhang (°)"), buff);
             }
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
             add_row(_u8L("Height"), buff);
@@ -1311,6 +1313,13 @@ void GCodeViewer::apply_default_view_type()
         const bool multi_material = m_viewer.get_used_extruders_count() > 1;
         type = multi_material ? libvgcode::EViewType::ColorPrint : libvgcode::EViewType::FeatureType;
         key = multi_material ? "auto_multi_material" : "auto_single_material";
+    }
+
+    // A saved overhang preference is available only for G-code carrying its metadata.
+    // Distinguish the fallback so the preference is applied again when metadata becomes available.
+    if (type == libvgcode::EViewType::Overhang && !m_has_overhang_metadata) {
+        type = libvgcode::EViewType::FeatureType;
+        key += "_without_overhang_metadata";
     }
 
     if (m_applied_default_view_type_key == key)
@@ -4647,7 +4656,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer height (mm)")); break; }
     case libvgcode::EViewType::Width:          { imgui.title(_u8L("Line width (mm)")); break; }
     // Orca: Show the units of the selected overhang color scale in the legend title.
-    case libvgcode::EViewType::Overhang: { imgui.title(_u8L("Overhang") + (m_viewer.is_overhang_percentage() ? " (%)" : " (°)")); break; }
+    case libvgcode::EViewType::Overhang: { imgui.title(m_viewer.is_overhang_percentage() ? _u8L("Overhang (%)") : _u8L("Overhang (°)")); break; }
     case libvgcode::EViewType::Speed:
     {
         imgui.title(_u8L("Speed (mm/s)"));
