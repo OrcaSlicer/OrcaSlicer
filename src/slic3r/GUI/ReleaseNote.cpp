@@ -2,6 +2,7 @@
 #include "I18N.hpp"
 
 #include "bambu_networking.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/Utils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -1903,7 +1904,7 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
     std::string str_ip = m_input_ip->GetTextCtrl()->GetValue().ToStdString();
     std::string str_access_code = m_input_access_code->GetTextCtrl()->GetValue().ToStdString();
     if (str_access_code.empty())
-        str_access_code = "88888888";
+        str_access_code = NO_API_KEY_SENTINEL;
     std::string str_name = m_input_printer_name->GetTextCtrl()->GetValue().Strip(wxString::both).ToStdString();
     // Serial number should not contain lower case letters, and bambu_network plugin crashes
     // if user entered the wrong serial number, so we call `Upper()` here.
@@ -1950,7 +1951,7 @@ void InputIpAddressDialog::on_send_retry()
     wxString ip              = m_input_ip->GetTextCtrl()->GetValue();
     wxString str_access_code = m_input_access_code->GetTextCtrl()->GetValue();
     if (str_access_code.IsEmpty())
-        str_access_code = "88888888";
+        str_access_code = NO_API_KEY_SENTINEL;
 
     // check support function
     if (!m_obj) return;
