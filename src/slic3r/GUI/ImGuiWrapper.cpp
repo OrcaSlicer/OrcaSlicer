@@ -99,6 +99,8 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::VisibleIcon            , "im_visible"                    }, //ORCA
     {ImGui::HiddenIcon             , "im_hidden"                     }, //ORCA
     {ImGui::SphereButtonIcon       , "toolbar_modifier_sphere"       },
+    {ImGui::LineToolIcon           , "line_paint"                    }, //ORCA
+    {ImGui::RectToolIcon           , "rectangle_paint"               }, //ORCA
     // dark mode icon
     {ImGui::MinimalizeDarkButton       , "notification_minimalize_dark"       },
     {ImGui::MinimalizeHoverDarkButton  , "notification_minimalize_hover_dark" },
@@ -115,6 +117,8 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::ConfirmDarkIcon            , "confirm_dark"                       },
     {ImGui::GapFillDarkIcon            , "gap_fill_dark"                      },
     {ImGui::SphereButtonDarkIcon       , "toolbar_modifier_sphere_dark"       },
+    {ImGui::LineToolDarkIcon           , "line_paint_dark"                    }, //ORCA
+    {ImGui::RectToolDarkIcon           , "rectangle_paint_dark"               }, //ORCA
 
     {ImGui::TextSearchIcon             , "im_text_search"             },
     {ImGui::TextSearchCloseIcon        , "im_text_search_close"       },
