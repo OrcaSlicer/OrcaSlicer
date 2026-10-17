@@ -55,6 +55,27 @@
 
 namespace Slic3r {
 
+std::vector<std::pair<coordf_t, Polygons>> tree_support_bridge_clearance(const PrintObject &object, const Layer &layer)
+{
+    std::vector<std::pair<coordf_t, Polygons>> clearance;
+    if (!object.config().thick_bridges || object.slicing_parameters().zero_gap_interface_top)
+        return clearance;
+
+    for (const LayerRegion *region : layer.regions()) {
+        const coordf_t bridge_height = region->region().bridging_height_avg(object.print()->config());
+        const coordf_t extra_height = bridge_height - layer.height;
+        if (extra_height > EPSILON) {
+            Polygons bridges = to_polygons(region->fill_surfaces.filter_by_type(stBottomBridge));
+            // Match normal support trimming, including the overhang wall extrusion footprint.
+            if (region->region().config().detect_overhang_wall.value)
+                collect_bridging_perimeter_areas(region->perimeters, 0.f, bridges);
+            if (!bridges.empty())
+                clearance.emplace_back(extra_height, union_(bridges));
+        }
+    }
+    return clearance;
+}
+
 // how much we extend support around the actual contact area
 //FIXME this should be dependent on the nozzle diameter!
 #define SUPPORT_MATERIAL_MARGIN 1.5
@@ -62,6 +83,48 @@ namespace Slic3r {
 //#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 3.
 //#define SUPPORT_SURFACES_OFFSET_PARAMETERS jtMiter, 1.5
 #define SUPPORT_SURFACES_OFFSET_PARAMETERS jtSquare, 0.
+
+static inline void collect_bridging_perimeter_areas(const ExtrusionLoop &loop, const float expansion_scaled, Polygons &out)
+{
+    assert(expansion_scaled >= 0.f);
+    for (const ExtrusionPath &ep : loop.paths)
+        if (ep.role() == erOverhangPerimeter && ! ep.polyline.empty()) {
+            float exp = 0.5f * (float)scale_(ep.width) + expansion_scaled;
+            if (ep.is_closed()) {
+                if (ep.size() >= 3) {
+                    // This is a complete loop.
+                    // Add the outer contour first.
+                    Polygon poly;
+                    // Convert Points3 to Points
+                    for (const Point3 &p3 : ep.polyline.points)
+                        poly.points.emplace_back(p3.x(), p3.y());
+                    poly.points.pop_back();
+                    if (poly.area() < 0)
+                        poly.reverse();
+                    polygons_append(out, offset(poly, exp, SUPPORT_SURFACES_OFFSET_PARAMETERS));
+                    Polygons holes = offset(poly, - exp, SUPPORT_SURFACES_OFFSET_PARAMETERS);
+                    polygons_reverse(holes);
+                    polygons_append(out, holes);
+                }
+            } else if (ep.size() >= 2) {
+                // Offset the polyline.
+                polygons_append(out, offset(ep.polyline, exp, SUPPORT_SURFACES_OFFSET_PARAMETERS));
+            }
+        }
+}
+void collect_bridging_perimeter_areas(const ExtrusionEntityCollection &perimeters, const float expansion_scaled, Polygons &out)
+{
+    for (const ExtrusionEntity *ee : perimeters.entities) {
+        if (ee->is_collection()) {
+            for (const ExtrusionEntity *ee2 : static_cast<const ExtrusionEntityCollection*>(ee)->entities) {
+                assert(! ee2->is_collection());
+                if (ee2->is_loop())
+                    collect_bridging_perimeter_areas(*static_cast<const ExtrusionLoop*>(ee2), expansion_scaled, out);
+            }
+        } else if (ee->is_loop())
+            collect_bridging_perimeter_areas(*static_cast<const ExtrusionLoop*>(ee), expansion_scaled, out);
+    }
+}
 
 // Convert some of the intermediate layers into top/bottom interface layers as well as base interface layers.
 std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interface_layers(

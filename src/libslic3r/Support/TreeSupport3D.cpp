@@ -3530,6 +3530,28 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         std::vector<Polygons>        overhangs = generate_overhangs(config, *print.get_object(processing.second.front()), throw_on_cancel);
 #endif
         // ### Precalculate avoidances, collision etc.
+        if (print_object.config().thick_bridges && !print_object.slicing_parameters().zero_gap_interface_top) {
+            // Move each connected bridge contact, including its expanded/enforced fringe.
+            // Splitting at the model outline leaves higher fringe contacts whose roofs
+            // and tips can grow back underneath the bridge.
+            std::vector<Polygons> adjusted_overhangs(overhangs.size());
+            for (size_t layer_idx = 0; layer_idx < print_object.layer_count(); ++layer_idx) {
+                if (overhangs[layer_idx + num_raft_layers].empty())
+                    continue;
+                const auto bridge_clearance = tree_support_bridge_clearance(print_object, *print_object.get_layer(layer_idx));
+                for (const ExPolygon &overhang : union_ex(overhangs[layer_idx + num_raft_layers])) {
+                    Polygons contact = to_polygons(overhang);
+                    coordf_t extra_height = 0.;
+                    for (const auto &bridge : bridge_clearance)
+                        if (!intersection(contact, bridge.second).empty())
+                            extra_height = std::max(extra_height, bridge.first);
+                    const size_t extra_layers = size_t(std::ceil(extra_height / print_object.config().layer_height.value - EPSILON));
+                    if (layer_idx >= extra_layers)
+                        append(adjusted_overhangs[layer_idx + num_raft_layers - extra_layers], std::move(contact));
+                }
+            }
+            overhangs = std::move(adjusted_overhangs);
+        }
         size_t num_support_layers = precalculate(print, overhangs, processing.first, processing.second, volumes, throw_on_cancel);
         bool   has_support = num_support_layers > 0;
         bool   has_raft    = config.raft_layers.size() > 0;

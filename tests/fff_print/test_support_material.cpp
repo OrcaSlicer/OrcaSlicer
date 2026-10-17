@@ -1,3 +1,12 @@
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include <limits>
 #include <algorithm>
 #include <catch2/catch_all.hpp>
 
@@ -35,6 +44,255 @@
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
+
+static double support_top_z(const Print &print)
+{
+    double top_z = 0.;
+    for (const SupportLayer *layer : print.objects().front()->support_layers())
+        if (layer->has_extrusions())
+            top_z = std::max(top_z, layer->print_z);
+    return top_z;
+}
+
+static TriangleMesh rounded_cantilever(float bevel_inset = 0.f)
+{
+    // A plate with two rounded free corners, attached to a wall along its other edge.
+    std::vector<Vec3f> vertices;
+    for (const float z : {20.f, 20.4f, 22.f}) {
+        const float inset = z == 20.f ? bevel_inset : 0.f;
+        vertices.emplace_back(20.f, inset, z);
+        vertices.emplace_back(20.f, 20.f - inset, z);
+        for (const float cy : {4.f, 16.f})
+            for (int i = 0; i < 64; ++i) {
+                const double angle = 2 * M_PI * i / 64;
+                vertices.emplace_back(4.f + float((4 - inset) * std::cos(angle)), cy + float((4 - inset) * std::sin(angle)), z);
+            }
+    }
+    TriangleMesh plate(its_convex_hull(vertices));
+    TriangleMesh wall = make_cube(2, 20, 22);
+    wall.translate(20, 0, 0);
+    plate.merge(wall);
+    return plate;
+}
+
+TEST_CASE("Tree support leaves the top contact gap below bridge extrusions", "[SupportMaterial][Regression]")
+{
+    const auto style = GENERATE("default", "organic", "tree_slim", "tree_strong", "tree_hybrid");
+    const bool thick_bridges = GENERATE(false, true);
+    const bool independent_layers = GENERATE(false, true);
+    const double nozzle_diameter = GENERATE(0.4, 0.6);
+    const double bridge_flow = GENERATE(1.0, 0.8);
+    const auto fixture = GENERATE(TestMesh::bridge, TestMesh::bridge_with_hole);
+    CAPTURE(style, thick_bridges, independent_layers, nozzle_diameter, bridge_flow, fixture);
+
+    Print print;
+    init_and_process_print({ fixture }, print, {
+        { "enable_support", true },
+        { "support_type", "tree(auto)" },
+        { "support_style", style },
+        { "dont_support_bridges", false },
+        { "max_bridge_length", 0.0 },
+        { "support_on_build_plate_only", true },
+        { "support_interface_top_layers", 3 },
+        { "support_top_z_distance", 0.2 },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "nozzle_diameter", nozzle_diameter },
+        { "bridge_flow", bridge_flow },
+        { "bridge_line_width", 0.0 },
+        { "thick_bridges", thick_bridges },
+        { "independent_support_layer_height", independent_layers }
+    });
+
+    const PrintObject &object = *print.objects().front();
+    bool checked_bridge = false;
+    for (const Layer *layer : object.layers()) {
+        for (const LayerRegion *region : layer->regions()) {
+            const Polygons bridge_area = to_polygons(region->slices.filter_by_type(stBottomBridge));
+            if (bridge_area.empty())
+                continue;
+            const double bridge_bottom_z = layer->print_z - region->bridging_flow(frSolidInfill, thick_bridges).height();
+            double support_top_z = 0.;
+            for (const SupportLayer *support_layer : object.support_layers()) {
+                if (support_layer->print_z < layer->print_z &&
+                    !intersection(support_layer->support_fills.polygons_covered_by_width(), bridge_area).empty())
+                    support_top_z = std::max(support_top_z, support_layer->print_z);
+            }
+            REQUIRE(support_top_z > 0.);
+            const double gap = bridge_bottom_z - support_top_z;
+            CAPTURE(bridge_bottom_z, support_top_z, gap);
+            REQUIRE(gap >= 0.2 - EPSILON);
+            REQUIRE(gap < 0.4 + EPSILON);
+            checked_bridge = true;
+        }
+    }
+    REQUIRE(checked_bridge);
+}
+
+TEST_CASE("Tree support leaves the top gap below bridge extrusion footprints", "[SupportMaterial][Regression]")
+{
+    const auto style = GENERATE("default", "organic", "tree_slim", "tree_strong", "tree_hybrid");
+    const int fixture = GENERATE(0, 1, 2, 3, 4);
+    const bool independent_layers = GENERATE(false, true);
+    const double max_bridge_length = GENERATE(0.0, 10.0);
+    const bool enforced = GENERATE(false, true);
+    CAPTURE(style, fixture, independent_layers, max_bridge_length, enforced);
+
+    TriangleMesh model_mesh = fixture == 0 ? mesh(TestMesh::bridge) :
+                              fixture == 1 ? mesh(TestMesh::bridge_with_hole) :
+                              rounded_cantilever(fixture == 3 ? 0.4f : fixture == 4 ? 0.8f : 0.f);
+
+    Print print;
+    Model model;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support", true },
+        { "support_type", "tree(auto)" },
+        { "support_style", style },
+        { "max_bridge_length", max_bridge_length },
+        { "support_on_build_plate_only", true },
+        { "support_interface_top_layers", 2 },
+        { "support_top_z_distance", 0.2 },
+        { "support_object_xy_distance", 0.3 },
+        { "support_threshold_angle", 35 },
+        { "tree_support_tip_diameter", 2.0 },
+        { "tree_support_branch_diameter_organic", 5.0 },
+        { "tree_support_top_rate", "100%" },
+        { "support_line_width", 0.42 },
+        { "support_interface_spacing", 0.0 },
+        { "support_interface_pattern", "rectilinear_interlaced" },
+        { "outer_wall_line_width", 0.42 },
+        { "inner_wall_line_width", 0.44 },
+        { "internal_solid_infill_line_width", 0.5 },
+        { "wall_loops", 2 },
+        { "wall_generator", "classic" },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "nozzle_diameter", 0.4 },
+        { "bridge_flow", 1.0 },
+        { "thick_bridges", true },
+        { "independent_support_layer_height", independent_layers }
+    });
+    init_print({ model_mesh }, print, model, config);
+    if (enforced) {
+        model.objects.front()->add_volume(model_mesh)->set_type(ModelVolumeType::SUPPORT_ENFORCER);
+        print.apply(model, config);
+    }
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    bool checked_perimeter = false;
+    bool checked_bridge = false;
+    double closest_gap = std::numeric_limits<double>::infinity();
+    for (const Layer *layer : object.layers()) {
+        auto check_path = [&](const ExtrusionPath &path) {
+            if (path.role() != erOverhangPerimeter && path.role() != erBridgeInfill)
+                return;
+            checked_perimeter |= path.role() == erOverhangPerimeter;
+            checked_bridge |= path.role() == erBridgeInfill;
+            const double bottom_z = layer->print_z - path.height;
+            const Polygons footprint = path.polygons_covered_by_width(-SCALED_EPSILON);
+            for (const SupportLayer *support : object.support_layers()) {
+                if (support->print_z >= layer->print_z || support->print_z < bottom_z - 0.4 - EPSILON)
+                    continue;
+                const Polygons overlap = intersection(footprint, support->support_fills.polygons_covered_by_width(-SCALED_EPSILON));
+                if (overlap.empty())
+                    continue;
+                const double gap = bottom_z - support->print_z;
+                closest_gap = std::min(closest_gap, gap);
+                CAPTURE(layer->print_z, path.height, bottom_z, support->print_z);
+                REQUIRE(gap >= 0.2 - EPSILON);
+            }
+        };
+        for (const LayerRegion *region : layer->regions()) {
+            for (const ExtrusionEntityCollection *collection : { &region->perimeters, &region->fills }) {
+                for (const ExtrusionEntity *entity : collection->flatten().entities) {
+                    if (const auto *path = dynamic_cast<const ExtrusionPath *>(entity))
+                        check_path(*path);
+                    else if (const auto *loop = dynamic_cast<const ExtrusionLoop *>(entity))
+                        for (const ExtrusionPath &path : loop->paths)
+                            check_path(path);
+                    else if (const auto *multi = dynamic_cast<const ExtrusionMultiPath *>(entity))
+                        for (const ExtrusionPath &path : multi->paths)
+                            check_path(path);
+                }
+            }
+        }
+    }
+    REQUIRE(checked_perimeter);
+    REQUIRE(checked_bridge);
+    REQUIRE(closest_gap < 0.4 + EPSILON);
+}
+
+TEST_CASE("Tree support keeps zero top contact distance when thick bridges are enabled", "[SupportMaterial][Regression]")
+{
+    const auto style = GENERATE("default", "organic", "tree_slim", "tree_strong", "tree_hybrid");
+    const bool independent_layers = GENERATE(false, true);
+    CAPTURE(style, independent_layers);
+
+    Print thin;
+    Print thick;
+    for (Print *print : { &thin, &thick }) {
+        init_and_process_print({ TestMesh::bridge }, *print, {
+            { "enable_support", true },
+            { "support_type", "tree(auto)" },
+            { "support_style", style },
+            { "max_bridge_length", 0.0 },
+            { "support_on_build_plate_only", true },
+            { "support_interface_top_layers", 3 },
+            { "support_top_z_distance", 0.0 },
+            { "layer_height", 0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "nozzle_diameter", 0.4 },
+            { "thick_bridges", print == &thick },
+            { "independent_support_layer_height", independent_layers }
+        });
+    }
+    // The bridge fixture's underside is 5 mm above the plate. Zero-gap support
+    // reaches that surface with either bridge extrusion setting.
+    for (const Print *print : { &thin, &thick }) {
+        REQUIRE_THAT(support_top_z(*print), Catch::Matchers::WithinAbs(5.0, EPSILON));
+    }
+}
+
+TEST_CASE("Changing bridge flow recalculates tree support clearance", "[SupportMaterial][Regression]")
+{
+    const auto style = GENERATE("default", "organic", "tree_slim", "tree_strong", "tree_hybrid");
+    const bool independent_layers = GENERATE(false, true);
+    CAPTURE(style, independent_layers);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "enable_support", true },
+        { "support_type", "tree(auto)" },
+        { "support_style", style },
+        { "max_bridge_length", 0.0 },
+        { "support_on_build_plate_only", true },
+        { "support_interface_top_layers", 3 },
+        { "support_top_z_distance", 0.2 },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "nozzle_diameter", 0.6 },
+        { "bridge_flow", 1.0 },
+        { "bridge_line_width", 0.0 },
+        { "thick_bridges", true },
+        { "independent_support_layer_height", independent_layers }
+    });
+    Print incremental;
+    Model model;
+    init_print({ TestMesh::bridge }, incremental, model, config);
+    incremental.process();
+    const double old_top_z = support_top_z(incremental);
+
+    config.set_deserialize_strict({ { "bridge_flow", 0.25 } });
+    incremental.apply(model, config);
+    incremental.process();
+
+    Print fresh;
+    init_and_process_print({ TestMesh::bridge }, fresh, config);
+    REQUIRE(support_top_z(incremental) > old_top_z + EPSILON);
+    REQUIRE_THAT(support_top_z(incremental), Catch::Matchers::WithinAbs(support_top_z(fresh), EPSILON));
+}
+
 
 // Distinct layer Z heights carrying support interface extrusion.
 static size_t support_interface_layer_count(const std::string &gcode)

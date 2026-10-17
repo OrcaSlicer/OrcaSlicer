@@ -2091,6 +2091,8 @@ Polygons TreeSupport::get_trim_support_regions(
                 coordf_t trimming_offset = is_overlap ? gap_xy_scaled : scale_(no_overlap_xy_gap);
                 polygons_append(polygons_trimming,
                     offset(region->fill_surfaces.filter_by_type(stBottomBridge), trimming_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS));
+                if (region->region().config().detect_overhang_wall.value)
+                    collect_bridging_perimeter_areas(region->perimeters, gap_xy_scaled, polygons_trimming);
                 }
             if (!some_region_overlaps)
                 break;
@@ -2220,6 +2222,12 @@ void TreeSupport::draw_circles()
                                  layer_id++) {
                                 collision = union_ex(collision, offset_ex(m_ts_data->m_layer_outlines[layer_id], scale_(top_z_distance)));
                             }
+                        }
+                        if (config.thick_bridges && !m_slicing_params.zero_gap_interface_top) {
+                            // Contacts from higher layers must also avoid the underside of lower bridges.
+                            collision = union_ex(collision, get_trim_support_regions(
+                                *m_object, ts_layer, m_slicing_params.gap_support_object, 0.,
+                                m_support_params.gap_xy));
                         }
                     }
                     return collision;
@@ -3514,11 +3522,11 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
         // Collect top contact layers
         for (int layer_nr = 1; layer_nr < contact_nodes.size(); layer_nr++) {
             if (!contact_nodes[layer_nr].empty()) {
-                coordf_t print_z = contact_nodes[layer_nr].front()->print_z;
-                coordf_t height = contact_nodes[layer_nr].front()->height;
-                // insertion will fail if there is already a key of print_z, so no need to check
-                bounds.insert({print_z, height});
-                bounds.insert({std::max(min_print_z, print_z - height), 0}); // the bottom_z of the layer
+                for (const SupportNode *node : contact_nodes[layer_nr]) {
+                    // Bridge and ordinary contacts on the same object layer may have different gaps.
+                    bounds.insert({node->print_z, node->height});
+                    bounds.insert({std::max(min_print_z, node->print_z - node->height), 0});
+                }
             }
         }
 
@@ -3599,20 +3607,18 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
         BOOST_LOG_TRIVIAL(debug) << format("plan_layer_heights node1->layer_nr,printz,height,distance_to_top: %d, %.2f,%.2f, %d", layer_nr, node1->print_z, node1->height, node1->distance_to_top)
                                  << ", object_layer_zs[" << layer_heights[layer_nr].obj_layer_nr << "]=" << m_object->get_layer(layer_heights[layer_nr].obj_layer_nr)->print_z;
         coordf_t new_height = layer_heights[layer_nr].height;
-        if (std::abs(node1->height - new_height) < EPSILON) continue;
-        if (top_z_distance < EPSILON && node1->height < EPSILON) continue; // top_z_distance==0, this is soluable interface
-        coordf_t              accum_height = 0;
-        int                   num_layers   = 0;
-        for (int i=layer_nr;i>=0;i--){
-            if (layer_heights[i].height > EPSILON) {
-                accum_height += layer_heights[i].height;
-                num_layers++;
-                if (accum_height > node1->height - EPSILON) break;
-            }
-        }
-        BOOST_LOG_TRIVIAL(debug) << format("plan_layer_heights adjust node's height print_z[%d]=%.2f: (%.3f,%d)->(%.3f,%.3f,%d)", layer_nr, node1->print_z,
-            node1->height, node1->distance_to_top, new_height, accum_height, -num_layers);
         for (SupportNode *node : contact_nodes[layer_nr]) {
+            if (std::abs(node->height - new_height) < EPSILON) continue;
+            if (top_z_distance < EPSILON && node->height < EPSILON) continue;
+            coordf_t accum_height = 0;
+            int num_layers = 0;
+            for (int i = layer_nr; i >= 0; --i) {
+                if (layer_heights[i].height > EPSILON) {
+                    accum_height += layer_heights[i].height;
+                    ++num_layers;
+                    if (accum_height > node->height - EPSILON) break;
+                }
+            }
             node->height          = new_height;
             node->distance_to_top = -num_layers;
         }
@@ -3662,14 +3668,6 @@ void TreeSupport::generate_contact_points()
 
     const coordf_t layer_height = config.layer_height.value;
     coordf_t       z_distance_top = this->top_z_distance;
-  //  if (!m_support_params.independent_layer_height) {
-  //      z_distance_top = round(z_distance_top / layer_height) * layer_height;
-  //  // BBS: add extra distance if thick bridge is enabled
-  //  // Note: normal support uses print_z, but tree support uses integer layers, so we need to subtract layer_height
-  //  if (!m_slicing_params.zero_gap_interface_top && m_object_config->thick_bridges) {
-  //      z_distance_top += m_object->layers()[0]->regions()[0]->region().bridging_height_avg(m_object->print()->config()) - layer_height;
-		//}
-  //  }
     const int z_distance_top_layers = round_up_divide(scale_(z_distance_top), scale_(layer_height)) + 1; //Support must always be 1 layer below overhang.
     int gap_layers = z_distance_top == 0 ? 0 : 1;
 
@@ -3708,6 +3706,7 @@ void TreeSupport::generate_contact_points()
             if (m_object->print()->canceled())
                 break;
             Layer* layer = m_object->get_layer(layer_nr);
+            const auto bridge_clearance = tree_support_bridge_clearance(*m_object, *layer);
             auto& curr_nodes = contact_nodes[layer_nr-1];
 
             std::unordered_set<Point, PointHash> already_inserted;
@@ -3735,9 +3734,16 @@ void TreeSupport::generate_contact_points()
                     // add a new node as a virtual node which acts as the invisible gap between support and object
                     // distance_to_top=-1: it's virtual
                     // print_z=object_layer->bottom_z: it directly contacts the bottom
-                    // height=z_distance_top: it's height is exactly the gap distance
+                    // The virtual height includes the top gap and any bridge extrusion below the nominal bottom.
                     // dist_mm_to_top=0: it directly contacts the bottom
-                    contact_node = m_ts_data->create_node(pt, -gap_layers, layer_nr-1, roof_layers, to_buildplate, SupportNode::NO_PARENT, bottom_z, z_distance_top, 0,
+                    coordf_t contact_gap = z_distance_top;
+                    for (const auto &bridge : bridge_clearance)
+                        // Expanded/enforced contacts can have centers outside the bridge while their
+                        // support footprint still reaches under it. Keep the whole contact below the bridge.
+                        if (contains(bridge.second, pt, true) ||
+                            !intersection(to_polygons(overhang), bridge.second).empty())
+                            contact_gap = std::max(contact_gap, z_distance_top + bridge.first);
+                    contact_node = m_ts_data->create_node(pt, -gap_layers, layer_nr-1, roof_layers, to_buildplate, SupportNode::NO_PARENT, bottom_z, contact_gap, 0,
                                                           radius);
                     contact_node->overhang = overhang;
                     contact_node->is_sharp_tail = is_sharp_tail;

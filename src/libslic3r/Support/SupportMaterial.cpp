@@ -1244,47 +1244,6 @@ namespace SupportMaterialInternal {
         return false;
     }
 
-    static inline void collect_bridging_perimeter_areas(const ExtrusionLoop &loop, const float expansion_scaled, Polygons &out)
-    {
-        assert(expansion_scaled >= 0.f);
-        for (const ExtrusionPath &ep : loop.paths)
-            if (ep.role() == erOverhangPerimeter && ! ep.polyline.empty()) {
-                float exp = 0.5f * (float)scale_(ep.width) + expansion_scaled;
-                if (ep.is_closed()) {
-                    if (ep.size() >= 3) {
-                        // This is a complete loop.
-                        // Add the outer contour first.
-                        Polygon poly;
-                        // Convert Points3 to Points
-                        for (const Point3 &p3 : ep.polyline.points)
-                            poly.points.emplace_back(p3.x(), p3.y());
-                        poly.points.pop_back();
-                        if (poly.area() < 0)
-                            poly.reverse();
-                        polygons_append(out, offset(poly, exp, SUPPORT_SURFACES_OFFSET_PARAMETERS));
-                        Polygons holes = offset(poly, - exp, SUPPORT_SURFACES_OFFSET_PARAMETERS);
-                        polygons_reverse(holes);
-                        polygons_append(out, holes);
-                    }
-                } else if (ep.size() >= 2) {
-                    // Offset the polyline.
-                    polygons_append(out, offset(ep.polyline, exp, SUPPORT_SURFACES_OFFSET_PARAMETERS));
-                }
-            }
-    }
-    static void collect_bridging_perimeter_areas(const ExtrusionEntityCollection &perimeters, const float expansion_scaled, Polygons &out)
-    {
-        for (const ExtrusionEntity *ee : perimeters.entities) {
-            if (ee->is_collection()) {
-                for (const ExtrusionEntity *ee2 : static_cast<const ExtrusionEntityCollection*>(ee)->entities) {
-                    assert(! ee2->is_collection());
-                    if (ee2->is_loop())
-                        collect_bridging_perimeter_areas(*static_cast<const ExtrusionLoop*>(ee2), expansion_scaled, out);
-                }
-            } else if (ee->is_loop())
-                collect_bridging_perimeter_areas(*static_cast<const ExtrusionLoop*>(ee), expansion_scaled, out);
-        }
-    }
 
     static void remove_bridges_from_contacts(
         const PrintConfig   &print_config, 
@@ -3404,7 +3363,7 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                                 offset(region->fill_surfaces.filter_by_type(stBottomBridge), trimming_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS));
                             if (region->region().config().detect_overhang_wall.value)
                                 // Add bridging perimeters.
-                                SupportMaterialInternal::collect_bridging_perimeter_areas(region->perimeters, gap_xy_scaled, polygons_trimming);
+                                collect_bridging_perimeter_areas(region->perimeters, gap_xy_scaled, polygons_trimming);
                         }
                         if (! some_region_overlaps)
                             break;
