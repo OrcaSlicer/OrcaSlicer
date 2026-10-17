@@ -3802,18 +3802,13 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
 	{
 		if (m_exclude_bounding_box.size() > 0)
 		{
-			Polygon hull = instance->convex_hull_2d();
-			int index;
-			for (index = 0; index < m_exclude_bounding_box.size(); index ++)
-			{
-				Polygon p = m_exclude_bounding_box[index].polygon(true);  // instance convex hull is scaled, so we need to scale here
-				if (intersection({ p }, { hull }).empty() == false)
-				//if (m_exclude_bounding_box[index].intersects(instance_box))
-				{
-					break;
-				}
-			}
-			if (index >= m_exclude_bounding_box.size())
+			// BBS: test the true footprint, not the hull -- a concave or rotated part
+			// whose hull clips the exclusion zone can still be clear of it.
+			Polygons exclude_polys;
+			exclude_polys.reserve(m_exclude_bounding_box.size());
+			for (size_t index = 0; index < m_exclude_bounding_box.size(); index++)
+				exclude_polys.push_back(m_exclude_bounding_box[index].polygon(true));  // instance convex hull is scaled, so we need to scale here
+			if (!instance->footprint_intersects(exclude_polys, instance->get_matrix()))
 				outside = false;
 		}
 		else

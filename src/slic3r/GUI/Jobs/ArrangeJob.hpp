@@ -29,6 +29,7 @@ class ArrangeJob : public Job
     //BBS: add locked logic
     ArrangePolygons m_selected, m_unselected, m_unprintable, m_locked;
     std::vector<ModelInstance*> m_unarranged;
+    int m_progress_value = 0;
     std::map<int, ArrangePolygons> m_selected_groups;   // groups of selected items for sequential printing
     std::vector<int> m_uncompatible_plates;  // plate indices with different printing sequence than global
 

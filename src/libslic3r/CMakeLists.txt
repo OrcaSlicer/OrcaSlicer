@@ -602,6 +602,13 @@ if (APPLE)
         )
 endif ()
 
+if (SLIC3R_SPARROW_ARRANGE)
+    list(APPEND lisbslic3r_sources
+            ArrangeSparrow.hpp
+            ArrangeSparrow.cpp
+        )
+endif ()
+
 add_library(libslic3r STATIC ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
     ${OpenVDBUtils_SOURCES})
@@ -676,6 +683,79 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
 set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
 find_package(OpenCASCADE REQUIRED)
 target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
+
+
+# BBS: sparrow_arrange -- Rust staticlib built by cargo, linked into libslic3r.
+if (SLIC3R_SPARROW_ARRANGE)
+    set(SPARROW_ARRANGE_DIR "${CMAKE_SOURCE_DIR}/src/sparrow_arrange")
+
+    find_program(CARGO_EXECUTABLE cargo HINTS "$ENV{HOME}/.cargo/bin" /opt/homebrew/bin /usr/local/bin)
+    if (NOT CARGO_EXECUTABLE)
+        message(FATAL_ERROR "SLIC3R_SPARROW_ARRANGE is ON but cargo was not found. Install Rust or configure with -DSLIC3R_SPARROW_ARRANGE=OFF.")
+    endif ()
+
+    # macOS CI cross-builds x86_64 on arm64 runners; cargo must be told the target.
+    set(SPARROW_ARRANGE_TARGET_ARGS)
+    set(SPARROW_ARRANGE_OUT "${SPARROW_ARRANGE_DIR}/target/release")
+    if (APPLE AND CMAKE_OSX_ARCHITECTURES)
+        list(LENGTH CMAKE_OSX_ARCHITECTURES _sparrow_narch)
+        if (_sparrow_narch GREATER 1)
+            message(FATAL_ERROR "SLIC3R_SPARROW_ARRANGE does not support universal builds; build one architecture at a time.")
+        endif ()
+        if (CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+            set(_sparrow_triple aarch64-apple-darwin)
+        else ()
+            set(_sparrow_triple ${CMAKE_OSX_ARCHITECTURES}-apple-darwin)
+        endif ()
+        set(SPARROW_ARRANGE_TARGET_ARGS --target ${_sparrow_triple})
+        set(SPARROW_ARRANGE_OUT "${SPARROW_ARRANGE_DIR}/target/${_sparrow_triple}/release")
+        find_program(RUSTUP_EXECUTABLE rustup HINTS "$ENV{HOME}/.cargo/bin" /opt/homebrew/bin /usr/local/bin)
+        if (RUSTUP_EXECUTABLE)
+            execute_process(COMMAND "${RUSTUP_EXECUTABLE}" target add ${_sparrow_triple} RESULT_VARIABLE _sparrow_rc)
+            if (NOT _sparrow_rc EQUAL 0)
+                message(FATAL_ERROR "rustup target add ${_sparrow_triple} failed.")
+            endif ()
+        endif ()
+    endif ()
+    if (MSVC)
+        set(SPARROW_ARRANGE_LIB "${SPARROW_ARRANGE_OUT}/sparrow_arrange.lib")
+    else ()
+        set(SPARROW_ARRANGE_LIB "${SPARROW_ARRANGE_OUT}/libsparrow_arrange.a")
+    endif ()
+
+    # Globbing the crate sources is enough to make ninja rerun cargo on any edit.
+    file(GLOB_RECURSE SPARROW_ARRANGE_SOURCES CONFIGURE_DEPENDS
+        "${SPARROW_ARRANGE_DIR}/src/*.rs"
+        "${SPARROW_ARRANGE_DIR}/vendor/sparrow/src/*.rs"
+        "${SPARROW_ARRANGE_DIR}/vendor/sparrow/Cargo.toml"
+        "${SPARROW_ARRANGE_DIR}/Cargo.toml"
+        "${SPARROW_ARRANGE_DIR}/Cargo.lock")
+
+    add_custom_command(
+        OUTPUT "${SPARROW_ARRANGE_LIB}"
+        COMMAND "${CARGO_EXECUTABLE}" build --release --manifest-path "${SPARROW_ARRANGE_DIR}/Cargo.toml" ${SPARROW_ARRANGE_TARGET_ARGS}
+        DEPENDS ${SPARROW_ARRANGE_SOURCES}
+        WORKING_DIRECTORY "${SPARROW_ARRANGE_DIR}"
+        COMMENT "Building sparrow_arrange (cargo build --release)"
+        VERBATIM)
+    add_custom_target(sparrow_arrange_build DEPENDS "${SPARROW_ARRANGE_LIB}")
+
+    add_library(sparrow_arrange STATIC IMPORTED GLOBAL)
+    set_target_properties(sparrow_arrange PROPERTIES
+        IMPORTED_LOCATION "${SPARROW_ARRANGE_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "${SPARROW_ARRANGE_DIR}/include")
+
+    add_dependencies(libslic3r sparrow_arrange_build)
+    target_compile_definitions(libslic3r PRIVATE SLIC3R_SPARROW_ARRANGE)
+    # Keyword signature, as libslic3r uses it below; CMake forbids mixing the two.
+    # Extra libs are from `rustc --print native-static-libs`.
+    target_link_libraries(libslic3r PRIVATE sparrow_arrange)
+    if (APPLE)
+        target_link_libraries(libslic3r PRIVATE iconv)
+    elseif (WIN32)
+        target_link_libraries(libslic3r PRIVATE ntdll.lib userenv.lib ws2_32.lib bcrypt.lib synchronization.lib dbghelp.lib advapi32.lib)
+    endif ()
+endif ()
 
 find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)

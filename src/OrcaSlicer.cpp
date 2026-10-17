@@ -4795,6 +4795,23 @@ int CLI::run(int argc, char **argv)
     bool user_center_specified = false;
     Points beds = get_bed_shape(m_print_config);
     ArrangeParams arrange_cfg;
+    // ORCA_ARRANGE_SPARROW=1 selects the experimental sparrow packer for the CLI. Set before
+    // any ArrangePolygon is collected so get_arrange_polygon() emits true outlines.
+    const char *sparrow_env = std::getenv("ORCA_ARRANGE_SPARROW");
+    const bool  use_sparrow = arrangement::sparrow_available() && sparrow_env && std::string(sparrow_env) == "1";
+    arrangement::use_true_outline.store(use_sparrow, std::memory_order_relaxed);
+    if (use_sparrow)
+        BOOST_LOG_TRIVIAL(info) << "ORCA_ARRANGE_SPARROW=1: using the sparrow packer";
+    // ORCA_ARRANGE_SPARROW_TIME=<seconds> overrides the per-plate search budget.
+    float sparrow_time_limit_s = 8.f;
+    if (const char *t = std::getenv("ORCA_ARRANGE_SPARROW_TIME")) {
+        try {
+            sparrow_time_limit_s = std::stof(t);
+            BOOST_LOG_TRIVIAL(info) << "ORCA_ARRANGE_SPARROW_TIME=" << sparrow_time_limit_s << "s per plate";
+        } catch (const std::exception &) {
+            BOOST_LOG_TRIVIAL(warning) << "ignoring invalid ORCA_ARRANGE_SPARROW_TIME=" << t;
+        }
+    }
 
     BOOST_LOG_TRIVIAL(info) << "will start transforms, commands count " << m_transforms.size() << "\n";
 #if defined(__linux__) || defined(__LINUX__)
@@ -5385,6 +5402,8 @@ int CLI::run(int argc, char **argv)
 
                 //Step-2:prepare the arrange params
                 arrange_cfg.allow_rotations = allow_rotations;
+                arrange_cfg.use_sparrow = use_sparrow;
+                arrange_cfg.sparrow_time_limit_s = sparrow_time_limit_s;
                 arrange_cfg.allow_multi_materials_on_same_plate = allow_multicolor_oneplate;
                 arrange_cfg.avoid_extrusion_cali_region = avoid_extrusion_cali_region;
                 arrange_cfg.clearance_height_to_rod = height_to_rod;
@@ -5858,6 +5877,8 @@ int CLI::run(int argc, char **argv)
 
                 //Step-2:prepare the arrange params
                 arrange_cfg.allow_rotations  = allow_rotations;
+                arrange_cfg.use_sparrow = use_sparrow;
+                arrange_cfg.sparrow_time_limit_s = sparrow_time_limit_s;
                 arrange_cfg.allow_multi_materials_on_same_plate = allow_multicolor_oneplate;
                 arrange_cfg.avoid_extrusion_cali_region         = avoid_extrusion_cali_region;
                 arrange_cfg.clearance_height_to_rod             = height_to_rod;

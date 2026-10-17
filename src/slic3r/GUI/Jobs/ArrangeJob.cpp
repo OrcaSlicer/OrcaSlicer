@@ -31,6 +31,8 @@
 #include <algorithm>
 #include "libslic3r/PrintConfig.hpp"
 #include <map>
+#include <atomic>
+#include <wx/string.h>
 #include <cassert>
 #include "slic3r/GUI/Jobs/Job.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -577,6 +579,16 @@ void ArrangeJob::prepare()
 
     params = init_arrange_params(m_plater);
 
+    // After the close above, or the toast is gone before it is seen.
+    if (arrangement::sparrow_available() && m_plater->canvas3D()->get_arrange_settings().arrange_use_sparrow && !params.use_sparrow) {
+        wxString why = params.is_seq_print ? _L("print sequence is By Object")
+                     : params.is_belt      ? _L("the printer is a belt printer")
+                                           : _L("\"Allow multiple materials on same plate\" is off");
+        m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
+            NotificationManager::NotificationLevel::WarningNotificationLevel,
+            into_u8(wxString::Format(_L("Experimental packer skipped: %s.\nUsing the standard arranger."), why)));
+    }
+
     //BBS update extruder params and speed table before arranging
     const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
     auto& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
@@ -684,6 +696,9 @@ void ArrangeJob::process(Ctl &ctl)
     const ImexArranger imex(m_imex, params, bedpts);
     bedpts = imex.bed_shape();
     imex.add_keep_outs(m_unselected);
+    // The packer knows nothing about IDEX/IQEX zones; imex.finish() below relies on the stock arranger.
+    if (imex.active())
+        params.use_sparrow = false;
 
     bool   enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
     partplate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scale_(1));
@@ -692,9 +707,20 @@ void ArrangeJob::process(Ctl &ctl)
 
     params.stopcondition = [&ctl]() { return ctl.was_canceled(); };
 
-    params.progressind = [this, &ctl](unsigned num_finished, std::string str = "") {
+    m_progress_value = 0;
+    const double progress_items = double(status_range());
+    auto report_progress = [this, &ctl](double fraction, const std::string &str) {
+        // Keep all sources monotone, including a stock-arranger retry. Reserve
+        // completion for the final status after results have been processed.
+        m_progress_value = std::max(m_progress_value, int(std::clamp(fraction, 0., 0.99) * 100));
         // TRN Progress status. %1% is the name of the object being arranged.
-        ctl.update_status(num_finished * 100 / status_range(), GUI::format(_u8L("Arranging %1%"), str));
+        ctl.update_status(m_progress_value, GUI::format(_u8L("Arranging %1%"), str));
+    };
+    params.progressind = [report_progress, progress_items](unsigned num_finished, std::string str = "") {
+        report_progress(num_finished / progress_items, str);
+    };
+    params.progress_fraction = [report_progress](double fraction, std::string str) {
+        report_progress(fraction, str);
     };
 
     {
@@ -929,6 +955,7 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
     params.object_skirt_offset                 = object_skirt_offset;
     params.printable_height                    = print_config.printable_height.value;
     params.allow_rotations                     = settings.enable_rotation;
+    params.sparrow_time_limit_s                = settings.arrange_sparrow_time;
     params.nozzle_height                       = print_config.nozzle_height.value;
     params.align_center                        = print_config.best_object_pos.value;
     params.allow_multi_materials_on_same_plate = settings.allow_multi_materials_on_same_plate;
@@ -965,6 +992,13 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
         params.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
         params.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
     }
+
+    // Decided after is_seq_print is final, so the outline flag and the "packer
+    // skipped" toast in prepare() agree with what arrangement::arrange() runs.
+    params.use_sparrow = arrangement::sparrow_available() && settings.arrange_use_sparrow && !params.is_seq_print && !params.is_belt && params.allow_multi_materials_on_same_plate;
+    // Set before the ArrangePolygons are collected. The flag stays set until the
+    // next arrange, so any get_arrange_polygon() caller in between sees it too.
+    arrangement::use_true_outline.store(params.use_sparrow, std::memory_order_relaxed);
     return params;
 }
 

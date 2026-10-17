@@ -58,6 +58,7 @@
 #include "IMEXHelpers.hpp"
 #include "IMEXZones.hpp"
 #include "Print.hpp"
+#include "Arrange.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
@@ -840,9 +841,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     // Convert the shift from the PrintObject's coordinates into ModelObject's coordinates by removing the centering offset.
                     convex_hull.translate(instance.shift - print_object->center_offset());
                 }
-                convex_hull_no_offset.translate(instance.shift - print_object->center_offset());
                 //juedge the exclude area
-                if (!intersection(exclude_polys, convex_hull_no_offset).empty()) {
+                // BBS: test the true footprint, not the hull -- a concave or rotated
+                // part whose hull clips the exclusion zone can still be clear of it.
+                Geometry::Transformation excl_trans(instance.model_instance->get_transformation());
+                excl_trans.set_offset({0.0, 0.0, instance.model_instance->get_offset().z()});
+                if (instance.model_instance->footprint_intersects(exclude_polys, excl_trans.get_matrix(),
+                                                                  instance.shift - print_object->center_offset())) {
                     if (single_object_exception.string.empty()) {
                         single_object_exception.string = (boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
                         // single_object_exception.object = instance.model_instance->get_object();
@@ -1494,6 +1499,19 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     Polygons convex_hulls_other;
     // Orca: check convex hull intersection for each instance individually
     for (auto& inst : print_instances_ordered) {
+        // BBS: exclusion check once per instance on the true footprint, not per
+        // volume on the hull -- a concave or rotated part whose hull clips the
+        // exclusion zone can still be clear of it.
+        // Only with the sparrow packer; otherwise the per-volume hull test below applies.
+        if (arrangement::sparrow_available() && inst->model_instance->footprint_intersects(
+                exclude_polys,
+                Geometry::assemble_transform(Vec3d::Zero(), inst->model_instance->get_rotation(),
+                                             inst->model_instance->get_scaling_factor(), inst->model_instance->get_mirror()),
+                inst->shift - inst->print_object->center_offset())) {
+            //ORCA: Pass ModelInstance instead of ModelObject
+            return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
+                    inst->model_instance};
+        }
         Polygons current_instance_hulls;
         for (const ModelVolume *v : inst->print_object->model_object()->volumes) {
             if (!v->is_model_part()) continue;
@@ -1502,7 +1520,7 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
                                                                                   inst->model_instance->get_scaling_factor(), inst->model_instance->get_mirror()));
             volume_hull.translate(inst->shift - inst->print_object->center_offset());
 
-            if (!intersection(exclude_polys, volume_hull).empty()) {
+            if (!arrangement::sparrow_available() && !intersection(exclude_polys, volume_hull).empty()) {
                 // return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
                 //        inst->model_instance->get_object()};
                 //ORCA: Pass ModelInstance instead of ModelObject

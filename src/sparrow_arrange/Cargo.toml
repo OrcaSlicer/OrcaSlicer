@@ -1,0 +1,21 @@
+[package]
+name = "sparrow_arrange"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+jagua-rs = "0.8.0"
+sparrow = { path = "vendor/sparrow" }
+rand = "0.10"
+log = "0.4"
+serde_json = "1.0"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+debug = false
+strip = "debuginfo"

@@ -611,6 +611,10 @@ public:
         //BBS: add more arrangeSettings
         bool is_seq_print        = false;
         bool  align_to_y_axis    = false;
+        //BBS: use the experimental sparrow packer (only offered when the build includes it)
+        bool  arrange_use_sparrow = false;
+        //BBS: sparrow search budget, seconds per plate
+        float arrange_sparrow_time = 8.f;
     };
 
     struct OrientSettings

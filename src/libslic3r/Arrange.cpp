@@ -1,6 +1,13 @@
 #include "Arrange.hpp"
+#include <atomic>
 #include "ExPolygon.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
+#include "Geometry/ConvexHull.hpp"
+
+#ifdef SLIC3R_SPARROW_ARRANGE
+#include "ArrangeSparrow.hpp"
+#endif
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "PrintConfig.hpp"
@@ -100,6 +107,17 @@ namespace bgi = boost::geometry::index;
 using SpatElement = std::pair<Box, unsigned>;
 using SpatIndex = bgi::rtree< SpatElement, bgi::rstar<16, 4> >;
 using ItemGroup = std::vector<std::reference_wrapper<Item>>;
+
+std::atomic<bool> use_true_outline{false};
+
+bool sparrow_available()
+{
+#ifdef SLIC3R_SPARROW_ARRANGE
+    return true;
+#else
+    return false;
+#endif
+}
 
 // A coefficient used in separating bigger items and smaller items.
 const double BIG_ITEM_TRESHOLD = 0.02;
@@ -1157,7 +1175,11 @@ static CircleBed to_circle(const Point &center, const Points& points) {
 static void process_arrangeable(const ArrangePolygon &arrpoly,
                                 std::vector<Item> &   outp)
 {
+    // The stock NFP and rotating-calipers implementations require convex input,
+    // including when the experimental backend declines already collected outlines.
     Polygon        p        = arrpoly.poly.contour;
+    if (p.points.size() >= 3 && !polygon_is_convex(p))
+        p = Geometry::convex_hull(p.points);
     const Vec2crd &offs     = arrpoly.translation;
     double         rotation = arrpoly.rotation;
 
@@ -1225,6 +1247,22 @@ void arrange(ArrangePolygons &      arrangables,
 {
     std::vector<Item> items, fixeditems;
     items.reserve(arrangables.size());
+
+#ifdef SLIC3R_SPARROW_ARRANGE
+    // BBS: sparrow handles rectangular beds only (every Bambu printer); other bed
+    // types and a failed sparrow run fall through to libnest2d. It has no notion of
+    // print order, height, belt geometry or per-plate filament grouping, so sequential
+    // print, belt printers and "one material per plate" also stay on libnest2d.
+    if (params.use_sparrow && !params.is_seq_print && !params.is_belt && params.allow_multi_materials_on_same_plate) {
+        if constexpr (std::is_same_v<BedT, BoundingBox>) {
+            if (arrange_sparrow(arrangables, excludes, bed, params))
+                return;
+            BOOST_LOG_TRIVIAL(warning) << "sparrow arrange unavailable, using libnest2d";
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "sparrow arrange needs a rectangular bed, using libnest2d";
+        }
+    }
+#endif
 
     for (ArrangePolygon &arrangeable : arrangables)
         process_arrangeable(arrangeable, items);

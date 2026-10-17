@@ -4,6 +4,8 @@
 #include "ExPolygon.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
+#include <atomic>
+
 #include "PrintConfig.hpp"
 #include "Print.hpp"
 #include <cmath>
@@ -40,6 +42,14 @@ struct InfiniteBed {
     Point center;
     explicit InfiniteBed(const Point &p = {0, 0}): center{p} {}
 };
+
+/// Set by the arrange caller (ArrangeJob, the CLI) before ArrangePolygons are
+/// collected; read by ModelInstance::get_arrange_polygon() to choose between the
+/// convex hull and the true outline. A global because that function has no ArrangeParams.
+extern std::atomic<bool> use_true_outline;
+
+/// Whether this build includes the experimental backend.
+bool sparrow_available();
 
 /// A logical bed representing an object not being arranged. Either the arrange
 /// has not yet successfully run on this ArrangePolygon or it could not fit the
@@ -129,6 +139,11 @@ struct ArrangeParams {
 
     bool allow_rotations = false;
 
+    //BBS: use the sparrow (Rust) packer instead of the libnest2d NFP placer
+    bool  use_sparrow = false;
+    /// Sparrow search budget in seconds, per plate (not for the whole run).
+    float sparrow_time_limit_s = 8.f;
+
     bool do_final_align = true;
 
     //BBS: add specific arrange params
@@ -163,6 +178,10 @@ struct ArrangeParams {
         std::cout << "st=" << st << ", " << str << std::endl;
     };
 
+    /// Optional estimated work fraction [0, 1), for progress during Sparrow's search.
+    /// Separate from progressind so object counts remain actual counts.
+    std::function<void(double, std::string)> progress_fraction;
+
     std::function<void(const ArrangePolygon &)> on_packed;
 
     /// A predicate returning true if abort is needed.
@@ -177,6 +196,8 @@ struct ArrangeParams {
         ret += "\"accuracy\":" + std::to_string(accuracy) + ",";
         ret += "\"parallel\":" + std::to_string(parallel) + ",";
         ret += "\"allow_rotations\":" + std::to_string(allow_rotations) + ",";
+        ret += "\"use_sparrow\":" + std::to_string(use_sparrow) + ",";
+        ret += "\"sparrow_time_limit_s\":" + std::to_string(sparrow_time_limit_s) + ",";
         ret += "\"do_final_align\":" + std::to_string(do_final_align) + ",";
         ret += "\"allow_multi_materials_on_same_plate\":" + std::to_string(allow_multi_materials_on_same_plate) + ",";
         ret += "\"avoid_extrusion_cali_region\":" + std::to_string(avoid_extrusion_cali_region) + ",";

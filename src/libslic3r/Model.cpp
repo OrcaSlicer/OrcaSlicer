@@ -66,7 +66,9 @@
 #include <string>
 #include <map>
 #include <utility>
+#include <atomic>
 #include <memory>
+#include <mutex>
 #include <iterator>
 #include <limits>
 #include <sstream>
@@ -1809,6 +1811,92 @@ BoundingBoxf3 ModelObject::instance_convex_hull_bounding_box(const ModelInstance
 }
 
 
+// BBS: true 2D outline of the printable volumes, cached per transformation like
+// ModelVolume::get_convex_hull_2d(): a pure translation just shifts the contour.
+ExPolygon ModelObject::true_outline_2d_ex(const Transform3d &trafo_instance) const
+{
+    std::lock_guard<CacheMutex> lock(m_true_outline_mutex);
+    // assemble_transform() builds T * Rz * Ry * Rx * S, so the Z rotation commutes with
+    // the XY projection and the cached base contour is shared by every instance that
+    // differs only in Z rotation and position.
+    auto need_recompute = [](const Geometry::Transformation &old_transform,
+                             const Geometry::Transformation &new_transform) -> bool {
+        const Vec3d &old_rotation = old_transform.get_rotation();
+        const Vec3d &new_rotation = new_transform.get_rotation();
+        return old_transform.get_scaling_factor() != new_transform.get_scaling_factor()
+            || old_transform.get_mirror()         != new_transform.get_mirror()
+            || old_rotation.x()                   != new_rotation.x()
+            || old_rotation.y()                   != new_rotation.y();
+    };
+
+    std::vector<std::pair<const TriangleMesh *, Matrix4d>> volumes_key;
+    for (const ModelVolume *v : this->volumes)
+        if (v->is_model_part())
+            volumes_key.emplace_back(v->mesh_ptr().get(), v->get_matrix().matrix());
+    const bool volumes_changed = volumes_key != m_true_outline_volumes;
+
+    if (volumes_changed || trafo_instance.matrix() != m_true_outline_trafo.matrix() || !m_true_outline_2d.is_valid()) {
+        Geometry::Transformation new_trans(trafo_instance), old_trans(m_true_outline_trafo);
+
+        if (volumes_changed || need_recompute(old_trans, new_trans) || !m_true_outline_base.is_valid()) {
+            calculate_true_outline_2d(new_trans);
+            m_true_outline_volumes = std::move(volumes_key);
+        }
+
+        m_true_outline_2d = m_true_outline_base;
+        m_true_outline_2d.rotate(new_trans.get_rotation(Z));
+        m_true_outline_2d.translate(scale_(new_trans.get_offset(X)), scale_(new_trans.get_offset(Y)));
+        m_true_outline_trafo = trafo_instance;
+    }
+
+    return m_true_outline_2d;
+}
+
+Polygon ModelObject::true_outline_2d(const Transform3d &trafo_instance) const
+{
+    return true_outline_2d_ex(trafo_instance).contour;
+}
+
+void ModelObject::calculate_true_outline_2d(const Geometry::Transformation &transformation) const
+{
+    // Measured: decimating with its_quadric_edge_collapse() before projecting made a
+    // 26M-face project 23x slower. project_mesh() is already ~50 ns/face.
+
+    // Compute at zero XY offset and zero Z rotation; true_outline_2d() rotates
+    // and translates the result back.
+    const Transform3d trafo = Geometry::assemble_transform(
+        Vec3d(0., 0., transformation.get_offset().z()),
+        Vec3d(transformation.get_rotation().x(), transformation.get_rotation().y(), 0.),
+        transformation.get_scaling_factor(), transformation.get_mirror());
+
+    // Preserve holes when the projection is one connected island. Several disjoint
+    // islands still collapse to their convex hull so none is lost by the simple-polygon
+    // arrangement backend.
+    Polygons projected;
+    for (const ModelVolume *v : this->volumes) {
+        if (!v->is_model_part())
+            continue;
+
+        append(projected, project_mesh(v->mesh().its, trafo * v->get_matrix(), []() {}));
+    }
+
+    ExPolygon p;
+    ExPolygons islands = union_ex(projected);
+    if (islands.size() == 1)
+        p = std::move(islands.front());
+    else if (islands.size() > 1)
+        p = ExPolygon(Geometry::convex_hull(to_polygons(islands)));
+    // Keep the exact projected contour: this cache also serves exclusion checks.
+    // Douglas-Peucker can remove outward protrusions and miss real collisions.
+
+    if (p.contour.points.size() < 3) {
+        // Projection produced nothing usable; fall back to the convex hull in the same frame.
+        p = ExPolygon(convex_hull_2d(trafo));
+    }
+
+    m_true_outline_base = std::move(p);
+}
+
 // Calculate 2D convex hull of of a projection of the transformed printable volumes into the XY plane.
 // This method is cheap in that it does not make any unnecessary copy of the volume meshes.
 // This method is used by the auto arrange function.
@@ -2839,8 +2927,9 @@ void  ModelVolume::calculate_convex_hull_2d(const Geometry::Transformation &tran
     //m_convex_hull_2d.scale(transformation.get_scaling_factor(X), transformation.get_scaling_factor(Y));
 }
 
-const Polygon& ModelVolume::get_convex_hull_2d(const Transform3d &trafo_instance) const
+Polygon ModelVolume::get_convex_hull_2d(const Transform3d &trafo_instance) const
 {
+    std::lock_guard<CacheMutex> lock(m_convex_hull_2d_mutex);
     Transform3d  new_matrix;
 
     new_matrix = trafo_instance * m_transformation.get_matrix();
@@ -3599,6 +3688,41 @@ double ModelInstance::get_auto_brim_width() const
     return get_auto_brim_width(DeltaT, adhcoeff);
 }
 
+//BBS: true 2D projected outline of the instance's model parts.
+Polygon ModelInstance::true_outline_2d(const Transform3d &trafo_instance) const
+{
+    return get_object()->true_outline_2d(trafo_instance);
+}
+
+ExPolygon ModelInstance::true_outline_2d_ex(const Transform3d &trafo_instance) const
+{
+    return get_object()->true_outline_2d_ex(trafo_instance);
+}
+
+//BBS: hull-first footprint test, used by the exclusion-area checks.
+bool ModelInstance::footprint_intersects(const Polygons &polys, const Transform3d &trafo_instance,
+                                         const Point &offset) const
+{
+    if (polys.empty())
+        return false;
+
+    // The footprint is inside the convex hull, so a clear hull never pays for the projection.
+    Polygon hull = get_object()->convex_hull_2d(trafo_instance);
+    hull.translate(offset);
+    if (intersection(polys, hull).empty())
+        return false;
+
+    // Without the sparrow packer nothing places concave outlines near the region, so the hull
+    // stays the criterion and behaviour is unchanged.
+    if (!arrangement::sparrow_available())
+        return true;
+
+    // Hull crosses the region: a concave or rotated part may still be clear.
+    ExPolygon outline = true_outline_2d_ex(trafo_instance);
+    outline.translate(offset);
+    return !intersection_ex(outline, polys).empty();
+}
+
 void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConfig &config_global) const
 {
 //    static const double SIMPLIFY_TOLERANCE_MM = 0.1;
@@ -3608,7 +3732,11 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
     Geometry::Transformation t(m_transformation);
     t.set_offset(get_offset().z() * Vec3d::UnitZ());
     t.set_rotation(rotation);
-    Polygon p = get_object()->convex_hull_2d(t.get_matrix());
+    // BBS: the sparrow packer places concave outlines, so give it the real 2D
+    // silhouette instead of the convex hull. Same trafo and item-local frame.
+    ExPolygon p = arrangement::sparrow_available() && arrangement::use_true_outline.load(std::memory_order_relaxed)
+                      ? true_outline_2d_ex(t.get_matrix())
+                      : ExPolygon(get_object()->convex_hull_2d(t.get_matrix()));
 
 //    if (!p.points.empty()) {
 //        Polygons pp{p};
@@ -3617,7 +3745,7 @@ void ModelInstance::get_arrange_polygon(void *ap, const Slic3r::DynamicPrintConf
 //    }
 
     arrangement::ArrangePolygon& ret = *(arrangement::ArrangePolygon*)ap;
-    ret.poly.contour = std::move(p);
+    ret.poly         = std::move(p);
     ret.translation  = Vec2crd{scaled(get_offset(X)), scaled(get_offset(Y))};
     ret.rotation     = get_rotation(Z);
 
