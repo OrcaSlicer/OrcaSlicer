@@ -1,0 +1,83 @@
+name: Clang Format
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/*
+    paths:
+      - 'src/**/*.c'
+      - 'src/**/*.cc'
+      - 'src/**/*.cpp'
+      - 'src/**/*.cxx'
+      - 'src/**/*.h'
+      - 'src/**/*.hpp'
+      - 'src/**/*.hxx'
+      - 'tests/**/*.c'
+      - 'tests/**/*.cc'
+      - 'tests/**/*.cpp'
+      - 'tests/**/*.cxx'
+      - 'tests/**/*.h'
+      - 'tests/**/*.hpp'
+      - 'tests/**/*.hxx'
+      - 'sandboxes/**/*.c'
+      - 'sandboxes/**/*.cc'
+      - 'sandboxes/**/*.cpp'
+      - 'sandboxes/**/*.cxx'
+      - 'sandboxes/**/*.h'
+      - 'sandboxes/**/*.hpp'
+      - 'sandboxes/**/*.hxx'
+      - '.clang-format'
+      - '.github/workflows/clang-format.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-format:
+    name: Clang Format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run clang-format on changed lines
+        id: linter
+        uses: cpp-linter/cpp-linter-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: file
+          version: '18'
+          tidy-checks: '-*'
+          ignore: 'deps_src|deps|resources|localization|cmake|scripts|tools|SoftFever_doc'
+          files-changed-only: true
+          lines-changed-only: true
+          file-annotations: true
+          step-summary: true
+          thread-comments: false
+          format-review: false
+          tidy-review: false
+
+      - name: Fail if formatting violations were found
+        if: steps.linter.outputs.checks-failed > 0
+        run: |
+          echo "::error::clang-format violations detected. See file annotations or the job summary below."
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+
+          ### How to fix
+
+          Inside the devcontainer:
+
+          ```bash
+          git clang-format origin/${{ github.base_ref }}
+          ```
+
+          Then commit the changes and push.
+          EOF
+          exit 1
