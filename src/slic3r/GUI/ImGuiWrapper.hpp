@@ -35,6 +35,7 @@ struct ImRect;
 namespace Slic3r {
 namespace GUI {
 
+struct KeyChord;
 
 bool get_data_from_svg(const std::string &filename, unsigned int max_size_px, ThumbnailData &thumbnail_data);
 
@@ -219,6 +220,12 @@ public:
     bool want_keyboard() const;
     bool want_text_input() const;
     bool want_any_input() const;
+    // True while an ImGui InputText is active, without the one-frame lag of want_text_input().
+    bool text_input_active() const;
+    // True while an ImGui modal popup is on screen.
+    bool modal_popup_open() const;
+    // True for every key while a modal is open, and for text-editing keys while an InputText is active.
+    bool owns_key(const KeyChord& chord) const;
 
     // Optional inputs are used for set up value inside of an optional, with default value
     // 

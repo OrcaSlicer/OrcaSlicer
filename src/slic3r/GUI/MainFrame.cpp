@@ -50,6 +50,7 @@
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <wx/textentry.h>
+#include <wx/spinctrl.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
 #include <wx/simplebook.h>
@@ -107,6 +108,8 @@
 #include "../Utils/PrintHost.hpp"
 
 #include "GUI_App.hpp"
+#include "ImGuiWrapper.hpp"
+#include "OpenGLManager.hpp"
 #include "Shortcuts.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "PublishSettingsDialog.hpp"
@@ -184,18 +187,31 @@ enum class ERescaleTarget
 
 namespace {
 
+bool focus_is_text_field(wxWindow* focus)
+{
+    if (dynamic_cast<wxTextEntryBase*>(focus) || dynamic_cast<wxWebView*>(focus))
+        return true; // a web page can have its own text fields
+    if (dynamic_cast<wxSpinCtrl*>(focus) || dynamic_cast<wxSpinCtrlDouble*>(focus))
+        return true; // the native Windows spin control is not a wxTextEntry
+    return false;
+}
+
+// Only a scene canvas draws ImGui, and a hidden one can keep the wx focus after a tab switch.
+const ImGuiWrapper* focused_canvas_imgui(wxWindow* focus)
+{
+    if (!OpenGLManager::is_scene_canvas(focus) || !focus->IsShownOnScreen())
+        return nullptr;
+    return wxGetApp().imgui();
+}
+
 // Space opens the speed dial, but it is the activation key for buttons, checkboxes and other
-// controls. CHAR_HOOK runs before the focused child, so only take Space when the focused window has
-// no keyboard-activation meaning of its own. Canvases (GLCanvas3D) and panels are not controls and
-// fall through to "open"; the Notebook itself does too, so Space still opens the dial on any page.
+// controls, so only take Space when the focused window has no keyboard-activation meaning of its
+// own. Canvases (GLCanvas3D) and panels are not controls and fall through to "open"; the Notebook
+// itself does too, so Space still opens the dial on any page.
 bool focus_keeps_space(wxWindow* focus)
 {
     if (!focus)
         return false;
-    if (dynamic_cast<wxTextEntryBase*>(focus))
-        return true; // typing a space into a text field
-    if (dynamic_cast<wxWebView*>(focus))
-        return true; // web content scrolls and hosts its own text fields
     if (dynamic_cast<::Button*>(focus))
         return true; // custom button: Space clicks it (it is a wxWindow, not a wxControl)
     if (dynamic_cast<StaticBox*>(focus))
@@ -816,16 +832,12 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
 bool MainFrame::handle_global_shortcut(const KeyChord& chord)
 {
-    // ImGui draws its text fields (the text tool's box, a sketch value field) on the GL canvas, so
-    // while one of them is typed into the focused wx window is that canvas or an in-canvas frame:
-    // neither is a wxControl, so focus_keeps_space() cannot see it and CHAR_HOOK takes the chord
-    // here first -- Space opened the Speed Dial, Ctrl+P the Preferences, and the field never saw
-    // the key. ImGui raises WantCaptureKeyboard while one of its items owns the keyboard, so leave
-    // the key to it then. A focused wxControl (text field, list, web view) is untouched: those
-    // keep their own keys, and ImGui's flag can outlive the focus moving to one of them.
+    // CHAR_HOOK runs before the focused window, so leave text-editing keys to a focused text field and
+    // the keys ImGui owns to the focused canvas.
     wxWindow* const focus = wxWindow::FindFocus();
-    ImGuiWrapper* const imgui = wxGetApp().imgui();
-    if (focus != nullptr && imgui != nullptr && imgui->want_keyboard() && dynamic_cast<wxControl*>(focus) == nullptr)
+    if (chord.edits_text() && focus_is_text_field(focus))
+        return false;
+    if (const ImGuiWrapper* imgui = focused_canvas_imgui(focus); imgui != nullptr && imgui->owns_key(chord))
         return false;
 
     const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::Global, chord);

@@ -53,6 +53,13 @@ Space counts as typing. The speed dial's default is the one bare Space, and
 `MainFrame` leaves it to a focused control that uses Space itself (text fields, buttons,
 combo boxes), so it opens the dial from the canvases and the tab strip only.
 
+`MainFrame::handle_global_shortcut` skips a chord that `KeyChord::edits_text()` reports
+while a text field has the focus (a wx text entry, spin control, web view or ImGui
+InputText), and skips every chord while an ImGui modal is open, as a wx modal dialog
+would. `ImGuiWrapper::owns_key()` reads the active InputText and the popup stack
+directly, since `WantCaptureKeyboard` lags a frame, and is called only when the focus is on
+a visible canvas from `OpenGLManager::create_wxglcanvas()`.
+
 ## Which event a chord matches
 
 Letters, digits and special keys match on `wxEVT_KEY_DOWN`. Its key codes do not depend

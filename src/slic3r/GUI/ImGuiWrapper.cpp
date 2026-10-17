@@ -62,6 +62,7 @@
 #include "Search.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "KeyChord.hpp"
 
 #include <nanosvg/nanosvg.h>
 #include <nanosvg/nanosvgrast.h>
@@ -2132,6 +2133,27 @@ bool ImGuiWrapper::want_any_input() const
 {
     const auto io = ImGui::GetIO();
     return io.WantCaptureMouse || io.WantCaptureKeyboard || io.WantTextInput;
+}
+
+bool ImGuiWrapper::text_input_active() const
+{
+    const ImGuiID id = ImGui::GetActiveID();
+    return id != 0 && ImGui::GetInputTextState(id) != nullptr;
+}
+
+bool ImGuiWrapper::modal_popup_open() const
+{
+    // A modal stays on the popup stack while its canvas is hidden, so it counts only if the last finished
+    // frame drew it, which NewFrame() moves from Active to WasActive.
+    const ImGuiWindow* modal = ImGui::GetTopMostPopupModal();
+    if (modal == nullptr)
+        return false;
+    return ImGui::GetCurrentContext()->WithinFrameScope ? modal->WasActive : modal->Active;
+}
+
+bool ImGuiWrapper::owns_key(const KeyChord& chord) const
+{
+    return modal_popup_open() || (chord.edits_text() && text_input_active());
 }
 
 ImFontAtlasCustomRect* ImGuiWrapper::GetTextureCustomRect(const wchar_t& tex_id)
