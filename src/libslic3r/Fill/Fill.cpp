@@ -9,6 +9,7 @@
 #include <map>
 #include <stdio.h>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include <queue>
@@ -20,6 +21,7 @@
 #include "../Layer.hpp"
 #include "../Print.hpp"
 #include "../PrintConfig.hpp"
+#include "../VoronoiCloudMethod.hpp"
 #include "../Surface.hpp"
 
 #include "AABBTreeLines.hpp"
@@ -32,6 +34,7 @@
 #include "FillAdaptive.hpp"
 #include "FillRectilinear.hpp"
 #include "FillLightning.hpp"
+#include "FillVoronoi.hpp"
 #include "FillConcentricInternal.hpp"
 #include "FillTpmsD.hpp"
 #include "FillTpmsFK.hpp"
@@ -310,6 +313,15 @@ struct SurfaceFillParams
 
     // For Gyroid: when true, use the parameterized "optimized" wave.
     bool gyroid_optimized = false;
+    VoronoiCloudMethod voronoi_cloud_method = VoronoiCloudMethod::Random;
+    double voronoi_cloud_angle = 0.;
+    int voronoi_relaxation_iterations = 0;
+    bool voronoi_snap_to_wall = false;
+    bool voronoi_trace_shell = false;
+    double voronoi_wall_decay = 0.;
+    double voronoi_smoothing_sigma = 0.;
+    double voronoi_hull_threshold = 0.;
+    int voronoi_density_region = -1;
 
     // For TPMS: grade the density from the surface to the interior of the object.
     TpmsAdaptiveMode     tpms_adaptive          = TpmsAdaptiveMode::Disabled;
@@ -361,6 +373,15 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(tpms_adaptive);
 		RETURN_COMPARE_NON_EQUAL(tpms_interior_density);
 		RETURN_COMPARE_NON_EQUAL(tpms_adaptive_gradient);
+        RETURN_COMPARE_NON_EQUAL(voronoi_cloud_method);
+        RETURN_COMPARE_NON_EQUAL(voronoi_cloud_angle);
+        RETURN_COMPARE_NON_EQUAL(voronoi_relaxation_iterations);
+        RETURN_COMPARE_NON_EQUAL(voronoi_snap_to_wall);
+        RETURN_COMPARE_NON_EQUAL(voronoi_trace_shell);
+        RETURN_COMPARE_NON_EQUAL(voronoi_wall_decay);
+        RETURN_COMPARE_NON_EQUAL(voronoi_smoothing_sigma);
+        RETURN_COMPARE_NON_EQUAL(voronoi_hull_threshold);
+        RETURN_COMPARE_NON_EQUAL(voronoi_density_region);
         RETURN_COMPARE_NON_EQUAL(smooth_factor);
         RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
         RETURN_COMPARE_NON_EQUAL(separated_infills);
@@ -397,10 +418,49 @@ struct SurfaceFillParams
                 this->tpms_adaptive           == rhs.tpms_adaptive           &&
                 this->tpms_interior_density   == rhs.tpms_interior_density   &&
                 this->tpms_adaptive_gradient  == rhs.tpms_adaptive_gradient  &&
+                this->voronoi_cloud_method     == rhs.voronoi_cloud_method     &&
+                this->voronoi_cloud_angle      == rhs.voronoi_cloud_angle      &&
+                this->voronoi_relaxation_iterations == rhs.voronoi_relaxation_iterations &&
+                this->voronoi_snap_to_wall == rhs.voronoi_snap_to_wall &&
+                this->voronoi_trace_shell == rhs.voronoi_trace_shell &&
+                this->voronoi_wall_decay       == rhs.voronoi_wall_decay       &&
+                this->voronoi_smoothing_sigma == rhs.voronoi_smoothing_sigma &&
+                this->voronoi_hull_threshold  == rhs.voronoi_hull_threshold &&
+                this->voronoi_density_region == rhs.voronoi_density_region &&
                 this->smooth_factor           == rhs.smooth_factor           &&
                 this->fill_order              == rhs.fill_order;
 	}
 };
+
+// Distribution setup belongs outside wall geometry and routing. Full object
+// outlines give every surface and layer the same reproducible spatial field.
+static void configure_voronoi_cloud(Fill &fill, const SurfaceFillParams &params, const Layer &layer,
+                                    std::optional<ExPolygons> &floor_support, VoronoiInfillCache *cache = nullptr)
+{
+    const PrintObject &object = *layer.object();
+    if (params.pattern != ipVoronoi) return;
+    auto &voronoi = static_cast<FillVoronoi &>(fill);
+    const double site_spacing = params.voronoi_snap_to_wall || params.voronoi_relaxation_iterations > 0 ?
+        Voronoi::PoissonPointCloud().spacing(params.spacing * params.multiline, object.config().layer_height.value, 0.01 * params.density) : 0.;
+    voronoi.set_point_cloud(object.voronoi_point_cloud(params.voronoi_wall_decay, params.voronoi_smoothing_sigma,
+        site_spacing, params.voronoi_cloud_method, params.voronoi_relaxation_iterations, params.voronoi_cloud_angle, params.voronoi_snap_to_wall, 0.01 * params.density, params.voronoi_density_region, params.voronoi_hull_threshold), cache);
+    if (params.voronoi_trace_shell) {
+        ExPolygons boundaries;
+        for (const LayerRegion *region : layer.regions()) append(boundaries, region->fill_expolygons);
+        voronoi.set_shell_boundaries(union_ex(boundaries));
+    }
+    if (layer.lower_layer) {
+        // Perimeters are complete before parallel infill generation; lower-layer
+        // infill is not. Use bead footprints rather than solid slice outlines.
+        if (!floor_support) {
+            Polygons support;
+            for (const LayerRegion *region : layer.lower_layer->regions())
+                region->perimeters.polygons_covered_by_width(support, float(SCALED_EPSILON));
+            floor_support = union_ex(support);
+        }
+        voronoi.set_floor_support(*floor_support);
+    }
+}
 
 struct SurfaceFill {
 	SurfaceFill(const SurfaceFillParams& params) : region_id(size_t(-1)), surface(stCount, ExPolygon()), params(params) {}
@@ -1004,10 +1064,21 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
+                params.voronoi_density_region = params.pattern == ipVoronoi ? layer.object()->voronoi_density_region(layerm.region().print_object_region_id()) : -1;
 
                 // Orca: Pass through separated_infills only where it can move the pattern.
                 params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&
                                            params.extrusion_role != erTopSolidInfill && params.extrusion_role != erBottomSurface;
+                params.voronoi_cloud_method = params.pattern == ipVoronoi ? region_config.voronoi_cloud_method.value : VoronoiCloudMethod::Random;
+                // A 3D constellation keeps one orientation across layers.
+                params.voronoi_cloud_angle = params.pattern == ipVoronoi ?
+                    Geometry::deg2rad(region_config.infill_direction.value) : 0.;
+                params.voronoi_relaxation_iterations = params.pattern == ipVoronoi ? region_config.voronoi_relaxation_iterations.value : 0;
+                params.voronoi_snap_to_wall = params.pattern == ipVoronoi && region_config.voronoi_snap_to_wall.value;
+                params.voronoi_trace_shell = params.pattern == ipVoronoi && region_config.voronoi_trace_shell.value;
+                params.voronoi_wall_decay = params.pattern == ipVoronoi ? region_config.voronoi_wall_decay.value : 0.;
+                params.voronoi_smoothing_sigma = params.pattern == ipVoronoi ? region_config.voronoi_smoothing_sigma.value : 0.;
+                params.voronoi_hull_threshold = params.pattern == ipVoronoi ? 0.01 * region_config.voronoi_hull_threshold.value : 0.;
 
                 // Orca: only the TPMS sparse infill is graded; reset otherwise, as params is reused.
                 params.tpms_adaptive = is_tpms_adaptive_pattern(params.pattern) && params.extrusion_role == erInternalInfill ?
@@ -1051,6 +1122,8 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     auto m = layer.object()->trafo().matrix();
                     align_offset = atan2((float)m(1, 0), (float)m(0, 0));
                     params.angle += align_offset;
+                    if (params.pattern == ipVoronoi)
+                        params.voronoi_cloud_angle += align_offset;
                 }
 
                 // Calculate the actual flow we'll be using for this infill.
@@ -1339,7 +1412,7 @@ void export_group_fills_to_svg(const char *path, const std::vector<SurfaceFill> 
 #endif
 
 // friend to Layer
-void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator)
+void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator, VoronoiInfillCache *voronoi_cache)
 {
 	for (LayerRegion *layerm : m_regions)
 		layerm->fills.clear();
@@ -1360,9 +1433,11 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
 	}
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
+    std::optional<ExPolygons> voronoi_floor_support;
     for (SurfaceFill &surface_fill : surface_fills) {
         // Create the filler object.
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+        configure_voronoi_cloud(*f, surface_fill.params, *this, voronoi_floor_support, voronoi_cache);
         f->set_bounding_box(bbox);
         f->layer_id = this->id();
         {
@@ -1548,6 +1623,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 
     Polylines sparse_infill_polylines{};
 
+    std::optional<ExPolygons> voronoi_floor_support;
     for (SurfaceFill &surface_fill : surface_fills) {
 		if (surface_fill.surface.surface_type != stInternal) {
 			continue;
@@ -1576,6 +1652,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipLateralHoneycomb:
         case ip3DHoneycomb:
         case ipGyroid:
+        case ipVoronoi:
         case ipTpmsD:
         case ipTpmsFK:
         case ipHilbertCurve:
@@ -1588,6 +1665,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 
         // Create the filler object.
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+        configure_voronoi_cloud(*f, surface_fill.params, *this, voronoi_floor_support);
         f->set_bounding_box(bbox);
         f->layer_id = this->id() - this->object()->get_layer(0)->id(); // We need to subtract raft layers.
         {

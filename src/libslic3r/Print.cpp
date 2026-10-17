@@ -58,6 +58,7 @@
 #include "IMEXHelpers.hpp"
 #include "IMEXZones.hpp"
 #include "Print.hpp"
+#include "Fill/VoronoiModifier.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
@@ -1871,6 +1872,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         w.object  = object;
         add_warning(std::move(w));
     };
+
+    for (const PrintObject *object : m_objects)
+        for (const ModelVolume *volume : object->model_object()->volumes)
+            if (volume->is_modifier())
+                if (!Voronoi::valid_density_modifier_blend(volume->config.get()))
+                    return {_u8L("Voronoi material density blend width must be finite."), volume, "voronoi_modifier_blend"};
 
     std::vector<unsigned int> extruders = this->extruders();
     unsigned int nozzles = m_config.nozzle_diameter.size();

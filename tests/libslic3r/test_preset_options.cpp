@@ -1,3 +1,5 @@
+#include "libslic3r/Fill/VoronoiModifier.hpp"
+#include <limits>
 // Regression test for the "option in def + UI but missing from preset key list"
 // crash class.
 //
@@ -15,6 +17,7 @@
 // DynamicConfig.
 
 #include <catch2/catch_all.hpp>
+#include "libslic3r/VoronoiCloudMethod.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
@@ -72,3 +75,94 @@ TEST_CASE("Every PrintObjectConfig field is registered in a preset key list", "[
     check_keys_are_in_a_preset(PrintObjectConfig::defaults().keys(), "PrintObjectConfig");
 }
 // clang-format on
+
+TEST_CASE("Print presets initialize and retain Voronoi decay and smoothing", "[Preset][Config]")
+{
+    DynamicPrintConfig config;
+    config.apply_only(FullPrintConfig::defaults(), Preset::print_options());
+    REQUIRE_THAT(config.opt_float("voronoi_modifier_blend"), Catch::Matchers::WithinAbs(-1., EPSILON));
+    config.set_deserialize_strict("voronoi_modifier_blend", "4");
+    REQUIRE_THAT(config.opt_float("voronoi_modifier_blend"), Catch::Matchers::WithinAbs(4., EPSILON));
+    REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(6., EPSILON));
+    REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(8., EPSILON));
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Random);
+    REQUIRE(config.opt_int("voronoi_relaxation_iterations") == 0);
+    config.set_deserialize_strict("voronoi_relaxation_iterations", "5");
+    REQUIRE(config.opt_int("voronoi_relaxation_iterations") == 5);
+    config.set_deserialize_strict("voronoi_cloud_method", "fcc");
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Fcc);
+    config.set_deserialize_strict("voronoi_cloud_method", "cubic");
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Cubic);
+    REQUIRE(config.option("voronoi_cloud_method")->serialize() == "cubic");
+    REQUIRE_FALSE(config.opt_bool("voronoi_trace_shell"));
+    config.set_deserialize_strict("voronoi_trace_shell", "1");
+    REQUIRE(config.opt_bool("voronoi_trace_shell"));
+    REQUIRE_FALSE(config.opt_bool("voronoi_snap_to_wall"));
+    config.set_deserialize_strict("voronoi_snap_to_wall", "1");
+    REQUIRE(config.opt_bool("voronoi_snap_to_wall"));
+    config.set_deserialize_strict("voronoi_cloud_method", "density_shells");
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Random);
+    REQUIRE(config.has("voronoi_hull_threshold"));
+    REQUIRE_THAT(config.option("voronoi_hull_threshold")->getFloat(), Catch::Matchers::WithinAbs(0., EPSILON));
+    config.set_deserialize_strict("voronoi_hull_threshold", "20%");
+    REQUIRE_THAT(config.option("voronoi_hull_threshold")->getFloat(), Catch::Matchers::WithinAbs(20., EPSILON));
+    config.set_deserialize_strict("voronoi_wall_decay", "0");
+    config.set_deserialize_strict("voronoi_smoothing_sigma", "12");
+    REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(0., EPSILON));
+    REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(12., EPSILON));
+}
+
+TEST_CASE("Legacy Voronoi selectors migrate without changing their distribution", "[Preset][Config]")
+{
+    for (const std::string value : {"uniform", "wall_distance"}) {
+        DynamicPrintConfig config;
+        config.set_deserialize_strict("voronoi_point_distribution", value);
+        PrintConfigDef::handle_legacy_composite(config);
+        REQUIRE_FALSE(config.has("voronoi_point_distribution"));
+        REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(value == "uniform" ? 0. : 6., EPSILON));
+        REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(value == "uniform" ? 0. : 2., EPSILON));
+    }
+}
+
+TEST_CASE("Print presets ignore the retired Voronoi interior centres option", "[Preset][Config]")
+{
+    DynamicPrintConfig config;
+    config.apply_only(FullPrintConfig::defaults(), Preset::print_options());
+    config.set_deserialize_strict("voronoi_interior_centres", "1");
+    REQUIRE_FALSE(config.has("voronoi_interior_centres"));
+}
+
+TEST_CASE("Fused modifiers keep density controls and preserve inactive overrides", "[Preset][FillVoronoi]")
+{
+    const double blend = GENERATE(-1., 0., 4.);
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({{"sparse_infill_density", "50%"}, {"voronoi_wall_decay", "3"},
+        {"voronoi_smoothing_sigma", "4"}, {"voronoi_hull_threshold", "35%"}, {"wall_loops", "3"}, {"fill_multiline", "2"}, {"sparse_infill_pattern", "cubic"}});
+    config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(blend));
+    const auto effective = Voronoi::effective_density_modifier_config(config);
+    REQUIRE(Voronoi::fused_density_modifier(effective) == (blend >= 0.));
+    REQUIRE_THAT(effective.opt_float("sparse_infill_density"), Catch::Matchers::WithinAbs(50., EPSILON));
+    REQUIRE_THAT(effective.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(3., EPSILON));
+    REQUIRE_THAT(effective.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(4., EPSILON));
+    for (const std::string key : {"wall_loops", "fill_multiline", "sparse_infill_pattern", "voronoi_hull_threshold"}) {
+        REQUIRE(effective.has(key) == (blend < 0.));
+        REQUIRE(config.has(key));
+    }
+    REQUIRE(config.opt_int("wall_loops") == 3);
+    REQUIRE(config.opt_int("fill_multiline") == 2);
+    config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(-1.));
+    const auto restored = Voronoi::effective_density_modifier_config(config);
+    REQUIRE(restored.opt_int("wall_loops") == 3);
+    REQUIRE(restored.opt_int("fill_multiline") == 2);
+    REQUIRE(restored.opt_enum<InfillPattern>("sparse_infill_pattern") == ipCubic);
+    REQUIRE(Voronoi::valid_density_modifier_blend(config));
+    config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(std::numeric_limits<double>::infinity()));
+    REQUIRE_FALSE(Voronoi::valid_density_modifier_blend(config));
+}
+
+TEST_CASE("Removed Voronoi slope settings are ignored when loading older projects", "[PresetOptions]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict("voronoi_vertical_repulsion", "0.5");
+    REQUIRE_FALSE(config.has("voronoi_vertical_repulsion"));
+}

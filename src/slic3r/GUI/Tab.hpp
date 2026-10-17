@@ -559,6 +559,9 @@ public:
 	void set_model_config(std::map<ObjectBase *, ModelConfig *> const & object_configs);
 
 	bool has_model_config() const { return !m_object_configs.empty(); }
+    bool modifiers_have_voronoi_parent() const;
+    bool has_fused_modifiers() const;
+    void toggle_fusion_controls(bool enable);
 
 	void update_model_config();
 
@@ -567,6 +570,8 @@ public:
 	bool has_key(std::string const &key);
 
 protected:
+    bool is_modifier_config(const ObjectBase *object) const;
+
 	virtual void    activate_selected_page(std::function<void()> throw_if_canceled) override;
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
@@ -579,6 +584,7 @@ protected:
 
 protected:
 	std::vector<std::string> m_keys;
+    bool m_fusion_controls_disabled = false;
 	PresetCollection m_prints;
 	Tab * m_parent_tab;
 	std::map<ObjectBase *, ModelConfig *> m_object_configs;

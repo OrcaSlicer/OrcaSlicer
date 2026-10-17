@@ -5,6 +5,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/BeltTransform.hpp"
+#include "libslic3r/Fill/VoronoiModifier.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
@@ -2966,11 +2967,19 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Infill"), L"param_infill");
         optgroup->append_single_option_line("sparse_infill_density", "strength_settings_infill#sparse-infill-density");
+        optgroup->append_single_option_line("voronoi_modifier_blend");
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
         optgroup->append_single_option_line("tpms_adaptive", "strength_settings_patterns#adaptive-density");
         optgroup->append_single_option_line("tpms_interior_density", "strength_settings_patterns#interior-density");
         optgroup->append_single_option_line("tpms_adaptive_gradient", "strength_settings_patterns#adaptive-gradient");
+        optgroup->append_single_option_line("voronoi_cloud_method");
+        optgroup->append_single_option_line("voronoi_relaxation_iterations");
+        optgroup->append_single_option_line("voronoi_snap_to_wall");
+        optgroup->append_single_option_line("voronoi_trace_shell");
+        optgroup->append_single_option_line("voronoi_wall_decay");
+        optgroup->append_single_option_line("voronoi_smoothing_sigma");
+        optgroup->append_single_option_line("voronoi_hull_threshold");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
         optgroup->append_single_option_line("sparse_infill_smooth_factor", "strength_settings_infill#sparse-infill-smooth-factor");
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");
@@ -3353,14 +3362,17 @@ void TabPrint::update_description_lines()
 
 void TabPrint::toggle_options()
 {
-    if (!m_active_page) return;
+    if (wxGetApp().is_closing() || !m_active_page) return;
     // BBS: whether the preset is Bambu Lab printer
     if (m_preset_bundle) {
         bool is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
         m_config_manipulation.set_is_BBL_Printer(is_BBL_printer);
     }
 
+    auto *local = dynamic_cast<TabPrintModel *>(this);
+    if (local) local->toggle_fusion_controls(true);
     m_config_manipulation.toggle_print_fff_options(m_config, int(intptr_t(m_extruder_switch->GetClientData())), m_type < Preset::TYPE_COUNT);
+    m_config_manipulation.toggle_line("voronoi_modifier_blend", local && local->modifiers_have_voronoi_parent());
 
     if (m_type == Preset::TYPE_PLATE) {
         const auto &printer_config = m_preset_bundle->printers.get_edited_preset().config;
@@ -3444,6 +3456,7 @@ void TabPrint::toggle_options()
         }
         cb->SetValue(n);
     }
+    if (local && local->has_fused_modifiers()) local->toggle_fusion_controls(false);
 }
 
 void TabPrint::update()
@@ -3549,6 +3562,7 @@ void TabPrintModel::build()
         auto optgroup = page->new_optgroup("");
             optgroup->append_single_option_line("layer_height", "quality_settings_layer_height");
             optgroup->append_single_option_line("sparse_infill_density", "strength_settings_infill#sparse-infill-density");
+            optgroup->append_single_option_line("voronoi_modifier_blend");
             optgroup->append_single_option_line("wall_loops", "strength_settings_walls#wall-loops");
             optgroup->append_single_option_line("enable_support", "support_settings_support");
     m_pages.pop_back();
@@ -3566,6 +3580,44 @@ void TabPrintModel::build()
     m_pages.erase(std::remove_if(m_pages.begin(), m_pages.end(), [](auto & p) {
         return p->m_optgroups.empty();
     }), m_pages.end());
+}
+
+bool TabPrintModel::is_modifier_config(const ObjectBase *object) const
+{
+    if (wxGetApp().is_closing() || !dynamic_cast<const TabPrintPart *>(this)) return false;
+    // Other tabs also store non-object keys; selections can outlive deleted volumes.
+    for (const ModelObject *model_object : wxGetApp().model().objects)
+        for (const ModelVolume *volume : model_object->volumes)
+            if (volume == object) return volume->is_modifier();
+    return false;
+}
+
+bool TabPrintModel::modifiers_have_voronoi_parent() const
+{
+    return !m_object_configs.empty() &&
+           m_parent_tab->get_config()->opt_enum<InfillPattern>("sparse_infill_pattern") == ipVoronoi &&
+           std::all_of(m_object_configs.begin(), m_object_configs.end(), [this](const auto &entry) {
+        return is_modifier_config(entry.first);
+    });
+}
+
+bool TabPrintModel::has_fused_modifiers() const
+{
+    return std::any_of(m_object_configs.begin(), m_object_configs.end(), [this](const auto &entry) {
+        return is_modifier_config(entry.first) && Voronoi::fused_density_modifier(entry.second->get());
+    });
+}
+
+void TabPrintModel::toggle_fusion_controls(bool enable)
+{
+    if (enable && !m_fusion_controls_disabled) return;
+    for (const auto &page : m_pages)
+        for (const auto &group : page->m_optgroups)
+            for (const auto &line : group->get_lines())
+                for (const auto &option : line.get_options())
+                    if (!Voronoi::density_modifier_option(option.opt_id))
+                        group->enable_field(option.opt_id, enable);
+    m_fusion_controls_disabled = !enable;
 }
 
 void TabPrintModel::set_model_config(std::map<ObjectBase *, ModelConfig *> const & object_configs)
@@ -3594,7 +3646,7 @@ static std::vector<std::string> variant_keys(DynamicPrintConfig const & config)
 
 void TabPrintModel::update_model_config()
 {
-    if (m_config_manipulation.is_applying()) {
+    if (wxGetApp().is_closing() || m_config_manipulation.is_applying()) {
         return;
     }
     m_config->apply(*m_parent_tab->m_config);
@@ -3604,19 +3656,25 @@ void TabPrintModel::update_model_config()
     m_null_keys.clear();
     if (!m_object_configs.empty()) {
         DynamicPrintConfig const & global_config= *m_config;
-        DynamicPrintConfig const & local_config = m_object_configs.begin()->second->get();
+        // Keep inactive overrides stored, but display and validate inherited values.
+        std::map<ObjectBase *, DynamicPrintConfig> effective_configs;
+        for (const auto &entry : m_object_configs) {
+            effective_configs.emplace(entry.first, is_modifier_config(entry.first) ?
+                Voronoi::effective_density_modifier_config(entry.second->get()) : entry.second->get());
+        }
+        DynamicPrintConfig const & local_config = effective_configs.begin()->second;
         DynamicPrintConfig diff_config;
         std::vector<std::string> all_keys = variant_keys(local_config); // at least one has these keys
         std::vector<std::string> local_diffs; // all diff keys to first config
         if (m_object_configs.size() > 1) {
             std::vector<std::string> global_diffs; // all diff keys to global config
-            for (auto & config : m_object_configs) {
-                all_keys = concat(all_keys, variant_keys(config.second->get()));
-                auto diffs = deep_diff(config.second->get(), global_config, false);
+            for (auto & config : effective_configs) {
+                all_keys = concat(all_keys, variant_keys(config.second));
+                auto diffs = deep_diff(config.second, global_config, false);
                 global_diffs = concat(global_diffs, diffs);
-                diff_config.apply_only(config.second->get(), diffs);
-                if (&config.second->get() == &local_config) continue;
-                local_diffs = concat(local_diffs, deep_diff(local_config, config.second->get()));
+                diff_config.apply_only(config.second, diffs);
+                if (&config.second == &local_config) continue;
+                local_diffs = concat(local_diffs, deep_diff(local_config, config.second));
             }
             m_null_keys = intersect(global_diffs, local_diffs);
             m_config->apply(diff_config);
@@ -3817,6 +3875,7 @@ void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any&
         m_null_keys.erase(inull);
     if (m_back_to_sys || set) update_changed_ui();
     m_back_to_sys = false;
+    if (opt_key == "voronoi_modifier_blend") update_model_config();
     TabPrint::on_value_change(opt_id, value);
     for (auto config : m_object_configs) {
         config.second->touch();

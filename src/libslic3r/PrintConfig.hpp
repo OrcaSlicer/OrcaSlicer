@@ -17,6 +17,7 @@
 #define slic3r_PrintConfig_hpp_
 
 #include "Point.hpp"
+#include "VoronoiCloudMethod.hpp"
 #include "libslic3r.h"
 #include "CommonDefs.hpp"
 #include "Config.hpp"
@@ -95,11 +96,13 @@ enum class TopSurfaceExpansionDirection {
     Outward,
 };
 
+
 enum class CenterOfSurfacePattern {
     Each_Surface,
     Each_Model,
     Each_Assembly,
 };
+
 
 enum class NoiseType {
     Classic,
@@ -133,6 +136,7 @@ enum InfillPattern : int {
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipSpiralInset, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
+    ipVoronoi,
     ipCount,
 };
 
@@ -786,6 +790,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(VoronoiCloudMethod)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
@@ -1462,6 +1467,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
     ((ConfigOptionEnum<InfillPattern>,  sparse_infill_pattern))
+    ((ConfigOptionEnum<VoronoiCloudMethod>, voronoi_cloud_method))
+    ((ConfigOptionInt,                  voronoi_relaxation_iterations))
+    ((ConfigOptionBool,                 voronoi_snap_to_wall))
+    ((ConfigOptionBool,                 voronoi_trace_shell))
+    ((ConfigOptionFloat,                voronoi_modifier_blend))
+    ((ConfigOptionFloat,                voronoi_wall_decay))
+    ((ConfigOptionFloat,                voronoi_smoothing_sigma))
+    ((ConfigOptionPercent,              voronoi_hull_threshold))
     ((ConfigOptionPercent,              sparse_infill_smooth_factor))
     ((ConfigOptionFloat,                lateral_lattice_angle_1))
     ((ConfigOptionFloat,                lateral_lattice_angle_2))

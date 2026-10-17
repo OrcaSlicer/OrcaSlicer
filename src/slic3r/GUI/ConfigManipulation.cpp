@@ -840,7 +840,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("infill_combination_max_layer_height", have_combined_infill);
 
     // Infill patterns that support multiline infill.
-    bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
+    bool          have_multiline_infill_pattern = pattern == ipVoronoi || pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
                                                   pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
     // The sparse infill density is the surface density of the adaptive TPMS infill; at 100% the infill is solid.
@@ -854,6 +854,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // gyroid_optimized only applies when the sparse infill pattern is gyroid without adaptive density;
     // hide the whole line otherwise.
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid && !have_tpms_adaptive);
+    toggle_line("voronoi_cloud_method", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_relaxation_iterations", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_snap_to_wall", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_trace_shell", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_wall_decay", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_smoothing_sigma", have_infill && pattern == ipVoronoi);
+    toggle_line("voronoi_hull_threshold", have_infill && pattern == ipVoronoi);
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
