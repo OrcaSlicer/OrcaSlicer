@@ -3,14 +3,21 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <algorithm>
 #include "libslic3r/libslic3r.h"
 #include <vector>
 #include <cstddef>
 #include <string>
+#include <functional>
+#include <memory>
+#include <utility>
 
 using namespace Slic3r;
 
@@ -205,4 +212,123 @@ TEST_CASE("A truncated or malformed paint stream drops only the damaged triangle
     recomputed.reset_used_states();
     REQUIRE_FALSE(recomputed.update_used_states(0));
     REQUIRE(std::none_of(recomputed.used_states.begin(), recomputed.used_states.end(), [](bool used) { return used; }));
+}
+
+// Paint state's total area on a mesh and its area-weighted centroid, measured on the leaf triangles of the deserialized paint.
+static std::pair<double, Vec3d> painted_area_and_centroid(const TriangleMesh &mesh, const TriangleSelector::TriangleSplittingData &data,
+                                                          EnforcerBlockerType state)
+{
+    TriangleSelector selector(mesh);
+    selector.deserialize(data);
+    const indexed_triangle_set facets = selector.get_facets(state);
+    double area = 0.;
+    Vec3d  moment = Vec3d::Zero();
+    for (const stl_triangle_vertex_indices &f : facets.indices) {
+        const Vec3f &a = facets.vertices[f(0)], &b = facets.vertices[f(1)], &c = facets.vertices[f(2)];
+        const double facet_area = 0.5 * double((b - a).cross(c - a).norm());
+        area += facet_area;
+        moment += facet_area * (a + b + c).cast<double>() / 3.;
+    }
+    return {area, area > 0. ? Vec3d(moment / area) : Vec3d::Zero()};
+}
+
+static double painted_area(const TriangleMesh &mesh, const TriangleSelector::TriangleSplittingData &data, EnforcerBlockerType state)
+{
+    return painted_area_and_centroid(mesh, data, state).first;
+}
+
+// Brush strokes of alternating colors over the sphere, deep enough to subdivide the facets.
+static TriangleSelector::TriangleSplittingData brush_paint(const TriangleMesh &mesh, int strokes)
+{
+    TriangleSelector selector(mesh);
+    const int step = std::max(1, int(mesh.its.indices.size()) / strokes);
+    for (int facet = 0, i = 0; facet < int(mesh.its.indices.size()); facet += step, ++i) {
+        const stl_triangle_vertex_indices &f = mesh.its.indices[facet];
+        const Vec3f center = (mesh.its.vertices[f(0)] + mesh.its.vertices[f(1)] + mesh.its.vertices[f(2)]) / 3.f;
+        auto cursor = std::make_unique<TriangleSelector::Sphere>(center, 2.f * center, 1.f, Transform3d::Identity(),
+                                                                 TriangleSelector::ClippingPlane());
+        selector.select_patch(facet, std::move(cursor), EnforcerBlockerType(1 + i % 3), Transform3d::Identity(), true);
+    }
+    return selector.serialize();
+}
+
+TEST_CASE("Remapping paint onto an unchanged mesh copies it exactly", "[TriangleSelector]")
+{
+    const TriangleMesh mesh  = make_sphere(20., 2 * PI / 48);
+    const auto         paint = brush_paint(mesh, 40);
+    REQUIRE(!paint.triangles_to_split.empty());
+
+    SECTION("same coordinates") {
+        REQUIRE(TriangleSelector::remap_painting(mesh.its, paint, mesh.its, Transform3d::Identity(), {}) == paint);
+    }
+    SECTION("target shifted, as after recentering a volume") {
+        const Vec3d  shift(12.345, -6.789, 3.21);
+        TriangleMesh shifted = mesh;
+        shifted.translate(-shift.cast<float>());
+        REQUIRE(TriangleSelector::remap_painting(mesh.its, paint, shifted.its, Geometry::translation_transform(shift), {}) == paint);
+    }
+}
+
+TEST_CASE("Remapping paint onto a mesh with rotated triangle vertices keeps the paint", "[TriangleSelector]")
+{
+    const TriangleMesh mesh  = make_sphere(20., 2 * PI / 48);
+    const auto         paint = brush_paint(mesh, 40);
+
+    TriangleMesh rotated = mesh;
+    for (size_t i = 0; i < rotated.its.indices.size(); ++i) {
+        stl_triangle_vertex_indices &f = rotated.its.indices[i];
+        for (size_t r = 0; r < i % 3; ++r)
+            f = stl_triangle_vertex_indices(f(1), f(2), f(0));
+    }
+
+    const auto remapped = TriangleSelector::remap_painting(mesh.its, paint, rotated.its, Transform3d::Identity(), {});
+    for (int state = 1; state <= 3; ++state) {
+        const auto [expected_area, expected_centroid] = painted_area_and_centroid(mesh, paint, EnforcerBlockerType(state));
+        const auto [area, centroid]                   = painted_area_and_centroid(rotated, remapped, EnforcerBlockerType(state));
+        REQUIRE(expected_area > 0.);
+        // A midpoint split gives every child the same share of the area whichever side is special,
+        // so the area alone would not notice the paint landing on the wrong children. Its centroid does.
+        REQUIRE_THAT(area, Catch::Matchers::WithinRel(expected_area, 1e-5));
+        REQUIRE((centroid - expected_centroid).norm() < 1e-4);
+    }
+}
+
+TEST_CASE("Remapping paint onto a changed triangle still paints it", "[TriangleSelector]")
+{
+    const TriangleMesh mesh = make_sphere(20., 2 * PI / 48);
+    TriangleSelector   selector(mesh);
+    selector.set_facet(0, EnforcerBlockerType::Extruder2);
+    selector.set_facet(1, EnforcerBlockerType::Extruder3);
+    const auto paint = selector.serialize();
+
+    // Replace facet 0 by three facets meeting at its centroid, as a repair re-triangulating it would.
+    indexed_triangle_set its = mesh.its;
+    const stl_triangle_vertex_indices f = its.indices[0];
+    its.vertices.emplace_back((its.vertices[f(0)] + its.vertices[f(1)] + its.vertices[f(2)]) / 3.f);
+    const int c = int(its.vertices.size()) - 1;
+    its.indices[0] = stl_triangle_vertex_indices(f(0), f(1), c);
+    its.indices.emplace_back(f(1), f(2), c);
+    its.indices.emplace_back(f(2), f(0), c);
+    const TriangleMesh changed(its);
+
+    const auto remapped = TriangleSelector::remap_painting(mesh.its, paint, changed.its, Transform3d::Identity(), {});
+    // The changed facet is painted again geometrically, which is approximate. Its unchanged neighbor keeps its paint exactly.
+    REQUIRE_THAT(painted_area(changed, remapped, EnforcerBlockerType::Extruder2),
+                 Catch::Matchers::WithinRel(painted_area(mesh, paint, EnforcerBlockerType::Extruder2), 0.05));
+    REQUIRE_THAT(painted_area(changed, remapped, EnforcerBlockerType::Extruder3),
+                 Catch::Matchers::WithinRel(painted_area(mesh, paint, EnforcerBlockerType::Extruder3), 1e-5));
+}
+
+TEST_CASE("Remapping ignores existing paint whose triangle index is out of range", "[TriangleSelector][Regression]")
+{
+    const TriangleMesh mesh  = make_sphere(20., 2 * PI / 48);
+    const auto         paint = brush_paint(mesh, 40);
+
+    // deserialize() rejects this stream as a whole, so it must not keep any face from being copied either.
+    TriangleSelector::TriangleSplittingData existing;
+    existing.triangles_to_split.emplace_back(paint.triangles_to_split.front().triangle_idx, 0);
+    existing.triangles_to_split.emplace_back(int(mesh.its.indices.size()) + 100, 4);
+    existing.bitstream = pack_nibbles({1, 1});
+
+    REQUIRE(TriangleSelector::remap_painting(mesh.its, paint, mesh.its, Transform3d::Identity(), std::cref(existing)) == paint);
 }

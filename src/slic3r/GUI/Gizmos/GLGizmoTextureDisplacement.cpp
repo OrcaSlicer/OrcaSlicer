@@ -6125,17 +6125,22 @@ void GLGizmoTextureDisplacement::smooth_model()
 
     // No save/restore-painting dance here, unlike subdivide and remesh: smoothing only moves vertices,
     // it does not touch the triangle list, so every paint channel still refers to exactly the triangles
-    // it did before. set_mesh() clears the extra facets, so this saves and puts back the
-    // texture-displacement masks verbatim - no remap needed, and none of them is lost.
-    std::optional<TriangleSelector::SavedPainting>                    saved_painting = mv->save_painting();
+    // it did before. This saves and puts back the standard paint channels and the texture-displacement
+    // masks verbatim - no remap needed, and none of them is lost.
+    const std::array<FacetsAnnotation *, 4> standard_facets = {&mv->supported_facets, &mv->seam_facets,
+                                                               &mv->mmu_segmentation_facets, &mv->fuzzy_skin_facets};
+    std::array<TriangleSelector::TriangleSplittingData, 4>                               saved_standard;
     std::array<TriangleSelector::TriangleSplittingData, TEXTURE_DISPLACEMENT_MAX_LAYERS> saved_texture;
+    for (size_t i = 0; i < saved_standard.size(); ++i)
+        saved_standard[i] = standard_facets[i]->get_data();
     for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
         saved_texture[size_t(i)] = mv->texture_displacement_facet(i).get_data();
 
     mv->set_mesh(TriangleMesh(std::move(smoothed)));
     mv->set_new_unique_id();
     mv->calculate_convex_hull();
-    mv->restore_painting(saved_painting);
+    for (size_t i = 0; i < saved_standard.size(); ++i)
+        standard_facets[i]->set_data(std::move(saved_standard[i]));
     for (int i = 0; i < int(TEXTURE_DISPLACEMENT_MAX_LAYERS); ++i)
         mv->texture_displacement_facet(i).set_data(std::move(saved_texture[size_t(i)]));
 
