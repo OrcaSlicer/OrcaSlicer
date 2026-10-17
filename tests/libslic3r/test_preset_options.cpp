@@ -1,3 +1,4 @@
+#include "libslic3r/Fill/VoronoiModifier.hpp"
 #include <limits>
 // Regression test for the "option in def + UI but missing from preset key list"
 // crash class.
@@ -78,6 +79,9 @@ TEST_CASE("Print presets initialize and retain Voronoi decay and smoothing", "[P
 {
     DynamicPrintConfig config;
     config.apply_only(FullPrintConfig::defaults(), Preset::print_options());
+    REQUIRE_THAT(config.opt_float("voronoi_modifier_blend"), Catch::Matchers::WithinAbs(-1., EPSILON));
+    config.set_deserialize_strict("voronoi_modifier_blend", "4");
+    REQUIRE_THAT(config.opt_float("voronoi_modifier_blend"), Catch::Matchers::WithinAbs(4., EPSILON));
     REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(6., EPSILON));
     REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(8., EPSILON));
     config.set_deserialize_strict("voronoi_wall_decay", "0");
@@ -104,6 +108,34 @@ TEST_CASE("Print presets ignore the retired Voronoi interior centres option", "[
     config.apply_only(FullPrintConfig::defaults(), Preset::print_options());
     config.set_deserialize_strict("voronoi_interior_centres", "1");
     REQUIRE_FALSE(config.has("voronoi_interior_centres"));
+}
+
+TEST_CASE("Fused modifiers keep density controls and preserve inactive overrides", "[Preset][FillVoronoi]")
+{
+    const double blend = GENERATE(-1., 0., 4.);
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({{"sparse_infill_density", "50%"}, {"voronoi_wall_decay", "3"},
+        {"voronoi_smoothing_sigma", "4"}, {"wall_loops", "3"}, {"fill_multiline", "2"}, {"sparse_infill_pattern", "cubic"}});
+    config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(blend));
+    const auto effective = Voronoi::effective_density_modifier_config(config);
+    REQUIRE(Voronoi::fused_density_modifier(effective) == (blend >= 0.));
+    REQUIRE_THAT(effective.opt_float("sparse_infill_density"), Catch::Matchers::WithinAbs(50., EPSILON));
+    REQUIRE_THAT(effective.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(3., EPSILON));
+    REQUIRE_THAT(effective.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(4., EPSILON));
+    for (const std::string key : {"wall_loops", "fill_multiline", "sparse_infill_pattern"}) {
+        REQUIRE(effective.has(key) == (blend < 0.));
+        REQUIRE(config.has(key));
+    }
+    REQUIRE(config.opt_int("wall_loops") == 3);
+    REQUIRE(config.opt_int("fill_multiline") == 2);
+    config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(-1.));
+    const auto restored = Voronoi::effective_density_modifier_config(config);
+    REQUIRE(restored.opt_int("wall_loops") == 3);
+    REQUIRE(restored.opt_int("fill_multiline") == 2);
+    REQUIRE(restored.opt_enum<InfillPattern>("sparse_infill_pattern") == ipCubic);
+    REQUIRE(Voronoi::valid_density_modifier_blend(config));
+    config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(std::numeric_limits<double>::infinity()));
+    REQUIRE_FALSE(Voronoi::valid_density_modifier_blend(config));
 }
 
 TEST_CASE("Removed Voronoi slope settings are ignored when loading older projects", "[PresetOptions]")

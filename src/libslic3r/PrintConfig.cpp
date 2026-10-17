@@ -3747,6 +3747,15 @@ void PrintConfigDef::init_fff_params()
     def = this->add("voronoi_point_distribution", coString);
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("voronoi_modifier_blend", coFloat);
+    def->label = L("Voronoi material density blend width");
+    def->category = L("Strength");
+    def->tooltip = L("For material-density modifiers: -1 keeps Orca's separate infill regions. Zero merges material density into the parent's Voronoi cloud. A positive width blends smoothly inside the modifier, reaching its density at this depth. Only material density, blend width, wall proximity decay and corner smoothing apply while fusion is enabled; other overrides are inactive and are restored when the width returns to -1. The parent's point distribution, multiline and other settings are retained. High material density can require substantial memory; consider Fill Multiline for thicker walls with fewer cells.");
+    def->sidetext = L("mm");
+    def->min = -1.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(-1.));
+
     def = this->add("voronoi_wall_decay", coFloat);
     def->label = L("Voronoi wall proximity decay");
     def->category = L("Strength");

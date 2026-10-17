@@ -8,6 +8,7 @@
 #include <catch2/catch_message.hpp>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Exception.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/ClipperUtils.hpp"

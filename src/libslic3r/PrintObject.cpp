@@ -32,6 +32,7 @@
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/Fill.hpp"
+#include "Fill/VoronoiModifier.hpp"
 #include "Fill/VoronoiInfill.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Fill/FillTpmsAdaptive.hpp"
@@ -817,6 +818,8 @@ void PrintObject::infill()
             if (config.sparse_infill_density > 0 && config.sparse_infill_pattern == ipVoronoi) {
                 has_voronoi = true;
                 double maximum_density = 0.01 * config.sparse_infill_density.value;
+                for (const auto &modifier : m_voronoi_density_modifiers)
+                    if (modifier.region_id == int(object_region)) maximum_density = std::max(maximum_density, modifier.material_density);
                 const double candidate_spacing = Voronoi::PoissonPointCloud().spacing(
                     printing_region(region_id).flow(*this, frInfill, m_config.layer_height.value).spacing() * config.fill_multiline.value,
                     m_config.layer_height.value, std::min(1., maximum_density * Voronoi::WallDistancePointCloud::density_ratio(0., 2.)));
@@ -833,7 +836,7 @@ void PrintObject::infill()
                     angle += align_offset;
                 }
                 voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value, angle,
-                                    0.01 * float(config.sparse_infill_density.value));
+                                    0.01 * float(config.sparse_infill_density.value), voronoi_density_region(printing_region(region_id).print_object_region_id()));
             }
         }
         size_t completed_layers = 0;
@@ -1335,8 +1338,13 @@ TpmsRadialFields PrintObject::prepare_tpms_radial_fields() const
     return fields;
 }
 
+int PrintObject::voronoi_density_region(int region_id) const
+{
+    return std::any_of(m_voronoi_density_modifiers.begin(), m_voronoi_density_modifiers.end(),
+                      [region_id](const auto &m) { return m.region_id == region_id; }) ? region_id : -1;
+}
 
-std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, double angle, double material_density) const
+std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, double angle, double material_density, int density_region) const
 {
     const int percent = is_step_done(posPrepareInfill) ? 35 : 25;
     auto last_report = std::chrono::steady_clock::now();
@@ -1358,13 +1366,14 @@ std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cl
             case Voronoi::WallDistanceStage::SmoothXY: message = L("Smoothing Voronoi wall distances (XY)"); break;
             case Voronoi::WallDistanceStage::SmoothZ: message = L("Smoothing Voronoi wall distances (Z)"); break;
             case Voronoi::WallDistanceStage::MaterialDensity: message = L("Preparing Voronoi material density"); break;
+            case Voronoi::WallDistanceStage::Modifiers: message = L("Blending Voronoi material density modifiers"); break;
             case Voronoi::WallDistanceStage::Complete: message = L("Finalizing Voronoi wall distances"); break;
             default: return;
             }
             m_print->set_status(percent, message + " (" + std::to_string(int(100. * fraction)) + "%)");
             last_report = now;
             last_stage = stage;
-        }, angle, material_density);
+        }, angle, material_density, m_voronoi_density_modifiers, density_region);
 }
 
 void PrintObject::clear_layers()
@@ -1769,6 +1778,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "lateral_lattice_angle_2"
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
+        } else if (opt_key == "voronoi_modifier_blend") {
+            steps.emplace_back(posSlice);
         } else if (opt_key == "sparse_infill_pattern"
                    || opt_key == "voronoi_wall_decay" || opt_key == "voronoi_smoothing_sigma"
                    || opt_key == "tpms_adaptive"
@@ -1790,8 +1801,10 @@ bool PrintObject::invalidate_state_by_config_options(
                    || opt_key == "skin_infill_density"
                    || opt_key == "infill_lock_depth"
                    || opt_key == "skin_infill_depth") {
-            steps.emplace_back(posPrepareInfill);
+            steps.emplace_back(!m_voronoi_density_modifiers.empty() &&
+                (opt_key == "sparse_infill_pattern" || opt_key == "voronoi_wall_decay" || opt_key == "voronoi_smoothing_sigma") ? posSlice : posPrepareInfill);
         } else if (opt_key == "sparse_infill_density") {
+            if (!m_voronoi_density_modifiers.empty()) steps.emplace_back(posSlice);
             // One likely wants to reslice only when switching between zero infill to simulate boolean difference (subtracting volumes),
             // normal infill and 100% (solid) infill.
             const auto *old_density = old_config.option<ConfigOptionPercent>(opt_key);
@@ -4281,8 +4294,12 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     } else {
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
-    apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
-    if (! volume.material_id().empty())
+    const bool fused = volume.is_modifier() && Voronoi::fused_density_modifier(volume.config.get());
+    if (fused)
+        apply_to_print_region_config(config, Voronoi::effective_density_modifier_config(volume.config.get()), feature_overrides, variant_index);
+    else
+        apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
+    if (!fused && !volume.material_id().empty())
         apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.

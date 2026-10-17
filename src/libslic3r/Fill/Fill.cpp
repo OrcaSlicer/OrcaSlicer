@@ -315,6 +315,7 @@ struct SurfaceFillParams
     double voronoi_cloud_angle = 0.;
     double voronoi_wall_decay = 0.;
     double voronoi_smoothing_sigma = 0.;
+    int voronoi_density_region = -1;
 
     // For TPMS: grade the density from the surface to the interior of the object.
     TpmsAdaptiveMode     tpms_adaptive          = TpmsAdaptiveMode::Disabled;
@@ -369,6 +370,7 @@ struct SurfaceFillParams
         RETURN_COMPARE_NON_EQUAL(voronoi_cloud_angle);
         RETURN_COMPARE_NON_EQUAL(voronoi_wall_decay);
         RETURN_COMPARE_NON_EQUAL(voronoi_smoothing_sigma);
+        RETURN_COMPARE_NON_EQUAL(voronoi_density_region);
         RETURN_COMPARE_NON_EQUAL(smooth_factor);
         RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
         RETURN_COMPARE_NON_EQUAL(separated_infills);
@@ -408,6 +410,7 @@ struct SurfaceFillParams
                 this->voronoi_cloud_angle      == rhs.voronoi_cloud_angle      &&
                 this->voronoi_wall_decay       == rhs.voronoi_wall_decay       &&
                 this->voronoi_smoothing_sigma == rhs.voronoi_smoothing_sigma &&
+                this->voronoi_density_region == rhs.voronoi_density_region &&
                 this->smooth_factor           == rhs.smooth_factor           &&
                 this->fill_order              == rhs.fill_order;
 	}
@@ -421,7 +424,7 @@ static void configure_voronoi_cloud(Fill &fill, const SurfaceFillParams &params,
     const PrintObject &object = *layer.object();
     if (params.pattern != ipVoronoi) return;
     auto &voronoi = static_cast<FillVoronoi &>(fill);
-    voronoi.set_point_cloud(object.voronoi_point_cloud(params.voronoi_wall_decay, params.voronoi_smoothing_sigma, params.voronoi_cloud_angle, 0.01 * params.density), cache);
+    voronoi.set_point_cloud(object.voronoi_point_cloud(params.voronoi_wall_decay, params.voronoi_smoothing_sigma, params.voronoi_cloud_angle, 0.01 * params.density, params.voronoi_density_region), cache);
 
     if (layer.lower_layer) {
         // Perimeters are complete before parallel infill generation; lower-layer
@@ -1038,6 +1041,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
+                params.voronoi_density_region = params.pattern == ipVoronoi ? layer.object()->voronoi_density_region(layerm.region().print_object_region_id()) : -1;
 
                 // Orca: Pass through separated_infills only where it can move the pattern.
                 params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&

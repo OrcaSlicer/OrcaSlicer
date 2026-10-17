@@ -1145,6 +1145,70 @@ TEST_CASE("The candidate density bound covers both sparse interiors and dense wa
         REQUIRE(field.maximum_density_ratio() >= sample.density - 1e-12);
 }
 
+TEST_CASE("Fused material density uses an inside-only smoothstep including modifier ceilings", "[FillVoronoi][MaterialDensity]")
+{
+    const ExPolygons model {rectangle(-20., -20., 20., 20.)};
+    const Voronoi::DensityModifier modifier {3, 0.5, 4., {{8., 32., {rectangle(0., -20., 20., 20.)}}}};
+    Voronoi::CubicWallDistance field({{0., 40., &model}}, 0., {}, 0., 0.1, {modifier}, 3);
+    for (double depth : {-2., 0., 1., 2., 3., 4., 8.}) {
+        const double t = std::clamp(depth / 4., 0., 1.);
+        const double expected = 0.1 + 0.4 * t * t * (3. - 2. * t);
+        const auto samples = field.sample_fields({Vec3d(depth, 0., 20.), Vec3d(10., 0., 8. + depth)});
+        for (const auto &sample : samples)
+            REQUIRE_THAT(0.1 * sample.density, Catch::Matchers::WithinRel(expected, 0.06));
+    }
+    REQUIRE(field.maximum_density_ratio() >= 5.);
+    Voronoi::CubicWallDistance other_region({{0., 40., &model}}, 0., {}, 0., 0.1, {modifier}, 7);
+    REQUIRE_THAT(other_region.sample_fields({Vec3d(10., 0., 20.)}).front().density,
+                 Catch::Matchers::WithinRel(1., 0.022));
+}
+
+TEST_CASE("Fused modifiers compose material density in order", "[FillVoronoi][MaterialDensity]")
+{
+    const ExPolygons model {rectangle(-20., -20., 20., 20.)};
+    Voronoi::DensityModifier first {3, 0.5, 0., {{0., 40., {rectangle(0., -20., 20., 20.)}}}};
+    auto second = first;
+    second.material_density = 0.2;
+    Voronoi::CubicWallDistance ordered({{0., 40., &model}}, 0., {}, 0., 0.1, {first, second}, 3);
+    const auto sample = ordered.sample_fields({Vec3d(10., 0., 20.)}).front();
+    REQUIRE_THAT(sample.density * 0.1, Catch::Matchers::WithinRel(0.2, 0.022));
+    first.blend_width = second.blend_width = 4.;
+    Voronoi::CubicWallDistance blended({{0., 40., &model}}, 0., {}, 0., 0.1, {first, second}, 3);
+    REQUIRE_THAT(blended.sample_fields({Vec3d(2., 0., 20.)}).front().density * 0.1,
+                 Catch::Matchers::WithinRel(0.25, 0.04));
+}
+
+TEST_CASE("Modifier blend weights use smoothstep entirely inside the boundary", "[FillVoronoi][MaterialDensity]")
+{
+    REQUIRE_THAT(Voronoi::modifier_blend(-1., 4.), Catch::Matchers::WithinAbs(0., EPSILON));
+    REQUIRE_THAT(Voronoi::modifier_blend(0., 4.), Catch::Matchers::WithinAbs(0., EPSILON));
+    REQUIRE_THAT(Voronoi::modifier_blend(1., 4.), Catch::Matchers::WithinAbs(0.15625, EPSILON));
+    REQUIRE_THAT(Voronoi::modifier_blend(2., 4.), Catch::Matchers::WithinAbs(0.5, EPSILON));
+    REQUIRE_THAT(Voronoi::modifier_blend(3., 4.), Catch::Matchers::WithinAbs(0.84375, EPSILON));
+    REQUIRE_THAT(Voronoi::modifier_blend(4., 4.), Catch::Matchers::WithinAbs(1., EPSILON));
+    REQUIRE_THAT(Voronoi::modifier_blend(8., 4.), Catch::Matchers::WithinAbs(1., EPSILON));
+    REQUIRE_THAT(Voronoi::modifier_blend(0., 0.), Catch::Matchers::WithinAbs(1., EPSILON));
+}
+
+TEST_CASE("Fused modifiers control wall decay and corner smoothing", "[FillVoronoi][MaterialDensity]")
+{
+    const double parent_sigma = GENERATE(0., 8.);
+    const ExPolygons model {rectangle(-20., -20., 20., 20.)};
+    Voronoi::DensityModifier modifier {3, 0.1, 0., {{0., 40., model}}};
+    modifier.decay = 0.;
+    modifier.smoothing_sigma = 0.;
+    Voronoi::CubicWallDistance uniform({{0., 40., &model}}, parent_sigma, {}, 6., 0.1, {modifier}, 3);
+    const auto center = uniform.sample_fields({Vec3d(0., 0., 20.)}).front();
+    REQUIRE_THAT(center.density, Catch::Matchers::WithinRel(1., 0.022));
+    const Vec3d corner(14., 14., 20.);
+    const auto unadjusted = uniform.sample_fields({corner}).front();
+    modifier.smoothing_sigma = 8.;
+    Voronoi::CubicWallDistance smoothed({{0., 40., &model}}, parent_sigma, {}, 6., 0.1, {modifier}, 3);
+    const auto adjusted = smoothed.sample_fields({corner}).front();
+    REQUIRE(adjusted.density > unadjusted.density + 0.1);
+    REQUIRE_THAT(adjusted.distance, Catch::Matchers::WithinAbs(unadjusted.distance, EPSILON));
+}
+
 TEST_CASE("Incremental Voronoi geometry agrees with fresh builds while the slab moves", "[FillVoronoi][Incremental]")
 {
     const auto provider = std::make_shared<Voronoi::PoissonPointCloud>();
@@ -1200,4 +1264,19 @@ TEST_CASE("Copied Voronoi networks own their storage through dimension changes",
         REQUIRE(contours(assigned) == expected);
     }
     REQUIRE(contours(mesh).empty());
+}
+
+TEST_CASE("Candidate density bounds include modifier settings and ignore other regions", "[FillVoronoi][MaterialDensity]")
+{
+    const ExPolygons model {rectangle(-10., -10., 10., 10.)};
+    const double density = GENERATE(0., 0.7, 0.9);
+    const double sigma = GENERATE(0., 8.);
+    Voronoi::DensityModifier modifier {3, density, 0., {{0., 20., model}}};
+    modifier.smoothing_sigma = sigma;
+    const Voronoi::DensityModifier unrelated {7, 1., 0., {{0., 20., model}}};
+    Voronoi::CubicWallDistance field({{0., 20., &model}}, 0., {}, 6., 0.1, {modifier, unrelated}, 3);
+    const double boost = Voronoi::WallDistancePointCloud::density_ratio(0., sigma == 0. ? 0. : 2.);
+    const double maximum = std::max(0.1, std::min(1., density * boost));
+    const double expected = Voronoi::decode_material_density(Voronoi::encode_material_density(maximum)) / 0.1;
+    REQUIRE_THAT(field.maximum_density_ratio(), Catch::Matchers::WithinRel(expected, 1e-12));
 }

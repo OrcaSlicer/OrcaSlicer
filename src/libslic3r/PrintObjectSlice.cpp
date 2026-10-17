@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <memory>
+#include <set>
 #include <math.h>
 #include <cmath>
 #include <iterator>
@@ -31,6 +32,7 @@
 #include "BeltTransform.hpp"
 #include "BeltSliceStrategy.hpp"
 #include "Geometry.hpp"
+#include "Fill/VoronoiModifier.hpp"
 //BBS
 #include "PrintConfig.hpp"
 #include "PrintBase.hpp"
@@ -303,6 +305,19 @@ static std::vector<PrintObjectRegions::LayerRangeRegions>::const_iterator layer_
     return it;
 }
 
+static bool fused_density_modifier(const ModelVolume &volume)
+{
+    return volume.is_modifier() && Voronoi::fused_density_modifier(volume.config.get());
+}
+
+static int density_modifier_parent(const PrintObjectRegions::LayerRangeRegions &range, int index)
+{
+    int parent = range.volume_regions[index].parent;
+    while (parent >= 0 && fused_density_modifier(*range.volume_regions[parent].model_volume))
+        parent = range.volume_regions[parent].parent;
+    return parent;
+}
+
 static std::vector<std::vector<ExPolygons>> slices_to_regions(
     const PrintConfig                                        &print_config,
     const PrintObject                                        &print_object,
@@ -482,9 +497,14 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                             if (region.model_volume->is_modifier()) {
                                 assert(region.parent > -1);
                                 bool next_region_same_modifier = idx_region + 1 < int(temp_slices.size()) && layer_range.volume_regions[idx_region + 1].model_volume == region.model_volume;
-                                RegionSlice &parent_slice = temp_slices[region.parent];
+                                RegionSlice &parent_slice = temp_slices[density_modifier_parent(layer_range, idx_region)];
                                 RegionSlice &this_slice   = temp_slices[idx_region];
                                 ExPolygons   source       = std::move(this_slice.expolygons);
+                                if (fused_density_modifier(*region.model_volume)) {
+                                    this_slice.expolygons.clear();
+                                    if (next_region_same_modifier) temp_slices[idx_region + 1].expolygons = std::move(source);
+                                    continue;
+                                }
                                 if (parent_slice.expolygons.empty()) {
                                     this_slice  .expolygons.clear();
                                 } else {
@@ -1364,6 +1384,37 @@ void PrintObject::slice_volumes()
             print->config(), this->config(), this->trafo_centered(),
             this->model_object()->volumes, m_shared_regions->layer_ranges, slice_zs, throw_on_cancel_callback,
             &m_belt_min_z);
+    }
+
+    m_voronoi_density_modifiers.clear();
+    for (const auto &range : m_shared_regions->layer_ranges) {
+        std::set<std::pair<ObjectID, int>> collected;
+        for (size_t index = 0; index < range.volume_regions.size(); ++index) {
+            const auto &region = range.volume_regions[index];
+            const ModelVolume &volume = *region.model_volume;
+            if (!fused_density_modifier(volume)) continue;
+            if (!Voronoi::valid_density_modifier_blend(volume.config.get()))
+                throw SlicingError(_u8L("Voronoi material density blend width must be finite."));
+            const int parent = density_modifier_parent(range, int(index));
+            if (parent < 0 || !range.volume_regions[parent].region || !region.region)
+                throw SlicingError(_u8L("A fused Voronoi modifier requires a printable parent."));
+            const PrintRegion &parent_region = *range.volume_regions[parent].region;
+            if (!collected.emplace(volume.id(), parent_region.print_object_region_id()).second) continue;
+            if (parent_region.config().sparse_infill_pattern != ipVoronoi || parent_region.config().sparse_infill_density <= 0.)
+                throw SlicingError(_u8L("A fused Voronoi modifier requires a parent with nonzero Voronoi infill."));
+            const double width = volume.config.get().option<ConfigOptionFloat>("voronoi_modifier_blend")->value;
+            Voronoi::DensityModifier modifier {parent_region.print_object_region_id(),
+                0.01 * float(region.region->config().sparse_infill_density.value), width, {}};
+            if (const auto *decay = volume.config.get().option<ConfigOptionFloat>("voronoi_wall_decay"))
+                modifier.decay = decay->value;
+            if (const auto *sigma = volume.config.get().option<ConfigOptionFloat>("voronoi_smoothing_sigma"))
+                modifier.smoothing_sigma = sigma->value;
+            const auto &source = volume_slices_find_by_id(objSliceByVolume, volume.id());
+            for (size_t z = 0; z < slice_zs.size(); ++z)
+                if (slice_zs[z] >= range.layer_height_range.first && slice_zs[z] < range.layer_height_range.second)
+                    modifier.slices.push_back({m_layers[z]->bottom_z(), m_layers[z]->print_z, source.slices[z]});
+            m_voronoi_density_modifiers.push_back(std::move(modifier));
+        }
     }
 
     //BBS: "model_part" volumes are grouded according to their connections

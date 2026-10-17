@@ -102,3 +102,35 @@ Floor bands cover the wider footprint and are filled once at native solid row
 spacing; they bypass wall offsets and connectors to retain their sweep order.
 Nominal point spacing grows with bead count to approximately retain the selected
 density.
+
+## Fused density modifiers
+
+Voronoi material density blend width appears directly below sparse infill
+density when editing modifiers whose parent uses Voronoi, regardless of their
+local pattern overrides. The -1 mm default preserves Orca's
+separate regions. Zero merges density at the grid resolution; a positive width
+blends entirely inside the modifier using
+`t*t*(3-2*t)`, where `t` is inward distance divided by width, clamped to [0,1].
+The modifier reaches its target density at that depth. The grid resolution
+and distance quantisation limit boundary accuracy. Distance includes the
+modifier's sides, floor and ceiling, using its sliced geometry.
+
+Enabled modifiers contribute their sparse-infill material density in Orca's
+modifier order. Density, blend width, wall proximity decay and corner smoothing
+remain editable. A modifier inherits decay and smoothing unless it overrides
+them; its target density uses the physical model's wall distances. Different
+smoothing widths require additional filtering during preparation. Enabled
+modifiers do not split the parent into separate print regions. Other controls
+are disabled and display inherited values. Their stored overrides are inactive
+until blend width returns to -1, when ordinary modifier behaviour resumes.
+Overlapping modifiers blend successively. Ordinary modifiers still clip regions
+normally.
+
+One constellation follows the combined field. Candidate intensity is bounded by
+the parent and modifier settings, including their maximum corner boost.
+Density is a statistical target; removing control points does not itself clip
+walls out of a region.
+A conservative large-cloud warning considers object bounds and the densest
+modifier setting. Increasing multiline can reduce
+point count at the cost of changing cell size and wall thickness; settings are
+never changed automatically.

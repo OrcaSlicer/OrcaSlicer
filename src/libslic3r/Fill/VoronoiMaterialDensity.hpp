@@ -22,6 +22,12 @@ inline double decode_material_density(uint8_t code)
     return code == 0 ? 0. : std::exp2((double(code) - 253.) / 16.);
 }
 
-
+inline double modifier_blend(double inside_distance, double width)
+{
+    if (inside_distance < 0.) return 0.;
+    if (width == 0.) return 1.;
+    const double t = std::clamp(inside_distance / width, 0., 1.);
+    return t * t * (3. - 2. * t);
+}
 
 } // namespace Slic3r::Voronoi

@@ -102,7 +102,7 @@ struct CubicWallDistance::Table {
     double maximum_ratio;
     std::array<double, 254> decoded_material;
     explicit Table(std::vector<WallSlice> slices, double smoothing_sigma, const WallDistanceProgress &progress,
-                   double decay, double material_density)
+                   double decay, double material_density, const std::vector<DensityModifier> &modifiers, int region_id)
         : reference_density(material_density)
     {
         if (!std::isfinite(material_density) || material_density <= 0. || material_density > 1. ||
@@ -148,6 +148,58 @@ struct CubicWallDistance::Table {
             const double density = std::min(1., material_density * WallDistancePointCloud::density_ratio(raw, mean, decay));
             material[i] = encode_material_density(density);
         }
+        size_t modifier_index = 0;
+        for (const DensityModifier &modifier : modifiers) {
+            if (modifier.region_id != region_id) continue;
+            if (!std::isfinite(modifier.material_density) || modifier.material_density < 0. || modifier.material_density > 1. ||
+                !std::isfinite(modifier.blend_width) || modifier.blend_width < 0.)
+                throw std::invalid_argument("Invalid Voronoi density modifier");
+            const double target_decay = modifier.decay.value_or(decay);
+            const double target_sigma = modifier.smoothing_sigma.value_or(smoothing_sigma);
+            if (!std::isfinite(target_decay) || target_decay < 0. || !std::isfinite(target_sigma) || target_sigma < 0.)
+                throw std::invalid_argument("Invalid Voronoi modifier density settings");
+            maximum_ratio = std::max(maximum_ratio, density_bound(modifier.material_density, target_sigma));
+            std::vector<WallSlice> mask_slices;
+            for (const auto &slice : modifier.slices)
+                mask_slices.push_back({slice.bottom_z, slice.top_z, &slice.contours});
+            // Use Orca's sliced modifier outline, including its top and bottom.
+            SlicedDistanceField mask(std::move(mask_slices), [&](auto, double) {
+                // Forward cancellation even during the modifier's distance construction.
+                report(progress, WallDistanceStage::Modifiers, double(modifier_index) / modifiers.size());
+            });
+            std::vector<int16_t> modifier_values;
+            const bool own_smoothing = target_sigma != smoothing_sigma;
+            if (own_smoothing && target_sigma != 0.) {
+                modifier_values.resize(count);
+                for (size_t i = 0; i < count; ++i) {
+                    if (i % 65536 == 0) report(progress, WallDistanceStage::Modifiers, double(modifier_index) / modifiers.size());
+                    modifier_values[i] = int16_t(std::lround(original.node_value(i) * distance_units));
+                }
+                smooth_distances(modifier_values, size, spacing, target_sigma, [&](auto, double) {
+                    report(progress, WallDistanceStage::Modifiers, double(modifier_index) / modifiers.size());
+                });
+            }
+            const auto &target_values = own_smoothing ? modifier_values : values;
+            for (size_t first = 0; first < count; first += 4096) {
+                report(progress, WallDistanceStage::Modifiers, (modifier_index + double(first) / count) / modifiers.size());
+                std::vector<Vec3d> points;
+                const size_t last = std::min(count, first + 4096);
+                points.reserve(last - first);
+                for (size_t i = first; i < last; ++i)
+                    points.push_back(origin + spacing * Vec3d(double(i % size[0]), double((i / size[0]) % size[1]), double(i / (size[0] * size[1]))));
+                const auto depths = mask.sample(points);
+                for (size_t j = 0; j < points.size(); ++j) {
+                    const double blend = modifier_blend(-depths[j], modifier.blend_width);
+                    if (blend == 0.) continue;
+                    const size_t i = first + j;
+                    const double raw = original.node_value(i);
+                    const double mean = target_values.empty() ? raw : double(target_values[i]) / distance_units;
+                    const double density = std::min(1., modifier.material_density * WallDistancePointCloud::density_ratio(raw, mean, target_decay));
+                    material[i] = encode_material_density((1. - blend) * decoded_material[material[i]] + blend * density);
+                }
+            }
+            ++modifier_index;
+        }
         size_t inside_nodes = 0;
         double inside_min = 1., inside_max = 0.;
         for (size_t i = 0; i < count; ++i)
@@ -165,8 +217,9 @@ struct CubicWallDistance::Table {
     }
 };
 
-CubicWallDistance::CubicWallDistance(std::vector<WallSlice> slices, double smoothing_sigma, const WallDistanceProgress &progress, double decay, double material_density)
-    : m_table(std::make_shared<Table>(std::move(slices), smoothing_sigma, progress, decay, material_density)) {}
+CubicWallDistance::CubicWallDistance(std::vector<WallSlice> slices, double smoothing_sigma, const WallDistanceProgress &progress, double decay, double material_density,
+                                     const std::vector<DensityModifier> &modifiers, int region_id)
+    : m_table(std::make_shared<Table>(std::move(slices), smoothing_sigma, progress, decay, material_density, modifiers, region_id)) {}
 
 double CubicWallDistance::grid_spacing() const { return m_table->original.grid_spacing(); }
 double CubicWallDistance::maximum_density_ratio() const { return m_table->maximum_ratio; }
@@ -193,7 +246,7 @@ std::vector<double> CubicWallDistance::sample(const std::vector<Vec3d> &points) 
 
 std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std::function<std::vector<WallSlice>()> &load_slices,
                                                                    double decay, double sigma, const WallDistanceProgress &progress,
-                                                                   double angle, double material_density)
+                                                                   double angle, double material_density, const std::vector<DensityModifier> &modifiers, int region_id)
 {
     if (!std::isfinite(material_density) || material_density <= 0. || material_density > 1. ||
         !std::isfinite(decay) || decay < 0. || !std::isfinite(sigma) || sigma < 0.)
@@ -215,20 +268,21 @@ std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std:
     };
     std::shared_ptr<const CubicWallDistance> table;
     WallDistanceSamples sample;
-    if (decay != 0. || sigma != 0.) {
-        auto &cached = m_tables[{decay, sigma, material_density}];
-        if (!cached) cached = std::make_shared<CubicWallDistance>(load_slices(), sigma, progress, decay, material_density);
+    const bool fused = std::any_of(modifiers.begin(), modifiers.end(), [region_id](const auto &m) { return m.region_id == region_id; });
+    if (decay != 0. || sigma != 0. || fused) {
+        auto &cached = m_tables[{decay, sigma, material_density, region_id}];
+        if (!cached) cached = std::make_shared<CubicWallDistance>(load_slices(), sigma, progress, decay, material_density, modifiers, region_id);
         table = cached;
         sample = [table](const auto &points) { return table->sample_fields(points); };
     }
-    auto &provider = m_providers[{decay, sigma, material_density, angle}];
+    auto &provider = m_providers[{decay, sigma, material_density, region_id, angle}];
     if (!provider) {
         Vec2d center = Vec2d::Zero();
         if (angle != 0.) {
             const BoundingBoxf3 box = bounds();
             if (box.defined) center = box.center().head<2>();
         }
-        const bool variable = decay != 0. || sigma != 0.;
+        const bool variable = decay != 0. || sigma != 0. || fused;
         if (variable)
             provider = std::make_shared<WallDistancePointCloud>(sample, table->maximum_density_ratio(), angle, center);
         else

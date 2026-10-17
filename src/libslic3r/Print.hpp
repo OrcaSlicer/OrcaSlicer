@@ -454,7 +454,8 @@ public:
     size_t 			total_layer_count() const { return this->layer_count() + this->support_layer_count(); }
     size_t 			layer_count() const { return m_layers.size(); }
     void 			clear_layers();
-    std::shared_ptr<const Voronoi::PointCloudProvider> voronoi_point_cloud(double decay, double sigma, double angle = 0., double material_density = 0.25) const;
+    int voronoi_density_region(int region_id) const;
+    std::shared_ptr<const Voronoi::PointCloudProvider> voronoi_point_cloud(double decay, double sigma, double angle = 0., double material_density = 0.25, int density_region = -1) const;
     const Layer* 	get_layer(int idx) const { return m_layers[idx]; }
     Layer* 			get_layer(int idx) 		 { return m_layers[idx]; }
     // Get a layer exactly at print_z.
@@ -577,6 +578,7 @@ public:
 
 private:
     mutable Voronoi::WallDistanceCloudCache m_voronoi_cloud_cache;
+    std::vector<Voronoi::DensityModifier> m_voronoi_density_modifiers;
     void make_perimeters();
     void prepare_infill();
     void infill();
