@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <fstream>
 #include <initializer_list>
+#include <optional>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 #include <sstream>
@@ -556,4 +557,60 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
     const Vec3d light = center_of(masses[0]->total());
     const Vec3d dense = center_of(masses[1]->total());
     CHECK_THAT((plate - light).dot(dense - light) / (dense - light).squaredNorm(), Catch::Matchers::WithinAbs(0.75, 0.01));
+}
+
+TEST_CASE("Cumulative filament usage per layer grows layer by layer and ends at each filament's total", "[GCodeProcessor]")
+{
+    // Two cubes, one per filament, so the second filament's series has to line up with the first's.
+    DynamicPrintConfig config = Test::multifilament_config(2, { { "skirt_loops", 0 }, { "brim_type", "no_brim" } });
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 1 } }, { { "extruder", 2 } } };
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20), Test::cube(20) }, print, model, config, &overrides);
+    GCodeProcessorResult result;
+    Test::gcode(print, &result);
+
+    const PrintEstimatedStatistics &stats = result.print_statistics;
+    REQUIRE(stats.total_volumes_per_extruder.size() == 2);
+    REQUIRE(stats.layer_volumes_per_extruder.size() == 2);
+
+    // Every filament has an entry for every layer, however late it was first used.
+    const size_t entries = stats.layer_volumes_per_extruder.begin()->second.size();
+    for (const auto &[filament_id, total] : stats.total_volumes_per_extruder) {
+        DYNAMIC_SECTION("filament " << filament_id)
+        {
+            const auto series = stats.layer_volumes_per_extruder.find(filament_id);
+            REQUIRE(series != stats.layer_volumes_per_extruder.end());
+            const std::vector<double> &layers = series->second;
+            // Entry 0 is what was extruded before the first layer, so there is one more than there are layers.
+            REQUIRE(layers.size() > 2);
+            CHECK(std::is_sorted(layers.begin(), layers.end()));
+            CHECK_THAT(layers.back(), Catch::Matchers::WithinRel(total, 1e-9));
+            CHECK(layers.front() < layers.back());
+            CHECK(layers.size() == entries);
+        }
+    }
+
+    // A range of layers is the difference of two cumulative entries, so splitting the plate at any
+    // layer gives two parts that add up to the filament's total.
+    for (const auto &[filament_id, total] : stats.total_volumes_per_extruder) {
+        const size_t last = stats.layer_volumes_per_extruder.at(filament_id).size() - 1;
+        const std::optional<double> all = stats.layers_volume(filament_id, 0, last);
+        REQUIRE(all.has_value());
+        CHECK_THAT(*all, Catch::Matchers::WithinRel(total, 1e-9));
+
+        const size_t middle = last / 2;
+        const std::optional<double> lower = stats.layers_volume(filament_id, 0, middle);
+        const std::optional<double> upper = stats.layers_volume(filament_id, middle + 1, last);
+        REQUIRE(lower.has_value());
+        REQUIRE(upper.has_value());
+        CHECK_THAT(*lower + *upper, Catch::Matchers::WithinRel(total, 1e-9));
+        CHECK(*lower >= 0.);
+        CHECK(*upper >= 0.);
+
+        // No series covers a range past the last layer or one that runs backwards.
+        CHECK_FALSE(stats.layers_volume(filament_id, 0, last + 1).has_value());
+        CHECK_FALSE(stats.layers_volume(filament_id, middle + 1, middle).has_value());
+    }
+    CHECK_FALSE(stats.layers_volume(99, 0, 0).has_value());
 }

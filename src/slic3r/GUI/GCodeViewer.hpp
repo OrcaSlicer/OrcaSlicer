@@ -29,6 +29,7 @@
 #include <float.h>
 #include <set>
 #include "slic3r/GUI/MeshUtils.hpp"
+#include <optional>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -208,6 +209,12 @@ private:
     bool m_last_belt_show_designed{ true };
     // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
     std::vector<double> m_belt_layer_zs;
+    // The G-code layer id (GCodeProcessorResult::MoveVertex::layer_id) of each viewer layer, in the
+    // viewer's layer numbering; empty when the two numberings could not be matched.
+    std::vector<unsigned int> m_layer_gcode_ids;
+    // Volume of a filament extruded within the viewer layers currently shown (support, wipe tower
+    // and flush included), from the cumulative per-layer series; nullopt when there is none.
+    std::optional<double> visible_layers_volume(size_t extruder_id) const;
     //BBS: save m_gcode_result as well
     const GCodeProcessorResult* m_gcode_result;
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
@@ -219,6 +226,8 @@ private:
     //BBS: extruder dispensing filament
     std::vector<ExtruderFilament> m_left_extruder_filament;
     std::vector<ExtruderFilament> m_right_extruder_filament;
+    // filament_type of each filament in the printed preset, for the legend labels
+    std::vector<std::string> m_filament_types;
     size_t m_nozzle_nums;
 
     // bounding box of toolpaths
