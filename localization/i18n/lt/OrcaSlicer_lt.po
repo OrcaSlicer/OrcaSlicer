@@ -31031,7 +31031,7 @@ msgstr ""
 msgid "Medium violet red"
 msgstr ""
 
-msgid "PaleV violet red"
+msgid "Pale violet red"
 msgstr ""
 
 msgid "Deep pink"
@@ -31235,9 +31235,6 @@ msgstr ""
 msgid "Seashell white"
 msgstr ""
 
-msgid "Pebble gray"
-msgstr ""
-
 msgid "Storm cloud"
 msgstr ""
 
@@ -31280,7 +31277,7 @@ msgstr ""
 msgid "Zinc yellow"
 msgstr ""
 
-msgid "Grey beige"
+msgid "Gray beige"
 msgstr ""
 
 msgid "Olive yellow"
@@ -31466,7 +31463,7 @@ msgstr ""
 msgid "Mahogany"
 msgstr ""
 
-msgid "Grey purple"
+msgid "Gray purple"
 msgstr ""
 
 msgid "Signal violet"
@@ -31475,7 +31472,7 @@ msgstr ""
 msgid "Fir green"
 msgstr ""
 
-msgid "Sabine grey"
+msgid "Sabine gray"
 msgstr ""
 
 msgid "Pearl violet"
@@ -31502,7 +31499,7 @@ msgstr ""
 msgid "Brilliant blue"
 msgstr ""
 
-msgid "Grey blue"
+msgid "Gray blue"
 msgstr ""
 
 msgid "Azure blue"
@@ -31565,7 +31562,7 @@ msgstr ""
 msgid "Moss green"
 msgstr ""
 
-msgid "Grey olive"
+msgid "Gray olive"
 msgstr ""
 
 msgid "Pine green"
@@ -31631,112 +31628,109 @@ msgstr ""
 msgid "Luminous green"
 msgstr ""
 
-msgid "Squirrel grey"
+msgid "Squirrel gray"
 msgstr ""
 
-msgid "Silver grey"
+msgid "Silver gray"
 msgstr ""
 
 msgid "Olivestone"
 msgstr ""
 
-msgid "Moss grey"
+msgid "Moss gray"
 msgstr ""
 
-msgid "Signal grey"
+msgid "Signal gray"
 msgstr ""
 
-msgid "Mouse grey"
+msgid "Mouse gray"
 msgstr ""
 
-msgid "Beige grey"
+msgid "Beige gray"
 msgstr ""
 
-msgid "Khaki grey"
+msgid "Khaki gray"
 msgstr ""
 
-msgid "Green grey"
+msgid "Green gray"
 msgstr ""
 
-msgid "Tarpaulin grey"
+msgid "Tarpaulin gray"
 msgstr ""
 
-msgid "Iron grey"
+msgid "Iron gray"
 msgstr ""
 
-msgid "Basalt grey"
+msgid "Basalt gray"
 msgstr ""
 
-msgid "Brown grey"
+msgid "Brown gray"
 msgstr ""
 
-msgid "Slate grey"
+msgid "Anthracite gray"
 msgstr ""
 
-msgid "Anthracite grey"
+msgid "Light gray"
 msgstr ""
 
-msgid "Light grey"
+msgid "Umber gray"
 msgstr ""
 
-msgid "Umber grey"
+msgid "Concrete gray"
 msgstr ""
 
-msgid "Concrete grey"
+msgid "Graphite gray"
 msgstr ""
 
-msgid "Graphite grey"
+msgid "Granite gray"
 msgstr ""
 
-msgid "Granite grey"
+msgid "Stone gray"
 msgstr ""
 
-msgid "Stone grey"
+msgid "Pebble gray"
 msgstr ""
 
-msgid "Pebble grey"
+msgid "Cement gray"
 msgstr ""
 
-msgid "Cement grey"
+msgid "Yellow gray"
 msgstr ""
 
-msgid "Yellow grey"
+msgid "Platinum gray"
 msgstr ""
 
-msgid "Platinum grey"
+msgid "Dusty gray"
 msgstr ""
 
-msgid "Dusty grey"
+msgid "Agate gray"
 msgstr ""
 
-msgid "Agate grey"
+msgid "Quartz gray"
 msgstr ""
 
-msgid "Quartz grey"
+msgid "Window gray"
 msgstr ""
 
-msgid "Window grey"
+msgid "Traffic gray A"
 msgstr ""
 
-msgid "Traffic grey A"
+msgid "Traffic gray B"
 msgstr ""
 
-msgid "Traffic grey B"
+msgid "Silk gray"
 msgstr ""
 
-msgid "Silk grey"
+msgid "Telegray 1"
 msgstr ""
 
-msgid "Telegrey 1"
+msgid "Telegray 2"
 msgstr ""
 
-msgid "Telegrey 2"
+msgid "Telegray 4"
 msgstr ""
 
-msgid "Telegrey 4"
-msgstr ""
-
-msgid "Pearl mouse grey"
+msgid "Pearl mouse gray"
 msgstr ""
 
 msgid "Green brown"
@@ -31772,7 +31766,7 @@ msgstr ""
 msgid "Mahogany brown"
 msgstr ""
 
-msgid "Grey brown"
+msgid "Gray brown"
 msgstr ""
 
 msgid "Pearl copper"
@@ -31793,7 +31787,7 @@ msgstr ""
 msgid "Cream"
 msgstr ""
 
-msgid "Grey white"
+msgid "Gray white"
 msgstr ""
 
 msgid "Signal white"
@@ -31808,7 +31802,7 @@ msgstr ""
 msgid "White aluminium"
 msgstr ""
 
-msgid "Grey aluminium"
+msgid "Gray aluminium"
 msgstr ""
 
 msgid "Pure white"
@@ -31826,7 +31820,7 @@ msgstr ""
 msgid "Papyrus white"
 msgstr ""
 
-msgid "Pearl light grey"
+msgid "Pearl light gray"
 msgstr ""
 
 msgid "Metal: Silver"
