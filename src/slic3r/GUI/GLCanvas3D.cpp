@@ -5632,14 +5632,10 @@ void GLCanvas3D::do_move(const std::string& snapshot_type, bool force_volume_mov
     // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
         ModelObject* mo = m_model->objects[i.first];
-            
-        if (!mo->auto_drop) {
-            continue;
-        }
 
         const double shift_z = mo->get_instance_min_z(i.second);
         //BBS: don't call translate if the z is zero
-        if ((current_printer_technology() == ptSLA || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
+        if (mo->auto_drop && (current_printer_technology() == ptSLA || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
             const Vec3d shift(0.0, 0.0, -shift_z);
             m_selection.translate(i.first, i.second, shift);
             mo->translate_instance(i.second, shift);
@@ -5763,14 +5759,10 @@ void GLCanvas3D::do_rotate(const std::string& snapshot_type)
         for (const std::pair<int, int> &i : done) {
             ModelObject *mo = m_model->objects[i.first];
 
-            if (!mo->auto_drop) {
-                continue;
-            }
-
             // BBS: don't call translate if the z is zero
             const double shift_z = mo->get_instance_min_z(i.second);
             // leave sinking instances as sinking
-            if ((min_zs.find({i.first, i.second})->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
+            if (mo->auto_drop && (min_zs.find({i.first, i.second})->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
                 const Vec3d shift(0.0, 0.0, -shift_z);
                 m_selection.translate(i.first, i.second, shift);
                 mo->translate_instance(i.second, shift);
@@ -5865,14 +5857,10 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
     for (const std::pair<int, int>& i : done) {
         ModelObject* mo = m_model->objects[i.first];
 
-        if (!mo->auto_drop) {
-            continue;
-        }
-
         //BBS: don't call translate if the z is zero
         double shift_z = mo->get_instance_min_z(i.second);
         // leave sinking instances as sinking
-        if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
+        if (mo->auto_drop && (min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
             Vec3d shift(0.0, 0.0, -shift_z);
             m_selection.translate(i.first, i.second, shift);
             mo->translate_instance(i.second, shift);
@@ -5985,14 +5973,10 @@ void GLCanvas3D::do_mirror(const std::string& snapshot_type)
     for (const std::pair<int, int>& i : done) {
         ModelObject* mo = m_model->objects[i.first];
 
-        if (!mo->auto_drop) {
-            continue;
-        }
-
         //BBS: don't call translate if the z is zero
         double shift_z = mo->get_instance_min_z(i.second);
         // leave sinking instances as sinking
-        if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD)&&(shift_z != 0.0f)) {
+        if (mo->auto_drop && (min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
             Vec3d shift(0.0, 0.0, -shift_z);
             m_selection.translate(i.first, i.second, shift);
             mo->translate_instance(i.second, shift);

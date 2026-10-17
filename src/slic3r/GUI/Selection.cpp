@@ -579,29 +579,12 @@ void Selection::drop()
 
     wxGetApp().plater()->take_snapshot(L("Move object"));
 
-    this->move_to_center(Vec3d(0, 0, -min_z));
-
-    for (unsigned int i : m_list) {
-        GLVolume&    volume = *(*m_volumes)[i];
-        // Skip the wipe tower: its synthetic id (>= 1000) is not an index into m_model->objects.
-        if (volume.object_idx() >= 1000)
-            continue;
-        ModelObject* model_object = m_model->objects[volume.object_idx()];
-
-        if (model_object != nullptr) {
-            if (m_mode == Volume) {
-                ModelVolume* cur_mv = model_object->volumes[volume.volume_idx()];
-                cur_mv->set_transformation(volume.get_volume_transformation());
-            } else if (m_mode == Instance) {
-                model_object->instances[volume.instance_idx()]->set_transformation(volume.get_instance_transformation());
-            }
-
-            model_object->invalidate_bounding_box();
-            this->notify_instance_update(volume.object_idx(), volume.instance_idx());
-        }
-    }
-
-    wxGetApp().plater()->get_view3D_canvas3D()->post_event(SimpleEvent(EVT_GLCANVAS_INSTANCE_MOVED));
+    // do_move() writes every volume back to the model and refreshes the view.
+    setup_cache();
+    TransformationType transformation_type;
+    transformation_type.set_relative();
+    translate(Vec3d(0, 0, -min_z), transformation_type);
+    wxGetApp().plater()->get_view3D_canvas3D()->do_move("");
 }
 
 void Selection::center_plate(const int plate_idx) {
