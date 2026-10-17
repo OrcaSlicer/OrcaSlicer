@@ -228,6 +228,7 @@
 #include "Jobs/PlaterWorker.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "BackgroundSlicingProcess.hpp"
+#include "PostProcessor.hpp"
 #include "SelectMachine.hpp"
 #include "SendMultiMachinePage.hpp"
 #include "SendToPrinter.hpp"
@@ -20428,6 +20429,55 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     PlateDataPtrs plate_data_list;
     p->partplate_list.store_to_3mf_structure(plate_data_list, (strategy & SaveStrategy::WithGcode || strategy & SaveStrategy::WithSliceInfo), export_plate_idx,
                                              strategy & SaveStrategy::WithStatistics);
+
+    // Orca: post-processing scripts must also apply to the G-code packed into a .gcode.3mf
+    // (plate export and "send 3mf" to a print host). BBL printers are post-processed in place
+    // right after slicing (BackgroundSlicingProcess::process_fff()); for all other printers the
+    // scripts only ran on plain G-code export / upload, so the .gcode.3mf carried the raw G-code.
+    // The scripts run on a COPY of the temp G-code: the original stays memory-mapped by the
+    // G-code viewer and must not be modified. The copies are removed when export_3mf() returns.
+    struct PostProcessedTmpFiles {
+        std::vector<std::string> files;
+        ~PostProcessedTmpFiles() {
+            for (const std::string& f : files) {
+                boost::system::error_code ec;
+                boost::filesystem::remove(f, ec);
+            }
+        }
+    } pp_tmp_files;
+
+    // Mirror the writer's condition (m_save_gcode && !m_skip_static in store_bbs_3mf): backups use
+    // WithGcode | SkipStatic and never pack the G-code, so don't run user scripts for them.
+    if ((strategy & SaveStrategy::WithGcode) && !(strategy & SaveStrategy::SkipStatic) &&
+        p->printer_technology == ptFFF && !wxGetApp().preset_bundle->is_bbl_vendor()) {
+        try {
+            for (PlateData* pd : plate_data_list) {
+                if (pd == nullptr || pd->gcode_file.empty())
+                    continue;
+                PartPlate* plate = p->partplate_list.get_plate(pd->plate_index);
+                if (plate == nullptr)
+                    continue;
+                PrintBase* print = nullptr;
+                plate->get_print(&print, nullptr, nullptr);
+                Print* fff_print = dynamic_cast<Print*>(print);
+                if (fff_print == nullptr)
+                    continue;
+
+                std::string src_path    = pd->gcode_file; // in/out: becomes the post-processed copy if a script ran
+                std::string output_name = path_u8;        // scripts see the real target; a rename is ignored for 3mf
+                if (run_post_process_scripts(src_path, true, "File", output_name, fff_print->full_print_config())) {
+                    pp_tmp_files.files.push_back(src_path);
+                    pd->gcode_file = src_path;
+                }
+            }
+        } catch (const std::exception& ex) {
+            release_PlateData_list(plate_data_list);
+            // export_3mf() may run off the UI thread (print/send jobs), so report the error asynchronously.
+            const wxString msg = from_u8(ex.what());
+            wxTheApp->CallAfter([this, msg]() { show_error(this, msg, false); });
+            return -1;
+        }
+    }
 
     // BBS: backup
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
