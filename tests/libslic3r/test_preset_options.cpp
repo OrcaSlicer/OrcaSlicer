@@ -72,3 +72,10 @@ TEST_CASE("Every PrintObjectConfig field is registered in a preset key list", "[
     check_keys_are_in_a_preset(PrintObjectConfig::defaults().keys(), "PrintObjectConfig");
 }
 // clang-format on
+
+TEST_CASE("Removed Voronoi slope settings are ignored when loading older projects", "[PresetOptions]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict("voronoi_vertical_repulsion", "0.5");
+    REQUIRE_FALSE(config.has("voronoi_vertical_repulsion"));
+}

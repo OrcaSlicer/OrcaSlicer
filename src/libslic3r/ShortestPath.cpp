@@ -1039,6 +1039,13 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy2(SegmentEndPointFunc 
 	return chain_segments_greedy_constrained_reversals2_<PointType, SegmentEndPointFunc, false, decltype(could_reverse_func)>(end_point_func, could_reverse_func, num_segments, start_near);
 }
 
+std::vector<std::pair<size_t, bool>> chain_path_endpoints(const std::vector<PathEndpoints> &paths, const Point *start_near)
+{
+    const auto endpoint = [&paths](size_t i, bool first) { return first ? paths[i].first : paths[i].last; };
+    const auto reversible = [&paths](size_t i) { return paths[i].reversible; };
+    return chain_segments_greedy_constrained_reversals<Point>(endpoint, reversible, paths.size(), start_near);
+}
+
 template<typename EntityPtr>
 static std::vector<std::pair<size_t, bool>> chain_extrusion_entities_impl(const std::vector<EntityPtr> &entities, const Point *start_near)
 {
