@@ -156,7 +156,7 @@ public:
   // change the Print: the caller issues the warning where a print step is active (G-code export).
   const std::string &precise_seam_warning() const { return m_precise_seam_warning; }
 
-  void place_seam(const Layer *layer, ExtrusionLoop &loop, const Point &last_pos, float& overhang) const;
+  void place_seam(const Layer *layer, ExtrusionLoop &loop, const Point &last_pos, float& overhang, bool reverse) const;
 private:
   std::string m_precise_seam_warning;
 
