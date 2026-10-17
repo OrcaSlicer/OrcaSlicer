@@ -118,6 +118,62 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		out.emplace_back(0, could_reverse_func(0) && start_near != nullptr && 
             (end_point_func(0, false) - *start_near).template cast<double>().squaredNorm() < (end_point_func(0, true) - *start_near).template cast<double>().squaredNorm());
 	} 
+	else if (num_segments <= 4)
+	{
+		// Exhaustive search over all permutations and reversal combinations.
+
+		// create first permutation (identity) of segment indices
+		std::vector<size_t> perm(num_segments);
+		for (size_t i = 0; i < num_segments; ++i)
+			perm[i] = i;
+		std::sort(perm.begin(), perm.end());
+
+		auto could_reverse = [&](size_t k) { return could_reverse_func(perm[k]); };
+
+		double best_cost = std::numeric_limits<double>::max();
+
+		do {
+
+			// check all reversal combinations that are allowed
+			const size_t num_masks = size_t(1) << num_segments;
+			for (size_t mask = 0; mask < num_masks; ++mask) {
+
+				bool is_allowed = true;
+				for (size_t k = 0; k < num_segments; ++k) {
+					if ((mask >> k) & 1) {
+						if (!could_reverse(k)) {
+							is_allowed = false;
+							break;
+						}
+					}
+				}
+				if (!is_allowed)
+					continue;
+
+				auto entry_pt = [&](size_t k) {
+					bool rev = (mask >> k) & 1;
+					return end_point_func(perm[k], !rev).template cast<double>().eval();
+				};
+				auto exit_pt = [&](size_t k) {
+					bool rev = (mask >> k) & 1;
+					return end_point_func(perm[k], rev).template cast<double>().eval();
+				};
+
+				double cost = 0.;
+				if (start_near != nullptr)
+					cost += (entry_pt(0) - start_near->template cast<double>()).norm();
+				for (size_t k = 0; k + 1 < num_segments; ++k)
+					cost += (entry_pt(k + 1) - exit_pt(k)).norm();
+
+				if (cost < best_cost) {
+					best_cost = cost;
+					out.clear();
+					for (size_t k = 0; k < num_segments; ++k)
+						out.emplace_back(perm[k], bool((mask >> k) & 1));
+				}
+			}
+		} while (std::next_permutation(perm.begin(), perm.end()));
+	}
 	else
 	{
 		// End points of segments for the KD tree closest point search.
