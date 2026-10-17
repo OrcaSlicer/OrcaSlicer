@@ -26,6 +26,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <memory>
 #include "libslic3r/PrintConfig.hpp"
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -2099,9 +2100,15 @@ wxMenu* MenuFactory::instance_menu()
     return &m_instance_menu;
 }
 
+MenuWithSeparators* MenuFactory::new_transient_menu()
+{
+    m_transient_menu = std::make_unique<MenuWithSeparators>();
+    return m_transient_menu.get();
+}
+
 wxMenu* MenuFactory::layer_menu()
 {
-    MenuWithSeparators* menu = new MenuWithSeparators();
+    MenuWithSeparators* menu = new_transient_menu();
     append_menu_item_settings(menu);
 
     return menu;
@@ -2127,13 +2134,13 @@ wxMenu* MenuFactory::multi_selection_menu()
     }
 
     if (all_plates) {
-        wxMenu* menu = new MenuWithSeparators();
+        wxMenu* menu = new_transient_menu();
         append_menu_item_replace_all_with_stl(menu);
         return menu;
     }
     if (undefined_type)
         return nullptr;
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = new_transient_menu();
     if (!multi_volume) {
         int index = 0;
         if (obj_list()->can_merge_to_multipart_object()) {
@@ -2209,7 +2216,7 @@ wxMenu* MenuFactory::assemble_multi_selection_menu()
             // show this menu only for Objects(Instances mixed with Objects)/Volumes selection
             return nullptr;
 
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = new_transient_menu();
     append_menu_item_set_visible(menu);
     //append_menu_item_fix_through_cgal(menu);
     //append_menu_item_simplify(menu);
@@ -2255,7 +2262,7 @@ wxMenu* MenuFactory::plate_menu()
 
 wxMenu* MenuFactory::assemble_object_menu()
 {
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = new_transient_menu();
     // Set Visible
     append_menu_item_set_visible(menu);
     // Delete
@@ -2275,7 +2282,7 @@ wxMenu* MenuFactory::assemble_object_menu()
 
 wxMenu* MenuFactory::assemble_part_menu()
 {
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = new_transient_menu();
 
     append_menu_item_set_visible(menu);
     append_menu_item_delete(menu);

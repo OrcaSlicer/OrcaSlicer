@@ -2250,11 +2250,12 @@ void NotificationManager::close_and_delete_self(PopNotification * self)
 }
 
 void NotificationManager::remove_notification_of_type(const NotificationType type) {
+    // Seven notification types may have several instances alive at once, so erase every match:
+    // stopping at the first one leaves the rest (and the ObjectIDs they hold) behind.
     for (auto it = m_pop_notifications.begin(); it != m_pop_notifications.end();) {
         std::unique_ptr<PopNotification> &notification = *it;
         if (notification->get_type() == type) {
             it = m_pop_notifications.erase(it);
-            break;
         } else
             ++it;
     }
