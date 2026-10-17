@@ -5005,14 +5005,15 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
                         if (already_selected && ctrl_down)
                             m_selection.remove(volume_idx);
-                        else if (alt_down && m_gizmos.is_allow_multi_select_parts_or_objects() && m_selection.get_mode() == Selection::Volume &&
+                        // ORCA dont require Volume mode, Selection::update_type() switches to Instance mode once every part of the instance is selected
+                        else if (alt_down && m_gizmos.is_allow_multi_select_parts_or_objects() &&
                                  m_selection.get_object_idx() == m_volumes.volumes[volume_idx]->object_idx() &&
                                  m_selection.get_instance_idx() == m_volumes.volumes[volume_idx]->instance_idx()) {
-                            // Alt+click on another part of the selected parts' instance adds it, and on a selected
-                            // part removes it, unless it is the only one.
+                            // ORCA Alt+click on another part of the selected instance adds it, and on a selected part removes it.
+                            // So a part can be removed from a fully selected object too. Removing the only selected part clears the selection.
                             if (!already_selected)
                                 m_selection.add_volumes(Selection::Volume, {(unsigned int) volume_idx}, false);
-                            else if (curr_idxs.size() > 1)
+                            else
                                 m_selection.remove_volumes(Selection::Volume, {(unsigned int) volume_idx});
                         }
                         else if (alt_down) {
