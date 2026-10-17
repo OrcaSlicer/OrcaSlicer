@@ -3269,6 +3269,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("gcode_comments", "others_settings_g_code_output#verbose-g-code");
         optgroup->append_single_option_line("gcode_label_objects", "others_settings_g_code_output#label-objects");
         optgroup->append_single_option_line("exclude_object", "others_settings_g_code_output#exclude-objects");
+        optgroup->append_single_option_line("exclude_object_tolerance", "others_settings_g_code_output#outline-tolerance");
         option = optgroup->get_option("filename_format");
         // option.opt.full_width = true;
         option.opt.is_code = true;
@@ -3361,6 +3362,8 @@ void TabPrint::toggle_options()
     }
 
     m_config_manipulation.toggle_print_fff_options(m_config, int(intptr_t(m_extruder_switch->GetClientData())), m_type < Preset::TYPE_COUNT);
+
+    toggle_line("exclude_object_tolerance", m_config->opt_bool("exclude_object"));
 
     if (m_type == Preset::TYPE_PLATE) {
         const auto &printer_config = m_preset_bundle->printers.get_edited_preset().config;

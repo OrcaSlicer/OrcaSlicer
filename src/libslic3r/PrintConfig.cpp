@@ -4629,6 +4629,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("exclude_object_tolerance", coFloat);
+    def->label = L("Outline tolerance");
+    def->tooltip = L("Maximum deviation of the object outline written to EXCLUDE_OBJECT_DEFINE from the "
+                     "original outline. Larger values give fewer points, which helps firmware that stalls "
+                     "while parsing G-code with many objects. 0 keeps every point.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 5;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
     def = this->add("gcode_comments", coBool);
     def->label = L("Verbose G-code");
     def->tooltip = L("Enable this to get a commented G-code file, with each line explained by a descriptive text. "

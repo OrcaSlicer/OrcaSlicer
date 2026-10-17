@@ -1421,6 +1421,7 @@ static std::vector<std::string> s_Preset_print_options{
     "initial_layer_travel_acceleration",
     "initial_layer_travel_jerk",
     "exclude_object",
+    "exclude_object_tolerance",
     "slow_down_layers",
     "infill_anchor",
     "infill_anchor_max",

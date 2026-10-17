@@ -15645,6 +15645,12 @@ msgstr ""
 msgid "Enable this option to add EXCLUDE OBJECT command in G-code."
 msgstr ""
 
+msgid "Outline tolerance"
+msgstr ""
+
+msgid "Maximum deviation of the object outline written to EXCLUDE_OBJECT_DEFINE from the original outline. Larger values give fewer points, which helps firmware that stalls while parsing G-code with many objects. 0 keeps every point."
+msgstr ""
+
 msgid "Verbose G-code"
 msgstr ""
 

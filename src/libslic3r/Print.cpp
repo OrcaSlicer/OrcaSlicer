@@ -309,6 +309,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "gcode_comments",
         "gcode_label_objects", 
         "exclude_object",
+        "exclude_object_tolerance",
         "support_material_interface_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
         "ironing_fan_speed",
@@ -6929,7 +6930,7 @@ BoundingBoxf3 PrintInstance::get_bounding_box() const {
 
 Polygon PrintInstance::get_convex_hull_2d() {
     Polygon poly = print_object->model_object()->convex_hull_2d(model_instance->get_matrix());
-    poly.douglas_peucker(scale_(0.1));
+    poly.douglas_peucker(scale_(print_object->print()->config().exclude_object_tolerance.value));
     return poly;
 }
 
