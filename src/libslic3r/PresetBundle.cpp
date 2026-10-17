@@ -4571,6 +4571,9 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     std::vector<std::string> ams_filament_colors;
     std::vector<std::string> ams_filament_color_types;
     std::vector<AMSMapInfo>  ams_array_maps;
+    // Nozzle of each built filament (1 = left, 2 = right), kept index-aligned with ams_filament_presets.
+    // The nozzle is encoded in the filament_ams_list key (0x10000 = right/main nozzle, else left).
+    std::vector<int>         ams_filament_nozzles;
     ams_multi_color_filment.clear();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_ams_list size: %1%") % filament_ams_list.size();
     struct AmsInfo
@@ -4582,12 +4585,14 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         std::string filament_color_type = "";
         std::string filament_preset = "";
         std::vector<std::string> mutli_filament_color;
+        int nozzle{1}; // 1 = left, 2 = right
     };
     auto is_double_extruder = get_printer_extruder_count() == 2;
     std::vector<AmsInfo> ams_infos;
     int                  index = 0;
     for (auto &entry : filament_ams_list) {
         auto & ams = entry.second;
+        const int this_nozzle = (entry.first & 0x10000) ? 2 : 1; // 1 = left, 2 = right
         auto filament_id = ams.opt_string("filament_id", 0u);
         auto filament_color = ams.opt_string("filament_colour", 0u);
         auto filament_color_type = ams.opt_string("filament_colour_type", 0u);
@@ -4597,6 +4602,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         auto slot_id    = ams.opt_string("slot_id", 0u);
         auto is_placeholder = ams.has("filament_slot_placeholder") && ams.opt_bool("filament_slot_placeholder", 0u);
         ams_infos.push_back({filament_id.empty() ? false : true, false, is_placeholder, filament_color});
+        ams_infos.back().nozzle = this_nozzle;
         AMSMapInfo temp = {ams_id, slot_id};
         ams_array_maps.push_back(temp);
         index++;
@@ -4608,6 +4614,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     }
                 }
                 ams_filament_presets.push_back("Generic PLA");//for unknow matieral
+                ams_filament_nozzles.push_back(this_nozzle);
                 auto default_unknown_color = "#CECECE";
                 ams_filament_colors.push_back(default_unknown_color);
                 ams_filament_color_types.push_back("1");
@@ -4618,6 +4625,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             } else if (is_placeholder) {
                 // Orca: push placeholders to keep index alignment with ams_infos
                 ams_filament_presets.push_back("");
+                ams_filament_nozzles.push_back(this_nozzle);
                 ams_filament_colors.push_back("");
                 ams_filament_color_types.push_back("");
                 ams_multi_color_filment.push_back({});
@@ -4626,6 +4634,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         }
         if (!filament_changed && this->filament_presets.size() > ams_filament_presets.size()) {
             ams_filament_presets.push_back(this->filament_presets[ams_filament_presets.size()]);
+            ams_filament_nozzles.push_back(this_nozzle);
             ams_filament_colors.push_back(filament_color);
             ams_filament_color_types.push_back(filament_color_type);
             ams_multi_color_filment.push_back(filament_multi_color);
@@ -4680,6 +4689,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 // Prefer old selection
                 if (ams_filament_presets.size() < this->filament_presets.size()) {
                     ams_filament_presets.push_back(this->filament_presets[ams_filament_presets.size()]);
+                    ams_filament_nozzles.push_back(this_nozzle);
                     ams_filament_colors.push_back(filament_color);
                     ams_filament_color_types.push_back(filament_color_type);
                     ams_multi_color_filment.push_back(filament_multi_color);
@@ -4706,6 +4716,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             filament_id = iter->filament_id;
         }
         ams_filament_presets.push_back(iter->name);
+        ams_filament_nozzles.push_back(this_nozzle);
         ams_filament_colors.push_back(filament_color);
         ams_filament_color_types.push_back(filament_color_type);
         ams_multi_color_filment.push_back(filament_multi_color);
@@ -4874,6 +4885,9 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         auto exist_colors = filament_color->values;
         auto exist_color_types = filament_color_type->values;
         auto exist_filament_presets = this->filament_presets;
+        // Nozzle of each existing filament, index-aligned with exist_filament_presets (1 = left, 2 = right).
+        std::vector<int> exist_nozzles = filament_map->values;
+        exist_nozzles.resize(exist_filament_presets.size(), 1);
         std::vector<std::vector<std::string>> exist_multi_color_filment;
         exist_multi_color_filment.resize(exist_colors.size());
         for (int i = 0; i < exist_colors.size(); i++) {
@@ -4887,6 +4901,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     exist_color_types[i]      = ams_filament_color_types[valid_index];
                     exist_filament_presets[i] = ams_filament_presets[valid_index];
                     exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
+                    if (valid_index < (int) ams_filament_nozzles.size())
+                        exist_nozzles[i] = ams_filament_nozzles[valid_index];
                 } else {
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "check error: array bound (mapping exist)";
                 }
@@ -4947,12 +4963,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 exist_colors.push_back(need_append_colors[i].filament_color);
                 exist_color_types.push_back(need_append_colors[i].filament_color_type);
                 exist_multi_color_filment.push_back(need_append_colors[i].mutli_filament_color);
+                exist_nozzles.push_back(need_append_colors[i].nozzle);
             }
         }
         filament_color->values = exist_colors;
         filament_color_type->values = exist_color_types;
         ams_multi_color_filment = exist_multi_color_filment;
         this->filament_presets = exist_filament_presets;
+        // Only dual-nozzle printers carry a real nozzle per filament; otherwise keep the existing map.
+        if (is_double_extruder)
+            filament_map->values = exist_nozzles;
         filament_map->values.resize(exist_filament_presets.size(), 1);
         filament_volume_map->values.resize(exist_filament_presets.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
     }
@@ -4972,6 +4992,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             std::vector<std::string> result_color_types;
             std::vector<std::string> result_presets;
             std::vector<std::vector<std::string>> result_multi_colors;
+            std::vector<int> result_nozzles;
+            auto exist_nozzles = filament_map->values;
 
             for (size_t i = 0; i < total; i++) {
                 bool is_loaded = (i < ams_infos.size() && ams_infos[i].valid);
@@ -4981,6 +5003,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_colors.push_back(ams_filament_colors[i]);
                     result_color_types.push_back(ams_filament_color_types[i]);
                     result_presets.push_back(ams_filament_presets[i]);
+                    result_nozzles.push_back(i < ams_filament_nozzles.size() ? ams_filament_nozzles[i] : 1);
                     result_multi_colors.push_back(
                         i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
                                                            : std::vector<std::string>{ams_filament_colors[i]});
@@ -4989,6 +5012,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_colors.push_back(exist_colors[i]);
                     result_color_types.push_back(exist_color_types[i]);
                     result_presets.push_back(exist_presets[i]);
+                    result_nozzles.push_back(i < exist_nozzles.size() ? exist_nozzles[i] : 1);
                     result_multi_colors.push_back({exist_colors[i]});
                 } else {
                     // New slot beyond existing count: prefer a generic filament preset
@@ -5000,6 +5024,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_colors.push_back("#CECECE");
                     result_color_types.push_back("1");
                     result_presets.push_back(fallback_name);
+                    result_nozzles.push_back(1);
                     result_multi_colors.push_back({"#CECECE"});
                 }
             }
@@ -5008,6 +5033,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             filament_color_type->values = result_color_types;
             this->filament_presets      = result_presets;
             ams_multi_color_filment     = result_multi_colors;
+            if (is_double_extruder)
+                filament_map->values = result_nozzles;
             filament_map->values.resize(total, 1);
             filament_volume_map->values.resize(total, static_cast<int>(NozzleVolumeType::nvtStandard));
         } else {
@@ -5015,6 +5042,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             filament_color->values = ams_filament_colors;
             filament_color_type->values = ams_filament_color_types;
             this->filament_presets = ams_filament_presets;
+            if (is_double_extruder)
+                filament_map->values = ams_filament_nozzles;
             filament_map->values.resize(ams_filament_colors.size(), 1);
             filament_volume_map->values.resize(ams_filament_colors.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
         }
