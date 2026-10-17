@@ -3,15 +3,18 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
-#include <algorithm>
-#include <cmath>
+#include <functional>
 #include <math.h>
 #include <cstddef>
-#include <random>
 #include <limits>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <random>
 #include <stdexcept>
 #include <cstdint>
-#include <vector>
 
 namespace Slic3r::Voronoi {
 namespace {
@@ -69,38 +72,111 @@ std::vector<Vec3d> PoissonPointCloud::points_in(const BoundingBoxf3 &box, double
     return sites;
 }
 
-std::vector<Vec3d> complete_cloud(const PointCloudProvider &provider, const BoundingBoxf3 &domain,
-                                double spacing)
+ActivePointCloud::ActivePointCloud(std::shared_ptr<const PointCloudProvider> provider) : m_provider(std::move(provider))
 {
-    const auto extent = provider.extent();
-    if (extent && !extent->defined) return {};
-    const Vec3i64 intervals = (domain.size() / spacing).array().ceil().max(1.).cast<int64_t>();
-    const Vec3d step = domain.size().cwiseQuotient(intervals.cast<double>());
-    double reach = spacing;
-    for (;;) {
-        const BoundingBoxf3 known(domain.min - Vec3d::Constant(reach), domain.max + Vec3d::Constant(reach));
-        const double limit = double(std::numeric_limits<coord_t>::max()) * SCALING_FACTOR / 4.;
-        if (!known.min.allFinite() || !known.max.allFinite() ||
-            known.min.cwiseAbs().maxCoeff() > limit || known.max.cwiseAbs().maxCoeff() > limit) return {};
-        auto sites = provider.points_in(known, spacing);
-        double required = std::numeric_limits<double>::infinity();
-        if (!sites.empty()) {
-            auto coordinate = [&sites](size_t i, size_t axis) { return sites[i][axis]; };
-            KDTreeIndirect<3, double, decltype(coordinate)> nearest(coordinate, sites.size());
-            required = 0.;
-            for (int64_t x = 0; x <= intervals.x(); ++x)
-                for (int64_t y = 0; y <= intervals.y(); ++y)
-                    for (int64_t z = 0; z <= intervals.z(); ++z) {
-                        const Vec3d p = domain.min + step.cwiseProduct(Vec3d(x, y, z));
-                        required = std::max(required, (p - sites[find_closest_point(nearest, p)]).norm());
-                    }
-            // Every domain point is within half a grid diagonal of a sample.
-            required += 0.5 * step.norm() + 4. * EPSILON;
+    if (!m_provider) throw std::invalid_argument("Missing Voronoi point-cloud provider");
+}
+
+double ActivePointCloud::spacing(double s, double h, double density) const
+{
+    return m_provider->spacing(s, h, density);
+}
+
+void ActivePointCloud::extend(const BoundingBoxf3 &box, double spacing)
+{
+    auto ingest = [&](const BoundingBoxf3 &part) {
+        auto points = m_provider->points_in(part, spacing);
+        m_sites.insert(m_sites.end(), points.begin(), points.end());
+    };
+    if (!m_known.defined) {
+        ingest(box);
+    } else {
+        // Six disjoint slabs cover the newly known shell. Do not regenerate
+        // the overlap or impose a tiling scheme on the provider.
+        BoundingBoxf3 overlap = box;
+        for (int axis = 0; axis < 3; ++axis) {
+            if (overlap.min[axis] < m_known.min[axis]) {
+                BoundingBoxf3 part = overlap;
+                part.max[axis] = m_known.min[axis];
+                ingest(part);
+                overlap.min[axis] = m_known.min[axis];
+            }
+            if (overlap.max[axis] > m_known.max[axis]) {
+                BoundingBoxf3 part = overlap;
+                part.min[axis] = m_known.max[axis];
+                ingest(part);
+                overlap.max[axis] = m_known.max[axis];
+            }
         }
-        if (std::isfinite(required) && required <= reach) return sites;
-        if (!std::isfinite(required) && extent && contains(known, *extent) &&
-            (known.max.array() > extent->max.array()).all()) return {};
-        reach = std::isfinite(required) ? required : 2. * reach;
+    }
+    m_known = box;
+}
+
+bool ActivePointCloud::update(const BoundingBox &bounds, double z, double margin, double spacing,
+                              const std::function<double(const std::vector<Vec3d> &)> &radius)
+{
+    const double low = z - margin;
+    if (m_spacing != spacing || m_bounds.min != bounds.min || m_bounds.max != bounds.max || low < m_low ||
+        (m_known.defined && low > m_known.max.z())) {
+        m_sites.clear();
+        m_known = BoundingBoxf3();
+        m_retired = -std::numeric_limits<double>::infinity();
+        m_bounds = bounds;
+        m_spacing = spacing;
+    }
+    m_low = low;
+    const auto extent = m_provider->extent();
+    if (extent && !extent->defined) return false;
+    const Vec2d min = bounds.min.cast<double>() * SCALING_FACTOR;
+    const Vec2d max = bounds.max.cast<double>() * SCALING_FACTOR;
+    double reach = spacing;
+    unsigned empty_expansions = 0;
+    for (;;) {
+        BoundingBoxf3 wanted(Vec3d(min.x() - reach, min.y() - reach, low - reach),
+                             Vec3d(max.x() + reach, max.y() + reach, z + margin + reach));
+        wanted.min.z() = std::max(wanted.min.z(), m_retired);
+        if (m_known.defined) {
+            wanted.min = wanted.min.cwiseMin(m_known.min);
+            wanted.max = wanted.max.cwiseMax(m_known.max);
+        }
+        const double limit = double(std::numeric_limits<coord_t>::max()) * SCALING_FACTOR / 4.;
+        if (!wanted.min.allFinite() || !wanted.max.allFinite() ||
+            wanted.min.cwiseAbs().maxCoeff() > limit || wanted.max.cwiseAbs().maxCoeff() > limit)
+            return false;
+        if (!m_known.defined || !contains(m_known, wanted)) extend(wanted, spacing);
+        const double r = radius(m_sites);
+        if (!std::isfinite(r)) {
+            if (extent && contains(m_known, *extent) &&
+                (m_known.max.array() > extent->max.array()).all()) return false;
+            // Each expansion multiplies candidate volume by eight. An unbounded
+            // provider may remain empty forever (for example at zero density).
+            if (!extent && ++empty_expansions == 4)
+                throw std::invalid_argument("Voronoi point sampling found no control points; check infill density and modifiers");
+            reach *= 2.;
+            continue;
+        }
+        // Nearest-site distance is 1-Lipschitz in Z. This covers every point
+        // of the working slab, with a fixed-point margin for rounding.
+        const double required = r + margin + 4. * EPSILON;
+        BoundingBoxf3 coverage(Vec3d(min.x() - required, min.y() - required, low - required),
+                               Vec3d(max.x() + required, max.y() + required, z + margin + required));
+        coverage.min.z() = std::max(coverage.min.z(), m_retired);
+        if (!contains(m_known, coverage)) {
+            reach = required;
+            continue;
+        }
+        // At low, every XY position has a competitor within required, whose
+        // Z is above cutoff. A lower site is farther there, and its squared
+        // distance disadvantage grows with Z. The entire lower half-space
+        // therefore stays irrelevant, even when more points are introduced.
+        const double cutoff = low - required;
+        m_retired = std::max(m_retired, cutoff);
+        m_known.min.z() = m_retired;
+        m_sites.erase(std::remove_if(m_sites.begin(), m_sites.end(),
+                                    [&](const Vec3d &point) {
+                                        return point.z() < m_retired;
+                                    }), m_sites.end());
+        return true;
     }
 }
 
