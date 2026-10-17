@@ -1126,6 +1126,19 @@ static void load_downward_settings_list_from_config(std::string config_file, std
     }
 }
 
+#ifdef __WXGTK__
+// Virtual GPUs (VirtualBox, VMware, QEMU) cannot back WebKit's hardware DMABUF renderer.
+static bool is_hypervisor_guest()
+{
+    std::ifstream cpuinfo("/proc/cpuinfo");
+    std::string line;
+    while (std::getline(cpuinfo, line))
+        if (boost::starts_with(line, "flags"))
+            return line.find(" hypervisor") != std::string::npos;
+    return false;
+}
+#endif
+
 int CLI::run(int argc, char **argv)
 {
     // Mark the main thread for the debugger and for runtime checks.
@@ -1175,6 +1188,9 @@ int CLI::run(int argc, char **argv)
             ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
             ::setenv("WEBKIT_FORCE_DMABUF_RENDERER", "1", /* replace */ false);
         }
+
+        if (is_hypervisor_guest() && WebView::SupportsForceSharedMemory())
+            ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
 
         if (x11_opt_in) {
             // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====

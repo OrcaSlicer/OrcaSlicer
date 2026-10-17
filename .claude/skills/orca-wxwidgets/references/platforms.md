@@ -574,7 +574,8 @@ DMABUF workaround and then branches on `GDK_BACKEND` (an `x11` prefix means the 
 paths, when `/proc/driver/nvidia/version` exists and the linked WebKitGTK honours the switch (>= 2.44,
 `WebView::SupportsForceSharedMemory()`), it sets `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` and
 `WEBKIT_FORCE_DMABUF_RENDERER=1` (non-replacing): the proprietary driver cannot back WebKit's hardware
-DMABUF renderer. On the default path it forces `GDK_BACKEND=x11` when wx lacks EGL and `WAYLAND_DISPLAY`
+DMABUF renderer. On a hypervisor guest (`/proc/cpuinfo` `hypervisor` flag) and WebKitGTK >= 2.44 it sets
+`WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` alone, since virtual GPUs cannot back the hardware path either. On the default path it forces `GDK_BACKEND=x11` when wx lacks EGL and `WAYLAND_DISPLAY`
 is set, and sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` (non-replacing) inside that branch when the linked
 WebKitGTK is older than 2.42: a forced X11 backend in a Wayland session is the only default-path case
 that runs through XWayland, which `DISPLAY` and `WAYLAND_DISPLAY` alone do not tell you (a native

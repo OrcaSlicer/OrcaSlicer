@@ -568,13 +568,18 @@ vue-resize workaround script and sets a persistent SQLite cookie store on the vi
 ## WebKitGTK on Linux sessions
 
 **Mechanism.** `CLI::run` (`src/OrcaSlicer.cpp`, under `#ifdef __WXGTK__`, before GTK initialises)
-sets the NVIDIA DMABUF workaround and then branches on `GDK_BACKEND`:
+sets the DMABUF workarounds and then branches on `GDK_BACKEND`:
 - **Both paths**, before the split: when `/proc/driver/nvidia/version` exists and the linked WebKitGTK
   honours the switch (>= 2.44, `WebView::SupportsForceSharedMemory()`), it sets
   `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` and `WEBKIT_FORCE_DMABUF_RENDERER=1` non-replacing. The
   proprietary driver cannot back WebKit's hardware DMABUF renderer, so the shared-memory transport keeps
   accelerated compositing instead of dropping it; `WEBKIT_FORCE_DMABUF_RENDERER` clears the
   Debian/Ubuntu/openSUSE `isNVIDIA()` early return, which otherwise returns before the FORCE_SHM check.
+- **Hypervisor guests**, same position: when `is_hypervisor_guest()` (the `hypervisor` flag in
+  `/proc/cpuinfo`) and WebKitGTK >= 2.44, it sets `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` non-replacing.
+  Virtual GPUs (VirtualBox VMSVGA, VMware, QEMU) cannot back the hardware DMABUF path either, and
+  FORCE_SHM alone was confirmed to fix web views in VirtualBox; the `WEBKIT_FORCE_DMABUF_RENDERER` pair
+  is not needed without the Debian `isNVIDIA()` patch. The flag is x86-only, so ARM guests are not covered.
 - **Default path** (`GDK_BACKEND` unset or not starting with `x11`): if wx lacks EGL (`!wxHAS_EGL`) and
   `WAYLAND_DISPLAY` is set, it forces `GDK_BACKEND=x11`, and in that same branch it sets
   `WEBKIT_DISABLE_COMPOSITING_MODE=1` non-replacing when the linked WebKitGTK predates 2.42
@@ -590,9 +595,9 @@ Runtime backend detection elsewhere uses Orca's `is_running_on_wayland()` / `is_
 (see `references/platforms.md`), not these environment variables.
 
 **Pitfall.**
-- **Rule:** On NVIDIA reach for `WEBKIT_DMABUF_RENDERER_FORCE_SHM` before
-  `WEBKIT_DISABLE_COMPOSITING_MODE`. **Why:** the proprietary driver cannot back WebKit's hardware
-  DMABUF renderer, leaving web views blank or slow; FORCE_SHM keeps accelerated compositing and only
+- **Rule:** On NVIDIA and hypervisor guests reach for `WEBKIT_DMABUF_RENDERER_FORCE_SHM` before
+  `WEBKIT_DISABLE_COMPOSITING_MODE`. **Why:** the proprietary driver and virtual GPUs cannot back WebKit's
+  hardware DMABUF renderer, leaving web views blank or slow; FORCE_SHM keeps accelerated compositing and only
   skips the hardware path, while disabling compositing drops it. Threaded scrolling is a separate,
   release-dependent default (off in 2.44/2.45, on from 2.46). `WEBKIT_DISABLE_DMABUF_RENDERER` is not a
   substitute — it is read first, leaves the transport set empty (no compositing from 2.44 on, where the
