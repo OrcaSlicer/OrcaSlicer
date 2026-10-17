@@ -714,6 +714,8 @@ protected:
     std::map<unsigned int, IslandOrderCacheEntry> m_ordering_cache;
 
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
+    // Printed-material references are opt-in preview data, separate from speed/fan contour trees.
+    ExtrusionQualityEstimator m_infill_overhang_estimator;
 
 
     /* Origin of print coordinates expressed in unscaled G-code coordinates.

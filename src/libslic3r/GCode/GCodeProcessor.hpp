@@ -16,6 +16,7 @@
 #include "libslic3r/GCode/MachineFrameTransform.hpp"
 
 #include <cstddef>
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <array>
@@ -266,6 +267,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             float overhang_percentage{ 0.0f };
             // Orca: Distance between the contours' slicing planes in mm; zero means unavailable in legacy G-code.
             float overhang_z_distance{ 0.0f };
+            // One-based index; actual-speed vertices retain the source line's profile when copied.
+            unsigned int overhang_profile_id{ 0 };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
@@ -313,6 +316,77 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        struct OverhangLineProfile
+        {
+            Vec3f start;
+            Vec3f end;
+            // One percentage per equal-length interval, sampled at its centre.
+            std::vector<float> percentages;
+        };
+        std::vector<OverhangLineProfile> overhang_line_profiles;
+
+        // Split only the rendered representation. Keeping processor moves intact preserves planner
+        // blocks, actual-speed insertion, statistics and G-code line mapping. Both renderer passes
+        // use this visitor so their vertex counts and color boundaries agree.
+        template<class Visitor> void for_each_preview_move(Visitor &&visitor) const
+        {
+            if (moves.empty())
+                return;
+            if (overhang_line_profiles.empty()) {
+                for (size_t i = 1; i < moves.size(); ++i)
+                    visitor(moves[i - 1], moves[i], i == 1);
+                return;
+            }
+            MoveVertex previous = moves.front();
+            bool first = true;
+            for (size_t i = 1; i < moves.size(); ++i) {
+                const MoveVertex &source = moves[i];
+                if (source.type == EMoveType::Extrude && source.overhang_profile_id > 0 &&
+                    source.overhang_profile_id <= overhang_line_profiles.size()) {
+                    const auto &profile = overhang_line_profiles[source.overhang_profile_id - 1];
+                    const Vec3f direction = profile.end - profile.start;
+                    const float length_squared = direction.squaredNorm();
+                    if (!profile.percentages.empty() && length_squared > EPSILON * EPSILON) {
+                        const MoveVertex &start = moves[i - 1];
+                        const float begin = std::clamp((start.position - profile.start).dot(direction) / length_squared, 0.0f, 1.0f);
+                        const float end = std::clamp((source.position - profile.start).dot(direction) / length_squared, 0.0f, 1.0f);
+                        if (end > begin) {
+                            float last_fraction = 0.0f;
+                            const auto emit = [&](float fraction, float percentage) {
+                                MoveVertex current = source;
+                                if (fraction < 1.0f) {
+                                    current.position = start.position + (source.position - start.position) * fraction;
+                                    current.actual_feedrate = start.actual_feedrate + (source.actual_feedrate - start.actual_feedrate) * fraction;
+                                    current.internal_only = true;
+                                }
+                                current.overhang_percentage = percentage;
+                                current.delta_extruder *= fraction - last_fraction;
+                                for (float &time : current.time)
+                                    time *= fraction - last_fraction;
+                                visitor(previous, current, first);
+                                previous = current;
+                                first = false;
+                                last_fraction = fraction;
+                            };
+                            const size_t count = profile.percentages.size();
+                            size_t cell = std::min(size_t(begin * count), count - 1);
+                            float percentage = profile.percentages[cell];
+                            for (++cell; cell < count && float(cell) / count < end; ++cell) {
+                                if (profile.percentages[cell] != percentage) {
+                                    emit((float(cell) / count - begin) / (end - begin), percentage);
+                                    percentage = profile.percentages[cell];
+                                }
+                            }
+                            emit(1.0f, percentage);
+                            continue;
+                        }
+                    }
+                }
+                visitor(previous, source, first);
+                previous = source;
+                first = false;
+            }
+        }
         ObjectMass plate_mass;
         // One per object instance, and one per connected body of the instances of several, when the sliced objects were at hand.
         std::vector<ObjectMass> object_masses;
@@ -409,6 +483,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             filename = std::forward<Other>(other).filename;
             id = std::forward<Other>(other).id;
             moves = std::forward<Other>(other).moves;
+            overhang_line_profiles = std::forward<Other>(other).overhang_line_profiles;
             plate_mass = std::forward<Other>(other).plate_mass;
             object_masses = std::forward<Other>(other).object_masses;
             body_masses = std::forward<Other>(other).body_masses;
@@ -623,10 +698,13 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Overhang_Arc,
             // Orca: Inline marker binding the assembled samples to this exact G2/G3 command.
             Overhang_Arc_Apply,
+            // Local percentages for the intervals of an unchanged G1 command.
+            Overhang_Line,
+            Overhang_Line_Apply,
         };
 
-        // Orca: Bound both exported profiles and untrusted imported metadata, independently of arc length.
-        static constexpr size_t MAX_OVERHANG_ARC_SAMPLES = 65536;
+        // Bound exported profiles and untrusted imported metadata independently of move length.
+        static constexpr size_t MAX_OVERHANG_PROFILE_SAMPLES = 65536;
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
         // checks the given gcode for reserved tags and returns true when finding the 1st (which is returned into found_tag) 
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
@@ -1285,9 +1363,10 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         float m_overhang_percentage;
         // Orca: Snapshot the active slice-plane spacing alongside each move's percentage.
         float m_overhang_z_distance;
-        // Orca: Collect ordered chunks; only an inline marker may bind a complete profile to an arc.
-        std::vector<float> m_overhang_arc_percentages;
-        size_t m_overhang_arc_samples{ 0 };
+        // Ordered chunks are inert until a matching motion's inline marker consumes them.
+        std::vector<float> m_overhang_profile;
+        size_t m_overhang_profile_samples{ 0 };
+        ETags m_overhang_profile_type{ ETags::Overhang_Arc };
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
@@ -1442,6 +1521,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool detect_producer(const std::string_view comment);
 
         // Move
+        std::vector<float> take_overhang_profile(const GCodeReader::GCodeLine& line, ETags type);
         void process_G0(const GCodeReader::GCodeLine& line);
         void process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
         enum class G1DiscretizationOrigin {

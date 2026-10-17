@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include "libslic3r/AABBTreeLines.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Circle.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/GCode.hpp"
@@ -477,10 +478,11 @@ std::vector<std::string> printer_commands(const std::string &gcode)
 
 // Orca: Attach the same standalone inline marker emitted by GCode.cpp without coupling tests to
 // comment spacing. Callers may retain an existing description before the added semicolon-delimited field.
-std::string bind_overhang_arc_profile(std::string arc)
+std::string bind_overhang_profile(std::string arc,
+    GCodeProcessor::ETags marker = GCodeProcessor::ETags::Overhang_Arc_Apply)
 {
     assert(!arc.empty() && arc.back() == '\n');
-    arc.insert(arc.size() - 1, ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc_Apply));
+    arc.insert(arc.size() - 1, ";" + GCodeProcessor::reserved_tag(marker));
     return arc;
 }
 
@@ -501,6 +503,119 @@ private:
 };
 
 } // namespace
+
+TEST_CASE("Line overhang profiles color local spans while preserving processor moves",
+          "[ExtrusionProcessor][GCodeProcessor][Overhang][Regression]")
+{
+    const bool bbl = GENERATE(false, true);
+    const bool reverse = GENERATE(false, true);
+    const bool interior = GENERATE(false, true);
+    ScopedBblPrinterFlag dialect(bbl);
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const std::string setup = "G90\nM83\nT0\nG1 X0 Y0 Z0.2 F600\n" +
+        tag(GCodeProcessor::ETags::Role, ExtrusionEntity::role_to_string(erSolidInfill)) +
+        tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
+        tag(GCodeProcessor::ETags::Overhang, "100");
+    const std::string line = "G1 X8 Y4 Z0.6 E1 F3600 ; solid infill\n";
+    GCodeProcessor baseline;
+    baseline.apply_config(FullPrintConfig());
+    baseline.initialize_result_moves();
+    baseline.process_buffer(setup + "M106 S128\nG1 F1800\n" + line);
+    baseline.finalize(false);
+    GCodeProcessor profiled;
+    profiled.apply_config(FullPrintConfig());
+    profiled.initialize_result_moves();
+    profiled.process_buffer(setup + tag(GCodeProcessor::ETags::Overhang_Line, interior ? "4,0,0,100" :
+        (reverse ? "4,0,0,0" : "4,0,100,0")));
+    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Line, interior ? "4,2,0,0" :
+        (reverse ? "4,2,0,100" : "4,2,0,0")) + "M106 S128\nG1 F1800\n" +
+        bind_overhang_profile(line, GCodeProcessor::ETags::Overhang_Line_Apply));
+    profiled.finalize(false);
+    const auto &result = profiled.get_result();
+    const auto &original = baseline.get_result().moves;
+    REQUIRE(result.overhang_line_profiles.size() == 1);
+    REQUIRE(result.moves.size() == original.size());
+    for (size_t i = 0; i < original.size(); ++i) {
+        CHECK_THAT((result.moves[i].position - original[i].position).norm(), Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK_THAT(result.moves[i].delta_extruder, Catch::Matchers::WithinAbs(original[i].delta_extruder, 1e-6));
+        CHECK_THAT(result.moves[i].feedrate, Catch::Matchers::WithinAbs(original[i].feedrate, 1e-6));
+        CHECK_THAT(result.moves[i].actual_feedrate, Catch::Matchers::WithinAbs(original[i].actual_feedrate, 1e-6));
+        CHECK_THAT(result.moves[i].fan_speed, Catch::Matchers::WithinAbs(original[i].fan_speed, 1e-6));
+        for (size_t mode = 0; mode < result.moves[i].time.size(); ++mode)
+            CHECK_THAT(result.moves[i].time[mode], Catch::Matchers::WithinAbs(original[i].time[mode], 1e-6));
+    }
+    const auto mode = PrintEstimatedStatistics::ETimeMode::Normal;
+    CHECK_THAT(profiled.get_time(mode), Catch::Matchers::WithinAbs(baseline.get_time(mode), 1e-6));
+    const size_t unsupported_cell = interior ? 1 : (reverse ? 3 : 0);
+    double covered_length = 0.0;
+    double unsupported_length = 0.0;
+    std::array<double, 2> preview_time{};
+    result.for_each_preview_move([&](const auto &prev, const auto &curr, bool) {
+        for (size_t i = 0; i < preview_time.size(); ++i)
+            preview_time[i] += curr.time[i];
+        if (curr.type != EMoveType::Extrude)
+            return;
+        const double middle = 0.5 * (prev.position.x() + curr.position.x());
+        const bool unsupported = middle >= 2.0 * unsupported_cell && middle < 2.0 * (unsupported_cell + 1);
+        CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(unsupported ? 100.0 : 0.0, 1e-6));
+        const double length = (curr.position - prev.position).norm();
+        covered_length += length;
+        if (unsupported)
+            unsupported_length += length;
+    });
+    const double length = Vec3d(8.0, 4.0, 0.4).norm();
+    CHECK_THAT(covered_length, Catch::Matchers::WithinAbs(length, 1e-5));
+    CHECK_THAT(unsupported_length, Catch::Matchers::WithinAbs(length / 4.0, 1e-5));
+    for (size_t i = 0; i < preview_time.size(); ++i) {
+        double total = 0.0;
+        for (const auto &move : original)
+            total += move.time[i];
+        CHECK_THAT(preview_time[i], Catch::Matchers::WithinAbs(total, 1e-5));
+    }
+    GCodeProcessorResult copied;
+    copied = result;
+    REQUIRE(copied.overhang_line_profiles.size() == 1);
+    for (size_t i = 0; i < 4; ++i)
+        CHECK_THAT(copied.overhang_line_profiles.front().percentages[i],
+            Catch::Matchers::WithinAbs(result.overhang_line_profiles.front().percentages[i], 1e-6));
+    copied.reset();
+    CHECK(copied.overhang_line_profiles.empty());
+}
+
+TEST_CASE("Line overhang profiles reject incomplete data and unrelated motions",
+          "[ExtrusionProcessor][GCodeProcessor][Overhang][Regression]")
+{
+    const std::string data = GENERATE("", "4,0", "1,0,100", "65537,0,0", "4,1,0,100,0", "4,0,0,nan,0,0",
+        "4,0,0,inf,0,0", "4,0,0,101,0,0", "4,0,0,-1,0,0", "4,0,0,100junk,0,0", "4,0,0,100,0,0,", "4,0,0,100");
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
+        tag(GCodeProcessor::ETags::Overhang_Line, data) +
+        bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+    const std::string complete = tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0,100,0,0");
+    processor.process_buffer(complete + "G1 X9 E0.1 ; mentions OVERHANG_LINE_APPLY here\n" +
+        bind_overhang_profile("G1 X10 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    processor.process_buffer(complete + "G3 X11 Y1 I0 J1 E0.1\n" +
+        bind_overhang_profile("G1 X12 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "4,0,0,100,0,0") +
+        bind_overhang_profile("G1 X13 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    processor.process_buffer(complete);
+    processor.reset();
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" +
+        bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+}
 
 // Orca: The middle of a quarter-circle is not the middle of its chord. Check both directions
 // against an analytic vertical support edge to catch sampling of the pre-fitting polyline instead.
@@ -596,7 +711,7 @@ TEST_CASE("Overhang arc profiles color local segments without changing motion", 
         tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
         tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + tag(GCodeProcessor::ETags::Overhang, "100");
     const std::string arc = std::string(clockwise ? "G2" : "G3") + " X0 Y10 I-10 J0 E1 F600 ; arc description\n";
-    const std::string marked_arc = bind_overhang_arc_profile(arc);
+    const std::string marked_arc = bind_overhang_profile(arc);
     // Orca: Arbitrary non-motion commands may appear between chunks and the explicitly marked arc;
     // they require no whitelist. A lower-case Klipper command also exercises case-insensitive handling.
     const std::string control = "M106 S128\nM73 P50\nM107\nG4 P1\nM104 S200\nM204 S1000\nM400\n;VM104 S200\n" +
@@ -651,7 +766,7 @@ TEST_CASE("Overhang arc profiles preserve interior peaks on short arcs", "[GCode
     };
     processor.process_buffer("G90\nM83\nT0\nG1 X0.05 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
         tag(GCodeProcessor::ETags::Overhang_Arc, "5,0,0,0,100,0,0") +
-        bind_overhang_arc_profile("G3 X0 Y0.05 I-0.05 J0 E0.01\n"));
+        bind_overhang_profile("G3 X0 Y0.05 I-0.05 J0 E0.01\n"));
     const auto &moves = processor.get_result().moves;
     REQUIRE(std::count_if(moves.begin(), moves.end(), [](const auto &move) { return move.type == EMoveType::Extrude; }) == 1);
     CHECK_THAT(moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
@@ -685,7 +800,7 @@ TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", 
     };
     setup();
     processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, data) +
-        bind_overhang_arc_profile("G3 X0 Y10 I-10 J0 E1\n"));
+        bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
     size_t checked = 0;
     for (const auto &move : processor.get_result().moves)
         if (move.type == EMoveType::Extrude) {
@@ -714,7 +829,7 @@ TEST_CASE("Overhang arc markers require complete profiles to enable the preview"
     if (!profile.empty())
         processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + profile + "\n");
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
-    processor.process_buffer(bind_overhang_arc_profile("G3 X0 Y10 I-10 J0 E1\n"));
+    processor.process_buffer(bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
     const bool complete = profile == "3,0,0,50,100";
     CHECK(processor.get_result().has_overhang_metadata == complete);
     REQUIRE_FALSE(processor.get_result().moves.empty());
@@ -751,7 +866,7 @@ TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodePro
     processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n;" +
         GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + "3,0,0,50,100\n");
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
-    processor.process_buffer(bind_overhang_arc_profile("G3 X0 Y10 I-10 J0 E1\n"));
+    processor.process_buffer(bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
     CHECK(processor.get_result().has_overhang_metadata);
 }
 
@@ -807,18 +922,31 @@ TEST_CASE("Overhang angle conversion handles boundary and incomplete metadata", 
     }
 }
 
-// Orca: A role change must clear perimeter-only metadata before unrelated extrusions, but a bridge
-// deliberately consumes the same unsupported-width value and therefore retains it.
-TEST_CASE("Overhang metadata follows perimeter and bridge extrusion roles", "[GCodeProcessor][Overhang][Regression]")
+// Model infill consumes preview metadata; support and auxiliary roles still reset it.
+TEST_CASE("Overhang metadata follows model infill roles and excludes supports", "[GCodeProcessor][Overhang][Regression]")
 {
     struct Case {
         ExtrusionRole role;
         float expected_percentage;
     };
-    const std::array<Case, 3> cases{{
+    const std::array<Case, 17> cases{{
         {erExternalPerimeter, 42.0f},
         {erBridgeInfill, 42.0f},
-        {erInternalInfill, 0.0f},
+        {erInternalBridgeInfill, 42.0f},
+        {erInternalInfill, 42.0f},
+        {erSolidInfill, 42.0f},
+        {erTopSolidInfill, 42.0f},
+        {erBottomSurface, 42.0f},
+        {erGapFill, 42.0f},
+        {erIroning, 0.0f},
+        {erSupportMaterial, 0.0f},
+        {erSupportMaterialInterface, 0.0f},
+        {erSupportTransition, 0.0f},
+        {erSkirt, 0.0f},
+        {erBrim, 0.0f},
+        {erWipeTower, 0.0f},
+        {erCustom, 0.0f},
+        {erNone, 0.0f},
     }};
 
     for (const Case &test : cases) {
@@ -836,6 +964,401 @@ TEST_CASE("Overhang metadata follows perimeter and bridge extrusion roles", "[GC
             CHECK(move.extrusion_role == test.role);
             CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(test.expected_percentage, 1e-6));
         }
+    }
+}
+
+TEST_CASE("Infill overhang metadata measures lower-layer area without splitting paths",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const ExtrusionRole role = GENERATE(erInternalInfill, erSolidInfill, erTopSolidInfill,
+        erBottomSurface, erGapFill);
+    const double shift = GENERATE(0.0, 0.2, 0.4);
+    CAPTURE(role, shift);
+    constexpr float width = 0.4f;
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    lower->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(10, 0),
+        Point::new_scale(10, 10), Point::new_scale(0, 10)})};
+    // The current layer covers the whole extrusion. Its outline must not hide unsupported infill.
+    upper->lslices = {ExPolygon(Polygon{Point::new_scale(0, -1), Point::new_scale(10, -1),
+        Point::new_scale(10, 10), Point::new_scale(0, 10)})};
+    ExtrusionPath path(role, width * 0.2, width, 0.2f);
+    path.polyline.points = {Point3::new_scale(2, 0.2 - shift, 0), Point3::new_scale(8, 0.2 - shift, 0)};
+    const auto original_points = path.polyline.points;
+
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, upper);
+    const auto percentages = estimator.estimate_overhang_percentages(path);
+    REQUIRE(percentages.size() == 1);
+    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(100.0 * shift / width, 1e-3));
+    CHECK(path.polyline.points == original_points);
+}
+
+TEST_CASE("Printed material distinguishes supported lines from sparse infill gaps inside a solid outline",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const ExtrusionRole role = GENERATE(erInternalInfill, erSolidInfill);
+    const double shift = GENERATE(0.0, 0.2, 1.0);
+    constexpr float width = 0.4f;
+    constexpr float height = 0.2f;
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 0.4)}, print, model, shallow_overhang_config("classic", false, true));
+    print.process();
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->get_layer(0);
+    REQUIRE_FALSE(lower->regions().empty());
+    for (LayerRegion *region : lower->regions()) {
+        region->perimeters.clear();
+        region->fills.clear();
+    }
+    ExtrusionPath base(erInternalInfill, width * height, width, height);
+    base.polyline.points = {Point3::new_scale(-2, 0, 0), Point3::new_scale(2, 0, 0)};
+    ExtrusionEntityCollection island;
+    island.append(base);
+    lower->get_region(0)->fills.append(std::move(island));
+    ExtrusionPath path(role, width * height, width, height);
+    path.polyline.points = {Point3::new_scale(-1, shift, 0), Point3::new_scale(1, shift, 0)};
+    const auto original_points = path.polyline.points;
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_infill_layer(object, lower);
+    const auto percentages = estimator.estimate_overhang_percentages(path);
+    REQUIRE(percentages.size() == 1);
+    const double expected = std::min(100.0, 100.0 * shift / width);
+    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(expected, 0.1));
+    CHECK(path.polyline.points == original_points);
+    libvgcode::PathVertex vertex;
+    vertex.width = width;
+    vertex.height = height;
+    vertex.overhang_z_distance = height;
+    vertex.overhang_percentage = percentages.front();
+    const double expected_angle = shift == 0.0 ? 0.0 : (shift < width ? 45.0 : 90.0);
+    CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(expected_angle, 0.1));
+    // A travel-only path must not fill the gap in the next reference.
+    ExtrusionPath travel = path;
+    travel.set_force_no_extrusion(true);
+    lower->get_region(0)->fills.append(travel);
+    estimator.prepare_for_infill_layer(object, lower);
+    CHECK_THAT(estimator.estimate_overhang_percentages(path).front(), Catch::Matchers::WithinAbs(expected, 0.1));
+}
+
+TEST_CASE("Infill arc metadata samples local coverage", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
+{
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    print.process();
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->get_layer(0);
+    for (LayerRegion *region : lower->regions()) {
+        region->perimeters.clear();
+        region->fills.clear();
+    }
+    // A wide vertical extrusion gives the analytic support edge x = 7 at every arc sample.
+    ExtrusionPath material(erSolidInfill, 27.0 * 0.2, 27.0f, 0.2f);
+    material.polyline.points = {Point3::new_scale(-6.5, -20, 0), Point3::new_scale(-6.5, 20, 0)};
+    lower->get_region(0)->fills.append(material);
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_infill_layer(object, lower);
+    ArcSegment arc(Point::new_scale(0, 0), scale_(10.0), Point::new_scale(10, 0),
+        Point::new_scale(0, 10), ArcDirection::Arc_Dir_CCW);
+    const auto samples = estimator.estimate_overhang_arc_percentages(arc, 0.4f, 40, false);
+    REQUIRE(samples.size() == 41);
+    for (size_t i = 0; i < samples.size(); ++i) {
+        const double x = 10.0 * std::cos(i * PI / 80.0);
+        const double unsupported_width = x - 7.0 + 0.2;
+        CHECK_THAT(samples[i], Catch::Matchers::WithinAbs(100.0 * std::clamp(unsupported_width / 0.4, 0.0, 1.0), 0.1));
+    }
+}
+
+TEST_CASE("Sparse infill exports unsupported gaps inside unchanged model outlines without changing commands",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const double shift = GENERATE(0.0, 0.2, 1.0);
+    const bool slowdown = GENERATE(false, true);
+    constexpr float width = 0.4f;
+    std::vector<std::string> baseline;
+    for (bool enabled : {false, true}) {
+        DynamicPrintConfig config = shallow_overhang_config("classic", slowdown, enabled);
+        config.set_deserialize_strict({
+            {"layer_height", "0.2"}, {"initial_layer_print_height", "0.2"},
+            {"sparse_infill_density", "25%"}, {"top_shell_layers", "0"}, {"bottom_shell_layers", "1"},
+            {"enable_overhang_bridge_fan", "1"}, {"enable_arc_fitting", "0"},
+        });
+        Print print;
+        Model model;
+        init_print({make_cube(6.0, 6.0, 0.8)}, print, model, config, nullptr, false);
+        print.process();
+        PrintObject *object = print.get_object(0);
+        REQUIRE(object->layer_count() >= 3);
+        Layer *lower = object->get_layer(1);
+        Layer *upper = object->get_layer(2);
+        REQUIRE_FALSE(lower->regions().empty());
+        REQUIRE_FALSE(upper->regions().empty());
+        const auto set_fill = [](Layer &layer, const ExtrusionPath &path) {
+            for (LayerRegion *region : layer.regions()) {
+                region->perimeters.clear();
+                region->fills.clear();
+            }
+            ExtrusionEntityCollection island;
+            island.append(path);
+            layer.get_region(0)->fills.append(std::move(island));
+        };
+        ExtrusionPath base(erInternalInfill, width * 0.2, width, 0.2f);
+        base.polyline.points = {Point3::new_scale(-2, 0, 0), Point3::new_scale(2, 0, 0)};
+        set_fill(*lower, base);
+        ExtrusionPath path = base;
+        path.polyline.points = {Point3::new_scale(-1, shift, 0), Point3::new_scale(1, shift, 0)};
+        set_fill(*upper, path);
+        REQUIRE(lower->lslices.front().contains(path.first_point()));
+        REQUIRE(upper->lslices.front().contains(path.first_point()));
+        GCodeProcessorResult result;
+        const std::string exported = gcode(print, &result);
+        const auto commands = printer_commands(exported);
+        REQUIRE_FALSE(commands.empty());
+        if (!enabled) {
+            baseline = commands;
+            continue;
+        }
+        CHECK(commands == baseline);
+        size_t measured = 0;
+        for (const auto &move : result.moves) {
+            if (move.type != EMoveType::Extrude || move.extrusion_role != erInternalInfill ||
+                std::abs(move.position.z() - upper->print_z) > 1e-4)
+                continue;
+            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(std::min(100.0, 100.0 * shift / width), 0.1));
+            ++measured;
+        }
+        REQUIRE(measured > 0);
+    }
+}
+
+TEST_CASE("Infill overhang coloring stays local to unsupported ends and interior gaps",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const ExtrusionRole role = GENERATE(erSolidInfill, erInternalInfill, erInternalBridgeInfill);
+    const bool interior = GENERATE(false, true);
+    const bool reverse = GENERATE(false, true);
+    constexpr float width = 0.4f;
+    constexpr double y = 0.0;
+    std::vector<std::string> baseline;
+    double baseline_time = 0.0;
+    for (bool enabled : {false, true}) {
+        auto config = shallow_overhang_config("classic", true, enabled);
+        config.set_deserialize_strict({{"initial_layer_print_height", "0.2"}, {"layer_height", "0.2"},
+            {"gcode_comments", "0"}, {"nozzle_diameter", "0.4"}, {"line_width", "0.4"}, {"enable_arc_fitting", "0"},
+            {"sparse_infill_density", "25%"}, {"top_shell_layers", "0"}, {"bottom_shell_layers", "1"}});
+        config.erase("nozzle_type");
+        config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+        Print print;
+        Model model;
+        init_print({make_cube(6.0, 6.0, 0.8)}, print, model, config, nullptr, false);
+        print.apply(model, config); // init_print enables ordinary comments; exercise their disabled state.
+        print.process();
+        PrintObject *object = print.get_object(0);
+        REQUIRE(object->layer_count() >= 3);
+        Layer *lower = object->get_layer(1);
+        Layer *upper = object->get_layer(2);
+        for (Layer *layer : {lower, upper})
+            for (LayerRegion *region : layer->regions()) {
+                region->perimeters.clear();
+                region->fills.clear();
+            }
+        ExtrusionEntityCollection material;
+        const auto add_material = [&](double x0, double x1) {
+            ExtrusionPath base(erInternalInfill, width * 0.2, width, 0.2f);
+            base.polyline.points = {Point3::new_scale(x0, y, 0), Point3::new_scale(x1, y, 0)};
+            material.append(base);
+        };
+        add_material(-3.0, interior ? -0.8 : 1.0);
+        if (interior)
+            add_material(0.8, 3.0);
+        ExtrusionPath path(role, width * 0.2, width, 0.2f);
+        path.polyline.points = {Point3::new_scale(reverse ? 2 : -2, y, 0), Point3::new_scale(reverse ? -2 : 2, y, 0)};
+        lower->get_region(0)->fills.append(std::move(material));
+        ExtrusionEntityCollection island;
+        island.append(path);
+        upper->get_region(0)->fills.append(std::move(island));
+        GCodeProcessorResult result;
+        const std::string exported = gcode(print, &result);
+        const auto commands = printer_commands(exported);
+        const double time = result.print_statistics.modes[0].time;
+        if (!enabled) {
+            baseline = commands;
+            baseline_time = time;
+            CHECK(result.overhang_line_profiles.empty());
+            continue;
+        }
+        CHECK(commands == baseline);
+        CHECK_THAT(time, Catch::Matchers::WithinAbs(baseline_time, 1e-5));
+        REQUIRE_FALSE(result.overhang_line_profiles.empty());
+        const auto check_local_colors = [&](const GCodeProcessorResult &preview) {
+            bool supported = false;
+            bool unsupported = false;
+            double length = 0.0;
+            preview.for_each_preview_move([&](const auto &prev, const auto &curr, bool) {
+                if (curr.type != EMoveType::Extrude || curr.extrusion_role != role ||
+                    std::abs(curr.position.z() - upper->print_z) > 1e-4)
+                    return;
+                const double middle = 0.5 * (prev.position.x() + curr.position.x()) -
+                    unscale<double>(object->instances().front().shift.x());
+                length += (curr.position - prev.position).norm();
+                if (interior ? std::abs(middle) > 1.3 : middle < 0.0) {
+                    CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 0.1));
+                    supported = true;
+                }
+                if (interior ? std::abs(middle) < 0.3 : middle > 1.4) {
+                    CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(100.0, 0.1));
+                    unsupported = true;
+                }
+            });
+            CHECK(supported);
+            CHECK(unsupported);
+            CHECK_THAT(length, Catch::Matchers::WithinAbs(4.0, 1e-4));
+        };
+        check_local_colors(result);
+        GCodeProcessor imported;
+        imported.apply_config(FullPrintConfig());
+        imported.initialize_result_moves();
+        imported.process_buffer(exported);
+        imported.finalize(false);
+        check_local_colors(imported.get_result());
+    }
+}
+
+TEST_CASE("Infill preview metadata preserves commands and excludes support paths",
+          "[ExtrusionProcessor][Overhang][Support][Regression]")
+{
+    const auto [role, support, tree] = GENERATE(table<ExtrusionRole, bool, bool>({
+        {erInternalInfill, false, false}, {erSolidInfill, false, false}, {erTopSolidInfill, false, false},
+        {erBottomSurface, false, false}, {erGapFill, false, false}, {erIroning, false, false},
+        {erSupportMaterial, true, false}, {erSupportMaterialInterface, true, false},
+        {erSupportTransition, true, false}, {erIroning, true, false},
+        {erSupportMaterial, true, true}, {erSupportMaterialInterface, true, true},
+        {erSupportTransition, true, true}, {erIroning, true, true},
+    }));
+    const bool slowdown = GENERATE(false, true);
+    CAPTURE(role, support, tree, slowdown);
+    const bool has_metadata = !support && role != erIroning;
+    constexpr float width = 0.4f;
+    std::vector<std::string> baseline_commands;
+    GCodeProcessorResult baseline_result;
+    for (bool enabled : {false, true}) {
+        DynamicPrintConfig config = shallow_overhang_config("classic", slowdown, enabled);
+        config.set_deserialize_strict({
+            {"layer_height", "0.2"}, {"initial_layer_print_height", "0.2"},
+            {"line_width", width}, {"enable_support", "1"},
+            {"support_type", tree ? "tree(auto)" : "normal(auto)"}, {"support_style", tree ? "organic" : "default"},
+            {"enable_overhang_bridge_fan", "1"}, {"gcode_comments", "0"}, {"enable_arc_fitting", "0"},
+        });
+        config.erase("nozzle_type");
+        config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+        Print print;
+        Model model;
+        init_print({make_cube(6.0, 6.0, 0.8)}, print, model, config, nullptr, false);
+        print.apply(model, config); // init_print enables comments; exercise the requested disabled-comment mode.
+        print.set_status_silent();
+        print.process();
+        PrintObject *object = print.get_object(0);
+        REQUIRE(object->layer_count() > 1);
+        Layer *lower = object->get_layer(0);
+        Layer *upper = object->get_layer(1);
+        // Model infill keeps the half-width reading. Support roles, including support ironing,
+        // stay at zero even above an unsupported path and after model metadata has been emitted.
+        const BoundingBox bounds = get_extents(lower->lslices);
+        const double x = unscale<double>(bounds.min.x()) + 1.0;
+        const double y = unscale<double>(bounds.max.y());
+        // Support tops deliberately fall between model layers, with a different layer height.
+        const double target_print_z = upper->print_z + (support ? 0.1 : 0.0);
+        const float extrusion_height = support ? 0.3f : 0.2f;
+        ExtrusionPath path(role, width * extrusion_height, width, extrusion_height);
+        path.polyline.points = {Point3::new_scale(x, y, 0), Point3::new_scale(x + 2.0, y, 0)};
+        object->clear_support_layers();
+        if (support) {
+            SupportLayer *base = object->add_support_layer(0, 0, 0.2, lower->print_z);
+            SupportLayer *support_layer = object->add_support_layer(1, 1, extrusion_height, target_print_z);
+            base->support_type = support_layer->support_type = tree ? stInnerTree : stInnerNormal;
+            // Place support outside the model: model contours must not be used as support contours.
+            const double support_y = y + 5.0;
+            ExtrusionPath base_path(erSupportMaterial, width * 0.2, width, 0.2f);
+            base_path.polyline.points = {Point3::new_scale(x - 1.0, support_y, 0),
+                Point3::new_scale(x + 3.0, support_y, 0)};
+            base->support_fills.append(base_path);
+            path.polyline.points = {Point3::new_scale(x, support_y + width / 2, 0),
+                Point3::new_scale(x + 2.0, support_y + width / 2, 0)};
+            if (role == erIroning) {
+                ExtrusionPath interface_path(erSupportMaterialInterface, width * extrusion_height, width, extrusion_height);
+                interface_path.polyline = path.polyline;
+                support_layer->support_fills.append(interface_path);
+            }
+            support_layer->support_fills.append(path);
+        } else {
+            REQUIRE_FALSE(upper->regions().empty());
+            REQUIRE_FALSE(lower->regions().empty());
+            for (LayerRegion *region : lower->regions()) {
+                region->perimeters.clear();
+                region->fills.clear();
+            }
+            ExtrusionPath base_path(erInternalInfill, width * 0.2, width, 0.2f);
+            base_path.polyline.points = {Point3::new_scale(x - 1.0, y - width / 2, 0),
+                Point3::new_scale(x + 3.0, y - width / 2, 0)};
+            ExtrusionEntityCollection material;
+            material.append(base_path);
+            lower->get_region(0)->fills.append(std::move(material));
+            upper->get_region(0)->fills.clear();
+            ExtrusionEntityCollection island;
+            island.append(path);
+            upper->get_region(0)->fills.append(std::move(island));
+        }
+
+        GCodeProcessorResult result;
+        const std::string exported = gcode(print, &result);
+        const auto commands = printer_commands(exported);
+        REQUIRE_FALSE(commands.empty());
+        if (!enabled) {
+            baseline_commands = commands;
+            baseline_result = std::move(result);
+            CHECK(overhang_percentages(exported).empty());
+            continue;
+        }
+        REQUIRE(result.has_overhang_metadata);
+        CHECK(commands == baseline_commands);
+        REQUIRE(result.moves.size() == baseline_result.moves.size());
+        size_t measured_moves = 0;
+        for (size_t i = 0; i < result.moves.size(); ++i) {
+            const auto &move = result.moves[i];
+            const auto &baseline = baseline_result.moves[i];
+            CHECK(move.type == baseline.type);
+            CHECK(move.extrusion_role == baseline.extrusion_role);
+            CHECK_THAT((move.position - baseline.position).norm(), Catch::Matchers::WithinAbs(0.0, 1e-6));
+            CHECK_THAT(move.feedrate, Catch::Matchers::WithinAbs(baseline.feedrate, 1e-6));
+            CHECK_THAT(move.fan_speed, Catch::Matchers::WithinAbs(baseline.fan_speed, 1e-6));
+            if (move.type == EMoveType::Extrude && move.extrusion_role == role &&
+                std::abs(move.position.z() - target_print_z) < 1e-4) {
+                CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(has_metadata ? 50.0 : 0.0, 0.1));
+                if (has_metadata)
+                    CHECK_THAT(move.overhang_z_distance, Catch::Matchers::WithinAbs(extrusion_height, 1e-5));
+                else
+                    CHECK(move.overhang_profile_id == 0);
+                ++measured_moves;
+            }
+        }
+        REQUIRE(measured_moves > 0);
+        GCodeProcessor imported;
+        imported.apply_config(FullPrintConfig());
+        imported.process_buffer(exported);
+        const bool imported_metadata = std::any_of(imported.get_result().moves.begin(), imported.get_result().moves.end(), [role](const auto &move) {
+            return move.type == EMoveType::Extrude && move.extrusion_role == role && move.overhang_percentage > 1.0f;
+        });
+        CHECK(imported_metadata == has_metadata);
     }
 }
 
