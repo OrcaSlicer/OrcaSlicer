@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <cstddef>
+#include <functional>
 
 #include <wx/bitmap.h>
 
@@ -88,6 +89,7 @@ public:
     wxMenu* part_menu();
     wxMenu* text_part_menu();
     wxMenu* svg_part_menu();
+    wxMenu* painted_modifier_menu();
     wxMenu* instance_menu();
     wxMenu* layer_menu();
     wxMenu* multi_selection_menu();
@@ -112,6 +114,7 @@ private:
     MenuWithSeparators m_part_menu;
     MenuWithSeparators m_text_part_menu;
     MenuWithSeparators m_svg_part_menu;
+    MenuWithSeparators m_painted_modifier_menu;
     MenuWithSeparators m_sla_object_menu;
     MenuWithSeparators m_default_menu;
     MenuWithSeparators m_instance_menu;
@@ -140,6 +143,7 @@ private:
     //BBS: add bbl object menu
     void        create_extra_object_menu();
     void        create_bbl_part_menu();
+    void        create_painted_modifier_menu();
     void        create_bbl_assemble_object_menu();
     void        create_bbl_assemble_part_menu();
 
@@ -152,6 +156,7 @@ private:
     void        append_menu_item_add_svg(wxMenu *menu, ModelVolumeType type, bool is_submenu_item = true);    
     void        append_menu_items_add_volume(wxMenu* menu);
     wxMenuItem* append_menu_item_layers_editing(wxMenu* menu);
+    wxMenuItem* append_menu_item_add_painted_modifier(wxMenu* menu, std::function<bool()> enable_condition);
     wxMenuItem* append_menu_item_settings(wxMenu* menu);
     wxMenuItem* append_menu_item_change_type(wxMenu* menu);
     wxMenuItem* append_menu_item_instance_to_object(wxMenu* menu);

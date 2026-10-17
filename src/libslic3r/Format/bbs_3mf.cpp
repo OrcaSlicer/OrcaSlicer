@@ -363,6 +363,7 @@ static constexpr const char* TEXTURE_DISPLACEMENT_ATTRS[Slic3r::TEXTURE_DISPLACE
     "paint_texture_4", "paint_texture_5", "paint_texture_6", "paint_texture_7" };
 static constexpr const char* TEXTURE_DISPLACEMENT_KEY = "texture_displacement";
 static constexpr const char* TEXTURE_DISPLACEMENT_DIR = "Metadata/texture_displacement/";
+static constexpr const char* PAINTED_MODIFIER_ATTR = "paint_modifier";
 // BBS
 static constexpr const char* FACE_PROPERTY_ATTR = "face_property";
 
@@ -428,6 +429,10 @@ static constexpr const char* PART_TYPE_KEY = "part_type";
 static constexpr const char* PRECISE_SEAM_TYPE_KEY = "precise_seam_type";
 // Preserve dormant settings without turning an older reader's modifier into an active override.
 static constexpr char PRECISE_SEAM_CONFIG_PREFIX[] = "precise_seam_config:";
+// Painted modifiers are stored as modifiers with prefixed settings, so older readers load them as inert modifiers.
+static constexpr const char* PAINTED_MODIFIER_DEPTH_KEY = "painted_modifier_depth";
+static constexpr const char* PAINTED_MODIFIER_HOST_KEY = "painted_modifier_host";
+static constexpr char PAINTED_MODIFIER_CONFIG_PREFIX[] = "painted_modifier_config:";
 static constexpr const char* MATRIX_KEY = "matrix";
 static constexpr const char* SOURCE_FILE_KEY = "source_file";
 static constexpr const char* SOURCE_OBJECT_ID_KEY = "source_object_id";
@@ -859,6 +864,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // One per texture displacement layer slot, indexed like `triangles` but stored only as far as the
             // slot's last painted triangle: empty when the slot has no paint, which is nearly every file.
             std::vector<std::string> texture_displacement[TEXTURE_DISPLACEMENT_MAX_LAYERS];
+            std::vector<std::string> painted_modifier;
             // BBS
             std::vector<std::string> face_properties;
 
@@ -881,6 +887,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 fuzzy_skin.clear();
                 for (std::vector<std::string> &slot : texture_displacement)
                     slot.clear();
+                painted_modifier.clear();
             }
         };
 
@@ -4040,6 +4047,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     mask.resize(m_curr_object->geometry.triangles.size());
                     mask.back() = paint;
                 }
+            m_curr_object->geometry.painted_modifier.push_back(bbs_get_attribute_value_string(attributes, num_attributes, PAINTED_MODIFIER_ATTR));
             // BBS
             m_curr_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
         }
@@ -5208,6 +5216,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         //unsigned int geo_tri_count = (unsigned int)geometry.triangles.size();
         unsigned int renamed_volumes_count = 0;
+        // Painted modifiers and the index of their host volume, resolved once all volumes exist.
+        std::vector<std::pair<ModelVolume*, int>> painted_modifier_hosts;
 
         for (unsigned int index = 0; index < sub_objects.size(); index++)
         {
@@ -5369,6 +5379,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 volume->seam_facets.reserve(triangles_count);
                 volume->mmu_segmentation_facets.reserve(triangles_count);
                 volume->fuzzy_skin_facets.reserve(triangles_count);
+                volume->painted_modifier_facets.reserve(triangles_count);
                 for (size_t i=0; i<triangles_count; ++i) {
                     assert(i < sub_object->geometry.custom_supports.size());
                     assert(i < sub_object->geometry.custom_seam.size());
@@ -5382,6 +5393,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         volume->mmu_segmentation_facets.set_triangle_from_string(i, sub_object->geometry.mmu_segmentation[i]);
                     if (!sub_object->geometry.fuzzy_skin[i].empty())
                         volume->fuzzy_skin_facets.set_triangle_from_string(i, sub_object->geometry.fuzzy_skin[i]);
+                    if (!sub_object->geometry.painted_modifier[i].empty())
+                        volume->painted_modifier_facets.set_triangle_from_string(i, sub_object->geometry.painted_modifier[i]);
                 }
                 volume->supported_facets.shrink_to_fit();
                 volume->seam_facets.shrink_to_fit();
@@ -5401,6 +5414,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     facets.shrink_to_fit();
                     facets.touch();
                 }
+                volume->painted_modifier_facets.shrink_to_fit();
+                volume->painted_modifier_facets.touch();
             }
 
             volume->set_type(volume_data->part_type);
@@ -5412,6 +5427,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             // Apply the seam mode after all base-type metadata, regardless of XML key order.
             ModelVolumeType precise_seam_type = ModelVolumeType::INVALID;
+            std::optional<float> painted_modifier_depth;
+            int painted_modifier_host = -1;
             // apply the remaining volume's metadata
             for (const Metadata& metadata : volume_data->metadata) {
                 if (metadata.key == NAME_KEY)
@@ -5425,8 +5442,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     volume->set_type(ModelVolume::type_from_string(metadata.value));
                 else if (metadata.key == PRECISE_SEAM_TYPE_KEY)
                     precise_seam_type = ModelVolume::type_from_string(metadata.value);
-                else if (boost::starts_with(metadata.key, PRECISE_SEAM_CONFIG_PREFIX))
+                else if (boost::starts_with(metadata.key, PRECISE_SEAM_CONFIG_PREFIX) || boost::starts_with(metadata.key, PAINTED_MODIFIER_CONFIG_PREFIX))
                     continue; // Restore dormant settings only after the final volume type is known.
+                else if (metadata.key == PAINTED_MODIFIER_DEPTH_KEY)
+                    painted_modifier_depth = float(::atof(metadata.value.c_str()));
+                else if (metadata.key == PAINTED_MODIFIER_HOST_KEY)
+                    painted_modifier_host = ::atoi(metadata.value.c_str());
                 else if (metadata.key == SOURCE_FILE_KEY)
                     volume->source.input_file = metadata.value;
                 else if (metadata.key == SOURCE_OBJECT_ID_KEY)
@@ -5453,6 +5474,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // Ignore seam metadata on other base types; legacy inline seam types still load above.
             if (volume->is_modifier() && is_precise_seam(precise_seam_type))
                 volume->set_type(precise_seam_type);
+            else if (volume->is_modifier() && painted_modifier_depth) {
+                volume->set_type(ModelVolumeType::PAINTED_MODIFIER);
+                volume->painted_modifier_depth = std::max(0.f, *painted_modifier_depth);
+                painted_modifier_hosts.emplace_back(volume, painted_modifier_host);
+                for (const Metadata& metadata : volume_data->metadata)
+                    if (boost::starts_with(metadata.key, PAINTED_MODIFIER_CONFIG_PREFIX)) {
+                        const std::string key = metadata.key.substr(sizeof(PAINTED_MODIFIER_CONFIG_PREFIX) - 1);
+                        if (!key.empty())
+                            volume->config.set_deserialize(key, metadata.value, config_substitutions);
+                    }
+            }
 
             // Unknown seam modes must remain inert modifiers, even when dormant settings are present.
             if (volume->is_precise_seam()) {
@@ -5473,6 +5505,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 ++renamed_volumes_count;
             }
         }
+
+        for (auto [volume, host_idx] : painted_modifier_hosts)
+            if (host_idx >= 0 && host_idx < int(object.volumes.size()) && object.volumes[host_idx]->is_model_part())
+                volume->painted_modifier_host = object.volumes[host_idx]->id();
+        object.sync_painted_modifiers();
 
         return true;
     }
@@ -5913,6 +5950,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     mask.resize(current_object->geometry.triangles.size());
                     mask.back() = paint;
                 }
+            current_object->geometry.painted_modifier.push_back(bbs_get_attribute_value_string(attributes, num_attributes, PAINTED_MODIFIER_ATTR));
             // BBS
             current_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
         }
@@ -7370,7 +7408,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                                     && (shared_volume->seam_facets.equals(volume->seam_facets))
                                     && (shared_volume->mmu_segmentation_facets.equals(volume->mmu_segmentation_facets))
                                     && (shared_volume->fuzzy_skin_facets.equals(volume->fuzzy_skin_facets))
-                                    && same_texture_paint)
+                                    && same_texture_paint
+                                    && (shared_volume->painted_modifier_facets.equals(volume->painted_modifier_facets)))
                                 {
                                     auto data = iter->second.first;
                                     const_cast<_BBS_3MF_Exporter *>(this)->m_volume_paths.insert({volume, {data->sub_path, data->volumes_objectID.find(iter->second.second)->second}});
@@ -7797,6 +7836,15 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     output_buffer += TEXTURE_DISPLACEMENT_ATTRS[slot];
                     output_buffer += "=\"";
                     output_buffer += texture_paint;
+                    output_buffer += "\"";
+                }
+
+                std::string painted_modifier_data_string = volume->painted_modifier_facets.get_triangle_as_string(i);
+                if (!painted_modifier_data_string.empty()) {
+                    output_buffer += " ";
+                    output_buffer += PAINTED_MODIFIER_ATTR;
+                    output_buffer += "=\"";
+                    output_buffer += painted_modifier_data_string;
                     output_buffer += "\"";
                 }
 
@@ -8330,11 +8378,20 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
                             stream << ID_ATTR << "=\"" << volume_id << "\" ";
 
                             // Older slicers must recognize the base type even when they ignore seam metadata.
-                            const ModelVolumeType stored_type = volume->is_precise_seam() ? ModelVolumeType::PARAMETER_MODIFIER : volume->type();
+                            const ModelVolumeType stored_type = volume->is_precise_seam() || volume->is_painted_modifier() ? ModelVolumeType::PARAMETER_MODIFIER : volume->type();
                             stream << SUBTYPE_ATTR << "=\"" << ModelVolume::type_to_string(stored_type) << "\">\n";
                             if (volume->is_precise_seam())
                                 stream << "      <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PRECISE_SEAM_TYPE_KEY << "\" " << VALUE_ATTR << "=\"" <<
                                     ModelVolume::type_to_string(volume->type()) << "\"/>\n";
+                            if (volume->is_painted_modifier()) {
+                                stream << "      <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PAINTED_MODIFIER_DEPTH_KEY << "\" " << VALUE_ATTR << "=\"" <<
+                                    volume->painted_modifier_depth << "\"/>\n";
+                                const ModelVolumePtrs &obj_volumes = obj_metadata.second.object->volumes;
+                                const ModelVolume     *host        = obj_metadata.second.object->painted_modifier_host(*volume);
+                                if (auto host_it = std::find(obj_volumes.begin(), obj_volumes.end(), host); host_it != obj_volumes.end())
+                                    stream << "      <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PAINTED_MODIFIER_HOST_KEY << "\" " << VALUE_ATTR << "=\"" <<
+                                        (host_it - obj_volumes.begin()) << "\"/>\n";
+                            }
                             //stream << "    <" << PART_TAG << " " << ID_ATTR << "=\"" << it->second << "\" " << SUBTYPE_ATTR << "=\"" << ModelVolume::type_to_string(volume->type()) << "\">\n";
 
                             // stores volume's name
@@ -8385,8 +8442,8 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
                             // stores volume's config data
                             for (const std::string& key : volume->config.keys()) {
                                 // Seam settings are inactive but must survive changing the helper back into a part/modifier.
-                                const bool dormant = volume->is_precise_seam();
-                                const std::string stored_key = dormant ? PRECISE_SEAM_CONFIG_PREFIX + key : key;
+                                const std::string stored_key = volume->is_precise_seam()     ? PRECISE_SEAM_CONFIG_PREFIX + key :
+                                                               volume->is_painted_modifier() ? PAINTED_MODIFIER_CONFIG_PREFIX + key : key;
                                 const std::string value = volume->config.opt_serialize(key);
                                 // Config serialization is C-style, not XML: escape active settings too, including tabs.
                                 stream << "      <" << METADATA_TAG << " "<< KEY_ATTR << "=\"" << stored_key << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(value) << "\"/>\n";

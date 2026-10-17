@@ -63,6 +63,13 @@ static constexpr char WarningIcon[]     = "obj_warning";
 static constexpr char WarningManifoldIcon[] = "obj_warning";
 static constexpr char LockIcon[]            = "cut_";
 
+// Volumes printed with a filament of their own choice.
+static bool volume_shows_extruder(Slic3r::ModelVolumeType type)
+{
+    return type == Slic3r::ModelVolumeType::MODEL_PART || type == Slic3r::ModelVolumeType::PARAMETER_MODIFIER ||
+           type == Slic3r::ModelVolumeType::PAINTED_MODIFIER;
+}
+
 ObjectDataViewModelNode::ObjectDataViewModelNode(PartPlate* part_plate, wxString name) :
     m_parent(nullptr),
     m_name(name),
@@ -108,7 +115,7 @@ ObjectDataViewModelNode::ObjectDataViewModelNode(ObjectDataViewModelNode*   pare
     m_is_text_volume(is_text_volume),
     m_is_svg_volume(is_svg_volume),
     m_idx(idx),
-    m_extruder(type == Slic3r::ModelVolumeType::MODEL_PART || type == Slic3r::ModelVolumeType::PARAMETER_MODIFIER ? extruder : "")
+    m_extruder(volume_shows_extruder(type) ? extruder : "")
 {
     set_icons();
     init_container();
@@ -213,7 +220,7 @@ void ObjectDataViewModelNode::set_icons()
 void ObjectDataViewModelNode::set_extruder_icon()
 {
     if (m_type & (itInstance | itInstanceRoot | itLayerRoot) ||
-        ((m_type & itVolume) && m_volume_type != Slic3r::ModelVolumeType::MODEL_PART && m_volume_type != Slic3r::ModelVolumeType::PARAMETER_MODIFIER))
+        ((m_type & itVolume) && ! volume_shows_extruder(m_volume_type)))
         return; // don't set colored bitmap for Instance
 
     UpdateExtruderAndColorIcon();
@@ -414,7 +421,7 @@ void ObjectDataViewModelNode::SetPlateIdx(const int& idx)
 
 void ObjectDataViewModelNode::UpdateExtruderAndColorIcon(wxString extruder /*= ""*/)
 {
-    if (m_type == itVolume && m_volume_type != ModelVolumeType::MODEL_PART && m_volume_type != ModelVolumeType::PARAMETER_MODIFIER)
+    if (m_type == itVolume && ! volume_shows_extruder(m_volume_type))
         return;
     if (extruder.empty())
         extruder = m_extruder;
@@ -429,7 +436,7 @@ void ObjectDataViewModelNode::UpdateExtruderAndColorIcon(wxString extruder /*= "
             extruder_idx = atoi(m_parent->GetExtruder().c_str());
         }
         // BBS
-        else if (m_type & itVolume && m_volume_type == ModelVolumeType::PARAMETER_MODIFIER) {
+        else if (m_type & itVolume && (m_volume_type == ModelVolumeType::PARAMETER_MODIFIER || m_volume_type == ModelVolumeType::PAINTED_MODIFIER)) {
             m_extruder_bmp = *get_default_extruder_color_icon();
             return;
         }
@@ -567,7 +574,7 @@ void ObjectDataViewModel::UpdateBitmapForNode(ObjectDataViewModelNode *node)
     bool is_volume_node = node->GetType() & itVolume;
     int  vol_type       = static_cast<int>(node->GetVolumeType());
     // Extended range to include Precise Seam modifier types
-    is_volume_node &= (vol_type >= int(ModelVolumeType::MODEL_PART) && vol_type <= int(ModelVolumeType::PRECISE_SEAM_NEUTRAL));
+    is_volume_node &= (vol_type >= int(ModelVolumeType::MODEL_PART) && vol_type <= int(ModelVolumeType::PAINTED_MODIFIER));
 
     if (!node->has_warning_icon() && !node->has_lock()) {
         node->SetBitmap(is_volume_node ? (
@@ -697,7 +704,7 @@ wxDataViewItem ObjectDataViewModel::AddVolumeChild( const wxDataViewItem &parent
     // BBS
     wxString extruder_str;
     if (extruder == 0) {
-        if (volume_type == ModelVolumeType::PARAMETER_MODIFIER)
+        if (volume_type == ModelVolumeType::PARAMETER_MODIFIER || volume_type == ModelVolumeType::PAINTED_MODIFIER)
             extruder_str = _L("default");
         else
             extruder_str = root->m_extruder;
