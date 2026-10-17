@@ -264,7 +264,11 @@ private:
     ModelVolume*       texture_volume();
     const ModelVolume* texture_volume() const;
 
-    void add_texture_layer();
+    // `chroma` picks the kind: a relief layer, a height map pushed into the surface, or a ChromaStack
+    // picture, a colour picture made of filament swaps. The kind is a property of the layer and is
+    // fixed when it is created - there is no panel-wide mode, so a plaque can carry a picture on its
+    // face and a knurl on its rim at the same time.
+    void add_texture_layer(bool chroma = false);
     void remove_texture_layer(int slot);
     // Moves the layer in `slot` to position `to_index` of the slot-ordered stack (an insertion index,
     // 0..layer count), which is the order blend modes apply in. Layers keep their data; what moves is
@@ -434,6 +438,109 @@ private:
     float m_picker_scroll_applied  = -1.f;
     void set_layer_texture(TextureDisplacementLayer &layer, const TextureLibraryEntry &entry);
     void import_custom_texture(TextureDisplacementLayer &layer);
+
+    // ---- ChromaStack (see libslic3r/ChromaStack.hpp) ----
+    //
+    // A ChromaStack layer is an ordinary texture displacement layer whose height map is computed rather
+    // than imported: the picture the user picked is kept in `chroma_source`, the stack in
+    // `chroma`, and `image_data` holds whatever the last solve produced. Everything downstream -
+    // projection, preview, bake - therefore needs no changes at all, and this is the whole of the
+    // feature's GUI side: pick a picture, edit the stack, solve, hand the filament swaps to the
+    // object's height ranges.
+
+    // The project's loaded filaments as the colour model sees them: colour from the project, TD from
+    // each filament's preset. Index is the filament index the swaps are written from.
+    static std::vector<ChromaFilament> chroma_filaments();
+    // The layer height the print profile is set to, mm; 0 when there is no print preset. The solve is
+    // only valid for the layer height it was run at, so the panel compares it against the stack's.
+    static float print_layer_height();
+
+    // Where the active layer's painted patch sits, in the object's own printed coordinates - which is
+    // what the stack has to be lined up with, because a filament swap happens at a print Z and the
+    // relief grows upward from this patch.
+    struct ChromaPatch
+    {
+        bool  valid     = false;
+        float top_mm    = 0.f; // the patch's surface above the bottom of the object
+        float spread_mm = 0.f; // how far from flat the patch is in Z; 0 is a horizontal face
+        // The patch's extent in the plane the texture is projected from, in the bake frame - i.e. the
+        // (x, y) the Z-facing plane of the tri-planar projection samples by. This is what the picture
+        // has to be placed against: tiling_scale and offset are in that space, not in the patch's.
+        Vec2f planar_min = Vec2f::Zero();
+        Vec2f planar_max = Vec2f::Zero();
+    };
+    ChromaPatch chroma_patch(const TextureDisplacementLayer &layer) const;
+    // The painted face's height in layers, which is what the stack's base has to be: -1 when nothing
+    // is painted yet or there is no layer height to divide by.
+    int         chroma_measured_base(const TextureDisplacementLayer &layer) const;
+    // Extracting the painted patch is far too expensive to repeat once a frame, which is how often the
+    // panel wants the number. The paint's own timestamp and the transform the patch was measured in are
+    // between them everything the answer depends on.
+    mutable std::array<ChromaPatch, TEXTURE_DISPLACEMENT_MAX_LAYERS> m_chroma_patch_cache{};
+    mutable std::array<uint64_t, TEXTURE_DISPLACEMENT_MAX_LAYERS>      m_chroma_patch_stamp{};
+    mutable std::array<Transform3d, TEXTURE_DISPLACEMENT_MAX_LAYERS>   m_chroma_patch_trafo{};
+    // The patch is measured in two frames at once - the instance's, for the print height, and the
+    // bake's, for the placement - so both are part of what the cached answer depends on.
+    mutable std::array<Transform3d, TEXTURE_DISPLACEMENT_MAX_LAYERS>   m_chroma_patch_bake{};
+
+    // Picks a colour picture for the layer, turns ChromaStack on, and seeds a stack from the loaded
+    // filaments and the patch if the layer has none yet. Solves straight away, so the relief appears
+    // without a second click.
+    void chroma_pick_picture(TextureDisplacementLayer &layer);
+    // Re-runs the solve and replaces the layer's height map with its result. False (with the reason
+    // shown to the user) when the layer has no picture, no stack or no relief layers.
+    bool chroma_solve_layer(TextureDisplacementLayer &layer);
+    // Writes the stack's filament swaps onto the object as height ranges, replacing whatever ranges it
+    // had. Takes its own undo snapshot.
+    void chroma_apply_swaps(const TextureDisplacementLayer &layer);
+    // The stack's swaps as the object's height ranges already express them: true when applying would
+    // change nothing, which is what the panel's hint keys off.
+    bool chroma_swaps_applied(const TextureDisplacementLayer &layer) const;
+    // The whole of a ChromaStack card between its header and More settings: the picture and the print
+    // it predicts, the base, the filaments and the colours they reach, and the two actions.
+    void render_chroma_card(TextureDisplacementLayer &layer, float card_pad, float label_w, float wrap_w);
+
+    // The surface drawn in the colours the stack will print, over whatever neutral surface is there:
+    // the live preview's displaced mesh before a bake, the volume's own mesh after one. Every triangle
+    // takes the palette colour of the printed layer its centroid falls in (chroma_level_at()), which
+    // is what the eye will see at that height - so the relief's terraces read as the picture, the walls
+    // between them show the bands they cut through, and looking straight down gives the blended colours
+    // the whole feature exists to produce.
+    //
+    // Nothing else in the application can show this: the colours are blends of translucent filaments
+    // that no single filament can make, so they cannot be expressed as the per-triangle filament
+    // assignment the 3D scene paints with. They exist only here and in the sliced preview.
+    void rebuild_chroma_colors(const TextureDisplacementLayer &layer);
+    bool render_chroma_colors(const TextureDisplacementLayer &layer);
+    GLModel m_chroma_color_model;
+    // The surface the overlay was built from. The mesh alone: the colours are not in it, so a change
+    // to the stack costs a palette upload rather than a mesh rebuild.
+    size_t  m_chroma_color_key = 0;
+    // The stack's colours, one texel per printed layer, and what they were built from. A texture
+    // because a uniform array cannot hold a base of several hundred layers.
+    std::unique_ptr<GLTexture> m_chroma_palette_tex;
+    size_t                     m_chroma_palette_key = 0;
+    bool                       m_show_chroma_colors = true;
+
+    // What the last solve of each slot reported, for the panel. Not saved: it is a property of the
+    // solve, and a project is reopened with whatever height map the solve produced.
+    struct ChromaReport
+    {
+        bool   valid = false;
+        double mean  = 0.;
+        double max   = 0.;
+    };
+    std::array<ChromaReport, TEXTURE_DISPLACEMENT_MAX_LAYERS>              m_chroma_report{};
+    // The predicted print, per slot: the palette colours the solve chose, as a panel thumbnail. The
+    // 3D view cannot show this - the colours do not exist until the print swaps filament - so it is
+    // the only place the user sees what the stack will actually produce.
+    std::array<std::unique_ptr<GLTexture>, TEXTURE_DISPLACEMENT_MAX_LAYERS>  m_chroma_preview;
+    // The source picture's thumbnail, beside the prediction, keyed by the image it was built from.
+    std::array<std::unique_ptr<GLTexture>, TEXTURE_DISPLACEMENT_MAX_LAYERS>  m_chroma_source_thumb;
+    std::array<const void *, TEXTURE_DISPLACEMENT_MAX_LAYERS>                m_chroma_source_key{};
+    // Per slot: the stack has been edited since the height map was solved, so the relief on screen is the
+    // previous stack's. Nothing else can show this - a stale height map looks like a perfectly good one.
+    std::array<bool, TEXTURE_DISPLACEMENT_MAX_LAYERS>                        m_chroma_stale{};
 
     // Paint / Erase, from the panel. See get_left_button_state_type().
     bool m_erase_mode = false;

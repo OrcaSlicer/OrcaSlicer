@@ -3440,6 +3440,20 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
 
+    def = this->add("filament_transmission_distance", coFloats);
+    def->label = L("Transmission distance");
+    def->tooltip = L("How deep light gets into this filament, in millimetres, also called its "
+                     "transmission distance or TD. About 1 for an opaque filament, 4 to 7 for a usefully "
+                     "translucent one, 8 and above for a nearly clear one. Used only to predict the "
+                     "colours of a ChromaStack in the texture displacement tool; it has no effect on "
+                     "slicing. Measure it with a step test print, or take a published value for the "
+                     "filament.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 4. });
+
     def = this->add("filament_type", coStrings);
     def->label = L("Type");
     def->tooltip = L("Filament material type");

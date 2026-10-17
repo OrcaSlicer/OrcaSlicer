@@ -2875,6 +2875,37 @@ void ObjectList::del_layer_from_object(const int obj_idx, const t_layer_height_r
     changed_object(obj_idx);
 }
 
+void ObjectList::rebuild_layer_ranges(const int obj_idx)
+{
+    if (obj_idx < 0 || obj_idx >= int(m_objects->size()))
+        return;
+    const wxDataViewItem obj_item = m_objects_model->GetItemById(obj_idx);
+    if (!obj_item.IsOk())
+        return;
+
+    const t_layer_config_ranges& ranges = object(obj_idx)->layer_config_ranges;
+    // Adding and deleting tree items fires selection events on GTK; suppress them as every other
+    // bulk edit of the tree here does.
+    const bool prevent_events = m_prevent_list_events;
+    m_prevent_list_events = true;
+    wxDataViewItem root = m_objects_model->GetLayerRootItem(obj_item);
+    if (root.IsOk()) {
+        m_objects_model->DeleteChildren(root);
+        if (ranges.empty())
+            m_objects_model->Delete(root);
+        else {
+            for (const auto& range : ranges)
+                add_layer_item(range.first, root);
+            Expand(root);
+        }
+    } else {
+        add_layer_root_item(obj_item);
+    }
+    m_prevent_list_events = prevent_events;
+
+    changed_object(obj_idx);
+}
+
 void ObjectList::del_layers_from_object(const int obj_idx)
 {
     object(obj_idx)->layer_config_ranges.clear();

@@ -327,6 +327,8 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
+    ChromaStack.cpp
+    ChromaStack.hpp
     IMEXArrange.cpp
     IMEXArrange.hpp
     IMEXHelpers.cpp

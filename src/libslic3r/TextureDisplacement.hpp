@@ -18,6 +18,7 @@
 
 #include <array>
 
+#include "ChromaStack.hpp"
 #include "Point.hpp"
 #include "TriangleSelector.hpp"
 
@@ -353,16 +354,33 @@ struct TextureDisplacementLayer
     // for the boundary to be drawn on.
     bool color_enabled = false;
 
+    // ChromaStack (see ChromaStack.hpp): when set, `image_data` is not a texture the user picked but the
+    // height map chroma_solve() computed, so that the whole displacement pipeline - preview, UV
+    // editor, bake - goes on reading one grayscale height map and needs to know nothing about colour
+    // stacks. The picture it was solved from is kept here instead, because the solve has to be redone
+    // whenever the stack, the print's layer height or the picture itself changes.
+    //
+    // A ChromaStack layer gets its colour from filament swaps at fixed Z, which is what `chroma`
+    // records and what the object's height ranges carry out. That is a different mechanism from
+    // `color_enabled` (per-triangle filament assignment), and the two are mutually exclusive: the
+    // panel turns colour off on a ChromaStack layer, since painting the relief in one filament per
+    // triangle would hide the very stack the heights were solved against.
+    bool                                        chroma_enabled = false;
+    ChromaStack                               chroma;
+    std::shared_ptr<std::vector<unsigned char>> chroma_source;
+
     bool empty() const { return !image_data || image_data->empty(); }
 
     template<class Archive> void save(Archive &ar) const
     {
         std::string blob = image_data ? std::string(image_data->begin(), image_data->end()) : std::string();
+        std::string source = chroma_source ? std::string(chroma_source->begin(), chroma_source->end()) : std::string();
         ar(slot, name, path, path_in_3mf, blob, depth_mm, tiling_scale, rotation_deg, offset, invert, tile_enabled,
            static_cast<int>(tile_method), static_cast<int>(projection_method), lscm_seam_angle_deg, islands,
            static_cast<int>(blend_mode), midlevel, island_padding_mm, lscm_seam_edges, view_project_right,
            view_project_up, smoothing, edge_smoothing, edge_smoothing_amount, auto_connect_islands, island_groups,
-           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled);
+           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled, chroma_enabled, chroma,
+           source);
     }
     template<class Archive> void load(Archive &ar)
     {
@@ -370,12 +388,14 @@ struct TextureDisplacementLayer
         int         tile_method_int       = 0;
         int         projection_method_int = 0;
         int         blend_mode_int        = 0;
+        std::string source;
         ar(slot, name, path, path_in_3mf, blob, depth_mm, tiling_scale, rotation_deg, offset, invert, tile_enabled,
            tile_method_int, projection_method_int, lscm_seam_angle_deg, islands, blend_mode_int, midlevel,
            island_padding_mm, lscm_seam_edges, view_project_right, view_project_up, smoothing, edge_smoothing,
            edge_smoothing_amount, auto_connect_islands, island_groups, lscm_uv_overrides, view_project_projective,
-           view_project_matrix, color_enabled);
+           view_project_matrix, color_enabled, chroma_enabled, chroma, source);
         image_data        = blob.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(blob.begin(), blob.end());
+        chroma_source   = source.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(source.begin(), source.end());
         tile_method       = static_cast<TextureTileMethod>(tile_method_int);
         projection_method = static_cast<TextureProjectionMethod>(projection_method_int);
         blend_mode        = static_cast<TextureBlendMode>(blend_mode_int);

@@ -321,6 +321,11 @@ public:
     void                del_settings_from_config(const wxDataViewItem& parent_item);
     void                del_instances_from_object(const int obj_idx);
     void                del_layer_from_object(const int obj_idx, const t_layer_height_range& layer_range);
+    // Mirrors an object's height ranges in the tree after they have been rewritten from outside the
+    // list - the texture displacement gizmo writes a whole set at once for a ChromaStack stack's
+    // filament swaps. Deliberately leaves the selection alone: changing it while a gizmo is open
+    // tears the gizmo down under the user.
+    void                rebuild_layer_ranges(const int obj_idx);
     void                del_layers_from_object(const int obj_idx);
     bool                del_from_cut_object(bool is_connector, bool is_model_part = false, bool is_negative_volume = false);
     bool                del_subobject_from_object(const int obj_idx, const int idx, const int type);

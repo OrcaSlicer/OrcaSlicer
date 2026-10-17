@@ -1709,6 +1709,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             volumetric_speed_coefficients))
     ((ConfigOptionInts,              filament_adhesiveness_category))
     ((ConfigOptionFloats,              filament_density))
+    // Transmission distance: how deep light gets into this filament. Not used by
+    // slicing - it is the colour model of a ChromaStack stack (see ChromaStack.hpp).
+    ((ConfigOptionFloats,              filament_transmission_distance))
     ((ConfigOptionStrings,             filament_type))
     ((ConfigOptionBools,               filament_soluble))
     ((ConfigOptionStrings,             filament_ids))
