@@ -182,11 +182,30 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             if (host_type == htCrealityPrint) {
                 CrealityDiscoveryDialog dialog(this);
                 if (dialog.ShowModal() == wxID_OK && !dialog.selected_ip().empty()) {
+                    const std::string old_host = m_config->opt_string("print_host");
+
                     // set_value expects the value wrapped as wxString -- TextCtrl::set_value
                     // any_casts to wxString, so a raw std::string throws bad_any_cast.
                     wxString new_url = wxString::FromUTF8("http://" + dialog.selected_ip());
                     m_optgroup->set_value("print_host", new_url, true);
                     m_optgroup->get_field("print_host")->field_changed();
+
+                    // K2 firmware serves its web UI on :4408; print_host is the bare API address.
+                    // Only touch Device UI when it's empty or still holds what a previous Browse
+                    // wrote for the old Hostname -- a value the user set by hand is left alone.
+                    const std::string current_webui = m_config->opt_string("print_host_webui");
+                    const std::string webui_from_old_host = old_host.empty() ? std::string() : old_host + ":4408";
+                    const bool webui_is_ours_or_empty = current_webui.empty() || current_webui == webui_from_old_host;
+                    if (dialog.selected_is_k2_family()) {
+                        if (webui_is_ours_or_empty) {
+                            wxString webui_url = wxString::FromUTF8("http://" + dialog.selected_ip() + ":4408");
+                            m_optgroup->set_value("print_host_webui", webui_url, true);
+                            m_optgroup->get_field("print_host_webui")->field_changed();
+                        }
+                    } else if (webui_is_ours_or_empty && !current_webui.empty()) {
+                        m_optgroup->set_value("print_host_webui", wxString(), true);
+                        m_optgroup->get_field("print_host_webui")->field_changed();
+                    }
                 }
                 return;
             }
