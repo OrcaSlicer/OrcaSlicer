@@ -19,6 +19,8 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <map>
+#include <stdexcept>
 #include <iterator>
 #include <memory>
 #include <utility>
@@ -134,12 +136,38 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
         if (p != q)
             edges.emplace_back(Points{p, q});
     }
-    if (triangulation.dimension() == 2)
+    if (triangulation.dimension() == 2) {
+        // Extract metadata without changing the CGAL vertex type or insertion
+        // order, which determine tie-breaking for degenerate power cells.
+        auto key = [](const Kernel::Weighted_point_2 &p) {
+            return std::array<double, 3>{CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.weight())};
+        };
+        std::map<std::array<double, 3>, size_t> site_indices;
+        for (size_t i = 0; i < input.size(); ++i) {
+            auto inserted = site_indices.emplace(key(input[i]), i);
+            if (!inserted.second && inserted.first->second != size_t(-1) &&
+                sites[inserted.first->second] != sites[i])
+                inserted.first->second = size_t(-1); // Distinct XYZ sites with coincident power sites.
+        }
         for (auto face = triangulation.finite_faces_begin(); face != triangulation.finite_faces_end(); ++face) {
             const Vec2d xy = point(triangulation.dual(face));
-            if (xy.allFinite() && xy.x() >= min.x() && xy.x() <= max.x() && xy.y() >= min.y() && xy.y() <= max.y())
-                measure(xy, face->vertex(0)->point());
+            if (!xy.allFinite() || xy.x() < min.x() || xy.x() > max.x() || xy.y() < min.y() || xy.y() > max.y())
+                continue;
+            measure(xy, face->vertex(0)->point());
+            const Vec2d scaled = (xy + center) / SCALING_FACTOR;
+            std::array<size_t, 3> indices;
+            for (size_t i = 0; i < 3; ++i) {
+                const auto site = site_indices.find(key(face->vertex(int(i))->point()));
+                if (site == site_indices.end())
+                    throw std::logic_error("Voronoi section refers to an unknown control point");
+                indices[i] = site->second;
+            }
+            if (std::find(indices.begin(), indices.end(), size_t(-1)) != indices.end())
+                continue;
+            result.junctions.push_back({Point(scaled.x(), scaled.y()),
+                {sites[indices[0]], sites[indices[1]], sites[indices[2]]}});
         }
+    }
     return result;
 }
 
