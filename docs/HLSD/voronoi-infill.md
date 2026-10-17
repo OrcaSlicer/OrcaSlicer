@@ -52,8 +52,9 @@ crossings; three-way junctions cycle turns across layers using their generating
 points. Closed-trail starts are hashed by layer to scatter seams. Each wall
 edge is traversed once.
 
-Orca orders walls and complete floor sweeps together using their actual entry
-and exit. Walls may reverse; floors retain their supported-side-first order.
+Orca orders wall trails and complete floor sweeps as reversible endpoint chords.
+Wall trails can reverse; floors retain their supported-side-first
+order, so their actual entry and exit may differ from the scheduled chord.
 
 Fill Multiline uses Orca's native path offsets: odd counts retain the central
 line, while even counts use half-spacing offsets. Boundary connectors respect

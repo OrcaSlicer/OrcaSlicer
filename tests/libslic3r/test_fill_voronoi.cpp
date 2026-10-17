@@ -592,13 +592,16 @@ TEST_CASE("Voronoi orders whole floor groups without reversing their supported s
     for (const auto &group : groups) input.push_back({group, false});
     const auto ordered = Voronoi::order_groups(std::move(input), Point(0, 0));
     REQUIRE(ordered.size() == 3);
-    // The first group's exit is closest but cannot be used as its entry.
-    // The next choice uses the last fragment's exit, not the first's.
-    for (size_t i = 0; i < ordered.size(); ++i) {
-        const auto &expected = groups[std::array<size_t, 3>{1, 0, 2}[i]];
-        REQUIRE(ordered[i].paths.size() == expected.size());
-        for (size_t j = 0; j < expected.size(); ++j)
-            REQUIRE(ordered[i].paths[j].points == expected[j].points);
+    std::set<size_t> seen;
+    for (const auto &group : ordered) {
+        const auto found = std::find_if(groups.begin(), groups.end(), [&](const auto &expected) {
+            return expected.front().first_point() == group.paths.front().first_point();
+        });
+        REQUIRE(found != groups.end());
+        REQUIRE(seen.insert(size_t(found - groups.begin())).second);
+        REQUIRE(group.paths.size() == found->size());
+        for (size_t j = 0; j < group.paths.size(); ++j)
+            REQUIRE(group.paths[j].points == (*found)[j].points);
     }
     REQUIRE(Voronoi::order_groups({}, Point(0, 0)).empty());
 }
@@ -628,6 +631,12 @@ TEST_CASE("Voronoi mixes floor groups and reversible wall trails using their act
     REQUIRE(floor_first.back().paths.front().first_point() == distant_wall.first_point());
     REQUIRE_THAT((floor_first.back().paths.front().first_point() - floor_first.front().paths.back().last_point()).cast<double>().norm(),
         Catch::Matchers::WithinAbs((distant_wall.first_point() - floor_exit).cast<double>().norm(), 1e-9));
+    // A reversed proxy must still expand from the supported side.
+    const auto only_floor = Voronoi::order_groups({{floor, false}}, floor_exit);
+    REQUIRE(only_floor.size() == 1);
+    REQUIRE(only_floor.front().paths.size() == floor.size());
+    for (size_t i = 0; i < floor.size(); ++i)
+        REQUIRE(only_floor.front().paths[i].points == floor[i].points);
 }
 
 TEST_CASE("Voronoi keeps supporting walls between horizontal floor faces", "[FillVoronoi]")
