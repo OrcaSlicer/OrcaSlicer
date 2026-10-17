@@ -2,11 +2,22 @@
 
 #include "libslic3r/Fill/VoronoiInfill.hpp"
 #include "libslic3r/Fill/VoronoiRouting.hpp"
+#include "libslic3r/Fill/VoronoiWallDistance.hpp"
+#include "libslic3r/Fill/VoronoiMaterialDensity.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/EdgeGrid.hpp"
+#include <algorithm>
+#include <atomic>
 #include <array>
 #include <cmath>
+#include <cstdint>
+#include <future>
 #include <limits>
+#include <memory>
 #include <set>
+#include <vector>
+#include <stdexcept>
+#include <utility>
 
 using namespace Slic3r;
 
@@ -658,6 +669,76 @@ TEST_CASE("Voronoi point queries preserve the field when partitioned", "[FillVor
     REQUIRE(keys(points) == expected);
 }
 
+TEST_CASE("Random cloud rotation preserves points and thinning in a spherical field", "[FillVoronoi][Rotation]")
+{
+    const double angle = GENERATE(0.37, -1.2);
+    const Vec2d center(4., -3.);
+    const BoundingBoxf3 box(Vec3d(-16., -23., -20.), Vec3d(24., 17., 20.));
+    auto distance = [center](const std::vector<Vec3d> &points) {
+        std::vector<Voronoi::WallDistanceSample> samples;
+        for (const auto &p : points) {
+            const double d = (p - Vec3d(center.x(), center.y(), 0.)).norm() - 10.;
+            samples.push_back({d, Voronoi::WallDistancePointCloud::density_ratio(d, d)});
+        }
+        return samples;
+    };
+    const bool thinned = GENERATE(false, true);
+    std::shared_ptr<const Voronoi::PointCloudProvider> original, rotated;
+    if (thinned) {
+        original = std::make_shared<Voronoi::WallDistancePointCloud>(distance, Voronoi::WallDistancePointCloud::density_ratio(0., 2.));
+        rotated = std::make_shared<Voronoi::WallDistancePointCloud>(distance, Voronoi::WallDistancePointCloud::density_ratio(0., 2.), angle, center);
+    } else {
+        original = std::make_shared<Voronoi::PoissonPointCloud>();
+        rotated = std::make_shared<Voronoi::PoissonPointCloud>(angle, center);
+    }
+    auto interior = [center](std::vector<Vec3d> sites) {
+        sites.erase(std::remove_if(sites.begin(), sites.end(), [center](const auto &p) {
+            return (p - Vec3d(center.x(), center.y(), 0.)).norm() >= 10.;
+        }), sites.end());
+        return sites;
+    };
+    const auto source = interior(original->points_in(box, 3.));
+    const auto result = interior(rotated->points_in(box, 3.));
+    REQUIRE_FALSE(source.empty());
+    REQUIRE(result.size() == source.size());
+    for (const auto &p : source) {
+        const Vec2d offset = p.head<2>() - center;
+        const Vec3d expected(center.x() + std::cos(angle) * offset.x() - std::sin(angle) * offset.y(),
+                             center.y() + std::sin(angle) * offset.x() + std::cos(angle) * offset.y(), p.z());
+        const auto nearest = std::min_element(result.begin(), result.end(), [&](const auto &a, const auto &b) {
+            return (a - expected).squaredNorm() < (b - expected).squaredNorm();
+        });
+        REQUIRE_THAT((*nearest - expected).norm(), Catch::Matchers::WithinAbs(0., 1e-12));
+    }
+}
+
+TEST_CASE("Wall-distance thinning samples rotated candidates in model coordinates", "[FillVoronoi][Rotation]")
+{
+    const BoundingBoxf3 box(Vec3d(-12., -10., -5.), Vec3d(12., 10., 5.));
+    std::vector<Vec3d> sampled;
+    Voronoi::WallDistancePointCloud rotated([&](const auto &points) {
+        sampled = points;
+        return std::vector<Voronoi::WallDistanceSample>(points.size(), {-1., 1.});
+    }, Voronoi::WallDistancePointCloud::density_ratio(0., 2.), 0.37, Vec2d(2., -3.));
+    const auto retained = rotated.points_in(box, 3.);
+    const auto candidates = Voronoi::PoissonPointCloud(0.37, Vec2d(2., -3.)).points_in(
+        box, 3. / Voronoi::WallDistancePointCloud::density_ratio(0., 2.));
+    REQUIRE(sampled == candidates);
+    REQUIRE_FALSE(retained.empty());
+    const BoundingBoxf3 first(box.min, Vec3d(0., box.max.y(), box.max.z()));
+    const BoundingBoxf3 second(Vec3d(0., box.min.y(), box.min.z()), box.max);
+    auto parts = rotated.points_in(first, 3.);
+    const auto rest = rotated.points_in(second, 3.);
+    parts.insert(parts.end(), rest.begin(), rest.end());
+    auto keys = [](const auto &points) {
+        std::set<std::array<double, 3>> result;
+        for (const auto &p : points) result.insert({p.x(), p.y(), p.z()});
+        return result;
+    };
+    REQUIRE(keys(parts) == keys(retained));
+    REQUIRE_THROWS_AS(Voronoi::PoissonPointCloud(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
+}
+
 TEST_CASE("Voronoi coverage includes boundary corners without internal nodes", "[FillVoronoi]")
 {
     const auto bounds = rectangle(-2., -3., 2., 3.).contour.bounding_box();
@@ -746,6 +827,324 @@ TEST_CASE("Voronoi finite empty clouds terminate without geometry", "[FillVorono
     REQUIRE(infill.fill_geometry(region.contour.bounding_box(), region, 0.45, 0.2, 0., 0.45, 0.).walls.empty());
 }
 
+TEST_CASE("Voronoi wall distance favors walls and both corner signs", "[FillVoronoi]")
+{
+    using Cloud = Voronoi::WallDistancePointCloud;
+    REQUIRE(Cloud::density_ratio(-1., -1.) > Cloud::density_ratio(-15., -15.));
+    REQUIRE(Cloud::density_ratio(-4., -3.) > Cloud::density_ratio(-4., -4.));
+    REQUIRE(Cloud::density_ratio(-4., -5.) > Cloud::density_ratio(-4., -4.));
+    REQUIRE_THAT(Cloud::density_ratio(-1000., -1000.), Catch::Matchers::WithinAbs(0.01, EPSILON));
+    REQUIRE_THAT(Cloud::density_ratio(0., 0.), Catch::Matchers::WithinAbs(1., EPSILON));
+    REQUIRE_THAT(Cloud::density_ratio(-6., -6.), Catch::Matchers::WithinAbs(0.01 + 0.99 * std::exp(-4. / 6.), EPSILON));
+    REQUIRE(Cloud::density_ratio(-50., -50.) < 0.02);
+    REQUIRE(Cloud::density_ratio(-1000., -1000.) > 0.);
+    REQUIRE_THAT(Cloud::density_ratio(-5., -5.), Catch::Matchers::WithinAbs(Cloud::density_ratio(5., 5.), EPSILON));
+}
+
+TEST_CASE("Voronoi wall thinning preserves reproducibility and site intensity", "[FillVoronoi]")
+{
+    auto constant = [](const std::vector<Vec3d> &points) { return std::vector<Voronoi::WallDistanceSample>(points.size(), {-6., Voronoi::WallDistancePointCloud::density_ratio(-6., -6.)}); };
+    Voronoi::PoissonPointCloud uniform;
+    Voronoi::WallDistancePointCloud thinned(constant);
+    const BoundingBoxf3 box(Vec3d(-20., -20., -20.), Vec3d(20., 20., 20.));
+    auto keys = [](const std::vector<Vec3d> &points) {
+        std::set<std::array<double, 3>> result;
+        for (const Vec3d &p : points) REQUIRE(result.insert({p.x(), p.y(), p.z()}).second);
+        return result;
+    };
+    const double maximum_ratio = Voronoi::WallDistancePointCloud::density_ratio(0., 2.);
+    const auto source = keys(uniform.points_in(box, 1. / maximum_ratio));
+    const auto expected = keys(thinned.points_in(box, 1.));
+    REQUIRE_FALSE(expected.empty());
+    REQUIRE_THAT(double(expected.size()) / source.size(), Catch::Matchers::WithinRel(std::pow(Voronoi::WallDistancePointCloud::density_ratio(-6., -6.) / maximum_ratio, 3), 0.15));
+    for (const auto &point : expected) REQUIRE(source.count(point) == 1);
+    auto first = box, second = box;
+    first.max.z() = second.min.z() = 0.37;
+    auto points = thinned.points_in(second, 1.);
+    auto rest = thinned.points_in(first, 1.);
+    points.insert(points.end(), rest.begin(), rest.end());
+    REQUIRE(keys(points) == expected);
+}
+
+TEST_CASE("Voronoi wall cloud makes smaller cells near model walls", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-40., -40., 40., 40.)};
+    auto field = std::make_shared<Voronoi::CubicWallDistance>(std::vector<Voronoi::WallSlice>{{-100., 100., &outlines}});
+    auto provider = std::make_shared<Voronoi::WallDistancePointCloud>([field](const auto &points) { return field->sample_fields(points); });
+    VoronoiInfill infill(provider);
+    const auto bounds = outlines.front().contour.bounding_box();
+    const auto walls = infill.fill_geometry(bounds, outlines.front(), 0.45, 0.25, 0., 0.45, 0.).walls;
+    REQUIRE_FALSE(walls.empty());
+    const auto near_wall = rectangle(30., -30., 38., 30.);
+    const auto center = rectangle(-4., -30., 4., 30.);
+    REQUIRE(path_length(intersection_pl(walls, near_wall)) > path_length(intersection_pl(walls, center)));
+    REQUIRE(segments(infill.fill_geometry(bounds, outlines.front(), 0.45, 0.25, 5., 0.45, 0.).walls) != segments(walls));
+    REQUIRE(segments(infill.fill_geometry(bounds, outlines.front(), 0.45, 0.25, 0., 0.45, 0.).walls) == segments(walls));
+}
+
+TEST_CASE("Voronoi wall clouds become denser near both floors and roofs", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-50., -50., 50., 50.)};
+    auto field = std::make_shared<Voronoi::CubicWallDistance>(std::vector<Voronoi::WallSlice>{{0., 50., &outlines}});
+    Voronoi::WallDistancePointCloud cloud([field](const auto &points) { return field->sample_fields(points); });
+    const BoundingBoxf3 bottom(Vec3d(-10., -10., 0.), Vec3d(10., 10., 5.));
+    const BoundingBoxf3 center(Vec3d(-10., -10., 22.5), Vec3d(10., 10., 27.5));
+    const BoundingBoxf3 top(Vec3d(-10., -10., 45.), Vec3d(10., 10., 50.));
+    const auto floor_points = cloud.points_in(bottom, 1.);
+    const auto center_points = cloud.points_in(center, 1.);
+    const auto roof_points = cloud.points_in(top, 1.);
+    REQUIRE(floor_points.size() > 3 * center_points.size());
+    REQUIRE(roof_points.size() > 3 * center_points.size());
+    REQUIRE(cloud.points_in(bottom, 1.) == floor_points);
+}
+
+TEST_CASE("Voronoi cloud setup is reused across parallel layers and resets on reslicing", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-20., -20., 20., 20.)};
+    std::atomic<size_t> loads {0};
+    const auto slices = [&] {
+        ++loads;
+        return std::vector<Voronoi::WallSlice>{{0., 20., &outlines}};
+    };
+    Voronoi::WallDistanceCloudCache cache;
+    std::vector<std::future<std::shared_ptr<const Voronoi::PointCloudProvider>>> workers;
+    for (int i = 0; i < 8; ++i)
+        workers.push_back(std::async(std::launch::async, [&] { return cache.get(slices); }));
+    const auto cloud = workers.front().get();
+    for (size_t i = 1; i < workers.size(); ++i) REQUIRE(workers[i].get() == cloud);
+    REQUIRE(cache.get(slices) == cloud);
+    REQUIRE(loads == 1);
+    const BoundingBoxf3 region(Vec3d(-10., -10., 0.), Vec3d(10., 10., 3.));
+    const auto points = cloud->points_in(region, 4.);
+    REQUIRE_FALSE(points.empty());
+    cache.clear();
+    const auto regenerated = cache.get(slices);
+    REQUIRE(regenerated != cloud);
+    REQUIRE(loads == 2);
+    REQUIRE(regenerated->points_in(region, 4.) == points);
+}
+
+TEST_CASE("Voronoi Gaussian smoothing preserves flat-wall material density", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-30., -30., 30., 30.)};
+    Voronoi::CubicWallDistance field({{0., 60., &outlines}});
+    for (const auto &sample : field.sample_fields({Vec3d(0., 0., -2.), Vec3d(0., 0., 0.),
+                Vec3d(0., 0., 2.), Vec3d(0., 0., 6.), Vec3d(28., 0., 30.)}))
+        REQUIRE_THAT(sample.density, Catch::Matchers::WithinRel(
+            Voronoi::WallDistancePointCloud::density_ratio(sample.distance, sample.distance), 0.04));
+}
+
+TEST_CASE("Voronoi Gaussian smoothing increases density at convex and concave corners", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-20., -20., 20., 20.)};
+    Voronoi::CubicWallDistance convex({{0., 40., &outlines}});
+    const auto outer = convex.sample_fields({Vec3d(14., 14., 20.), Vec3d(14., 0., 20.),
+                                             Vec3d(14., 0., 34.), Vec3d(0., 14., 34.)});
+    using Cloud = Voronoi::WallDistancePointCloud;
+    REQUIRE(outer[0].density >
+            Cloud::density_ratio(outer[0].distance, outer[0].distance) + 0.03);
+    REQUIRE_THAT(outer[1].density, Catch::Matchers::WithinRel(Cloud::density_ratio(outer[1].distance, outer[1].distance), 0.04));
+    REQUIRE_THAT(outer[2].density, Catch::Matchers::WithinRel(outer[0].density, 0.04));
+    REQUIRE_THAT(outer[3].density, Catch::Matchers::WithinRel(outer[0].density, 0.04));
+    ExPolygon hollow = rectangle(-30., -30., 30., 30.);
+    hollow.holes.push_back(rectangle(-10., -10., 10., 10.).contour);
+    hollow.holes.back().reverse();
+    const ExPolygons hole {hollow};
+    Voronoi::CubicWallDistance concave({{0., 40., &hole}});
+    const auto inner = concave.sample_fields({Vec3d(14., 14., 20.)}).front();
+    REQUIRE(inner.density >
+            Cloud::density_ratio(inner.distance, inner.distance) + 0.01);
+}
+
+TEST_CASE("Voronoi separable smoothing matches a three dimensional Gaussian", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-20., -20., 20., 20.)};
+    Voronoi::CubicWallDistance field({{0., 40., &outlines}});
+    const Vec3d center(14., 14., 34.);
+    std::vector<Vec3d> points;
+    std::vector<double> weights;
+    for (int x = -6; x <= 6; ++x)
+        for (int y = -6; y <= 6; ++y)
+            for (int z = -6; z <= 6; ++z) {
+                points.push_back(center + Vec3d(x, y, z));
+                weights.push_back(std::exp(-(x * x + y * y + z * z) / 8.));
+            }
+    const auto distances = field.sample(points);
+    double expected = 0., weight_sum = 0.;
+    for (size_t i = 0; i < distances.size(); ++i) {
+        expected += weights[i] * distances[i];
+        weight_sum += weights[i];
+    }
+    REQUIRE_THAT(field.sample_fields({center}).front().density,
+                 Catch::Matchers::WithinRel(Voronoi::WallDistancePointCloud::density_ratio(field.sample({center}).front(), expected / weight_sum), 0.04));
+}
+
+TEST_CASE("Voronoi Gaussian smoothing remains planar when its radius exceeds the halo", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-50., -50., 50., 50.)};
+    Voronoi::CubicWallDistance field({{0., 100., &outlines}}, 8.);
+    const auto samples = field.sample_fields({Vec3d(0., 0., -2.), Vec3d(0., 0., 0.),
+                                               Vec3d(0., 0., 4.), Vec3d(46., 0., 50.)});
+    for (const auto &sample : samples)
+        REQUIRE_THAT(sample.density, Catch::Matchers::WithinRel(Voronoi::WallDistancePointCloud::density_ratio(sample.distance, sample.distance), 0.06));
+}
+
+TEST_CASE("Voronoi Gaussian smoothing accepts zero width and rejects invalid widths", "[FillVoronoi]")
+{
+    const ExPolygons outlines {rectangle(-10., -10., 10., 10.)};
+    Voronoi::CubicWallDistance field({{0., 20., &outlines}}, 0.);
+    for (const auto &sample : field.sample_fields({Vec3d(0., 0., 10.), Vec3d(0., 0., -1.), Vec3d(9.5, 0., 10.)}))
+        REQUIRE_THAT(sample.density, Catch::Matchers::WithinRel(Voronoi::WallDistancePointCloud::density_ratio(sample.distance, sample.distance), 0.04));
+    REQUIRE_THROWS_AS(Voronoi::CubicWallDistance({{0., 20., &outlines}}, -1.), std::invalid_argument);
+    REQUIRE_THROWS_AS(Voronoi::CubicWallDistance({{0., 20., &outlines}}, std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
+}
+
+TEST_CASE("Voronoi thinning samples prepared material density once per candidate", "[FillVoronoi]")
+{
+    size_t queried = 0;
+    Voronoi::WallDistancePointCloud cloud([&](const auto &points) {
+        queried += points.size();
+        return std::vector<Voronoi::WallDistanceSample>(points.size(), {-6., Voronoi::WallDistancePointCloud::density_ratio(-6., -5.)});
+    });
+    const BoundingBoxf3 box(Vec3d(-10., -10., -10.), Vec3d(10., 10., 10.));
+    const auto candidates = Voronoi::PoissonPointCloud().points_in(box, 3. / Voronoi::WallDistancePointCloud::density_ratio(0., 2.));
+    cloud.points_in(box, 3.);
+    REQUIRE(queried == candidates.size());
+}
+
+TEST_CASE("Voronoi cubic density saturates near walls and in the deep interior", "[FillVoronoi]")
+{
+    using Cloud = Voronoi::WallDistancePointCloud;
+    REQUIRE_THAT(Cloud::density_ratio(2., 2.), Catch::Matchers::WithinAbs(1., EPSILON));
+    REQUIRE_THAT(Cloud::density_ratio(-2., -2.), Catch::Matchers::WithinAbs(1., EPSILON));
+    REQUIRE_THAT(Cloud::density_ratio(32., 32.), Catch::Matchers::WithinAbs(0.01, EPSILON));
+    REQUIRE(Cloud::density_ratio(8., 8.) > Cloud::density_ratio(16., 16.));
+}
+
+TEST_CASE("Voronoi corners boost density above the setting without boosting flat walls", "[FillVoronoi]")
+{
+    using Cloud = Voronoi::WallDistancePointCloud;
+    for (double distance : {0., 1., 2., -1., -2.})
+        REQUIRE_THAT(Cloud::density_ratio(distance, distance), Catch::Matchers::WithinAbs(1., EPSILON));
+    const double maximum = 0.01 + 0.99 * std::exp(2. / 6.);
+    REQUIRE_THAT(Cloud::density_ratio(-2., -1.), Catch::Matchers::WithinAbs(0.01 + 0.99 * std::exp(1. / 6.), EPSILON));
+    REQUIRE_THAT(Cloud::density_ratio(-2., -3.), Catch::Matchers::WithinAbs(Cloud::density_ratio(-2., -1.), EPSILON));
+    REQUIRE_THAT(Cloud::density_ratio(-1., -20.), Catch::Matchers::WithinAbs(maximum, EPSILON));
+
+    const BoundingBoxf3 box(Vec3d(-20., -20., -20.), Vec3d(20., 20., 20.));
+    const auto uniform = Voronoi::PoissonPointCloud().points_in(box, 2.);
+    auto count = [&](Voronoi::WallDistanceSample sample) {
+        Cloud cloud([sample](const auto &points) { return std::vector<Voronoi::WallDistanceSample>(points.size(), sample); });
+        return double(cloud.points_in(box, 2.).size()) / uniform.size();
+    };
+    REQUIRE_THAT(count({-1., 1.}), Catch::Matchers::WithinRel(1., 0.1));
+    REQUIRE_THAT(count({-2., Cloud::density_ratio(-2., -1.)}), Catch::Matchers::WithinRel(std::pow(Cloud::density_ratio(-2., -1.), 3), 0.1));
+    REQUIRE_THAT(count({-1., maximum}), Catch::Matchers::WithinRel(std::pow(maximum, 3), 0.1));
+}
+
+TEST_CASE("Voronoi zero decay keeps a uniform base and permits corner boosts", "[FillVoronoi]")
+{
+    using Cloud = Voronoi::WallDistancePointCloud;
+    for (double depth : {0., 2., 12., 1000.}) {
+        REQUIRE_THAT(Cloud::density_ratio(-depth, -depth, 0.), Catch::Matchers::WithinAbs(1., EPSILON));
+        REQUIRE(Cloud::density_ratio(-depth, -depth + 1., 0.) > 1.);
+    }
+    REQUIRE(Cloud::density_ratio(-12., -12., 12.) > Cloud::density_ratio(-12., -12., 6.));
+    const ExPolygons outlines {rectangle(-10., -10., 10., 10.)};
+    Voronoi::WallDistanceCloudCache cache;
+    size_t loads = 0;
+    const auto slices = [&] { ++loads; return std::vector<Voronoi::WallSlice>{{0., 20., &outlines}}; };
+    const auto plain = cache.get(slices, 0., 0.);
+    const BoundingBoxf3 box(Vec3d(-5., -5., 0.), Vec3d(5., 5., 10.));
+    REQUIRE(plain->points_in(box, 2.) == Voronoi::PoissonPointCloud().points_in(box, 2.));
+    REQUIRE(cache.get(slices, 0., 0.) == plain);
+    REQUIRE(loads == 0);
+    REQUIRE(cache.get(slices, 6., 0.) != plain);
+    REQUIRE(cache.get(slices, 12., 0.) != plain);
+    REQUIRE(loads == 2);
+    REQUIRE_THROWS_AS(Cloud({}, -1.), std::invalid_argument);
+}
+
+TEST_CASE("Voronoi distance construction reports progress through completion", "[FillVoronoi]")
+{
+    const ExPolygons outlines{rectangle(0., 0., 20., 20.)};
+    const double sigma = GENERATE(0., 2.);
+    auto previous_stage = Voronoi::WallDistanceStage::Distance;
+    double previous_fraction = 0.;
+    bool saw_smoothing = false;
+    Voronoi::CubicWallDistance field({{0., 20., &outlines}}, sigma,
+        [&](Voronoi::WallDistanceStage stage, double fraction) {
+            REQUIRE(int(stage) >= int(previous_stage));
+            REQUIRE(fraction >= 0.);
+            REQUIRE(fraction <= 1.);
+            if (stage == previous_stage) REQUIRE(fraction >= previous_fraction);
+            previous_stage = stage;
+            previous_fraction = fraction;
+            if (stage == Voronoi::WallDistanceStage::SmoothXY || stage == Voronoi::WallDistanceStage::SmoothZ)
+                saw_smoothing = true;
+        });
+    REQUIRE(previous_stage == Voronoi::WallDistanceStage::Complete);
+    REQUIRE_THAT(previous_fraction, Catch::Matchers::WithinAbs(1., 1e-12));
+    REQUIRE(saw_smoothing == (sigma > 0.));
+    REQUIRE(field.sample({Vec3d(10., 10., 10.)}).front() < 0.);
+}
+
+TEST_CASE("Canceled Voronoi smoothing leaves the cache usable", "[FillVoronoi]")
+{
+    const ExPolygons outlines{rectangle(0., 0., 20., 20.)};
+    Voronoi::WallDistanceCloudCache cache;
+    const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{0., 20., &outlines}}; };
+    REQUIRE_THROWS_AS(cache.get(slices, 6., 2.,
+        [](Voronoi::WallDistanceStage stage, double) {
+            if (stage == Voronoi::WallDistanceStage::SmoothXY) throw std::runtime_error("cancel");
+        }), std::runtime_error);
+    bool completed = false;
+    const auto provider = cache.get(slices, 6., 2.,
+        [&](Voronoi::WallDistanceStage stage, double fraction) {
+            if (stage == Voronoi::WallDistanceStage::Complete && fraction == 1.) completed = true;
+        });
+    REQUIRE(completed);
+    REQUIRE(provider != nullptr);
+    REQUIRE(cache.get(slices, 6., 2.,
+        [](auto, double) { throw std::runtime_error("cached tables must not rebuild"); }) == provider);
+}
+
+TEST_CASE("Material density bytes preserve zero and sparse tails and reserve escape codes", "[FillVoronoi][MaterialDensity]")
+{
+    using namespace Voronoi;
+    REQUIRE(encode_material_density(0.) == 0);
+    REQUIRE(encode_material_density(1.) == 253);
+    REQUIRE_THAT(decode_material_density(253), Catch::Matchers::WithinAbs(1., 1e-15));
+    for (int code = 1; code <= 253; ++code)
+        REQUIRE(encode_material_density(decode_material_density(uint8_t(code))) == code);
+    for (double density : {0.0001, 0.0005, 0.0025, 0.05, 0.25, 0.8})
+        REQUIRE_THAT(decode_material_density(encode_material_density(density)), Catch::Matchers::WithinRel(density, 0.022));
+    REQUIRE(encode_material_density(1e-10) == 1);
+    REQUIRE_THROWS_AS(decode_material_density(254), std::invalid_argument);
+    REQUIRE_THROWS_AS(decode_material_density(255), std::invalid_argument);
+    REQUIRE_THROWS_AS(encode_material_density(-0.1), std::invalid_argument);
+    REQUIRE_THROWS_AS(encode_material_density(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
+}
+
+TEST_CASE("The candidate density bound covers both sparse interiors and dense walls", "[FillVoronoi][MaterialDensity]")
+{
+    const ExPolygons model {rectangle(-40., -40., 40., 40.)};
+    const double decay = GENERATE(2., 3.);
+    const double sigma = GENERATE(0., 8.);
+    const double density = 0.3;
+    Voronoi::CubicWallDistance field({{-40., 40., &model}}, sigma, {}, decay, density);
+    std::vector<Vec3d> points;
+    for (int x = 0; x <= 40; ++x) points.emplace_back(x, 0., 0.);
+    const auto samples = field.sample_fields(points);
+    const double boost = Voronoi::WallDistancePointCloud::density_ratio(0., sigma == 0. ? 0. : 2.);
+    const double expected = Voronoi::decode_material_density(Voronoi::encode_material_density(density * boost)) / density;
+    REQUIRE_THAT(field.maximum_density_ratio(), Catch::Matchers::WithinRel(expected, 1e-12));
+    REQUIRE(Voronoi::encode_material_density(density * samples.front().density) < 128);
+    REQUIRE(Voronoi::encode_material_density(density * samples.back().density) >= 128);
+    for (const auto &sample : samples)
+        REQUIRE(field.maximum_density_ratio() >= sample.density - 1e-12);
+}
+
 TEST_CASE("Incremental Voronoi geometry agrees with fresh builds while the slab moves", "[FillVoronoi][Incremental]")
 {
     const auto provider = std::make_shared<Voronoi::PoissonPointCloud>();
@@ -801,33 +1200,4 @@ TEST_CASE("Copied Voronoi networks own their storage through dimension changes",
         REQUIRE(contours(assigned) == expected);
     }
     REQUIRE(contours(mesh).empty());
-}
-
-TEST_CASE("Random cloud rotation preserves points in a spherical region", "[FillVoronoi][Rotation]")
-{
-    const double angle = GENERATE(0.37, -1.2);
-    const Vec2d center(4., -3.);
-    const BoundingBoxf3 box(Vec3d(-16., -23., -20.), Vec3d(24., 17., 20.));
-    const auto original = std::make_shared<Voronoi::PoissonPointCloud>();
-    const auto rotated = std::make_shared<Voronoi::PoissonPointCloud>(angle, center);
-    auto interior = [center](std::vector<Vec3d> sites) {
-        sites.erase(std::remove_if(sites.begin(), sites.end(), [center](const auto &p) {
-            return (p - Vec3d(center.x(), center.y(), 0.)).norm() >= 10.;
-        }), sites.end());
-        return sites;
-    };
-    const auto source = interior(original->points_in(box, 3.));
-    const auto result = interior(rotated->points_in(box, 3.));
-    REQUIRE_FALSE(source.empty());
-    REQUIRE(result.size() == source.size());
-    for (const auto &p : source) {
-        const Vec2d offset = p.head<2>() - center;
-        const Vec3d expected(center.x() + std::cos(angle) * offset.x() - std::sin(angle) * offset.y(),
-                             center.y() + std::sin(angle) * offset.x() + std::cos(angle) * offset.y(), p.z());
-        const auto nearest = std::min_element(result.begin(), result.end(), [&](const auto &a, const auto &b) {
-            return (a - expected).squaredNorm() < (b - expected).squaredNorm();
-        });
-        REQUIRE_THAT((*nearest - expected).norm(), Catch::Matchers::WithinAbs(0., 1e-12));
-    }
-    REQUIRE_THROWS_AS(Voronoi::PoissonPointCloud(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
 }

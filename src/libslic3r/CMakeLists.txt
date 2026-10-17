@@ -171,14 +171,16 @@ set(lisbslic3r_sources
     Fill/FillCrossHatch.hpp
     Fill/FillGyroid.cpp
     Fill/FillGyroid.hpp
-    SlicedDistanceField.cpp
-    SlicedDistanceField.hpp
     Fill/FillVoronoi.cpp
     Fill/FillVoronoi.hpp
     Fill/VoronoiInfill.cpp
     Fill/VoronoiInfill.hpp
     Fill/VoronoiPointCloud.cpp
     Fill/VoronoiPointCloud.hpp
+    SlicedDistanceField.cpp
+    SlicedDistanceField.hpp
+    Fill/VoronoiWallDistance.cpp
+    Fill/VoronoiWallDistance.hpp
     Fill/VoronoiRouting.cpp
     Fill/VoronoiRouting.hpp
     Fill/VoronoiInfillCgal.hpp

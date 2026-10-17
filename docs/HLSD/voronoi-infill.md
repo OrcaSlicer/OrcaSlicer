@@ -38,7 +38,7 @@ floors and wall sections within floors while retaining their supporting boundari
 
 ## Extrusion and routing
 
-Faces become single wall lines when successive layers have at least half-bead
+At one bead, faces become single wall lines when successive layers have at least half-bead
 overlap. Shallower faces become floor bands, rounded outward to Orca's flow row
 spacing while keeping the supported boundary fixed. At constant layer height,
 continuing bands have at least 50% overlap before clipping; face ends, holes and
@@ -46,9 +46,11 @@ changing layer heights limit that guarantee.
 
 Native Rectilinear fill prints floor rows along the face section in alternating
 zigzags, advancing from the supported side. Orca's bead width, flow and spacing
-are retained. Floor row ends extend into nearby previous-layer perimeter bead
-footprints when reachable; sparse slice interiors are not treated as solid support.
-This does not select bridge flow or guarantee support at both ends.
+are retained. Rows ending within one bead width of a previous-layer perimeter
+extend into its actual extrusion footprint. Extensions remain within the fill
+surface or existing perimeter material. This preserves the sweep order but does
+not guarantee support at internal face ends or where the perimeter is out of reach. Boundary anchoring alone cannot
+provide missing support, and floor rows retain ordinary infill flow.
 
 Wall graph vertices snap to fixed representatives. Branch pairing favours
 straight crossings; three-way junctions cycle turns across layers using their
@@ -63,6 +65,32 @@ Density is statistical: spacing calibration accounts for floor material, but
 clipping and row rounding affect the result. Nominal extrusion dimensions keep
 first-layer widths and adaptive layer heights from changing the point field.
 Infill reports completed layers with throttled UI updates and cancellation.
+
+## Wall proximity and smoothing
+
+Wall-proximity decay defaults to 6 mm; zero gives a uniform base. Gaussian sigma
+defaults to 8 mm; zero disables smoothing. With both zero and the Random method,
+the original Poisson provider is used without a distance table.
+
+Along flat walls, local density stays at the selected setting within 2 mm,
+then decays exponentially to a 1% tail after five decay lengths. The magnitude
+of the difference between original and smoothed signed distances reduces the
+effective depth near both convex and concave corners. This can boost density to
+approximately 1.39 times the setting. Zero decay retains the corner boost with
+a 6 mm response length. A reproducibly thinned Poisson candidate field follows
+this density; thinning does not constrain face slopes or ensure vaulted roofs.
+
+The density field is prepared on the [sliced distance grid](sliced-distance-field.md).
+Material density uses a logarithmic byte: zero is empty, codes 1–253 have sixteen
+steps per doubling up to 100%, and 254–255 are reserved. Queries interpolate
+decoded densities; raw signed distance remains available independently.
+
+Gaussian smoothing uses separable CPU OpenCV filters with fixed-point working
+values. Temporary filter borders extrapolate outward slopes; zero sigma reuses
+raw distances. The fixed-point smoothing result is converted directly into
+material density using wall decay and corner adjustment, without retaining a
+smoothed-distance table. Fields are shared by matching material-density settings. Reslicing clears the per-object cache.
+Construction and smoothing report phase progress and check cancellation.
 
 ## Wall thickness
 

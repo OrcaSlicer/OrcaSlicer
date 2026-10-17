@@ -800,10 +800,42 @@ void PrintObject::infill()
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
 
+        bool warned_point_count = false;
         bool has_voronoi = false;
-        for (size_t i = 0; i < num_printing_regions(); ++i)
-            has_voronoi |= printing_region(i).config().sparse_infill_pattern == ipVoronoi;
-
+        // Build shared distance fields before workers start reporting completed
+        // layers. This also avoids workers waiting behind table initialization.
+        for (size_t region_id = 0; region_id < num_printing_regions(); ++region_id) {
+            const PrintRegionConfig &config = printing_region(region_id).config();
+            const size_t object_region = printing_region(region_id).print_object_region_id();
+            BOOST_LOG_TRIVIAL(warning) << "Voronoi diagnostic: region=" << object_region
+                << " pattern=" << int(config.sparse_infill_pattern.value) << " layers=" << m_layers.size()
+                << " density=" << config.sparse_infill_density.value << " decay=" << config.voronoi_wall_decay.value
+                << " sigma=" << config.voronoi_smoothing_sigma.value;
+            if (std::none_of(m_layers.begin(), m_layers.end(), [object_region](const Layer *layer) {
+                    return !layer->regions()[object_region]->slices.empty();
+                })) continue;
+            if (config.sparse_infill_density > 0 && config.sparse_infill_pattern == ipVoronoi) {
+                has_voronoi = true;
+                double maximum_density = 0.01 * config.sparse_infill_density.value;
+                const double candidate_spacing = Voronoi::PoissonPointCloud().spacing(
+                    printing_region(region_id).flow(*this, frInfill, m_config.layer_height.value).spacing() * config.fill_multiline.value,
+                    m_config.layer_height.value, std::min(1., maximum_density * Voronoi::WallDistancePointCloud::density_ratio(0., 2.)));
+                const Vec3d extent = m_size.cast<double>() * SCALING_FACTOR;
+                if (!warned_point_count && extent.prod() / std::pow(candidate_spacing, 3) > 1000000.) {
+                    active_step_add_warning(PrintStateBase::WarningLevel::NON_CRITICAL,
+                        L("Voronoi infill may generate a large point cloud and require substantial memory. Consider increasing Fill Multiline for thicker walls with fewer cells. This estimate uses the densest material setting, including fused modifiers."));
+                    warned_point_count = true;
+                }
+                double angle = Geometry::deg2rad(config.infill_direction.value);
+                if (config.align_infill_direction_to_model) {
+                    const auto m = trafo().matrix();
+                    const float align_offset = atan2((float)m(1, 0), (float)m(0, 0));
+                    angle += align_offset;
+                }
+                voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value, angle,
+                                    0.01 * float(config.sparse_infill_density.value));
+            }
+        }
         size_t completed_layers = 0;
         std::mutex progress_mutex;
         auto last_report = std::chrono::steady_clock::now();
@@ -1303,8 +1335,41 @@ TpmsRadialFields PrintObject::prepare_tpms_radial_fields() const
     return fields;
 }
 
+
+std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, double angle, double material_density) const
+{
+    const int percent = is_step_done(posPrepareInfill) ? 35 : 25;
+    auto last_report = std::chrono::steady_clock::now();
+    auto last_stage = Voronoi::WallDistanceStage::Complete;
+    return m_voronoi_cloud_cache.get([this] {
+            std::vector<Voronoi::WallSlice> slices;
+            for (const Layer *layer : layers())
+                slices.push_back({layer->bottom_z(), layer->print_z, &layer->lslices});
+            return slices;
+        }, decay, sigma,
+        [this, percent, &last_report, &last_stage](Voronoi::WallDistanceStage stage, double fraction) {
+            m_print->throw_if_canceled();
+            const auto now = std::chrono::steady_clock::now();
+            if (stage == last_stage && fraction < 1. && now - last_report < std::chrono::milliseconds(250)) return;
+            std::string message;
+            switch (stage) {
+            case Voronoi::WallDistanceStage::Distance: message = L("Building Voronoi wall distances"); break;
+            case Voronoi::WallDistanceStage::Encoding: message = L("Encoding Voronoi wall distances"); break;
+            case Voronoi::WallDistanceStage::SmoothXY: message = L("Smoothing Voronoi wall distances (XY)"); break;
+            case Voronoi::WallDistanceStage::SmoothZ: message = L("Smoothing Voronoi wall distances (Z)"); break;
+            case Voronoi::WallDistanceStage::MaterialDensity: message = L("Preparing Voronoi material density"); break;
+            case Voronoi::WallDistanceStage::Complete: message = L("Finalizing Voronoi wall distances"); break;
+            default: return;
+            }
+            m_print->set_status(percent, message + " (" + std::to_string(int(100. * fraction)) + "%)");
+            last_report = now;
+            last_stage = stage;
+        }, angle, material_density);
+}
+
 void PrintObject::clear_layers()
 {
+    m_voronoi_cloud_cache.clear();
     if (!m_shared_object) {
         for (Layer *l : m_layers)
             delete l;
@@ -1657,6 +1722,7 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "interface_shells"
             || opt_key == "infill_multiline"
+            || opt_key == "fill_multiline"
             || opt_key == "infill_combination"
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
@@ -1704,6 +1770,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_overhang_angle") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "voronoi_wall_decay" || opt_key == "voronoi_smoothing_sigma"
                    || opt_key == "tpms_adaptive"
                    || opt_key == "tpms_interior_density"
                    || opt_key == "tpms_adaptive_gradient"
@@ -1879,11 +1946,13 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posPrepareInfill) {
+        m_voronoi_cloud_cache.clear();
         invalidated |= this->invalidate_steps({ posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
     } else if (step == posInfill) {
         invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posSlice) {
+        m_voronoi_cloud_cache.clear();
         // posSimplifySupportPath is listed with posSupportMaterial: invalidate_steps() does not
         // propagate, so without it a re-slice regenerated the supports but kept the step done,
         // and the new support paths were exported unsimplified, unlike a fresh slice.
@@ -1921,6 +1990,7 @@ bool PrintObject::invalidate_all_steps()
     const bool inherited_invalidated = Inherited::invalidate_all_steps();
     const bool print_invalidated     = m_print->invalidate_all_steps();
     bool result = inherited_invalidated || print_invalidated;
+    m_voronoi_cloud_cache.clear();
 	// Then reset some of the depending values.
 	m_slicing_params.valid = false;
 	m_belt_floor_z_shift_cache_valid = false;

@@ -1188,6 +1188,8 @@ static std::vector<std::string> s_Preset_print_options{
     "tpms_adaptive_gradient",
     "gyroid_optimized",
     "sparse_infill_pattern",
+    "voronoi_wall_decay",
+    "voronoi_smoothing_sigma",
     "sparse_infill_smooth_factor",
     "lateral_lattice_angle_1",
     "lateral_lattice_angle_2",
