@@ -615,8 +615,22 @@ TEST_CASE("Python module release removes package submodules and owned sys.path",
 
     // Ensure the next import executes the new submodule rather than reusing a stale package child.
     write_package("'new'");
-    boost::system::error_code ec;
-    fs::remove_all(package_root / "__pycache__", ec);
+    {
+        // The rewrite can keep the old mtime and size, so drop the bytecode wherever the
+        // interpreter caches it.
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObjectPtr util(PyImport_ImportModule("importlib.util"));
+        REQUIRE(util);
+        for (const char* file : {"__init__.py", "sub.py"}) {
+            PyObjectPtr source(PyUnicode_DecodeFSDefault((package_root / file).string().c_str()));
+            REQUIRE(source);
+            PyObjectPtr cached(PyObject_CallMethod(util.get(), "cache_from_source", "O", source.get()));
+            REQUIRE(cached);
+            boost::system::error_code ec;
+            fs::remove(fs::path(PyUnicode_AsUTF8(cached.get())), ec);
+        }
+    }
 
     paths.clear();
     modules.clear();

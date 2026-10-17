@@ -584,6 +584,19 @@ bool PythonInterpreter::initialize()
         }
         BOOST_LOG_TRIVIAL(debug) << "Program name set successfully";
 
+        // Keep bytecode out of the Python home. The shipped .pyc files are stale against their
+        // sources, so a writable install would rewrite them inside the app (breaking a signed
+        // macOS bundle's seal) and a read-only one would recompile them on every launch.
+        const std::string pycache_prefix = data_dir() + "/python/pycache";
+#ifdef _WIN32
+        status = PyConfig_SetString(&config, &config.pycache_prefix, boost::nowide::widen(pycache_prefix).c_str());
+#else
+        status = PyConfig_SetBytesString(&config, &config.pycache_prefix, pycache_prefix.c_str());
+#endif
+        if (PyStatus_Exception(status))
+            BOOST_LOG_TRIVIAL(warning) << "Failed to set the Python bytecode cache to " << pycache_prefix << ": "
+                                       << (status.err_msg ? status.err_msg : "unknown error");
+
         // Use pybind11's scoped_interpreter which properly initializes
         // pybind11 internals for multi-threaded use — raw Py_InitializeFromConfig
         // does not set up thread state tracking that pybind11 requires.
