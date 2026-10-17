@@ -5600,6 +5600,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts { 0 });
 
+    def = this->add("additional_cooling_fan_linear_ramp", coBools);
+    def->label = L("Linear ramp");
+    def->tooltip = L("Give the auxiliary fan its own schedule, independent of the part cooling fan: it runs at the fan speed set below for the first "
+                     "layers, then ramps up linearly and reaches the auxiliary fan speed at the \"Full fan speed at layer\" below. "
+                     "This reduces the sudden temperature drop near the first layer, which helps against warping.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBools { false });
+
     def = this->add("close_additional_fan_first_x_layers", coInts);
     def->label = L("For the first");
     def->tooltip = L("Set special auxiliary cooling fan for the first certain layers.");

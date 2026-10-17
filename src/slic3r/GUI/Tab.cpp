@@ -4744,6 +4744,13 @@ void TabFilament::build()
 
         optgroup = page->new_optgroup(L("Auxiliary part cooling fan"), L"param_cooling_aux_fan");
         optgroup->append_single_option_line("additional_cooling_fan_speed", "material_cooling#auxiliary-part-cooling-fan", 0);
+        optgroup->append_single_option_line("additional_cooling_fan_linear_ramp", "material_cooling#auxiliary-part-cooling-fan");
+        line = { L("For the first"), L("Set special auxiliary cooling fan for the first certain layers.") };
+        line.label_path = "material_cooling#auxiliary-part-cooling-fan";
+        line.append_option(optgroup->get_option("close_additional_fan_first_x_layers"));
+        line.append_option(optgroup->get_option("first_x_layer_fan_speed"));
+        optgroup->append_line(line);
+        optgroup->append_single_option_line("additional_fan_full_speed_layer", "material_cooling#auxiliary-part-cooling-fan");
 
         optgroup = page->new_optgroup(L("Exhaust fan"),L"param_cooling_exhaust");
 
@@ -4971,6 +4978,11 @@ void TabFilament::toggle_options()
         }
 
         toggle_line("additional_cooling_fan_speed", printer_cfg.opt_bool("auxiliary_fan"), 256 + variant_index);
+        toggle_line("additional_cooling_fan_linear_ramp", printer_cfg.opt_bool("auxiliary_fan"));
+        const bool aux_ramp_enabled = printer_cfg.opt_bool("auxiliary_fan") && m_config->opt_bool("additional_cooling_fan_linear_ramp", 0);
+        toggle_line("close_additional_fan_first_x_layers", aux_ramp_enabled);
+        toggle_line("first_x_layer_fan_speed", aux_ramp_enabled);
+        toggle_line("additional_fan_full_speed_layer", aux_ramp_enabled);
 
         bool support_air_filtration = printer_cfg.opt_bool("support_air_filtration");
         for (auto el : {"activate_air_filtration", "during_print_exhaust_fan_speed", "complete_print_exhaust_fan_speed"})

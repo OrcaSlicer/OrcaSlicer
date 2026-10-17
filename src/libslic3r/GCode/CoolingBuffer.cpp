@@ -873,6 +873,23 @@ std::string CoolingBuffer::apply_layer_cooldown(
             ironing_fan_control = false; // ORCA: Add support for ironing fan speed control
             ironing_fan_speed = 0; // ORCA: Add support for ironing fan speed control
         }
+        // Auxiliary fan linear ramp (opt-in). The auxiliary fan has its own schedule, independent of the part cooling
+        // fan: it runs at `first_x_layer_fan_speed` for the first `close_additional_fan_first_x_layers` layers, then
+        // rises linearly to `additional_cooling_fan_speed`, reaching it at layer `additional_fan_full_speed_layer`.
+        // An `additional_fan_full_speed_layer` not above the first-layers count means no ramp: full speed right after.
+        if (m_config.additional_cooling_fan_linear_ramp.get_at(m_current_extruder)) {
+            const int   aux_first_layers = m_config.close_additional_fan_first_x_layers.get_at(m_current_extruder);
+            const int   aux_full_layer   = m_config.additional_fan_full_speed_layer.get_at(m_current_extruder);
+            const float aux_target       = float(m_config.additional_cooling_fan_speed.get_at(config_index));
+            const float aux_first_speed  = std::min(float(m_config.first_x_layer_fan_speed.get_at(m_current_extruder)), aux_target);
+            if (int(layer_id) < aux_first_layers)
+                additional_fan_speed_new = int(aux_first_speed + 0.5f);
+            else if (int(layer_id) + 1 < aux_full_layer) {
+                const float t = float(int(layer_id) + 1 - aux_first_layers) / float(aux_full_layer - aux_first_layers);
+                additional_fan_speed_new = int(aux_first_speed + t * (aux_target - aux_first_speed) + 0.5f);
+            } else
+                additional_fan_speed_new = int(aux_target);
+        }
         // A tool change may keep the same configured base fan speed while the physical fan is
         // still running at the previous filament's overhang speed. Restore the base speed before
         // emitting G-code for the new tool in that case.

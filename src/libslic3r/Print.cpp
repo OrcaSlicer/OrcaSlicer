@@ -215,6 +215,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "extruder_offset",
         "filament_flow_ratio",
         "reduce_fan_stop_start_freq",
+        "additional_cooling_fan_linear_ramp",
         "dont_slow_down_outer_wall",
         "fan_cooling_layer_time",
         "full_fan_speed_layer",

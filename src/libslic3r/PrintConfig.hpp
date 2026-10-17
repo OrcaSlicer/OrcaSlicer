@@ -1961,6 +1961,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,                           enable_belt_purge_tower))
     //BBS
     ((ConfigOptionInts,               additional_cooling_fan_speed))
+    ((ConfigOptionBools,              additional_cooling_fan_linear_ramp))
     ((ConfigOptionInts,               close_additional_fan_first_x_layers))
     ((ConfigOptionInts,               additional_fan_full_speed_layer))
     ((ConfigOptionFloats,             first_x_layer_fan_speed))
