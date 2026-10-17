@@ -1520,7 +1520,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_z_hop",
     "filament_z_hop_types",
     // Profile compatibility
-    "filament_vendor", "compatible_prints", "compatible_prints_condition", "compatible_printers", "compatible_printers_condition", "inherits",
+    "filament_vendor", "filament_subtype", "compatible_prints", "compatible_prints_condition", "compatible_printers", "compatible_printers_condition", "inherits",
     //BBS
     "filament_wipe_distance", "additional_cooling_fan_speed",
     "nozzle_temperature_range_low", "nozzle_temperature_range_high",

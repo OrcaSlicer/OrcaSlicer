@@ -4526,6 +4526,7 @@ void TabFilament::build()
         auto optgroup = page->new_optgroup(L("Basic information"), L"param_information");
         optgroup->append_single_option_line("filament_type", "material_basic_information#type"); // ORCA use same width with other elements
         optgroup->append_single_option_line("filament_vendor", "material_basic_information#vendor");
+        optgroup->append_single_option_line("filament_subtype", "material_basic_information#subtype");
         optgroup->append_single_option_line("filament_soluble", "material_basic_information#soluble-material");
         // BBS
         optgroup->append_single_option_line("filament_is_support", "material_basic_information#support-material");
