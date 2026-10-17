@@ -1,17 +1,19 @@
-# wx 3.1.5 → 3.3.2: changes Orca code can trip on
+# wx 3.1.5 → 3.3.4: changes Orca code can trip on
 
-OrcaSlicer moved from wxWidgets **3.1.5** to **3.3.2** (8248b06337, #12941). This file digests the
+OrcaSlicer moved from wxWidgets **3.1.5** to **3.3.2** (8248b06337, #12941) and the pin is now upstream
+**3.3.4** (`deps/wxWidgets/wxWidgets.cmake`, tag `v3.3.4`). This file digests the
 changes between those versions that matter to GUI code — the 3.1.6–3.2.0 incompatible changes, the
-3.3 incompatible changes, and the notable 3.3.0/3.3.1/3.3.2 changes — each with what it means for
-Orca, plus the migration already done in Orca as rules for new code. Read it when code written
-from older wx knowledge behaves oddly, when a wx doc says "since 3.3", or when reviewing code near
-the workarounds in §8. Where this file and prior wx knowledge disagree, this file wins.
+3.3 incompatible changes, and the notable 3.3.0/3.3.1/3.3.2/3.3.3/3.3.4 changes — each with what it
+means for Orca, plus the migration already done in Orca as rules for new code. Read it when code
+written from older wx knowledge behaves oddly, when a wx doc says "since 3.3", or when reviewing code
+near the workarounds in §10. Where this file and prior wx knowledge disagree, this file wins.
 
 Contents: [Rules](#rules) · [1 Reading the change logs](#1-reading-the-change-logs) ·
 [2 3.1.6 → 3.2.0](#2-changes-from-316-to-320) · [3 3.3 behaviour changes](#3-33-behaviour-changes-that-compile) ·
 [4 3.3 build changes](#4-33-changes-that-break-the-build) · [5 3.3.0](#5-330-notable-changes) ·
 [6 3.3.1](#6-331-notable-fixes) · [7 3.3.2](#7-332-notable-changes) ·
-[8 Migration done in Orca](#8-migration-already-done-in-orca)
+[8 3.3.3](#8-333-notable-changes) · [9 3.3.4](#9-334-notable-changes) ·
+[10 Migration done in Orca](#10-migration-already-done-in-orca)
 
 All `docs/`, `interface/`, `include/`, `src/`, `build/` cites are relative to the pinned wx tree
 (located as in `SKILL.md` §Ground truth), except paths
@@ -21,8 +23,8 @@ explicitly called Orca's (`deps/…`, Orca's `src/CMakeLists.txt`) and bare Orca
 
 1. Read every "now asserts" in the change logs as "now silently returns or does nothing" in Orca:
    wx asserts are compiled out. Validate arguments yourself. → [§1](#1-reading-the-change-logs)
-2. Target 3.3.2 only. Do not add `wxCHECK_VERSION` / `wxVERSION_NUMBER` /
-   `wxVERSION_EQUAL_OR_GREATER_THAN` branches for older wx. → [§8](#8-migration-already-done-in-orca)
+2. Target 3.3.4 only. Do not add `wxCHECK_VERSION` / `wxVERSION_NUMBER` /
+   `wxVERSION_EQUAL_OR_GREATER_THAN` branches for older wx. → [§10](#10-migration-already-done-in-orca)
 3. Mark every override of a wx virtual `override`. 3.2/3.3 changed parameter types (`wxBitmapBundle`,
    `wxReadOnlyDC`, `wxWindowBase*`, `wxVersionContext`); a stale signature must fail to compile, not
    become a silent overload. → [§4](#4-33-changes-that-break-the-build)
@@ -39,33 +41,36 @@ explicitly called Orca's (`deps/…`, Orca's `src/CMakeLists.txt`) and bare Orca
    `WX_GL_SAMPLES`); `wxGLAttributes::Defaults()` no longer includes it. → [§3](#3-33-behaviour-changes-that-compile)
 9. Size a `wxImageList` in physical pixels (the bitmaps' `GetSize()`), or use the `wxBitmapBundle`
    image APIs. → [§3](#3-33-behaviour-changes-that-compile)
-10. Return translated strings as `wxString` by value. → [§3](#3-33-behaviour-changes-that-compile)
+10. `wxGetTranslation()` returns `const wxString&` (3.3.2 made it by-value; 3.3.3 reverted that); a
+    wrapper that converts a translation returns by value. → [§3](#3-33-behaviour-changes-that-compile)
 11. Escape `&` in user text used as a control label or book page title. → [§3](#3-33-behaviour-changes-that-compile)
 12. `wxDynamicCast` only on a pointer whose static type derives from `wxObject`; use `dynamic_cast`
     for mixin interfaces (`wxComboPopup`, `wxItemContainer`, `wxTextEntry`). → [§4](#4-33-changes-that-break-the-build)
 13. Build a `wxArrayString` with `Add()` or an initializer list, walk wx lists with
     `compatibility_iterator` or range-for, and make a `wxString` the first operand of a mixed
     `+` chain. → [§4](#4-33-changes-that-break-the-build)
-14. MSW windows are not double-buffered by default in 3.3.2; a custom-painted control buffers itself.
+14. MSW windows are not double-buffered by default in 3.3.4; a custom-painted control buffers itself.
     → [§5](#5-330-notable-changes)
 15. `wxEVT_DPI_CHANGED` now fires on GTK3 too; such handlers must be correct on GTK, and every handler
     you bind calls `Skip()` (`DPIAware`'s own is the one exception). → [§5](#5-330-notable-changes)
-16. wx MSW dark mode cannot be switched at runtime; do not replace Orca's NppDarkMode with it without
-    keeping live theme switching. → [§5](#5-330-notable-changes)
+16. wx MSW dark mode became runtime-switchable in 3.3.3/3.3.4 (`SetAppearance`/`MSWEnableDarkMode`
+    restyle existing windows); Orca still keeps NppDarkMode for its own chrome.
+    → [§5](#5-330-notable-changes), [§9](#9-334-notable-changes)
 17. After `wxStaticText::SetLabel`, re-wrap with `Wrap(-1); Wrap(w);` (or use `Label`); `wxST_WRAP`
     is opt-in and works only inside a sizer. → [§7](#7-332-notable-changes)
 18. On Linux/X11 call `wxGLCanvas::PreferGLX()` before any GL use; on Unix set a swap interval explicitly
     if frame pacing matters (wx forces 0). → [§7](#7-332-notable-changes)
 19. Compare `wxGrid::GetSelectedBlocks()` `begin()` with `end()` before dereferencing.
-    → [§8](#8-migration-already-done-in-orca)
+    → [§10](#10-migration-already-done-in-orca)
 20. Keep the post-upgrade workarounds (MainFrame `WS_CAPTION` masking, macOS deep-link handler,
     `MSWEnableDarkMode` ordering, `SidePopup` anchoring, MSW `GLCanvas3D::on_paint` render) when
-    touching that code. → [§8](#8-migration-already-done-in-orca)
+    touching that code. → [§10](#10-migration-already-done-in-orca)
 
 ## 1 Reading the change logs
 
-**Sources.** `docs/changes.txt` lists changes since 3.2: incompatible behaviour changes :11-146,
-build-breaking changes :149-252, 3.3.2 :255-330, 3.3.1 :333-377, 3.3.0 :380-622.
+**Sources.** `docs/changes.txt` lists changes since 3.2: incompatible behaviour changes :11-178,
+build-breaking changes :181-292, 3.3.4 :295-385, 3.3.3 :388-445, 3.3.2 :448-523, 3.3.1 :526-570,
+3.3.0 :573-815.
 `docs/changes_32.txt` covers 3.x → 3.2.0: the cumulative "INCOMPATIBLE CHANGES SINCE 3.0.x" list
 :9-233, 3.2.0 :235-276, 3.1.7 :279-340, 3.1.6 :343-444. wxQt, wxiOS, wxUniv, wxMotif and wxGTK1
 items are left out here.
@@ -73,11 +78,14 @@ items are left out here.
 **Coverage gaps.**
 - The "since 3.0.x" list in `changes_32.txt` is cumulative over all of 3.1.x. Most of it was already
   in force in 3.1.5; §2.1 lists only what was added after 3.1.5, §2.3 the older items worth knowing.
-- `changes_32.txt` in this tree stops at 3.2.0. The 3.2.1–3.2.10 maintenance fixes are not listed
+- `changes_32.txt` in this tree stops at 3.2.0. The 3.2.1–3.2.12 maintenance fixes are not listed
   anywhere in the tree.
-- 3.3.0's list is relative to 3.2.8 (`changes.txt:383`). 3.3.2's list is relative to 3.2.10, and the
+- 3.3.0's list is relative to 3.2.8 (`changes.txt:576`). 3.3.2's list is relative to 3.2.10, and the
   full set of changes since 3.3.1 *also includes* the 3.2.9 and 3.2.10 fixes, which are **not**
-  listed in this file (`changes.txt:258-259`).
+  listed in this file (`changes.txt:451-452`). 3.3.3's list is relative to 3.2.11, and its changes
+  since 3.3.2 *also include* the 3.2.10–3.2.11 fixes (`changes.txt:391-392`); 3.3.4's list is
+  relative to 3.2.11 too, and its changes since 3.3.3 *also include* the 3.2.11–3.2.12 fixes
+  (`changes.txt:298-299`).
 
 **"Asserts" mean silence in Orca.** wx is built with `-DwxBUILD_DEBUG_LEVEL=0`
 (`deps/wxWidgets/wxWidgets.cmake` → `build/cmake/init.cmake:245-246`), and `libslic3r_gui` gets
@@ -117,7 +125,7 @@ the 3.1.7-specific section.
 | `wxSpinCtrl::SetValue(wxString)` sends no events on MSW (as documented) | :129-130 | do not rely on setter events (`controls-dataview.md`) |
 | `wxButton::GetBitmap{Current,Disabled,Focus,Pressed}()` return a valid bitmap on MSW only if set | :132-134 | check `IsOk()` |
 | `wxFileName::GetVolume()` returns `\\share` for UNC paths and `\\?\Volume{GUID}` for GUID paths | :136-140 | path code comparing volumes |
-| `wxBitmapComboBoxBase::SetItemBitmap()` takes `wxBitmapBundle` | :152-153 | the bundle change also retyped `OnAddBitmap` (5f365b5c6b, §8) |
+| `wxBitmapComboBoxBase::SetItemBitmap()` takes `wxBitmapBundle` | :152-153 | the bundle change also retyped `OnAddBitmap` (5f365b5c6b, §10) |
 | MSW also links `oleacc` (3.1.5 already needed `shlwapi`, `uxtheme`, `version`) | :158-163 | automatic with MSVC |
 | Xcode projects drop i386, add arm64 | :205-207 | none (CMake build) |
 | `wxImage` ctor from XPM data is `explicit` | :225-226 | write `wxImage(xpm)` |
@@ -136,7 +144,7 @@ the 3.1.7-specific section.
 | MSW: TLW resizing on DPI change improved and overridable — a handler that sizes the TLW itself does not `Skip()` (3.2.0) | `changes_32.txt:269`; `interface/wx/event.h` (`wxDPIChangedEvent`) | Orca's `DPIAware` handler does not `Skip()` (`dpi-bitmaps-fonts.md`) |
 | `wxUILocale` (3.1.6); `wxLocale::IsAvailable` is now implemented through it | `changes_32.txt:348`; `src/common/intl.cpp:740-781` | see `wxUILocale::IsSupported` in §3 |
 | `wxWebView::RunScriptAsync()` (3.1.6) | `changes_32.txt:382` | `webview-gl-aui-media.md` |
-| wxOSX: "Allow user input in `wxPopupTransientWindow`" (3.1.7) — the popup's child holds mouse capture while the cursor is outside it and releases it inside, toggled from `OnIdle` [source] | `changes_32.txt:334`; `src/common/popupcmn.cpp:438-471` | how wxOSX transient popups track the mouse; the macOS gap-dismissal worked around in `SidePopup::Popup` is not traced to a specific wx change (§8; `popups-menus.md`) |
+| wxOSX: "Allow user input in `wxPopupTransientWindow`" (3.1.7) — the popup's child holds mouse capture while the cursor is outside it and releases it inside, toggled from `OnIdle` [source] | `changes_32.txt:334`; `src/common/popupcmn.cpp:438-471` | how wxOSX transient popups track the mouse; the macOS gap-dismissal worked around in `SidePopup::Popup` is not traced to a specific wx change (§10; `popups-menus.md`) |
 | wxGTK: Wayland fixes (3.1.6), no GDK errors from `PopupMenu()` on Wayland (3.1.7), `wxCURSOR_SIZING` on Wayland (3.2.0) | `changes_32.txt:397, 317, 261` | `platforms.md` |
 | MSW: all native modal dialogs are app-modal (3.1.6) | `changes_32.txt:409` | `windows-dialogs.md` |
 | Also new: `wxKeyEvent::IsAutoRepeat()`, `wxSpinCtrl::GetTextValue()/SetIncrement()`, `wxTopLevelWindow::SetContentProtection()`, `wxEVT_SPLITTER_SASH_POS_RESIZE`, OSX full-screen view options, OSX `wxEVT_CHAR` from `wxDataViewCtrl` | `changes_32.txt:364-436` | available API |
@@ -167,7 +175,7 @@ These were already in force in 3.1.5, so the upgrade did not change them, but co
 
 ## 3 3.3 behaviour changes that compile
 
-`changes.txt` "Changes in behaviour not resulting in compilation errors" (:11-146). Each row: the
+`changes.txt` "Changes in behaviour not resulting in compilation errors" (:11-178). Each row: the
 change, its line, and what it means for Orca.
 
 | Change | Line | Orca relevance |
@@ -177,31 +185,30 @@ change, its line, and what it means for Orca.
 | `wxGLCanvas` no longer multisamples by default | :21-23 | pitfall below |
 | `wxFileConfig` on Unix defaults to XDG `~/.config/appname.conf` (old file still used; `wxCONFIG_USE_XDG`/`wxCONFIG_USE_HOME`, `MigrateLocalFile()`) | :25-29 | none: Orca uses `AppConfig`, no `wxConfig` (`strings-i18n-files.md`) |
 | `wxColourDatabase` uses CSS values; `UseScheme()` restores the old ones (`interface/wx/gdicmn.h:845, 973-996`) | :31-33 | none: stock colours (`*wxGREEN`, …) are fixed RGB (`src/common/gdicmn.cpp:789-830`) and Orca builds colours from hex/RGB. Do not build colours from names |
-| `wxAuiNotebook` default art is the new flat art; `wxAuiNativeTabArt` (or `"native"` in XRC) keeps the old look | :35-37 | none: no `wxAuiNotebook` in Orca |
-| `wxTHREAD_WAIT_DEFAULT` is `wxTHREAD_WAIT_BLOCK`: `wxThread::Delete()/Wait()` no longer pump events | :39-41 | Orca uses std/boost threads (`wxThread` only for `IsMain()`); a new `wxThread` whose exit needs the main loop would deadlock |
-| `wxDocument::OnCloseDocument()` runs once, after the views are destroyed (it used to run twice when the document was closed from the menu); an override must not rely on any view existing | :43-46 | none: no doc/view |
-| `wxGrid::FreezeTo()` asserts on out-of-range counts, and freezes even when the grid is too small | :48-51 | silent `false` in Orca; it also refuses reordered or drag-movable rows/columns [source] (`src/generic/grid.cpp:5742-5750`). Clamp arguments (`controls-dataview.md`) |
-| Invalid `wxImageList` calls assert | :53-56 | silent in Orca; `wxCHECK` returns (generic `Add` → -1). Create the list with a valid size before use |
-| `wxTRANSPARENT_WINDOW` does nothing (`#define wxTRANSPARENT_WINDOW 0`, `include/wx/defs.h:1449`); MSW code that needs it can set `WS_EX_TRANSPARENT` | :58-60 | pitfall below; 026b105dcb |
-| MSW `wxTextDataObject::SetData()` size includes the 2-byte NUL (consistent with `GetDataSize()`); an old-style size chops the last character | :62-66 | none: Orca uses the `wxTextDataObject(text)` ctor; use `SetText()`, never `SetData()` |
-| `wxListCtrl::EditLabel()` asserts without `wxLC_EDIT_LABELS` | :68-69 | silent no-op in Orca; add the style where editing is intended |
-| MSW `wxSystemAppearance::IsDark()` reports the app's own mode; `AreAppsDark()`/`IsSystemDark()` report the OS | :71-73 | pitfall below |
-| Unix `wxUILocale::IsSupported()` no longer falls back to another region of the same language; pass just `"fr"` to accept any `fr_XX` | :75-79 | `wxLocale::IsAvailable` builds the region-qualified tag (`GetCanonicalWithRegion()`) and calls `IsSupported()` [source] (`src/common/intl.cpp:740-781`); `GUI_App::load_language` relies on it, so on Linux a language whose canonical locale (e.g. `fr_FR`) is not installed reports unavailable. Keep the fallbacks in `load_language` |
-| Deprecated `wxPGCellRenderer::DrawCaptionSelectionRect()` overload not called; override the overload taking `wxWindow*`, or enable 3.0 compatibility | :81-83 | none: no propgrid in Orca's own code |
-| `wxImageList` size is in physical pixels | :85-88 | pitfall below |
-| Mac `wxWebRequest` no longer uses persistent storage. The entry names `wxWebRequest::EnablePersistentStorage()`; the real API is `wxWebSession::EnablePersistentStorage(bool)` (`interface/wx/webrequest.h:1612-1629`; also `wxWebSessionSync`, :1835), macOS-only, before the first request | :90-92 | none: Orca uses `wxWebRequest` only for image downloads (`wxWebSession::GetDefault().CreateRequest` in `StatusPanel`, `SliceInfoPanel`, `ReleaseNote`, `DeviceErrorDialog`); network and login agents use libcurl (`Slic3r::Http`) |
-| MSW `wxBitmap::Create(size, dc)` no longer multiplies by the DC's content scale; the size is physical | :94-96 | remove compensating scaling; use `CreateWithLogicalSize` for logical sizes |
-| `wxIMAGE_QUALITY_NEAREST` has a new value and is no longer `wxIMAGE_QUALITY_NORMAL`; `NORMAL` (the `Scale`/`Rescale` default) is bilinear + box average (`interface/wx/image.h:31-67`) | :98-99 | never store or compare the enum numerically; default-quality thumbnails and icons look smoother than under 3.1.5; pass `wxIMAGE_QUALITY_NEAREST` for pixel-exact scaling |
-| `wxTextCtrl::{Save,Load}File()` treat `.rtf` as RTF | :101-104 | pass `wxTEXT_TYPE_PLAIN` to keep plain text |
-| `wxClientDC`/`wxPaintDC` offset their origin by a `wxFrame` toolbar on every port | :106-109 | none: Orca frames have no native toolbar (`BBLTopbar` is a child `wxAuiToolBar`) |
-| `wxTextCtrl::SetLabel()` does nothing and asserts on every port (MSW used to act as `SetValue`) | :111-113 | pitfall below |
-| `wxAuiGenericTabArt` subclasses (also via `wxAuiMSWTabArt`) override `DrawPageTab()`/`GetPageTabSize()` instead of `DrawTab()`/`GetTabSize()`; direct `wxAuiTabArt` subclasses still work | :115-120 | none: no Orca tab art |
-| `wxAuiNotebook` page index is logical (reorder-independent); `GetPagePosition()` gives the screen position | :122-126 | none; index math under `wxAUI_NB_TAB_MOVE` is what breaks |
-| `wxListbook`/`wxChoicebook` interpret mnemonics in page titles "just as the other wx*book classes already did" | :128-130 | Orca uses neither (`BedShapeDialog` uses `wxSimplebook` + a combo); every book interprets `&` (`interface/wx/bookctrl.h:141-147`) → rule 11 |
-| `wxAUI_MGR_HINT_FADE` is not in the default `wxAuiManager` style | :132-133 | Orca's `AuiMgr` keeps the default flags (minus `wxAUI_MGR_ALLOW_FLOATING` on Wayland, `AuiMgr::init`), so the docking hint no longer fades; add the flag if wanted |
-| `wxPrintDialogData::SetAllPages(false)`/`SetSelection(false)` changed meaning | :135-137 | none |
-| `wxGetTranslation()` returns `wxString` by value | :139-142 | pitfall below |
-| `wxWindow::Raise()` no longer shows a hidden window on any port | :144-146 | pitfall below; ba867cc534 |
+| `wxAuiNotebook` default art is the new flat art; `wxAuiNativeTabArt` (or `"native"` in XRC) keeps the old look | :41-43 | none: no `wxAuiNotebook` in Orca |
+| `wxTHREAD_WAIT_DEFAULT` is `wxTHREAD_WAIT_BLOCK`: `wxThread::Delete()/Wait()` no longer pump events | :45-47 | Orca uses std/boost threads (`wxThread` only for `IsMain()`); a new `wxThread` whose exit needs the main loop would deadlock |
+| `wxDocument::OnCloseDocument()` runs once, after the views are destroyed (it used to run twice when the document was closed from the menu); an override must not rely on any view existing | :49-52 | none: no doc/view |
+| `wxGrid::FreezeTo()` asserts on out-of-range counts, and freezes even when the grid is too small | :54-57 | silent `false` in Orca; it also refuses reordered or drag-movable rows/columns [source] (`src/generic/grid.cpp:5742-5750`). Clamp arguments (`controls-dataview.md`) |
+| Invalid `wxImageList` calls assert | :59-62 | silent in Orca; `wxCHECK` returns (generic `Add` → -1). Create the list with a valid size before use |
+| `wxTRANSPARENT_WINDOW` does nothing (`#define wxTRANSPARENT_WINDOW 0`, `include/wx/defs.h:1449`); MSW code that needs it can set `WS_EX_TRANSPARENT` | :64-66 | pitfall below; 026b105dcb |
+| MSW `wxTextDataObject::SetData()` size includes the 2-byte NUL (consistent with `GetDataSize()`); an old-style size chops the last character | :68-72 | none: Orca uses the `wxTextDataObject(text)` ctor; use `SetText()`, never `SetData()` |
+| `wxListCtrl::EditLabel()` asserts without `wxLC_EDIT_LABELS` | :74-75 | silent no-op in Orca; add the style where editing is intended |
+| MSW `wxSystemAppearance::IsDark()` reports the app's own mode; `AreAppsDark()`/`IsSystemDark()` report the OS | :77-79 | pitfall below |
+| Unix `wxUILocale::IsSupported()` no longer falls back to another region of the same language; pass just `"fr"` to accept any `fr_XX` | :81-85 | `wxLocale::IsAvailable` builds the region-qualified tag (`GetCanonicalWithRegion()`) and calls `IsSupported()` [source] (`src/common/intl.cpp:740-781`); `GUI_App::load_language` relies on it, so on Linux a language whose canonical locale (e.g. `fr_FR`) is not installed reports unavailable. Keep the fallbacks in `load_language` |
+| Deprecated `wxPGCellRenderer::DrawCaptionSelectionRect()` overload not called; override the overload taking `wxWindow*`, or enable 3.0 compatibility | :87-89 | none: no propgrid in Orca's own code |
+| `wxImageList` size is in physical pixels | :91-94 | pitfall below |
+| Mac `wxWebRequest` no longer uses persistent storage. The entry names `wxWebRequest::EnablePersistentStorage()`; the real API is `wxWebSession::EnablePersistentStorage(bool)` (`interface/wx/webrequest.h:1612-1629`; also `wxWebSessionSync`, :1835), macOS-only, before the first request | :96-98 | none: Orca uses `wxWebRequest` only for image downloads (`wxWebSession::GetDefault().CreateRequest` in `StatusPanel`, `SliceInfoPanel`, `ReleaseNote`, `DeviceErrorDialog`); network and login agents use libcurl (`Slic3r::Http`) |
+| MSW `wxBitmap::Create(size, dc)` no longer multiplies by the DC's content scale; the size is physical | :100-102 | remove compensating scaling; use `CreateWithLogicalSize` for logical sizes |
+| `wxIMAGE_QUALITY_NEAREST` has a new value and is no longer `wxIMAGE_QUALITY_NORMAL`; `NORMAL` (the `Scale`/`Rescale` default) is bilinear + box average (`interface/wx/image.h:31-67`) | :104-105 | never store or compare the enum numerically; default-quality thumbnails and icons look smoother than under 3.1.5; pass `wxIMAGE_QUALITY_NEAREST` for pixel-exact scaling |
+| `wxTextCtrl::{Save,Load}File()` treat `.rtf` as RTF | :107-110 | pass `wxTEXT_TYPE_PLAIN` to keep plain text |
+| `wxClientDC`/`wxPaintDC` offset their origin by a `wxFrame` toolbar on every port | :112-115 | none: Orca frames have no native toolbar (`BBLTopbar` is a child `wxAuiToolBar`) |
+| `wxTextCtrl::SetLabel()` does nothing and asserts on every port (MSW used to act as `SetValue`) | :117-119 | pitfall below |
+| `wxAuiGenericTabArt` subclasses (also via `wxAuiMSWTabArt`) override `DrawPageTab()`/`GetPageTabSize()` instead of `DrawTab()`/`GetTabSize()`; direct `wxAuiTabArt` subclasses still work | :121-126 | none: no Orca tab art |
+| `wxAuiNotebook` page index is logical (reorder-independent); `GetPagePosition()` gives the screen position | :128-132 | none; index math under `wxAUI_NB_TAB_MOVE` is what breaks |
+| `wxListbook`/`wxChoicebook` interpret mnemonics in page titles "just as the other wx*book classes already did" | :134-136 | Orca uses neither (`BedShapeDialog` uses `wxSimplebook` + a combo); every book interprets `&` (`interface/wx/bookctrl.h:141-147`) → rule 11 |
+| `wxAUI_MGR_HINT_FADE` is not in the default `wxAuiManager` style | :138-139 | Orca's `AuiMgr` keeps the default flags (minus `wxAUI_MGR_ALLOW_FLOATING` on Wayland, `AuiMgr::init`), so the docking hint no longer fades; add the flag if wanted |
+| `wxPrintDialogData::SetAllPages(false)`/`SetSelection(false)` changed meaning | :141-143 | none |
+| `wxWindow::Raise()` no longer shows a hidden window on any port | :145-147 | pitfall below; ba867cc534 |
 
 **Pitfalls**
 
@@ -277,7 +284,7 @@ change, its line, and what it means for Orca.
   // Wrong: m_input_ip->GetTextCtrl()->SetLabelText(m_obj->get_dev_ip());
   // Right: m_input_ip->GetTextCtrl()->ChangeValue(m_obj->get_dev_ip());   // no wxEVT_TEXT
   ```
-  Cite: `docs/changes.txt:111-113`; `controls-dataview.md`.
+  Cite: `docs/changes.txt:117-119`; `controls-dataview.md`.
 
 - **Rule:** Size a `wxImageList` from the bitmaps' physical size, or use
   `SetImages(std::vector<wxBitmapBundle>)`.
@@ -293,18 +300,23 @@ change, its line, and what it means for Orca.
   // Right: wxBitmap bmp = create_scaled_bitmap("icon", this, 16);
   //        m_images = new wxImageList(bmp.GetWidth(), bmp.GetHeight(), false);
   ```
-  Cite: `docs/changes.txt:85-88`; `Tab` builds its list from `bmp().GetWidth()/GetHeight()`;
+  Cite: `docs/changes.txt:91-94`; `Tab` builds its list from `bmp().GetWidth()/GetHeight()`;
   `dpi-bitmaps-fonts.md`.
 
-- **Rule:** A function that returns a translation returns `wxString` by value.
-  **Why:** `wxGetTranslation()` returns by value now (`include/wx/translation.h:278-321`); returning
-  it as `const wxString&` dangles. Orca's `I18N::translate` overloads and `_L` already return by
-  value.
+- **Rule:** A wrapper that converts a translation returns by value; `wxGetTranslation()` itself
+  returns `const wxString&`.
+  **Why:** 3.3.2 changed `wxGetTranslation()` to return `wxString` by value, and **3.3.3 reverted it**
+  (`interface/wx/translation.h:615`, `include/wx/translation.h:277-309`), so the return type is the
+  3.2.x `const wxString&` again. That reference points at the catalog's own string or at
+  `wxTranslations::GetUntranslatedString()`, both of which outlive the call, so forwarding it as a
+  reference is safe. What still dangles is a temporary you construct: `wxString::FromUTF8`,
+  `ToUTF8()`, `format_wxstr`. Orca's `I18N::translate` overloads return `wxString` by value and
+  `translate_utf8`/`_u8L` return `std::string`.
   ```cpp
-  // Wrong: const wxString& title() { return _L("Printer"); }
-  // Right: wxString title() { return _L("Printer"); }
+  // Wrong: const wxString& path() { return wxString::FromUTF8(raw); }   // temporary
+  // Right: wxString path() { return wxString::FromUTF8(raw); }
   ```
-  Cite: `docs/changes.txt:139-142`; `I18N.hpp`.
+  Cite: §8 (the 3.3.3 revert); `I18N.hpp`.
 
 - **Rule:** Escape `&` in user data (preset, filament, printer, file names) shown as a control label or
   book page title.
@@ -314,37 +326,37 @@ change, its line, and what it means for Orca.
   // Wrong: book->AddPage(page, preset_name);
   // Right: book->AddPage(page, wxControl::EscapeMnemonics(preset_name));   // or label->SetLabelText(name)
   ```
-  Cite: `docs/changes.txt:128-130`; `interface/wx/bookctrl.h:141-147`; `controls-dataview.md`.
+  Cite: `docs/changes.txt:134-136`; `interface/wx/bookctrl.h:141-147`; `controls-dataview.md`.
 
 ## 4 3.3 changes that break the build
 
-`changes.txt` "Changes in behaviour which may result in build errors" (:149-252).
+`changes.txt` "Changes in behaviour which may result in build errors" (:181-292).
 
 | Change | Line | Orca relevance |
 |---|---|---|
-| 3.0-deprecated symbols disabled by default (`WXWIN_COMPATIBILITY_3_0=1` at wx build time re-enables them), 2.8-deprecated removed | :152-154 | Orca builds `WXWIN_COMPATIBILITY_3_0 0`, `_3_2 1`: port off 3.0-deprecated API |
-| `wxUSE_UNICODE=0` unsupported | :156 | none |
-| `wxUSE_STD_CONTAINERS=1` by default ("Container Classes" overview); building wx with 0 keeps the old containers | :158-161 | Orca builds with 1 → pitfall below |
-| `wxUSE_STL` gone; implicit `wxString` → `std::[w]string` only with `wxUSE_STD_STRING_CONV_IN_WXSTRING=1` at wx build time | :163-166 | Orca builds 0: convert explicitly (`into_u8`, `ToStdString`, `ToUTF8()`) |
-| MSW links `gdiplus.lib`, `msimg32.lib` | :168-172 | automatic with MSVC/wx-config; only static non-MSVC builds add them |
-| wxMotif, wxGTK1 removed | :174-175 | none |
-| Private containers (e.g. `wxSimpleDataObjectList`) removed; object arrays (`wxImageArray`) compare values in `Index()` | :177-183 | use `std::vector`/`std::list` |
-| Operators on wx types are hidden (not global) | :185-189 | pitfall below |
-| `wxString` from `std::string_view` makes `wxstr = {"Hello", 2}` ambiguous | :191-194 | write `wxString{"Hello", 2}` |
-| Generic `wxSearchCtrl` lost multi-line-only methods | :196-197 | none |
-| Wide-filename `wxOnAssert()` overload removed | :199-200 | none |
-| 64-bit DLLs carry an `x64` suffix in all build systems | :202-204 | packaging scripts matching DLL names; Orca links wx statically (Flatpak builds it shared in its own manifest) |
-| CMake config installs to `lib/cmake/wxWidgets-3.3`; plain `find_package(wxWidgets)` is unaffected, hard-coded paths break | :206-211 | Orca: `find_package(wxWidgets 3.3 CONFIG …)` on Windows/macOS, `wx-config --toolkit=gtk${SLIC3R_GTK}` on Linux (Orca's `src/CMakeLists.txt`) |
-| Memory-tracing options removed | :213-216 | use ASan |
-| `wxTEST_DIALOG()` needs a trailing `;` | :218-219 | none |
-| `wxWindow::GetDefaultBorderForControl()` not virtual | :221-223 | do not override; use `wxBORDER_THEME` |
-| GTK `wxDirButton::Create()` lost `wildcard` | :225-226 | none |
-| Several virtuals take `wxReadOnlyDC` | :228-231 | pitfall below |
-| `wxSizer::Detach()` takes `wxWindowBase*` | :233-236 | only custom sizer subclasses |
-| `wx/cursor.h` no longer includes `wx/utils.h` | :238-240 | include `<wx/utils.h>` explicitly (8248b06337 added it to `GLCanvas3D.cpp`) |
-| `wxStyledTextCtrl::AddSelection()` returns void | :242-244 | none: `wxUSE_STC=OFF` |
-| `wxColour` from `bool` no longer compiles | :246-248 | use the RGB or string ctor explicitly |
-| `wxGLCanvas::CreateSurface()` removed from EGL builds | :250-252 | none: wx chooses EGL or GLX itself (§7) |
+| 3.0-deprecated symbols disabled by default (`WXWIN_COMPATIBILITY_3_0=1` at wx build time re-enables them), 2.8-deprecated removed | :184-186 | Orca builds `WXWIN_COMPATIBILITY_3_0 0`, `_3_2 1`: port off 3.0-deprecated API |
+| `wxUSE_UNICODE=0` unsupported | :188 | none |
+| `wxUSE_STD_CONTAINERS=1` by default ("Container Classes" overview); building wx with 0 keeps the old containers | :190-193 | Orca builds with 1 → pitfall below |
+| `wxUSE_STL` gone; implicit `wxString` → `std::[w]string` only with `wxUSE_STD_STRING_CONV_IN_WXSTRING=1` at wx build time | :195-198 | Orca builds 0: convert explicitly (`into_u8`, `ToStdString`, `ToUTF8()`) |
+| MSW links `gdiplus.lib`, `msimg32.lib` | :200-204 | automatic with MSVC/wx-config; only static non-MSVC builds add them |
+| wxMotif, wxGTK1 removed | :206-207 | none |
+| Private containers (e.g. `wxSimpleDataObjectList`) removed; object arrays (`wxImageArray`) compare values in `Index()` | :209-215 | use `std::vector`/`std::list` |
+| Operators on wx types are hidden (not global) | :217-221 | pitfall below |
+| `wxString` from `std::string_view` makes `wxstr = {"Hello", 2}` ambiguous | :223-226 | write `wxString{"Hello", 2}` |
+| Generic `wxSearchCtrl` lost multi-line-only methods | :228-229 | none |
+| Wide-filename `wxOnAssert()` overload removed | :231-232 | none |
+| 64-bit DLLs carry an `x64` suffix in all build systems | :234-236 | packaging scripts matching DLL names; Orca links wx statically (Flatpak builds it shared in its own manifest) |
+| CMake config installs to `lib/cmake/wxWidgets-3.3`; plain `find_package(wxWidgets)` is unaffected, hard-coded paths break | :238-243 | Orca: `find_package(wxWidgets 3.3 CONFIG …)` on Windows/macOS, `wx-config --toolkit=gtk${SLIC3R_GTK}` on Linux (Orca's `src/CMakeLists.txt`) |
+| Memory-tracing options removed | :245-248 | use ASan |
+| `wxTEST_DIALOG()` needs a trailing `;` | :250-251 | none |
+| `wxWindow::GetDefaultBorderForControl()` not virtual | :253-255 | do not override; use `wxBORDER_THEME` |
+| GTK `wxDirButton::Create()` lost `wildcard` | :257-258 | none |
+| Several virtuals take `wxReadOnlyDC` | :260-263 | pitfall below |
+| `wxSizer::Detach()` takes `wxWindowBase*` | :265-268 | only custom sizer subclasses |
+| `wx/cursor.h` no longer includes `wx/utils.h` | :270-272 | include `<wx/utils.h>` explicitly (8248b06337 added it to `GLCanvas3D.cpp`) |
+| `wxStyledTextCtrl::AddSelection()` returns void | :274-276 | none: `wxUSE_STC=OFF` |
+| `wxColour` from `bool` no longer compiles | :278-280 | use the RGB or string ctor explicitly |
+| `wxGLCanvas::CreateSurface()` removed from EGL builds | :282-284 | none: wx chooses EGL or GLX itself (§7) |
 
 **Pitfalls**
 
@@ -366,7 +378,7 @@ change, its line, and what it means for Orca.
   // Wrong: wxSize GetToolSize(wxDC& dc, wxWindow* w, const wxAuiToolBarItem& it);       // never called
   // Right: wxSize GetToolSize(wxReadOnlyDC& dc, wxWindow* w, const wxAuiToolBarItem& it) override;
   ```
-  Cite: `docs/changes.txt:228-231`; `painting-custom-widgets.md`.
+  Cite: `docs/changes.txt:260-263`; `painting-custom-widgets.md`.
 
 - **Rule:** With `wxUSE_STD_CONTAINERS=1`, build a `wxArrayString` with `Add()` or an initializer
   list, and walk `WX_DECLARE_LIST` lists with `compatibility_iterator` or range-for.
@@ -386,7 +398,7 @@ change, its line, and what it means for Orca.
   `wchar_t`, `std::string` or `std::wstring`.
   **Why:** wx operators are hidden friends now, found only by argument-dependent lookup on a wx type;
   "preventing them from implicitly being used with types convertible to wx types"
-  (`changes.txt:185-189`). `char + std::wstring + …` compiled under 3.1.5 through the global
+  (`changes.txt:217-221`). `char + std::wstring + …` compiled under 3.1.5 through the global
   `operator+(char, const wxString&)`, converting the `std::wstring` implicitly; under 3.3 that
   operator is a hidden friend (`include/wx/string.h:2150`) and no operand is a `wxString`, so it
   does not.
@@ -413,9 +425,9 @@ change, its line, and what it means for Orca.
 
 ## 5 3.3.0 notable changes
 
-`changes.txt:380-592` (relative to 3.2.8).
+`changes.txt:573-785` (relative to 3.2.8).
 
-**Major changes** (:385-394)
+**Major changes** (:578-587)
 
 | Change | Orca relevance |
 |---|---|
@@ -429,7 +441,7 @@ change, its line, and what it means for Orca.
 | Native GTK file dialogs when possible (#24486, #25104) | the portal dialog is used only with GTK ≥ 3.20 at runtime, without `wxFD_PREVIEW` and without an extra control [source] (`src/gtk/filedlg.cpp:265-273, 438-443`); Orca's `CheckboxFileDialog` (`SetExtraControlCreator`, `GUI_Utils.hpp`) therefore gets the non-native GTK dialog |
 | Native `wxTextCtrl` contents / RTF (#24626, #24912) | available (`GetRTFValue`, `SearchText`) |
 
-**All** (:398-442)
+**All** (:591-635)
 
 | Change | Orca relevance |
 |---|---|
@@ -439,7 +451,7 @@ change, its line, and what it means for Orca.
 | Environment variables use UTF-8 (#25101) | check round-tripping of non-ASCII paths through `wxGetEnv`/`wxSetEnv` |
 | Improved locale matching (#24855); thread-safe `wxPlatformInfo::Get()` (#25459); `wxXmlParseError` from `wxXmlDocument::Load()` (#24215); customisable error exit code (#24770) | available |
 
-**All (GUI)** (:444-500)
+**All (GUI)** (:637-693)
 
 | Change | Orca relevance |
 |---|---|
@@ -452,17 +464,17 @@ change, its line, and what it means for Orca.
 | Non-live resize restored in wxAUI and `wxSplitterWindow` (#24193) | `wxAUI_MGR_LIVE_RESIZE` is in `wxAUI_MGR_DEFAULT` since 3.3.0 (`interface/wx/aui/framemanager.h:59-66`). The style table's "always enabled in wxGTK3 and wxOSX ports as non-live resizing is not implemented in them" (:199-206) is as stale as the `AlwaysUsesLiveResize()` note: that function "always returns false" as of 3.3.0 (:345; `src/aui/framemanager.cpp:711-714`), and the flag decides on every port [source] (`HasLiveResize`, :716-719). See `webview-gl-aui-media.md` §AUI docking |
 | `wxInfoBar::ShowCheckBox()` (#25394); printing multiple page ranges (#25030); `wxGrid::CopySelection()` (#24124); new default flat AUI tab art (#25316); `wxApp::SetAppearance()` (#24461) | available |
 
-**All (WebView)** (:510-525) — `wxWebViewConfiguration` + `GetNativeConfiguration()`, `SetProxy()`,
+**All (WebView)** (:703-718) — `wxWebViewConfiguration` + `GetNativeConfiguration()`, `SetProxy()`,
 `ShowDevTools()`, `EnablePersistentStorage()`, `EnableBrowserAcceleratorKeys()`, clearing browsing
 data, advanced requests, child-window handling, `IsTargetMainFrame()`, Edge user agent settable after
 creation, and **Edge events queued** (#22744, #19075): Edge handlers run later than on the other
-backends. Edge posts its events with `AddPendingEvent` (script messages: `src/msw/webview_edge.cpp:811`)
-except the vetoable ones, `wxEVT_WEBVIEW_NAVIGATING` (:599) and `wxEVT_WEBVIEW_NEWWINDOW` with its
-`NEWWINDOW_FEATURES` follow-up (:723, :737), which stay synchronous; WebKit and
+backends. Edge posts its events with `AddPendingEvent` (script messages: `src/msw/webview_edge.cpp:872`)
+except the vetoable ones, `wxEVT_WEBVIEW_NAVIGATING` (:655-662) and `wxEVT_WEBVIEW_NEWWINDOW` with its
+`NEWWINDOW_FEATURES` follow-up (:783-785, :796-798), which stay synchronous; WebKit and
 WebKit2GTK deliver script messages synchronously (`src/osx/webview_webkit.mm:1360`,
 `src/gtk/webview_webkit2.cpp:408`) [source]. `webview-gl-aui-media.md` owns the details.
 
-**wxGTK** (:527-547)
+**wxGTK** (:720-740)
 
 | Change | Orca relevance |
 |---|---|
@@ -477,46 +489,53 @@ WebKit2GTK deliver script messages synchronously (`src/osx/webview_webkit.mm:136
 | `wxDC::DrawRoundedRectangle()` radius limited to half the smaller side (#24327) | the clamp is in the GTK2 GDK DC (`src/gtk/dcclient.cpp:874-875`, built only in the GTK2 opt-out, `GTK2_LOWLEVEL_SRC` in `build/files`) and also in the common `wxGraphicsPathData::AddRoundedRectangle` (`src/common/graphcmn.cpp:439-440`, absent in 3.1.5) that `wxGraphicsContext::DrawRoundedRectangle` uses, so every `wxGCDC` clamps: GTK3 (Cairo) and macOS window DCs, and Orca's memory-DC + `wxGCDC` paint paths on all ports [source]. A radius larger than half the smaller side is now clamped instead of drawing overlapping arcs |
 | Read-only `wxBitmapComboBox` height fixed (#25468) | `Slic3r::GUI::BitmapComboBox` on GTK |
 
-**wxMSW** (:549-583)
+**wxMSW** (:742-776)
 
 | Change | Orca relevance |
 |---|---|
 | "Enable double buffering for all windows" (#22851) | **reverted in 3.3.2** (#25808) → pitfall below |
 | `wxOverlay` reimplemented with layered windows (#23261) | none: no `wxOverlay` |
 | `wxBG_STYLE_TRANSPARENT` implemented (#23412) | as `WS_EX_TRANSPARENT` on non-TLW children [source] (`src/msw/window.cpp:1581-1582`); set before `Create()` (`painting-custom-widgets.md`) |
-| `wxCAPTION` turned on when min/max/close boxes are set (#23575) | `WS_CAPTION` is added to the style (`src/msw/toplevel.cpp:132-135`); origin of the MainFrame workaround (§8) |
+| `wxCAPTION` turned on when min/max/close boxes are set (#23575) | `WS_CAPTION` is added to the style (`src/msw/toplevel.cpp:132-135`); origin of the MainFrame workaround (§10) |
 | `wxButton` default size larger in high DPI (#25297) | raw `wxButton` layouts may grow; Orca dialogs use `Button`/`DialogButtons` |
 | Markup in `wxStaticText` (#25000); `wxHyperlinkCtrl` colour changeable (#23549) | `SetLabelMarkup` now works on MSW (single line) |
 | Extended-length paths (#25033); `wxFileDialog` no unwanted extension (#24949); UTF-8 build fixes (#23313); non-BMP strings (#25128) | available |
 | `wxDisplay` invalidated on display change (#25396); TLW with one child resized on DPI change (#22983); Aero-snapped geometry saved | multi-monitor geometry |
 | Modern default `wxTreeCtrl` look (#23844); RTL fixes for `wxOverlay`/`wxScrolled` (#25413) and GDI+ (#25431); `wxBitmap::UseAlpha()` returns `bool` (#23919) | available |
 
-**wxOSX** (:585-592) — `wxEventLoop::OnExit()` is always called (#25409); TLW cursor setting fixed
+**wxOSX** (:778-785) — `wxEventLoop::OnExit()` is always called (#25409); TLW cursor setting fixed
 (#25131); Cmd-C no longer activates a "Close" button (#25346); `wxCursor` loadable from resources
 (#24374); `wxUIActionSimulator` works (#23692), usable for GUI tests.
 
 **Pitfalls**
 
-- **Rule:** Do not replace Orca's MSW dark mode with wx's (`SetAppearance`/`MSWEnableDarkMode`)
-  unless live theme switching is kept.
-  **Why:** wx's MSW dark mode cannot change once any top-level window exists or a mode was chosen:
-  `SetAppearance` returns `CannotChange` (`src/msw/darkmode.cpp:263-270`;
-  `interface/wx/app.h:1166-1173`). TaskDialog-based dialogs (`wxMessageDialog`, `wxProgressDialog`,
-  simple `wxAboutBox`), the common dialogs (colour, find/replace, font, page setup, print) and the
-  date/time/calendar controls stay light (`interface/wx/app.h:1434-1448`). Orca switches themes at
-  runtime, which is why 8248b06337 kept NppDarkMode and only informs wx with
-  `MSWEnableDarkMode(DarkMode_Auto)` (§8).
+- **Rule:** Orca keeps its own Windows theming (`NppDarkMode`) and only informs wx with
+  `MSWEnableDarkMode(DarkMode_Auto)`; do not replace it with wx's dark mode without accounting for the
+  chrome NppDarkMode themes itself.
+  **Why:** when 8248b06337 landed (3.3.2), wx's MSW dark mode could not be changed once a top-level
+  window existed — `SetAppearance` returned `CannotChange` — so a live Preferences toggle would have
+  been restart-only. That blocker is gone: 3.3.3 (#26516) and 3.3.4 (#26734) made the mode switchable
+  at runtime. `MSWEnableDarkMode()` re-applies the mode to an existing window (sends it
+  `WM_SYSCOLORCHANGE`, `src/msw/darkmode.cpp:345-349`), controls restyle through
+  `wxMSWDarkMode::HasChanged()`/`NotifySysColorChange()` (`src/msw/window.cpp:5337, 5528-5534`), and
+  `SetAppearance()` returns only `Ok`/`Failure`; `AppearanceResult::CannotChange` is no longer
+  returned (`src/msw/darkmode.cpp:289-375`; `interface/wx/app.h:1151, 1179-1183`). The remaining
+  documented limits are the date/time/calendar controls, `wxPrintDialog` on Windows 10 and MDI
+  applications (`interface/wx/app.h:1442-1448`); `wxMessageDialog` (3.3.3, #26570) and the common
+  dialogs (3.3.4, #26780) now do support dark mode. Orca still keeps NppDarkMode because it themes
+  Orca's own chrome (title bars, explorer theme, scrollbars, list headers) and drives the live
+  theme-switch path (§10).
   Cite: 8248b06337 (PR text); `colours-dark-mode.md`.
 
 - **Rule:** On MSW, a custom-painted control buffers its own drawing (`wxAutoBufferedPaintDC`/
   `wxBufferedPaintDC` with `wxBG_STYLE_PAINT`, or the Orca memory-DC + `wxGCDC` path), or calls
   `SetDoubleBuffered(true)` after creation.
-  **Why:** 3.3.0's global `WS_EX_COMPOSITED` was reverted in 3.3.2 (`changes.txt:308`). In 3.3.2
+  **Why:** 3.3.0's global `WS_EX_COMPOSITED` was reverted in 3.3.2 (`changes.txt:501`). In 3.3.4
   nothing sets it except an explicit `SetDoubleBuffered(true)` [source] (`src/msw/window.cpp:4704-4721`;
   the only other use is `MSWDisableComposited`, :1643-1652), so MSW windows are not double-buffered by
   default, exactly as in 3.1.5. `wxAutoBufferedPaintDC` is a `wxBufferedPaintDC` on MSW at compile
   time (`include/wx/dcbuffer.h:18-23, 215-221`). Nothing tuned against 3.3.0/3.3.1 applies.
-  Cite: `docs/changes.txt:308, 557`; `painting-custom-widgets.md`.
+  Cite: `docs/changes.txt:501, 750`; `painting-custom-widgets.md`.
 
 - **Rule:** A `wxEVT_DPI_CHANGED` handler must be correct on GTK3, and every handler you bind — on a
   child, a control or a `DPIDialog`/`DPIFrame` — calls `Skip()`.
@@ -529,11 +548,11 @@ WebKit2GTK deliver script messages synchronously (`src/osx/webview_webkit.mm:136
   ctor starts at 1 because `get_dpi_for_window` returns 96 on Linux). Double scaling when a window moves between monitors of
   different scale is a risk that has not been verified at runtime; test DPI changes on GTK when
   touching `DPIAware::rescale` paths.
-  Cite: `docs/changes.txt:541`; `dpi-bitmaps-fonts.md` §wxEVT_DPI_CHANGED.
+  Cite: `docs/changes.txt:734`; `dpi-bitmaps-fonts.md` §wxEVT_DPI_CHANGED.
 
 ## 6 3.3.1 notable fixes
 
-`changes.txt:333-377`.
+`changes.txt:526-570`.
 
 | Port | Change | Orca relevance |
 |---|---|---|
@@ -547,7 +566,7 @@ WebKit2GTK deliver script messages synchronously (`src/osx/webview_webkit.mm:136
 
 ## 7 3.3.2 notable changes
 
-`changes.txt:255-318`, relative to 3.2.10 (see §1 for the unlisted 3.2.9/3.2.10 fixes).
+`changes.txt:448-511`, relative to 3.2.10 (see §1 for the unlisted 3.2.9/3.2.10 fixes).
 
 | Port | Change | Orca relevance |
 |---|---|---|
@@ -589,7 +608,7 @@ WebKit2GTK deliver script messages synchronously (`src/osx/webview_webkit.mm:136
   // Wrong: m_static_valid->SetLabel(info_line); m_static_valid->Wrap(FromDIP(300));
   // Right: m_static_valid->SetLabel(info_line); m_static_valid->Wrap(-1); m_static_valid->Wrap(FromDIP(300));
   ```
-  Cite: `docs/changes.txt:280`; `sizers-layout.md` §wxStaticText wrapping.
+  Cite: `docs/changes.txt:473`; `sizers-layout.md` §wxStaticText wrapping.
 
 - **Rule:** On Linux/X11, call `wxGLCanvas::PreferGLX()` before any GL use, attribute objects
   included; set a swap interval explicitly if the canvas needs VSync.
@@ -605,7 +624,7 @@ WebKit2GTK deliver script messages synchronously (`src/osx/webview_webkit.mm:136
   ```cpp
   // Right (if frame pacing is wanted): canvas->SetSwapInterval(1);   // before the first SwapBuffers
   ```
-  Cite: `docs/changes.txt:275-276, 292`; `webview-gl-aui-media.md` §EGL vs GLX.
+  Cite: `docs/changes.txt:468-469, 485`; `webview-gl-aui-media.md` §EGL vs GLX.
 
 - **Rule:** Do not count clicks from `wxEVT_LEFT_DCLICK` alone on macOS; handle `DOWN` and `DCLICK`
   as on MSW.
@@ -613,13 +632,68 @@ WebKit2GTK deliver script messages synchronously (`src/osx/webview_webkit.mm:136
   (left and right buttons), so a triple click gives `DOWN, DCLICK, DOWN` as on MSW; previously every
   click with `clickCount > 1` was a `DCLICK` [source] (`src/osx/cocoa/window.mm:4103-4150`). Per-platform click-count ifdefs
   written for 3.1.5 need rechecking.
-  Cite: `docs/changes.txt:316`; `mouse-keyboard-focus.md`.
+  Cite: `docs/changes.txt:509`; `mouse-keyboard-focus.md`.
 
-## 8 Migration already done in Orca
+## 8 3.3.3 notable changes
 
-The upgrade landed as 8248b06337 ("Updated wxWidgets to 3.3.2", #12941; build system 2d7e26292b).
-Its PR kept Orca's own MSW dark mode to avoid broader changes and because wx's needs an app restart to
-switch. Each row is a rule for new code; the owning file has the detail.
+`changes.txt:388-445`, relative to 3.2.11 (see §1 for the unlisted 3.2.10/3.2.11 fixes).
+
+| Port | Change | Orca relevance |
+|---|---|---|
+| All | `wxMoveToTrash()` (#26256); `wxSizer::DetachItem()` (#26512); truncated reads are errors in `wxDataInputStream` (#26600); `wxGetOsDescription()` (#26231); C++20 `<=>` for `wxString` (#26306) | available; Orca detaches windows and has its own file deletion |
+| All | **`wxGetTranslation()` returns `const wxString&` again**, reverting 3.3.2's by-value change | the by-value rule is retired → §3 pitfall |
+| GUI | `wxWebView::Print()` print settings (#26239) and `PrintToPDF()` (#26583); `wxWebViewConfiguration::DisableGPUAcceleration()` (#26626) | `webview-gl-aui-media.md` |
+| GUI | `wxGrid::GetFrozen{Row,Col}LabelWindow()` (#26617); `wxSVGFileDC` accessibility (#26379) and `GetSVGDocument()` (#26344) | `controls-dataview.md`; `wxSVGFileDC` available |
+| wxGTK | Fix regression when using `wxImageList` in high DPI (#26349) | the physical-pixel image-list rule is unchanged (§3) |
+| wxGTK | Fix `wxStaticText` label wrapping | the base `Wrap()` cache is unchanged (§7); only the GTK label wrapping was fixed |
+| wxGTK | Assert when the clipboard has non-ASCII targets fixed (#26263); GTK-without-Wayland build fixed (#26269); high-DPI bitmaps in `wxAboutBox` (#22192) | clipboard |
+| wxMSW | **Light/dark mode switching implemented** (#26516) | see §5: this removes the old "cannot switch at runtime" blocker |
+| wxMSW | `wxMessageDialog` dark mode (#26570); combo/listbox dark mode on Windows 11 (#26535); `wxCheckBox` label in screen readers (#26270); `wxPD_CAN_SKIP` regression (#26287); Direct2D text regression (#26259) | dark-mode and accessibility fixes |
+| wxMSW | Stylus events (#26223); colour emoji via Direct2D (#26657) | available |
+| wxOSX | Data-view icons under macOS 26 (#26374); `wxOverlay` phantoms in Mission Control (#26380); `wxEVT_DATAVIEW_ITEM_EDITING_DONE` value set (#26367); Xcode project for macOS 27 (#26578) | native look and data view |
+
+## 9 3.3.4 notable changes
+
+`changes.txt:295-385`, relative to 3.2.11 (see §1 for the unlisted 3.2.11/3.2.12 fixes).
+
+| Port | Change | Orca relevance |
+|---|---|---|
+| All | `wxString` usable with `{fmt}`/`std::format()` (#27180); `wxPATH_RMDIR_PARENTS`; `fsync()` in `wxTempFile` (#27001); `wxDateTime::GetAsDOS()` after 2038 (#4393); TCP `wxIPC` fixes (#24858) | available |
+| GUI | **Accelerators take priority over the focused window in all ports** (#22630), with the new `wxEVT_ACCELERATOR_KEY` event and the `wxWindow::ClaimsKeyBeforeAccelerator()` override that text controls use to reserve their editing keys (`interface/wx/event.h:1799`, `interface/wx/window.h:4580`) | pitfall below; `mouse-keyboard-focus.md` |
+| GUI | wxGrid: `wxGridCellChoiceEditor` UI fixes (#12094), best size for auto-wrapped rows (#14072), `MakeCellVisible()` with variable row heights (#4371), editor-change crash (#21986) | `controls-dataview.md`; the choice-editor `Combo()` cast rule is unchanged |
+| GUI | AUI: no spurious sash jump on click (#4547); an added pane's best size is respected (#4404) | Plater docking |
+| GUI | `wxListCtrl` (#15411) and `wxStatusBar` (#24305) accessibility; `wxAuiNotebook` selection after a page removal (#9920); `wxPreviewCanvas` crash (#9822); generic `wxCalendarCtrl` background colour (#21885); LunaSVG with filters (#27176) | available; no `wxAuiNotebook` in Orca |
+| wxMSW | **Dark mode can be enabled dynamically** (#26734); dark mode for `wxFontPickerCtrl` (#26667), `wxNotebook` (#26694, #26695), `wxSpinButton` (#26682, #26683) and the common dialogs (#26780) | §5 pitfall; `colours-dark-mode.md` |
+| wxMSW | `wxRenameFile()` no longer copies file attributes (`changes.txt:345-347`, incompatible); Esc closes dialogs used by IME/auto-completion (#16059, #27145); IME handling in wxGrid improved (#24558); `wxPersistent` controls DPI-aware (#18752); non-BMP character input (#27016) | file dialogs, keyboard and IME |
+| wxGTK | Wayland: crash on pointer/seat disconnect fixed (#27069); **AUI panes draggable via system drag sessions** (#26969); **window geometry restorable** via XDG session management (#26324); overlay-scrollbar client size (#26889) | the Wayland gaps are partly narrowed; `webview-gl-aui-media.md` §AUI |
+| wxOSX | `wxEVT_CHAR` key codes fixed for events with Ctrl (#26810); context-menu accessibility (#13010); custom controls in sandboxed `wxFileDialog` (#26908) | `mouse-keyboard-focus.md`; macOS keys |
+
+**Pitfalls**
+
+- **Rule:** On every port an accelerator now runs before the focused window handles the key, unless
+  that window claims the key; a custom control that must keep a key over an accelerator overrides
+  `wxWindow::ClaimsKeyBeforeAccelerator()`, or handles `wxEVT_ACCELERATOR_KEY` and calls
+  `UseAccelerator()`.
+  **Why:** before 3.3.4 only wxGTK let the focused window handle the key first; the other ports
+  already gave accelerators priority. 3.3.4 made every port consistent and added the
+  `wxEVT_ACCELERATOR_KEY` event, sent after `wxEVT_CHAR_HOOK` (before it on macOS) to the focus
+  window and propagated to its parents (`interface/wx/event.h:1740-1801`;
+  `interface/wx/window.h:4554-4583`). Text controls, `wxComboBox` and `wxSpinCtrl` reserve their
+  editing keys by overriding `ClaimsKeyBeforeAccelerator()` and returning
+  `wxTextEntryBase::IsUsedForEditing()` (`src/common/textcmn.cpp:136-140`;
+  `src/common/textentrycmn.cpp:441-509`; `src/common/spinctrlcmn.cpp:160-167`;
+  `src/msw/combobox.cpp:389-395`, `src/gtk/combobox.cpp:205-211`), and the GTK accelerator walk now
+  consults it (`src/gtk/window.cpp:1524-1539`). Orca's topbar menus are popups whose accelerators are
+  display-only and Orca dispatches its own shortcuts, so few sites are affected; the macOS
+  `ObjectList` `wxAcceleratorTable` and the wxInspector table are the live ones.
+  Cite: `docs/changes.txt:321`; `mouse-keyboard-focus.md` §Accelerators.
+
+## 10 Migration already done in Orca
+
+The upgrade landed as 8248b06337 ("Updated wxWidgets to 3.3.2", #12941; build system 2d7e26292b) and
+the pin later advanced to upstream 3.3.4. Its PR kept Orca's own MSW dark mode to avoid broader
+changes; wx could then only switch at app start, so a live Orca toggle needed NppDarkMode. Each row is
+a rule for new code; the owning file has the detail.
 
 | Commit | Rule for new code | Where | Owner |
 |---|---|---|---|

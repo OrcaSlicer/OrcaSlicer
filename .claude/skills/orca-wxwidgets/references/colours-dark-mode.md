@@ -59,7 +59,7 @@ Contents: [Rules](#rules) · [wxColour](#wxcolour) · [System colours and appear
 
 **Contract.** Constructors: `()`, `(r, g, b, a = wxALPHA_OPAQUE)`, `(unsigned long|long|int|unsigned int)` ("A
 packed RGB value", `interface/wx/colour.h:98-101`), `(const wxString&|const char*|const wchar_t*)`;
-`wxColour(bool) = delete` (`include/wx/colour.h:225-240`; `docs/changes.txt:246-248`: code "unintentionally
+`wxColour(bool) = delete` (`include/wx/colour.h:225-240`; `docs/changes.txt:278-280`: code "unintentionally
 and mistakenly using wxColour ctor from bool … doesn't compile any longer").
 
 | Fact | Cite |
@@ -121,7 +121,7 @@ returned colour is always valid" (`interface/wx/settings.h:44-48`, `:398-407`). 
 
 | Method | Contract |
 |---|---|
-| `IsDark()` | "checks the appearance of the current application and not the other applications on the system, so under MSW … will return false even if dark mode is used system-wide unless the application opted in using dark mode using wxApp::MSWEnableDarkMode()" (`:332-346`). An incompatible 3.3 change (`docs/changes.txt:71-73`). |
+| `IsDark()` | "checks the appearance of the current application and not the other applications on the system, so under MSW … will return false even if dark mode is used system-wide unless the application opted in using dark mode using wxApp::MSWEnableDarkMode()" (`:332-346`). An incompatible 3.3 change (`docs/changes.txt:77-79`). |
 | `AreAppsDark()` (3.3.0) | system-wide app dark mode "even if it's not enabled for this particular application"; same as `IsDark()` off MSW (`:308-321`). |
 | `IsSystemDark()` (3.3.0) | the "Windows mode", which can differ from the "app mode" (`:348-358`). |
 | `IsUsingDarkBackground()` | luminance fallback, "generally not very useful to call directly" (`:360-370`). |
@@ -233,25 +233,25 @@ child handlers.
 `@onlyfor{wxmsw}`, `interface/wx/app.h:1418-1465`):
 - "experimental"; uses "undocumented, and unsupported by Microsoft, functions"; works on Windows 10 later than
   v1809 (including LTSC 2019) and all Windows 11; testing before 20H1 (v2004) "has been limited".
-- Flags: default follows the system ("dark mode is only used if it is the default mode for the applications on
-  the current system"); `DarkMode_Always` forces dark. **[source]** `DarkMode_Auto = 0` exists in
-  `include/wx/msw/app.h:48` although only `DarkMode_Always` is documented.
+- Flags: `DarkMode_Auto` (default) follows the system ("dark mode is only used if it is the default mode
+  for the applications on the current system"); `DarkMode_Always` forces dark, `DarkMode_Never` forces
+  light. **[source]** the enum also names `DarkMode_Auto = 0` in `include/wx/msw/app.h:46-52`;
+  `DarkMode_Never` is new in 3.3.4 (documented at `interface/wx/app.h:1450-1454`).
 - Returns `true` if enabled, `false` "most likely because the system doesn't support dark mode".
 - Alternatives: the `msw.dark-mode` system option (1 = `MSWEnableDarkMode()`, 2 = `DarkMode_Always`, settable by
-  environment variable from outside the app, `interface/wx/sysopt.h:85-89`), or `SetAppearance(System|Dark)`.
-- Known limitations (`interface/wx/app.h:1434-1448`): anything `TaskDialog()`-based has no dark mode —
-  `wxMessageBox()`, `wxMessageDialog`, `wxRichMessageDialog`, `wxProgressDialog`, simple `wxAboutBox()` (wx suggests
-  `wxGenericMessageDialog`/`wxGenericProgressDialog`); common-dialog wrappers `wxColourDialog`, `wxFindReplaceDialog`,
-  `wxFontDialog`, `wxPageSetupDialog`, `wxPrintDialog`; `wxTimePickerCtrl`, `wxDatePickerCtrl`, `wxCalendarCtrl`
-  stay light; toolbar items with `wxToolBar::SetDropdownMenu()` draw the drop-down "almost invisible".
+  environment variable from outside the app, `interface/wx/sysopt.h:85-89`), or `SetAppearance(System|Light|Dark)`.
+- Known limitations (`interface/wx/app.h:1442-1448`): `wxTimePickerCtrl`, `wxDatePickerCtrl` and
+  `wxCalendarCtrl` stay light; `wxPrintDialog` on Windows 10 stays light; MDI applications are not
+  recommended in dark mode. `wxMessageDialog` gained dark mode in 3.3.3 (#26570) and the common dialogs
+  in 3.3.4 (#26780), so the older "anything `TaskDialog()`-based and the common dialogs stay light" note
+  no longer applies.
 
-`AppearanceResult wxApp::SetAppearance(Appearance::System|Light|Dark)` (3.3.0, `interface/wx/app.h:1152-1190`):
+`AppearanceResult wxApp::SetAppearance(Appearance::System|Light|Dark)` (3.3.0, `interface/wx/app.h:1130-1187`):
 GTK/macOS follow the system by default and the call is immediate and "affects all the existing windows as well
 as any windows created after this call"; "Under MSW, the default appearance is always light" and an app that
-wants to follow the system must call it with `Appearance::System`; "the appearance can be only set before any
-windows are created and calling this function too late will return AppearanceResult::CannotChange" (only wxMSW
-returns it);
-`Failure` e.g. "because `GTK_THEME` is defined".
+wants to follow the system must call it with `Appearance::System`; on MSW it maps to `MSWEnableDarkMode()` and
+returns `Ok`/`Failure` (`interface/wx/app.h:1166-1169`). `Failure` e.g. "because `GTK_THEME` is defined";
+`AppearanceResult::CannotChange` is "currently never returned" (`interface/wx/app.h:1151, 1179-1183`).
 
 `wxDarkModeSettings` (`interface/wx/msw/darkmode.h:30-111`), passed to `MSWEnableDarkMode()`: `GetColour(wxSystemColour)`
 (defaults "not documented and are subject to change"; the doc example names `0x202020` as the default background);
@@ -260,34 +260,40 @@ returns it);
 which "doesn't look very well in dark mode"; the base returns grey.
 
 **[source] facts the docs do not state:**
-- `SetAppearance` on MSW returns `CannotChange` when any TLW exists **or `MSWEnableDarkMode` was already called**
-  (`gs_appMode != AppMode_Default`); `SetAppearance(Light)` returns `Ok` without doing anything
-  (`src/msw/darkmode.cpp` `wxApp::SetAppearance`). macOS `System` sets `NSApp.appearance` to
-  `[NSAppearance currentAppearance]` rather than nil, pinning the current look (`src/osx/cocoa/utils.mm:485-513`);
-  GTK3 maps to the portal colour-scheme machinery; GTK2 always returns `Failure` (`src/gtk/app.cpp:355-381`).
-- `MSWEnableDarkMode` may be called any time, but dark title bars are applied only to TLWs **created** afterwards
+- As of 3.3.3 (#26516) and 3.3.4 (#26734), MSW dark mode can be switched at runtime: `SetAppearance()` maps to
+  `MSWEnableDarkMode()` and returns `Ok`/`Failure`, never `CannotChange` (`src/msw/darkmode.cpp:354-375`).
+  `MSWEnableDarkMode()` re-applies the mode to an existing window by sending it `WM_SYSCOLORCHANGE` (`:345-349`),
+  and the window restyles through `wxMSWDarkMode::HasChanged()`/`NotifySysColorChange()`
+  (`src/msw/window.cpp:5337, 5528-5534`), so a control created before the switch is re-themed too. macOS `System`
+  sets `NSApp.appearance` to `[NSAppearance currentAppearance]` rather than nil, pinning the current look
+  (`src/osx/cocoa/utils.mm:485-513`); GTK3 maps to the portal colour-scheme machinery; GTK2 always returns
+  `Failure` (`src/gtk/app.cpp:355-381`).
+- `MSWEnableDarkMode` may be called any time; dark title bars are applied when a TLW is created
   (`EnableForTLW` at the end of TLW creation, `src/msw/toplevel.cpp:513`) and controls are dark-enabled at creation
   (`MSWCreateControl` → `AllowForWindow` and, for some controls, `SetForegroundColour(LISTBOXTEXT)`,
-  `src/msw/control.cpp:133-140`). wx cannot flip existing windows — the reason `SetAppearance` refuses late calls.
+  `src/msw/control.cpp:133-140`).
 - wx takes ownership of the settings pointer (`wxDarkModeModule::SetSettings`) — allocate it with `new`.
 - `msw.dark-mode` is read in `wxApp::Initialize` (`src/msw/app.cpp:492-494`): a user's `WX_MSW_DARK_MODE`
   environment variable enables wx dark mode before Orca's own call.
 - wx's owner-drawn menu path keys on `wxMSWDarkMode::IsActive()` (`src/msw/menuitem.cpp` `wxMenuItem::OnDrawItem`,
   `GetColourToUse`; `src/msw/menu.cpp`; menu-bar UAH drawing in `src/msw/darkmode.cpp`).
 
-3.3.x dark-mode fix log: 3.3.2 wxMSW (`docs/changes.txt:297-308`: checkbox accessibility in dark mode, rendering of
-several controls, toolbar, menus; also "Revert use of WS_EX_COMPOSITED"), 3.3.1 (`:358-372`: wxStaticBitmap-in-notebook
-crash, disabled wxButton bitmaps and wxStaticText, notebook high-contrast background, wxDataViewCtrl light-mode
-border regression, selected toolbar buttons, wxComboCtrl, wxTE_RICH wxTextCtrl), 3.3.0 (`:385` "Add experimental dark
-mode support to wxMSW"); XRC dark colour variants (`:494`).
+3.3.x dark-mode fix log: 3.3.4 wxMSW (`docs/changes.txt:349-358`: dynamic dark mode, dark mode for
+wxFontPickerCtrl, wxNotebook, wxSpinButton and the common dialogs), 3.3.3 (`:433` "Implement support for
+switching between light/dark modes"; `:426` wxMessageDialog, `:429` combo/listbox on Windows 11, `:431`
+wxCheckBox label in screen readers), 3.3.2 (`:492-501`: checkbox accessibility in dark mode, rendering of
+several controls, toolbar, menus; also "Revert use of WS_EX_COMPOSITED"), 3.3.1 (`:553-565`:
+wxStaticBitmap-in-notebook crash, disabled wxButton bitmaps and wxStaticText, notebook high-contrast
+background, wxDataViewCtrl light-mode border regression, selected toolbar buttons, wxComboCtrl, wxTE_RICH
+wxTextCtrl), 3.3.0 (`:578` "Add experimental dark mode support to wxMSW"); XRC dark colour variants (`:687`).
 
 **OrcaSlicer.** `GUI_App::on_init_inner` (`#ifdef __WINDOWS__`) calls `MSWEnableDarkMode(DarkMode_Auto)` and then
-`NppDarkMode::InitDarkMode(init_dark_color_mode, init_sys_menu_enabled)`. wx's call exists only so that wx-drawn
-menus get dark borders; NppDarkMode does the theming (title bars, explorer theme, scrollbars, list headers) because
-it can switch live and wx cannot. The code comment "Orca: todo switch to native dark mode support in wxWidgets and
-remove NppDarkMode" records the intent; the blocker is that a live Preferences toggle would become restart-only
-(`SetAppearance` returns `CannotChange` after startup, existing windows cannot be restyled) and TaskDialog/common
-dialogs/pickers stay light anyway — which is also why Orca has its own `MsgDialog` family and `ProgressDialog`.
+`NppDarkMode::InitDarkMode(init_dark_color_mode, init_sys_menu_enabled)`. wx's call exists so that wx-drawn
+menus get dark borders; NppDarkMode does Orca's theming (title bars, explorer theme, scrollbars, list headers).
+The code comment "Orca: todo switch to native dark mode support in wxWidgets and remove NppDarkMode" records the
+intent. The old blocker — a live Preferences toggle would be restart-only because `SetAppearance` returned
+`CannotChange` and existing windows could not be restyled — is gone as of 3.3.3/3.3.4 (above). Orca still keeps
+NppDarkMode, and Orca's own `MsgDialog` family and `ProgressDialog` remain its message/progress UI.
 **[source]** consequences of `DarkMode_Auto`: wx's internal "dark" stays `AllowDark` and follows the **system app
 mode**; NppDarkMode's later `SetPreferredAppMode` call does not touch wx's `gs_appMode`. So with Windows light +
 Orca dark, wx's dark machinery (menus, `GetColour()`, `IsDark()`) stays off; with Windows dark + Orca light it is
@@ -312,11 +318,15 @@ on: `GetColour()` returns the dark palette, new native controls are dark-enabled
   ```
   Cite: bf397a0632 (`GUI_App.cpp`, `GUI_App::on_init_inner`).
 - **Rule:** Do not call `wxTheApp->SetAppearance(...)` in Orca.
-  **Why:** MSW returns `CannotChange` (Orca already called `MSWEnableDarkMode`), GTK2 fails, and macOS pins
+  **Why:** MSW would switch wx's own mode out of step with NppDarkMode and `dark_color_mode` (wx's mode is driven
+  by `MSWEnableDarkMode(DarkMode_Auto)` and follows the system), GTK2 fails, and macOS pins
   `NSApp.appearance` while `GUI_App::dark_mode()` keeps reading the system `AppleInterfaceStyle` — the two would
   disagree.
-- **Rule:** Do not show wx's TaskDialog-based or common dialogs where dark mode matters; use `MessageDialog` and
-  friends (`MsgDialog.hpp`, see `references/windows-dialogs.md`).
+- **Rule:** Do not show wx's TaskDialog-based or common dialogs; use `MessageDialog` and friends
+  (`MsgDialog.hpp`, see `references/windows-dialogs.md`).
+  **Why:** Orca's dialogs are owner-drawn and consistent with the rest of the UI. The old dark-mode gap
+  closed — `wxMessageDialog` gained dark mode in 3.3.3 (#26570) and the common dialogs in 3.3.4 (#26780) —
+  but the convention stands.
 
 ## Window colours, inheritance and native-control limits
 
@@ -371,7 +381,7 @@ macOS paints the system grey.
 
 | Port | Behaviour |
 |---|---|
-| MSW | `wxButton`/`wxToggleButton` `SetBackgroundColour`/`SetForegroundColour` switch the native button to `BS_OWNERDRAW` (`src/msw/anybutton.cpp` `wxAnyButton::MakeOwnerDrawn`, `:1324-1390`) — the colour works but native theming is gone. `wxCheckBox`/`wxRadioButton` foreground makes them owner-drawn when themes are active (`src/msw/control.cpp` `MSWMakeOwnerDrawnIfNecessary`); 3.3.2 fixed checkbox accessibility in that mode (`docs/changes.txt:299-300`). Static-text-like children paint the ancestor brush only if that ancestor's background is inheritable. |
+| MSW | `wxButton`/`wxToggleButton` `SetBackgroundColour`/`SetForegroundColour` switch the native button to `BS_OWNERDRAW` (`src/msw/anybutton.cpp` `wxAnyButton::MakeOwnerDrawn`, `:1324-1390`) — the colour works but native theming is gone. `wxCheckBox`/`wxRadioButton` foreground makes them owner-drawn when themes are active (`src/msw/control.cpp` `MSWMakeOwnerDrawnIfNecessary`); 3.3.2 fixed checkbox accessibility in that mode (`docs/changes.txt:492-493`). Static-text-like children paint the ancestor brush only if that ancestor's background is inheritable. |
 | macOS | `SetBackgroundColour` reaches the NSView only if it `respondsToSelector:setBackgroundColor:` and the style is not `wxBG_STYLE_TRANSPARENT` (`src/osx/cocoa/window.mm:3514-3531`): **NSButton (`wxButton`) ignores the background colour**. Foreground uses `setTextColor:` when the view has it (`:3885-3887`); stock NSButton has none. `wxStaticText` is an NSTextField with `setDrawsBackground:NO` — its background is never painted (`src/osx/cocoa/stattext.mm:154`). `wxTextCtrl`'s `setEnabled:` resets the text colour: multi-line (`wxNSTextView`) always, to `controlTextColor`/`disabledControlTextColor`; single-line (`wxNSTextField`) when it does not draw its background, to `controlTextColor`/`secondarySelectedControlColor` (`src/osx/cocoa/textctrl.mm`). |
 | GTK3 | `SetBackgroundColour/SetForegroundColour/SetFont` install a per-widget CSS provider `*{color:..;background:..;font:..}` at `GTK_STYLE_PROVIDER_PRIORITY_APPLICATION` (`src/gtk/window.cpp` `wxWindowGTK::GTKApplyStyle`); `wxButton`/`wxCheckBox` apply it to their inner label too (`src/gtk/button.cpp:325-335`, `src/gtk/checkbox.cpp:233-237`). User CSS (priority USER) can still override. |
 | GTK2 | colours applied with `gtk_widget_modify_style` — pixmap-engine themes may ignore them. |

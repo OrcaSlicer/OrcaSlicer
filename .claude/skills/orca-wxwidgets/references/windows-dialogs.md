@@ -6,7 +6,7 @@ port; what Orca's `DPIDialog`/`DPIFrame` add; the Orca dialog recipe; and the `M
 Read it before writing or reviewing any dialog, frame, close handler, `Destroy()`/`delete`, or code
 that keeps a pointer to a window across an event, a `CallAfter` or a modal loop.
 
-wx cites are relative to the pinned wx 3.3.2 tree (located as in `SKILL.md` §Ground truth). wx is
+wx cites are relative to the pinned wx 3.3.4 tree (located as in `SKILL.md` §Ground truth). wx is
 built with `wxBUILD_DEBUG_LEVEL=0` and `libslic3r_gui` with `wxDEBUG_LEVEL=0`: every wx assert
 quoted below is compiled out, so misuse fails silently (dropped call, stuck loop, freed memory), never with an assert dialog. "GTK" below
 means wxGTK as Orca builds it on Linux: GTK3 by default (X11 or Wayland); GTK2 is only an opt-out.
@@ -424,7 +424,7 @@ mapped (`src/gtk/toplevel.cpp:1141-1243`).
 
 **Raise.** "only requests the window manager to raise this window… If the window is currently hidden,
 this function does *not* show it", top-level windows only (`interface/wx/window.h:3013-3033`); true on all ports
-since 3.3 (`docs/changes.txt:144-146`). **[source]** MSW = `::SetForegroundWindow`, subject to the
+since 3.3 (`docs/changes.txt:145-147`). **[source]** MSW = `::SetForegroundWindow`, subject to the
 foreground lock — Windows may only flash the taskbar button (`src/msw/toplevel.cpp:650-655`); GTK =
 `gtk_window_present` only if shown (`src/gtk/toplevel.cpp:1301-1310`; during a deferred X11 first show it
 already counts as shown); macOS = `makeKeyAndOrderFront` only if shown (`src/osx/nonownedwnd_osx.cpp:289-295`, `src/osx/cocoa/nonownedwnd.mm:897-899`),
@@ -910,8 +910,9 @@ buttons are chosen — in numeric id order, so `{"Save", "OK"}` makes Save prima
 **Rule.** Never `wxMessageBox`/`wxMessageDialog`/`wxRichMessageDialog` once the GUI exists; use the themed
 replacements in `src/slic3r/GUI/MsgDialog.hpp` (`Slic3r::GUI`), rooted in `MsgDialog : DPIDialog` (logo on the
 left, content on the right, `Button` row underneath, dark-mode and DPI aware). Why: on MSW the TaskDialog-based
-native boxes (`wxMessageBox`, `wxMessageDialog`, `wxRichMessageDialog`, `wxProgressDialog`) ignore dark mode
-(`interface/wx/app.h:1436-1446`), and native boxes cannot match Orca's look. `wxMessageBox` remains only for
+native boxes (`wxMessageBox`, `wxMessageDialog`, `wxRichMessageDialog`, `wxProgressDialog`) now follow dark mode
+since 3.3.3, so only the date/time/calendar controls, `wxPrintDialog` on Windows 10 and MDI applications stay
+light (`interface/wx/app.h:1442-1448`); native boxes cannot match Orca's look. `wxMessageBox` remains only for
 failures before the GUI exists (e.g. `GUI_App::load_language`). Native message-box style limits:
 `references/strings-i18n-files.md`. Return-value trap when reading old code: `wxMessageBox()` returns
 `wxYES/wxNO/wxCANCEL/wxOK/wxHELP`, while `ShowModal()` returns `wxID_YES/…` (`interface/wx/msgdlg.h:269-276` vs `309-311`).

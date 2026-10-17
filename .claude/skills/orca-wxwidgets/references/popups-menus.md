@@ -1,6 +1,6 @@
 # Popups, transient windows and menus
 
-How wx 3.3.2 popups and menus behave on each port, and the Orca wrappers built on them: `PopupWindow`,
+How wx 3.3.4 popups and menus behave on each port, and the Orca wrappers built on them: `PopupWindow`,
 `DropDown`/`ComboBox`, `SidePopup`, the search popups, frameless dialogs used as popups, `MenuFactory`,
 `append_menu_item`, `Plater::PopupMenu` and the macOS menubar versus `BBLTopbar`. Read it before you add
 or change anything that opens over other UI and must close by itself, or any context menu or menubar item.
@@ -822,7 +822,7 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
   `wxWindow`. "The window automatically destroys itself when the user clicks on it or it loses the focus"
   (`interface/wx/tipwin.h:13-14`). Since 3.3.2 use `static Ref New(parent, text, maxLength, rectBound)`. The
   returned `wxTipWindow::Ref` is "guaranteed to become invalid when the tip window is closed", and the raw
-  constructor is deprecated (`tipwin.h:27-132`; `docs/changes.txt:286`). `Create` positions the tip at the mouse
+  constructor is deprecated (`tipwin.h:27-132`; `docs/changes.txt:479`). `Create` positions the tip at the mouse
   and pops it up immediately (`src/generic/tipwin.cpp:171-240`); on GTK it also captures the mouse.
   `SetBoundingRect` closes the tip when the mouse leaves that rectangle (`tipwin.h:160-172`). Orca:
   `Button::OnParentMotion` (MSW-only tooltips for disabled buttons) keeps a `wxTipWindow::Ref`.
@@ -831,11 +831,11 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
   `wxRichToolTipPopup` (`src/generic/richtooltipg.cpp`). Re-check it on every wx update.
 - **`wxInfoBar`** "calls its parent wxWindow::Layout() method and assumes that it will change the parent
   layout": add it to the parent's sizer (`interface/wx/infobar.h:38-44`). It is generic on all ports and native
-  in wxGTK. Use `ShowMessage(msg, flags)`/`Dismiss()`. 3.3 adds `ShowCheckBox` (`docs/changes.txt:460`).
+  in wxGTK. Use `ShowMessage(msg, flags)`/`Dismiss()`. 3.3 adds `ShowCheckBox` (`docs/changes.txt:653`).
 - **`wxNotificationMessage`** is "not a window", native on MSW, macOS and GTK (`interface/wx/notifmsg.h:12-18`).
   MSW recommends `MSWUseToasts()` before the first notification, macOS needs the alert notification style for
   actions, and GTK ignores the timeout for warnings and errors (`notifmsg.h:23-38`, 179-182). 3.3 reports the
-  dismissal reason (`docs/changes.txt:488`). Orca does not use it. Its in-app notifications are the GL-canvas
+  dismissal reason (`docs/changes.txt:681`). Orca does not use it. Its in-app notifications are the GL-canvas
   `NotificationManager`.
 
 ## 13. wxMenu and wxMenuItem
@@ -893,7 +893,7 @@ submenu (it leaks), `Destroy(id)` deletes it, and `Remove()` returns ownership (
 an item switch it to owner-drawn (`MSWMustUseOwnerDrawn`, `src/msw/menuitem.cpp:1371-1377`). "Owner drawn items
 are also incompatible with dark mode support and using them makes the entire menu containing them to use
 standard light mode colours even in dark mode." 3.3.2 reworked MSW dark-mode menu rendering
-(`docs/changes.txt:305-306`); owner-drawn items still opt out of it.
+(`docs/changes.txt:498-499`); owner-drawn items still opt out of it.
 
 **Labels and accelerators** (`menuitem.h:460-490`, 555-570).
 - The syntax is `"&Label\tCtrl+X"`; `&&` is a literal ampersand. `CTRL` means Cmd on macOS, and `RAWCTRL` gives

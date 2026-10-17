@@ -28,12 +28,18 @@ if (APPLE)
         COMMAND ${GIT_EXECUTABLE} apply --verbose
                 ${CMAKE_CURRENT_LIST_DIR}/0001-macos-use-srgb-colour-components.patch
     )
+elseif (WIN32)
+    set(_wx_patch_command
+        ${GIT_EXECUTABLE} checkout -f -- build/cmake/wxWidgetsConfig.cmake.in
+        COMMAND ${GIT_EXECUTABLE} apply --verbose
+                ${CMAKE_CURRENT_LIST_DIR}/0002-clang-cl-sibling-compiler-prefix.patch
+    )
 endif ()
 
 orcaslicer_add_cmake_project(
     wxWidgets
-    GIT_REPOSITORY "https://github.com/SoftFever/Orca-deps-wxWidgets"
-    GIT_TAG v3.3.2
+    GIT_REPOSITORY "https://github.com/wxWidgets/wxWidgets"
+    GIT_TAG v3.3.4
     GIT_SHALLOW ON
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
     PATCH_COMMAND ${_wx_patch_command}

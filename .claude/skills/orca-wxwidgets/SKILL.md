@@ -6,7 +6,7 @@ description: Use when writing, modifying, reviewing or debugging any OrcaSlicer 
 # OrcaSlicer wxWidgets GUI
 
 This skill is how OrcaSlicer's wxWidgets GUI is written, changed, fixed and reviewed. Its core is
-**wxWidgets 3.3.2 API usage** — the documented contracts, the per-platform behaviour and the known
+**wxWidgets 3.3.4 API usage** — the documented contracts, the per-platform behaviour and the known
 limitations of the wx version Orca pins — layered with the OrcaSlicer conventions, wrappers, custom
 widget library and stable component designs a contributor must follow. Every reference file opens
 with a numbered **Rules** checklist (what a diff is checked against), followed by sections that give
@@ -15,9 +15,12 @@ wrong → right pairs with the commit that fixed each one.
 
 ## Ground truth: the wx tree in deps/
 
-Orca pins **wxWidgets 3.3.2** from the fork `github.com/SoftFever/Orca-deps-wxWidgets` (tag `v3.3.2`,
-`deps/wxWidgets/wxWidgets.cmake`), built static (Flatpak: shared). Facts about this build that change
-how you read the wx docs:
+Orca pins upstream **wxWidgets 3.3.4** (`github.com/wxWidgets/wxWidgets`, tag `v3.3.4`,
+`deps/wxWidgets/wxWidgets.cmake`), built static (Flatpak: shared). Two in-tree patches are applied: an
+Apple-only sRGB colour-component fix (`0001-macos-use-srgb-colour-components.patch`) and a Windows-only
+clang-cl sibling-compiler search fix for the installed `wxWidgetsConfig.cmake`
+(`0002-clang-cl-sibling-compiler-prefix.patch`); neither applies on Linux. Facts about this build that
+change how you read the wx docs:
 
 - **Linux builds against GTK3** (`DEP_WX_GTK3` defaults ON in `deps/CMakeLists.txt`). Target GTK3 on
   both X11 and Wayland; GTK-guarded code must still compile on GTK2, an opt-out build Orca does not ship.
@@ -33,7 +36,7 @@ Look things up in the source the app is built from — it beats memory, and 3.3 
 WX=$(find -L deps -maxdepth 5 -type d -path '*dep_wxWidgets-prefix/src/dep_wxWidgets' 2>/dev/null | head -1)
 # macOS: deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets   Linux, Windows: deps/<tree>/dep_wxWidgets-prefix/...
 # -L follows a worktree's deps/<tree> symlinked to the main checkout. Not a glob: zsh aborts on one that matches nothing.
-# If deps are not built: git clone --depth 1 -b v3.3.2 https://github.com/SoftFever/Orca-deps-wxWidgets
+# If deps are not built: git clone --depth 1 -b v3.3.4 https://github.com/wxWidgets/wxWidgets
 grep -n "CaptureMouse" -A 30 $WX/interface/wx/window.h      # documented contract (doxygen source)
 grep -rn "@onlyfor\|not implemented" $WX/interface/wx/popupwin.h   # documented platform limits
 ls $WX/docs/doxygen/overviews/                               # eventhandling.h, sizer.h, high_dpi.md, windowdeletion.h, ...
@@ -219,14 +222,15 @@ known class with a pitfall entry and a fixing commit.
   any wx key event; Control+click arrives as a right-click.
 - **Windows:** `IsDark()` and `wxSYS_COLOUR_*` follow the system app mode, not Orca's theme — use
   `dark_mode()`; menu bitmaps follow `check_dark_mode()`; windows are not double-buffered by default in
-  3.3.2; `ProcessLeftDown` is never called for popups; a popup that must close with the frame calls
+  3.3.4; `ProcessLeftDown` is never called for popups; a popup that must close with the frame calls
   `BindUnfocusEvent()`.
 - **Linux GTK3:** dialogs without size hints collapse (only sizer-fitting calls, not `Fit()`, are
   replayed at the first `Show()`); command events from a popup's children are not stopped at the popup
   (MSW/macOS stop them); chained popups need `transient_for` set to the mapped parent right before
   showing; native borders leak through custom widgets (`RemoveButtonBorder`/`RemoveInputBorder`).
 - **Wayland:** no global pointer position, no window positioning, `wxClientDC`, `Update()` and `SetIcon`
-  do nothing, no floating AUI panes, GL is EGL only.
+  do nothing, AUI floating is disabled (wx 3.3.4 can drag a floating frame via system drag sessions, but
+  its docking hints still need global positions), GL is EGL only.
 
 ## Editing this skill
 

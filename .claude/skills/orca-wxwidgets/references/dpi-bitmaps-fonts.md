@@ -1,6 +1,6 @@
 # DPI, bitmaps and fonts
 
-How wx 3.3.2 maps DIP, logical and physical pixels on each platform, how DPI changes reach a window,
+How wx 3.3.4 maps DIP, logical and physical pixels on each platform, how DPI changes reach a window,
 and how OrcaSlicer sizes layout (`FromDIP`, `em_unit`), rescales (`DPIAware`), rasterizes icons
 (`BitmapCache`, `create_scaled_bitmap`, `ScalableBitmap`) and chooses fonts (`Label` table). Read it
 for any fixed size, icon, bitmap, image list, font, or `on_dpi_changed` work, and when a bug looks
@@ -488,7 +488,7 @@ handler bound there runs once more after every DPI change.
   inherits the DC's scale (`interface/wx/bitmap.h:370-385`).
 - `wxBitmap(const wxCursor&)` is invalid on GTK under Wayland (`interface/wx/bitmap.h:388-401`).
 - wxMSW `wxBitmap::Create(size, dc)` no longer multiplies by the DC's content scale
-  (`docs/changes.txt:94-96`).
+  (`docs/changes.txt:100-102`).
 
 **Offscreen drawing.** "The scaling factor of the bitmap determines the scaling factor used by
 this device context" (`interface/wx/dcmemory.h:41-58`); `wxMemoryDC(wxDC*)` does **not** inherit
@@ -740,7 +740,7 @@ are in `references/popups-menus.md`.
 in the new code as it doesn't support showing DPI-dependent bitmaps. Please use
 wxWithImages::SetImages() instead"; "the size is specified in physical pixels and must correspond
 to the size of bitmaps … that will be added". 3.3 made the size physical and makes calls on an
-invalid list assert (`docs/changes.txt:53-56, 85-88`) — silently in Orca's assert-free build.
+invalid list assert (`docs/changes.txt:59-62, 91-94`) — silently in Orca's assert-free build.
 When a list is unavoidable, `wxBitmapBundle::CreateImageList(win, bundles)` builds one at the
 consensus size (public but undocumented, [source] `include/wx/bmpbndl.h`).
 ```cpp
@@ -761,7 +761,7 @@ wxArtProvider::GetBitmapBundle(wxART_WARNING, wxART_OTHER, wxSize(16, 16));     
 ```
 
 **`wxImage`** resizing (`interface/wx/image.h:28-89`): `wxIMAGE_QUALITY_NEAREST` is no longer an
-alias of `NORMAL` since 3.3.0 (`docs/changes.txt:98-99`; `wxIMAGE_QUALITY_FAST` is the speed
+alias of `NORMAL` since 3.3.0 (`docs/changes.txt:104-105`; `wxIMAGE_QUALITY_FAST` is the speed
 synonym). `NORMAL` (default) = bilinear down to an integer multiple, then box average; `HIGH` =
 box average when shrinking, bicubic when enlarging; `BILINEAR`, `BICUBIC`, `BOX_AVERAGE` explicit.
 High-quality scaling "may not work as expected when using a single mask colour for

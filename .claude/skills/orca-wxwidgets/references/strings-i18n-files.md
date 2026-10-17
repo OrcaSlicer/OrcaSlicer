@@ -44,7 +44,8 @@ Contents: [Rules](#rules) · [Build facts](#build-facts-that-decide-string-behav
 12. One complete sentence per msgid, placeholders instead of concatenated fragments, the number
     placeholder in both plural forms, `// TRN` for ambiguous strings, a context for homonyms.
     → §Plurals and contexts
-13. A wrapper around `wxGetTranslation` returns `wxString` by value. → §Translation
+13. A wrapper that converts a translation (`wxString::FromUTF8`, `ToUTF8()`, `format_wxstr`) returns
+    by value; `wxGetTranslation()` itself returns `const wxString&`. → §Translation
 14. User-supplied text (preset, filament, file, printer names) in a mnemonic-interpreting label
     goes through `SetLabelText` or `wxControl::EscapeMnemonics`. → §Labels
 15. File dialogs: filters from `file_wildcards(FT_*)`, default dir `from_u8(app_config->get_last_dir())`,
@@ -186,11 +187,11 @@ was the splash screen's event filter, fixed in 4088a36095; see `references/threa
   **modifies the string**. Use `s[n].GetValue()` or an explicit `int`/`wchar_t` type
   (`interface/wx/string.h:171-226`).
 - Since 3.3 `wxstr = {"Hello", 2}` is ambiguous (the `string_view` constructor); write
-  `wxString{"Hello", 2}` (`docs/changes.txt:191-194`).
+  `wxString{"Hello", 2}` (`docs/changes.txt:223-226`).
 - Never pass a `wxString`, `c_str()` or `mb_str()` to a real C vararg function (`printf`); use
   `wxString::Format`/`wxPrintf` or convert explicitly (`interface/wx/string.h:262-300`).
 - `wxUSE_STL` no longer exists; wx 3.3 re-enables implicit `wxString` → `std::string` only through
-  `wxUSE_STD_STRING_CONV_IN_WXSTRING=1` (`docs/changes.txt:163-166`). Orca keeps it 0 and adds
+  `wxUSE_STD_STRING_CONV_IN_WXSTRING=1` (`docs/changes.txt:195-198`). Orca keeps it 0 and adds
   `wxNO_UNSAFE_WXSTRING_CONV`; do not enable either conversion, the compile error is the guard.
 
 ### Pitfalls
@@ -322,10 +323,13 @@ language's decimal separator; `wxString::ToCDouble`/`FromCDouble` do not.
 **wx contract** (`interface/wx/translation.h:577-640`): `wxGetTranslation(string, domain = "",
 context = "")` returns the original string when no catalog has it; a non-empty context needs a
 matching `msgctxt` in the catalog; the plural overload returns `string` for `n == 1` and `plural`
-otherwise when no catalog is found; "This function is thread-safe". Since 3.3 it returns
-**`wxString` by value**, not a const reference: "please change the return type of the function to
-wxString" (`docs/changes.txt:139-142`). Orca's `I18N::translate` overloads already return by value;
-keep any new wrapper that way, a `const wxString&` return now dangles.
+otherwise when no catalog is found; "This function is thread-safe". It returns **`const wxString&`**
+(`interface/wx/translation.h:615`; `include/wx/translation.h:277-309`). 3.3.2 changed this to a
+by-value `wxString` and **3.3.3 reverted it** to the 3.2.x reference, so the reference points at the
+catalog's own string or at `wxTranslations::GetUntranslatedString()`, both of which outlive the call.
+Forwarding that reference is therefore safe; what must return by value is a wrapper that constructs a
+temporary — `wxString::FromUTF8`, `ToUTF8()`, `format_wxstr`. Orca's `I18N::translate` overloads
+return `wxString` by value and `translate_utf8`/`_u8L` return `std::string`.
 
 **OrcaSlicer macros** (`src/slic3r/GUI/I18N.hpp`):
 
@@ -429,7 +433,7 @@ using this class doesn't affect the native controls and dialogs", and on macOS 1
 C locale can break the menus (`interface/wx/intl.h:282-292`): native file dialogs, the app menu and
 standard buttons follow the system language. `wxLocale::IsAvailable` builds a region tag and asks
 `wxUILocale(...).IsSupported()` (`src/common/intl.cpp` `wxLocale::IsAvailable`), which on Unix no
-longer falls back to another region of the same language (`docs/changes.txt:75-79`); keep the
+longer falls back to another region of the same language (`docs/changes.txt:81-85`); keep the
 fallbacks in `load_language`.
 
 - **Rule:** translate at use; never store a translated string in a namespace-scope or function-local
@@ -457,7 +461,7 @@ call `SetLabel(label)`) [source]. `SetLabelMarkup` also treats an
 unescaped `&` as a mnemonic, needs `&amp;`/`&lt;` for literal characters, strips the markup where it
 is unsupported, and leaves the label unchanged (returns false) when the string is not well-formed
 (`interface/wx/control.h:200-360`); user text inside markup must be XML-escaped.
-Since 3.3 wxListbook/wxChoicebook also interpret mnemonics in page titles (`docs/changes.txt:128-130`);
+Since 3.3 wxListbook/wxChoicebook also interpret mnemonics in page titles (`docs/changes.txt:134-136`);
 Orca uses neither, but the rule is the same for every book control.
 
 **OrcaSlicer.** `Label` (`Widgets/Label.cpp`) derives from `wxStaticText`; `Label::SetLabel` stores
@@ -495,7 +499,7 @@ so build it from the wide form (`into_path(w).wstring()`) or stay with boost. At
 expands `$VAR`/`%VAR%` inside file names (`interface/wx/filename.h:90-103`); use `MakeAbsolute()` or
 explicit `wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE`. 3.3 adds `IsMSWExtendedLengthPath()` for `\\?\`
 paths "avoiding the 260 character path length restriction" (`interface/wx/filename.h:1040-1051`,
-`docs/changes.txt:551`). `wxFileSystem::FileNameToURL`/`URLToFileName` convert to and from `file:`
+`docs/changes.txt:744`). `wxFileSystem::FileNameToURL`/`URLToFileName` convert to and from `file:`
 URLs (`interface/wx/filesys.h:96-103, 175-180`).
 
 **`wxStandardPaths`** (`interface/wx/stdpaths.h`): the directories "may or may not exist"
@@ -552,9 +556,9 @@ for (const wxString& p : paths)
 
 | | Behaviour |
 |---|---|
-| MSW | New-style `IFileDialog`: wx calls `SetDefaultExtension` with the selected filter's first extension and no longer calls `AppendExtension` itself (`src/msw/filedlg.cpp:1644-1656, 1738-1740`; `docs/changes.txt:556`). `SetExtraControlCreator` → XP-style dialog. |
+| MSW | New-style `IFileDialog`: wx calls `SetDefaultExtension` with the selected filter's first extension and no longer calls `AppendExtension` itself (`src/msw/filedlg.cpp:1644-1656, 1738-1740`; `docs/changes.txt:749`). `SetExtraControlCreator` → XP-style dialog. |
 | macOS | Open dialogs show **no filter choice** and apply all wildcards at once unless `wxSystemOptions::SetOption(wxOSX_FILEDIALOG_ALWAYS_SHOW_TYPES, 1)`, and even then non-matching files are only greyed (`interface/wx/filedlg.h:117-128`). Matching compares the lower-cased last path extension (`wxOpenSavePanelDelegate panel:shouldEnableURL:`, `src/osx/cocoa/filedlg.mm:58-88`) [source]: case-insensitive, and a multi-dot pattern such as `*.gcode.3mf` or `*.zip.amf` never matches by itself. `wxFD_OVERWRITE_PROMPT` is always on (`:172-175`); `wxFD_OPEN` always behaves as `wxFD_FILE_MUST_EXIST` (`:184-189`). The save panel replaces the initial file name's extension with the first one in the wildcard (Orca's comment on `file_wildcards`). The native panel runs `runModal` and does not re-raise the parent dialog afterwards (`src/osx/cocoa/filedlg.mm` `ShowModal`); see `references/windows-dialogs.md` for the deferred re-raise. |
-| GTK3 | `GtkFileChooserNative` (portal-capable, e.g. Flatpak) when GTK ≥ 3.20 at runtime and neither `wxFD_PREVIEW` nor an extra control/customize hook is used (`src/gtk/filedlg.cpp:265-274, 437-443`; `src/gtk/dirdlg.cpp:122-130`; `docs/changes.txt:393`). It runs through `gtk_native_dialog_run`: there is no wx window, so size/position calls do nothing (`wxFileDialog::DoSetSize` is empty). Patterns go to `gtk_file_filter_add_pattern` per token and are **case-sensitive** (`src/gtk/filectrl.cpp:169`). The chooser is transient for the parent left after `GetParentForModalDialog`, which replaces a null (or hidden, dying or `wxWS_EX_TRANSIENT`) parent with the active top-level window, else the app's main top window (`src/gtk/filedlg.cpp:206, 223-225`; `src/common/dlgcmn.cpp:180-203` `DoGetParentForDialog`) [source]. `wxFD_PREVIEW` is GTK-only (`interface/wx/filedlg.h:195-197`). |
+| GTK3 | `GtkFileChooserNative` (portal-capable, e.g. Flatpak) when GTK ≥ 3.20 at runtime and neither `wxFD_PREVIEW` nor an extra control/customize hook is used (`src/gtk/filedlg.cpp:265-274, 437-443`; `src/gtk/dirdlg.cpp:122-130`; `docs/changes.txt:586`). It runs through `gtk_native_dialog_run`: there is no wx window, so size/position calls do nothing (`wxFileDialog::DoSetSize` is empty). Patterns go to `gtk_file_filter_add_pattern` per token and are **case-sensitive** (`src/gtk/filectrl.cpp:169`). The chooser is transient for the parent left after `GetParentForModalDialog`, which replaces a null (or hidden, dying or `wxWS_EX_TRANSIENT`) parent with the active top-level window, else the app's main top window (`src/gtk/filedlg.cpp:206, 223-225`; `src/common/dlgcmn.cpp:180-203` `DoGetParentForDialog`) [source]. `wxFD_PREVIEW` is GTK-only (`interface/wx/filedlg.h:195-197`). |
 | GTK2 (opt-out build) | never uses the native chooser; patterns case-sensitive. |
 
 **OrcaSlicer:**
@@ -650,7 +654,7 @@ dtor, and `!lock` tests `IsOpened()`.
 
 | | Behaviour |
 |---|---|
-| MSW | `SetData`/`GetData` do not check `Open()` (`src/msw/clipbrd.cpp` `wxClipboard::SetData`), so code that forgets it works here only. `wxTextDataObject::SetData()` size must now include the 2-byte NUL (`docs/changes.txt:62-66`); use `SetText()` or the ctor. |
+| MSW | `SetData`/`GetData` do not check `Open()` (`src/msw/clipbrd.cpp` `wxClipboard::SetData`), so code that forgets it works here only. `wxTextDataObject::SetData()` size must now include the 2-byte NUL (`docs/changes.txt:68-72`); use `SetText()` or the ctor. |
 | macOS | without `Open()`, `SetData`/`AddData`/`GetData` return false through `wxCHECK_MSG(m_open, …)` without taking the object (`src/osx/carbon/clipbrd.cpp:84-105, 140-147`); a successful write is flushed to the pasteboard immediately (`:110-114`). |
 | GTK | same `wxCHECK_MSG(m_open, …)` early return (`src/gtk/clipbrd.cpp:643-647, 775`). `GetData`/`IsSupported` are asynchronous underneath: `wxClipboardSync` spins `YieldFor(wxEVT_CATEGORY_CLIPBOARD)` until GTK answers and forbids re-entrancy (`src/gtk/clipbrd.cpp:68-92`). PRIMARY selection exists. Under Wayland, Wayland MIME types are advertised next to the X11 atoms (`src/gtk/clipbrd.cpp:655-700`). |
 
@@ -793,8 +797,8 @@ from a non-main thread on wxOSX (`:39-40`); `wxCANCEL_DEFAULT` is ignored on wxO
 `wxID_OK/wxID_CANCEL/wxID_YES/wxID_NO/wxID_HELP` (`:269-275`), but **`wxMessageBox()` returns
 `wxYES/wxNO/wxCANCEL/wxOK/wxHELP`** (`:308-312`). `wxRichMessageDialog` is native only on MSW and
 generic elsewhere (`interface/wx/richmsgdlg.h:18-23`). On MSW every `TaskDialog`-based dialog
-(`wxMessageBox`, `wxMessageDialog`, `wxRichMessageDialog`, `wxProgressDialog`) ignores dark mode
-(`interface/wx/app.h:1436-1440`).
+(`wxMessageBox`, `wxMessageDialog`, `wxRichMessageDialog`, `wxProgressDialog`) has followed dark mode
+since 3.3.3 (`interface/wx/app.h:1442-1448`).
 
 **OrcaSlicer.** UI code uses the MsgDialog family (`MessageDialog`, `RichMessageDialog`,
 `WarningDialog`, `ErrorDialog`, `InfoDialog`; `references/windows-dialogs.md` §MsgDialog family) for
@@ -848,7 +852,7 @@ Orca does not use `wxConfig`/`wxFileConfig` (so the 3.3 change of the Unix defau
 
 **Contract** (`interface/wx/secretstore.h`): on Unix it needs libsecret and a running secret service, so
 always check `IsOk(&errmsg)` (`:193-210, 257`); libsecret is no longer required at run time
-(`docs/changes.txt:533`), so a missing library or service shows up only as `IsOk()` false.
+(`docs/changes.txt:726`), so a missing library or service shows up only as `IsOk()` false.
 `GetDefault()` "may show a dialog to the user under some platforms, so it can take an arbitrarily long
 time to return" (`:243-246`). One username per service (`:260-268`).
 

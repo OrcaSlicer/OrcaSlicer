@@ -1,6 +1,6 @@
 # Sizers and layout
 
-How wx 3.3.2 computes window sizes and lays out children, and how OrcaSlicer builds layouts on top of
+How wx 3.3.4 computes window sizes and lays out children, and how OrcaSlicer builds layouts on top of
 that: sizers and flags, best/min size, the fitting functions (`SetSizerAndFit`, `SetSizeHints`, `Fit`,
 `Layout`, `FitInside`) per platform, show/hide relayout, Freeze/Thaw, scrolled windows, `wxStaticText`
 wrapping, layout on DPI change, and Orca's layout idioms. Read it when building or reviewing any dialog
@@ -604,7 +604,7 @@ Ordinary dialogs and the sidebar use plain `wxScrolledWindow`.
   without spaces never wraps with `wxStaticText::Wrap`.
 - `wxST_WRAP` (new in 3.3.2): "Wrap label text on multiple lines if necessary, using the available
   horizontal space. This style only works when the control is used inside a sizer"
-  (`interface/wx/stattext.h:46-49`; `docs/changes.txt:280`). It is opt-in; labels without it are
+  (`interface/wx/stattext.h:46-49`; `docs/changes.txt:473`). It is opt-in; labels without it are
   unaffected. It is implemented with `GetMinSizeFromKnownDirection` (`stattextcmn.cpp:285-312`).
   **[source]** The initial `CalcMin` still uses the unwrapped best size, so a fitted dialog grows to the
   full one-line width and nothing wraps; constrain the width another way (a fixed or min width on the

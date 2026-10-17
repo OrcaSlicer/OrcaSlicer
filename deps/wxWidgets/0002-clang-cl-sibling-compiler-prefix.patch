@@ -1,0 +1,38 @@
+diff --git a/build/cmake/wxWidgetsConfig.cmake.in b/build/cmake/wxWidgetsConfig.cmake.in
+index 2f3a735d920c..2593c045b89b 100644
+--- a/build/cmake/wxWidgetsConfig.cmake.in
++++ b/build/cmake/wxWidgetsConfig.cmake.in
+@@ -50,12 +50,28 @@ if(WIN32_MSVC_NAMING)
+         set(wxARCH_SUFFIX "_${wxPLATFORM_ARCH}")
+     endif()
+ 
+-    # use wxWidgets_USE_STATIC to force static libraries, otherwise shared is searched first
+-    if(NOT wxWidgets_USE_STATIC AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/${wxCOMPILER_PREFIX}${wxARCH_SUFFIX}_dll/@PROJECT_NAME@Targets.cmake")
+-        set(wxPLATFORM_LIB_DIR "/${wxCOMPILER_PREFIX}${wxARCH_SUFFIX}_dll")
+-    elseif(EXISTS "${CMAKE_CURRENT_LIST_DIR}/${wxCOMPILER_PREFIX}${wxARCH_SUFFIX}_lib/@PROJECT_NAME@Targets.cmake")
+-        set(wxPLATFORM_LIB_DIR "/${wxCOMPILER_PREFIX}${wxARCH_SUFFIX}_lib")
++    # wxCOMPILER_PREFIX names the consuming compiler; the installed layout is named
++    # after the compiler that built wxWidgets. cl and clang-cl share an ABI, so
++    # either can consume either build.
++    set(wxCOMPILER_PREFIXES "${wxCOMPILER_PREFIX}")
++    if(wxCOMPILER_PREFIX STREQUAL "clang")
++        list(APPEND wxCOMPILER_PREFIXES "vc")
++    elseif(wxCOMPILER_PREFIX STREQUAL "vc")
++        list(APPEND wxCOMPILER_PREFIXES "clang")
+     endif()
++
++    # use wxWidgets_USE_STATIC to force static libraries, otherwise shared is searched first
++    foreach(wxPREFIX IN LISTS wxCOMPILER_PREFIXES)
++        if(NOT wxWidgets_USE_STATIC AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/${wxPREFIX}${wxARCH_SUFFIX}_dll/@PROJECT_NAME@Targets.cmake")
++            set(wxPLATFORM_LIB_DIR "/${wxPREFIX}${wxARCH_SUFFIX}_dll")
++            break()
++        elseif(EXISTS "${CMAKE_CURRENT_LIST_DIR}/${wxPREFIX}${wxARCH_SUFFIX}_lib/@PROJECT_NAME@Targets.cmake")
++            set(wxPLATFORM_LIB_DIR "/${wxPREFIX}${wxARCH_SUFFIX}_lib")
++            break()
++        endif()
++    endforeach()
++    unset(wxPREFIX)
++    unset(wxCOMPILER_PREFIXES)
+ endif()
+ 
+ include("${CMAKE_CURRENT_LIST_DIR}${wxPLATFORM_LIB_DIR}/@PROJECT_NAME@Targets.cmake")

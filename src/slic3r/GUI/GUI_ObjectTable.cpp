@@ -235,7 +235,7 @@ void GridCellFilamentsEditor::SetSize(const wxRect& rect)
 
 void GridCellFilamentsEditor::OnComboCloseUp(wxCommandEvent& evt)
 {
-    wxGridCellChoiceEditor::OnComboCloseUp(evt);
+    wxGridCellChoiceEditor::DismissEditor();
 }
 
 void GridCellFilamentsEditor::BeginEdit(int row, int col, wxGrid* grid)
@@ -449,7 +449,7 @@ void GridCellChoiceEditor::SetSize(const wxRect &rect)
     wxGridCellChoiceEditor::SetSize(rect);
 }
 
-void GridCellChoiceEditor::OnComboCloseUp(wxCommandEvent &evt) { wxGridCellChoiceEditor::OnComboCloseUp(evt); }
+void GridCellChoiceEditor::OnComboCloseUp(wxCommandEvent &evt) { wxGridCellChoiceEditor::DismissEditor(); }
 
 void GridCellChoiceEditor::BeginEdit(int row, int col, wxGrid *grid)
 {

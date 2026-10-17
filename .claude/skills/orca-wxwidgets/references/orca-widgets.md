@@ -67,9 +67,10 @@ Contents: [Rules](#rules) Â· [Why the library exists](#why-the-library-exists) Â
 Native controls cannot carry Orca's flat, rounded, palette-coloured look, and they cannot follow all of Orca's
 theming:
 - On Windows the theme is an app-level setting (Preferences "Enable dark Mode", Windows-only) layered on
-  `MSWEnableDarkMode`, and wx's MSW dark mode does not reach `TaskDialog()`-based dialogs (`wxMessageBox`,
-  `wxMessageDialog`, `wxRichMessageDialog`, `wxProgressDialog`), the common dialogs or the date/time pickers
-  (`interface/wx/app.h:1436-1445`). Hence the `MsgDialog` family (`references/windows-dialogs.md`) and Orca's own
+  `MSWEnableDarkMode`; wx's MSW dark mode now reaches the `TaskDialog()`-based dialogs (`wxMessageBox`,
+  `wxMessageDialog`, `wxRichMessageDialog`, `wxProgressDialog`) since 3.3.3 and the common dialogs since 3.3.4,
+  but the date/time pickers, `wxPrintDialog` on Windows 10 and MDI applications stay light
+  (`interface/wx/app.h:1442-1448`). Hence the `MsgDialog` family (`references/windows-dialogs.md`) and Orca's own
   `ProgressDialog`.
 - On macOS and Linux Orca follows the system appearance; native controls are themed by the toolkit, but any
   light palette colour set on them still needs the `UpdateDarkUI` pass (`references/colours-dark-mode.md`).

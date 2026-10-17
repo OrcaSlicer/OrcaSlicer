@@ -6,7 +6,7 @@ to write a custom control on the wx side and how to author an Orca widget on the
 `StaticBox`/`StateHandler` foundation. Read it before writing or reviewing any `wxEVT_PAINT`
 handler, `render`/`doRender` method, `messureSize`, or a new class under `src/slic3r/GUI/Widgets/`.
 
-wx cites are relative to the pinned wx 3.3.2 tree (located as in `SKILL.md` §Ground truth).
+wx cites are relative to the pinned wx 3.3.4 tree (located as in `SKILL.md` §Ground truth).
 Orca builds wx with `wxBUILD_DEBUG_LEVEL=0` and `libslic3r_gui` with `wxDEBUG_LEVEL=0`: every
 wx assert below is compiled out and `wxCHECK*` returns silently, so paint misuse shows up only as
 wrong, missing or stale pixels, never as an assert dialog.
@@ -116,7 +116,7 @@ Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
 
 | Situation | MSW | macOS | GTK3 (X11 and Wayland) | GTK2 (opt-out build) |
 |---|---|---|---|---|
-| Handler creates no `wxPaintDC` | `wxWindowMSW::HandlePaint` sees no DC and lets `DefWindowProc` validate the region: no `WM_PAINT` storm in 3.3.2, but drawing is unclipped and the contract is broken (`src/msw/window.cpp` `HandlePaint`) | no error; the window shows only what the background step left (undetermined under `wxBG_STYLE_PAINT`) | same | same |
+| Handler creates no `wxPaintDC` | `wxWindowMSW::HandlePaint` sees no DC and lets `DefWindowProc` validate the region: no `WM_PAINT` storm in 3.3.4, but drawing is unclipped and the contract is broken (`src/msw/window.cpp` `HandlePaint`) | no error; the window shows only what the background step left (undetermined under `wxBG_STYLE_PAINT`) | same | same |
 | Handler creates a DC, then `Skip()`s | default `OnPaint` (native painting) runs as well | — | — | — |
 | `wxPaintDC` outside a paint event | `wxCHECK_RET(!paintStack.empty(), "wxPaintDC can't be created outside wxEVT_PAINT handler")` (also for a window other than the one being repainted): the DC gets no HDC and every draw call is a silent no-op (`src/msw/dcclient.cpp` `wxPaintDCImpl::wxPaintDCImpl`) | no visible effect | `wxCHECK_RET(cr, "using wxPaintDC without being in a native paint event")`, every draw call is a silent no-op (`src/gtk/dc.cpp:518`) | works (GDK) |
 | `wxClientDC` drawing | works on non-composited windows; the doc lists "wxMSW when using double buffering" (`WS_EX_COMPOSITED`, see below) as non-working (`interface/wx/dcclient.h:82-84`), yet `CanBeUsedForDrawing` returns `true` unconditionally (`include/wx/msw/dcclient.h:60`), so it cannot detect that case | never; `CanBeUsedForDrawing` is `false` (`include/wx/osx/dcclient.h:58`) | X11 works; Wayland has no effect, `CanBeUsedForDrawing` is `false` on `wxDisplayWayland` (`src/gtk/dc.cpp` `wxClientDCImpl::CanBeUsedForDrawing`) | works |
@@ -283,8 +283,8 @@ void MyCard::OnPaint(wxPaintEvent&) {
   ancestor up to the TLW (`src/msw/window.cpp` `wxWindowMSW::IsDoubleBuffered`);
   `SetDoubleBuffered(on)` toggles that style; `MSWDisableComposited()` removes it up the chain.
   `WS_EX_COMPOSITED` makes the whole subtree paint bottom-up into one buffer.
-- wx 3.3.0 enabled double buffering for all MSW windows (#22851, `docs/changes.txt:557`) and 3.3.2
-  reverted it (#25808, `docs/changes.txt:308`). In 3.3.2 nothing in wx sets `WS_EX_COMPOSITED`
+- wx 3.3.0 enabled double buffering for all MSW windows (#22851, `docs/changes.txt:750`) and 3.3.2
+  reverted it (#25808, `docs/changes.txt:501`). In 3.3.4 nothing in wx sets `WS_EX_COMPOSITED`
   unless the app calls `SetDoubleBuffered(true)`: MSW windows are not double-buffered by default,
   exactly as in 3.2.
 - macOS: always double-buffered, `IsDoubleBuffered()` returns `true` (`include/wx/osx/window.h:161`);
@@ -439,7 +439,7 @@ Two variants exist:
   (`src/msw/gdiimage.cpp` `wxGDIImage::GetScaleFactor`, `src/msw/dcmemory.cpp`; details in
   `references/dpi-bitmaps-fonts.md §wxBitmap`), while `GetLogicalSize()` stays the physical size there.
 - MSW `wxBitmap::Create(size, dc)` no longer multiplies by the DC content scale; the size is
-  physical (`docs/changes.txt:94-96`).
+  physical (`docs/changes.txt:100-102`).
 
 **Usage — portable back buffer.**
 ```cpp
@@ -556,7 +556,7 @@ already prepared ([Buffered painting](#buffered-painting-and-double-buffering)).
   must set the appropriate fonts and colours" (`interface/wx/dc.h:775-780`). `GetFont()` returns `wxNullFont` until
   `SetFont()` is called (`interface/wx/dc.h:715-720`).
 - wx 3.3 moved the non-drawing members to `wxReadOnlyDC` and several overridable measuring virtuals
-  now take it (`docs/changes.txt:228-231`); see `references/wx-33-changes.md`.
+  now take it (`docs/changes.txt:260-263`); see `references/wx-33-changes.md`.
 
 **OrcaSlicer.** Orca widgets measure in `messureSize()`. A `messureSize()` that builds a
 `wxClientDC dc(this)` (`Button::messureSize`, `TextInput::messureSize`) measures correctly on every

@@ -1,6 +1,6 @@
 # Mouse, keyboard and focus
 
-How input reaches wx windows in the wxWidgets 3.3.2 build Orca ships, and the Orca conventions on
+How input reaches wx windows in the wxWidgets 3.3.4 build Orca ships, and the Orca conventions on
 top: mouse capture, mouse and key events, accelerators and Orca's shortcut registry, focus,
 tooltips and cursors. Read it when a widget captures the mouse or tracks hover, when adding or
 changing a keyboard shortcut, when touching focus, tooltip or cursor code, and when debugging an
@@ -297,7 +297,7 @@ Per port [source]:
   non-enter event while the cached position is invalid is treated as the enter.
 - **GTK:** crossing events with a grab/ungrab mode are ignored; outside capture wx re-derives the
   window under the pointer on each motion (`src/gtk/window.cpp:2073-2117, 2384-2456`; fixes #24339
-  and #24931–#24933 are in this release, `docs/changes.txt:537, 547`).
+  and #24931–#24933 are in this release, `docs/changes.txt:730, 740`).
 - **macOS:** each view's `NSTrackingArea` uses `NSTrackingInVisibleRect`
   (`src/osx/cocoa/window.mm:3924`) and covers its children, so do not rely on the parent getting
   LEAVE when the pointer moves onto a child. `NSMouseMoved` is delivered only to the deepest view
@@ -334,7 +334,7 @@ A composite's hover state must therefore track its children. Orca's `StateHandle
   `CS_DBLCLKS`, `src/msw/app.cpp:584`). GTK drops the surplus press before `GDK_2BUTTON_PRESS`
   (`src/gtk/window.cpp:1798-1817`), and GTK2 also suppresses triple clicks (`:1818-1829`). On wxOSX the
   third press of a triple click is a DOWN again, as on MSW (`src/osx/cocoa/window.mm:4105-4140`;
-  #25886, `docs/changes.txt:316`). `GetClickCount()` is "implemented only in wxMac and returns -1
+  #25886, `docs/changes.txt:509`). `GetClickCount()` is "implemented only in wxMac and returns -1
   for the other platforms" (`interface/wx/event.h:2965-2974`).
 - **Context menu:** "under MSW the context menu event is generated after EVT_RIGHT_UP … but under
   GTK … after EVT_RIGHT_DOWN", so a window handling `wxEVT_CONTEXT_MENU` must not handle (or must
@@ -398,7 +398,7 @@ A diagonal trackpad scroll on macOS sends two events, vertical first, then one w
 | `ClientToScreen()`, `ScreenToClient()`, `GetScreenRect()` | — | add the top-level window's `gdk_window_get_origin()` (`src/gtk/window.cpp:4630-4698`). Without a global origin the result is only meaningful relative to the same top-level window: fine for deltas and hit tests inside one window, wrong across windows or for absolute placement |
 | `wxFindWindowAtPoint(pt)` | deepest window at a screen point; disabled children count, hidden ones are skipped (`interface/wx/utils.h:385-394`) | built on screen rectangles, so unreliable. On GTK it is `wxGenericFindWindowAtPoint`, a walk over every top-level window and child (`src/gtk/utilsgtk.cpp:98-101`, `src/common/utilscmn.cpp:1294-1345`) |
 | `wxGetKeyState(key)` | "In wxGTK, this function can be only used with modifier keys … when not using X11 backend" (`interface/wx/utils.h:352-358`) | Ctrl/Alt/Shift and Caps/Num/Scroll Lock only; any other key returns false (`src/unix/utilsx11.cpp:2596-2662`) |
-| `WarpPointer()` | Apple's HIG forbids it; on Wayland it works only with a compositor implementing the pointer-warp protocol, and mutter also needs a pressed button (`interface/wx/window.h:3895-3914`; `docs/changes.txt:294`) | — |
+| `WarpPointer()` | Apple's HIG forbids it; on Wayland it works only with a compositor implementing the pointer-warp protocol, and mutter also needs a pressed button (`interface/wx/window.h:3895-3914`; `docs/changes.txt:487`) | — |
 | `wxUIActionSimulator` | "doesn't work when using Wayland" (`interface/wx/uiaction.h:20`) | — |
 | `PopupMenu(x, y)` | — | GTK ≥ 3.22 positions it relative to the window (`gtk_menu_popup_at_rect`, `src/gtk/window.cpp:6520-6565`), so it is safe |
 
@@ -540,7 +540,7 @@ The full Esc/close path is in `references/windows-dialogs.md`.
   layout"; specials are their `WXK_*` (`:1371-1394`). A Cyrillic `ц` gives `'W'`, so Ctrl+letter
   shortcuts work across layouts, but an AZERTY key reports its own label (`$` where US has `]`), so
   `Ctrl-;`-style punctuation accelerators may be untypeable on some layouts (`:1396-1407`). wxGTK
-  got the non-Latin mapping in 3.3.0 (#23379, `docs/changes.txt:540`).
+  got the non-Latin mapping in 3.3.0 (#23379, `docs/changes.txt:733`).
 - `wxEVT_CHAR` reflects Shift and the layout. Ctrl+letter gives 1..26 (`WXK_CONTROL_A` …,
   `:1409-1421`). Exception: on macOS Cmd+letter's CHAR is the letter itself (`'a'`/`'A'`); only the
   physical Control key yields 1..26 (`src/osx/cocoa/window.mm:304-307`).
@@ -629,8 +629,14 @@ Space/Return holds the mouse capture until its KEY_UP reaches the button. On MSW
 
 ### Contract
 
-- "An accelerator takes precedence over normal processing" (`interface/wx/accel.h:178`), but it
-  runs after `wxEVT_CHAR_HOOK` on every port (table above).
+- "An accelerator takes precedence over normal processing" (`interface/wx/accel.h:178`). Since 3.3.4 this
+  holds on every port (wxGTK used to let the focused window handle the key first), unless the focused
+  window claims the key. The accelerator walk still runs after `wxEVT_CHAR_HOOK` (table above). The new
+  `wxEVT_ACCELERATOR_KEY` event (`interface/wx/event.h:1740-1801`, `@since 3.3.4`) is sent to the focus
+  window — and propagated to its parents — before an accelerator is used; it is sent after
+  `wxEVT_CHAR_HOOK` on most ports and before it on macOS. Its handler can call `UseAccelerator()`, and a
+  window that must keep the key overrides `wxWindow::ClaimsKeyBeforeAccelerator()`
+  (`interface/wx/window.h:4554-4583`).
 - [source] On GTK and macOS a hit is sent as `wxEVT_MENU` with the entry's id and, if unprocessed,
   retried as `wxEVT_BUTTON`; macOS treats the key as consumed either way
   (`src/gtk/window.cpp:1340-1366`, `src/osx/window_osx.cpp:2563-2590`). On MSW the `WM_COMMAND` goes to
@@ -654,11 +660,16 @@ Space/Return holds the mouse capture until its KEY_UP reaches the button. On MSW
   them in `wxMenuBar::RebuildAccelTable` (`src/msw/menu.cpp:1264-1292`); GTK adds the menu's accel
   group to the top-level window in `AttachToFrame` (`src/gtk/menu.cpp:239-247`). A menu shown with
   `PopupMenu` treats `"\tCtrl+X"` as display text.
-- **MSW:** accelerators are not translated while a `wxTextCtrl`/`wxComboBox`/`wxSpinCtrl` has focus and
-  the key is a text-editing key: Ctrl+A/C/V/X/Ins/Del/Home/End/Left/Right, Shift+those navigation
-  keys, bare Del/Home/End, Alt+Backspace (`src/msw/textentry.cpp:1073-1150`). Multi-line controls also
-  keep Enter (`src/msw/textctrl.cpp:2110-2135`).
-- **GTK:** the accelerator walk has no such exemption (`src/gtk/window.cpp:1340-1366`). As menu
+- **Text-entry controls claim their editing keys on every port since 3.3.4.** A `wxTextCtrl`, a
+  non-read-only `wxComboBox` or a `wxSpinCtrl` overrides `ClaimsKeyBeforeAccelerator()` to return
+  `wxTextEntryBase::IsUsedForEditing()` (`src/common/textcmn.cpp:136-140`;
+  `src/common/spinctrlcmn.cpp:160-167`; `src/msw/combobox.cpp:389-395`, `src/gtk/combobox.cpp:205-211`):
+  Alt+Backspace; any printable key with no modifier or Shift (except Delete, so Esc/Enter/Tab stay
+  usable); Backspace/Delete/Home/End with no modifier or Shift; Ctrl+A/C/V/X; and Insert/Delete/Home/
+  End/Left/Right with Ctrl or Shift. A matching menu accelerator does not fire while such a control has
+  focus. The set lives in `IsUsedForEditing` (`src/common/textentrycmn.cpp:441-509`).
+- **GTK:** the accelerator walk now consults `ClaimsKeyBeforeAccelerator()` too
+  (`src/gtk/window.cpp:1524-1539`), so the text-control exemption above applies here since 3.3.4. As menu
   accelerators, Shift with non-alphabetic keys does not work, bare arrow keys do not work, and the
   listed keys (Tab, the modifiers, locks …) are unsupported (`interface/wx/menuitem.h:562-575`).
 - **macOS:** menu-bar items become `NSMenuItem` key equivalents

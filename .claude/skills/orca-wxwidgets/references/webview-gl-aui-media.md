@@ -1,7 +1,7 @@
 # WebView, OpenGL canvas, AUI docking and media
 
 How wxWebView, wxGLCanvas/wxGLContext, wxAuiManager/wxAuiToolBar and the camera view behave in the
-wx 3.3.2 tree Orca builds, and the Orca wrappers built on them: `WebView`, `WebViewHostDialog` and
+wx 3.3.4 tree Orca builds, and the Orca wrappers built on them: `WebView`, `WebViewHostDialog` and
 the web dialogs/panels, `OpenGLManager`, `GLCanvas3D` and its ImGui layer, the Plater docking
 manager, `BBLTopbar`, `wxMediaCtrl3`. Read it before touching any browser view, GL canvas, docked
 pane, the top bar or the camera view, or when debugging a blank web page, a black or garbled 3D
@@ -243,7 +243,7 @@ a single message handler and the Chromium and IE backends do not support script 
 | `Add…` return | `false` if *any* handler already exists, whatever its name (`src/msw/webview_edge.cpp:1635-1645`) | always `true` (`src/osx/webview_webkit.mm:620-629`); a duplicate name makes WebKit raise an NSException that cannot be caught and kills the app ([external]: Apple behaviour, recorded in the `WebView::CreateWebView` comment) | `false` on a duplicate or with no view, **but** `g_signal_connect` runs before registration, so a duplicate add leaves a second connection (`src/gtk/webview_webkit2.cpp:1638-1657`) |
 | `Remove…` | clears the single name (`1647-1652`) | removes the native handler (`632-636`) | unregisters but **does not disconnect** the signal (`1659-1664`): Remove + Add delivers every later message **twice** |
 | `window.<name>` alias | user script `window.<name> = window.chrome.webview` + `ExecuteScript` (`1030-1046`) | `AddUserScript` + **synchronous** `RunScript` (`626-628`) | `AddUserScript` + **synchronous** `RunScript` (`1650-1654`) |
-| Delivery | queued with `AddPendingEvent` (`785-813`); [documented] "Queue Edge wxWebView events" (`docs/changes.txt:525`) | `ProcessWindowEvent` **inside** the `WKScriptMessageHandler` delegate (`1324-1361`) | `HandleWindowEvent` **inside** the GTK signal (`397-409`) |
+| Delivery | queued with `AddPendingEvent` (`785-813`); [documented] "Queue Edge wxWebView events" (`docs/changes.txt:718`) | `ProcessWindowEvent` **inside** the `WKScriptMessageHandler` delegate (`1324-1361`) | `HandleWindowEvent` **inside** the GTK signal (`397-409`) |
 | Event fields | handler name and event object set | name set, **no event object** | **empty `GetMessageHandler()`, no event object** |
 | Body | `get_WebMessageAsJson`, JSON-decoded when it is a string (`798-809`) | NSString as is; dict/array → JSON; NSNumber → `stringValue` (booleans arrive as `1`/`0`); NSNull → `"null"` | object → JSON string, otherwise `ToString` (`64-94`) |
 
@@ -747,8 +747,8 @@ the environment variable `wx_opengl_egl=0` does the same; it exists only when `w
 returns true only when EGL is in use (false when `wxHAS_EGL` is undefined); `GetGLXVersion()` returns 0
 when GLX is not in use; both exist only when `wxHAS_GLX` is defined (`interface/wx/glcanvas.h:999-1030`).
 `wxGLCanvas::CreateSurface()` was removed "as exposing it doesn't make sense when wxGLCanvas may use
-either EGL or GLX" (`docs/changes.txt:250-252`); "Allow using GLX and EGL in same program (#26023)" is
-an upstream 3.3.2 wxGTK change (`docs/changes.txt:290-292`).
+either EGL or GLX" (`docs/changes.txt:282-284`); "Allow using GLX and EGL in same program (#26023)" is
+an upstream 3.3.2 wxGTK change (`docs/changes.txt:485`).
 
 **Source** [source]:
 - When both backends are built, **EGL is the default even on X11** unless `PreferGLX()` or the
@@ -764,7 +764,7 @@ an upstream 3.3.2 wxGTK change (`docs/changes.txt:290-292`).
   (`src/unix/glegl.cpp:801-860`).
 - The EGL-based `wxGLCanvas` for Wayland dates from 3.1.5 (`docs/changes_32.txt:497`), so it predates
   Orca's upgrade; its
-  high-DPI scale under EGL/Wayland was fixed in 3.3.0 (`docs/changes.txt:538`).
+  high-DPI scale under EGL/Wayland was fixed in 3.3.0 (`docs/changes.txt:731`).
 
 **OrcaSlicer.**
 - `deps/wxWidgets/wxWidgets.cmake` passes `-DwxUSE_GLCANVAS_EGL=ON` (also in the Flatpak manifest).
@@ -993,13 +993,13 @@ widgets beside the canvas (a sibling, not a child over it), or in a popup.
   `src/aui/framemanager.cpp:910-920`; `OnPaneButton`); `DestroyOnClose` panes are detached and `Destroy()`ed
   (`ClosePane`, `1431-1467`). With several handlers bound, each must `Skip()`.
 - **3.3 changes.** `wxAUI_MGR_HINT_FADE` left the default flags (`interface/wx/aui/framemanager.h:43-50`;
-  `docs/changes.txt:132`); `wxAUI_MGR_LIVE_RESIZE` joined them (`interface/wx/aui/framemanager.h:59-62`); `AlwaysUsesLiveResize()` "always
+  `docs/changes.txt:138`); `wxAUI_MGR_LIVE_RESIZE` joined them (`interface/wx/aui/framemanager.h:59-62`); `AlwaysUsesLiveResize()` "always
   returns false" as of 3.3.0 (`interface/wx/aui/framemanager.h:345`; `src/aui/framemanager.cpp:711-714`), non-live resize being
-  restored (`docs/changes.txt:490`) — the older "live resize is always used on wxOSX and GTK3/Wayland"
+  restored (`docs/changes.txt:683`) — the older "live resize is always used on wxOSX and GTK3/Wayland"
   statement (`interface/wx/aui/framemanager.h:336-340`) is obsolete. Docking hints for floating frames use
   `::wxGetMousePosition()` (`src/aui/framemanager.cpp:4139-4148`, `4242-4251`), which Wayland cannot supply.
 - `wxAuiNotebook` (not used by Orca): page indices are logical; use `GetPagePosition()` for on-screen
-  order (`docs/changes.txt:121-126`); the default tab art changed (`35-37`).
+  order (`docs/changes.txt:128-132`); the default tab art changed (`41-43`).
 
 **OrcaSlicer.** Orca's docks use `AuiMgr` (`AuiMgr.hpp`), a `wxAuiManager` whose `CreateFloatingFrame`
 returns a `wxAuiFloatingFrame` that applies `UpdateFrameDarkUI`. `init(window)` calls
@@ -1071,8 +1071,10 @@ Plater (Prepare and Preview); `DesignPanel::m_aui` manages the Design tab's body
   ```
 - **Rule:** Disable floating on Wayland (clear `wxAUI_MGR_ALLOW_FLOATING`, `Floatable(false)`, strip
   floating state from saved layouts).
-  **Why:** AUI's floating and docking-hint logic needs global pointer positions and top-level window
-  moves (`wxGetMousePosition`, `wxEVT_MOVE`), which Wayland does not provide.
+  **Why:** AUI's docking-hint logic needs global pointer positions and top-level window moves
+  (`wxGetMousePosition`, `wxEVT_MOVE`), which Wayland does not provide. 3.3.4 added system drag sessions
+  so wx can move a pane's floating frame there anyway (`src/aui/framemanager.cpp` `StartDragSession`),
+  but the drop/docking hints still cannot work, so Orca keeps floating disabled.
 
 ## wxAuiToolBar and BBLTopbar
 

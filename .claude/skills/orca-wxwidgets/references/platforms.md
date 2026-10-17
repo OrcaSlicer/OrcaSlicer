@@ -1,7 +1,7 @@
 # Platforms, the wx build, and platform-specific code
 
 Read this when code has to differ per platform, when a bug shows up on only one OS, toolkit or display
-server, or when you need to know how Orca's wxWidgets is built. It covers the wx fork and its build
+server, or when you need to know how Orca's wxWidgets is built. It covers the wx source pin and its build
 options, platform macros, per-platform summaries that point into the topic files, and where
 platform-specific code lives. It also owns runtime X11/Wayland detection, the Wayland gap list, custom
 title bars and window decoration, GTK native-chrome removal, and the cross-platform test checklist.
@@ -58,37 +58,46 @@ Contents: [Rules](#rules) · [The wx build Orca uses](#the-wx-build-orca-uses) �
 
 ## The wx build Orca uses
 
-### Source, pin and local patch
+### Source, pin and local patches
 
-- `deps/wxWidgets/wxWidgets.cmake` builds `https://github.com/SoftFever/Orca-deps-wxWidgets` at tag
-  **`v3.3.2`** (`GIT_SHALLOW ON`, submodules `3rdparty/catch`, `3rdparty/pcre` and `3rdparty/libwebp`
-  only). The fork carries Orca's build fixes, the clang-cl fix among them; do not duplicate
-  a fork fix as a local patch under `deps/wxWidgets/` (cc390f11ee removed the local
-  `0001-Clang-CL-fix.patch` once the fork carried the fix). The fork's clang-cl fix is the MSVC lib-dir
-  selection in the installed `wxWidgetsConfig.cmake`: it looks for `<prefix>_<arch>_lib` (or `_dll`)
-  under the consuming compiler's prefix first and then the sibling one (`clang` ↔ `vc`), because cl
-  and clang-cl share an ABI and either can consume either build
-  (`build/cmake/wxWidgetsConfig.cmake.in:53-73`).
-- **The one local patch** is `deps/wxWidgets/0001-macos-use-srgb-colour-components.patch`, applied
+- `deps/wxWidgets/wxWidgets.cmake` builds upstream `https://github.com/wxWidgets/wxWidgets` at tag
+  **`v3.3.4`** (`GIT_SHALLOW ON`, submodules `3rdparty/catch`, `3rdparty/pcre` and `3rdparty/libwebp`
+  only). Two in-tree patches under `deps/wxWidgets/` are applied, one per platform, so neither applies
+  on Linux: `0001-macos-use-srgb-colour-components.patch` on Apple and
+  `0002-clang-cl-sibling-compiler-prefix.patch` on Windows. The clang-cl patch is the old fork's
+  clang-cl fix ported back to a local patch: it changes the MSVC lib-dir selection in the installed
+  `wxWidgetsConfig.cmake` so it looks for `<prefix>_<arch>_lib` (or `_dll`) under the consuming
+  compiler's prefix first and then the sibling one (`clang` ↔ `vc`), because cl and clang-cl share an
+  ABI and either can consume either build (`build/cmake/wxWidgetsConfig.cmake.in:53-73`). Because the
+  pin is upstream, every other build fix must live as a local patch under `deps/wxWidgets/`.
+- **The Apple patch** is `deps/wxWidgets/0001-macos-use-srgb-colour-components.patch`, applied
   only `if (APPLE)`. The `PATCH_COMMAND` first runs `git checkout -f -- src/osx/cocoa/colour.mm` and
   then `git apply`, so the step can run again safely (a7775296b0). The patch makes the wxOSX
   `wxColour` component getters (`wxNSColorRefData::Red/Green/Blue/Alpha` and `IsSolid`) convert the
   `NSColor` with `[NSColorSpace sRGBColorSpace]` instead of `NSCalibratedRGBColorSpace`, so colours
   read back on macOS match their sRGB values (custom-colour accuracy). Colour usage:
   `references/colours-dark-mode.md`.
+- **The Windows patch** is `deps/wxWidgets/0002-clang-cl-sibling-compiler-prefix.patch`, applied only
+  `if (WIN32)`. Its `PATCH_COMMAND` first runs
+  `git checkout -f -- build/cmake/wxWidgetsConfig.cmake.in` and then `git apply`, so the step can run
+  again safely. It rewrites the `WIN32_MSVC_NAMING` branch of `build/cmake/wxWidgetsConfig.cmake.in`
+  to try the consuming compiler's prefix first and then the sibling one (`clang` ↔ `vc`) when locating
+  the installed `<prefix>_<arch>_lib`/`_dll` directory.
 - The checked-out source is the tree that every wx citation in this skill refers to:
   `deps/build/<arch>/dep_wxWidgets-prefix/src/dep_wxWidgets` on macOS and
   `deps/<tree>/dep_wxWidgets-prefix/src/dep_wxWidgets` on Linux and Windows (`deps/build` for a
   release build; `build_win.bat` names the others). Locate it with the bash or PowerShell lookup in
   `SKILL.md` §Ground truth. On macOS its
-  `src/osx/cocoa/colour.mm` already has the patch applied.
+  `src/osx/cocoa/colour.mm` already has the Apple patch applied; on Windows its
+  `build/cmake/wxWidgetsConfig.cmake.in` already has the clang-cl patch applied.
 - **Flatpak builds wx separately.** `deps/CMakeLists.txt` leaves `dep_wxWidgets` out of the deps
   target when `FLATPAK` is set. Instead, `scripts/flatpak/com.orcaslicer.OrcaSlicer.yml` has its own
   `wxWidgets` module whose config-opts "mirror deps/wxWidgets/wxWidgets.cmake with FLATPAK=ON,
   DEP_WX_GTK3=ON": `-DwxBUILD_TOOLKIT=gtk3`, a shared build (`wxBUILD_SHARED=ON`,
   `BUILD_SHARED_LIBS=ON`, `d` debug postfix), and `wxUSE_LIBWEBP=sys`, because the builtin webp
-  libraries are installed only by static builds. It links with lld and pins the fork's tag
-  `orca-3.3.2` at a fixed commit. Option and version changes must be made in both files.
+  libraries are installed only by static builds. It links with lld and pins upstream `v3.3.4` at
+  commit `6a42a4b999b127cf28a8b5fe686da6b8ca93a9b8`. Option and version changes must be made in both
+  files; it applies neither patch (GTK3, no MSVC).
 
 ### Toolkit per platform
 
@@ -188,7 +197,7 @@ Its `wx/gtk/private*` includes are commented out. The per-port headers outside t
 `wx/msw/private.h` (`BitmapComboBox.cpp`, `PresetComboBoxes.cpp`, Windows-guarded) and
 `wx/osx/private.h` (`Utils/MacDarkMode.mm`), come with the regular wx install. Private headers are
 port-specific and unversioned. Include one only under the same macro wx uses for that port or
-feature, and re-check it whenever the fork is bumped.
+feature, and re-check it whenever the wx pin is bumped.
 
 ### wxInspector
 
@@ -268,8 +277,8 @@ Each bullet names the mechanism and the file that owns it.
   popups with it are dismissed on deactivation, deferred through `CallAfter`. No key dismisses a
   popup, and `ProcessLeftDown` is never called. `PopupWindow::BindUnfocusEvent` is MSW-only →
   `references/popups-menus.md` §5.
-- **Painting:** in 3.3.2 windows are not double-buffered by default (the 3.3.0 global
-  `WS_EX_COMPOSITED` was reverted, `docs/changes.txt:308`). Custom widgets buffer by hand →
+- **Painting:** in 3.3.4 windows are not double-buffered by default (the 3.3.0 global
+  `WS_EX_COMPOSITED` was reverted, `docs/changes.txt:501`). Custom widgets buffer by hand →
   `references/painting-custom-widgets.md`.
 - **Building large panels:** every control is a native child window, and outside a sizer pass a move
   or resize is immediate, repainting when the window is shown [source: `src/msw/window.cpp:2036`
@@ -284,8 +293,9 @@ Each bullet names the mechanism and the file that owns it.
 - **Mouse capture:** `wxEVT_MOUSE_CAPTURE_LOST` and `wxEVT_MOUSE_CAPTURE_CHANGED` are delivered →
   `references/mouse-keyboard-focus.md`.
 - **Controls:** `wxDataViewCtrl` is the generic implementation (`references/controls-dataview.md`).
-  TaskDialog-based dialogs and common dialogs stay light in wx dark mode
-  (`interface/wx/app.h:1434-1448`); Orca's `MsgDialog` family is owner-drawn →
+  TaskDialog-based dialogs (since 3.3.3) and common dialogs (since 3.3.4) follow wx dark mode; the
+  date/time/calendar controls, `wxPrintDialog` on Windows 10 and MDI applications stay light
+  (`interface/wx/app.h:1442-1448`); Orca's `MsgDialog` family is owner-drawn →
   `references/windows-dialogs.md`.
 - **WebView:** Edge (WebView2). It needs the runtime (checked by `GUI_App::init_webview_runtime`),
   creates asynchronously, serves custom schemes as `https://<scheme>.wxsite`, and allows one script
@@ -622,16 +632,16 @@ headers. Rows marked [source] or "protocol" come from the implementation or from
 | Area | What happens on Wayland | Cite | Orca handling / owner |
 |---|---|---|---|
 | Global pointer position | `wxGetMousePosition()` / `wxGetMouseState()` call `gdk_device_get_position` [source], but Wayland gives clients no global pointer position, so the result is not a screen position | `src/gtk/window.cpp` `wxGetMousePosition` | use event coordinates + `ClientToScreen` (`BBLTopbar`); dismiss popups by focus tracking (`SearchDialog::Dismiss`) → `references/mouse-keyboard-focus.md` |
-| Top-level position | the compositor places windows, and `SetPosition()` / `Move()` on a TLW have no effect (protocol) | — | `GUI_App::window_pos_restore` restores only size and maximised state; moves go through `gtk_window_begin_move_drag` |
+| Top-level position | the compositor places windows, and `SetPosition()` / `Move()` on a TLW have no effect (protocol). 3.3.4 added geometry restore through the Wayland XDG session-management protocol (`SaveGeometry`/`RestoreToGeometry` with the new `SaveString`/`RestoreString` fields) | `interface/wx/toplevel.h:439-455, 474-490` | `GUI_App::window_pos_restore` restores only size and maximised state; moves go through `gtk_window_begin_move_drag` |
 | Window icon | `SetIcon()` / `SetIcons()` "doesn't do anything when using Wayland … create a `.desktop` file" | `interface/wx/toplevel.h:517-521, 538-542` | `src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop` (`Icon=OrcaSlicer`, `StartupWMClass=orca-slicer`) |
 | App id | `wxAppConsole::SetClassName()` is the xdg `app_id` with GTK ≥ 3.24.22 (and the AUMID on Windows); it must be set before any TLW. wx applies it when a TLW is mapped, and only if it is non-empty [source: `wxTopLevelWindowGTK::GTKHandleMapped`] | `interface/wx/app.h:765-812` | Orca calls only `SetAppName(SLIC3R_APP_KEY)`, so GTK's default applies. On Windows, `SetClassName` would also change shell behaviour (MRU, Shift+middle-click) |
 | `wxClientDC` | deprecated in 3.3 ("please use wxInfoDC instead for obtaining information", `interface/wx/dcclient.h:43-46`). Drawing through it "simply doesn't have any effect" on GTK3/Wayland or wxOSX. `CanBeUsedForDrawing()` [source]: false on Wayland only for wxGTK (`src/gtk/dc.cpp`), always false on wxOSX, always true on wxMSW (`include/wx/{osx,msw}/dcclient.h`), although its doc also lists "wxMSW when using double buffering" | `interface/wx/dcclient.h:48-53, 80-88` | draw only in `wxPaintDC` after `Refresh()`/`RefreshRect()` → `references/painting-custom-widgets.md` |
 | `wxWindow::Update()` | "doesn't do anything in wxGTK port when using Wayland". [source] wx skips the GDK update calls there because they broke later updates (#25036) | `interface/wx/window.h:2405-2407` | never rely on `Update()` to paint synchronously |
-| `WarpPointer()` | works only if the compositor implements the pointer-warp protocol; mutter also needs a mouse button held | `interface/wx/window.h:3902-3907`; `docs/changes.txt:294` | Orca never warps the pointer |
+| `WarpPointer()` | works only if the compositor implements the pointer-warp protocol; mutter also needs a mouse button held | `interface/wx/window.h:3902-3907`; `docs/changes.txt:487` | Orca never warps the pointer |
 | `wxUIActionSimulator` | "currently doesn't work when using Wayland with wxGTK" | `interface/wx/uiaction.h:20` | not used; Orca also builds `wxUSE_XTEST=OFF` |
 | `wxBitmap(const wxCursor&)` | creates an invalid bitmap | `interface/wx/bitmap.h:393-395` | — |
 | OpenGL | only EGL; `PreferGLX()` has no effect. Without EGL in the build, wxGTK's `wxGLCanvas` shows a fatal message and refuses to work [source: `src/gtk/glcanvas.cpp` `IsAvailable`]. The EGL surface is a subsurface over the canvas, ready only after map and a frame callback [source: `src/unix/glegl.cpp`] | `interface/wx/glcanvas.h:1094-1095` | `CLI::run` forces X11 when wx lacks EGL; overlays are drawn in GL/ImGui, never as wx children over the canvas → `references/webview-gl-aui-media.md` |
-| AUI | the doc note "live resize is always used … for wxOSX and wxGTK3 when using Wayland" is obsolete: "As of wxWidgets 3.3.0 this function always returns false", and `wxAUI_MGR_LIVE_RESIZE` is in the default flags. Floating panes need global positions | `interface/wx/aui/framemanager.h:336-345` | `Plater::priv::priv` clears `wxAUI_MGR_ALLOW_FLOATING`; `sanitize_window_layout_for_wayland` strips floating state from the saved layout → `references/webview-gl-aui-media.md` §wxAuiManager |
+| AUI | the doc note "live resize is always used … for wxOSX and wxGTK3 when using Wayland" is obsolete: "As of wxWidgets 3.3.0 this function always returns false", and `wxAUI_MGR_LIVE_RESIZE` is in the default flags. AUI's docking-hint logic still needs global positions; 3.3.4 added system drag sessions (`StartDragSession`) so wx can move a pane's floating frame under Wayland anyway | `interface/wx/aui/framemanager.h:336-345`; `src/aui/framemanager.cpp:4574-4599` | `Plater::priv::priv` clears `wxAUI_MGR_ALLOW_FLOATING`; `sanitize_window_layout_for_wayland` strips floating state from the saved layout → `references/webview-gl-aui-media.md` §wxAuiManager |
 | Popups | a GTK popup is an `xdg_popup` only for COMBO/DROPDOWN/POPUP_MENU hints, so wx creates popups with `GDK_WINDOW_TYPE_HINT_COMBO` [source]. A chained popup's parent must be the mapped popup, and mapping it with a grab deactivates the toplevel (Orca's comments in `DropDown::mouseMove`, `DropDown::ShouldDismissOnTopWindowDeactivate`) | `src/gtk/popupwin.cpp:110-114` | `DropDown` transient-for chain, `ShouldDismissOnTopWindowDeactivate` → `references/popups-menus.md` |
 | Fractional scale | arrives as an integer GDK scale | `docs/doxygen/overviews/high_dpi.md:348-351` | → `references/dpi-bitmaps-fonts.md` |
 | Window decorations | some desktop environments draw a title bar on undecorated windows anyway | — | [Undecorated windows](#wayland-undecorated-top-level-windows-splash) |
@@ -642,7 +652,9 @@ were two-finger scrolling (703, 3.1.3), the EGL-based `wxGLCanvas` for Wayland (
 support (498, both 3.1.5). New with the upgrade: "Many bug fixes for Wayland-specific problem" (397)
 and a `wxMediaCtrl` fix (402) in 3.1.6, GDK errors from `PopupMenu()` avoided (317, 3.1.7),
 `wxCURSOR_SIZING` fixed (261, 3.2.0). In 3.3, `WarpPointer()` on supported compositors
-(`docs/changes.txt:294`) and the EGL/Wayland high-DPI scale fix (`changes.txt:538`).
+(`docs/changes.txt:487`) and the EGL/Wayland high-DPI scale fix (`changes.txt:731`); in 3.3.4, a fix for
+the crash on pointer/seat disconnect (`changes.txt:371`), AUI pane dragging via system drag sessions
+(`:372`) and window-geometry restore via XDG session management (`:373`).
 
 ## Window decoration and custom title bars
 
@@ -664,7 +676,7 @@ There is no `wxCAPTION` on any platform; each port then needs its own handling.
 **Contract** [source + documented]. Since wx **3.3.0**, `wxTopLevelWindowMSW::MSWGetStyle` adds
 `WS_CAPTION` whenever any of `wxCAPTION | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX` is set
 (`src/msw/toplevel.cpp:133-135`). The 3.3.0 wxMSW change list says "Turn wxCAPTION on automatically if
-required by other styles (#23575)" (`docs/changes.txt:581`). Commit eefdabcd98 attributes this to
+required by other styles (#23575)" (`docs/changes.txt:774`). Commit eefdabcd98 attributes this to
 3.3.2, but it is a 3.3.0 change. `SetWindowStyleFlag()` recomputes the native style through
 `MSWGetStyle` and turns the bits back on (`src/msw/window.cpp` `wxWindowMSW::MSWUpdateStyle`).
 
@@ -874,10 +886,11 @@ do both). Cite: 6148ba16b3, 988b500f33.
 
 ## wx 3.3 migration notes
 
-Orca moved from **3.1.5** to 3.3.2 in 8248b06337 ("Updated wxWidgets to 3.3.2", #12941; build system
-in 2d7e26292b), so the 3.1.6–3.2.0 incompatible changes (`docs/changes_32.txt`) apply as well as
-`docs/changes.txt`. The version digest, every migration commit as a rule for new code, and the
-post-upgrade regressions to watch are owned by `references/wx-33-changes.md` (§8). The
+Orca moved from **3.1.5** to **3.3.2** in 8248b06337 ("Updated wxWidgets to 3.3.2", #12941; build system
+in 2d7e26292b); the pin is now upstream **3.3.4** (`deps/wxWidgets/wxWidgets.cmake`, tag `v3.3.4`), so
+the 3.1.6–3.2.0 incompatible changes (`docs/changes_32.txt`) apply as well as `docs/changes.txt`. The
+version digest, every migration commit as a rule for new code, and the post-upgrade regressions to
+watch are owned by `references/wx-33-changes.md` (§10); the 3.3.3 and 3.3.4 changes are its §8–§9. The
 platform-specific ones are described in this file: the `MainFrame` `WS_CAPTION` handling
 ([MSW title bar](#msw-the-mainframe-custom-title-bar)), the macOS `kAEGetURL` re-registration and the
 `SidePopup` anchoring ([ifdef landscape](#the-ifdef-landscape)), and the GTK criticals filter

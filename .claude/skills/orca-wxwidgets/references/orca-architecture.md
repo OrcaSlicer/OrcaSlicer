@@ -69,9 +69,12 @@ Contents: [The stack](#the-stack-orcas-gui-is-built-on) ·
 
 ## The stack Orca's GUI is built on
 
-- **wxWidgets 3.3.2, SoftFever fork.** `deps/wxWidgets/wxWidgets.cmake` fetches
-  `https://github.com/SoftFever/Orca-deps-wxWidgets` at tag `v3.3.2` and builds it static
-  (`-DwxBUILD_SHARED=OFF`); Flatpak builds build it shared. Linux builds against **GTK3** by default
+- **wxWidgets 3.3.4, upstream.** `deps/wxWidgets/wxWidgets.cmake` fetches
+  `https://github.com/wxWidgets/wxWidgets` at tag `v3.3.4` and builds it static
+  (`-DwxBUILD_SHARED=OFF`); Flatpak builds build it shared. Two in-tree platform patches apply on
+  Apple and Windows only (`0001-macos-use-srgb-colour-components.patch`,
+  `0002-clang-cl-sibling-compiler-prefix.patch`) — `references/platforms.md`. Linux builds against
+  **GTK3** by default
   (`option(DEP_WX_GTK3 "Build wxWidgets against GTK3" ON)` in `deps/CMakeLists.txt`, `SLIC3R_GTK`
   default `"3"`, Flatpak uses gtk3). GTK2 exists only as an opt-out (`-DDEP_WX_GTK3=OFF`) and loses
   EGL, WebKit2 and DIP pixels. Code guarded for GTK should still compile on GTK2, but GTK3 under X11
@@ -85,11 +88,12 @@ Contents: [The stack](#the-stack-orcas-gui-is-built-on) ·
 - **Orca's own widget library.** New UI code largely does not use raw wx controls: the owner-drawn
   widgets in `src/slic3r/GUI/Widgets/` (`Button`, `CheckBox`, `ComboBox`, `TextInput`, `SpinInput`,
   `SwitchButton`, `RadioGroup`, `Label`, `DialogButtons`, …) replace them. Reasons: native controls
-  cannot follow Orca's look or its app-level dark-mode toggle; on Windows wx's native dark mode does
-  not reach anything built on `TaskDialog()` (`wxMessageBox`, `wxMessageDialog`, `wxRichMessageDialog`,
-  `wxProgressDialog`) nor the wrapped common dialogs (`wxColourDialog`, `wxFontDialog`, …)
-  (`interface/wx/app.h:1434-1443`), so Orca shows the `MsgDialog` family and its own generic
-  `Widgets/ProgressDialog` instead; and on GTK the theme's borders bleed through wrapped native
+  cannot follow Orca's look or its app-level dark-mode toggle; on Windows wx's native dark mode reaches
+  the `TaskDialog()`-based boxes (`wxMessageBox`, `wxMessageDialog`, `wxRichMessageDialog`,
+  `wxProgressDialog`) since 3.3.3 and the wrapped common dialogs (`wxColourDialog`, `wxFontDialog`, …)
+  since 3.3.4, but the date/time/calendar controls, `wxPrintDialog` on Windows 10 and MDI applications
+  stay light (`interface/wx/app.h:1442-1448`), so Orca shows the `MsgDialog` family and its own generic
+  `Widgets/ProgressDialog` for a consistent look; and on GTK the theme's borders bleed through wrapped native
   controls (the widgets call `RemoveButtonBorder` / `RemoveInputBorder` under `__WXGTK__`).
   Plain containers stay raw (`wxPanel`, `wxBoxSizer`, `wxScrolledWindow`).
 - **Namespaces.** Most widgets are in the global namespace; a few (`DialogButtons`, `HyperLink`,

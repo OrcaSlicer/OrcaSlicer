@@ -106,7 +106,7 @@ The general wx rule is that setters do not send events. The exceptions are the b
 | `wxTextEntry::SetValue(s)` | **yes**, one `wxEVT_TEXT`, even when `s` equals the current text | `interface/wx/textentry.h:539-542`; [source] `src/common/textentrycmn.cpp:236-254`, `src/msw/textctrl.cpp:1133-1145` |
 | `wxTextEntry::ChangeValue(s)` | no | `interface/wx/textentry.h:177-178` |
 | `wxTextEntry::Clear()` | yes (= `SetValue("")`) | `interface/wx/textentry.h:193-194` |
-| `wxTextCtrl::SetLabel/SetLabelText` | nothing at all (3.3) | `docs/changes.txt:111-113`; `src/common/textcmn.cpp:934-937` |
+| `wxTextCtrl::SetLabel/SetLabelText` | nothing at all (3.3) | `docs/changes.txt:117-119`; `src/common/textcmn.cpp:934-937` |
 | `SetSelection/SetStringSelection` on wxChoice, wxComboBox, wxListBox, wxRadioBox | no | `interface/wx/ctrlsub.h:102-103,126` |
 | `wxComboBox::SetValue` | `wxEVT_TEXT` if editable; none with `wxCB_READONLY` | `interface/wx/combobox.h:256-272` |
 | `wxComboBox::Popup()/Dismiss()` | DROPDOWN/CLOSEUP, except on wxOSX | `interface/wx/combobox.h:279-281,292-294` |
@@ -184,7 +184,7 @@ Pitfalls:
   ctrl->GetTextCtrl()->SetLabel(s);        // Wrong: no-op
   ctrl->GetTextCtrl()->ChangeValue(s);     // Right (or SetValue if listeners must react)
   ```
-  Cite: `docs/changes.txt:111-113`.
+  Cite: `docs/changes.txt:117-119`.
 - **Rule:** Handle `wxEVT_TEXT_ENTER` without `Skip()` unless you want the default button activated as well.
   **Why:** a skipped Enter falls through to the dialog's default button and closes it.
   ```cpp
@@ -213,7 +213,7 @@ Contract:
   verbatim, and `wxControl::EscapeMnemonics()` escapes it (`interface/wx/control.h:174-195, 379-387`). This applies
   to `wxStaticText`, `wxCheckBox`, `wxRadioButton`, `wxButton` labels and to book page titles: all `wx*book`
   classes interpret mnemonics in page text (`interface/wx/bookctrl.h:141-147`), and since 3.3 wxListbook and
-  wxChoicebook do too (`docs/changes.txt:128-130`).
+  wxChoicebook do too (`docs/changes.txt:134-136`).
 - `SetLabelMarkup()` needs well-formed markup or the label "won't be shown at all" (returns false, keeps the old
   label). A bare `&` is still a mnemonic. Multi-line markup works only on GTK and macOS; the generic version used on
   MSW handles single lines (`interface/wx/control.h:338-347`). Quote untrusted text with
@@ -383,10 +383,10 @@ Pitfalls:
 
 - Virtual list (`wxLC_REPORT|wxLC_VIRTUAL`): call `SetItemCount()` and override `OnGetItemText` (optionally
   `OnGetItemImage`/`OnGetItemAttr`) (`interface/wx/listctrl.h:128-134`). `EditLabel()` asserts without
-  `wxLC_EDIT_LABELS` (`docs/changes.txt:68-69`).
+  `wxLC_EDIT_LABELS` (`docs/changes.txt:74-75`).
 - Images: prefer `SetImages(std::vector<wxBitmapBundle>)`; `wxImageList` is discouraged
-  (`interface/wx/withimages.h:21-40`) and is measured in physical pixels in 3.3 (`docs/changes.txt:85-88`); calling
-  its methods on an invalid (unsized) list now asserts, i.e. fails silently in Orca (`docs/changes.txt:53-56`).
+  (`interface/wx/withimages.h:21-40`) and is measured in physical pixels in 3.3 (`docs/changes.txt:91-94`); calling
+  its methods on an invalid (unsized) list now asserts, i.e. fails silently in Orca (`docs/changes.txt:59-62`).
   `Assign*` transfers ownership, `Set*ImageList` does not (`interface/wx/withimages.h:90-110`). Sizing:
   `references/dpi-bitmaps-fonts.md`.
 - `wxTreeCtrl`: `SelectItem` emits events ([table](#events-from-programmatic-changes)).
@@ -402,7 +402,7 @@ Contract:
   selection's blocks).
 - `FreezeTo(row, col)` returns false (an assert, silent in Orca) for out-of-range values, merged cells or the native
   header (`interface/wx/grid.h:5747-5772`); [source] also when rows/columns were reordered or drag-moving is enabled
-  (`src/generic/grid.cpp:5742-5750`). In 3.3 it freezes even when the grid is too small (`docs/changes.txt:48-51`).
+  (`src/generic/grid.cpp:5742-5750`). In 3.3 it freezes even when the grid is too small (`docs/changes.txt:54-57`).
 - Editor contract: `EndEdit` must not modify the grid — it stores the value and returns true if it changed;
   `ApplyEdit` writes it after `wxEVT_GRID_CELL_CHANGING` was not vetoed (`interface/wx/grid.h:610-638`). Editors,
   renderers and attrs are ref-counted and the setters take ownership (`:1263-1305, 1739-1770, 2681-2701`).
@@ -492,7 +492,7 @@ All cites `interface/wx/dataview.h`. MSW uses the generic implementation; wxGTK 
 Other per-port facts: editing starts on a slow double-click or a platform key — "F2 is typical on Windows, Space
 and/or Enter is common elsewhere" (2604-2607, 1915-1918); a custom renderer's `StartDrag()` is "Not yet supported"
 (2717-2719); `RenderText()` should be used inside `Render()` so text matches native renderers (2708-2714). Calling
-`Collapse()` from an event handler was fixed in 3.3.1 (`docs/changes.txt:346`; the generic re-check is described
+`Collapse()` from an event handler was fixed in 3.3.1 (`docs/changes.txt:539`; the generic re-check is described
 under [DVC control API](#wxdataviewctrl-control-api)).
 
 OrcaSlicer: `ParamsViewCtrl` (`EditGCodeDialog`) and `DiffViewCtrl` (`UnsavedChangesDialog`) use

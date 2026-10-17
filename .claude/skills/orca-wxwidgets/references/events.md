@@ -1,6 +1,6 @@
 # Events: binding, dispatch, posting and deferred calls
 
-How wx 3.3.2 finds, runs, propagates, queues and drops event handlers, and how OrcaSlicer code
+How wx 3.3.4 finds, runs, propagates, queues and drops event handlers, and how OrcaSlicer code
 binds, emits and defers. Read it before writing any `Bind`/`Unbind`, `Skip()`, `ProcessEvent`,
 `wxPostEvent`/`wxQueueEvent` or `CallAfter`, before defining a custom event, and when debugging a
 handler that never runs, runs twice, runs on a dead object, or swallows a widget's own behaviour.

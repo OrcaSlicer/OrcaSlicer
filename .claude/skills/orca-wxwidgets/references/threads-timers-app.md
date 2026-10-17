@@ -7,7 +7,7 @@ yields and nested event loops, progress dialogs, startup, shutdown and exception
 screen, and the access rules for `wxGetApp()` and `app_config`. Read it whenever code runs off the
 main thread, defers work, starts a timer, yields, shows progress, or runs during startup or shutdown.
 
-wx cites are relative to the pinned wx 3.3.2 tree (located as in `SKILL.md` §Ground truth).
+wx cites are relative to the pinned wx 3.3.4 tree (located as in `SKILL.md` §Ground truth).
 Orca builds wx with `wxBUILD_DEBUG_LEVEL=0` and `libslic3r_gui` with `wxDEBUG_LEVEL=0`, so `wxASSERT`
 is compiled out and `wxCHECK*` returns silently: a timer started off the main thread never fires on macOS,
 `Exit()` on a loop that is not the active one is ignored, `Start(0)` on macOS fails — all without
@@ -454,12 +454,12 @@ and aborts the whole app. Wrap the entire body; log and convert to a status the 
   `wxMessageQueue::Post(T&&)` accepts move-only types (`interface/wx/msgqueue.h:90-97`).
 - `wxTHREAD_WAIT_DEFAULT` is now `wxTHREAD_WAIT_BLOCK`; `wxTHREAD_WAIT_YIELD` "is dangerous" and "is
   only implemented in wxMSW and simply ignored under the other platforms" (`interface/wx/thread.h:648-675`),
-  so the 3.3 default change (`docs/changes.txt:39-41`) only affects MSW code calling
+  so the 3.3 default change (`docs/changes.txt:45-47`) only affects MSW code calling
   `Wait()`/`Delete()` from the GUI thread.
 - `wxCRITICAL_SECTION(name)` declares a function-static critical section, which is initialised
   safely only if the function is first called from the main thread before other threads call it;
   otherwise make it a global (`interface/wx/thread.h:1762-1779`). Prefer `std::mutex`.
-- `wxSecretStore` documents no thread-affinity notes in 3.3.2 (`interface/wx/secretstore.h`).
+- `wxSecretStore` documents no thread-affinity notes in 3.3.4 (`interface/wx/secretstore.h`).
 
 ## The Jobs framework
 
@@ -829,8 +829,8 @@ nothing) (`interface/wx/utils.h:1203-1212, 1243-1248`; see `references/strings-i
 
 **Platforms.** On MSW `wxProgressDialog` is native: a TaskDialog run by a
 `wxProgressDialogTaskRunner` **wxThread**, yielding `ALL & ~USER_INPUT` (TIMER and THREAD included)
-(`src/msw/progdlg.cpp` `DispatchEvents`) **[source]**; anything based on `TaskDialog()` has no dark
-mode (`interface/wx/app.h:1436-1440`). On macOS and GTK it is `wxGenericProgressDialog`, which creates
+(`src/msw/progdlg.cpp` `DispatchEvents`) **[source]**; the native `TaskDialog` follows wx dark mode
+since 3.3.3 (`interface/wx/app.h:1442-1448`). On macOS and GTK it is `wxGenericProgressDialog`, which creates
 a temporary event loop if none is active (`src/generic/progdlgg.cpp:360-366`). On MSW (native
 dialog or Orca's generic one) and macOS, `CallAfter` bodies run inside `Update()`/`Pulse()`; on GTK
 the masked yield runs no queued event, so they wait until control returns to an event loop
@@ -839,7 +839,7 @@ the masked yield runs no queued event, so they wait until control returns to an 
 **OrcaSlicer.**
 - `Slic3r::GUI::ProgressDialog` (`Widgets/ProgressDialog.hpp`) is a themed fork of
   `wxGenericProgressDialog`: same `YieldFor(UI | USER_INPUT)` semantics, temporary event loop when
-  none is active, generic on every platform (so no TaskDialog dark-mode gap).
+  none is active, generic on every platform (so it is themed by Orca, not the native TaskDialog).
 - `detail::run_off_thread_with_progress` (`PluginsDialog.hpp`, wrapped by
   `PluginsDialog::run_with_dialog`/`run_with_dialog_wait`): a heap wx `wxProgressDialog` (the native
   TaskDialog on MSW, the generic dialog on macOS and GTK) pulsed by a
