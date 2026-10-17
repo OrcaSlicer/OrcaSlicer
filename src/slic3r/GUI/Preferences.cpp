@@ -1092,6 +1092,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
             if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
+        else if (param == "use_12h_time_format") {
+            if (WebViewPanel* home = WebViewPanel::if_built())
+                home->SendRecentList(-1);
+        }
         else if (param == "hide_login_side_panel") {
             if (WebViewPanel* home = WebViewPanel::if_built()) {
                 home->SendCloudProvidersInfo();
@@ -1700,6 +1704,9 @@ void PreferencesDialog::create_items()
 
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
+
+    auto item_12h_time_format = create_item_checkbox(_L("Use 12-hour time format"), _L("Show clock times (estimated finish time, recent project dates) in 12-hour format with AM/PM instead of 24-hour format."), "use_12h_time_format");
+    g_sizer->Add(item_12h_time_format);
 
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));

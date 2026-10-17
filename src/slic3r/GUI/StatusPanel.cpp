@@ -1235,7 +1235,7 @@ void PrintingTaskPanel::update_left_time(wxString time)
     m_staticText_progress_left->SetLabelText(time);
 }
 
-void PrintingTaskPanel::update_left_time(int mc_left_time)
+void PrintingTaskPanel::update_left_time(int mc_left_time, bool is_printing_finished)
 {
     // update gcode progress
     std::string left_time;
@@ -1255,16 +1255,25 @@ void PrintingTaskPanel::update_left_time(int mc_left_time)
     std::string end_time;
     wxString    end_time_text = NA_STR;
     try {
-        end_time = get_bbl_monitor_end_time_dhm(mc_left_time);
+        end_time = get_bbl_monitor_end_time_dhm(mc_left_time, wxGetApp().app_config->get_bool("use_12h_time_format"));
     } catch (...) {
         ;
     }
-    if (!end_time.empty())
+    if (is_printing_finished)
+        end_time_text = _L("Finished");
+    else if (mc_left_time <= 0)
+        end_time_text = _L("Almost complete");
+    else if (!end_time.empty())
         end_time_text = wxString::Format("%s", end_time);
     else
         end_time_text = NA_STR;
 
-    m_staticText_progress_end->SetLabelText(end_time_text);
+    // The text changes length ("14:30", "14:30 +1", "Almost complete"), so only touch the label when it
+    // really changed and let its parent re-layout to make room for it.
+    if (m_staticText_progress_end->GetLabelText() != end_time_text) {
+        m_staticText_progress_end->SetLabelText(end_time_text);
+        m_staticText_progress_end->GetParent()->Layout();
+    }
 
 }
 
@@ -3909,7 +3918,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
             }
             m_project_task_panel->enable_partskip_button(obj, true);
             // update printing stage
-            m_project_task_panel->update_left_time(obj->mc_left_time);
+            m_project_task_panel->update_left_time(obj->mc_left_time, obj->is_printing_finished());
             if (obj->subtask_) {
                 m_project_task_panel->update_stage_value_with_machine(obj->get_curr_stage(), obj->subtask_->task_progress, obj);
                 m_project_task_panel->update_progress_percent(wxString::Format("%d", obj->subtask_->task_progress), "%");
