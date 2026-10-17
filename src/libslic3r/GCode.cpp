@@ -2138,11 +2138,13 @@ void GCode::PlaceholderParserIntegration::init(const GCodeWriter &writer)
     this->parser.set("zhop", this->opt_zhop);
 }
 
-void GCode::PlaceholderParserIntegration::update_from_gcodewriter(const GCodeWriter &writer)
+void GCode::PlaceholderParserIntegration::update_from_gcodewriter(const GCodeWriter& writer, const Vec2d& plate_origin)
 {
-    memcpy(this->position.data(), writer.get_position().data(), sizeof(double) * 3);
+    const Vec3d raw_pos        = writer.get_position();
+    this->position[0]          = raw_pos.x() - plate_origin.x();
+    this->position[1]          = raw_pos.y() - plate_origin.y();
+    this->position[2]          = raw_pos.z();
     this->opt_position->values = this->position;
-    this->opt_zhop->value = writer.get_zhop();
 
     if (this->num_extruders > 0) {
         const std::vector<Extruder> &extruders = writer.extruders();
@@ -5239,7 +5241,9 @@ std::string GCode::placeholder_parser_process(const std::string &name, const std
 
 PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
     try {
-        ppi.update_from_gcodewriter(m_writer);
+        const Vec3d plate_origin = (m_last_pos_defined && m_print) ? m_print->get_plate_origin() : Vec3d::Zero();
+        const Vec2d plate_origin_xy(plate_origin.x(), plate_origin.y());
+        ppi.update_from_gcodewriter(m_writer, plate_origin_xy);
         std::string output = ppi.parser.process(templ, current_filament_id, config_override, &ppi.output_config, &ppi.context);
         ppi.validate_output_vector_variables();
         const CustomGCodeMotionStateChanges motion_state_changes = custom_gcode_motion_state_changes(output);
@@ -5249,9 +5253,9 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
             m_writer.invalidate_jerk();
 
         if (const std::vector<double> &pos = ppi.opt_position->values; ppi.position != pos) {
-            // Update G-code writer.
-            m_writer.set_position({ pos[0], pos[1], pos[2] });
-            this->set_last_pos(this->gcode_to_point({ pos[0], pos[1] }));
+            // pos[] is in bed-local coordinates; add plate origin back for the canvas-space writer.
+            m_writer.set_position({pos[0] + plate_origin.x(), pos[1] + plate_origin.y(), pos[2]});
+            this->set_last_pos(this->gcode_to_point({pos[0] + plate_origin.x(), pos[1] + plate_origin.y()}));
         }
 
         for (const Extruder &e : m_writer.extruders()) {
@@ -10844,8 +10848,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("new_retract_length_toolchange", new ConfigOptionFloat(new_retract_length_toolchange));
     dyn_config.set_key_value("old_filament_temp", new ConfigOptionInt(old_filament_temp));
     dyn_config.set_key_value("new_filament_temp", new ConfigOptionInt(new_filament_temp));
-    dyn_config.set_key_value("x_after_toolchange", new ConfigOptionFloat(nozzle_pos(0)));
-    dyn_config.set_key_value("y_after_toolchange", new ConfigOptionFloat(nozzle_pos(1)));
+    // Subtract the active plate origin so placeholders are in machine/bed coordinates.
+    const Vec3d plate_origin = (m_last_pos_defined && m_print) ? m_print->get_plate_origin() : Vec3d::Zero();
+    dyn_config.set_key_value("x_after_toolchange", new ConfigOptionFloat(nozzle_pos(0) - plate_origin(0)));
+    dyn_config.set_key_value("y_after_toolchange", new ConfigOptionFloat(nozzle_pos(1) - plate_origin(1)));
     dyn_config.set_key_value("z_after_toolchange", new ConfigOptionFloat(nozzle_pos(2)));
     dyn_config.set_key_value("first_flush_volume", new ConfigOptionFloat(wipe_length / 2.f));
     dyn_config.set_key_value("second_flush_volume", new ConfigOptionFloat(wipe_length / 2.f));

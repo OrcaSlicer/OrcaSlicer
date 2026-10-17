@@ -727,7 +727,7 @@ protected:
     struct PlaceholderParserIntegration {
         void reset();
         void init(const GCodeWriter &config);
-        void update_from_gcodewriter(const GCodeWriter &writer);
+        void update_from_gcodewriter(const GCodeWriter &writer, const Vec2d& plate_origin = Vec2d::Zero());
         void validate_output_vector_variables();
 
         PlaceholderParser                   parser;
