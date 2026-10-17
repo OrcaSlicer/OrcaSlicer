@@ -9,6 +9,7 @@
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Circle.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/GCode/ExtrusionProcessor.hpp"
