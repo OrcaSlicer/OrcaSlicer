@@ -53,6 +53,7 @@ struct FilamentInfo
     std::vector<int> group_id;
     double      nozzle_diameter{0.0};
     std::string nozzle_volume_type;
+    int         remain{-1}; // filament remaining on the mapped tray: 0~100, -1 = unknown / not reported by the printer
 
     /*for new ams mapping*/
     std::string ams_id;
