@@ -4320,8 +4320,27 @@ void GUI_App::select_machine(const std::string& agent_id)
     const auto& preset = preset_bundle->printers.get_edited_preset();
     const DynamicPrintConfig* host_cfg = &preset.config;
 
+    // Hands the machine to the Device tab's full selection flow (UI updates, callbacks, etc.).
+    auto select_dev = [this](const std::string& dev_id) {
+        if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+            monitor->select_machine(dev_id);
+            BOOST_LOG_TRIVIAL(info) << "GUI_App::select_machine" << ": triggered select_machine for dev_id=" << dev_id;
+        } else if (m_device_manager->set_selected_machine(dev_id)) {
+            // The Device tab's own state is set when the tab is built.
+            MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
+            BOOST_LOG_TRIVIAL(info) << "GUI_App::select_machine" << ": set_selected_machine dev_id=" << dev_id;
+        }
+    };
+
     std::string print_host = host_cfg->opt_string("print_host");
     if (print_host.empty()) {
+        // Orca: a printer bound from the Device tab is kept as a device of the agent rather than in
+        // the preset's print_host. Select it when it is the agent's only one, as
+        // MainFrame::load_printer_url() does; otherwise nothing is selected until the print dialog
+        // picks it, and filament sync has no printer to read from.
+        const auto machines = m_device_manager->get_my_machine_list(agent_id);
+        if (machines.size() == 1 && machines.begin()->second)
+            select_dev(machines.begin()->second->get_dev_id());
         return;
     }
     std::string port = host_cfg->opt_string("printhost_port");
@@ -4368,17 +4387,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         existing->set_access_code(access_code);
     }
     existing->local_use_ssl = boost::istarts_with(print_host, "https://");
-
-    // Use MonitorPanel::select_machine() to trigger full selection flow
-    // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
-    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
-        monitor->select_machine(dev_id);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
-    } else if (m_device_manager->set_selected_machine(dev_id)) {
-        // The Device tab's own state is set when the tab is built.
-        MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": set_selected_machine dev_id=" << dev_id;
-    }
+    select_dev(dev_id);
 }
 
 bool GUI_App::dark_mode()

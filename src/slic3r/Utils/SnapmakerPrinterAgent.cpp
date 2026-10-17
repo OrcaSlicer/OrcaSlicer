@@ -7,6 +7,7 @@
 
 #include "nlohmann/json.hpp"
 #include <boost/log/trivial.hpp>
+#include <set>
 #include <vector>
 #include <string>
 #include "libslic3r/Preset.hpp"
@@ -18,6 +19,9 @@ namespace Slic3r {
 namespace {
 
 constexpr const char* SNAPMAKER_AGENT_VERSION = "0.0.1";
+
+// Physical tools on the U1; a tray id past this is not a toolhead the firmware can map to.
+constexpr int MAX_U1_TOOLS = 4;
 
 // Safely access a parallel array by index, returning a fallback if out of bounds.
 template<typename T>
@@ -230,6 +234,60 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 
     build_ams_payload(1, slot_count - 1, trays);
     return true;
+}
+
+int SnapmakerPrinterAgent::start_uploaded_print(const PrintParams& params, const std::string& filename)
+{
+    // The G-code names tools by filament index (T0..Tn), and the U1 firmware routes each of those
+    // logical tools to a physical one through print_task_config.extruder_map_table. This is what
+    // lets a project hold more filaments than the printer has tools.
+    nlohmann::json map_table = nlohmann::json::array();
+    std::set<int>  used_tools;
+    for (const auto& [filament, tool] : parse_tool_mapping(params.ams_mapping, MAX_U1_TOOLS)) {
+        map_table.push_back(nlohmann::json::array({filament, tool}));
+        used_tools.insert(tool);
+    }
+
+    // Firmware 1.3.0 and later take the mapping and the dialog's switches as options of the print
+    // request, which Snapmaker's Moonraker registers for websocket clients only. The keys are the
+    // ones Snapmaker's own print dialog sends.
+    nlohmann::json options{{"bed_level", params.task_bed_leveling ? 1 : 0},
+                           {"flow_calibrate", params.task_flow_cali ? 1 : 0},
+                           {"time_lapse_camera", params.task_record_timelapse ? 1 : 0}};
+    if (!map_table.empty())
+        options["map_table"] = map_table;
+    nlohmann::json request{{"type", "gcode"}, {"path", filename}, {"options", options}};
+
+    nlohmann::json result;
+    std::string    error;
+    if (call_jsonrpc_ws("server.files.start_local_print", request, result, error)) {
+        if (result.is_object() && result.value("state", "") == "error") {
+            BOOST_LOG_TRIVIAL(error) << "SnapmakerPrinterAgent: start_local_print refused: " << result.dump();
+            return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+        }
+        BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent: started " << filename << " with options " << options.dump();
+        return BAMBU_NETWORK_SUCCESS;
+    }
+    if (!result.is_object() || result.value("code", 0) != -32601) {
+        BOOST_LOG_TRIVIAL(error) << "SnapmakerPrinterAgent: start_local_print failed: " << error;
+        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+    }
+
+    // Older firmware lacks the method: set the mapping with G-code, then start the file as usual.
+    BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent: start_local_print unavailable, mapping tools with G-code";
+    if (!map_table.empty()) {
+        std::string gcode;
+        for (const auto& entry : map_table)
+            gcode += "SET_PRINT_EXTRUDER_MAP CONFIG_EXTRUDER=" + std::to_string(entry[0].get<int>()) +
+                     " MAP_EXTRUDER=" + std::to_string(entry[1].get<int>()) + "\n";
+        std::string tools;
+        for (int tool : used_tools)
+            tools += (tools.empty() ? "" : ",") + std::to_string(tool);
+        gcode += "SET_PRINT_USED_EXTRUDERS EXTRUDERS=" + tools;
+        if (!send_gcode_sync(device_info.dev_id, gcode))
+            return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+    }
+    return MoonrakerPrinterAgent::start_uploaded_print(params, filename);
 }
 
 } // namespace Slic3r

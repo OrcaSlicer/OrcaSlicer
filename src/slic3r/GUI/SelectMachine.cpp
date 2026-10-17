@@ -1221,7 +1221,8 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
     // Orca: only do the per-physical-extruder left/right split when the device actually reports
     // 2+ extruders. A non-BBL multi-nozzle printer (e.g. Snapmaker U1) reports a single extruder
     // with one filament pool, so it maps as a single surface via the else branch below.
-    if (nozzle_nums > 1 && obj_->GetExtderSystem()->GetTotalExtderCount() > 1){
+    // The left/right split also needs the per-nozzle filament map, which only two-nozzle printers fill.
+    if (nozzle_nums == 2 && obj_->GetExtderSystem()->GetTotalExtderCount() > 1){
         //get nozzle property, the extders are same?
         if (true/*!can_hybrid_mapping(obj_get_extder_data())*/){
             std::vector<FilamentInfo>           m_ams_mapping_result_left, m_ams_mapping_result_right;
@@ -5584,7 +5585,10 @@ void SelectMachineDialog::reset_and_sync_ams_list()
     const auto& full_config = wxGetApp().preset_bundle->full_config();
     size_t nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
-    bool use_double_extruder = nozzle_nums > 1 ? true : false;
+    // Orca: the Left/Right Nozzle panels describe a two-nozzle printer (H2D, IDEX). A tool changer
+    // with more heads (Snapmaker U1, Flashforge Creator 5) maps every filament from one pool, so it
+    // gets the single panel from the start rather than only once the device reports its extruders.
+    bool use_double_extruder = nozzle_nums == 2;
     if (use_double_extruder)
     {
         const auto& project_config = preset_bundle->project_config;
