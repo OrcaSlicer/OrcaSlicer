@@ -3723,6 +3723,8 @@ void SelectMachineDialog::on_send_print()
             : m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
 
     m_print_job->could_emmc_print = obj_->can_use_emmc_print();
+    // With a USB stick present, send to the external storage and keep the internal one for when there is none
+    m_print_job->use_emmc_storage = !m_print_job->has_sdcard;
     if (obj_->is_support_print_with_emmc && !m_print_job->could_emmc_print) {
         BOOST_LOG_TRIVIAL(info) << "print_job: emmc print disabled by config";
     }
