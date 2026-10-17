@@ -430,6 +430,13 @@ public:
     // Export selections (current print, current filaments, current printer) into config.ini
     void            export_selections(AppConfig &config);
 
+    // ORCA #12105: rename a user printer_model (the "Rename Printer Model" dialog). Performs the real
+    // preset rename via printers.rename_user_printer_model(), then repoints everything in the current
+    // preset store that referenced the old preset name(s): app-config per-printer settings, the
+    // last-selected-printer key, and user filament/process compatible_printers lists. Returns the number
+    // of printer presets renamed. (Durable renamed_from for pre-existing .3mf files is a follow-up.)
+    int             rename_user_printer_model(const std::string &old_model, const std::string &new_model, AppConfig &config);
+
     // While one lives, export_selections() writes nothing, so a selection only shown for a while (the
     // settings of a G-code being previewed) is not remembered as the user's. It also covers the
     // exports the GUI makes on its own while refreshing.
