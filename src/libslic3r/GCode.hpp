@@ -309,7 +309,12 @@ public:
     std::string     retract(bool toolchange = false, bool is_last_retraction = false, LiftType lift_type = LiftType::NormalLift, bool apply_instantly = false, ExtrusionRole role = erNone);
     // extra_retract forwards a PETG pre-extrusion over-extrusion; default 0 -> identical to the plain deretract.
     std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
-    std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
+    std::string set_extruder(unsigned int extruder_id,
+                             double print_z,
+                             bool by_object               = false,
+                             int toolchange_temp_override = -1,
+                             bool defer_temp_wait         = false,
+                             float infill_purge_volume    = 0.f);
     // Sets the pressure advance of the filament's extruder variant, if enabled for it.
     // tool addresses one IMEX carriage explicitly. -1 means no carriage: it omits the tool
     // qualifier on Klipper, Marlin and BBL, and keeps RepRapFirmware's historical `D0`, since a

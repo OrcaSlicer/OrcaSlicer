@@ -1190,7 +1190,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
 
-    for (auto el : {"flush_into_infill", "flush_into_support", "flush_into_objects"})
+    toggle_field("flush_into_infill", true);
+    for (auto el : {"flush_into_support", "flush_into_objects"})
         toggle_field(el, have_prime_tower);
 
     bool have_avoid_crossing_perimeters = config->opt_bool("reduce_crossing_wall");

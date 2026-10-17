@@ -3429,6 +3429,31 @@ bool WipingExtrusions::is_support_overriddable(const ExtrusionRole role, const P
 
 // Following function iterates through all extrusions on the layer, remembers those that could be used for wiping after toolchange
 // and returns volume that is left to be wiped on the wipe tower.
+float WipingExtrusions::mark_infill_priming(
+    const Print& print, const Layer& layer, const PrintObject& object, size_t copy_id, unsigned int extruder, float volume)
+{
+    if (!object.config().flush_into_infill || volume <= 0.f)
+        return volume;
+    for (const LayerRegion* region : layer.regions()) {
+        for (const ExtrusionEntity* entity : region->fills.entities) {
+            const auto* fill = dynamic_cast<const ExtrusionEntityCollection*>(entity);
+            if (fill == nullptr || fill->role() != erInternalInfill || is_entity_overridden(fill, &object, copy_id))
+                continue;
+            const unsigned int original_tool = m_layer_tools->extruder(*fill, region->region());
+            if (print.config().filament_soluble.get_at(original_tool) || print.config().filament_is_support.get_at(original_tool))
+                continue;
+            const float available = float(fill->total_volume());
+            if (available <= 0.f)
+                continue;
+            set_extruder_override(fill, &object, copy_id, extruder, object.instances().size());
+            volume = std::max(0.f, volume - available);
+            if (volume == 0.f)
+                return 0.f;
+        }
+    }
+    return volume;
+}
+
 float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int old_extruder, unsigned int new_extruder, float volume_to_wipe)
 {
     const LayerTools& lt = *m_layer_tools;

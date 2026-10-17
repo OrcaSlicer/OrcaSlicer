@@ -6845,6 +6845,45 @@ LayerResult GCode::process_layer(
         if (layer_to_print.object_layer && prepares_overhang_estimator(*layer_to_print.object_layer, overhang_fan, overhang_speed))
             m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object, layer_to_print.object_layer);
 
+    // Tower-free priming follows the actual export order. Keep overrides local so repeated
+    // exports and sequential object instances cannot reuse an earlier priming allocation.
+    WipingExtrusions tower_free_wiping;
+    tower_free_wiping.set_layer_tools_ptr(&layer_tools);
+    WipingExtrusions& layer_wiping = m_wipe_tower ? const_cast<LayerTools&>(layer_tools).wiping_extrusions() : tower_free_wiping;
+    std::map<unsigned int, float> infill_purge_volumes;
+    if (!m_wipe_tower && !print.has_belt_purge_tower() && print.config().prime_volume_mode == PrimeVolumeMode::pvmDefault &&
+        layer_tools.mixed_sub_layer_groups.empty() && m_writer.filament() != nullptr) {
+        std::vector<unsigned int> priming_order = layer_tools.extruders;
+        unsigned int previous                   = m_writer.filament()->id();
+        for (unsigned int next : priming_order) {
+            if (next != previous && !print.config().filament_soluble.get_at(previous) && !print.config().filament_soluble.get_at(next) &&
+                !print.config().filament_is_support.get_at(previous) && !print.config().filament_is_support.get_at(next)) {
+                const unsigned int nozzle = get_extruder_id(next);
+                float requested           = float(print.config().filament_prime_volume.get_at(next));
+                if (get_extruder_id(previous) == nozzle) {
+                    const auto matrix  = get_flush_volumes_matrix(print.config().flush_volumes_matrix.values, nozzle,
+                                                                  print.config().nozzle_diameter.size());
+                    const size_t count = print.config().filament_colour.size();
+                    const size_t index = previous * count + next;
+                    requested = index < matrix.size() ? float(matrix[index] * print.config().flush_multiplier.get_at(nozzle)) : 0.f;
+                    requested = std::max(0.f, requested - float(print.config().grab_length.get_at(nozzle) * 2.4));
+                }
+                float remaining = requested;
+                for (const auto& item : layers) {
+                    if (item.object_layer == nullptr)
+                        continue;
+                    const PrintObject& object = *item.original_object;
+                    const size_t begin        = single_object_instance_idx == size_t(-1) ? 0 : single_object_instance_idx;
+                    const size_t end          = single_object_instance_idx == size_t(-1) ? object.instances().size() : begin + 1;
+                    for (size_t copy = begin; copy < end; ++copy)
+                        remaining = layer_wiping.mark_infill_priming(print, *item.object_layer, object, copy, next, remaining);
+                }
+                infill_purge_volumes[next] = requested - remaining;
+            }
+            previous = next;
+        }
+    }
+
     // Group extrusions by an extruder, then by an object, an island and a region.
     std::map<unsigned int, std::vector<ObjectByExtruder>> by_extruder;
     // Farthest-point timelapse: per-support-layer/role → extruder map, consumed only by
@@ -6852,7 +6891,7 @@ LayerResult GCode::process_layer(
     // existing support-extruder assignment; unused (and thus output-neutral) when the subsystem is off.
     std::map<std::pair<const SupportLayer *, ExtrusionRole>, unsigned int> support_filaments;
     std::vector<std::unique_ptr<ExtrusionEntityCollection>> split_perimeter_storage;
-    bool is_anything_overridden = const_cast<LayerTools&>(layer_tools).wiping_extrusions().is_anything_overridden();
+    bool is_anything_overridden = layer_wiping.is_anything_overridden();
     for (const LayerToPrint &layer_to_print : layers) {
         if (layer_to_print.support_layer != nullptr) {
             const SupportLayer &support_layer = *layer_to_print.support_layer;
@@ -6871,7 +6910,7 @@ LayerResult GCode::process_layer(
                 bool            interface_dontcare = object.config().support_interface_filament.value == 0;
 
                 // BBS: apply wiping overridden extruders
-                WipingExtrusions& wiping_extrusions = const_cast<LayerTools&>(layer_tools).wiping_extrusions();
+                WipingExtrusions& wiping_extrusions = layer_wiping;
                 if (support_dontcare) {
                     int extruder_override = wiping_extrusions.get_support_extruder_overrides(&object);
                     if (extruder_override >= 0) {
@@ -7038,7 +7077,9 @@ LayerResult GCode::process_layer(
                             }
                             printing_extruders.clear();
                             if (is_anything_overridden && use_overrides) {
-                                entity_overrides = const_cast<LayerTools&>(layer_tools).wiping_extrusions().get_extruder_overrides(overrides_key, layer_to_print.original_object, correct_extruder_id, layer_to_print.object()->instances().size());
+                                entity_overrides = layer_wiping.get_extruder_overrides(overrides_key, layer_to_print.original_object,
+                                                                                       correct_extruder_id,
+                                                                                       layer_to_print.object()->instances().size());
                                 if (entity_overrides == nullptr) {
                                     printing_extruders.emplace_back(correct_extruder_id);
                                 } else {
@@ -7417,7 +7458,7 @@ LayerResult GCode::process_layer(
                 has_insert_wrapping_detection_gcode = true;
             }
 
-            gcode_toolchange = this->set_extruder(extruder_id, print_z);
+            gcode_toolchange = this->set_extruder(extruder_id, print_z, false, -1, false, infill_purge_volumes[extruder_id]);
         }
 
         if (!gcode_toolchange.empty()) {
@@ -7537,7 +7578,7 @@ LayerResult GCode::process_layer(
                     ExtrusionEntityCollection support_eec;
 
                     // BBS
-                    WipingExtrusions& wiping_extrusions = const_cast<LayerTools&>(layer_tools).wiping_extrusions();
+                    WipingExtrusions& wiping_extrusions = layer_wiping;
                     bool support_overridden = wiping_extrusions.is_support_overridden(layer_to_print.original_object);
                     bool support_intf_overridden = wiping_extrusions.is_support_interface_overridden(layer_to_print.original_object);
 
@@ -10579,7 +10620,12 @@ void GCode::update_placeholder_parser_with_variant_params()
     }
 }
 
-std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bool by_object, int toolchange_temp_override, bool defer_temp_wait)
+std::string GCode::set_extruder(unsigned int new_filament_id,
+                                double print_z,
+                                bool by_object,
+                                int toolchange_temp_override,
+                                bool defer_temp_wait,
+                                float infill_purge_volume)
 {
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
@@ -10778,7 +10824,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             wipe_volume = flush_idx < flush_matrix.size() ? flush_matrix[flush_idx] : 0.f;
             wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);  // if is multi_extruder only use the fist extruder matrix
         }
-        wipe_volume = std::max(0.f, wipe_volume-grab_purge_volume);
+        wipe_volume = std::max(0.f, wipe_volume - grab_purge_volume - infill_purge_volume);
 
         old_filament_e_feedrate = (int) (60.0 * m_config.filament_max_volumetric_speed.get_at(old_fi) / filament_area);
         old_filament_e_feedrate = old_filament_e_feedrate == 0 ? 100 : old_filament_e_feedrate;

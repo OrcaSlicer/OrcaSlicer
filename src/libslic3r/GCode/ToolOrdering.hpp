@@ -32,6 +32,7 @@ namespace Slic3r {
 class Print;
 class PrintObject;
 class LayerTools;
+class Layer;
 namespace CustomGCode { struct Item; }
 class PrintRegion;
 
@@ -56,6 +57,9 @@ public:
     // This function goes through all infill entities, decides which ones will be used for wiping and
     // marks them by the extruder id. Returns volume that remains to be wiped on the wipe tower:
     float mark_wiping_extrusions(const Print& print, unsigned int old_extruder, unsigned int new_extruder, float volume_to_wipe);
+
+    float mark_infill_priming(
+        const Print& print, const Layer& layer, const PrintObject& object, size_t copy_id, unsigned int extruder, float volume);
 
     void ensure_perimeters_infills_order(const Print& print);
 
