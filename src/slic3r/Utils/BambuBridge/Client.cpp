@@ -35,9 +35,10 @@ void Client::start(const std::string& library, std::function<void(const std::str
     stop();
     { std::lock_guard<std::mutex> lock(m_mutex); m_error_handler = std::move(error_handler); }
     auto session = std::make_shared<Session>();
-    auto process = std::make_shared<HelperProcess>(launch_helper(environment(L"ORCA_BAMBU_HELPER")));
+    auto process = std::make_shared<HelperProcess>(launch_helper(helper_executable()));
     auto pipe = process->pipe;
     session->process = process;
+    session->terminate = [process] { TerminateProcess(process->process->get(), 1); };
     session->rpc = std::make_unique<Rpc>(
         [pipe](void* bytes, std::size_t size) { pipe->read(bytes, size); },
         [pipe](void* bytes, std::size_t size) { pipe->write(bytes, size); },
@@ -69,7 +70,7 @@ void Client::stop()
         std::lock_guard<std::mutex> lock(m_mutex);
         session = std::move(m_session);
     }
-    if (session) session->rpc->stop();
+    if (session) session->stop();
 }
 
 std::shared_ptr<Client::Session> Client::get_session() const

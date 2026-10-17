@@ -17,6 +17,18 @@ std::wstring environment(const wchar_t* name)
     return value;
 }
 
+std::wstring helper_executable()
+{
+    const auto configured = environment(L"ORCA_BAMBU_HELPER");
+    if (configured != L"1") return configured;
+    // Explicit opt-in to the packaged helper. Never search PATH or the working directory.
+    std::wstring executable(32768, L'\0');
+    const DWORD count = GetModuleFileNameW(nullptr, executable.data(), static_cast<DWORD>(executable.size()));
+    if (!count || count >= executable.size()) throw win_error("GetModuleFileName");
+    executable.resize(count);
+    return (std::filesystem::path(executable).parent_path() / L"orca-bambu-network-helper.exe").wstring();
+}
+
 std::wstring utf16(const std::string& text)
 {
     if (text.empty()) return {};

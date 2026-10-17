@@ -3,6 +3,12 @@
 #include "Bindings.hpp"
 #include "../BBLNetworkFunctions.hpp"
 #include <set>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 namespace Slic3r::BambuBridge {
 
@@ -41,7 +47,7 @@ public:
                 }
             } catch (...) { session->callbacks.erase(ids); throw; }
         } catch (const std::exception& e) {
-            report_error(e.what());
+            report_error(method + ": " + e.what());
             if constexpr (std::is_same_v<Result, int>) return BAMBU_NETWORK_ERR_INVALID_RESULT;
             else if constexpr (!std::is_void_v<Result>) return Result{};
         }
@@ -55,10 +61,19 @@ private:
         std::unique_ptr<Rpc> rpc;
         // Keep process/pipe ownership opaque here so the app header remains independent of Win32.
         std::shared_ptr<void> process;
+        std::function<void()> terminate;
         std::set<std::string> exports;
         std::string version;
         bool debug = false;
-        ~Session() { if (rpc) rpc->stop(); }
+        void stop()
+        {
+            if (rpc) rpc->cancel();
+            // A proprietary DLL may ignore cancellation. Kill the isolated process before
+            // joining RPC threads, rather than waiting forever for its export to return.
+            if (terminate) terminate();
+            if (rpc) rpc->stop();
+        }
+        ~Session() { stop(); }
     };
     std::shared_ptr<Session> get_session() const;
     void report_error(const std::string& message);

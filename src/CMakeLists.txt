@@ -391,6 +391,18 @@ endif()
 message(STATUS "libslic3r-CMAKE_BUILD_TYPE: ${build_type}")
 message(STATUS "CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
 if (WIN32)
+    if (ORCA_BAMBU_NETWORK_BRIDGE AND ORCA_BAMBU_HELPER_EXECUTABLE)
+        if (NOT IS_ABSOLUTE "${ORCA_BAMBU_HELPER_EXECUTABLE}" OR NOT EXISTS "${ORCA_BAMBU_HELPER_EXECUTABLE}" OR
+            IS_DIRECTORY "${ORCA_BAMBU_HELPER_EXECUTABLE}")
+            message(FATAL_ERROR "ORCA_BAMBU_HELPER_EXECUTABLE must name an existing absolute helper executable")
+        endif ()
+        add_custom_command(TARGET OrcaSlicer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ORCA_BAMBU_HELPER_EXECUTABLE}"
+                "$<TARGET_FILE_DIR:OrcaSlicer>/orca-bambu-network-helper.exe"
+            COMMENT "Staging the prebuilt Bambu network helper"
+            VERBATIM)
+        install(FILES "${ORCA_BAMBU_HELPER_EXECUTABLE}" DESTINATION "." RENAME orca-bambu-network-helper.exe)
+    endif ()
     install(TARGETS OrcaSlicer RUNTIME DESTINATION ".")
     if (MSVC)
         install(TARGETS OrcaSlicer_app_gui RUNTIME DESTINATION ".")

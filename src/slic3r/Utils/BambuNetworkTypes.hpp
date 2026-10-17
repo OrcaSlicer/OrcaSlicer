@@ -293,7 +293,7 @@ struct PrintParams {
     std::string     preset_name;
     std::string     filename;
     std::string     config_filename;
-    int             plate_index;
+    int             plate_index = 0;
     std::string     ftp_folder;
     std::string     ftp_file;
     std::string     ftp_file_md5;
@@ -313,27 +313,27 @@ struct PrintParams {
 
     /* access options */
     std::string     dev_ip;
-    bool            use_ssl_for_ftp;
-    bool            use_ssl_for_mqtt;
+    bool            use_ssl_for_ftp = false;
+    bool            use_ssl_for_mqtt = false;
     std::string     username;
     std::string     password;
 
     /*user options */
-    bool            task_bed_leveling;      /* bed leveling of task */
-    bool            task_flow_cali;         /* flow calibration of task */
-    bool            task_vibration_cali;    /* vibration calibration of task */
-    bool            task_layer_inspect;     /* first layer inspection of task */
-    bool            task_record_timelapse;  /* record timelapse of task */
-    bool            task_timelapse_use_internal;
-    bool            task_use_ams;
+    bool            task_bed_leveling = false;      /* bed leveling of task */
+    bool            task_flow_cali = false;         /* flow calibration of task */
+    bool            task_vibration_cali = false;    /* vibration calibration of task */
+    bool            task_layer_inspect = false;     /* first layer inspection of task */
+    bool            task_record_timelapse = false;  /* record timelapse of task */
+    bool            task_timelapse_use_internal = false;
+    bool            task_use_ams = false;
     std::string     task_bed_type;
     std::string     extra_options;
     int             auto_bed_leveling{ 0 };
     int             auto_flow_cali{ 0 };
     int             auto_offset_cali{ 0 };
     int             extruder_cali_manual_mode{ -1 };
-    bool            task_ext_change_assist;
-    bool            try_emmc_print;
+    bool            task_ext_change_assist = false;
+    bool            try_emmc_print = false;
     std::string     svc_context;
     std::string     slicer_uid;
     std::string     queue_plate_id;

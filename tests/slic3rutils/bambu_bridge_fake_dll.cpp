@@ -1,6 +1,12 @@
-// A Windows ABI fixture only. It never opens a network connection or touches a printer.
+// A Windows ABI fixture. It reads local upload fixtures but never contacts a printer.
 #include "slic3r/Utils/BBLNetworkFunctions.hpp"
 #include <thread>
+#include <filesystem>
+#include <fstream>
+#include <windows.h>
+#include <cstddef>
+#include <string>
+#include <utility>
 
 using namespace Slic3r;
 struct FakeAgent {
@@ -9,7 +15,12 @@ struct FakeAgent {
     QueueOnMainFn queue;
 };
 #define EXPORT extern "C" __declspec(dllexport)
-EXPORT std::string bambu_network_get_version() { return "02.08.04.99"; }
+EXPORT std::string bambu_network_get_version()
+{
+    char version[64];
+    const auto count = GetEnvironmentVariableA("ORCA_BAMBU_FIXTURE_VERSION", version, sizeof(version));
+    return count && count < sizeof(version) ? std::string(version, count) : "02.08.04.99";
+}
 EXPORT bool bambu_network_check_debug_consistent(bool debug)
 {
 #ifdef NDEBUG
@@ -40,6 +51,10 @@ EXPORT int bambu_network_bind_detect(void*, std::string, std::string, detectResu
 EXPORT int bambu_network_start_local_print(void* agent, PrintParams params, OnUpdateStatusFn update, WasCancelledFn cancel)
 {
     auto* fake = static_cast<FakeAgent*>(agent);
+    if (params.task_name == "block-until-terminated") {
+        if (update) update(PrintingStageUpload, 0, "entered");
+        Sleep(INFINITE); // Model a DLL that ignores cancellation and never returns.
+    }
     // DLL-owned threads also issue reverse callbacks while its exported function is blocked.
     std::thread worker([&] {
         if (fake->local_message) fake->local_message(params.dev_id, params.filename);
@@ -47,4 +62,36 @@ EXPORT int bambu_network_start_local_print(void* agent, PrintParams params, OnUp
     });
     worker.join();
     return cancel && cancel() ? BAMBU_NETWORK_ERR_CANCELED : 0;
+}
+
+namespace {
+bool verify_file(const std::string& filename, std::size_t expected_size)
+{
+    std::ifstream input(std::filesystem::u8path(filename), std::ios::binary);
+    if (!input) return false;
+    char buffer[4096];
+    std::size_t offset = 0;
+    while (input.read(buffer, sizeof(buffer)) || input.gcount()) {
+        for (std::streamsize i = 0; i < input.gcount(); ++i, ++offset)
+            if (static_cast<unsigned char>(buffer[i]) != static_cast<unsigned char>(offset * 37 + 11)) return false;
+    }
+    return input.eof() && offset == expected_size;
+}
+}
+
+EXPORT int bambu_network_start_send_gcode_to_sdcard(void*, PrintParams params,
+    OnUpdateStatusFn update, WasCancelledFn cancel, OnWaitFn wait)
+{
+    // Check transfer-relevant fields independently of the production JSON schema.
+    if (params.dev_id != "fixture" || params.plate_index != 7 || params.ftp_folder != "folder" ||
+        params.ftp_file != "upload.3mf" || params.ftp_file_md5 != "fixture-md5" ||
+        !params.use_ssl_for_ftp || params.use_ssl_for_mqtt || params.task_use_ams ||
+        params.try_emmc_print || params.auto_flow_cali != 2 || params.extruder_cali_manual_mode != -1)
+        return BAMBU_NETWORK_ERR_INVALID_RESULT;
+    if (!verify_file(params.filename, 16 * 1024 * 1024 + 257) || !verify_file(params.config_filename, 8193))
+        return BAMBU_NETWORK_ERR_CHECK_MD5_FAILED;
+    if (update) update(PrintingStageUpload, 100, params.filename);
+    if (cancel && cancel()) return BAMBU_NETWORK_ERR_CANCELED;
+    if (wait && !wait(PrintingStageWaitPrinter, "ready")) return BAMBU_NETWORK_ERR_INVALID_RESULT;
+    return 0;
 }

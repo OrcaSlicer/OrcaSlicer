@@ -242,3 +242,57 @@ TEST_CASE("Bambu callbacks from DLL threads can query printers during a backgrou
     REQUIRE(nested == 19);
     REQUIRE_FALSE(pair.server.has_jobs());
 }
+
+TEST_CASE("Bambu upload parameters have defined defaults before serialization", "[BambuBridge]")
+{
+    // Application verification uploads construct this without aggregate initialization.
+    PrintParams params;
+    const Json wire = params;
+    for (const auto* field : {"use_ssl_for_ftp", "use_ssl_for_mqtt", "task_bed_leveling", "task_flow_cali",
+                             "task_vibration_cali", "task_layer_inspect", "task_record_timelapse",
+                             "task_timelapse_use_internal", "task_use_ams", "task_ext_change_assist", "try_emmc_print"})
+        REQUIRE(wire.at(field) == false);
+    REQUIRE(wire.at("plate_index") == 0);
+    REQUIRE(wire.at("extruder_cali_manual_mode") == -1);
+}
+
+TEST_CASE("Bambu background uploads block their caller until the export returns", "[BambuBridge]")
+{
+    std::promise<void> entered, release;
+    auto released = release.get_future();
+    Pair pair([](const std::string&, const Json&) { return Json(); },
+              [&](const std::string& method, const Json&) {
+                  if (method == "status") return Json(19);
+                  entered.set_value();
+                  released.wait();
+                  return Json(23);
+              }, [](const std::string& method) { return method == "upload"; });
+    pair.start();
+    auto upload = std::async(std::launch::async, [&] { return pair.client.request("upload", nullptr, 5s); });
+    entered.get_future().wait();
+    const bool active = pair.server.has_jobs();
+    const auto before_release = upload.wait_for(0s);
+    // A separate request remains responsive while the upload caller is suspended.
+    Json status;
+    try { status = pair.client.request("status", nullptr, 1s); }
+    catch (...) { release.set_value(); throw; }
+    release.set_value();
+    REQUIRE(active);
+    REQUIRE(before_release == std::future_status::timeout);
+    REQUIRE(status == 19);
+    REQUIRE(upload.get() == 23);
+}
+
+TEST_CASE("Bambu callback failures cancel jobs and refuse wait decisions", "[BambuBridge]")
+{
+    Pair pair([](const std::string&, const Json&) -> Json { throw std::runtime_error("callback failed"); },
+              [](const std::string&, const Json&) { return Json(); });
+    pair.start();
+    ServerValue<WasCancelledFn> cancel(1, pair.server, nullptr);
+    ServerValue<OnWaitFn> wait(2, pair.server, nullptr);
+    REQUIRE(cancel.get()());
+    REQUIRE_FALSE(wait.get()(PrintingStageWaitPrinter, "ready"));
+    pair.close();
+    REQUIRE(cancel.get()());
+    REQUIRE_FALSE(wait.get()(PrintingStageWaitPrinter, "ready"));
+}

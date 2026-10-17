@@ -41,6 +41,8 @@ public:
     }
     bool running() const { return m_running; }
     bool has_jobs() const { return m_active_jobs != 0; }
+    // Interrupt callers before waiting for workers to finish.
+    void cancel() { disconnect(); }
     void stop()
     {
         std::lock_guard<std::mutex> lock(m_stop_mutex);

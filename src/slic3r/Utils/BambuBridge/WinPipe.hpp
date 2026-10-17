@@ -81,6 +81,7 @@ private:
 };
 
 std::wstring environment(const wchar_t* name);
+std::wstring helper_executable();
 std::wstring utf16(const std::string& text);
 
 // Own the child through a kill-on-close job. All networking remains in that child.

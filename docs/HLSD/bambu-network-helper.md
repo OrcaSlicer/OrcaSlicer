@@ -58,7 +58,8 @@ closure in a helper-local queue and runs it on a dedicated helper thread. Existi
 Orca GUI callbacks continue to schedule their UI changes through `CallAfter`.
 The helper disables and drains its closure queue before destroying an idle agent.
 An explicit destroy during a job is rejected; closing the session cancels the job
-and terminates the helper through its Windows job object.
+and explicitly terminates the helper before joining client RPC threads. Its Windows
+job object also terminates the helper if the parent exits unexpectedly.
 
 Ordinary RPC calls and reverse callbacks have 30-second deadlines; binding has
 five minutes and print/upload jobs have 24 hours. Expiry or pipe failure disconnects
@@ -69,7 +70,7 @@ again. Restart networking to establish a new session after failure.
 The pipe name uses cryptographic randomness, its DACL grants access only to the
 current user's SID, and remote pipe clients are rejected. The parent verifies the
 connected client PID against the child it launched. The helper path must be
-absolute; process creation uses an explicit executable path without a shell or
+absolute (or `1` to select the executable beside Orca); process creation uses an explicit executable path without a shell or
 inherited handles. A kill-on-close job prevents orphan helper processes. DLL
 loading uses its absolute path and restricted dependency-search flags. Print
 files are shared by path rather than copied through RPC; they must remain present
@@ -98,6 +99,19 @@ Configure Orca's normal Arm64 build with
 $env:ORCA_BAMBU_HELPER = (Resolve-Path build/bambu-helper/Release/orca-bambu-network-helper.exe).Path
 & 'C:/path/to/Arm64/OrcaSlicer.exe'
 ```
+
+To package the separately built helper, set the main Orca build's
+`ORCA_BAMBU_HELPER_EXECUTABLE` CMake cache entry to its absolute Release executable
+path. With the bridge enabled, the build stages it beside Orca and installation
+includes it. The helper must still match the DLL's architecture; the main build
+never recompiles it as Arm64. Enable that packaged copy with:
+
+```powershell
+$env:ORCA_BAMBU_HELPER = '1'
+```
+
+An absolute path continues to select an external helper. Neither form changes
+the default: no environment opt-in means ordinary in-process loading.
 
 Install/select a supported 02.08.04 networking plugin through Orca's existing
 plugin controls. The helper uses the DLL file selected by those controls. Start
@@ -129,6 +143,11 @@ ctest --test-dir build/bridge-smoke -C Release --output-on-failure
 ```
 
 The experiment workflow runs the portable tests and Windows process smoke test.
+The fixture reads a binary upload larger than the RPC frame limit and a separate
+configuration file through Unicode paths, compares every byte against expected
+contents, checks transfer settings at the DLL boundary, and exercises shutdown
+while a DLL export ignores cancellation. CI runs it for x64 and Win32 helpers.
+
 The fixture does not validate Bambu's undocumented threading requirements or DLL
 behavior under Arm emulation. Hardware verification must include discovery,
 connect/disconnect, incoming status messages, upload progress, cancellation,
