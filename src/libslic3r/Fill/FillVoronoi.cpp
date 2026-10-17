@@ -46,6 +46,7 @@ void FillVoronoi::_fill_surface_single(const FillParams &params, unsigned int,
     geometry.wall_count = params.multiline;
     geometry.point_spacing = point_spacing;
     Voronoi::Layer layer = m_infill->fill_geometry(bounding_box, expolygon, geometry);
+    layer.walls = m_infill->route_walls(std::move(layer.walls), layer_id);
     multiline_fill(layer.walls, params, float(params.flow.spacing()));
     if (params.multiline > 1)
         layer.walls = intersection_pl(std::move(layer.walls), expolygon);

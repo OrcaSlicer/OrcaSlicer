@@ -40,6 +40,7 @@ public:
     // Clip wall sections and floor bands to the fill region, before extrusion.
     Voronoi::Layer fill_geometry(const BoundingBox &object_bounds, const ExPolygon &region,
                                 const GeometryParams &params);
+    Polylines route_walls(Polylines walls, size_t layer_id) const;
 
 private:
     Voronoi::ActivePointCloud m_cloud;

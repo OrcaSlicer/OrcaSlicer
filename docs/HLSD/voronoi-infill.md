@@ -47,6 +47,11 @@ advancing from the supported side. Reachable row ends extend into previous-layer
 perimeter footprints. This does not guarantee support at both ends or select
 bridge flow. Orca's bead width, spacing and flow are retained.
 
+Wall edges form trails through paired junctions. Pairing favours straight
+crossings; three-way junctions cycle turns across layers using their generating
+points. Closed-trail starts are hashed by layer to scatter seams. Each wall
+edge is traversed once.
+
 Orca orders walls and complete floor sweeps together using their actual entry
 and exit. Walls may reverse; floors retain their supported-side-first order.
 
