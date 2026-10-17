@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-15 17:40+0800\n"
-"PO-Revision-Date: 2026-10-11 16:22-0300\n"
+"PO-Revision-Date: 2026-10-17 10:38-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
 "Language: pt_BR\n"
@@ -17,7 +17,7 @@ msgstr ""
 "X-Crowdin-Language: pt-BR\n"
 "X-Crowdin-Project: orcaslicer-pt-br\n"
 "X-Crowdin-Project-ID: 664934\n"
-"X-Generator: Poedit 3.9\n"
+"X-Generator: Poedit 3.10\n"
 
 msgid "Main Extruder"
 msgstr "Extrusora Principal"
@@ -29594,31 +29594,24 @@ msgid_plural "The material list supports at most %1% colors. After %2% decomposi
 msgstr[0] "A lista de materiais suporta no máximo %1% cor. Após a decomposição de %2%, a quantidade de materiais excederia %1%. Exclua os filamentos não utilizados na tela principal antes de decompor."
 msgstr[1] "A lista de materiais suporta no máximo %1% cores. Após a decomposição de %2%, a quantidade de materiais excederia %1%. Exclua os filamentos não utilizados na tela principal antes de decompor."
 
-# AI Translated
 msgid "Cyan"
 msgstr "Ciano"
 
-# AI Translated
 msgid "Magenta"
 msgstr "Magenta"
 
-# AI Translated
 msgid "Yellow"
 msgstr "Amarelo"
 
-# AI Translated
 msgid "White"
 msgstr "Branco"
 
-# AI Translated
 msgid "Red"
 msgstr "Vermelho"
 
-# AI Translated
 msgid "Green"
 msgstr "Verde"
 
-# AI Translated
 msgid "Blue"
 msgstr "Azul"
 
@@ -29642,64 +29635,64 @@ msgstr[0] "A lista de filamentos atual não contém %s. Um filamento do projeto 
 msgstr[1] "A lista de filamentos atual não contém %s. Os filamentos do projeto exigidos pelo filamento misto serão criados automaticamente após a decomposição."
 
 msgid "Color Picker"
-msgstr ""
+msgstr "Seletor de Cores"
 
 msgid "Basic Colors"
-msgstr ""
+msgstr "Cores Básicas"
 
 msgid "Orca Palette"
-msgstr ""
+msgstr "Paleta Orca"
 
 #. TRN: Keep the brand name "Orca" unchanged; translate only the palette descriptor.
 msgid "RAL Classic"
-msgstr ""
+msgstr "RAL Clássico"
 
 #. TRN: Keep the standard/brand name "RAL" unchanged.
 msgid "Gradients"
-msgstr ""
+msgstr "Degradês"
 
 msgid "Solid"
-msgstr ""
+msgstr "Sólido"
 
 msgid "Gradient"
-msgstr ""
+msgstr "Degradê"
 
 msgid "Gradient start"
-msgstr ""
+msgstr "Início do degradê"
 
 msgid "Gradient end"
-msgstr ""
+msgstr "Final do degradê"
 
 msgid "Gradient color"
-msgstr ""
+msgstr "Cor em degradê"
 
 msgid "Add color"
-msgstr ""
+msgstr "Adicionar cor"
 
 msgid "Remove color"
-msgstr ""
+msgstr "Remover cor"
 
 msgid "Saturation"
-msgstr ""
+msgstr "Saturação"
 
 msgid "Original color"
-msgstr ""
+msgstr "Cor original"
 
 #. TRN: Clicking the current color preview adds it to the saved favorites.
 msgid "Save current color"
-msgstr ""
+msgstr "Salvar cor atual"
 
 msgid "Palettes"
-msgstr ""
+msgstr "Paletas"
 
 msgid "Search colors"
-msgstr ""
+msgstr "Buscar cores"
 
 msgid "Filter colors"
-msgstr ""
+msgstr "Filtrar cores"
 
 msgid "No matching colors"
-msgstr ""
+msgstr "Nenhuma cor correspondente"
 
 msgid "Hex color"
 msgstr ""
@@ -29712,7 +29705,7 @@ msgid "Opacity percent"
 msgstr ""
 
 msgid "Save color"
-msgstr ""
+msgstr "Salvar cor"
 
 msgid "Enter a complete hexadecimal color"
 msgstr ""
@@ -29722,25 +29715,25 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Up to %d colors supported."
-msgstr ""
+msgstr "Até %d cores suportadas."
 
 msgid "Crimson"
-msgstr ""
+msgstr "Carmesin"
 
 msgid "Orange red"
-msgstr ""
+msgstr "Vermelho laranja"
 
 msgid "Tomato"
-msgstr ""
+msgstr "Tomate"
 
 msgid "Orange"
-msgstr ""
+msgstr "Laranja"
 
 msgid "Dark orange"
-msgstr ""
+msgstr "Laranja escuro"
 
 msgid "Gold"
-msgstr ""
+msgstr "Ouro"
 
 msgid "Burly wood"
 msgstr ""
@@ -29752,13 +29745,13 @@ msgid "Misty rose"
 msgstr ""
 
 msgid "Light yellow"
-msgstr ""
+msgstr "Amarelo claro"
 
 msgid "Lemon chiffon"
 msgstr ""
 
 msgid "Beige"
-msgstr ""
+msgstr "Bege"
 
 msgid "Light golden rod yellow"
 msgstr ""
@@ -29767,10 +29760,10 @@ msgid "Pale golden rod"
 msgstr ""
 
 msgid "Khaki"
-msgstr ""
+msgstr "Cáqui"
 
 msgid "Dark khaki"
-msgstr ""
+msgstr "Cáqui escuro"
 
 msgid "Peach puff"
 msgstr ""
@@ -29779,25 +29772,25 @@ msgid "Moccasin"
 msgstr ""
 
 msgid "Papaya whip"
-msgstr ""
+msgstr "Creme de papaia"
 
 msgid "Blanched almond"
 msgstr ""
 
 msgid "Antique white"
-msgstr ""
+msgstr "Branco antigo"
 
 msgid "Navajo white"
 msgstr ""
 
 msgid "Wheat"
-msgstr ""
+msgstr "Trigo"
 
 msgid "Golden rod"
 msgstr ""
 
 msgid "Chocolate"
-msgstr ""
+msgstr "Chocolate"
 
 msgid "Peru"
 msgstr ""
@@ -29812,37 +29805,37 @@ msgid "Saddle brown"
 msgstr ""
 
 msgid "Brown"
-msgstr ""
+msgstr "Marrom"
 
 msgid "Rosy brown"
 msgstr ""
 
 msgid "Salmon"
-msgstr ""
+msgstr "Salmão"
 
 msgid "Light salmon"
-msgstr ""
+msgstr "Salmão claro"
 
 msgid "Dark salmon"
-msgstr ""
+msgstr "Salmão escuro"
 
 msgid "Sandy brown"
 msgstr ""
 
 msgid "Coral"
-msgstr ""
+msgstr "Coral"
 
 msgid "Light coral"
-msgstr ""
+msgstr "Coral claro"
 
 msgid "Indian red"
 msgstr ""
 
 msgid "Dark red"
-msgstr ""
+msgstr "Vermelho escuro"
 
 msgid "Maroon"
-msgstr ""
+msgstr "Bordô"
 
 msgid "Green yellow"
 msgstr ""
@@ -29857,7 +29850,7 @@ msgid "Lawn green"
 msgstr ""
 
 msgid "Lime green"
-msgstr ""
+msgstr "Verde limão"
 
 msgid "Spring green"
 msgstr ""
@@ -29872,7 +29865,7 @@ msgid "Forest green"
 msgstr ""
 
 msgid "Dark green"
-msgstr ""
+msgstr "Verde escuro"
 
 msgid "Olive drab"
 msgstr ""
@@ -29881,13 +29874,13 @@ msgid "Olive"
 msgstr ""
 
 msgid "Dark olive green"
-msgstr ""
+msgstr "Verde oliva escuro"
 
 msgid "Pale green"
 msgstr ""
 
 msgid "Light green"
-msgstr ""
+msgstr "Verde claro"
 
 msgid "Medium sea green"
 msgstr ""
@@ -29905,13 +29898,13 @@ msgid "Medium aqua marine"
 msgstr ""
 
 msgid "Turquoise"
-msgstr ""
+msgstr "Turquesa"
 
 msgid "Medium turquoise"
-msgstr ""
+msgstr "Turquesa médio"
 
 msgid "Dark turquoise"
-msgstr ""
+msgstr "Turquesa escuro"
 
 msgid "Pale turquoise"
 msgstr ""
@@ -29920,7 +29913,7 @@ msgid "Aqua"
 msgstr ""
 
 msgid "Light cyan"
-msgstr ""
+msgstr "Ciano claro"
 
 msgid "Mint cream"
 msgstr ""
@@ -29935,7 +29928,7 @@ msgid "Light sea green"
 msgstr ""
 
 msgid "Dark cyan"
-msgstr ""
+msgstr "Ciano escuro"
 
 msgid "Teal"
 msgstr ""
@@ -29950,7 +29943,7 @@ msgid "Slate gray"
 msgstr ""
 
 msgid "Deep sky blue"
-msgstr ""
+msgstr "Azul celeste profundo"
 
 msgid "Dodger Blue"
 msgstr ""
@@ -29959,10 +29952,10 @@ msgid "Sky blue"
 msgstr ""
 
 msgid "Light sky blue"
-msgstr ""
+msgstr "Azul celeste claro"
 
 msgid "Light blue"
-msgstr ""
+msgstr "Azula claro"
 
 msgid "Powder blue"
 msgstr ""
@@ -29980,13 +29973,13 @@ msgid "Royal blue"
 msgstr ""
 
 msgid "Medium blue"
-msgstr ""
+msgstr "Azul médio"
 
 msgid "Midnight blue"
 msgstr ""
 
 msgid "Dark blue"
-msgstr ""
+msgstr "Azul escuro"
 
 msgid "Navy"
 msgstr ""
@@ -30004,10 +29997,10 @@ msgid "Blue violet"
 msgstr ""
 
 msgid "Indigo"
-msgstr ""
+msgstr "Índigo"
 
 msgid "Dark violet"
-msgstr ""
+msgstr "Violeta escuro"
 
 msgid "Dark orchid"
 msgstr ""
@@ -30019,13 +30012,13 @@ msgid "Orchid"
 msgstr ""
 
 msgid "Violet"
-msgstr ""
+msgstr "Violeta"
 
 msgid "Medium purple"
-msgstr ""
+msgstr "Púrpura médio"
 
 msgid "Purple"
-msgstr ""
+msgstr "Púrpura"
 
 msgid "Rebecca purple"
 msgstr ""
@@ -30049,19 +30042,19 @@ msgid "Pink"
 msgstr ""
 
 msgid "Plum"
-msgstr ""
+msgstr "Ameixa"
 
 msgid "Thistle"
 msgstr ""
 
 msgid "Fuchsia"
-msgstr ""
+msgstr "Fúcsia"
 
 msgid "Dark magenta"
-msgstr ""
+msgstr "Magenta escuro"
 
 msgid "Linen"
-msgstr ""
+msgstr "Linho"
 
 msgid "Old lace"
 msgstr ""
@@ -30070,7 +30063,7 @@ msgid "Sea shell"
 msgstr ""
 
 msgid "Ivory"
-msgstr ""
+msgstr "Marfim"
 
 msgid "Floral white"
 msgstr ""
@@ -30085,7 +30078,7 @@ msgid "Alice blue"
 msgstr ""
 
 msgid "Lavender"
-msgstr ""
+msgstr "Lavanda"
 
 msgid "White smoke"
 msgstr ""
@@ -30094,7 +30087,7 @@ msgid "Gainsboro"
 msgstr ""
 
 msgid "Black"
-msgstr ""
+msgstr "Preto"
 
 msgid "Coral fire"
 msgstr ""
@@ -30106,7 +30099,7 @@ msgid "Deep abyss"
 msgstr ""
 
 msgid "Lobster red"
-msgstr ""
+msgstr "Vermelho lagosta"
 
 msgid "Sandy clay"
 msgstr ""
@@ -30124,7 +30117,7 @@ msgid "Tiger coral"
 msgstr ""
 
 msgid "Pink coral"
-msgstr ""
+msgstr "Coral rosa"
 
 msgid "Seashell glow"
 msgstr ""
@@ -30226,7 +30219,7 @@ msgid "Neon jelly"
 msgstr ""
 
 msgid "Fuchsia coral"
-msgstr ""
+msgstr "Coral fúcsia"
 
 msgid "Pink jellyfish"
 msgstr ""
@@ -30250,16 +30243,16 @@ msgid "Green beige"
 msgstr ""
 
 msgid "Sand yellow"
-msgstr ""
+msgstr "Amarelo areia"
 
 msgid "Signal yellow"
 msgstr ""
 
 msgid "Golden yellow"
-msgstr ""
+msgstr "Amarelo dourado"
 
 msgid "Honey yellow"
-msgstr ""
+msgstr "Amarelo mel"
 
 msgid "Maize yellow"
 msgstr ""
@@ -30271,16 +30264,16 @@ msgid "Brown beige"
 msgstr ""
 
 msgid "Lemon yellow"
-msgstr ""
+msgstr "Amarelo limão"
 
 msgid "Oyster white"
 msgstr ""
 
 msgid "Light ivory"
-msgstr ""
+msgstr "Marfim claro"
 
 msgid "Zinc yellow"
-msgstr ""
+msgstr "Amarelo zinco"
 
 msgid "Grey beige"
 msgstr ""
@@ -30295,7 +30288,7 @@ msgid "Traffic yellow"
 msgstr ""
 
 msgid "Ochre yellow"
-msgstr ""
+msgstr "Amarelo ocre"
 
 msgid "Traffic orange yellow"
 msgstr ""
@@ -30304,7 +30297,7 @@ msgid "Curry"
 msgstr ""
 
 msgid "Melon yellow"
-msgstr ""
+msgstr "Amarelo melão"
 
 msgid "Broom yellow"
 msgstr ""
@@ -30313,7 +30306,7 @@ msgid "Dahlia yellow"
 msgstr ""
 
 msgid "Pastel yellow"
-msgstr ""
+msgstr "Amarelo pastel"
 
 msgid "Pearl beige"
 msgstr ""
@@ -30328,7 +30321,7 @@ msgid "Yellow orange"
 msgstr ""
 
 msgid "Deep orange"
-msgstr ""
+msgstr "Laranja profundo"
 
 msgid "Vermilion"
 msgstr ""
@@ -30337,13 +30330,13 @@ msgid "Pearl orange"
 msgstr ""
 
 msgid "Pure orange"
-msgstr ""
+msgstr "Laranja puro"
 
 msgid "Luminous orange"
-msgstr ""
+msgstr "Laranja luminoso"
 
 msgid "Luminous bright orange"
-msgstr ""
+msgstr "Laranja brilhante luminoso"
 
 msgid "Bright red orange"
 msgstr ""
@@ -30373,19 +30366,19 @@ msgid "Signal red"
 msgstr ""
 
 msgid "Luminous red"
-msgstr ""
+msgstr "Vermelho luminoso"
 
 msgid "Carmine red"
-msgstr ""
+msgstr "Vermelho carmim"
 
 msgid "Pearl carmine red"
 msgstr ""
 
 msgid "Pure red"
-msgstr ""
+msgstr "Vermelho puro"
 
 msgid "Luminous deep red"
-msgstr ""
+msgstr "Vermelho profundo luminoso"
 
 msgid "Currant red"
 msgstr ""
@@ -30394,22 +30387,22 @@ msgid "Pearl ruby red"
 msgstr ""
 
 msgid "Fire red"
-msgstr ""
+msgstr "Vermelho fogo"
 
 msgid "Ruby red"
-msgstr ""
+msgstr "Vermelho rubi"
 
 msgid "Purple red"
-msgstr ""
+msgstr "Vermelho púrpura"
 
 msgid "Wine red"
-msgstr ""
+msgstr "Vermelho vinho"
 
 msgid "Black red"
 msgstr ""
 
 msgid "Oxide red"
-msgstr ""
+msgstr "Vermelho ferrugem"
 
 msgid "Brown red"
 msgstr ""
@@ -30418,19 +30411,19 @@ msgid "Pine red"
 msgstr ""
 
 msgid "Tomato red"
-msgstr ""
+msgstr "Vermelho tomate"
 
 msgid "Antique pink"
 msgstr ""
 
 msgid "Coral red"
-msgstr ""
+msgstr "Vermelho coral"
 
 msgid "Rose"
 msgstr ""
 
 msgid "Strawberry red"
-msgstr ""
+msgstr "Vermelho morango"
 
 msgid "Traffic red"
 msgstr ""
@@ -30439,13 +30432,13 @@ msgid "Salmon pink"
 msgstr ""
 
 msgid "Luminous rose"
-msgstr ""
+msgstr "Rosa luminoso"
 
 msgid "Luminous bright red"
-msgstr ""
+msgstr "Vermelho brilhante luminoso"
 
 msgid "Raspberry red"
-msgstr ""
+msgstr "Vermelho framboesa"
 
 msgid "Orient red"
 msgstr ""
@@ -30454,7 +30447,7 @@ msgid "Pearl ruby"
 msgstr ""
 
 msgid "Red purple"
-msgstr ""
+msgstr "Púrpura vermelho"
 
 msgid "Red violet"
 msgstr ""
@@ -30466,7 +30459,7 @@ msgid "Bordeaux violet"
 msgstr ""
 
 msgid "Mahogany"
-msgstr ""
+msgstr "Mogno"
 
 msgid "Grey purple"
 msgstr ""
@@ -30493,7 +30486,7 @@ msgid "Ultramarine blue"
 msgstr ""
 
 msgid "Sapphire blue"
-msgstr ""
+msgstr "Azul safira"
 
 msgid "Black blue"
 msgstr ""
@@ -30514,7 +30507,7 @@ msgid "Gentian blue"
 msgstr ""
 
 msgid "Cobalt blue"
-msgstr ""
+msgstr "Azul cobalto"
 
 msgid "Pigeon blue"
 msgstr ""
@@ -30529,7 +30522,7 @@ msgid "Capsanthin violet"
 msgstr ""
 
 msgid "Ocean blue"
-msgstr ""
+msgstr "Azul marinho"
 
 msgid "Water blue"
 msgstr ""
@@ -30541,7 +30534,7 @@ msgid "Distant blue"
 msgstr ""
 
 msgid "Pastel blue"
-msgstr ""
+msgstr "Azul pastel"
 
 msgid "Pearl gentian blue"
 msgstr ""
@@ -30550,22 +30543,22 @@ msgid "Pearl midnight blue"
 msgstr ""
 
 msgid "Patina green"
-msgstr ""
+msgstr "Verde pátina"
 
 msgid "Emerald green"
-msgstr ""
+msgstr "Verde esmeralda"
 
 msgid "Leaf green"
-msgstr ""
+msgstr "Verde folha"
 
 msgid "Olive green"
-msgstr ""
+msgstr "Verde oliva"
 
 msgid "Blue green"
 msgstr ""
 
 msgid "Moss green"
-msgstr ""
+msgstr "Verde musgo"
 
 msgid "Grey olive"
 msgstr ""
@@ -30607,7 +30600,7 @@ msgid "Fern green"
 msgstr ""
 
 msgid "Opal green"
-msgstr ""
+msgstr "Verde opala"
 
 msgid "Mint green"
 msgstr ""
@@ -30628,10 +30621,10 @@ msgid "Pearl jade"
 msgstr ""
 
 msgid "Pure green"
-msgstr ""
+msgstr "Verde puro"
 
 msgid "Luminous green"
-msgstr ""
+msgstr "Verde luminoso"
 
 msgid "Squirrel grey"
 msgstr ""
@@ -30745,7 +30738,7 @@ msgid "Green brown"
 msgstr ""
 
 msgid "Ochre brown"
-msgstr ""
+msgstr "Marrom ocre"
 
 msgid "Clay brown"
 msgstr ""
@@ -30763,7 +30756,7 @@ msgid "Nut brown"
 msgstr ""
 
 msgid "Red brown"
-msgstr ""
+msgstr "Marrom vermelho"
 
 msgid "Sepia brown"
 msgstr ""
@@ -30772,7 +30765,7 @@ msgid "Chestnut brown"
 msgstr ""
 
 msgid "Mahogany brown"
-msgstr ""
+msgstr "Marrom mogno"
 
 msgid "Grey brown"
 msgstr ""
@@ -30814,10 +30807,10 @@ msgid "Grey aluminium"
 msgstr ""
 
 msgid "Pure white"
-msgstr ""
+msgstr "Branco puro"
 
 msgid "Graphite black"
-msgstr ""
+msgstr "Preto grafite"
 
 msgid "Traffic white"
 msgstr ""
@@ -30826,46 +30819,46 @@ msgid "Traffic black"
 msgstr ""
 
 msgid "Papyrus white"
-msgstr ""
+msgstr "Branco papiro"
 
 msgid "Pearl light grey"
 msgstr ""
 
 msgid "Metal: Silver"
-msgstr ""
+msgstr "Metal: Prata"
 
 msgid "Metal: Brass"
-msgstr ""
+msgstr "Metal: Latão"
 
 msgid "Metal: Gold"
-msgstr ""
+msgstr "Metal: Ouro"
 
 msgid "Metal: Copper"
-msgstr ""
+msgstr "Metal: Cobre"
 
 msgid "Metal: Bronze"
-msgstr ""
+msgstr "Metal: Bronze"
 
 msgid "Nature: Pearl"
-msgstr ""
+msgstr "Natureza: Pérola"
 
 msgid "Nature: Rainbow"
-msgstr ""
+msgstr "Natureza: Arco-Íris"
 
 msgid "Nature: Clear Sky"
-msgstr ""
+msgstr "Natureza: Céu Limpo"
 
 msgid "Nature: Sunset"
-msgstr ""
+msgstr "Natureza: Pôr do Sol"
 
 msgid "Wood: Dark"
-msgstr ""
+msgstr "Madeira: Escura"
 
 msgid "Wood: Medium"
-msgstr ""
+msgstr "Madeira: Média"
 
 msgid "Wood: Light"
-msgstr ""
+msgstr "Madeira: Clara"
 
 # AI Translated
 msgid "Alternate nozzles:"
@@ -32402,9 +32395,8 @@ msgstr "+ Adicionar Material"
 msgid "- Delete Material"
 msgstr "- Excluir Material"
 
-# AI Translated
 msgid "Gradient Effect"
-msgstr "Efeito de Gradiente"
+msgstr "Efeito de Degradê"
 
 # AI Translated
 msgid "Enable per-part gradient effect"
@@ -34944,8 +34936,7 @@ msgstr ""
 "Divida suas impressões em placas\n"
 "Você sabia que pode dividir um modelo que tem diversas peças em placas individuais distintas prontas para imprimir? Isso simplifica o processo de manter o controle de todas as peças."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -35017,8 +35008,7 @@ msgstr ""
 "Melhorar a resistência\n"
 "Você sabia que pode usar mais voltas de parede e maior densidade de preenchimento esparso mais alta para melhorar a resistência do modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
