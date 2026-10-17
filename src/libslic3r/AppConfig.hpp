@@ -59,11 +59,7 @@
 #define SPEED_DIAL_RECENT_COUNT_DEFAULT 5
 #define SPEED_DIAL_RECENT_COUNT_MAX 10
 
-#if defined(_WIN32) || defined(_WIN64)
-#define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
-#else
-#define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.01"
-#endif
+#include "BambuNetworkVersion.hpp"
 
 #define SUPPORT_DARK_MODE
 //#define _MSW_DARK_MODE
