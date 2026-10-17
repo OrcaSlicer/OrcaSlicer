@@ -28,6 +28,7 @@ constexpr uint8_t CANVAS      = PLATER | PREVIEW;
 
 constexpr int CTRL       = wxMOD_CONTROL;
 constexpr int SHIFT      = wxMOD_SHIFT;
+constexpr int ALT        = wxMOD_ALT;
 constexpr int CTRL_SHIFT = wxMOD_CONTROL | wxMOD_SHIFT;
 
 #ifdef __APPLE__
@@ -89,6 +90,7 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     // Placement
     SHORTCUT(Arrange,           "arrange",            L("Arrange all objects"),                                  PLATER, { 'A' }),
     SHORTCUT(ArrangePlate,      "arrange_plate",      L("Arrange objects on selected plates"),                   PLATER, { 'A', SHIFT }),
+    SHORTCUT(ArrangeSelection,  "arrange_selection",  L("Arrange only the selected objects"),                    PLATER, { 'A', ALT }),
     SHORTCUT(Orient,            "orient",             L("Auto orient all/selected objects"),                     PLATER, { 'Q' }),
     SHORTCUT(OrientPlate,       "orient_plate",       L("Auto orient all objects on current plate"),             PLATER, { 'Q', SHIFT }),
     STEPPING(MoveSelectionLeft,   "move_selection_left",    L("Move selection 10mm in negative X direction"),    PLATER, { WXK_LEFT }),
