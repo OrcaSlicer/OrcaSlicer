@@ -339,6 +339,7 @@ private:
     ColorRange m_speed_range;
     ColorRange m_actual_speed_range;
     ColorRange m_fan_speed_range;
+    ColorRange m_additional_fan_speed_range;
     ColorRange m_temperature_range;
     // ORCA: Add Pressure Advance visualization support
     ColorRange m_pressure_advance_range;
