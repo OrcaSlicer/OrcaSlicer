@@ -453,6 +453,7 @@ public:
     size_t 			total_layer_count() const { return this->layer_count() + this->support_layer_count(); }
     size_t 			layer_count() const { return m_layers.size(); }
     void 			clear_layers();
+    double voronoi_site_spacing(const PrintRegion &region) const;
     const Layer* 	get_layer(int idx) const { return m_layers[idx]; }
     Layer* 			get_layer(int idx) 		 { return m_layers[idx]; }
     // Get a layer exactly at print_z.

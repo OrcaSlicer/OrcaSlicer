@@ -188,6 +188,8 @@ set(lisbslic3r_sources
     Fill/FillTpmsD.hpp
     Fill/FillTpmsFK.cpp
     Fill/FillTpmsFK.hpp
+    Fill/FillVoronoi.cpp
+    Fill/FillVoronoi.hpp
     Fill/Lightning/DistanceField.cpp
     Fill/Lightning/DistanceField.hpp
     Fill/Lightning/Generator.cpp
@@ -196,6 +198,13 @@ set(lisbslic3r_sources
     Fill/Lightning/Layer.hpp
     Fill/Lightning/TreeNode.cpp
     Fill/Lightning/TreeNode.hpp
+    Fill/VoronoiInfill.cpp
+    Fill/VoronoiInfill.hpp
+    Fill/VoronoiInfillCgal.hpp
+    Fill/VoronoiPointCloud.cpp
+    Fill/VoronoiPointCloud.hpp
+    Fill/VoronoiRouting.cpp
+    Fill/VoronoiRouting.hpp
     FilamentMixer.cpp
     FilamentMixer.hpp
     FilamentMixerModel.hpp
@@ -625,6 +634,7 @@ cmake_policy(POP)
 
 add_library(libslic3r_cgal STATIC
     CutSurface.hpp CutSurface.cpp
+    Fill/VoronoiInfillCgal.cpp
     IntersectionPoints.hpp IntersectionPoints.cpp
     MeshBoolean.hpp MeshBoolean.cpp
     MeshRepair.hpp MeshRepair.cpp

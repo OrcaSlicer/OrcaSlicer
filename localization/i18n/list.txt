@@ -217,6 +217,7 @@ src/libslic3r/GCode/ToolOrdering.cpp
 src/libslic3r/GCode/SeamPlacer.cpp
 src/libslic3r/GCode/GCodeStatistics.cpp
 src/libslic3r/ExtrusionEntity.cpp
+src/libslic3r/Fill/VoronoiInfill.cpp
 src/libslic3r/Flow.cpp
 src/libslic3r/Format/AMF.cpp
 src/libslic3r/Format/3mf.cpp

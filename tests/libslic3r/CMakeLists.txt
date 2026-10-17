@@ -41,6 +41,8 @@ add_executable(${_TEST_NAME}_tests
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
     test_adaptive_infill_field.cpp
+    test_fill_voronoi.cpp
+    test_fill_voronoi_surface.cpp
     test_geometry.cpp
     test_kdtree.cpp
     test_imex_arrange.cpp

@@ -721,3 +721,22 @@ TEST_CASE("Z contouring follows the surface of each instance as it is turned", "
         CHECK(lifted > 0);
     }
 }
+
+TEST_CASE("Voronoi bridge anchoring uses the configured extrusion flow", "[PrintObject][Voronoi][Regression]")
+{
+    Print print;
+    init_and_process_print({cube(10)}, print, {
+        {"sparse_infill_pattern", "voronoi"},
+        {"sparse_infill_density", "15%"},
+        {"layer_height", 0.2},
+        {"initial_layer_print_height", 0.2},
+        {"nozzle_diameter", 0.4}
+    });
+    bool has_anchors = false;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        Polylines anchors;
+        REQUIRE_NOTHROW(anchors = layer->generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr));
+        has_anchors |= !anchors.empty();
+    }
+    REQUIRE(has_anchors);
+}
