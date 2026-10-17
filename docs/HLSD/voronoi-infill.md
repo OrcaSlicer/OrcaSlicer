@@ -17,10 +17,15 @@ Covering bounds determine how far the known cloud must extend. Resulting walls
 and floors are clipped to the fill surface. Object-wide XY coverage lets a
 layer section serve multiple fill surfaces, at extra cost on sparse islands.
 
-Each engine samples the complete cloud over the object's height. Copied
-fillers share an immutable CGAL 3D Delaunay triangulation for shallow-face
-polygons. A weighted 2D power diagram supplies wall sections and is rebuilt
-at each height because its weights depend on vertical distance.
+Each engine retains the points that can affect its working slab. Covering
+radii bound ingestion above and retirement below it. A persistent CGAL 3D
+Delaunay triangulation inserts new sites and batch-removes retired clusters,
+retaining unaffected connectivity. Its shallow faces supply floor polygons.
+A weighted 2D power diagram supplies wall sections and covering bounds;
+it is rebuilt at each height because its weights depend on vertical distance.
+
+Workers process ascending layer batches with independent mutable engines.
+Temporary fillers reuse the batch's engines; copies own independent networks.
 
 CGAL supplies the Delaunay and power-diagram geometry and is required at build
 time. Slicing cost and memory grow with point count; large, dense objects are
