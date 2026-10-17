@@ -26,6 +26,7 @@
 #include <map>
 #include <optional>
 #include <regex>
+#include <iostream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -1850,4 +1851,41 @@ TEST_CASE("Unused extruder turns off on non-IMEX three-tool print", "[MultiFilam
     // T1 and T2 print up to 10mm — neither should get S0 before that.
     CHECK_FALSE(premature_s0_t1);
     CHECK_FALSE(premature_s0_t2);
+}
+// Regression for #14753: the single-extruder branch of set_extruder emits T0
+// without a follow-up M104, so firmware/CFS temperature overrides on T-commands
+// win. The fix emits M104 after T0, matching the multi-extruder branch.
+// Uses 2 filaments (single-extruder MM) with all features on filament 1 (T0),
+// so the single-extruder branch fires and emits a T0 toolchange at print start.
+TEST_CASE("Single-extruder MM emits M104 after T0 toolchange", "[MultiFilament]")
+{
+    const int expected_temp = 240;
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(2, {
+            { "nozzle_temperature",               std::to_string(expected_temp) + "," + std::to_string(expected_temp) },
+            { "nozzle_temperature_initial_layer", std::to_string(expected_temp) + "," + std::to_string(expected_temp) },
+            { "machine_start_gcode",              "" },
+            { "enable_prime_tower",               "0" },
+        }));
+
+    bool found_t0 = false;
+    bool found_temp_after_t0 = false;
+    int  temp_after_t0 = -1;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader&, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (!found_t0) {
+            if (cmd == "T0")
+                found_t0 = true;
+        } else if (!found_temp_after_t0 && (cmd == "M104" || cmd == "M109")) {
+            found_temp_after_t0 = true;
+            float s_val = 0;
+            if (line.has_value('S', s_val))
+                temp_after_t0 = int(s_val);
+        }
+    });
+
+    REQUIRE(found_t0);
+    REQUIRE(found_temp_after_t0);
+    REQUIRE(temp_after_t0 == expected_temp);
 }
