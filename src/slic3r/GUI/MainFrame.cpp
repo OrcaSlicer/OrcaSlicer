@@ -895,6 +895,10 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
             m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
         }
         break;
+    case Shortcut::ShowCollisionVolumes:
+        if (m_plater && m_plater->is_view3D_shown() && m_plater->printer_technology() == ptFFF)
+            m_plater->show_collision_volumes(!m_plater->are_collision_volumes_shown());
+        break;
     case Shortcut::ViewDefault:
         if (m_plater) {
             select_view("plate");
@@ -3456,6 +3460,14 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown()); m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT)); }, this,
             [this]() { return m_plater->is_view3D_shown(); }, [this]() { return m_plater->are_view3D_labels_shown(); }, this);
         m_shortcut_menu_items.push_back({ show_labels, Shortcut::ShowLabels, _L("Show &Labels"), true });
+
+        wxMenuItem* show_collision_volumes = append_menu_check_item(
+            viewMenu, wxID_ANY, shortcut_label(_L("Show all collision volumes"), Shortcut::ShowCollisionVolumes, true),
+            _L("Show the full height of every configured collision volume, including on an empty bed."),
+            [this](wxCommandEvent&) { m_plater->show_collision_volumes(!m_plater->are_collision_volumes_shown()); }, this,
+            [this]() { return m_plater->is_view3D_shown() && m_plater->printer_technology() == ptFFF; },
+            [this]() { return m_plater->are_collision_volumes_shown(); }, this);
+        m_shortcut_menu_items.push_back({ show_collision_volumes, Shortcut::ShowCollisionVolumes, _L("Show all collision volumes"), true });
 
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show &Overhang"), _L("Show object overhang highlight in 3D scene."),
             [this](wxCommandEvent &) {

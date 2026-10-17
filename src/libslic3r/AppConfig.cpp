@@ -410,6 +410,8 @@ void AppConfig::set_defaults()
 
     if (get("show_labels").empty())
         set_bool("show_labels", false);
+    if (get("show_collision_volumes").empty())
+        set_bool("show_collision_volumes", false);
 
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);

@@ -1574,6 +1574,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
     "belt_support_floor_offset",
     "enable_belt_purge_tower",
+    "bed_exclude_volumes", "bed_exclude_volume_mode", "extruder_bed_exclude_volumes",
     "gcode_flavor", "gcode_skip_config_block",
     "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
     "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",

@@ -1,4 +1,5 @@
 #include "ArcFitter.hpp"
+#include <tuple>
 #include "BoundingBox.hpp"
 #include "Circle.hpp"
 #include "Config.hpp"
@@ -152,6 +153,53 @@ namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
+namespace {
+
+// Follow XY commands in a generated G-code block. This deliberately handles
+// only standard motion/modal commands: an opaque macro that moves the head is
+// already outside the position guarantees made by GCodeWriter.
+std::optional<Vec2d> emitted_xy_after_gcode(const std::string &gcode, const Vec2d &initial_xy)
+{
+    Vec2d position = initial_xy;
+    bool  absolute = true;
+    bool  coordinate_frame_known = true;
+
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&position, &absolute, &coordinate_frame_known](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G90")) {
+            absolute = true;
+            return;
+        }
+        if (line.cmd_is("G91")) {
+            absolute = false;
+            return;
+        }
+
+        const bool is_motion = line.cmd_is("G0") || line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3");
+        if (is_motion) {
+            if (line.has_x())
+                position.x() = absolute ? line.x() : position.x() + line.x();
+            if (line.has_y())
+                position.y() = absolute ? line.y() : position.y() + line.y();
+            return;
+        }
+
+        // G92 changes the coordinate system without moving the machine, and
+        // G28 moves to a firmware-defined position. Do not invent a position
+        // if either command affects XY.
+        if (line.cmd_is("G92")) {
+            coordinate_frame_known = coordinate_frame_known && !line.has_x() && !line.has_y();
+        } else if (line.cmd_is("G28")) {
+            const bool homes_all = !line.has_x() && !line.has_y() && !line.has_z();
+            coordinate_frame_known = coordinate_frame_known && !homes_all && !line.has_x() && !line.has_y();
+        }
+    });
+
+    return coordinate_frame_known ? std::optional<Vec2d>(position) : std::nullopt;
+}
+
+} // namespace
+
     //! macro used to mark string used at localization,
     //! return same string
 #define L(s) (s)
@@ -290,7 +338,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     Vec2d end_point    = points[1];
 
     // the cutter area size(18, 28)
-    Pointfs excluse_area = print.config().bed_exclude_area.values;
+    Pointfs excluse_area = has_bed_exclude_volumes(print.config()) ? Pointfs{} : print.config().bed_exclude_area.values;
     if (excluse_area.size() != 4)
         return out_points;
 
@@ -1056,6 +1104,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (new_filament_id != -1 && new_filament_id != tcr.new_tool)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
 
+        const std::optional<GCode::ToolchangePositionState> position_before_toolchange =
+            gcodegen.capture_toolchange_position();
+
         int new_extruder_id = get_extruder_index(*m_print_config, new_filament_id);
 
         // Logical nozzle grouping for this print (null on paths that don't populate it).
@@ -1435,6 +1486,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // We have informed the m_writer about the current extruder_id, we can ignore the generated G-code.
         }
 
+        // The change G-code may move the carriage even when the incoming
+        // filament uses the same physical nozzle (the common AMS case).
+        // Synchronize before planning the tower-entry travel so exclusion
+        // avoidance starts from the emitted position, not the stale one.
+        if (position_before_toolchange)
+            gcodegen.synchronize_toolchange_position(*position_before_toolchange, toolchange_gcode_str);
+
         if (need_travel_after_change_filament_gcode) {
             // move to start_pos for wiping after toolchange
             if (!is_used_travel_avoid_perimeter) {
@@ -1580,6 +1638,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // Let the planner know we are traveling between objects.
         gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
+        if (position_before_toolchange)
+            gcodegen.synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
     }
 
@@ -1590,6 +1650,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     {
         if (new_extruder_id != -1 && new_extruder_id != tcr.new_tool)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
+
+        const std::optional<GCode::ToolchangePositionState> position_before_toolchange =
+            gcodegen.capture_toolchange_position();
 
         std::string gcode;
 
@@ -1875,6 +1938,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // Let the planner know we are traveling between objects.
         gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
+        if (position_before_toolchange)
+            gcodegen.synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
     }
 
@@ -2749,6 +2814,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     // BBS
     m_curr_print = print;
     m_skirt_group_done.clear();
+    m_pending_start_gcode_position.reset();
+    m_exclusion_volume_travel_avoidance.init(print->config(), print->get_plate_origin());
 
     GCodeWriter::full_gcode_comment = print->config().gcode_comments;
     CNumericLocalesSetter locales_setter;
@@ -2930,6 +2997,23 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.result().nozzle_group_result = m_print->get_layered_nozzle_group_result();
 
     m_processor.finalize(true);
+    if (m_processor.get_result().exclusion_volume_path_conflict) {
+        const int extruder_id = m_processor.get_result().exclusion_volume_conflict_extruder_id;
+        std::string warning = extruder_id >= 0 ?
+            Slic3r::format(
+                _(L("A G-code move intersects an exclusion volume for extruder %1%. This may cause a printer collision.")),
+                std::to_string(extruder_id + 1)) :
+            _(L("A G-code move intersects an exclusion volume. This may cause a printer collision."));
+        if (m_processor.get_result().exclusion_volume_conflict_used_unknown_z) {
+            warning += "\n" + Slic3r::format(
+                _(L("The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height.")),
+                std::to_string(m_processor.get_result().exclusion_volume_conflict_gcode_id));
+        }
+        print->active_step_add_warning(
+            PrintStateBase::WarningLevel::CRITICAL,
+            warning,
+            PrintStateBase::SlicingExclusionVolumeToolpath);
+    }
 //    DoExport::update_print_estimated_times_stats(m_processor, print->m_print_statistics);
     DoExport::update_print_estimated_stats(m_processor, m_writer.extruders(), print->m_print_statistics, print->config());
     // Printed-mass safety check. Flushed filament leaves the bed, so subtract it
@@ -3012,6 +3096,7 @@ namespace DoExport {
         processor.initialize_from_context(nozzle_group_result);
         processor.initialize_result_moves();
         processor.apply_config(config);
+        processor.configure_exclusion_volume_path_check(config);
         processor.enable_stealth_time_estimator(silent_time_estimator_enabled);
     }
 
@@ -4431,6 +4516,17 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             }
         }
     }
+
+    // Direct output writes are parsed synchronously. Preserve the startup
+    // endpoint before the generator establishes its first model-space point,
+    // so that first travel can be planned from the position the G-code actually
+    // left the machine at rather than the default last_pos value.
+    GCodeProcessor::PositionState startup_position = m_processor.get_current_position();
+    const Vec2f plate_offset = m_writer.get_xy_offset();
+    startup_position.position.x() += plate_offset.x();
+    startup_position.position.y() += plate_offset.y();
+    m_pending_start_gcode_position = !m_last_pos_defined && startup_position.has_known_xy() ?
+        std::optional<GCodeProcessor::PositionState>(startup_position) : std::nullopt;
 
     this->m_objsWithBrim.clear();
     m_brim_done = false;
@@ -5869,8 +5965,13 @@ std::string GCode::generate_object_skirt_group(const Print &print,
                           object_skirt_tools, layer, extruder_id, m_skirt_group_done[group_idx]);
 }
 
-std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, size_t instance_id, bool first_layer,
-                                        const Layer *object_layer)
+std::string GCode::generate_object_brim(
+    const Print &print,
+    const PrintObject &object,
+    const size_t instance_id,
+    const bool first_layer,
+    const unsigned int extruder_id,
+    const Layer *object_layer)
 {
     // Belt printers lay the brim onto the tilted belt over many layers, so there is
     // nothing special about the first one.  The bands that coincide with an object
@@ -5909,8 +6010,17 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
     if (!first_layer)
         return {};
 
-    auto emit_brim = [this](const ExtrusionEntityCollection& brim, const std::vector<ObjectInstanceID>& instances) {
+    const bool wait_for_owner_filament = has_bed_exclude_volumes(m_config) &&
+        active_bed_exclude_volume_mode(m_config) != BedExcludeVolumeMode::Shared;
+    auto emit_brim = [this, extruder_id, wait_for_owner_filament](const ExtrusionEntityCollection& brim,
+                                         const std::vector<ObjectInstanceID>& instances,
+                                         const unsigned int brim_filament_id) {
         std::string gcode;
+        // Combined brims have an explicit owner filament. Waiting for that
+        // filament is only required when each nozzle has different obstacles.
+        // Otherwise retain Orca's established first-visit emission order.
+        if (wait_for_owner_filament && brim_filament_id != extruder_id)
+            return gcode;
         const bool already_emitted = std::none_of(instances.begin(), instances.end(), [this](const ObjectInstanceID& instance) {
             return m_objsWithBrim.find(instance) != m_objsWithBrim.end();
         });
@@ -5935,7 +6045,7 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
         std::string gcode;
         for (const Print::SkirtBrimGroup::Brim& brim : print.skirt_brim_groups()[group_idx].brims)
             if (std::find(brim.instances.begin(), brim.instances.end(), object_instance_id) != brim.instances.end())
-                gcode += emit_brim(brim.brim, brim.instances);
+                gcode += emit_brim(brim.brim, brim.instances, brim.filament_id);
         return gcode;
     }
 
@@ -7465,10 +7575,10 @@ LayerResult GCode::process_layer(
                         // sweep below never re-emits it.
                         if (extruder_id == (unsigned int)(vobj.belt_brim_filament() - 1) &&
                             belt_brim_emitted.insert({ instance_to_print.layer_id, instance_to_print.instance_id }).second)
-                            gcode += generate_object_brim(print, vobj, instance_to_print.instance_id, first_layer,
+                            gcode += generate_object_brim(print, vobj, instance_to_print.instance_id, first_layer, extruder_id,
                                                           layer_to_print.object_layer);
                     } else {
-                        gcode += generate_object_brim(print, vobj, instance_to_print.instance_id, first_layer,
+                        gcode += generate_object_brim(print, vobj, instance_to_print.instance_id, first_layer, extruder_id,
                                                       layer_to_print.object_layer);
                     }
                 }
@@ -8007,7 +8117,7 @@ LayerResult GCode::process_layer(
                     continue;
                 if (m_writer.filament() == nullptr || m_writer.filament()->id() != brim0)
                     gcode += this->set_extruder(brim0, print_z);
-                gcode += generate_object_brim(print, *obj, instance_id, first_layer, ltp.object_layer);
+                gcode += generate_object_brim(print, *obj, instance_id, first_layer, brim0, ltp.object_layer);
             }
         }
         this->set_origin(saved_origin);
@@ -8244,6 +8354,41 @@ void GCode::set_extruders(const std::vector<unsigned int> &extruder_ids)
             m_wipe.enable = true;
             break;
         }
+}
+
+std::optional<GCode::ToolchangePositionState> GCode::capture_toolchange_position()
+{
+    if (m_exclusion_volume_travel_avoidance.empty() || !m_last_pos_defined || m_writer.filament() == nullptr)
+        return std::nullopt;
+
+    const Vec2d plate_offset = m_writer.get_xy_offset().cast<double>();
+    return ToolchangePositionState{
+        this->point_to_gcode(m_last_pos.to_point()) - plate_offset
+    };
+}
+
+void GCode::synchronize_toolchange_position(const ToolchangePositionState &before, const std::string &emitted_gcode)
+{
+    if (m_writer.filament() == nullptr)
+        return;
+
+    const std::optional<Vec2d> emitted_xy = emitted_xy_after_gcode(emitted_gcode, before.emitted_xy);
+    if (!emitted_xy)
+        return;
+
+    // GCodeWriter stores coordinates before applying the per-plate output
+    // offset. Convert the parsed file coordinates back into that space, then
+    // into model space using the newly active nozzle offset.
+    const Vec2d writer_xy = *emitted_xy + m_writer.get_xy_offset().cast<double>();
+    Vec3d       writer_position = m_writer.get_position();
+    writer_position.head<2>() = writer_xy;
+    m_writer.set_position(writer_position);
+    // Updating the known XY origin must not cancel Orca's deliberate
+    // post-toolchange Z restore. set_last_pos() normally marks the entire
+    // position as defined, so preserve the caller's state across the XY sync.
+    const bool last_pos_defined = m_last_pos_defined;
+    this->set_last_pos(this->gcode_to_point(writer_xy));
+    m_last_pos_defined = last_pos_defined;
 }
 
 void GCode::set_origin(const Vec2d &pointf)
@@ -10125,10 +10270,17 @@ std::string GCode::_encode_label_ids_to_base64(std::vector<size_t> ids)
 // This method accepts &point in print coordinates.
 std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string comment, double z/* = DBL_MAX*/)
 {
+    const std::optional<GCodeProcessor::PositionState> start_gcode_position =
+        !m_exclusion_volume_travel_avoidance.empty() && !m_last_pos_defined &&
+        !m_writer.is_current_position_clear() && m_pending_start_gcode_position.has_value() ?
+        m_pending_start_gcode_position : std::nullopt;
+
     /*  Define the travel move as a line between current position and the taget point.
         This is expressed in print coordinates, so it will need to be translated by
         this->origin in order to get G-code coordinates.  */
-    Polyline travel { this->last_pos(), point };
+    const Point travel_start = start_gcode_position ?
+        this->gcode_to_point(to_2d(start_gcode_position->position)) : this->last_pos();
+    Polyline travel { travel_start, point };
 
     // check whether a straight travel move would need retraction
     LiftType lift_type = LiftType::SpiralLift;
@@ -10138,6 +10290,66 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     // Save state of use_external_mp_once for the case that will be needed to call twice m_avoid_crossing_perimeters.travel_to.
     const bool used_external_mp_once  = m_avoid_crossing_perimeters.used_external_mp_once();
     std::string gcode;
+    bool exclusion_volume_travel_rerouted = false;
+
+    const auto active_extruder_id = [this]() {
+        if (m_writer.filament() == nullptr)
+            return -1;
+        const size_t id = m_writer.filament()->extruder_id();
+        return id < m_config.nozzle_diameter.size() ? int(id) : -1;
+    };
+    const auto to_gcode_point = [this](const Point &local_point) {
+        const Vec2d point = this->point_to_gcode(local_point);
+        return Point(scale_(point.x()), scale_(point.y()));
+    };
+    const auto to_local_point = [this](const Point &gcode_point) {
+        return this->gcode_to_point(unscaled(gcode_point));
+    };
+    const auto to_gcode_polyline = [&to_gcode_point](const Polyline &local_path) {
+        Polyline result;
+        result.points.reserve(local_path.points.size());
+        for (const Point &local_point : local_path.points)
+            result.append(to_gcode_point(local_point));
+        return result;
+    };
+    const auto to_local_polyline = [&to_local_point](const Polyline &gcode_path) {
+        Polyline result;
+        result.points.reserve(gcode_path.points.size());
+        for (const Point &gcode_point : gcode_path.points)
+            result.append(to_local_point(gcode_point));
+        return result;
+    };
+    const auto nominal_writer_z = [this]() {
+        return m_writer.get_position().z() - m_writer.get_zhop();
+    };
+    const auto route_around_exclusion_volumes = [&](
+        Polyline &path,
+        const std::optional<double> &start_z_override,
+        const bool include_planned_lift = false) {
+        if (m_exclusion_volume_travel_avoidance.empty() || path.size() < 2)
+            return false;
+
+        const double target_z = z == DBL_MAX ? m_nominal_z : z;
+        double route_start_z = start_z_override.value_or(nominal_writer_z());
+        double route_end_z = target_z;
+        if (include_planned_lift) {
+            const Vec2d destination_xy = this->point_to_gcode(path.back());
+            std::tie(route_start_z, route_end_z) = m_writer.planned_travel_z(
+                Vec3d(destination_xy.x(), destination_xy.y(), target_z),
+                m_need_change_layer_lift_z);
+        }
+        const ExclusionVolumeTravelAvoidance::Result result =
+            m_exclusion_volume_travel_avoidance.route(
+                to_gcode_polyline(path),
+                route_start_z,
+                route_end_z,
+                active_extruder_id());
+        if (!result.rerouted())
+            return false;
+
+        path = to_local_polyline(result.path);
+        return true;
+    };
 
     // Orca: we don't need to optimize the Klipper as only set once
     double jerk_to_set = 0.0;
@@ -10203,6 +10415,14 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         //if (needs_retraction && m_layer_index > 1) exit(0);
     }
 
+    const std::optional<double> start_gcode_z =
+        start_gcode_position && start_gcode_position->has_known_z() ?
+        std::optional<double>(start_gcode_position->position.z()) : std::nullopt;
+    if (route_around_exclusion_volumes(travel, start_gcode_z)) {
+        exclusion_volume_travel_rerouted = true;
+        needs_retraction = this->needs_retraction(travel, role, lift_type);
+    }
+
     // Re-allow reduce_crossing_wall for the next travel moves
     m_avoid_crossing_perimeters.reset_once_modifiers();
 
@@ -10218,16 +10438,22 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         // When "Wipe while retracting" is enabled, then extruder moves to another position, and travel from this position can cross perimeters.
         // Because of it, it is necessary to call avoid crossing perimeters again with new starting point after calling retraction()
         // FIXME Lukas H.: Try to predict if this second calling of avoid crossing perimeters will be needed or not. It could save computations.
-        if (last_post_before_retract != this->last_pos() && m_config.reduce_crossing_wall
-            && m_layer != nullptr) {   // A brim apron layer has no Layer to avoid crossing
-            // If in the previous call of m_avoid_crossing_perimeters.travel_to was use_external_mp_once set to true restore this value for next call.
-            if (used_external_mp_once)
-                m_avoid_crossing_perimeters.use_external_mp_once();
-            travel = m_avoid_crossing_perimeters.travel_to(*this, point);
-            // If state of use_external_mp_once was changed reset it to right value.
-            if (used_external_mp_once)
-                m_avoid_crossing_perimeters.reset_once_modifiers();
+        if (last_post_before_retract != this->last_pos()) {
+            travel = Polyline { this->last_pos(), point };
+            if (m_config.reduce_crossing_wall && m_layer != nullptr) { // Belt brim apron layers have no Layer.
+                // If in the previous call of m_avoid_crossing_perimeters.travel_to was use_external_mp_once set to true restore this value for next call.
+                if (used_external_mp_once)
+                    m_avoid_crossing_perimeters.use_external_mp_once();
+                travel = m_avoid_crossing_perimeters.travel_to(*this, point);
+                // If state of use_external_mp_once was changed reset it to right value.
+                if (used_external_mp_once)
+                    m_avoid_crossing_perimeters.reset_once_modifiers();
+            }
         }
+
+        exclusion_volume_travel_rerouted =
+            route_around_exclusion_volumes(travel, std::nullopt, true) ||
+            (last_post_before_retract == this->last_pos() && exclusion_volume_travel_rerouted);
     } else {
         // Reset the wipe path when traveling, so one would not wipe along an old path.
         m_wipe.reset_path();
@@ -10259,6 +10485,24 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                 Vec3d dest3d(dest2d(0), dest2d(1), z == DBL_MAX ? m_nominal_z : z);
                 gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
                 m_need_change_layer_lift_z = false;
+            } else if (exclusion_volume_travel_rerouted && z != DBL_MAX) {
+                // Preserve the original sloped-Z move over the longer detour.
+                // The router activates every volume touched by the complete Z
+                // range, so this interpolation remains conservative.
+                const double start_z = m_writer.get_position().z();
+                const double total_length = std::max(travel.length(), 1.0);
+                double traveled = 0.0;
+                for (size_t i = 1; i < travel.size(); ++i) {
+                    traveled += (travel.points[i] - travel.points[i - 1]).cast<double>().norm();
+                    const Vec2d dest2d = this->point_to_gcode(travel.points[i]);
+                    const Vec3d dest3d(
+                        dest2d.x(),
+                        dest2d.y(),
+                        start_z + (z - start_z) * std::min(1.0, traveled / total_length));
+                    gcode += m_writer.travel_to_xyz(dest3d, comment, i == 1 && m_need_change_layer_lift_z);
+                    if (i == 1)
+                        m_need_change_layer_lift_z = false;
+                }
             } else {
                 // Extra movements emitted by avoid_crossing_perimeters, lift the z to normal height at the beginning, then apply the z
                 // ratio at the last point
@@ -10585,6 +10829,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
 
+    const std::optional<ToolchangePositionState> position_before_toolchange =
+        this->capture_toolchange_position();
+
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {
         this->placeholder_parser().set("current_extruder", new_filament_id);
@@ -10639,6 +10886,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             gcode += toolchange_command;
         if (Extruder *fil = m_writer.filament())
             fil->set_config_index((int)get_filament_config_index((int)fil->id()));
+        if (position_before_toolchange)
+            this->synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
     }
 
@@ -11055,6 +11304,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         imex_pem_tool_for((int) new_filament_id, m_imex_parallel_mode, m_config.physical_extruder_map));
     //Orca: tool changer or IDEX's firmware may change Z position, so we set it to unknown/undefined
     m_last_pos_defined = false;
+    if (position_before_toolchange)
+        this->synchronize_toolchange_position(*position_before_toolchange, gcode);
 
     return gcode;
 }
