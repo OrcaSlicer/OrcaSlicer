@@ -1558,6 +1558,15 @@ TEST_CASE("Plugin capability override keys are scoped per preset type", "[Preset
         }
 }
 
+TEST_CASE("G-code precision belongs only to print presets", "[Preset]")
+{
+    const std::string key = "high_precision_gcode";
+    CAPTURE(key);
+    CHECK(contains(Preset::print_options(), key));
+    CHECK_FALSE(contains(Preset::printer_options(), key));
+    CHECK_FALSE(contains(Preset::filament_options(), key));
+}
+
 namespace {
 
 // A standalone filament collection that exposes the protected library masking builder, so the Orca

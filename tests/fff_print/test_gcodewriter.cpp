@@ -2,12 +2,14 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Extruder.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/libslic3r.h"
 #include <map>
@@ -28,6 +30,7 @@
 
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/GCode/SpiralVase.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
@@ -115,6 +118,151 @@ SCENARIO("set_speed emits values with fixed-point output.", "[GCodeWriter]") {
             }
         }
     }
+}
+
+TEST_CASE("Short circular extrusion moves retain their requested flow after export", "[GCodeWriter][Regression]")
+{
+    const bool relative_e = GENERATE(false, true);
+    CAPTURE(relative_e);
+
+    PrintConfig config;
+    config.gcode_flavor.value                   = gcfKlipper;
+    config.high_precision_gcode.value           = true;
+    config.use_relative_e_distances.value       = relative_e;
+    config.single_extruder_multi_material.value = false;
+    config.filament_diameter.values             = {1.75};
+    config.filament_flow_ratio.values           = {1.0};
+    config.filament_map.values                  = {1};
+
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    writer.set_extruders({0});
+    writer.set_extruder(0);
+
+    // A thin layer makes the E increment small enough for export rounding to
+    // distort the flow, even when the source segments form a regular polygon.
+    constexpr int segment_count = 180;
+    constexpr double radius = 4.89;
+    constexpr double speed = 60.;
+    const Flow flow(0.22f, 0.02f, 0.2f);
+    const double filament_area = PI * std::pow(config.filament_diameter.get_at(0) / 2., 2);
+    const double e_per_mm = flow.mm3_per_mm() / filament_area;
+    const Vec2d center(66.035532, 54.9999352);
+    Vec2d previous = center + Vec2d(radius, 0.);
+    std::string gcode = writer.preamble();
+    gcode += writer.travel_to_xyz(Vec3d(previous.x(), previous.y(), flow.height()));
+    gcode += writer.set_speed(speed * MM_PER_MIN);
+    double expected_e = 0.;
+    for (int i = 1; i <= segment_count; ++i) {
+        const double angle = 2. * PI * i / segment_count;
+        const Vec2d point = center + radius * Vec2d(std::cos(angle), std::sin(angle));
+        const double e = e_per_mm * (point - previous).norm();
+        gcode += writer.extrude_to_xy(point, e);
+        expected_e += e;
+        previous = point;
+    }
+
+    const double expected_flow = flow.mm3_per_mm() * speed;
+    double max_relative_error = 0.;
+    double exported_e = 0.;
+    std::size_t extrusion_count = 0;
+    GCodeReader reader;
+    reader.apply_config(writer.config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (!line.extruding(self) || line.dist_XY(self) <= 0.)
+            return;
+        const double e = line.dist_E(self);
+        const double actual_flow = filament_area * e / line.dist_XY(self) * line.new_F(self) / MM_PER_MIN;
+        max_relative_error = std::max(max_relative_error, std::abs(actual_flow / expected_flow - 1.));
+        exported_e += e;
+        ++extrusion_count;
+    });
+
+    CHECK(extrusion_count == segment_count);
+    CHECK(max_relative_error < 0.004);
+    CHECK_THAT(exported_e, Catch::Matchers::WithinRel(expected_e, 0.001));
+}
+
+TEST_CASE("G-code export uses the selected precision for linear and arc moves", "[GCodeWriter][Regression]")
+{
+    const bool high_precision = GENERATE(false, true);
+    const bool relative_e = GENERATE(false, true);
+    CAPTURE(high_precision, relative_e);
+
+    PrintConfig config;
+    CHECK_FALSE(config.high_precision_gcode.value);
+    config.high_precision_gcode.value           = high_precision;
+    config.gcode_flavor.value                   = gcfKlipper;
+    config.use_relative_e_distances.value       = relative_e;
+    config.single_extruder_multi_material.value = false;
+    config.filament_diameter.values             = {1.75};
+    config.filament_flow_ratio.values           = {1.0};
+    config.filament_map.values                  = {1};
+
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    writer.set_extruders({0});
+    writer.set_extruder(0);
+    writer.set_current_position_clear(true);
+
+    std::string gcode = writer.travel_to_xyz(Vec3d(10.123456, 20.123456, 0.234567));
+    gcode += writer.set_speed(1234.56789);
+    gcode += writer.extrude_to_xy(Vec2d(10.654321, 20.654321), 0.00123456);
+    gcode += writer.extrude_arc_to_xy(Vec2d(10.987654, 20.987654), Vec2d(0.123456, 0.654321), 0.00123456, true);
+    // The Z difference survives rounding only at the higher coordinate precision.
+    gcode += writer.extrude_to_xyz(Vec3d(11., 21., 0.23454), 0.00123456);
+
+    std::vector<GCodeReader::GCodeLine> moves;
+    GCodeReader reader;
+    reader.apply_config(writer.config);
+    reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1") || line.cmd_is("G3"))
+            moves.push_back(line);
+    });
+    REQUIRE(moves.size() == 5);
+    CHECK_THAT(moves[0].x(), Catch::Matchers::WithinAbs(high_precision ? 10.1235 : 10.123, 1e-6));
+    CHECK_THAT(moves[0].y(), Catch::Matchers::WithinAbs(high_precision ? 20.1235 : 20.123, 2e-6));
+    CHECK_THAT(moves[0].z(), Catch::Matchers::WithinAbs(high_precision ? 0.2346 : 0.235, 1e-7));
+    CHECK_THAT(moves[1].f(), Catch::Matchers::WithinAbs(1234.568, 1e-4));
+    CHECK_THAT(moves[2].x(), Catch::Matchers::WithinAbs(high_precision ? 10.6543 : 10.654, 1e-6));
+    CHECK_THAT(moves[2].e(), Catch::Matchers::WithinAbs(high_precision ? 0.001235 : 0.00123, 1e-9));
+    CHECK(moves[3].cmd_is("G3"));
+    CHECK_THAT(moves[3].x(), Catch::Matchers::WithinAbs(high_precision ? 10.9877 : 10.988, 1e-6));
+    CHECK_THAT(moves[3].i(), Catch::Matchers::WithinAbs(high_precision ? 0.1235 : 0.123, 1e-7));
+    CHECK_THAT(moves[3].j(), Catch::Matchers::WithinAbs(high_precision ? 0.6543 : 0.654, 1e-7));
+    const double expected_arc_e = relative_e ? (high_precision ? 0.001235 : 0.00123) : (high_precision ? 0.002469 : 0.00247);
+    CHECK_THAT(moves[3].e(), Catch::Matchers::WithinAbs(expected_arc_e, 1e-9));
+    CHECK(moves[4].has_z() == high_precision);
+    if (high_precision)
+        CHECK_THAT(moves[4].z(), Catch::Matchers::WithinAbs(0.2345, 1e-7));
+}
+
+TEST_CASE("Spiral vase keeps the selected coordinate and extrusion precision", "[GCodeWriter][SpiralVase][Regression]")
+{
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(high_precision);
+    PrintConfig config;
+    config.high_precision_gcode.value = high_precision;
+    config.use_relative_e_distances.value = true;
+    config.spiral_mode_smooth.value = false;
+    config.spiral_starting_flow_ratio.value = 0.5;
+    config.resolution.value = 0.001;
+
+    SpiralVase vase(config);
+    vase.process_layer("G1 X0 Y0 Z0.2\n", false);
+    vase.enable(true);
+    const std::string gcode = vase.process_layer("G1 Z0.22\nG1 X1 Y0 E0.001234 F3600\nG1 X1 Y2 E0.002468\n", false);
+
+    std::vector<GCodeReader::GCodeLine> extrusions;
+    GCodeReader reader;
+    reader.apply_config(config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.extruding(self))
+            extrusions.push_back(line);
+    });
+    REQUIRE(extrusions.size() == 2);
+    CHECK_THAT(extrusions.front().z(), Catch::Matchers::WithinAbs(high_precision ? 0.2067 : 0.207, 1e-7));
+    CHECK_THAT(extrusions.front().e(), Catch::Matchers::WithinAbs(high_precision ? 0.000823 : 0.00082, 1e-9));
 }
 
 SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {

@@ -1416,6 +1416,7 @@ static std::vector<std::string> s_Preset_print_options{
     "tree_support_auto_brim",
     "tree_support_brim_width",
     "gcode_comments",
+    "high_precision_gcode",
     "gcode_label_objects",
     "initial_layer_travel_speed",
     "initial_layer_travel_acceleration",
