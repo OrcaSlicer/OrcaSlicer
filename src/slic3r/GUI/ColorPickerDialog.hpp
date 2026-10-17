@@ -60,6 +60,7 @@ private:
     void handle_web_command(const nlohmann::json& payload);
     void send_initial_state();
     void finish(int return_code);
+    void sample_screen(); // Native screen eyedropper (ColorSampler); dialog only offers it where one is available
     void position_panel();
     void move_to_anchor();
     void resize_to_content(int height);
@@ -77,6 +78,9 @@ private:
     bool m_init_sent = false;
     bool m_page_ready = false;
     bool m_closing = false;
+#if defined(__WXOSX__) || defined(__WXMSW__) || defined(__WXGTK__)
+    bool m_sampling = false; // A screen sampler is open; only platforms with one use this.
+#endif
     bool m_favorites_writable = false;
     bool m_sidebar_open = false;
     std::string m_palette;
