@@ -1,5 +1,6 @@
 #include "BlacklistedLibraryCheck.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/convert.hpp>

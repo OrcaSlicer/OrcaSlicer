@@ -117,7 +117,7 @@ option(SLIC3R_PCH               "Use precompiled headers" 1)
 option(SLIC3R_WARNINGS          "Emit compiler warnings for OrcaSlicer sources" 1)
 option(SLIC3R_BUNDLED_WARNINGS  "Emit compiler warnings for bundled third-party sources" 0)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
-option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
+option(SLIC3R_MSVC_PDB          "Emit debug info on MSVC in every configuration (/Zi, or /Z7 when CMAKE_MSVC_DEBUG_INFORMATION_FORMAT is Embedded)" 1)
 option(SLIC3R_RELATIVE_DEBUG_PATHS "Record a relative compilation directory in debug info (clang-cl)" 0)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
 
@@ -358,11 +358,32 @@ else ()
     set(IS_CLANG_CL FALSE)
 endif ()
 
+# Library type of libslic3r and libslic3r_gui. Left empty, the MSVC debug info
+# settings below choose it; a normal variable then shadows the cache entry.
+set(SLIC3R_LARGE_LIB_TYPE "" CACHE STRING "Library type of libslic3r and libslic3r_gui: STATIC or OBJECT (default: chosen from the debug info format)")
+set_property(CACHE SLIC3R_LARGE_LIB_TYPE PROPERTY STRINGS "" STATIC OBJECT)
+
 if (MSVC)
     # CMP0092 only applies when the cache is created; an existing tree keeps its /W3,
     # which a silenced bundled target would then override (D9025, once per file).
     string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
     string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    # CMP0141 is OLD here (minimum 3.13), so CMake ignores
+    # CMAKE_MSVC_DEBUG_INFORMATION_FORMAT and keeps /Zi in its Debug and
+    # RelWithDebInfo flags. Treat the value Embedded as our own switch: strip /Zi
+    # here and add /Z7 below. Only the plain value Embedded is recognised, not a
+    # generator expression.
+    set(_slic3r_embedded_debug OFF)
+    if (CMAKE_MSVC_DEBUG_INFORMATION_FORMAT STREQUAL "Embedded")
+        set(_slic3r_embedded_debug ON)
+    endif ()
+    if (_slic3r_embedded_debug)
+        foreach (lang C CXX)
+            foreach (var CMAKE_${lang}_FLAGS CMAKE_${lang}_FLAGS_DEBUG CMAKE_${lang}_FLAGS_RELWITHDEBINFO)
+                string(REGEX REPLACE "(^| )[/-]Z[iI]( |$)" " " ${var} "${${var}}")
+            endforeach ()
+        endforeach ()
+    endif ()
 
     # /MP only matters for the VS generators, where CMake turns it into the
     # MultiProcessorCompilation property. Ninja parallelises on its own, and
@@ -388,12 +409,31 @@ if (MSVC)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)
     add_compile_options(-bigobj)
-    # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
     # Generate symbols at every build target, even for the release.
-	# -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
-	# combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
-    if (SLIC3R_MSVC_PDB)
+    if (_slic3r_embedded_debug)
+        # A compiler cache cannot store a /Zi compile, whose debug info goes to a
+        # PDB shared across objects; /Z7 keeps it in each object. Without
+        # SLIC3R_MSVC_PDB, still where the strip above removed CMake's own /Zi.
+        if (SLIC3R_MSVC_PDB)
+            add_compile_options(/Z7)
+        else ()
+            add_compile_options($<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:/Z7>)
+        endif ()
+    elseif (SLIC3R_MSVC_PDB)
+        # error C3859: virtual memory range for PCH exceeded; please recompile with a command line option of '-Zm90' or greater
+        # -Zm520 fixes error C3859 but forces the compiler to pre-allocate that memory for every translation unit regardless
+        # combining /Zi with /FS frees up a significant amount of memory pressure across all parallel compile jobs and makes /MP faster overall.
         add_compile_options(/Zi /FS)
+    endif ()
+    # With /Z7 (or clang-cl, which reads /Zi as /Z7) every object carries its
+    # own debug info in at least the Debug and RelWithDebInfo configurations.
+    # Without the PCH each object also carries its own copy of
+    # the types the precompiled header would have held once, and libslic3r and
+    # libslic3r_gui then exceed the 4 GB a .lib can hold (LNK1248). Build them
+    # as OBJECT libraries in that case only; with the PCH they fit.
+    if (NOT SLIC3R_LARGE_LIB_TYPE AND NOT SLIC3R_PCH AND
+        (IS_CLANG_CL OR _slic3r_embedded_debug))
+        set(SLIC3R_LARGE_LIB_TYPE OBJECT)
     endif ()
     # Disable STL4007: Many result_type typedefs and all argument_type, first_argument_type, and second_argument_type typedefs are deprecated in C++17.
     #FIXME Remove this line after eigen library adapts to the new C++17 adaptor rules.
@@ -410,6 +450,19 @@ if (MSVC)
 	# helps incremental builds by preventing the double-link restart from TBB
     set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
+endif ()
+
+if (NOT SLIC3R_LARGE_LIB_TYPE)
+    set(SLIC3R_LARGE_LIB_TYPE STATIC)
+endif ()
+if (NOT SLIC3R_LARGE_LIB_TYPE MATCHES "^(STATIC|OBJECT)$")
+    message(FATAL_ERROR "SLIC3R_LARGE_LIB_TYPE must be STATIC or OBJECT, not ${SLIC3R_LARGE_LIB_TYPE}")
+endif ()
+# libslic3r_gui follows the setting on Windows only; elsewhere it stays STATIC.
+if (WIN32)
+    message(STATUS "libslic3r and libslic3r_gui: ${SLIC3R_LARGE_LIB_TYPE} libraries")
+else ()
+    message(STATUS "libslic3r: ${SLIC3R_LARGE_LIB_TYPE} library")
 endif ()
 
 # Without this every object names its build directory and two worktrees never

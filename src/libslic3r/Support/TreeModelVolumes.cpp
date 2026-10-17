@@ -32,6 +32,7 @@
 #include <numeric>
 #include <cmath>
 #include <string_view>
+#include <numeric>
 
 #include <boost/log/trivial.hpp>
 

@@ -9,7 +9,7 @@ add_executable(${_TEST_NAME}_tests
   libnest2d_test_utils.hpp
 )
 
-target_link_libraries(${_TEST_NAME}_tests test_common libnest2d Catch2::Catch2WithMain)
+target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
 orcaslicer_copy_test_dlls()

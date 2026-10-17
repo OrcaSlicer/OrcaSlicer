@@ -30,9 +30,7 @@
     #include <wx/rawbmp.h>
 #endif /* __WXGTK2__ */
 #include <glad/gl.h>
-#define NANOSVG_IMPLEMENTATION
 #include "nanosvg/nanosvg.h"
-#define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvg/nanosvgrast.h"
 #include "3DScene.hpp"
 
@@ -581,7 +579,9 @@ bool BitmapCache::load_from_svg_file_change_color(const std::string &filename, u
     char temp_color[8];
     strncpy(temp_color, hexColor, 7);
     temp_color[7]             = '\0';
-    unsigned int change_color = nsvg__parseColorHex(temp_color);
+    unsigned char rgb[3];
+    parse_color(temp_color, rgb);
+    unsigned int change_color = rgb[0] | rgb[1] << 8 | rgb[2] << 16;
     change_color |= (unsigned int) (1.0f * 255) << 24; // opacity
     unsigned int green_color = 0xFF889600; // #009688
     for (NSVGshape* shape = image->shapes; shape != nullptr; shape = shape->next) {

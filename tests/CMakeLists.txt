@@ -101,3 +101,32 @@ if (UNIX AND NOT APPLE AND TARGET OrcaSlicer)
     add_subdirectory(cli)
 endif ()
 
+# Link libslic3r into every test executable as a whole archive, so the linker
+# resolves all of its objects and not only the ones a test references. This is
+# what an OBJECT libslic3r (Windows --cache/--no-pch) always does, and it fails
+# on an undefined symbol or a libslic3r -> libslic3r_gui dependency that
+# archive linking otherwise hides. Only the test executables change; CI turns
+# it on.
+option(SLIC3R_TESTS_WHOLE_ARCHIVE "Link libslic3r into the test executables as a whole archive" OFF)
+if (SLIC3R_TESTS_WHOLE_ARCHIVE)
+    if (CMAKE_VERSION VERSION_LESS 3.24)
+        message(FATAL_ERROR "SLIC3R_TESTS_WHOLE_ARCHIVE requires CMake 3.24 or newer")
+    endif ()
+    # An OBJECT libslic3r is linked in full already.
+    get_target_property(_libslic3r_type libslic3r TYPE)
+    if (_libslic3r_type STREQUAL "STATIC_LIBRARY")
+        get_property(_test_dirs DIRECTORY PROPERTY SUBDIRECTORIES)
+        foreach (_dir IN LISTS _test_dirs)
+            get_property(_targets DIRECTORY ${_dir} PROPERTY BUILDSYSTEM_TARGETS)
+            foreach (_target IN LISTS _targets)
+                get_target_property(_type ${_target} TYPE)
+                if (_type STREQUAL "EXECUTABLE")
+                    # Applies to libslic3r however the executable reaches it,
+                    # directly or through libslic3r_gui, so it is linked once.
+                    set_property(TARGET ${_target} PROPERTY LINK_LIBRARY_OVERRIDE_libslic3r WHOLE_ARCHIVE)
+                endif ()
+            endforeach ()
+        endforeach ()
+    endif ()
+endif ()
+

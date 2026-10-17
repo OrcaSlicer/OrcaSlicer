@@ -1,10 +1,10 @@
 #pragma once
 
-// Force-included into libslic3r_gui when SLIC3R_PCH is OFF, standing in for
-// pchheader.hpp, which includes <Windows.h> before anything else. Arriving
-// late and transitively, rpcndr.h defines a global `byte` that collides with
-// std::byte under `using namespace std`, and the control and URL moniker
-// types the GUI uses are never declared.
+// Included ahead of libslic3r_gui sources: first thing in pchheader.hpp,
+// or force-included on MSVC when SLIC3R_PCH is OFF. Arriving late and
+// transitively, rpcndr.h defines a global `byte` that collides with std::byte
+// under `using namespace std`, and the control and URL moniker types the GUI
+// uses are never declared.
 #ifdef _WIN32
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN

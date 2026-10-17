@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <numeric>
 #include <cmath>
 #include <limits>
 #include <random>

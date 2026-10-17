@@ -911,7 +911,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/GeneratedConfig.hpp.in
                @ONLY)
 
 if (WIN32)
-    add_library(libslic3r_gui STATIC
+    add_library(libslic3r_gui ${SLIC3R_LARGE_LIB_TYPE}
         ${SLIC3R_GUI_SOURCES}
         ../dev-utils/BaseException.cpp
         ../dev-utils/BaseException.h
@@ -1067,7 +1067,15 @@ endif ()
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
 
-if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
+# orca_stubgen links libslic3r_gui for its symbols, which only an archive
+# supplies selectively: from an OBJECT library it would get every object,
+# including a second PythonPluginBridge.cpp built without
+# ORCA_PYTHON_STUBGEN_MODULE, and none of libslic3r's. The top-level
+# CMakeLists.txt says when SLIC3R_LARGE_LIB_TYPE is OBJECT, and why.
+get_target_property(_gui_type libslic3r_gui TYPE)
+if (ORCA_BUILD_PYTHON_STUBGEN_MODULE AND _gui_type STREQUAL "OBJECT_LIBRARY")
+    message(STATUS "orca_stubgen needs static libslic3r_gui; skipped for this OBJECT-library build")
+elseif (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
     add_library(orca_stubgen MODULE
         plugin/PythonPluginBridge.cpp
     )

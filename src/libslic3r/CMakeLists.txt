@@ -109,6 +109,8 @@ set(lisbslic3r_sources
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
+    ColorSpaceConvert.cpp
+    ColorSpaceConvert.hpp
     CommonDefs.hpp
     Config.cpp
     Config.hpp
@@ -371,6 +373,7 @@ set(lisbslic3r_sources
     MutablePolygon.cpp
     MutablePolygon.hpp
     MutablePriorityQueue.hpp
+    NanoSVG.cpp
     NormalUtils.cpp
     NormalUtils.hpp
     NSVGUtils.cpp
@@ -602,10 +605,34 @@ if (APPLE)
         )
 endif ()
 
-add_library(libslic3r STATIC ${lisbslic3r_sources}
+# libnest2d's explicit instantiations; see deps_src/libnest2d/CMakeLists.txt.
+set(_libnest2d_cpp "${OrcaSlicer_SOURCE_DIR}/deps_src/libnest2d/src/libnest2d.cpp")
+
+# SLIC3R_LARGE_LIB_TYPE is OBJECT only for some MSVC configurations; see the
+# top-level CMakeLists.txt for why. An OBJECT library's objects only reach
+# targets that link it directly; one that reaches libslic3r through another
+# library gets none of them. Every target that uses libslic3r links it
+# directly, except orca_stubgen, which gets them from the libslic3r_gui archive
+# and is not built when libslic3r_gui is an OBJECT library.
+add_library(libslic3r ${SLIC3R_LARGE_LIB_TYPE} ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
-    ${OpenVDBUtils_SOURCES})
+    ${OpenVDBUtils_SOURCES}
+    "${_libnest2d_cpp}")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
+source_group("libnest2d" FILES "${_libnest2d_cpp}")
+if (MSVC AND SLIC3R_LARGE_LIB_TYPE STREQUAL "OBJECT")
+    # Every object is linked, not only those an archive would pull in. /DEBUG
+    # defaults to /OPT:NOREF, so re-enable /OPT:REF to drop unreferenced code.
+    # /OPT:REF would also turn on /OPT:ICF; keep identical functions unfolded,
+    # as a /DEBUG link of the STATIC build does, so stack traces and
+    # function-pointer identity stay the same. Links without /DEBUG get
+    # /OPT:NOICF too, although the STATIC build folds there; matching that per
+    # target isn't worth the extra logic. /INCREMENTAL:NO silences LNK4075, as
+    # /OPT:REF disables incremental linking anyway. Debug keeps its incremental
+    # link.
+    target_link_options(libslic3r INTERFACE
+        "$<$<NOT:$<CONFIG:Debug>>:/OPT:REF;/OPT:NOICF;/INCREMENTAL:NO>")
+endif ()
 
 if (SLIC3R_STATIC)
     set(CGAL_Boost_USE_STATIC_LIBS ON CACHE BOOL "" FORCE)

@@ -23,6 +23,8 @@
 #include "slic3r/GUI/FilamentGroupPopup.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 
+#include <numeric>
+
 namespace Slic3r { namespace GUI {
 
 static bool get_pop_up_remind_flag()

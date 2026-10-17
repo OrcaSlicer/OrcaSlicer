@@ -1,13 +1,4 @@
-#ifdef WIN32
-	#ifndef WIN32_LEAN_AND_MEAN
-		#define WIN32_LEAN_AND_MEAN
-	#endif
-	#ifndef NOMINMAX
-		#define NOMINMAX
-	#endif
-	#include <Windows.h>
-	#include <CommCtrl.h>
-#endif
+#include "slic3r/win_platform.hpp"
 
 #include <float.h>
 #include <stddef.h>
@@ -96,11 +87,6 @@
 
 #include <tbb/parallel_for.h>
 #include <tbb/spin_mutex.h>
-
-#ifdef _MSC_VER
-	// avoid some "macro redefinition" warnings
-	#include <urlmon.h>
-#endif /* _MSC_VER */
 
 #include <wx/app.h>
 #include <wx/bitmap.h>

@@ -606,6 +606,11 @@ jobs:
       - name: Build slicer and tests
         if: runner.os == 'Linux'
         shell: bash
+        env:
+          # Test executables only: catches undefined symbols in libslic3r that
+          # archive linking hides and an OBJECT libslic3r (Windows --cache or
+          # --no-pch) does not. See tests/CMakeLists.txt.
+          ORCA_EXTRA_BUILD_ARGS: -DSLIC3R_TESTS_WHOLE_ARCHIVE=ON
         run: |
           # Build + tar the unit tests (-t) on both Linux legs so each arch
           # (x86_64 + aarch64) gets tested by its own unit_tests_linux_* job.

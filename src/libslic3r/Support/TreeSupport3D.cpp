@@ -43,6 +43,7 @@
 #include <Eigen/Geometry>
 #include <atomic>
 #include <cassert>
+#include <numeric>
 #include <chrono>
 #include <cstdint>
 #include <functional>

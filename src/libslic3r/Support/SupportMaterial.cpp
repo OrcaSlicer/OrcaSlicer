@@ -32,6 +32,7 @@
 #include <initializer_list>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <memory>
 #include <boost/log/trivial.hpp>
 #include <boost/container/static_vector.hpp>

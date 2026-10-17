@@ -108,6 +108,10 @@ elseif (FLATPAK)
         COMMENT "Linking Python runtime for flatpak plugin host API tests"
         VERBATIM
     )
+else ()
+    # Other Linux builds stage nothing: without <testdir>/python the embedded
+    # interpreter uses libpython's compiled-in prefix, the deps' libpython,
+    # which is also where PythonInterpreter looks (ORCA_BUNDLED_PYTHON_ROOT).
 endif()
 
 # scripts/run_unit_tests.sh installs the tests' numpy into that runtime with this uv,
