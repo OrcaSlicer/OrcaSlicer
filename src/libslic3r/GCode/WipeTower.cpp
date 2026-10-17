@@ -3342,6 +3342,13 @@ int WipeTower::first_toolchange_to_nonsoluble_nonsupport(
 
 WipeTower::ToolChangeResult WipeTower::merge_tcr(ToolChangeResult &first, ToolChangeResult &second)
 {
+    // generate_new() declares a layer's finish result before it knows whether that layer draws
+    // anything, and merges into it either way. A result that laid nothing has no position the
+    // head was ever at, so there is nothing to merge and no travel to add.
+    if (!is_valid_gcode(first.gcode))
+        return second;
+    if (!is_valid_gcode(second.gcode))
+        return first;
     assert(first.new_tool == second.initial_tool);
     WipeTower::ToolChangeResult out = first;
     if ((first.end_pos - second.start_pos).norm() > (float)EPSILON) {
