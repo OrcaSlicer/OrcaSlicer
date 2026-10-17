@@ -341,7 +341,18 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 #ifndef NDEBUG
 		double distance_taken_last = 0.;
 #endif /* NDEBUG */
+		size_t indexed_end_points = end_points.size();
 		for (int iter = int(num_segments) - 2;; -- iter) {
+			// Occupied endpoints cannot be selected again. Compact geometrically so
+			// late nearest-neighbor queries do not traverse mostly rejected points.
+			if (queue.size() < indexed_end_points / 2) {
+				std::vector<size_t> indices;
+				indices.reserve(queue.size());
+				for (const EndPoint *ep : queue)
+					indices.push_back(size_t(ep - end_points.data()));
+				indexed_end_points = indices.size();
+				kdtree.build(indices);
+			}
 			assert(validate_graph_and_queue());
 	    	// Take the first end point, for which the link points to the currently closest valid neighbor.
 	    	EndPoint &end_point1 = *queue.top();
@@ -413,7 +424,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 			    	assert(end_points[this_idx].chain_id == 0);
 					if ((idx ^ this_idx) <= 1 || end_points[idx].chain_id != 0)
 						// Points of the same segment shall not be connected,
-						// cannot connect to an already connected point (ideally those would be removed from the KD tree, but the update is difficult).
+						// cannot connect to an already connected point.
 						return false;
 			    	size_t chain1 = equivalent_chain(end_points[this_idx ^ 1].chain_id);
 			    	size_t chain2 = equivalent_chain(end_points[idx      ^ 1].chain_id);
@@ -428,8 +439,6 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 #endif /* NDEBUG */
 				// Update position of this end point in the queue based on the distance calculated at the line above.
 				queue.update(end_point1.heap_idx);
-		    	//FIXME Remove the other end point from the KD tree.
-		    	// As the KD tree update is expensive, do it only after some larger number of points is removed from the queue.
 				assert(validate_graph_and_queue());
 	    	}
 		}
@@ -478,9 +487,11 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 					} while (first_point != nullptr);
 				}
 			}
-			if (failed)
-				// As a last resort, try a dumb algorithm, which is not sensitive to edge reversal constraints.
+			if (failed) {
+				// The reversal-constrained fallback starts over and needs all endpoints.
+				kdtree.build(end_points.size());
 				out = chain_segments_closest_point<EndPoint, decltype(kdtree), CouldReverseFunc>(end_points, kdtree, could_reverse_func, (initial_point != nullptr) ? *initial_point : end_points.front());
+			}
 		} else {
 			assert(! failed);
 		}
