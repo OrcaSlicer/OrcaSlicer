@@ -71,6 +71,10 @@ public:
     std::string set_jerk_xy(double jerk);
     // Orca: set acceleration and jerk in one command for Klipper
     std::string set_accel_and_jerk(unsigned int acceleration, double jerk);
+    // Orca: Klipper's accel_to_decel limit for `acceleration`, sent as the legacy ACCEL_TO_DECEL and as the
+    // equivalent MINIMUM_CRUISE_RATIO = 1 - ACCEL_TO_DECEL / ACCEL that replaced it. Klipper before 0.13 and
+    // vendor forks read only the first, current Klipper only the second, and 0.13 prefers the second.
+    static void append_klipper_accel_to_decel(std::string &gcode, unsigned int acceleration, double accel_to_decel_factor);
     std::string set_junction_deviation(double junction_deviation); 
     std::string set_pressure_advance(double pa, int tool = -1) const;
     std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;

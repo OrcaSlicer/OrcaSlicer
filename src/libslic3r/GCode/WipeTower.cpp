@@ -26,6 +26,7 @@
 #include "ClipperUtils.hpp"
 #include "libslic3r/Line.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
@@ -1528,8 +1529,10 @@ private:
             gcode << "M204 P" << acceleration;
         }
         else if (m_gcode_flavor == gcfKlipper && m_accel_to_decel_enable) {
-            gcode << "SET_VELOCITY_LIMIT ACCEL_TO_DECEL=" << acceleration * m_accel_to_decel_factor / 100;
-            gcode << "\nM204 S" << acceleration;
+            // One line, so Klipper derives the limit from this acceleration rather than the previous one.
+            std::string limits = "SET_VELOCITY_LIMIT ACCEL=" + std::to_string(acceleration);
+            GCodeWriter::append_klipper_accel_to_decel(limits, acceleration, m_accel_to_decel_factor);
+            gcode << limits;
         }
         else {
             // M204: Set default acceleration

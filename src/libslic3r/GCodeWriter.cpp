@@ -453,12 +453,11 @@ std::string GCodeWriter::set_acceleration_internal(Acceleration type, unsigned i
         gcode += separate_travel ? "M204 T" : "M204 P";
         gcode += value;
     } else if (FLAVOR_IS(gcfKlipper)) {
-        gcode.reserve(96);
+        gcode.reserve(128);
         gcode += "SET_VELOCITY_LIMIT ACCEL=";
         gcode += value;
         if (this->config.accel_to_decel_enable) {
-            gcode += " ACCEL_TO_DECEL=";
-            gcode += float_to_string_decimal_point(acceleration * this->config.accel_to_decel_factor / 100);
+            append_klipper_accel_to_decel(gcode, acceleration, this->config.accel_to_decel_factor.value);
             if (GCodeWriter::full_gcode_comment)
                 gcode += " ; adjust ACCEL_TO_DECEL";
         }
@@ -471,6 +470,14 @@ std::string GCodeWriter::set_acceleration_internal(Acceleration type, unsigned i
     gcode += "\n";
 
     return gcode;
+}
+
+void GCodeWriter::append_klipper_accel_to_decel(std::string &gcode, unsigned int acceleration, double accel_to_decel_factor)
+{
+    gcode += " ACCEL_TO_DECEL=";
+    gcode += float_to_string_decimal_point(acceleration * accel_to_decel_factor / 100);
+    gcode += " MINIMUM_CRUISE_RATIO=";
+    gcode += float_to_string_decimal_point(1. - accel_to_decel_factor / 100);
 }
 
 std::string GCodeWriter::set_jerk_xy(double jerk)
@@ -548,15 +555,13 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
         return std::string();
 
     std::string gcode;
-    gcode.reserve(96);
+    gcode.reserve(128);
     gcode += "SET_VELOCITY_LIMIT";
     if (set_acceleration) {
         gcode += " ACCEL=";
         gcode += std::to_string(acceleration);
-        if (this->config.accel_to_decel_enable) {
-            gcode += " ACCEL_TO_DECEL=";
-            gcode += float_to_string_decimal_point(acceleration * this->config.accel_to_decel_factor / 100);
-        }
+        if (this->config.accel_to_decel_enable)
+            append_klipper_accel_to_decel(gcode, acceleration, this->config.accel_to_decel_factor.value);
         m_last_acceleration = acceleration;
     }
     if (set_jerk) {

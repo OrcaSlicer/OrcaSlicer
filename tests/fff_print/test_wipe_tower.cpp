@@ -202,6 +202,23 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
     }
 }
 
+TEST_CASE("The wipe tower sets Klipper's acceleration and accel_to_decel on one line", "[WipeTower]")
+{
+    // On separate lines, current Klipper finds nothing it reads on the ACCEL_TO_DECEL one and 0.13
+    // derives the cruise ratio from the acceleration before the change.
+    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+    // Type 2 towers leave the acceleration to the main G-code writer.
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" },
+                                    { "accel_to_decel_enable", "1" }, { "accel_to_decel_factor", "50%" },
+                                    { "default_acceleration", "1000" }, { "travel_acceleration", "2000" },
+                                    { "machine_max_acceleration_extruding", "5000" } });
+    const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
+    REQUIRE_THAT(tower, Catch::Matchers::ContainsSubstring("SET_VELOCITY_LIMIT ACCEL="));
+    CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(" MINIMUM_CRUISE_RATIO=0.5\n"));
+    CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("SET_VELOCITY_LIMIT ACCEL_TO_DECEL") &&
+                      !Catch::Matchers::ContainsSubstring("M204"));
+}
+
 // What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
 // they call the estimator directly. The estimate counts the filaments the print really uses,
 // so the two-filament shape gives the outer wall the second one.

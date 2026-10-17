@@ -514,7 +514,7 @@ TEST_CASE("Acceleration and velocity limit commands print their values in genera
     const Case c = GENERATE(values<Case>({
         {gcfKlipper, Command::KlipperLimits, 2000000, 25. / 3., false,
          {"SET_VELOCITY_LIMIT ACCEL=2000000 ", "ACCEL_TO_DECEL=1e+06 ", "SQUARE_CORNER_VELOCITY=8.33333\n"}, {}},
-        {gcfKlipper, Command::KlipperLimits, 12345, 0., false, {"ACCEL=12345 ", "ACCEL_TO_DECEL=6172.5\n"}, {"SQUARE_CORNER_VELOCITY"}},
+        {gcfKlipper, Command::KlipperLimits, 12345, 0., false, {"ACCEL=12345 ", "ACCEL_TO_DECEL=6172.5 ", "MINIMUM_CRUISE_RATIO=0.5\n"}, {"SQUARE_CORNER_VELOCITY"}},
         {gcfKlipper, Command::KlipperLimits, 0, 0.25, true, {"SQUARE_CORNER_VELOCITY=0.25 ", "; adjust VELOCITY_LIMIT"}, {"ACCEL"}},
         {gcfKlipper, Command::Print, 3001, 0., true, {"ACCEL=3001 ", "ACCEL_TO_DECEL=1500.5 ", "; adjust ACCEL_TO_DECEL", "; adjust acceleration"}, {}},
         {gcfMarlinFirmware, Command::Print, 2500, 0., false, {"M204 P2500\n"}, {}},
@@ -1270,6 +1270,41 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(custom_gcode_pos != std::string::npos);
     REQUIRE(gcode.find("M204 S6000 ; adjust acceleration", custom_gcode_pos) != std::string::npos);
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
+}
+
+TEST_CASE("Klipper acceleration commands send accel_to_decel both as ACCEL_TO_DECEL and as the cruise ratio", "[GCodeWriter]")
+{
+    // Klipper 0.13 defines MINIMUM_CRUISE_RATIO = 1 - ACCEL_TO_DECEL / ACCEL; older releases read only the
+    // first parameter and current ones only the second, so both have to describe the same limit.
+    GCodeWriter writer;
+    writer.config.gcode_flavor.value = gcfKlipper;
+    writer.config.accel_to_decel_enable.value = true;
+    // The writer appends "; adjust ..." comments by default; keep them out so the line ends at the ratio.
+    struct CommentGuard
+    {
+        bool saved = GCodeWriter::full_gcode_comment;
+        ~CommentGuard() { GCodeWriter::full_gcode_comment = saved; }
+    } comment_guard;
+    GCodeWriter::full_gcode_comment = false;
+
+    SECTION("a 25% factor") {
+        writer.config.accel_to_decel_factor.value = 25;
+        REQUIRE_THAT(writer.set_print_acceleration(2000),
+                     Catch::Matchers::StartsWith("SET_VELOCITY_LIMIT ACCEL=2000 ACCEL_TO_DECEL=500 MINIMUM_CRUISE_RATIO=0.75"));
+        REQUIRE_THAT(writer.set_accel_and_jerk(3000, 0.0),
+                     Catch::Matchers::StartsWith("SET_VELOCITY_LIMIT ACCEL=3000 ACCEL_TO_DECEL=750 MINIMUM_CRUISE_RATIO=0.75"));
+    }
+    SECTION("a 100% factor turns the cruise ratio off") {
+        writer.config.accel_to_decel_factor.value = 100;
+        REQUIRE_THAT(writer.set_print_acceleration(2000),
+                     Catch::Matchers::StartsWith("SET_VELOCITY_LIMIT ACCEL=2000 ACCEL_TO_DECEL=2000 MINIMUM_CRUISE_RATIO=0\n"));
+    }
+    SECTION("neither is sent while the option is off") {
+        writer.config.accel_to_decel_enable.value = false;
+        const std::string line = writer.set_print_acceleration(2000);
+        REQUIRE_THAT(line, Catch::Matchers::StartsWith("SET_VELOCITY_LIMIT ACCEL=2000"));
+        REQUIRE_THAT(line, !Catch::Matchers::ContainsSubstring("ACCEL_TO_DECEL") && !Catch::Matchers::ContainsSubstring("MINIMUM_CRUISE_RATIO"));
+    }
 }
 
 // Regression test for the belt-printer "illegal gantry move at print start" bug.
