@@ -11,6 +11,7 @@ add_executable(${_TEST_NAME}_tests
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
     test_filament_color_picker.cpp
+    test_ams_materials_setting.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp
