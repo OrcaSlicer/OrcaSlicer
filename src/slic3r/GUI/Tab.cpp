@@ -2973,6 +2973,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("tpms_adaptive", "strength_settings_patterns#adaptive-density");
         optgroup->append_single_option_line("tpms_interior_density", "strength_settings_patterns#interior-density");
         optgroup->append_single_option_line("tpms_adaptive_gradient", "strength_settings_patterns#adaptive-gradient");
+        optgroup->append_single_option_line("voronoi_cloud_method");
         optgroup->append_single_option_line("voronoi_wall_decay");
         optgroup->append_single_option_line("voronoi_smoothing_sigma");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");

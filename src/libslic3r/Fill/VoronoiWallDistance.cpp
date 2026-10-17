@@ -1,5 +1,6 @@
 #include "VoronoiWallDistance.hpp"
 #include "VoronoiMaterialDensity.hpp"
+#include "VoronoiLattice.hpp"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -245,7 +246,7 @@ std::vector<double> CubicWallDistance::sample(const std::vector<Vec3d> &points) 
 }
 
 std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std::function<std::vector<WallSlice>()> &load_slices,
-                                                                   double decay, double sigma, const WallDistanceProgress &progress,
+                                                                   double decay, double sigma, const WallDistanceProgress &progress, VoronoiCloudMethod method,
                                                                    double angle, double material_density, const std::vector<DensityModifier> &modifiers, int region_id)
 {
     if (!std::isfinite(material_density) || material_density <= 0. || material_density > 1. ||
@@ -275,7 +276,7 @@ std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std:
         table = cached;
         sample = [table](const auto &points) { return table->sample_fields(points); };
     }
-    auto &provider = m_providers[{decay, sigma, material_density, region_id, angle}];
+    auto &provider = m_providers[{decay, sigma, material_density, region_id, method, angle}];
     if (!provider) {
         Vec2d center = Vec2d::Zero();
         if (angle != 0.) {
@@ -283,7 +284,9 @@ std::shared_ptr<const PointCloudProvider> WallDistanceCloudCache::get(const std:
             if (box.defined) center = box.center().head<2>();
         }
         const bool variable = decay != 0. || sigma != 0. || fused;
-        if (variable)
+        if (method != VoronoiCloudMethod::Random)
+            provider = std::make_shared<LatticePointCloud>(method, variable ? sample : WallDistanceSamples{}, table ? table->maximum_density_ratio() : 1., angle, center);
+        else if (variable)
             provider = std::make_shared<WallDistancePointCloud>(sample, table->maximum_density_ratio(), angle, center);
         else
             provider = std::make_shared<PoissonPointCloud>(angle, center);

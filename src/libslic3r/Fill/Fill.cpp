@@ -21,6 +21,7 @@
 #include "../Layer.hpp"
 #include "../Print.hpp"
 #include "../PrintConfig.hpp"
+#include "../VoronoiCloudMethod.hpp"
 #include "../Surface.hpp"
 
 #include "AABBTreeLines.hpp"
@@ -312,6 +313,7 @@ struct SurfaceFillParams
 
     // For Gyroid: when true, use the parameterized "optimized" wave.
     bool gyroid_optimized = false;
+    VoronoiCloudMethod voronoi_cloud_method = VoronoiCloudMethod::Random;
     double voronoi_cloud_angle = 0.;
     double voronoi_wall_decay = 0.;
     double voronoi_smoothing_sigma = 0.;
@@ -367,6 +369,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(tpms_adaptive);
 		RETURN_COMPARE_NON_EQUAL(tpms_interior_density);
 		RETURN_COMPARE_NON_EQUAL(tpms_adaptive_gradient);
+        RETURN_COMPARE_NON_EQUAL(voronoi_cloud_method);
         RETURN_COMPARE_NON_EQUAL(voronoi_cloud_angle);
         RETURN_COMPARE_NON_EQUAL(voronoi_wall_decay);
         RETURN_COMPARE_NON_EQUAL(voronoi_smoothing_sigma);
@@ -407,6 +410,7 @@ struct SurfaceFillParams
                 this->tpms_adaptive           == rhs.tpms_adaptive           &&
                 this->tpms_interior_density   == rhs.tpms_interior_density   &&
                 this->tpms_adaptive_gradient  == rhs.tpms_adaptive_gradient  &&
+                this->voronoi_cloud_method     == rhs.voronoi_cloud_method     &&
                 this->voronoi_cloud_angle      == rhs.voronoi_cloud_angle      &&
                 this->voronoi_wall_decay       == rhs.voronoi_wall_decay       &&
                 this->voronoi_smoothing_sigma == rhs.voronoi_smoothing_sigma &&
@@ -424,7 +428,7 @@ static void configure_voronoi_cloud(Fill &fill, const SurfaceFillParams &params,
     const PrintObject &object = *layer.object();
     if (params.pattern != ipVoronoi) return;
     auto &voronoi = static_cast<FillVoronoi &>(fill);
-    voronoi.set_point_cloud(object.voronoi_point_cloud(params.voronoi_wall_decay, params.voronoi_smoothing_sigma, params.voronoi_cloud_angle, 0.01 * params.density, params.voronoi_density_region), cache);
+    voronoi.set_point_cloud(object.voronoi_point_cloud(params.voronoi_wall_decay, params.voronoi_smoothing_sigma, params.voronoi_cloud_method, params.voronoi_cloud_angle, 0.01 * params.density, params.voronoi_density_region), cache);
 
     if (layer.lower_layer) {
         // Perimeters are complete before parallel infill generation; lower-layer
@@ -1046,6 +1050,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // Orca: Pass through separated_infills only where it can move the pattern.
                 params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&
                                            params.extrusion_role != erTopSolidInfill && params.extrusion_role != erBottomSurface;
+                params.voronoi_cloud_method = params.pattern == ipVoronoi ? region_config.voronoi_cloud_method.value : VoronoiCloudMethod::Random;
                 // A 3D constellation keeps one orientation across layers.
                 params.voronoi_cloud_angle = params.pattern == ipVoronoi ?
                     Geometry::deg2rad(region_config.infill_direction.value) : 0.;

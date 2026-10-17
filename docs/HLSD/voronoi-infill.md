@@ -92,6 +92,23 @@ material density using wall decay and corner adjustment, without retaining a
 smoothed-distance table. Fields are shared by matching material-density settings. Reslicing clears the per-object cache.
 Construction and smoothing report phase progress and check cancellation.
 
+## Structured points and boundary snapping
+
+FCC and Cubic use lattices with their [111] body diagonal vertical and the
+same candidate site intensity as Random. With decay and smoothing disabled,
+every lattice site is retained. Otherwise a three-dimensional ordered dither
+selects sites according to the cube of local density. FCC groups its four parity
+classes on an orthogonal half-cube grid and repeats through coarser checkerboards;
+Cubic uses a cubic Bayer order. This preserves repeatable structure but introduces
+gaps and repeating patterns. Poisson spacing calibration is approximate for
+these foams.
+
+Sparse infill direction rotates either lattice about Z through the object's
+bounding-box centre. Complete FCC lattices have vertical Voronoi faces and faces
+inclined about 35 degrees above horizontal. Complete Cubic lattices have faces
+inclined about 55 degrees. Thinning can create shallower faces;
+none of the distributions guarantees self-supporting infill.
+
 ## Wall thickness
 
 Fill Multiline uses Orca's native offset outlines around routed wall paths. Odd

@@ -1188,6 +1188,7 @@ static std::vector<std::string> s_Preset_print_options{
     "tpms_adaptive_gradient",
     "gyroid_optimized",
     "sparse_infill_pattern",
+    "voronoi_cloud_method",
     "voronoi_modifier_blend",
     "voronoi_wall_decay",
     "voronoi_smoothing_sigma",

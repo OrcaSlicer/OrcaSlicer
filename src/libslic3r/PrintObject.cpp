@@ -1,4 +1,5 @@
 #include "ExPolygon.hpp"
+#include "VoronoiCloudMethod.hpp"
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Line.hpp"
@@ -817,6 +818,7 @@ void PrintObject::infill()
                 })) continue;
             if (config.sparse_infill_density > 0 && config.sparse_infill_pattern == ipVoronoi) {
                 has_voronoi = true;
+                const VoronoiCloudMethod method = config.voronoi_cloud_method.value;
                 double maximum_density = 0.01 * config.sparse_infill_density.value;
                 for (const auto &modifier : m_voronoi_density_modifiers)
                     if (modifier.region_id == int(object_region)) maximum_density = std::max(maximum_density, modifier.material_density);
@@ -835,7 +837,7 @@ void PrintObject::infill()
                     const float align_offset = atan2((float)m(1, 0), (float)m(0, 0));
                     angle += align_offset;
                 }
-                voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value, angle,
+                voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value, method, angle,
                                     0.01 * float(config.sparse_infill_density.value), voronoi_density_region(printing_region(region_id).print_object_region_id()));
             }
         }
@@ -1344,7 +1346,7 @@ int PrintObject::voronoi_density_region(int region_id) const
                       [region_id](const auto &m) { return m.region_id == region_id; }) ? region_id : -1;
 }
 
-std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, double angle, double material_density, int density_region) const
+std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, VoronoiCloudMethod method, double angle, double material_density, int density_region) const
 {
     const int percent = is_step_done(posPrepareInfill) ? 35 : 25;
     auto last_report = std::chrono::steady_clock::now();
@@ -1373,7 +1375,7 @@ std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cl
             m_print->set_status(percent, message + " (" + std::to_string(int(100. * fraction)) + "%)");
             last_report = now;
             last_stage = stage;
-        }, angle, material_density, m_voronoi_density_modifiers, density_region);
+        }, method, angle, material_density, m_voronoi_density_modifiers, density_region);
 }
 
 void PrintObject::clear_layers()
@@ -1781,6 +1783,7 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (opt_key == "voronoi_modifier_blend") {
             steps.emplace_back(posSlice);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "voronoi_cloud_method"
                    || opt_key == "voronoi_wall_decay" || opt_key == "voronoi_smoothing_sigma"
                    || opt_key == "tpms_adaptive"
                    || opt_key == "tpms_interior_density"

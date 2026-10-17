@@ -1,4 +1,5 @@
 #include "PrintConfig.hpp"
+#include "VoronoiCloudMethod.hpp"
 #include "CommonDefs.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
@@ -242,6 +243,12 @@ static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
+static t_config_enum_values s_keys_map_VoronoiCloudMethod {
+    {"random", int(VoronoiCloudMethod::Random)},
+    {"fcc", int(VoronoiCloudMethod::Fcc)},
+    {"cubic", int(VoronoiCloudMethod::Cubic)}
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(VoronoiCloudMethod)
 
 static t_config_enum_values s_keys_map_CenterOfSurfacePattern{
     {"each_surface", int(CenterOfSurfacePattern::Each_Surface)},
@@ -3746,6 +3753,16 @@ void PrintConfigDef::init_fff_params()
     // Retained only to migrate projects written by the original selector.
     def = this->add("voronoi_point_distribution", coString);
     def->set_default_value(new ConfigOptionString());
+
+    def = this->add("voronoi_cloud_method", coEnum);
+    def->label = L("Voronoi point cloud");
+    def->category = L("Strength");
+    def->tooltip = L("Random places independent points according to local density. FCC and Cubic use lattices with a vertical body diagonal, thinning points with a three-dimensional ordered dither to follow local density. Sparse infill direction rotates the cloud around Z. No method guarantees self-supporting infill. High material density can require substantial memory; consider Fill Multiline for thicker walls with fewer cells.");
+    def->enum_keys_map = &ConfigOptionEnum<VoronoiCloudMethod>::get_enum_values();
+    def->enum_values = {"random", "fcc", "cubic"};
+    def->enum_labels = {L("Random"), L("FCC"), L("Cubic")};
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<VoronoiCloudMethod>(VoronoiCloudMethod::Random));
 
     def = this->add("voronoi_modifier_blend", coFloat);
     def->label = L("Voronoi material density blend width");
@@ -9674,6 +9691,7 @@ void PrintConfigDef::init_sla_params()
 
 void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &value)
 {
+    if (opt_key == "voronoi_cloud_method" && value == "density_shells") value = "random";
 
     //BBS: handle legacy options
     if (opt_key == "curr_bed_type" && value == "SuperTack Plate") {

@@ -17,6 +17,7 @@
 // DynamicConfig.
 
 #include <catch2/catch_all.hpp>
+#include "libslic3r/VoronoiCloudMethod.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
@@ -84,6 +85,14 @@ TEST_CASE("Print presets initialize and retain Voronoi decay and smoothing", "[P
     REQUIRE_THAT(config.opt_float("voronoi_modifier_blend"), Catch::Matchers::WithinAbs(4., EPSILON));
     REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(6., EPSILON));
     REQUIRE_THAT(config.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(8., EPSILON));
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Random);
+    config.set_deserialize_strict("voronoi_cloud_method", "fcc");
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Fcc);
+    config.set_deserialize_strict("voronoi_cloud_method", "cubic");
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Cubic);
+    REQUIRE(config.option("voronoi_cloud_method")->serialize() == "cubic");
+    config.set_deserialize_strict("voronoi_cloud_method", "density_shells");
+    REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Random);
     config.set_deserialize_strict("voronoi_wall_decay", "0");
     config.set_deserialize_strict("voronoi_smoothing_sigma", "12");
     REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(0., EPSILON));

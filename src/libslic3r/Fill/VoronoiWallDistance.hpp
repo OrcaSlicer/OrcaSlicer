@@ -4,6 +4,7 @@
 #include "../SlicedDistanceField.hpp"
 #include "../BoundingBox.hpp"
 #include "VoronoiPointCloud.hpp"
+#include "../VoronoiCloudMethod.hpp"
 #include <functional>
 #include <memory>
 #include <map>
@@ -58,13 +59,14 @@ class WallDistanceCloudCache {
 public:
     std::shared_ptr<const PointCloudProvider> get(const std::function<std::vector<WallSlice>()> &load_slices,
                                                   double decay = 6., double sigma = 8.,
-                                                  const WallDistanceProgress &progress = {}, double angle = 0., double material_density = 0.25,
+                                                  const WallDistanceProgress &progress = {},
+                                                  VoronoiCloudMethod method = VoronoiCloudMethod::Random, double angle = 0., double material_density = 0.25,
                                                   const std::vector<DensityModifier> &modifiers = {}, int region_id = -1);
     void clear();
 private:
     std::mutex m_mutex;
     std::map<std::tuple<double, double, double, int>, std::shared_ptr<const CubicWallDistance>> m_tables;
-    std::map<std::tuple<double, double, double, int, double>, std::shared_ptr<const PointCloudProvider>> m_providers;
+    std::map<std::tuple<double, double, double, int, VoronoiCloudMethod, double>, std::shared_ptr<const PointCloudProvider>> m_providers;
 };
 
 } // namespace Slic3r::Voronoi
