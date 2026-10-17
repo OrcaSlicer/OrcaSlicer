@@ -7,6 +7,7 @@
 #include <functional>
 #include <cstdint>
 #include <atomic>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -88,6 +89,7 @@ protected:
     // Tray data for AMS payload building
     struct AmsTrayData {
         int         slot_index = 0;      // 0-based slot index
+        int         extruder_id = 0;     // Extruder this lane feeds (AFC extruder_index); 0 when unknown
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
@@ -98,6 +100,10 @@ protected:
 
     // Build ams JSON and call parser
     void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+
+    // Build ams JSON with one box per extruder (best effort, for lane_data-based filament
+    // changers such as AFC) and call the parser. Boxes are ordered by extruder id.
+    void build_ams_payload_grouped(const std::vector<AmsTrayData>& trays);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
@@ -139,6 +145,8 @@ private:
     void handle_ws_message(const std::string& dev_id, const std::string& payload);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
+    // Snapshot Moonraker "extruder"/"extruderN" status objects from the cache, keyed by extruder id.
+    std::map<int, nlohmann::json> collect_extruder_status() const;
 
     // Print control helpers
     int pause_print(const std::string& dev_id);
@@ -163,10 +171,31 @@ private:
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    // Lane name -> toolhead index, read from the AFC printer objects (the lane_data database has no
+    // extruder field). Returns false when AFC is not present or the objects cannot be read.
+    bool fetch_afc_lane_extruders(std::map<std::string, int>& lane_extruder);
+    // Gate -> toolhead index, read from the Happy Hare mmu_machine units (gate ranges) and each
+    // unit's configured extruder_name. Returns false when Happy Hare is not present.
+    bool fetch_hh_gate_extruders(std::map<int, int>& gate_extruder);
+    // Read the extruder_name of the [mmu_unit <name>] section from a configfile.config map and map
+    // it to a toolhead index. Missing section/setting falls back to the main extruder (Happy Hare's
+    // own default).
+    static int hh_unit_extruder_from_config(const nlohmann::json& sections, const std::string& unit_name);
+    // GET a Moonraker path with the device's API key and parse the JSON body.
+    bool http_get_json(const std::string& path, nlohmann::json& out) const;
+
+    // Build one BBL tray JSON object (placeholder when the tray has no filament).
+    static nlohmann::json make_ams_tray_json(const std::string& tray_id, const AmsTrayData& tray);
+
+    // Wrap the AMS boxes into the payload ParseV1_0 understands and apply the pull-mode
+    // readiness state (printer_type, push counters, storage, module versions).
+    void submit_ams_payload(const nlohmann::json& ams_array, unsigned long ams_exist_bits, unsigned long tray_exist_bits);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
     static int safe_json_int(const nlohmann::json& obj, const char* key);
+    // Accepts either a JSON number or a numeric string (AFC reports some fields as strings).
+    static int safe_json_int_flexible(const nlohmann::json& obj, const char* key, int default_value);
     static std::string safe_array_string(const nlohmann::json& arr, int idx);
     static int safe_array_int(const nlohmann::json& arr, int idx);
     static std::string normalize_color_value(const std::string& color);

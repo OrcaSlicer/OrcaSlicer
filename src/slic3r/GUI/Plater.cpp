@@ -20,6 +20,7 @@
 #include <clocale>
 #include <cstddef>
 #include <algorithm>
+#include <cctype>
 #include <ios>
 #include <iomanip>
 #include <cstring>
@@ -2361,13 +2362,18 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
             return false;
         }
 
-        if (!this->plater)
-            return false;
+        const Preset &selected_preset = preset_bundle->printers.get_selected_preset();
+        const Preset *parent_preset = preset_bundle->printers.get_preset_parent(selected_preset);
+        const bool inherits_system_preset = selected_preset.is_user() && parent_preset && parent_preset->is_system;
+        if (!inherits_system_preset) {
+            if (!this->plater)
+                return false;
 
-        this->plater->update_objects_position_when_select_preset([machine_preset]() {
-            Tab *printer_tab = GUI::wxGetApp().get_tab(Preset::Type::TYPE_PRINTER);
-            printer_tab->select_preset(machine_preset->name);
-        });
+            this->plater->update_objects_position_when_select_preset([machine_preset]() {
+                Tab *printer_tab = GUI::wxGetApp().get_tab(Preset::Type::TYPE_PRINTER);
+                printer_tab->select_preset(machine_preset->name);
+            });
+        }
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " go on sync_extruder_list";
     const Preset &cur_preset  = preset_bundle->printers.get_selected_preset();
@@ -2379,7 +2385,19 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         assert(physical_extruder_map->values.size() == extruder_nums);
         extruder_map = physical_extruder_map->values;
     }
-    assert(obj->GetExtderSystem()->GetTotalExtderCount() == extruder_nums);
+    const int device_extruder_count = obj->GetExtderSystem()->GetTotalExtderCount();
+    if (device_extruder_count != extruder_nums) {
+        MessageDialog dlg(
+            this->plater,
+            format_wxstr(
+                _L("The connected printer reports %1% extruder(s), but the selected printer preset has %2%. "
+                   "Update the preset to match the printer before syncing."),
+                device_extruder_count, extruder_nums),
+            _L("Sync printer information"),
+            wxOK | wxICON_WARNING);
+        dlg.ShowModal();
+        return false;
+    }
 
     // Multi-nozzle: resolve the nozzle option (pops MultiNozzleSyncDialog when is_manual). No-op for every
     // existing printer — support_multi_nozzle is false unless some extruder_max_nozzle_count entry is a real
@@ -2458,26 +2476,60 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     int main_index = obj->is_main_extruder_on_left() ? 0 : 1;
     int deputy_index = obj->is_main_extruder_on_left() ? 1 : 0;
 
+    // Nozzle diameters are not changed by device sync. If the device reports a different or unavailable
+    // diameter, warn and leave the preset and controls alone while syncing AMS and other printer info.
+    const ConfigOptionFloats *preset_nozzle_diameter =
+        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    bool nozzle_diameters_match = false;
+    if (preset_nozzle_diameter != nullptr && preset_nozzle_diameter->values.size() == nozzle_diameters.size()) {
+        nozzle_diameters_match = true;
+        for (size_t index = 0; index < nozzle_diameters.size(); ++index) {
+            // A diameter the device does not report (missing, zero, negative or not a finite number) never matches.
+            const double device_diameter = nozzle_diameters[index];
+            const double preset_diameter = preset_nozzle_diameter->values[index];
+            if (!std::isfinite(device_diameter) || device_diameter <= 0.0 ||
+                !std::isfinite(preset_diameter) || preset_diameter <= 0.0 ||
+                std::fabs(device_diameter - preset_diameter) > EPSILON) {
+                nozzle_diameters_match = false;
+                break;
+            }
+        }
+    }
+    if (!nozzle_diameters_match) {
+        if (is_manual) {
+            MessageDialog dlg(
+                this->plater,
+                _L("The nozzle diameter reported by the connected printer does not match the current printer preset. "
+                   "The nozzle diameter and the printer preset will not be synchronized. "
+                   "Select the printer preset that matches the nozzle installed on the printer, then sync again."),
+                _L("Sync printer information"), wxICON_WARNING | wxOK);
+            dlg.ShowModal();
+        } else {
+            // An automatic sync runs on every device update, so log the mismatch instead of popping a dialog.
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << __LINE__
+                                       << " nozzle diameter mismatch between connected printer and printer preset,"
+                                          " skip syncing the nozzle diameter";
+        }
+    }
+
     if (extruder_nums > 1) {
-        int left_index  = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
-        int right_index = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[1]));
-        assert(left_index != -1 && right_index != -1);
-        left_extruder->combo_diameter->SetSelection(left_index);
-        right_extruder->combo_diameter->SetSelection(right_index);
-        is_switching_diameter = true;
-        switch_diameter(false);
-        is_switching_diameter = false;
+        if (nozzle_diameters_match) {
+            int left_index  = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
+            int right_index = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[1]));
+            assert(left_index != -1 && right_index != -1);
+            left_extruder->combo_diameter->SetSelection(left_index);
+            right_extruder->combo_diameter->SetSelection(right_index);
+        }
         AMSCountPopupWindow::SetAMSCount(deputy_index, deputy_4, deputy_1);
         AMSCountPopupWindow::SetAMSCount(main_index, main_4, main_1);
         AMSCountPopupWindow::UpdateAMSCount(0, left_extruder);
         AMSCountPopupWindow::UpdateAMSCount(1, right_extruder);
     } else {
-        int index = single_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
-        assert(index != -1);
-        single_extruder->combo_diameter->SetSelection(index);
-        is_switching_diameter = true;
-        switch_diameter(true);
-        is_switching_diameter = false;
+        if (nozzle_diameters_match) {
+            int index = single_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
+            assert(index != -1);
+            single_extruder->combo_diameter->SetSelection(index);
+        }
     }
 
     // set nozzle volume type after switching prset, so this value can override the old value stored in conf
@@ -6069,8 +6121,12 @@ void Sidebar::on_bed_type_change(BedType bed_type)
  *
  * Return Value:
  * - Map key encoding:
- *   - Virtual trays: 0x10000 + vt_tray.id (first/main extruder), or just vt_tray.id (secondary)
+ *   - Virtual trays: 0x10000 + vt_tray.id for the main extruder's slot, or just vt_tray.id for the
+ *     others. Bambu's fixed pair is 255 (main) / 254 (secondary); a generic printer identifies each
+ *     slot by its own id (extruder = VIRTUAL_TRAY_MAIN_ID - id: 255 -> 0, 254 -> 1, ...)
  *   - AMS trays: 0x10000 + (ams_id * 4 + slot_id) (main extruder), or (ams_id * 4 + slot_id) (secondary)
+ *   - Generic (non-Bambu) units are not four slots wide: their trays index by a cumulative lane
+ *     count across units instead of ams_id * 4 + slot_id
  *   - The 0x10000 flag indicates the main/right extruder
  * - Map value: DynamicPrintConfig with filament properties (id, type, color, etc.)
  *
@@ -6090,7 +6146,13 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         }
     }
 
-    auto build_tray_config = [](DevAmsTray const &tray, std::string const &name, std::string ams_id, std::string slot_id) {
+    const bool is_bbl_vendor = wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+
+    // Diagnostic: keys produced from virtual (external) trays, so the final summary can label each
+    // output entry's origin as virtual vs AMS.
+    std::set<int> virtual_slot_keys;
+
+    auto build_tray_config = [is_bbl_vendor](DevAmsTray const &tray, std::string const &name, std::string ams_id, std::string slot_id, int extruder_id) {
         BOOST_LOG_TRIVIAL(info) << boost::format("build_filament_ams_list: name %1% setting_id %2% type %3% color %4%")
                     % name % tray.setting_id % tray.m_fila_type % tray.color;
         DynamicPrintConfig tray_config;
@@ -6105,6 +6167,12 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{std::to_string(tray.ctype)});
         tray_config.set_key_value("filament_exist", new ConfigOptionBools{tray.is_exists});
         tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{tray.is_slot_placeholder});
+        // Transient (never persisted) per-extruder association of a generic slot, so the sync and
+        // the slicing per-extruder grouping keep the real extruder instead of the legacy left/right
+        // buckets. Bambu entries omit it and keep the legacy key-only convention.
+        if (!is_bbl_vendor) {
+            tray_config.set_key_value("device_tray_extruder_id", new ConfigOptionInt(extruder_id));
+        }
         std::optional<FilamentBaseInfo> info;
         if (wxGetApp().preset_bundle) {
             info = wxGetApp().preset_bundle->get_filament_by_filament_id(tray.setting_id);
@@ -6117,10 +6185,44 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     };
 
     if (obj->ams_support_virtual_tray) {
-        int extruder = 0x10000; // Main (first) extruder at right
-        for (auto & vt_tray : obj->vt_slot) {
-            filament_ams_list.emplace(extruder + stoi(vt_tray.id), build_tray_config(vt_tray, "Ext",vt_tray.id, "0"));//254 or 255
-            extruder = 0;
+        for (size_t index = 0; index < obj->vt_slot.size(); ++index) {
+            auto & vt_tray = obj->vt_slot[index];
+            int vt_id = 0;
+            if (vt_tray.id.empty()) continue;
+            if (!std::all_of(vt_tray.id.begin(), vt_tray.id.end(), [](unsigned char c) { return std::isdigit(c) != 0; })) continue;
+            try { vt_id = std::stoi(vt_tray.id); } catch (...) { continue; }
+            if (vt_id < 0 || vt_id > VIRTUAL_TRAY_MAIN_ID) continue;
+            // Enumerate the extruder ordinal (the vt_slot index) and validate the expected tray id
+            // instead of trusting the vector size: a stray filler or a stale id for a non-live
+            // extruder must never surface as a real tray. Bambu keeps its fixed pair untouched.
+            if (!is_bbl_vendor) {
+                const int expected_id = VIRTUAL_TRAY_MAIN_ID - static_cast<int>(index);
+                if (vt_id != expected_id || !devPrinterUtil::IsVirtualSlot(vt_id)) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": skip vt_slot index %1% id %2% expected %3%") % index % vt_id % expected_id;
+                    continue;
+                }
+            }
+            // Bambu keeps its fixed pair with the leading (main/right) slot marked 0x10000. On a
+            // generic printer every external slot is identified by its own virtual tray id
+            // (extruder = VIRTUAL_TRAY_MAIN_ID - id: 255 -> 0, 254 -> 1, ...), so mark the main
+            // extruder's slot by identity rather than by position in vt_slot. The map key then
+            // keeps each slot bound to its extruder across refreshes and sparse reports.
+            const bool is_main_slot = is_bbl_vendor ? (&vt_tray == &obj->vt_slot.front())
+                                                    : (vt_id == VIRTUAL_TRAY_MAIN_ID);
+            const int  key = (is_main_slot ? 0x10000 : 0) + vt_id;
+            const auto inserted = filament_ams_list.emplace(key,
+                                                            build_tray_config(vt_tray, "Ext", vt_tray.id, "0", VIRTUAL_TRAY_MAIN_ID - vt_id));
+            virtual_slot_keys.insert(key);
+            if (!inserted.second) {
+                const auto &existing = inserted.first->second;
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": virtual insert collision key %1% incoming_id %2% existing_origin %3% existing_ams %4% existing_slot %5% existing_type %6% existing_id %7%")
+                    % key % vt_id
+                    % (virtual_slot_keys.count(key) ? "virtual" : "ams")
+                    % existing.opt_string("ams_id", 0u)
+                    % existing.opt_string("slot_id", 0u)
+                    % existing.opt_string("filament_type", 0u)
+                    % existing.opt_string("filament_id", 0u);
+            }
         }
     }
 
@@ -6140,11 +6242,61 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     for (auto ams : list) {
         int ams_id   = std::stoi(ams.first);
         int extruder = ams.second->GetExtruderId() ? 0 : 0x10000; // Main (first) extruder at right
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": AMS unit %1% extruder %2% trays %3%")
+            % ams_id % ams.second->GetExtruderId() % ams.second->GetTrays().size();
+        // Bambu units are four slots wide; a generic unit reports its own lane count and its trays
+        // carry a cumulative lane index. The AMS map is keyed by string id, so count preceding units
+        // numerically to keep this the same index the parser and the agent use.
+        int generic_tray_base = 0;
+        if (!is_bbl_vendor) {
+            for (const auto& other : list) {
+                if (std::stoi(other.first) < ams_id)
+                    generic_tray_base += static_cast<int>(other.second->GetTrays().size());
+            }
+        }
+        size_t inserted_trays = 0;
+        size_t rejected_trays = 0;
         for (auto tray : ams.second->GetTrays()) {
             int  slot_id = std::stoi(tray.first);
-            filament_ams_list.emplace(extruder + (ams_id * 4 + slot_id),
-                                      build_tray_config(*tray.second, get_ams_name(ams_id, slot_id), std::to_string(ams_id), std::to_string(slot_id)));
+            const int tray_index = is_bbl_vendor ? ams_id * 4 + slot_id : generic_tray_base + slot_id;
+            const int key = extruder + tray_index;
+            auto inserted = filament_ams_list.emplace(key,
+                                      build_tray_config(*tray.second, get_ams_name(ams_id, slot_id), std::to_string(ams_id), std::to_string(slot_id),
+                                                        ams.second->GetExtruderId()));
+            if (inserted.second) {
+                ++inserted_trays;
+            } else {
+                ++rejected_trays;
+                const auto &existing = inserted.first->second;
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": AMS insert collision key %1% incoming_ams %2% incoming_slot %3% incoming_extruder %4% existing_origin %5% existing_ams %6% existing_slot %7% existing_extruder %8% existing_type %9% existing_id %10%")
+                    % key % ams_id % slot_id % ams.second->GetExtruderId()
+                    % (virtual_slot_keys.count(key) ? "virtual" : "ams")
+                    % existing.opt_string("ams_id", 0u)
+                    % existing.opt_string("slot_id", 0u)
+                    % (existing.has("device_tray_extruder_id") ? existing.opt_int("device_tray_extruder_id") : -1)
+                    % existing.opt_string("filament_type", 0u)
+                    % existing.opt_string("filament_id", 0u);
+            }
         }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": AMS unit %1% tray inserts accepted %2% rejected %3%")
+            % ams_id % inserted_trays % rejected_trays;
+    }
+
+    // Diagnostic: dump the final output map (origin, key, identity/data flags) so parser output can
+    // be correlated with the entries logged at the sync boundary.
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": output entries %1%") % filament_ams_list.size();
+    for (const auto &entry : filament_ams_list) {
+        const auto &cfg = entry.second;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": out %1% key %2% ams_id %3% slot_id %4% extruder %5% type %6% id %7% exist %8% placeholder %9%")
+            % (virtual_slot_keys.count(entry.first) ? "virtual" : "ams")
+            % entry.first
+            % cfg.opt_string("ams_id", 0u)
+            % cfg.opt_string("slot_id", 0u)
+            % (cfg.has("device_tray_extruder_id") ? cfg.opt_int("device_tray_extruder_id") : -1)
+            % cfg.opt_string("filament_type", 0u)
+            % cfg.opt_string("filament_id", 0u)
+            % cfg.opt_bool("filament_exist", 0u)
+            % cfg.opt_bool("filament_slot_placeholder", 0u);
     }
     return filament_ams_list;
 }
@@ -6381,6 +6533,20 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     std::vector<std::pair<DynamicPrintConfig *,std::string>> unknowns;
     auto enable_append  = wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams");
     auto sync_color_only = wxGetApp().app_config->get("sync_ams_filament_mode") == "1";
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": sync_color_only %1% enable_append %2% direct_sync %3% effective_use_map %4% filament_ams_list %5%")
+        % sync_color_only % enable_append % sync_result.direct_sync % (!sync_result.direct_sync) % list.size();
+    for (const auto &entry : list) {
+        const auto &tray = entry.second;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": tray %1% ams_id %2% slot_id %3% filament_id %4% type %5% color %6% filament_exist %7% placeholder %8%")
+            % entry.first
+            % tray.opt_string("ams_id", 0u)
+            % tray.opt_string("slot_id", 0u)
+            % tray.opt_string("filament_id", 0u)
+            % tray.opt_string("filament_type", 0u)
+            % tray.opt_string("filament_colour", 0u)
+            % (tray.has("filament_exist") && tray.opt_bool("filament_exist", 0u))
+            % (tray.has("filament_slot_placeholder") && tray.opt_bool("filament_slot_placeholder", 0u));
+    }
     auto n              = wxGetApp().preset_bundle->sync_ams_list(unknowns, !sync_result.direct_sync, sync_result.sync_maps, enable_append, merge_info, sync_color_only);
     wxString detail;
     for (auto & uk : unknowns) {

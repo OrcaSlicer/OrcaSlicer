@@ -37,6 +37,7 @@
 #include <vector>
 #include <wx/anybutton.h>
 #include <wx/animate.h>
+#include <wx/app.h>
 #include <wx/busycursor.h>
 #include <wx/chartype.h>
 #include <wx/arrstr.h>
@@ -1245,7 +1246,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 wxString ams_id;
                 wxColour ams_col;
 
-                if (f->tray_id == VIRTUAL_TRAY_MAIN_ID || f->tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
+                if (devPrinterUtil::IsVirtualSlot(f->ams_id)) {
                     ams_id = _L("Ext");
                 }
 
@@ -1393,6 +1394,8 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
     if (m_ams_mapping_result.empty())
         return false;
 
+    const bool is_bbl_vendor = wxTheApp != nullptr && wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+
     bool valid_mapping_result = true;
     int  invalid_count        = 0;
     for (int i = 0; i < m_ams_mapping_result.size(); i++) {
@@ -1449,7 +1452,10 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
                     // convert #RRGGBB to RRGGBBAA
                     mapping_item["sourceColor"] = m_filaments[k].color;
                     mapping_item["targetColor"] = m_ams_mapping_result[k].color;
-                    if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID) { tray_id = -1; }
+                    // The legacy v0 mapping array encodes an external spool as -1, a BBL-firmware
+                    // contract. A generic printer keeps the virtual tray id (255 - extruder) so the
+                    // payload still says which extruder's external slot was mapped.
+                    if (is_bbl_vendor && (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID)) { tray_id = -1; }
 
                     /*new ams mapping data*/
                     try {

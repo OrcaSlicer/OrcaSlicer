@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/app.h>
 #include <wx/colour.h>
 #include <string>
 #include <wx/string.h>
@@ -33,6 +34,36 @@
 using namespace nlohmann;
 
 namespace Slic3r {
+
+bool devPrinterUtil::IsVirtualSlot(int ams_id)
+{
+    // When the app or preset bundle is unavailable we cannot know the vendor's
+    // extruder count, so fall back deterministically to the fixed Bambu pair
+    // {255, 254} rather than guessing from an unknown generic layout.
+    if (wxTheApp == nullptr || GUI::wxGetApp().preset_bundle == nullptr || GUI::wxGetApp().preset_bundle->is_bbl_vendor())
+        return ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID;
+
+    const int extruder_count = GUI::wxGetApp().preset_bundle->get_printer_extruder_count();
+    return ams_id >= VIRTUAL_TRAY_MAIN_ID - extruder_count + 1 && ams_id <= VIRTUAL_TRAY_MAIN_ID;
+}
+
+bool devPrinterUtil::IsVirtualSlot(const std::string& ams_id)
+{
+    // Strict: only a fully numeric string is a valid slot id. std::stoi alone
+    // would accept trailing garbage (e.g. "255abc" -> 255).
+    if (ams_id.empty())
+        return false;
+    for (char c : ams_id) {
+        if (c < '0' || c > '9')
+            return false;
+    }
+    try {
+        return IsVirtualSlot(std::stoi(ams_id));
+    } catch (...) {
+        return false;
+    }
+}
+
 static int _hex_digit_to_int(const char c) { return (c >= '0' && c <= '9') ? c - '0' : (c >= 'A' && c <= 'F') ? c - 'A' + 10 : (c >= 'a' && c <= 'f') ? c - 'a' + 10 : -1; }
 
 wxColour DevAmsTray::decode_color(const std::string &color)
@@ -200,18 +231,22 @@ wxString DevAms::GetDisplayName() const
 
 int DevAms::GetSlotCount() const
 {
-    // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE, so N9 reports 4 slots like AMS-Lite.
-    auto ams_type = GetAmsType();
-    if (ams_type == AMS || ams_type == AMS_LITE || ams_type == N3F)
-    {
-        return 4;
-    }
-    else if (ams_type == N3S)
-    {
+    // N3S is a 1-slot Bambu contract, so report 1 regardless of whether the
+    // preset bundle is momentarily unavailable (m_trays.size() can be 0).
+    if (GetAmsType() == N3S)
         return 1;
+
+    if (wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
+        GUI::wxGetApp().preset_bundle->is_bbl_vendor()) {
+        // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE, so N9 reports 4 slots like AMS-Lite.
+        auto ams_type = GetAmsType();
+        if (ams_type == AMS || ams_type == AMS_LITE || ams_type == N3F)
+        {
+            return 4;
+        }
     }
 
-    return 1;
+    return static_cast<int>(m_trays.size());
 }
 
 DevAmsTray* DevAms::GetTray(const std::string& tray_id) const
@@ -302,13 +337,21 @@ int DevFilaSystem::GetExtruderIdByAmsId(const std::string& ams_id) const
     {
         return it->second->GetExtruderId();
     }
-    else if (stoi(ams_id) == VIRTUAL_TRAY_MAIN_ID)
-    {
-        return MAIN_EXTRUDER_ID;
+
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr && GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (!is_bbl_vendor && GetOwner()) {
+        for (const auto& tray : GetOwner()->vt_slot) {
+            if (tray.id == ams_id)
+                return VIRTUAL_TRAY_MAIN_ID - std::stoi(ams_id);
+        }
     }
-    else if (stoi(ams_id) == VIRTUAL_TRAY_DEPUTY_ID)
-    {
+
+    if (is_bbl_vendor && ams_id == VIRTUAL_AMS_MAIN_ID_STR)
+        return MAIN_EXTRUDER_ID;
+    if (is_bbl_vendor && ams_id == VIRTUAL_AMS_DEPUTY_ID_STR)
         return DEPUTY_EXTRUDER_ID;
+    if (!is_bbl_vendor && devPrinterUtil::IsVirtualSlot(ams_id)) {
+        return VIRTUAL_TRAY_MAIN_ID - std::stoi(ams_id);
     }
 
     assert(false && __FUNCTION__);
@@ -325,9 +368,22 @@ std::string DevFilaSystem::GetNozzleFlowStringByAmsId(const std::string& ams_id)
 std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
 {
     std::map<int, DevAmsSlotId> tray_id_map;
-    tray_id_map[VIRTUAL_TRAY_MAIN_ID]   = DevAmsSlotId{VIRTUAL_TRAY_MAIN_ID, 0};
-    tray_id_map[VIRTUAL_TRAY_DEPUTY_ID] = DevAmsSlotId{VIRTUAL_TRAY_DEPUTY_ID, 0};
+    const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr && GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+    if (is_bbl_vendor) {
+        tray_id_map[VIRTUAL_TRAY_MAIN_ID]   = DevAmsSlotId{VIRTUAL_TRAY_MAIN_ID, 0};
+        tray_id_map[VIRTUAL_TRAY_DEPUTY_ID] = DevAmsSlotId{VIRTUAL_TRAY_DEPUTY_ID, 0};
+    } else if (GetOwner()) {
+        for (const auto& tray : GetOwner()->vt_slot) {
+            try {
+                const int tray_id = std::stoi(tray.id);
+                tray_id_map[tray_id] = DevAmsSlotId{tray_id, 0};
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " invalid virtual tray id: " << tray.id;
+            }
+        }
+    }
 
+    int generic_tray_index = 0;
     for (auto& [ams_id, ams_item] : GetAmsList()) {
         for (auto &[slot_id, slot_item] : ams_item->GetTrays()) {
             if (ams_item && slot_item) {
@@ -335,9 +391,11 @@ std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
                     int ams_id_int  = stoi(ams_id);
                     int slot_id_int = stoi(slot_id);
                     int tray_index  = -1;
-                    if (ams_item->GetAmsType() == DevAms::N3S) {
+                    if (!is_bbl_vendor) {
+                        tray_index = generic_tray_index + slot_id_int;
+                    } else if (ams_item->GetAmsType() == DevAms::N3S) {
                         tray_index = ams_id_int;
-                    } else if(ams_item->GetAmsType() == DevAms::AMS_LITE && ams_item->IsAmsLiteMixed()) {
+                    } else if (ams_item->GetAmsType() == DevAms::AMS_LITE && ams_item->IsAmsLiteMixed()) {
                         tray_index = 24 + slot_id_int;
                     } else {
                         tray_index = (ams_id_int * 4 + slot_id_int);
@@ -348,6 +406,8 @@ std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
                 }
             }
         }
+        if (!is_bbl_vendor)
+            generic_tray_index += static_cast<int>(ams_item->GetTrays().size());
     }
 
     return  tray_id_map;
@@ -455,6 +515,13 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                 {
                     ams_id_set.insert(it->first);
                 }
+
+                // Bambu trays index their exist bit as ams_id*4+tray_id; a generic (non-Bambu) unit
+                // reports its own lane count, so its trays carry a cumulative lane index instead.
+                // Same index DevFilaSystem::GetTrayIndexMap() builds and the agent sets bits with.
+                const bool is_bbl_vendor = wxTheApp != nullptr && GUI::wxGetApp().preset_bundle != nullptr &&
+                                           GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+                int generic_tray_base = 0;
 
                 for (auto it = j_ams.begin(); it != j_ams.end(); it++)
                 {
@@ -795,7 +862,18 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
 
                                     if (type_id < 4)
                                     {
-                                        curr_tray->is_exists = (obj->tray_exist_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0 ? true : false;
+                                        if (is_bbl_vendor)
+                                        {
+                                            curr_tray->is_exists = (obj->tray_exist_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0 ? true : false;
+                                        }
+                                        else
+                                        {
+                                            // A generic unit is not four slots wide, so its trays carry a
+                                            // cumulative lane index across units instead of ams_id*4+tray_id.
+                                            const int tray_bit = generic_tray_base + tray_id_int;
+                                            curr_tray->is_exists = tray_bit >= 0 && tray_bit < 32 &&
+                                                                   (obj->tray_exist_bits & (1UL << tray_bit)) != 0;
+                                        }
                                     }
                                     else if (type_id == DevAms::AMS_LITE_MIXED)
                                     {
@@ -851,6 +929,9 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             }
                         }
                     }
+                    if (!is_bbl_vendor && it->contains("tray") && (*it)["tray"].is_array()) {
+                        generic_tray_base += static_cast<int>((*it)["tray"].size());
+                    }
                 }
                 // remove not in amsList
                 for (auto it = ams_id_set.begin(); it != ams_id_set.end(); it++)
@@ -866,6 +947,21 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
             }
         }
     }
+
+    // Give every live device extruder an external virtual tray slot (non-Bambu) so a plugin agent
+    // that reaches the model only through this parser also gets the shared external-slot topology.
+    if (obj)
+        obj->ensure_external_virtual_tray_slots();
+
+    // Diagnostic: summarize the AMS state this production parse produced, so the agent boundary
+    // (submit_ams_payload) box/tray counts can be correlated with what actually landed in the model.
+    if (obj && system) {
+        size_t parsed_trays = 0;
+        for (const auto& kv : system->amsList)
+            parsed_trays += kv.second->GetTrays().size();
+        BOOST_LOG_TRIVIAL(info) << "DevFilaSystemParser::ParseV1_0: parsed units " << system->amsList.size()
+                                << " trays " << parsed_trays;
+    }
 }
 
 static DevAms::AmsType ams_type_from_string(const std::string& s)
@@ -874,6 +970,23 @@ static DevAms::AmsType ams_type_from_string(const std::string& s)
     if (s == "n3f")                          return DevAms::N3F;
     if (s == "n3s")                          return DevAms::N3S;
     return DevAms::AMS; // default
+}
+
+void grow_virtual_tray_slots(std::vector<DevAmsTray>& slots, std::size_t tray_id)
+{
+    // Address a slot by its virtual tray id, never by a raw vector index: the slot for `tray_id`
+    // lives at index VIRTUAL_TRAY_MAIN_ID - tray_id and placeholder entries carry
+    // id = VIRTUAL_TRAY_MAIN_ID - index. Append-only, so a slot that already holds reported
+    // metadata keeps it and a sparse/out-of-order report cannot shift the id <-> extruder mapping.
+    if (tray_id > static_cast<std::size_t>(VIRTUAL_TRAY_MAIN_ID))
+        return;
+    const std::size_t slot_index = static_cast<std::size_t>(VIRTUAL_TRAY_MAIN_ID) - tray_id;
+    while (slots.size() <= slot_index) {
+        slots.emplace_back(std::to_string(VIRTUAL_TRAY_MAIN_ID - static_cast<int>(slots.size())));
+        // A filler only makes the slot addressable; it is topology, not a reported spool. Callers
+        // overwrite the target entry with reported metadata, which clears this marker.
+        slots.back().is_slot_placeholder = true;
+    }
 }
 
 void DevFilaSystemParser::ParseAgentFilament(const json& data, MachineObject* obj, DevFilaSystem* system)
@@ -913,6 +1026,8 @@ void DevFilaSystemParser::ParseAgentFilament(const json& data, MachineObject* ob
             }
 
             ams->m_exist               = true;
+            ams->m_binded_extruder_set = {ext_id};
+            ams->m_binded_switcher_pos.reset();
             ams->m_current_temperature = u.value("temperature", (float) INVALID_AMS_TEMPERATURE);
             ams->m_humidity_percent    = u.value("humidity_percent", -1);
             ams->m_left_dry_time       = u.value("dry_time_min", 0);
@@ -995,16 +1110,21 @@ void DevFilaSystemParser::ParseAgentFilament(const json& data, MachineObject* ob
     }
 
     // --- external / direct spools -> obj->vt_slot ---
-    // extruder 0 -> main virtual slot, extruder >0 -> deputy.
+    // Keep one virtual slot per extruder. The legacy two-extruder mapping uses
+    // 255 for extruder 0 and 254 for extruder 1; continue that sequence for
+    // additional extruders (253, 252, ...).
     if (obj && data.contains("external") && data["external"].is_array())
     {
-        obj->vt_slot.clear();
+        std::map<int, DevAmsTray> external_slots;
         for (const auto& e : data["external"])
         {
             if (!e.is_object())
                 continue;
             const int  ext   = e.value("extruder", MAIN_EXTRUDER_ID);
-            const int  vt_id = (ext == MAIN_EXTRUDER_ID) ? VIRTUAL_TRAY_MAIN_ID : VIRTUAL_TRAY_DEPUTY_ID;
+            if (ext < MAIN_EXTRUDER_ID || ext >= VIRTUAL_TRAY_MAIN_ID)
+                continue;
+
+            const int  vt_id = VIRTUAL_TRAY_MAIN_ID - ext;
             DevAmsTray tray(std::to_string(vt_id));
             tray.is_exists       = e.value("loaded", false);
             tray.m_fila_type     = e.value("material", std::string());
@@ -1013,9 +1133,26 @@ void DevFilaSystemParser::ParseAgentFilament(const json& data, MachineObject* ob
             tray.nozzle_temp_min = std::to_string(e.value("nozzle_temp_min", 0));
             tray.nozzle_temp_max = std::to_string(e.value("nozzle_temp_max", 0));
             tray.remain          = e.value("remain_percent", -1);
-            obj->vt_slot.push_back(tray);
+            external_slots.insert_or_assign(ext, std::move(tray));
+        }
+
+        // Place each reported spool at its own index (VIRTUAL_TRAY_MAIN_ID - extruder_id) instead of
+        // appending in report order: a sparse or out-of-order report must not compact the vector and
+        // shift the slot -> extruder association.
+        obj->vt_slot.clear();
+        for (const auto& entry : external_slots)
+        {
+            // entry.first is the extruder id; its virtual tray id is VIRTUAL_TRAY_MAIN_ID - extruder_id
+            // and the slot lives at vector index extruder_id (the id <-> index mapping grow applies).
+            grow_virtual_tray_slots(obj->vt_slot, static_cast<std::size_t>(VIRTUAL_TRAY_MAIN_ID - entry.first));
+            obj->vt_slot[entry.first] = entry.second;
         }
     }
+
+    // Fill any extruder still missing a slot so the model always has one external slot per live
+    // extruder, even when the agent reported no external data at all. Preserves reported metadata.
+    if (obj)
+        obj->ensure_external_virtual_tray_slots();
 }
 
 }
