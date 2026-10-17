@@ -2256,6 +2256,23 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         m_support_used |= object->config().enable_support;
     }
 
+    // Orca: see precise_z_height_overridden(). The objects it applies to are sliced again when it flips.
+    {
+        const auto custom_layering = [](const PrintObject *object) { return object->model_object()->has_custom_layering(); };
+        const auto other_height    = [this](const PrintObject *object) {
+            return std::abs(object->slicing_parameters().object_print_z_height() - m_objects.front()->slicing_parameters().object_print_z_height()) > EPSILON;
+        };
+        const bool overridden = this->has_wipe_tower() &&
+            std::any_of(m_objects.begin(), m_objects.end(), custom_layering) &&
+            std::any_of(m_objects.begin(), m_objects.end(), other_height);
+        if (overridden != m_precise_z_height_overridden) {
+            m_precise_z_height_overridden = overridden;
+            for (PrintObject *object : m_objects)
+                if (object->config().precise_z_height.value)
+                    update_apply_status(object->invalidate_step(posSlice));
+        }
+    }
+
 #ifdef _DEBUG
     check_model_ids_equal(m_model, model);
 #endif /* _DEBUG */

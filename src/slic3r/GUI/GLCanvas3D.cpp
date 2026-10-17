@@ -328,6 +328,7 @@ void GLCanvas3D::LayersEditing::set_config(const DynamicPrintConfig* config)
     m_slicing_parameters = nullptr;
     m_layers_texture.valid = false;
     m_layer_height_profile.clear();
+    m_other_textures.clear();
 }
 
 void GLCanvas3D::LayersEditing::select_object(const Model& model, int object_id)
@@ -348,6 +349,7 @@ void GLCanvas3D::LayersEditing::select_object(const Model& model, int object_id)
         m_model_object = model_object_new;
         m_object_max_z = new_max_z;
     }
+    m_model = &model;
 }
 
 bool GLCanvas3D::LayersEditing::is_allowed() const
@@ -356,6 +358,25 @@ bool GLCanvas3D::LayersEditing::is_allowed() const
 }
 
 float GLCanvas3D::LayersEditing::s_overlay_window_width;
+
+// Orca: on a bar shared by several objects, the height at which a lower one ends: a line across the
+// bar, an arrow pointing at it and the name of the object.
+static void render_object_top_mark(const ModelObject& object, float bar_left, float bar_right, float y)
+{
+    ImDrawList*  draw_list = ImGui::GetBackgroundDrawList();
+    const ImU32  color     = ImGui::GetColorU32(ImGuiWrapper::COL_ORCA);
+    const float  arrow     = 0.6f * ImGui::GetFontSize();
+    const float  tip       = bar_left - 2.0f;
+    draw_list->AddLine({ bar_left, y }, { bar_right, y }, color, 2.0f);
+    draw_list->AddTriangleFilled({ tip, y }, { tip - arrow, y - 0.6f * arrow }, { tip - arrow, y + 0.6f * arrow }, color);
+
+    const ImVec2 text_size = ImGui::CalcTextSize(object.name.c_str());
+    const ImVec2 padding   = { 0.4f * ImGui::GetFontSize(), 0.2f * ImGui::GetFontSize() };
+    const ImVec2 text_pos  = { tip - arrow - 2.0f * padding.x - text_size.x, y - 0.5f * text_size.y };
+    draw_list->AddRectFilled({ text_pos.x - padding.x, text_pos.y - padding.y }, { text_pos.x + text_size.x + padding.x, text_pos.y + text_size.y + padding.y },
+        color, padding.y);
+    draw_list->AddText(text_pos, IM_COL32_WHITE, object.name.c_str());
+}
 
 void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& canvas) {
     if (!m_enabled)
@@ -452,6 +473,19 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     ImGui::AlignTextToFramePadding();
     imgui.text(_L("Keep min"));
 
+    if (!m_other_object_ids.empty()) {
+        // Several objects are selected: by default they share one profile, which the prime tower requires.
+        imgui.bbl_checkbox("##each_separately", m_each_separately);
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        // TRN Variable layer height tool, checkbox shown with several objects selected: give each object its own
+        // layer heights instead of one profile they all share.
+        imgui.text(_L("Each object separately"));
+        if (m_bar_object_ids.size() > 1)
+            // TRN Variable layer height tool: each selected object has a layer height bar at the right edge of the 3D view.
+            imgui.text(_L("Point at a bar to edit its object."));
+    }
+
     ImGui::Separator();
 
     const wxString shift = GUI::shortkey_shift_prefix();
@@ -467,7 +501,7 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     GLGizmoUtils::render_tooltip_button(&imgui, canvas, shortcuts, x, y);
 
     ImGui::SameLine();
-    imgui.disabled_begin(check_object_layers_fixed(*m_slicing_parameters, m_layer_height_profile));
+    imgui.disabled_begin(m_other_object_ids.empty() && check_object_layers_fixed(*m_slicing_parameters, m_layer_height_profile));
     if (imgui.button(_L("Reset"))) {
         wxPostEvent((wxEvtHandler*) canvas.get_wxglcanvas(), SimpleEvent(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE));
     }
@@ -489,6 +523,15 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     imgui.end();
     ImGui::PopStyleVar(2);
     imgui.pop_toolbar_style();
+
+    if (m_bar_object_ids.size() <= 1 && m_object_max_z > 0.0f) {
+        const float cnv_width  = float(cnv_size.get_width());
+        const float cnv_height = float(cnv_size.get_height());
+        for (int object_id : m_other_object_ids)
+            if (object_id >= 0 && object_id < int(m_model->objects.size()))
+                render_object_top_mark(*m_model->objects[object_id], cnv_width - thickness_bar_width(canvas), cnv_width,
+                    cnv_height * (1.0f - float(m_model->objects[object_id]->max_z()) / m_object_max_z));
+    }
 }
 
 void GLCanvas3D::LayersEditing::render_overlay(GLCanvas3D& canvas)
@@ -513,19 +556,85 @@ float GLCanvas3D::LayersEditing::get_cursor_z_relative(const GLCanvas3D& canvas)
         -1000.0f;
 }
 
+// Whether the point is on any of the bars.
 bool GLCanvas3D::LayersEditing::bar_rect_contains(const GLCanvas3D& canvas, float x, float y)
 {
-    const Rect& rect = get_bar_rect_screen(canvas);
-    return rect.get_left() <= x && x <= rect.get_right() && rect.get_top() <= y && y <= rect.get_bottom();
+    return bar_at(canvas, x, y) >= 0;
 }
 
+int GLCanvas3D::LayersEditing::bar_at(const GLCanvas3D& canvas, float x, float y)
+{
+    const Size& cnv_size = canvas.get_canvas_size();
+    const float w        = (float)cnv_size.get_width();
+    const float h        = (float)cnv_size.get_height();
+    const float bar_w    = thickness_bar_width(canvas);
+    const int   bars     = std::max(1, int(canvas.m_layers_editing.m_bar_object_ids.size()));
+    if (x < w - float(bars) * bar_w || x > w || y < 0.0f || y > h)
+        return -1;
+    const int bar = std::min(bars - 1, int((w - x) / bar_w));
+    // Above a lower bar the scene shows through, and the mouse belongs to it.
+    return y < h * (1.0f - canvas.m_layers_editing.bar_fraction(size_t(bar))) ? -1 : bar;
+}
+
+// Whether a bar is being pointed at or painted.
+bool GLCanvas3D::LayersEditing::bar_in_focus(const GLCanvas3D& canvas) const
+{
+    const Vec2d mouse_pos = canvas.get_local_mouse_position();
+    return state == Editing || bar_at(canvas, float(mouse_pos.x()), float(mouse_pos.y())) >= 0;
+}
+
+size_t GLCanvas3D::LayersEditing::active_bar() const
+{
+    const auto it = std::find(m_bar_object_ids.begin(), m_bar_object_ids.end(), last_object_id);
+    return it == m_bar_object_ids.end() ? 0 : size_t(it - m_bar_object_ids.begin());
+}
+
+// The bar of the object shown, which is the one the mouse edits.
 Rect GLCanvas3D::LayersEditing::get_bar_rect_screen(const GLCanvas3D& canvas)
 {
     const Size& cnv_size = canvas.get_canvas_size();
     float w = (float)cnv_size.get_width();
     float h = (float)cnv_size.get_height();
+    const float  bar_w  = thickness_bar_width(canvas);
+    const size_t active = canvas.m_layers_editing.active_bar();
+    const float  right  = w - float(active) * bar_w;
 
-    return { w - thickness_bar_width(canvas), 0.0f, w, h };
+    return { right - bar_w, h * (1.0f - canvas.m_layers_editing.bar_fraction(active)), right, h };
+}
+
+int GLCanvas3D::LayersEditing::choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids)
+{
+    // Objects past MAX_BARS still get Adaptive, Smooth and Reset, but have no bar to show or paint.
+    const bool bars_notice = m_each_separately && object_ids.size() > MAX_BARS;
+    if (bars_notice != m_bars_notice_shown) {
+        m_bars_notice_shown = bars_notice;
+        // TRN "Adaptive", "Smooth" and "Reset" are the buttons of the variable layer height tool.
+        const std::string notice_text = _u8L("Variable layer height: only the three tallest selected objects have a bar. The others still take Adaptive, Smooth and Reset.");
+        NotificationManager& notification_manager = *wxGetApp().plater()->get_notification_manager();
+        if (bars_notice)
+            notification_manager.push_plater_warning_notification(notice_text);
+        else
+            notification_manager.close_plater_warning_notification(notice_text);
+    }
+
+    m_bar_object_ids.clear();
+    m_bar_fractions.clear();
+    if (object_ids.empty())
+        return -1;
+
+    m_bar_object_ids.assign(object_ids.begin(), object_ids.begin() + (m_each_separately ? std::min(object_ids.size(), MAX_BARS) : 1));
+    const double tallest = model.objects[m_bar_object_ids.front()]->max_z();
+    for (int object_id : m_bar_object_ids)
+        m_bar_fractions.emplace_back(tallest > 0. ? float(std::min(1., model.objects[object_id]->max_z() / tallest)) : 1.0f);
+    int shown = std::find(m_bar_object_ids.begin(), m_bar_object_ids.end(), last_object_id) != m_bar_object_ids.end() ?
+        last_object_id : m_bar_object_ids.front();
+    // A profile being painted stays with its object, wherever the mouse wanders.
+    if (state != Editing) {
+        const Vec2d mouse_pos = canvas.get_local_mouse_position();
+        if (const int bar = bar_at(canvas, float(mouse_pos.x()), float(mouse_pos.y())); bar >= 0)
+            shown = m_bar_object_ids[bar];
+    }
+    return shown;
 }
 
 bool GLCanvas3D::LayersEditing::is_initialized() const
@@ -571,6 +680,8 @@ void GLCanvas3D::LayersEditing::render_active_object_annotations(const GLCanvas3
         return;
 
     const float cnv_inv_width = 1.0f / cnv_width;
+    // The width the mouse is tested against, so that every bar is drawn where it is hit.
+    const float bar_w         = thickness_bar_width(canvas);
 
     GLShaderProgram* shader = wxGetApp().get_shader("variable_layer_height");
     if (shader == nullptr)
@@ -578,22 +689,27 @@ void GLCanvas3D::LayersEditing::render_active_object_annotations(const GLCanvas3
 
     shader->start_using();
 
-    shader->set_uniform("z_to_texture_row", float(m_layers_texture.cells - 1) / (float(m_layers_texture.width) * m_object_max_z));
+    generate_layer_height_texture();
+
     shader->set_uniform("z_texture_row_to_normalized", 1.0f / (float)m_layers_texture.height);
-    shader->set_uniform("z_cursor", m_object_max_z * this->get_cursor_z_relative(canvas));
     shader->set_uniform("z_cursor_band_width", band_width);
-    shader->set_uniform("object_max_z", m_object_max_z);
+    shader->set_uniform("dimming", 0.0f);
     shader->set_uniform("view_model_matrix", Transform3d::Identity());
     shader->set_uniform("projection_matrix", Transform3d::Identity());
     shader->set_uniform("view_normal_matrix", (Matrix3d)Matrix3d::Identity());
 
-    glsafe(::glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-    glsafe(::glBindTexture(GL_TEXTURE_2D, m_z_texture_id));
+    // Render the color bars, one per object that has one. Each is drawn at the scale of its own object.
+    const size_t active = this->active_bar();
+    const size_t bars   = std::max<size_t>(1, m_bar_object_ids.size());
+    for (size_t bar = 0; bar < bars; ++bar) {
+        const ObjectTexture* other   = bar == active ? nullptr : &this->other_object_texture(m_bar_object_ids[bar]);
+        const LayersTexture& texture = other == nullptr ? m_layers_texture : other->texture;
+        const float          max_z   = other == nullptr ? m_object_max_z : float(other->max_z);
 
-    // Render the color bar
-    if (!m_profile.background.is_initialized() || m_profile.old_canvas_width != cnv_width) {
-        m_profile.old_canvas_width = cnv_width;
-        m_profile.background.reset();
+        shader->set_uniform("z_to_texture_row", float(texture.cells - 1) / (float(texture.width) * max_z));
+        shader->set_uniform("z_cursor", other == nullptr ? max_z * this->get_cursor_z_relative(canvas) : -1000.0f * max_z);
+        shader->set_uniform("object_max_z", max_z);
+        this->load_texture(texture);
 
         GLModel::Geometry init_data;
         init_data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3N3T2 };
@@ -601,9 +717,9 @@ void GLCanvas3D::LayersEditing::render_active_object_annotations(const GLCanvas3
         init_data.reserve_indices(6);
 
         // vertices
-        const float l = 1.0f - 2.0f * THICKNESS_BAR_WIDTH * cnv_inv_width;
-        const float r = 1.0f;
-        const float t = 1.0f;
+        const float l = 1.0f - 2.0f * float(bar + 1) * bar_w * cnv_inv_width;
+        const float r = 1.0f - 2.0f * float(bar) * bar_w * cnv_inv_width;
+        const float t = -1.0f + 2.0f * this->bar_fraction(bar);
         const float b = -1.0f;
         init_data.add_vertex(Vec3f(l, b, 0.0f), Vec3f::UnitZ(), Vec2f(0.0f, 0.0f));
         init_data.add_vertex(Vec3f(r, b, 0.0f), Vec3f::UnitZ(), Vec2f(1.0f, 0.0f));
@@ -614,10 +730,10 @@ void GLCanvas3D::LayersEditing::render_active_object_annotations(const GLCanvas3
         init_data.add_triangle(0, 1, 2);
         init_data.add_triangle(2, 3, 0);
 
-        m_profile.background.init_from(std::move(init_data));
+        GLModel background;
+        background.init_from(std::move(init_data));
+        background.render();
     }
-
-    m_profile.background.render();
 
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
 
@@ -640,52 +756,83 @@ void GLCanvas3D::LayersEditing::render_profile(const GLCanvas3D& canvas)
     if (cnv_width == 0.0f || cnv_height == 0.0f)
         return;
 
+    const float bar_w   = thickness_bar_width(canvas);
     // Make the vertical bar a bit wider so the layer height curve does not touch the edge of the bar region.
-    const float scale_x = THICKNESS_BAR_WIDTH / float(1.12 * m_slicing_parameters->max_layer_height);
-    const float scale_y = cnv_height / m_object_max_z;
+    const float scale_x = bar_w / float(1.12 * m_slicing_parameters->max_layer_height);
 
     const float cnv_inv_width  = 1.0f / cnv_width;
     const float cnv_inv_height = 1.0f / cnv_height;
+    const auto  to_ndc_x       = [cnv_inv_width](float x) { return 2.0f * (x * cnv_inv_width - 0.5f); };
+    const auto  to_ndc_y       = [cnv_inv_height](float y) { return 2.0f * (y * cnv_inv_height - 0.5f); };
 
-    // Baseline
-    if (!m_profile.baseline.is_initialized() || m_profile.old_layer_height_profile != m_layer_height_profile) {
-        m_profile.baseline.reset();
+    const size_t active = this->active_bar();
+    const size_t bars   = std::max<size_t>(1, m_bar_object_ids.size());
 
-        GLModel::Geometry init_data;
-        init_data.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P2};
-        init_data.color = ColorRGBA::BLACK();
-        init_data.reserve_vertices(2);
-        init_data.reserve_indices(2);
+    // Straight lines: the baseline of each bar, the edges between bars, and on a bar shared by
+    // several objects the height at which each of the lower ones ends.
+    GLModel::Geometry lines_data;
+    lines_data.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P2 };
+    lines_data.color  = ColorRGBA::BLACK();
+    unsigned int lines_count = 0;
+    const auto add_line = [&lines_data, &lines_count](const Vec2f& from, const Vec2f& to) {
+        lines_data.add_vertex(from);
+        lines_data.add_vertex(to);
+        lines_data.add_line(2 * lines_count, 2 * lines_count + 1);
+        ++lines_count;
+    };
 
-        // vertices
-        const float axis_x = 2.0f * ((cnv_width - THICKNESS_BAR_WIDTH + float(m_slicing_parameters->layer_height) * scale_x) * cnv_inv_width - 0.5f);
-        init_data.add_vertex(Vec2f(axis_x, -1.0f));
-        init_data.add_vertex(Vec2f(axis_x, 1.0f));
+    std::vector<GLModel> profiles(bars);
+    for (size_t bar = 0; bar < bars; ++bar) {
+        const ObjectTexture*       other   = bar == active ? nullptr : &this->other_object_texture(m_bar_object_ids[bar]);
+        const std::vector<double>& profile = other == nullptr ? m_layer_height_profile : other->profile;
+        const float                scale_y = cnv_height * this->bar_fraction(bar) / (other == nullptr ? m_object_max_z : float(other->max_z));
+        const float                left    = cnv_width - float(bar + 1) * bar_w;
+        const float                top     = -1.0f + 2.0f * this->bar_fraction(bar);
 
-        // indices
-        init_data.add_line(0, 1);
-
-        m_profile.baseline.init_from(std::move(init_data));
-    }
-
-    if (!m_profile.profile.is_initialized() || m_profile.old_layer_height_profile != m_layer_height_profile) {
-        m_profile.old_layer_height_profile = m_layer_height_profile;
-        m_profile.profile.reset();
+        const float axis_x = to_ndc_x(left + float(m_slicing_parameters->layer_height) * scale_x);
+        add_line(Vec2f(axis_x, -1.0f), Vec2f(axis_x, top));
+        if (bars > 1) {
+            // The outline of the bar: its left edge and its top. The next bar to the right is at least as tall.
+            add_line(Vec2f(to_ndc_x(left), -1.0f), Vec2f(to_ndc_x(left), top));
+            add_line(Vec2f(to_ndc_x(left), top), Vec2f(to_ndc_x(left + bar_w), top));
+        }
 
         GLModel::Geometry init_data;
         init_data.format = { GLModel::Geometry::EPrimitiveType::LineStrip, GLModel::Geometry::EVertexLayout::P2 };
         init_data.color = ColorRGBA::BLUE();
-        init_data.reserve_vertices(m_layer_height_profile.size() / 2);
-        init_data.reserve_indices(m_layer_height_profile.size() / 2);
+        init_data.reserve_vertices(profile.size() / 2);
+        init_data.reserve_indices(profile.size() / 2);
 
         // vertices + indices
-        for (unsigned int i = 0; i < (unsigned int)m_layer_height_profile.size(); i += 2) {
-            init_data.add_vertex(Vec2f(2.0f * ((cnv_width - THICKNESS_BAR_WIDTH + float(m_layer_height_profile[i + 1]) * scale_x) * cnv_inv_width - 0.5f),
-                                       2.0f * (float(m_layer_height_profile[i]) * scale_y * cnv_inv_height - 0.5)));
+        for (unsigned int i = 0; i + 1 < (unsigned int)profile.size(); i += 2) {
+            init_data.add_vertex(Vec2f(to_ndc_x(left + float(profile[i + 1]) * scale_x), to_ndc_y(float(profile[i]) * scale_y)));
             init_data.add_index(i / 2);
         }
+        if (profile.size() >= 4)
+            profiles[bar].init_from(std::move(init_data));
+    }
 
-        m_profile.profile.init_from(std::move(init_data));
+    GLModel lines;
+    lines.init_from(std::move(lines_data));
+
+    // With several bars, the one pointed at is framed in white.
+    GLModel frame;
+    if (bars > 1 && this->bar_in_focus(canvas)) {
+        GLModel::Geometry frame_data;
+        frame_data.format = { GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P2 };
+        frame_data.color  = ColorRGBA::WHITE();
+        // Kept a pixel inside the bar, so the frame is not drawn over by the edge between bars.
+        const float l = to_ndc_x(cnv_width - float(active + 1) * bar_w + 1.0f);
+        const float r = to_ndc_x(cnv_width - float(active) * bar_w - 1.0f);
+        const float t = to_ndc_y(cnv_height * this->bar_fraction(active) - 1.0f);
+        frame_data.add_vertex(Vec2f(l, -1.0f));
+        frame_data.add_vertex(Vec2f(l, t));
+        frame_data.add_vertex(Vec2f(r, t));
+        frame_data.add_vertex(Vec2f(r, -1.0f));
+        frame_data.add_line(0, 1);
+        frame_data.add_line(1, 2);
+        frame_data.add_line(2, 3);
+        frame.init_from(std::move(frame_data));
     }
 
 #if SLIC3R_OPENGL_ES
@@ -707,8 +854,12 @@ void GLCanvas3D::LayersEditing::render_profile(const GLCanvas3D& canvas)
 #if !SLIC3R_OPENGL_ES
         }
 #endif // !SLIC3R_OPENGL_ES
-        m_profile.baseline.render();
-        m_profile.profile.render();
+        lines.render();
+        if (frame.is_initialized())
+            frame.render();
+        for (GLModel& profile : profiles)
+            if (profile.is_initialized())
+                profile.render();
         shader->stop_using();
     }
 }
@@ -732,42 +883,98 @@ void GLCanvas3D::LayersEditing::render_volumes(const GLCanvas3D& canvas, const G
     generate_layer_height_texture();
 
     // Uniforms were resolved, go ahead using the layer editing shader.
-    shader->set_uniform("z_to_texture_row", float(m_layers_texture.cells - 1) / (float(m_layers_texture.width) * float(m_object_max_z)));
     shader->set_uniform("z_texture_row_to_normalized", 1.0f / float(m_layers_texture.height));
-    shader->set_uniform("z_cursor", float(m_object_max_z) * float(this->get_cursor_z_relative(canvas)));
     shader->set_uniform("z_cursor_band_width", float(this->band_width));
+    // The band at the height under the mouse goes on the objects the edit will change: all of them
+    // while they share a profile, or the object shown alone when each has its own.
+    const float z_cursor = float(m_object_max_z) * float(this->get_cursor_z_relative(canvas));
+    shader->set_uniform("projection_matrix", wxGetApp().plater()->get_camera().get_projection_matrix());
 
-    const Camera& camera = wxGetApp().plater()->get_camera();
-    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    // Orca: the other selected objects, each with its own layer heights. The object shown goes last:
+    // the bar is drawn from whatever texture was loaded last.
+    // With a profile each, pointing at a bar tones down the objects it does not edit.
+    const float dimming = m_each_separately && this->bar_in_focus(canvas) ? 0.6f : 0.0f;
+    for (int object_id : this->edited_object_ids())
+        if (object_id != this->last_object_id) {
+            const ObjectTexture& other = this->other_object_texture(object_id);
+            this->render_object_volumes(volumes, *shader, object_id, other.texture, other.max_z, m_each_separately ? -1000.0f * float(other.max_z) : z_cursor, dimming);
+        }
+    this->render_object_volumes(volumes, *shader, this->last_object_id, m_layers_texture, m_object_max_z, z_cursor, 0.0f);
+    // Revert back to the previous shader.
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
 
+void GLCanvas3D::LayersEditing::render_object_volumes(const GLVolumeCollection& volumes, GLShaderProgram& shader, int object_id, const LayersTexture& texture, double object_max_z, float z_cursor, float dimming)
+{
+    shader.set_uniform("z_to_texture_row", float(texture.cells - 1) / (float(texture.width) * float(object_max_z)));
+    shader.set_uniform("z_cursor", z_cursor);
+    shader.set_uniform("dimming", dimming);
+    this->load_texture(texture);
+
+    const Transform3d& view_matrix = wxGetApp().plater()->get_camera().get_view_matrix();
+    for (GLVolume* glvolume : volumes.volumes) {
+        // Render the object using the layer editing shader and texture.
+        if (!glvolume->is_active || glvolume->composite_id.object_id != object_id || glvolume->is_modifier)
+            continue;
+
+        shader.set_uniform("volume_world_matrix", glvolume->world_matrix());
+        shader.set_uniform("object_max_z", 0.0f);
+        const Transform3d model_matrix = glvolume->world_matrix();
+        shader.set_uniform("view_model_matrix", view_matrix * model_matrix);
+        const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
+        shader.set_uniform("view_normal_matrix", view_normal_matrix);
+
+        glvolume->render();
+    }
+}
+
+// Loads the texture into m_z_texture_id and leaves it bound.
+void GLCanvas3D::LayersEditing::load_texture(const LayersTexture& texture)
+{
     // Initialize the layer height texture mapping.
-    const GLsizei w = (GLsizei)m_layers_texture.width;
-    const GLsizei h = (GLsizei)m_layers_texture.height;
+    const GLsizei w = (GLsizei)texture.width;
+    const GLsizei h = (GLsizei)texture.height;
     const GLsizei half_w = w / 2;
     const GLsizei half_h = h / 2;
     glsafe(::glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_z_texture_id));
     glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0));
     glsafe(::glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA, half_w, half_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0));
-    glsafe(::glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, m_layers_texture.data.data()));
-    glsafe(::glTexSubImage2D(GL_TEXTURE_2D, 1, 0, 0, half_w, half_h, GL_RGBA, GL_UNSIGNED_BYTE, m_layers_texture.data.data() + m_layers_texture.width * m_layers_texture.height * 4));
-    for (GLVolume* glvolume : volumes.volumes) {
-        // Render the object using the layer editing shader and texture.
-        if (!glvolume->is_active || glvolume->composite_id.object_id != this->last_object_id || glvolume->is_modifier)
-            continue;
+    glsafe(::glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, texture.data.data()));
+    glsafe(::glTexSubImage2D(GL_TEXTURE_2D, 1, 0, 0, half_w, half_h, GL_RGBA, GL_UNSIGNED_BYTE, texture.data.data() + texture.width * texture.height * 4));
+}
 
-        shader->set_uniform("volume_world_matrix", glvolume->world_matrix());
-        shader->set_uniform("object_max_z", 0.0f);
-        const Transform3d& view_matrix = camera.get_view_matrix();
-        const Transform3d model_matrix = glvolume->world_matrix();
-        shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
-        const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
-        shader->set_uniform("view_normal_matrix", view_normal_matrix);
+bool GLCanvas3D::LayersEditing::is_edited_object(int object_id) const
+{
+    return object_id == last_object_id || std::find(m_other_object_ids.begin(), m_other_object_ids.end(), object_id) != m_other_object_ids.end();
+}
 
-        glvolume->render();
+// The texture is regenerated only when the object's profile or height has changed.
+const GLCanvas3D::LayersEditing::ObjectTexture& GLCanvas3D::LayersEditing::other_object_texture(int object_id)
+{
+    const ModelObject& model_object = *m_model->objects[object_id];
+    ObjectTexture&     cached       = m_other_textures[object_id];
+    if (!cached.texture.valid || cached.max_z != model_object.max_z() || cached.model_profile != model_object.layer_height_profile.get()) {
+        cached.model_profile = model_object.layer_height_profile.get();
+        cached.max_z         = model_object.max_z();
+        const SlicingParameters slicing_parameters = this->slicing_parameters_of(model_object);
+        std::vector<double>&    profile = cached.profile;
+        profile.clear();
+        PrintObject::update_layer_height_profile(model_object, slicing_parameters, profile);
+        LayersTexture& texture = cached.texture;
+        if (texture.data.empty()) {
+            texture.width  = 1024;
+            texture.height = 1024;
+            texture.levels = 2;
+            texture.data.assign(texture.width * texture.height * 5, 0);
+        }
+        texture.cells = Slic3r::generate_layer_height_texture(
+            slicing_parameters,
+            Slic3r::generate_object_layers(slicing_parameters, profile, false),
+            texture.data.data(), texture.height, texture.width, true);
+        texture.valid = true;
     }
-    // Revert back to the previous shader.
-    glBindTexture(GL_TEXTURE_2D, 0);
+    return cached;
 }
 
 void GLCanvas3D::LayersEditing::adjust_layer_height_profile()
@@ -778,33 +985,78 @@ void GLCanvas3D::LayersEditing::adjust_layer_height_profile()
     m_layers_texture.valid = false;
 }
 
+std::vector<int> GLCanvas3D::LayersEditing::edited_object_ids() const
+{
+    std::vector<int> object_ids{ last_object_id };
+    for (int object_id : m_other_object_ids)
+        if (object_id >= 0 && object_id < int(m_model->objects.size()) && object_id != last_object_id)
+            object_ids.emplace_back(object_id);
+    return object_ids;
+}
+
+SlicingParameters GLCanvas3D::LayersEditing::slicing_parameters_of(const ModelObject& model_object) const
+{
+    return PrintObject::slicing_parameters(*m_config, model_object, float(model_object.max_z()), m_shrinkage_compensation);
+}
+
+// profiles[0] is the profile of the object shown.
+void GLCanvas3D::LayersEditing::set_profiles(GLCanvas3D& canvas, const std::vector<int>& object_ids, const std::vector<std::vector<double>>& profiles)
+{
+    for (size_t i = 0; i < object_ids.size(); ++i) {
+        m_model->objects[object_ids[i]]->layer_height_profile.set(profiles[i]);
+        wxGetApp().obj_list()->update_info_items(object_ids[i]);
+    }
+    m_layer_height_profile = profiles.front();
+    m_layers_texture.valid = false;
+    canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+}
+
 void GLCanvas3D::LayersEditing::reset_layer_height_profile(GLCanvas3D & canvas)
 {
-    const_cast<ModelObject*>(m_model_object)->layer_height_profile.clear();
+    for (int object_id : this->edited_object_ids()) {
+        m_model->objects[object_id]->layer_height_profile.clear();
+        wxGetApp().obj_list()->update_info_items(object_id);
+    }
     m_layer_height_profile.clear();
     m_layers_texture.valid = false;
     canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
-    wxGetApp().obj_list()->update_info_items(last_object_id);
 }
 
 void GLCanvas3D::LayersEditing::adaptive_layer_height_profile(GLCanvas3D & canvas, float quality_factor)
 {
     this->update_slicing_parameters();
-    m_layer_height_profile = layer_height_profile_adaptive(*m_slicing_parameters, *m_model_object, quality_factor);
-    const_cast<ModelObject*>(m_model_object)->layer_height_profile.set(m_layer_height_profile);
-    m_layers_texture.valid = false;
-    canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
-    wxGetApp().obj_list()->update_info_items(last_object_id);
+    const std::vector<int> object_ids = this->edited_object_ids();
+    std::vector<std::vector<double>> profiles;
+    for (int object_id : object_ids) {
+        const ModelObject& model_object = *m_model->objects[object_id];
+        profiles.emplace_back(layer_height_profile_adaptive(this->slicing_parameters_of(model_object), model_object, quality_factor));
+    }
+    if (profiles.size() > 1 && !m_each_separately) {
+        // One profile for all: the finest layer height any of the objects asks for at each Z.
+        const std::vector<double> merged = layer_height_profile_merge_finest(profiles);
+        for (size_t i = 0; i < object_ids.size(); ++i)
+            profiles[i] = layer_height_profile_fit_to_height(merged, m_model->objects[object_ids[i]]->max_z());
+    }
+    this->set_profiles(canvas, object_ids, profiles);
 }
 
 void GLCanvas3D::LayersEditing::smooth_layer_height_profile(GLCanvas3D & canvas, const HeightProfileSmoothingParams & smoothing_params)
 {
     this->update_slicing_parameters();
-    m_layer_height_profile = smooth_height_profile(m_layer_height_profile, *m_slicing_parameters, smoothing_params);
-    const_cast<ModelObject*>(m_model_object)->layer_height_profile.set(m_layer_height_profile);
-    m_layers_texture.valid = false;
-    canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
-    wxGetApp().obj_list()->update_info_items(last_object_id);
+    const std::vector<int> object_ids = this->edited_object_ids();
+    // The object shown is the tallest one, so its profile covers the others when they share one.
+    std::vector<std::vector<double>> profiles{ smooth_height_profile(m_layer_height_profile, *m_slicing_parameters, smoothing_params) };
+    for (size_t i = 1; i < object_ids.size(); ++i) {
+        const ModelObject& model_object = *m_model->objects[object_ids[i]];
+        if (m_each_separately) {
+            const SlicingParameters slicing_parameters = this->slicing_parameters_of(model_object);
+            std::vector<double>     profile;
+            PrintObject::update_layer_height_profile(model_object, slicing_parameters, profile);
+            profiles.emplace_back(smooth_height_profile(profile, slicing_parameters, smoothing_params));
+        } else
+            profiles.emplace_back(layer_height_profile_fit_to_height(profiles.front(), model_object.max_z()));
+    }
+    this->set_profiles(canvas, object_ids, profiles);
 }
 
 void GLCanvas3D::LayersEditing::generate_layer_height_texture()
@@ -841,6 +1093,14 @@ void GLCanvas3D::LayersEditing::accept_changes(GLCanvas3D & canvas)
     if (last_object_id >= 0) {
         wxGetApp().plater()->take_snapshot("Variable layer height - Manual edit");
         const_cast<ModelObject*>(m_model_object)->layer_height_profile.set(m_layer_height_profile);
+        if (!m_each_separately)
+            // The other selected objects share the profile that was just edited.
+            for (int object_id : this->edited_object_ids())
+                if (object_id != last_object_id) {
+                    ModelObject& model_object = *m_model->objects[object_id];
+                    model_object.layer_height_profile.set(layer_height_profile_fit_to_height(m_layer_height_profile, model_object.max_z()));
+                    wxGetApp().obj_list()->update_info_items(object_id);
+                }
         canvas.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
         wxGetApp().obj_list()->update_info_items(last_object_id);
     }
@@ -2278,6 +2538,20 @@ void GLCanvas3D::smooth_layer_height_profile(const HeightProfileSmoothingParams&
     m_layers_editing.smooth_layer_height_profile(*this, smoothing_params);
     m_layers_editing.state = LayersEditing::Completed;
     m_dirty = true;
+}
+
+std::vector<int> GLCanvas3D::get_layers_editing_object_idxs() const
+{
+    std::vector<int> object_idxs;
+    if (m_model == nullptr)
+        return object_idxs;
+    for (const auto& [object_idx, instance_idxs] : m_selection.get_content())
+        if (object_idx >= 0 && object_idx < int(m_model->objects.size()) && m_model->objects[object_idx]->max_z() > SINKING_Z_THRESHOLD)
+            object_idxs.emplace_back(object_idx);
+    std::stable_sort(object_idxs.begin(), object_idxs.end(), [this](int lhs, int rhs) {
+        return m_model->objects[lhs]->max_z() > m_model->objects[rhs]->max_z();
+    });
+    return object_idxs;
 }
 
 void GLCanvas3D::enable_layers_editing(bool enable)
@@ -4104,12 +4378,13 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
     };
 
     switch (shortcut) {
+    // Orca: the variable layer height tool works on several objects, so selecting all stays available in it.
     case Shortcut::SelectAll:
-        if (!painting && !m_layers_editing.is_enabled())
+        if (!painting)
             post_event(SimpleEvent(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL));
         break;
     case Shortcut::SelectAllPlates:
-        if (!painting && !m_layers_editing.is_enabled())
+        if (!painting)
             post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
         break;
     case Shortcut::Copy:  if (!painting) post_event(SimpleEvent(EVT_GLTOOLBAR_COPY)); break;
@@ -4775,7 +5050,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 #endif /* SLIC3R_DEBUG_MOUSE_EVENTS */
     }
     const int selected_object_idx      = m_selection.get_object_idx();
-    const int layer_editing_object_idx = is_layers_editing_enabled() ? selected_object_idx : -1;
+    // Orca: with several objects selected, the tool shows the tallest one.
+    const int layer_editing_object_idx = is_layers_editing_enabled() ?
+        (selected_object_idx != -1 ? selected_object_idx : m_layers_editing.last_object_id) : -1;
     const bool mouse_in_layer_editing  = layer_editing_object_idx != -1 && m_layers_editing.bar_rect_contains(*this, pos(0), pos(1));
 
     if (!mouse_in_layer_editing && m_main_toolbar.on_mouse(evt, *this)) {
@@ -9387,9 +9664,14 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
 
     m_camera_clipping_plane = _get_volumes_clipping_plane();
 
-    if (m_picking_enabled)
-        // Update the layer editing selection to the first object selected, update the current object maximum Z.
-        m_layers_editing.select_object(*m_model, this->is_layers_editing_enabled() ? m_selection.get_object_idx() : -1);
+    if (m_picking_enabled) {
+        // Update the layer editing selection to the tallest object selected, update the current object maximum Z.
+        std::vector<int> object_idxs = this->is_layers_editing_enabled() ? this->get_layers_editing_object_idxs() : std::vector<int>();
+        const int        shown       = m_layers_editing.choose_shown_object(*this, *m_model, object_idxs);
+        m_layers_editing.select_object(*m_model, shown);
+        object_idxs.erase(std::remove(object_idxs.begin(), object_idxs.end(), shown), object_idxs.end());
+        m_layers_editing.set_other_objects(std::move(object_idxs));
+    }
 
     if (const BuildVolume &build_volume = m_bed.build_volume(); build_volume.valid()) {
         switch (build_volume.type()) {
@@ -9510,11 +9792,10 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
             if (dynamic_cast<GLGizmoPainterBase*>(gm.get_current()) == nullptr)
             {
                 if (m_picking_enabled && m_layers_editing.is_enabled() && (m_layers_editing.last_object_id != -1) && (m_layers_editing.object_max_z() > 0.0f)) {
-                    int object_id = m_layers_editing.last_object_id;
                 const Camera& camera = wxGetApp().plater()->get_camera();
-                m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), cvn_size, [object_id](const GLVolume& volume) {
+                m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), cvn_size, [this](const GLVolume& volume) {
                     // Which volume to paint without the layer height profile shader?
-                    return volume.is_active && (volume.is_modifier || volume.composite_id.object_id != object_id);
+                    return volume.is_active && (volume.is_modifier || !m_layers_editing.is_edited_object(volume.composite_id.object_id));
                     });
                     m_layers_editing.render_volumes(*this, m_volumes);
                 }

@@ -163,6 +163,20 @@ std::vector<coordf_t> layer_height_profile_from_ranges(
     const SlicingParameters     &slicing_params,
     const t_layer_config_ranges &layer_config_ranges);
 
+// Orca: fit a layer height profile onto an object of another height, so that both objects are sliced
+// at the same Z over the height they share. The profile is cut at object_height, or its last
+// layer height is carried up to it.
+std::vector<coordf_t> layer_height_profile_fit_to_height(
+    const std::vector<coordf_t> &layer_height_profile,
+    coordf_t                     object_height);
+
+// Orca: one profile for several objects, taking the finest of their layer heights at every Z, up to
+// the top of the tallest one, with one entry per layer. The entry at the top of a profile only
+// closes it, so each profile counts with its last layer height before it, and above that top the
+// layer height is eased back up rather than released at once.
+std::vector<coordf_t> layer_height_profile_merge_finest(
+    const std::vector<std::vector<coordf_t>> &layer_height_profiles);
+
 std::vector<double> layer_height_profile_adaptive(
     const SlicingParameters& slicing_params,
     const ModelObject& object, float quality_factor);

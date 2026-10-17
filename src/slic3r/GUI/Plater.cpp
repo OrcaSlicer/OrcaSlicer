@@ -15066,8 +15066,8 @@ bool Plater::priv::layers_height_allowed() const
     if (printer_technology != ptFFF)
         return false;
 
-    int obj_idx = get_selected_object_idx();
-    return 0 <= obj_idx && obj_idx < (int)model.objects.size() && model.objects[obj_idx]->max_z() > SINKING_Z_THRESHOLD && view3D->is_layers_editing_allowed();
+    // Orca: one object or several.
+    return !view3D->get_canvas3d()->get_layers_editing_object_idxs().empty() && view3D->is_layers_editing_allowed();
 }
 
 bool Plater::priv::can_layers_editing() const

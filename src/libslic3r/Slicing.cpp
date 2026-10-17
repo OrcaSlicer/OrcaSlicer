@@ -812,6 +812,95 @@ bool adjust_layer_series_to_align_object_height(const SlicingParameters &slicing
     return true;
 }
 
+std::vector<coordf_t> layer_height_profile_fit_to_height(
+    const std::vector<coordf_t> &layer_height_profile,
+    coordf_t                     object_height)
+{
+    assert(layer_height_profile.size() >= 2);
+    assert(layer_height_profile.size() % 2 == 0);
+    assert(layer_height_profile[0] == 0);
+    assert(object_height > EPSILON);
+
+    std::vector<coordf_t> out;
+    out.reserve(layer_height_profile.size() + 2);
+    size_t i = 0;
+    for (; i < layer_height_profile.size() && layer_height_profile[i] < object_height - EPSILON; i += 2) {
+        out.push_back(layer_height_profile[i]);
+        out.push_back(layer_height_profile[i + 1]);
+    }
+
+    // The last entry has to sit exactly at the top of the object, see PrintObject::update_layer_height_profile().
+    coordf_t height = layer_height_profile.back();
+    if (i < layer_height_profile.size()) {
+        const coordf_t z1 = layer_height_profile[i - 2];
+        const coordf_t z2 = layer_height_profile[i];
+        height = lerp(layer_height_profile[i - 1], layer_height_profile[i + 1], (object_height - z1) / (z2 - z1));
+    }
+    out.push_back(object_height);
+    out.push_back(height);
+    return out;
+}
+
+std::vector<coordf_t> layer_height_profile_merge_finest(
+    const std::vector<std::vector<coordf_t>> &layer_height_profiles)
+{
+    assert(! layer_height_profiles.empty());
+    const std::vector<coordf_t> *tallest = &layer_height_profiles.front();
+    for (const std::vector<coordf_t> &profile : layer_height_profiles) {
+        assert(profile.size() >= 4);
+        assert(profile.size() % 2 == 0);
+        if (profile[profile.size() - 2] > (*tallest)[tallest->size() - 2])
+            tallest = &profile;
+    }
+    const coordf_t top = (*tallest)[tallest->size() - 2];
+
+    // Index of the entry each profile was last read at. The Zs only grow, so it never moves back.
+    std::vector<size_t> cursors(layer_height_profiles.size(), 0);
+    // The finest layer height asked for at z. Above its own top an object asks for nothing, but its
+    // last layer height is eased back up at the rate the adaptive profile allows from one layer to
+    // the next, rather than released at once: a jump there is a seam on the taller objects.
+    const auto finest_at = [&layer_height_profiles, &cursors](coordf_t z) {
+        coordf_t height = std::numeric_limits<coordf_t>::max();
+        for (size_t idx_profile = 0; idx_profile < layer_height_profiles.size(); ++idx_profile) {
+            const std::vector<coordf_t> &profile     = layer_height_profiles[idx_profile];
+            const size_t                 end         = profile.size() - 2;
+            const coordf_t               profile_top = profile[end];
+            if (z > profile_top + EPSILON) {
+                const coordf_t last = profile[end - 1];
+                height = std::min(height, std::sqrt(last * last + 2. * LAYER_HEIGHT_CHANGE_STEP * (z - profile_top)));
+                continue;
+            }
+            size_t &i = cursors[idx_profile];
+            while (i + 2 < end && profile[i + 2] <= z)
+                i += 2;
+            height = std::min(height, i + 2 < end ?
+                lerp(profile[i + 1], profile[i + 3], (z - profile[i]) / (profile[i + 2] - profile[i])) :
+                profile[i + 1]);
+        }
+        return height;
+    };
+
+    // One entry per layer, as layer_height_profile_adaptive() lays its profile out, which is the
+    // spacing smooth_height_profile() counts on. A fixed first layer keeps its own two entries.
+    std::vector<coordf_t> out{ 0., (*tallest)[1] };
+    coordf_t print_z = (*tallest)[1];
+    if (std::abs((*tallest)[2] - print_z) < EPSILON && std::abs((*tallest)[3] - print_z) < EPSILON) {
+        out.push_back(print_z);
+        out.push_back(print_z);
+    }
+    while (print_z + EPSILON < top) {
+        const coordf_t height = finest_at(print_z);
+        if (height < EPSILON)
+            break;
+        out.push_back(print_z);
+        out.push_back(height);
+        print_z += height;
+    }
+    out.push_back(top);
+    out.push_back(out[out.size() - 2]);
+    return out;
+}
+
 // Produce object layers as pairs of low / high layer boundaries, stored into a linear vector.
 std::vector<coordf_t> generate_object_layers(
 	const SlicingParameters 	&slicing_params,

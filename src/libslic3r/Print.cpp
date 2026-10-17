@@ -2180,7 +2180,10 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             return {L("The project contains multiple managed belt purge towers. Reload the plate or toggle the belt purge tower off and on to regenerate it.")};
     }
 
-    if (m_config.enable_prime_tower) {
+    if (m_precise_z_height_overridden)
+        // TRN "Precise Z height" is a print setting, "prime tower" the tower that purges the nozzle between filaments.
+        warn(L("Precise Z height is not applied: with the prime tower, objects of different heights that use variable layer height have to share their layers."), "precise_z_height");
+    else if (m_config.enable_prime_tower) {
         for (const PrintObject* object : m_objects) {
             if (object->config().precise_z_height.value) {
                 warn(L("Enabling both precise Z height and the prime tower may cause slicing errors."), "precise_z_height");
@@ -2255,7 +2258,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             have_height     = raw_z > 0;
         } else {
             //FIXME It is quite expensive to generate object layers just to get the print height!
-            auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.config().precise_z_height.value);
+            auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.precise_z_height());
             if (!layers.empty()) {
                 // The object layers start above the raft.
                 const double raft_z  = print_object.slicing_parameters().object_print_z_min;
@@ -2406,26 +2409,21 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 layer_z_series.assign(m_objects.size(), std::vector<coordf_t>());
                
                 for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
-                    layer_z_series[idx_object] = generate_object_layers(m_objects[idx_object]->slicing_parameters(), layer_height_profiles[idx_object], m_objects[idx_object]->config().precise_z_height.value);
+                    layer_z_series[idx_object] = generate_object_layers(m_objects[idx_object]->slicing_parameters(), layer_height_profiles[idx_object], m_objects[idx_object]->precise_z_height());
                 }
 
                 for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
                     if (idx_object == tallest_object_idx) continue;
-                    // Check that the layer height profiles are equal. This will happen when one object is
-                    // a copy of another, or when a layer height modifier is used the same way on both objects.
-                    // The latter case might create a floating point inaccuracy mismatch, so compare
-                    // element-wise using an epsilon check.
-                    size_t         i   = 0;
+                    // Orca: check that the objects are sliced at the same Z over the height they share. The
+                    // profiles themselves cannot be compared: one that ends at a lower object's top has an
+                    // entry there that the tallest object's profile lacks, though both give the same layers.
+                    const std::vector<coordf_t> &layers         = layer_z_series[idx_object];
+                    const std::vector<coordf_t> &layers_tallest = layer_z_series[tallest_object_idx];
                     const coordf_t eps = 0.5 * EPSILON; // layers closer than EPSILON will be merged later. Let's make
                     // this check a bit more sensitive to make sure we never consider two different layers as one.
-                    while (i < layer_height_profiles[idx_object].size() && i < layer_height_profiles[tallest_object_idx].size()) {
-                        // BBS: remove the break condition, because a variable layer height object and a new object will not be checked when slicing
-                        //if (i % 2 == 0 && layer_height_profiles[tallest_object_idx][i] > layer_height_profiles[idx_object][layer_height_profiles[idx_object].size() - 2])
-                        //    break;
-                        if (std::abs(layer_height_profiles[idx_object][i] - layer_height_profiles[tallest_object_idx][i]) > eps)
+                    for (size_t i = 0; i < layers.size() && i < layers_tallest.size(); ++i)
+                        if (std::abs(layers[i] - layers_tallest[i]) > eps)
                             return {L("The prime tower is only supported if all objects have the same variable layer height.")};
-                        ++i;
-                    }
                 }
             }
         }

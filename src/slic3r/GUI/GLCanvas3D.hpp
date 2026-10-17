@@ -267,6 +267,11 @@ class GLCanvas3D
         const DynamicPrintConfig* m_config{ nullptr };
         // ModelObject for the currently selected object (Model::objects[last_object_id]).
         const ModelObject* m_model_object{ nullptr };
+        // Orca: the other selected objects, edited along with the one shown. Indices into m_model->objects.
+        const Model*                m_model{ nullptr };
+        std::vector<int>            m_other_object_ids;
+        // Orca: whether several selected objects each get a profile of their own, or share one.
+        bool                        m_each_separately{ false };
         // Maximum z of the currently selected object (Model::objects[last_object_id]).
         float                       m_object_max_z{ 0.0f };
         // Owned by LayersEditing.
@@ -297,6 +302,27 @@ class GLCanvas3D
             bool                valid{ false };
         };
         LayersTexture   m_layers_texture;
+        // Orca: the layer height textures of the other selected objects, each with the profile and
+        // the height it was generated from. Keyed by the index into m_model->objects.
+        struct ObjectTexture
+        {
+            LayersTexture       texture;
+            std::vector<double> model_profile;
+            // The profile the object is sliced with, which is model_profile or the default one.
+            std::vector<double> profile;
+            double              max_z{ 0. };
+        };
+        std::map<int, ObjectTexture> m_other_textures;
+        // Orca: the objects that have a bar of their own, the rightmost bar first. With one profile
+        // shared between the selected objects that is the tallest object alone; with a profile each,
+        // the tallest ones, up to MAX_BARS. The object shown (last_object_id) is one of them.
+        static constexpr size_t MAX_BARS = 3;
+        std::vector<int> m_bar_object_ids;
+        // Height of each bar as a fraction of the canvas height: the bars share one scale, set by the
+        // tallest object, so a lower object has a lower bar.
+        std::vector<float> m_bar_fractions;
+        // Whether the notice that some selected objects have no bar is up.
+        bool m_bars_notice_shown{ false };
 
     public:
         EState state{ Unknown };
@@ -305,15 +331,6 @@ class GLCanvas3D
         int last_object_id{ -1 };
         float last_z{ 0.0f };
         LayerHeightEditActionType last_action{ LAYER_HEIGHT_EDIT_ACTION_INCREASE };
-        struct Profile
-        {
-            GLModel baseline;
-            GLModel profile;
-            GLModel background;
-            float old_canvas_width{ 0.0f };
-            std::vector<double> old_layer_height_profile;
-        };
-        Profile m_profile;
 
         LayersEditing() = default;
         ~LayersEditing();
@@ -322,6 +339,12 @@ class GLCanvas3D
 
         void set_config(const DynamicPrintConfig* config);
         void select_object(const Model& model, int object_id);
+        void set_other_objects(std::vector<int> object_ids) { m_other_object_ids = std::move(object_ids); }
+        // Orca: lays out the bars for the selected objects (tallest first) and returns the object to
+        // show and edit: the one whose bar the mouse is on, or else the one shown so far.
+        int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids);
+        // Orca: whether the tool paints this object with its layer heights.
+        bool is_edited_object(int object_id) const;
 
         bool is_allowed() const;
 
@@ -342,6 +365,8 @@ class GLCanvas3D
         static bool bar_rect_contains(const GLCanvas3D& canvas, float x, float y);
         static Rect get_bar_rect_screen(const GLCanvas3D& canvas);
         static float get_overlay_window_width() { return LayersEditing::s_overlay_window_width; }
+        // Orca: the width taken by the bars beyond the first one, which notifications have to clear too.
+        float extra_bars_width() const { return m_enabled && m_bar_object_ids.size() > 1 ? float(m_bar_object_ids.size() - 1) * THICKNESS_BAR_WIDTH : 0.0f; }
 
         float object_max_z() const { return m_object_max_z; }
 
@@ -350,9 +375,22 @@ class GLCanvas3D
     private:
         bool is_initialized() const;
         void generate_layer_height_texture();
+        const ObjectTexture& other_object_texture(int object_id);
+        void load_texture(const LayersTexture& texture);
+        // Index into m_bar_object_ids of the bar of the object shown.
+        size_t active_bar() const;
+        bool bar_in_focus(const GLCanvas3D& canvas) const;
+        float bar_fraction(size_t bar) const { return bar < m_bar_fractions.size() ? m_bar_fractions[bar] : 1.0f; }
+        // Index of the bar under the given point, or -1.
+        static int bar_at(const GLCanvas3D& canvas, float x, float y);
+        void render_object_volumes(const GLVolumeCollection& volumes, GLShaderProgram& shader, int object_id, const LayersTexture& texture, double object_max_z, float z_cursor, float dimming);
         void render_active_object_annotations(const GLCanvas3D& canvas);
         void render_profile(const GLCanvas3D& canvas);
         void update_slicing_parameters();
+        // Orca: the object shown, followed by the other selected ones.
+        std::vector<int> edited_object_ids() const;
+        SlicingParameters slicing_parameters_of(const ModelObject& model_object) const;
+        void set_profiles(GLCanvas3D& canvas, const std::vector<int>& object_ids, const std::vector<std::vector<double>>& profiles);
 
         static float thickness_bar_width(const GLCanvas3D& canvas);
     };
@@ -1075,6 +1113,8 @@ public:
 
     bool is_layers_editing_enabled() const { return m_layers_editing.is_enabled(); }
     bool is_layers_editing_allowed() const { return m_layers_editing.is_allowed(); }
+    // Orca: the selected objects the variable layer height tool edits, tallest first. The tallest is the one it shows.
+    std::vector<int> get_layers_editing_object_idxs() const;
 
     void reset_layer_height_profile();
     void adaptive_layer_height_profile(float quality_factor);
@@ -1651,7 +1691,7 @@ private:
     bool _deactivate_layersediting_menu();
 
     // BBS FIXME
-    float get_overlay_window_width() { return 0; /*LayersEditing::get_overlay_window_width();*/ }
+    float get_overlay_window_width() { return m_layers_editing.extra_bars_width(); /*LayersEditing::get_overlay_window_width();*/ }
 };
 
 const ModelVolume *get_model_volume(const GLVolume &v, const Model &model);

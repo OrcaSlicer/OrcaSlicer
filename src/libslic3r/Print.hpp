@@ -494,6 +494,8 @@ public:
     // The slicing parameters are dependent on various configuration values
     // (layer height, first layer height, raft settings, print nozzle diameter etc).
     const SlicingParameters&    slicing_parameters() const { return m_slicing_params; }
+    // Orca: whether precise Z height shapes the layers of this object; see Print::precise_z_height_overridden().
+    bool                        precise_z_height() const;
     // Orca: XYZ shrinkage compensation has introduced the const Vec3d &object_shrinkage_compensation parameter to the function below
     static SlicingParameters    slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation, std::vector<int> variant_index = std::vector<int>());
 
@@ -1184,6 +1186,10 @@ public:
     bool                        has_wipe_tower() const;
     // Belt purge prism (belt-mode replacement for the wipe tower).
     bool                        has_belt_purge_tower() const;
+    // Orca: precise Z height fits the last layers of each object to its own height. With a prime tower
+    // and variable layer height on objects of different heights that would put the objects on
+    // different layers, so it is left out of the whole print.
+    bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
@@ -1554,6 +1560,7 @@ private:
     // Estimated print time, filament consumed.
     PrintStatistics                         m_print_statistics;
     bool                                    m_support_used {false};
+    bool                                    m_precise_z_height_overridden {false};
     StatisticsByExtruderCount               m_statistics_by_extruder_count;
 
     std::vector<unsigned int> m_slice_used_filaments;
