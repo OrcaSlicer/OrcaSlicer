@@ -32010,7 +32010,7 @@ msgid "Medium violet red"
 msgstr "中紫罗兰红"
 
 # AI Translated
-msgid "PaleV violet red"
+msgid "Pale violet red"
 msgstr "浅紫罗兰红"
 
 # AI Translated
@@ -32283,10 +32283,6 @@ msgid "Seashell white"
 msgstr "贝壳白"
 
 # AI Translated
-msgid "Pebble gray"
-msgstr "卵石灰"
-
-# AI Translated
 msgid "Storm cloud"
 msgstr "风暴云"
 
@@ -32344,7 +32340,7 @@ msgid "Zinc yellow"
 msgstr "锌黄"
 
 # AI Translated
-msgid "Grey beige"
+msgid "Gray beige"
 msgstr "灰米色"
 
 # AI Translated
@@ -32592,7 +32588,7 @@ msgid "Mahogany"
 msgstr "桃花心木色"
 
 # AI Translated
-msgid "Grey purple"
+msgid "Gray purple"
 msgstr "灰紫色"
 
 # AI Translated
@@ -32604,7 +32600,7 @@ msgid "Fir green"
 msgstr "冷杉绿"
 
 # AI Translated
-msgid "Sabine grey"
+msgid "Sabine gray"
 msgstr "萨宾灰"
 
 # AI Translated
@@ -32640,7 +32636,7 @@ msgid "Brilliant blue"
 msgstr "艳蓝色"
 
 # AI Translated
-msgid "Grey blue"
+msgid "Gray blue"
 msgstr "灰蓝色"
 
 # AI Translated
@@ -32724,7 +32720,7 @@ msgid "Moss green"
 msgstr "苔藓绿"
 
 # AI Translated
-msgid "Grey olive"
+msgid "Gray olive"
 msgstr "灰橄榄绿"
 
 # AI Translated
@@ -32812,11 +32808,11 @@ msgid "Luminous green"
 msgstr "荧光绿"
 
 # AI Translated
-msgid "Squirrel grey"
+msgid "Squirrel gray"
 msgstr "松鼠灰"
 
 # AI Translated
-msgid "Silver grey"
+msgid "Silver gray"
 msgstr "银灰色"
 
 # AI Translated
@@ -32824,135 +32820,131 @@ msgid "Olivestone"
 msgstr "橄榄石色"
 
 # AI Translated
-msgid "Moss grey"
+msgid "Moss gray"
 msgstr "苔藓灰"
 
 # AI Translated
-msgid "Signal grey"
+msgid "Signal gray"
 msgstr "信号灰"
 
 # AI Translated
-msgid "Mouse grey"
+msgid "Mouse gray"
 msgstr "鼠灰色"
 
 # AI Translated
-msgid "Beige grey"
+msgid "Beige gray"
 msgstr "米灰色"
 
 # AI Translated
-msgid "Khaki grey"
+msgid "Khaki gray"
 msgstr "卡其灰"
 
 # AI Translated
-msgid "Green grey"
+msgid "Green gray"
 msgstr "绿灰色"
 
 # AI Translated
-msgid "Tarpaulin grey"
+msgid "Tarpaulin gray"
 msgstr "篷布灰"
 
 # AI Translated
-msgid "Iron grey"
+msgid "Iron gray"
 msgstr "铁灰色"
 
 # AI Translated
-msgid "Basalt grey"
+msgid "Basalt gray"
 msgstr "玄武岩灰"
 
 # AI Translated
-msgid "Brown grey"
+msgid "Brown gray"
 msgstr "棕灰色"
 
 # AI Translated
-msgid "Slate grey"
-msgstr "石板灰"
-
-# AI Translated
-msgid "Anthracite grey"
+msgid "Anthracite gray"
 msgstr "无烟煤灰"
 
 # AI Translated
-msgid "Light grey"
+msgid "Light gray"
 msgstr "浅灰色"
 
 # AI Translated
-msgid "Umber grey"
+msgid "Umber gray"
 msgstr "棕土灰"
 
 # AI Translated
-msgid "Concrete grey"
+msgid "Concrete gray"
 msgstr "混凝土灰"
 
 # AI Translated
-msgid "Graphite grey"
+msgid "Graphite gray"
 msgstr "石墨灰"
 
 # AI Translated
-msgid "Granite grey"
+msgid "Granite gray"
 msgstr "花岗岩灰"
 
 # AI Translated
-msgid "Stone grey"
+msgid "Stone gray"
 msgstr "岩石灰"
 
 # AI Translated
-msgid "Pebble grey"
+msgid "Pebble gray"
 msgstr "卵石灰"
 
 # AI Translated
-msgid "Cement grey"
+msgid "Cement gray"
 msgstr "水泥灰"
 
 # AI Translated
-msgid "Yellow grey"
+msgid "Yellow gray"
 msgstr "黄灰色"
 
 # AI Translated
-msgid "Platinum grey"
+msgid "Platinum gray"
 msgstr "铂灰色"
 
 # AI Translated
-msgid "Dusty grey"
+msgid "Dusty gray"
 msgstr "尘灰色"
 
 # AI Translated
-msgid "Agate grey"
+msgid "Agate gray"
 msgstr "玛瑙灰"
 
 # AI Translated
-msgid "Quartz grey"
+msgid "Quartz gray"
 msgstr "石英灰"
 
 # AI Translated
-msgid "Window grey"
+msgid "Window gray"
 msgstr "窗灰色"
 
 # AI Translated
-msgid "Traffic grey A"
+msgid "Traffic gray A"
 msgstr "交通灰 A"
 
 # AI Translated
-msgid "Traffic grey B"
+msgid "Traffic gray B"
 msgstr "交通灰 B"
 
 # AI Translated
-msgid "Silk grey"
+msgid "Silk gray"
 msgstr "丝绸灰"
 
 # AI Translated
-msgid "Telegrey 1"
+msgid "Telegray 1"
 msgstr "电信灰 1"
 
 # AI Translated
-msgid "Telegrey 2"
+msgid "Telegray 2"
 msgstr "电信灰 2"
 
 # AI Translated
-msgid "Telegrey 4"
+msgid "Telegray 4"
 msgstr "电信灰 4"
 
 # AI Translated
-msgid "Pearl mouse grey"
+msgid "Pearl mouse gray"
 msgstr "珍珠鼠灰"
 
 # AI Translated
@@ -33000,7 +32992,7 @@ msgid "Mahogany brown"
 msgstr "桃花心木棕"
 
 # AI Translated
-msgid "Grey brown"
+msgid "Gray brown"
 msgstr "灰棕色"
 
 # AI Translated
@@ -33028,7 +33020,7 @@ msgid "Cream"
 msgstr "奶油色"
 
 # AI Translated
-msgid "Grey white"
+msgid "Gray white"
 msgstr "灰白色"
 
 # AI Translated
@@ -33048,7 +33040,7 @@ msgid "White aluminium"
 msgstr "白铝色"
 
 # AI Translated
-msgid "Grey aluminium"
+msgid "Gray aluminium"
 msgstr "灰铝色"
 
 # AI Translated
@@ -33072,7 +33064,7 @@ msgid "Papyrus white"
 msgstr "莎草纸白"
 
 # AI Translated
-msgid "Pearl light grey"
+msgid "Pearl light gray"
 msgstr "珍珠浅灰"
 
 # AI Translated
