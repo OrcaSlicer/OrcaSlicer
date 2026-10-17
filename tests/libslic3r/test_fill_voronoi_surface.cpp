@@ -354,6 +354,40 @@ public:
 };
 }
 
+TEST_CASE("Cellular cavities use native wall flow and solid floor fill", "[FillVoronoi][Hull]")
+{
+    const ExPolygon outline {Point::new_scale(-10., -10.), Point::new_scale(10., -10.),
+                             Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
+    FillParams params;
+    params.density = 0.25f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.using_internal_flow = true;
+    FillVoronoi filler;
+    filler.set_point_cloud(std::make_shared<CellularCavity>());
+    filler.set_bounding_box(outline.contour.bounding_box());
+    filler.spacing = params.flow.spacing();
+    filler.angle = 0.f;
+    const Surface surface(stInternal, outline);
+    const ExPolygon core {Point::new_scale(-3.5, -3.5), Point::new_scale(3.5, -3.5),
+                          Point::new_scale(3.5, 3.5), Point::new_scale(-3.5, 3.5)};
+    for (double z : {-3.9, 0.1, 4.1}) {
+        filler.z = z;
+        filler.layer_id = size_t((z + 4.) / 0.2);
+        ExtrusionEntityCollection output;
+        filler.fill_surface_extrusion(&surface, params, output.entities);
+        REQUIRE_FALSE(output.entities.empty());
+        const auto deposited = output.polygons_covered_by_width();
+        if (z == 0.1) REQUIRE(intersection_ex(deposited, ExPolygons{core}).empty());
+        else REQUIRE(diff_ex(ExPolygons{core}, deposited).empty());
+        for (const auto *entity : output.flatten().entities) {
+            const auto *path = dynamic_cast<const ExtrusionPath *>(entity);
+            REQUIRE(path != nullptr);
+            REQUIRE_THAT(path->mm3_per_mm, Catch::Matchers::WithinAbs(params.flow.mm3_per_mm(), 1e-9));
+        }
+        REQUIRE(filler.fill_surface(&surface, params) == filler.fill_surface(&surface, params));
+    }
+}
+
 TEST_CASE("Voronoi extrudes prepared point clouds with native flow and clipping", "[FillVoronoi][Fcc][WallSnap]")
 {
     const int iterations = GENERATE(0, 3);

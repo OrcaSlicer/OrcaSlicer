@@ -131,6 +131,29 @@ approximate table, curves and corners limit accuracy. The density field remains
 unchanged; cell boundaries follow the snapped points. Queries include nearby source points before
 snapping so that partitioned requests reproduce the same field.
 
+## Optional inner hull
+
+The hull threshold is an absolute material-density percentage; zero disables
+it. For example, 5% removes cells with local targets below 5%, regardless of
+the selected sparse infill density.
+Separate modifiers can set their own threshold. Fused modifiers inherit the
+parent threshold, with the control visible but disabled. Their densities are
+blended first, so reinforcement can expand or shrink the cavity without
+changing its threshold.
+
+The combined density map and sampled point cloud remain uncut. Each cell is
+classified by the density at its control point. Faces between two discarded
+cells are omitted; faces separating discarded and retained cells enclose the
+void. Exterior control points remain retained. Density and threshold use the
+same logarithmic encoding; no separate cavity field is retained.
+
+The boundary follows whole cells rather than an interpolated distance contour,
+so its shape and position depend on local cell size and point placement. A
+low-density pocket without a control point cannot become a cavity. Boundary
+faces use the ordinary wall routing, multiline offsets and shallow-face floor
+fill. External perimeters and top/bottom shells are unchanged. Printable
+overhangs and vaulting are not enforced.
+
 ## Wall thickness and shell bonding
 
 Fill Multiline uses Orca's native offset outlines around routed wall paths. Odd
@@ -178,7 +201,7 @@ One constellation follows the combined field. Candidate intensity is bounded by
 the parent and modifier settings, including their maximum corner boost. Optional
 relaxation follows local spacing.
 Density is a statistical target; removing control points does not itself clip
-walls out of a region.
+walls out of a region. An inner hull remains the way to enclose an empty core.
 A conservative large-cloud warning considers object bounds and the densest
 modifier setting. Increasing multiline can reduce
 point count at the cost of changing cell size and wall thickness; settings are

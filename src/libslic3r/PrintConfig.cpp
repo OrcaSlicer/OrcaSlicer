@@ -3813,6 +3813,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(8.));
 
+    def = this->add("voronoi_hull_threshold", coPercent);
+    def->label = L("Voronoi inner hull density threshold");
+    def->category = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Remove whole Voronoi cells whose local material density falls below this absolute percentage. Keep their faces against retained cells to enclose a faceted void. For example, 5% cuts below 5% local density regardless of the sparse infill density setting. Zero disables the hull. Fused modifiers inherit the parent threshold, applied after their densities are blended. Separate modifiers can set their own threshold. This does not ensure a self-supporting roof.");
+    def->sidetext = "%";
+    def->min = 0.;
+    def->max = 100.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0.));
+
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");

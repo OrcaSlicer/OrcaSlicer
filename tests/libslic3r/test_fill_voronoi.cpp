@@ -1069,6 +1069,66 @@ TEST_CASE("Voronoi zero decay keeps a uniform base and permits corner boosts", "
     REQUIRE_THROWS_AS(Cloud({}, -1.), std::invalid_argument);
 }
 
+TEST_CASE("Cutoff preserves the control points needed to define discarded cells", "[FillVoronoi][Hull]")
+{
+    const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
+    const auto samples = [](const auto &points) {
+        return std::vector<Voronoi::WallDistanceSample>(points.size(), {-1., 0.4});
+    };
+    const auto cloud = [&](double threshold) -> std::shared_ptr<const Voronoi::PointCloudProvider> {
+        if (method == VoronoiCloudMethod::Random)
+            return std::make_shared<Voronoi::WallDistancePointCloud>(samples, 1., 0., Vec2d::Zero(), threshold);
+        return std::make_shared<Voronoi::LatticePointCloud>(method, samples, 1., 0., Vec2d::Zero(), threshold);
+    };
+    const auto cut = cloud(0.5);
+    const BoundingBoxf3 box(Vec3d::Constant(-20.), Vec3d::Constant(20.));
+    const auto points = cut->points_in(box, 3.);
+    REQUIRE_FALSE(points.empty());
+    REQUIRE(points == cloud(0.)->points_in(box, 3.));
+    for (double value : cut->relative_density(points)) REQUIRE(value < 0.);
+}
+
+TEST_CASE("Removed Voronoi cells retain a closed faceted boundary", "[FillVoronoi][Hull]")
+{
+    // Two adjoining central cells form one void, surrounded on all six sides.
+    std::vector<Vec3d> sites {Vec3d(-1., 0., 0.), Vec3d(1., 0., 0.)};
+    for (double x : {-1., 1.})
+        for (const Vec3d &offset : {Vec3d(0., -4., 0.), Vec3d(0., 4., 0.), Vec3d(0., 0., -4.), Vec3d(0., 0., 4.)})
+            sites.push_back(Vec3d(x, 0., 0.) + offset);
+    sites.push_back(Vec3d(-5., 0., 0.));
+    sites.push_back(Vec3d(5., 0., 0.));
+    std::vector<bool> discarded(sites.size(), false);
+    discarded[0] = discarded[1] = true;
+    const auto bounds = rectangle(-6., -6., 6., 6.).contour.bounding_box();
+    const auto all = Voronoi::section(sites, bounds, 0.3);
+    const auto cut = Voronoi::section(sites, bounds, 0.3, discarded);
+    REQUIRE_THAT(cut.covering_radius, Catch::Matchers::WithinAbs(all.covering_radius, EPSILON));
+    const ExPolygon core = rectangle(-2.9, -1.9, 2.9, 1.9);
+    REQUIRE_FALSE(intersection_pl(all.walls, core).empty());
+    REQUIRE(intersection_pl(cut.walls, core).empty());
+    Polylines boundary;
+    const auto cavity_box = rectangle(-3., -2., 3., 2.).contour.bounding_box();
+    for (const auto &wall : cut.walls)
+        if (cavity_box.contains(wall.first_point()) && cavity_box.contains(wall.last_point()))
+            boundary.push_back(wall);
+    const auto graph = Voronoi::build_wall_graph(boundary);
+    REQUIRE_FALSE(graph.edges.empty());
+    for (const auto &node : graph.vertices) REQUIRE(node.edges.size() == 2);
+    for (double z : {-1.9, 2.1}) {
+        Voronoi::CellGeometry bands_mesh;
+        bands_mesh.update(sites);
+        const auto bands = bands_mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4, discarded);
+        ExPolygons caps;
+        for (const auto &band : bands) caps.push_back(band.polygon);
+        REQUIRE(diff_ex(ExPolygons{core}, caps).empty());
+    }
+    std::fill(discarded.begin(), discarded.end(), true);
+    REQUIRE(Voronoi::section(sites, bounds, 0.3, discarded).walls.empty());
+    REQUIRE(Voronoi::shallow_bands(sites, bounds, 2.1, 0.45, 0.2, 0.4, discarded).empty());
+    std::fill(discarded.begin(), discarded.end(), false);
+    REQUIRE(Voronoi::section(sites, bounds, 0.3, discarded).walls == all.walls);
+}
+
 TEST_CASE("Voronoi distance construction reports progress through completion", "[FillVoronoi]")
 {
     const ExPolygons outlines{rectangle(0., 0., 20., 20.)};
@@ -1410,6 +1470,30 @@ TEST_CASE("Boundary snapping caps displacement and leaves undefined normals unch
     REQUIRE(sites[1] == source->sites[1]);
 }
 
+TEST_CASE("Point distributions and snapping share cell-classification fields", "[FillVoronoi][WallSnap]")
+{
+    const ExPolygons outlines{rectangle(-10., -10., 10., 10.)};
+    const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{-10., 10., &outlines}}; };
+    Voronoi::WallDistanceCloudCache cache;
+    const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
+    const double decay = GENERATE(0., 6.);
+    const auto original = cache.get(slices, decay, 2., {}, 3., method, 0, 0., false, 0.25, {}, -1, 0.5);
+    const auto snapped = cache.get(slices, decay, 2., [](auto stage, double) {
+        if (stage == Voronoi::WallDistanceStage::Distance) throw std::runtime_error("Distances already cached");
+    }, 3., method, 0, 0., true, 0.25, {}, -1, 0.5);
+    REQUIRE(snapped != original);
+    REQUIRE(snapped->has_cutoff());
+    REQUIRE(snapped == cache.get(slices, decay, 2., {}, 3., method, 0, 0., true, 0.25, {}, -1, 0.5));
+    const std::vector<Vec3d> probes {Vec3d(0., 0., 0.), Vec3d(8., 8., 0.), Vec3d(12., 0., 0.)};
+    REQUIRE(snapped->relative_density(probes) == original->relative_density(probes));
+    const auto uniform = cache.get(slices, 0., 0., {}, 3., method, 0, 0., true, 0.25, {}, -1, 0.5);
+    REQUIRE_FALSE(uniform->points_in(BoundingBoxf3(Vec3d::Constant(-12.), Vec3d::Constant(12.)), 3.).empty());
+    const auto relaxed = cache.get(slices, decay, 2., {}, 3., method, 1, 0., true, 0.25, {}, -1, 0.5);
+    REQUIRE(relaxed->has_cutoff());
+    REQUIRE(relaxed == cache.get(slices, decay, 2., {}, 3., method, 1, 0., true, 0.25, {}, -1, 0.5));
+    REQUIRE_THROWS_AS(cache.get(slices, decay, 2., {}, 0., method, 0, 0., true), std::invalid_argument);
+}
+
 TEST_CASE("Shell tees share boundary edges and cycle all three pairings", "[FillVoronoi][Boundary]")
 {
     const bool persistent_sites = GENERATE(false, true);
@@ -1516,7 +1600,7 @@ TEST_CASE("Fused point clouds accommodate higher modifier density and empty inte
     const Voronoi::DensityModifier modifier {3, target, 0., {{0., 40., {rectangle(0., -20., 20., 20.)}}}};
     Voronoi::WallDistanceCloudCache cache;
     const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{0., 40., &model}}; };
-    const auto field = cache.get(slices, 0., 0., {}, 0., method, 0, 0., false, 0.1, {modifier}, 3);
+    const auto field = cache.get(slices, 0., 0., {}, 0., method, 0, 0., false, 0.1, {modifier}, 3, 0.02);
     const BoundingBoxf3 box(Vec3d(4., -5., 15.), Vec3d(14., 5., 25.));
     const auto points = field->points_in(box, 3.);
     if (target == 0.) REQUIRE(points.empty());
@@ -1524,7 +1608,7 @@ TEST_CASE("Fused point clouds accommodate higher modifier density and empty inte
         const auto uniform = cache.get(slices, 0., 0., {}, 0., method)->points_in(box, 3.);
         REQUIRE(points.size() > 50 * uniform.size());
     }
-    REQUIRE_THAT(field->relative_density({Vec3d(10., 0., 20.)}).front(), Catch::Matchers::WithinRel(target / 0.1, 0.022));
+    REQUIRE_THAT(field->relative_density({Vec3d(10., 0., 20.)}).front(), Catch::Matchers::WithinRel(target / 0.1 - 0.2, 0.022));
     const auto spacing = field->local_spacing({Vec3d(10., 0., 20.)}, 3.).front();
     if (target > 0.) REQUIRE_THAT(spacing, Catch::Matchers::WithinRel(3. * 0.1 / target, 0.022));
     const auto left = field->points_in(BoundingBoxf3(box.min, Vec3d(9., 5., 25.)), 3.);
@@ -1563,23 +1647,69 @@ TEST_CASE("Fused modifiers control wall decay and corner smoothing", "[FillVoron
     REQUIRE_THAT(adjusted.distance, Catch::Matchers::WithinAbs(unadjusted.distance, EPSILON));
 }
 
+TEST_CASE("The root hull threshold follows cumulative modifier density without cutting its stored field", "[FillVoronoi][MaterialDensity]")
+{
+    const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
+    const double target = GENERATE(0.02, 0.25);
+    const ExPolygons model {rectangle(-20., -20., 20., 20.)};
+    const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{0., 40., &model}}; };
+    Voronoi::DensityModifier modifier {3, target, 4., {{0., 40., {rectangle(0., -20., 20., 20.)}}}};
+    modifier.decay = 0.;
+    Voronoi::WallDistanceCloudCache cache;
+    const auto plain = cache.get(slices, 6., 0., {}, 0., method, 0, 0., false, 0.25, {modifier}, 3);
+    const auto hollow = cache.get(slices, 6., 0., [](auto stage, double) {
+        if (stage == Voronoi::WallDistanceStage::Distance) throw std::runtime_error("Distance field should be shared");
+    }, 0., method, 0, 0., false, 0.25, {modifier}, 3, 0.125);
+    REQUIRE(hollow->has_cutoff());
+    REQUIRE(hollow != plain);
+    const Vec3d outside_modifier(-8., 0., 20.), inside_modifier(8., 0., 20.);
+    const auto original = plain->relative_density({outside_modifier, inside_modifier});
+    const auto cut = hollow->relative_density({outside_modifier, inside_modifier});
+    REQUIRE(cut[0] < 0.);
+    REQUIRE((cut[1] > 0.) == (target > 0.125));
+    for (size_t i = 0; i < cut.size(); ++i)
+        REQUIRE_THAT(cut[i], Catch::Matchers::WithinAbs(original[i] - 0.5, EPSILON));
+    const BoundingBoxf3 interior(Vec3d(5., -4., 16.), Vec3d(12., 4., 24.));
+    REQUIRE(hollow->points_in(interior, 3.) == plain->points_in(interior, 3.));
+    REQUIRE_FALSE(hollow->points_in(BoundingBoxf3(Vec3d(-25., -5., 15.), Vec3d(-21., 5., 25.)), 3.).empty());
+}
+
+TEST_CASE("A uniform field at the root threshold retains material despite density quantisation", "[FillVoronoi][MaterialDensity]")
+{
+    const double density = GENERATE(0.05, 0.15, 0.25, 0.35);
+    const ExPolygons model {rectangle(-20., -20., 20., 20.)};
+    Voronoi::WallDistanceCloudCache cache;
+    const auto field = cache.get([&] { return std::vector<Voronoi::WallSlice>{{0., 40., &model}}; },
+        0., 0., {}, 0., VoronoiCloudMethod::Random, 0, 0., false, density, {}, -1, density);
+    for (double z : {20., 20.2, 20.3}) {
+        REQUIRE(field->relative_density({Vec3d(0.3, 0.7, z)}).front() >= 0.);
+    }
+    REQUIRE_FALSE(field->points_in(BoundingBoxf3(Vec3d(-5., -5., 15.), Vec3d(5., 5., 25.)), 3.).empty());
+}
+
 TEST_CASE("Incremental Voronoi geometry agrees with fresh builds while the slab moves", "[FillVoronoi][Incremental]")
 {
-    const auto provider = std::make_shared<Voronoi::PoissonPointCloud>();
+    const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
+    const bool cutoff = GENERATE(false, true);
+    std::shared_ptr<const Voronoi::PointCloudProvider> provider;
+    if (method == VoronoiCloudMethod::Random) provider = std::make_shared<Voronoi::PoissonPointCloud>();
+    else provider = std::make_shared<Voronoi::LatticePointCloud>(method);
     const auto bounds = rectangle(-6., -6., 6., 6.).contour.bounding_box();
     Voronoi::CellGeometry mesh;
     size_t removed = 0;
     for (double z : {0.1, 1.1, 2.1, 3.1, 5.1, 8.1, 12.1, 0.1}) {
         const auto points = provider->points_in(BoundingBoxf3(Vec3d(-14., -14., z - 7.), Vec3d(14., 14., z + 7.)), 4.);
-        const auto changed = mesh.update(points);
+        std::vector<bool> discarded;
+        if (cutoff) for (const Vec3d &p : points) discarded.push_back(p.head<2>().norm() < 4.);
+        const auto changed = mesh.update(points, discarded);
         removed += changed.second;
-        const auto unchanged = mesh.update(points);
+        const auto unchanged = mesh.update(points, discarded);
         REQUIRE(unchanged.first == 0);
         REQUIRE(unchanged.second == 0);
         const auto bands = mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4);
         Voronoi::CellGeometry reference_mesh;
         reference_mesh.update(points);
-        const auto reference = reference_mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4);
+        const auto reference = reference_mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4, discarded);
         ExPolygons got, want;
         for (const auto &band : bands) got.push_back(band.polygon);
         for (const auto &band : reference) want.push_back(band.polygon);
@@ -1633,4 +1763,27 @@ TEST_CASE("Candidate density bounds include modifier settings and ignore other r
     const double maximum = std::max(0.1, std::min(1., density * boost));
     const double expected = Voronoi::decode_material_density(Voronoi::encode_material_density(maximum)) / 0.1;
     REQUIRE_THAT(field.maximum_density_ratio(), Catch::Matchers::WithinRel(expected, 1e-12));
+}
+
+TEST_CASE("An absolute hull threshold removes infill below its material density", "[FillVoronoi][Hull][MaterialDensity]")
+{
+    const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
+    const double density = GENERATE(0.15, 0.35);
+    const ExPolygon model = rectangle(-30., -30., 30., 30.);
+    const ExPolygons outlines {model};
+    const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{0., 60., &outlines}}; };
+    Voronoi::WallDistanceCloudCache cache;
+    const auto plain = cache.get(slices, 0., 0., {}, 0., method, 0, 0., false, density);
+    const auto cut = cache.get(slices, 0., 0., {}, 0., method, 0, 0., false, density, {}, -1, 0.20);
+    REQUIRE((cut->relative_density({Vec3d(0., 0., 30.)}).front() < 0.) == (density < 0.20));
+    VoronoiInfill uncut_infill(plain), cut_infill(cut);
+    const BoundingBox bounds = model.contour.bounding_box();
+    const ExPolygon core = rectangle(-5., -5., 5., 5.);
+    const auto original = intersection_pl(uncut_infill.fill_geometry(bounds, model, 0.4, density, 30., 0.4, 0.).walls, core);
+    const auto hollow = intersection_pl(cut_infill.fill_geometry(bounds, model, 0.4, density, 30., 0.4, 0.).walls, core);
+    REQUIRE_FALSE(original.empty());
+    if (density < 0.20)
+        REQUIRE(hollow.empty());
+    else
+        REQUIRE_FALSE(hollow.empty());
 }

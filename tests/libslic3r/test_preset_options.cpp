@@ -102,6 +102,10 @@ TEST_CASE("Print presets initialize and retain Voronoi decay and smoothing", "[P
     REQUIRE(config.opt_bool("voronoi_snap_to_wall"));
     config.set_deserialize_strict("voronoi_cloud_method", "density_shells");
     REQUIRE(config.opt_enum<VoronoiCloudMethod>("voronoi_cloud_method") == VoronoiCloudMethod::Random);
+    REQUIRE(config.has("voronoi_hull_threshold"));
+    REQUIRE_THAT(config.option("voronoi_hull_threshold")->getFloat(), Catch::Matchers::WithinAbs(0., EPSILON));
+    config.set_deserialize_strict("voronoi_hull_threshold", "20%");
+    REQUIRE_THAT(config.option("voronoi_hull_threshold")->getFloat(), Catch::Matchers::WithinAbs(20., EPSILON));
     config.set_deserialize_strict("voronoi_wall_decay", "0");
     config.set_deserialize_strict("voronoi_smoothing_sigma", "12");
     REQUIRE_THAT(config.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(0., EPSILON));
@@ -133,14 +137,14 @@ TEST_CASE("Fused modifiers keep density controls and preserve inactive overrides
     const double blend = GENERATE(-1., 0., 4.);
     DynamicPrintConfig config;
     config.set_deserialize_strict({{"sparse_infill_density", "50%"}, {"voronoi_wall_decay", "3"},
-        {"voronoi_smoothing_sigma", "4"}, {"wall_loops", "3"}, {"fill_multiline", "2"}, {"sparse_infill_pattern", "cubic"}});
+        {"voronoi_smoothing_sigma", "4"}, {"voronoi_hull_threshold", "35%"}, {"wall_loops", "3"}, {"fill_multiline", "2"}, {"sparse_infill_pattern", "cubic"}});
     config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(blend));
     const auto effective = Voronoi::effective_density_modifier_config(config);
     REQUIRE(Voronoi::fused_density_modifier(effective) == (blend >= 0.));
     REQUIRE_THAT(effective.opt_float("sparse_infill_density"), Catch::Matchers::WithinAbs(50., EPSILON));
     REQUIRE_THAT(effective.opt_float("voronoi_wall_decay"), Catch::Matchers::WithinAbs(3., EPSILON));
     REQUIRE_THAT(effective.opt_float("voronoi_smoothing_sigma"), Catch::Matchers::WithinAbs(4., EPSILON));
-    for (const std::string key : {"wall_loops", "fill_multiline", "sparse_infill_pattern"}) {
+    for (const std::string key : {"wall_loops", "fill_multiline", "sparse_infill_pattern", "voronoi_hull_threshold"}) {
         REQUIRE(effective.has(key) == (blend < 0.));
         REQUIRE(config.has(key));
     }

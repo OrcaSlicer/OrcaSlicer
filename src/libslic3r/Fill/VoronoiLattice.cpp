@@ -31,10 +31,10 @@ double threshold(int64_t i, int64_t j, int64_t k, VoronoiCloudMethod method)
 }
 } // namespace
 
-LatticePointCloud::LatticePointCloud(VoronoiCloudMethod method, WallDistanceSamples distance, double maximum_ratio, double angle, const Vec2d &center)
+LatticePointCloud::LatticePointCloud(VoronoiCloudMethod method, WallDistanceSamples distance, double maximum_ratio, double angle, const Vec2d &center, double hull_threshold)
     : WallDistancePointCloud(distance ? distance : [](const auto &points) {
           return std::vector<WallDistanceSample>(points.size(), {-2., 1.});
-      }, maximum_ratio, angle, center), m_method(method), m_variable(bool(distance))
+      }, maximum_ratio, angle, center, hull_threshold), m_method(method), m_variable(bool(distance))
 {
     if (method != VoronoiCloudMethod::Fcc && method != VoronoiCloudMethod::Cubic)
         throw std::invalid_argument("Invalid Voronoi lattice method");

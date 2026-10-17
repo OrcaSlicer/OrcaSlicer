@@ -2979,6 +2979,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("voronoi_trace_shell");
         optgroup->append_single_option_line("voronoi_wall_decay");
         optgroup->append_single_option_line("voronoi_smoothing_sigma");
+        optgroup->append_single_option_line("voronoi_hull_threshold");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
         optgroup->append_single_option_line("sparse_infill_smooth_factor", "strength_settings_infill#sparse-infill-smooth-factor");
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");

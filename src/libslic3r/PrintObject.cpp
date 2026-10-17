@@ -812,7 +812,7 @@ void PrintObject::infill()
             BOOST_LOG_TRIVIAL(warning) << "Voronoi diagnostic: region=" << object_region
                 << " pattern=" << int(config.sparse_infill_pattern.value) << " layers=" << m_layers.size()
                 << " density=" << config.sparse_infill_density.value << " decay=" << config.voronoi_wall_decay.value
-                << " sigma=" << config.voronoi_smoothing_sigma.value;
+                << " sigma=" << config.voronoi_smoothing_sigma.value << " cutoff=" << config.voronoi_hull_threshold.value;
             if (std::none_of(m_layers.begin(), m_layers.end(), [object_region](const Layer *layer) {
                     return !layer->regions()[object_region]->slices.empty();
                 })) continue;
@@ -842,7 +842,7 @@ void PrintObject::infill()
                 }
                 voronoi_point_cloud(config.voronoi_wall_decay.value, config.voronoi_smoothing_sigma.value,
                                     site_spacing, method, config.voronoi_relaxation_iterations.value, angle, config.voronoi_snap_to_wall.value,
-                                    0.01 * float(config.sparse_infill_density.value), voronoi_density_region(printing_region(region_id).print_object_region_id()));
+                                    0.01 * float(config.sparse_infill_density.value), voronoi_density_region(printing_region(region_id).print_object_region_id()), 0.01 * config.voronoi_hull_threshold.value);
             }
         }
         size_t completed_layers = 0;
@@ -1350,7 +1350,7 @@ int PrintObject::voronoi_density_region(int region_id) const
                       [region_id](const auto &m) { return m.region_id == region_id; }) ? region_id : -1;
 }
 
-std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, double site_spacing, VoronoiCloudMethod method, int relaxation_iterations, double angle, bool snap, double material_density, int density_region) const
+std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cloud(double decay, double sigma, double site_spacing, VoronoiCloudMethod method, int relaxation_iterations, double angle, bool snap, double material_density, int density_region, double hull_threshold) const
 {
     const int percent = is_step_done(posPrepareInfill) ? 35 : 25;
     auto last_report = std::chrono::steady_clock::now();
@@ -1380,7 +1380,7 @@ std::shared_ptr<const Voronoi::PointCloudProvider> PrintObject::voronoi_point_cl
             m_print->set_status(percent, message + " (" + std::to_string(int(100. * fraction)) + "%)");
             last_report = now;
             last_stage = stage;
-        }, site_spacing, method, relaxation_iterations, angle, snap, material_density, m_voronoi_density_modifiers, density_region);
+        }, site_spacing, method, relaxation_iterations, angle, snap, material_density, m_voronoi_density_modifiers, density_region, hull_threshold);
 }
 
 void PrintObject::clear_layers()
@@ -1788,6 +1788,7 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (opt_key == "voronoi_modifier_blend") {
             steps.emplace_back(posSlice);
         } else if (opt_key == "sparse_infill_pattern"
+                   || opt_key == "voronoi_hull_threshold"
                    || opt_key == "voronoi_relaxation_iterations" || opt_key == "voronoi_trace_shell" || opt_key == "voronoi_snap_to_wall"
                    || opt_key == "voronoi_cloud_method"
                    || opt_key == "voronoi_wall_decay" || opt_key == "voronoi_smoothing_sigma"

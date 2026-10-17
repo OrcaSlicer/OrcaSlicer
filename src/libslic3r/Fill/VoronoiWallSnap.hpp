@@ -15,6 +15,7 @@ public:
     double spacing(double width, double height, double density) const override
         { return m_source->spacing(width, height, density); }
     std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override;
+    bool has_cutoff() const override { return m_source->has_cutoff(); }
     std::vector<double> relative_density(const std::vector<Vec3d> &points) const override
         { return m_source->relative_density(points); }
     std::vector<double> local_spacing(const std::vector<Vec3d> &points, double spacing) const override

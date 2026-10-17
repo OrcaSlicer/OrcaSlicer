@@ -116,11 +116,12 @@ std::vector<Vec3d> PoissonPointCloud::candidates_in(const BoundingBoxf3 &box, do
     return sites;
 }
 
-WallDistancePointCloud::WallDistancePointCloud(WallDistanceSamples samples, double maximum_ratio, double angle, const Vec2d &center)
-    : PoissonPointCloud(angle, center), m_samples(std::move(samples)), m_maximum_ratio(maximum_ratio)
+WallDistancePointCloud::WallDistancePointCloud(WallDistanceSamples samples, double maximum_ratio, double angle, const Vec2d &center, double hull_threshold)
+    : PoissonPointCloud(angle, center), m_samples(std::move(samples)), m_maximum_ratio(maximum_ratio), m_hull_threshold(std::max(0., hull_threshold - 1e-12))
 {
     // Keep a constant field at its quantised threshold despite interpolation roundoff.
-    if (!m_samples || !std::isfinite(maximum_ratio) || maximum_ratio <= 0.)
+    if (!m_samples || !std::isfinite(maximum_ratio) || maximum_ratio <= 0. ||
+        !std::isfinite(hull_threshold) || hull_threshold < 0.)
         throw std::invalid_argument("Invalid Voronoi material density field");
 }
 
@@ -169,7 +170,7 @@ std::vector<double> WallDistancePointCloud::relative_density(const std::vector<V
     std::vector<double> ratios;
     ratios.reserve(samples.size());
     for (const auto &sample : samples)
-        ratios.push_back(sample.distance < 0. ? sample.density : 2.);
+        ratios.push_back(sample.distance < 0. ? sample.density - m_hull_threshold : 2.);
     return ratios;
 }
 

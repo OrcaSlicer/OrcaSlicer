@@ -18,6 +18,7 @@ public:
     virtual ~PointCloudProvider() = default;
     virtual double spacing(double extrusion_spacing, double nominal_height, double density) const = 0;
     virtual std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const = 0;
+    virtual bool has_cutoff() const { return false; }
     // Negative values identify cells to remove; exterior sites remain retained.
     virtual std::vector<double> relative_density(const std::vector<Vec3d> &points) const
         { return std::vector<double>(points.size(), 1.); }
@@ -56,7 +57,8 @@ class WallDistancePointCloud : public PoissonPointCloud {
 public:
     static constexpr double near_wall_distance = 2.;
     explicit WallDistancePointCloud(WallDistanceSamples samples, double maximum_ratio = density_ratio(0., 2., 6.),
-                                    double angle = 0., const Vec2d &center = Vec2d::Zero());
+                                    double angle = 0., const Vec2d &center = Vec2d::Zero(), double hull_threshold = 0.);
+    bool has_cutoff() const override { return m_hull_threshold > 0.; }
     std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override;
     std::vector<double> relative_density(const std::vector<Vec3d> &points) const override;
     std::vector<double> local_spacing(const std::vector<Vec3d> &points, double nominal_spacing) const override;
@@ -65,6 +67,7 @@ public:
 protected:
     WallDistanceSamples m_samples;
     double m_maximum_ratio;
+    double m_hull_threshold;
 };
 
 // Owns ingestion and retirement, independently of the distribution and routing.

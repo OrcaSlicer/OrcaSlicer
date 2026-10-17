@@ -1474,6 +1474,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                voronoi_modifier_blend))
     ((ConfigOptionFloat,                voronoi_wall_decay))
     ((ConfigOptionFloat,                voronoi_smoothing_sigma))
+    ((ConfigOptionPercent,              voronoi_hull_threshold))
     ((ConfigOptionPercent,              sparse_infill_smooth_factor))
     ((ConfigOptionFloat,                lateral_lattice_angle_1))
     ((ConfigOptionFloat,                lateral_lattice_angle_2))

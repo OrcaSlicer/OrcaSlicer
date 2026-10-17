@@ -61,12 +61,12 @@ public:
                                                   double decay = 6., double sigma = 8.,
                                                   const WallDistanceProgress &progress = {}, double site_spacing = 0.,
                                                   VoronoiCloudMethod method = VoronoiCloudMethod::Random, int relaxation_iterations = 0, double angle = 0., bool snap = false, double material_density = 0.25,
-                                                  const std::vector<DensityModifier> &modifiers = {}, int region_id = -1);
+                                                  const std::vector<DensityModifier> &modifiers = {}, int region_id = -1, double hull_threshold = 0.);
     void clear();
 private:
     std::mutex m_mutex;
     std::map<std::tuple<double, double, double, int>, std::shared_ptr<const CubicWallDistance>> m_tables;
-    std::map<std::tuple<double, double, double, int, double, VoronoiCloudMethod, int, double, bool>, std::shared_ptr<const PointCloudProvider>> m_providers;
+    std::map<std::tuple<double, double, double, int, double, double, VoronoiCloudMethod, int, double, bool>, std::shared_ptr<const PointCloudProvider>> m_providers;
 };
 
 } // namespace Slic3r::Voronoi

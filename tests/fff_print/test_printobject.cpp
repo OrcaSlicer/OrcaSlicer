@@ -722,3 +722,63 @@ TEST_CASE("Z contouring follows the surface of each instance as it is turned", "
         CHECK(lifted > 0);
     }
 }
+
+TEST_CASE("Fused Voronoi modifiers retain one print region and ordinary modifiers retain their cut", "[PrintObject][FillVoronoi]")
+{
+    const double blend = GENERATE(-1., 0., 4.);
+    const bool inactive_override = GENERATE(false, true);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", "voronoi"}, {"sparse_infill_density", "10%"},
+                                   {"voronoi_wall_decay", "0"}, {"voronoi_smoothing_sigma", "0"}, {"wall_loops", "2"}, {"voronoi_hull_threshold", "25%"}});
+    Print print;
+    Model model;
+    Test::init_print({Test::cube(20.)}, print, model, config);
+    ModelObject &object = *model.objects.front();
+    const Vec3d center = object.volumes.front()->get_offset();
+    ModelVolume *modifier = object.add_volume(Test::cube(10.));
+    modifier->set_offset(center);
+    modifier->set_type(ModelVolumeType::PARAMETER_MODIFIER);
+    modifier->config.set_key_value("voronoi_hull_threshold", new ConfigOptionPercent(75.));
+    modifier->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(50.));
+    modifier->config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(blend));
+    if (inactive_override) modifier->config.set_key_value("wall_loops", new ConfigOptionInt(4));
+    print.apply(model, config);
+    PrintObject &printed = *print.get_object(size_t(0));
+    printed.slice();
+    REQUIRE_FALSE(printed.layers().empty());
+    size_t regions = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        size_t nonempty = 0;
+        for (const LayerRegion *region : layer->regions())
+            if (!region->slices.empty()) {
+                ++nonempty;
+                REQUIRE_THAT(region->region().config().voronoi_hull_threshold.value, Catch::Matchers::WithinAbs(blend < 0. && region->region().config().sparse_infill_density.value > config.opt_float("sparse_infill_density") ? 75. : 25., EPSILON));
+                if (blend >= 0.) REQUIRE(region->region().config().wall_loops.value == 2);
+            }
+        regions = std::max(regions, nonempty);
+    }
+    REQUIRE(regions == (blend < 0. ? 2 : 1));
+    if (inactive_override) REQUIRE(modifier->config.get().opt_int("wall_loops") == 4);
+    modifier->config.set_key_value("voronoi_modifier_blend", new ConfigOptionFloat(-1.));
+    print.apply(model, config);
+    print.get_object(size_t(0))->slice();
+    regions = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        size_t nonempty = 0;
+        for (const LayerRegion *region : layer->regions())
+            if (!region->slices.empty()) {
+                ++nonempty;
+                REQUIRE_THAT(region->region().config().voronoi_hull_threshold.value,
+                    Catch::Matchers::WithinAbs(region->region().config().sparse_infill_density.value > config.opt_float("sparse_infill_density") ? 75. : 25., EPSILON));
+            }
+        regions = std::max(regions, nonempty);
+    }
+    REQUIRE(regions == 2);
+    if (inactive_override) {
+        bool restored = false;
+        for (const Layer *layer : print.objects().front()->layers())
+            for (const LayerRegion *region : layer->regions())
+                restored |= !region->slices.empty() && region->region().config().wall_loops.value == 4;
+        REQUIRE(restored);
+    }
+}

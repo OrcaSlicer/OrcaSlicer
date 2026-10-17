@@ -11,7 +11,7 @@ namespace Slic3r::Voronoi {
 class LatticePointCloud : public WallDistancePointCloud {
 public:
     explicit LatticePointCloud(VoronoiCloudMethod method, WallDistanceSamples distance = {}, double maximum_ratio = density_ratio(0., 2.),
-                               double angle = 0., const Vec2d &center = Vec2d::Zero());
+                               double angle = 0., const Vec2d &center = Vec2d::Zero(), double hull_threshold = 0.);
     std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override;
 private:
     VoronoiCloudMethod m_method;
