@@ -81,6 +81,18 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
     auto point = [](const Kernel::Point_2 &p) { return Vec2d(CGAL::to_double(p.x()), CGAL::to_double(p.y())); };
     auto vector = [](const Kernel::Vector_2 &v) { return Vec2d(CGAL::to_double(v.x()), CGAL::to_double(v.y())); };
     Section result;
+    result.covering_radius = 0.;
+    auto measure = [&](const Vec2d &xy, const Kernel::Weighted_point_2 &site) {
+        const Vec2d delta = xy - point(site.point());
+        const double distance = std::sqrt(std::max(0., delta.squaredNorm() - CGAL::to_double(site.weight())));
+        result.covering_radius = std::max(result.covering_radius, distance);
+    };
+    // On each clipped power cell, squared nearest-site distance is convex.
+    // Its maximum occurs at a cell vertex: rectangle corners, clipped edge
+    // endpoints, or interior diagram vertices. A one-site section still has
+    // boundary corners even though it has no printable walls.
+    for (const Vec2d &corner : std::array<Vec2d, 4>{min, max, Vec2d(min.x(), max.y()), Vec2d(max.x(), min.y())})
+        measure(corner, triangulation.nearest_power_vertex(Kernel::Point_2(corner.x(), corner.y()))->point());
     if (triangulation.dimension() == 0) return result;
     Polylines &edges = result.walls;
     for (auto edge = triangulation.finite_edges_begin(); edge != triangulation.finite_edges_end(); ++edge) {
@@ -105,6 +117,10 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
             continue;
         const Vec2d a = (center + origin + lo * direction) / SCALING_FACTOR;
         const Vec2d b = (center + origin + hi * direction) / SCALING_FACTOR;
+        // Both defining sites are nearest everywhere on this dual edge.
+        const auto &site = edge->first->vertex(triangulation.ccw(edge->second))->point();
+        measure((origin + lo * direction).eval(), site);
+        measure((origin + hi * direction).eval(), site);
         const Point p(a.x(), a.y()), q(b.x(), b.y());
         if (p != q)
             edges.emplace_back(Points{p, q});
@@ -127,6 +143,7 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
             const Vec2d xy = point(triangulation.dual(face));
             if (!xy.allFinite() || xy.x() < min.x() || xy.x() > max.x() || xy.y() < min.y() || xy.y() > max.y())
                 continue;
+            measure(xy, face->vertex(0)->point());
             const Vec2d scaled = (xy + center) / SCALING_FACTOR;
             std::array<size_t, 3> indices;
             for (size_t i = 0; i < 3; ++i)
@@ -159,6 +176,7 @@ struct CellGeometry::Impl {
         std::sort(vertices.begin(), vertices.end(), [](Handle a, Handle b) { return key(a->point()) < key(b->point()); });
     }
     Impl() = default;
+    Impl(const Impl &other) : triangulation(other.triangulation) { index_vertices(); }
 
     // Every Delaunay edge defines one Voronoi face. Its endpoint's other
     // neighbours supply the half-space constraints, including cells outside the slice.
@@ -177,16 +195,53 @@ struct CellGeometry::Impl {
     }
 };
 
-CellGeometry::CellGeometry(const std::vector<Vec3d> &sites) : m_impl(std::make_unique<Impl>())
-{
-    std::vector<Impl::Point3> points;
-    for (const Vec3d &site : sites) points.emplace_back(site.x(), site.y(), site.z());
-    std::sort(points.begin(), points.end(), [](const auto &a, const auto &b) { return Impl::key(a) < Impl::key(b); });
-    m_impl->triangulation.insert(points.begin(), points.end());
-    m_impl->index_vertices();
-}
-
+CellGeometry::CellGeometry() : m_impl(std::make_unique<Impl>()) {}
 CellGeometry::~CellGeometry() = default;
+CellGeometry::CellGeometry(const CellGeometry &other) : m_impl(std::make_unique<Impl>(*other.m_impl)) {}
+CellGeometry &CellGeometry::operator=(const CellGeometry &other)
+{
+    if (this != &other) m_impl = std::make_unique<Impl>(*other.m_impl);
+    return *this;
+}
+CellGeometry::CellGeometry(CellGeometry &&) noexcept = default;
+CellGeometry &CellGeometry::operator=(CellGeometry &&) noexcept = default;
+
+std::pair<size_t, size_t> CellGeometry::update(const std::vector<Vec3d> &sites)
+{
+    using Point3 = Impl::Point3;
+    using Handle = Impl::Handle;
+    std::vector<Point3> desired;
+    desired.reserve(sites.size());
+    for (size_t i = 0; i < sites.size(); ++i)
+        desired.emplace_back(sites[i].x(), sites[i].y(), sites[i].z());
+    std::sort(desired.begin(), desired.end(), [](const auto &a, const auto &b) { return Impl::key(a) < Impl::key(b); });
+    std::vector<Handle> kept, removed;
+    std::vector<Point3> added;
+    auto &mesh = *m_impl;
+    size_t previous = 0;
+    for (const auto &site : desired) {
+        while (previous < mesh.vertices.size() && Impl::key(mesh.vertices[previous]->point()) < Impl::key(site))
+            removed.push_back(mesh.vertices[previous++]);
+        if (previous < mesh.vertices.size() && mesh.vertices[previous]->point() == site) {
+            auto vertex = mesh.vertices[previous++];
+            kept.push_back(vertex);
+        } else if (!kept.empty() && kept.back()->point() == site) {
+            continue;
+        } else if (!added.empty() && added.back() == site) {
+            continue;
+        } else {
+            added.push_back(site);
+        }
+    }
+    removed.insert(removed.end(), mesh.vertices.begin() + previous, mesh.vertices.end());
+    if (kept.empty() && !removed.empty()) mesh.triangulation.clear();
+    else if (!removed.empty()) mesh.triangulation.remove_cluster(removed.begin(), removed.end());
+    // CGAL spatially sorts a batch before insertion and edits only conflicts.
+    mesh.triangulation.insert(added.begin(), added.end());
+    if (!added.empty()) mesh.index_vertices();
+    else mesh.vertices = std::move(kept);
+    return {added.size(), removed.size()};
+}
 
 std::vector<Band> CellGeometry::shallow_bands(const BoundingBox &bounds, double z, double width, double height, double row_spacing) const
 {

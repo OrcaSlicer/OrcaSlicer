@@ -20,6 +20,9 @@ struct Junction {
 struct Section {
     Polylines walls;
     std::vector<Junction> junctions;
+    // Maximum nearest-site distance over the bounded XY section, including
+    // clipped boundary vertices. Infinity means that no site is known.
+    double covering_radius { std::numeric_limits<double>::infinity() };
 };
 
 struct Band {
@@ -35,11 +38,18 @@ struct Layer {
     std::vector<Band> bands;
 };
 
-// Immutable 3D network for floor extraction; CGAL stays out of this header.
+// Retains the 3D Delaunay network between point-cloud updates. Copies own an
+// independent network, as required by Fill::clone(). CGAL stays out of this header.
 class CellGeometry {
 public:
-    explicit CellGeometry(const std::vector<Vec3d> &sites);
+    CellGeometry();
     ~CellGeometry();
+    CellGeometry(const CellGeometry &);
+    CellGeometry &operator=(const CellGeometry &);
+    CellGeometry(CellGeometry &&) noexcept;
+    CellGeometry &operator=(CellGeometry &&) noexcept;
+    // Returns counts of inserted and removed vertices.
+    std::pair<size_t, size_t> update(const std::vector<Vec3d> &sites);
     // Project shallow faces over twice the layer height, rounding to native rows.
     std::vector<Band> shallow_bands(const BoundingBox &bounds, double z, double width,
                                   double height, double row_spacing) const;

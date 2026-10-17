@@ -17,17 +17,23 @@ bounding-box centre; model alignment adds the object's XY rotation. The
 angle stays fixed across layers; per-layer rotation templates do not rotate the
 3D constellation.
 
-Each engine samples a complete, deterministic cloud over the object's height.
-The exterior margin grows until covering bounds prove that unseen points cannot
-change its sections. A nearest-point grid bounds the distance
-throughout the domain, including the gaps between its samples. Exterior points participate;
-only the resulting walls and floors are clipped to the fill surface.
+`ActivePointCloud` expands its known region until nearest-site covering bounds
+prove that unknown points cannot affect the working slab. Points outside the
+model participate; resulting walls and floors are clipped to the fill surface.
+Points sufficiently far below the slab are retired. Each infill engine owns its
+active constellation and a persistent CGAL 3D Delaunay triangulation. Point-set
+changes insert new vertices and batch-remove retired clusters, retaining unaffected
+connectivity. Vertex handles are indexed in a sorted vector; sampled XYZ values
+remain in a contiguous vector. CGAL stores vertices and tetrahedra in chunked
+containers with reusable slots. Copies of a filler own independent networks.
+During normal slicing, each worker processes an ascending batch of layers and
+caches its engines by point provider; temporary surface fillers reuse those
+engines. The cache is released at the end of the batch and is never shared between workers.
 
-An immutable CGAL 3D Delaunay triangulation supplies shallow-face floor polygons.
-Workers retain their engines across a batch of layers; copied fillers can share
-the immutable mesh. CGAL's 2D power diagram, weighted by vertical distance, supplies
-wall sections. Its weights change with Z, so it is rebuilt
-for each section. Geometry clipping removes overlapping
+CGAL's 2D power diagram, weighted by vertical distance, supplies wall sections
+and covering bounds. Its weights change with Z, so this planar diagram is rebuilt
+for each section. Points are retired before updating the persistent 3D network,
+which supplies shallow-face floor polygons. Geometry clipping removes overlapping
 floors and wall sections within floors while retaining their supporting boundaries.
 
 ## Extrusion and routing

@@ -423,7 +423,6 @@ static void configure_voronoi_cloud(Fill &fill, const SurfaceFillParams &params,
     }
     auto &voronoi = static_cast<FillVoronoi &>(fill);
     voronoi.set_point_cloud(provider, cache);
-    voronoi.set_z_range(Vec2d(layer.object()->layers().front()->bottom_z(), layer.object()->layers().back()->print_z));
     if (layer.lower_layer) {
         // Perimeters are complete before parallel infill generation; lower-layer
         // infill is not. Use bead footprints rather than solid slice outlines.

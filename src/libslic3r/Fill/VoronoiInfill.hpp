@@ -7,7 +7,6 @@
 #include "VoronoiPointCloud.hpp"
 #include <limits>
 #include <memory>
-#include <stdexcept>
 #include <map>
 #include <tuple>
 #include <utility>
@@ -21,10 +20,7 @@ class VoronoiInfill
 {
 public:
     explicit VoronoiInfill(std::shared_ptr<const Voronoi::PointCloudProvider> provider = std::make_shared<Voronoi::PoissonPointCloud>())
-        : m_provider(std::move(provider))
-        { if (!m_provider) throw std::invalid_argument("Missing Voronoi point-cloud provider"); }
-
-    void set_z_range(const Vec2d &range) { m_z_range = range; }
+        : m_cloud(std::move(provider)) {}
 
     // Geometry only, before graph cleanup or traversal; useful for independent
     // distribution experiments and stage-by-stage verification.
@@ -34,11 +30,9 @@ public:
     Polylines route_walls(Polylines walls, size_t layer_id) const;
 
 private:
-    std::shared_ptr<const Voronoi::PointCloudProvider> m_provider;
-    std::vector<Vec3d> m_sites;
-    std::shared_ptr<const Voronoi::CellGeometry> m_geometry;
-    Vec2d m_z_range { Vec2d::Zero() };
-    BoundingBoxf3 m_domain;
+    Voronoi::ActivePointCloud m_cloud;
+    Voronoi::CellGeometry m_geometry;
+    BoundingBox m_bounds;
     double      m_site_spacing { 0. };
     double      m_layer_z { std::numeric_limits<double>::quiet_NaN() };
     double      m_layer_width { 0. };

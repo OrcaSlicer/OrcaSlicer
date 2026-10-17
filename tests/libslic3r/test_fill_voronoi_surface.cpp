@@ -296,6 +296,53 @@ TEST_CASE("Voronoi fills shallow bands with continuous coverage and configured f
     }
 }
 
+TEST_CASE("Worker-local Voronoi caches survive temporary fillers and isolate clones", "[FillVoronoi][Incremental]")
+{
+    class CountingCloud : public Voronoi::PoissonPointCloud {
+    public:
+        mutable size_t queries = 0;
+        std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override
+            { ++queries; return PoissonPointCloud::points_in(box, spacing); }
+    };
+    auto provider = std::make_shared<CountingCloud>();
+    VoronoiInfillCache cache;
+    FillParams params;
+    params.density = 0.25f;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    params.using_internal_flow = true;
+    const ExPolygon outline {Point::new_scale(-10., -10.), Point::new_scale(10., -10.),
+                             Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
+    const Surface surface(stInternal, outline);
+    const auto configure = [&](FillVoronoi &fill) {
+        fill.set_point_cloud(provider, &cache);
+        fill.set_bounding_box(outline.contour.bounding_box());
+        fill.spacing = params.flow.spacing();
+        fill.angle = 0.f;
+        fill.z = 1.1;
+        fill.layer_id = 5;
+    };
+    Polylines expected;
+    {
+        FillVoronoi temporary;
+        configure(temporary);
+        expected = temporary.fill_surface(&surface, params);
+    }
+    REQUIRE(provider->queries > 0);
+    REQUIRE(cache.clouds.size() == 1);
+    const size_t initial_queries = provider->queries;
+    FillVoronoi next;
+    configure(next);
+    REQUIRE(next.fill_surface(&surface, params) == expected);
+    REQUIRE(provider->queries == initial_queries);
+    std::unique_ptr<Fill> clone(next.clone());
+    clone->z = 1000.;
+    REQUIRE_FALSE(clone->fill_surface(&surface, params).empty());
+    const size_t after_clone = provider->queries;
+    REQUIRE(next.fill_surface(&surface, params) == expected);
+    REQUIRE(provider->queries == after_clone);
+}
+
+
 TEST_CASE("Voronoi uses native multiline outlines instead of cell loops", "[FillVoronoi][Multiline]")
 {
     const int count = GENERATE(1, 2, 3, 4);

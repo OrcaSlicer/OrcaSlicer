@@ -37,26 +37,30 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
     const BoundingBox bounds = empty(object_bounds) ? region.contour.bounding_box() : object_bounds;
     if (empty(bounds))
         return {};
-    const double site_spacing = m_provider->spacing(spacing * wall_count, reference_height, density);
+    const double site_spacing = m_cloud.spacing(spacing * wall_count, reference_height, density);
     if (!std::isfinite(site_spacing) || !(site_spacing >= SCALING_FACTOR)) return {};
     // Outward rounding can move the face beyond z +/- height by less than
     // row_spacing * slope_length; shallow faces have slope_length < 2*h/width.
     const double margin = height * (1. + 2. * row_spacing / width);
     if (!std::isfinite(margin)) return {};
 
-    const BoundingBoxf3 domain(Vec3d(unscale<double>(bounds.min.x()), unscale<double>(bounds.min.y()), std::min(z, m_z_range.x()) - margin),
-                               Vec3d(unscale<double>(bounds.max.x()), unscale<double>(bounds.max.y()), std::max(z, m_z_range.y()) + margin));
-    if (m_site_spacing != site_spacing || !m_domain.defined || m_domain.min != domain.min || m_domain.max != domain.max) {
-        m_sites = Voronoi::complete_cloud(*m_provider, domain, site_spacing);
-        if (m_sites.empty()) { m_domain.reset(); return {}; }
-        m_geometry = height > 0. ? std::make_shared<Voronoi::CellGeometry>(m_sites) : nullptr;
-        m_domain = domain;
+    if (m_site_spacing != site_spacing || m_bounds.min != bounds.min || m_bounds.max != bounds.max) {
+        m_bounds = bounds;
         m_site_spacing = site_spacing;
         m_layer_z = std::numeric_limits<double>::quiet_NaN();
     }
     if (m_layer_z != z || m_layer_width != width || m_layer_height != height || m_row_spacing != row_spacing || m_wall_count != wall_count) {
-        m_section = Voronoi::section(m_sites, bounds, z);
-        m_bands = height > 0. ? m_geometry->shallow_bands(bounds, z, width, height, row_spacing) : std::vector<Voronoi::Band>{};
+        if (!m_cloud.update(bounds, z, margin, site_spacing, [&](const std::vector<Vec3d> &sites) {
+                m_section = Voronoi::section(sites, bounds, z);
+                return m_section.covering_radius;
+            })) return {};
+        // Coverage uses the cheap planar diagram. Retire points before updating
+        // the persistent 3D network, avoiding a larger provisional triangulation.
+        m_bands.clear();
+        if (height > 0.) {
+            m_geometry.update(m_cloud.sites());
+            m_bands = m_geometry.shallow_bands(bounds, z, width, height, row_spacing);
+        }
         m_layer_z = z;
         m_layer_width = width;
         m_layer_height = height;

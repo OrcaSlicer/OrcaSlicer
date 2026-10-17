@@ -30,7 +30,6 @@ public:
             m_infill = std::make_shared<VoronoiInfill>(std::move(provider));
         }
     }
-    void set_z_range(const Vec2d &range) { m_infill->set_z_range(range); }
     void set_floor_support(ExPolygons support) { m_floor_support = std::move(support); }
     Polylines fill_surface(const Surface *surface, const FillParams &params) override;
     Fill *clone() const override { return new FillVoronoi(*this); }

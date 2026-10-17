@@ -140,7 +140,7 @@ TEST_CASE("Voronoi slice walls separate the nearest three dimensional sites", "[
     }
 }
 
-TEST_CASE("Voronoi layers share a complete reproducible cloud", "[FillVoronoi]")
+TEST_CASE("Voronoi layers change while a moving point band remains reproducible", "[FillVoronoi]")
 {
     class CountingProvider : public Voronoi::PoissonPointCloud {
     public:
@@ -155,13 +155,12 @@ TEST_CASE("Voronoi layers share a complete reproducible cloud", "[FillVoronoi]")
     const BoundingBox bounds = region.contour.bounding_box();
     auto provider = std::make_shared<CountingProvider>();
     VoronoiInfill infill(provider);
-    infill.set_z_range(Vec2d(0., 10.));
     const Segments first = segments(infill.fill_geometry(bounds, region, 0.45, 0.15, 0.1, 0.45, 0.).walls);
     REQUIRE_FALSE(provider->queries.empty());
     REQUIRE(first != segments(infill.fill_geometry(bounds, region, 0.45, 0.15, 0.2, 0.45, 0.).walls));
-    const size_t queries = provider->queries.size();
-    infill.fill_geometry(bounds, region, 0.45, 0.15, 8., 0.45, 0.);
-    REQUIRE(provider->queries.size() == queries);
+    infill.fill_geometry(bounds, region, 0.45, 0.15, 1000., 0.45, 0.);
+    // Jumping past the active range starts locally, without ingesting the gap.
+    REQUIRE(provider->queries.back().min.z() > 900.);
     REQUIRE(first == segments(infill.fill_geometry(bounds, region, 0.45, 0.15, 0.1, 0.45, 0.).walls));
 }
 
@@ -659,12 +658,149 @@ TEST_CASE("Voronoi point queries preserve the field when partitioned", "[FillVor
     REQUIRE(keys(points) == expected);
 }
 
+TEST_CASE("Voronoi coverage includes boundary corners without internal nodes", "[FillVoronoi]")
+{
+    const auto bounds = rectangle(-2., -3., 2., 3.).contour.bounding_box();
+    const auto section = Voronoi::section({Vec3d(0., 0., 4.)}, bounds, 0.);
+    REQUIRE(section.walls.empty());
+    REQUIRE_THAT(section.covering_radius, Catch::Matchers::WithinAbs(std::sqrt(29.), EPSILON));
+    REQUIRE_FALSE(std::isfinite(Voronoi::section({}, bounds, 0.).covering_radius));
+}
+
+TEST_CASE("Voronoi coverage bounds nearest distance throughout clipped cells", "[FillVoronoi]")
+{
+    const auto bounds = rectangle(-7., -5., 9., 8.).contour.bounding_box();
+    const std::vector<Vec3d> sites {Vec3d(-5., -3., -2.), Vec3d(6., -2., 3.),
+                                  Vec3d(-3., 6., 1.), Vec3d(5., 7., -4.)};
+    const double z = GENERATE(-3., 0., 5.);
+    const auto section = Voronoi::section(sites, bounds, z);
+    REQUIRE_FALSE(section.walls.empty());
+    for (double x = -7.; x <= 9.; x += 0.25)
+        for (double y = -5.; y <= 8.; y += 0.25) {
+            double nearest = std::numeric_limits<double>::infinity();
+            for (const auto &site : sites)
+                nearest = std::min(nearest, (Vec3d(x, y, z) - site).norm());
+            REQUIRE(nearest <= section.covering_radius + EPSILON);
+        }
+}
+
+TEST_CASE("Voronoi adaptive coverage crosses gaps and preserves an exterior field", "[FillVoronoi]")
+{
+    auto provider = std::make_shared<FixedProvider>();
+    provider->sites = {Vec3d(-100., 0., -20.), Vec3d(100., 0., 20.),
+                       Vec3d(0., 100., 0.), Vec3d(0., -100., 0.)};
+    Voronoi::ActivePointCloud cloud(provider);
+    const auto bounds = rectangle(-5., -5., 5., 5.).contour.bounding_box();
+    for (double z : {0., 1., 20., 0.}) {
+        Voronoi::Section actual;
+        REQUIRE(cloud.update(bounds, z, 0.5, 1., [&](const auto &sites) {
+            actual = Voronoi::section(sites, bounds, z);
+            return actual.covering_radius;
+        }));
+        const auto expected = Voronoi::section(provider->sites, bounds, z);
+        REQUIRE(segments(actual.walls) == segments(expected.walls));
+        REQUIRE_THAT(actual.covering_radius, Catch::Matchers::WithinAbs(expected.covering_radius, EPSILON));
+    }
+}
+
+TEST_CASE("Voronoi retirement preserves future slices and rounded floors", "[FillVoronoi]")
+{
+    auto provider = std::make_shared<FixedProvider>();
+    // Structured sites include near-horizontal faces and points well below the slice.
+    for (double z = -20.; z <= 40.; z += 4.)
+        for (double x : {-6., 0., 6.})
+            for (double y : {-6., 0., 6.})
+                provider->sites.emplace_back(x + 0.03 * z, y, z);
+    Voronoi::ActivePointCloud cloud(provider);
+    const auto bounds = rectangle(-4., -4., 4., 4.).contour.bounding_box();
+    const double width = 0.45, height = 0.2, row_spacing = 0.4;
+    const double margin = height * (1. + 2. * row_spacing / width);
+    for (double z : {0., 2., 4., 10., 20., 0.}) {
+        REQUIRE(cloud.update(bounds, z, margin, 3., [&](const auto &sites) {
+            return Voronoi::section(sites, bounds, z).covering_radius;
+        }));
+        REQUIRE(cloud.sites().size() < provider->sites.size());
+        REQUIRE(segments(Voronoi::section(cloud.sites(), bounds, z).walls) ==
+                segments(Voronoi::section(provider->sites, bounds, z).walls));
+        Voronoi::CellGeometry actual_mesh;
+        actual_mesh.update(cloud.sites());
+        const auto actual = actual_mesh.shallow_bands(bounds, z, width, height, row_spacing);
+        Voronoi::CellGeometry expected_mesh;
+        expected_mesh.update(provider->sites);
+        const auto expected = expected_mesh.shallow_bands(bounds, z, width, height, row_spacing);
+        ExPolygons actual_polygons, expected_polygons;
+        for (const auto &band : actual) actual_polygons.push_back(band.polygon);
+        for (const auto &band : expected) expected_polygons.push_back(band.polygon);
+        REQUIRE(diff_ex(actual_polygons, expected_polygons).empty());
+        REQUIRE(diff_ex(expected_polygons, actual_polygons).empty());
+        for (const auto &site : cloud.sites())
+            REQUIRE(site.z() >= cloud.retired_below());
+    }
+}
+
 TEST_CASE("Voronoi finite empty clouds terminate without geometry", "[FillVoronoi]")
 {
     auto provider = std::make_shared<FixedProvider>();
     VoronoiInfill infill(provider);
     const auto region = rectangle(-5., -5., 5., 5.);
     REQUIRE(infill.fill_geometry(region.contour.bounding_box(), region, 0.45, 0.2, 0., 0.45, 0.).walls.empty());
+}
+
+TEST_CASE("Incremental Voronoi geometry agrees with fresh builds while the slab moves", "[FillVoronoi][Incremental]")
+{
+    const auto provider = std::make_shared<Voronoi::PoissonPointCloud>();
+    const auto bounds = rectangle(-6., -6., 6., 6.).contour.bounding_box();
+    Voronoi::CellGeometry mesh;
+    size_t removed = 0;
+    for (double z : {0.1, 1.1, 2.1, 3.1, 5.1, 8.1, 12.1, 0.1}) {
+        const auto points = provider->points_in(BoundingBoxf3(Vec3d(-14., -14., z - 7.), Vec3d(14., 14., z + 7.)), 4.);
+        const auto changed = mesh.update(points);
+        removed += changed.second;
+        const auto unchanged = mesh.update(points);
+        REQUIRE(unchanged.first == 0);
+        REQUIRE(unchanged.second == 0);
+        const auto bands = mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4);
+        Voronoi::CellGeometry reference_mesh;
+        reference_mesh.update(points);
+        const auto reference = reference_mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4);
+        ExPolygons got, want;
+        for (const auto &band : bands) got.push_back(band.polygon);
+        for (const auto &band : reference) want.push_back(band.polygon);
+        ExPolygons difference = diff_ex(got, want);
+        append(difference, diff_ex(want, got));
+        double area = 0.;
+        for (const auto &polygon : difference) area += polygon.area() * SCALING_FACTOR * SCALING_FACTOR;
+        REQUIRE(area < 0.0001);
+    }
+    REQUIRE(removed > 0);
+}
+
+TEST_CASE("Copied Voronoi networks own their storage through dimension changes", "[FillVoronoi][Incremental]")
+{
+    const auto bounds = rectangle(-10., -10., 10., 10.).contour.bounding_box();
+    Voronoi::CellGeometry mesh;
+    std::vector<Vec3d> points {Vec3d(-5., 0., 0.), Vec3d(5., 0., 0.), Vec3d(0., 5., 0.), Vec3d(0., 0., 10.)};
+    const auto contours = [&](const Voronoi::CellGeometry &geometry) {
+        std::vector<Points> result;
+        for (const auto &band : geometry.shallow_bands(bounds, 4.9, 0.45, 0.2, 0.4))
+            result.push_back(band.polygon.contour.points);
+        return result;
+    };
+    mesh.update(points);
+    Voronoi::CellGeometry copy = mesh, assigned;
+    assigned = mesh;
+    const auto expected = contours(copy);
+    REQUIRE_FALSE(expected.empty());
+    while (!points.empty()) {
+        points.pop_back();
+        mesh.update(points);
+        Voronoi::CellGeometry fresh;
+        fresh.update(points);
+        REQUIRE(contours(mesh) == contours(fresh));
+        REQUIRE(contours(copy) == expected);
+        REQUIRE(contours(assigned) == expected);
+    }
+    REQUIRE(contours(mesh).empty());
 }
 
 TEST_CASE("Random cloud rotation preserves points in a spherical region", "[FillVoronoi][Rotation]")
@@ -694,18 +830,4 @@ TEST_CASE("Random cloud rotation preserves points in a spherical region", "[Fill
         REQUIRE_THAT((*nearest - expected).norm(), Catch::Matchers::WithinAbs(0., 1e-12));
     }
     REQUIRE_THROWS_AS(Voronoi::PoissonPointCloud(std::numeric_limits<double>::quiet_NaN()), std::invalid_argument);
-}
-
-TEST_CASE("Complete Voronoi clouds include distant exterior competitors", "[FillVoronoi]")
-{
-    FixedProvider provider;
-    provider.sites = {Vec3d(-100., 0., -20.), Vec3d(100., 0., 20.),
-                      Vec3d(0., 100., 0.), Vec3d(0., -100., 0.)};
-    const auto bounds = rectangle(-5., -5., 5., 5.).contour.bounding_box();
-    const BoundingBoxf3 domain(Vec3d(-5., -5., 0.), Vec3d(5., 5., 20.));
-    const auto sites = Voronoi::complete_cloud(provider, domain, 1.);
-    REQUIRE(sites.size() == provider.sites.size());
-    for (double z : {0., 1., 20.})
-        REQUIRE(segments(Voronoi::section(sites, bounds, z).walls) ==
-                segments(Voronoi::section(provider.sites, bounds, z).walls));
 }
