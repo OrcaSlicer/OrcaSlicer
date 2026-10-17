@@ -67,8 +67,8 @@ else ()
 
     ExternalProject_Add(dep_FFMPEG
         ${_ffmpeg_depends}
-        URL https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.0.3.tar.gz
-        URL_HASH SHA256=DEEDCABE339165214A3637DF4C86A507AEF0D793CF8774FF68735F4737E8DDBC
+        URL https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.1.5.zip
+        URL_HASH SHA256=4f1b727ee006a07210ca010abb04e67a034c9d361a3a4a1e51d5a2657e0fe7a4
         DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/FFMPEG
         CONFIGURE_COMMAND ${_ffmpeg_configure_command}
             ${_cross_cmd}
