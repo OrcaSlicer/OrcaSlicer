@@ -243,7 +243,7 @@ namespace client
     struct expr
     {
                  expr() {}
-                 expr(const expr &rhs) : m_type(rhs.type()), it_range(rhs.it_range)
+                 expr(const expr &rhs) : m_type(rhs.type()), it_range(rhs.it_range), m_deferred(rhs.m_deferred)
                     { if (rhs.type() == TYPE_STRING) m_data.s = new std::string(*rhs.m_data.s); else m_data.set(rhs.m_data); }
                  expr(expr &&rhs) : expr(std::move(rhs), rhs.it_range.begin(), rhs.it_range.end()) {}
 
@@ -258,13 +258,16 @@ namespace client
         explicit expr(std::string &&s) : m_type(TYPE_STRING) { m_data.s = new std::string(std::move(s)); }
         explicit expr(const std::string &s, const Iterator &it_begin, const Iterator &it_end) :
             m_type(TYPE_STRING), it_range(it_begin, it_end) { m_data.s = new std::string(s); }
-        explicit expr(expr &&rhs, const Iterator &it_begin, const Iterator &it_end) : m_type(rhs.type()), it_range{ it_begin, it_end }
+        explicit expr(expr &&rhs, const Iterator &it_begin, const Iterator &it_end) : m_type(rhs.type()), it_range{ it_begin, it_end }, m_deferred(rhs.m_deferred)
         {
             m_data.set(rhs.m_data);
-            rhs.m_type = TYPE_EMPTY;
+            rhs.m_type     = TYPE_EMPTY;
+            rhs.m_deferred = Deferred::None;
         }
         expr &operator=(const expr &rhs)
         { 
+            // set_s() clears m_deferred, which is also rhs.m_deferred on a self-assignment.
+            const Deferred deferred = rhs.m_deferred;
             if (rhs.type() == TYPE_STRING) {
                 this->set_s(rhs.s());
             } else  {
@@ -272,6 +275,7 @@ namespace client
                 m_data.set(rhs.m_data);
             }
             this->it_range = rhs.it_range;
+            m_deferred     = deferred;
             return *this;
         }
 
@@ -281,8 +285,10 @@ namespace client
                 this->reset();
                 m_type          = rhs.type();
                 this->it_range  = rhs.it_range;
+                m_deferred      = rhs.m_deferred;
                 m_data.set(rhs.m_data);
                 rhs.m_type      = TYPE_EMPTY;
+                rhs.m_deferred  = Deferred::None;
             }
             return *this;
         }
@@ -291,7 +297,8 @@ namespace client
         { 
             if (this->type() == TYPE_STRING)
                 delete m_data.s;
-            m_type = TYPE_EMPTY;
+            m_type     = TYPE_EMPTY;
+            m_deferred = Deferred::None;
         }
         ~expr() { reset(); }
 
@@ -304,6 +311,10 @@ namespace client
         };
         Type                type() const { return m_type; }
         bool                numeric_type() const { return m_type == TYPE_INT || m_type == TYPE_DOUBLE; }
+        // A deferred string is either one deferred value or text that contains at least one.
+        enum class Deferred : unsigned char { None, Value, Text };
+        bool                deferred() const { return m_deferred != Deferred::None; }
+        void                set_deferred(Deferred deferred) { m_deferred = deferred; }
 
         bool&               b()       { return m_data.b; }
         bool                b() const { return m_data.b; }
@@ -323,18 +334,21 @@ namespace client
         std::string&        s()       { return *m_data.s; }
         const std::string&  s() const { return *m_data.s; }
         void                set_s(const std::string &s) {
+            m_deferred = Deferred::None;
             if (this->type() == TYPE_STRING)
                 *m_data.s = s;
             else 
                 this->set_s_take_ownership(new std::string(s));
         }
         void                set_s(std::string &&s) {
+            m_deferred = Deferred::None;
             if (this->type() == TYPE_STRING)
                 *m_data.s = std::move(s);
             else
                 this->set_s_take_ownership(new std::string(std::move(s)));
         }
         void                set_s(const char *s) {
+            m_deferred = Deferred::None;
             if (this->type() == TYPE_STRING)
                 *m_data.s = s;
             else
@@ -478,12 +492,21 @@ namespace client
         {
             if (this->type() == TYPE_EMPTY) {
                 // Inside an if / else block to be skipped.
+            } else if (m_deferred == Deferred::Value && (rhs.type() != TYPE_STRING || rhs.m_deferred == Deferred::Value)) {
+                // A deferred value added to a number or to another deferred value is meant as a sum.
+                this->throw_if_deferred();
+            } else if (rhs.m_deferred == Deferred::Value && this->type() != TYPE_STRING) {
+                rhs.throw_if_deferred();
             } else if (this->type() == TYPE_STRING) {
                 // Convert the right hand side to string and append.
                 *m_data.s += rhs.to_string();
+                if (this->deferred() || rhs.deferred())
+                    m_deferred = Deferred::Text;
             } else if (rhs.type() == TYPE_STRING) {
                 // Conver the left hand side to string, append rhs.
                 this->set_s(this->to_string() + rhs.s());
+                if (rhs.deferred())
+                    m_deferred = Deferred::Text;
             } else {
                 const char *err_msg = L("Cannot add non-numeric types.");
                 this->throw_if_not_numeric(err_msg);
@@ -602,6 +625,8 @@ namespace client
             if (lhs.type() == TYPE_EMPTY)
                 // Inside an if / else block to be skipped
                 return;
+            lhs.throw_if_deferred();
+            rhs.throw_if_deferred();
             bool value = false;
             if (lhs.numeric_type() && rhs.numeric_type()) {
                 // Both types are numeric.
@@ -731,6 +756,7 @@ namespace client
             if (lhs.type() == TYPE_EMPTY)
                 // Inside an if / else block to be skipped
                 return;
+            lhs.throw_if_deferred();
             const std::string *subject  = nullptr;
             if (lhs.type() == TYPE_STRING) {
                 // One type is string, the other could be converted to string.
@@ -761,6 +787,7 @@ namespace client
             if (subject.type() == TYPE_EMPTY)
                 // Inside an if / else block to be skipped
                 return;
+            subject.throw_if_deferred();
             if (subject.type() != TYPE_STRING)
                 subject.throw_exception(L("regex_replace() first parameter must be a string."));
             try {
@@ -785,6 +812,8 @@ namespace client
                 return;            
             }
             if (! out.b()) {
+                match.throw_if_deferred();
+                pattern.throw_if_deferred();
                 if (match.type() != TYPE_STRING)
                     match.throw_exception(L("one_of(): First parameter (the string to match against) has to be a string value"));
                 if (pattern.type() != TYPE_STRING)
@@ -818,6 +847,8 @@ namespace client
             if (lhs.type() == TYPE_EMPTY)
                 // Inside an if / else block to be skipped
                 return;            
+            lhs.throw_if_deferred();
+            rhs.throw_if_deferred();
             bool value = false;
             if (lhs.type() == TYPE_BOOL && rhs.type() == TYPE_BOOL) {
                 value = (op == '|') ? (lhs.b() || rhs.b()) : (lhs.b() && rhs.b());
@@ -830,8 +861,16 @@ namespace client
         static void logical_or (expr &lhs, expr &rhs) { logical_op(lhs, rhs, '|'); }
         static void logical_and(expr &lhs, expr &rhs) { logical_op(lhs, rhs, '&'); }
 
+        static const char* deferred_message()
+        {
+            return L("This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison.");
+        }
+
+        // Reports the deferred message for a type error on a deferred value, since it holds a tag in place of the value.
         void throw_exception(const char *message) const
         {
+            if (this->deferred())
+                message = deferred_message();
             boost::throw_exception(qi::expectation_failure<Iterator>(
                 this->it_range.begin(), this->it_range.end(), spirit::info(std::string("*") + message)));
         }
@@ -842,11 +881,18 @@ namespace client
                 this->throw_exception(message);
         }
 
+        void throw_if_deferred() const
+        {
+            if (this->deferred())
+                this->throw_exception(deferred_message());
+        }
+
     private:
         // This object will take ownership of the parameter string object "s".
         void        set_s_take_ownership(std::string* s) { assert(this->type() != TYPE_STRING); Data tmp; tmp.s = s; m_data.set(tmp); m_type = TYPE_STRING; }
 
         Type        m_type = TYPE_EMPTY;
+        Deferred    m_deferred = Deferred::None;
 
         union Data {
             bool         b;
@@ -895,6 +941,8 @@ namespace client
         std::string              error_message;
         // Local variables declared in {if} branches that were not taken, see PlaceholderParser::check_inactive_branches.
         mutable std::set<std::string> inactive_local_variables;
+        // Tags of PlaceholderParser::set_deferred(), matched by value so that a copy in a variable is deferred too.
+        const std::set<std::string> *deferred_tags = nullptr;
 
         // Table to translate symbol tag to a human readable error message.
         static std::map<std::string, std::string> tag_to_error_message;
@@ -969,6 +1017,18 @@ namespace client
                 this->context_data->global_config->set_key_value(opt_key, opt.release());
             } else
                 this->config_local.set_key_value(opt_key, opt.release());
+        }
+        void                    mark_deferred(expr &output) const {
+            if (output.type() != expr::TYPE_STRING)
+                return;
+            expr::Deferred deferred = expr::Deferred::None;
+            if (deferred_tags != nullptr && output.s().find('@') != std::string::npos)
+                for (const std::string &tag : *deferred_tags)
+                    if (output.s().find(tag) != std::string::npos) {
+                        deferred = output.s() == tag ? expr::Deferred::Value : expr::Deferred::Text;
+                        break;
+                    }
+            output.set_deferred(deferred);
         }
 
         static void legacy_variable_expansion(const MyContext *ctx, IteratorRange &opt_key, std::string &output)
@@ -1430,6 +1490,7 @@ namespace client
                     vector_element_to_expr(ctx, opt, output);
                 else
                     scalar_variable_to_expr(ctx, opt, output);
+                ctx->mark_deferred(output);
             }
             output.it_range = opt.it_range;
         }
@@ -1516,7 +1577,7 @@ namespace client
             if (ctx->skipping()) {
             } else if (lhs.opt) {
                 if (lhs.opt->is_vector())
-                    rhs.throw_exception(L("Cannot assign a scalar value to a vector variable."));
+                    ctx->throw_exception(L("Cannot assign a scalar value to a vector variable."), rhs.it_range);
                 OptWithPos lhs_opt{ lhs.opt, lhs.it_range, true };
                 scalar_variable_assign_scalar(ctx, lhs_opt, rhs);
             } else {
@@ -1542,7 +1603,7 @@ namespace client
             if (ctx->skipping()) {
             } else if (lhs.opt) {
                 if (lhs.opt->is_scalar())
-                    rhs_value.throw_exception(L("Cannot assign a vector value to a scalar variable."));
+                    ctx->throw_exception(L("Cannot assign a vector value to a scalar variable."), rhs_value.it_range);
                 OptWithPos lhs_opt{ lhs.opt, lhs.it_range, true };
                 vector_variable_assign_expr_with_count(ctx, lhs_opt, rhs_count, rhs_value);
             } else {
@@ -1568,7 +1629,7 @@ namespace client
             if (! ctx->skipping()) {
                 check_writable(ctx, lhs);
                 if (lhs.opt->is_scalar())
-                    rhs_value.throw_exception(L("Cannot assign a vector value to a scalar variable."));
+                    ctx->throw_exception(L("Cannot assign a vector value to a scalar variable."), rhs_value.it_range);
                 vector_variable_assign_expr_with_count(ctx, lhs, rhs_count, rhs_value);
             }
         }
@@ -1803,8 +1864,19 @@ namespace client
 
         static void filament_change(const MyContext* ctx, expr& param)
         {
+            if (param.type() == expr::TYPE_EMPTY)
+                // Inside an if / else block to be skipped
+                return;
             MyContext *context = const_cast<MyContext *>(ctx);
+            param.throw_if_deferred();
             context->current_extruder_id = param.as_i();
+        }
+
+        // The replacement may put a deferred tag into the result.
+        static void regex_replace(const MyContext *ctx, expr &subject, IteratorRange &pattern, expr &replacement)
+        {
+            expr::regex_replace(subject, pattern, replacement);
+            ctx->mark_deferred(subject);
         }
 
         static void throw_exception(const std::string &msg, const IteratorRange &it_range)
@@ -2409,7 +2481,7 @@ namespace client
                 |   (kw["zdigits"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > optional_parameter(_r1))
                                                                     [ px::bind(&expr::digits<true>, _val, _2, _3) ]
                 |   (kw["regex_replace"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > regular_expression > ',' > conditional_expression(_r1) > ')')
-                                                                    [ px::bind(&expr::regex_replace, _val, _2, _3) ]
+                                                                    [ px::bind(&MyContext::regex_replace, _r1, _val, _2, _3) ]
                 |   (kw["int"]   > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::to_int,  _1, _val) ]
                 |   (kw["round"] > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::round,   _1, _val) ]
                 |   (kw["ceil"]  > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::ceil,    _1, _val) ]
@@ -2614,6 +2686,7 @@ std::string PlaceholderParser::process(const std::string &templ, unsigned int cu
     context.config              = &this->config();
     context.config_override     = config_override;
     context.config_outputs      = config_outputs;
+    context.deferred_tags       = &m_deferred_tags;
     context.current_extruder_id = current_extruder_id;
     context.context_data        = context_data;
     return process_macro(templ, context);
