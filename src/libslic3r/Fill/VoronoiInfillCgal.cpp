@@ -1,20 +1,17 @@
 #include "VoronoiInfillCgal.hpp"
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Regular_triangulation_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_3.h>
+#include <CGAL/Delaunay_triangulation_3.h>
+#include <CGAL/Triangulation_vertex_base_3.h>
 #include <CGAL/Triangulation_data_structure_3.h>
 #include <CGAL/Triangulation_cell_base_3.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cassert>
-#include <cstddef>
 #include <limits>
-#include <iterator>
-#include <memory>
 #include <map>
+#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -61,9 +58,8 @@ void clip_polygon(std::vector<Vec2d> &polygon, const Vec2d &normal, double limit
 
 } // namespace
 
-Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, double z, const std::vector<bool> &discarded)
+Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, double z)
 {
-    assert(discarded.empty() || discarded.size() == sites.size());
     using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
     using Triangulation = CGAL::Regular_triangulation_2<Kernel>;
     // At fixed z, squared 3D distance is squared XY distance + (z-site.z)^2.
@@ -77,16 +73,6 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
     for (const Vec3d &site : sites) {
         const double dz = site.z() - z;
         input.emplace_back(Kernel::Point_2(site.x() - center.x(), site.y() - center.y()), -dz * dz);
-    }
-    auto key = [](const Kernel::Weighted_point_2 &p) {
-        return std::array<double, 3>{CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.weight())};
-    };
-    // Coincident power sites may represent different cells on this exact plane.
-    // Keep their faces whenever any coincident cell is retained.
-    std::map<std::array<double, 3>, bool> removed;
-    for (size_t i = 0; i < discarded.size(); ++i) {
-        auto entry = removed.emplace(key(input[i]), discarded[i]);
-        entry.first->second = entry.first->second && discarded[i];
     }
     Triangulation triangulation(input.begin(), input.end());
     if (triangulation.dimension() < 0)
@@ -135,10 +121,6 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
         const auto &site = edge->first->vertex(triangulation.ccw(edge->second))->point();
         measure((origin + lo * direction).eval(), site);
         measure((origin + hi * direction).eval(), site);
-        const auto &peer = edge->first->vertex(triangulation.cw(edge->second))->point();
-        // Measure the full diagram above, including faces hidden inside the void:
-        // the streaming cloud's ingestion/retirement bound still depends on them.
-        if (!removed.empty() && removed.at(key(site)) && removed.at(key(peer))) continue;
         const Point p(a.x(), a.y()), q(b.x(), b.y());
         if (p != q)
             edges.emplace_back(Points{p, q});
@@ -147,6 +129,9 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
         // Read metadata after geometry extraction. Keep the original CGAL vertex
         // type and insertion range: changing these can flip degenerate edges and
         // affect how walls on floor boundaries are clipped.
+        auto key = [](const Kernel::Weighted_point_2 &p) {
+            return std::array<double, 3>{CGAL::to_double(p.x()), CGAL::to_double(p.y()), CGAL::to_double(p.weight())};
+        };
         std::map<std::array<double, 3>, size_t> site_indices;
         for (size_t i = 0; i < input.size(); ++i) {
             auto inserted = site_indices.emplace(key(input[i]), i);
@@ -174,7 +159,7 @@ Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, doub
 
 struct CellGeometry::Impl {
     using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
-    using Vertex = CGAL::Triangulation_vertex_base_with_info_3<bool, Kernel>;
+    using Vertex = CGAL::Triangulation_vertex_base_3<Kernel>;
     using Cells = CGAL::Triangulation_cell_base_3<Kernel>;
     using Triangulation = CGAL::Delaunay_triangulation_3<Kernel, CGAL::Triangulation_data_structure_3<Vertex, Cells>>;
     using Handle = Triangulation::Vertex_handle;
@@ -194,7 +179,7 @@ struct CellGeometry::Impl {
     Impl(const Impl &other) : triangulation(other.triangulation) { index_vertices(); }
 
     // Every Delaunay edge defines one Voronoi face. Its endpoint's other
-    // neighbours supply the half-space constraints, including discarded cells.
+    // neighbours supply the half-space constraints, including cells outside the slice.
     template<class Visitor> void faces(Visitor visit) const
     {
         std::vector<Handle> neighbors;
@@ -221,31 +206,29 @@ CellGeometry &CellGeometry::operator=(const CellGeometry &other)
 CellGeometry::CellGeometry(CellGeometry &&) noexcept = default;
 CellGeometry &CellGeometry::operator=(CellGeometry &&) noexcept = default;
 
-std::pair<size_t, size_t> CellGeometry::update(const std::vector<Vec3d> &sites, const std::vector<bool> &discarded)
+std::pair<size_t, size_t> CellGeometry::update(const std::vector<Vec3d> &sites)
 {
-    assert(discarded.empty() || discarded.size() == sites.size());
     using Point3 = Impl::Point3;
     using Handle = Impl::Handle;
-    std::vector<std::pair<Point3, bool>> desired;
+    std::vector<Point3> desired;
     desired.reserve(sites.size());
     for (size_t i = 0; i < sites.size(); ++i)
-        desired.emplace_back(Point3(sites[i].x(), sites[i].y(), sites[i].z()), !discarded.empty() && discarded[i]);
-    std::sort(desired.begin(), desired.end(), [](const auto &a, const auto &b) { return Impl::key(a.first) < Impl::key(b.first); });
+        desired.emplace_back(sites[i].x(), sites[i].y(), sites[i].z());
+    std::sort(desired.begin(), desired.end(), [](const auto &a, const auto &b) { return Impl::key(a) < Impl::key(b); });
     std::vector<Handle> kept, removed;
-    std::vector<std::pair<Point3, bool>> added;
+    std::vector<Point3> added;
     auto &mesh = *m_impl;
     size_t previous = 0;
     for (const auto &site : desired) {
-        while (previous < mesh.vertices.size() && Impl::key(mesh.vertices[previous]->point()) < Impl::key(site.first))
+        while (previous < mesh.vertices.size() && Impl::key(mesh.vertices[previous]->point()) < Impl::key(site))
             removed.push_back(mesh.vertices[previous++]);
-        if (previous < mesh.vertices.size() && mesh.vertices[previous]->point() == site.first) {
+        if (previous < mesh.vertices.size() && mesh.vertices[previous]->point() == site) {
             auto vertex = mesh.vertices[previous++];
-            vertex->info() = site.second;
             kept.push_back(vertex);
-        } else if (!kept.empty() && kept.back()->point() == site.first) {
-            kept.back()->info() = kept.back()->info() && site.second;
-        } else if (!added.empty() && added.back().first == site.first) {
-            added.back().second = added.back().second && site.second;
+        } else if (!kept.empty() && kept.back()->point() == site) {
+            continue;
+        } else if (!added.empty() && added.back() == site) {
+            continue;
         } else {
             added.push_back(site);
         }
@@ -272,7 +255,6 @@ std::vector<Band> CellGeometry::shallow_bands(const BoundingBox &bounds, double 
     };
     std::vector<std::pair<std::array<double, 6>, Band>> faces;
     mesh.faces([&](Impl::Handle va, Impl::Handle vb, const std::vector<Impl::Handle> &neighbors) {
-        if (va->info() && vb->info()) return;
         Vec3d a = position(va), b = position(vb);
         if (std::lexicographical_compare(b.data(), b.data() + 3, a.data(), a.data() + 3)) std::swap(a, b);
         const Vec3d normal = b - a;

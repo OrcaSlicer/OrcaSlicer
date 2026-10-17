@@ -19,7 +19,7 @@ public:
     virtual double spacing(double extrusion_spacing, double nominal_height, double density) const = 0;
     virtual std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const = 0;
     virtual bool has_cutoff() const { return false; }
-    // Negative values identify cells to remove; exterior sites remain retained.
+    // Negative values identify wall junctions to remove; exterior queries remain retained.
     virtual std::vector<double> relative_density(const std::vector<Vec3d> &points) const
         { return std::vector<double>(points.size(), 1.); }
     // Preferred neighbour spacing for optional point relaxation. Unlike hull

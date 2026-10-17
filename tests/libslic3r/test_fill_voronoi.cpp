@@ -1069,7 +1069,7 @@ TEST_CASE("Voronoi zero decay keeps a uniform base and permits corner boosts", "
     REQUIRE_THROWS_AS(Cloud({}, -1.), std::invalid_argument);
 }
 
-TEST_CASE("Cutoff preserves the control points needed to define discarded cells", "[FillVoronoi][Hull]")
+TEST_CASE("Cutoff preserves the control points needed to define the wall graph", "[FillVoronoi][Hull]")
 {
     const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
     const auto samples = [](const auto &points) {
@@ -1088,46 +1088,6 @@ TEST_CASE("Cutoff preserves the control points needed to define discarded cells"
     for (double value : cut->relative_density(points)) REQUIRE(value < 0.);
 }
 
-TEST_CASE("Removed Voronoi cells retain a closed faceted boundary", "[FillVoronoi][Hull]")
-{
-    // Two adjoining central cells form one void, surrounded on all six sides.
-    std::vector<Vec3d> sites {Vec3d(-1., 0., 0.), Vec3d(1., 0., 0.)};
-    for (double x : {-1., 1.})
-        for (const Vec3d &offset : {Vec3d(0., -4., 0.), Vec3d(0., 4., 0.), Vec3d(0., 0., -4.), Vec3d(0., 0., 4.)})
-            sites.push_back(Vec3d(x, 0., 0.) + offset);
-    sites.push_back(Vec3d(-5., 0., 0.));
-    sites.push_back(Vec3d(5., 0., 0.));
-    std::vector<bool> discarded(sites.size(), false);
-    discarded[0] = discarded[1] = true;
-    const auto bounds = rectangle(-6., -6., 6., 6.).contour.bounding_box();
-    const auto all = Voronoi::section(sites, bounds, 0.3);
-    const auto cut = Voronoi::section(sites, bounds, 0.3, discarded);
-    REQUIRE_THAT(cut.covering_radius, Catch::Matchers::WithinAbs(all.covering_radius, EPSILON));
-    const ExPolygon core = rectangle(-2.9, -1.9, 2.9, 1.9);
-    REQUIRE_FALSE(intersection_pl(all.walls, core).empty());
-    REQUIRE(intersection_pl(cut.walls, core).empty());
-    Polylines boundary;
-    const auto cavity_box = rectangle(-3., -2., 3., 2.).contour.bounding_box();
-    for (const auto &wall : cut.walls)
-        if (cavity_box.contains(wall.first_point()) && cavity_box.contains(wall.last_point()))
-            boundary.push_back(wall);
-    const auto graph = Voronoi::build_wall_graph(boundary);
-    REQUIRE_FALSE(graph.edges.empty());
-    for (const auto &node : graph.vertices) REQUIRE(node.edges.size() == 2);
-    for (double z : {-1.9, 2.1}) {
-        Voronoi::CellGeometry bands_mesh;
-        bands_mesh.update(sites);
-        const auto bands = bands_mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4, discarded);
-        ExPolygons caps;
-        for (const auto &band : bands) caps.push_back(band.polygon);
-        REQUIRE(diff_ex(ExPolygons{core}, caps).empty());
-    }
-    std::fill(discarded.begin(), discarded.end(), true);
-    REQUIRE(Voronoi::section(sites, bounds, 0.3, discarded).walls.empty());
-    REQUIRE(Voronoi::shallow_bands(sites, bounds, 2.1, 0.45, 0.2, 0.4, discarded).empty());
-    std::fill(discarded.begin(), discarded.end(), false);
-    REQUIRE(Voronoi::section(sites, bounds, 0.3, discarded).walls == all.walls);
-}
 
 TEST_CASE("Voronoi distance construction reports progress through completion", "[FillVoronoi]")
 {
@@ -1690,7 +1650,6 @@ TEST_CASE("A uniform field at the root threshold retains material despite densit
 TEST_CASE("Incremental Voronoi geometry agrees with fresh builds while the slab moves", "[FillVoronoi][Incremental]")
 {
     const auto method = GENERATE(VoronoiCloudMethod::Random, VoronoiCloudMethod::Fcc, VoronoiCloudMethod::Cubic);
-    const bool cutoff = GENERATE(false, true);
     std::shared_ptr<const Voronoi::PointCloudProvider> provider;
     if (method == VoronoiCloudMethod::Random) provider = std::make_shared<Voronoi::PoissonPointCloud>();
     else provider = std::make_shared<Voronoi::LatticePointCloud>(method);
@@ -1699,17 +1658,15 @@ TEST_CASE("Incremental Voronoi geometry agrees with fresh builds while the slab 
     size_t removed = 0;
     for (double z : {0.1, 1.1, 2.1, 3.1, 5.1, 8.1, 12.1, 0.1}) {
         const auto points = provider->points_in(BoundingBoxf3(Vec3d(-14., -14., z - 7.), Vec3d(14., 14., z + 7.)), 4.);
-        std::vector<bool> discarded;
-        if (cutoff) for (const Vec3d &p : points) discarded.push_back(p.head<2>().norm() < 4.);
-        const auto changed = mesh.update(points, discarded);
+        const auto changed = mesh.update(points);
         removed += changed.second;
-        const auto unchanged = mesh.update(points, discarded);
+        const auto unchanged = mesh.update(points);
         REQUIRE(unchanged.first == 0);
         REQUIRE(unchanged.second == 0);
         const auto bands = mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4);
         Voronoi::CellGeometry reference_mesh;
         reference_mesh.update(points);
-        const auto reference = reference_mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4, discarded);
+        const auto reference = reference_mesh.shallow_bands(bounds, z, 0.45, 0.2, 0.4);
         ExPolygons got, want;
         for (const auto &band : bands) got.push_back(band.polygon);
         for (const auto &band : reference) want.push_back(band.polygon);
@@ -1786,4 +1743,80 @@ TEST_CASE("An absolute hull threshold removes infill below its material density"
         REQUIRE(hollow.empty());
     else
         REQUIRE_FALSE(hollow.empty());
+}
+
+TEST_CASE("Hull cutting rejects wall junctions even when every control point is retained", "[FillVoronoi][Hull]")
+{
+    class JunctionCut : public FixedProvider {
+    public:
+        bool has_cutoff() const override { return true; }
+        std::vector<double> relative_density(const std::vector<Vec3d> &points) const override
+        {
+            std::vector<double> result;
+            for (const Vec3d &p : points) result.push_back(p.head<2>().norm() < 4. ? -1. : 1.);
+            return result;
+        }
+    };
+    const auto cut = std::make_shared<JunctionCut>();
+    for (double x : {-24., -8., 8., 24.})
+        for (double y : {-24., -8., 8., 24.})
+            cut->sites.emplace_back(x, y, 0.);
+    for (double value : cut->relative_density(cut->sites)) REQUIRE(value > 0.);
+    const auto plain = std::make_shared<FixedProvider>();
+    plain->sites = cut->sites;
+    VoronoiInfill original(plain), hollow(cut);
+    const ExPolygon model = rectangle(-30., -30., 30., 30.);
+    const BoundingBox bounds = model.contour.bounding_box();
+    const auto before = original.fill_geometry(bounds, model, 0.4, 0.25, 1., 0.45, 0.);
+    const auto after = hollow.fill_geometry(bounds, model, 0.4, 0.25, 1., 0.45, 0.);
+    REQUIRE_FALSE(after.walls.empty());
+    const ExPolygon core = rectangle(-3., -3., 3., 3.);
+    REQUIRE_FALSE(intersection_pl(before.walls, core).empty());
+    REQUIRE(intersection_pl(after.walls, core).empty());
+    REQUIRE(diff_pl(after.walls, offset(before.walls, 2.f)).empty());
+}
+
+TEST_CASE("Hull cutting removes shallow floor patches reaching a rejected vertex", "[FillVoronoi][Hull]")
+{
+    class FloorCut : public FixedProvider {
+    public:
+        bool has_cutoff() const override { return true; }
+        std::vector<double> relative_density(const std::vector<Vec3d> &points) const override
+        {
+            std::vector<double> result;
+            for (const Vec3d &p : points) result.push_back(p.x() < 0. ? -1. : 1.);
+            return result;
+        }
+    };
+    const auto cut = std::make_shared<FloorCut>();
+    cut->sites = {Vec3d(0., 0., -2.), Vec3d(0., 0., 2.)};
+    const auto plain = std::make_shared<FixedProvider>();
+    plain->sites = cut->sites;
+    VoronoiInfill original(plain), hollow(cut);
+    const ExPolygon model = rectangle(-10., -10., 10., 10.);
+    const auto before = original.fill_geometry(model.contour.bounding_box(), model, 0.4, 0.25, 0., 0.45, 0.2);
+    const auto after = hollow.fill_geometry(model.contour.bounding_box(), model, 0.4, 0.25, 0., 0.45, 0.2);
+    REQUIRE_FALSE(before.bands.empty());
+    REQUIRE(after.bands.empty());
+    REQUIRE(after.walls.empty());
+}
+
+TEST_CASE("Hull cutting clears a sparse core containing no control points", "[FillVoronoi][Hull][MaterialDensity]")
+{
+    const ExPolygon model = rectangle(-50., -50., 50., 50.);
+    const ExPolygons outlines{model};
+    const auto slices = [&] { return std::vector<Voronoi::WallSlice>{{0., 100., &outlines}}; };
+    Voronoi::WallDistanceCloudCache cache;
+    const auto plain = cache.get(slices, 3., 8., {}, 0., VoronoiCloudMethod::Random, 0, 0., false, 0.25);
+    const auto cut = cache.get(slices, 3., 8., {}, 0., VoronoiCloudMethod::Random, 0, 0., false, 0.25, {}, -1, 0.05);
+    const auto sites = plain->points_in(BoundingBoxf3(Vec3d(-10., -10., 40.), Vec3d(10., 10., 60.)),
+                                       plain->spacing(0.4, 0.2, 0.25));
+    REQUIRE(sites.empty());
+    VoronoiInfill original(plain), hollow(cut);
+    const ExPolygon core = rectangle(-10., -10., 10., 10.);
+    const auto before = original.fill_geometry(model.contour.bounding_box(), model, 0.4, 0.25, 50., 0.4, 0.).walls;
+    const auto after = hollow.fill_geometry(model.contour.bounding_box(), model, 0.4, 0.25, 50., 0.4, 0.).walls;
+    REQUIRE_FALSE(intersection_pl(before, core).empty());
+    REQUIRE(intersection_pl(after, core).empty());
+    REQUIRE_FALSE(after.empty());
 }

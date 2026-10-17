@@ -134,25 +134,25 @@ snapping so that partitioned requests reproduce the same field.
 ## Optional inner hull
 
 The hull threshold is an absolute material-density percentage; zero disables
-it. For example, 5% removes cells with local targets below 5%, regardless of
+it. For example, 5% removes wall junctions with local targets below 5%, regardless of
 the selected sparse infill density.
 Separate modifiers can set their own threshold. Fused modifiers inherit the
 parent threshold, with the control visible but disabled. Their densities are
 blended first, so reinforcement can expand or shrink the cavity without
 changing its threshold.
 
-The combined density map and sampled point cloud remain uncut. Each cell is
-classified by the density at its control point. Faces between two discarded
-cells are omitted; faces separating discarded and retained cells enclose the
-void. Exterior control points remain retained. Density and threshold use the
-same logarithmic encoding; no separate cavity field is retained.
+The combined density map and sampled point cloud remain uncut. At each slice,
+wall junctions are tested against the cumulative density field. A rejected
+junction removes every incident wall segment; shallow floor patches reaching
+rejected vertices are also omitted. Exterior queries remain retained. Density
+and threshold use the same logarithmic encoding; no separate cavity field is
+retained.
 
-The boundary follows whole cells rather than an interpolated distance contour,
-so its shape and position depend on local cell size and point placement. A
-low-density pocket without a control point cannot become a cavity. Boundary
-faces use the ordinary wall routing, multiline offsets and shallow-face floor
-fill. External perimeters and top/bottom shells are unchanged. Printable
-overhangs and vaulting are not enforced.
+The cut follows the wall graph, so its shape depends on local cell size and
+point placement. It does not add a closed inner wall, and a long segment whose
+endpoints both pass the threshold can cross a low-density pocket. External
+perimeters and top/bottom shells are unchanged. Printable overhangs and
+vaulting are not enforced.
 
 ## Wall thickness and shell bonding
 

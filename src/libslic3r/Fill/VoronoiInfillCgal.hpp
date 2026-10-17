@@ -48,9 +48,8 @@ public:
     CellGeometry &operator=(const CellGeometry &);
     CellGeometry(CellGeometry &&) noexcept;
     CellGeometry &operator=(CellGeometry &&) noexcept;
-    // Optional labels correspond to sites; omit faces only between two discarded
-    // cells. Returns counts of inserted and removed vertices.
-    std::pair<size_t, size_t> update(const std::vector<Vec3d> &sites, const std::vector<bool> &discarded = {});
+    // Returns counts of inserted and removed vertices.
+    std::pair<size_t, size_t> update(const std::vector<Vec3d> &sites);
     // Project shallow faces over twice the layer height, rounding to native rows.
     std::vector<Band> shallow_bands(const BoundingBox &bounds, double z, double width,
                                   double height, double row_spacing) const;
@@ -60,6 +59,6 @@ private:
 };
 
 // Extract the bounded planar power diagram from the 3D sites.
-Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, double z, const std::vector<bool> &discarded = {});
+Section section(const std::vector<Vec3d> &sites, const BoundingBox &bounds, double z);
 
 } // namespace Slic3r::Voronoi

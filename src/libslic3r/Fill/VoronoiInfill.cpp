@@ -64,22 +64,15 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
         m_layer_z = std::numeric_limits<double>::quiet_NaN();
     }
     if (m_layer_z != z || m_layer_width != width || m_layer_height != height || m_row_spacing != row_spacing || m_wall_count != wall_count) {
-        const auto classify = [&](const std::vector<Vec3d> &sites) {
-            std::vector<bool> discarded;
-            if (m_provider->has_cutoff())
-                for (double value : m_provider->relative_density(sites))
-                    discarded.push_back(value < 0.);
-            return discarded;
-        };
         if (!m_cloud.update(bounds, z, margin, site_spacing, [&](const std::vector<Vec3d> &sites) {
-                m_section = Voronoi::section(sites, bounds, z, classify(sites));
+                m_section = Voronoi::section(sites, bounds, z);
                 return m_section.covering_radius;
             })) return {};
         // Coverage uses the cheap planar diagram. Retire points before updating
         // the persistent 3D network, avoiding a larger provisional triangulation.
         m_bands.clear();
         if (height > 0.) {
-            m_geometry.update(m_cloud.sites(), classify(m_cloud.sites()));
+            m_geometry.update(m_cloud.sites());
             m_bands = m_geometry.shallow_bands(bounds, z, width, height, row_spacing);
         }
         m_layer_z = z;
@@ -88,24 +81,48 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
         m_row_spacing = row_spacing;
         m_wall_count = wall_count;
     }
+    const auto retained = [&](const Points &points) {
+        std::vector<Vec3d> positions;
+        positions.reserve(points.size());
+        for (const Point &point : points)
+            positions.emplace_back(unscale<double>(point.x()), unscale<double>(point.y()), z);
+        std::vector<bool> keep;
+        for (double value : m_provider->relative_density(positions)) keep.push_back(value >= 0.);
+        return keep;
+    };
+    Polylines walls = intersection_pl(m_section.walls, region);
+    if (m_provider->has_cutoff()) {
+        const auto graph = Voronoi::build_wall_graph(walls);
+        Points points;
+        for (const auto &vertex : graph.vertices) points.push_back(vertex.point);
+        const auto keep = retained(points);
+        walls.clear();
+        for (const auto &edge : graph.edges)
+            if (keep[edge[0]] && keep[edge[1]])
+                walls.emplace_back(Points{points[edge[0]], points[edge[1]]});
+    }
     Voronoi::Layer result;
-    ExPolygons covered;
+    ExPolygons covered, wall_mask;
     for (const Voronoi::Band &band : m_bands) {
         const double expansion = 0.5 * (wall_count - 1) * row_spacing;
         const ExPolygons footprint = expansion > 0. ? offset_ex(band.polygon, float(scale_(expansion))) : ExPolygons{band.polygon};
         ExPolygons clipped = intersection_ex(footprint, ExPolygons{region});
-        for (ExPolygon &polygon : diff_ex(clipped, covered))
+        for (ExPolygon &polygon : diff_ex(clipped, covered)) {
+            // Also mask rejected floors so they cannot reappear as unsupported lines.
+            append(wall_mask, offset_ex(polygon, -1.f));
+            if (m_provider->has_cutoff()) {
+                const auto keep = retained(polygon.contour.points);
+                if (!std::all_of(keep.begin(), keep.end(), [](bool value) { return value; })) continue;
+            }
             result.bands.push_back({std::move(polygon), band.supported_side, band.row_origin + expansion});
+        }
         append(covered, std::move(clipped));
     }
     // Subtract floor interiors, preserving walls shared by floor faces. Clipper
     // otherwise treats coincident boundary lines differently by direction, and
     // floor rows can leave a gap at those boundaries. One coordinate unit is
     // enough to disambiguate clipping; tiny resulting fragments collapse below.
-    ExPolygons wall_mask;
-    for (const Voronoi::Band &band : result.bands)
-        append(wall_mask, offset_ex(band.polygon, -1.f));
-    result.walls = diff_pl(intersection_pl(m_section.walls, region), wall_mask);
+    result.walls = diff_pl(walls, wall_mask);
     BOOST_LOG_TRIVIAL(warning) << "Voronoi diagnostic: geometry z=" << z << " density=" << density
         << " spacing=" << spacing << " site_spacing=" << site_spacing << " sites=" << m_cloud.sites().size()
         << " section_walls=" << m_section.walls.size() << " floors=" << result.bands.size()
