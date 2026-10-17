@@ -1332,6 +1332,21 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
     return ret;
 }
 
+bool ConfigOptionsGroup::commit_config_value(const t_config_option_key& opt_key, int opt_index)
+{
+    if (m_config == nullptr)
+        return false;
+
+    // m_opt_map is filled while the option lines are created, so it still resolves the option when
+    // the group's controls (and thus its fields) have not been built yet.
+    const std::string opt_id = option_id_in_map(m_opt_map, opt_key, opt_index);
+    if (opt_id.empty())
+        return false;
+
+    on_change_OG(opt_id, get_config_value2(*m_config, opt_key, opt_index));
+    return true;
+}
+
 Field* ConfigOptionsGroup::get_fieldc(const t_config_option_key& opt_key, int opt_index)
 {
     Field* field = get_field(opt_key);
