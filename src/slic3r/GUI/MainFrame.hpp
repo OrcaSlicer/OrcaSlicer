@@ -431,6 +431,10 @@ public:
     void        select_tab(wxPanel* panel);
     void        select_tab(const wxString& id = wxString());
     void        request_select_tab(const wxString& id);
+    // Slice the current plate and switch to Preview, as the Slice button does. Re-evaluates the
+    // enable state first, since it can be stale right after an auto-reload. Returns whether a
+    // slice was started (false when the plate can't be sliced right now).
+    bool        slice_current_plate();
     // post_init() needs the plater's canvas on screen to initialize OpenGL; this pass does not
     // build the settings page.
     void        select_prepare_for_gl_init();
