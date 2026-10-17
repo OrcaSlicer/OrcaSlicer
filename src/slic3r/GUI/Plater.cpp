@@ -17079,7 +17079,7 @@ void Plater::_calib_pa_tower(const Calib_Params& params) {
 
     auto& obj_cfg = model().objects[0]->config;
 
-    obj_cfg.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    obj_cfg.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     auto full_config = wxGetApp().preset_bundle->full_config();
     update_speed_parameter("outer_wall_speed");
     update_speed_parameter("inner_wall_speed");
@@ -17240,7 +17240,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     }
 
     print_config->set_key_value("layer_height", new ConfigOptionFloat(layer_height));
-    print_config->set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    print_config->set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(first_layer_height));
     print_config->set_key_value("reduce_crossing_wall", new ConfigOptionBool(true));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
@@ -17480,7 +17480,7 @@ void Plater::calib_temp(const Calib_Params& params) {
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(5.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
-    model().objects[0]->config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    model().objects[0]->config.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     model().objects[0]->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
     model().objects[0]->config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("precise_z_height", new ConfigOptionBool(false));
@@ -17641,7 +17641,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     obj_cfg.set_key_value("enable_overhang_speed", new ConfigOptionBoolsNullable(1, false));
     obj_cfg.set_key_value("wall_loops", new ConfigOptionInt(1));
-    obj_cfg.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    obj_cfg.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     obj_cfg.set_key_value("top_shell_layers", new ConfigOptionInt(0));
     obj_cfg.set_key_value("bottom_shell_layers", new ConfigOptionInt(0));
     obj_cfg.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
@@ -17724,7 +17724,7 @@ void Plater::calib_retraction(const Calib_Params& params)
     obj->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(layer_height));
     obj->config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
-    obj->config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    obj->config.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     obj->config.set_key_value("seam_position", new ConfigOptionEnum<SeamPosition>(spAligned));
     obj->config.set_key_value("wall_sequence", new ConfigOptionEnum<WallSequence>(WallSequence::InnerOuter));
     obj->config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
@@ -17799,7 +17799,7 @@ void Plater::calib_VFA(const Calib_Params& params)
     set_config_values<bool, ConfigOptionBoolsNullable>(print_config, "enable_overhang_speed", false);
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config->set_key_value("wall_loops", new ConfigOptionInt(1));
-    print_config->set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    print_config->set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     print_config->set_key_value("top_shell_layers", new ConfigOptionInt(0));
     print_config->set_key_value("bottom_shell_layers", new ConfigOptionInt(1));
     print_config->set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
