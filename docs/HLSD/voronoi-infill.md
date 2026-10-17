@@ -47,8 +47,10 @@ This does not select bridge flow or guarantee support at both ends.
 Wall graph vertices snap to fixed representatives. Branch pairing favours
 straight crossings; three-way junctions cycle turns across layers using their
 generating points. Trails traverse each wall edge once. Wall trails and complete
-floor groups are ordered together by Orca's shared path-ordering helper, using
-each group's actual entry and exit. Walls may reverse; floors retain their supported-side-first sweep.
+floor groups are scheduled as freely reversible endpoint chords by Orca's
+shared path-ordering helper. Walls follow the selected direction; floors expand
+in their original supported-side-first sweep. Their actual entry and exit may
+therefore differ from the scheduled chord.
 Ordering is local to a fill surface, and disconnected paths still require travel.
 
 Density is statistical: spacing calibration accounts for floor material, but

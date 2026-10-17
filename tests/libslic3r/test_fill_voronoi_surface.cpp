@@ -39,7 +39,7 @@ public:
 };
 }
 
-TEST_CASE("Voronoi group ordering matches Orca and preserves fixed floor sweeps", "[FillVoronoi][Ordering]")
+TEST_CASE("Voronoi schedules reversible chords and preserves fixed floor sweeps", "[FillVoronoi][Ordering]")
 {
     const bool floors = GENERATE(false, true);
     std::vector<Voronoi::PathGroup> groups;
@@ -56,7 +56,6 @@ TEST_CASE("Voronoi group ordering matches Orca and preserves fixed floor sweeps"
             path.polyline = Polyline3(line);
             entity.paths.push_back(std::move(path));
         }
-        if (!reversible) entity.set_reverse();
         entities.push_back(std::move(entity));
     }
     std::vector<ExtrusionEntity *> pointers;
@@ -65,10 +64,11 @@ TEST_CASE("Voronoi group ordering matches Orca and preserves fixed floor sweeps"
     const auto expected = chain_extrusion_entities(pointers, &start);
     const auto actual = Voronoi::order_groups(groups, start);
     REQUIRE(actual.size() == expected.size());
+    size_t reversed_floors = 0;
     for (size_t i = 0; i < actual.size(); ++i) {
+        reversed_floors += expected[i].second && !groups[expected[i].first].reversible;
         auto paths = groups[expected[i].first].paths;
-        if (expected[i].second) {
-            REQUIRE(groups[expected[i].first].reversible);
+        if (expected[i].second && groups[expected[i].first].reversible) {
             std::reverse(paths.begin(), paths.end());
             for (auto &path : paths) path.reverse();
         }
@@ -76,6 +76,7 @@ TEST_CASE("Voronoi group ordering matches Orca and preserves fixed floor sweeps"
         for (size_t j = 0; j < paths.size(); ++j)
             REQUIRE(actual[i].paths[j].points == paths[j].points);
     }
+    if (floors) REQUIRE(reversed_floors > 0);
 }
 
 TEST_CASE("Voronoi routes whole native floor zigzags from the previous path endpoint", "[FillVoronoi]")

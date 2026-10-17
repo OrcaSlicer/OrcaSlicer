@@ -248,12 +248,13 @@ std::vector<PathGroup> order_groups(std::vector<PathGroup> groups, const Point &
     std::vector<PathEndpoints> endpoints;
     endpoints.reserve(groups.size());
     for (const PathGroup &group : groups)
-        endpoints.push_back({group.paths.front().first_point(), group.paths.back().last_point(), group.reversible});
+        endpoints.push_back({group.paths.front().first_point(), group.paths.back().last_point(), true});
     std::vector<PathGroup> ordered;
     ordered.reserve(groups.size());
     for (const auto &[index, reverse] : chain_path_endpoints(endpoints, &start_near)) {
         PathGroup &group = groups[index];
-        if (reverse) {
+        // Floor chords may reverse during scheduling; their supported sweep may not.
+        if (reverse && group.reversible) {
             std::reverse(group.paths.begin(), group.paths.end());
             for (Polyline &path : group.paths) path.reverse();
         }
