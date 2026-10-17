@@ -381,7 +381,7 @@ modules:
       # this build uses the default Makefile generator, so it is not available here.)
       - cmake --build build_flatpak -j"${FLATPAK_BUILDER_N_JOBS:-$(nproc)}" --target
           libslic3r_tests fff_print_tests sla_print_tests libnest2d_tests slic3rutils_tests
-          filament_group_tests
+          filament_group_tests curve_editor_gui_tests
 
     cleanup:
       - /include
