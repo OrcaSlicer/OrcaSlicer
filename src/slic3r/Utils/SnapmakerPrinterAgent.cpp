@@ -19,8 +19,6 @@
 #include <algorithm>
 #include <cctype>
 
-using json = nlohmann::json;
-
 namespace Slic3r {
 
 namespace {
