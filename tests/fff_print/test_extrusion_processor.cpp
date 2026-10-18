@@ -1355,7 +1355,9 @@ TEST_CASE("Infill preview metadata preserves commands and excludes support paths
         REQUIRE(measured_moves > 0);
         GCodeProcessor imported;
         imported.apply_config(FullPrintConfig());
+        imported.initialize_result_moves();
         imported.process_buffer(exported);
+        imported.finalize(false);
         const bool imported_metadata = std::any_of(imported.get_result().moves.begin(), imported.get_result().moves.end(), [role = role](const auto &move) {
             return move.type == EMoveType::Extrude && move.extrusion_role == role && move.overhang_percentage > 1.0f;
         });
