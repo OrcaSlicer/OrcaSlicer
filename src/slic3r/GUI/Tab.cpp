@@ -2992,6 +2992,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("fin_support_thickness", "support_settings_support");
         optgroup->append_single_option_line("fin_support_contact_spacing", "support_settings_support");
         optgroup->append_single_option_line("fin_support_contact_projection_angle", "support_settings_support");
+        optgroup->append_single_option_line("fin_support_painted_shape_line_angle", "support_settings_support");
         optgroup->append_single_option_line("fin_support_depth", "support_settings_support");
         optgroup->append_single_option_line("fin_support_expansion_factor", "support_settings_support");
         optgroup->append_single_option_line("fin_support_max_spacing", "support_settings_support");

@@ -264,7 +264,9 @@ enum SupportMaterialStyle {
 };
 
 enum FinSupportStyle {
-    fssSimple, fssSimulated
+    fssSimple = 0,
+    fssSimulated = 1,
+    fssPaintedShape = 2
 };
 
 enum LongRectrationLevel
@@ -1175,6 +1177,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,      fin_support_thickness))
     ((ConfigOptionFloat,               fin_support_contact_spacing))
     ((ConfigOptionFloat,               fin_support_contact_projection_angle))
+    ((ConfigOptionFloat,               fin_support_painted_shape_line_angle))
     ((ConfigOptionFloat,               fin_support_depth))
     ((ConfigOptionFloat,               fin_support_expansion_factor))
     ((ConfigOptionFloat,               fin_support_max_spacing))

@@ -934,7 +934,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("support_style", !support_is_fin);
     toggle_line("fin_support_style", support_is_fin);
     toggle_field("fin_support_style", have_support_material && support_is_fin);
-    for (auto el : { "fin_support_contact_height", "fin_support_contact_start_height", "fin_support_contact_width", "fin_support_thickness", "fin_support_contact_spacing", "fin_support_contact_projection_angle", "fin_support_depth", "fin_support_expansion_factor", "fin_support_max_spacing" })
+    for (auto el : { "fin_support_contact_height", "fin_support_contact_start_height", "fin_support_contact_width", "fin_support_thickness", "fin_support_contact_spacing", "fin_support_contact_projection_angle", "fin_support_painted_shape_line_angle", "fin_support_depth", "fin_support_expansion_factor", "fin_support_max_spacing" })
         toggle_line(el, have_support_material && support_is_fin);
     for (auto el : { "support_style", "support_base_pattern",
         "support_base_pattern_spacing", "support_expansion", "support_angle",

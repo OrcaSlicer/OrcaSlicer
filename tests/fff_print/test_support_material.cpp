@@ -46,6 +46,7 @@ struct FinRun {
     double unsupported_contact_length = 0;
     double support_top_z = 0;
     double contact_top_z = 0;
+    double contact_bottom_z = std::numeric_limits<double>::infinity();
     size_t projection_layers = 0;
     double projection_front_span = 0;
     double min_projection_gap = std::numeric_limits<double>::infinity();
@@ -61,6 +62,8 @@ struct FinRun {
     std::vector<double> top_contact_y;
     double max_fin_center_overlap = 0;
     double max_projection_side_overrun = 0;
+    double projection_plane_drift = 0;
+    size_t projection_plane_samples = 0;
     size_t bounded_projection_vertices = 0;
 };
 
@@ -152,6 +155,7 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
     const double fin_half_width = 0.5 * support_material_flow(object).width();
     const SupportLayer *previous_layer = nullptr;
     std::vector<Points> projection_rings;
+    std::vector<Vec2d> projection_front_centers;
     for (const SupportLayer *layer : layers) {
         result.support_top_z = std::max(result.support_top_z, layer->print_z);
         Points points;
@@ -178,8 +182,10 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
         const coord_t face_x = model_bounds.max.x();
         const double distance = unscale<double>(min_x - face_x) - fin_half_width;
         result.contact_layers += distance < 0.01;
-        if (distance < 0.01)
+        if (distance < 0.01) {
             result.contact_top_z = std::max(result.contact_top_z, layer->print_z);
+            result.contact_bottom_z = std::min(result.contact_bottom_z, layer->print_z);
+        }
         result.gap_layers += distance > 0.4;
         if (layer != layers.front()) {
             ExPolygons fin_center_areas;
@@ -252,6 +258,8 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
                         }
                     ++result.projection_layers;
                     result.projection_front_span = std::max(result.projection_front_span, front_max_y - front_min_y);
+                    projection_front_centers.emplace_back(unscale<double>(bounds.min.x()),
+                                                          0.5 * (front_min_y + front_max_y));
                 }
                 if (front_gap > 0.4 && longest_edge.squaredNorm() > 0) {
                     const Vec2d axis = longest_edge.normalized();
@@ -321,6 +329,16 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
         if (direction.x() < 0)
             direction = -direction;
         const Vec2d tangent(-direction.y(), direction.x());
+        if (!projection_front_centers.empty()) {
+            result.projection_plane_samples = projection_front_centers.size();
+            double minimum = std::numeric_limits<double>::infinity();
+            double maximum = -std::numeric_limits<double>::infinity();
+            for (const Vec2d &center : projection_front_centers) {
+                minimum = std::min(minimum, center.dot(tangent));
+                maximum = std::max(maximum, center.dot(tangent));
+            }
+            result.projection_plane_drift = maximum - minimum;
+        }
         const BoundingBox top_bounds = get_extents(model_layers.back()->lslices);
         const Vec2d seed(unscale<double>(top_bounds.max.x()),
                          unscale<double>(top_bounds.center().y()) + result.top_contact_y.front());
@@ -342,10 +360,107 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
 
 TEST_CASE("Fin style defaults to the existing simulated planner", "[SupportMaterial]")
 {
+    const ConfigOptionDef *style_def = print_config_def.get("fin_support_style");
+    REQUIRE(style_def != nullptr);
+    REQUIRE(style_def->enum_keys_map != nullptr);
+    for (size_t selection = 0; selection < style_def->enum_values.size(); ++selection)
+        REQUIRE(style_def->enum_keys_map->at(style_def->enum_values[selection]) == int(selection));
+
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssSimulated);
     config.set_deserialize("fin_support_style", "simple");
     REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssSimple);
+    config.set_deserialize("fin_support_style", "painted_shape");
+    REQUIRE(config.opt_enum<FinSupportStyle>("fin_support_style") == fssPaintedShape);
+}
+
+TEST_CASE("Painted shape creates one centered fin for one painted island", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+    REQUIRE(result.support_top_z > 15.);
+    REQUIRE(result.support_top_z < 15.5);
+}
+
+TEST_CASE("Painted shape keeps a connected painted shell printable after macro partitioning", "[SupportMaterial]")
+{
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                                     true, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.top_body_paths > 0);
+    REQUIRE(result.top_body_paths <= 8);
+}
+
+TEST_CASE("Painted shape seed authorizes lower contacts on its traced wall", "[SupportMaterial]")
+{
+    // Only the upper side triangle is painted. Its point seed remains strictly
+    // painted, while periodic contacts may follow the same continuous wall below it.
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 60, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape", 30);
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.contact_layers > 3);
+    REQUIRE(result.contact_bottom_z < 20.);
+}
+
+TEST_CASE("Painted shape uses its region normal on a locally upward side", "[SupportMaterial]")
+{
+    // Shearing the cube toward -X makes the painted +X wall face partly upward.
+    // Its connected painted region is still a side surface and must retain one seed.
+    const FinRun result = slice_fins(20, true, -0.1, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, nullptr, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+}
+
+TEST_CASE("Painted shape contracts a narrow painted island into one line intent", "[SupportMaterial]")
+{
+    const indexed_triangle_set mesh = its_make_cube(6, 4, 30);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 30, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+    REQUIRE(result.support_top_z > 29.);
+    REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
+                        [](const Vec2d &direction) { return std::abs(direction.x()) > 0.95; }));
+}
+
+TEST_CASE("Painted shape falls one horizontal line intent back to one point", "[SupportMaterial]")
+{
+    // The painted +X face is much wider in Y than it is tall. Its contracted
+    // axis is perpendicular to the face normal, so the complete line intent
+    // exceeds the configured sheet limit and must create one point fin.
+    const indexed_triangle_set mesh = its_make_cube(6, 30, 4);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 4, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+}
+
+TEST_CASE("Painted shape closes a sub-feature crack before contracting its intent", "[SupportMaterial]")
+{
+    indexed_triangle_set mesh = its_make_cube(6, 14, 4);
+    indexed_triangle_set continuation = its_make_cube(6, 14, 4);
+    its_transform(continuation, identity3f().translate(Vec3f{0.f, 14.3f, 0.f}));
+    its_merge(mesh, continuation);
+    const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+                                     false, false, 0.4, 8, 0, 4, 6, &mesh, 0,
+                                     false, false, false, false, 0,
+                                     std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
 }
 
 TEST_CASE("Simple fins require painting and emit closed sheets from selected sites", "[SupportMaterial]")
@@ -625,6 +740,10 @@ TEST_CASE("Oblique contact projections stay inside the sheet after the neck over
     REQUIRE(result.projection_layers > 0);
     REQUIRE(result.bounded_projection_vertices > 0);
     REQUIRE(result.max_projection_side_overrun < 0.002);
+    if (angle >= 60.) {
+        REQUIRE(result.projection_plane_samples > 1);
+        REQUIRE(result.projection_plane_drift < 0.002);
+    }
     REQUIRE(result.open_paths == 0);
 }
 
@@ -1091,6 +1210,13 @@ TEST_CASE("Fin defaults use full outer wall contact length and absolute thicknes
     REQUIRE_FALSE(thickness->percent);
     REQUIRE_THAT(contact->get_abs_value(0.6), Catch::Matchers::WithinAbs(0.2, 0.001));
     REQUIRE_THAT(thickness->get_abs_value(0.6), Catch::Matchers::WithinAbs(1.4, 0.001));
+}
+
+TEST_CASE("Painted Shape line angle defaults to forty degrees", "[SupportMaterial]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    const auto *angle = config.option<ConfigOptionFloat>("fin_support_painted_shape_line_angle");
+    REQUIRE_THAT(angle->value, Catch::Matchers::WithinAbs(40, 0.001));
 }
 
 TEST_CASE("Fin projections retain just the projected front segment or point", "[SupportMaterial]")

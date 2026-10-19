@@ -1132,6 +1132,7 @@ static std::vector<std::string> s_Preset_print_options{
     "fin_support_style", "fin_support_contact_height", "fin_support_contact_start_height", "fin_support_contact_spacing", "fin_support_depth", "fin_support_max_spacing",
     "fin_support_contact_width", "fin_support_thickness",
     "fin_support_contact_projection_angle",
+    "fin_support_painted_shape_line_angle",
     "fin_support_expansion_factor",
     // BBS
     "print_extruder_id",

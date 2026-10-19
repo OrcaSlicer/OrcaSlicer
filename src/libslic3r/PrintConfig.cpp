@@ -371,7 +371,8 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SupportMaterialStyle)
 
 static t_config_enum_values s_keys_map_FinSupportStyle {
     { "simulated", fssSimulated },
-    { "simple", fssSimple }
+    { "simple", fssSimple },
+    { "painted_shape", fssPaintedShape }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FinSupportStyle)
 
@@ -7130,10 +7131,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fin_support_style", coEnum);
     def->label = L("Style");
     def->category = L("Support");
-    def->tooltip = L("Simple selects candidates directly from the remaining painted side regions. Simulated uses the directional printed-prefix planner. Both styles use the same contact validation, fin geometry, collision checks and toolpath generation after candidate selection.");
+    def->tooltip = L("Simple selects candidates from remaining painted contour ranges. Painted shape contracts each painted region into point, line or branched intent and uses crease-aware regional normals. Simulated uses the directional printed-prefix planner. Candidate policies control lower-contact authorization and surface normals; all styles share fin geometry, collision checks and toolpath generation after candidate selection.");
     def->enum_keys_map = &ConfigOptionEnum<FinSupportStyle>::get_enum_values();
-    def->enum_values = { "simple", "simulated" };
-    def->enum_labels = { L("Simple"), L("Simulated") };
+    // Choice stores the selected index for regular enums, so this order must
+    // match FinSupportStyle while the enum values stay stable for compatibility.
+    def->enum_values = { "simple", "simulated", "painted_shape" };
+    def->enum_labels = { L("Simple"), L("Simulated"), L("Painted shape") };
     // Fin type is available in Simple UI mode, so its style must be available there too.
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<FinSupportStyle>(fssSimulated));
@@ -7195,12 +7198,22 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fin_support_contact_projection_angle", coFloat);
     def->label = L("Fin contact projection angle");
     def->category = L("Support");
-    def->tooltip = L("Angle rotated downward from the local outward surface normal at each contact band's lowest layer, from 0 to 90 degrees. Both fin styles follow that ray directly; a horizontal or upward ray has no lower-layer projection.");
+    def->tooltip = L("Contact projection angle, from 0 to 90 degrees. Painted Shape clips each lower layer's local contact trapezoid with a fixed plane tilted downward by 90 degrees minus this setting. The plane rotates about the horizontal line through the lowest contact midpoint perpendicular to that layer's contact axis, retaining the fin-body side. Simple and Simulated rotate their projection ray downward by this angle.");
     def->sidetext = u8"°";
     def->min = 0;
     def->max = 90;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(30));
+
+    def = this->add("fin_support_painted_shape_line_angle", coFloat);
+    def->label = L("Painted shape line angle");
+    def->category = L("Support");
+    def->tooltip = L("Maximum XY angle between a fitted Painted shape line and its source macro-surface normal when selecting a line fin candidate. Lines outside this angle fall back to point intent. This does not change the contact projection angle.");
+    def->sidetext = u8"°";
+    def->min = 0;
+    def->max = 90;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(40));
 
     def = this->add("fin_support_depth", coFloat);
     def->label = L("Top layer depth");
@@ -7215,7 +7228,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fin_support_expansion_factor", coFloat);
     def->label = L("Fin expansion factor");
     def->category = L("Support");
-    def->tooltip = L("Multiplier for outward fin expansion toward the build plate. Simple currently uses a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
+    def->tooltip = L("Multiplier for outward fin expansion toward the build plate. Simple and Painted shape use a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.05));

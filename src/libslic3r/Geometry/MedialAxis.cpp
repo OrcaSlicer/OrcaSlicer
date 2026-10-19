@@ -455,8 +455,9 @@ MedialAxis::MedialAxis(double min_width, double max_width, const ExPolygon &expo
     m_expolygon(expolygon), m_lines(expolygon.lines()), m_min_width(min_width), m_max_width(max_width)
 {}
 
-void MedialAxis::build(ThickPolylines* polylines)
+void MedialAxis::build(ThickPolylines* polylines, std::vector<WidthMeasurements>* measurements)
 {
+    assert(measurements == nullptr || measurements->size() == polylines->size());
     m_vd.construct_voronoi(m_lines.begin(), m_lines.end());
 
     // For several ExPolygons in SPE-1729, an invalid Voronoi diagram was produced that wasn't fixable by rotating input data.
@@ -493,6 +494,9 @@ void MedialAxis::build(ThickPolylines* polylines)
     // collect valid edges (i.e. prune those not belonging to MAT)
     // note: this keeps twins, so it inserts twice the number of the valid edges
     m_edge_data.assign(m_vd.edges().size() / 2, EdgeData{});
+    m_width_measurements.clear();
+    if (measurements != nullptr)
+        m_width_measurements.resize(m_edge_data.size());
     for (VD::const_edge_iterator edge = m_vd.edges().begin(); edge != m_vd.edges().end(); edge += 2)
         if (edge->is_primary() && edge->is_finite() &&
             (Voronoi::vertex_category(edge->vertex0()) == Voronoi::VertexCategory::Inside ||
@@ -515,15 +519,26 @@ void MedialAxis::build(ThickPolylines* polylines)
             polyline.points.emplace_back(seed_edge->vertex1()->x(), seed_edge->vertex1()->y());
             polyline.width.emplace_back(seed_edge_data.width_start);
             polyline.width.emplace_back(seed_edge_data.width_end);        
+            WidthMeasurements sources, reverse_sources;
+            if (measurements != nullptr) {
+                const auto &pair = m_width_measurements[&seed_edge_data - m_edge_data.data()];
+                sources.assign(pair.begin(), pair.end());
+            }
             // Grow the polyline in a forward direction.
-            this->process_edge_neighbors(&*seed_edge, &polyline);
+            this->process_edge_neighbors(&*seed_edge, &polyline, measurements != nullptr ? &sources : nullptr);
             assert(polyline.width.size() == polyline.points.size() * 2 - 2);
         
             // Grow the polyline in a backward direction.
             reverse_polyline.clear();
-            this->process_edge_neighbors(seed_edge->twin(), &reverse_polyline);
+            this->process_edge_neighbors(seed_edge->twin(), &reverse_polyline,
+                                         measurements != nullptr ? &reverse_sources : nullptr);
             polyline.points.insert(polyline.points.begin(), reverse_polyline.points.rbegin(), reverse_polyline.points.rend());
             polyline.width.insert(polyline.width.begin(), reverse_polyline.width.rbegin(), reverse_polyline.width.rend());
+            if (measurements != nullptr) {
+                sources.insert(sources.begin(), reverse_sources.rbegin(), reverse_sources.rend());
+                assert(sources.size() == polyline.width.size());
+                measurements->push_back(std::move(sources));
+            }
             polyline.endpoints.first = reverse_polyline.endpoints.second;
             assert(polyline.width.size() == polyline.points.size() * 2 - 2);
         
@@ -562,7 +577,8 @@ void MedialAxis::build(Polylines* polylines)
         polylines->emplace_back(pl.points);
 }
 
-void MedialAxis::process_edge_neighbors(const VD::edge_type *edge, ThickPolyline* polyline)
+void MedialAxis::process_edge_neighbors(const VD::edge_type *edge, ThickPolyline* polyline,
+                                       WidthMeasurements* measurements)
 {
     for (;;) {
         // Since rot_next() works on the edge starting point but we want
@@ -592,6 +608,11 @@ void MedialAxis::process_edge_neighbors(const VD::edge_type *edge, ThickPolyline
                 } else {
                     polyline->width.push_back(neighbor_data.first.width_start);
                     polyline->width.push_back(neighbor_data.first.width_end);
+                }
+                if (measurements != nullptr) {
+                    const auto &pair = m_width_measurements[&neighbor_data.first - m_edge_data.data()];
+                    measurements->push_back(pair[neighbor_data.second ? 1 : 0]);
+                    measurements->push_back(pair[neighbor_data.second ? 0 : 1]);
                 }
                 edge = first_neighbor;
                 // Continue chaining.
@@ -698,6 +719,26 @@ bool MedialAxis::validate_edge(const VD::edge_type* edge)
             std::swap(w0, w1);
         ed.first.width_start = w0;
         ed.first.width_end   = w1;
+        if (!m_width_measurements.empty()) {
+            auto measure = [&](const VD::cell_type *cell, const Point &point) {
+                WidthMeasurement result;
+                result.contour_segment = retrieve_segment(cell);
+                result.contour_segment_index = cell->source_index();
+                if (cell->contains_segment()) {
+                    const Linef segment(result.contour_segment.a.cast<double>(),
+                                        result.contour_segment.b.cast<double>());
+                    line_alg::distance_to_squared(segment, Vec2d(point.cast<double>()), &result.point);
+                } else {
+                    result.point = retrieve_endpoint(cell).cast<double>();
+                    result.source = cell->source_category() == boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT ?
+                        WidthMeasurement::Source::start_vertex : WidthMeasurement::Source::end_vertex;
+                }
+                return result;
+            };
+            auto &pair = m_width_measurements[&ed.first - m_edge_data.data()];
+            pair[ed.second ? 1 : 0] = measure(cell_r, line.a);
+            pair[ed.second ? 0 : 1] = measure(cell_l, line.b);
+        }
         return true;
     }
 

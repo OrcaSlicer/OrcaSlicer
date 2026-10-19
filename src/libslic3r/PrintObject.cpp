@@ -1342,6 +1342,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "fin_support_thickness"
             || opt_key == "fin_support_contact_spacing"
             || opt_key == "fin_support_contact_projection_angle"
+            || opt_key == "fin_support_painted_shape_line_angle"
             || opt_key == "fin_support_depth"
             || opt_key == "fin_support_expansion_factor"
             || opt_key == "fin_support_max_spacing"
