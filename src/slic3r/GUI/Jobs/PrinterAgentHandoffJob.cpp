@@ -6,7 +6,9 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
+#include <exception>
 #include <string>
 #include <utility>
 
