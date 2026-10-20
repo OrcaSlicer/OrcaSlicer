@@ -385,6 +385,13 @@ public:
      */
     virtual int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) = 0;
 
+    /**
+     * Whether this agent shows its own print and send UI. When true, Print and Send skip the
+     * printer selection dialogs and pass the sliced plate straight to start_local_print or
+     * start_send_gcode_to_sdcard.
+     */
+    virtual bool handles_print_dialog() const { return false; }
+
     // ========================================================================
     // Callback Registration
     // ========================================================================

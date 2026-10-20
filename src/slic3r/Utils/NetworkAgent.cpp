@@ -1072,6 +1072,11 @@ int NetworkAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update
     return -1;
 }
 
+bool NetworkAgent::handles_print_dialog() const
+{
+    return m_printer_agent && m_printer_agent->handles_print_dialog();
+}
+
 FilamentSyncMode NetworkAgent::get_filament_sync_mode() const
 {
     if (m_printer_agent)

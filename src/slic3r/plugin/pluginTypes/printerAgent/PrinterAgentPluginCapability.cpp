@@ -285,6 +285,10 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
              py::arg("update_fn"), py::arg("cancel_fn"),
              "Required. Upload the job to a printer in LAN-only mode and start it. params is a PrintParams; see\n"
              "start_print() for the callables and the return value.")
+        .def("handles_print_dialog", &PrinterAgentPluginCapability::handles_print_dialog,
+             "Return True when the agent shows its own print and send window. Print and Send then skip the\n"
+             "printer selection dialogs and hand the sliced plate to start_local_print() or\n"
+             "start_send_gcode_to_sdcard(). The default is False.")
         .def("get_filament_sync_mode", &PrinterAgentPluginCapability::get_filament_sync_mode,
              "Return the FilamentSyncMode saying how the host gets the printer's filament data. The default is\n"
              "FilamentSyncMode.None_.")
