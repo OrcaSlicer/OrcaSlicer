@@ -7,6 +7,7 @@
 #include "DevFilaSwitch.h"
 #include "DevUtil.h"
 
+#include <cstddef>
 #include <map>
 #include <set>
 #include <string>
@@ -82,7 +83,7 @@ public:
     wxColour        wx_color;
     bool            is_bbl;
     bool            is_exists = false;
-    bool            is_slot_placeholder = false;  // Orca: True for empty tray slots from pull-mode agents
+    bool            is_slot_placeholder = false;  // Orca: True for synthetic topology slots or empty reported trays
     int             hold_count = 0;
     int             remain = 0;         // filament remain: 0 ~ 100
 
@@ -113,6 +114,16 @@ public:
 
     std::optional<DevFilamentDryingPreset> get_ams_drying_preset() const;
 };
+
+/**
+ * Ensure the virtual-tray vector can address the slot for a virtual tray id. The slot's index is
+ * `VIRTUAL_TRAY_MAIN_ID - tray_id` and placeholder entries carry id = VIRTUAL_TRAY_MAIN_ID - index.
+ * Existing entries are left untouched, so a slot already populated with reported filament data
+ * keeps it; callers then assign the reported tray at index `VIRTUAL_TRAY_MAIN_ID - tray_id`.
+ * Appended placeholders are marked `is_slot_placeholder`, so consumers can tell a synthetic
+ * topology filler from a spool the printer actually reported (overwriting the entry clears it).
+ */
+void grow_virtual_tray_slots(std::vector<DevAmsTray>& slots, std::size_t tray_id);
 
 /**
  * DevAms - Represents a single AMS (Automatic Material System) unit.
@@ -348,7 +359,7 @@ public:
     DevAmsTray* GetAmsTray(const std::string& ams_id, const std::string& tray_id) const;
     void        CollectAmsColors(std::vector<wxColour>& ams_colors) const;
 
-    // Map a linear tray index -> {ams_id, slot_id}. Includes the two virtual (external-spool) trays,
+    // Map a linear tray index -> {ams_id, slot_id}. Includes virtual external-spool trays,
     // N3S single-slot units, and the A2L/N9 AMS-Lite-mixed layout (trays 24-27).
     std::map<int, DevAmsSlotId> GetTrayIndexMap();
 

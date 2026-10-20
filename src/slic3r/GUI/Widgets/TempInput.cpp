@@ -8,6 +8,7 @@
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <algorithm>
 #include <wx/dcclient.h>
 #include <wx/dc.h>
 #include <wx/dcgraph.h>
@@ -184,6 +185,9 @@ void TempInput::SetFinish()
     wxCommandEvent event(wxCUSTOMEVT_SET_TEMP_FINISH);
     event.SetInt(temp_type);
     event.SetString(wxString::Format("%d", m_input_type));
+    // N-extruder temp controls all share TEMP_OF_NORMAL_TYPE, so the string payload above can't
+    // tell them apart; carry widget identity so the listener can find which one fired.
+    event.SetEventObject(this);
     wxPostEvent(this->GetParent(), event);
 }
 
@@ -240,6 +244,37 @@ void TempInput::SetCurrTemp(wxString temp)
 
 void TempInput::SetCurrType(TempInputType type) {
     m_input_type = type;
+}
+
+wxString TempInput::badge_text() const
+{
+    if (m_input_type == TEMP_OF_MAIN_NOZZLE_TYPE)
+        return "R";
+    if (m_input_type == TEMP_OF_DEPUTY_NOZZLE_TYPE)
+        return "L";
+    return m_display_id_text;
+}
+
+int TempInput::badge_width(wxDC &dc) const
+{
+    const wxString text = badge_text();
+    if (text.IsEmpty())
+        return 0;
+    // The explicit Tn id sits in the same compact control as the L/R badge, so it uses the smaller
+    // body font. Keep this formula identical to render() so measurement and painting cannot drift.
+    dc.SetFont(has_tool_id_badge() ? ::Label::Body_10 : ::Label::Body_12);
+    const wxSize text_size = dc.GetMultiLineTextExtent(text);
+    const wxSize icon_size = round_scale_hint_icon.GetBmpSize();
+    return std::max(icon_size.x, text_size.x + FromDIP(2));
+}
+
+void TempInput::SetDisplayIdText(const wxString &text)
+{
+    if (m_display_id_text == text)
+        return;
+    m_display_id_text = text;
+    messureMiniSize();
+    Refresh();
 }
 
 void TempInput::Warning(bool warn, WarningType type)
@@ -389,10 +424,8 @@ void TempInput::DoSetSize(int x, int y, int width, int height, int sizeFlags)
     // interval
     left += 9;
 
-    if (m_input_type == TEMP_OF_MAIN_NOZZLE_TYPE || m_input_type == TEMP_OF_DEPUTY_NOZZLE_TYPE) {
-        wxSize szIcon = round_scale_hint_icon.GetBmpSize();
-        left += szIcon.x + 3;
-    }
+    if (const int badge = badge_width(dc); badge > 0)
+        left += badge + 3;
 
     // label
     dc.SetFont(::Label::Head_14);
@@ -471,34 +504,30 @@ void TempInput::render(wxDC &dc)
 
     ScalableBitmap round_icon(this, "round", 16);/*icon diffs in normal and dark mode*/
     round_icon.msw_rescale();
-    if (round_icon.bmp().IsOk() && m_input_type == TEMP_OF_DEPUTY_NOZZLE_TYPE){
-        wxSize szIcon = round_icon.GetBmpSize();
-        pt.y = (size.y - szIcon.y) / 2;
-        dc.DrawBitmap(round_icon.bmp(), pt);
+    const wxString display_id = badge_text();
+    if (round_icon.bmp().IsOk() && !display_id.IsEmpty()) {
+        const wxSize icon_size = round_icon.GetBmpSize();
+        dc.SetFont(has_tool_id_badge() ? ::Label::Body_10 : ::Label::Body_12);
+        const wxSize text_size = dc.GetMultiLineTextExtent(display_id);
+        // L/R and single-digit tool ids fit the round icon; a wider id (e.g. T10) gets a pill
+        // with the same fill and white lettering.
+        const int badge_width = std::max(icon_size.x, text_size.x + FromDIP(2));
 
-        dc.SetFont(::Label::Body_12);
-        auto sepSize = dc.GetMultiLineTextExtent(wxString("L"));
-
-        const wxColour& clr = Slic3r::GUI::wxGetApp().dark_mode() ? StateColor::darkModeColorFor(*wxWHITE) : *wxWHITE;
-        dc.SetTextForeground(clr);
-        dc.SetTextBackground(clr);
-        dc.DrawText(wxString("L"), pt.x + (szIcon.x - sepSize.x) / 2, (size.y - sepSize.y) / 2);
-        pt.x += szIcon.x + 3;
-    }
-
-    if (round_icon.bmp().IsOk() && m_input_type == TEMP_OF_MAIN_NOZZLE_TYPE) {
-        wxSize szIcon = round_icon.GetBmpSize();
-        pt.y = (size.y - szIcon.y) / 2;
-        dc.DrawBitmap(round_icon.bmp(), pt);
-
-        dc.SetFont(::Label::Body_12);
-        auto sepSize = dc.GetMultiLineTextExtent(wxString("R"));
+        pt.y = (size.y - icon_size.y) / 2;
+        if (badge_width > icon_size.x) {
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.SetBrush(wxBrush(wxColour("#262E30")));
+            dc.DrawRoundedRectangle(pt.x, pt.y, badge_width, icon_size.y, icon_size.y / 2);
+        } else {
+            dc.DrawBitmap(round_icon.bmp(), pt);
+        }
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
         const wxColour& clr = Slic3r::GUI::wxGetApp().dark_mode() ? StateColor::darkModeColorFor(*wxWHITE) : *wxWHITE;
         dc.SetTextForeground(clr);
         dc.SetTextBackground(clr);
-        dc.DrawText(wxString("R"), pt.x + (szIcon.x - sepSize.x) / 2, (size.y - sepSize.y) / 2);
-        pt.x += szIcon.x + 3;
+        dc.DrawText(display_id, pt.x + (badge_width - text_size.x) / 2, (size.y - text_size.y) / 2);
+        pt.x += badge_width + 3;
     }
 
     // label
@@ -567,11 +596,7 @@ void TempInput::messureMiniSize()
     // interval
     width += 9;
 
-    if (m_input_type == TEMP_OF_MAIN_NOZZLE_TYPE || m_input_type == TEMP_OF_DEPUTY_NOZZLE_TYPE) {
-        wxSize szIcon = round_scale_hint_icon.GetBmpSize();
-        width += szIcon.x;
-    }
-    width += 3;
+    width += badge_width(dc) + 3;
 
     // label
     dc.SetFont(::Label::Head_14);
@@ -627,11 +652,7 @@ void TempInput::messureSize()
     // interval
     width += 9;
 
-    if (m_input_type == TEMP_OF_MAIN_NOZZLE_TYPE || m_input_type == TEMP_OF_DEPUTY_NOZZLE_TYPE) {
-        wxSize szIcon = round_scale_hint_icon.GetBmpSize();
-        width += szIcon.x;
-    }
-    width += 3;
+    width += badge_width(dc) + 3;
 
     // label
     dc.SetFont(::Label::Head_14);

@@ -2353,6 +2353,105 @@ TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament 
     }
 }
 
+namespace {
+
+// One system "Generic PLA" the sync can resolve a reported "PLA" tray to, with a real
+// filament_id so a tray that does report one still maps through the known-id path.
+void add_generic_pla(PresetBundle &bundle)
+{
+    Preset &pla       = add_inmemory_preset(bundle.filaments, "Generic PLA");
+    pla.is_system     = true;
+    pla.is_compatible = true;
+    pla.filament_id   = "GFL99";
+}
+
+// A device tray as build_filament_ams_list builds it: a reported type, color and loaded flag,
+// an optional preset id, and the placeholder flag pull-mode agents set on empty slots.
+DynamicPrintConfig ams_tray(const std::string &filament_id, const std::string &filament_type, bool exist, bool placeholder)
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
+    tray.set_key_value("filament_type", new ConfigOptionStrings{filament_type});
+    tray.set_key_value("filament_colour", new ConfigOptionStrings{"#FF0000"});
+    tray.set_key_value("filament_colour_type", new ConfigOptionStrings{"1"});
+    tray.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+    tray.set_key_value("filament_exist", new ConfigOptionBools{exist});
+    tray.set_key_value("filament_slot_placeholder", new ConfigOptionBools{placeholder});
+    tray.set_key_value("ams_id", new ConfigOptionStrings{"0"});
+    tray.set_key_value("slot_id", new ConfigOptionStrings{"0"});
+    return tray;
+}
+
+// Run the mapped sync over the bundle's single tray and return the filament count it reports,
+// which is what the sidebar uses to rebuild the Prepare filament list.
+unsigned int sync_one_tray(PresetBundle &bundle, bool enable_append)
+{
+    std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+    std::map<int, AMSMapInfo>                                  maps;
+    MergeFilamentInfo                                          merge;
+    return bundle.sync_ams_list(unknowns, /*use_map=*/true, maps, enable_append, merge, /*color_only=*/false);
+}
+
+} // namespace
+
+// A generic device reports type/color/loaded for a spool but no preset id. The Device tab shows
+// that spool, so the Prepare sidebar has to count it: the sync appends the generic preset its
+// reported type resolves to. A tray that only carried topology (no type, not loaded) must not.
+TEST_CASE("A data-bearing AMS tray without a preset id appends a generic filament on sync", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, "PLA", /*exist=*/true, /*placeholder=*/false);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == before + 1);
+    CHECK(bundle.filament_presets.back() == "Generic PLA");
+}
+
+TEST_CASE("An empty synthetic AMS tray does not append a filament on sync", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, /*filament_type=*/{}, /*exist=*/false, /*placeholder=*/false);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == before);
+}
+
+TEST_CASE("An empty AMS placeholder does not append a filament on sync", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, /*filament_type=*/{}, /*exist=*/false, /*placeholder=*/true);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == before);
+}
+
+// The append preference still governs a data-bearing tray: with append off the sidebar count is
+// unchanged, exactly as for a mapped-but-unlisted tray.
+TEST_CASE("The append preference gates a data-bearing AMS tray without a preset id", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, "PLA", /*exist=*/true, /*placeholder=*/false);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/false);
+
+    CHECK(count == before);
+}
+
 // A mix is described by 1-based indices into the project's filament list, which Orca rebuilds
 // from the selected printer's snapshot (filament_%02u / filament_colors) at startup and on every
 // printer selection. Held anywhere but that same per-printer snapshot, the mixed arrays end up
