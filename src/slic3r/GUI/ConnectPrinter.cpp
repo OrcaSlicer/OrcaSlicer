@@ -15,6 +15,7 @@
 #include <string>
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "IPrinterAgent.hpp"
 
 #include "DeviceCore/DevManager.h"
 
@@ -170,14 +171,16 @@ void ConnectPrinterDialog::on_input_enter(wxCommandEvent& evt)
 void ConnectPrinterDialog::on_button_confirm(wxCommandEvent &event)
 {
     wxString code = m_textCtrl_code->GetTextCtrl()->GetValue();
-    if (code.empty() && (!m_obj || m_obj->printer_agent_id != MOONRAKER_PRINTER_AGENT_ID))
-        code = "88888888";
+    // Validate only what the user typed; the no-key sentinel is applied afterwards (it contains
+    // non-alphanumeric characters, so it must not go through this check).
     for (char c : code) {
         if (!(('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'))) {
             show_error(this, _L("Invalid input"));
             return;
         }
     }
+    if (code.empty())
+        code = NO_API_KEY_SENTINEL;
     if (m_obj) {
         m_obj->set_access_code(code.ToStdString());
     }

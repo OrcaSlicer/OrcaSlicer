@@ -53,7 +53,7 @@ public:
     mutable unsigned fetch_count = 0;
 
 protected:
-    bool fetch_device_info(const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&) const override
+    bool fetch_device_info(const ConnectionSettings&, MoonrakerDeviceInfo& info, std::string&) const override
     {
         ++fetch_count;
         info.dev_name = "Test printer";
@@ -65,21 +65,32 @@ class StreamAgent : public MoonrakerPrinterAgent
 {
 public:
     using MoonrakerPrinterAgent::MoonrakerPrinterAgent;
-    using MoonrakerPrinterAgent::start_status_stream;
-    using MoonrakerPrinterAgent::stop_status_stream;
     using MoonrakerPrinterAgent::ws_timings;
 
+    // Starts the stream the way a connection does, from a snapshot of the connection settings.
+    void start_stream(const std::string& base_url, bool use_ssl = false)
+    {
+        const std::string dev_id = "printer";
+        ConnectionSettings connection;
+        connection.dev_id   = dev_id;
+        connection.base_url = base_url;
+        connection.use_ssl  = use_ssl;
+        start_status_stream(dev_id, std::move(connection));
+    }
+
+    void stop_stream() { stop_status_stream(); }
+
 protected:
-    bool init_device_info(
-        const std::string& dev_id, const std::string& dev_ip, const std::string&, const std::string&, bool, const std::string& port) override
+    bool init_device_info(const PrinterConnectionParams& params) override
     {
         device_info          = MoonrakerDeviceInfo{};
-        device_info.dev_id   = dev_id;
-        device_info.base_url = "http://" + dev_ip + ":" + port;
+        device_info.dev_id   = params.dev_id;
+        device_info.dev_ip   = params.host;
+        device_info.base_url = std::string(params.use_ssl ? "https://" : "http://") + params.host + ":" + params.port;
         return true;
     }
 
-    bool fetch_device_info(const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&) const override
+    bool fetch_device_info(const ConnectionSettings&, MoonrakerDeviceInfo& info, std::string&) const override
     {
         info.dev_name = "Test printer";
         return true;
@@ -97,6 +108,7 @@ enum class Behavior {
     IgnoresClose,              // Reports Klippy disconnected, then never answers the close
     StallsObjectList,          // Never answers the stream's object list request
     StallsStatusQuery,         // Never answers HTTP requests until released, then hangs up on them
+    RejectsTls,                // Records the first byte of the stream, which a TLS client sends as a handshake
 };
 
 class FakePrinter
@@ -150,6 +162,19 @@ public:
         return m_close_frames;
     }
 
+    // First byte the stream sent, or -1 until it has sent one.
+    bool wait_for_first_byte()
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        return m_changed.wait_for(lock, 10s, [&] { return m_first_byte >= 0; });
+    }
+
+    int first_byte()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_first_byte;
+    }
+
     // The printer answers a close frame before its own read completes, so the agent's stop can return first.
     bool wait_for_close_frames(int count)
     {
@@ -184,6 +209,20 @@ private:
     void serve(net::io_context& ioc, tcp::socket socket)
     {
         if (m_behavior == Behavior::SilentBeforeHandshake) {
+            mark_ready();
+            wait_for_release();
+            return;
+        }
+
+        if (m_behavior == Behavior::RejectsTls) {
+            char              first = 0;
+            beast::error_code ec;
+            socket.read_some(net::buffer(&first, 1), ec);
+            if (!ec) {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                m_first_byte = static_cast<unsigned char>(first);
+                m_changed.notify_all();
+            }
             mark_ready();
             wait_for_release();
             return;
@@ -343,6 +382,7 @@ private:
     int m_http_requests = 0;
     int m_http_hung_up  = 0;
     int m_close_frames  = 0;
+    int m_first_byte    = -1;
     bool m_released     = false;
 };
 
@@ -385,12 +425,15 @@ struct StreamFixture
     // Runs before the members are destroyed, so the agent's destructor never joins a stream the printer still holds open.
     ~StreamFixture() { printer.release(); }
 
-    void start() { agent.start_status_stream("printer", printer.base_url(), ""); }
+    void start() { agent.start_stream(printer.base_url()); }
+
+    // Runs the stream as a wss client; the printer must be served on the same port.
+    void start_secure() { agent.start_stream("https://" + printer.host() + ":" + printer.port(), true); }
 
     // Stops the stream, giving it `limit` to return before the printer hangs up on it.
     bool stops_within(std::chrono::milliseconds limit)
     {
-        auto stopped       = std::async(std::launch::async, [this] { agent.stop_status_stream(); });
+        auto stopped       = std::async(std::launch::async, [this] { agent.stop_stream(); });
         const bool in_time = stopped.wait_for(limit) == std::future_status::ready;
         printer.release();
         stopped.wait();
@@ -445,6 +488,16 @@ TEST_CASE("Stopping the status stream gives a silent printer no more than its ti
     REQUIRE(f.printer.wait_for_ready_connections(1));
 
     CHECK(f.stops_within(limit));
+}
+
+TEST_CASE("A secure status stream opens with a TLS handshake", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    StreamFixture f(Behavior::RejectsTls);
+    f.start_secure();
+    REQUIRE(f.printer.wait_for_first_byte());
+    // 0x16 is a TLS handshake record; a plaintext client would send "GET".
+    CHECK(f.printer.first_byte() == 0x16);
+    CHECK(f.stops_within(3s));
 }
 
 TEST_CASE("Stopping the status stream sends the printer a close frame", "[MoonrakerPrinterAgent][StatusStream]")
@@ -524,7 +577,7 @@ TEST_CASE("A callback on the stream thread can stop the status stream", "[Moonra
     StreamFixture f(Behavior::AnswersPings);
     f.agent.set_on_local_message_fn([&](std::string, std::string) {
         std::call_once(stopped_once, [&] {
-            f.agent.stop_status_stream();
+            f.agent.stop_stream();
             stopped.set_value();
         });
     });
@@ -582,9 +635,12 @@ TEST_CASE("A disconnect during the connection queries keeps the status stream fr
     f.agent.connect_printer(params);
     REQUIRE(f.printer.wait_for_http_requests(1));
 
-    f.agent.disconnect_printer();
+    // disconnect_printer joins the worker running the stalled query, so it is called aside and the
+    // printer is released to let that query return.
+    auto disconnecting = std::async(std::launch::async, [&] { f.agent.disconnect_printer(); });
     f.printer.release();
     // The query has returned once the printer hangs up on it, and a stream would connect right after.
     REQUIRE(f.printer.wait_for_http_hang_ups(1));
     CHECK_FALSE(f.printer.wait_for_ready_connections(1, 500ms));
+    disconnecting.wait();
 }

@@ -2,18 +2,25 @@
 #include "Http.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
+#include <atomic>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
 #include <cctype>
+#include <cmath>
 #include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <exception>
 #include <map>
+#include <mutex>
 #include <sstream>
+#include <thread>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,6 +41,40 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
+// RAII release of the in-flight fetch slot; movable so a failed thread start still releases it.
+struct InFlightGuard
+{
+    MoonrakerPrinterAgent* owner;
+    explicit InFlightGuard(MoonrakerPrinterAgent& o) noexcept : owner(&o) {}
+    InFlightGuard(InFlightGuard&& other) noexcept : owner(other.owner) { other.owner = nullptr; }
+    InFlightGuard(const InFlightGuard&) = delete;
+    InFlightGuard& operator=(const InFlightGuard&) = delete;
+    InFlightGuard& operator=(InFlightGuard&&) = delete;
+    ~InFlightGuard() { if (owner) owner->release_fetch_slot(); }
+};
+
+// nlohmann::json::value() returns the default only when the key is absent; a present but
+// null/wrong-typed value throws. Firmware JSON is untrusted, so read defensively.
+int read_int_or(const nlohmann::json& obj, const std::string& key, int fallback)
+{
+    auto it = obj.find(key);
+    if (it == obj.end()) {
+        return fallback;
+    }
+    if (it->is_number_integer()) {
+        return it->get<int>();
+    }
+    // Firmware may report an integral field as a JSON float (e.g. 2.0). Accept it only when it
+    // has no fractional part, so a genuinely fractional value falls back instead of truncating.
+    if (it->is_number_float()) {
+        const double value = it->get<double>();
+        if (value == std::floor(value)) {
+            return static_cast<int>(value);
+        }
+    }
+    return fallback;
+}
+
 } // anonymous namespace
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
@@ -47,51 +88,179 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
     return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
 }
 
-bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
+FilamentSyncMode QidiPrinterAgent::get_filament_sync_mode() const
 {
-    std::string error;
+    if (GUI::wxGetApp().app_config->get_bool("use_printer_agents"))
+        return FilamentSyncMode::subscription;
+    return FilamentSyncMode::pull;
+}
 
-    // 1. Fetch device info and infer series_id
-    std::string series_id;
-    {
-        MoonrakerDeviceInfo info;
-        if (fetch_device_info(device_info.base_url, device_info.api_key, info, error)) {
-            series_id = infer_series_id(info.model_id, info.dev_name);
-        }
-    }
-    if (series_id.empty()) {
-        // Fall back to the configured Orca model if Moonraker doesn't expose a usable identifier.
-        series_id = infer_series_id(device_info.model_id, device_info.model_name);
-    }
-
-    // 2. Fetch filament dictionary
-    QidiFilamentDict dict;
-    if (!fetch_filament_dict(device_info.base_url, device_info.api_key, dict, error)) {
-        BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch filament dict: " << error;
-    }
-
-    // 3. Fetch slot info and build AmsTrayData directly
-    std::vector<AmsTrayData> trays;
-    int                      box_count = 0;
-    if (!fetch_slot_info(device_info.base_url, device_info.api_key, dict, series_id, trays, box_count, error)) {
-        BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
+bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode)
+{
+    if (sync_mode != get_filament_sync_mode())
         return false;
+
+    // Snapshot what the fetch needs; a reconnect can rewrite device_info meanwhile.
+    ConnectionSettings connection = get_connection_settings();
+    std::string        model_id;
+    std::string        model_name;
+    {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        model_id   = device_info.model_id;
+        model_name = device_info.model_name;
     }
 
-    // 4. Build the AMS payload
-    build_ams_payload(box_count, box_count * 4 - 1, trays);
+    // One implementation for both modes; only where it runs differs. pull is the documented
+    // blocking contract (the GUI thread reads DevFilaSystem right after the call), so it runs
+    // on the caller with the payload applied inline. subscription runs on a background thread
+    // so the status loop is not stalled, and the payload is marshalled back to the main thread.
+    auto work = [this, connection = std::move(connection), model_id, model_name](bool apply_inline) -> bool {
+        try {
+            std::string error;
+
+            // 1. Fetch device info and infer series_id
+            std::string series_id;
+            {
+                MoonrakerDeviceInfo info;
+                if (fetch_device_info(connection, info, error)) {
+                    series_id = infer_series_id(info.model_id, info.dev_name);
+                }
+            }
+            if (series_id.empty()) {
+                // Fall back to the configured Orca model if Moonraker doesn't expose a usable identifier.
+                series_id = infer_series_id(model_id, model_name);
+            }
+
+            // 2. Fetch filament dictionary
+            QidiFilamentDict dict;
+            if (!fetch_filament_dict(connection, dict, error)) {
+                BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch filament dict: " << error;
+            }
+
+            // 3. Fetch slot info and build AmsTrayData directly
+            std::vector<AmsTrayData> trays;
+            int box_count = 0;
+            if (!fetch_slot_info(connection, dict, series_id, trays, box_count, error)) {
+                BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
+                return false;
+            }
+
+            // 4. Build the AMS payload, resolving preset-dependent ids on the main thread.
+            auto resolve_ids = [](std::vector<AmsTrayData>& resolved_trays) {
+                auto* bundle = GUI::wxGetApp().preset_bundle;
+                if (!bundle) {
+                    return; // keep the Qidi-specific ids computed from device data
+                }
+                for (auto& tray : resolved_trays) {
+                    if (!tray.has_filament) {
+                        continue;
+                    }
+                    if (!tray.tray_info_idx.empty() && has_visible_base_preset(bundle->filaments, tray.tray_info_idx)) {
+                        continue;
+                    }
+                    tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                }
+            };
+            build_ams_payload(box_count, box_count * 4 - 1, trays, apply_inline, resolve_ids);
+            return true;
+        } catch (const std::exception& e) {
+            // why: an exception escaping a detached thread is std::terminate, and firmware
+            // JSON is untrusted; mirror run_command_worker and swallow it here.
+            BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: unhandled exception: " << e.what();
+            return false;
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: unhandled exception";
+            return false;
+        }
+    };
+
+    if (sync_mode == FilamentSyncMode::pull) {
+        return work(/*apply_inline=*/true);
+    }
+
+    // Subscription: fire-and-forget. A `true` return means the refresh was scheduled (or is
+    // already running), not that DevFilaSystem has been updated. Reserve under the same mutex
+    // shutdown() uses, so the flag and the count can't race.
+    {
+        std::lock_guard<std::mutex> lock(fetch_lifecycle_mutex);
+        if (shutting_down.load())
+            return false;
+        if (filament_fetch_in_flight.load() > 0)
+            return true; // a fetch is already running; don't pile on
+        filament_fetch_in_flight.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    InFlightGuard guard{*this};
+    std::thread([work = std::move(work), guard = std::move(guard)]() mutable {
+        work(/*apply_inline=*/false);
+    }).detach();
     return true;
 }
 
-bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
-                                       const std::string&        api_key,
+bool QidiPrinterAgent::apply_box_mapping(const PrintParams& params) const
+{
+    // enable_box mirrors task_use_ams: engage the multi-color box only when this
+    // job actually routes filament through it. (See qidi-ams-findings.md §2/§8.3 —
+    // if firmware treats enable_box as "a box exists" rather than "use it this job",
+    // switch this gate to HasAms()/box_count instead.)
+    const int         enable = params.task_use_ams ? 1 : 0;
+    const std::string dev_id = get_connection_settings().dev_id;
+
+    // Build one gcode/script request instead of N blocking HTTP calls: apply_box_mapping
+    // runs on the caller's (GUI) thread before the print starts, so per-tool round trips
+    // would freeze the UI.
+    std::string script = "SAVE_VARIABLE VARIABLE=enable_box VALUE=" + std::to_string(enable);
+
+    // When the box isn't used this job, leave the existing value_t<tool> slot
+    // assignments untouched (enable_box=0 is enough to disengage it).
+    if (enable) {
+        if (params.ams_mapping.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::apply_box_mapping: enable_box set but ams_mapping is empty";
+        } else {
+            // ams_mapping (v0) is a JSON array indexed by filament/tool; each value is the
+            // physical box slot (-1 = unmapped). Mirror it onto value_t<tool>.
+            auto mapping = nlohmann::json::parse(params.ams_mapping, nullptr, /*allow_exceptions*/ false);
+            if (mapping.is_discarded() || !mapping.is_array()) {
+                BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: invalid ams_mapping: " << params.ams_mapping;
+                return false;
+            }
+            for (size_t tool = 0; tool < mapping.size(); ++tool) {
+                if (!mapping[tool].is_number_integer())
+                    continue;
+                const int slot = mapping[tool].get<int>();
+                if (slot < 0)
+                    continue; // unmapped filament — skip
+                script += "\nSAVE_VARIABLE VARIABLE=value_t" + std::to_string(tool) +
+                          " VALUE=\"'slot" + std::to_string(slot) + "'\"";
+            }
+        }
+    }
+
+    if (!send_gcode(dev_id, script)) {
+        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::apply_box_mapping: failed to send box mapping";
+        return false;
+    }
+    return true;
+}
+
+int QidiPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
+{
+    // Only the LAN print path is implemented by the Moonraker base; the box config is emitted
+    // here, before the print starts. The cloud/record/sdcard variants inherited from the base
+    // deliberately return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED without side effects.
+    if (!apply_box_mapping(params))
+        return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
+    return MoonrakerPrinterAgent::start_local_print(std::move(params), update_fn, cancel_fn);
+}
+
+bool QidiPrinterAgent::fetch_slot_info(const ConnectionSettings& connection,
                                        const QidiFilamentDict&   dict,
                                        const std::string&        series_id,
                                        std::vector<AmsTrayData>& trays,
                                        int&                      box_count,
                                        std::string&              error)
 {
-    std::string url = join_url(base_url, "/printer/objects/query?save_variables=variables");
+    std::string url = join_url(connection.base_url, "/printer/objects/query?save_variables=variables");
     for (int i = 0; i < 16; ++i) {
         url += "&box_stepper%20slot" + std::to_string(i) + "=runout_button";
     }
@@ -101,8 +270,9 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
     std::string http_error;
 
     auto http = Http::get(url);
-    if (!api_key.empty()) {
-        http.header("X-Api-Key", api_key);
+    configure_http(http, connection);
+    if (!connection.api_key.empty()) {
+        http.header("X-Api-Key", connection.api_key);
     }
     http.timeout_connect(5)
         .timeout_max(10)
@@ -127,22 +297,12 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         return false;
     }
 
-    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
-        error = "Invalid JSON response";
+    nlohmann::json status;
+    nlohmann::json variables;
+    if (!parse_slot_response(response_body, status, variables, error))
         return false;
-    }
 
-    if (!json.contains("result") || !json["result"].contains("status") || !json["result"]["status"].contains("save_variables") ||
-        !json["result"]["status"]["save_variables"].contains("variables")) {
-        error = "Unexpected JSON structure";
-        return false;
-    }
-
-    auto& variables = json["result"]["status"]["save_variables"]["variables"];
-    auto& status    = json["result"]["status"];
-
-    box_count = variables.value("box_count", 1);
+    box_count = read_int_or(variables, "box_count", 1);
     if (box_count < 0) {
         box_count = 0;
     }
@@ -165,9 +325,9 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         tray.slot_index = i;
 
         // Read slot variables
-        const int color_index     = variables.value("color_slot" + std::to_string(i), 1);
-        const int filament_type   = variables.value("filament_slot" + std::to_string(i), 1);
-        const int vendor_type     = variables.value("vendor_slot" + std::to_string(i), 0);
+        const int color_index     = read_int_or(variables, "color_slot" + std::to_string(i), 1);
+        const int filament_type   = read_int_or(variables, "filament_slot" + std::to_string(i), 1);
+        const int vendor_type     = read_int_or(variables, "vendor_slot" + std::to_string(i), 0);
 
         // Check filament presence via runout sensor
         std::string box_stepper_key = "box_stepper slot" + std::to_string(i);
@@ -175,7 +335,7 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         if (status.contains(box_stepper_key)) {
             auto& box_stepper = status[box_stepper_key];
             if (box_stepper.contains("runout_button") && !box_stepper["runout_button"].is_null()) {
-                int runout_button = box_stepper["runout_button"].template get<int>();
+                const int runout_button = read_int_or(box_stepper, "runout_button", 0);
                 tray.has_filament = (runout_button == 0);
             }
         }
@@ -189,16 +349,9 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
             }
             tray.tray_type = normalize_filament_type(filament_name);
 
-            // Try Qidi-specific setting ID first; fall back to visible preset by type
-            std::string setting_id = build_setting_id(filament_type, vendor_type, tray.tray_type);
-            auto* bundle = GUI::wxGetApp().preset_bundle;
-            if (!bundle) {
-                tray.tray_info_idx = setting_id;
-            } else if (!setting_id.empty() && has_visible_base_preset(bundle->filaments, setting_id)) {
-                tray.tray_info_idx = setting_id;
-            } else {
-                tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
-            }
+            // Qidi-specific setting id derived from device data only; the preset-dependent
+            // fallback runs on the main thread in the resolve hook passed to build_ams_payload.
+            tray.tray_info_idx = build_setting_id(filament_type, vendor_type, tray.tray_type);
 
             // Look up color from dictionary
             auto color_it = dict.colors.find(color_index);
@@ -215,20 +368,45 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
     return true;
 }
 
-bool QidiPrinterAgent::fetch_filament_dict(const std::string& base_url,
-                                           const std::string& api_key,
+bool QidiPrinterAgent::parse_slot_response(const std::string& response_body,
+                                           nlohmann::json&    status,
+                                           nlohmann::json&    variables,
+                                           std::string&       error)
+{
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        error = "Invalid JSON response";
+        return false;
+    }
+
+    if (!json.is_object() || !json.contains("result") || !json["result"].is_object() || !json["result"].contains("status") ||
+        !json["result"]["status"].is_object() || !json["result"]["status"].contains("save_variables") ||
+        !json["result"]["status"]["save_variables"].is_object() || !json["result"]["status"]["save_variables"].contains("variables") ||
+        !json["result"]["status"]["save_variables"]["variables"].is_object()) {
+        // why: Qidi firmware may send null here, but json::value() throws for it.
+        error = "Unexpected JSON structure: save_variables.variables must be an object";
+        return false;
+    }
+
+    status    = json["result"]["status"];
+    variables = status["save_variables"]["variables"];
+    return true;
+}
+
+bool QidiPrinterAgent::fetch_filament_dict(const ConnectionSettings& connection,
                                            QidiFilamentDict& dict,
                                            std::string& error) const
 {
-    std::string url = join_url(base_url, "/server/files/config/officiall_filas_list.cfg");
+    std::string url = join_url(connection.base_url, "/server/files/config/officiall_filas_list.cfg");
 
     std::string response_body;
     bool        success = false;
     std::string http_error;
 
     auto http = Http::get(url);
-    if (!api_key.empty()) {
-        http.header("X-Api-Key", api_key);
+    configure_http(http, connection);
+    if (!connection.api_key.empty()) {
+        http.header("X-Api-Key", connection.api_key);
     }
     http.timeout_connect(5)
         .timeout_max(10)
