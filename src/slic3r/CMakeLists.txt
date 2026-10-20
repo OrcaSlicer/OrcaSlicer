@@ -342,6 +342,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/PlaterWorker.hpp
     GUI/Jobs/PrintJob.cpp
     GUI/Jobs/PrintJob.hpp
+    GUI/Jobs/PrinterAgentHandoffJob.cpp
+    GUI/Jobs/PrinterAgentHandoffJob.hpp
     GUI/Jobs/ProgressIndicator.hpp
     GUI/Jobs/RotoptimizeJob.cpp
     GUI/Jobs/RotoptimizeJob.hpp
