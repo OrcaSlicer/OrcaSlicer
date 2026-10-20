@@ -177,6 +177,11 @@ public:
         ORCA_PY_AGENT_OVERRIDE(int, start_local_print, params, update_fn, cancel_fn);
     }
 
+    bool handles_print_dialog() const override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(bool, handles_print_dialog);
+    }
+
     FilamentSyncMode get_filament_sync_mode() const override
     {
         ORCA_PY_AGENT_OVERRIDE_DEFAULT(FilamentSyncMode, get_filament_sync_mode);

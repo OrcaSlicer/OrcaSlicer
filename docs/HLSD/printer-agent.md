@@ -199,6 +199,19 @@ The Python camera binding exposes HTTP, HTTPS, RTSP, and HTTP-snapshot modes. We
 built-in C++ camera mode, but is not exposed as a Python mode because the current Python capability
 does not provide the corresponding cloud signaling-channel contract.
 
+## Agent-owned print UI
+
+An agent reports `handles_print_dialog()` as true (Python: `def handles_print_dialog(self): return True`)
+when it shows its own print or send window, for example to pick a printer on a print-farm server.
+Print plate, Print all, Send and Send all then skip `SelectMachineDialog` and `SendToPrinterDialog`.
+The plater exports the plate `.gcode.3mf` the same way the dialogs do and queues
+`PrinterAgentHandoffJob` on the plater worker, which calls `start_local_print` (Print) or
+`start_send_gcode_to_sdcard` (Send) once, with `connection_type` `"lan"`, a 1-based `plate_index`
+(0 for all plates), the selected machine's `dev_id` if there is one, and no AMS mapping. There is no
+LAN pre-flight, storage check, or switch to the Device tab, because the agent owns those decisions.
+Progress reported through `update_fn` drives the plater's progress notification, and its cancel
+button reaches the agent through `cancel_fn`. The default is false, which keeps the dialogs.
+
 ## Camera playback boundary
 
 The camera stream mode describes how a stream is obtained; it does not by itself define ownership of
