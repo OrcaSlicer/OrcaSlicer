@@ -33,6 +33,24 @@ public:
     bool is_self_crossing() override { return false; }
     bool aligned_to_origin() const override { return true; }
 
+protected:
+    // Implicit TPMS equation with a period of 2 PI.
+    using Equation = float (*)(float x, float y, float z);
+    virtual Equation equation() const;
+    // Field period per (line spacing / density), calibrated so the line length matches the density.
+    virtual float period_factor() const { return 4.18f; }
+};
+
+// Schwarz Primitive (P) surface: cos(x) + cos(y) + cos(z) = 0. Traced like Fischer-Koch, only the equation differs.
+class FillTpmsP : public FillTpmsFK
+{
+public:
+    Fill* clone() const override { return new FillTpmsP(*this); }
+
+protected:
+    Equation equation() const override;
+    // Its cells are small, so above ~50% density they get coarse on the 0.4 mm marching-squares grid (ScalarField::gsizef).
+    float    period_factor() const override { return 1.85f; }
 };
 
 } // namespace Slic3r
