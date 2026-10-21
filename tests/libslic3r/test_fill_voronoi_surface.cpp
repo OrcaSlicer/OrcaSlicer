@@ -34,8 +34,10 @@
 using namespace Slic3r;
 
 namespace {
-class FiniteWallSites : public Voronoi::PoissonPointCloud {
+class FiniteWallSites : public Voronoi::PointCloudProvider {
 public:
+    double spacing(double s, double h, double d) const override
+        { return Voronoi::PoissonPointCloud::nominal_spacing(s, h, d); }
     std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double) const override
     {
         std::vector<Vec3d> result;
@@ -316,8 +318,8 @@ TEST_CASE("Worker-local Voronoi caches survive temporary fillers and isolate clo
     class CountingCloud : public Voronoi::PoissonPointCloud {
     public:
         mutable size_t queries = 0;
-        std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override
-            { ++queries; return PoissonPointCloud::points_in(box, spacing); }
+        std::vector<Vec3d> points_in_cells(const Vec3i64 &first, const Vec3i64 &last, double spacing) const override
+            { ++queries; return PoissonPointCloud::points_in_cells(first, last, spacing); }
     };
     auto provider = std::make_shared<CountingCloud>();
     VoronoiInfillCache cache;

@@ -229,6 +229,18 @@ std::pair<size_t, size_t> CellGeometry::update(const std::vector<Vec3d> &sites)
     return {added.size(), removed.size()};
 }
 
+size_t CellGeometry::remove_below(double z)
+{
+    auto &mesh = *m_impl;
+    const auto end = std::lower_bound(mesh.vertices.begin(), mesh.vertices.end(), z,
+        [](const auto &v, double height) { return v->point().z() < height; });
+    const size_t count = size_t(end - mesh.vertices.begin());
+    if (end == mesh.vertices.end()) mesh.triangulation.clear();
+    else if (count) mesh.triangulation.remove_cluster(mesh.vertices.begin(), end);
+    mesh.vertices.erase(mesh.vertices.begin(), end);
+    return count;
+}
+
 std::vector<Band> CellGeometry::shallow_bands(const BoundingBox &bounds, double z, double width, double height, double row_spacing) const
 {
     const auto &mesh = *m_impl;
