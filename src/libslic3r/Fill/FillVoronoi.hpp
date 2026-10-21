@@ -29,8 +29,8 @@ public:
     FillVoronoi &operator=(FillVoronoi &&) = default;
     void set_point_cloud(std::shared_ptr<const Voronoi::PointCloudProvider> provider)
         { m_infill = std::make_shared<VoronoiInfill>(std::move(provider)); }
-    void set_cache(VoronoiInfillCache &cache)
-        { if (!cache.infill) cache.infill = m_infill; m_infill = cache.infill; }
+    void set_engine_registry(VoronoiEngineRegistry &engines)
+        { if (!engines.infill) engines.infill = m_infill; m_infill = engines.infill; }
     // Non-owning; the lower-layer footprints must outlive this filler and its clones.
     void set_floor_support(const ExPolygons *support) { m_floor_support = support; }
     Polylines fill_surface(const Surface *surface, const FillParams &params) override;
