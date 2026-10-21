@@ -313,7 +313,7 @@ TEST_CASE("Voronoi fills shallow bands with continuous coverage and configured f
     }
 }
 
-TEST_CASE("Worker-local Voronoi caches survive temporary fillers and isolate clones", "[FillVoronoi][Incremental]")
+TEST_CASE("Worker-local Voronoi engines survive temporary fillers and isolate clones", "[FillVoronoi][Incremental]")
 {
     class CountingCloud : public Voronoi::PoissonPointCloud {
     public:
@@ -322,8 +322,8 @@ TEST_CASE("Worker-local Voronoi caches survive temporary fillers and isolate clo
             { ++queries; return PoissonPointCloud::points_in_cells(first, last, spacing); }
     };
     auto provider = std::make_shared<CountingCloud>();
-    VoronoiInfillCache cache;
-    cache.infill = std::make_shared<VoronoiInfill>(provider);
+    VoronoiEngineRegistry engines;
+    engines.infill = std::make_shared<VoronoiInfill>(provider);
     FillParams params;
     params.density = 0.25f;
     params.flow = Flow(0.45f, 0.2f, 0.4f);
@@ -332,7 +332,7 @@ TEST_CASE("Worker-local Voronoi caches survive temporary fillers and isolate clo
                              Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
     const Surface surface(stInternal, outline);
     const auto configure = [&](FillVoronoi &fill) {
-        fill.set_cache(cache);
+        fill.set_engine_registry(engines);
         fill.set_bounding_box(outline.contour.bounding_box());
         fill.spacing = params.flow.spacing();
         fill.angle = 0.f;

@@ -52,8 +52,9 @@ private:
     std::vector<Voronoi::Band> m_bands;
 };
 
-// Each worker reuses one engine across its ascending layer batch.
-struct VoronoiInfillCache {
+// Successive fillers in an ascending worker batch reuse the same engine.
+// Clients are sequential; concurrent workers own independent engines.
+struct VoronoiEngineRegistry {
     std::shared_ptr<VoronoiInfill> infill;
 };
 

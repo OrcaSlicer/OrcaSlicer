@@ -424,12 +424,12 @@ struct SurfaceFill {
 
 // Point providers and physical support are configured before geometry and routing.
 static void configure_voronoi(Fill &fill, const SurfaceFill &surface_fill, const Layer &layer,
-                                    std::optional<ExPolygons> &floor_support, VoronoiInfillCache *cache)
+                                    std::optional<ExPolygons> &floor_support, VoronoiEngineRegistry *engines)
 {
     const auto &params = surface_fill.params;
     if (params.pattern != ipVoronoi) return;
     auto &voronoi = static_cast<FillVoronoi &>(fill);
-    voronoi.set_cache(*cache);
+    voronoi.set_engine_registry(*engines);
     voronoi.point_spacing = params.voronoi_point_spacing;
     if (layer.lower_layer) {
         // Perimeters are complete before parallel infill generation; lower-layer
@@ -1379,7 +1379,7 @@ void export_group_fills_to_svg(const char *path, const std::vector<SurfaceFill> 
 #endif
 
 // friend to Layer
-void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator, VoronoiInfillCache *voronoi_cache)
+void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator, VoronoiEngineRegistry *voronoi_engines)
 {
 	for (LayerRegion *layerm : m_regions)
 		layerm->fills.clear();
@@ -1400,15 +1400,15 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
 	}
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    std::optional<VoronoiInfillCache> local_voronoi_cache;
-    if (!voronoi_cache && std::any_of(surface_fills.begin(), surface_fills.end(),
+    std::optional<VoronoiEngineRegistry> local_voronoi_engines;
+    if (!voronoi_engines && std::any_of(surface_fills.begin(), surface_fills.end(),
             [](const SurfaceFill &fill) { return fill.params.pattern == ipVoronoi; }))
-        voronoi_cache = &local_voronoi_cache.emplace();
+        voronoi_engines = &local_voronoi_engines.emplace();
     std::optional<ExPolygons> voronoi_floor_support;
     for (SurfaceFill &surface_fill : surface_fills) {
         // Create the filler object.
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
-        configure_voronoi(*f, surface_fill, *this, voronoi_floor_support, voronoi_cache);
+        configure_voronoi(*f, surface_fill, *this, voronoi_floor_support, voronoi_engines);
         f->set_bounding_box(bbox);
         f->layer_id = this->id();
         {
@@ -1593,7 +1593,7 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
  * - For lightning/adaptive patterns, the respective generators are wired so their
  *   polylines match the final infill layout.
  */
-Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator, VoronoiInfillCache *voronoi_cache) const
+Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdaptive::RegionOctrees* fill_octrees, FillLightning::Generator* lightning_generator, VoronoiEngineRegistry *voronoi_engines) const
 {
     LockRegionParam skin_inner_param;
     std::vector<SurfaceFill> surface_fills = group_fills(*this, skin_inner_param);
@@ -1602,10 +1602,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 
     Polylines sparse_infill_polylines{};
 
-    std::optional<VoronoiInfillCache> local_voronoi_cache;
-    if (!voronoi_cache && std::any_of(surface_fills.begin(), surface_fills.end(),
+    std::optional<VoronoiEngineRegistry> local_voronoi_engines;
+    if (!voronoi_engines && std::any_of(surface_fills.begin(), surface_fills.end(),
             [](const SurfaceFill &fill) { return fill.params.pattern == ipVoronoi; }))
-        voronoi_cache = &local_voronoi_cache.emplace();
+        voronoi_engines = &local_voronoi_engines.emplace();
     std::optional<ExPolygons> voronoi_floor_support;
     for (SurfaceFill &surface_fill : surface_fills) {
 		if (surface_fill.surface.surface_type != stInternal) {
@@ -1648,7 +1648,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 
         // Create the filler object.
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
-        configure_voronoi(*f, surface_fill, *this, voronoi_floor_support, voronoi_cache);
+        configure_voronoi(*f, surface_fill, *this, voronoi_floor_support, voronoi_engines);
         f->set_bounding_box(bbox);
         f->layer_id = surface_fill.params.pattern == ipVoronoi ? this->id() :
             this->id() - this->object()->get_layer(0)->id(); // Other patterns exclude raft layers.

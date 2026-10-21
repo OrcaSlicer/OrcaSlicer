@@ -825,10 +825,10 @@ void PrintObject::infill()
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size(), layer_grain_size),
             [this, &completed_layers, &progress_mutex, &last_report](const tbb::blocked_range<size_t>& range) {
-                VoronoiInfillCache voronoi_cache;
+                VoronoiEngineRegistry voronoi_engines;
                 for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
                     m_print->throw_if_canceled();
-                    m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees, this->m_lightning_generator.get(), &voronoi_cache);
+                    m_layers[layer_idx]->make_fills(&m_adaptive_fill_octrees, this->m_lightning_generator.get(), &voronoi_engines);
                     std::lock_guard<std::mutex> lock(progress_mutex);
                     ++completed_layers;
                     const auto now = std::chrono::steady_clock::now();
@@ -3364,12 +3364,12 @@ void PrintObject::bridge_over_infill()
                                                                                             &layers_to_generate_infill,
                                                                                             &infill_lines](tbb::blocked_range<size_t> r) {
             PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
-            VoronoiInfillCache voronoi_cache;
+            VoronoiEngineRegistry voronoi_engines;
             for (size_t job_idx = r.begin(); job_idx < r.end(); job_idx++) {
                 size_t lidx = layers_to_generate_infill[job_idx];
                 infill_lines.at(
                     lidx) = po->get_layer(lidx)->generate_sparse_infill_polylines_for_anchoring(&po->m_adaptive_fill_octrees,
-                                                                                                po->m_lightning_generator.get(), &voronoi_cache);
+                                                                                                po->m_lightning_generator.get(), &voronoi_engines);
             }
         });
 #ifdef DEBUG_BRIDGE_OVER_INFILL

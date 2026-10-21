@@ -855,3 +855,43 @@ TEST_CASE("A wider slice slab does not reopen safely retired generation cells", 
     }));
     REQUIRE(cloud.retired_below() >= cutoff);
 }
+
+TEST_CASE("Active cloud uses the provider's generation cell size", "[FillVoronoi][Incremental]")
+{
+    class WideCells : public Voronoi::PointCloudProvider {
+    public:
+        double spacing(double, double, double) const override { return 1.; }
+        double cell_size(double spacing) const override { return 7. * spacing; }
+        std::vector<Vec3d> points_in(const BoundingBoxf3 &, double) const override { return {}; }
+        std::vector<Vec3d> points_in_cells(const Vec3i64 &first, const Vec3i64 &last, double spacing) const override {
+            std::vector<Vec3d> points;
+            for (int64_t x = first.x(); x < last.x(); ++x)
+                for (int64_t y = first.y(); y < last.y(); ++y)
+                    for (int64_t z = first.z(); z < last.z(); ++z)
+                        points.emplace_back((Vec3d(double(x), double(y), double(z)).array() + 0.5).matrix() * cell_size(spacing));
+            return points;
+        }
+    };
+    Voronoi::ActivePointCloud cloud(std::make_shared<WideCells>());
+    const auto bounds = rectangle(-1., -1., 1., 1.).contour.bounding_box();
+    std::vector<double> cutoffs;
+    const auto retire = [&](double cutoff) { if (std::isfinite(cutoff)) cutoffs.push_back(cutoff); };
+    const auto radius = [](const auto &) { return 1.; };
+    REQUIRE(cloud.update(bounds, 0.1, 0., 1., radius, retire));
+    REQUIRE_THAT(cloud.known_bounds().max.z(), Catch::Matchers::WithinAbs(7., EPSILON));
+    const size_t revision = cloud.revision();
+    REQUIRE(cloud.update(bounds, 5., 0., 1., radius, retire));
+    REQUIRE(cloud.revision() == revision);
+    REQUIRE(cutoffs.empty());
+    REQUIRE(cloud.update(bounds, 6.5, 0., 1., radius, retire));
+    REQUIRE(cutoffs.size() == 1);
+    REQUIRE_THAT(cutoffs.front(), Catch::Matchers::WithinAbs(0., EPSILON));
+    REQUIRE_THAT(cloud.known_bounds().max.z(), Catch::Matchers::WithinAbs(14., EPSILON));
+    REQUIRE(cloud.update(bounds, 9., 0., 1., radius, retire));
+    REQUIRE(cutoffs.size() == 1);
+    REQUIRE(cloud.update(bounds, 13.5, 0., 1., radius, retire));
+    REQUIRE(cutoffs.size() == 2);
+    REQUIRE_THAT(cutoffs.back(), Catch::Matchers::WithinAbs(7., EPSILON));
+    REQUIRE_THAT(cloud.known_bounds().max.z(), Catch::Matchers::WithinAbs(21., EPSILON));
+    for (const auto &point : cloud.sites()) REQUIRE(point.z() >= cutoffs.back());
+}
