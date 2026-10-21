@@ -28,8 +28,8 @@ Point ingestion advances in complete generation cells. Points remain unchanged
 between batches; obsolete lower cell rows are retired before new cells are
 generated. The Delaunay network removes those vertices before inserting new ones.
 
-Workers process ascending layer batches with independent mutable engines.
-Temporary fillers reuse the batch's engines; copies own independent networks.
+A worker-local registry lets successive fillers reuse an engine within an
+ascending layer batch. Workers and cloned fillers own independent networks.
 
 CGAL supplies the Delaunay and power-diagram geometry and is required at build
 time. Slicing cost and memory grow with point count; large, dense objects are
