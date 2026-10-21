@@ -53,15 +53,18 @@ Voronoi::Layer VoronoiInfill::fill_geometry(const BoundingBox &object_bounds, co
         m_layer_z = std::numeric_limits<double>::quiet_NaN();
     }
     if (m_layer_z != z || m_layer_width != width || m_layer_height != height || m_row_spacing != row_spacing || m_wall_count != wall_count) {
-        if (!m_cloud.update(bounds, z, margin, site_spacing, [&](const std::vector<Vec3d> &sites) {
+        if (!m_cloud.update(bounds, z, margin, site_spacing, [&, z = params.z](const std::vector<Vec3d> &sites) {
                 m_section = Voronoi::section(sites, bounds, z);
                 return m_section.covering_radius;
-            })) return {};
+            }, [this](double cutoff) { m_geometry.remove_below(cutoff); })) return {};
         // Coverage uses the cheap planar diagram. Retire points before updating
         // the persistent 3D network, avoiding a larger provisional triangulation.
         m_bands.clear();
         if (height > 0.) {
-            m_geometry.update(m_cloud.sites());
+            if (m_geometry_revision != m_cloud.revision()) {
+                m_geometry.update(m_cloud.sites());
+                m_geometry_revision = m_cloud.revision();
+            }
             m_bands = m_geometry.shallow_bands(bounds, z, width, height, row_spacing);
         }
         m_layer_z = z;

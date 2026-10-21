@@ -40,6 +40,7 @@ public:
 private:
     Voronoi::ActivePointCloud m_cloud;
     Voronoi::CellGeometry m_geometry;
+    size_t m_geometry_revision = std::numeric_limits<size_t>::max();
     BoundingBox m_bounds;
     double      m_site_spacing { 0. };
     double      m_layer_z { std::numeric_limits<double>::quiet_NaN() };

@@ -24,6 +24,10 @@ retaining unaffected connectivity. Its shallow faces supply floor polygons.
 A weighted 2D power diagram supplies wall sections and covering bounds;
 it is rebuilt at each height because its weights depend on vertical distance.
 
+Point ingestion advances in complete generation cells. Points remain unchanged
+between batches; obsolete lower cell rows are retired before new cells are
+generated. The Delaunay network removes those vertices before inserting new ones.
+
 Workers process ascending layer batches with independent mutable engines.
 Temporary fillers reuse the batch's engines; copies own independent networks.
 
