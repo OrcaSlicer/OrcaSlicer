@@ -1301,7 +1301,7 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
         if (std::none_of(model_object->instances.begin(), model_object->instances.end(), [](const ModelInstance *mi) { return mi->is_printable(); }))
             continue;
         std::vector<const ModelVolume*> modifiers;
-        std::copy_if(model_object->volumes.begin(), model_object->volumes.end(), std::back_inserter(modifiers), [](const ModelVolume *mv) { return mv->is_modifier(); });
+        std::copy_if(model_object->volumes.begin(), model_object->volumes.end(), std::back_inserter(modifiers), [](const ModelVolume *mv) { return mv->is_region_modifier(); });
         for (const ModelVolume *part : model_object->volumes) {
             if (! part->is_model_part())
                 continue;
