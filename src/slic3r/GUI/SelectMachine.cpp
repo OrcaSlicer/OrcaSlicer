@@ -7042,7 +7042,9 @@ static wxString _get_tips(MachineObject* obj_)
 
     wxString ext_diameter;
     if (obj_->GetExtderSystem()->GetTotalExtderCount() == 1) {
-        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
+        // A nozzle the printer hasn't reported shows no size rather than "Unknown"
+        if (const float diameter = obj_->GetExtderSystem()->GetNozzleDiameter(0); diameter > 0.0f)
+            ext_diameter += format_nozzle_diameter(diameter);
     } else if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
         ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
         ext_diameter += "/";

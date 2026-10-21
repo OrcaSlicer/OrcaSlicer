@@ -3,6 +3,7 @@
 
 #include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 
 #include <map>
 #include <string>
@@ -21,6 +22,11 @@ public:
 
     // Override filament sync (Qidi-specific implementation)
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+
+protected:
+    // Saves the Box slot picked for each filament in the print dialog, then starts the print through Moonraker
+    bool print_uploaded_file(const PrintParams& params, const std::string& filename) override;
+    std::string ams_unit_name(int ams_id) const override { return "Qidi Box " + std::to_string(ams_id + 1); }
 
 private:
     struct QidiFilamentDict

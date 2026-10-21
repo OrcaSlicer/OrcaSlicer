@@ -402,17 +402,21 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
         return BAMBU_NETWORK_ERR_CANCELED;
     }
 
-    // Start print via gcode script (simpler than JSON-RPC)
     if (update_fn)
         update_fn(PrintingStageSending, 0, _u8L("Starting print..."));
-    std::string gcode = "SDCARD_PRINT_FILE FILENAME=" + upload_filename;
-    if (!send_gcode_sync(device_info.dev_id, gcode)) {
+    if (!print_uploaded_file(params, upload_filename)) {
         return BAMBU_NETWORK_ERR_PRINT_LP_PUBLISH_MSG_FAILED;
     }
 
     if (update_fn)
         update_fn(PrintingStageFinished, 100, _u8L("Print started"));
     return BAMBU_NETWORK_SUCCESS;
+}
+
+bool MoonrakerPrinterAgent::print_uploaded_file(const PrintParams& /*params*/, const std::string& filename)
+{
+    // Start print via gcode script (simpler than JSON-RPC)
+    return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=" + filename);
 }
 
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
@@ -508,6 +512,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
         ams_unit["info"] = "0002";  // treat as AMS_LITE 
+        if (const std::string name = ams_unit_name(ams_id); !name.empty()) {
+            ams_unit["display_name"] = name;
+        }
 
         nlohmann::json tray_array = nlohmann::json::array();
         int max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
@@ -2265,7 +2272,8 @@ bool MoonrakerPrinterAgent::send_jsonrpc_command(const std::string&    base_url,
     http.header("Content-Type", "application/json")
         .set_post_body(request_str)
         .timeout_connect(5)
-        .timeout_max(10)
+        // Some firmware, like Qidi's, copies the file before starting the print and only answers afterwards
+        .timeout_max(60)
         .on_complete([&](std::string body, unsigned status) {
             if (status == 200) {
                 response = body;
