@@ -2561,15 +2561,26 @@ TEST_CASE("Perimeter-only modifiers do not split Voronoi infill at their boundar
 {
     auto config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({{"sparse_infill_pattern", "voronoi"}, {"sparse_infill_density", "25%"},
-        {"top_shell_layers", 0}, {"bottom_shell_layers", 0}, {"top_shell_thickness", 0}, {"bottom_shell_thickness", 0}});
+        {"top_shell_layers", 0}, {"bottom_shell_layers", 0}, {"top_shell_thickness", 0}, {"bottom_shell_thickness", 0},
+        {"wipe_before_external_loop", false}});
     Print print;
     Model model;
     Slic3r::Test::init_print({make_cube(20., 20., 4.)}, print, model, config);
     auto *modifier = model.objects.front()->add_volume(make_cube(10., 20., 4.), ModelVolumeType::PARAMETER_MODIFIER, false);
-    modifier->config.set_key_value("wall_loops", new ConfigOptionInt(3));
+    // A wipe setting creates separate print regions without adding walls
+    // at the modifier boundary.
+    modifier->config.set_key_value("wipe_before_external_loop", new ConfigOptionBool(true));
     print.apply(model, config);
     print.process();
     const PrintObject &object = *print.objects().front();
+    REQUIRE(object.num_printing_regions() == 2);
+    REQUIRE(Layer::is_perimeter_compatible(print, object.printing_region(0), object.printing_region(1)));
+    // Transform the modifier boundary into the object's slicing frame.
+    const Vec3d lower = object.trafo_sliced() * Vec3d(10., 4., 0.);
+    const Vec3d upper = object.trafo_sliced() * Vec3d(10., 16., 0.);
+    const coord_t boundary_x = scale_(lower.x());
+    const coord_t minimum_y = scale_(lower.y());
+    const coord_t maximum_y = scale_(upper.y());
     size_t crossings = 0;
     for (size_t i = object.layer_count() / 3; i < 2 * object.layer_count() / 3; ++i) {
         const Layer &layer = *object.get_layer(int(i));
@@ -2579,9 +2590,10 @@ TEST_CASE("Perimeter-only modifiers do not split Voronoi infill at their boundar
                 Polylines paths;
                 entity->collect_polylines(paths);
                 for (const Line &line : to_lines(paths))
-                    if ((line.a.x() < scale_(10.)) != (line.b.x() < scale_(10.)) &&
-                        std::min(line.a.y(), line.b.y()) > scale_(4.) &&
-                        std::max(line.a.y(), line.b.y()) < scale_(16.)) ++crossings;
+                    if (std::min(line.a.x(), line.b.x()) < boundary_x - SCALED_EPSILON &&
+                        std::max(line.a.x(), line.b.x()) > boundary_x + SCALED_EPSILON &&
+                        std::min(line.a.y(), line.b.y()) > minimum_y &&
+                        std::max(line.a.y(), line.b.y()) < maximum_y) ++crossings;
             }
     }
     REQUIRE(crossings > 0);
