@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <catch2/catch_all.hpp>
+#include <cstdint>
 #include <tbb/parallel_for.h>
 
 #include "libslic3r/ExPolygon.hpp"
@@ -64,9 +65,11 @@ Segments segments(const Polylines &paths)
     return result;
 }
 
-class FixedProvider : public Voronoi::PoissonPointCloud
+class FixedProvider : public Voronoi::PointCloudProvider
 {
 public:
+    double spacing(double s, double h, double d) const override
+        { return Voronoi::PoissonPointCloud::nominal_spacing(s, h, d); }
     std::vector<Vec3d> sites;
     std::vector<Vec3d> points_in(const BoundingBoxf3 &bounds, double) const override
     {
@@ -164,10 +167,11 @@ TEST_CASE("Voronoi layers change while a moving point band remains reproducible"
     class CountingProvider : public Voronoi::PoissonPointCloud {
     public:
         mutable std::vector<BoundingBoxf3> queries;
-        std::vector<Vec3d> points_in(const BoundingBoxf3 &bounds, double spacing) const override
+        std::vector<Vec3d> points_in_cells(const Vec3i64 &first, const Vec3i64 &last, double spacing) const override
         {
+            const BoundingBoxf3 bounds(first.cast<double>() * cell_size(spacing), last.cast<double>() * cell_size(spacing));
             queries.push_back(bounds);
-            return PoissonPointCloud::points_in(bounds, spacing);
+            return PoissonPointCloud::points_in_cells(first, last, spacing);
         }
     };
     const ExPolygon region = rectangle(-50., -50., 50., 50.);
@@ -439,10 +443,10 @@ TEST_CASE("Voronoi site placement stays fixed when extrusion dimensions change",
     class RecordingProvider : public Voronoi::PoissonPointCloud {
     public:
         mutable std::vector<double> spacings;
-        std::vector<Vec3d> points_in(const BoundingBoxf3 &bounds, double spacing) const override
+        std::vector<Vec3d> points_in_cells(const Vec3i64 &first, const Vec3i64 &last, double spacing) const override
         {
             spacings.push_back(spacing);
-            return Voronoi::PoissonPointCloud::points_in(bounds, spacing);
+            return PoissonPointCloud::points_in_cells(first, last, spacing);
         }
     };
     const ExPolygon region = rectangle(-20., -20., 20., 20.);
@@ -723,8 +727,10 @@ TEST_CASE("Copied Voronoi networks own their storage through dimension changes",
 
 TEST_CASE("Unbounded empty Voronoi providers stop expanding and report worker errors", "[FillVoronoi]")
 {
-    class EmptyProvider : public Voronoi::PoissonPointCloud {
+    class EmptyProvider : public Voronoi::PointCloudProvider {
     public:
+    double spacing(double s, double h, double d) const override
+        { return Voronoi::PoissonPointCloud::nominal_spacing(s, h, d); }
         mutable unsigned queries = 0;
         std::vector<Vec3d> points_in(const BoundingBoxf3 &, double) const override
             { ++queries; return {}; }
@@ -751,9 +757,9 @@ TEST_CASE("Active cloud retains sites ingested above its current slab", "[FillVo
     class RecordingCloud : public Voronoi::PoissonPointCloud {
     public:
         mutable std::vector<BoundingBoxf3> queries;
-        std::vector<Vec3d> points_in(const BoundingBoxf3 &box, double spacing) const override {
-            queries.push_back(box);
-            return PoissonPointCloud::points_in(box, spacing);
+        std::vector<Vec3d> points_in_cells(const Vec3i64 &first, const Vec3i64 &last, double spacing) const override {
+            queries.emplace_back(first.cast<double>() * cell_size(spacing), last.cast<double>() * cell_size(spacing));
+            return PoissonPointCloud::points_in_cells(first, last, spacing);
         }
     };
     auto provider = std::make_shared<RecordingCloud>();
@@ -766,4 +772,86 @@ TEST_CASE("Active cloud retains sites ingested above its current slab", "[FillVo
     REQUIRE(cloud.known_bounds().max.z() >= top);
     for (const auto &query : provider->queries)
         REQUIRE(query.min.z() >= top);
+}
+
+TEST_CASE("Whole generation cubes are visited once and retired before the next batch", "[FillVoronoi][Incremental]")
+{
+    class RecordedCloud : public Voronoi::PoissonPointCloud {
+    public:
+        mutable std::set<std::array<int64_t, 3>> visited;
+        mutable size_t calls = 0;
+        mutable bool retired = false;
+        mutable bool saw_retirement = false;
+        std::vector<Vec3d> points_in_cells(const Vec3i64 &first, const Vec3i64 &last, double spacing) const override
+        {
+            ++calls;
+            if (retired) { saw_retirement = true; retired = false; }
+            for (int64_t x = first.x(); x < last.x(); ++x)
+                for (int64_t y = first.y(); y < last.y(); ++y)
+                    for (int64_t z = first.z(); z < last.z(); ++z)
+                        REQUIRE(visited.insert({x, y, z}).second);
+            return PoissonPointCloud::points_in_cells(first, last, spacing);
+        }
+    };
+    auto provider = std::make_shared<RecordedCloud>();
+    Voronoi::ActivePointCloud cloud(provider);
+    const auto bounds = rectangle(-2., -2., 2., 2.).contour.bounding_box();
+    Voronoi::CellGeometry mesh;
+    const auto radius = [&](const auto &sites) {
+        mesh.update(sites);
+        return 1.;
+    };
+    const auto retire = [&](double cutoff) {
+        mesh.remove_below(cutoff);
+        if (std::isfinite(cutoff)) provider->retired = true;
+    };
+    REQUIRE(cloud.update(bounds, 0.1, 0., 2., radius, retire));
+    const size_t initial_calls = provider->calls, revision = cloud.revision();
+    REQUIRE(cloud.update(bounds, 0.2, 0., 2., radius, retire));
+    REQUIRE(provider->calls == initial_calls);
+    REQUIRE(cloud.revision() == revision);
+    for (double z = 0.4; z < 30.; z += 0.2)
+        REQUIRE(cloud.update(bounds, z, 0., 2., radius, retire));
+    REQUIRE(provider->saw_retirement);
+    REQUIRE(cloud.retired_below() > 0.);
+}
+
+TEST_CASE("Batch Delaunay retirement agrees with a fresh retained cloud", "[FillVoronoi][Incremental]")
+{
+    Voronoi::PoissonPointCloud provider;
+    auto sites = provider.points_in(BoundingBoxf3(Vec3d(-8., -8., -8.), Vec3d(8., 8., 12.)), 3.);
+    Voronoi::CellGeometry mesh;
+    mesh.update(sites);
+    Voronoi::CellGeometry copy = mesh;
+    const size_t before = sites.size();
+    sites.erase(std::remove_if(sites.begin(), sites.end(), [](const auto &p) { return p.z() < 0.; }), sites.end());
+    REQUIRE(mesh.remove_below(0.) == before - sites.size());
+    REQUIRE(mesh.update(sites) == std::make_pair(size_t(0), size_t(0)));
+    Voronoi::CellGeometry fresh;
+    fresh.update(sites);
+    const auto bounds = rectangle(-4., -4., 4., 4.).contour.bounding_box();
+    ExPolygons got, expected;
+    for (const auto &band : mesh.shallow_bands(bounds, 5., 0.45, 0.2, 0.4)) got.push_back(band.polygon);
+    for (const auto &band : fresh.shallow_bands(bounds, 5., 0.45, 0.2, 0.4)) expected.push_back(band.polygon);
+    REQUIRE(diff_ex(got, expected).empty());
+    REQUIRE(diff_ex(expected, got).empty());
+    REQUIRE(copy.remove_below(std::numeric_limits<double>::infinity()) == before);
+    REQUIRE(copy.remove_below(0.) == 0);
+}
+
+TEST_CASE("A wider slice slab does not reopen safely retired generation cells", "[FillVoronoi][Incremental]")
+{
+    Voronoi::ActivePointCloud cloud;
+    const auto bounds = rectangle(-2., -2., 2., 2.).contour.bounding_box();
+    const auto radius = [](const auto &) { return 1.; };
+    for (double z = 0.; z < 8.4; z += 0.2)
+        REQUIRE(cloud.update(bounds, z, 0., 2., radius));
+    const double cutoff = cloud.retired_below();
+    REQUIRE(cutoff > 0.);
+    size_t probes = 0;
+    REQUIRE(cloud.update(bounds, 14., 5., 2., [&](const auto &) {
+        if (++probes > 10) throw std::runtime_error("Coverage did not converge");
+        return 1.;
+    }));
+    REQUIRE(cloud.retired_below() >= cutoff);
 }

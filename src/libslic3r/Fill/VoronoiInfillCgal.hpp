@@ -46,6 +46,7 @@ public:
     CellGeometry &operator=(CellGeometry &&) noexcept;
     // Returns counts of inserted and removed vertices.
     std::pair<size_t, size_t> update(const std::vector<Vec3d> &sites);
+    size_t remove_below(double z);
     // Project shallow faces over twice the layer height, rounding to native rows.
     std::vector<Band> shallow_bands(const BoundingBox &bounds, double z, double width,
                                   double height, double row_spacing) const;
