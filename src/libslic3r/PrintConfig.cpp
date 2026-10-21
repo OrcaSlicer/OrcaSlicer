@@ -331,6 +331,7 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "crosshatch", ipCrossHatch },
     { "tpmsd", ipTpmsD },
     { "tpmsfk", ipTpmsFK },
+    { "tpmsp", ipTpmsP },
     { "gyroid", ipGyroid },
     { "concentric", ipConcentric },
     { "spiralinset", ipSpiralInset },
@@ -3831,6 +3832,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("crosshatch");
     def->enum_values.push_back("tpmsd");
     def->enum_values.push_back("tpmsfk");
+    def->enum_values.push_back("tpmsp");
     def->enum_values.push_back("gyroid");
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("hilbertcurve");
@@ -3857,6 +3859,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Cross Hatch"));
     def->enum_labels.push_back(L("TPMS-D"));
     def->enum_labels.push_back(L("TPMS-FK"));
+    def->enum_labels.push_back(L("TPMS-P"));
     def->enum_labels.push_back(L("Gyroid"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Hilbert Curve"));
