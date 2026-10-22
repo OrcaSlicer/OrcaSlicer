@@ -4366,9 +4366,8 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     ConfigOptionInts* filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
 
     // Which slots are new is a fact about the arrays below, not about filament_presets:
-    // on a tool changer, update_multi_material_filament_presets() tops that list up to the tool
-    // count on its own, so it can already sit at the new size while every array below is still at
-    // the old one.
+    // update_multi_material_filament_presets() fills an empty list up to min_filament_count() on
+    // its own, so it can already sit at the new size while every array below is still at the old one.
     const size_t old_slot_count = filament_color->values.size();
 
     filament_color->resize(n);
@@ -4611,6 +4610,11 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         std::vector<std::string> mutli_filament_color;
     };
     auto is_double_extruder = get_printer_extruder_count() == 2;
+    // ORCA: on a non-BBL multi-extruder printer (a toolchanger) each reported slot is a toolhead, so
+    // slot N feeds extruder N+1. BBL's dual-nozzle printers feed both nozzles from shared AMS units,
+    // where a slot's position says nothing about its nozzle.
+    const int  extruder_count      = get_printer_extruder_count();
+    const bool slots_are_toolheads = !is_bbl_vendor() && extruder_count > 1;
     std::vector<AmsInfo> ams_infos;
     int                  index = 0;
     for (auto &entry : filament_ams_list) {
@@ -4837,7 +4841,6 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             }
         }
 
-        bool mapped_any = false;
         if (use_map && !maps.empty()) {
             for (size_t i = 0; i < exist_colors.size(); i++) {
                 if (maps.find(i) == maps.end()) {
@@ -4846,7 +4849,6 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 int valid_index = get_map_index(ams_array_maps, maps[i]);
                 if (valid_index >= 0 && valid_index < int(ams_filament_colors.size()) && !ams_filament_colors[valid_index].empty()) {
                     exist_colors[i] = ams_filament_colors[valid_index];
-                    mapped_any = true;
                     if (valid_index < int(ams_multi_color_filment.size()) && !ams_multi_color_filment[valid_index].empty()) {
                         exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
                     } else {
@@ -4855,8 +4857,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 }
             }
         }
-        // Fallback to index-based color sync if no mapping was applied.
-        if (!use_map || maps.empty() || !mapped_any) {
+        // Fallback to index-based color sync only when the user never picked a mapping at all. Once
+        // a mapping exists, the filaments left out of it were left out on purpose, so falling back
+        // to syncing every colour by position would recolour exactly the ones meant to stay put.
+        if (!use_map) {
             size_t sync_count = std::min(exist_colors.size(), ams_filament_colors.size());
             for (size_t i = 0; i < sync_count; i++) {
                 if (ams_filament_colors[i].empty()) {
@@ -4907,6 +4911,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             }
             return -1;
         };
+        // ORCA: on a toolchanger, pointing a project filament at a printer spool also says which
+        // toolhead prints it. Without this the filament arrives in the project but keeps whatever
+        // toolhead it was on before.
+        std::map<size_t, int> mapped_extruder;
         std::vector<AmsInfo> need_append_colors;
         auto exist_colors = filament_color->values;
         auto exist_color_types = filament_color_type->values;
@@ -4924,6 +4932,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     exist_color_types[i]      = ams_filament_color_types[valid_index];
                     exist_filament_presets[i] = synced_preset_name(exist_filament_presets[i], ams_filament_presets[valid_index]);
                     exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
+                    if (slots_are_toolheads && valid_index < extruder_count)
+                        mapped_extruder[i] = valid_index + 1;
                 } else {
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "check error: array bound (mapping exist)";
                 }
@@ -4993,56 +5003,68 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         this->filament_presets = exist_filament_presets;
         filament_map->values.resize(exist_filament_presets.size(), 1);
         filament_volume_map->values.resize(exist_filament_presets.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
+        for (const auto &slot : mapped_extruder)
+            if (slot.first < filament_map->values.size())
+                filament_map->values[slot.first] = slot.second;
     }
     else {//overwrite;
         bool has_placeholders = std::any_of(ams_infos.begin(), ams_infos.end(),
                                              [](const AmsInfo& a) { return a.is_placeholder; });
         if (has_placeholders) {
-            // Orca: merge — keep existing filaments for empty slots
             auto exist_colors       = filament_color->values;
             auto exist_color_types  = filament_color_type->values;
             auto exist_presets      = this->filament_presets;
+            auto exist_map          = filament_map->values;
 
-            size_t tray_count = ams_filament_presets.size();
-            size_t total      = std::max(tray_count, exist_presets.size());
+            // ORCA: `ams_infos` gets one entry per reported slot, but the `ams_filament_*` vectors are
+            // only appended to for some of them, so the two can run out of step. Never index one by
+            // the other's size.
+            size_t tray_count = std::min({ams_infos.size(), ams_filament_presets.size(), ams_filament_colors.size(), ams_filament_color_types.size()});
 
             std::vector<std::string> result_colors;
             std::vector<std::string> result_color_types;
             std::vector<std::string> result_presets;
             std::vector<std::vector<std::string>> result_multi_colors;
+            std::vector<int>                      result_map;
 
-            for (size_t i = 0; i < total; i++) {
-                bool is_loaded = (i < ams_infos.size() && ams_infos[i].valid);
+            // ORCA: the project gets the spools the printer reports as loaded. On a toolchanger that is
+            // all it gets -- no padding for the empty toolheads -- and each spool is pinned to the
+            // toolhead it sits in through `filament_map`.
+            for (size_t i = 0; i < tray_count; i++) {
+                if (!ams_infos[i].valid)
+                    continue;
+                result_colors.push_back(ams_filament_colors[i]);
+                result_color_types.push_back(ams_filament_color_types[i]);
+                // exist_presets[i] is the current preset for this slot; keep it when it is a user
+                // preset for the same filament.
+                result_presets.push_back(i < exist_presets.size()
+                                             ? synced_preset_name(exist_presets[i], ams_filament_presets[i])
+                                             : ams_filament_presets[i]);
+                result_multi_colors.push_back(i < ams_multi_color_filment.size() && !ams_multi_color_filment[i].empty() ?
+                                                  ams_multi_color_filment[i] :
+                                                  std::vector<std::string>{ams_filament_colors[i]});
+                result_map.push_back(slots_are_toolheads && int(i) < extruder_count ? int(i) + 1 : 1);
+            }
 
-                if (is_loaded) {
-                    // Loaded tray: use tray's filament data
-                    result_colors.push_back(ams_filament_colors[i]);
-                    result_color_types.push_back(ams_filament_color_types[i]);
-                    // exist_presets[i] is the current preset for this slot; keep it when it is a user
-                    // preset for the same filament.
-                    result_presets.push_back(i < exist_presets.size()
-                                                 ? synced_preset_name(exist_presets[i], ams_filament_presets[i])
-                                                 : ams_filament_presets[i]);
-                    result_multi_colors.push_back(
-                        i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
-                                                           : std::vector<std::string>{ams_filament_colors[i]});
-                } else if (i < exist_presets.size()) {
-                    // Empty tray or beyond tray count: keep existing filament
-                    result_colors.push_back(exist_colors[i]);
-                    result_color_types.push_back(exist_color_types[i]);
+            // Single-toolhead feeders (AMS, MMU) keep the merge: an empty slot leaves the filament
+            // that was already in that position alone, rather than removing it from the project.
+            // So does a toolchanger with no spool loaded, which has nothing to bring in.
+            if (!slots_are_toolheads || result_presets.empty()) {
+                for (size_t i = 0; i < tray_count; i++) {
+                    if (ams_infos[i].valid || i >= exist_presets.size())
+                        continue;
+                    result_colors.insert(result_colors.begin() + i, i < exist_colors.size() ? exist_colors[i] : std::string("#CECECE"));
+                    result_color_types.insert(result_color_types.begin() + i, i < exist_color_types.size() ? exist_color_types[i] : std::string("1"));
+                    result_presets.insert(result_presets.begin() + i, exist_presets[i]);
+                    result_multi_colors.insert(result_multi_colors.begin() + i, std::vector<std::string>{result_colors[i]});
+                    result_map.insert(result_map.begin() + i, i < exist_map.size() ? exist_map[i] : 1);
+                }
+                for (size_t i = result_presets.size(); i < exist_presets.size(); i++) {
+                    result_colors.push_back(i < exist_colors.size() ? exist_colors[i] : std::string("#CECECE"));
+                    result_color_types.push_back(i < exist_color_types.size() ? exist_color_types[i] : std::string("1"));
                     result_presets.push_back(exist_presets[i]);
-                    result_multi_colors.push_back({exist_colors[i]});
-                } else {
-                    // New slot beyond existing count: prefer a generic filament preset
-                    auto it = std::find_if(filaments.begin(), filaments.end(), [](const Preset &f) {
-                        return f.is_compatible && f.is_system
-                            && boost::algorithm::starts_with(f.name, "Generic ");
-                    });
-                    std::string fallback_name = (it != filaments.end()) ? it->name : filaments.first_visible().name;
-                    result_colors.push_back("#CECECE");
-                    result_color_types.push_back("1");
-                    result_presets.push_back(fallback_name);
-                    result_multi_colors.push_back({"#CECECE"});
+                    result_multi_colors.push_back({result_colors.back()});
+                    result_map.push_back(i < exist_map.size() ? exist_map[i] : 1);
                 }
             }
 
@@ -5050,8 +5072,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             filament_color_type->values = result_color_types;
             this->filament_presets      = result_presets;
             ams_multi_color_filment     = result_multi_colors;
-            filament_map->values.resize(total, 1);
-            filament_volume_map->values.resize(total, static_cast<int>(NozzleVolumeType::nvtStandard));
+            filament_map->values        = result_map;
+            filament_volume_map->values.resize(result_presets.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
         } else {
             // BBL: existing wholesale replace
             filament_color->values = ams_filament_colors;
@@ -8625,10 +8647,10 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
 
-    // Orca: when there are fewer filament presets than the printer runs with (min_filament_count(): one per tool on a
-    // tool changer, one on a printer sharing its nozzles), append copies of the last one. Padding a shared-nozzle printer
-    // up to its nozzle count would bring back a filament the user deleted, in this list alone, without the colours and
-    // maps of the parallel per-filament arrays.
+    // ORCA: `filament_map` assigns each filament to an extruder, so a project may hold fewer filaments
+    // than the printer has nozzles -- a toolchanger with one spool loaded is a valid project. This
+    // function is called after every filament change, so padding here would silently undo any count
+    // the user or a sync from the printer just set. Only an empty list is repaired.
     //
     // Verify and select the filament presets.
     size_t num_filaments = this->filament_presets.size();
@@ -8637,9 +8659,8 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     if (min_filaments > num_filaments) { // Verify validity of the current filament presets.
         for (size_t i = 0; i < this->filament_presets.size(); ++i)
             this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
-        // Append the rest of filament presets.
-        this->filament_presets.resize(min_filaments, this->filament_presets.empty() ? this->filaments.first_visible().name :
-                                                                                      this->filament_presets.back());
+        if (this->filament_presets.empty())
+            this->filament_presets.resize(min_filaments, this->filaments.first_visible().name);
         num_filaments = this->filament_presets.size();
     }
     if (to_delete_filament_id == -1)

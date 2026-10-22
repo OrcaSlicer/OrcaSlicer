@@ -291,8 +291,12 @@ void AppConfig::set_defaults()
     if (get("reverse_mouse_wheel_zoom").empty())
         set_bool("reverse_mouse_wheel_zoom", false);
 
+    // Orca: off by default. When the user assigns printer slots to project filaments by hand, the
+    // slots left out are left out on purpose; appending the printer's remaining spools as new
+    // project filaments changes the project beyond what was asked for. The checkbox under the sync
+    // dialog's advanced settings turns it back on.
     if (get("enable_append_color_by_sync_ams").empty())
-        set_bool("enable_append_color_by_sync_ams", true);
+        set_bool("enable_append_color_by_sync_ams", false);
     if (get("enable_merge_color_by_sync_ams").empty())
         set_bool("enable_merge_color_by_sync_ams", false);
     if (get("ams_sync_match_full_use_color_dist").empty())

@@ -48,6 +48,7 @@
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 #include "slic3r/GUI/DeviceCore/DevUtil.h"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ProjectTask.hpp"
@@ -636,7 +637,15 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
 
         // check filament type
         if (can_pick_the_item) {
-            if (tray_data[i].type == NORMAL && !is_match_material(tray_data[i].filament_type)){
+            // Orca: when sending a print the type must match, because the plate was sliced for it.
+            // A sync is the opposite case: it replaces the project filament with the one on the
+            // printer, type included, so requiring a match there would make it impossible to bring a
+            // spool into the project unless the project already had that material. The exception is
+            // the colours-only sync, which by definition leaves the profile alone -- there the type
+            // would not follow the colour, so the match is still required.
+            const bool sync_replaces_profile = m_use_in_sync_dialog &&
+                                               wxGetApp().app_config->get("sync_ams_filament_mode") != "1";
+            if (tray_data[i].type == NORMAL && !sync_replaces_profile && !is_match_material(tray_data[i].filament_type)){
                 can_pick_the_item = false;
             } else if(tray_data[i].type == EMPTY){
                 // Mapping to an empty slot is only allowed from the multi-machine send page,

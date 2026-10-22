@@ -240,6 +240,7 @@
 #include "ConfigWizard.hpp"
 #include "ConfigWizardTypes.hpp"
 #include "SyncAmsInfoDialog.hpp"
+#include "SpoolProfileMapDialog.hpp"
 #include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/UndoRedo.hpp"
 #include "../Utils/PresetUpdater.hpp"
@@ -3371,9 +3372,17 @@ Sidebar::Sidebar(Plater *parent)
 
     bSizer39->Hide(p->m_bpButton_del_filament); // ORCA Ensure button is hidden on launch while 1 filament exist
 
+    ScalableButton* spool_links_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "spool_profile_link", wxEmptyString, wxDefaultSize,
+                                                         wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 16);
+    spool_links_btn->SetToolTip(_L("Filaments linked to profiles"));
+    spool_links_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { SpoolProfileLinksDialog::run_manage(this); });
+    bSizer39->Add(spool_links_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
+
     ams_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
                                                  wxBU_EXACTFIT | wxNO_BORDER, false, 16); // ORCA match icon size with other icons as 16x16
-    ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
+    // ORCA: the sync source is whatever the connected printer reports (AMS, toolheads, MMU), so the
+    // tooltip must not name one vendor's feeder.
+    ams_btn->SetToolTip(_L("Synchronize filament list from printer"));
     ams_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         sync_ams_list();
     });
@@ -6402,6 +6411,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error: sync_result.is_same_printer value is false";
         return;
     }
+    const auto spool_links = SpoolProfileMapDialog::run_link(this, obj->get_dev_id());
+    if (!spool_links)
+        return;
     list2.resize(list.size());
     auto iter = list.begin();
     for (int i = 0; i < list.size(); ++i, ++iter) {
@@ -6438,6 +6450,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         dlg.ShowModal();
         return;
     }
+    SpoolProfileMapDialog::apply_links(*spool_links);
     // Replace unknown filament IDs with the resolved preset's filament_id
     auto &filaments        = wxGetApp().preset_bundle->filaments;
     auto &filament_presets = wxGetApp().preset_bundle->filament_presets;
@@ -6595,7 +6608,9 @@ bool Sidebar::should_show_SEMM_buttons()
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
+    // ORCA: `filament_map` lets a multi-tool printer hold any number of filaments, so it gets the same
+    // add, delete and merge controls as a single-nozzle multi-material one.
+    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor || preset_bundle.get_printer_extruder_count() > 1;
 }
 
 void Sidebar::show_SEMM_buttons()

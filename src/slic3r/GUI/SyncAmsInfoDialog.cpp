@@ -35,6 +35,7 @@
 #include "slic3r/GUI/BaseTransparentDPIFrame.hpp"
 #include <thread>
 #include <vector>
+#include <iterator>
 #include <wx/anybutton.h>
 #include <wx/animate.h>
 #include <wx/busycursor.h>
@@ -76,6 +77,7 @@
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/Jobs/SendJob.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -262,14 +264,19 @@ void SyncAmsInfoDialog::deal_ok()
         m_result.sync_maps.clear();
         for (size_t i = 0; i < m_ams_mapping_result.size(); i++) {
             auto temp_idx = m_ams_mapping_result[i].id;
-            if (temp_idx >= 0) {
-                auto &temp   = m_result.sync_maps[temp_idx];
-                temp.ams_id  = m_ams_mapping_result[i].ams_id;
-                temp.slot_id = m_ams_mapping_result[i].slot_id;
-            }
-            else{
+            if (temp_idx < 0) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error:  m_result.sync_maps:" << temp_idx;
+                continue;
             }
+            // Orca: a filament the user never mapped, or cleared again with the per-filament erase
+            // button, carries no slot. Recording it would hand sync_ams_list a map entry it cannot
+            // resolve; the filament must simply not appear in the map, so that only the ones the
+            // user actually pointed at a printer slot get overridden.
+            if (m_ams_mapping_result[i].ams_id.empty() || m_ams_mapping_result[i].slot_id.empty())
+                continue;
+            auto &temp   = m_result.sync_maps[temp_idx];
+            temp.ams_id  = m_ams_mapping_result[i].ams_id;
+            temp.slot_id = m_ams_mapping_result[i].slot_id;
         }
     }
 }
@@ -778,7 +785,9 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
                                                         true, 14);
         m_reset_all_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { reset_all_ams_info(); });
         m_reset_all_btn->SetBackgroundColour(*wxWHITE);
-        m_reset_all_btn->SetToolTip(_L("Reset all filament mapping"));
+        // Orca: the button restores the automatic colour/type match, which is now only ever offered
+        // as a suggestion -- see clear_auto_mapping().
+        m_reset_all_btn->SetToolTip(_L("Restore the suggested filament mapping"));
 
         m_mode_combox_sizer->Add(m_reset_all_btn, 0, wxEXPAND | wxALL, FromDIP(2));
 
@@ -1341,9 +1350,11 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
             BOOST_LOG_TRIVIAL(info) << "ams_mapping_array2=" << ams_array2;
             BOOST_LOG_TRIVIAL(info) << "ams_mapping_info=" << mapping_info;
         }
+        const bool is_valid = DevMappingUtil::is_valid_mapping_result(obj_, m_ams_mapping_result);
+        clear_auto_mapping();
         deal_only_exist_ext_spool(obj_);
         show_thumbnail_page();
-        return DevMappingUtil::is_valid_mapping_result(obj_, m_ams_mapping_result);
+        return is_valid;
     } else {
         BOOST_LOG_TRIVIAL(info) << "filament_result != 0";
         // do not support ams mapping try to use order mapping
@@ -1356,6 +1367,7 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
             }
         }
         sync_ams_mapping_result(m_ams_mapping_result);
+        clear_auto_mapping();
         deal_only_exist_ext_spool(obj_);
         show_thumbnail_page();
         return is_valid;
@@ -2480,6 +2492,111 @@ void SyncAmsInfoDialog::reset_all_ams_info()
     Refresh();
 }
 
+// Orca: a project is not a copy of a printer -- the filaments already on the plate may have nothing
+// to do with what is loaded right now. The automatic colour/type match is therefore a suggestion,
+// not a decision: the panel opens with every filament unmapped, so a sync changes only the slots the
+// user points at a printer spool. Runs once, the first time the panel is filled, so a device status
+// update mid-dialog cannot wipe what the user has picked. The suggestion stays in
+// m_back_ams_mapping_result, one click away behind the restore button.
+void SyncAmsInfoDialog::clear_auto_mapping()
+{
+    if (m_auto_mapping_cleared || m_is_empty_project || m_materialList.empty())
+        return;
+    m_auto_mapping_cleared = true;
+    for (size_t i = 0; i < m_ams_mapping_result.size(); i++)
+        reset_one_ams_material(std::to_string(i + 1));
+    if (m_reset_all_btn && !m_reset_all_btn->IsShown())
+        m_reset_all_btn->Show();
+}
+
+// Orca: filaments created after the match ran have no mapping entry yet. Each gets one that points at
+// no spool, so it changes nothing until the user maps it. Physical filaments come first and a new one
+// takes the next id, so every id from first_new_id on is new.
+static std::vector<FilamentInfo> unmapped_filaments_from(const std::vector<FilamentInfo> &filaments, int first_new_id)
+{
+    std::vector<FilamentInfo> unmapped;
+    for (const FilamentInfo &filament : filaments) {
+        if (filament.id < first_new_id)
+            continue;
+        FilamentInfo entry = filament;
+        entry.tray_id      = -1;
+        entry.color.clear();
+        unmapped.push_back(entry);
+    }
+    return unmapped;
+}
+
+// Orca: an entry the user cleared keeps its old tray_id, so only the ones still pointing at a slot
+// may be painted back.
+static std::vector<FilamentInfo> mapped_filaments(const std::vector<FilamentInfo> &mapping)
+{
+    std::vector<FilamentInfo> mapped;
+    std::copy_if(mapping.begin(), mapping.end(), std::back_inserter(mapped),
+                 [](const FilamentInfo &filament) { return !filament.ams_id.empty() || !filament.slot_id.empty(); });
+    return mapped;
+}
+
+// Orca: a project is not a copy of a printer, so the slot a spool belongs in may not exist yet.
+// Creating it from here keeps the whole decision on one screen. The new slot arrives unmapped, like
+// every other slot, so it stays empty until the user points it at a spool.
+void SyncAmsInfoDialog::add_project_filament()
+{
+    Plater *plater = wxGetApp().plater();
+    if (!plater)
+        return;
+
+    const size_t physical_before = wxGetApp().preset_bundle->num_physical_filaments();
+    plater->sidebar().add_filament();
+    plater->sidebar().update_filaments_counter();
+    if (wxGetApp().preset_bundle->num_physical_filaments() <= physical_before) // refused, e.g. already at the maximum
+        return;
+
+    // The rebuild re-creates every row and leaves them blank: show them all unmapped first, then
+    // paint back the ones the user has mapped.
+    reset_and_sync_ams_list();
+    reset_ams_material();
+
+    // An empty mapping means the printer has not been read yet: the match still runs, and covers the new slot.
+    if (!m_ams_mapping_result.empty()) {
+        const std::vector<FilamentInfo> new_rows = unmapped_filaments_from(m_filaments, int(physical_before));
+        m_ams_mapping_result.insert(m_ams_mapping_result.end(), new_rows.begin(), new_rows.end());
+        m_back_ams_mapping_result.insert(m_back_ams_mapping_result.end(), new_rows.begin(), new_rows.end()); // nothing was suggested for it
+    }
+
+    // sync_ams_mapping_result() also overwrites the suggestion behind the restore button; keep it.
+    const std::vector<FilamentInfo> suggestion = m_back_ams_mapping_result;
+    std::vector<FilamentInfo>       mapped     = mapped_filaments(m_ams_mapping_result);
+    if (!mapped.empty())
+        sync_ams_mapping_result(mapped);
+    m_back_ams_mapping_result = suggestion;
+
+    update_final_thumbnail_data();
+    Layout();
+    Fit();
+}
+
+// Orca: the "+" sits after the last filament, so a spool loaded on the printer can be brought into
+// the project from here. Pre-adding slots with the sidebar "+" is no longer a prerequisite for a sync.
+void SyncAmsInfoDialog::place_add_filament_button(int grid_cells)
+{
+    if (wxGetApp().preset_bundle->filament_presets.size() >= MAXIMUM_EXTRUDER_NUMBER) {
+        if (m_add_filament_btn)
+            m_add_filament_btn->Hide();
+        return;
+    }
+    if (!m_add_filament_btn) {
+        m_add_filament_btn = new ScalableButton(m_filament_panel, wxID_ANY, "add_filament", wxEmptyString, wxDefaultSize, wxDefaultPosition,
+                                                wxBU_EXACTFIT | wxNO_BORDER, true, 20);
+        m_add_filament_btn->SetBackgroundColour(m_filament_panel->GetBackgroundColour());
+        m_add_filament_btn->SetToolTip(_L("Add one filament"));
+        m_add_filament_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { add_project_filament(); });
+    }
+    if (grid_cells % SYNC_FLEX_GRID_COL == 0) // keep the "Original:"/"AMS:" column free
+        m_sizer_ams_mapping->AddSpacer(0);
+    m_sizer_ams_mapping->Add(m_add_filament_btn, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    m_add_filament_btn->Show();
+}
+
 void SyncAmsInfoDialog::reset_one_ams_material(const std::string &index_str, bool reset_to_first)
 {
     MaterialHash::iterator iter = m_materialList.begin();
@@ -2792,6 +2909,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
             m_filaments.push_back(info);
         }
     }
+    place_add_filament_button(contronal_index);
     if (use_double_extruder) {
         //m_filament_left_panel->Show();//SyncAmsInfoDialog::reset_and_sync_ams_list()
         //m_filament_right_panel->Show();

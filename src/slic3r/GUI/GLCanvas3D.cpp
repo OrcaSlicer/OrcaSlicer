@@ -12890,8 +12890,11 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
 
 bool GLCanvas3D::is_flushing_matrix_error() {
 
-    // Flushing volumes only apply to single-extruder multi-material (SEMM) and BBL printers
-    if (!Sidebar::should_show_SEMM_buttons())
+    // Flushing volumes only apply to single-extruder multi-material (SEMM) and BBL printers.
+    // ORCA: not Sidebar::should_show_SEMM_buttons(), which also covers multi-tool printers so they can
+    // hold any number of filaments; their profiles leave tool-to-tool flushes at zero on purpose.
+    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    if (!preset_bundle.printers.get_edited_preset().config.opt_bool("single_extruder_multi_material") && !preset_bundle.is_bbl_vendor())
         return false;
 
     std::vector<int> plate_extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_extruders(true);

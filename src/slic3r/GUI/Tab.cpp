@@ -2546,8 +2546,20 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     }
 
 
-    //Orca: sync filament num if it's a multi tool printer
-    if (opt_key == "extruders_count" && !m_config->opt_bool("single_extruder_multi_material")){
+    // ORCA: on a multi-tool printer, how many filaments a project uses is the user's business and not
+    // the printer's -- `filament_map` puts any number of filaments on any number of tools. Landing on
+    // one therefore neither drops the filaments the project needs nor invents new ones to fill its
+    // tools; the list is left exactly as the user left it.
+    if (opt_key == "extruders_count" && !m_config->opt_bool("single_extruder_multi_material") && boost::any_cast<size_t>(value) > 1) {
+        const int        num_extruder = int(boost::any_cast<size_t>(value));
+        std::vector<int> filament_map = wxGetApp().plater()->get_global_filament_map();
+        // A filament left pointing at a tool this printer does not have goes back on the first one,
+        // so everything in the project stays printable.
+        std::replace_if(filament_map.begin(), filament_map.end(), [num_extruder](int tool) { return tool < 1 || tool > num_extruder; }, 1);
+        wxGetApp().plater()->set_global_filament_map(filament_map);
+    }
+    //Orca: a single-nozzle printer keeps one physical filament
+    else if (opt_key == "extruders_count" && !m_config->opt_bool("single_extruder_multi_material")){
         const size_t num_extruder = boost::any_cast<size_t>(value);
         auto        *bundle       = wxGetApp().preset_bundle;
         Sidebar     &sidebar      = wxGetApp().plater()->sidebar();

@@ -200,6 +200,7 @@ src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/GUI/Auxiliary.cpp
 src/slic3r/GUI/UpdateDialogs.cpp
 src/slic3r/GUI/SyncAmsInfoDialog.cpp
+src/slic3r/GUI/SpoolProfileMapDialog.cpp
 src/slic3r/GUI/WipeTowerDialog.cpp
 src/slic3r/GUI/wxExtensions.cpp
 src/slic3r/GUI/WebUserLoginDialog.cpp

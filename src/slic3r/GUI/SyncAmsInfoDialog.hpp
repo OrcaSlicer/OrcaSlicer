@@ -192,6 +192,9 @@ public:
     void     reset_ams_material();
     void     reset_all_ams_info();
     void     reset_one_ams_material(const std::string & index_str,bool reset_to_first =false);
+    void     clear_auto_mapping();
+    void     add_project_filament();
+    void     place_add_filament_button(int grid_cells);
     void     update_show_status();
     void     update_printer_combobox(wxCommandEvent &event);
     void     on_cancel(wxCloseEvent &event);
@@ -333,6 +336,9 @@ private:
     CapsuleButton *  m_colormap_btn = nullptr;
     CapsuleButton *  m_override_btn = nullptr;
     ScalableButton * m_reset_all_btn{nullptr};
+    // Orca: sits after the last filament in the mapping grid; adds a filament slot to the project
+    // so a spool can be brought in without leaving the panel -- see add_project_filament().
+    ScalableButton * m_add_filament_btn{nullptr};
     wxBoxSizer *     m_advace_setting_sizer = nullptr;
     wxStaticText *   m_more_setting_tips = nullptr;
     wxStaticBitmap * m_advanced_options_icon{nullptr};
@@ -343,6 +349,10 @@ private:
     ::CheckBox*      m_merge_color_checkbox = nullptr;
     Label *          m_merge_color_text     = nullptr;
     bool m_is_empty_project = true;
+    // Orca: the automatic colour/type match is only ever a suggestion; it is cleared once, when the
+    // panel is first filled, so a sync starts out changing nothing. Kept in
+    // m_back_ams_mapping_result so the restore button can put the suggestion back.
+    bool m_auto_mapping_cleared = false;
 
     bool m_check_dirty_fialment  = true;
     bool m_expand_more_settings  = true;
