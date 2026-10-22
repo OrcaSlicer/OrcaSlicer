@@ -36,6 +36,11 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .value("RTSP", CameraStreamMode::rtsp)
         .export_values();
 
+    py::enum_<DialogMode>(printer_agent_module, "DialogMode")
+        .value("Orca", DialogMode::orca)
+        .value("Takeover", DialogMode::takeover)
+        .export_values();
+
     py::class_<AgentInfo>(printer_agent_module, "AgentInfo")
         .def(py::init<>())
         .def(py::init([](std::string id, std::string name, std::string version, std::string description) {
@@ -137,7 +142,8 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .def("set_user_selected_machine", &PrinterAgentPluginCapability::set_user_selected_machine)
         .def("start_send_gcode_to_sdcard", &PrinterAgentPluginCapability::start_send_gcode_to_sdcard)
         .def("start_local_print", &PrinterAgentPluginCapability::start_local_print)
-        .def("handles_print_dialog", &PrinterAgentPluginCapability::handles_print_dialog)
+        .def("print_dialog_mode", &PrinterAgentPluginCapability::print_dialog_mode)
+        .def("send_dialog_mode", &PrinterAgentPluginCapability::send_dialog_mode)
         .def("get_filament_sync_mode", &PrinterAgentPluginCapability::get_filament_sync_mode)
         .def("get_camera_stream_mode", &PrinterAgentPluginCapability::get_camera_stream_mode)
         .def("fetch_filament_info", &PrinterAgentPluginCapability::fetch_filament_info)
