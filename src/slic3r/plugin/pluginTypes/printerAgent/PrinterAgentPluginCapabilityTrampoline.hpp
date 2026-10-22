@@ -177,9 +177,14 @@ public:
         ORCA_PY_AGENT_OVERRIDE(int, start_local_print, params, update_fn, cancel_fn);
     }
 
-    bool handles_print_dialog() const override
+    DialogMode print_dialog_mode() const override
     {
-        ORCA_PY_AGENT_OVERRIDE_DEFAULT(bool, handles_print_dialog);
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(DialogMode, print_dialog_mode);
+    }
+
+    DialogMode send_dialog_mode() const override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(DialogMode, send_dialog_mode);
     }
 
     FilamentSyncMode get_filament_sync_mode() const override

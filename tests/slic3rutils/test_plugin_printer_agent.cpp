@@ -70,7 +70,7 @@ Agent make_agent(const std::string& body)
 // One operation per return type and dispatch shape; the rest share their macro.
 const std::string OPERATIONS[] = {"get_agent_info", "disconnect_printer", "start_discovery", "get_user_selected_machine",
                                   "get_filament_sync_mode", "install_device_cert", "start_local_print", "request_bind_ticket",
-                                  "handles_print_dialog"};
+                                  "print_dialog_mode", "send_dialog_mode"};
 
 // What NetworkAgent answers when no printer agent is set.
 void check_answers_like_no_agent(IPrinterAgent& agent)
@@ -82,7 +82,8 @@ void check_answers_like_no_agent(IPrinterAgent& agent)
     CHECK_FALSE(agent.start_discovery(true, false));
     CHECK(agent.get_user_selected_machine().empty());
     CHECK(agent.get_filament_sync_mode() == FilamentSyncMode::none);
-    CHECK_FALSE(agent.handles_print_dialog());
+    CHECK(agent.print_dialog_mode() == DialogMode::orca);
+    CHECK(agent.send_dialog_mode() == DialogMode::orca);
     CHECK_NOTHROW(agent.install_device_cert("dev", true));
     CHECK(agent.start_local_print(PrintParams{}, nullptr, nullptr) == -1);
     CHECK(agent.request_bind_ticket(&ticket) == -1);
@@ -169,7 +170,8 @@ TEST_CASE("A working printer agent's answers reach the host unchanged", "[Plugin
                             "    def start_discovery(self, start, sending): return start and not sending\n"
                             "    def get_user_selected_machine(self): return 'machine'\n"
                             "    def get_filament_sync_mode(self): return orca.printer_agent.FilamentSyncMode.Pull\n"
-                            "    def handles_print_dialog(self): return True\n"
+                            "    def print_dialog_mode(self): return orca.printer_agent.DialogMode.Takeover\n"
+                            "    def send_dialog_mode(self): return orca.printer_agent.DialogMode.Takeover\n"
                             "    def request_bind_ticket(self): return (3, 'ticket')\n"
                             "    def bind_detect(self, dev_ip, sec_link, detect):\n"
                             "        detect.dev_id = dev_ip\n"
@@ -184,7 +186,8 @@ TEST_CASE("A working printer agent's answers reach the host unchanged", "[Plugin
     CHECK(agent->start_discovery(true, false));
     CHECK(agent->get_user_selected_machine() == "machine");
     CHECK(agent->get_filament_sync_mode() == FilamentSyncMode::pull);
-    CHECK(agent->handles_print_dialog());
+    CHECK(agent->print_dialog_mode() == DialogMode::takeover);
+    CHECK(agent->send_dialog_mode() == DialogMode::takeover);
     CHECK(agent->request_bind_ticket(&ticket) == 3);
     CHECK(ticket == "ticket");
     CHECK(agent->bind_detect("192.168.0.2", "secure", detect) == 0);
