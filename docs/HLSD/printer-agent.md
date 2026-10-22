@@ -207,16 +207,20 @@ does not provide the corresponding cloud signaling-channel contract.
 
 ## Agent-owned print UI
 
-An agent reports `handles_print_dialog()` as true (Python: `def handles_print_dialog(self): return True`)
-when it shows its own print or send window, for example to pick a printer on a print-farm server.
-Print plate, Print all, Send and Send all then skip `SelectMachineDialog` and `SendToPrinterDialog`.
-The plater exports the plate `.gcode.3mf` the same way the dialogs do and queues
+`print_dialog_mode()` and `send_dialog_mode()` return a `DialogMode` saying who shows the window
+for Print and for Send. Both default to `DialogMode::orca`, which keeps `SelectMachineDialog` and
+`SendToPrinterDialog`.
+
+An agent returns `DialogMode::takeover` (Python: `orca.printer_agent.DialogMode.Takeover`) when it
+shows its own window, for example to pick a printer on a print-farm server. Print plate and Print all
+then skip `SelectMachineDialog` when `print_dialog_mode()` is takeover, and Send and Send all skip
+`SendToPrinterDialog` when `send_dialog_mode()` is takeover. The plater exports the plate `.gcode.3mf` the same way the dialogs do and queues
 `PrinterAgentHandoffJob` on the plater worker, which calls `start_local_print` (Print) or
 `start_send_gcode_to_sdcard` (Send) once, with `connection_type` `"lan"`, a 1-based `plate_index`
 (0 for all plates), the selected machine's `dev_id` if there is one, and no AMS mapping. There is no
 LAN pre-flight, storage check, or switch to the Device tab, because the agent owns those decisions.
 Progress reported through `update_fn` drives the plater's progress notification, and its cancel
-button reaches the agent through `cancel_fn`. The default is false, which keeps the dialogs.
+button reaches the agent through `cancel_fn`.
 
 ## Camera playback boundary
 

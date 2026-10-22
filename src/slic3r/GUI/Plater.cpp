@@ -13878,7 +13878,10 @@ void Plater::priv::open_machine_select_dialog(int plate_idx, PrintFromType print
 bool Plater::priv::hand_off_to_printer_agent(int plate_idx, PrinterAgentHandoffJob::Action action)
 {
     NetworkAgent* agent = wxGetApp().getAgent();
-    if (!agent || !agent->handles_print_dialog())
+    if (!agent)
+        return false;
+    const DialogMode mode = action == PrinterAgentHandoffJob::Action::print ? agent->print_dialog_mode() : agent->send_dialog_mode();
+    if (mode != DialogMode::takeover)
         return false;
 
     PartPlate* plate = partplate_list.get_curr_plate();

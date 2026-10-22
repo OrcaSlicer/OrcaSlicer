@@ -187,7 +187,8 @@ public:
     int start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
     int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
     int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
-    bool handles_print_dialog() const;
+    DialogMode print_dialog_mode() const;
+    DialogMode send_dialog_mode() const;
     FilamentSyncMode get_filament_sync_mode() const;
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull);
     CameraStreamMode get_camera_stream_mode() const;

@@ -69,6 +69,12 @@ enum class CameraStreamMode {
     http_snapshot // HTTP endpoint returning one image per request
 };
 
+// Who shows the window that opens when the user presses Print or Send.
+enum class DialogMode {
+    orca = 0, // Orca's printer selection dialog
+    takeover  // The agent's own window; Orca skips its dialog and hands over the sliced plate
+};
+
 /**
  * IPrinterAgent - Interface for printer operations.
  *
@@ -387,11 +393,16 @@ public:
     virtual int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) = 0;
 
     /**
-     * Whether this agent shows its own print and send UI. When true, Print and Send skip the
-     * printer selection dialogs and pass the sliced plate straight to start_local_print or
-     * start_send_gcode_to_sdcard.
+     * Who shows the print window. With DialogMode::takeover, Print skips SelectMachineDialog and
+     * passes the sliced plate straight to start_local_print.
      */
-    virtual bool handles_print_dialog() const { return false; }
+    virtual DialogMode print_dialog_mode() const { return DialogMode::orca; }
+
+    /**
+     * Who shows the send window. With DialogMode::takeover, Send skips SendToPrinterDialog and
+     * passes the sliced plate straight to start_send_gcode_to_sdcard.
+     */
+    virtual DialogMode send_dialog_mode() const { return DialogMode::orca; }
 
     // ========================================================================
     // Callback Registration
