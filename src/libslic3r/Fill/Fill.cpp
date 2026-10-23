@@ -1598,6 +1598,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipTpmsD:
         case ipTpmsFK:
         case ipTpmsP:
+        case ipTpmsIWP:
         case ipHilbertCurve:
         case ipArchimedeanChords:
         case ipOctagramSpiral:

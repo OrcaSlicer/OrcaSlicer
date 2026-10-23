@@ -34,6 +34,12 @@ static float fischer_koch(float x, float y, float z)
 // compressive and shear strength of the printed lattice at the same filament use.
 static float schwarz_p(float x, float y, float z) { return cosf(x) + cosf(y) + cosf(z * (1.f / 1.5f)) + 0.3f; }
 
+// Schoen I-WP equation: 2 (cos(x)cos(y) + cos(y)cos(z) + cos(z)cos(x)) - (cos(2x) + cos(2y) + cos(2z)) = 0
+static float schoen_iwp(float x, float y, float z)
+{
+    return 2 * (cosf(x) * cosf(y) + cosf(y) * cosf(z) + cosf(z) * cosf(x)) - (cosf(2 * x) + cosf(2 * y) + cosf(2 * z));
+}
+
 } // namespace Slic3r
 
 namespace marchsq {
@@ -134,6 +140,7 @@ namespace Slic3r {
 
 FillTpmsFK::Equation FillTpmsFK::equation() const { return fischer_koch; }
 FillTpmsFK::Equation FillTpmsP::equation() const { return schwarz_p; }
+FillTpmsFK::Equation FillTpmsIWP::equation() const { return schoen_iwp; }
 
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       unsigned int                   thickness_layers,

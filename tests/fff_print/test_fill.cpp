@@ -1913,7 +1913,7 @@ static double unmatched_between_prints(const Print &a, const Print &b, Extrusion
 
 TEST_CASE("Separated infill centers the sparse infill of each body on itself", "[Fill][Regression]")
 {
-    const std::string pattern = GENERATE("line", "zigzag", "crosszag", "honeycomb", "3dhoneycomb", "crosshatch", "tpmsd", "tpmsfk", "tpmsp", "gyroid");
+    const std::string pattern = GENERATE("line", "zigzag", "crosszag", "honeycomb", "3dhoneycomb", "crosshatch", "tpmsd", "tpmsfk", "tpmsp", "tpmsiwp", "gyroid");
     const bool separated = GENERATE(false, true);
     CAPTURE(pattern, separated);
     auto config = DynamicPrintConfig::full_print_config();
@@ -2070,6 +2070,7 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
     const auto row = GENERATE(table<std::string, std::string, double>({{"tpmsd", "lobes", 0.5},
                                                                         {"tpmsfk", "lobes", 0.5},
                                                                         {"tpmsp", "lobes", 0.5},
+                                                                        {"tpmsiwp", "lobes", 0.5},
                                                                         {"gyroid", "lobes", 0.5},
                                                                         {"gyroid", "stepped_shells", 0.6},
                                                                         {"tpmsfk", "smooth_blend", 0.6},
@@ -2108,7 +2109,7 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
 TEST_CASE("TPMS infill patterns print as much line as TPMS-FK at the same density", "[Fill]")
 {
     // Each pattern's period factor is calibrated to its line length per area, so the same density prints the same amount.
-    const std::string pattern = GENERATE("tpmsd", "tpmsp");
+    const std::string pattern = GENERATE("tpmsd", "tpmsp", "tpmsiwp");
     CAPTURE(pattern);
     auto length = [](const std::string &pattern) {
         Print print;
@@ -2267,7 +2268,7 @@ TEST_CASE("Adaptive TPMS settings leave the infill unchanged when they do not ap
 {
     // Adaptive density turned off, or turned on for a pattern that is no TPMS.
     const auto [pattern, adaptive] = GENERATE(
-        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"tpmsp", "disabled"}, {"gyroid", "disabled"}, {"grid", "lobes"}, {"grid", "stepped_shells"}, {"grid", "smooth_blend"}, {"grid", "distance_warp"}, {"grid", "normal_z"}}));
+        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"tpmsp", "disabled"}, {"tpmsiwp", "disabled"}, {"gyroid", "disabled"}, {"grid", "lobes"}, {"grid", "stepped_shells"}, {"grid", "smooth_blend"}, {"grid", "distance_warp"}, {"grid", "normal_z"}}));
     CAPTURE(pattern, adaptive);
     Print reference, tuned;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
@@ -2303,7 +2304,7 @@ TEST_CASE("Adaptive gyroid infill ignores the Z-buckling optimization", "[Fill]"
 
 TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger region of the same object", "[Fill]")
 {
-    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP);
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK, ipTpmsP, ipTpmsIWP);
     CAPTURE(pattern);
     // An 80 x 80 x 40 mm box around both regions, which share its radial field.
     const ExPolygons box{ExPolygon(Points{Point::new_scale(60., 20.), Point::new_scale(140., 20.), Point::new_scale(140., 100.),
@@ -2362,7 +2363,7 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
 
 TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBridge]")
 {
-    const std::string pattern = GENERATE("tpmsd", "tpmsfk", "tpmsp", "gyroid");
+    const std::string pattern = GENERATE("tpmsd", "tpmsfk", "tpmsp", "tpmsiwp", "gyroid");
     CAPTURE(pattern);
     Print print;
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(30)}, print,
