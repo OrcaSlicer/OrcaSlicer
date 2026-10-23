@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 02:28+0800\n"
+"POT-Creation-Date: 2026-10-24 15:38-0300\n"
 "PO-Revision-Date: 2026-10-19 18:56+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -757,7 +757,7 @@ msgstr "Plaka"
 # AI Translated
 # Needs human review: Glossary has no Basque rendering; Banatu chosen (command that spaces objects evenly, counterpart of Lerrokatu).
 msgid "Distribute"
-msgstr "Banatu"
+msgstr "Berdinbanatu"
 
 msgid "Coordinate system used for transform actions."
 msgstr "Eraldatze-ekintzetan erabilitako koordenatu-sistema."
@@ -3237,11 +3237,11 @@ msgstr "Zentratu"
 
 # AI Translated
 msgid "Align/Distribute"
-msgstr "Lerrokatu/Banatu"
+msgstr "Lerrokatu/Berdinbanatu"
 
 # AI Translated
 msgid "Align and distribute objects"
-msgstr "Lerrokatu eta banatu objektuak"
+msgstr "Lerrokatu eta berdinbanatu objektuak"
 
 msgid "Edit Process Settings"
 msgstr "Editatu Prozesuaren Ezarpenak"
@@ -4440,8 +4440,9 @@ msgstr "Script plugina saltatu da."
 msgid "Script plugin finished."
 msgstr "Script plugina amaitu da."
 
+# AI Translated
 msgid "Script plugin started."
-msgstr ""
+msgstr "Script plugina abiarazi da."
 
 msgid "Printer"
 msgstr "Inprimagailua"
@@ -5679,8 +5680,9 @@ msgstr "Sartutako luzapenen bat ez da baliozkoa"
 msgid "This parameter expects a valid template."
 msgstr "Parametro honek baliozko txantiloi bat behar du."
 
+# AI Translated
 msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
-msgstr ""
+msgstr "Talka-bolumenaren formatu baliogabea. Erabili XxY, XxY, ... edo ZMIN..ZMAX;XxY, XxY, ... eta bereizi hainbat bolumen |-rekin."
 
 # AI Translated
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
@@ -6221,15 +6223,17 @@ msgstr "Eskuineko pita: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgid "Mirror object"
 msgstr "Islatu objektua"
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."
-msgstr ""
+msgstr "%1% plakako purgatze-dorrea ez da jada jarri zen lekuan kabitzen. Plakan ez dago horretarako leku libre geratzen, beraz objektu baten gainera eraman da."
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."
-msgstr ""
+msgstr "%1% plakako purgatze-dorrea ez da jada jarri zen lekuan kabitzen, beraz plakako leku libre batera eraman da."
 
 msgid "Tool move"
 msgstr "Mugitzeko Erreminta"
@@ -6471,7 +6475,7 @@ msgstr "Bolumena:"
 msgid "Size:"
 msgstr "Tamaina:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-code ibilbideen gatazkak aurkitu dira %d geruzan, Z = %.2lf mm. Urrundu gehiago gatazkan dauden objektuak (%s <-> %s)."
 
@@ -6492,18 +6496,18 @@ msgid "Tool %d"
 msgstr "%d tresna"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr[0] "%s filamentua %s(e)n dago, baina sortutako G-code ibilbideak %s-ren inprimatze-eremua gainditzen du."
-msgstr[1] "%s filamentuak %s(e)n daude, baina sortutako G-code ibilbideak %s-ren inprimatze-eremua gainditzen du."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgstr[0] "%1% filamentua %2%(e)n dago, baina sortutako G-code ibilbideak %2%-ren inprimatze-eremua gainditzen du."
+msgstr[1] "%1% filamentuak %2%(e)n daude, baina sortutako G-code ibilbideak %2%-ren inprimatze-eremua gainditzen du."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr[0] "%s filamentua %s(e)n dago, baina sortutako G-code ibilbideak %s-ren inprimatze-altuera gainditzen du."
-msgstr[1] "%s filamentuak %s(e)n daude, baina sortutako G-code ibilbideak %s-ren inprimatze-altuera gainditzen du."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgstr[0] "%1% filamentua %2%(e)n dago, baina sortutako G-code ibilbideak %2%-ren inprimatze-altuera gainditzen du."
+msgstr[1] "%1% filamentuak %2%(e)n daude, baina sortutako G-code ibilbideak %2%-ren inprimatze-altuera gainditzen du."
 
 msgid "Open wiki for more information."
 msgstr "Ireki wikia informazio gehiago lortzeko."
@@ -6955,11 +6959,13 @@ msgstr "Erakutsi etiketak"
 msgid "Show object labels in 3D scene."
 msgstr "Erakutsi etiketak 3D eszenan."
 
+# AI Translated
 msgid "Show all collision volumes"
-msgstr ""
+msgstr "Erakutsi talka-bolumen guztiak"
 
+# AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr ""
+msgstr "Erakutsi konfiguratutako talka-bolumen bakoitzaren altuera osoa, baita ohe hutsean ere."
 
 msgid "Show &Overhang"
 msgstr "Erakutsi Irtenguneak"
@@ -12003,11 +12009,13 @@ msgstr "Ikono hau duten parametroak pita bakoitzeko konfigura daitezke."
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Egin klik ezarpen guztiak azken aurrezarpen gordera berrezartzeko."
 
+# AI Translated
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr ""
+msgstr "Definizio honek talka-bolumenen sintaxia dauka. Inprimatze-buruaren talka-bolumenei gehitu nahi diezu, G-codea egiaztatzeko eta desplazamenduak saihesteko? Oheko baztertutako eremua mantenduko da."
 
+# AI Translated
 msgid "Add collision volumes"
-msgstr ""
+msgstr "Gehitu talka-bolumenak"
 
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "Purgatze-dorrea behar da pita aldatzeko. Modeloak akatsak izan ditzake purgatze-dorrerik gabe. Ziur purgatze-dorrea desgaitu nahi duzula?"
@@ -13852,16 +13860,19 @@ msgstr ""
 "G-codea esportatzeak huts egin du: %1%\n"
 "Diskoa beteta al dago?"
 
+# AI Translated
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
-msgstr ""
+msgstr "G-code mugimendu bat %1% estrusorearen talka-bolumen batekin gurutzatzen da. Horrek inprimagailuaren talka eragin dezake."
 
+# AI Translated
 msgid "A G-code move intersects a collision volume. This may cause a printer collision."
-msgstr ""
+msgstr "G-code mugimendu bat talka-bolumen batekin gurutzatzen da. Horrek inprimagailuaren talka eragin dezake."
 
+# AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr ""
+msgstr "Gurutzatzen den mugimendua G-codeko %1%. lerroan dago. Haren Z posizioa ezezaguna da homing-aren ondoren, beraz Orcak altuera guztiekin egiaztatu du."
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -14172,13 +14183,15 @@ msgstr ""
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% bazterketa-eremutik gertuegi dago. Inprimatzean talkak gerta daitezke."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
-msgstr ""
+msgstr "%1% erabilgarri dauden estrusore guztien talka-bolumenekin gurutzatzen da."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
-msgstr ""
+msgstr "%1% %2% estrusorearen talka-bolumen batekin gurutzatzen da."
 
 #, boost-format
 msgid "%1% is too close to others, and collisions may be caused."
@@ -14555,35 +14568,46 @@ msgstr "Inprimatze-buru paraleloen kopuruaren arabera ordenatutako oheko baztert
 msgid "Excluded bed area"
 msgstr "Oheko baztertutako eremua"
 
+# AI Translated
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
-msgstr ""
+msgstr "Inprimatu ezin den eremua XY planoan. Adibidez, X1 serieko inprimagailuek ezkerreko aurreko izkina erabiltzen dute filamentua mozteko filamentu-aldaketan. Eremua \"XxY, XxY, ...\" formatuko poligono gisa adierazten da. Materialaren eta modeloen kokapena mugatzen du, baina makinaren desplazamenduak onartzen ditu. Konfiguratu bereizita inprimatze-buruaren talka-bolumenak G-codea egiaztatzeko eta desplazamenduak saihesteko."
 
+# AI Translated
 msgid "Toolhead collision volumes"
-msgstr ""
+msgstr "Inprimatze-buruaren talka-bolumenak"
 
+# AI Translated
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Modeloak eta sortutako materiala baztertzeko, G-codea egiaztatzeko eta desplazamenduak saihesteko erabiltzen diren talka-bolumenak. Erabili \"XxY, XxY, ...\" altuera osoko poligono baterako edo \"ZMIN..ZMAX;XxY, XxY, ...\" Z-n mugatutako bolumen baterako. Bereizi hainbat bolumen \"|\" ikurrarekin. Bolumen hauek oheko baztertutako eremuari gehitzen zaizkio. Antolaketa automatikoak, kontserbadoreki, ganbila ez den bolumen baten muga-kutxa erabiltzen du."
 
+# AI Translated
 msgid "Collision volume behavior"
-msgstr ""
+msgstr "Talka-bolumenen portaera"
 
+# AI Translated
 msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
-msgstr ""
+msgstr "Aukeratu pita guztiek talka-bolumen berberak erabiltzen dituzten, inprimatze-buruarekiko erlatiboak diren bolumenak pita bakoitzaren XY desplazamendutik eratortzen diren, ala estrusore bakoitzerako bolumen independenteak konfiguratzen diren. Modu indibidualean, hautatu estrusore bakoitza Estrusorea orrian haren bolumenak konfiguratzeko."
 
+# AI Translated
+# Needs human review: Option of the collision volume behavior dropdown (shared by all nozzles); check it reads right next to 'Toolhead-relative' and 'Individual per extruder'.
 msgid "Shared"
-msgstr ""
+msgstr "Partekatua"
 
+# AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
-msgstr ""
+msgstr "Inprimatze-buruarekiko erlatiboa (pita-desplazamenduak)"
 
+# AI Translated
 msgid "Individual per extruder"
-msgstr ""
+msgstr "Banakakoa estrusore bakoitzeko"
 
+# AI Translated
 msgid "Extruder collision volumes"
-msgstr ""
+msgstr "Estrusorearen talka-bolumenak"
 
+# AI Translated
 msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Modu indibidualean estrusore honek bakarrik erabiltzen dituen talka-bolumenak. Erabili talka-bolumen partekatuen poligono-formatu bera eta aukerako Z tartea. Utzi hutsik estrusore honek talka-bolumenik izan ez dezan. Antolaketa automatikoak, kontserbadoreki, ganbila ez den bolumen baten muga-kutxa erabiltzen du."
 
 msgid "Bed custom texture"
 msgstr "Ohearen testura pertsonalizatua"
@@ -17157,6 +17181,7 @@ msgstr "Gaitu hau xerratu ondoren objektuaren Z altuera zehatza lortzeko. Azken 
 msgid "Arc fitting"
 msgstr "Arku-egokitzea"
 
+# AI Translated
 msgid ""
 "Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while sparse infill, supports and the wipe tower use fixed tolerances.\n"
 " - Disabled: only straight G1 moves are used.\n"
@@ -17165,12 +17190,19 @@ msgid ""
 "\n"
 "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
+"G2 eta G3 arku-mugimenduak inprimatze-ibilbideei egokitzen dizkie. Hormak eta gainazalak bereizmenaren barruan egokitzen dira, eta dentsitate baxuko betegarriak, euskarriek eta purgatze-dorreak tolerantzia finkoak erabiltzen dituzte.\n"
+" - Desgaituta: G1 mugimendu zuzenak soilik erabiltzen dira.\n"
+" - Gaituta: arkuak inprimatze-ibilbide guztietara egokitzen dira.\n"
+" - Dentsitate baxuko betegarria soilik: arkuak dentsitate baxuko betegarrira soilik egokitzen dira, eta horrek betegarri-patroi kurbatuen G-codea laburtzen du, hormei eta gainazalei eragin gabe.\n"
+"\n"
+"Oharra: Klipper erabiltzen duten makinetan, Desgaituta gomendatzen da. Klipperrek arkuak berriro lerro-segmentuetan zatitzen ditu, eta horrek gainazalaren kalitatea murrizten du eta inprimatze-denbora handitu dezake."
 
 msgid "Enabled"
 msgstr "Gaituta"
 
+# AI Translated
 msgid "Sparse infill only"
-msgstr ""
+msgstr "Dentsitate baxuko betegarria soilik"
 
 msgid "Add line number"
 msgstr "Gehitu lerro-zenbakia"
@@ -18606,10 +18638,13 @@ msgstr "Aukera honek barne-josturak atzerantz desplazatzen ditu haien sakonerare
 msgid "Seam gap"
 msgstr "Josturaren tartea"
 
+# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
+"Begizta itxiko estrusio batean josturaren ikusgarritasuna murrizteko, begizta eten eta zehaztutako kantitate batean laburtzen da.\n"
+"Kantitate hau milimetrotan edo pitaren diametroaren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia %10 da."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Alaka junturako jostura (beta)"
@@ -20274,14 +20309,17 @@ msgstr "Aukera honek barruko betegarri solido estuko eremuak automatikoki detekt
 msgid "invalid value "
 msgstr "balio baliogabea "
 
+# AI Translated
 msgid "Invalid collision volume definition."
-msgstr ""
+msgstr "Talka-bolumenaren definizio baliogabea."
 
+# AI Translated
 msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
-msgstr ""
+msgstr "Pita-desplazamendu bat behar da estrusore bakoitzerako, inprimatze-buruarekiko erlatiboak diren talka-bolumenak gaituta daudenean."
 
+# AI Translated
 msgid "Invalid per-extruder collision volume definition."
-msgstr ""
+msgstr "Estrusore bakoitzaren talka-bolumenaren definizio baliogabea."
 
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Balio baliogabea espiral formako loreontzi modua gaituta dagoenean: "
@@ -20844,11 +20882,13 @@ msgstr "Purgatze-dorrearen kostu osoa"
 msgid "Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings."
 msgstr "Purgatze-dorrean alferrik galdutako materialaren kostu osoa. Filamentu-ezarpenetako filament_cost baliotik kalkulatzen da."
 
+# AI Translated
 msgid "Total wipe tower filament"
-msgstr ""
+msgstr "Purgatze-dorreko filamentua guztira"
 
+# AI Translated
 msgid "Total length of filament used on the wipe tower, in mm."
-msgstr ""
+msgstr "Purgatze-dorrean erabilitako filamentuaren luzera osoa, mm-tan."
 
 msgid "Used filament"
 msgstr "Erabilitako filamentua"
@@ -21068,8 +21108,9 @@ msgstr "Xerraketarako erabilitako inprimagailu fisikoaren izena."
 msgid "Layer number"
 msgstr "Geruza-zenbakia"
 
+# AI Translated
 msgid "Index of the current layer. The index is zero-based (first layer has index 0). Before the first layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1)."
-msgstr ""
+msgstr "Uneko geruzaren indizea. Indizea zeroan oinarritua da (lehen geruzaren indizea 0 da). Lehen geruza hasi aurretik, -1 da. Estrusio-rola aldatzeko G-codean, indizea batean oinarritua da (lehen geruzaren indizea 1 da)."
 
 msgid "Layer Z"
 msgstr "Geruzaren Z"
@@ -21086,181 +21127,237 @@ msgstr "Azken geruzaren altuera inprimatze-ohearen gainetik."
 msgid "Filament extruder ID"
 msgstr "Filamentuaren estrusore-IDa"
 
+# AI Translated
 msgid "In filament start G-code, the index of the filament that is being loaded. In filament end G-code, the index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 wipe tower does the tool change. Machine end G-code gets the value from the last filament end G-code at the end of the print."
-msgstr ""
+msgstr "Filamentuaren hasierako G-codean, kargatzen ari den filamentuaren indizea. Filamentuaren amaierako G-codean, deskargatzen ari den filamentuaren indizea. Indizea zeroan oinarritua da (lehen filamentuaren indizea 0 da). Tresna-aldaketa batean, filamentuaren amaierako G-codeak estrusorearen indizea jasotzen du horren ordez, 1. motako purgatze-dorreak egiten ez badu tresna-aldaketa. Makinaren amaierako G-codeak inprimaketaren amaieran filamentuaren azken amaierako G-codearen balioa jasotzen du."
 
+# AI Translated
 msgid "Current filament ID"
-msgstr ""
+msgstr "Uneko filamentuaren IDa"
 
+# AI Translated
 msgid "Index of the currently active filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Une honetan aktibo dagoen filamentuaren indizea. Indizea zeroan oinarritua da (lehen filamentuaren indizea 0 da)."
 
+# AI Translated
 msgid "Current extruder ID"
-msgstr ""
+msgstr "Uneko estrusorearen IDa"
 
+# AI Translated
 msgid "Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Une honetan aktibo dagoen estrusore fisikoaren indizea. Indizea zeroan oinarritua da (lehen estrusorearen indizea 0 da)."
 
+# AI Translated
 msgid "Current nozzle ID"
-msgstr ""
+msgstr "Uneko pitaren IDa"
 
+# AI Translated
 msgid "Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Une honetan aktibo dagoen pitaren indizea. Indizea zeroan oinarritua da (lehen pitaren indizea 0 da)."
 
+# AI Translated
 msgid "Nozzle diameters"
-msgstr ""
+msgstr "Pitaren diametroak"
 
+# AI Translated
 msgid "Nozzle diameters indexed by nozzle ID."
-msgstr ""
+msgstr "Pitaren IDaren arabera indexatutako pitaren diametroak."
 
+# AI Translated
 msgid "Nozzle volume types"
-msgstr ""
+msgstr "Pitaren bolumen motak"
 
+# AI Translated
 msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr ""
+msgstr "Pitaren IDaren arabera indexatutako pitaren bolumen-aldaerak."
 
+# AI Translated
 msgid "Retraction distance used when cutting filament."
-msgstr ""
+msgstr "Filamentua mozten denean erabiltzen den atzera-egitearen distantzia."
 
+# AI Translated
 msgid "Long retraction when cut"
-msgstr ""
+msgstr "Atzera-egite luzea mozterakoan"
 
+# AI Translated
 msgid "Whether long retraction is used when cutting filament."
-msgstr ""
+msgstr "Filamentua mozten denean atzera-egite luzea erabiltzen den ala ez."
 
+# AI Translated
 msgid "Most-used physical extruder ID"
-msgstr ""
+msgstr "Gehien erabilitako estrusore fisikoaren IDa"
 
+# AI Translated
 msgid "Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Uneko geruzan gehien erabilitako estrusore fisikoaren indizea. Indizea zeroan oinarritua da (lehen estrusorearen indizea 0 da)."
 
+# AI Translated
 msgid "Current Y acceleration limit"
-msgstr ""
+msgstr "Uneko Y azelerazio-muga"
 
+# AI Translated
 msgid "Current Y-axis acceleration limit after the bed-mass adjustment."
-msgstr ""
+msgstr "Y ardatzaren uneko azelerazio-muga, oheko masaren doikuntzaren ondoren."
 
+# AI Translated
 msgid "Current accumulated mass"
-msgstr ""
+msgstr "Uneko masa metatua"
 
+# AI Translated
 msgid "Accumulated printed mass at the current layer."
-msgstr ""
+msgstr "Uneko geruzara arte inprimatutako masa metatua."
 
+# AI Translated
 msgid "Current layer mass"
-msgstr ""
+msgstr "Uneko geruzaren masa"
 
+# AI Translated
 msgid "Printed mass of the previous layer."
-msgstr ""
+msgstr "Aurreko geruzaren inprimatutako masa."
 
+# AI Translated
 msgid "Current physical extruder ID"
-msgstr ""
+msgstr "Uneko estrusore fisikoaren IDa"
 
+# AI Translated
 msgid "Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Uneko geruzan aktibo dagoen estrusore fisikoaren indizea. Indizea zeroan oinarritua da (lehen estrusorearen indizea 0 da)."
 
+# AI Translated
 msgid "Timelapse position X"
-msgstr ""
+msgstr "Timelapse-aren X posizioa"
 
+# AI Translated
 msgid "Selected X position for timelapse capture."
-msgstr ""
+msgstr "Timelapse-a kapturatzeko hautatutako X posizioa."
 
+# AI Translated
 msgid "Timelapse position Y"
-msgstr ""
+msgstr "Timelapse-aren Y posizioa"
 
+# AI Translated
 msgid "Selected Y position for timelapse capture."
-msgstr ""
+msgstr "Timelapse-a kapturatzeko hautatutako Y posizioa."
 
+# AI Translated
 msgid "Has timelapse safe position"
-msgstr ""
+msgstr "Timelapse posizio segurua dauka"
 
+# AI Translated
 msgid "Whether a safe timelapse position was found."
-msgstr ""
+msgstr "Timelapse-rako posizio segurua aurkitu den ala ez."
 
+# AI Translated
 msgid "Timelapse inline photo"
-msgstr ""
+msgstr "Lerroko timelapse argazkia"
 
+# AI Translated
 msgid "Whether the timelapse photo is captured at the inline position."
-msgstr ""
+msgstr "Timelapse argazkia lerroko posizioan kapturatzen den ala ez."
 
+# AI Translated
 msgid "Farthest-point timelapse enabled"
-msgstr ""
+msgstr "Punturik urrunenaren timelapse-a gaituta"
 
+# AI Translated
 msgid "Whether farthest-point timelapse positioning is active."
-msgstr ""
+msgstr "Punturik urrunenaren timelapse-posizionamendua aktibo dagoen ala ez."
 
+# AI Translated
 msgid "Clear to X0"
-msgstr ""
+msgstr "X0 arte libre"
 
+# AI Translated
 msgid "Whether the timelapse move is clear to X0."
-msgstr ""
+msgstr "Timelapse-mugimendua X0 arte libre dagoen ala ez."
 
 # AI Translated
 msgid "Previous extruder"
 msgstr "Aurreko estrusorea"
 
+# AI Translated
 msgid "Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."
-msgstr ""
+msgstr "Deskargatzen ari den filamentuaren indizea. Indizea zeroan oinarritua da (lehen filamentuaren indizea 0 da). Inprimaketaren hasieran, filamenturik kargatu gabe dagoenean, -1 da."
 
 # AI Translated
 msgid "Next extruder"
 msgstr "Hurrengo estrusorea"
 
+# AI Translated
 msgid "Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Kargatzen ari den filamentuaren indizea. Indizea zeroan oinarritua da (lehen filamentuaren indizea 0 da)."
 
+# AI Translated
 msgid "Current hotend"
-msgstr ""
+msgstr "Uneko hotenda"
 
+# AI Translated
 msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Irteten ari den filamentuaren estrusorearen indizea, zeroan oinarritua. Bambu inprimagailuetan -1 da, edo pitaren IDa filamentu bat geruzen artean pita batetik bestera mugitzen denean."
 
+# AI Translated
 msgid "Next hotend"
-msgstr ""
+msgstr "Hurrengo hotenda"
 
+# AI Translated
 msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Sartzen ari den filamentuaren estrusorearen indizea, zeroan oinarritua. Bambu inprimagailuetan -1 da, edo pitaren IDa filamentu bat geruzen artean pita batetik bestera mugitzen denean."
 
+# AI Translated
 msgid "Next nozzle ID"
-msgstr ""
+msgstr "Hurrengo pitaren IDa"
 
+# AI Translated
 msgid "Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Sartzen ari den filamentuari lotutako pitaren indizea. Indizea zeroan oinarritua da (lehen pitaren indizea 0 da)."
 
+# AI Translated
 msgid "Next filament ID"
-msgstr ""
+msgstr "Hurrengo filamentuaren IDa"
 
+# AI Translated
 msgid "Index of the incoming filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Sartzen ari den filamentuaren indizea. Indizea zeroan oinarritua da (lehen filamentuaren indizea 0 da)."
 
+# AI Translated
 msgid "Old extruder variant"
-msgstr ""
+msgstr "Estrusore zaharraren aldaera"
 
+# AI Translated
 msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr ""
+msgstr "Irteten ari den estrusorearen pita-bolumenaren aldaera."
 
+# AI Translated
 msgid "New extruder variant"
-msgstr ""
+msgstr "Estrusore berriaren aldaera"
 
+# AI Translated
 msgid "Nozzle-volume variant of the incoming extruder."
-msgstr ""
+msgstr "Sartzen ari den estrusorearen pita-bolumenaren aldaera."
 
+# AI Translated
 msgid "Filament nozzle-change retract length"
-msgstr ""
+msgstr "Filamentuaren atzera-egitearen luzera pita aldatzean"
 
+# AI Translated
 msgid "Nozzle-change retraction length of the outgoing filament."
-msgstr ""
+msgstr "Irteten ari den filamentuaren atzera-egitearen luzera pita aldatzean."
 
+# AI Translated
 msgid "New extruder retracted length"
-msgstr ""
+msgstr "Estrusore berriaren atzera-egindako luzera"
 
+# AI Translated
 msgid "Currently parked retraction length of the incoming extruder."
-msgstr ""
+msgstr "Sartzen ari den estrusorea une honetan gordeta duen atzera-egitearen luzera."
 
+# AI Translated
 msgid "Outer wall volumetric speed"
-msgstr ""
+msgstr "Kanpoko hormaren abiadura bolumetrikoa"
 
+# AI Translated
 msgid "Volumetric speed used for the outer wall."
-msgstr ""
+msgstr "Kanpoko horman erabiltzen den abiadura bolumetrikoa."
 
 # AI Translated
 msgid "Relative e-axis"
@@ -21278,11 +21375,13 @@ msgstr "Tresna-aldaketen kopurua"
 msgid "The number of toolchanges throughout the print."
 msgstr "Inprimaketan zehar egindako tresna-aldaketen kopurua."
 
+# AI Translated
 msgid "Toolchange Z"
-msgstr ""
+msgstr "Tresna-aldaketaren Z"
 
+# AI Translated
 msgid "The Z position during the toolchange."
-msgstr ""
+msgstr "Z posizioa tresna-aldaketan zehar."
 
 # AI Translated
 msgid "Old retract length"
@@ -21468,77 +21567,105 @@ msgstr "4. purgatze-luzera"
 msgid "The fourth flush length."
 msgstr "Laugarren purgatze-luzera."
 
+# AI Translated
 msgid "Flush length"
-msgstr ""
+msgstr "Purgatze-luzera"
 
+# AI Translated
 msgid "Total flush length."
-msgstr ""
+msgstr "Purgatze-luzera osoa."
 
+# AI Translated
 msgid "Flush volumetric speeds"
-msgstr ""
+msgstr "Purgatzeen abiadura bolumetrikoak"
 
+# AI Translated
 msgid "Flush volumetric speeds for each filament."
-msgstr ""
+msgstr "Filamentu bakoitzaren purgatzearen abiadura bolumetrikoak."
 
+# AI Translated
 msgid "Flush temperatures"
-msgstr ""
+msgstr "Purgatze-tenperaturak"
 
+# AI Translated
 msgid "Flush temperatures for each filament."
-msgstr ""
+msgstr "Filamentu bakoitzaren purgatze-tenperaturak."
 
+# AI Translated
 msgid "Filament cooling before tower"
-msgstr ""
+msgstr "Filamentuaren hoztea dorrearen aurretik"
 
+# AI Translated
+# Needs human review: Variable label in the G-code placeholder list; 'wipe perimeter' is not in the glossary (Wipe is 'Garbiketa'), check it names the wipe tower border.
 msgid "Avoid wipe perimeter"
-msgstr ""
+msgstr "Saihestu garbiketa-perimetroa"
 
+# AI Translated
+# Needs human review: Pairs with 'Avoid wipe perimeter'; check the wipe perimeter term.
 msgid "Whether travel should avoid the wipe perimeter."
-msgstr ""
+msgstr "Desplazamenduek garbiketa-perimetroa saihestu behar duten ala ez."
 
+# AI Translated
+# Needs human review: Variable label in the G-code placeholder list; check the wipe term against the wipe area.
 msgid "Wipe avoidance X"
-msgstr ""
+msgstr "Garbiketa saihesteko X"
 
+# AI Translated
+# Needs human review: Check 'wipe area' rendering against the wipe tower area.
 msgid "X position used to avoid the wipe area."
-msgstr ""
+msgstr "Garbiketa-eremua saihesteko erabiltzen den X posizioa."
 
+# AI Translated
 msgid "Prime tower interface"
-msgstr ""
+msgstr "Purgatze-dorrearen interfazea"
 
+# AI Translated
 msgid "Whether the current purge is for a prime-tower interface."
-msgstr ""
+msgstr "Uneko purgatzea purgatze-dorrearen interfazerako den ala ez."
 
+# AI Translated
 msgid "Filament tower interface print temperature"
-msgstr ""
+msgstr "Filamentuaren dorre-interfazearen inprimatze-tenperatura"
 
+# AI Translated
 msgid "Print temperature used for the filament tower interface."
-msgstr ""
+msgstr "Filamentuaren dorre-interfazean erabiltzen den inprimatze-tenperatura."
 
-msgid "Wipe tower center X"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position X"
+msgstr "Purgatze-dorrearen itxaron-posizioaren X"
 
+# AI Translated
 msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
-msgstr ""
+msgstr "Pitaren purgatze-dorreko itxaron-posizioaren X koordenatua, dorrearen ertzetik 2 mm kanpo."
 
-msgid "Wipe tower center Y"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position Y"
+msgstr "Purgatze-dorrearen itxaron-posizioaren Y"
 
+# AI Translated
 msgid "Y coordinate of the nozzle's wipe-tower wait position."
-msgstr ""
+msgstr "Pitaren purgatze-dorreko itxaron-posizioaren Y koordenatua."
 
-msgid "Wipe tower center position valid"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position valid"
+msgstr "Purgatze-dorrearen itxaron-posizioa baliozkoa"
 
+# AI Translated
 msgid "Whether the print has a wipe tower."
-msgstr ""
+msgstr "Inprimaketak purgatze-dorrea duen ala ez."
 
+# AI Translated
 msgid "Nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Filamentuaren arabera indexatutako pitaren tenperaturak."
 
+# AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Filamentuaren arabera indexatutako lehen geruzako pitaren tenperaturak."
 
+# AI Translated
 msgid "Nozzle temperature initial layer"
-msgstr ""
+msgstr "Hasierako geruzako pitaren tenperatura"
 
 # AI Translated
 msgid "Extrusion role"
@@ -21736,8 +21863,9 @@ msgstr "Adierazpen erregularraren konpilazioak huts egin du"
 msgid "Cannot apply logical operation to non-boolean operands."
 msgstr "Ezin da eragiketa logikoa aplikatu boolearrak ez diren eragigaiei."
 
+# AI Translated
 msgid "This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison."
-msgstr ""
+msgstr "Balio hau G-codea sortu ondoren soilik ezagutzen da. Inprimatu daiteke, baina ezin da kalkulu edo konparaketa batean erabili."
 
 # AI Translated
 msgid "Trying to index a scalar variable"
@@ -35749,14 +35877,17 @@ msgstr "Hodeiko pluginak bakarrik ezaba daitezke eta haien harpidetza utz daitek
 msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files."
 msgstr "Ezin duzu zure pluginen harpidetza utzi. Erabili Ezabatu tokiko fitxategiak kentzeko."
 
+# AI Translated
 msgid "Python interpreter is shutting down"
-msgstr ""
+msgstr "Python interpretea ixten ari da"
 
+# AI Translated
 msgid "Plugin system is shutting down."
-msgstr ""
+msgstr "Plugin sistema ixten ari da."
 
+# AI Translated
 msgid "Plugin permission request denied"
-msgstr ""
+msgstr "Pluginaren baimen-eskaera ukatu da"
 
 # AI Translated
 msgid "Profile has fewer than 2 points"
@@ -36489,6 +36620,20 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgstr[0] "%s filamentua %s(e)n dago, baina sortutako G-code ibilbideak %s-ren inprimatze-eremua gainditzen du."
+#~ msgstr[1] "%s filamentuak %s(e)n daude, baina sortutako G-code ibilbideak %s-ren inprimatze-eremua gainditzen du."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgstr[0] "%s filamentua %s(e)n dago, baina sortutako G-code ibilbideak %s-ren inprimatze-altuera gainditzen du."
+#~ msgstr[1] "%s filamentuak %s(e)n daude, baina sortutako G-code ibilbideak %s-ren inprimatze-altuera gainditzen du."
 
 #~ msgid "Mirror along the X Axis"
 #~ msgstr "Islatu X ardatzarekiko"

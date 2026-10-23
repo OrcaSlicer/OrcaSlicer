@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 02:28+0800\n"
+"POT-Creation-Date: 2026-10-24 15:38-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4570,8 +4570,9 @@ msgstr "Szkriptbővítmény kihagyva."
 msgid "Script plugin finished."
 msgstr "Szkriptbővítmény befejeződött."
 
+# AI Translated
 msgid "Script plugin started."
-msgstr ""
+msgstr "A szkriptbővítmény elindult."
 
 msgid "Printer"
 msgstr "Nyomtató"
@@ -5833,8 +5834,9 @@ msgstr "A bemenetben szereplő néhány kiterjesztés érvénytelen"
 msgid "This parameter expects a valid template."
 msgstr "Ez a paraméter érvényes sablont vár."
 
+# AI Translated
 msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
-msgstr ""
+msgstr "Érvénytelen ütközési térfogat formátum. Használd az XxY, XxY, ... vagy a ZMIN..ZMAX;XxY, XxY, ... formátumot, és a több térfogatot a | karakterrel válaszd el."
 
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
 msgstr "Érvénytelen minta. Használj N, N#K formátumot, vagy vesszővel elválasztott listát, ahol elemenként opcionális a #K. Példák: 5, 5#2, 1,7,9, 5,9#2,18."
@@ -6379,15 +6381,17 @@ msgstr "Jobb fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgid "Mirror object"
 msgstr "Objektum tükrözése"
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."
-msgstr ""
+msgstr "A(z) %1% tálcán lévő törlőtorony már nem fér el ott, ahová helyezték. A tálcán nincs több szabad hely számára, ezért egy tárgyra került."
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."
-msgstr ""
+msgstr "A(z) %1% tálcán lévő törlőtorony már nem fér el ott, ahová helyezték, ezért a tálca egy szabad helyére került."
 
 msgid "Tool move"
 msgstr "Fej mozgatása"
@@ -6633,7 +6637,7 @@ msgid "Size:"
 msgstr "Méret:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-code útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -6656,18 +6660,18 @@ msgid "Tool %d"
 msgstr "%d. eszköz"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr[0] "A(z) %s filament a(z) %s helyre van téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható tartományát."
-msgstr[1] "A(z) %s filamentek a(z) %s helyre vannak téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható tartományát."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgstr[0] "A(z) %1% filament a(z) %2% helyre van téve, de a generált G-code útvonal túllépi a(z) %2% nyomtatható tartományát."
+msgstr[1] "A(z) %1% filamentek a(z) %2% helyre vannak téve, de a generált G-code útvonal túllépi a(z) %2% nyomtatható tartományát."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr[0] "A(z) %s filament a(z) %s helyre van téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható magasságát."
-msgstr[1] "A(z) %s filamentek a(z) %s helyre vannak téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható magasságát."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgstr[0] "A(z) %1% filament a(z) %2% helyre van téve, de a generált G-code útvonal túllépi a(z) %2% nyomtatható magasságát."
+msgstr[1] "A(z) %1% filamentek a(z) %2% helyre vannak téve, de a generált G-code útvonal túllépi a(z) %2% nyomtatható magasságát."
 
 msgid "Open wiki for more information."
 msgstr "További információért nyisd meg a Wiki oldalt."
@@ -7129,11 +7133,13 @@ msgstr "Címkék megjelenítése"
 msgid "Show object labels in 3D scene."
 msgstr "Objektumcímkék megjelenítése a 3D-térben"
 
+# AI Translated
 msgid "Show all collision volumes"
-msgstr ""
+msgstr "Minden ütközési térfogat megjelenítése"
 
+# AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr ""
+msgstr "Minden beállított ütközési térfogat teljes magasságának megjelenítése, üres asztalon is."
 
 msgid "Show &Overhang"
 msgstr "&Túlnyúlás megjelenítése"
@@ -12297,11 +12303,13 @@ msgstr "Az ezzel az ikonnal jelölt paraméterek fúvókánként állíthatók."
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Kattints az összes beállítás utolsó mentett változatának visszaállításához."
 
+# AI Translated
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr ""
+msgstr "Ez a definíció ütközési térfogat szintaxist tartalmaz. Hozzáadod a szerszámfej ütközési térfogataihoz a G-code ellenőrzéséhez és a mozgások ütközéselkerüléséhez? A meglévő kizárt asztalterület megmarad."
 
+# AI Translated
 msgid "Add collision volumes"
-msgstr ""
+msgstr "Ütközési térfogatok hozzáadása"
 
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "A fúvókacsere miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Biztos, hogy kikapcsolod a törlőtornyot?"
@@ -14192,16 +14200,19 @@ msgstr ""
 "A G-code exportálása ide sikertelen: %1%\n"
 "Megtelt a lemez?"
 
+# AI Translated
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
-msgstr ""
+msgstr "Egy G-code mozgás metszi a(z) %1%. extruder ütközési térfogatát. Ez a nyomtató ütközését okozhatja."
 
+# AI Translated
 msgid "A G-code move intersects a collision volume. This may cause a printer collision."
-msgstr ""
+msgstr "Egy G-code mozgás metszi egy ütközési térfogatot. Ez a nyomtató ütközését okozhatja."
 
+# AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr ""
+msgstr "A metsző mozgás a G-code %1%. sorában van. A Z pozíciója alaphelyzetbe állás után ismeretlen, ezért az Orca minden magasságra ellenőrizte."
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -14517,13 +14528,15 @@ msgstr ""
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% túl közel van a tiltott területhez, a nyomtatás során előfordulhatnak ütközések."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
-msgstr ""
+msgstr "A(z) %1% metszi az összes elérhető extruder ütközési térfogatát."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
-msgstr ""
+msgstr "A(z) %1% metszi a(z) %2%. extruder ütközési térfogatát."
 
 #, boost-format
 msgid "%1% is too close to others, and collisions may be caused."
@@ -14914,35 +14927,46 @@ msgstr "Az asztali kizárási területek rendezett listája a párhuzamos nyomta
 msgid "Excluded bed area"
 msgstr "Asztal kizárási terület"
 
+# AI Translated
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
-msgstr ""
+msgstr "Nem nyomtatható terület az XY síkon. Például az X1 sorozatú nyomtatók a bal első sarkot használják a filament elvágására filamentcsere közben. A területet sokszögként kell megadni az \"XxY, XxY, ...\" formátumban. Korlátozza az anyag és a modell elhelyezését, de megengedi a gép mozgását. Állítsd be külön a szerszámfej ütközési térfogatait a G-code ellenőrzéséhez és a mozgások ütközéselkerüléséhez."
 
+# AI Translated
 msgid "Toolhead collision volumes"
-msgstr ""
+msgstr "Szerszámfej ütközési térfogatai"
 
+# AI Translated
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "A modell és a generált anyag kizárásához, a G-code ellenőrzéséhez és a mozgások ütközéselkerüléséhez használt ütközési térfogatok. Teljes magasságú sokszöghöz használja az \"XxY, XxY, ...\", Z irányban korlátozott térfogathoz a \"ZMIN..ZMAX;XxY, XxY, ...\" formátumot. A több térfogatot a \"|\" karakterrel válaszd el. Ezek a térfogatok a kizárt asztalterületen felül érvényesek. Az automatikus elrendezés óvatosan a nem konvex térfogat befoglaló dobozát használja."
 
+# AI Translated
 msgid "Collision volume behavior"
-msgstr ""
+msgstr "Ütközési térfogatok működése"
 
+# AI Translated
 msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
-msgstr ""
+msgstr "Válaszd ki, hogy minden fúvóka ugyanazokat az ütközési térfogatokat használja-e, a szerszámfejhez viszonyított térfogatokat az egyes fúvókák XY eltolásából kell-e származtatni, vagy minden extrudernek egyedi térfogatokat kell beállítani. Egyedi módban az egyes extrudereket az Extruder oldalon kiválasztva állíthatod be a térfogataikat."
 
+# AI Translated
+# Needs human review: Option name in the collision volume behavior dropdown (Shared / Toolhead-relative / Individual per extruder); check it reads right next to the other options.
 msgid "Shared"
-msgstr ""
+msgstr "Közös"
 
+# AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
-msgstr ""
+msgstr "Szerszámfejhez viszonyított (fúvókaeltolások)"
 
+# AI Translated
 msgid "Individual per extruder"
-msgstr ""
+msgstr "Egyedi extrudereként"
 
+# AI Translated
 msgid "Extruder collision volumes"
-msgstr ""
+msgstr "Extruder ütközési térfogatai"
 
+# AI Translated
 msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Csak ez az extruder használja ezeket az ütközési térfogatokat egyedi módban. Használd ugyanazt a sokszög- és opcionális Z-tartomány formátumot, mint a közös ütközési térfogatoknál. Hagyd üresen, ha ennek az extrudernek nincs ütközési térfogata. Az automatikus elrendezés óvatosan a nem konvex térfogat befoglaló dobozát használja."
 
 msgid "Bed custom texture"
 msgstr "Egyedi asztaltextúra"
@@ -17565,6 +17589,7 @@ msgstr "Engedélyezd ezt, ha pontos objektum-Z-magasságot szeretnél szeletelé
 msgid "Arc fitting"
 msgstr "Íves illesztés"
 
+# AI Translated
 msgid ""
 "Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while sparse infill, supports and the wipe tower use fixed tolerances.\n"
 " - Disabled: only straight G1 moves are used.\n"
@@ -17573,12 +17598,20 @@ msgid ""
 "\n"
 "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
+"G2 és G3 ívmozgások illesztése a szerszámpályákra. A falak és a felületek a felbontáson belül illeszkednek, míg a kitöltés, a támaszok és a törlőtorony rögzített tűréshatárokat használ.\n"
+" - Letiltva: csak egyenes G1 mozgások használatosak.\n"
+" - Engedélyezve: az ívek minden szerszámpályára illeszkednek.\n"
+" - Csak kitöltés: az ívek csak a kitöltésre illeszkednek, ami lerövidíti az íves kitöltési mintázatok G-code-ját a falak és a felületek befolyásolása nélkül.\n"
+"\n"
+"Megjegyzés: Klipper gépeknél a Letiltva beállítás ajánlott. A Klipper az íveket visszabontja egyenes szakaszokra, ami rontja a felületminőséget, és növelheti a nyomtatási időt."
 
 msgid "Enabled"
 msgstr "Engedélyezve"
 
+# AI Translated
+# Needs human review: Glossary renders Sparse infill as Kitöltés (same as Infill); check the option still reads as 'sparse infill only' in the arc-fitting dropdown.
 msgid "Sparse infill only"
-msgstr ""
+msgstr "Csak kitöltés"
 
 msgid "Add line number"
 msgstr "Vonalszám hozzáadása"
@@ -19058,10 +19091,13 @@ msgstr "Ez az opció a belső varratokat a mélységük alapján hátrafelé tol
 msgid "Seam gap"
 msgstr "Varrat hézag"
 
+# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
+"A varrat láthatóságának csökkentéséhez zárt hurkú extrudálásnál a hurok megszakad és a megadott mértékben rövidül.\n"
+"Ez az érték megadható milliméterben vagy a fúvóka átmérőjének százalékában. A paraméter alapértéke 10%."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Átlapolt varrat (béta)"
@@ -20757,14 +20793,17 @@ msgstr "Ez a beállítás automatikusan felismeri a keskeny belső tömör kitö
 msgid "invalid value "
 msgstr "érvénytelen érték "
 
+# AI Translated
 msgid "Invalid collision volume definition."
-msgstr ""
+msgstr "Érvénytelen ütközési térfogat definíció."
 
+# AI Translated
 msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
-msgstr ""
+msgstr "A szerszámfejhez viszonyított ütközési térfogatok engedélyezésekor minden extrudernek szüksége van fúvókaeltolásra."
 
+# AI Translated
 msgid "Invalid per-extruder collision volume definition."
-msgstr ""
+msgstr "Érvénytelen extruderenkénti ütközési térfogat definíció."
 
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Érvénytelen érték spirálváza mód engedélyezésekor: "
@@ -21339,11 +21378,13 @@ msgstr "A törlőtorony teljes költsége"
 msgid "Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings."
 msgstr "A törlőtoronyon elpazarolt anyag teljes költsége. A Filament beállítások filament_cost értékéből számítva."
 
+# AI Translated
 msgid "Total wipe tower filament"
-msgstr ""
+msgstr "A törlőtorony teljes filamentje"
 
+# AI Translated
 msgid "Total length of filament used on the wipe tower, in mm."
-msgstr ""
+msgstr "A törlőtoronyban felhasznált filament teljes hossza mm-ben."
 
 msgid "Used filament"
 msgstr "Használt filament"
@@ -21563,8 +21604,9 @@ msgstr "A szeleteléshez használt fizikai nyomtató neve."
 msgid "Layer number"
 msgstr "Rétegszám"
 
+# AI Translated
 msgid "Index of the current layer. The index is zero-based (first layer has index 0). Before the first layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1)."
-msgstr ""
+msgstr "Az aktuális réteg indexe. Az index nullától számozott (az első réteg indexe 0). Az első réteg kezdete előtt értéke -1. Az extrudálási szerep váltásakor lefutó G-code-ban az index egytől számozott (az első réteg indexe 1)."
 
 msgid "Layer Z"
 msgstr "Réteg Z"
@@ -21581,181 +21623,237 @@ msgstr "Az utolsó réteg magassága az asztal felett."
 msgid "Filament extruder ID"
 msgstr "Filament extruderazonosító"
 
+# AI Translated
 msgid "In filament start G-code, the index of the filament that is being loaded. In filament end G-code, the index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 wipe tower does the tool change. Machine end G-code gets the value from the last filament end G-code at the end of the print."
-msgstr ""
+msgstr "A filament kezdő G-code-jában a betöltés alatt álló filament indexe. A filament záró G-code-jában a kihúzás alatt álló filament indexe. Az index nullától számozott (az első filament indexe 0). Szerszámcserekor a filament záró G-code-ja ehelyett az extruder indexét kapja, kivéve ha a szerszámcserét az 1-es típusú törlőtorony végzi. A gép záró G-code-ja a nyomtatás végén az utolsó filament záró G-code-jából kapja az értéket."
 
+# AI Translated
 msgid "Current filament ID"
-msgstr ""
+msgstr "Aktuális filament azonosítója"
 
+# AI Translated
 msgid "Index of the currently active filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Az aktuálisan aktív filament indexe. Az index nullától számozott (az első filament indexe 0)."
 
+# AI Translated
 msgid "Current extruder ID"
-msgstr ""
+msgstr "Aktuális extruder azonosítója"
 
+# AI Translated
 msgid "Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Az aktuálisan aktív fizikai extruder indexe. Az index nullától számozott (az első extruder indexe 0)."
 
+# AI Translated
 msgid "Current nozzle ID"
-msgstr ""
+msgstr "Aktuális fúvóka azonosítója"
 
+# AI Translated
 msgid "Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Az aktuálisan aktív fúvóka indexe. Az index nullától számozott (az első fúvóka indexe 0)."
 
+# AI Translated
 msgid "Nozzle diameters"
-msgstr ""
+msgstr "Fúvókaátmérők"
 
+# AI Translated
 msgid "Nozzle diameters indexed by nozzle ID."
-msgstr ""
+msgstr "Fúvókaátmérők a fúvóka azonosítója szerint indexelve."
 
+# AI Translated
 msgid "Nozzle volume types"
-msgstr ""
+msgstr "Fúvóka térfogattípusai"
 
+# AI Translated
 msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr ""
+msgstr "Fúvóka térfogatváltozatai a fúvóka azonosítója szerint indexelve."
 
+# AI Translated
 msgid "Retraction distance used when cutting filament."
-msgstr ""
+msgstr "A filament vágásakor használt visszahúzási távolság."
 
+# AI Translated
 msgid "Long retraction when cut"
-msgstr ""
+msgstr "Hosszú visszahúzás vágáskor"
 
+# AI Translated
 msgid "Whether long retraction is used when cutting filament."
-msgstr ""
+msgstr "Hosszú visszahúzást használjon-e a filament vágásakor."
 
+# AI Translated
 msgid "Most-used physical extruder ID"
-msgstr ""
+msgstr "Leggyakrabban használt fizikai extruder azonosítója"
 
+# AI Translated
 msgid "Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Az aktuális rétegen leggyakrabban használt fizikai extruder indexe. Az index nullától számozott (az első extruder indexe 0)."
 
+# AI Translated
 msgid "Current Y acceleration limit"
-msgstr ""
+msgstr "Aktuális Y gyorsulási határ"
 
+# AI Translated
 msgid "Current Y-axis acceleration limit after the bed-mass adjustment."
-msgstr ""
+msgstr "Az aktuális Y tengelyű gyorsulási határ az asztal tömegének figyelembevétele után."
 
+# AI Translated
 msgid "Current accumulated mass"
-msgstr ""
+msgstr "Aktuális összegzett tömeg"
 
+# AI Translated
 msgid "Accumulated printed mass at the current layer."
-msgstr ""
+msgstr "Az aktuális rétegig kinyomtatott összegzett tömeg."
 
+# AI Translated
 msgid "Current layer mass"
-msgstr ""
+msgstr "Aktuális réteg tömege"
 
+# AI Translated
 msgid "Printed mass of the previous layer."
-msgstr ""
+msgstr "Az előző réteg kinyomtatott tömege."
 
+# AI Translated
 msgid "Current physical extruder ID"
-msgstr ""
+msgstr "Aktuális fizikai extruder azonosítója"
 
+# AI Translated
 msgid "Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Az aktuális rétegnél aktív fizikai extruder indexe. Az index nullától számozott (az első extruder indexe 0)."
 
+# AI Translated
 msgid "Timelapse position X"
-msgstr ""
+msgstr "Timelapse X pozíció"
 
+# AI Translated
 msgid "Selected X position for timelapse capture."
-msgstr ""
+msgstr "A timelapse-felvételhez kiválasztott X pozíció."
 
+# AI Translated
 msgid "Timelapse position Y"
-msgstr ""
+msgstr "Timelapse Y pozíció"
 
+# AI Translated
 msgid "Selected Y position for timelapse capture."
-msgstr ""
+msgstr "A timelapse-felvételhez kiválasztott Y pozíció."
 
+# AI Translated
 msgid "Has timelapse safe position"
-msgstr ""
+msgstr "Van biztonságos timelapse pozíció"
 
+# AI Translated
 msgid "Whether a safe timelapse position was found."
-msgstr ""
+msgstr "Talált-e biztonságos timelapse pozíciót."
 
+# AI Translated
 msgid "Timelapse inline photo"
-msgstr ""
+msgstr "Timelapse beágyazott fotó"
 
+# AI Translated
 msgid "Whether the timelapse photo is captured at the inline position."
-msgstr ""
+msgstr "A timelapse fotó a beágyazott pozícióban készül-e."
 
+# AI Translated
 msgid "Farthest-point timelapse enabled"
-msgstr ""
+msgstr "Legtávolabbi pontos timelapse engedélyezve"
 
+# AI Translated
 msgid "Whether farthest-point timelapse positioning is active."
-msgstr ""
+msgstr "Aktív-e a timelapse pozicionálása a legtávolabbi pontra."
 
+# AI Translated
 msgid "Clear to X0"
-msgstr ""
+msgstr "Szabad X0-ig"
 
+# AI Translated
 msgid "Whether the timelapse move is clear to X0."
-msgstr ""
+msgstr "A timelapse mozgás szabad-e X0-ig."
 
 # AI Translated
 msgid "Previous extruder"
 msgstr "Előző extruder"
 
+# AI Translated
 msgid "Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."
-msgstr ""
+msgstr "A kihúzás alatt álló filament indexe. Az index nullától számozott (az első filament indexe 0). A nyomtatás elején, amikor még nincs betöltött filament, értéke -1."
 
 # AI Translated
 msgid "Next extruder"
 msgstr "Következő extruder"
 
+# AI Translated
 msgid "Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "A betöltés alatt álló filament indexe. Az index nullától számozott (az első filament indexe 0)."
 
+# AI Translated
 msgid "Current hotend"
-msgstr ""
+msgstr "Jelenlegi fejegység"
 
+# AI Translated
 msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "A kilépő filament extruderének nullától számozott indexe. Bambu nyomtatóknál értéke -1, vagy a fúvóka azonosítója, ha a filament a rétegek között fúvókát vált."
 
+# AI Translated
 msgid "Next hotend"
-msgstr ""
+msgstr "Következő fejegység"
 
+# AI Translated
 msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "A belépő filament extruderének nullától számozott indexe. Bambu nyomtatóknál értéke -1, vagy a fúvóka azonosítója, ha a filament a rétegek között fúvókát vált."
 
+# AI Translated
 msgid "Next nozzle ID"
-msgstr ""
+msgstr "Következő fúvóka azonosítója"
 
+# AI Translated
 msgid "Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "A belépő filamenthez tartozó fúvóka indexe. Az index nullától számozott (az első fúvóka indexe 0)."
 
+# AI Translated
 msgid "Next filament ID"
-msgstr ""
+msgstr "Következő filament azonosítója"
 
+# AI Translated
 msgid "Index of the incoming filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "A belépő filament indexe. Az index nullától számozott (az első filament indexe 0)."
 
+# AI Translated
 msgid "Old extruder variant"
-msgstr ""
+msgstr "Régi extruder változat"
 
+# AI Translated
 msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr ""
+msgstr "A kilépő extruder fúvóka-térfogat változata."
 
+# AI Translated
 msgid "New extruder variant"
-msgstr ""
+msgstr "Új extruder változat"
 
+# AI Translated
 msgid "Nozzle-volume variant of the incoming extruder."
-msgstr ""
+msgstr "A belépő extruder fúvóka-térfogat változata."
 
+# AI Translated
 msgid "Filament nozzle-change retract length"
-msgstr ""
+msgstr "Filament visszahúzási hossza fúvókacserekor"
 
+# AI Translated
 msgid "Nozzle-change retraction length of the outgoing filament."
-msgstr ""
+msgstr "A kilépő filament visszahúzási hossza fúvókacserekor."
 
+# AI Translated
 msgid "New extruder retracted length"
-msgstr ""
+msgstr "Új extruder visszahúzott hossza"
 
+# AI Translated
 msgid "Currently parked retraction length of the incoming extruder."
-msgstr ""
+msgstr "A belépő extruder jelenleg parkolt visszahúzási hossza."
 
+# AI Translated
 msgid "Outer wall volumetric speed"
-msgstr ""
+msgstr "Külső fal volumetrikus sebessége"
 
+# AI Translated
 msgid "Volumetric speed used for the outer wall."
-msgstr ""
+msgstr "A külső falhoz használt volumetrikus sebesség."
 
 # AI Translated
 msgid "Relative e-axis"
@@ -21773,11 +21871,13 @@ msgstr "Szerszámcserék száma"
 msgid "The number of toolchanges throughout the print."
 msgstr "A szerszámcserék száma a nyomtatás során."
 
+# AI Translated
 msgid "Toolchange Z"
-msgstr ""
+msgstr "Szerszámcsere Z"
 
+# AI Translated
 msgid "The Z position during the toolchange."
-msgstr ""
+msgstr "A Z pozíció a szerszámcsere alatt."
 
 # AI Translated
 msgid "Old retract length"
@@ -21963,77 +22063,102 @@ msgstr "4. öblítési hossz"
 msgid "The fourth flush length."
 msgstr "A negyedik öblítési hossz."
 
+# AI Translated
 msgid "Flush length"
-msgstr ""
+msgstr "Öblítés hossza"
 
+# AI Translated
 msgid "Total flush length."
-msgstr ""
+msgstr "Az öblítés teljes hossza."
 
+# AI Translated
 msgid "Flush volumetric speeds"
-msgstr ""
+msgstr "Öblítés volumetrikus sebességei"
 
+# AI Translated
 msgid "Flush volumetric speeds for each filament."
-msgstr ""
+msgstr "Az öblítés volumetrikus sebességei az egyes filamentekhez."
 
+# AI Translated
 msgid "Flush temperatures"
-msgstr ""
+msgstr "Öblítési hőmérsékletek"
 
+# AI Translated
 msgid "Flush temperatures for each filament."
-msgstr ""
+msgstr "Az öblítési hőmérsékletek az egyes filamentekhez."
 
+# AI Translated
 msgid "Filament cooling before tower"
-msgstr ""
+msgstr "Filament hűtése a torony előtt"
 
+# AI Translated
 msgid "Avoid wipe perimeter"
-msgstr ""
+msgstr "Törlési kerület elkerülése"
 
+# AI Translated
 msgid "Whether travel should avoid the wipe perimeter."
-msgstr ""
+msgstr "A mozgásnak el kell-e kerülnie a törlési kerületet."
 
+# AI Translated
 msgid "Wipe avoidance X"
-msgstr ""
+msgstr "Törlés elkerülése X"
 
+# AI Translated
 msgid "X position used to avoid the wipe area."
-msgstr ""
+msgstr "A törlési terület elkerüléséhez használt X pozíció."
 
+# AI Translated
+# Needs human review: Placeholder name; check that interface (the tower layers between materials) reads as átmeneti réteg and matches the existing prime-tower interface wording.
 msgid "Prime tower interface"
-msgstr ""
+msgstr "Törlőtorony átmeneti rétege"
 
+# AI Translated
 msgid "Whether the current purge is for a prime-tower interface."
-msgstr ""
+msgstr "Az aktuális öblítés a törlőtorony átmeneti rétegéhez tartozik-e."
 
+# AI Translated
 msgid "Filament tower interface print temperature"
-msgstr ""
+msgstr "Filament tornyának átmeneti rétegéhez használt nyomtatási hőmérséklet"
 
+# AI Translated
 msgid "Print temperature used for the filament tower interface."
-msgstr ""
+msgstr "A filament tornyának átmeneti rétegéhez használt nyomtatási hőmérséklet."
 
-msgid "Wipe tower center X"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position X"
+msgstr "Törlőtorony várakozási pozíciója X"
 
+# AI Translated
 msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
-msgstr ""
+msgstr "A fúvóka törlőtorony melletti várakozási pozíciójának X koordinátája, 2 mm-re a torony szélén kívül."
 
-msgid "Wipe tower center Y"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position Y"
+msgstr "Törlőtorony várakozási pozíciója Y"
 
+# AI Translated
 msgid "Y coordinate of the nozzle's wipe-tower wait position."
-msgstr ""
+msgstr "A fúvóka törlőtorony melletti várakozási pozíciójának Y koordinátája."
 
-msgid "Wipe tower center position valid"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position valid"
+msgstr "Törlőtorony várakozási pozíciója érvényes"
 
+# AI Translated
 msgid "Whether the print has a wipe tower."
-msgstr ""
+msgstr "Van-e törlőtorony a nyomtatásban."
 
+# AI Translated
 msgid "Nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Fúvókahőmérsékletek filament szerint indexelve."
 
+# AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Első réteg fúvókahőmérsékletei filament szerint indexelve."
 
+# AI Translated
 msgid "Nozzle temperature initial layer"
-msgstr ""
+msgstr "Fúvókahőmérséklet a kezdő rétegnél"
 
 # AI Translated
 msgid "Extrusion role"
@@ -22231,8 +22356,9 @@ msgstr "A reguláris kifejezés fordítása sikertelen"
 msgid "Cannot apply logical operation to non-boolean operands."
 msgstr "Logikai művelet nem alkalmazható nem logikai operandusokra."
 
+# AI Translated
 msgid "This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison."
-msgstr ""
+msgstr "Ez az érték csak a G-code előállítása után ismert. Kiírható, de számításban vagy összehasonlításban nem használható."
 
 # AI Translated
 msgid "Trying to index a scalar variable"
@@ -36445,14 +36571,17 @@ msgstr "Csak a felhőbővítményeket lehet törölni és leiratkozni róluk."
 msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files."
 msgstr "A saját bővítményeidről nem lehet leiratkozni. A helyi fájlok eltávolításához használd a Törlés lehetőséget."
 
+# AI Translated
 msgid "Python interpreter is shutting down"
-msgstr ""
+msgstr "A Python-értelmező leáll"
 
+# AI Translated
 msgid "Plugin system is shutting down."
-msgstr ""
+msgstr "A bővítményrendszer leáll."
 
+# AI Translated
 msgid "Plugin permission request denied"
-msgstr ""
+msgstr "A bővítmény engedélykérése elutasítva"
 
 # AI Translated
 msgid "Profile has fewer than 2 points"
@@ -37187,6 +37316,20 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgstr[0] "A(z) %s filament a(z) %s helyre van téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható tartományát."
+#~ msgstr[1] "A(z) %s filamentek a(z) %s helyre vannak téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható tartományát."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgstr[0] "A(z) %s filament a(z) %s helyre van téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható magasságát."
+#~ msgstr[1] "A(z) %s filamentek a(z) %s helyre vannak téve, de a generált G-code útvonal túllépi a(z) %s nyomtatható magasságát."
 
 #~ msgid "Mirror along the X Axis"
 #~ msgstr "Tükrözés az X-tengely mentén"

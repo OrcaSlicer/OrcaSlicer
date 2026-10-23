@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 02:28+0800\n"
+"POT-Creation-Date: 2026-10-24 15:38-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -4590,8 +4590,9 @@ msgstr "스크립트 플러그인을 건너뛰었습니다."
 msgid "Script plugin finished."
 msgstr "스크립트 플러그인이 완료되었습니다."
 
+# AI Translated
 msgid "Script plugin started."
-msgstr ""
+msgstr "스크립트 플러그인이 시작되었습니다."
 
 msgid "Printer"
 msgstr "프린터"
@@ -5858,8 +5859,9 @@ msgstr "입력의 일부 확장자가 유효하지 않습니다"
 msgid "This parameter expects a valid template."
 msgstr "이 매개변수에는 유효한 템플릿이 필요합니다."
 
+# AI Translated
 msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
-msgstr ""
+msgstr "충돌 부피 형식이 잘못되었습니다. XxY, XxY, ... 또는 ZMIN..ZMAX;XxY, XxY, ... 형식을 사용하고, 여러 부피는 |로 구분하세요."
 
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
 msgstr "잘못된 패턴입니다. N, N#K 또는 항목당 선택적 #K가 있는 쉼표로 구분된 목록을 사용하세요. 예: 5, 5#2, 1,7,9, 5,9#2,18."
@@ -6403,15 +6405,17 @@ msgstr "오른쪽 노즐: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgid "Mirror object"
 msgstr "객체 반전"
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."
-msgstr ""
+msgstr "플레이트 %1%의 프라임 타워가 배치된 위치에 더 이상 맞지 않습니다. 플레이트에 남은 빈 공간이 없어 객체 위로 이동되었습니다."
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."
-msgstr ""
+msgstr "플레이트 %1%의 프라임 타워가 배치된 위치에 더 이상 맞지 않아 플레이트의 빈 공간으로 이동되었습니다."
 
 msgid "Tool move"
 msgstr "툴 이동"
@@ -6657,7 +6661,7 @@ msgid "Size:"
 msgstr "크기:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "레이어 %d, Z = %.2lf mm에서 G-code 경로 충돌이 발견되었습니다. 충돌하는 객체를 더 멀리 분리하세요 (%s <-> %s)."
 
@@ -6680,16 +6684,16 @@ msgid "Tool %d"
 msgstr "도구 %d"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr[0] "필라멘트 %s이(가) %s에 배치되었지만 생성된 G-code 경로가 %s의 출력 가능 범위를 초과합니다."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgstr[0] "필라멘트 %1%이(가) %2%에 배치되었지만 생성된 G-code 경로가 %2%의 출력 가능 범위를 초과합니다."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr[0] "필라멘트 %s이(가) %s에 배치되었지만 생성된 G-code 경로가 %s의 출력 가능 높이를 초과합니다."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgstr[0] "필라멘트 %1%이(가) %2%에 배치되었지만 생성된 G-code 경로가 %2%의 출력 가능 높이를 초과합니다."
 
 msgid "Open wiki for more information."
 msgstr "자세한 내용은 위키를 참조하세요."
@@ -7148,11 +7152,13 @@ msgstr "이름표 보기 (&L)"
 msgid "Show object labels in 3D scene."
 msgstr "3D 화면에 객체 이름표 표시"
 
+# AI Translated
 msgid "Show all collision volumes"
-msgstr ""
+msgstr "모든 충돌 부피 표시"
 
+# AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr ""
+msgstr "비어 있는 베드에서도 설정된 모든 충돌 부피를 전체 높이로 표시합니다."
 
 msgid "Show &Overhang"
 msgstr "오버행 보기 (&O)"
@@ -12426,11 +12432,13 @@ msgstr "이 아이콘이 있는 매개변수는 노즐별로 설정할 수 있�
 msgid "Click to reset all settings to the last saved preset."
 msgstr "모든 설정을 마지막으로 저장한 사전 설정으로 되돌립니다."
 
+# AI Translated
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr ""
+msgstr "이 정의에는 충돌 부피 구문이 포함되어 있습니다. G-code 검사와 이동 회피를 위해 툴헤드 충돌 부피에 추가하시겠습니까? 기존 베드 제외 구역은 유지됩니다."
 
+# AI Translated
 msgid "Add collision volumes"
-msgstr ""
+msgstr "충돌 부피 추가"
 
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "노즐 교체를 위해 프라임 타워가 필요합니다. 프라임 타워가 없으면 모델에 결함이 있을 수 있습니다. 프라임 타워를 비활성화하시겠습니까?"
@@ -14346,16 +14354,19 @@ msgstr ""
 "G-code를 %1%(으)로 내보내지 못했습니다.\n"
 "디스크가 가득 찼나요?"
 
+# AI Translated
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
-msgstr ""
+msgstr "G-code 이동이 압출기 %1%의 충돌 부피와 교차합니다. 프린터 충돌이 발생할 수 있습니다."
 
+# AI Translated
 msgid "A G-code move intersects a collision volume. This may cause a printer collision."
-msgstr ""
+msgstr "G-code 이동이 충돌 부피와 교차합니다. 프린터 충돌이 발생할 수 있습니다."
 
+# AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr ""
+msgstr "교차하는 이동은 G-code의 %1%번째 줄에 있습니다. 호밍 후에는 Z 위치를 알 수 없으므로 Orca가 모든 높이를 기준으로 검사했습니다."
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -14674,13 +14685,15 @@ msgstr ""
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% 이(가) 제외 영역에 너무 가깝습니다. 출력 시 충돌이 발생 할 수 있습니다."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
-msgstr ""
+msgstr "%1%이(가) 사용 가능한 모든 압출기의 충돌 부피와 교차합니다."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
-msgstr ""
+msgstr "%1%이(가) 압출기 %2%의 충돌 부피와 교차합니다."
 
 #, boost-format
 msgid "%1% is too close to others, and collisions may be caused."
@@ -15083,35 +15096,46 @@ msgstr "병렬 프린트헤드 개수별 베드 제외 영역을 순서대로 �
 msgid "Excluded bed area"
 msgstr "베드 제외 구역"
 
+# AI Translated
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
-msgstr ""
+msgstr "XY 평면의 출력 불가 영역입니다. 예를 들어 X1 시리즈 프린터는 필라멘트 교체 시 필라멘트를 자르기 위해 왼쪽 앞 모서리를 사용합니다. 영역은 \"XxY, XxY, ...\" 형식의 다각형으로 표현합니다. 재료와 모델 배치는 제한하지만 장치 이동은 허용합니다. G-code 검사와 이동 회피를 위한 툴헤드 충돌 부피는 별도로 설정하세요."
 
+# AI Translated
 msgid "Toolhead collision volumes"
-msgstr ""
+msgstr "툴헤드 충돌 부피"
 
+# AI Translated
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "모델 및 생성된 재료의 제외, G-code 검사, 이동 회피에 사용되는 충돌 부피입니다. 전체 높이 다각형에는 \"XxY, XxY, ...\", Z 범위가 제한된 부피에는 \"ZMIN..ZMAX;XxY, XxY, ...\"를 사용합니다. 여러 부피는 \"|\"로 구분합니다. 이 부피는 베드 제외 구역에 추가됩니다. 자동 배치는 볼록하지 않은 부피의 경계 상자를 보수적으로 사용합니다."
 
+# AI Translated
 msgid "Collision volume behavior"
-msgstr ""
+msgstr "충돌 부피 동작"
 
+# AI Translated
 msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
-msgstr ""
+msgstr "모든 노즐이 동일한 충돌 부피를 사용할지, 각 노즐의 XY 오프셋을 기준으로 툴헤드 상대 부피를 계산할지, 압출기마다 독립적인 부피를 설정할지 선택합니다. 개별 모드에서는 압출기 페이지에서 각 압출기를 선택하여 해당 부피를 설정합니다."
 
+# AI Translated
+# Needs human review: Option of the collision volume behavior dropdown (all nozzles use the same volumes); check it reads right there.
 msgid "Shared"
-msgstr ""
+msgstr "공유"
 
+# AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
-msgstr ""
+msgstr "툴헤드 상대(노즐 오프셋)"
 
+# AI Translated
 msgid "Individual per extruder"
-msgstr ""
+msgstr "압출기별 개별"
 
+# AI Translated
 msgid "Extruder collision volumes"
-msgstr ""
+msgstr "압출기 충돌 부피"
 
+# AI Translated
 msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "개별 모드에서 이 압출기만 사용하는 충돌 부피입니다. 공유 충돌 부피와 동일한 다각형 및 선택적 Z 범위 형식을 사용합니다. 이 압출기에 충돌 부피가 없으면 비워 두세요. 자동 배치는 볼록하지 않은 부피의 경계 상자를 보수적으로 사용합니다."
 
 msgid "Bed custom texture"
 msgstr "사용자 정의 베드 텍스처"
@@ -17808,6 +17832,8 @@ msgstr "슬라이싱 후 객체의 정확한 z 높이를 얻으려면 이 옵션
 msgid "Arc fitting"
 msgstr "원호 맞춤"
 
+# AI Translated
+# Needs human review: Option names (Disabled/Enabled/Sparse infill only) should match the dropdown labels.
 msgid ""
 "Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while sparse infill, supports and the wipe tower use fixed tolerances.\n"
 " - Disabled: only straight G1 moves are used.\n"
@@ -17816,12 +17842,19 @@ msgid ""
 "\n"
 "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
+"G2 및 G3 원호 이동을 툴 경로에 맞춥니다. 벽과 표면은 해상도 범위 내에서 맞추고, 드문 채우기, 서포트, 프라임 타워는 고정된 허용 오차를 사용합니다.\n"
+" - 비활성화: 직선 G1 이동만 사용합니다.\n"
+" - 활성화: 모든 툴 경로에 원호를 맞춥니다.\n"
+" - 드문 채우기만: 드문 채우기에만 원호를 맞추므로, 벽과 표면에 영향을 주지 않고 곡선 채우기 패턴의 G-code를 줄일 수 있습니다.\n"
+"\n"
+"참고: Klipper 장치에서는 비활성화를 권장합니다. Klipper는 원호를 다시 선분으로 분할하므로 표면 품질이 낮아지고 출력 시간이 늘어날 수 있습니다."
 
 msgid "Enabled"
 msgstr "활성화"
 
+# AI Translated
 msgid "Sparse infill only"
-msgstr ""
+msgstr "드문 채우기만"
 
 msgid "Add line number"
 msgstr "라인 번호 추가"
@@ -19354,10 +19387,13 @@ msgstr "이 옵션을 사용하면 내부 재봉선의 깊이에 따라 뒤로 �
 msgid "Seam gap"
 msgstr "재봉선 간격"
 
+# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
+"폐쇄 루프 압출에서 재봉선의 가시성을 줄이기 위해 루프가 중단되고 지정된 양만큼 짧아집니다.\n"
+"이 양은 mm로 지정하거나 노즐 직경의 백분율로 지정할 수 있습니다. 이 매개 변수의 기본값은 10%입니다."
 
 msgid "Scarf joint seam (beta)"
 msgstr "스카프 조인트 재봉선(베타)"
@@ -21094,14 +21130,17 @@ msgstr "이 옵션은 좁은 꽉찬 내부 채우기 영역을 자동으로 감�
 msgid "invalid value "
 msgstr "잘못된 값 "
 
+# AI Translated
 msgid "Invalid collision volume definition."
-msgstr ""
+msgstr "충돌 부피 정의가 잘못되었습니다."
 
+# AI Translated
 msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
-msgstr ""
+msgstr "툴헤드 상대 충돌 부피를 사용하려면 모든 압출기에 노즐 오프셋이 필요합니다."
 
+# AI Translated
 msgid "Invalid per-extruder collision volume definition."
-msgstr ""
+msgstr "압출기별 충돌 부피 정의가 잘못되었습니다."
 
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "나선형 꽃병 모드가 활성화된 경우 유효하지 않은 값: "
@@ -21688,11 +21727,13 @@ msgstr "프라임 타워 총 비용"
 msgid "Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings."
 msgstr "프라임 타워에서 낭비된 재료의 총 비용입니다. 필라멘트 설정의 filament_cost 값으로 계산됩니다."
 
+# AI Translated
 msgid "Total wipe tower filament"
-msgstr ""
+msgstr "프라임 타워 필라멘트 총량"
 
+# AI Translated
 msgid "Total length of filament used on the wipe tower, in mm."
-msgstr ""
+msgstr "프라임 타워에 사용된 필라멘트의 총 길이(mm)입니다."
 
 msgid "Used filament"
 msgstr "사용된 필라멘트"
@@ -21916,8 +21957,9 @@ msgstr "슬라이싱에 사용되는 실제 프린터의 이름입니다."
 msgid "Layer number"
 msgstr "레이어 번호"
 
+# AI Translated
 msgid "Index of the current layer. The index is zero-based (first layer has index 0). Before the first layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1)."
-msgstr ""
+msgstr "현재 레이어의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 레이어의 인덱스는 0). 첫 번째 레이어가 시작되기 전에는 -1입니다. 압출 역할 변경 G-code에서는 인덱스가 1부터 시작합니다(첫 번째 레이어의 인덱스는 1)."
 
 msgid "Layer Z"
 msgstr "레이어 z"
@@ -21934,181 +21976,239 @@ msgstr "출력 베드 위의 마지막 레이어 높이입니다."
 msgid "Filament extruder ID"
 msgstr "필라멘트 압출기 ID"
 
+# AI Translated
 msgid "In filament start G-code, the index of the filament that is being loaded. In filament end G-code, the index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 wipe tower does the tool change. Machine end G-code gets the value from the last filament end G-code at the end of the print."
-msgstr ""
+msgstr "필라멘트 시작 G-code에서는 로드 중인 필라멘트의 인덱스이고, 필라멘트 종료 G-code에서는 언로드 중인 필라멘트의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 필라멘트의 인덱스는 0). 툴 교체 시 필라멘트 종료 G-code에는 대신 압출기 인덱스가 전달됩니다. 단, 타입 1 프라임 타워가 툴 교체를 수행하는 경우는 예외입니다. 장치 종료 G-code에는 출력 종료 시 마지막 필라멘트 종료 G-code의 값이 전달됩니다."
 
+# AI Translated
 msgid "Current filament ID"
-msgstr ""
+msgstr "현재 필라멘트 ID"
 
+# AI Translated
 msgid "Index of the currently active filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "현재 활성화된 필라멘트의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 필라멘트의 인덱스는 0)."
 
+# AI Translated
 msgid "Current extruder ID"
-msgstr ""
+msgstr "현재 압출기 ID"
 
+# AI Translated
 msgid "Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "현재 활성화된 물리 압출기의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 압출기의 인덱스는 0)."
 
+# AI Translated
 msgid "Current nozzle ID"
-msgstr ""
+msgstr "현재 노즐 ID"
 
+# AI Translated
 msgid "Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "현재 활성화된 노즐의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 노즐의 인덱스는 0)."
 
+# AI Translated
 msgid "Nozzle diameters"
-msgstr ""
+msgstr "노즐 직경"
 
+# AI Translated
 msgid "Nozzle diameters indexed by nozzle ID."
-msgstr ""
+msgstr "노즐 ID로 인덱싱된 노즐 직경입니다."
 
+# AI Translated
 msgid "Nozzle volume types"
-msgstr ""
+msgstr "노즐 부피 유형"
 
+# AI Translated
 msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr ""
+msgstr "노즐 ID로 인덱싱된 노즐 부피 변형입니다."
 
+# AI Translated
 msgid "Retraction distance used when cutting filament."
-msgstr ""
+msgstr "필라멘트 절단 시 사용하는 후퇴 거리입니다."
 
+# AI Translated
 msgid "Long retraction when cut"
-msgstr ""
+msgstr "절단 시 긴 후퇴"
 
+# AI Translated
 msgid "Whether long retraction is used when cutting filament."
-msgstr ""
+msgstr "필라멘트 절단 시 긴 후퇴를 사용할지 여부입니다."
 
+# AI Translated
 msgid "Most-used physical extruder ID"
-msgstr ""
+msgstr "가장 많이 사용된 물리 압출기 ID"
 
+# AI Translated
 msgid "Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "현재 레이어에서 가장 자주 사용되는 물리 압출기의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 압출기의 인덱스는 0)."
 
+# AI Translated
 msgid "Current Y acceleration limit"
-msgstr ""
+msgstr "현재 Y 가속도 제한"
 
+# AI Translated
 msgid "Current Y-axis acceleration limit after the bed-mass adjustment."
-msgstr ""
+msgstr "베드 질량 보정 후의 현재 Y축 가속도 제한입니다."
 
+# AI Translated
 msgid "Current accumulated mass"
-msgstr ""
+msgstr "현재 누적 질량"
 
+# AI Translated
 msgid "Accumulated printed mass at the current layer."
-msgstr ""
+msgstr "현재 레이어까지 출력된 누적 질량입니다."
 
+# AI Translated
 msgid "Current layer mass"
-msgstr ""
+msgstr "현재 레이어 질량"
 
+# AI Translated
 msgid "Printed mass of the previous layer."
-msgstr ""
+msgstr "이전 레이어의 출력 질량입니다."
 
+# AI Translated
 msgid "Current physical extruder ID"
-msgstr ""
+msgstr "현재 물리 압출기 ID"
 
+# AI Translated
 msgid "Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "현재 레이어에서 활성화된 물리 압출기의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 압출기의 인덱스는 0)."
 
+# AI Translated
 msgid "Timelapse position X"
-msgstr ""
+msgstr "타임랩스 위치 X"
 
+# AI Translated
 msgid "Selected X position for timelapse capture."
-msgstr ""
+msgstr "타임랩스 촬영에 선택된 X 위치입니다."
 
+# AI Translated
 msgid "Timelapse position Y"
-msgstr ""
+msgstr "타임랩스 위치 Y"
 
+# AI Translated
 msgid "Selected Y position for timelapse capture."
-msgstr ""
+msgstr "타임랩스 촬영에 선택된 Y 위치입니다."
 
+# AI Translated
 msgid "Has timelapse safe position"
-msgstr ""
+msgstr "타임랩스 안전 위치 있음"
 
+# AI Translated
 msgid "Whether a safe timelapse position was found."
-msgstr ""
+msgstr "타임랩스 안전 위치를 찾았는지 여부입니다."
 
+# AI Translated
 msgid "Timelapse inline photo"
-msgstr ""
+msgstr "타임랩스 인라인 사진"
 
+# AI Translated
 msgid "Whether the timelapse photo is captured at the inline position."
-msgstr ""
+msgstr "타임랩스 사진을 인라인 위치에서 촬영하는지 여부입니다."
 
+# AI Translated
 msgid "Farthest-point timelapse enabled"
-msgstr ""
+msgstr "최원점 타임랩스 사용"
 
+# AI Translated
 msgid "Whether farthest-point timelapse positioning is active."
-msgstr ""
+msgstr "최원점 타임랩스 위치 지정이 활성화되어 있는지 여부입니다."
 
+# AI Translated
+# Needs human review: Placeholder name; 'clear' read as unobstructed. Check against how the timelapse move is checked.
 msgid "Clear to X0"
-msgstr ""
+msgstr "X0까지 비어 있음"
 
+# AI Translated
+# Needs human review: 'Clear to X0' read as unobstructed path to X0; check the intended meaning.
 msgid "Whether the timelapse move is clear to X0."
-msgstr ""
+msgstr "타임랩스 이동이 X0까지 장애물 없이 가능한지 여부입니다."
 
 # AI Translated
 msgid "Previous extruder"
 msgstr "이전 압출기"
 
+# AI Translated
 msgid "Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."
-msgstr ""
+msgstr "언로드 중인 필라멘트의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 필라멘트의 인덱스는 0). 출력 시작 시 아직 로드된 필라멘트가 없으면 -1입니다."
 
 # AI Translated
 msgid "Next extruder"
 msgstr "다음 압출기"
 
+# AI Translated
 msgid "Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "로드 중인 필라멘트의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 필라멘트의 인덱스는 0)."
 
+# AI Translated
 msgid "Current hotend"
-msgstr ""
+msgstr "현재 핫엔드"
 
+# AI Translated
 msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "교체 전 필라멘트의 압출기 인덱스(0부터 시작)입니다. Bambu 프린터에서는 -1이며, 레이어를 넘어 필라멘트가 노즐 간에 이동하는 경우에는 노즐 ID입니다."
 
+# AI Translated
 msgid "Next hotend"
-msgstr ""
+msgstr "다음 핫엔드"
 
+# AI Translated
 msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "교체 후 필라멘트의 압출기 인덱스(0부터 시작)입니다. Bambu 프린터에서는 -1이며, 레이어를 넘어 필라멘트가 노즐 간에 이동하는 경우에는 노즐 ID입니다."
 
+# AI Translated
 msgid "Next nozzle ID"
-msgstr ""
+msgstr "다음 노즐 ID"
 
+# AI Translated
 msgid "Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "교체 후 필라멘트에 연결된 노즐의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 노즐의 인덱스는 0)."
 
+# AI Translated
 msgid "Next filament ID"
-msgstr ""
+msgstr "다음 필라멘트 ID"
 
+# AI Translated
 msgid "Index of the incoming filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "교체 후 필라멘트의 인덱스입니다. 인덱스는 0부터 시작합니다(첫 번째 필라멘트의 인덱스는 0)."
 
+# AI Translated
 msgid "Old extruder variant"
-msgstr ""
+msgstr "이전 압출기 변형"
 
+# AI Translated
 msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr ""
+msgstr "교체 전 압출기의 노즐 부피 변형입니다."
 
+# AI Translated
 msgid "New extruder variant"
-msgstr ""
+msgstr "새 압출기 변형"
 
+# AI Translated
 msgid "Nozzle-volume variant of the incoming extruder."
-msgstr ""
+msgstr "교체 후 압출기의 노즐 부피 변형입니다."
 
+# AI Translated
 msgid "Filament nozzle-change retract length"
-msgstr ""
+msgstr "필라멘트 노즐 교체 후퇴 길이"
 
+# AI Translated
 msgid "Nozzle-change retraction length of the outgoing filament."
-msgstr ""
+msgstr "교체 전 필라멘트의 노즐 교체 후퇴 길이입니다."
 
+# AI Translated
 msgid "New extruder retracted length"
-msgstr ""
+msgstr "새 압출기 후퇴된 길이"
 
+# AI Translated
 msgid "Currently parked retraction length of the incoming extruder."
-msgstr ""
+msgstr "교체 후 압출기에 현재 대기 중인 후퇴 길이입니다."
 
+# AI Translated
 msgid "Outer wall volumetric speed"
-msgstr ""
+msgstr "외벽 압출 속도"
 
+# AI Translated
 msgid "Volumetric speed used for the outer wall."
-msgstr ""
+msgstr "외벽에 사용되는 압출 속도입니다."
 
 # AI Translated
 msgid "Relative e-axis"
@@ -22126,11 +22226,13 @@ msgstr "툴 체인지 횟수"
 msgid "The number of toolchanges throughout the print."
 msgstr "출력 전체에서의 툴 체인지 횟수입니다."
 
+# AI Translated
 msgid "Toolchange Z"
-msgstr ""
+msgstr "툴 체인지 Z"
 
+# AI Translated
 msgid "The Z position during the toolchange."
-msgstr ""
+msgstr "툴 체인지 중의 Z 위치입니다."
 
 # AI Translated
 msgid "Old retract length"
@@ -22316,77 +22418,103 @@ msgstr "플러시 길이 4"
 msgid "The fourth flush length."
 msgstr "네 번째 플러시 길이입니다."
 
+# AI Translated
 msgid "Flush length"
-msgstr ""
+msgstr "플러시 길이"
 
+# AI Translated
 msgid "Total flush length."
-msgstr ""
+msgstr "전체 플러시 길이입니다."
 
+# AI Translated
 msgid "Flush volumetric speeds"
-msgstr ""
+msgstr "플러시 압출 속도"
 
+# AI Translated
 msgid "Flush volumetric speeds for each filament."
-msgstr ""
+msgstr "각 필라멘트의 플러시 압출 속도입니다."
 
+# AI Translated
 msgid "Flush temperatures"
-msgstr ""
+msgstr "플러시 온도"
 
+# AI Translated
 msgid "Flush temperatures for each filament."
-msgstr ""
+msgstr "각 필라멘트의 플러시 온도입니다."
 
+# AI Translated
 msgid "Filament cooling before tower"
-msgstr ""
+msgstr "타워 전 필라멘트 냉각"
 
+# AI Translated
 msgid "Avoid wipe perimeter"
-msgstr ""
+msgstr "노즐 청소 둘레 회피"
 
+# AI Translated
 msgid "Whether travel should avoid the wipe perimeter."
-msgstr ""
+msgstr "이동 시 노즐 청소 둘레를 피할지 여부입니다."
 
+# AI Translated
 msgid "Wipe avoidance X"
-msgstr ""
+msgstr "노즐 청소 회피 X"
 
+# AI Translated
 msgid "X position used to avoid the wipe area."
-msgstr ""
+msgstr "노즐 청소 영역을 피하는 데 사용되는 X 위치입니다."
 
+# AI Translated
 msgid "Prime tower interface"
-msgstr ""
+msgstr "프라임 타워 인터페이스"
 
+# AI Translated
 msgid "Whether the current purge is for a prime-tower interface."
-msgstr ""
+msgstr "현재 플러시가 프라임 타워 인터페이스용인지 여부입니다."
 
+# AI Translated
 msgid "Filament tower interface print temperature"
-msgstr ""
+msgstr "필라멘트 타워 인터페이스 출력 온도"
 
+# AI Translated
 msgid "Print temperature used for the filament tower interface."
-msgstr ""
+msgstr "필라멘트 타워 인터페이스에 사용되는 출력 온도입니다."
 
-msgid "Wipe tower center X"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position X"
+msgstr "프라임 타워 대기 위치 X"
 
+# AI Translated
+# Needs human review: See 'Wipe tower center X': description does not match the label.
 msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
-msgstr ""
+msgstr "노즐의 프라임 타워 대기 위치의 X 좌표로, 타워 가장자리에서 2 mm 바깥쪽입니다."
 
-msgid "Wipe tower center Y"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position Y"
+msgstr "프라임 타워 대기 위치 Y"
 
+# AI Translated
+# Needs human review: See 'Wipe tower center Y': description does not match the label.
 msgid "Y coordinate of the nozzle's wipe-tower wait position."
-msgstr ""
+msgstr "노즐의 프라임 타워 대기 위치의 Y 좌표입니다."
 
-msgid "Wipe tower center position valid"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position valid"
+msgstr "프라임 타워 대기 위치 유효"
 
+# AI Translated
 msgid "Whether the print has a wipe tower."
-msgstr ""
+msgstr "출력에 프라임 타워가 있는지 여부입니다."
 
+# AI Translated
 msgid "Nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "필라멘트별 노즐 온도입니다."
 
+# AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "필라멘트별 첫 번째 레이어 노즐 온도입니다."
 
+# AI Translated
 msgid "Nozzle temperature initial layer"
-msgstr ""
+msgstr "초기 레이어 노즐 온도"
 
 # AI Translated
 msgid "Extrusion role"
@@ -22584,8 +22712,9 @@ msgstr "정규식 컴파일에 실패했습니다"
 msgid "Cannot apply logical operation to non-boolean operands."
 msgstr "불리언이 아닌 피연산자에는 논리 연산을 적용할 수 없습니다."
 
+# AI Translated
 msgid "This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison."
-msgstr ""
+msgstr "이 값은 G-code가 생성된 후에만 알 수 있습니다. 출력할 수는 있지만 계산이나 비교에는 사용할 수 없습니다."
 
 # AI Translated
 msgid "Trying to index a scalar variable"
@@ -36789,14 +36918,17 @@ msgstr "클라우드 플러그인만 삭제하고 구독을 취소할 수 있습
 msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files."
 msgstr "내 플러그인은 구독을 취소할 수 없습니다. 로컬 파일을 제거하려면 삭제를 사용하세요."
 
+# AI Translated
 msgid "Python interpreter is shutting down"
-msgstr ""
+msgstr "Python 인터프리터를 종료하는 중입니다"
 
+# AI Translated
 msgid "Plugin system is shutting down."
-msgstr ""
+msgstr "플러그인 시스템을 종료하는 중입니다."
 
+# AI Translated
 msgid "Plugin permission request denied"
-msgstr ""
+msgstr "플러그인 권한 요청이 거부되었습니다"
 
 # AI Translated
 msgid "Profile has fewer than 2 points"
@@ -37532,6 +37664,18 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgstr[0] "필라멘트 %s이(가) %s에 배치되었지만 생성된 G-code 경로가 %s의 출력 가능 범위를 초과합니다."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgstr[0] "필라멘트 %s이(가) %s에 배치되었지만 생성된 G-code 경로가 %s의 출력 가능 높이를 초과합니다."
 
 #~ msgid "Mirror along the X Axis"
 #~ msgstr "X축을 따라 반전"

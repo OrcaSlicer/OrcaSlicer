@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 02:28+0800\n"
+"POT-Creation-Date: 2026-10-24 15:38-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -4550,8 +4550,9 @@ msgstr "Плагин-скрипт пропущен."
 msgid "Script plugin finished."
 msgstr "Плагин-скрипт завершил работу."
 
+# AI Translated
 msgid "Script plugin started."
-msgstr ""
+msgstr "Плагин-скрипт запущен."
 
 msgid "Printer"
 msgstr "Принтер"
@@ -5822,8 +5823,9 @@ msgstr "Недопустимое расширение на входе"
 msgid "This parameter expects a valid template."
 msgstr "Этот параметр требует корректного шаблона."
 
+# AI Translated
 msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
-msgstr ""
+msgstr "Неверный формат объёма столкновения. Используйте XxY, XxY, ... или ZMIN..ZMAX;XxY, XxY, ... и разделяйте несколько объёмов символом |."
 
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
 msgstr "Недопустимый шаблон. Используйте N, N#K или список, разделённый запятыми, с необязательным #K для каждой записи. Примеры: 5, 5#2, 1,7,9, 5,9#2,18."
@@ -6387,15 +6389,17 @@ msgstr "Правое сопло: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgid "Mirror object"
 msgstr "Отразить модель"
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."
-msgstr ""
+msgstr "Черновая башня на столе %1% больше не помещается на выбранном месте. На столе не осталось свободного места для неё, поэтому она перемещена на объект."
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."
-msgstr ""
+msgstr "Черновая башня на столе %1% больше не помещается на выбранном месте, поэтому она перемещена на свободное место на столе."
 
 msgid "Tool move"
 msgstr "Инструмент перемещения"
@@ -6639,7 +6643,7 @@ msgstr "Объём:"
 msgid "Size:"
 msgstr "Размер:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "В G-code на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
 
@@ -6660,27 +6664,19 @@ msgstr "Печать двумя и более прутками TPU не подд
 msgid "Tool %d"
 msgstr "%d"
 
-# Подставляется номер материала (по порядку), предыдущая 
-# AI Translated
-# Needs human review: %s is 'left nozzle' (catalog renders it in genitive, 'левого сопла') or 'Tool %d' (catalog renders it as a bare number); sentence is built with 'для %s'. Check the wording for both.
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr[0] "Материал %s назначен для %s, но итоговый путь G-code выходит за область печати для %s."
-msgstr[1] "Материалы %s назначены для %s, но итоговый путь G-code выходит за область печати для %s."
-msgstr[2] "Материалы %s назначены для %s, но итоговый путь G-code выходит за область печати для %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgstr[0] "Материал %1% назначен на %2%, но итоговый G-code выходит за его область печати."
+msgstr[1] "Материалы %1% назначены на %2%, но итоговый G-code выходит за его область печати."
+msgstr[2] "Материалы %1% назначены на %2%, но итоговый G-code выходит за его область печати."
 
-# Возможно, какая-то специфичная проверка для тулченджеров, на профиле H2D при
-# превышении высоты через подъём при откате оно не выводится. Последнее
-# предложение – костыль для обхода кривизны системы локализации.
-# AI Translated
-# Needs human review: %s is 'left nozzle' (catalog renders it in genitive, 'левого сопла') or 'Tool %d' (catalog renders it as a bare number); sentence is built with 'для %s'. Check the wording for both.
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr[0] "Материал %s назначен для %s, но итоговый путь G-code выходит за допустимую высоту печати для %s."
-msgstr[1] "Материалы %s назначены для %s, но итоговый путь G-code выходит за допустимую высоту печати для %s."
-msgstr[2] "Материалы %s назначены для %s, но итоговый путь G-code выходит за допустимую высоту печати для %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgstr[0] "Материал %1% назначен на %2%, но итоговый G-code выходит за его предел высоты печати."
+msgstr[1] "Материалы %1% назначены на %2%, но итоговый G-code выходит за его предел высоты печати."
+msgstr[2] "Материалы %1% назначены на %2%, но итоговый G-code выходит за его предел высоты печати."
 
 msgid "Open wiki for more information."
 msgstr "Подробнее на Вики."
@@ -7156,11 +7152,13 @@ msgstr "Показать &имена файлов"
 msgid "Show object labels in 3D scene."
 msgstr "Показать имена моделей в 3D-сцене."
 
+# AI Translated
 msgid "Show all collision volumes"
-msgstr ""
+msgstr "Показать все объёмы столкновения"
 
+# AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr ""
+msgstr "Показывать полную высоту каждого настроенного объёма столкновения, в том числе на пустом столе."
 
 msgid "Show &Overhang"
 msgstr "Подсветить &нависания"
@@ -12257,11 +12255,13 @@ msgstr "Параметры с этим значком можно настраи�
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Сбросить все изменения"
 
+# AI Translated
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr ""
+msgstr "Это определение содержит синтаксис объёмов столкновения. Добавить его к объёмам столкновения печатающей головы для проверки G-code и обхода при перемещениях? Существующая область исключения будет сохранена."
 
+# AI Translated
 msgid "Add collision volumes"
-msgstr ""
+msgstr "Добавить объёмы столкновения"
 
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "Для смены сопла требуется черновая башня. Без черновой башни на модели могут появиться дефекты. Вы действительно хотите отключить черновую башню?"
@@ -14130,16 +14130,19 @@ msgstr ""
 "Не удалось экспортировать G-code в %1%.\n"
 "Возможно, диск заполнен?"
 
+# AI Translated
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
-msgstr ""
+msgstr "Перемещение в G-code пересекает объём столкновения экструдера %1%. Это может привести к столкновению в принтере."
 
+# AI Translated
 msgid "A G-code move intersects a collision volume. This may cause a printer collision."
-msgstr ""
+msgstr "Перемещение в G-code пересекает объём столкновения. Это может привести к столкновению в принтере."
 
+# AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr ""
+msgstr "Пересекающее перемещение находится в строке %1% G-code. Его положение по Z после возврата в начальную позицию неизвестно, поэтому Orca проверила его для всех высот."
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -14444,13 +14447,15 @@ msgstr ""
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% находится слишком близко к области исключения, что может привести к столкновению при печати."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
-msgstr ""
+msgstr "%1% пересекает объёмы столкновения всех доступных экструдеров."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
-msgstr ""
+msgstr "%1% пересекает объём столкновения экструдера %2%."
 
 #, boost-format
 msgid "%1% is too close to others, and collisions may be caused."
@@ -14833,35 +14838,46 @@ msgstr "Список исключаемых областей стола, упо�
 msgid "Excluded bed area"
 msgstr "Область исключения"
 
+# AI Translated
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
-msgstr ""
+msgstr "Непечатаемая область в плоскости XY. Например, принтеры серии X1 используют передний левый угол для обрезки материала при его смене. Область задаётся как многоугольник в формате «XxY, XxY, ...». Она ограничивает размещение материала и моделей, но разрешает перемещения машины. Объёмы столкновения печатающей головы для проверки G-code и обхода при перемещениях настраиваются отдельно."
 
+# AI Translated
 msgid "Toolhead collision volumes"
-msgstr ""
+msgstr "Объёмы столкновения печатающей головы"
 
+# AI Translated
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Объёмы столкновения, используемые для исключения моделей и генерируемого материала, проверки G-code и обхода при перемещениях. Для многоугольника на всю высоту используйте «XxY, XxY, ...», для объёма, ограниченного по Z, — «ZMIN..ZMAX;XxY, XxY, ...». Несколько объёмов разделяйте символом «|». Эти объёмы дополняют область исключения. Автоматическая расстановка для невыпуклого объёма консервативно использует его ограничивающий прямоугольник."
 
+# AI Translated
 msgid "Collision volume behavior"
-msgstr ""
+msgstr "Поведение объёмов столкновения"
 
+# AI Translated
 msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
-msgstr ""
+msgstr "Выберите, использовать ли для всех сопел одинаковые объёмы столкновения, вычислять объёмы относительно печатающей головы по смещению XY каждого сопла или настраивать независимые объёмы для каждого экструдера. В индивидуальном режиме выберите каждый экструдер на странице «Экструдер», чтобы настроить его объёмы."
 
+# AI Translated
+# Needs human review: Short dropdown option for collision volume behavior (same volumes for all nozzles); check it reads right in that dropdown.
 msgid "Shared"
-msgstr ""
+msgstr "Общие"
 
+# AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
-msgstr ""
+msgstr "Относительно печатающей головы (смещения сопел)"
 
+# AI Translated
 msgid "Individual per extruder"
-msgstr ""
+msgstr "Отдельно для каждого экструдера"
 
+# AI Translated
 msgid "Extruder collision volumes"
-msgstr ""
+msgstr "Объёмы столкновения экструдера"
 
+# AI Translated
 msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Объёмы столкновения, используемые только этим экструдером в индивидуальном режиме. Используйте тот же формат многоугольника и необязательного диапазона Z, что и для общих объёмов столкновения. Оставьте пустым, если у этого экструдера не должно быть объёмов столкновения. Автоматическая расстановка для невыпуклого объёма консервативно использует его ограничивающий прямоугольник."
 
 msgid "Bed custom texture"
 msgstr "Пользовательская текстура стола"
@@ -17604,6 +17620,8 @@ msgstr "Включите этот параметр, чтобы получить 
 msgid "Arc fitting"
 msgstr "Аппроксимация дугами"
 
+# AI Translated
+# Needs human review: Glossary renders Infill and Sparse infill both as 'Заполнение'; 'разреженное заполнение' used here for the sparse sense; check against the catalog's usage.
 msgid ""
 "Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while sparse infill, supports and the wipe tower use fixed tolerances.\n"
 " - Disabled: only straight G1 moves are used.\n"
@@ -17612,12 +17630,20 @@ msgid ""
 "\n"
 "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
+"Аппроксимирует траектории дугами G2 и G3. Стенки и поверхности аппроксимируются в пределах разрешения, а заполнение, поддержки и черновая башня используют фиксированные допуски.\n"
+" - Отключено: используются только прямые перемещения G1.\n"
+" - Включено: дуги применяются ко всем траекториям.\n"
+" - Только разреженное заполнение: дуги применяются только к разреженному заполнению, что сокращает G-code изогнутых шаблонов заполнения, не затрагивая стенки и поверхности.\n"
+"\n"
+"Примечание: для машин с Klipper рекомендуется «Отключено». Klipper снова разбивает дуги на отрезки, что снижает качество поверхности и может увеличить время печати."
 
 msgid "Enabled"
 msgstr "Включено"
 
+# AI Translated
+# Needs human review: Glossary renders Infill and Sparse infill both as 'Заполнение'; 'разреженное заполнение' used here for the sparse sense; check against the catalog's usage.
 msgid "Sparse infill only"
-msgstr ""
+msgstr "Только разреженное заполнение"
 
 msgid "Add line number"
 msgstr "Нумеровать строки"
@@ -19190,10 +19216,13 @@ msgstr "Ступенчато смещать швы внутренних пери
 msgid "Seam gap"
 msgstr "Зазор шва"
 
+# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
+"Чтобы уменьшить заметность шва при экструзии замкнутого контура, контур прерывается и укорачивается на заданную величину.\n"
+"Эту величину можно указать в миллиметрах или в процентах от диаметра сопла. Значение по умолчанию — 10%."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Косой шов (beta)"
@@ -21022,14 +21051,17 @@ msgstr "Обнаружение узких участков сплошного з
 msgid "invalid value "
 msgstr "недопустимое значение "
 
+# AI Translated
 msgid "Invalid collision volume definition."
-msgstr ""
+msgstr "Неверное определение объёма столкновения."
 
+# AI Translated
 msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
-msgstr ""
+msgstr "Если включены объёмы столкновения относительно печатающей головы, для каждого экструдера требуется смещение сопла."
 
+# AI Translated
 msgid "Invalid per-extruder collision volume definition."
-msgstr ""
+msgstr "Неверное определение объёма столкновения для экструдера."
 
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Недопустимое значение при включенном режиме спиральной вазы: "
@@ -21629,11 +21661,13 @@ msgstr "Затраты на черновую башню"
 msgid "Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings."
 msgstr "Стоимость потерь на печати черновой башни, рассчитанная на основе стоимости 1 кг (filament_cost, задаётся в настройках материала)."
 
+# AI Translated
 msgid "Total wipe tower filament"
-msgstr ""
+msgstr "Общий расход материала на черновую башню"
 
+# AI Translated
 msgid "Total length of filament used on the wipe tower, in mm."
-msgstr ""
+msgstr "Общая длина материала, использованного на черновой башне, в мм."
 
 msgid "Used filament"
 msgstr "Расход прутка"
@@ -21857,8 +21891,9 @@ msgstr "Имя физического принтера, используемог
 msgid "Layer number"
 msgstr "Номер слоя"
 
+# AI Translated
 msgid "Index of the current layer. The index is zero-based (first layer has index 0). Before the first layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1)."
-msgstr ""
+msgstr "Номер текущего слоя. Нумерация начинается с нуля (первый слой имеет номер 0). Перед началом первого слоя равен -1. В G-code смены типа линии нумерация начинается с единицы (первый слой имеет номер 1)."
 
 msgid "Layer Z"
 msgstr "Высота слоя над столом"
@@ -21875,181 +21910,238 @@ msgstr "Высота последнего слоя над печатным ст�
 msgid "Filament extruder ID"
 msgstr "Номер текущего экструдера"
 
+# AI Translated
 msgid "In filament start G-code, the index of the filament that is being loaded. In filament end G-code, the index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 wipe tower does the tool change. Machine end G-code gets the value from the last filament end G-code at the end of the print."
-msgstr ""
+msgstr "В начальном G-code материала — номер загружаемого материала. В конечном G-code материала — номер выгружаемого материала. Нумерация начинается с нуля (первый материал имеет номер 0). При смене инструмента конечный G-code материала получает вместо этого номер экструдера, если смену инструмента не выполняет черновая башня типа 1. Конечный G-code машины в конце печати получает значение из последнего конечного G-code материала."
 
+# AI Translated
 msgid "Current filament ID"
-msgstr ""
+msgstr "ID текущего материала"
 
+# AI Translated
 msgid "Index of the currently active filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Номер текущего активного материала. Нумерация начинается с нуля (первый материал имеет номер 0)."
 
+# AI Translated
 msgid "Current extruder ID"
-msgstr ""
+msgstr "ID текущего экструдера"
 
+# AI Translated
 msgid "Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Номер текущего активного физического экструдера. Нумерация начинается с нуля (первый экструдер имеет номер 0)."
 
+# AI Translated
 msgid "Current nozzle ID"
-msgstr ""
+msgstr "ID текущего сопла"
 
+# AI Translated
 msgid "Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Номер текущего активного сопла. Нумерация начинается с нуля (первое сопло имеет номер 0)."
 
+# AI Translated
 msgid "Nozzle diameters"
-msgstr ""
+msgstr "Диаметры сопел"
 
+# AI Translated
 msgid "Nozzle diameters indexed by nozzle ID."
-msgstr ""
+msgstr "Диаметры сопел, индексированные по ID сопла."
 
+# AI Translated
 msgid "Nozzle volume types"
-msgstr ""
+msgstr "Типы объёма сопел"
 
+# AI Translated
 msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr ""
+msgstr "Варианты объёма сопел, индексированные по ID сопла."
 
+# AI Translated
 msgid "Retraction distance used when cutting filament."
-msgstr ""
+msgstr "Расстояние отката при обрезке материала."
 
+# AI Translated
 msgid "Long retraction when cut"
-msgstr ""
+msgstr "Длинный откат при обрезке"
 
+# AI Translated
 msgid "Whether long retraction is used when cutting filament."
-msgstr ""
+msgstr "Использовать ли длинный откат при обрезке материала."
 
+# AI Translated
 msgid "Most-used physical extruder ID"
-msgstr ""
+msgstr "ID наиболее используемого физического экструдера"
 
+# AI Translated
 msgid "Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Номер физического экструдера, который чаще всего используется на текущем слое. Нумерация начинается с нуля (первый экструдер имеет номер 0)."
 
+# AI Translated
 msgid "Current Y acceleration limit"
-msgstr ""
+msgstr "Текущее ограничение ускорения по Y"
 
+# AI Translated
 msgid "Current Y-axis acceleration limit after the bed-mass adjustment."
-msgstr ""
+msgstr "Текущее ограничение ускорения по оси Y после поправки на массу стола."
 
+# AI Translated
 msgid "Current accumulated mass"
-msgstr ""
+msgstr "Текущая накопленная масса"
 
+# AI Translated
 msgid "Accumulated printed mass at the current layer."
-msgstr ""
+msgstr "Накопленная масса напечатанного к текущему слою."
 
+# AI Translated
 msgid "Current layer mass"
-msgstr ""
+msgstr "Масса текущего слоя"
 
+# AI Translated
 msgid "Printed mass of the previous layer."
-msgstr ""
+msgstr "Масса напечатанного на предыдущем слое."
 
+# AI Translated
 msgid "Current physical extruder ID"
-msgstr ""
+msgstr "ID текущего физического экструдера"
 
+# AI Translated
 msgid "Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Номер физического экструдера, активного на текущем слое. Нумерация начинается с нуля (первый экструдер имеет номер 0)."
 
+# AI Translated
 msgid "Timelapse position X"
-msgstr ""
+msgstr "Позиция таймлапса X"
 
+# AI Translated
 msgid "Selected X position for timelapse capture."
-msgstr ""
+msgstr "Выбранная позиция X для съёмки таймлапса."
 
+# AI Translated
 msgid "Timelapse position Y"
-msgstr ""
+msgstr "Позиция таймлапса Y"
 
+# AI Translated
 msgid "Selected Y position for timelapse capture."
-msgstr ""
+msgstr "Выбранная позиция Y для съёмки таймлапса."
 
+# AI Translated
 msgid "Has timelapse safe position"
-msgstr ""
+msgstr "Есть безопасная позиция таймлапса"
 
+# AI Translated
 msgid "Whether a safe timelapse position was found."
-msgstr ""
+msgstr "Найдена ли безопасная позиция таймлапса."
 
+# AI Translated
 msgid "Timelapse inline photo"
-msgstr ""
+msgstr "Встроенный снимок таймлапса"
 
+# AI Translated
 msgid "Whether the timelapse photo is captured at the inline position."
-msgstr ""
+msgstr "Делается ли снимок таймлапса во встроенной позиции."
 
+# AI Translated
 msgid "Farthest-point timelapse enabled"
-msgstr ""
+msgstr "Таймлапс из дальней точки включён"
 
+# AI Translated
 msgid "Whether farthest-point timelapse positioning is active."
-msgstr ""
+msgstr "Активно ли позиционирование таймлапса в дальней точке."
 
+# AI Translated
+# Needs human review: Variable label for the timelapse move being clear to X0; check it reads right in the G-code placeholder list.
 msgid "Clear to X0"
-msgstr ""
+msgstr "Свободно до X0"
 
+# AI Translated
 msgid "Whether the timelapse move is clear to X0."
-msgstr ""
+msgstr "Свободно ли перемещение таймлапса до X0."
 
 # AI Translated
 msgid "Previous extruder"
 msgstr "Предыдущий экструдер"
 
+# AI Translated
 msgid "Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."
-msgstr ""
+msgstr "Номер выгружаемого материала. Нумерация начинается с нуля (первый материал имеет номер 0). В начале печати, когда материал ещё не загружен, равен -1."
 
 # AI Translated
 msgid "Next extruder"
 msgstr "Следующий экструдер"
 
+# AI Translated
 msgid "Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Номер загружаемого материала. Нумерация начинается с нуля (первый материал имеет номер 0)."
 
+# AI Translated
 msgid "Current hotend"
-msgstr ""
+msgstr "Текущий хотэнд"
 
+# AI Translated
 msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Номер экструдера уходящего материала, начиная с нуля. На принтерах Bambu равен -1 или ID сопла, если материал переходит между соплами на разных слоях."
 
+# AI Translated
 msgid "Next hotend"
-msgstr ""
+msgstr "Следующий хотэнд"
 
+# AI Translated
 msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Номер экструдера приходящего материала, начиная с нуля. На принтерах Bambu равен -1 или ID сопла, если материал переходит между соплами на разных слоях."
 
+# AI Translated
 msgid "Next nozzle ID"
-msgstr ""
+msgstr "ID следующего сопла"
 
+# AI Translated
 msgid "Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Номер сопла, связанного с приходящим материалом. Нумерация начинается с нуля (первое сопло имеет номер 0)."
 
+# AI Translated
 msgid "Next filament ID"
-msgstr ""
+msgstr "ID следующего материала"
 
+# AI Translated
 msgid "Index of the incoming filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Номер приходящего материала. Нумерация начинается с нуля (первый материал имеет номер 0)."
 
+# AI Translated
 msgid "Old extruder variant"
-msgstr ""
+msgstr "Прежний вариант экструдера"
 
+# AI Translated
 msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr ""
+msgstr "Вариант объёма сопла уходящего экструдера."
 
+# AI Translated
 msgid "New extruder variant"
-msgstr ""
+msgstr "Новый вариант экструдера"
 
+# AI Translated
 msgid "Nozzle-volume variant of the incoming extruder."
-msgstr ""
+msgstr "Вариант объёма сопла приходящего экструдера."
 
+# AI Translated
 msgid "Filament nozzle-change retract length"
-msgstr ""
+msgstr "Длина отката материала при смене сопла"
 
+# AI Translated
 msgid "Nozzle-change retraction length of the outgoing filament."
-msgstr ""
+msgstr "Длина отката уходящего материала при смене сопла."
 
+# AI Translated
 msgid "New extruder retracted length"
-msgstr ""
+msgstr "Длина отката нового экструдера"
 
+# AI Translated
 msgid "Currently parked retraction length of the incoming extruder."
-msgstr ""
+msgstr "Текущая длина припаркованного отката приходящего экструдера."
 
+# AI Translated
 msgid "Outer wall volumetric speed"
-msgstr ""
+msgstr "Объёмный расход внешнего периметра"
 
+# AI Translated
 msgid "Volumetric speed used for the outer wall."
-msgstr ""
+msgstr "Объёмный расход, используемый для внешнего периметра."
 
 # AI Translated
 msgid "Relative e-axis"
@@ -22067,11 +22159,13 @@ msgstr "Число смен инструмента"
 msgid "The number of toolchanges throughout the print."
 msgstr "Число смен инструмента в процессе всей печати."
 
+# AI Translated
 msgid "Toolchange Z"
-msgstr ""
+msgstr "Z при смене инструмента"
 
+# AI Translated
 msgid "The Z position during the toolchange."
-msgstr ""
+msgstr "Позиция Z во время смены инструмента."
 
 # AI Translated
 msgid "Old retract length"
@@ -22257,77 +22351,101 @@ msgstr "Длина прочистки 4"
 msgid "The fourth flush length."
 msgstr "Длина четвёртой прочистки."
 
+# AI Translated
 msgid "Flush length"
-msgstr ""
+msgstr "Длина прочистки"
 
+# AI Translated
 msgid "Total flush length."
-msgstr ""
+msgstr "Общая длина прочистки."
 
+# AI Translated
 msgid "Flush volumetric speeds"
-msgstr ""
+msgstr "Объёмные расходы прочистки"
 
+# AI Translated
 msgid "Flush volumetric speeds for each filament."
-msgstr ""
+msgstr "Объёмные расходы прочистки для каждого материала."
 
+# AI Translated
 msgid "Flush temperatures"
-msgstr ""
+msgstr "Температуры прочистки"
 
+# AI Translated
 msgid "Flush temperatures for each filament."
-msgstr ""
+msgstr "Температуры прочистки для каждого материала."
 
+# AI Translated
 msgid "Filament cooling before tower"
-msgstr ""
+msgstr "Охлаждение материала перед башней"
 
+# AI Translated
 msgid "Avoid wipe perimeter"
-msgstr ""
+msgstr "Обходить периметр очистки"
 
+# AI Translated
 msgid "Whether travel should avoid the wipe perimeter."
-msgstr ""
+msgstr "Должны ли перемещения обходить периметр очистки."
 
+# AI Translated
 msgid "Wipe avoidance X"
-msgstr ""
+msgstr "Обход очистки X"
 
+# AI Translated
 msgid "X position used to avoid the wipe area."
-msgstr ""
+msgstr "Позиция X, используемая для обхода области очистки."
 
+# AI Translated
 msgid "Prime tower interface"
-msgstr ""
+msgstr "Интерфейс черновой башни"
 
+# AI Translated
 msgid "Whether the current purge is for a prime-tower interface."
-msgstr ""
+msgstr "Относится ли текущая прочистка к интерфейсу черновой башни."
 
+# AI Translated
 msgid "Filament tower interface print temperature"
-msgstr ""
+msgstr "Температура печати интерфейса башни для материала"
 
+# AI Translated
 msgid "Print temperature used for the filament tower interface."
-msgstr ""
+msgstr "Температура печати, используемая для интерфейса башни для материала."
 
-msgid "Wipe tower center X"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position X"
+msgstr "Позиция ожидания черновой башни X"
 
+# AI Translated
 msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
-msgstr ""
+msgstr "Координата X позиции ожидания сопла у черновой башни, в 2 мм от края башни."
 
-msgid "Wipe tower center Y"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position Y"
+msgstr "Позиция ожидания черновой башни Y"
 
+# AI Translated
 msgid "Y coordinate of the nozzle's wipe-tower wait position."
-msgstr ""
+msgstr "Координата Y позиции ожидания сопла у черновой башни."
 
-msgid "Wipe tower center position valid"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position valid"
+msgstr "Позиция ожидания черновой башни действительна"
 
+# AI Translated
 msgid "Whether the print has a wipe tower."
-msgstr ""
+msgstr "Есть ли в печати черновая башня."
 
+# AI Translated
 msgid "Nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Температуры сопла, индексированные по материалу."
 
+# AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Температуры сопла для первого слоя, индексированные по материалу."
 
+# AI Translated
 msgid "Nozzle temperature initial layer"
-msgstr ""
+msgstr "Температура сопла на первом слое"
 
 # AI Translated
 msgid "Extrusion role"
@@ -22524,8 +22642,9 @@ msgstr "Не удалось скомпилировать регулярное в
 msgid "Cannot apply logical operation to non-boolean operands."
 msgstr "Невозможно применить логическую операцию к нелогическим операндам."
 
+# AI Translated
 msgid "This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison."
-msgstr ""
+msgstr "Это значение становится известно только после генерации G-code. Его можно вывести, но нельзя использовать в вычислении или сравнении."
 
 # AI Translated
 msgid "Trying to index a scalar variable"
@@ -36651,14 +36770,17 @@ msgstr "Удалить и отписаться можно только для о
 msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files."
 msgstr "Нельзя отписаться от собственных плагинов. Чтобы удалить локальные файлы, используйте «Удалить»."
 
+# AI Translated
 msgid "Python interpreter is shutting down"
-msgstr ""
+msgstr "Интерпретатор Python завершает работу"
 
+# AI Translated
 msgid "Plugin system is shutting down."
-msgstr ""
+msgstr "Система плагинов завершает работу."
 
+# AI Translated
 msgid "Plugin permission request denied"
-msgstr ""
+msgstr "Запрос разрешения плагина отклонён"
 
 # AI Translated
 msgid "Profile has fewer than 2 points"
@@ -37391,6 +37513,28 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+# Подставляется номер материала (по порядку), предыдущая 
+# AI Translated
+# Needs human review: %s is 'left nozzle' (catalog renders it in genitive, 'левого сопла') or 'Tool %d' (catalog renders it as a bare number); sentence is built with 'для %s'. Check the wording for both.
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgstr[0] "Материал %s назначен для %s, но итоговый путь G-code выходит за область печати для %s."
+#~ msgstr[1] "Материалы %s назначены для %s, но итоговый путь G-code выходит за область печати для %s."
+#~ msgstr[2] "Материалы %s назначены для %s, но итоговый путь G-code выходит за область печати для %s."
+
+# Возможно, какая-то специфичная проверка для тулченджеров, на профиле H2D при
+# превышении высоты через подъём при откате оно не выводится. Последнее
+# предложение – костыль для обхода кривизны системы локализации.
+# AI Translated
+# Needs human review: %s is 'left nozzle' (catalog renders it in genitive, 'левого сопла') or 'Tool %d' (catalog renders it as a bare number); sentence is built with 'для %s'. Check the wording for both.
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgstr[0] "Материал %s назначен для %s, но итоговый путь G-code выходит за допустимую высоту печати для %s."
+#~ msgstr[1] "Материалы %s назначены для %s, но итоговый путь G-code выходит за допустимую высоту печати для %s."
+#~ msgstr[2] "Материалы %s назначены для %s, но итоговый путь G-code выходит за допустимую высоту печати для %s."
 
 #~ msgid "Mirror along the X Axis"
 #~ msgstr "Отразить модель вдоль оси X"

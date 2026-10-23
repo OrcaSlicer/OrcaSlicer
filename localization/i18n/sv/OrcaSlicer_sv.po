@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 02:28+0800\n"
+"POT-Creation-Date: 2026-10-24 15:38-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4993,8 +4993,9 @@ msgstr "Skriptinsticksmodulen hoppades över."
 msgid "Script plugin finished."
 msgstr "Skriptinsticksmodulen är klar."
 
+# AI Translated
 msgid "Script plugin started."
-msgstr ""
+msgstr "Skriptinsticksmodulen startades."
 
 msgid "Printer"
 msgstr "Skrivare"
@@ -6381,8 +6382,9 @@ msgstr "Någon filändelse i indata är ogiltig"
 msgid "This parameter expects a valid template."
 msgstr "Den här parametern kräver en giltig mall."
 
+# AI Translated
 msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
-msgstr ""
+msgstr "Ogiltigt format för kollisionsvolym. Använd XxY, XxY, ... eller ZMIN..ZMAX;XxY, XxY, ... och separera flera volymer med |."
 
 # AI Translated
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
@@ -6964,15 +6966,17 @@ msgstr "Höger nozzel: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgid "Mirror object"
 msgstr "Spegelvänd objektet"
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."
-msgstr ""
+msgstr "Prime tornet på platta %1% får inte längre plats där det placerades. Det finns inget ledigt utrymme kvar på plattan, så det flyttades till ett objekt."
 
+# AI Translated
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."
-msgstr ""
+msgstr "Prime tornet på platta %1% får inte längre plats där det placerades, så det flyttades till ledigt utrymme på plattan."
 
 msgid "Tool move"
 msgstr "Verktygs Förflyttning"
@@ -7226,7 +7230,7 @@ msgid "Size:"
 msgstr "Storlek:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Konflikter mellan G-code-banor hittades på lager %d, Z = %.2lfmm. Placera de objekt som krockar längre ifrån varandra (%s <-> %s)."
 
@@ -7250,18 +7254,18 @@ msgid "Tool %d"
 msgstr "Verktyg %d"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
-msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgstr[0] "Filamentet %1% är placerat i %2%, men den genererade G-code-banan överskrider det utskrivbara området för %2%."
+msgstr[1] "Filamenten %1% är placerade i %2%, men den genererade G-code-banan överskrider det utskrivbara området för %2%."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
-msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgstr[0] "Filamentet %1% är placerat i %2%, men den genererade G-code-banan överskrider den utskrivbara höjden för %2%."
+msgstr[1] "Filamenten %1% är placerade i %2%, men den genererade G-code-banan överskrider den utskrivbara höjden för %2%."
 
 # AI Translated
 msgid "Open wiki for more information."
@@ -7752,11 +7756,13 @@ msgstr "Visa & Etiketter"
 msgid "Show object labels in 3D scene."
 msgstr "Visa objekt etiketter i 3D-scenen"
 
+# AI Translated
 msgid "Show all collision volumes"
-msgstr ""
+msgstr "Visa alla kollisionsvolymer"
 
+# AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr ""
+msgstr "Visa hela höjden för varje konfigurerad kollisionsvolym, även på en tom byggplatta."
 
 msgid "Show &Overhang"
 msgstr "Visa & Överhäng"
@@ -13316,11 +13322,13 @@ msgstr "Parametrar med den här ikonen kan ställas in per nozzel."
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Klicka för att återställa alla inställningar till den senast sparade förinställningen."
 
+# AI Translated
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr ""
+msgstr "Den här definitionen innehåller syntax för kollisionsvolymer. Vill du lägga till den i verktygshuvudets kollisionsvolymer för G-code-kontroll och undvikande av förflyttningar? Det befintliga uteslutna byggplatteområdet bevaras."
 
+# AI Translated
 msgid "Add collision volumes"
-msgstr ""
+msgstr "Lägg till kollisionsvolymer"
 
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "Prime tower krävs för nozzle byte. Det kan bli brister på modellen utan prime tower. Är du säker på att du vill inaktivera prime tower?"
@@ -15369,16 +15377,19 @@ msgstr ""
 "G-code-exporten till %1% misslyckades.\n"
 "Är disken full?"
 
+# AI Translated
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
-msgstr ""
+msgstr "En G-code-rörelse skär en kollisionsvolym för extruder %1%. Det kan orsaka en kollision i skrivaren."
 
+# AI Translated
 msgid "A G-code move intersects a collision volume. This may cause a printer collision."
-msgstr ""
+msgstr "En G-code-rörelse skär en kollisionsvolym. Det kan orsaka en kollision i skrivaren."
 
+# AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr ""
+msgstr "Den skärande rörelsen finns på G-code-rad %1%. Dess Z-position är okänd efter nollställning, så Orca kontrollerade den mot alla höjder."
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -15700,13 +15711,15 @@ msgstr ""
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% är för nära undantagsområde. Det kan förekomma kollisioner vid utskrift."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
-msgstr ""
+msgstr "%1% skär kollisionsvolymer för alla tillgängliga extrudrar."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
-msgstr ""
+msgstr "%1% skär en kollisionsvolym för extruder %2%."
 
 #, boost-format
 msgid "%1% is too close to others, and collisions may be caused."
@@ -16127,35 +16140,46 @@ msgstr "Ordnad lista med uteslutna byggplattsområden per antal parallella skriv
 msgid "Excluded bed area"
 msgstr "Utesluten yta av byggplattan"
 
+# AI Translated
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
-msgstr ""
+msgstr "Område som inte kan skrivas ut i XY-planet. Till exempel använder skrivare i X1-serien det främre vänstra hörnet för att skära av filamentet vid filamentbyte. Området anges som en polygon i formatet \"XxY, XxY, ...\". Det begränsar placeringen av material och modeller, men tillåter maskinens förflyttningar. Konfigurera verktygshuvudets kollisionsvolymer separat för G-code-kontroll och undvikande av förflyttningar."
 
+# AI Translated
 msgid "Toolhead collision volumes"
-msgstr ""
+msgstr "Verktygshuvudets kollisionsvolymer"
 
+# AI Translated
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Kollisionsvolymer som används för att utesluta modeller och genererat material, för G-code-kontroll och för undvikande av förflyttningar. Använd \"XxY, XxY, ...\" för en polygon i full höjd eller \"ZMIN..ZMAX;XxY, XxY, ...\" för en volym begränsad i Z. Separera flera volymer med \"|\". Dessa volymer gäller utöver det uteslutna byggplatteområdet. Automatisk arrangering använder försiktighetsvis begränsningsrutan för en icke-konvex volym."
 
+# AI Translated
 msgid "Collision volume behavior"
-msgstr ""
+msgstr "Beteende för kollisionsvolymer"
 
+# AI Translated
 msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
-msgstr ""
+msgstr "Välj om alla nozzlar använder samma kollisionsvolymer, om verktygshuvudsrelativa volymer härleds från varje nozzels XY-förskjutning, eller om oberoende volymer konfigureras för varje extruder. I individuellt läge väljer du varje extruder på sidan Extruder för att konfigurera dess volymer."
 
+# AI Translated
+# Needs human review: Option name in the collision volume behavior dropdown (all nozzles share the same volumes); check that it reads right next to the other two options.
 msgid "Shared"
-msgstr ""
+msgstr "Delad"
 
+# AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
-msgstr ""
+msgstr "Relativt verktygshuvudet (nozzelförskjutningar)"
 
+# AI Translated
 msgid "Individual per extruder"
-msgstr ""
+msgstr "Individuellt per extruder"
 
+# AI Translated
 msgid "Extruder collision volumes"
-msgstr ""
+msgstr "Extruderns kollisionsvolymer"
 
+# AI Translated
 msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Kollisionsvolymer som i individuellt läge endast används av den här extrudern. Använd samma format för polygon och valfritt Z-intervall som för de delade kollisionsvolymerna. Lämna tomt om den här extrudern inte ska ha några kollisionsvolymer. Automatisk arrangering använder försiktighetsvis begränsningsrutan för en icke-konvex volym."
 
 msgid "Bed custom texture"
 msgstr "Anpassad byggplattas textur"
@@ -19068,6 +19092,8 @@ msgstr "Aktivera detta för att få en exakt Z-höjd på objektet efter berednin
 msgid "Arc fitting"
 msgstr "Arc passning"
 
+# AI Translated
+# Needs human review: The three mode names (Disabled / Enabled / Sparse infill only) must match the option labels (Avstängd / Aktiverat / Endast sparsam ifyllnad); check the bulleted names against the dropdown.
 msgid ""
 "Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while sparse infill, supports and the wipe tower use fixed tolerances.\n"
 " - Disabled: only straight G1 moves are used.\n"
@@ -19076,13 +19102,20 @@ msgid ""
 "\n"
 "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
+"Anpassar G2- och G3-bågrörelser till verktygsbanorna. Väggar och ytor anpassas inom upplösningen, medan sparsam ifyllnad, support och prime tornet använder fasta toleranser.\n"
+" - Avstängd: endast raka G1-rörelser används.\n"
+" - Aktiverat: bågar anpassas till alla verktygsbanor.\n"
+" - Endast sparsam ifyllnad: bågar anpassas endast till den sparsamma ifyllnaden, vilket förkortar G-code för böjda ifyllnadsmönster utan att påverka väggarna och ytorna.\n"
+"\n"
+"Obs: För Klipper-maskiner rekommenderas Avstängd. Klipper delar upp bågar i linjesegment igen, vilket sänker ytkvaliteten och kan öka utskriftstiden."
 
 # AI Translated
 msgid "Enabled"
 msgstr "Aktiverat"
 
+# AI Translated
 msgid "Sparse infill only"
-msgstr ""
+msgstr "Endast sparsam ifyllnad"
 
 msgid "Add line number"
 msgstr "Lägg till rad nummer"
@@ -20747,10 +20780,13 @@ msgstr "Det här alternativet gör att de inre sömmarna förskjuts bakåt utifr
 msgid "Seam gap"
 msgstr "Sömmens mellanrum"
 
+# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
+"För att minska sömmens synlighet i en sluten varvextrudering avbryts och förkortas varvet med en angiven mängd.\n"
+"Mängden kan anges i millimeter eller som en procentandel av nozzelns diameter. Standardvärdet för den här parametern är 10%."
 
 # AI Translated
 msgid "Scarf joint seam (beta)"
@@ -22595,14 +22631,17 @@ msgstr "Detta val kommer att auto upptäcka tight inre solid ifyllnads område. 
 msgid "invalid value "
 msgstr "ogiltigt värde "
 
+# AI Translated
 msgid "Invalid collision volume definition."
-msgstr ""
+msgstr "Ogiltig definition av kollisionsvolym."
 
+# AI Translated
 msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
-msgstr ""
+msgstr "En nozzelförskjutning krävs för varje extruder när verktygshuvudsrelativa kollisionsvolymer är aktiverade."
 
+# AI Translated
 msgid "Invalid per-extruder collision volume definition."
-msgstr ""
+msgstr "Ogiltig definition av kollisionsvolym per extruder."
 
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Ogiltigt värde när spiralvas läget är aktiverat: "
@@ -23265,11 +23304,13 @@ msgstr "Total kostnad för prime tornet"
 msgid "Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings."
 msgstr "Total kostnad för materialet som går åt på prime tornet. Beräknas från värdet filament_cost i filamentinställningarna."
 
+# AI Translated
 msgid "Total wipe tower filament"
-msgstr ""
+msgstr "Totalt filament i prime tornet"
 
+# AI Translated
 msgid "Total length of filament used on the wipe tower, in mm."
-msgstr ""
+msgstr "Total längd filament som används i prime tornet, i mm."
 
 msgid "Used filament"
 msgstr "Använt filament"
@@ -23525,8 +23566,9 @@ msgstr "Namn på den fysiska skrivare som används vid beredningen."
 msgid "Layer number"
 msgstr "Lagernummer"
 
+# AI Translated
 msgid "Index of the current layer. The index is zero-based (first layer has index 0). Before the first layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1)."
-msgstr ""
+msgstr "Index för det aktuella lagret. Indexet är nollbaserat (första lagret har index 0). Innan det första lagret startar är det -1. I G-code för byte av extruderingstyp är indexet ettbaserat (första lagret har index 1)."
 
 # AI Translated
 msgid "Layer Z"
@@ -23548,181 +23590,237 @@ msgstr "Det sista lagrets höjd över byggplattan."
 msgid "Filament extruder ID"
 msgstr "Filamentets extruder-ID"
 
+# AI Translated
 msgid "In filament start G-code, the index of the filament that is being loaded. In filament end G-code, the index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 wipe tower does the tool change. Machine end G-code gets the value from the last filament end G-code at the end of the print."
-msgstr ""
+msgstr "I filamentets start-G-code är det indexet för filamentet som lastas in. I filamentets slut-G-code är det indexet för filamentet som lastas ur. Indexet är nollbaserat (första filamentet har index 0). Vid ett verktygsbyte får filamentets slut-G-code extruderindexet i stället, såvida inte prime tornet av typ 1 utför verktygsbytet. Maskinens slut-G-code får värdet från den sista slut-G-coden för filament i slutet av utskriften."
 
+# AI Translated
 msgid "Current filament ID"
-msgstr ""
+msgstr "Aktuellt filament-ID"
 
+# AI Translated
 msgid "Index of the currently active filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Index för det för närvarande aktiva filamentet. Indexet är nollbaserat (första filamentet har index 0)."
 
+# AI Translated
 msgid "Current extruder ID"
-msgstr ""
+msgstr "Aktuellt extruder-ID"
 
+# AI Translated
 msgid "Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Index för den för närvarande aktiva fysiska extrudern. Indexet är nollbaserat (första extrudern har index 0)."
 
+# AI Translated
 msgid "Current nozzle ID"
-msgstr ""
+msgstr "Aktuellt nozzel-ID"
 
+# AI Translated
 msgid "Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Index för den för närvarande aktiva nozzeln. Indexet är nollbaserat (första nozzeln har index 0)."
 
+# AI Translated
 msgid "Nozzle diameters"
-msgstr ""
+msgstr "Nozzeldiametrar"
 
+# AI Translated
 msgid "Nozzle diameters indexed by nozzle ID."
-msgstr ""
+msgstr "Nozzeldiametrar, indexerade efter nozzel-ID."
 
+# AI Translated
 msgid "Nozzle volume types"
-msgstr ""
+msgstr "Typer av nozzelvolym"
 
+# AI Translated
 msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr ""
+msgstr "Varianter av nozzelvolym, indexerade efter nozzel-ID."
 
+# AI Translated
 msgid "Retraction distance used when cutting filament."
-msgstr ""
+msgstr "Retraktionsavstånd som används vid kapning av filament."
 
+# AI Translated
 msgid "Long retraction when cut"
-msgstr ""
+msgstr "Lång retraktion vid kapning"
 
+# AI Translated
 msgid "Whether long retraction is used when cutting filament."
-msgstr ""
+msgstr "Om lång retraktion används vid kapning av filament."
 
+# AI Translated
 msgid "Most-used physical extruder ID"
-msgstr ""
+msgstr "ID för den mest använda fysiska extrudern"
 
+# AI Translated
 msgid "Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Index för den fysiska extruder som används oftast på det aktuella lagret. Indexet är nollbaserat (första extrudern har index 0)."
 
+# AI Translated
 msgid "Current Y acceleration limit"
-msgstr ""
+msgstr "Aktuell accelerationsgräns för Y"
 
+# AI Translated
 msgid "Current Y-axis acceleration limit after the bed-mass adjustment."
-msgstr ""
+msgstr "Aktuell accelerationsgräns för Y-axeln efter justeringen för byggplattans massa."
 
+# AI Translated
 msgid "Current accumulated mass"
-msgstr ""
+msgstr "Aktuell ackumulerad massa"
 
+# AI Translated
 msgid "Accumulated printed mass at the current layer."
-msgstr ""
+msgstr "Ackumulerad utskriven massa på det aktuella lagret."
 
+# AI Translated
 msgid "Current layer mass"
-msgstr ""
+msgstr "Aktuellt lagers massa"
 
+# AI Translated
 msgid "Printed mass of the previous layer."
-msgstr ""
+msgstr "Utskriven massa för föregående lager."
 
+# AI Translated
 msgid "Current physical extruder ID"
-msgstr ""
+msgstr "Aktuellt ID för fysisk extruder"
 
+# AI Translated
 msgid "Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Index för den fysiska extruder som är aktiv för det aktuella lagret. Indexet är nollbaserat (första extrudern har index 0)."
 
+# AI Translated
 msgid "Timelapse position X"
-msgstr ""
+msgstr "Timelapse-position X"
 
+# AI Translated
 msgid "Selected X position for timelapse capture."
-msgstr ""
+msgstr "Vald X-position för timelapse-bilden."
 
+# AI Translated
 msgid "Timelapse position Y"
-msgstr ""
+msgstr "Timelapse-position Y"
 
+# AI Translated
 msgid "Selected Y position for timelapse capture."
-msgstr ""
+msgstr "Vald Y-position för timelapse-bilden."
 
+# AI Translated
 msgid "Has timelapse safe position"
-msgstr ""
+msgstr "Har säker timelapse-position"
 
+# AI Translated
 msgid "Whether a safe timelapse position was found."
-msgstr ""
+msgstr "Om en säker timelapse-position hittades."
 
+# AI Translated
 msgid "Timelapse inline photo"
-msgstr ""
+msgstr "Timelapse-inlinefoto"
 
+# AI Translated
 msgid "Whether the timelapse photo is captured at the inline position."
-msgstr ""
+msgstr "Om timelapse-fotot tas på inlinepositionen."
 
+# AI Translated
 msgid "Farthest-point timelapse enabled"
-msgstr ""
+msgstr "Timelapse vid längsta punkten aktiverad"
 
+# AI Translated
 msgid "Whether farthest-point timelapse positioning is active."
-msgstr ""
+msgstr "Om positionering av timelapse vid den längsta punkten är aktiv."
 
+# AI Translated
 msgid "Clear to X0"
-msgstr ""
+msgstr "Fri till X0"
 
+# AI Translated
 msgid "Whether the timelapse move is clear to X0."
-msgstr ""
+msgstr "Om timelapse-rörelsen är fri till X0."
 
 # AI Translated
 msgid "Previous extruder"
 msgstr "Föregående extruder"
 
+# AI Translated
 msgid "Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."
-msgstr ""
+msgstr "Index för filamentet som lastas ur. Indexet är nollbaserat (första filamentet har index 0). I början av utskriften, när inget filament har lastats in än, är det -1."
 
 # AI Translated
 msgid "Next extruder"
 msgstr "Nästa extruder"
 
+# AI Translated
 msgid "Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Index för filamentet som lastas in. Indexet är nollbaserat (första filamentet har index 0)."
 
+# AI Translated
 msgid "Current hotend"
-msgstr ""
+msgstr "Aktuell hotend"
 
+# AI Translated
 msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Nollbaserat extruderindex för det utgående filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
 
+# AI Translated
 msgid "Next hotend"
-msgstr ""
+msgstr "Nästa hotend"
 
+# AI Translated
 msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Nollbaserat extruderindex för det inkommande filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
 
+# AI Translated
 msgid "Next nozzle ID"
-msgstr ""
+msgstr "Nästa nozzel-ID"
 
+# AI Translated
 msgid "Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Index för nozzeln som hör till det inkommande filamentet. Indexet är nollbaserat (första nozzeln har index 0)."
 
+# AI Translated
 msgid "Next filament ID"
-msgstr ""
+msgstr "Nästa filament-ID"
 
+# AI Translated
 msgid "Index of the incoming filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Index för det inkommande filamentet. Indexet är nollbaserat (första filamentet har index 0)."
 
+# AI Translated
 msgid "Old extruder variant"
-msgstr ""
+msgstr "Gammal extrudervariant"
 
+# AI Translated
 msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr ""
+msgstr "Nozzelvolymvariant för den utgående extrudern."
 
+# AI Translated
 msgid "New extruder variant"
-msgstr ""
+msgstr "Ny extrudervariant"
 
+# AI Translated
 msgid "Nozzle-volume variant of the incoming extruder."
-msgstr ""
+msgstr "Nozzelvolymvariant för den inkommande extrudern."
 
+# AI Translated
 msgid "Filament nozzle-change retract length"
-msgstr ""
+msgstr "Filamentets retraktionslängd vid nozzelbyte"
 
+# AI Translated
 msgid "Nozzle-change retraction length of the outgoing filament."
-msgstr ""
+msgstr "Retraktionslängd vid nozzelbyte för det utgående filamentet."
 
+# AI Translated
 msgid "New extruder retracted length"
-msgstr ""
+msgstr "Retraherad längd för ny extruder"
 
+# AI Translated
 msgid "Currently parked retraction length of the incoming extruder."
-msgstr ""
+msgstr "Aktuell parkerad retraktionslängd för den inkommande extrudern."
 
+# AI Translated
 msgid "Outer wall volumetric speed"
-msgstr ""
+msgstr "Volymetrisk hastighet för yttre vägg"
 
+# AI Translated
 msgid "Volumetric speed used for the outer wall."
-msgstr ""
+msgstr "Volymetrisk hastighet som används för den yttre väggen."
 
 # AI Translated
 msgid "Relative e-axis"
@@ -23740,11 +23838,13 @@ msgstr "Antal verktygsbyten"
 msgid "The number of toolchanges throughout the print."
 msgstr "Antalet verktygsbyten under hela utskriften."
 
+# AI Translated
 msgid "Toolchange Z"
-msgstr ""
+msgstr "Z vid verktygsbyte"
 
+# AI Translated
 msgid "The Z position during the toolchange."
-msgstr ""
+msgstr "Z-positionen under verktygsbytet."
 
 # AI Translated
 msgid "Old retract length"
@@ -23930,77 +24030,103 @@ msgstr "Rensningslängd 4"
 msgid "The fourth flush length."
 msgstr "Den fjärde rensningslängden."
 
+# AI Translated
 msgid "Flush length"
-msgstr ""
+msgstr "Rensningslängd"
 
+# AI Translated
 msgid "Total flush length."
-msgstr ""
+msgstr "Total rensningslängd."
 
+# AI Translated
 msgid "Flush volumetric speeds"
-msgstr ""
+msgstr "Volymetriska hastigheter vid rensning"
 
+# AI Translated
 msgid "Flush volumetric speeds for each filament."
-msgstr ""
+msgstr "Volymetriska hastigheter vid rensning för varje filament."
 
+# AI Translated
 msgid "Flush temperatures"
-msgstr ""
+msgstr "Rensningstemperaturer"
 
+# AI Translated
 msgid "Flush temperatures for each filament."
-msgstr ""
+msgstr "Rensningstemperaturer för varje filament."
 
+# AI Translated
 msgid "Filament cooling before tower"
-msgstr ""
+msgstr "Filamentkylning före tornet"
 
+# AI Translated
+# Needs human review: Setting name: 'wipe perimeter' is the outline around the wipe area that travel moves avoid; check that 'torkperimeter' reads right.
 msgid "Avoid wipe perimeter"
-msgstr ""
+msgstr "Undvik torkperimeter"
 
+# AI Translated
 msgid "Whether travel should avoid the wipe perimeter."
-msgstr ""
+msgstr "Om förflyttningar ska undvika torkperimetern."
 
+# AI Translated
+# Needs human review: Wipe is rendered as the compound stem 'tork-' (glossary: Torka); check it reads right as a setting name.
 msgid "Wipe avoidance X"
-msgstr ""
+msgstr "Torkundvikande X"
 
+# AI Translated
 msgid "X position used to avoid the wipe area."
-msgstr ""
+msgstr "X-position som används för att undvika torkområdet."
 
+# AI Translated
 msgid "Prime tower interface"
-msgstr ""
+msgstr "Prime tornets kontaktyta"
 
+# AI Translated
 msgid "Whether the current purge is for a prime-tower interface."
-msgstr ""
+msgstr "Om den aktuella rensningen gäller en kontaktyta i prime tornet."
 
+# AI Translated
 msgid "Filament tower interface print temperature"
-msgstr ""
+msgstr "Utskriftstemperatur för filamentets tornkontaktyta"
 
+# AI Translated
 msgid "Print temperature used for the filament tower interface."
-msgstr ""
+msgstr "Utskriftstemperatur som används för filamentets tornkontaktyta."
 
-msgid "Wipe tower center X"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position X"
+msgstr "Prime tornets väntposition X"
 
+# AI Translated
 msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
-msgstr ""
+msgstr "X-koordinat för nozzelns väntposition vid prime tornet, 2 mm utanför tornets kant."
 
-msgid "Wipe tower center Y"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position Y"
+msgstr "Prime tornets väntposition Y"
 
+# AI Translated
 msgid "Y coordinate of the nozzle's wipe-tower wait position."
-msgstr ""
+msgstr "Y-koordinat för nozzelns väntposition vid prime tornet."
 
-msgid "Wipe tower center position valid"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position valid"
+msgstr "Prime tornets väntposition giltig"
 
+# AI Translated
 msgid "Whether the print has a wipe tower."
-msgstr ""
+msgstr "Om utskriften har ett prime torn."
 
+# AI Translated
 msgid "Nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Nozzeltemperaturer, indexerade efter filament."
 
+# AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Nozzeltemperaturer för första lagret, indexerade efter filament."
 
+# AI Translated
 msgid "Nozzle temperature initial layer"
-msgstr ""
+msgstr "Nozzeltemperatur första lagret"
 
 # AI Translated
 msgid "Extrusion role"
@@ -24201,8 +24327,9 @@ msgstr "Kompileringen av det reguljära uttrycket misslyckades"
 msgid "Cannot apply logical operation to non-boolean operands."
 msgstr "Kan inte tillämpa logisk operation på icke-booleska operander."
 
+# AI Translated
 msgid "This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison."
-msgstr ""
+msgstr "Det här värdet är inte känt förrän G-code har genererats. Det kan skrivas ut, men inte användas i en beräkning eller jämförelse."
 
 # AI Translated
 msgid "Trying to index a scalar variable"
@@ -38669,14 +38796,17 @@ msgstr "Endast molninsticksmoduler kan raderas och avprenumereras."
 msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files."
 msgstr "Du kan inte avprenumerera på dina egna insticksmoduler. Använd Radera för att ta bort de lokala filerna."
 
+# AI Translated
 msgid "Python interpreter is shutting down"
-msgstr ""
+msgstr "Python-tolken avslutas"
 
+# AI Translated
 msgid "Plugin system is shutting down."
-msgstr ""
+msgstr "Insticksmodulsystemet avslutas."
 
+# AI Translated
 msgid "Plugin permission request denied"
-msgstr ""
+msgstr "Behörighetsbegäran från insticksmodul nekades"
 
 # AI Translated
 msgid "Profile has fewer than 2 points"
@@ -39425,6 +39555,20 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
+#~ msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
+#~ msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
 
 #~ msgid "Mirror along the X Axis"
 #~ msgstr "Spegelvänd längs med X Axis"

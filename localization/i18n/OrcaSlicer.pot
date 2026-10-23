@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 02:28+0800\n"
+"POT-Creation-Date: 2026-10-24 15:38-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6071,7 +6071,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, possible-boost-format
+#, possible-c-format, possible-boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -6091,15 +6091,15 @@ msgstr ""
 msgid "Tool %d"
 msgstr ""
 
-#, possible-c-format, possible-boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#, possible-boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
 msgstr[0] ""
 msgstr[1] ""
 
-#, possible-c-format, possible-boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#, possible-boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -19445,19 +19445,19 @@ msgstr ""
 msgid "Print temperature used for the filament tower interface."
 msgstr ""
 
-msgid "Wipe tower center X"
+msgid "Wipe tower wait position X"
 msgstr ""
 
 msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
 msgstr ""
 
-msgid "Wipe tower center Y"
+msgid "Wipe tower wait position Y"
 msgstr ""
 
 msgid "Y coordinate of the nozzle's wipe-tower wait position."
 msgstr ""
 
-msgid "Wipe tower center position valid"
+msgid "Wipe tower wait position valid"
 msgstr ""
 
 msgid "Whether the print has a wipe tower."

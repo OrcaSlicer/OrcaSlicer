@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 02:28+0800\n"
+"POT-Creation-Date: 2026-10-24 15:38-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4923,8 +4923,9 @@ msgstr "Scriptplug-in overgeslagen."
 msgid "Script plugin finished."
 msgstr "Scriptplug-in voltooid."
 
+# AI Translated
 msgid "Script plugin started."
-msgstr ""
+msgstr "Scriptplug-in gestart."
 
 # AI Translated
 msgid "Printer"
@@ -6294,8 +6295,9 @@ msgstr "Een extensie in de invoer is ongeldig"
 msgid "This parameter expects a valid template."
 msgstr "Deze parameter verwacht een geldige sjabloon."
 
+# AI Translated
 msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
-msgstr ""
+msgstr "Ongeldig formaat voor botsingsvolume. Gebruik XxY, XxY, ... of ZMIN..ZMAX;XxY, XxY, ... en scheid meerdere volumes met |."
 
 # AI Translated
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
@@ -6871,15 +6873,19 @@ msgstr "Rechter mondstuk: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgid "Mirror object"
 msgstr "Spiegel object"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (Prime toren / Afveegblok); 'prime toren' follows the existing catalog usage for 'prime tower'.
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."
-msgstr ""
+msgstr "De prime toren op printbed %1% past niet meer op de plek waar hij was geplaatst. Er is geen vrije ruimte meer op het printbed, dus is hij naar een object verplaatst."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (Prime toren / Afveegblok); 'prime toren' follows the existing catalog usage for 'prime tower'.
 #. TRN %1% is the plate number.
 #, boost-format
 msgid "The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."
-msgstr ""
+msgstr "De prime toren op printbed %1% past niet meer op de plek waar hij was geplaatst, dus is hij naar vrije ruimte op het printbed verplaatst."
 
 msgid "Tool move"
 msgstr "Beweeg tool"
@@ -7131,7 +7137,7 @@ msgid "Size:"
 msgstr "Maat:"
 
 # AI Translated
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Er zijn conflicten tussen G-code-paden gevonden op laag %d, Z = %.2lfmm. Plaats de conflicterende objecten verder uit elkaar (%s <-> %s)."
 
@@ -7153,18 +7159,18 @@ msgid "Tool %d"
 msgstr "Gereedschap %d"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr[0] "Filament %s is in de %s geplaatst, maar het gegenereerde G-code-pad valt buiten het printbare bereik van de %s."
-msgstr[1] "Filamenten %s zijn in de %s geplaatst, maar het gegenereerde G-code-pad valt buiten het printbare bereik van de %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgstr[0] "Filament %1% is in de %2% geplaatst, maar het gegenereerde G-code-pad valt buiten het printbare bereik van de %2%."
+msgstr[1] "Filamenten %1% zijn in de %2% geplaatst, maar het gegenereerde G-code-pad valt buiten het printbare bereik van de %2%."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr[0] "Filament %s is in de %s geplaatst, maar het gegenereerde G-code-pad overschrijdt de printbare hoogte van de %s."
-msgstr[1] "Filamenten %s zijn in de %s geplaatst, maar het gegenereerde G-code-pad overschrijdt de printbare hoogte van de %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgstr[0] "Filament %1% is in de %2% geplaatst, maar het gegenereerde G-code-pad overschrijdt de printbare hoogte van de %2%."
+msgstr[1] "Filamenten %1% zijn in de %2% geplaatst, maar het gegenereerde G-code-pad overschrijdt de printbare hoogte van de %2%."
 
 # AI Translated
 msgid "Open wiki for more information."
@@ -7650,11 +7656,13 @@ msgstr "Toon &Labels"
 msgid "Show object labels in 3D scene."
 msgstr "Toon objectlabels in 3D-scène"
 
+# AI Translated
 msgid "Show all collision volumes"
-msgstr ""
+msgstr "Alle botsingsvolumes tonen"
 
+# AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr ""
+msgstr "Toon de volledige hoogte van elk geconfigureerd botsingsvolume, ook op een leeg printbed."
 
 # AI Translated
 msgid "Show &Overhang"
@@ -13171,11 +13179,13 @@ msgstr "Parameters met dit pictogram kunnen per mondstuk worden ingesteld."
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Klik om alle instellingen terug te zetten naar de laatst opgeslagen voorinstelling."
 
+# AI Translated
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr ""
+msgstr "Deze definitie bevat syntaxis voor botsingsvolumes. Toevoegen aan de botsingsvolumes van de printkop voor G-code-controle en het vermijden van verplaatsingen? Het bestaande uitgesloten printbedgebied blijft behouden."
 
+# AI Translated
 msgid "Add collision volumes"
-msgstr ""
+msgstr "Botsingsvolumes toevoegen"
 
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "Prime tower is vereist voor het wisselen van de nozzle. Er kunnen fouten in het model zitten zonder prime tower. Weet je zeker dat je prime tower wilt uitschakelen?"
@@ -15172,16 +15182,19 @@ msgstr ""
 "Exporteren van G-code naar %1% mislukt.\n"
 "Is de schijf vol?"
 
+# AI Translated
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
-msgstr ""
+msgstr "Een G-code-beweging snijdt een botsingsvolume voor extruder %1%. Dit kan een botsing van de printer veroorzaken."
 
+# AI Translated
 msgid "A G-code move intersects a collision volume. This may cause a printer collision."
-msgstr ""
+msgstr "Een G-code-beweging snijdt een botsingsvolume. Dit kan een botsing van de printer veroorzaken."
 
+# AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr ""
+msgstr "De snijdende beweging staat op G-code-regel %1%. De Z-positie ervan is na het homen onbekend, dus heeft Orca de beweging op alle hoogtes gecontroleerd."
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -15504,13 +15517,15 @@ msgstr ""
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% bevindt zich te dicht bij het uitsluitingsgebied. Er kunnen botsingen optreden tijdens het afdrukken."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
-msgstr ""
+msgstr "%1% snijdt botsingsvolumes voor alle beschikbare extruders."
 
+# AI Translated
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
-msgstr ""
+msgstr "%1% snijdt een botsingsvolume voor extruder %2%."
 
 #, boost-format
 msgid "%1% is too close to others, and collisions may be caused."
@@ -15940,35 +15955,46 @@ msgstr "Geordende lijst met uitgesloten bedgebieden per aantal parallelle printk
 msgid "Excluded bed area"
 msgstr "Uitgesloten printbed gebied"
 
+# AI Translated
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
-msgstr ""
+msgstr "Onafdrukbaar gebied in het XY-vlak. Printers uit de X1-serie gebruiken bijvoorbeeld de linkervoorhoek om filament af te snijden tijdens het verwisselen van filament. Het gebied wordt uitgedrukt als polygoon in het formaat \"XxY, XxY, ...\". Het beperkt de plaatsing van materiaal en modellen, maar staat verplaatsingen van de machine toe. Configureer de botsingsvolumes van de printkop apart voor G-code-controle en het vermijden van verplaatsingen."
 
+# AI Translated
 msgid "Toolhead collision volumes"
-msgstr ""
+msgstr "Botsingsvolumes van de printkop"
 
+# AI Translated
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Botsingsvolumes die worden gebruikt voor het uitsluiten van modellen en gegenereerd materiaal, voor G-code-controle en voor het vermijden van verplaatsingen. Gebruik \"XxY, XxY, ...\" voor een polygoon over de volle hoogte of \"ZMIN..ZMAX;XxY, XxY, ...\" voor een in Z beperkt volume. Scheid meerdere volumes met \"|\". Deze volumes gelden aanvullend op het uitgesloten printbedgebied. Automatisch schikken gebruikt voorzichtigheidshalve het omhullende kader van een niet-convex volume."
 
+# AI Translated
 msgid "Collision volume behavior"
-msgstr ""
+msgstr "Gedrag van botsingsvolumes"
 
+# AI Translated
 msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
-msgstr ""
+msgstr "Kies of alle mondstukken dezelfde botsingsvolumes gebruiken, of printkop-relatieve volumes worden afgeleid van de XY-offset van elk mondstuk, of voor elke extruder onafhankelijke volumes worden geconfigureerd. Selecteer in de individuele modus elke extruder op de pagina Extruder om de bijbehorende volumes te configureren."
 
+# AI Translated
+# Needs human review: Option name in the collision volume behavior dropdown (all nozzles share the same volumes); check that it reads right next to the other two options.
 msgid "Shared"
-msgstr ""
+msgstr "Gedeeld"
 
+# AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
-msgstr ""
+msgstr "Relatief aan printkop (mondstukoffsets)"
 
+# AI Translated
 msgid "Individual per extruder"
-msgstr ""
+msgstr "Individueel per extruder"
 
+# AI Translated
 msgid "Extruder collision volumes"
-msgstr ""
+msgstr "Botsingsvolumes van extruder"
 
+# AI Translated
 msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr ""
+msgstr "Botsingsvolumes die in de individuele modus alleen door deze extruder worden gebruikt. Gebruik hetzelfde formaat voor polygoon en optioneel Z-bereik als bij de gedeelde botsingsvolumes. Laat leeg als deze extruder geen botsingsvolumes heeft. Automatisch schikken gebruikt voorzichtigheidshalve het omhullende kader van een niet-convex volume."
 
 msgid "Bed custom texture"
 msgstr "Bed aangepaste textuur"
@@ -18859,6 +18885,8 @@ msgstr "Schakel dit in om na het slicen een precieze Z-hoogte van het object te 
 msgid "Arc fitting"
 msgstr "Boog montage"
 
+# AI Translated
+# Needs human review: The three mode names (Disabled / Enabled / Sparse infill only) must match the option labels (Uit / Aan / Alleen dunne vulling); check the bulleted names against the dropdown. Wipe tower term is unsettled in the glossary.
 msgid ""
 "Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while sparse infill, supports and the wipe tower use fixed tolerances.\n"
 " - Disabled: only straight G1 moves are used.\n"
@@ -18867,12 +18895,19 @@ msgid ""
 "\n"
 "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
+"Past G2- en G3-boogbewegingen aan op de toolpaths. Wanden en oppervlakken worden binnen de resolutie aangepast, terwijl dunne vulling, ondersteuning en het afveegblok vaste toleranties gebruiken.\n"
+" - Uit: alleen rechte G1-bewegingen worden gebruikt.\n"
+" - Aan: bogen worden aangepast op alle toolpaths.\n"
+" - Alleen dunne vulling: bogen worden alleen aangepast op de dunne vulling, wat de G-code van gebogen vullingspatronen verkort zonder de wanden en oppervlakken te beïnvloeden.\n"
+"\n"
+"Let op: voor Klipper-machines wordt Uit aanbevolen. Klipper splitst bogen weer op in lijnsegmenten, wat de oppervlaktekwaliteit verlaagt en de printtijd kan verlengen."
 
 msgid "Enabled"
 msgstr "Aan"
 
+# AI Translated
 msgid "Sparse infill only"
-msgstr ""
+msgstr "Alleen dunne vulling"
 
 msgid "Add line number"
 msgstr "Lijn hoogte toevoegen"
@@ -20500,10 +20535,13 @@ msgstr "Deze optie verschuift de binnennaden naar achteren op basis van hun diep
 msgid "Seam gap"
 msgstr "Naadopening"
 
+# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
+"Om de zichtbaarheid van de naad bij een gesloten lusextrusie te verminderen, wordt de lus onderbroken en met een opgegeven hoeveelheid ingekort.\n"
+"Deze hoeveelheid kan worden opgegeven in millimeters of als percentage van de mondstukdiameter. De standaardwaarde voor deze parameter is 10%."
 
 # AI Translated
 msgid "Scarf joint seam (beta)"
@@ -22376,14 +22414,17 @@ msgstr "Deze optie detecteert automatisch smalle interne solide opvul (infill) g
 msgid "invalid value "
 msgstr "ongeldige waarde "
 
+# AI Translated
 msgid "Invalid collision volume definition."
-msgstr ""
+msgstr "Ongeldige definitie van botsingsvolume."
 
+# AI Translated
 msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
-msgstr ""
+msgstr "Voor elke extruder is een mondstukoffset vereist wanneer printkop-relatieve botsingsvolumes zijn ingeschakeld."
 
+# AI Translated
 msgid "Invalid per-extruder collision volume definition."
-msgstr ""
+msgstr "Ongeldige definitie van botsingsvolume per extruder."
 
 # AI Translated
 msgid "Invalid value when spiral vase mode is enabled: "
@@ -23049,11 +23090,15 @@ msgstr "Totale kosten van het afveegblok"
 msgid "Total cost of the material wasted on the wipe tower. Calculated from filament_cost value in Filament Settings."
 msgstr "Totale kosten van het materiaal dat op het afveegblok verloren gaat. Berekend uit de waarde filament_cost in de filamentinstellingen."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'afveegblok' follows the existing catalog usage for 'wipe tower'.
 msgid "Total wipe tower filament"
-msgstr ""
+msgstr "Totaal filament van afveegblok"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'afveegblok' follows the existing catalog usage for 'wipe tower'.
 msgid "Total length of filament used on the wipe tower, in mm."
-msgstr ""
+msgstr "Totale lengte van het filament dat op het afveegblok is gebruikt, in mm."
 
 msgid "Used filament"
 msgstr "Verbruikt filament"
@@ -23306,8 +23351,9 @@ msgstr "Naam van de fysieke printer die voor het slicen is gebruikt."
 msgid "Layer number"
 msgstr "Laagnummer"
 
+# AI Translated
 msgid "Index of the current layer. The index is zero-based (first layer has index 0). Before the first layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1)."
-msgstr ""
+msgstr "Index van de huidige laag. De index is nulgebaseerd (de eerste laag heeft index 0). Voordat de eerste laag begint, is deze -1. In de G-code voor een wijziging van het extrusietype is de index eengebaseerd (de eerste laag heeft index 1)."
 
 # AI Translated
 msgid "Layer Z"
@@ -23329,181 +23375,238 @@ msgstr "Hoogte van de laatste laag boven het printbed."
 msgid "Filament extruder ID"
 msgstr "Extruder-ID van het filament"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled ('afveegblok' used); 'toolwissel' for tool change follows the catalog.
 msgid "In filament start G-code, the index of the filament that is being loaded. In filament end G-code, the index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 wipe tower does the tool change. Machine end G-code gets the value from the last filament end G-code at the end of the print."
-msgstr ""
+msgstr "In de start-G-code van het filament: de index van het filament dat wordt geladen. In de eind-G-code van het filament: de index van het filament dat wordt ontladen. De index is nulgebaseerd (het eerste filament heeft index 0). Bij een toolwissel krijgt de eind-G-code van het filament in plaats daarvan de extruderindex, tenzij de wisseling door het afveegblok van type 1 wordt uitgevoerd. De eind-G-code van de machine krijgt aan het einde van de print de waarde uit de laatste eind-G-code van het filament."
 
+# AI Translated
 msgid "Current filament ID"
-msgstr ""
+msgstr "Huidige filament-ID"
 
+# AI Translated
 msgid "Index of the currently active filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Index van het momenteel actieve filament. De index is nulgebaseerd (het eerste filament heeft index 0)."
 
+# AI Translated
 msgid "Current extruder ID"
-msgstr ""
+msgstr "Huidige extruder-ID"
 
+# AI Translated
 msgid "Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Index van de momenteel actieve fysieke extruder. De index is nulgebaseerd (de eerste extruder heeft index 0)."
 
+# AI Translated
 msgid "Current nozzle ID"
-msgstr ""
+msgstr "Huidige mondstuk-ID"
 
+# AI Translated
 msgid "Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Index van het momenteel actieve mondstuk. De index is nulgebaseerd (het eerste mondstuk heeft index 0)."
 
+# AI Translated
 msgid "Nozzle diameters"
-msgstr ""
+msgstr "Mondstukdiameters"
 
+# AI Translated
 msgid "Nozzle diameters indexed by nozzle ID."
-msgstr ""
+msgstr "Mondstukdiameters, geïndexeerd op mondstuk-ID."
 
+# AI Translated
 msgid "Nozzle volume types"
-msgstr ""
+msgstr "Mondstukvolumetypes"
 
+# AI Translated
 msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr ""
+msgstr "Varianten van het mondstukvolume, geïndexeerd op mondstuk-ID."
 
+# AI Translated
 msgid "Retraction distance used when cutting filament."
-msgstr ""
+msgstr "Terugtrekafstand die wordt gebruikt bij het afsnijden van filament."
 
+# AI Translated
 msgid "Long retraction when cut"
-msgstr ""
+msgstr "Lange terugtrekking bij afsnijden"
 
+# AI Translated
 msgid "Whether long retraction is used when cutting filament."
-msgstr ""
+msgstr "Of een lange terugtrekking wordt gebruikt bij het afsnijden van filament."
 
+# AI Translated
 msgid "Most-used physical extruder ID"
-msgstr ""
+msgstr "ID van de meest gebruikte fysieke extruder"
 
+# AI Translated
 msgid "Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Index van de fysieke extruder die op de huidige laag het vaakst wordt gebruikt. De index is nulgebaseerd (de eerste extruder heeft index 0)."
 
+# AI Translated
 msgid "Current Y acceleration limit"
-msgstr ""
+msgstr "Huidige versnellingslimiet Y"
 
+# AI Translated
 msgid "Current Y-axis acceleration limit after the bed-mass adjustment."
-msgstr ""
+msgstr "Huidige versnellingslimiet van de Y-as na de aanpassing voor de massa van het printbed."
 
+# AI Translated
 msgid "Current accumulated mass"
-msgstr ""
+msgstr "Huidige geaccumuleerde massa"
 
+# AI Translated
 msgid "Accumulated printed mass at the current layer."
-msgstr ""
+msgstr "Geaccumuleerde geprinte massa op de huidige laag."
 
+# AI Translated
 msgid "Current layer mass"
-msgstr ""
+msgstr "Massa van huidige laag"
 
+# AI Translated
 msgid "Printed mass of the previous layer."
-msgstr ""
+msgstr "Geprinte massa van de vorige laag."
 
+# AI Translated
 msgid "Current physical extruder ID"
-msgstr ""
+msgstr "Huidige ID van fysieke extruder"
 
+# AI Translated
 msgid "Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."
-msgstr ""
+msgstr "Index van de fysieke extruder die voor de huidige laag actief is. De index is nulgebaseerd (de eerste extruder heeft index 0)."
 
+# AI Translated
 msgid "Timelapse position X"
-msgstr ""
+msgstr "Timelapse-positie X"
 
+# AI Translated
 msgid "Selected X position for timelapse capture."
-msgstr ""
+msgstr "Geselecteerde X-positie voor timelapse-opname."
 
+# AI Translated
 msgid "Timelapse position Y"
-msgstr ""
+msgstr "Timelapse-positie Y"
 
+# AI Translated
 msgid "Selected Y position for timelapse capture."
-msgstr ""
+msgstr "Geselecteerde Y-positie voor timelapse-opname."
 
+# AI Translated
 msgid "Has timelapse safe position"
-msgstr ""
+msgstr "Heeft veilige timelapse-positie"
 
+# AI Translated
 msgid "Whether a safe timelapse position was found."
-msgstr ""
+msgstr "Of er een veilige timelapse-positie is gevonden."
 
+# AI Translated
 msgid "Timelapse inline photo"
-msgstr ""
+msgstr "Timelapse-inlinefoto"
 
+# AI Translated
 msgid "Whether the timelapse photo is captured at the inline position."
-msgstr ""
+msgstr "Of de timelapse-foto op de inlinepositie wordt gemaakt."
 
+# AI Translated
 msgid "Farthest-point timelapse enabled"
-msgstr ""
+msgstr "Timelapse op het verste punt ingeschakeld"
 
+# AI Translated
 msgid "Whether farthest-point timelapse positioning is active."
-msgstr ""
+msgstr "Of positionering van de timelapse op het verste punt actief is."
 
+# AI Translated
 msgid "Clear to X0"
-msgstr ""
+msgstr "Vrij tot X0"
 
+# AI Translated
 msgid "Whether the timelapse move is clear to X0."
-msgstr ""
+msgstr "Of de timelapse-beweging vrij is tot X0."
 
 # AI Translated
 msgid "Previous extruder"
 msgstr "Vorige extruder"
 
+# AI Translated
 msgid "Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."
-msgstr ""
+msgstr "Index van het filament dat wordt ontladen. De index is nulgebaseerd (het eerste filament heeft index 0). Aan het begin van de print, wanneer er nog geen filament is geladen, is deze -1."
 
 # AI Translated
 msgid "Next extruder"
 msgstr "Volgende extruder"
 
+# AI Translated
 msgid "Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Index van het filament dat wordt geladen. De index is nulgebaseerd (het eerste filament heeft index 0)."
 
+# AI Translated
 msgid "Current hotend"
-msgstr ""
+msgstr "Huidige hotend"
 
+# AI Translated
 msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Nulgebaseerde extruderindex van het uitgaande filament. Op Bambu-printers is deze -1, of de mondstuk-ID wanneer een filament over meerdere lagen tussen mondstukken wisselt."
 
+# AI Translated
 msgid "Next hotend"
-msgstr ""
+msgstr "Volgende hotend"
 
+# AI Translated
 msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr ""
+msgstr "Nulgebaseerde extruderindex van het inkomende filament. Op Bambu-printers is deze -1, of de mondstuk-ID wanneer een filament over meerdere lagen tussen mondstukken wisselt."
 
+# AI Translated
 msgid "Next nozzle ID"
-msgstr ""
+msgstr "Volgende mondstuk-ID"
 
+# AI Translated
 msgid "Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."
-msgstr ""
+msgstr "Index van het mondstuk dat bij het inkomende filament hoort. De index is nulgebaseerd (het eerste mondstuk heeft index 0)."
 
+# AI Translated
 msgid "Next filament ID"
-msgstr ""
+msgstr "Volgende filament-ID"
 
+# AI Translated
 msgid "Index of the incoming filament. The index is zero-based (first filament has index 0)."
-msgstr ""
+msgstr "Index van het inkomende filament. De index is nulgebaseerd (het eerste filament heeft index 0)."
 
+# AI Translated
 msgid "Old extruder variant"
-msgstr ""
+msgstr "Oude extrudervariant"
 
+# AI Translated
 msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr ""
+msgstr "Variant van het mondstukvolume van de uitgaande extruder."
 
+# AI Translated
 msgid "New extruder variant"
-msgstr ""
+msgstr "Nieuwe extrudervariant"
 
+# AI Translated
 msgid "Nozzle-volume variant of the incoming extruder."
-msgstr ""
+msgstr "Variant van het mondstukvolume van de inkomende extruder."
 
+# AI Translated
 msgid "Filament nozzle-change retract length"
-msgstr ""
+msgstr "Terugtreklengte van filament bij mondstukwissel"
 
+# AI Translated
 msgid "Nozzle-change retraction length of the outgoing filament."
-msgstr ""
+msgstr "Terugtreklengte van het uitgaande filament bij mondstukwissel."
 
+# AI Translated
 msgid "New extruder retracted length"
-msgstr ""
+msgstr "Teruggetrokken lengte van nieuwe extruder"
 
+# AI Translated
 msgid "Currently parked retraction length of the incoming extruder."
-msgstr ""
+msgstr "Momenteel geparkeerde terugtreklengte van de inkomende extruder."
 
+# AI Translated
 msgid "Outer wall volumetric speed"
-msgstr ""
+msgstr "Volumetrische snelheid buitenste wand"
 
+# AI Translated
 msgid "Volumetric speed used for the outer wall."
-msgstr ""
+msgstr "Volumetrische snelheid die voor de buitenste wand wordt gebruikt."
 
 # AI Translated
 msgid "Relative e-axis"
@@ -23523,11 +23626,13 @@ msgstr "Aantal toolwissels"
 msgid "The number of toolchanges throughout the print."
 msgstr "Het aantal toolwissels tijdens de print."
 
+# AI Translated
 msgid "Toolchange Z"
-msgstr ""
+msgstr "Z bij toolwissel"
 
+# AI Translated
 msgid "The Z position during the toolchange."
-msgstr ""
+msgstr "De Z-positie tijdens de toolwissel."
 
 # AI Translated
 msgid "Old retract length"
@@ -23723,77 +23828,111 @@ msgstr "Spoellengte 4"
 msgid "The fourth flush length."
 msgstr "De vierde spoellengte."
 
+# AI Translated
 msgid "Flush length"
-msgstr ""
+msgstr "Spoellengte"
 
+# AI Translated
 msgid "Total flush length."
-msgstr ""
+msgstr "Totale spoellengte."
 
+# AI Translated
 msgid "Flush volumetric speeds"
-msgstr ""
+msgstr "Volumetrische spoelsnelheden"
 
+# AI Translated
 msgid "Flush volumetric speeds for each filament."
-msgstr ""
+msgstr "Volumetrische spoelsnelheden voor elk filament."
 
+# AI Translated
 msgid "Flush temperatures"
-msgstr ""
+msgstr "Spoeltemperaturen"
 
+# AI Translated
 msgid "Flush temperatures for each filament."
-msgstr ""
+msgstr "Spoeltemperaturen voor elk filament."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'toren' is used for either tower here. Check the setting's role in the app.
 msgid "Filament cooling before tower"
-msgstr ""
+msgstr "Filamentkoeling vóór de toren"
 
+# AI Translated
+# Needs human review: Setting name: 'wipe perimeter' is the outline around the wipe area that travel moves avoid; check that 'veegperimeter' reads right.
 msgid "Avoid wipe perimeter"
-msgstr ""
+msgstr "Veegperimeter vermijden"
 
+# AI Translated
 msgid "Whether travel should avoid the wipe perimeter."
-msgstr ""
+msgstr "Of verplaatsingen de veegperimeter moeten vermijden."
 
+# AI Translated
+# Needs human review: Wipe is rendered as the compound stem 'veeg-' (glossary: Vegen); check it reads right as a setting name.
 msgid "Wipe avoidance X"
-msgstr ""
+msgstr "Veegvermijding X"
 
+# AI Translated
 msgid "X position used to avoid the wipe area."
-msgstr ""
+msgstr "X-positie die wordt gebruikt om het veeggebied te vermijden."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (Prime toren / Afveegblok); 'prime toren' follows the existing catalog usage for 'prime tower'.
 msgid "Prime tower interface"
-msgstr ""
+msgstr "Interface van prime toren"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (Prime toren / Afveegblok); 'prime toren' follows the existing catalog usage for 'prime tower'.
 msgid "Whether the current purge is for a prime-tower interface."
-msgstr ""
+msgstr "Of de huidige spoeling bedoeld is voor een interface van de prime toren."
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'toren' is used for either tower here.
 msgid "Filament tower interface print temperature"
-msgstr ""
+msgstr "Printtemperatuur van de toreninterface van het filament"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'toren' is used for either tower here.
 msgid "Print temperature used for the filament tower interface."
-msgstr ""
+msgstr "Printtemperatuur die voor de toreninterface van het filament wordt gebruikt."
 
-msgid "Wipe tower center X"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position X"
+msgstr "Wachtpositie van afveegblok X"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'afveegblok' follows the existing catalog usage for 'wipe tower'.
 msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
-msgstr ""
+msgstr "X-coördinaat van de wachtpositie van het mondstuk bij het afveegblok, 2 mm buiten de rand van het blok."
 
-msgid "Wipe tower center Y"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position Y"
+msgstr "Wachtpositie van afveegblok Y"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'afveegblok' follows the existing catalog usage for 'wipe tower'.
 msgid "Y coordinate of the nozzle's wipe-tower wait position."
-msgstr ""
+msgstr "Y-coördinaat van de wachtpositie van het mondstuk bij het afveegblok."
 
-msgid "Wipe tower center position valid"
-msgstr ""
+# AI Translated
+msgid "Wipe tower wait position valid"
+msgstr "Wachtpositie van afveegblok geldig"
 
+# AI Translated
+# Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; 'afveegblok' follows the existing catalog usage for 'wipe tower'.
 msgid "Whether the print has a wipe tower."
-msgstr ""
+msgstr "Of de print een afveegblok heeft."
 
+# AI Translated
 msgid "Nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Mondstuktemperaturen, geïndexeerd op filament."
 
+# AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
-msgstr ""
+msgstr "Mondstuktemperaturen voor de eerste laag, geïndexeerd op filament."
 
+# AI Translated
 msgid "Nozzle temperature initial layer"
-msgstr ""
+msgstr "Mondstuktemperatuur eerste laag"
 
 # AI Translated
 msgid "Extrusion role"
@@ -23996,8 +24135,9 @@ msgstr "Compileren van de regex mislukt"
 msgid "Cannot apply logical operation to non-boolean operands."
 msgstr "Kan geen logische bewerking toepassen op niet-booleaanse operanden."
 
+# AI Translated
 msgid "This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison."
-msgstr ""
+msgstr "Deze waarde is pas bekend nadat de G-code is gegenereerd. Ze kan worden afgedrukt, maar niet worden gebruikt in een berekening of vergelijking."
 
 # AI Translated
 msgid "Trying to index a scalar variable"
@@ -38438,14 +38578,17 @@ msgstr "Alleen cloudplug-ins kunnen worden verwijderd en opgezegd."
 msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files."
 msgstr "Kan het abonnement op uw eigen plug-ins niet opzeggen. Gebruik Verwijderen om de lokale bestanden te verwijderen."
 
+# AI Translated
 msgid "Python interpreter is shutting down"
-msgstr ""
+msgstr "Python-interpreter wordt afgesloten"
 
+# AI Translated
 msgid "Plugin system is shutting down."
-msgstr ""
+msgstr "Plug-insysteem wordt afgesloten."
 
+# AI Translated
 msgid "Plugin permission request denied"
-msgstr ""
+msgstr "Toestemmingsverzoek van plug-in geweigerd"
 
 # AI Translated
 msgid "Profile has fewer than 2 points"
@@ -39179,6 +39322,20 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgstr[0] "Filament %s is in de %s geplaatst, maar het gegenereerde G-code-pad valt buiten het printbare bereik van de %s."
+#~ msgstr[1] "Filamenten %s zijn in de %s geplaatst, maar het gegenereerde G-code-pad valt buiten het printbare bereik van de %s."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgstr[0] "Filament %s is in de %s geplaatst, maar het gegenereerde G-code-pad overschrijdt de printbare hoogte van de %s."
+#~ msgstr[1] "Filamenten %s zijn in de %s geplaatst, maar het gegenereerde G-code-pad overschrijdt de printbare hoogte van de %s."
 
 #~ msgid "Mirror along the X Axis"
 #~ msgstr "Spiegelen langs de X as"
