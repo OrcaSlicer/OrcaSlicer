@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=7200" />
-<title>引导_P21</title>
+<title data-i18n="printer_selection">Printer Selection</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />
 <link rel="stylesheet" type="text/css" href="../21/common.css" /> <!-- ORCA use common sources for setup guide and standalone dialog -->
@@ -14,38 +14,40 @@
 <script type="text/javascript" src="../js/json2.js"></script>	
 <script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../../include/a11y.js"></script>
 <script type="text/javascript" src="../js/common.js"></script>
 <script type="text/javascript" src="../21/common.js"></script> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <script type="text/javascript" src="24.js"></script>	
 </head>
-<body onLoad="OnInit()">
+<body class="PlainButtons" onLoad="OnInit()">
 <div id="Title">
-	<div data-i18n="printer_selection">Printer Selection</div>
+	<h1 data-i18n="printer_selection">Printer Selection</h1>
 </div>
 
 <div id="SidebarContainer">
 	<div id="Sidebar" class="thin-scroll">
-		<div class="title" data-i18n="vendors">Vendors</div>
+		<h2 class="title" data-i18n="vendors">Vendors</h2>
 		<div class="area" id="SidebarVendors">
-			<!-- <div class="SidebarItem"></div> -->
+			<!-- <button type="button" class="SidebarItem"></button> -->
 		</div>
 	</div>
-	<div class="back" onclick="document.getElementById('SidebarContainer').setAttribute('open', '0')"></div>
+	<div class="back" aria-hidden="true" onclick="SetSidebarOpen(0)"></div>
 </div>
-<div class="SidebarBtn ButtonStyleRegular" onclick="document.getElementById('SidebarContainer').setAttribute('open', '1')">
+<button type="button" class="SidebarBtn ButtonStyleRegular" aria-label="Open sidebar" data-i18n-aria-label="open_sidebar" onclick="SetSidebarOpen(this.getAttribute('aria-expanded') != 'true')">
 	<div class="icon16"></div>
-</div>
+</button>
 
 <div class="search" hasvalue="0">
 	<div class="search-icon icon16"></div>
-	<input type="text" class="searchTerm" placeholder=" " oninput="textInput(this)">
-	<span class="search-placeholder" data-i18n="search">Search</span>
+	<input type="text" class="searchTerm" placeholder=" " oninput="textInput(this)" aria-labelledby="SearchLabel">
+	<span class="search-placeholder" id="SearchLabel" aria-hidden="true" data-i18n="search">Search</span>
 </div>
+<span class="A11yOnly" id="SearchCountText" role="status"></span>
 <div class="LayoutSelector">
 	<div class="TabGroup">
-		<div class="TabButton" onclick="LayoutMode('compact-list')" ><div class="icon16"></div></div>
-		<div class="TabButton" onclick="LayoutMode('compact-cover')"><div class="icon16"></div></div>
-		<div class="TabButton" onclick="LayoutMode('large-cover')"  ><div class="icon16"></div></div>
+		<button type="button" class="TabButton" aria-pressed="false" aria-label="Compact list view" data-i18n-aria-label="view_compact_list" onclick="LayoutMode('compact-list')" ><div class="icon16"></div></button>
+		<button type="button" class="TabButton" aria-pressed="false" aria-label="Compact cover view" data-i18n-aria-label="view_compact_cover" onclick="LayoutMode('compact-cover')"><div class="icon16"></div></button>
+		<button type="button" class="TabButton" aria-pressed="true" aria-label="Large cover view" data-i18n-aria-label="view_large_cover" onclick="LayoutMode('large-cover')"  ><div class="icon16"></div></button>
 	</div>
 </div>
 
@@ -58,7 +60,7 @@
 			<div class="BannerBtns" onClick="ChooseVendor('VendorName')" >
 				<div class="modelCount"></div>
 				<input type="checkbox" class="VendorCheckbox" />
-			</div>	
+			</div>
 	</div>
 	<div class="PrinterArea">
 		<div class="PrinterBlock" onClick="ChooseModel('VendorName','ModelName')" >
@@ -78,25 +80,24 @@
 	</div>
 </div>
 -->
-	
+
 </div>
 <div id="AcceptArea">
-	<div class="ButtonStyleRegular ButtonTypeChoice" id="CreateBtn" onclick="CreateNewPrinter()" data-i18n="create">Create</div>
-	<div class="ButtonStyleRegular ButtonTypeChoice" id="CheckNewPrintersBtn" onclick="CheckForNewPrinters()" data-i18n="check_new_printers">Check for new printers</div>
-	<div class="ButtonStyleConfirm ButtonTypeChoice" id="AcceptBtn" onclick="ConfirmSelect()" data-i18n="confirm">Confirm</div>
-	<div class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="CancelSelect()" data-i18n="cancel">Cancel</div>
+	<button type="button" class="ButtonStyleRegular ButtonTypeChoice" id="CreateBtn" onclick="CreateNewPrinter()" data-i18n="create">Create</button>
+	<button type="button" class="ButtonStyleRegular ButtonTypeChoice" id="CheckNewPrintersBtn" onclick="CheckForNewPrinters()" data-i18n="check_new_printers">Check for new printers</button>
+	<button type="button" class="ButtonStyleConfirm ButtonTypeChoice" id="AcceptBtn" onclick="ConfirmSelect()" data-i18n="confirm">Confirm</button>
+	<button type="button" class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="CancelSelect()" data-i18n="cancel">Cancel</button>
 </div>
-	
-<div id="NoticeMask"></div>
-<div id="NoticeBody">
+
+<dialog id="NoticeBody" role="alertdialog" aria-labelledby="NoticeBar" aria-describedby="NoticeText">
 	<div id="NoticeBar" data-i18n="error">Error</div>
 	<div id="NoticeContent">
 	<div id="NoticeText" data-i18n="printer_required">At least one printer must be selected.</div>
 	<div id="NoticeBtns">
-		<div class="ButtonStyleConfirm ButtonTypeChoice" onClick="ShowNotice(0)" data-i18n="ok">OK</div>
+		<button type="button" class="ButtonStyleConfirm ButtonTypeChoice" onClick="ShowNotice(0)" data-i18n="ok">OK</button>
 	</div>
 	</div>
-</div>	
+</dialog>
 
 </body>
 <script>

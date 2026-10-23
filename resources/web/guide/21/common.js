@@ -41,7 +41,7 @@ function HandleStudio( pVal )
 	{
 		let button = document.getElementById("CheckNewPrintersBtn");
 		if (button) {
-			button.style.pointerEvents = "auto";
+			SetAriaState(button, "aria-disabled", false);
 			button.style.opacity = "1";
 		}
 
@@ -168,18 +168,23 @@ function GetModelSelect(vendor, model) {
 	return oVendor[model];
 }
 
+// ORCA the selection bar shows the state, the card's checkbox reports it
+function SetModelChecked($cbs, checked)
+{
+	$cbs.toggleClass('ModelCheckBoxSelected', !!checked);
+	SetAriaState($cbs.closest('.PrinterBlock'), 'aria-checked', !!checked);
+}
+
 function ChooseModel(vendor, ModelName)
 {
 	let ChooseItem=$(".ModelCheckBox[vendor='"+vendor+"'][model='"+ModelName+"']");
-	
-	if(ChooseItem.length > 0) {
-		if( $(ChooseItem).hasClass('ModelCheckBoxSelected') )
-			$(ChooseItem).removeClass('ModelCheckBoxSelected');
-		else
-			$(ChooseItem).addClass('ModelCheckBoxSelected');		
 
-		SetModelSelect(vendor, ModelName, $(ChooseItem).hasClass('ModelCheckBoxSelected'));
-	}		
+	if(ChooseItem.length > 0) {
+		let checked = !ChooseItem.hasClass('ModelCheckBoxSelected');
+
+		SetModelChecked(ChooseItem, checked);
+		SetModelSelect(vendor, ModelName, checked);
+	}
 }
 
 function FilterModelList(keyword) {
@@ -232,22 +237,6 @@ function FilterModelList(keyword) {
 		obj.append(ModelHtml[key]);
 	}
 
-	//Update Checkbox
-	ModelSelect = $('.ModelCheckBox');
-	for (let n = 0; n < ModelSelect.length; n++) {
-		let OneItem = ModelSelect[n];
-
-		let strModel = OneItem.getAttribute("model");
-		let strVendor = OneItem.getAttribute("vendor");
-
-		let checked = GetModelSelect(strVendor, strModel);
-
-		if (checked)
-			$(OneItem).addClass('ModelCheckBoxSelected');
-		else
-			$(OneItem).removeClass('ModelCheckBoxSelected');
-	}
-
 	UpdateSidebarVendors();
 
 	$content.css("padding-right",  $content[0].scrollHeight > $content[0].clientHeight ? "10px" : "20px");
@@ -262,11 +251,20 @@ function FilterModelList(keyword) {
 	TranslatePage();
 }
 
+let SearchCountTimer = null;
+
 function textInput(obj) {
 	FilterModelList(obj.value);
+
+	// ORCA say how many printers the search leaves, once typing pauses rather than per keystroke
+	clearTimeout(SearchCountTimer);
+	SearchCountTimer = setTimeout(() => {
+		$('#SearchCountText').text(T('count_shown', '%s shown', $('#Content .PrinterBlock').length));
+	}, 500);
 }
 
-function CreateVendorBlock(vendorName)
+// ORCA the name the vendor's heading and its sidebar entry both show
+function VendorDisplayName(vendorName)
 {
 	let alt = vendorName;
 	if( alt == "BBL" )
@@ -275,19 +273,32 @@ function CreateVendorBlock(vendorName)
 		alt = T("custom_printer", "Custom Printer");
 	if( alt == "Other")
 		alt = "Orca colosseum";
-	
-	return 	'<div class="OneVendorBlock" Vendor="' + vendorName + '">' +
+	return alt;
+}
+
+function CreateVendorBlock(vendorName)
+{
+	let alt = VendorDisplayName(vendorName);
+
+	let titleId = 'VendorTitle_' + vendorName.replace(/[^\w-]/g, '_');
+
+	return 	`<div class="OneVendorBlock" Vendor="${vendorName}" role="group" aria-labelledby="${titleId}">` +
 			'	<div class="BlockBanner">' +
-			'		<a>' + alt + '</a>' +
-			'		<div class="BannerBtns" onClick="ChooseVendor('+"\'"+vendorName+"\'"+')">'+
-			'			<div class="modelCount"></div>' +
-			'			<input type="checkbox" class="VendorCheckbox"/>'+
-			'		</div>'+	
+			`		<h2 id="${titleId}">` + alt + '</h2>' +
+			// a label, so a click anywhere on the count toggles the checkbox without a handler of its own
+			'		<label class="BannerBtns">'+
+			// "3 / 12" reads as two bare numbers, so a hidden twin says what they count
+			'			<div class="modelCount" aria-hidden="true"></div>' +
+			'			<span class="A11yOnly modelCountText"></span>' +
+			`			<input type="checkbox" class="VendorCheckbox" aria-label="${EscAttr(T('select_all_printers', 'Select all %s printers', alt))}" onChange="ChooseVendor('${vendorName}')"/>`+
+			'		</label>'+
 			'	</div>' +
 			'	<div class="PrinterArea">	' +
 			'	</div>' +
 			'</div>';
 }
+
+let PrinterInfoSeq = 0;   // ids for aria-describedby, unique across search rebuilds
 
 function CreatePrinterBlock(OneModel)
 {
@@ -299,7 +310,7 @@ function CreatePrinterBlock(OneModel)
 	if( vendor=="Custom")					
 		modelName = modelName.split(" ")[1];
 	// these uses different case in name; seckit, ratrig, blocks
-	else if (modelName.toLowerCase().startsWith(vendorName.toLowerCase()))  
+	else if (modelName.toLowerCase().startsWith(vendorName.toLowerCase()))
 		modelName = modelName.slice(vendorName.length);
 	// these not matches. have to fix in profiles to reduce conditions in here;
 	else if (vendor == "MagicMaker" && modelName.startsWith("MM"))
@@ -309,26 +320,44 @@ function CreatePrinterBlock(OneModel)
 	else if (vendor == "RolohaunDesign" && modelName.startsWith("Rolohaun"))
 		modelName = modelName.slice(("Rolohaun").length);
 
-	return	'<div class="PrinterBlock" onClick="ChooseModel(\''+vendor+'\',\''+OneModel['model']+'\')">'+
+	let infoId  = 'PrinterInfo' + (++PrinterInfoSeq);
+	let checked = !!GetModelSelect(vendor, OneModel['model']);
+
+	// ORCA the card is a checkbox named by the model; the hover card describes it
+	return	`<div class="PrinterBlock" tabindex="0" role="checkbox" aria-checked="${checked}" aria-label="${EscAttr(modelName.trim())}" aria-describedby="${infoId}" onClick="ChooseModel('${vendor}','${OneModel['model']}')">`+
 			'	<div class="PImg">'+
-			'		<img class="ModelThumbnail" src="' + OneModel['cover'] + '" onerror="this.onerror=null;this.src=\'../img/printer-dummy.png\';"/>'+
+			'		<img class="ModelThumbnail" src="' + OneModel['cover'] + '" alt="" onerror="this.onerror=null;this.src=\'../img/printer-dummy.png\';"/>'+
 			'	</div>'+
-			'	<div class="PrinterInfoMark">?</div>'+
-			'	<div class="PrinterInfo">'+
+			'	<div class="PrinterInfoMark" aria-hidden="true">?</div>'+
+			`	<div class="PrinterInfo" id="${infoId}" aria-hidden="true">`+
 			'		<div class="title">' + T("nozzle", "Nozzle") + '</div>'+
 			'		<div class="value">' + OneModel['nozzle_diameter'].replaceAll(";", " · ") + '</div>'+
 			'	</div>'+
 			'	<div style="display: flex;">'+
-			'		<div class="ModelCheckBox" vendor="' +vendor+ '" model="'+OneModel['model']+'"></div>'+
+			`		<div class="ModelCheckBox${checked ? ' ModelCheckBoxSelected' : ''}" vendor="${vendor}" model="${OneModel['model']}"></div>`+
 			'		<div class="PName">'+ modelName +'</div>'+ // ><p>'+ vendorName +'</p>
 			'	</div>'+
 			'</div>';
 }
 
+function SetSidebarOpen(nOpen) {
+	let sidebar = document.getElementById('SidebarContainer');
+	sidebar.setAttribute('open', nOpen ? '1' : '0');
+	sidebar.inert = !nOpen;   // keep the offscreen sidebar out of the Tab order
+	SetAriaState(document.querySelectorAll('.SidebarBtn'), 'aria-expanded', !!nOpen);
+	if (nOpen)
+		sidebar.querySelector('.SidebarItem')?.focus();
+	else if (sidebar.contains(document.activeElement))
+		document.querySelector('.SidebarBtn')?.focus();
+}
+
 function scrollToVendor(vendor) {
 	const el = $(".OneVendorBlock[vendor='"+vendor+"']")[0];
 	if (el){
-		document.getElementById('SidebarContainer').setAttribute('open', '0');
+		// focus goes with the scroll; moved first, so closing the sidebar leaves it there
+		if (document.getElementById('SidebarContainer').contains(document.activeElement))
+			el.querySelector('.VendorCheckbox').focus({preventScroll: true});
+		SetSidebarOpen(0);
 		document.getElementById('Content').scrollTo({top: el.offsetTop, behavior: "smooth"});
 	}
 }
@@ -339,8 +368,7 @@ function UpdateSidebarVendors()
 	$(`.OneVendorBlock`).each((i, el)=>{
 		let vendor = el.getAttribute('vendor');
 		UpdateVendorCheckbox(vendor);
-		let label = vendor == "Custom" ? T("custom_vendor", "Custom") : vendor;
-		SidebarHTML +=`<div class="SidebarItem" vendor="${vendor}" onclick="scrollToVendor(this.getAttribute('vendor'))">${label}</div>`;
+		SidebarHTML +=`<button type="button" class="SidebarItem" vendor="${vendor}" onclick="scrollToVendor(this.getAttribute('vendor'))">${VendorDisplayName(vendor)}</button>`;
 	});
 	$('#SidebarVendors').html(SidebarHTML)
 }
@@ -349,8 +377,7 @@ function ChooseVendor(sVendor) { // automatically selects / unselects all
 	const $cbs = $(`.OneVendorBlock[vendor='${sVendor}'] .ModelCheckBox`);
 	const sel  = $cbs.length && $cbs.not('.ModelCheckBoxSelected').length;
 
-	sel ? $cbs.addClass('ModelCheckBoxSelected')
-		: $cbs.removeClass('ModelCheckBoxSelected');
+	SetModelChecked($cbs, sel);
 
 	$cbs.each((i, el)=>{SetModelSelect(sVendor, el.getAttribute('model'), sel)});
 }
@@ -364,9 +391,14 @@ function UpdateVendorCheckbox(sVendor) {
 	const allSel   = selCount === $cbs.length && selCount > 0;
 	const nonSel   = selCount === 0;
 
-	$vcb.prop({checked: allSel , indeterminate: !allSel && !nonSel});
+	const mixed = !allSel && !nonSel;
+	SetCheckedState($vcb, allSel);
+	if ($vcb.prop('indeterminate') !== mixed)
+		$vcb.prop('indeterminate', mixed);
 
 	$vb.find(".modelCount").text(selCount + " / " + $cbs.length);
+	$vb.find(".modelCountText").text(
+		T('count_selected', '%s of %s selected', selCount, $cbs.length));
 }
 
 function OnExit()
@@ -377,11 +409,7 @@ function OnExit()
 	let nTotal=ModelSelect.length;
 
 	if( nTotal==0 ) {
-		let noticeBar = document.getElementById("NoticeBar");
-		noticeBar.classList.add("notice-error");
-		noticeBar.textContent = T("error", "Error");
-		document.getElementById("NoticeText").textContent = T("printer_required", "At least one printer must be selected.");
-		ShowNotice(1);
+		ShowPrinterRequired();
 		return 0;
 	}
 	
@@ -440,19 +468,20 @@ function OnExitFilter() {
 
 	SendWXMessage(JSON.stringify(tSend));
 
+	// ORCA say why Next or Confirm did nothing
+	if (nTotal == 0)
+		ShowPrinterRequired();
+
 	return nTotal;
 }
 
-function ShowNotice( nShow )
+function ShowPrinterRequired()
 {
-	if(nShow==0) {
-		$("#NoticeMask").hide();
-		$("#NoticeBody").hide();
-	}
-	else {
-		$("#NoticeMask").show();
-		$("#NoticeBody").show();
-	}
+	let noticeBar = document.getElementById("NoticeBar");
+	noticeBar.classList.add("notice-error");
+	noticeBar.textContent = T("error", "Error");
+	document.getElementById("NoticeText").textContent = T("printer_required", "At least one printer must be selected.");
+	ShowNotice(1);
 }
 
 // SNAPPY SCROLLING WITHOUT LAGS
@@ -630,12 +659,23 @@ function LayoutMode(value) {
 
 	LayoutBtns.forEach(el => el.classList.remove('selected'));
 	LayoutBtns[LayoutTypes.indexOf(value)].classList.add('selected');
+	LayoutBtns.forEach((el, i) => SetAriaState(el, 'aria-pressed', LayoutTypes[i] === value));
 	$content[0].setAttribute("layout", value);
 
 	if (target) scrollToVendor(target);
 }
 
-document.addEventListener('DOMContentLoaded', () => LayoutMode("large-cover"));
+document.addEventListener('DOMContentLoaded', () => {
+	LayoutMode("large-cover");
+	SetSidebarOpen(0);
+
+	// ORCA close the sidebar when focus moves past it and its button, so focus never sits behind its scrim
+	let sidebar = document.getElementById('SidebarContainer');
+	document.addEventListener('focusin', e => {
+		if (sidebar.getAttribute('open') == "1" && !sidebar.contains(e.target) && !e.target.closest('.SidebarBtn'))
+			SetSidebarOpen(0);
+	});
+});
 
 // KEY EVENTS
 function initKeyEvents(closeOnESC) {
@@ -646,7 +686,7 @@ function initKeyEvents(closeOnESC) {
 
 		if (e.keyCode == 27){
 			if(sidebar.getAttribute('open') == "1") { // prefer to close sidebar first if its open
-				sidebar.setAttribute('open', '0');
+				SetSidebarOpen(0);
 			}
 			else if (closeOnESC){
 				ClosePage();
@@ -654,17 +694,13 @@ function initKeyEvents(closeOnESC) {
 		}
 
 		// ORCA focus search bar on key input
-		// SearchBox not in focus && writable character && non modifier
-		if (document.activeElement != SearchBox && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+		// writable character, no modifier, not typing in a field, not Space on a control
+		let a = document.activeElement || document.body;
+		if (a != SearchBox && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey
+			&& !a.matches('input, textarea, select')
+			&& !(e.key === ' ' && a.matches('button, a, [role], [tabindex]'))) {
 			SearchBox.focus();
+			SetSidebarOpen(0); // typing implies leaving the sidebar
 		}
-
-		// Close sidebar on any key input
-		sidebar.setAttribute('open', '0');
-
-		//if (window.event) {
-		//	try { e.keyCode = 0; } catch (e) { }
-		//	e.returnValue = true;
-		//}
 	};
 }

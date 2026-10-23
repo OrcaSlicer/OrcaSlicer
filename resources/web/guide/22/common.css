@@ -127,7 +127,7 @@
 	margin: 5px 5px 5px auto;
 }
 
-.cbr-filter-btns div:first-of-type {
+.cbr-filter-btns button:first-of-type {
 	margin-left: 10px;
 }
 
@@ -207,24 +207,24 @@ input[onclear="1"] {
 }
 
 /* NOTICE POPUP */
-#NoticeMask {
+#NoticeBody::backdrop {
 	background-color: #000;
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	right: 0px;
-	bottom: 0px;
 	opacity: 0.05;
-	display: none;
 }
 
-#NoticeBody {
-	display: none;
+#NoticeBody { /* a modal <dialog>: undo its UA box so it sits where the old div did */
+	max-width: none;
+	max-height: none;
+	padding: 0;
+	margin: 0;
+	right: auto;
+	bottom: auto;
+	color: inherit;
 	width: 500px;
 	border-width: 1px;
 	border-style: solid;
 	border-radius: 4px;
-	background-color: inherit;	
+	background-color: inherit;
 	position: absolute;
 	left: 50%;
 	top: 200px;
