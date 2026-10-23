@@ -564,6 +564,10 @@ void AppConfig::set_defaults()
         set_bool("remember_printer_config", true);
     }
 
+    if (get("top_up_filaments_to_extruders").empty()) {
+        set_bool("top_up_filaments_to_extruders", true);
+    }
+
     if (get("group_filament_presets").empty()) {
         set("group_filament_presets", "1"); // All "0" / None "1" / By Type "2" / By Vendor "3"
     }

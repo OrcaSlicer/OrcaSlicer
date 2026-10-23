@@ -6627,7 +6627,10 @@ void Sidebar::show_SEMM_buttons()
 
     p->m_bpButton_add_filament->Show(single_or_bbl);
     p->m_bpButton_del_filament->Show(is_multi);
-    p->m_flushing_volume_btn->Show(  is_multi);
+    // ORCA: multi-tool printers share the multi-material controls but do not flush between tools.
+    const auto &printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    bool uses_flushing = printer_config.opt_bool("single_extruder_multi_material") || wxGetApp().preset_bundle->is_bbl_vendor();
+    p->m_flushing_volume_btn->Show(is_multi && uses_flushing);
 
     if (is_multi) {
         for (auto &c : p->combos_filament)

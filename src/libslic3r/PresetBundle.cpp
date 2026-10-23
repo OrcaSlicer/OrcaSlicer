@@ -3863,6 +3863,24 @@ void PresetBundle::load_installed_sla_materials(AppConfig &config)
         preset.set_visible_from_appconfig(config);
 }
 
+// The saved map can name an extruder the printer no longer has (its extruder count was lowered
+// since), so such entries, like missing or unreadable ones, fall back to the first extruder.
+static std::vector<int> load_filament_map(AppConfig &config, const std::string &printer_name, size_t n_filaments, int n_extruders)
+{
+    std::vector<std::string> saved;
+    const std::string        joined = config.get_printer_setting(printer_name, "filament_map");
+    if (!joined.empty())
+        boost::algorithm::split(saved, joined, boost::algorithm::is_any_of(","));
+
+    std::vector<int> filament_map(n_filaments, 1);
+    for (size_t i = 0; i < std::min(n_filaments, saved.size()); ++i) {
+        const int extruder = std::atoi(saved[i].c_str());
+        if (extruder >= 1 && extruder <= n_extruders)
+            filament_map[i] = extruder;
+    }
+    return filament_map;
+}
+
 // Mixed-color filament metadata is project state saved in the 3mf, also mirrored into the app
 // config so the last session's mixes are back before any project is opened. It is kept in the
 // per-printer snapshot next to the filament list it indexes (filament_%02u/filament_colors),
@@ -3961,7 +3979,8 @@ void PresetBundle::update_selections(AppConfig &config)
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
 
-    update_filament_count();
+    if (config.get_bool("top_up_filaments_to_extruders"))
+        update_filament_count();
 
     std::vector<std::string> filament_colors;
     auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
@@ -3985,8 +4004,8 @@ void PresetBundle::update_selections(AppConfig &config)
     filament_color_types.resize(filament_presets.size(), "1");
     project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
 
-    std::vector<int> filament_maps(filament_colors.size(), 1);
-    project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
+    project_config.option<ConfigOptionInts>("filament_map")->values =
+        load_filament_map(config, initial_printer_profile_name, filament_colors.size(), get_printer_extruder_count());
 
     std::vector<int> filament_nozzle_maps(filament_colors.size(), 0);
     project_config.option<ConfigOptionInts>("filament_nozzle_map")->values = filament_nozzle_maps;
@@ -4123,7 +4142,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
 
-    update_filament_count();
+    if (config.get_bool("top_up_filaments_to_extruders"))
+        update_filament_count();
 
     // Load data from AppConfig to ProjectConfig when Studio is initialized.
     std::vector<std::string> filament_colors;
@@ -4148,8 +4168,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     filament_color_types.resize(filament_presets.size(), "1");
     project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
 
-    std::vector<int> filament_maps(filament_colors.size(), 1);
-    project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
+    project_config.option<ConfigOptionInts>("filament_map")->values =
+        load_filament_map(config, initial_printer_profile_name, filament_colors.size(), get_printer_extruder_count());
 
     std::vector<int> filament_nozzle_maps(filament_colors.size(), 0);
     project_config.option<ConfigOptionInts>("filament_nozzle_map")->values = filament_nozzle_maps;
@@ -4296,6 +4316,11 @@ void PresetBundle::export_selections(AppConfig &config)
     // Load filament color type data into app config
     std::string           filament_color_types = boost::algorithm::join(project_config.option<ConfigOptionStrings>("filament_colour_type")->values, ",");
     config.set_printer_setting(printer_name, "filament_color_types", filament_color_types);
+
+    std::string filament_map = boost::algorithm::join(project_config.option<ConfigOptionInts>("filament_map")->values |
+                                                          boost::adaptors::transformed(static_cast<std::string (*)(int)>(std::to_string)),
+                                                      ",");
+    config.set_printer_setting(printer_name, "filament_map", filament_map);
 
     // Load ams counts data into app config
     std::string           extruder_ams_count_str = boost::algorithm::join(save_extruder_ams_count_to_string(this->extruder_ams_counts), ",");
