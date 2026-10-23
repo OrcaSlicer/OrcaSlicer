@@ -211,6 +211,7 @@ private:
     PickingModel m_plate_name_edit_icon;
     PickingModel m_move_front_icon;
     PickingModel m_imex_mode_icon;
+    PickingModel m_plate_bed_type_icon;
     GLModel      m_imex_warn_icon;   // warning badge: IMEX parallel mode + multi-material conflict
     GLModel m_plate_idx_icon;
     GLTexture m_texture;
@@ -257,6 +258,9 @@ private:
     void ensure_imex_ghosts();          // cached rebuild on key change
     void render_imex_zones(bool force_default_color);
     void refresh_imex_icon();
+    bool is_bed_type_icon_shown() const;
+    int bed_type_icon_slot() const;
+    void refresh_bed_type_icon();
     float icon_scale_factor() const;
     void calc_vertex_for_number(int index, bool one_number, GLModel &buffer);
     void calc_vertex_for_plate_name_edit_icon(GLTexture *texture, int index, PickingModel &model);
@@ -303,7 +307,8 @@ public:
     static constexpr unsigned int PLATE_NAME_HOVER_ID = 6;
     static constexpr unsigned int PLATE_FILAMENT_MAP_ID = 8;
     static constexpr unsigned int PLATE_IMEX_MODE_ID = 9;
-    static constexpr unsigned int GRABBER_COUNT = 10;
+    static constexpr unsigned int PLATE_BED_TYPE_ID = 10;
+    static constexpr unsigned int GRABBER_COUNT = 11;
 
     // Sentinel encoded into GLVolume::composite_id.object_id for IMEX ghost volumes.
     // Real object_ids are small non-negative ints, so a large-negative base is unambiguous.
@@ -833,6 +838,7 @@ class PartPlateList : public ObjectBase
     GLTexture m_plate_set_filament_map_hovered_texture;
     GLTexture m_plate_name_edit_texture;
     GLTexture m_plate_name_edit_hovered_texture;
+    std::array<GLTexture, btCount> m_bed_type_textures;     // indexed by BedType; btDefault stays empty
     std::array<GLTexture, 4> m_imex_mode_textures;          // indexed by ImexModeKind
     std::array<GLTexture, 4> m_imex_mode_hovered_textures;
     GLTexture m_imex_warn_texture;  // warning badge for IMEX + multi-material conflict
@@ -1174,7 +1180,7 @@ public:
     bool load_next_plate_texture();
 
     void on_extruder_count_changed(int extruder_count);
-    // Re-position the IMEX mode icon on all plates without a full shape rebuild.
+    // Re-position the IMEX mode and bed type icons on all plates without a full shape rebuild.
     void refresh_imex_icons();
 
     void set_filament_count(int filament_count);

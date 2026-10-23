@@ -150,6 +150,7 @@
 #include <wx/debug.h>
 #include <wx/busyinfo.h>
 #include <wx/event.h>
+#include <wx/menu.h>
 #include <wx/evtloop.h>
 #include <wx/timer.h>
 #include <wx/wrapsizer.h>
@@ -471,6 +472,12 @@ static std::map<BedType, std::string> bed_type_thumbnails = {
     {BedType::btPCT,       "bed_pei_cool"       },
     {BedType::btSuperTack, "bed_cool_supertack" }
 };
+
+std::string bed_type_thumbnail(BedType bed_type)
+{
+    auto it = bed_type_thumbnails.find(bed_type);
+    return it == bed_type_thumbnails.end() ? std::string() : it->second;
+}
 
 enum SlicedInfoIdx
 {
@@ -22143,15 +22150,13 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
     if (bed_shape_changed || exclusion_preview_changed)
         get_current_canvas3D()->request_extra_frame();
 
-    // After any bed-shape or is_imex change, ensure the IMEX mode icon geometry and
-    // raycaster are correct.  set_shape() short-circuits when the bed is unchanged,
-    // so we call refresh_imex_icons() explicitly whenever is_imex is active.
+    // After any bed-shape or is_imex change, ensure the IMEX mode and bed type icons
+    // geometry and raycasters are correct.  set_shape() short-circuits when the bed is
+    // unchanged, so we call refresh_imex_icons() explicitly; the bed type icon moves
+    // when is_imex turns off too.
     // Always done AFTER set_bed_shape() so m_shape is current.
-    if (bed_shape_changed || imex_changed) {
-        auto* is_imex_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
-        if (is_imex_opt && is_imex_opt->value)
-            p->partplate_list.refresh_imex_icons();
-    }
+    if (bed_shape_changed || imex_changed)
+        p->partplate_list.refresh_imex_icons();
 
     config_change_notification(config, std::string("print_sequence"));
 
@@ -23975,6 +23980,15 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         update();
         p->partplate_list.select_plate(0);
     }
+    else if ((action == (int)PartPlate::PLATE_BED_TYPE_ID) && (!right_click)) {
+        ret = select_plate(plate_index);
+        if (!ret)
+            show_plate_bed_type_menu(p->partplate_list.get_curr_plate());
+        else {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
+            ret = -1;
+        }
+    }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {
         ret = select_plate(plate_index);
@@ -24038,6 +24052,33 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: return %2%")%__LINE__ % ret;
     return ret;
+}
+
+// The same choices as the bed type list of the plate settings dialog.
+void Plater::show_plate_bed_type_menu(PartPlate* plate)
+{
+    std::vector<BedType> bed_types = { btDefault };
+    const std::vector<BedType>& supported = sidebar().get_cur_combox_bed_types();
+    bed_types.insert(bed_types.end(), supported.begin(), supported.end());
+
+    std::vector<int> item_ids;
+    wxMenu menu;
+    for (BedType bed_type : bed_types) {
+        item_ids.push_back(wxNewId());
+        menu.AppendRadioItem(item_ids.back(), PlateSettingsDialog::to_bed_type_name(bed_type))->Check(bed_type == plate->get_bed_type());
+    }
+    menu.Bind(wxEVT_MENU, [this, plate, bed_types, item_ids](wxCommandEvent& e) {
+        auto it = std::find(item_ids.begin(), item_ids.end(), e.GetId());
+        if (it == item_ids.end()) return;
+        const BedType picked = bed_types[std::distance(item_ids.begin(), it)];
+        if (picked == plate->get_bed_type()) return;
+        take_snapshot("set plate bed type");
+        plate->set_bed_type(picked);
+        update_project_dirty_from_presets();
+        set_plater_dirty(true);
+        update();
+    });
+    p->view3D->get_canvas3d()->get_wxglcanvas()->PopupMenu(&menu);
 }
 
 //BBS: add an empty plate and switch to it (mirrors the toolbar's Add Plate).

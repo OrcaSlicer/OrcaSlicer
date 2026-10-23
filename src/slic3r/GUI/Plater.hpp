@@ -122,6 +122,9 @@ enum class ActionButtonType : int;
 // (Sidebar::priv::m_menu_filament_id) rather than an explicit index.
 inline constexpr int kSidebarContextMenuFilamentId = -2;
 
+// Name of the bed picture in resources/images, without extension; empty for btDefault.
+std::string bed_type_thumbnail(BedType bed_type);
+
 //BBS: add EVT_SLICING_UPDATE declare here
 wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
 wxDECLARE_EVENT(EVT_OPEN_PLATESETTINGSDIALOG,        wxCommandEvent);
@@ -1104,6 +1107,8 @@ private:
     // are shown after the pop-up dialog closes.
     bool 	 m_tracking_popup_menu = false;
     wxString m_tracking_popup_menu_error_message;
+
+    void show_plate_bed_type_menu(PartPlate* plate);
 
     wxString m_last_loaded_gcode;
     //BBS: add only gcode mode

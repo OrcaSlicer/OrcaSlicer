@@ -790,6 +790,38 @@ void PartPlate::refresh_imex_icon()
     }
 }
 
+bool PartPlate::is_bed_type_icon_shown() const
+{
+    PresetBundle* preset = wxGetApp().preset_bundle;
+    if (!preset || !m_partplate_list->render_plate_settings)
+        return false;
+    return preset->is_bbl_vendor() || preset->printers.get_edited_preset().config.opt_bool("support_multi_bed_types");
+}
+
+// Last in the icon column, so the icons before it keep their place.
+int PartPlate::bed_type_icon_slot() const
+{
+    PresetBundle* preset = wxGetApp().preset_bundle;
+    const bool dual_bbl = preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2;
+    auto* is_imex_opt = preset->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
+    const bool is_imex = is_imex_opt && is_imex_opt->value;
+    return (dual_bbl ? 7 : 6) + (is_imex ? 1 : 0);
+}
+
+// The slot follows is_imex, which set_shape() misses when the bed shape is unchanged.
+void PartPlate::refresh_bed_type_icon()
+{
+    if (!m_plater || !wxGetApp().preset_bundle) return;
+    calc_vertex_for_icons(bed_type_icon_slot(), m_plate_bed_type_icon);
+
+    // calc_vertex_for_icons() destroyed the MeshRaycaster that SceneRaycaster still holds by raw pointer.
+    GLCanvas3D *canvas = m_plater->get_view3D_canvas3D();
+    if (!canvas) return;
+    canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed, picking_id_component(PLATE_BED_TYPE_ID));
+    if (is_bed_type_icon_shown())
+        register_model_for_picking(*canvas, m_plate_bed_type_icon, picking_id_component(PLATE_BED_TYPE_ID));
+}
+
 // Ensure zone geometry (secondary boxes, collision strips, visual meshes) is up to date.
 void PartPlate::ensure_imex_zones()
 {
@@ -1724,7 +1756,7 @@ void PartPlate::calc_vertex_for_icons(int index, PickingModel &model)
     p += Vec2d(gap_left,-1 * (index * (size + gap_y) + gap_top));
 
     if (m_plater && m_plater->get_build_volume_type() == BuildVolume_Type::Circle)
-        p[1] -= std::max(0.0, (bed_ext.size()(1) - (size + gap_y) * 6 /* bed_icon_count */) / 2);
+        p[1] -= std::max(0.0, (bed_ext.size()(1) - (size + gap_y) * 7 /* bed_icon_count */) / 2);
 
     poly.contour.append({ scale_(p(0))       , scale_(p(1) - size) });
     poly.contour.append({ scale_(p(0) + size), scale_(p(1) - size) });
@@ -2683,6 +2715,12 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                 }
             }
 
+            if (is_bed_type_icon_shown()) {
+                render_icon_texture(m_plate_bed_type_icon.model, m_partplate_list->m_bed_type_textures[get_bed_type(true)]);
+                if (hover_id == (int)PLATE_BED_TYPE_ID)
+                    set_hover_tooltip(_u8L("Bed type of current plate"));
+            }
+
             if (m_plate_index >= 0 && m_plate_index < MAX_PLATE_COUNT) {
                 render_icon_texture(m_plate_idx_icon, m_partplate_list->m_idx_textures[m_plate_index]);
             }
@@ -2987,6 +3025,9 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
         if (is_imex_opt && is_imex_opt->value && m_imex_mode_icon.mesh_raycaster)
             register_model_for_picking(canvas, m_imex_mode_icon, picking_id_component(PLATE_IMEX_MODE_ID));
     }
+
+    if (is_bed_type_icon_shown())
+        register_model_for_picking(canvas, m_plate_bed_type_icon, picking_id_component(PLATE_BED_TYPE_ID));
 }
 
 int PartPlate::picking_id_component(int idx) const
@@ -5166,6 +5207,7 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 					calc_vertex_for_imex_warn_badge(imex_slot, m_imex_warn_icon);
 				}
 			}
+			calc_vertex_for_icons(bed_type_icon_slot(), m_plate_bed_type_icon);
 
 			calc_vertex_for_number(0, false, m_plate_idx_icon);
 			// calc vertex for plate name
@@ -6037,6 +6079,14 @@ void PartPlateList::generate_icon_textures()
         }
     }
 
+    // The same pictures the sidebar shows beside the bed type list. They have no hover variant.
+    for (int bed_type = btPC; bed_type < btCount; ++bed_type) {
+        file_name = path + bed_type_thumbnail(BedType(bed_type)) + ".png";
+        if (!m_bed_type_textures[bed_type].load_from_file(file_name, true, GLTexture::None, false)) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(":load file %1% failed") % file_name;
+        }
+    }
+
 	//if (m_arrange_texture.get_id() == 0)
 	{
 		file_name = path + (m_is_dark ? "plate_arrange_dark.svg" : "plate_arrange.svg");
@@ -6212,6 +6262,8 @@ void PartPlateList::release_icon_textures()
 	m_del_hovered_texture.reset();
     m_move_front_hovered_texture.reset();
     m_move_front_texture.reset();
+    for (GLTexture& texture : m_bed_type_textures)
+        texture.reset();
 	m_arrange_texture.reset();
 	m_arrange_hovered_texture.reset();
 	m_orient_texture.reset();
@@ -9123,7 +9175,10 @@ void PartPlateList::refresh_imex_icons()
 {
     const std::lock_guard<std::mutex> local_lock(m_plates_mutex);
     for (PartPlate* plate : m_plate_list)
+    {
         plate->refresh_imex_icon();
+        plate->refresh_bed_type_icon();
+    }
 }
 
 void PartPlateList::on_extruder_count_changed(int extruder_count)
