@@ -50,7 +50,7 @@ The patterns follow the body's box in one of two ways:
   Zag links start from its corner. `Fill::extended_object_bounding_box()`
   extends the box about its center, so it also serves a box that is not
   centered on the origin.
-- Honeycomb, 3D Honeycomb, Cross Hatch, Gyroid, TPMS-D, TPMS-FK and TPMS-P are laid out
+- Honeycomb, 3D Honeycomb, Cross Hatch, Gyroid, TPMS-D, TPMS-FK, TPMS-P and TPMS-IWP are laid out
   from the coordinate origin, which is the object center. They return true from
   `Fill::aligned_to_origin()`, and `Fill::fill_surface()` moves each region so
   that the box center lands on the origin, fills it, and moves the paths back.

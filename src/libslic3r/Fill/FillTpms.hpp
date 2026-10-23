@@ -57,6 +57,18 @@ protected:
     float    trace_cell(float period) const override { return std::min(0.4f, period / 32.f); }
 };
 
+// Schoen I-WP surface: 2 (cos x cos y + cos y cos z + cos z cos x) - (cos 2x + cos 2y + cos 2z) = 0.
+class FillTpmsIWP : public FillTpmsFK
+{
+public:
+    Fill* clone() const override { return new FillTpmsIWP(*this); }
+
+protected:
+    Equation equation() const override;
+    float    period_factor() const override { return 2.62f; }
+    float    trace_cell(float period) const override { return std::min(0.4f, period / 32.f); }
+};
+
 } // namespace Slic3r
 
 #endif // slic3r_FillTpms_hpp_
