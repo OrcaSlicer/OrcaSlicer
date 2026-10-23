@@ -157,3 +157,11 @@ they were.
 
 The wireframe overlay draws translucent filament parts too, with blending off, so their lines stay
 solid.
+
+## Path tracer
+
+When the GPU path tracer is enabled (`SETTING_OPENGL_PATHTRACE_QUALITY`), translucent filaments are rendered using a spectral RGB Beer-Lambert formulation across both primary view rays and shadow transmittance rays:
+- **Spectral Absorption:** Each surface crossing attenuates radiance exponentially per channel ($T = \text{pow}(T_{\text{ref}}, d / d_{\text{ref}})$) based on the filament's dominant pigment and opacity. Optical depth is matched across closed-hull meshes in Prepare and extrusion toolpath tubes in Preview.
+- **Physical Colored Shadows:** Secondary shadow rays accumulate chromatic transmittance through occluding walls, casting colored contact shadows onto interior geometry and the print bed.
+- **Single-Pass Alpha Compositing:** Accumulated object radiance and shadow tint are tone-mapped and composited over the rasterized print bed in a single pass, so translucent objects naturally tint and shade the underlying bed markings while preserving highlights.
+- **Automatic SSS:** Filaments automatically receive appropriate subsurface scattering strengths derived from `filament_type`, opacity, and luminance, rendering realistic diffusion on dense or semi-translucent materials.

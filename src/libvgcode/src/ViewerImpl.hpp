@@ -179,6 +179,7 @@ public:
     float get_estimated_time() const { return m_total_time[static_cast<size_t>(m_settings.time_mode)]; }
     float get_estimated_time_at(size_t id) const;
     Color get_vertex_color(const PathVertex& vertex) const;
+    uint8_t get_vertex_alpha(const PathVertex& vertex) const;
 
     size_t get_extrusion_roles_count() const { return m_extrusion_roles.get_roles_count(); }
     std::vector<EGCodeExtrusionRole> get_extrusion_roles() const { return m_extrusion_roles.get_roles(); }
@@ -637,7 +638,6 @@ private:
     void update_view_full_range();
     void update_color_ranges();
     void update_heights_widths();
-    uint8_t get_vertex_alpha(const PathVertex& v) const;
     // ORCA: translucent draws the segments whose color is translucent, otherwise the opaque ones, or all of them for the shadow casters.
     void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position, bool translucent = false);
     void render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);

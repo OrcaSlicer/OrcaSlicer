@@ -13,6 +13,9 @@
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include <cstddef>
 #include <array>
+#include <atomic>
+#include <cstdio>
+#include <future>
 #include <cassert>
 #include <climits>
 #include "libslic3r/BoundingBox.hpp"
@@ -82,8 +85,11 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Tesselate.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/PathTracer.hpp"
+#include "libvgcode/include/Types.hpp"
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "CameraUtils.hpp"
@@ -93,6 +99,7 @@
 #include "GUI.hpp"
 #include "Tab.hpp"
 #include "GUI_Preview.hpp"
+#include "GLTexture.hpp"
 #include "OpenGLManager.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
@@ -1647,7 +1654,10 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 
 GLCanvas3D::~GLCanvas3D()
 {
+    _stop_pathtrace_bvh_worker();
+
     if (_set_current()) {
+        _release_pathtrace_gl_resources();
         m_scene_cache.reset();
         m_frame_profiler.reset();
         if (m_fxaa_texture_id != 0) {
@@ -2817,45 +2827,114 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
         m_frame_profiler.mark("plates");
-        //BBS: add outline logic
-        // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
-        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
-        m_frame_profiler.mark("shadows");
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_below_plate_volumes();
-        m_frame_profiler.mark("objects");
-        // Collision previews follow the same visibility rule as the bed.
-        const bool show_exclusion_intersections = m_show_bed &&
-            (!m_main_toolbar.is_enabled() ||
-             (gizmo_type != GLGizmosManager::FdmSupports && gizmo_type != GLGizmosManager::Seam &&
-              gizmo_type != GLGizmosManager::MmSegmentation && gizmo_type != GLGizmosManager::FuzzySkin));
-        if (show_exclusion_intersections)
-            wxGetApp().plater()->get_partplate_list().render_exclusion_volume_intersections(
-                camera.get_view_matrix(), camera.get_projection_matrix());
-        _render_sla_slices();
-        _render_selection();
-        _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
-        _render_wireframe_overlay();
-        m_frame_profiler.mark("transparent");
+        if (_is_pathtrace_enabled() && _render_pathtraced_view(camera, cnv_size)) {
+            _render_section_view_caps();
+
+            const bool has_wireframe = wxGetApp().plater() != nullptr && wxGetApp().plater()->is_show_wireframe();
+            bool has_modifiers = false;
+            for (const GLVolume* volume : m_volumes.volumes) {
+                if (volume != nullptr && volume->is_active && volume->is_modifier) {
+                    has_modifiers = true;
+                    break;
+                }
+            }
+            const bool has_gizmo = m_gizmos.get_current_type() != GLGizmosManager::Undefined;
+            if (has_modifiers || has_wireframe || has_gizmo) {
+                glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+                glsafe(::glEnable(GL_DEPTH_TEST));
+                glsafe(::glDepthMask(GL_TRUE));
+                _render_objects(GLVolumeCollection::ERenderType::Opaque, false);
+                glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+
+                if (has_modifiers)
+                    _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running(), true);
+                if (has_wireframe)
+                    _render_wireframe_overlay();
+            }
+
+            const bool show_exclusion_intersections = m_show_bed &&
+                (!m_main_toolbar.is_enabled() ||
+                 (gizmo_type != GLGizmosManager::FdmSupports && gizmo_type != GLGizmosManager::Seam &&
+                  gizmo_type != GLGizmosManager::MmSegmentation && gizmo_type != GLGizmosManager::FuzzySkin));
+            if (show_exclusion_intersections)
+                wxGetApp().plater()->get_partplate_list().render_exclusion_volume_intersections(
+                    camera.get_view_matrix(), camera.get_projection_matrix());
+
+            _render_selection();
+            m_frame_profiler.mark("path tracing");
+        } else {
+            //BBS: add outline logic
+            // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
+            _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+            m_frame_profiler.mark("shadows");
+            _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+            _render_below_plate_volumes();
+            m_frame_profiler.mark("objects");
+            // Collision previews follow the same visibility rule as the bed.
+            const bool show_exclusion_intersections = m_show_bed &&
+                (!m_main_toolbar.is_enabled() ||
+                 (gizmo_type != GLGizmosManager::FdmSupports && gizmo_type != GLGizmosManager::Seam &&
+                  gizmo_type != GLGizmosManager::MmSegmentation && gizmo_type != GLGizmosManager::FuzzySkin));
+            if (show_exclusion_intersections)
+                wxGetApp().plater()->get_partplate_list().render_exclusion_volume_intersections(
+                    camera.get_view_matrix(), camera.get_projection_matrix());
+            _render_sla_slices();
+            _render_selection();
+            _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
+            _render_wireframe_overlay();
+            m_frame_profiler.mark("transparent");
+        }
     }
     /* preview render */
     else if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        // Before the shadow pass, so the cut away part casts no shadow.
-        m_gcode_viewer.set_clipping_plane(_get_section_view_plane());
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_sla_slices();
-        _render_selection();
-        m_frame_profiler.mark("objects");
-        _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        m_frame_profiler.mark("bed");
-        _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
-        m_frame_profiler.mark("plates");
-        // Realistic view: the print casts a shadow onto the plate here as it does in View3D.
-        _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
-        m_frame_profiler.mark("shadows");
-        // BBS: GUI refactor: add canvas size as parameters
-        _render_gcode(cnv_size.get_width(), cnv_size.get_height());
-        m_frame_profiler.mark("gcode");
+        bool pathtraced_rendered = false;
+        if (_is_pathtrace_enabled()) {
+            m_gcode_viewer.set_clipping_plane(_get_section_view_plane());
+            _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+            m_frame_profiler.mark("bed");
+            _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+            m_frame_profiler.mark("plates");
+            if (_render_pathtraced_view(camera, cnv_size)) {
+                const auto& layers_range = m_gcode_viewer.get_layers_z_range();
+                const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
+                const bool has_unprinted_layers = !layer_zs.empty() && (layers_range[1] + 1 < layer_zs.size());
+                if (has_unprinted_layers) {
+                    glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+                    glsafe(::glEnable(GL_DEPTH_TEST));
+                    glsafe(::glDepthMask(GL_TRUE));
+                    m_gcode_viewer.render_toolpaths();
+                    glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+
+                    const float min_z = float(layer_zs[layers_range[1]]);
+                    m_gcode_viewer.m_shells.volumes.set_z_range(min_z, 1e6f);
+                    m_gcode_viewer.render_shells(cnv_size.get_width(), cnv_size.get_height());
+                    m_gcode_viewer.m_shells.volumes.set_z_range(-1e6f, 1e6f);
+                }
+                m_gcode_viewer.render_sequential_marker(cnv_size.get_width(), cnv_size.get_height());
+                m_frame_profiler.mark("path tracing");
+                pathtraced_rendered = true;
+            }
+        }
+        if (!pathtraced_rendered) {
+            // Before the shadow pass, so the cut away part casts no shadow.
+            m_gcode_viewer.set_clipping_plane(_get_section_view_plane());
+            _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+            _render_sla_slices();
+            _render_selection();
+            m_frame_profiler.mark("objects");
+            if (!_is_pathtrace_enabled()) {
+                _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
+                m_frame_profiler.mark("bed");
+                _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, true, hover_id);
+                m_frame_profiler.mark("plates");
+            }
+            // Realistic view: the print casts a shadow onto the plate here as it does in View3D.
+            _render_shadows(camera.get_view_matrix(), camera.get_projection_matrix());
+            m_frame_profiler.mark("shadows");
+            // BBS: GUI refactor: add canvas size as parameters
+            _render_gcode(cnv_size.get_width(), cnv_size.get_height());
+            m_frame_profiler.mark("gcode");
+        }
     }
     /* assemble render*/
     else if (m_canvas_type == ECanvasType::CanvasAssembleView) {
@@ -2897,20 +2976,23 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         m_rectangle_selection.render(*this);
     m_frame_profiler.mark("gizmos");
 
-    if (_is_ssao_enabled()) {
+    const bool pathtraced_active = _is_pathtrace_enabled();
+    if (!pathtraced_active && _is_ssao_enabled()) {
         _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
         m_frame_profiler.mark("ssao");
     }
 
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        _render_gcode_translucent(cnv_size.get_width(), cnv_size.get_height());
-        m_frame_profiler.mark("gcode translucent");
+        if (!pathtraced_active) {
+            _render_gcode_translucent(cnv_size.get_width(), cnv_size.get_height());
+            m_frame_profiler.mark("gcode translucent");
+        }
     }
 
     // After the occlusion pass, which would shade it as the surface behind it.
     m_center_of_mass.render(*this);
 
-    if (_is_fxaa_enabled()) {
+    if (!pathtraced_active && _is_fxaa_enabled()) {
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
         m_frame_profiler.mark("fxaa");
     }
@@ -2925,6 +3007,9 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     _capture_scene_cache(camera);
     m_frame_profiler.mark("cache");
 }
+
+// Above the front left of the plate.
+static const Vec3d STATIC_LIGHT_DIR = Vec3d(-0.4, -0.6, 1.0).normalized();
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
                                   unsigned int            w,
@@ -4554,10 +4639,8 @@ void GLCanvas3D::on_timer(wxTimerEvent& evt)
 
 void GLCanvas3D::on_render_timer(wxTimerEvent& evt)
 {
-    // no need to wake up idle
-    // right after this event, idle event is fired
-    // m_dirty = true;
-    // wxWakeUpIdle();
+    m_dirty = true;
+    wxWakeUpIdle();
 }
 
 void GLCanvas3D::on_set_color_timer(wxTimerEvent& evt)
@@ -8470,7 +8553,7 @@ bool GLCanvas3D::_is_realistic_view_enabled() const
 
 bool GLCanvas3D::_is_ssao_enabled() const
 {
-    if (wxGetApp().app_config == nullptr)
+    if (_is_pathtrace_enabled() || wxGetApp().app_config == nullptr)
         return false;
     return _is_realistic_view_enabled() &&
            wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
@@ -8498,9 +8581,6 @@ bool GLCanvas3D::_is_fps_overlay_enabled() const
 {
     return !m_benchmarking && wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
 }
-
-// Above the front left of the plate.
-static const Vec3d STATIC_LIGHT_DIR = Vec3d(-0.4, -0.6, 1.0).normalized();
 
 std::optional<Vec3d> GLCanvas3D::_static_light_dir_eye() const
 {
@@ -8550,6 +8630,12 @@ bool GLCanvas3D::_is_scene_cache_enabled() const
 
 bool GLCanvas3D::_is_scene_cacheable() const
 {
+    if (_is_pathtrace_enabled()) {
+        if (m_pathtrace_benchmark.active || m_pathtrace_gpu_display_image == 0)
+            return false;
+        const uint32_t target = m_pathtrace_target_max_samples + 1u;
+        return m_pathtrace_gpu_samples >= target;
+    }
     if (!_is_scene_cache_enabled())
         return false;
 
@@ -8598,20 +8684,23 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
     ImGui::SetNextWindowPos(pos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.35f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * get_scale());
-    imgui.begin(
-        std::string("###fps_overlay"),
+    const ImGuiWindowFlags overlay_flags =
         ImGuiWindowFlags_AlwaysAutoResize |
         ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoCollapse |
         ImGuiWindowFlags_NoTitleBar |
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoSavedSettings |
-        ImGuiWindowFlags_NoInputs);
+        (_is_pathtrace_enabled() ? 0 : ImGuiWindowFlags_NoInputs);
+    imgui.begin(std::string("###fps_overlay"), overlay_flags);
     if (show_fps) {
         imgui.text(std::string("FPS: ") + std::to_string(fps));
         ImGui::SameLine();
         // The subset of those frames that redrew the scene rather than reusing the cached one.
         imgui.text(std::string("3D: ") + std::to_string(m_render_stats.get_scene_fps()));
+        if (_is_pathtrace_enabled()) {
+            _render_pathtrace_fps_overlay(imgui);
+        }
     }
     if (show_timings && ImGui::BeginTable("frame_sections", 3, ImGuiTableFlags_SizingFixedFit)) {
         ImGui::TableSetupColumn("ms");
@@ -9501,7 +9590,7 @@ void GLCanvas3D::_render_plane() const
 }
 
 //BBS: add outline drawing logic
-void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with_outline)
+void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with_outline, bool modifiers_only)
 {
     if (m_volumes.empty())
         return;
@@ -9574,7 +9663,8 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     }
 
     const bool realistic_mode = _is_realistic_view_enabled();
-    const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
+    const std::string shading_model = wxGetApp().app_config != nullptr ? wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL) : "gouraud";
+    const bool realistic_phong = (shading_model == "phong") || (shading_model.empty() && wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG));
     const std::string shader_name = (m_studio_lighting || (realistic_mode && realistic_phong)) ? "phong" : "gouraud";
     GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
     if (shader == nullptr && shader_name != "gouraud")
@@ -9688,9 +9778,12 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
             }*/
             const Camera& camera = wxGetApp().plater()->get_camera();
             //BBS:add assemble view related logic
-            m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), cvn_size, [canvas_type](const GLVolume& volume) {
+            m_volumes.render(type, false, camera.get_view_matrix(), camera.get_projection_matrix(), cvn_size, [canvas_type, modifiers_only](const GLVolume& volume) {
                 if (canvas_type == ECanvasType::CanvasAssembleView) {
                     return !volume.is_modifier;
+                }
+                else if (modifiers_only) {
+                    return volume.is_modifier;
                 }
                 else {
                     return true;
@@ -9699,7 +9792,8 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 partly_inside_enable, printable_heights);
             // IMEX ghosts are transparent and share the same shader/camera state;
             // render them right after the main transparent pass while the shader is still bound.
-            _render_imex_ghosts();
+            if (!modifiers_only)
+                _render_imex_ghosts();
             break;
         }
         }
@@ -11162,9 +11256,12 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Realistic View")),
             true, // work on all
             cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
-            [&cfg]{
-                cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));
+            [this, &cfg]{
+                const bool new_val = !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE);
+                cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, new_val);
                 cfg->save();
+                m_dirty = true;
+                wxWakeUpIdle();
             }
         );
 

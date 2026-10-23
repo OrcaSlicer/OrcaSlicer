@@ -363,6 +363,12 @@ wxBoxSizer* PreferencesDialog::create_item_combobox(wxString title, wxString too
     //// save config
     combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, onchange](wxCommandEvent& e) {
         app_config->set(param, std::to_string(e.GetSelection()));
+        app_config->save();
+        if (auto plater = wxGetApp().plater()) {
+            plater->set_current_canvas_as_dirty();
+            if (auto canvas = plater->get_current_canvas3D())
+                canvas->request_extra_frame();
+        }
         if (onchange)
             onchange(std::to_string(e.GetSelection()));
         e.Skip();
@@ -389,6 +395,15 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     //// save config
     combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, config_name_index](wxCommandEvent& e) {
         app_config->set(param, config_name_index[e.GetSelection()]);
+        if (param == SETTING_OPENGL_SHADING_MODEL && config_name_index[e.GetSelection()] != "gouraud") {
+            app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
+        }
+        app_config->save();
+        if (auto plater = wxGetApp().plater()) {
+            plater->set_current_canvas_as_dirty();
+            if (auto canvas = plater->get_current_canvas3D())
+                canvas->request_extra_frame();
+        }
         e.Skip();
     });
 
@@ -1989,12 +2004,22 @@ void PreferencesDialog::create_items()
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
 
-    auto item_realistic_phong = create_item_checkbox(
-        _L("Phong shading"),
-        _L("Uses Phong shading inside realistic view.")
-        , SETTING_OPENGL_REALISTIC_PHONG
-    );
-    g_sizer->Add(item_realistic_phong);
+    const bool can_pathtrace = wxGetApp().is_gl_version_greater_or_equal_to(4, 3);
+    std::vector<wxString> ShadingLabels = { _L("Gouraud"),
+                                            _L("Phong") };
+    std::vector<std::string> ShadingValues = { "gouraud", "phong" };
+    if (can_pathtrace) {
+        ShadingLabels.push_back(_L("Path tracing"));
+        ShadingValues.push_back("pathtrace");
+    }
+    auto item_shading_model = create_item_combobox(
+        _L("Shading model"),
+        _L("Selects the shading technique used when Realistic View is enabled.\n"
+           "Gouraud: classic per-vertex lighting with cast shadows.\n"
+           "Phong: per-pixel lighting with specular highlights, cast shadows, and SSAO.\n"
+           "Path tracing: physically based GPU ray tracing with ambient occlusion and soft shadows."),
+        SETTING_OPENGL_SHADING_MODEL, ShadingLabels, ShadingValues);
+    g_sizer->Add(item_shading_model);
 
     auto item_realistic_preview = create_item_checkbox(
         _L("Enable in Preview"),
@@ -2033,6 +2058,24 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_REALISTIC_GLOSS
     );
     g_sizer->Add(item_realistic_gloss);
+
+ 
+    if (can_pathtrace) {
+        //// GRAPHICS > Path Tracing
+        g_sizer->Add(create_item_title(_L("Path Tracing")), 1, wxEXPAND);
+
+        std::vector<wxString> PtQualityLabels = {
+            _L_CONTEXT("Low", "Quality"),
+            _L_CONTEXT("Medium", "Quality"),
+            _L_CONTEXT("High", "Quality")
+        };
+        std::vector<std::string> PtQualityValues = { "low", "medium", "high" };
+        auto item_pt_quality = create_item_combobox(
+            _L("Path tracer quality"),
+            _L("Configures the quality and performance of the GPU path tracer."),
+            SETTING_OPENGL_PATHTRACE_QUALITY, PtQualityLabels, PtQualityValues);
+        g_sizer->Add(item_pt_quality);
+    }
 
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);

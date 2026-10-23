@@ -369,6 +369,11 @@ Color Viewer::get_vertex_color(const PathVertex& vertex) const
     return m_impl->get_vertex_color(vertex);
 }
 
+uint8_t Viewer::get_vertex_alpha(const PathVertex& vertex) const
+{
+    return m_impl->get_vertex_alpha(vertex);
+}
+
 size_t Viewer::get_extrusion_roles_count() const
 {
     return m_impl->get_extrusion_roles_count();

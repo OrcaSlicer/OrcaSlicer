@@ -2615,6 +2615,22 @@ bool GCodeViewer::can_export_toolpaths() const
     return false;
 }
 
+void GCodeViewer::render_sequential_marker(int canvas_width, int canvas_height)
+{
+    if (!has_data() || m_viewer.get_vertices_count() == 0)
+        return;
+    const auto current = m_viewer.get_view_visible_range();
+    const auto endpoints = m_viewer.get_view_full_range();
+    m_sequential_view.m_show_marker = (current.back() != endpoints.back() && !m_no_render_path);
+    if (!m_sequential_view.m_show_marker)
+        return;
+    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
+    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
+    glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
+    m_sequential_view.render_marker(!m_no_render_path, canvas_width, canvas_height, m_viewer.get_view_type());
+}
+
 void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned int last)
 {
     m_viewer.set_view_visible_range(static_cast<uint32_t>(first), static_cast<uint32_t>(last));

@@ -467,6 +467,8 @@ public:
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_viewer.get_view_full_range(); }
     const libvgcode::Interval& get_gcode_view_enabled_range() const { return m_viewer.get_view_enabled_range(); }
     const libvgcode::Interval& get_gcode_view_visible_range() const { return m_viewer.get_view_visible_range(); }
+    bool is_top_layer_only_view_range() const { return m_viewer.is_top_layer_only_view_range(); }
+    void render_sequential_marker(int canvas_width, int canvas_height);
     const libvgcode::PathVertex& get_gcode_vertex_at(size_t id) const { return m_viewer.get_vertex_at(id); }
 
     bool is_contained_in_bed() const { return m_contained_in_bed; }
@@ -499,6 +501,9 @@ public:
     }
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
+    bool is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole role) const { return m_viewer.is_extrusion_role_visible(role); }
+    libvgcode::Color get_gcode_vertex_color(const libvgcode::PathVertex& vertex) const { return m_viewer.get_vertex_color(vertex); }
+    uint8_t get_gcode_vertex_alpha(const libvgcode::PathVertex& vertex) const { return m_viewer.get_vertex_alpha(vertex); }
 
     // ORCA: darken the layers not scrubbed to while using the preview layer slider
     void set_dim_previous_layers(bool value) { m_viewer.set_dim_previous_layers(value); }
@@ -508,6 +513,10 @@ public:
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
     // ORCA: draw the toolpaths of translucent filament colors translucent
     void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
+    bool is_translucent_filaments() const { return m_viewer.is_translucent_filaments(); }
+    bool has_translucent_toolpaths() const { return m_viewer.has_translucent_toolpaths(); }
+    bool is_option_visible(libvgcode::EOptionType type) const { return m_viewer.is_option_visible(type); }
+    ColorRGBA get_option_color(libvgcode::EOptionType type) const { return libvgcode::convert(m_viewer.get_option_color(type)); }
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
@@ -528,6 +537,8 @@ public:
     void pop_combo_style();
 
     void invalidate_legend() { /*TODO: m_legend_resizer.reset();*/ }
+    void render_shells(int canvas_width, int canvas_height);
+    void render_toolpaths();
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     float get_cog_marker_scale_factor() const { return m_viewer.get_cog_marker_scale_factor(); }
@@ -539,10 +550,8 @@ private:
     //void load_shells(const Print& print);
     // Canvas height minus the room the horizontal slider takes.
     int sequential_view_height(int canvas_height) const;
-    void render_toolpaths();
     // The sequential markers and the IDEX/IQEX toolhead boxes.
     void render_markers(int canvas_width, int canvas_height);
-    void render_shells(int canvas_width, int canvas_height);
     // ORCA: a filament color as the toolpaths show it, opaque unless translucent filaments are shown
     ColorRGBA shown_filament_color(ColorRGBA color) const;
 

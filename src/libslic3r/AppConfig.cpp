@@ -341,8 +341,26 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_REALISTIC_PREVIEW).empty())
         set_bool(SETTING_OPENGL_REALISTIC_PREVIEW, false);
 
-    if (get(SETTING_OPENGL_SHADING_MODEL).empty())
-        set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
+    if (get(SETTING_OPENGL_SHADING_MODEL).empty()) {
+        const bool phong = get(SETTING_OPENGL_REALISTIC_PHONG).empty() || get_bool(SETTING_OPENGL_REALISTIC_PHONG);
+        set(SETTING_OPENGL_SHADING_MODEL, phong ? "phong" : "gouraud");
+    }
+
+    if (get(SETTING_OPENGL_PATHTRACE_QUALITY).empty())
+        set(SETTING_OPENGL_PATHTRACE_QUALITY, "medium");
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Replaces the on/off setting, whose shadows turned with the camera.
     if (get(SETTING_OPENGL_REALISTIC_SHADOWS).empty())

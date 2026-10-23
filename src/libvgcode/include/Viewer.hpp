@@ -390,6 +390,10 @@ public:
     //
     Color get_vertex_color(const PathVertex& vertex) const;
     //
+    // Return the alpha (opacity) used to render the given vertex with the current settings.
+    //
+    uint8_t get_vertex_alpha(const PathVertex& vertex) const;
+    //
     // Return the count of detected extrusion roles
     //
     size_t get_extrusion_roles_count() const;

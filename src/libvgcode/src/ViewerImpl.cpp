@@ -1831,10 +1831,10 @@ uint8_t ViewerImpl::get_vertex_alpha(const PathVertex& v) const
     switch (m_settings.view_type)
     {
     case EViewType::Tool:
-        return m_tool_colors[v.extruder_id][3];
+        return static_cast<size_t>(v.extruder_id) < m_tool_colors.size() ? m_tool_colors[v.extruder_id][3] : 255;
     case EViewType::Summary:
     case EViewType::ColorPrint:
-        return m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id)) ? 255 :
+        return (m_color_print_colors.empty() || m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id))) ? 255 :
             m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()][3];
     default:
         return 255;
@@ -2395,6 +2395,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
 #endif // ENABLE_OPENGL_ES
     glsafe(glActiveTexture(curr_active_texture));
 }
+
 
 void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
 {

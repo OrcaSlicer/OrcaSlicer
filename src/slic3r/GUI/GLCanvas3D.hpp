@@ -20,14 +20,20 @@
 #include "libvgcode/include/Types.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Line.hpp"
+#include "libslic3r/PathTracer.hpp"
 #include <stddef.h>
 #include <functional>
 #include <memory>
 #include <chrono>
 #include <cstdint>
+#include <atomic>
+#include <mutex>
 #include <optional>
+#include <thread>
+#include <future>
 
 #include "GLToolbar.hpp"
+#include "GLTexture.hpp"
 #include "Event.hpp"
 #include "Selection.hpp"
 #include "Gizmos/GLGizmosManager.hpp"
@@ -60,7 +66,7 @@ namespace Slic3r { class ColorRGBA; }
 namespace Slic3r { class DynamicPrintConfig; }
 namespace Slic3r { class GLShaderProgram; }
 namespace Slic3r { struct GCodeProcessorResult; }
-namespace Slic3r::GUI { class ImGuiWrapper; }
+namespace Slic3r::GUI { class ImGuiWrapper; class PartPlate; class PartPlateList; }
 namespace libvgcode { struct PathVertex; }
 struct ImVec2;
 
@@ -729,6 +735,113 @@ private:
 
     GLVolumeCollection m_volumes;
     GCodeViewer m_gcode_viewer;
+
+    size_t m_pathtrace_requested_signature{0};
+    PathTraceGpuScene m_pathtrace_gpu_scene;
+    std::vector<size_t> m_pathtrace_gpu_tri_vertex_id;
+    size_t m_pathtrace_preview_color_signature{0};
+    std::chrono::steady_clock::time_point m_pathtrace_last_change_time{};
+    unsigned int m_pathtrace_gpu_node_buffer{0};
+    unsigned int m_pathtrace_gpu_triangle_buffer{0};
+    unsigned int m_pathtrace_gpu_shading_buffer{0};
+    unsigned int m_pathtrace_gpu_instance_buffer{0};
+    unsigned int m_pathtrace_gpu_tlas_buffer{0};
+    unsigned int m_pathtrace_gpu_accumulation_image{0};
+    unsigned int m_pathtrace_gpu_display_image{0};
+    unsigned int m_pathtrace_gpu_trans_accumulation_image{0};
+    unsigned int m_pathtrace_gpu_trans_display_image{0};
+    std::array<unsigned int, 2> m_pathtrace_gpu_image_size{0, 0};
+    size_t m_pathtrace_gpu_scene_signature{0};
+    size_t m_pathtrace_geom_signature{0};
+    size_t m_pathtrace_transform_signature{0};
+    struct PathTraceVolumeBlas {
+        uint32_t root_node{0};
+        uint32_t node_count{0};
+        uint32_t tri_offset{0};
+        uint32_t tri_count{0};
+        Vec3f local_bounds_min{Vec3f::Zero()};
+        Vec3f local_bounds_max{Vec3f::Zero()};
+        int object_idx{-1};
+        int instance_idx{-1};
+        int volume_idx{-1};
+        int plate_idx{-1};
+        bool is_wipe_tower{false};
+        int wipe_tower_plate_idx{-1};
+    };
+    std::vector<PathTraceVolumeBlas> m_pathtrace_volume_blas;
+    std::vector<PathTraceGpuInstance> m_pathtrace_gpu_instances;
+    uint32_t m_pathtrace_gpu_samples{0};
+    uint32_t m_pathtrace_max_samples{2048};
+    bool m_pathtrace_is_interactive{false};
+    std::array<unsigned int, 2> m_pathtrace_gpu_timer_queries{0, 0};
+    int m_pathtrace_gpu_timer_query_idx{0};
+    bool m_pathtrace_gpu_timer_query_in_flight[2]{false, false};
+    bool m_pathtrace_gpu_timer_is_interactive[2]{false, false};
+    std::array<unsigned int, 2> m_pathtrace_gpu_timer_res[2]{{0, 0}, {0, 0}};
+    float m_pathtrace_gpu_dispatch_time_ms{0.0f};
+    float m_pathtrace_gpu_dispatch_full_res_ms{0.0f};
+    float m_pathtrace_gpu_dispatch_interactive_ms{0.0f};
+    struct PathTraceBenchmark {
+        bool active{ false };
+        int phase{ 0 }; // 0: inactive, 1: orbit, 2: full-res still
+        std::chrono::steady_clock::time_point phase_start_time{};
+        double orbit_frame_ms_avg{ 0.0 };
+        int orbit_frames{ 0 };
+        double full_frame_ms_avg{ 0.0 };
+        int full_frames{ 0 };
+        double tile_frame_ms_avg{ 0.0 };
+        double current_sample_accum_ms{ 0.0 };
+        unsigned int last_recorded_sample_count{ 0 };
+        int tile_frames{ 0 };
+        Vec3d initial_cam_pos{ Vec3d::Zero() };
+        Vec3d initial_cam_target{ Vec3d::Zero() };
+        Vec3d initial_cam_up{ Vec3d::Zero() };
+        std::string saved_quality;
+    };
+    PathTraceBenchmark m_pathtrace_benchmark;
+    uint32_t m_pathtrace_tile_cursor{ 0 };
+    uint32_t m_pathtrace_tiles_per_frame{ 6 };
+    uint32_t m_pathtrace_last_dispatched_tiles{ 0 };
+    float    m_pathtrace_tile_budget_ms{ 6.0f };
+    uint32_t m_pathtrace_target_max_samples{ 2048 };
+    float    m_pathtrace_dynamic_orbit_scale{ 0.50f };
+    struct PathTraceSceneBuildResult {
+        size_t geom_signature{0};
+        PathTraceGpuScene gpu_scene;
+        std::vector<PathTraceVolumeBlas> volume_blas;
+        std::vector<size_t> gpu_tri_vertex_id;
+    };
+    struct PathTraceBvhJob {
+        size_t geom_signature{0};
+        bool is_preview{false};
+        std::vector<PathTraceTriangle> preview_triangles;
+        std::vector<size_t> source_tri_vertex_id;
+        std::vector<float> source_tri_tag_z;
+        std::vector<float> source_tri_height;
+        std::vector<float> source_tri_role;
+        std::vector<float> source_tri_facet;
+        std::vector<float> source_tri_delta_angle;
+        std::vector<float> source_tri_opacity;
+        struct VolumeGroupTriangles {
+            int object_idx{-1};
+            int instance_idx{-1};
+            int volume_idx{-1};
+            bool is_wipe_tower{false};
+            int wipe_tower_plate_idx{-1};
+            std::vector<PathTraceTriangle> triangles;
+            std::vector<uint32_t> triangle_extruder_ids;
+        };
+        std::vector<VolumeGroupTriangles> volume_groups;
+        struct PlateTriangles {
+            int plate_idx{-1};
+            std::vector<PathTraceTriangle> triangles;
+        };
+        std::vector<PlateTriangles> plate_groups;
+    };
+    static PathTraceSceneBuildResult _build_pathtrace_scene_async(PathTraceBvhJob job, std::shared_ptr<std::atomic<bool>> cancel_token);
+    std::future<PathTraceSceneBuildResult> m_pathtrace_bvh_future;
+    std::shared_ptr<std::atomic<bool>> m_pathtrace_bvh_cancel_token;
+    size_t m_pathtrace_bvh_job_signature{0};
 
     RenderTimer m_render_timer;
 
@@ -1504,6 +1617,7 @@ private:
     void _picking_pass_imex_ghosts();
     bool _is_fxaa_enabled() const;
     bool _is_realistic_view_enabled() const;
+    bool _is_pathtrace_enabled() const;
     bool _is_ssao_enabled() const;
     int _get_effective_fps_cap() const;
     bool _is_fps_overlay_enabled() const;
@@ -1522,6 +1636,17 @@ private:
     // scene_dirty is false only for a frame that its requester knows to be overlay-only.
     void _render_frame(bool scene_dirty, bool only_init = false);
     void _render_scene(const Camera& camera, const Size& cnv_size);
+    bool _render_pathtraced_view(const Camera& camera, const Size& cnv_size);
+    void run_pathtrace_benchmark(bool use_high_quality = false);
+    void _update_pathtrace_benchmark();
+    void _render_pathtrace_benchmark_overlay(ImGuiWrapper& imgui) const;
+    void _reset_pathtrace_accumulation();
+    void _stop_pathtrace_bvh_worker();
+    void _release_pathtrace_gl_resources();
+    void _render_pathtrace_fps_overlay(ImGuiWrapper& imgui) const;
+    void _extract_preview_toolpaths_for_pathtrace(PathTraceBvhJob& job, int cfg_layer_profile, bool plate_visible, PartPlate* current_plate) const;
+    void _extract_prepare_volumes_for_pathtrace(PathTraceBvhJob& job, const std::vector<ColorRGBA>& extruder_colors, bool plate_visible, PartPlateList& plate_list) const;
+    void _update_pathtrace_instances_and_tlas(size_t transform_signature);
     // Request a frame that only rebuilds the overlay.
     void _set_overlay_as_dirty() { m_overlay_dirty = true; }
     // These read the hover state _picking_pass() sets.
@@ -1545,7 +1670,7 @@ private:
     // when the bed shape changed.
     void _render_cad_grid(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add outline drawing logic
-    void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true, bool modifiers_only = false);
     // IMEX ghost volumes owned by PartPlate, drawn through the shader the caller bound:
     // the shaded pass's transparent half, or the X-Ray pass below.
     void _render_imex_ghosts(bool xray_pass = false);

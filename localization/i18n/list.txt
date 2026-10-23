@@ -145,6 +145,7 @@ src/slic3r/GUI/Field.cpp
 src/slic3r/GUI/Field.hpp
 src/slic3r/GUI/GCodeViewer.cpp
 src/slic3r/GUI/GLCanvas3D.cpp
+src/slic3r/GUI/GLCanvas3D_PathTracer.cpp
 src/slic3r/GUI/Calibration.cpp
 src/slic3r/GUI/CameraPopup.cpp
 src/slic3r/GUI/ConnectPrinter.cpp

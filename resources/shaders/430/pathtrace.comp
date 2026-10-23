@@ -1,0 +1,1272 @@
+#version 430
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+struct BvhNode
+{
+    vec4 bounds_min;
+    vec4 bounds_max;
+};
+
+struct Triangle
+{
+    vec4 a; // xyz: vertex a, w: tag_z
+    vec4 b; // xyz: vertex b, w: floatBits(raw_v_id)
+    vec4 c; // xyz: vertex c, w: opacity (alpha)
+};
+
+struct Shading
+{
+    vec4 albedo;
+    vec4 params; // x: layer_height, y: role, z: flags, w: reserved
+};
+
+struct Ray
+{
+    vec3 origin;
+    vec3 direction;
+};
+
+struct Hit
+{
+    float distance;
+    vec3 position;
+    vec3 normal;
+    float tag;
+    float opacity;
+    uint tri_index;
+    uint inst_index;
+    float seg_t;
+    bool front_face;
+};
+
+struct Instance
+{
+    mat4 world_to_local;
+    mat4 normal_to_world;
+    vec4 bounds_min;
+    vec4 bounds_max;
+    uvec4 data;
+};
+
+layout(std430, binding = 0) readonly buffer NodeBuffer { BvhNode nodes[]; };
+layout(std430, binding = 1) readonly buffer TriangleBuffer { Triangle triangles[]; };
+layout(std430, binding = 2) readonly buffer InstanceBuffer { Instance instances[]; };
+layout(std430, binding = 3) readonly buffer ShadingBuffer { Shading shadings[]; };
+layout(std430, binding = 4) readonly buffer TlasBuffer { BvhNode tlas_nodes[]; };
+uniform int instance_count;
+layout(rgba32f, binding = 0) uniform image2D accumulation_image;
+layout(rgba8, binding = 1) writeonly uniform image2D display_image;
+layout(rgba32f, binding = 2) uniform image2D trans_accumulation_image;
+layout(rgba8, binding = 3) writeonly uniform image2D trans_display_image;
+
+uniform ivec2 image_size;
+uniform ivec2 tile_offset;
+uniform ivec2 tile_size;
+uniform bool is_interactive_pass;
+uniform vec3 camera_position;
+uniform vec3 camera_right;
+uniform vec3 camera_up;
+uniform vec3 camera_forward;
+uniform float camera_half_fov;
+uniform float camera_orthographic_height;
+uniform bool camera_orthographic;
+uniform int sample_start;
+uniform int sample_count;
+uniform int max_bounces;
+uniform float z_min;
+uniform float z_max;
+uniform int move_min;
+uniform int move_max;
+uniform vec4 clipping_plane;
+uniform vec3 light_direction_uniform;
+uniform vec3 fill_direction_uniform;
+uniform bool shadows_enabled;
+uniform int layer_profile_mode;
+uniform int sss_mode;
+uniform bool is_preview_canvas;
+uniform bool glossy_toolpaths;
+
+uniform int max_trans_bounces;
+uniform int shadow_max_hits;
+uniform int quality_preset; // 0 = Low, 1 = Medium, 2 = High
+
+const float PI = 3.14159265358979323846;
+const float ray_epsilon = 0.0001;
+
+bool g_has_clipping = false;
+bool g_has_move_filter = false;
+bool g_has_z_filter = false;
+bool g_only_opaque = false;
+
+uint random_uint(inout uint state)
+{
+    if (state == 0u) state = 1u;
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    return state;
+}
+
+float random_float(inout uint state)
+{
+    return float(random_uint(state) >> 8) * (1.0 / 16777216.0);
+}
+
+uint hash_u32(uint x)
+{
+    x ^= x >> 16u;
+    x *= 0x7feb352du;
+    x ^= x >> 15u;
+    x *= 0x846ca68bu;
+    x ^= x >> 16u;
+    return x;
+}
+
+vec2 sample_ld_2d(ivec2 pixel, int sample_idx, uint dim)
+{
+    float n = float(sample_idx + 1) + float(dim) * 19.0;
+    vec2 r2 = fract(vec2(0.7548776662, 0.5698402910) * n);
+    uint h = hash_u32(uint(pixel.x) * 1973u + uint(pixel.y) * 9277u + dim * 26699u + 1u);
+    vec2 cp_shift = vec2(float(h & 0xFFFFu), float(h >> 16u)) * (1.0 / 65536.0);
+    return fract(r2 + cp_shift);
+}
+
+void build_orthonormal_basis(vec3 n, out vec3 t, out vec3 b)
+{
+    vec3 helper = abs(n.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+    t = normalize(cross(helper, n));
+    b = cross(n, t);
+}
+
+vec3 cosine_sample_hemisphere(vec3 normal, vec2 xi)
+{
+    float angle = (2.0 * PI) * xi.y;
+    float radius = sqrt(xi.x);
+    float x = radius * cos(angle);
+    float y = radius * sin(angle);
+    float z = sqrt(max(0.0, 1.0 - x * x - y * y));
+    vec3 t, b;
+    build_orthonormal_basis(normal, t, b);
+    return normalize(t * x + b * y + normal * z);
+}
+
+vec3 sample_key_light_dir(vec3 key_dir, vec2 xi)
+{
+    vec3 t, b;
+    build_orthonormal_basis(key_dir, t, b);
+    float r = 0.045 * sqrt(xi.x);
+    float phi = (2.0 * PI) * xi.y;
+    return normalize(key_dir + t * (r * cos(phi)) + b * (r * sin(phi)));
+}
+
+float safe_ray_dir(float d)
+{
+    return abs(d) < 1e-8 ? (d < 0.0 ? -1e-8 : 1e-8) : d;
+}
+
+vec3 safe_ray_dir3(vec3 d)
+{
+    return vec3(safe_ray_dir(d.x), safe_ray_dir(d.y), safe_ray_dir(d.z));
+}
+
+// Returns the entry distance into the node bounds, or -1.0 if the ray misses them within max_distance.
+float bounds_entry_box(vec3 bmin, vec3 bmax, vec3 origin, vec3 inv_dir, float max_distance)
+{
+    vec3 t0 = (bmin - origin) * inv_dir;
+    vec3 t1 = (bmax - origin) * inv_dir;
+    vec3 tmin = min(t0, t1);
+    vec3 tmax = max(t0, t1);
+    float near_distance = max(max(tmin.x, tmin.y), max(tmin.z, ray_epsilon));
+    float far_distance = min(min(tmax.x, tmax.y), min(tmax.z, max_distance));
+    return far_distance >= near_distance ? near_distance : -1.0;
+}
+
+// Returns the entry distance into the node bounds, or -1.0 if the ray misses them within max_distance.
+float bounds_entry(BvhNode node, vec3 origin, vec3 local_inv_dir, float max_distance, Ray world_ray, float loc_scale, bool is_print_inst)
+{
+    if (g_has_z_filter && is_preview_canvas && is_print_inst && (node.bounds_max.z < z_min || node.bounds_min.z > z_max))
+        return -1.0;
+
+    vec3 t0 = (node.bounds_min.xyz - origin) * local_inv_dir;
+    vec3 t1 = (node.bounds_max.xyz - origin) * local_inv_dir;
+    vec3 tmin = min(t0, t1);
+    vec3 tmax = max(t0, t1);
+    float near_distance = max(max(tmin.x, tmin.y), max(tmin.z, ray_epsilon));
+    float far_distance = min(min(tmax.x, tmax.y), min(tmax.z, max_distance));
+
+    if (far_distance < near_distance)
+        return -1.0;
+
+    if (g_has_clipping && is_print_inst) {
+        float denom = dot(world_ray.direction, clipping_plane.xyz);
+        float dist = dot(world_ray.origin, clipping_plane.xyz) + clipping_plane.w;
+        if (denom > 1e-5) {
+            near_distance = max(near_distance, (-dist / denom) * loc_scale);
+        } else if (denom < -1e-5) {
+            far_distance = min(far_distance, (-dist / denom) * loc_scale);
+        } else if (dist < 0.0) {
+            return -1.0;
+        }
+        if (far_distance < near_distance)
+            return -1.0;
+    }
+
+    return near_distance;
+}
+
+bool intersect_triangle_local(Triangle triangle, Ray local_ray, Ray world_ray, float loc_scale, inout Hit hit, uint tri_idx, uint inst_idx, bool any_hit)
+{
+    if (triangle.a.w >= 0.0) {
+        if (g_has_z_filter && (triangle.a.w < z_min || triangle.a.w > z_max))
+            return false;
+        if (g_has_move_filter) {
+            uint raw_v_id = floatBitsToUint(triangle.b.w);
+            if (raw_v_id != 0xFFFFFFFFu && ((move_min >= 0 && int(raw_v_id) < move_min) || (move_max >= 0 && int(raw_v_id) > move_max)))
+                return false;
+        }
+    }
+
+    vec3 edge1 = triangle.b.xyz - triangle.a.xyz;
+    vec3 edge2 = triangle.c.xyz - triangle.a.xyz;
+    vec3 cross_value = cross(local_ray.direction, edge2);
+    float determinant = dot(edge1, cross_value);
+    if (abs(determinant) < 1e-10)
+        return false;
+
+    const float edge_epsilon = 2e-4;
+    float inverse_determinant = 1.0 / determinant;
+    vec3 from_a = local_ray.origin - triangle.a.xyz;
+    float u = dot(from_a, cross_value) * inverse_determinant;
+    if (u < -edge_epsilon || u > 1.0 + edge_epsilon)
+        return false;
+    vec3 q = cross(from_a, edge1);
+    float v = dot(local_ray.direction, q) * inverse_determinant;
+    if (v < -edge_epsilon || (u + v) > 1.0 + edge_epsilon)
+        return false;
+    float local_distance = dot(edge2, q) * inverse_determinant;
+    if (local_distance < ray_epsilon)
+        return false;
+
+    float max_local_dist = hit.distance * loc_scale;
+    if (local_distance >= max_local_dist)
+        return false;
+
+    float world_distance = local_distance / loc_scale;
+    if (world_distance < ray_epsilon || world_distance >= hit.distance)
+        return false;
+
+    vec3 hit_pos = world_ray.origin + world_distance * world_ray.direction;
+    if (g_has_clipping && triangle.a.w > -1.5 && (dot(hit_pos, clipping_plane.xyz) + clipping_plane.w < 0.0))
+        return false;
+
+    float opacity = clamp(triangle.c.w, 0.0, 1.0);
+    if (opacity < 0.005)
+        return false;
+    if (!any_hit && g_only_opaque && triangle.a.w >= -1.5 && opacity < 0.96)
+        return false;
+
+    if (any_hit) {
+        if (opacity < 0.05)
+            return false;
+        hit.distance = world_distance;
+        hit.position = hit_pos;
+        hit.tag = triangle.a.w;
+        hit.opacity = opacity;
+        hit.tri_index = tri_idx;
+        hit.inst_index = inst_idx;
+        hit.front_face = true;
+        return true;
+    }
+
+    hit.distance = world_distance;
+    hit.position = hit_pos;
+    hit.tag = triangle.a.w;
+    hit.opacity = opacity;
+    hit.tri_index = tri_idx;
+    hit.inst_index = inst_idx;
+    hit.seg_t = ((tri_idx & 1u) == 0u) ? clamp(u + v, 0.0, 1.0) : clamp(u, 0.0, 1.0);
+    return true;
+}
+
+bool traverse_blas(uint root, bool is_print_inst, uint inst_idx, Ray local_ray, Ray world_ray, vec3 local_inv_dir, float loc_scale, inout Hit hit, bool any_hit)
+{
+    if (root >= nodes.length())
+        return false;
+
+    float max_local_dist = hit.distance * loc_scale;
+    if (bounds_entry(nodes[root], local_ray.origin, local_inv_dir, max_local_dist, world_ray, loc_scale, is_print_inst) < 0.0)
+        return false;
+
+    bool found = false;
+    uint stack[32];
+    int stack_size = 0;
+    uint node_idx = root;
+
+    while (true) {
+        BvhNode node = nodes[node_idx];
+        uint count_and_axis = floatBitsToUint(node.bounds_max.w);
+        uint count = count_and_axis & 0x3FFFFFFFu;
+
+        if (count > 0u) {
+            uint first = uint(floatBitsToInt(node.bounds_min.w));
+            for (uint i = first; i < first + count; ++i) {
+                if (intersect_triangle_local(triangles[i], local_ray, world_ray, loc_scale, hit, i, inst_idx, any_hit)) {
+                    found = true;
+                    if (any_hit)
+                        return true;
+                }
+            }
+            if (stack_size == 0)
+                break;
+            node_idx = stack[--stack_size];
+        } else {
+            uint left_child = uint(floatBitsToInt(node.bounds_min.w));
+            uint right_child = left_child + 1u;
+
+            uint child_a = left_child;
+            uint child_b = right_child;
+            max_local_dist = hit.distance * loc_scale;
+            float d_a = bounds_entry(nodes[child_a], local_ray.origin, local_inv_dir, max_local_dist, world_ray, loc_scale, is_print_inst);
+            float d_b = bounds_entry(nodes[child_b], local_ray.origin, local_inv_dir, max_local_dist, world_ray, loc_scale, is_print_inst);
+            if (d_a >= 0.0 && d_b >= 0.0) {
+                if (d_a > d_b) { uint tmp = child_a; child_a = child_b; child_b = tmp; }
+                if (stack_size < 32) stack[stack_size++] = child_b;
+                node_idx = child_a;
+            } else if (d_a >= 0.0) {
+                node_idx = child_a;
+            } else if (d_b >= 0.0) {
+                node_idx = child_b;
+            } else {
+                if (stack_size == 0)
+                    break;
+                node_idx = stack[--stack_size];
+            }
+        }
+    }
+    return found;
+}
+
+// Top-level BVH traversal across instances
+bool traverse_scene(Ray ray, inout Hit hit, bool any_hit)
+{
+    if (instance_count <= 0)
+        return false;
+
+    vec3 inv_dir = 1.0 / safe_ray_dir3(ray.direction);
+    bool found = false;
+
+    if (instance_count <= 4) {
+        for (int inst_idx = 0; inst_idx < instance_count; ++inst_idx) {
+            vec3 bmin = instances[inst_idx].bounds_min.xyz;
+            vec3 bmax = instances[inst_idx].bounds_max.xyz;
+            if (bounds_entry_box(bmin, bmax, ray.origin, inv_dir, hit.distance) < 0.0)
+                continue;
+
+            bool is_identity = (instances[inst_idx].bounds_max.w > 0.5);
+            Ray local_ray;
+            float loc_len;
+            vec3 loc_inv_dir;
+            if (is_identity) {
+                local_ray = ray;
+                loc_len = 1.0;
+                loc_inv_dir = inv_dir;
+            } else {
+                vec3 loc_origin = (instances[inst_idx].world_to_local * vec4(ray.origin, 1.0)).xyz;
+                vec3 loc_dir_unnorm = (instances[inst_idx].world_to_local * vec4(ray.direction, 0.0)).xyz;
+                loc_len = length(loc_dir_unnorm);
+                if (loc_len < 1e-8)
+                    continue;
+                vec3 loc_dir = loc_dir_unnorm / loc_len;
+                loc_inv_dir = 1.0 / safe_ray_dir3(loc_dir);
+                local_ray.origin = loc_origin;
+                local_ray.direction = loc_dir;
+            }
+
+            uint root = instances[inst_idx].data.x;
+            bool is_print_inst = instances[inst_idx].bounds_min.w > 0.0;
+            if (traverse_blas(root, is_print_inst, uint(inst_idx), local_ray, ray, loc_inv_dir, loc_len, hit, any_hit)) {
+                found = true;
+                if (any_hit)
+                    return true;
+            }
+        }
+    } else {
+        uint tlas_stack[16];
+        uint stack_size = 0u;
+        uint node_idx = 0u;
+        while (true) {
+            BvhNode node = tlas_nodes[node_idx];
+            uint count_and_axis = floatBitsToUint(node.bounds_max.w);
+            uint count = count_and_axis & 0x3FFFFFFFu;
+            if (count > 0u) {
+                uint inst_idx = uint(floatBitsToInt(node.bounds_min.w));
+                bool is_identity = (instances[inst_idx].bounds_max.w > 0.5);
+                Ray local_ray;
+                float loc_len;
+                vec3 loc_inv_dir;
+                if (is_identity) {
+                    local_ray = ray;
+                    loc_len = 1.0;
+                    loc_inv_dir = inv_dir;
+                } else {
+                    vec3 loc_origin = (instances[inst_idx].world_to_local * vec4(ray.origin, 1.0)).xyz;
+                    vec3 loc_dir_unnorm = (instances[inst_idx].world_to_local * vec4(ray.direction, 0.0)).xyz;
+                    loc_len = length(loc_dir_unnorm);
+                    if (loc_len >= 1e-8) {
+                        vec3 loc_dir = loc_dir_unnorm / loc_len;
+                        loc_inv_dir = 1.0 / safe_ray_dir3(loc_dir);
+                        local_ray.origin = loc_origin;
+                        local_ray.direction = loc_dir;
+                    } else {
+                        loc_len = 0.0;
+                    }
+                }
+                if (loc_len >= 1e-8) {
+                    uint root = instances[inst_idx].data.x;
+                    bool is_print_inst = instances[inst_idx].bounds_min.w > 0.0;
+                    if (traverse_blas(root, is_print_inst, inst_idx, local_ray, ray, loc_inv_dir, loc_len, hit, any_hit)) {
+                        found = true;
+                        if (any_hit)
+                            return true;
+                    }
+                }
+                if (stack_size == 0u)
+                    break;
+                node_idx = tlas_stack[--stack_size];
+            } else {
+                uint left_child = uint(floatBitsToInt(node.bounds_min.w));
+                uint right_child = left_child + 1u;
+
+                float d_a = bounds_entry_box(tlas_nodes[left_child].bounds_min.xyz, tlas_nodes[left_child].bounds_max.xyz, ray.origin, inv_dir, hit.distance);
+                float d_b = bounds_entry_box(tlas_nodes[right_child].bounds_min.xyz, tlas_nodes[right_child].bounds_max.xyz, ray.origin, inv_dir, hit.distance);
+
+                if (d_a >= 0.0 && d_b >= 0.0) {
+                    if (d_a > d_b) {
+                        if (stack_size < 16u) tlas_stack[stack_size++] = left_child;
+                        node_idx = right_child;
+                    } else {
+                        if (stack_size < 16u) tlas_stack[stack_size++] = right_child;
+                        node_idx = left_child;
+                    }
+                } else if (d_a >= 0.0) {
+                    node_idx = left_child;
+                } else if (d_b >= 0.0) {
+                    node_idx = right_child;
+                } else {
+                    if (stack_size == 0u)
+                        break;
+                    node_idx = tlas_stack[--stack_size];
+                }
+            }
+        }
+    }
+
+    if (found && !any_hit) {
+        Triangle tri = triangles[hit.tri_index];
+        vec3 edge1 = tri.b.xyz - tri.a.xyz;
+        vec3 edge2 = tri.c.xyz - tri.a.xyz;
+        vec3 edge3 = tri.c.xyz - tri.b.xyz;
+        float len1 = dot(edge1, edge1);
+        float len2 = dot(edge2, edge2);
+        float len3 = dot(edge3, edge3);
+        vec3 raw_normal;
+        if (len1 >= len2 && len1 >= len3)
+            raw_normal = cross(edge3, -edge2);
+        else if (len2 >= len1 && len2 >= len3)
+            raw_normal = cross(edge1, edge3);
+        else
+            raw_normal = cross(edge1, edge2);
+
+        float normal_len = length(raw_normal);
+        vec3 world_normal;
+        if (normal_len > 0.0) {
+            if (instances[hit.inst_index].bounds_max.w > 0.5) {
+                world_normal = raw_normal / normal_len;
+            } else {
+                vec3 world_normal_unnorm = (instances[hit.inst_index].normal_to_world * vec4(raw_normal / normal_len, 0.0)).xyz;
+                float wn_len = length(world_normal_unnorm);
+                world_normal = (wn_len > 0.0) ? (world_normal_unnorm / wn_len) : vec3(0.0, 0.0, 1.0);
+            }
+        } else {
+            world_normal = vec3(0.0, 0.0, 1.0);
+        }
+
+        hit.front_face = dot(world_normal, ray.direction) < 0.0;
+        hit.normal = hit.front_face ? world_normal : -world_normal;
+    }
+
+    return found;
+}
+
+bool intersect_scene(Ray ray, inout Hit hit) { return traverse_scene(ray, hit, false); }
+bool intersect_scene_any(Ray ray, float max_dist)
+{
+    Hit h;
+    h.distance = max_dist;
+    return traverse_scene(ray, h, true);
+}
+
+bool intersect_triangle_shadow(Triangle triangle, Ray local_ray, Ray world_ray, float loc_scale)
+{
+    if (triangle.a.w >= 0.0) {
+        if (g_has_z_filter && (triangle.a.w < z_min || triangle.a.w > z_max))
+            return false;
+        if (g_has_move_filter) {
+            uint raw_v_id = floatBitsToUint(triangle.b.w);
+            if (raw_v_id != 0xFFFFFFFFu && ((move_min >= 0 && int(raw_v_id) < move_min) || (move_max >= 0 && int(raw_v_id) > move_max)))
+                return false;
+        }
+    }
+
+    vec3 edge1 = triangle.b.xyz - triangle.a.xyz;
+    vec3 edge2 = triangle.c.xyz - triangle.a.xyz;
+    vec3 cross_value = cross(local_ray.direction, edge2);
+    float determinant = dot(edge1, cross_value);
+    if (abs(determinant) < 1e-10)
+        return false;
+
+    float inverse_determinant = 1.0 / determinant;
+    vec3 origin_to_a = local_ray.origin - triangle.a.xyz;
+    float u = dot(origin_to_a, cross_value) * inverse_determinant;
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 cross_q = cross(origin_to_a, edge1);
+    float v = dot(local_ray.direction, cross_q) * inverse_determinant;
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    float local_distance = dot(edge2, cross_q) * inverse_determinant;
+    if (local_distance < 0.0)
+        return false;
+
+    float world_distance = local_distance / loc_scale;
+    if (world_distance < ray_epsilon)
+        return false;
+
+    vec3 hit_pos = world_ray.origin + world_distance * world_ray.direction;
+    if (g_has_clipping && triangle.a.w > -1.5 && (dot(hit_pos, clipping_plane.xyz) + clipping_plane.w < 0.0))
+        return false;
+
+    return true;
+}
+
+bool traverse_blas_shadow(uint root, bool is_print_inst, Ray local_ray, Ray world_ray, vec3 local_inv_dir, float loc_scale, inout vec3 trans, inout int trans_hits)
+{
+    if (root >= nodes.length())
+        return true;
+
+    float max_dist = 1e30;
+    if (bounds_entry(nodes[root], local_ray.origin, local_inv_dir, max_dist, world_ray, loc_scale, is_print_inst) < 0.0)
+        return true;
+
+    uint stack[32];
+    int stack_size = 0;
+    uint node_idx = root;
+
+    float step_d_over_ref = is_preview_canvas ? 0.25 : 0.85;
+
+    while (true) {
+        BvhNode node = nodes[node_idx];
+        uint count_and_axis = floatBitsToUint(node.bounds_max.w);
+        uint count = count_and_axis & 0x3FFFFFFFu;
+
+        if (count > 0u) {
+            uint first = uint(floatBitsToInt(node.bounds_min.w));
+            for (uint i = first; i < first + count; ++i) {
+                if (intersect_triangle_shadow(triangles[i], local_ray, world_ray, loc_scale)) {
+                    if (shadings[i].params.z > 3.5)
+                        continue;
+                    float op = clamp(triangles[i].c.w, 0.0, 1.0);
+                    if (op < 0.01)
+                        continue;
+                    if (op >= 0.96) {
+                        trans = vec3(0.0);
+                        return false;
+                    }
+                    float t_s = pow(1.0 - op, step_d_over_ref);
+                    vec3 col = clamp(shadings[i].albedo.rgb, vec3(0.05), vec3(1.0));
+                    float max_c = max(col.r, max(col.g, col.b));
+                    vec3 norm_col = col / max(max_c, 1e-4);
+                    // Tint across all translucent hits so multi-wall shadows preserve filament hue
+                    float tint_strength = (trans_hits < 3) ? ((1.0 - t_s) * 0.90) : ((1.0 - t_s) * 0.45);
+                    trans *= t_s * mix(vec3(1.0), norm_col, clamp(tint_strength, 0.0, 0.85));
+                    trans_hits++;
+                    int max_sh_hits = is_interactive_pass ? 3 : shadow_max_hits;
+                    if (trans_hits >= max_sh_hits || max(trans.r, max(trans.g, trans.b)) < 0.02) {
+                        return false;
+                    }
+                }
+            }
+            if (stack_size == 0)
+                break;
+            node_idx = stack[--stack_size];
+        } else {
+            uint left_child = uint(floatBitsToInt(node.bounds_min.w));
+            uint right_child = left_child + 1u;
+
+            float d_a = bounds_entry(nodes[left_child], local_ray.origin, local_inv_dir, max_dist, world_ray, loc_scale, is_print_inst);
+            float d_b = bounds_entry(nodes[right_child], local_ray.origin, local_inv_dir, max_dist, world_ray, loc_scale, is_print_inst);
+
+            if (d_a >= 0.0 && d_b >= 0.0) {
+                if (d_a > d_b) {
+                    if (stack_size < 32) stack[stack_size++] = left_child;
+                    node_idx = right_child;
+                } else {
+                    if (stack_size < 32) stack[stack_size++] = right_child;
+                    node_idx = left_child;
+                }
+            } else if (d_a >= 0.0) {
+                node_idx = left_child;
+            } else if (d_b >= 0.0) {
+                node_idx = right_child;
+            } else {
+                if (stack_size == 0)
+                    break;
+                node_idx = stack[--stack_size];
+            }
+        }
+    }
+    return true;
+}
+
+vec3 trace_shadow_transmittance(Ray world_ray)
+{
+    if (instance_count <= 0)
+        return vec3(1.0);
+
+    vec3 inv_dir = 1.0 / safe_ray_dir3(world_ray.direction);
+    vec3 trans = vec3(1.0);
+    int trans_hits = 0;
+
+    if (instance_count <= 4) {
+        for (int inst_idx = 0; inst_idx < instance_count; ++inst_idx) {
+            if (instances[inst_idx].bounds_min.w < 0.0)
+                continue;
+
+            vec3 bmin = instances[inst_idx].bounds_min.xyz;
+            vec3 bmax = instances[inst_idx].bounds_max.xyz;
+            if (bounds_entry_box(bmin, bmax, world_ray.origin, inv_dir, 1e30) < 0.0)
+                continue;
+
+            bool is_identity = (instances[inst_idx].bounds_max.w > 0.5);
+            Ray local_ray;
+            float loc_len;
+            vec3 loc_inv_dir;
+            if (is_identity) {
+                local_ray = world_ray;
+                loc_len = 1.0;
+                loc_inv_dir = inv_dir;
+            } else {
+                vec3 loc_origin = (instances[inst_idx].world_to_local * vec4(world_ray.origin, 1.0)).xyz;
+                vec3 loc_dir_unnorm = (instances[inst_idx].world_to_local * vec4(world_ray.direction, 0.0)).xyz;
+                loc_len = length(loc_dir_unnorm);
+                if (loc_len < 1e-8)
+                    continue;
+                vec3 loc_dir = loc_dir_unnorm / loc_len;
+                loc_inv_dir = 1.0 / safe_ray_dir3(loc_dir);
+                local_ray.origin = loc_origin;
+                local_ray.direction = loc_dir;
+            }
+
+            uint root = instances[inst_idx].data.x;
+            bool is_print_inst = instances[inst_idx].bounds_min.w > 0.0;
+            if (!traverse_blas_shadow(root, is_print_inst, local_ray, world_ray, loc_inv_dir, loc_len, trans, trans_hits))
+                return trans;
+        }
+    } else {
+        uint tlas_stack[16];
+        uint stack_size = 0u;
+        uint node_idx = 0u;
+        while (true) {
+            BvhNode node = tlas_nodes[node_idx];
+            uint count_and_axis = floatBitsToUint(node.bounds_max.w);
+            uint count = count_and_axis & 0x3FFFFFFFu;
+            if (count > 0u) {
+                uint inst_idx = uint(floatBitsToInt(node.bounds_min.w));
+                if (instances[inst_idx].bounds_min.w >= 0.0) {
+                    bool is_identity = (instances[inst_idx].bounds_max.w > 0.5);
+                    Ray local_ray;
+                    float loc_len;
+                    vec3 loc_inv_dir;
+                    if (is_identity) {
+                        local_ray = world_ray;
+                        loc_len = 1.0;
+                        loc_inv_dir = inv_dir;
+                    } else {
+                        vec3 loc_origin = (instances[inst_idx].world_to_local * vec4(world_ray.origin, 1.0)).xyz;
+                        vec3 loc_dir_unnorm = (instances[inst_idx].world_to_local * vec4(world_ray.direction, 0.0)).xyz;
+                        loc_len = length(loc_dir_unnorm);
+                        if (loc_len >= 1e-8) {
+                            vec3 loc_dir = loc_dir_unnorm / loc_len;
+                            loc_inv_dir = 1.0 / safe_ray_dir3(loc_dir);
+                            local_ray.origin = loc_origin;
+                            local_ray.direction = loc_dir;
+                        } else {
+                            loc_len = 0.0;
+                        }
+                    }
+                    if (loc_len >= 1e-8) {
+                        uint root = instances[inst_idx].data.x;
+                        bool is_print_inst = instances[inst_idx].bounds_min.w > 0.0;
+                        if (!traverse_blas_shadow(root, is_print_inst, local_ray, world_ray, loc_inv_dir, loc_len, trans, trans_hits))
+                            return trans;
+                    }
+                }
+                if (stack_size == 0u)
+                    break;
+                node_idx = tlas_stack[--stack_size];
+            } else {
+                uint left_child = uint(floatBitsToInt(node.bounds_min.w));
+                uint right_child = left_child + 1u;
+
+                float d_a = bounds_entry_box(tlas_nodes[left_child].bounds_min.xyz, tlas_nodes[left_child].bounds_max.xyz, world_ray.origin, inv_dir, 1e30);
+                float d_b = bounds_entry_box(tlas_nodes[right_child].bounds_min.xyz, tlas_nodes[right_child].bounds_max.xyz, world_ray.origin, inv_dir, 1e30);
+
+                if (d_a >= 0.0 && d_b >= 0.0) {
+                    if (d_a > d_b) {
+                        if (stack_size < 16u) tlas_stack[stack_size++] = left_child;
+                        node_idx = right_child;
+                    } else {
+                        if (stack_size < 16u) tlas_stack[stack_size++] = right_child;
+                        node_idx = left_child;
+                    }
+                } else if (d_a >= 0.0) {
+                    node_idx = left_child;
+                } else if (d_b >= 0.0) {
+                    node_idx = right_child;
+                } else {
+                    if (stack_size == 0u)
+                        break;
+                    node_idx = tlas_stack[--stack_size];
+                }
+            }
+        }
+    }
+
+    return trans;
+}
+
+vec3 sky(vec3 direction)
+{
+    float up = clamp(direction.z, -1.0, 1.0);
+    vec3 ground_amb = vec3(0.010, 0.012, 0.016);
+    vec3 horizon    = vec3(0.095, 0.112, 0.147);
+    vec3 zenith     = vec3(0.235, 0.300, 0.429);
+    if (up < 0.0)
+        return mix(horizon, ground_amb, clamp(-up * 1.8, 0.0, 1.0));
+    return mix(horizon, zenith, pow(up, 0.7));
+}
+
+vec4 trace_path(Ray ray, inout uint state, ivec2 pixel, int s_idx, out vec3 bed_mod)
+{
+    bed_mod = vec3(1.0);
+    vec3 base_light_dir = length(light_direction_uniform) > 0.1 ? light_direction_uniform : normalize(vec3(-0.45, -0.48, 0.75));
+    vec3 light_direction = sample_key_light_dir(base_light_dir, sample_ld_2d(pixel, s_idx, 0u));
+    vec3 fill_direction = length(fill_direction_uniform) > 0.1 ? fill_direction_uniform : normalize(vec3(0.55, 0.35, 0.75));
+
+    vec3 accum_color = vec3(0.0);
+    float bg_transmittance = 1.0;
+    vec3 throughput = vec3(1.0);
+    int trans_bounces = 0;
+    int eff_max_trans = max(max_trans_bounces, is_preview_canvas ? 10 : 8);
+    int max_trans = is_interactive_pass ? (is_preview_canvas ? 8 : 6) : eff_max_trans;
+    Ray cur_ray = ray;
+
+    for (int step = 0; step < 20; ++step) {
+        Hit hit;
+        hit.distance = 3.402823e+38;
+        g_only_opaque = (trans_bounces >= max_trans || step >= 18);
+        bool has_hit = intersect_scene(cur_ray, hit);
+        g_only_opaque = false;
+        if (!has_hit) {
+            break;
+        }
+
+        float max_coord = max(abs(hit.position.x), max(abs(hit.position.y), abs(hit.position.z)));
+        float normal_offset = max(0.002, max_coord * 1e-4);
+        vec3 offset_origin = hit.position + hit.normal * normal_offset;
+
+        if (hit.tag < -1.5) {
+            // The bed itself is rasterized by OpenGL before the path tracer runs; the path tracer only
+            // computes how the bed's irradiance differs from an unoccluded bed (E_total / E_ref). The
+            // ratio modulates the rasterized bed multiplicatively in the composite, so shadows, colored
+            // shadows and indirect color bleeding share one model and keep the bed texture and grid.
+            vec3 n_bed = hit.normal;
+            float key_ndl = max(0.0, dot(n_bed, light_direction));
+            float fill_ndl_b = max(0.0, dot(n_bed, fill_direction));
+            float sky_amb = mix(0.14, 0.24, 0.5 + 0.5 * n_bed.z);
+            float e_ref = 0.70 * key_ndl + 0.22 * fill_ndl_b + sky_amb;
+
+            Ray sh_ray;
+            sh_ray.origin = offset_origin;
+            sh_ray.direction = light_direction;
+            vec3 light_trans = (shadows_enabled && key_ndl > 0.0) ? trace_shadow_transmittance(sh_ray) : vec3(1.0);
+
+            // Hemisphere term. A cosine-weighted direction gives the irradiance estimator E = pi * L, so a
+            // sample that sees the sky contributes the sky irradiance and a sample that sees an object
+            // contributes that object's Lambertian exitance (albedo * E_obj). Occlusion and color bleeding
+            // are the same term: a dim or dark neighbor darkens the bed, a lit colored one tints it.
+            vec3 e_hemi = vec3(sky_amb);
+            if (max_bounces > 1 && !is_interactive_pass) {
+                Ray ao_ray_p;
+                ao_ray_p.origin = offset_origin;
+                vec2 xi_ao = sample_ld_2d(pixel, s_idx, 1u);
+                ao_ray_p.direction = cosine_sample_hemisphere(n_bed, xi_ao);
+                Hit ao_hit_p;
+                ao_hit_p.distance = 3.402823e+38;
+                if (intersect_scene(ao_ray_p, ao_hit_p) && ao_hit_p.tag >= -1.5) {
+                    float ao_opacity = clamp(ao_hit_p.opacity, 0.0, 1.0);
+                    vec3 n_o = ao_hit_p.normal;
+                    float o_ndl = max(0.0, dot(n_o, light_direction));
+                    float o_vis = 1.0;
+                    if (shadows_enabled && o_ndl > 0.0) {
+                        Ray o_sh_ray;
+                        float o_max_c = max(abs(ao_hit_p.position.x), max(abs(ao_hit_p.position.y), abs(ao_hit_p.position.z)));
+                        o_sh_ray.origin = ao_hit_p.position + n_o * max(0.002, o_max_c * 1e-4);
+                        o_sh_ray.direction = light_direction;
+                        if (intersect_scene_any(o_sh_ray, 3.402823e+38))
+                            o_vis = 0.0;
+                    }
+                    float e_obj = 0.70 * o_ndl * o_vis + 0.22 * max(0.0, dot(n_o, fill_direction)) + mix(0.14, 0.24, 0.5 + 0.5 * n_o.z);
+                    vec3 o_albedo = shadings[ao_hit_p.tri_index].albedo.rgb;
+                    e_hemi = mix(vec3(sky_amb), o_albedo * e_obj, ao_opacity);
+                }
+            }
+
+            vec3 e_total = 0.70 * key_ndl * light_trans + vec3(0.22 * fill_ndl_b) + e_hemi;
+            vec3 m_lin = clamp(e_total / max(e_ref, 1e-3), vec3(0.18), vec3(2.0));
+            // Preserve chromatic saturation for colored translucent shadows (e.g. blue sheet/Benchy)
+            float min_lt = min(light_trans.r, min(light_trans.g, light_trans.b));
+            float max_lt = max(light_trans.r, max(light_trans.g, light_trans.b));
+            if (max_lt - min_lt > 0.02) {
+                vec3 chroma_tint = light_trans / max(max_lt, 1e-3);
+                float tint_strength = clamp((max_lt - min_lt) * 0.85, 0.0, 0.80);
+                m_lin *= mix(vec3(1.0), chroma_tint, tint_strength);
+            }
+            // The rasterized bed is stored in sRGB; weight by bg_transmittance so translucent objects
+            // over the bed are not double-darkened by their own footprint.
+            vec3 plate_mod = pow(clamp(m_lin, vec3(0.0), vec3(2.0)), vec3(1.0 / 1.8));
+            bed_mod = mix(vec3(1.0), plate_mod, bg_transmittance);
+            break;
+        }
+
+        Shading hit_shading = shadings[hit.tri_index];
+        vec4 hit_albedo = hit_shading.albedo;
+        float hit_layer_height = hit_shading.params.x;
+        float hit_facet = hit_shading.params.z;
+        int tri_sss_mode = int(floor(hit_shading.params.y * 0.5 + 1e-4));
+        int active_sss_mode = (tri_sss_mode > 0) ? tri_sss_mode : sss_mode;
+
+        float opacity = clamp(hit.opacity, 0.0, 1.0);
+        if (is_preview_canvas && opacity >= 0.98 && active_sss_mode == 3) {
+            active_sss_mode = 1;
+        }
+        if (opacity < 0.01) {
+            cur_ray.origin = hit.position + cur_ray.direction * max(0.001, normal_offset * 0.5);
+            continue;
+        }
+
+        vec3 view_dir = -cur_ray.direction;
+        vec3 shading_normal = hit.normal;
+        float layer_profile = 1.0;
+        float spec_profile = 1.0;
+        float groove_lod = 0.0;
+
+        if (hit.tag >= 0.0 && !(trans_bounces >= 3 && (is_interactive_pass || quality_preset == 0) && opacity < 0.96)) {
+            float h_len = length(hit.normal.xy);
+            vec2 h_dir = h_len > 1e-4 ? (hit.normal.xy / h_len) : vec2(1.0, 0.0);
+            float delta_angle = hit_shading.params.w;
+            if (abs(delta_angle) > 1e-4) {
+                float rot = (hit.seg_t - 0.5) * delta_angle;
+                float cos_r = cos(rot);
+                float sin_r = sin(rot);
+                h_dir = vec2(h_dir.x * cos_r - h_dir.y * sin_r,
+                             h_dir.x * sin_r + h_dir.y * cos_r);
+            }
+            float lh = (hit_layer_height > 0.01) ? hit_layer_height : 0.20;
+            float layer_center = hit.tag - 0.5 * lh;
+            float rel_z = clamp((hit.position.z - layer_center) / (0.5 * lh), -1.0, 1.0);
+
+            // Physical microfacet visibility weighting on curved domes:
+            // When viewing concentric rings from above on the far side of a dome (dot(h_dir, view_dir.xy) < 0),
+            // the upper bead crown occludes the far side flank.
+            float radial_view = dot(h_dir, view_dir.xy);
+            float vis_side = smoothstep(-0.20, 0.25, radial_view);
+
+            if (hit_facet > 3.5) {
+                shading_normal = hit.normal;
+            } else if (hit_facet < 0.5) {
+                shading_normal = normalize(vec3(hit.normal.xy * 0.06, sign(hit.normal.z)));
+            } else if (hit_facet < 1.5) {
+                float z_bevel = mix(0.25, 0.80, clamp(rel_z, 0.0, 1.0));
+                shading_normal = normalize(vec3(h_dir * mix(0.14, 0.60, vis_side), mix(0.92, z_bevel, vis_side)));
+            } else if (hit_facet > 2.5) {
+                float z_bevel = mix(-0.80, -0.25, clamp(rel_z + 1.0, 0.0, 1.0));
+                shading_normal = normalize(vec3(h_dir * mix(0.14, 0.60, vis_side), mix(-0.92, z_bevel, vis_side)));
+            } else if (layer_profile_mode > 0) {
+                float dist = camera_orthographic ? 1.0 : length(hit.position - camera_position);
+                float pixel_size = camera_orthographic
+                    ? (camera_orthographic_height / float(image_size.y))
+                    : (dist * (2.0 * tan(camera_half_fov) / float(image_size.y)));
+                float pixels_per_layer = lh / max(1e-5, pixel_size);
+                groove_lod = smoothstep(3.5, 8.0, pixels_per_layer);
+
+                float z_smooth = mix(0.0, rel_z * 0.25, groove_lod);
+                float dome_top = smoothstep(0.35, 0.85, abs(hit.normal.z)) * (1.0 - vis_side);
+                shading_normal = normalize(mix(vec3(h_dir, z_smooth), vec3(h_dir * 0.18, sign(hit.normal.z) * 0.95), dome_top));
+
+                float groove = smoothstep(0.60, 0.98, abs(rel_z)) * groove_lod;
+                layer_profile = mix(1.0, 0.88, groove);
+                spec_profile = mix(1.0, 0.60, groove);
+            } else {
+                float z_ridge = hit.normal.z * 0.12;
+                shading_normal = normalize(vec3(h_dir, z_ridge));
+            }
+
+            // Horizon pullback: ensure synthetic bevel normals never flip behind the visible geometric horizon
+            float nv_shade = dot(shading_normal, view_dir);
+            float nv_geom  = max(0.0, dot(hit.normal, view_dir));
+            if (nv_shade < 0.25 * nv_geom) {
+                float pull = clamp((0.25 * nv_geom - nv_shade) / max(0.05, 0.25 * nv_geom - nv_shade + 0.20), 0.0, 1.0);
+                shading_normal = normalize(mix(shading_normal, hit.normal, pull));
+            }
+        }
+
+        float ndl = max(dot(shading_normal, light_direction), 0.35 * dot(hit.normal, light_direction));
+        vec3 shadow_trans;
+        float ao_vis;
+        vec3 indirect_bounce;
+
+        if (trans_bounces == 0 || opacity >= 0.96) {
+            shadow_trans = vec3(1.0);
+            if (ndl <= 0.0) {
+                shadow_trans = vec3(0.0);
+            } else if (shadows_enabled) {
+                Ray sh_ray;
+                sh_ray.origin = offset_origin;
+                sh_ray.direction = light_direction;
+                shadow_trans = trace_shadow_transmittance(sh_ray);
+            }
+
+            ao_vis = 1.0;
+            indirect_bounce = vec3(0.0);
+            if (max_bounces > 1 && !is_interactive_pass && step < 2) {
+                Ray gi_ray;
+                gi_ray.origin = offset_origin;
+                vec2 xi_gi = sample_ld_2d(pixel, s_idx, 1u + uint(step) * 4u);
+                vec3 gi_hemi_normal = (hit.tag >= 0.0 && opacity >= 0.96) ? shading_normal : hit.normal;
+                gi_ray.direction = cosine_sample_hemisphere(gi_hemi_normal, xi_gi);
+                if (dot(gi_ray.direction, hit.normal) < 0.05) {
+                    gi_ray.direction = normalize(gi_ray.direction + hit.normal * (0.10 - dot(gi_ray.direction, hit.normal)));
+                }
+                Hit gi_hit;
+                gi_hit.distance = 3.402823e+38;
+                if (intersect_scene(gi_ray, gi_hit)) {
+                    float gi_opacity = clamp(gi_hit.opacity, 0.0, 1.0);
+                    if (gi_opacity < 0.05) {
+                        ao_vis = 1.0;
+                    } else if (hit.tag >= 0.0 && gi_hit.distance < 0.45) {
+                        bool same_layer_neighbor = (abs(gi_hit.position.z - hit.position.z) < 0.25);
+                        float base_ao = same_layer_neighbor ? 0.82 : 0.65;
+                        ao_vis = mix(1.0, base_ao, gi_opacity);
+                    } else {
+                        float base_ao = clamp(0.14 + gi_hit.distance * 0.035, 0.14, 0.85);
+                        ao_vis = mix(1.0, base_ao, gi_opacity);
+                    }
+                    if (gi_hit.tag >= -1.5) {
+                        float gi_ndl = max(0.0, dot(gi_hit.normal, light_direction));
+                        float gi_fill = max(0.0, dot(gi_hit.normal, fill_direction));
+                        float gi_hemi = 0.5 + 0.5 * gi_hit.normal.z;
+                        float gi_shadow = 1.0;
+                        if (shadows_enabled && gi_ndl > 0.05 && step == 0 && opacity >= 0.96) {
+                            Ray gi_sh_ray;
+                            float gi_max_c = max(abs(gi_hit.position.x), max(abs(gi_hit.position.y), abs(gi_hit.position.z)));
+                            gi_sh_ray.origin = gi_hit.position + gi_hit.normal * max(0.002, gi_max_c * 1e-4);
+                            gi_sh_ray.direction = light_direction;
+                            if (intersect_scene_any(gi_sh_ray, 3.402823e+38))
+                                gi_shadow = 0.20;
+                        }
+                        float gi_irradiance = mix(0.14, 0.24, gi_hemi) + 0.70 * gi_ndl * gi_shadow + 0.22 * gi_fill;
+                        float gi_falloff = clamp(1.0 / (1.0 + 0.020 * gi_hit.distance), 0.25, 1.0);
+                        vec4 gi_albedo = shadings[gi_hit.tri_index].albedo;
+                        indirect_bounce = min(gi_albedo.rgb * (gi_irradiance * gi_falloff * 0.55 * gi_opacity), vec3(0.50));
+                    }
+                } else {
+                    vec3 sky_color = sky(gi_ray.direction);
+                    indirect_bounce = sky_color * 0.32;
+                    ao_vis = 1.0;
+                }
+            } else {
+                ao_vis = 0.70 + 0.30 * max(0.0, hit.normal.z);
+            }
+        } else {
+            ao_vis = 0.85 + 0.15 * max(0.0, hit.normal.z);
+            indirect_bounce = vec3(0.0);
+            shadow_trans = vec3(max(0.0, ndl) > 0.0 ? 0.80 : 0.25);
+        }
+
+        float hemi = 0.5 + 0.5 * shading_normal.z;
+        float fill_ndl = max(0.0, dot(shading_normal, fill_direction));
+
+        float cos_theta = clamp(abs(dot(shading_normal, view_dir)), 0.0, 1.0);
+        float F = 0.04 + 0.96 * pow(1.0 - cos_theta, 5.0);
+        float F_rough = 0.04 + 0.26 * pow(1.0 - cos_theta, 5.0);
+
+        vec3 h_key = normalize(light_direction + view_dir);
+        vec3 h_fill = normalize(fill_direction + view_dir);
+        float f_key = (0.04 + 0.96 * pow(1.0 - max(0.0, dot(view_dir, h_key)), 5.0)) * ((48.0 + 8.0) / (8.0 * PI)) * pow(max(0.0, dot(shading_normal, h_key)), 48.0);
+        float f_fill = 0.04 * ((20.0 + 8.0) / (8.0 * PI)) * pow(max(0.0, dot(shading_normal, h_fill)), 20.0);
+        vec3 grazing_sheen = vec3((F_rough - 0.04) * mix(0.14, 0.26, hemi) * ao_vis);
+        vec3 specular_color = (f_key * max(0.0, ndl) * shadow_trans * 0.70 + vec3(f_fill * max(0.0, fill_ndl) * ao_vis * 0.22) + grazing_sheen) * spec_profile;
+        if (is_preview_canvas && !glossy_toolpaths && opacity < 0.96)
+            specular_color = vec3(0.0);
+
+        float amb = mix(0.14, 0.24, hemi) * ao_vis;
+        vec3 direct_key = max(0.0, ndl) * 0.70 * shadow_trans;
+        if (is_interactive_pass && active_sss_mode > 0) {
+            float wrap_ndl = clamp((dot(shading_normal, light_direction) + 0.30) / 1.30, 0.0, 1.0);
+            direct_key = shadow_trans * (0.70 * mix(max(0.0, ndl), wrap_ndl, 0.35));
+        }
+        float direct_fill = (fill_ndl * 0.22) * mix(0.45, 1.0, ao_vis);
+        float fresnel_diff = (trans_bounces == 0) ? (1.0 - F_rough) : 0.92;
+        vec3 diffuse_color = fresnel_diff * hit_albedo.rgb * (vec3(amb + direct_fill) + direct_key);
+        if (hit.tag >= 0.0 && hit_facet > 3.5) {
+            diffuse_color = hit_albedo.rgb * (0.35 + 0.65 * max(vec3(0.20), vec3(amb + direct_fill) + direct_key));
+        }
+
+        // Subsurface approximation: tangent-disk diffusion probe + thin-wall forward transmission
+        if (!is_interactive_pass && active_sss_mode > 0 && step == 0 && hit.tag >= -1.5 && opacity >= 0.90 && hit_facet < 3.5) {
+            float sss_d = (active_sss_mode == 1) ? 0.60 : ((active_sss_mode == 2) ? 1.80 : 3.20);
+            float sss_weight = (active_sss_mode == 1) ? 0.50 : ((active_sss_mode == 2) ? 0.75 : 0.90);
+
+            vec3 u_tangent, v_tangent;
+            build_orthonormal_basis(shading_normal, u_tangent, v_tangent);
+
+            vec2 xi_sss = sample_ld_2d(pixel, s_idx, 2u);
+            float phi = (2.0 * PI) * xi_sss.y;
+            float r = -sss_d * log(max(0.04, 1.0 - xi_sss.x * 0.96));
+            vec3 p_disk = hit.position + (u_tangent * cos(phi) + v_tangent * sin(phi)) * r;
+
+            Ray probe_ray;
+            float probe_lift = sss_d * 1.2;
+            vec3 probe_n = shading_normal;
+            probe_ray.origin = p_disk + probe_n * probe_lift;
+            probe_ray.direction = -probe_n;
+            Hit probe_hit;
+            probe_hit.distance = sss_d * 2.4;
+            bool has_probe_hit = intersect_scene(probe_ray, probe_hit) && probe_hit.tag >= -1.5 && dot(probe_hit.normal, probe_n) > 0.05;
+
+            vec3 shadow_trans_i = vec3(1.0);
+            if (has_probe_hit) {
+                vec3 p_i = probe_hit.position;
+                vec3 n_i = (probe_hit.tag >= 0.0) ? normalize(mix(shading_normal, probe_hit.normal, 0.30)) : probe_hit.normal;
+                vec3 raw_c_i = shadings[probe_hit.tri_index].albedo.rgb;
+                float sub_depth = max(0.0, probe_hit.distance - probe_lift);
+                float two_way_d = 2.0 * sub_depth;
+                float depth_atten = exp(-two_way_d / max(0.25, sss_d * 0.55));
+                vec3 outer_filter = pow(clamp(hit_albedo.rgb, vec3(0.02), vec3(1.0)), vec3(two_way_d / 0.40));
+                vec3 c_i = mix(hit_albedo.rgb, raw_c_i * outer_filter, depth_atten);
+
+                float ndl_probe = max(0.0, dot(n_i, light_direction));
+                if (ndl_probe <= 0.0) {
+                    shadow_trans_i = vec3(0.0);
+                } else if (quality_preset == 0) {
+                    shadow_trans_i = shadow_trans * ndl_probe;
+                } else if (shadows_enabled && probe_hit.tri_index != hit.tri_index) {
+                    Ray shadow_ray_i;
+                    float max_coord_i = max(abs(p_i.x), max(abs(p_i.y), abs(p_i.z)));
+                    vec3 s_origin_i = p_i + probe_hit.normal * max(0.002, max_coord_i * 1e-4);
+                    shadow_ray_i.origin = s_origin_i;
+                    shadow_ray_i.direction = light_direction;
+                    shadow_trans_i = trace_shadow_transmittance(shadow_ray_i);
+                }
+
+                float direct_key_i = ndl_probe * 0.70 * dot(shadow_trans_i, vec3(0.2126, 0.7152, 0.0722));
+                float fill_ndl_i = max(0.0, dot(n_i, fill_direction));
+                float direct_fill_i = (fill_ndl_i * 0.22) * mix(0.40, 1.0, ao_vis);
+                float hemi_i = 0.5 + 0.5 * n_i.z;
+                float amb_i = mix(0.12, 0.22, hemi_i) * ao_vis;
+                float diffuse_total_i = amb_i + direct_key_i + direct_fill_i;
+
+                vec3 sss_albedo = pow(clamp(c_i, vec3(0.01), vec3(1.0)), vec3(1.0 + 0.35 * (r / sss_d)));
+                vec3 diffuse_subsurface = (1.0 - F_rough) * sss_albedo * diffuse_total_i;
+
+                float eff_sss_weight = sss_weight * clamp(dot(n_i, shading_normal), 0.0, 1.0);
+                diffuse_color = mix(diffuse_color, diffuse_subsurface, eff_sss_weight);
+            }
+
+            // Thin-wall backlight transmission
+            float back_ndl = -ndl;
+            float cam_backlight = dot(view_dir, -light_direction);
+            if (quality_preset > 0 && back_ndl > 0.05 && cam_backlight > 0.0) {
+                if (quality_preset == 1) {
+                    float wall_thickness = has_probe_hit ? clamp(abs(probe_hit.distance - probe_lift) * 3.5, 0.2, 4.0) : 1.5;
+                    float back_vis = dot(shadow_trans_i, vec3(0.2126, 0.7152, 0.0722));
+                    float attenuation = exp(-wall_thickness / sss_d);
+                    float forward_exp = (active_sss_mode == 3) ? 1.4 : 2.0;
+                    float forward_scatter = pow(cam_backlight, forward_exp);
+                    float trans_gain = (active_sss_mode == 3) ? 0.65 : 0.45;
+                    float trans_light = back_ndl * trans_gain * back_vis * attenuation * (0.5 + 0.5 * forward_scatter) * sss_weight;
+                    vec3 sss_albedo = pow(clamp(hit_albedo.rgb, vec3(0.01), vec3(1.0)), vec3(1.0 + 0.35 * (wall_thickness / sss_d)));
+                    diffuse_color = diffuse_color * (1.0 - 0.35 * sss_weight) + (1.0 - F) * sss_albedo * trans_light;
+                } else if (quality_preset == 2) {
+                    Ray trans_ray;
+                    trans_ray.origin = hit.position - hit.normal * normal_offset;
+                    trans_ray.direction = -hit.normal;
+                    Hit trans_hit;
+                    trans_hit.distance = (active_sss_mode == 3) ? (sss_d * 3.5) : (sss_d * 2.5);
+                    if (intersect_scene(trans_ray, trans_hit) && trans_hit.tag >= -1.5) {
+                        float wall_thickness = trans_hit.distance;
+                        if (wall_thickness < 2.2 * sss_d) {
+                            vec3 n_back = -trans_hit.normal;
+                            float back_light_ndl = max(0.0, dot(n_back, light_direction));
+                            if (back_light_ndl > 0.0) {
+                                Ray trans_shadow;
+                                trans_shadow.origin = trans_hit.position + n_back * normal_offset;
+                                trans_shadow.direction = light_direction;
+                                vec3 back_trans = shadows_enabled ? trace_shadow_transmittance(trans_shadow) : vec3(1.0);
+                                float back_vis = dot(back_trans, vec3(0.2126, 0.7152, 0.0722));
+
+                                float attenuation = exp(-wall_thickness / sss_d);
+                                float forward_exp = (active_sss_mode == 3) ? 1.4 : 2.0;
+                                float forward_scatter = pow(cam_backlight, forward_exp);
+                                float trans_gain = (active_sss_mode == 3) ? 0.65 : 0.45;
+                                float trans_light = back_light_ndl * trans_gain * back_vis * attenuation * (0.5 + 0.5 * forward_scatter) * sss_weight;
+                                vec3 sss_albedo = pow(clamp(hit_albedo.rgb, vec3(0.01), vec3(1.0)), vec3(1.0 + 0.35 * (wall_thickness / sss_d)));
+                                diffuse_color = diffuse_color * (1.0 - 0.35 * sss_weight) + (1.0 - F) * sss_albedo * trans_light;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 1. Opaque plastic boundary (opacity >= 0.96)
+        if (opacity >= 0.96) {
+            vec3 surface_color = diffuse_color * layer_profile +
+                                hit_albedo.rgb * (indirect_bounce * layer_profile) +
+                                specular_color;
+            accum_color += throughput * surface_color;
+            bg_transmittance = 0.0;
+            break; // Opaque barrier: stops the path immediately!
+        }
+
+        // 2. Translucent material path (exact original appearance preserved):
+        if (trans_bounces == 0) {
+            accum_color += throughput * specular_color;
+        }
+
+        vec3 wall_radiance = diffuse_color * layer_profile +
+                             hit_albedo.rgb * (indirect_bounce * layer_profile);
+
+        float d_ratio;
+        if (is_preview_canvas) {
+            float lh = (hit_layer_height > 0.01) ? hit_layer_height : 0.20;
+            float d_bead = min(0.40 / max(length(cur_ray.direction.xy), 0.35),
+                               lh / max(abs(cur_ray.direction.z), 0.35));
+            d_ratio = clamp(d_bead / 1.15, 0.14, 0.38);
+        } else {
+            d_ratio = (trans_bounces < 2) ? (0.55 / max(cos_theta, 0.35)) : 0.30;
+        }
+
+        float T_step = pow(1.0 - clamp(opacity, 0.02, 0.999), d_ratio);
+        float alpha_step = 1.0 - T_step;
+
+        accum_color += throughput * (wall_radiance * alpha_step);
+        throughput *= T_step;
+        bg_transmittance *= T_step;
+        trans_bounces++;
+
+        // In Preview, step across the ~0.42 mm extrusion bead in one jump when entering a front wall
+        float push_dist = (is_preview_canvas && hit_layer_height > 0.01 && hit.front_face && hit_facet > 0.5)
+                          ? 0.43
+                          : max(0.002, normal_offset);
+        cur_ray.origin = hit.position + cur_ray.direction * push_dist;
+
+        float max_tp = max(throughput.r, max(throughput.g, throughput.b));
+        if (max_tp < 0.03) {
+            bg_transmittance = 0.0;
+            break;
+        }
+    }
+
+    return vec4(accum_color, clamp(1.0 - bg_transmittance, 0.0, 1.0));
+}
+
+vec3 linear_to_srgb(vec3 c)
+{
+    c = clamp(c, vec3(0.0), vec3(1.0));
+    bvec3 cutoff = lessThanEqual(c, vec3(0.0031308));
+    vec3 lower = c * 12.92;
+    vec3 higher = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+    return mix(higher, lower, cutoff);
+}
+
+vec3 apply_tone(vec3 color)
+{
+    vec3 c = max(vec3(0.0), color);
+    c = c / (1.0 + max(vec3(0.0), c - 0.8));
+    return linear_to_srgb(c);
+}
+
+void main()
+{
+    ivec2 local_px = ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(local_px, tile_size)))
+        return;
+    ivec2 pixel = local_px + tile_offset;
+    if (any(greaterThanEqual(pixel, image_size)))
+        return;
+
+    g_has_clipping = dot(clipping_plane.xyz, clipping_plane.xyz) > 0.5;
+    g_has_move_filter = (move_min >= 0 || move_max >= 0);
+    g_has_z_filter = (z_min > -1e5 || z_max < 1e5);
+
+    bool reset_accum = (sample_start <= 1);
+    vec4 sum = reset_accum ? vec4(0.0) : imageLoad(accumulation_image, pixel);
+    vec4 bed_sum = reset_accum ? vec4(0.0) : imageLoad(trans_accumulation_image, pixel);
+    float aspect = float(image_size.x) / float(image_size.y);
+
+    for (int sample_index = 0; sample_index < sample_count; ++sample_index) {
+        int s_idx = sample_start + sample_index;
+        uint h = (uint(pixel.y * image_size.x + pixel.x + 1) * 747796405u) + uint(s_idx) * 2891336453u + 277803737u;
+        uint state = ((h >> ((h >> 28u) + 4u)) ^ h) * 277803737u;
+        state = (state ^ (state >> 22u)) | 1u;
+
+        // Stochastic low-discrepancy R2 jittering: breaks geometric Moiré patterns on all frames
+        vec2 r2 = fract(vec2(float(s_idx) * 0.754877666, float(s_idx) * 0.569840291));
+        vec2 jitter = fract(vec2(random_float(state), random_float(state)) + r2);
+        vec2 normalized = (vec2(pixel) + jitter) / vec2(image_size) * 2.0 - 1.0;
+        normalized.y = -normalized.y;
+        Ray ray;
+        if (camera_orthographic) {
+            float half_height = camera_orthographic_height * 0.5;
+            ray.origin = camera_position + camera_right * (normalized.x * aspect * half_height) + camera_up * (normalized.y * half_height);
+            ray.direction = camera_forward;
+        } else {
+            ray.origin = camera_position;
+            ray.direction = normalize(camera_forward + camera_right * (normalized.x * tan(camera_half_fov) * aspect) +
+                                      camera_up * (normalized.y * tan(camera_half_fov)));
+        }
+        vec3 bed_mod;
+        vec4 sample_val = trace_path(ray, state, pixel, s_idx, bed_mod);
+        if (!any(isnan(sample_val)) && !any(isinf(sample_val)) && !any(isnan(bed_mod)) && !any(isinf(bed_mod))) {
+            sum += clamp(sample_val, vec4(0.0), vec4(10.0));
+            bed_sum += vec4(clamp(bed_mod, vec3(0.0), vec3(2.0)), 1.0);
+        }
+    }
+
+    int eff_samples = (sample_start == 0) ? 1 : (sample_start + sample_count - 1);
+    imageStore(accumulation_image, pixel, sum);
+    imageStore(trans_accumulation_image, pixel, bed_sum);
+    vec4 avg = sum / float(max(1, eff_samples));
+    float out_alpha = clamp(max(avg.a, max(avg.r, max(avg.g, avg.b))), 0.0, 1.0);
+    vec3 unpremul = (out_alpha > 1e-4) ? (avg.rgb / out_alpha) : vec3(0.0);
+    imageStore(display_image, pixel, vec4(apply_tone(unpremul), out_alpha));
+    // Bed modulation, stored halved so that factors up to 2 fit RGBA8; the composite blends it with
+    // GL_DST_COLOR, GL_SRC_COLOR, which yields 2 * src * dst.
+    vec3 bed_avg = (bed_sum.a > 0.5) ? (bed_sum.rgb / bed_sum.a) : vec3(1.0);
+    imageStore(trans_display_image, pixel, vec4(clamp(0.5 * bed_avg, vec3(0.0), vec3(1.0)), 1.0));
+}
