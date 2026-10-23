@@ -54,8 +54,8 @@ float NormalUtils::indice_angle(int                            i,
     int i1 = (i == 0) ? 2 : (i - 1);
     int i2 = (i == 2) ? 0 : (i + 1);
 
-    Vec3f v1 = vertices[i1] - vertices[i];
-    Vec3f v2 = vertices[i2] - vertices[i];
+    Vec3f v1 = vertices[indice[i1]] - vertices[indice[i]];
+    Vec3f v2 = vertices[indice[i2]] - vertices[indice[i]];
 
     v1.normalize();
     v2.normalize();

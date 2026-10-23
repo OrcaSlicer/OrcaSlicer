@@ -947,6 +947,9 @@ void PrintObject::detect_overhangs_for_lift()
 
 void PrintObject::generate_support_material()
 {
+    // Fin contacts intersect generated wall beads, including in support preview.
+    if (m_config.support_type.value == stFin && this->has_support())
+        this->make_perimeters();
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
 
@@ -1617,6 +1620,8 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 
     // propagate to dependent steps
     if (step == posPerimeters) {
+        if (m_config.support_type.value == stFin)
+            invalidated |= this->invalidate_step(posSupportMaterial);
 		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posPrepareInfill) {

@@ -6,7 +6,6 @@
 #include "../Clipper2Utils.hpp"
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
-#include "../Geometry/Circle.hpp"
 #include "../Point.hpp"
 #include "../PrintConfig.hpp"
 #include "../Surface.hpp"
@@ -742,111 +741,6 @@ static inline SegmentPoint clip_end_segment_and_point(const Points &polyline, do
 	return out;
 }
 
-// Calculate intersection of a line with a thick segment.
-// Returns Eucledian parameters of the line / thick segment overlap.
-static inline bool line_rounded_thick_segment_collision(
-    const Vec2d &line_a,    const Vec2d &line_b,
-    const Vec2d &segment_a, const Vec2d &segment_b, const double offset,
-    std::pair<double, double> &out_interval)
-{
-    const Vec2d  line_v0   = line_b - line_a;
-    double       lv        = line_v0.squaredNorm();
-
-    const Vec2d  segment_v = segment_b - segment_a;
-    const double segment_l = segment_v.norm();
-    const double offset2   = offset * offset;
-
-    bool intersects = false;
-    if (lv < SCALED_EPSILON * SCALED_EPSILON)
-    {
-        // Very short line vector. Just test whether the center point is inside the offset line.
-        Vec2d lpt = 0.5 * (line_a + line_b);
-        if (segment_l > SCALED_EPSILON) {
-            intersects = line_alg::distance_to_squared(Linef{ segment_a, segment_b }, lpt) < offset2;
-        } else
-            intersects = (0.5 * (segment_a + segment_b) - lpt).squaredNorm() < offset2;
-        if (intersects) {
-            out_interval.first = 0.;
-            out_interval.second = sqrt(lv);
-        }
-    }
-    else
-    {
-        // Output interval.
-        double tmin = std::numeric_limits<double>::max();
-        double tmax = -tmin;
-        auto extend_interval = [&tmin, &tmax](double atmin, double atmax) {
-            tmin = std::min(tmin, atmin);
-            tmax = std::max(tmax, atmax);
-        };
-
-        // Intersections with the inflated segment end points.
-        auto ray_circle_intersection_interval_extend = [&extend_interval](const Vec2d &segment_pt, const double offset2, const Vec2d &line_pt, const Vec2d &line_vec) {
-            std::pair<Vec2d, Vec2d> pts;
-            Vec2d  p0 = line_pt - segment_pt;
-            double lv2 = line_vec.squaredNorm();
-            if (Geometry::ray_circle_intersections_r2_lv2_c(offset2, line_vec.y(), - line_vec.x(), lv2, - line_vec.y() * p0.x() + line_vec.x() * p0.y(), pts)) {
-                double tmin = (pts.first  - p0).dot(line_vec) / lv2;
-                double tmax = (pts.second - p0).dot(line_vec) / lv2;
-                if (tmin > tmax)
-                    std::swap(tmin, tmax);
-                tmin = std::max(tmin, 0.);
-                tmax = std::min(tmax, 1.);
-                if (tmin <= tmax)
-                    extend_interval(tmin, tmax);
-            }
-        };
-
-        // Intersections with the inflated segment.
-        if (segment_l > SCALED_EPSILON) {
-            ray_circle_intersection_interval_extend(segment_a, offset2, line_a, line_v0);
-            ray_circle_intersection_interval_extend(segment_b, offset2, line_a, line_v0);
-            // Clip the line segment transformed into a coordinate space of the segment,
-            // where the segment spans (0, 0) to (segment_l, 0).
-            const Vec2d dir_x = segment_v / segment_l;
-            const Vec2d dir_y(- dir_x.y(), dir_x.x());
-            const Vec2d line_p0(line_a - segment_a);
-            std::pair<double, double> interval;
-            if (Geometry::liang_barsky_line_clipping_interval(
-                    Vec2d(line_p0.dot(dir_x), line_p0.dot(dir_y)),
-                    Vec2d(line_v0.dot(dir_x), line_v0.dot(dir_y)),
-                    BoundingBoxf(Vec2d(0., - offset), Vec2d(segment_l, offset)),
-                    interval))
-                extend_interval(interval.first, interval.second);
-        } else
-            ray_circle_intersection_interval_extend(0.5 * (segment_a + segment_b), offset, line_a, line_v0);
-
-        intersects = tmin <= tmax;
-        if (intersects) {
-            lv = sqrt(lv);
-            out_interval.first  = tmin * lv;
-            out_interval.second = tmax * lv;
-        }
-    }
-
-#if 0
-    {
-        BoundingBox bbox;
-        bbox.merge(line_a.cast<coord_t>());
-        bbox.merge(line_a.cast<coord_t>());
-        bbox.merge(segment_a.cast<coord_t>());
-        bbox.merge(segment_b.cast<coord_t>());
-        static int iRun = 0;
-        ::Slic3r::SVG svg(debug_out_path("%s-%03d.svg", "line-thick-segment-intersect", iRun ++), bbox);
-        svg.draw(Line(line_a.cast<coord_t>(), line_b.cast<coord_t>()), "black");
-        svg.draw(Line(segment_a.cast<coord_t>(), segment_b.cast<coord_t>()), "blue", offset * 2.);
-        svg.draw(segment_a.cast<coord_t>(), "blue", offset);
-        svg.draw(segment_b.cast<coord_t>(), "blue", offset);
-        svg.draw(Line(segment_a.cast<coord_t>(), segment_b.cast<coord_t>()), "black");
-        if (intersects)
-            svg.draw(Line((line_a + (line_b - line_a).normalized() * out_interval.first).cast<coord_t>(),
-                          (line_a + (line_b - line_a).normalized() * out_interval.second).cast<coord_t>()), "red");
-    }
-#endif
-
-    return intersects;
-}
-
 #ifndef NDEBUG
 static inline bool inside_interval(double low, double high, double p)
 {
@@ -1072,7 +966,7 @@ void mark_boundary_segments_touching_infill(
 #ifdef INFILL_DEBUG_OUTPUT
                 //if (this->infill_bbox.overlap(bbox_seg)) this->perimeter_overlaps.push_back({ segment.first, segment.second });
 #endif // INFILL_DEBUG_OUTPUT
-                if (this->infill_bbox.overlap(bbox_seg) && line_rounded_thick_segment_collision(seg_pt1, seg_pt2, *this->infill_pt1, *this->infill_pt2, this->radius, interval)) {
+                if (this->infill_bbox.overlap(bbox_seg) && Geometry::line_rounded_thick_segment_collision(seg_pt1, seg_pt2, *this->infill_pt1, *this->infill_pt2, this->radius, interval)) {
                     // The boundary segment intersects with the infill segment thickened by radius.
                     // Interval is specified in Euclidian length from seg_pt1 to seg_pt2.
                     // 1) Find the Euclidian parameters of seg_pt1 and seg_pt2 on its boundary contour.
@@ -1378,7 +1272,7 @@ static inline void mark_boundary_segments_overlapping_infill(
                     // The segment is completely inside.
                 } else {
                     std::pair<double, double> interval;
-                    line_rounded_thick_segment_collision(contour[i].cast<double>(), seg_pt2, infill_line.a, infill_line.b, radius, interval);
+                    Geometry::line_rounded_thick_segment_collision(contour[i].cast<double>(), seg_pt2, infill_line.a, infill_line.b, radius, interval);
                     assert(interval.first == 0.);
                     double len_out = closed_contour_distance_ccw(contour_params[cp.point_idx], contour_params[i], contour_params.back()) + interval.second;
                     if (len_out < cp.contour_not_taken_length_next) {
@@ -1410,7 +1304,7 @@ static inline void mark_boundary_segments_overlapping_infill(
                     // The segment is completely inside.
                 } else {
                     std::pair<double, double> interval;
-                    line_rounded_thick_segment_collision(contour[i].cast<double>(), seg_pt2, infill_line.a, infill_line.b, radius, interval);
+                    Geometry::line_rounded_thick_segment_collision(contour[i].cast<double>(), seg_pt2, infill_line.a, infill_line.b, radius, interval);
                     assert(interval.first == 0.);
                     double len_out = closed_contour_distance_cw(contour_params[cp.point_idx], contour_params[i], contour_params.back()) + interval.second;
                     if (len_out < cp.contour_not_taken_length_prev) {

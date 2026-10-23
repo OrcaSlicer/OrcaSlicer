@@ -1,6 +1,7 @@
 #include "libslic3r.h"
 #include "Exception.hpp"
 #include "Geometry.hpp"
+#include "Geometry/Circle.hpp"
 #include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"
 #include "Line.hpp"
@@ -25,6 +26,91 @@
 #endif
 
 namespace Slic3r { namespace Geometry {
+
+// Calculate intersection of a line with a thick segment.
+// Returns Euclidean distances along the query segment for the overlap interval.
+bool line_rounded_thick_segment_collision(
+    const Vec2d &line_a,    const Vec2d &line_b,
+    const Vec2d &segment_a, const Vec2d &segment_b, const double offset,
+    std::pair<double, double> &out_interval)
+{
+    const Vec2d  line_v0   = line_b - line_a;
+    double       lv        = line_v0.squaredNorm();
+
+    const Vec2d  segment_v = segment_b - segment_a;
+    const double segment_l = segment_v.norm();
+    const double offset2   = offset * offset;
+
+    bool intersects = false;
+    if (lv < SCALED_EPSILON * SCALED_EPSILON)
+    {
+        // Very short line vector. Just test whether the center point is inside the offset line.
+        Vec2d lpt = 0.5 * (line_a + line_b);
+        if (segment_l > SCALED_EPSILON) {
+            intersects = line_alg::distance_to_squared(Linef{ segment_a, segment_b }, lpt) < offset2;
+        } else
+            intersects = (0.5 * (segment_a + segment_b) - lpt).squaredNorm() < offset2;
+        if (intersects) {
+            out_interval.first = 0.;
+            out_interval.second = sqrt(lv);
+        }
+    }
+    else
+    {
+        // Output interval.
+        double tmin = std::numeric_limits<double>::max();
+        double tmax = -tmin;
+        auto extend_interval = [&tmin, &tmax](double atmin, double atmax) {
+            tmin = std::min(tmin, atmin);
+            tmax = std::max(tmax, atmax);
+        };
+
+        // Intersections with the inflated segment end points.
+        auto ray_circle_intersection_interval_extend = [&extend_interval](const Vec2d &segment_pt, const double offset2, const Vec2d &line_pt, const Vec2d &line_vec) {
+            std::pair<Vec2d, Vec2d> pts;
+            Vec2d  p0 = line_pt - segment_pt;
+            double lv2 = line_vec.squaredNorm();
+            if (Geometry::ray_circle_intersections_r2_lv2_c(offset2, line_vec.y(), - line_vec.x(), lv2, - line_vec.y() * p0.x() + line_vec.x() * p0.y(), pts)) {
+                double tmin = (pts.first  - p0).dot(line_vec) / lv2;
+                double tmax = (pts.second - p0).dot(line_vec) / lv2;
+                if (tmin > tmax)
+                    std::swap(tmin, tmax);
+                tmin = std::max(tmin, 0.);
+                tmax = std::min(tmax, 1.);
+                if (tmin <= tmax)
+                    extend_interval(tmin, tmax);
+            }
+        };
+
+        // Intersections with the inflated segment.
+        if (segment_l > SCALED_EPSILON) {
+            ray_circle_intersection_interval_extend(segment_a, offset2, line_a, line_v0);
+            ray_circle_intersection_interval_extend(segment_b, offset2, line_a, line_v0);
+            // Clip the line segment transformed into a coordinate space of the segment,
+            // where the segment spans (0, 0) to (segment_l, 0).
+            const Vec2d dir_x = segment_v / segment_l;
+            const Vec2d dir_y(- dir_x.y(), dir_x.x());
+            const Vec2d line_p0(line_a - segment_a);
+            std::pair<double, double> interval;
+            if (Geometry::liang_barsky_line_clipping_interval(
+                    Vec2d(line_p0.dot(dir_x), line_p0.dot(dir_y)),
+                    Vec2d(line_v0.dot(dir_x), line_v0.dot(dir_y)),
+                    BoundingBoxf(Vec2d(0., - offset), Vec2d(segment_l, offset)),
+                    interval))
+                extend_interval(interval.first, interval.second);
+        } else
+            ray_circle_intersection_interval_extend(0.5 * (segment_a + segment_b), offset2, line_a, line_v0);
+
+        intersects = tmin <= tmax;
+        if (intersects) {
+            lv = sqrt(lv);
+            out_interval.first  = tmin * lv;
+            out_interval.second = tmax * lv;
+        }
+    }
+
+    return intersects;
+}
 
 bool directions_parallel(double angle1, double angle2, double max_diff)
 {

@@ -7218,7 +7218,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fin_support_depth", coFloat);
     def->label = L("Top layer depth");
     def->category = L("Support");
-    def->tooltip = L("Outward depth of the fin at its top layer. Lower layers expand outward according to the fin expansion factor while the inner edge follows the model surface.");
+    def->tooltip = L("Outward depth of the fin at its top layer. Lower layers expand outward according to the fin expansion factor. Painted shape line fins measure this depth from their relocated root; the initial model-clearance relocation is not included.");
     def->sidetext = L("mm");
     def->min = 2;
     def->max = 100;
