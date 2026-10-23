@@ -2106,6 +2106,9 @@ void PreferencesDialog::create_items()
     auto item_top_up_filaments = create_item_checkbox(_L("Top up filaments to the number of extruders"), _L("If enabled, when a printer is loaded with fewer filaments than extruders, Orca adds copies of the last filament until every extruder has one."), "top_up_filaments_to_extruders");
     g_sizer->Add(item_top_up_filaments);
 
+    auto item_remember_nozzle_types = create_item_checkbox(_L("Remember nozzle types for each printer"), _L("If enabled, Orca will remember the nozzle types for each printer preset. Otherwise all printers of the same model share them."), "remember_nozzle_types_per_printer");
+    g_sizer->Add(item_remember_nozzle_types);
+
     auto item_filament_preset_grouping = create_item_combobox(_L("Group user filament presets"), _L("Group user filament presets based on selection"),
         "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
     g_sizer->Add(item_filament_preset_grouping);

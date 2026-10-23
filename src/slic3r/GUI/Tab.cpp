@@ -6474,10 +6474,11 @@ void TabPrinter::on_preset_loaded()
 
     m_extruder_variant_list = m_config->option<ConfigOptionStrings>("printer_extruder_variant")->values;
 
-    if (base_name != m_base_preset_name) {
+    const std::string nozzle_volume_types_key = m_preset_bundle->nozzle_volume_types_key(*wxGetApp().app_config);
+    if (nozzle_volume_types_key != m_nozzle_volume_types_key) {
         bool use_default_nozzle_volume_type = true;
-        m_base_preset_name = base_name;
-        std::string prev_nozzle_volume_type = wxGetApp().app_config->get_nozzle_volume_types_from_config(base_name);
+        m_nozzle_volume_types_key = nozzle_volume_types_key;
+        std::string prev_nozzle_volume_type = m_preset_bundle->saved_nozzle_volume_types(*wxGetApp().app_config);
         if (!prev_nozzle_volume_type.empty()) {
             ConfigOptionEnumsGeneric* nozzle_volume_type_option = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
             if (nozzle_volume_type_option->deserialize(prev_nozzle_volume_type)) {
@@ -6487,6 +6488,10 @@ void TabPrinter::on_preset_loaded()
         if (use_default_nozzle_volume_type) {
             m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
         }
+    }
+
+    if (base_name != m_base_preset_name) {
+        m_base_preset_name = base_name;
 
         // Changing printer model drops any Filament Track Switch context from the previous
         // printer; clear both device-derived flags so a switch-less printer never inherits a
@@ -8722,17 +8727,15 @@ void TabPrinter::set_extruder_volume_type(int extruder_id, NozzleVolumeType type
     on_value_change((boost::format("nozzle_volume_type#%1%") % extruder_id).str(), int(type));
 
     //save to app config
-    if (!m_base_preset_name.empty()) {
-        // do not save hybrid flow status to config: it depends on the nozzles currently installed
-        // on the connected printer, so it must not be restored in a later session
-        ConfigOptionEnumsGeneric nozzle_volume_type_option = *m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
-        for (size_t i = 0; i < nozzle_volume_type_option.values.size(); i++) {
-            if (nozzle_volume_type_option.values[i] == (int) nvtHybrid)
-                nozzle_volume_type_option.values[i] = (int) nvtStandard;
-        }
-        std::string nozzle_volume_type_str = nozzle_volume_type_option.serialize();
-        wxGetApp().app_config->save_nozzle_volume_types_to_config(m_base_preset_name, nozzle_volume_type_str);
+    // do not save hybrid flow status to config: it depends on the nozzles currently installed
+    // on the connected printer, so it must not be restored in a later session
+    ConfigOptionEnumsGeneric nozzle_volume_type_option = *m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    for (size_t i = 0; i < nozzle_volume_type_option.values.size(); i++) {
+        if (nozzle_volume_type_option.values[i] == (int) nvtHybrid)
+            nozzle_volume_type_option.values[i] = (int) nvtStandard;
     }
+    std::string nozzle_volume_type_str = nozzle_volume_type_option.serialize();
+    wxGetApp().app_config->save_nozzle_volume_types_to_config(m_preset_bundle->nozzle_volume_types_key(*wxGetApp().app_config), nozzle_volume_type_str);
 
 }
 

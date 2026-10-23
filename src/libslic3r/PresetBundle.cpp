@@ -4238,15 +4238,12 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     }
 
     const Preset& current_printer = printers.get_selected_preset();
-    const Preset* base_printer = printers.get_preset_base(current_printer);
     bool use_default_nozzle_volume_type = true;
-    if (base_printer) {
-        std::string prev_nozzle_volume_type = config.get_nozzle_volume_types_from_config(base_printer->name);
-        if (!prev_nozzle_volume_type.empty()) {
-            ConfigOptionEnumsGeneric* nozzle_volume_type_option = project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
-            if (nozzle_volume_type_option->deserialize(prev_nozzle_volume_type)) {
-                use_default_nozzle_volume_type = false;
-            }
+    std::string prev_nozzle_volume_type = saved_nozzle_volume_types(config);
+    if (!prev_nozzle_volume_type.empty()) {
+        ConfigOptionEnumsGeneric* nozzle_volume_type_option = project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+        if (nozzle_volume_type_option->deserialize(prev_nozzle_volume_type)) {
+            use_default_nozzle_volume_type = false;
         }
     }
 
@@ -5467,6 +5464,31 @@ void PresetBundle::reset_default_nozzle_volume_type()
 {
     Preset& current_printer = this->printers.get_edited_preset();
     this->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+}
+
+static std::string printer_model_name(const PrinterPresetCollection &printers)
+{
+    const Preset &current_printer = printers.get_selected_preset();
+    const Preset *base_printer    = printers.get_preset_base(current_printer);
+    return base_printer ? base_printer->name : current_printer.name;
+}
+
+// Orca: the nozzle volume types are saved per printer model, so several printers of one model
+// share them. The user can save them per printer preset instead, one for each physical printer.
+std::string PresetBundle::nozzle_volume_types_key(const AppConfig &config) const
+{
+    if (config.get_bool("remember_nozzle_types_per_printer"))
+        return printers.get_selected_preset().name;
+    return printer_model_name(printers);
+}
+
+// A printer preset without its own saved types starts from the ones saved for its model.
+std::string PresetBundle::saved_nozzle_volume_types(AppConfig &config) const
+{
+    const std::string saved = config.get_nozzle_volume_types_from_config(nozzle_volume_types_key(config));
+    if (!saved.empty())
+        return saved;
+    return config.get_nozzle_volume_types_from_config(printer_model_name(printers));
 }
 
 int PresetBundle::get_printer_extruder_count() const

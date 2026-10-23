@@ -568,6 +568,10 @@ void AppConfig::set_defaults()
         set_bool("top_up_filaments_to_extruders", true);
     }
 
+    if (get("remember_nozzle_types_per_printer").empty()) {
+        set_bool("remember_nozzle_types_per_printer", false);
+    }
+
     if (get("group_filament_presets").empty()) {
         set("group_filament_presets", "1"); // All "0" / None "1" / By Type "2" / By Vendor "3"
     }
