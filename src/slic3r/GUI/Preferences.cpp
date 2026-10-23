@@ -1163,6 +1163,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
             if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
+        else if (param == "recent_models") {
+            wxGetApp().mainframe->update_recent_projects();
+        }
         else if (param == "hide_login_side_panel") {
             if (WebViewPanel* home = WebViewPanel::if_built()) {
                 home->SendCloudProvidersInfo();
@@ -1871,10 +1874,8 @@ void PreferencesDialog::create_items()
 
     //// FILES > Recent files
     g_sizer->Add(create_item_title(_L("Recent files")), 1, wxEXPAND);
-    auto item_max_recent_count = create_item_input(_L("Maximum recent files"), "", _L("Maximum count of recent files"), "max_recent_count", [](wxString value) {
-        long max = 0;
-        if (value.ToLong(&max))
-            wxGetApp().mainframe->set_max_recent_count(max);
+    auto item_max_recent_count = create_item_input(_L("Maximum recent files"), "", _L("Maximum count of recent files"), "max_recent_count", [](wxString) {
+        wxGetApp().mainframe->update_recent_projects();
     });
     g_sizer->Add(item_max_recent_count);
 

@@ -7754,8 +7754,14 @@ bool Tab::select_preset(
         // check if there is something in the cache to move to the new selected preset
         apply_config_from_cache();
 
-        // Orca: update presets for the selected printer
-        if (m_type == Preset::TYPE_PRINTER && wxGetApp().app_config->get_bool("remember_printer_config")) {
+        // Orca: update presets for the selected printer.
+        // An open project file owns its filaments; the printer's remembered ones only seed a new project.
+        const bool    remember_printer_config = m_type == Preset::TYPE_PRINTER && wxGetApp().app_config->get_bool("remember_printer_config");
+        const Plater *project_plater          = wxGetApp().plater();
+        const bool    is_project_file_open    = project_plater && !project_plater->get_project_filename().IsEmpty();
+        if (remember_printer_config && is_project_file_open)
+            m_preset_bundle->update_print_selection(*wxGetApp().app_config);
+        else if (remember_printer_config) {
             m_preset_bundle->update_selections(*wxGetApp().app_config);
             wxGetApp().plater()->sidebar().on_filament_count_change(m_preset_bundle->filament_presets.size());
         }

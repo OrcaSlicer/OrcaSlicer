@@ -9606,14 +9606,14 @@ namespace {
 
 // Parses just the model-file <metadata> elements, mirroring the importer's
 // _handle_start_metadata/_handle_end_metadata (attribute-order independent, entity-unescaped,
-// whitespace tolerant). Stops the parser as soon as the published flag node is read so the
-// geometry/resources that follow are skipped, which keeps the per-file cost small.
-struct PublishedXmlProbe
+// whitespace tolerant). Stops the parser where <resources> starts, as the metadata precedes it,
+// so the geometry that follows is skipped, which keeps the per-file cost small.
+struct ListingXmlProbe
 {
     XML_Parser parser{nullptr};
     bool       in_metadata{false};
-    bool       found{false};
-    bool       published{false};
+    bool       stopped{false};
+    Bbs3mfListingInfo info;
     std::string curr_name;
     std::string curr_value;
 
@@ -9630,8 +9630,12 @@ struct PublishedXmlProbe
 
     static void XMLCALL start(void* user_data, const char* name, const char** attrs)
     {
-        auto* self = static_cast<PublishedXmlProbe*>(user_data);
-        if (::strcmp(name, METADATA_TAG) == 0) {
+        auto* self = static_cast<ListingXmlProbe*>(user_data);
+        if (::strcmp(name, RESOURCES_TAG) == 0) {
+            self->stopped = true;
+            if (self->parser != nullptr)
+                XML_StopParser(self->parser, false);
+        } else if (::strcmp(name, METADATA_TAG) == 0) {
             self->in_metadata = true;
             self->curr_name   = attribute(attrs, NAME_ATTR);
             self->curr_value.clear();
@@ -9642,29 +9646,32 @@ struct PublishedXmlProbe
 
     static void XMLCALL characters(void* user_data, const XML_Char* s, int len)
     {
-        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        auto* self = static_cast<ListingXmlProbe*>(user_data);
         if (self->in_metadata)
             self->curr_value.append(s, len);
     }
 
     static void XMLCALL end(void* user_data, const char* name)
     {
-        auto* self = static_cast<PublishedXmlProbe*>(user_data);
+        auto* self = static_cast<ListingXmlProbe*>(user_data);
         if (!self->in_metadata || ::strcmp(name, METADATA_TAG) != 0)
             return;
         self->in_metadata = false;
-        if (self->curr_name == ORCA_PUBLISHED_TAG) {
-            self->published = is_published_3mf_flag(xml_unescape(self->curr_value));
-            self->found     = true;
-            if (self->parser != nullptr)
-                XML_StopParser(self->parser, false);
-        }
+        if (self->curr_name == ORCA_PUBLISHED_TAG)
+            self->info.published = is_published_3mf_flag(xml_unescape(self->curr_value));
+        else if (self->curr_name == BBL_DESIGNER_TAG)
+            self->info.has_designer = !xml_unescape(self->curr_value).empty();
     }
 };
 
 } // namespace
 
 bool bbs_3mf_is_published(const std::string &path)
+{
+    return bbs_3mf_get_listing_info(path).published;
+}
+
+Bbs3mfListingInfo bbs_3mf_get_listing_info(const std::string &path)
 {
     mz_zip_archive archive;
     mz_zip_zero_struct(&archive);
@@ -9683,43 +9690,43 @@ bool bbs_3mf_is_published(const std::string &path)
     } lock{&archive};
 
     if (!open_zip_reader(&archive, path))
-        return false;
+        return {};
 
     // Read just the model XML (the metadata node sits before the resources, so the probe below
     // stops early) rather than by a raw substring match; no geometry parsing.
     int index = mz_zip_reader_locate_file(&archive, MODEL_FILE.c_str(), nullptr, 0);
     if (index < 0)
-        return false;
+        return {};
     mz_zip_archive_file_stat stat;
     if (!mz_zip_reader_file_stat(&archive, index, &stat))
-        return false;
+        return {};
     std::string xml(stat.m_uncomp_size, '\0');
     if (!mz_zip_reader_extract_to_mem(&archive, index, xml.data(), xml.size(), 0))
-        return false;
+        return {};
 
     XML_Parser parser = XML_ParserCreate(nullptr);
     if (parser == nullptr)
-        return false;
+        return {};
 
-    PublishedXmlProbe probe;
+    ListingXmlProbe probe;
     probe.parser = parser;
     XML_SetUserData(parser, &probe);
-    XML_SetElementHandler(parser, PublishedXmlProbe::start, PublishedXmlProbe::end);
-    XML_SetCharacterDataHandler(parser, PublishedXmlProbe::characters);
+    XML_SetElementHandler(parser, ListingXmlProbe::start, ListingXmlProbe::end);
+    XML_SetCharacterDataHandler(parser, ListingXmlProbe::characters);
     // Never resolve external entities from a file we are only probing.
     XML_SetExternalEntityRefHandler(parser, nullptr);
     XML_SetEntityDeclHandler(parser, nullptr);
 
     const XML_Status status = XML_Parse(parser, xml.data(), static_cast<int>(xml.size()), 1);
-    // XML_StopParser(parser, false) from the end handler makes XML_Parse return
-    // XML_STATUS_ERROR with XML_ERROR_ABORTED - treat that as success (we stopped on the flag).
+    // XML_StopParser(parser, false) from the start handler makes XML_Parse return
+    // XML_STATUS_ERROR with XML_ERROR_ABORTED - treat that as success (we stopped at <resources>).
     const bool parse_ok = (status == XML_STATUS_OK) ||
-                          (XML_GetErrorCode(parser) == XML_ERROR_ABORTED && probe.found);
+                          (XML_GetErrorCode(parser) == XML_ERROR_ABORTED && probe.stopped);
     XML_ParserFree(parser);
 
     if (!parse_ok)
-        return false;
-    return probe.published;
+        return {};
+    return probe.info;
 }
 
 bool load_gcode_3mf_from_stream(std::istream &data, DynamicPrintConfig *config, Model *model, PlateDataPtrs *plate_data_list, Semver *file_version)

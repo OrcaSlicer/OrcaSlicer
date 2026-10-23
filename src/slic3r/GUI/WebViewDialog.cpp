@@ -86,7 +86,27 @@ static json home_page_strings()
         {"create_new_project", _u8L("Create new project")},
         {"open_project", _u8L("Open Project")},
         {"recently_opened", _u8L("Recently opened")},
+        // TRN Home page tab: recent projects made from someone else's design, such as a MakerWorld download.
+        {"downloaded_projects", _u8L("Downloaded")},
+        // TRN Home page tab: recent projects the user made.
+        {"my_projects", _u8L("My projects")},
+        // TRN Home page tab: recently opened STL, OBJ and other mesh files.
+        {"mesh_files", _u8L("Mesh")},
+        // TRN Home page tab: recently opened STEP files.
+        {"step_files", _u8L("Step")},
         {"clear_all", _u8L("Clear all")},
+        // TRN Home page: placeholder of the box that filters the recent files by name.
+        {"search_files", _u8L("Search")},
+        // TRN Home page: sort the recent files by when they were last opened.
+        {"sort_last_opened", _u8L("Last opened")},
+        // TRN Home page: sort the recent files by the date the file was last changed on disk.
+        {"sort_date_modified", _u8L("Date modified")},
+        // TRN Home page: sort the recent files by file name.
+        {"sort_name", _u8L("Name")},
+        // TRN Home page: show the recent files as a grid of thumbnails.
+        {"view_grid", _u8L("Grid")},
+        // TRN Home page: show the recent files as a list, one file per row.
+        {"view_list", _u8L("List")},
         {"remove", _u8L("Remove")},
         {"show_in_folder", _u8L("Show in folder")},
     };
@@ -799,11 +819,11 @@ void WebViewPanel::SetLoginPanelVisibility(bool bshow)
     wxString strJS = wxString::Format("SetLoginPanelVisibility(%s)", bshow ? "true" : "false");
     RunScript(strJS);
 }
-void WebViewPanel::SendRecentList(int images)
+void WebViewPanel::SendRecentList()
 {
     boost::property_tree::wptree req;
     boost::property_tree::wptree data;
-    wxGetApp().mainframe->get_recent_projects(data, images);
+    wxGetApp().mainframe->get_recent_projects(data);
     req.put(L"sequence_id", "");
     req.put(L"command", L"get_recent_projects");
     req.put_child(L"response", data);

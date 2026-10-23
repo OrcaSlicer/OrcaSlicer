@@ -5655,7 +5655,7 @@ std::string GUI_App::handle_web_request(std::string cmd)
             else if (command_str.compare("get_recent_projects") == 0) {
                 if (mainframe) {
                     if (WebViewPanel* home = WebViewPanel::if_built()) {
-                        home->SendRecentList(INT_MAX);
+                        home->SendRecentList();
                     }
                 }
             }

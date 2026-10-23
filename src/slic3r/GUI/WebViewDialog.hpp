@@ -102,7 +102,7 @@ public:
     void OnFreshLoginStatus(wxTimerEvent &event);
 
 public:
-    void SendRecentList(int images);
+    void SendRecentList();
     void SetLoginPanelVisibility(bool bshow);
     void SendDesignStaffpick(bool on);
     void OpenModelDetail(std::string id, NetworkAgent *agent);

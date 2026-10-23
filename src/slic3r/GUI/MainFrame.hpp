@@ -6,9 +6,11 @@
 #include <cstdint>
 #include <memory>
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
 #include "slic3r/GUI/Lazy.hpp"
 #include <wx/event.h>
 #include <functional>
+#include <algorithm>
 #include <cstddef>
 #include <deque>
 #include <wx/frame.h>
@@ -287,23 +289,32 @@ class MainFrame : public DPIFrame
     struct FileHistory : wxFileHistory
     {
         FileHistory(int max) : wxFileHistory(max) {}
-        std::wstring GetThumbnailUrl(int index) const;
+        const std::string& GetThumbnail(int index) const;
         bool        GetPublished(int index) const;
+        bool        GetHasDesigner(int index) const;
 
         virtual void AddFileToHistory(const wxString &file);
         virtual void RemoveFileFromHistory(size_t i);
-        size_t FindFileInHistory(const wxString &file);
+        size_t FindFileInHistory(const wxString &file) const;
 
         void LoadThumbnails();
 
-        void SetMaxFiles(int max);
+        // How many files at the top of the history were opened since the Recent list was last cleared.
+        size_t GetRecentCount() const { return m_recent_count; }
+        void   SetRecentCount(size_t count) { m_recent_count = std::min(count, GetCount()); }
+        void   ClearRecent() { m_recent_count = 0; }
     private:
         std::deque<std::string> m_thumbnails;
-        std::deque<bool>        m_published_files; // parallel to m_thumbnails: is it a published 3mf?
+        std::deque<Bbs3mfListingInfo> m_listing_info; // parallel to m_thumbnails
+        size_t m_recent_count = 0;
         bool m_load_called = false;
     };
 
+    std::vector<size_t> recent_file_indices() const;
+    void                refresh_recent_menu();
+
     FileHistory m_recent_projects;
+    wxMenu*     m_recent_menu{nullptr};
 
     enum class ESettingsLayout
     {
@@ -379,7 +390,8 @@ public:
     void update_filament_tab_ui();
 
     void        update_title();
-    void        set_max_recent_count(int max);
+    // Saves the recent files history and shows it again in the File menu and on the Home page.
+    void        update_recent_projects();
 
     void        show_publish_button(bool show);
 
@@ -472,7 +484,8 @@ public:
     void publish_project();
 
     void        add_to_recent_projects(const wxString& filename);
-    void        get_recent_projects(boost::property_tree::wptree &tree, int images);
+    void        get_recent_projects(boost::property_tree::wptree &tree);
+    std::string get_recent_thumbnail(const wxString &filename) const;
     void        open_recent_project(size_t file_id, wxString const & filename);
     void        remove_recent_project(size_t file_id, wxString const &filename);
 

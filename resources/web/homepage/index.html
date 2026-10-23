@@ -131,8 +131,22 @@
 	<div id="DebugText"></div>	
 	<div id="RecentFileArea">
 		<div id="RecentTitleBlock">
-		    <div id="RecentTitle" class="Content-Title TextS1" data-i18n="recently_opened">Recently opened</div>
+		    <div class="RecentTab RecentTabActive Content-Title TextS1" data-tab="recent" onClick="SelectRecentTab('recent')" data-i18n="recently_opened">Recently opened</div>
+		    <div class="RecentTab Content-Title TextS1" data-tab="project" onClick="SelectRecentTab('project')" data-i18n="my_projects">My projects</div>
+		    <div class="RecentTab Content-Title TextS1" data-tab="downloaded" onClick="SelectRecentTab('downloaded')" data-i18n="downloaded_projects">Downloaded</div>
+		    <div class="RecentTab Content-Title TextS1" data-tab="mesh" onClick="SelectRecentTab('mesh')" data-i18n="mesh_files">Mesh</div>
+		    <div class="RecentTab Content-Title TextS1" data-tab="step" onClick="SelectRecentTab('step')" data-i18n="step_files">Step</div>
 			<div id="RecentClearAllBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnDeleteAllRecentFiles()" data-i18n="clear_all">Clear all</div>
+		</div>
+		<div id="RecentToolBlock">
+			<input id="RecentSearch" class="TextS1" type="search" placeholder="Search" data-i18n-placeholder="search_files" onInput="SearchRecentFiles(this.value)">
+			<select id="RecentSort" class="TextS1" onChange="SelectRecentSort(this.value, true)">
+				<option value="opened" data-i18n="sort_last_opened">Last opened</option>
+				<option value="modified" data-i18n="sort_date_modified">Date modified</option>
+				<option value="name" data-i18n="sort_name">Name</option>
+			</select>
+			<div class="RecentViewBtn TextS1" data-view="grid" onClick="SelectRecentView('grid', true)" data-i18n="view_grid">Grid</div>
+			<div class="RecentViewBtn TextS1" data-view="list" onClick="SelectRecentView('list', true)" data-i18n="view_list">List</div>
 		</div>
 		<div id="FileList" class="thin-scroll">
 			<!-- EXAMPLE GENERATED BLOCK
@@ -181,6 +195,10 @@
 	//HandleStudio(TestData);
     document.onkeydown = function (event) {
 		var e = event || window.event || arguments.callee.caller.arguments[0];
+
+		// The page swallows every key below, which would also stop typing in the search box.
+		if (e.target.tagName === 'INPUT')
+			return;
 
 		if (e.ctrlKey && e.metaKey)
 			OutputKey(e.keyCode, true, false, true);

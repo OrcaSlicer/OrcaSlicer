@@ -4060,6 +4060,13 @@ void PresetBundle::update_selections(AppConfig &config)
 
 }
 
+void PresetBundle::update_print_selection(AppConfig &config)
+{
+    const std::string printer_name = printers.get_selected_preset_name();
+    prints.select_preset_by_name_strict(config.get_printer_setting(printer_name, PRESET_PRINT_NAME));
+    this->update_compatible(PresetSelectCompatibleType::Always, PresetSelectCompatibleType::Never);
+}
+
 // Load selections (current print, current filaments, current printer) from config.ini
 // This is done on application start up or after updates are applied.
 void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& preferred_selection/* = PresetPreferences()*/)

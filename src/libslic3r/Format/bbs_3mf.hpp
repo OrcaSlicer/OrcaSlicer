@@ -247,6 +247,14 @@ extern std::string bbs_3mf_get_thumbnail(const char * path);
 // Lightweight check: does this 3mf carry the "published" (orca_published == "1") marker? Only reads the 3D/3dmodel.model metadata node
 extern bool bbs_3mf_is_published(const std::string &path);
 
+// What the Home page's recent list shows about a 3mf. Only reads the 3D/3dmodel.model metadata nodes.
+struct Bbs3mfListingInfo
+{
+    bool published    = false; // carries the "published" (orca_published == "1") marker
+    bool has_designer = false; // made from someone else's design, e.g. a MakerWorld download
+};
+extern Bbs3mfListingInfo bbs_3mf_get_listing_info(const std::string &path);
+
 extern bool load_gcode_3mf_from_stream(std::istream & data, DynamicPrintConfig* config, Model* model, PlateDataPtrs* plate_data_list,
        Semver* file_version);
 

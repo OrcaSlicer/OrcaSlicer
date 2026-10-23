@@ -642,13 +642,86 @@ body.cloud-mode #LeftBoard
 
 #RecentClearAllBtn
 {
-	margin-left: 20px;
+	margin-left: auto;
 	display: none;
 }
 
-#RecentTitle
+#RecentToolBlock
 {
-	
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 4px 0px 6px 0px;
+}
+
+#RecentSearch,
+#RecentSort
+{
+	height: 26px;
+	padding: 0px 8px;
+	border-width: 1px;
+	border-style: solid;
+	border-radius: 4px;
+	background: transparent;
+	font-size: 13px;
+	outline: none;
+}
+
+#RecentSearch
+{
+	flex: 0 1 260px;
+	user-select: text;
+}
+
+#RecentSearch:focus,
+#RecentSort:focus
+{
+	border-color: var(--main-color);
+}
+
+#RecentSort
+{
+	margin-left: auto;
+}
+
+.RecentViewBtn
+{
+	font-size: 13px;
+	border-bottom: 2px solid transparent;
+	opacity: 0.55;
+	cursor: pointer;
+}
+
+.RecentViewBtn:hover
+{
+	opacity: 0.8;
+}
+
+.RecentViewBtnActive,
+.RecentViewBtnActive:hover
+{
+	border-bottom-color: var(--main-color);
+	opacity: 1;
+}
+
+.RecentTab
+{
+	margin-right: 20px;
+	border-bottom: 2px solid transparent;
+	opacity: 0.55;
+	cursor: pointer;
+}
+
+.RecentTab:hover
+{
+	opacity: 0.8;
+}
+
+.RecentTabActive,
+.RecentTabActive:hover
+{
+	border-bottom-color: var(--main-color);
+	opacity: 1;
 }
 
 #FileList
@@ -769,6 +842,60 @@ body.cloud-mode #LeftBoard
 	background-color: var(--main-color);
 	border-radius: 2px;
 	white-space: nowrap;
+}
+
+.FileFolder
+{
+	display: none;
+	color: var(--fg-color-disabled);
+}
+
+#FileList.ListView
+{
+	flex-direction: column;
+	flex-wrap: nowrap;
+}
+
+#FileList.ListView .FileItem
+{
+	flex: 0 0 auto;
+	width: auto;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 2px 8px;
+}
+
+#FileList.ListView .FileImg,
+#FileList.ListView .FileItem img
+{
+	flex: 0 0 48px;
+	width: 48px;
+	height: 48px;
+}
+
+#FileList.ListView .FileLogoBadge
+{
+	display: none;
+}
+
+#FileList.ListView .FileNamePack
+{
+	flex: 1 1 0;
+}
+
+#FileList.ListView .FileFolder
+{
+	display: block;
+	flex: 2 1 0;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#FileList.ListView .FileDate
+{
+	flex: 0 0 auto;
 }
 
 /*

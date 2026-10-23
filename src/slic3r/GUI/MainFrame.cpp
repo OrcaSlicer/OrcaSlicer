@@ -26,6 +26,7 @@
 #include "slic3r/GUI/CalibrationPanel.hpp"
 #include "slic3r/GUI/ReleaseNote.hpp"
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/RecentThumbnailHandler.hpp"
 #include <vector>
 #include "libslic3r/PublishSettings.hpp"
 #include "libslic3r/Config.hpp"
@@ -44,7 +45,6 @@
 #include <wx/filefn.h>
 #include <string>
 #include <sstream>
-#include <wx/base64.h>
 #include <ctime>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
@@ -189,6 +189,19 @@ enum class ERescaleTarget
     Mainframe,
     SettingsDialog
 };
+
+enum class RecentFileKind
+{
+    Project,
+    Mesh,
+    Step
+};
+
+// Number of top history files that are in the Recent list, kept apart from the history so clearing
+// the Recent list leaves the files listed in the other Home page tabs.
+const char* const recent_count_key = "recent_projects_recent_count";
+// The File menu binds wxID_FILE1 .. wxID_FILE1 + 49; ids past that belong to stock items like wxID_OK.
+const size_t max_recent_menu_items = 50;
 
 namespace {
 
@@ -409,7 +422,8 @@ MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
     , m_printhost_queue_dlg(new PrintHostQueueDialog(this))
     // BBS
-    , m_recent_projects(18)
+    // The history is saved under zero-padded three-digit keys, so it can't hold more than 999 files.
+    , m_recent_projects(999)
     , m_settings_dialog(this)
     , m_idle([] { return wxGetApp().input_idle_ms(); })
     , m_diff_dialog(std::make_unique<Lazy<DiffPresetDialog>>("compare_presets", 100, [this] { return make_diff_dialog(); }))
@@ -445,17 +459,11 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
     wxGetApp().app_config->set_bool("internal_developer_mode", false);
 
-    wxString max_recent_count_str = wxGetApp().app_config->get("max_recent_count");
-    long max_recent_count = 18;
-    if (max_recent_count_str.ToLong(&max_recent_count))
-        set_max_recent_count((int)max_recent_count);
-
     //reset log level
     auto loglevel = wxGetApp().app_config->get("log_severity_level");
     Slic3r::set_logging_level(Slic3r::level_string_to_boost(loglevel));
 
     // BBS
-    m_recent_projects.SetMenuPathStyle(wxFH_PATH_SHOW_ALWAYS);
     MarkdownTip::Recreate(this);
 
     // Fonts were created by the DPIFrame constructor for the monitor, on which the window opened.
@@ -3058,12 +3066,13 @@ void MainFrame::init_menubar_as_editor()
         // Recent Project
         wxMenu* recent_projects_menu = new wxMenu();
         wxMenuItem* recent_projects_submenu = append_submenu(fileMenu, recent_projects_menu, wxID_ANY, _L("Recent files"), "");
-        m_recent_projects.UseMenu(recent_projects_menu);
+        m_recent_menu = recent_projects_menu;
         Bind(wxEVT_MENU, [this](wxCommandEvent& evt) {
-            size_t file_id = evt.GetId() - wxID_FILE1;
-            wxString filename = m_recent_projects.GetHistoryFile(file_id);
-                open_recent_project(file_id, filename);
-            }, wxID_FILE1, wxID_FILE1 + 49); // [5050, 5100)
+            const std::vector<size_t> indices = recent_file_indices();
+            const size_t menu_index = evt.GetId() - wxID_FILE1;
+            if (menu_index < indices.size())
+                open_recent_project(indices[menu_index], m_recent_projects.GetHistoryFile(indices[menu_index]));
+            }, wxID_FILE1, wxID_FILE1 + max_recent_menu_items - 1);
 
         std::vector<std::string> recent_projects = wxGetApp().app_config->get_recent_projects();
         std::reverse(recent_projects.begin(), recent_projects.end());
@@ -3072,8 +3081,12 @@ void MainFrame::init_menubar_as_editor()
             m_recent_projects.AddFileToHistory(from_u8(project));
         }
         m_recent_projects.LoadThumbnails();
+        unsigned long recent_count = 0;
+        if (from_u8(wxGetApp().app_config->get(recent_count_key)).ToULong(&recent_count))
+            m_recent_projects.SetRecentCount(recent_count);
+        refresh_recent_menu();
 
-        Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& evt) { evt.Enable(can_open_project() && (m_recent_projects.GetCount() > 0)); }, recent_projects_submenu->GetId());
+        Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& evt) { evt.Enable(can_open_project() && (m_recent_menu->GetMenuItemCount() > 0)); }, recent_projects_submenu->GetId());
 
         // BBS: close save project
 #ifndef __APPLE__
@@ -3871,22 +3884,16 @@ void MainFrame::init_menubar_as_editor()
 #endif // __APPLE__
 }
 
-void MainFrame::set_max_recent_count(int max)
+void MainFrame::update_recent_projects()
 {
-    max = max < 0 ? 0 : max > 999 ? 999 : max;
-    size_t count = m_recent_projects.GetCount();
-    m_recent_projects.SetMaxFiles(max);
-    if (count != m_recent_projects.GetCount()) {
-        count = m_recent_projects.GetCount();
-        std::vector<std::string> recent_projects;
-        for (size_t i = 0; i < count; ++i) {
-            recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
-        }
-        wxGetApp().app_config->set_recent_projects(recent_projects);
-        wxGetApp().app_config->save();
-        if (WebViewPanel* home = WebViewPanel::if_built())
-            home->SendRecentList(-1);
-    }
+    std::vector<std::string> recent_projects;
+    for (size_t i = 0; i < m_recent_projects.GetCount(); ++i)
+        recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
+    wxGetApp().app_config->set_recent_projects(recent_projects);
+    wxGetApp().app_config->set(recent_count_key, std::to_string(m_recent_projects.GetRecentCount()));
+    refresh_recent_menu();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->SendRecentList();
 }
 
 void MainFrame::open_menubar_item(const wxString& menu_name,const wxString& item_name)
@@ -4484,30 +4491,24 @@ void MainFrame::add_to_recent_projects(const wxString& filename)
     if (wxFileExists(filename))
     {
         m_recent_projects.AddFileToHistory(filename);
-        std::vector<std::string> recent_projects;
-        size_t count = m_recent_projects.GetCount();
-        for (size_t i = 0; i < count; ++i)
-        {
-            recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
-        }
-        wxGetApp().app_config->set_recent_projects(recent_projects);
-        if (WebViewPanel* home = WebViewPanel::if_built())
-            home->SendRecentList(0);
+        update_recent_projects();
     }
 }
 
-std::wstring MainFrame::FileHistory::GetThumbnailUrl(int index) const
+const std::string& MainFrame::FileHistory::GetThumbnail(int index) const
 {
-    if (m_thumbnails[index].empty()) return L"";
-    std::wstringstream wss;
-    wss << L"data:image/png;base64,";
-    wss << wxBase64Encode(m_thumbnails[index].data(), m_thumbnails[index].size());
-    return wss.str();
+    static const std::string no_thumbnail;
+    return index >= 0 && index < static_cast<int>(m_thumbnails.size()) ? m_thumbnails[index] : no_thumbnail;
 }
 
 bool MainFrame::FileHistory::GetPublished(int index) const
 {
-    return index >= 0 && index < static_cast<int>(m_published_files.size()) && m_published_files[index];
+    return index >= 0 && index < static_cast<int>(m_listing_info.size()) && m_listing_info[index].published;
+}
+
+bool MainFrame::FileHistory::GetHasDesigner(int index) const
+{
+    return index >= 0 && index < static_cast<int>(m_listing_info.size()) && m_listing_info[index].has_designer;
 }
 
 void MainFrame::FileHistory::AddFileToHistory(const wxString &file)
@@ -4517,11 +4518,12 @@ void MainFrame::FileHistory::AddFileToHistory(const wxString &file)
     wxFileHistory::AddFileToHistory(file);
     if (m_load_called) {
         m_thumbnails.push_front(bbs_3mf_get_thumbnail(into_u8(file).c_str()));
-        m_published_files.push_front(bbs_3mf_is_published(into_u8(file)));
+        m_listing_info.push_front(bbs_3mf_get_listing_info(into_u8(file)));
     } else {
         m_thumbnails.push_front("");
-        m_published_files.push_front(false);
+        m_listing_info.push_front({});
     }
+    m_recent_count = std::min(m_recent_count + 1, GetCount());
 }
 
 void MainFrame::FileHistory::RemoveFileFromHistory(size_t i)
@@ -4530,10 +4532,12 @@ void MainFrame::FileHistory::RemoveFileFromHistory(size_t i)
         return;
     wxFileHistory::RemoveFileFromHistory(i);
     m_thumbnails.erase(m_thumbnails.begin() + i);
-    m_published_files.erase(m_published_files.begin() + i);
+    m_listing_info.erase(m_listing_info.begin() + i);
+    if (i < m_recent_count)
+        --m_recent_count;
 }
 
-size_t MainFrame::FileHistory::FindFileInHistory(const wxString & file)
+size_t MainFrame::FileHistory::FindFileInHistory(const wxString & file) const
 {
     return m_fileHistory.Index(file);
 }
@@ -4546,42 +4550,103 @@ void MainFrame::FileHistory::LoadThumbnails()
             if (!thumbnail.empty()) {
                 m_thumbnails[i] = thumbnail;
             }
-            m_published_files[i] = bbs_3mf_is_published(into_u8(GetHistoryFile(i)));
+            m_listing_info[i] = bbs_3mf_get_listing_info(into_u8(GetHistoryFile(i)));
         }
     });
     m_load_called = true;
 }
 
-inline void MainFrame::FileHistory::SetMaxFiles(int max)
+static size_t max_recent_count()
 {
-    m_fileMaxFiles  = max;
-    size_t numFiles = m_fileHistory.size();
-    while (numFiles > m_fileMaxFiles)
-        RemoveFileFromHistory(--numFiles);
+    long count = 0;
+    if (!from_u8(wxGetApp().app_config->get("max_recent_count")).ToLong(&count))
+        return 18;
+    return std::clamp(count, 0L, 999L);
 }
 
-void MainFrame::get_recent_projects(boost::property_tree::wptree &tree, int images)
+static RecentFileKind recent_file_kind(const wxString &path)
 {
+    const wxString extension = wxFileName(path).GetExt().Lower();
+    if (extension == "3mf")
+        return RecentFileKind::Project;
+    if (extension == "step" || extension == "stp")
+        return RecentFileKind::Step;
+    return RecentFileKind::Mesh;
+}
+
+// The history positions of the files the Recent list shows, newest first.
+std::vector<size_t> MainFrame::recent_file_indices() const
+{
+    const bool   show_models = wxGetApp().app_config->get_bool("recent_models");
+    const size_t max_count   = max_recent_count();
+    std::vector<size_t> indices;
+    for (size_t i = 0; i < m_recent_projects.GetRecentCount() && indices.size() < max_count; ++i)
+        if (show_models || recent_file_kind(m_recent_projects.GetHistoryFile(i)) == RecentFileKind::Project)
+            indices.push_back(i);
+    return indices;
+}
+
+void MainFrame::refresh_recent_menu()
+{
+    if (m_recent_menu == nullptr)
+        return;
+    while (m_recent_menu->GetMenuItemCount() > 0)
+        m_recent_menu->Destroy(m_recent_menu->FindItemByPosition(0));
+    const std::vector<size_t> indices = recent_file_indices();
+    for (size_t n = 0; n < indices.size() && n < max_recent_menu_items; ++n) {
+        wxString path = m_recent_projects.GetHistoryFile(indices[n]);
+        path.Replace("&", "&&");
+        m_recent_menu->Append(wxID_FILE1 + n, wxString::Format("&%zu %s", n + 1, path));
+    }
+}
+
+// The Home page tab a history file is listed under.
+static const wchar_t *recent_file_kind_name(RecentFileKind kind, bool downloaded)
+{
+    if (kind == RecentFileKind::Step)
+        return L"step";
+    if (kind == RecentFileKind::Mesh)
+        return L"mesh";
+    return downloaded ? L"downloaded" : L"project";
+}
+
+static bool is_in_download_folder(const wxString &project_path)
+{
+    const std::string download_path = wxGetApp().app_config->get("download_path");
+    if (download_path.empty())
+        return false;
+    const wxString download_dir = wxFileName::DirName(from_u8(download_path)).GetPath(wxPATH_GET_SEPARATOR);
+    return project_path.StartsWith(download_dir);
+}
+
+void MainFrame::get_recent_projects(boost::property_tree::wptree &tree)
+{
+    const std::vector<size_t> recent_indices = recent_file_indices();
     for (size_t i = 0; i < m_recent_projects.GetCount(); ++i) {
         boost::property_tree::wptree item;
         std::wstring proj = m_recent_projects.GetHistoryFile(i).ToStdWstring();
         item.put(L"project_name", proj.substr(proj.find_last_of(L"/\\") + 1));
         item.put(L"path", proj);
         item.put(L"published", m_recent_projects.GetPublished(i) ? L"1" : L"0");
+        item.put(L"kind", recent_file_kind_name(recent_file_kind(proj), m_recent_projects.GetHasDesigner(i) || is_in_download_folder(proj)));
+        item.put(L"recent", std::binary_search(recent_indices.begin(), recent_indices.end(), i) ? L"1" : L"0");
         boost::system::error_code ec;
         std::time_t t = boost::filesystem::last_write_time(proj, ec);
         if (!ec) {
             std::wstring time = wxDateTime(t).FormatISOCombined(' ').ToStdWstring();
             item.put(L"time", time);
-            if (i <= images) {
-                auto thumbnail = m_recent_projects.GetThumbnailUrl(i);
-                if (!thumbnail.empty()) item.put(L"image", thumbnail);
-            }
+            if (!m_recent_projects.GetThumbnail(i).empty())
+                item.put(L"image", recent_thumbnail_url(proj, t));
         } else {
             item.put(L"time", _L("File is missing"));
         }
         tree.push_back({L"", item});
     }
+}
+
+std::string MainFrame::get_recent_thumbnail(const wxString &filename) const
+{
+    return m_recent_projects.GetThumbnail(m_recent_projects.FindFileInHistory(filename));
 }
 
 void MainFrame::open_recent_project(size_t file_id, wxString const & filename)
@@ -4601,39 +4666,23 @@ void MainFrame::open_recent_project(size_t file_id, wxString const & filename)
         if (msg.ShowModal() == wxID_YES)
         {
             m_recent_projects.RemoveFileFromHistory(file_id);
-            std::vector<std::string> recent_projects;
-            size_t count = m_recent_projects.GetCount();
-            for (size_t i = 0; i < count; ++i)
-            {
-                recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
-            }
-            wxGetApp().app_config->set_recent_projects(recent_projects);
-            if (WebViewPanel* home = WebViewPanel::if_built())
-                home->SendRecentList(-1);
+            update_recent_projects();
         }
     }
 }
 
 void MainFrame::remove_recent_project(size_t file_id, wxString const &filename)
 {
+    // No file means "Clear all" on the Recent tab: the files stay in the history for the other tabs.
     if (file_id == size_t(-1)) {
         if (filename.IsEmpty())
-            while (m_recent_projects.GetCount() > 0)
-                m_recent_projects.RemoveFileFromHistory(0);
+            m_recent_projects.ClearRecent();
         else
             file_id = m_recent_projects.FindFileInHistory(filename);
     }
     if (file_id != size_t(-1))
         m_recent_projects.RemoveFileFromHistory(file_id);
-    std::vector<std::string> recent_projects;
-    size_t count = m_recent_projects.GetCount();
-    for (size_t i = 0; i < count; ++i)
-    {
-        recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
-    }
-    wxGetApp().app_config->set_recent_projects(recent_projects);
-    if (WebViewPanel* home = WebViewPanel::if_built())
-        home->SendRecentList(-1);
+    update_recent_projects();
 }
 
 void MainFrame::load_url(wxString url)

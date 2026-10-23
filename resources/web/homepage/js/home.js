@@ -13,6 +13,7 @@ function OnInit()
 
 	SendMsg_GetLoginInfo();
 	SendMsg_GetBambuLoginInfo();
+	RestoreRecentSettings();
 	SendMsg_GetRecentFile();
 	SendMsg_GetStaffPick();
 
@@ -24,7 +25,6 @@ var RightBtnFilePath='';
 
 var MousePosX=0;
 var MousePosY=0;
-var sImages = {};
  
 function Set_RecentFile_MouseRightBtn_Event()
 {
@@ -346,8 +346,97 @@ function SetMallUrl( strUrl )
 }
 
 
+var m_RecentFiles=[];
+var m_RecentTab='recent';
+var m_RecentQuery='';
+var m_RecentSort='opened';
+var RECENT_SORT_KEY = "OrcaHome_RecentSort";
+var RECENT_VIEW_KEY = "OrcaHome_RecentView";
+
+// Best effort: sort and view are per-machine conveniences, not synced preferences.
+function SaveRecentSetting( strKey, strValue )
+{
+	try { localStorage.setItem(strKey, strValue); } catch (e) {}
+}
+
+function LoadRecentSetting( strKey, strDefault )
+{
+	try { return localStorage.getItem(strKey) || strDefault; } catch (e) { return strDefault; }
+}
+
+function RestoreRecentSettings()
+{
+	SelectRecentSort(LoadRecentSetting(RECENT_SORT_KEY, 'opened'), false);
+	SelectRecentView(LoadRecentSetting(RECENT_VIEW_KEY, 'grid'), false);
+}
+
+function SearchRecentFiles( strQuery )
+{
+	m_RecentQuery=strQuery;
+	ShowRecentTab();
+}
+
+function SelectRecentSort( strSort, bPersist )
+{
+	m_RecentSort=strSort;
+	$("#RecentSort").val(strSort);
+	if (bPersist) SaveRecentSetting(RECENT_SORT_KEY, strSort);
+	ShowRecentTab();
+}
+
+function SelectRecentView( strView, bPersist )
+{
+	$("#FileList").toggleClass("ListView", strView == 'list');
+	$(".RecentViewBtn").removeClass("RecentViewBtnActive");
+	$('.RecentViewBtn[data-view="'+strView+'"]').addClass("RecentViewBtnActive");
+	if (bPersist) SaveRecentSetting(RECENT_VIEW_KEY, strView);
+}
+
+function MatchesRecentQuery( OneFile, strQuery )
+{
+	return OneFile['project_name'].toLowerCase().includes(strQuery.trim().toLowerCase());
+}
+
+// A missing file has a message instead of an ISO date, so it sorts as the oldest.
+function ModifiedTimeOf( OneFile )
+{
+	return /^\d/.test(OneFile['time']) ? OneFile['time'] : '';
+}
+
+function SortRecentFiles( pList, strSort )
+{
+	if (strSort == 'name')
+		return [...pList].sort((A, B) => A['project_name'].localeCompare(B['project_name'], undefined, {numeric: true, sensitivity: 'base'}));
+	if (strSort == 'modified')
+		return [...pList].sort((A, B) => ModifiedTimeOf(B).localeCompare(ModifiedTimeOf(A)));
+	return pList;
+}
+
 function ShowRecentFileList( pList )
 {
+	m_RecentFiles=pList;
+	ShowRecentTab();
+}
+
+function SelectRecentTab( strTab )
+{
+	m_RecentTab=strTab;
+	$(".RecentTab").removeClass("RecentTabActive");
+	$('.RecentTab[data-tab="'+strTab+'"]').addClass("RecentTabActive");
+	ShowRecentTab();
+}
+
+function FilesOfRecentTab( pList, strTab )
+{
+	if (strTab == 'recent')
+		return pList.filter(OneFile => OneFile['recent'] == '1');
+	return pList.filter(OneFile => OneFile['kind'] == strTab);
+}
+
+function ShowRecentTab()
+{
+	let pTabFiles=FilesOfRecentTab(m_RecentFiles, m_RecentTab);
+	let pList=SortRecentFiles(pTabFiles.filter(OneFile => MatchesRecentQuery(OneFile, m_RecentQuery)), m_RecentSort);
 	let nTotal=pList.length;
 	
 	let strHtml='';
@@ -356,12 +445,12 @@ function ShowRecentFileList( pList )
 		let OneFile=pList[n];
 		
 		let sPath=OneFile['path'];
-		let sImg=OneFile["image"] || sImages[sPath];
+		let sImg=OneFile["image"];
 		let sTime=OneFile['time'];
 		let sName=OneFile['project_name'];
 		let sPublished=OneFile['published'] == '1';
-		sImages[sPath] = sImg;
-		
+		let sFolder=sPath.substring(0, sPath.length-sName.length);
+
 		//let index=sPath.lastIndexOf('\\')>0?sPath.lastIndexOf('\\'):sPath.lastIndexOf('\/');
 		//let sShortName=sPath.substring(index+1,sPath.length);
 
@@ -374,8 +463,9 @@ function ShowRecentFileList( pList )
 
 		let TmpHtml='<div class="FileItem"  fpath="'+sPath+'"  >'+
 						'<a class="FileTip" title="'+sPath+'"></a>'+
-						'<div class="FileImg" ><img src="'+sImg+'" onerror="this.onerror=null;this.src=\'img/d.png\';"  alt="No Image"  />'+sLogoBadge+'</div>'+
+						'<div class="FileImg" ><img src="'+sImg+'" loading="lazy" onerror="this.onerror=null;this.src=\'img/d.png\';"  alt="No Image"  />'+sLogoBadge+'</div>'+
 						'<div class="FileNamePack">'+sBadge+'<div class="FileName TextS1">'+sName+'</div></div>'+
+						'<div class="FileFolder">'+sFolder+'</div>'+
 						'<div class="FileDate">'+sTime+'</div>'+
 						'<div class="FileActions">'+
 							'<div class="FileActionsReveal '+btnStyle+' ButtonTypeWindow trans" fpath="'+btnPath+'" data-i18n="show_in_folder">Show in folder</div>'+
@@ -527,7 +617,7 @@ function UpdateRecentClearBtnDisplay()
 {
     let AllFile=$(".FileItem");
 	let nFile=AllFile.length;	
-	if( nFile>0 )
+	if( nFile>0 && m_RecentTab=='recent' )
 		$("#RecentClearAllBtn").show();
 	else
 		$("#RecentClearAllBtn").hide();

@@ -1,6 +1,7 @@
 #include "WebView.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/RecentThumbnailHandler.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
 #include <algorithm>
@@ -361,6 +362,10 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
             webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
             s_schemes_registered = true;
         }
+#ifdef __WXOSX__
+        // Outside the guard: WKWebView keeps handlers per web view, and the Home page may not be the first one.
+        webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new Slic3r::GUI::RecentThumbnailHandler()));
+#endif
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 #ifdef __linux__
         webView->SetUserAgent(linux_user_agent());
