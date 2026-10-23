@@ -13750,9 +13750,9 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("is_prime_tower_interface", coBool, L("Prime tower interface"), L("Whether the current purge is for a prime-tower interface."));
     new_def("filament_tower_interface_purge_volume", coFloat, L("Interface layer purge length"), L("Purge length for prime tower interface layer (where different materials meet)."));
     new_def("filament_tower_interface_print_temp", coInt, L("Filament tower interface print temperature"), L("Print temperature used for the filament tower interface."));
-    new_def("wipe_tower_center_pos_x", coFloat, L("Wipe tower center X"), L("X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."));
-    new_def("wipe_tower_center_pos_y", coFloat, L("Wipe tower center Y"), L("Y coordinate of the nozzle's wipe-tower wait position."));
-    new_def("wipe_tower_center_pos_valid", coBool, L("Wipe tower center position valid"), L("Whether the print has a wipe tower."));
+    new_def("wipe_tower_center_pos_x", coFloat, L("Wipe tower wait position X"), L("X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."));
+    new_def("wipe_tower_center_pos_y", coFloat, L("Wipe tower wait position Y"), L("Y coordinate of the nozzle's wipe-tower wait position."));
+    new_def("wipe_tower_center_pos_valid", coBool, L("Wipe tower wait position valid"), L("Whether the print has a wipe tower."));
     new_def("temperature", coInts, L("Temperature"), L("Nozzle temperatures indexed by filament."));
     new_def("nozzle_temperature", coInts, L("Nozzle temperature"), L("Nozzle temperatures indexed by filament."));
     new_def("first_layer_temperature", coInts, L("First layer temperature"), L("First-layer nozzle temperatures indexed by filament."));
