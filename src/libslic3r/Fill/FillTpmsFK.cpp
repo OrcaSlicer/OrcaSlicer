@@ -29,8 +29,10 @@ static float fischer_koch(float x, float y, float z)
     return cosf(2 * x) * sinf(y) * cosf(z) + cosf(2 * y) * sinf(z) * cosf(x) + cosf(2 * z) * sinf(x) * cosf(y);
 }
 
-// Schwarz P equation: cos(x) + cos(y) + cos(z) = 0
-static float schwarz_p(float x, float y, float z) { return cosf(x) + cosf(y) + cosf(z); }
+// Schwarz P equation with its cells elongated 1.5 times along z and the level set offset by -0.3:
+// cos(x) + cos(y) + cos(z / 1.5) = -0.3. The taller cells and thicker vertical tubes raise the
+// compressive and shear strength of the printed lattice at the same filament use.
+static float schwarz_p(float x, float y, float z) { return cosf(x) + cosf(y) + cosf(z * (1.f / 1.5f)) + 0.3f; }
 
 } // namespace Slic3r
 
@@ -43,7 +45,7 @@ using Pointf = Vec2d; // (x, y) field point in coordf_t.
 
 struct ScalarField
 {
-    static constexpr float gsizef = 0.40;                        // grid cell size in mm (roughly line segment length).
+    const float            gsizef;                               // grid cell size in mm (roughly line segment length).
     static constexpr float rsizef = 0.004;                       // raster pixel size in mm (roughly point accuracy).
     const coord_t          rsize  = scaled(rsizef);              // raster pixel size in coord_t.
     const coordr_t         gsize  = std::round(gsizef / rsizef); // grid cell size in coordr_t.
@@ -54,8 +56,8 @@ struct ScalarField
     float                  isoval = 0.0;                         // iso value threshold to use.
     float (*equation)(float, float, float);                      // implicit surface equation with a period of 2 PI.
 
-    explicit ScalarField(const BoundingBox bb, const coordf_t z, const float period, float (*equation)(float, float, float))
-        : size{bb.size()}, offs{bb.min}, z{z}, freq{float(2 * PI) / period}, equation{equation}
+    explicit ScalarField(const BoundingBox bb, const coordf_t z, const float period, float (*equation)(float, float, float), float gsizef)
+        : gsizef{gsizef}, size{bb.size()}, offs{bb.min}, z{z}, freq{float(2 * PI) / period}, equation{equation}
     {}
 
     // Get the scalar field value at x,y,z in coordf_t coordinates.
@@ -163,9 +165,11 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                         params.adaptive_infill_gradient},
                                        *this->adaptive_infill_field, bbox, this->z, params.layer_height, spacing, infill_angle);
     } else {
-        marchsq::ScalarField sf = marchsq::ScalarField(bbox, this->z, period(params.density), equation());
-        // Get simplified lines using coarse tolerance of 0.1mm (this is infill).
-        polylines = marchsq::get_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
+        const float field_period = period(params.density);
+        const float cell         = trace_cell(field_period);
+        marchsq::ScalarField sf  = marchsq::ScalarField(bbox, this->z, field_period, equation(), cell);
+        // Simplify within an eighth of the grid cell, at most the sparse infill resolution.
+        polylines = marchsq::get_polylines(sf, scaled(std::min(SPARSE_INFILL_RESOLUTION, cell / 8.)));
     }
 
     // Apply multiline offset if needed

@@ -1,6 +1,7 @@
 #ifndef slic3r_FillTpmsFK_hpp_
 #define slic3r_FillTpmsFK_hpp_
 
+#include <algorithm>
 #include <utility>
 
 #include "FillBase.hpp"
@@ -39,9 +40,11 @@ protected:
     virtual Equation equation() const;
     // Field period per (line spacing / density), calibrated so the line length matches the density.
     virtual float period_factor() const { return 4.18f; }
+    // Marching-squares grid cell in mm for a field period in mm. 0.4 mm suits Fischer-Koch's large cells.
+    virtual float trace_cell(float /*period*/) const { return 0.4f; }
 };
 
-// Schwarz Primitive (P) surface: cos(x) + cos(y) + cos(z) = 0. Traced like Fischer-Koch, only the equation differs.
+// Schwarz Primitive (P) surface, elongated along z: cos(x) + cos(y) + cos(z / 1.5) = -0.3.
 class FillTpmsP : public FillTpmsFK
 {
 public:
@@ -49,8 +52,9 @@ public:
 
 protected:
     Equation equation() const override;
-    // Its cells are small, so above ~50% density they get coarse on the 0.4 mm marching-squares grid (ScalarField::gsizef).
-    float    period_factor() const override { return 1.85f; }
+    float    period_factor() const override { return 1.805f; }
+    // Its cells are 2-3 times smaller than Fischer-Koch's, so trace them on a grid that scales with the period.
+    float    trace_cell(float period) const override { return std::min(0.4f, period / 32.f); }
 };
 
 } // namespace Slic3r
