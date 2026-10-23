@@ -12373,9 +12373,10 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                 extruder_name += (boost::format(_u8L("Tool %d"))%extruder_id).str();
             }
 
-            text += (boost::format(into_u8(_L_PLURAL("Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s.",
-                                                     "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s.",
-                                                     error_iter->second.size()))) %filaments %extruder_name %extruder_name).str();
+            text += format(_L_PLURAL("Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%.",
+                                     "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%.",
+                                     error_iter->second.size()),
+                           filaments, extruder_name);
         }
         error = ErrorType::SLICING_LIMIT_ERROR;
         break;
@@ -12423,9 +12424,10 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                 }
             }
             std::string extruder_name = extruder_name_list[extruder_id-1];
-            text += (boost::format(into_u8(_L_PLURAL("Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s.",
-                                                     "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s.",
-                                                     filament_ids.size()))) % filaments % extruder_name % extruder_name).str();
+            text += format(_L_PLURAL("Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%.",
+                                     "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%.",
+                                     filament_ids.size()),
+                           filaments, extruder_name);
         }
         if (!text.empty()) {
             text += "\n";
