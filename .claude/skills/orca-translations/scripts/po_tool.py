@@ -402,9 +402,9 @@ def validate(e, msgstrs, nplurals, glossary=None, lang=None):
         b1, c1 = _placeholders(src, flags)
         b2, c2 = _placeholders(s, flags)
         positional = any("$" in p for p in c1)
-        c_bad = sorted(c1) != sorted(c2) if positional else c1 != c2
+        c_bad = set(c1) != set(c2) if positional else c1 != c2
         bad = []
-        if sorted(b1) != sorted(b2):
+        if set(b1) != set(b2):
             bad.append(f"boost placeholders {b1} -> {b2}")
         if c_bad:
             bad.append(f"printf placeholders {c1} -> {c2}" + ("" if positional else " (order must match)"))
@@ -636,7 +636,7 @@ def cmd_check(a):
         if msgfmt:
             fd, mo = tempfile.mkstemp(suffix=".mo")  # Windows msgfmt cannot write to "nul"
             os.close(fd)
-            r = subprocess.run([msgfmt, "--check-format", "-o", mo, str(c.path)], capture_output=True, text=True)
+            r = subprocess.run([msgfmt, "--check-format", "--check-header", "-o", mo, str(c.path)], capture_output=True, text=True)
             os.unlink(mo)
             if r.returncode:
                 print(f"{lang}: msgfmt --check-format failed\n{r.stderr.strip()}")

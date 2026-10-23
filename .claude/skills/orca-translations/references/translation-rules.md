@@ -11,7 +11,8 @@ can detect; everything else is on the translator.
 A rejected entry is not written. Fix it and apply again.
 
 - **Placeholders stay exactly as written:** `%s`, `%d`, `%.1f`, `%1$d`, `%1%`, `%%`. Never `%1 %`, never
-  `%` for `%%`. Plain printf placeholders keep their order; only positional ones (`%1$s`, `%1%`) may move.
+  `%` for `%%`. Plain printf placeholders keep their order; only positional ones (`%1$s`, `%1%`) may move,
+  and one the msgid repeats may appear just once.
   A broken placeholder crashes the app.
 - **Line breaks:** the same number of `\n`, with the same leading and trailing ones. Don't add breaks to fit
   text, least of all in parameter names.
