@@ -25,8 +25,8 @@ orcaslicer_add_cmake_project(OpenCV
     ${_options}
     URL https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
     URL_HASH SHA256=1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
-    PATCH_COMMAND git apply ${OpenCV_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-vs.patch  ${CMAKE_CURRENT_LIST_DIR}/0002-clang19-macos.patch
-    DEPENDS ${JPEG_PKG}
+    PATCH_COMMAND git apply ${OpenCV_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-vs.patch
+    DEPENDS ${JPEG_PKG} ${PNG_PKG}
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=0
        -DBUILD_PERE_TESTS=OFF
@@ -35,13 +35,13 @@ orcaslicer_add_cmake_project(OpenCV
        -DBUILD_EXAMPLES=OFF
        -DBUILD_JASPER=OFF
        -DBUILD_JAVA=OFF
-       # Share Orca's libjpeg to avoid conflicting codec symbols in the application.
+       # Share Orca's libjpeg and libpng to avoid conflicting codec symbols in the application.
        -DBUILD_JPEG=OFF
+       -DBUILD_PNG=OFF
        -DBUILD_APPS_LIST=version
        -DBUILD_opencv_apps=OFF
        -DBUILD_opencv_java=OFF
        -DBUILD_OPENEXR=OFF
-       -DBUILD_PNG=ON
        -DBUILD_TBB=OFF
        -DBUILD_WEBP=OFF
        -DBUILD_ZLIB=OFF
