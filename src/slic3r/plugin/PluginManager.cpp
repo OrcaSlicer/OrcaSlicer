@@ -145,10 +145,18 @@ bool PluginManager::initialize()
     return true;
 }
 
-void PluginManager::set_shutting_down() { m_shutting_down.store(true, std::memory_order_release); }
+void PluginManager::set_shutting_down()
+{
+    m_shutting_down.store(true, std::memory_order_release);
+    // The GUI may already be closing: drop audit prompts that have not been shown yet rather than
+    // letting a queued dialog open after shutdown has begun.
+    PluginAuditManager::discard_pending_permission_prompts();
+}
 
 void PluginManager::shutdown()
 {
+    PluginAuditManager::discard_pending_permission_prompts();
+
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         const bool idle_and_empty = m_load_in_progress.empty() && std::none_of(m_plugins.begin(), m_plugins.end(),
@@ -1047,6 +1055,9 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
 
 bool PluginManager::unload_plugin(const std::string& plugin_key)
 {
+    // Queued audit prompts belong to a plugin that is going away; they must not open later.
+    PluginAuditManager::discard_pending_permission_prompts_for(plugin_key);
+
     auto notify_unload_complete = [this, &plugin_key]() {
         if (!m_shutting_down.load(std::memory_order_acquire))
             run_on_unload_callbacks(plugin_key);

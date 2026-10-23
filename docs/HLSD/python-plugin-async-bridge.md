@@ -139,10 +139,12 @@ dropping the pybind holder from a non-Python thread would `DECREF` without the G
 closed and `tl_script_loop` cleared before the worker exits.
 
 A consequence of running Script on a non-main thread: the audit permission prompt is fail-closed off
-the main thread. `request_permission` in `src/slic3r/plugin/PluginAuditManager.cpp` posts the dialog
-with `CallAfter` and denies the current event, persisting the grant when the user accepts, so a
-Script sees a denial on the first attempt and can succeed on a later one. This matches the existing
-behavior for the plugin-load worker and the slicing worker.
+the main thread. `request_permission` in `src/slic3r/plugin/PluginAuditManager.cpp` queues the dialog
+for the GUI thread and denies the current event, persisting the grant when the user accepts, so a
+Script sees a denial on the first attempt and can succeed on a later one. Prompts are serialized by
+`AuditPromptQueue`: one dialog at a time, the next is scheduled only after the previous one closes,
+so a modal dialog's nested event loop cannot open another. This matches the existing behavior for
+the plugin-load worker and the slicing worker.
 
 ### Blocking UI continuation
 

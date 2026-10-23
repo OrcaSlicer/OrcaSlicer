@@ -717,6 +717,7 @@ set(SLIC3R_GUI_SOURCES
     plugin/PluginManager.hpp
     plugin/PluginAuditManager.cpp
     plugin/PluginAuditManager.hpp
+    plugin/PluginAuditPromptQueue.hpp
     plugin/PluginResolver.cpp
     plugin/PluginResolver.hpp
     plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp

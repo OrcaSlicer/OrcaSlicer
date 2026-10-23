@@ -6,6 +6,7 @@
 #include <libslic3r/Utils.hpp>
 #include <libslic3r/libslic3r.h>         // GCODEVIEWER_APP_KEY, SLIC3R_APP_KEY (via libslic3r_version.h)
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include <slic3r/plugin/PluginAuditPromptQueue.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
@@ -36,6 +37,7 @@
 #include <functional>
 #include <ios>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -68,6 +70,124 @@ void seed_denied_keywords()
 }
 
 } // namespace
+
+namespace {
+
+AuditPromptRequest prompt_request(const std::string& plugin_key, AuditEventCategory category,
+                                  std::vector<std::string> targets)
+{
+    AuditPromptRequest request;
+    request.category    = category;
+    request.plugin_key  = plugin_key;
+    request.plugin_name = plugin_key;
+    request.event_name  = "open";
+    request.keys        = std::move(targets);
+    request.shown       = request.keys;
+    return request;
+}
+
+} // namespace
+
+TEST_CASE("A runtime audit prompt is queued while another one is active", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::ShowNow);
+    // Still inside the first dialog's modal loop: a GUI-thread event must queue, not nest.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::Queued);
+    // The request already on screen is not queued a second time.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::Duplicate);
+    CHECK(queue.pending_count() == 1);
+    CHECK_FALSE(queue.take_next().has_value());
+
+    queue.complete();
+    std::optional<AuditPromptRequest> next = queue.take_next();
+    REQUIRE(next.has_value());
+    CHECK(next->keys == std::vector<std::string>{"/b"});
+    CHECK_FALSE(queue.take_next().has_value());
+    CHECK_FALSE(queue.idle());
+
+    queue.complete();
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Only exactly equivalent pending audit prompts are coalesced", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Duplicate);
+    // A different category, plugin, or target is a distinct grant and never merges.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsReadWrite, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("other_plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.pending_count() == 4);
+}
+
+TEST_CASE("Queued audit prompts are handed out in arrival order", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+
+    std::optional<AuditPromptRequest> first = queue.take_next();
+    REQUIRE(first.has_value());
+    CHECK(first->keys == std::vector<std::string>{"/a"});
+    queue.complete();
+
+    std::optional<AuditPromptRequest> second = queue.take_next();
+    REQUIRE(second.has_value());
+    CHECK(second->keys == std::vector<std::string>{"/b"});
+    queue.complete();
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Discarding drops queued audit prompts but leaves the active one", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+
+    queue.discard_all();
+    CHECK_FALSE(queue.has_pending());
+    queue.complete();
+    CHECK_FALSE(queue.take_next().has_value());
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Unloading a plugin drops only that plugin's queued audit prompts", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("unloaded", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("kept", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("unloaded", AuditEventCategory::FsRead, {"/c"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+
+    queue.discard_plugin("unloaded");
+
+    std::optional<AuditPromptRequest> next = queue.take_next();
+    REQUIRE(next.has_value());
+    CHECK(next->plugin_key == "kept");
+    queue.complete();
+    CHECK(queue.idle());
+}
 
 TEST_CASE("Plugin audit denies host-managed filenames anywhere", "[audit]")
 {

@@ -22,8 +22,10 @@
 #include <future>
 #include <mutex>
 #include <memory>
+#include <optional>
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
+#include <slic3r/plugin/PluginAuditPromptQueue.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <string>
@@ -785,9 +787,9 @@ namespace {
 
 // Builds and shows the modal confirmation. Must run on the GUI thread. The prompt helpers in
 // PluginAuditDetail below share it so every permission prompt is styled the same way.
-bool show_permission_dialog(const wxString& message, const wxString& title)
+bool show_permission_dialog(wxWindow* parent, const wxString& message, const wxString& title)
 {
-    wxMessageDialog dialog(nullptr, message, title, wxYES_NO | wxICON_WARNING);
+    wxMessageDialog dialog(parent, message, title, wxYES_NO | wxICON_WARNING);
     return dialog.ShowModal() == wxID_YES;
 }
 
@@ -1337,6 +1339,14 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
     }
 }
 
+// A live top-level window keeps the audit dialog ordered with the app and lets wx tear it down
+// with its parent on shutdown. Null only before the main window exists or after it is gone; the
+// callers check is_closing() first.
+wxWindow* audit_prompt_parent()
+{
+    return wxTheApp != nullptr ? wxTheApp->GetTopWindow() : nullptr;
+}
+
 // Builds and shows the modal permission prompt. Must run on the GUI thread.
 bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_name, const std::string& event_name,
                         const std::vector<std::string>& unresolved)
@@ -1346,6 +1356,7 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
     return show_permission_dialog(
+        audit_prompt_parent(),
         audit_message(category, wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(event_name.c_str()),
                       target_list, unresolved.size()),
         _L("Plugin permission request"));
@@ -1354,7 +1365,7 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
 // Shows a prompt whose body may cover several permission buckets. Must run on the GUI thread.
 bool prompt_for_permission_message(const wxString& message)
 {
-    wxMessageDialog dialog(nullptr, message, _L("Plugin permissions"), wxYES_NO | wxICON_WARNING);
+    wxMessageDialog dialog(audit_prompt_parent(), message, _L("Plugin permissions"), wxYES_NO | wxICON_WARNING);
     return dialog.ShowModal() == wxID_YES;
 }
 
@@ -1376,6 +1387,67 @@ void persist_grant(const std::string& plugin_key, AuditEventCategory category, b
 
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
 static PluginAuditManager::PermissionMessagePrompt s_permission_message_prompt_for_testing;
+
+AuditPromptQueue& runtime_audit_prompts()
+{
+    static AuditPromptQueue queue;
+    return queue;
+}
+
+bool show_runtime_prompt(const AuditPromptRequest& request)
+{
+    return prompt_for_targets(request.category, request.plugin_name, request.event_name, request.shown);
+}
+
+void drain_runtime_prompts();
+
+void schedule_runtime_prompt_drain()
+{
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        runtime_audit_prompts().discard_all();
+        return;
+    }
+    GUI::wxGetApp().CallAfter([]() { drain_runtime_prompts(); });
+}
+
+// Shows the oldest queued prompt. The next one is scheduled only after this dialog has returned,
+// so its modal event loop cannot deliver another prompt that opens a second dialog.
+void drain_runtime_prompts()
+{
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        runtime_audit_prompts().discard_all();
+        return;
+    }
+
+    std::optional<AuditPromptRequest> request = runtime_audit_prompts().take_next();
+    if (!request)
+        return;
+
+    // A request may have been enqueued concurrently with plugin unload, after its queued
+    // requests were discarded. Keep requests raised during plugin loading valid as well: plugin
+    // code can run before the manager commits it as loaded.
+    PluginManager& manager = PluginManager::instance();
+    const bool plugin_exists = manager.is_plugin_loaded(request->plugin_key) ||
+                               manager.is_plugin_load_in_progress(request->plugin_key);
+    const bool granted = plugin_exists && show_runtime_prompt(*request);
+    if (granted)
+        persist_grant(request->plugin_key, request->category, request->by_event, request->keys);
+
+    runtime_audit_prompts().complete();
+
+    if (runtime_audit_prompts().has_pending())
+        schedule_runtime_prompt_drain();
+}
+
+void discard_runtime_prompts()
+{
+    runtime_audit_prompts().discard_all();
+}
+
+void discard_runtime_prompts_for(const std::string& plugin_key)
+{
+    runtime_audit_prompts().discard_plugin(plugin_key);
+}
 
 static const char* audit_category_name(AuditEventCategory category)
 {
@@ -1406,6 +1478,10 @@ static const char* audit_category_name(AuditEventCategory category)
 // is therefore posted asynchronously and the current event denied (fail closed, like an unanswered
 // prompt); the grant is persisted once the user accepts, so a later attempt succeeds without
 // re-prompting.
+//
+// Runtime prompts are serialized by AuditPromptQueue: at most one is modal at a time, and the next
+// is scheduled only after the active dialog has closed. An event delivered inside that dialog's
+// nested event loop is queued and denied instead of opening a second dialog.
 bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
                         const std::string& event_name, bool by_event, const std::vector<std::string>& keys)
 {
@@ -1427,16 +1503,37 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
         return false;
 
-    if (wxIsMainThread())
-        return prompt_for_targets(category, plugin_name, event_name, shown);
+    AuditPromptRequest request;
+    request.category    = category;
+    request.plugin_key  = plugin_key;
+    request.plugin_name = plugin_name;
+    request.event_name  = event_name;
+    request.by_event    = by_event;
+    request.keys        = keys;
+    request.shown       = shown;
 
-    GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown]() {
-        if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
-            return;
-        if (prompt_for_targets(category, plugin_name, event_name, shown))
-            persist_grant(plugin_key, category, by_event, keys);
-    });
-    return false;
+    const bool on_gui_thread = wxIsMainThread() != 0;
+    const AuditPromptQueue::Admission admission = runtime_audit_prompts().admit(request, on_gui_thread);
+
+    if (admission == AuditPromptQueue::Admission::Duplicate)
+        return false;
+
+    if (admission == AuditPromptQueue::Admission::Queued) {
+        // A prompt is already active (this event arrived inside its modal loop) or an earlier one
+        // is waiting. The current operation stays denied, as for an unanswered prompt; the
+        // queued prompt is shown once the active dialog has fully closed.
+        schedule_runtime_prompt_drain();
+        return false;
+    }
+
+    // ShowNow: no other audit prompt is active, so present this one synchronously. The event is
+    // approved only when the user says Yes to it.
+    const bool granted = show_runtime_prompt(request);
+    runtime_audit_prompts().complete();
+
+    if (runtime_audit_prompts().has_pending())
+        schedule_runtime_prompt_drain();
+    return granted;
 }
 
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
@@ -1634,6 +1731,12 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
         auto result = std::make_shared<std::promise<bool>>();
         auto future = result->get_future();
         GUI::wxGetApp().CallAfter([result, plugin_name = descriptor.name, missing_buckets, build_message]() {
+            // Never open a permission dialog once the GUI is closing; the load worker is waiting
+            // on this result and must be released with a denial.
+            if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+                result->set_value(false);
+                return;
+            }
             result->set_value(PluginAuditDetail::prompt_for_permission_message(build_message(plugin_name, missing_buckets)));
         });
         granted = future.get();
@@ -1759,6 +1862,16 @@ void PluginAuditManager::set_permission_prompt_for_testing(PermissionPrompt prom
 void PluginAuditManager::set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt)
 {
     PluginAuditDetail::s_permission_message_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::discard_pending_permission_prompts()
+{
+    PluginAuditDetail::discard_runtime_prompts();
+}
+
+void PluginAuditManager::discard_pending_permission_prompts_for(const std::string& plugin_key)
+{
+    PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
 }
 
 int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user_data)
