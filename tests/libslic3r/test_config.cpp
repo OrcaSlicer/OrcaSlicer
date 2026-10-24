@@ -1932,3 +1932,20 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
     edited.apply_only(saved, {"filament_ids#0"});
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
 }
+
+TEST_CASE("A printer has viewable filaments with one per nozzle or a reported changer", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+    CHECK_FALSE(printer_has_viewable_filaments(config, ""));     // plain single-nozzle printer
+    CHECK(printer_has_viewable_filaments(config, "afc"));
+    CHECK(printer_has_viewable_filaments(config, "happy_hare"));
+
+    // A multi-head toolchanger such as the Snapmaker U1 qualifies on its own nozzles.
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+    CHECK(printer_has_viewable_filaments(config, ""));
+
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+    CHECK_FALSE(printer_has_viewable_filaments(config, ""));     // nozzles share one hotend
+    CHECK(printer_has_viewable_filaments(config, "afc"));
+}
