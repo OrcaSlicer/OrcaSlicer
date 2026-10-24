@@ -34,13 +34,12 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
         const SmallAreaInfillFlowCompensationModel model;
         const auto rows = CurveModel::decode_rows(config.small_area_infill_flow_compensation_model.values);
         if (const char* error = model.read_points(rows, eLengths, flowComps, error_row)) {
-            std::string message = _u8L("Flow Compensation Model") + ": ";
+            std::string message = _u8L(error);
             if (error_row >= 0 && size_t(error_row) < rows.size())
-                message += Slic3r::format(_u8L("Table row %d: "), error_row + 1);
-            message += _u8L(error);
-            if (error_row >= 0 && size_t(error_row) < rows.size())
-                message += " [" + rows[error_row].first + "," + rows[error_row].second + "]";
-            throw Slic3r::InvalidArgument(message);
+                message = Slic3r::format(_u8L("Table row %d: %s"), error_row + 1, message) +
+                    " [" + rows[error_row].first + "," + rows[error_row].second + "]";
+            // TRN %s is the reason the small area flow compensation model is invalid.
+            throw Slic3r::InvalidArgument(Slic3r::format(_u8L("Flow Compensation Model: %s"), message));
         }
 
         // GCode skips empty settings; constructing a consumer directly still requires points.

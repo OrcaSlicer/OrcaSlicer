@@ -121,8 +121,8 @@ TEST_CASE("Flow parsing diagnostics translate the model name row and validation 
     } restore;
     I18N::set_translate_callback([](const char* text) -> std::string {
         const std::string key(text);
-        if (key == "Flow Compensation Model") return "Translated model";
-        if (key == "Table row %d: ") return "Translated row %d: ";
+        if (key == "Flow Compensation Model: %s") return "Translated model: %s";
+        if (key == "Table row %d: %s") return "Translated row %d: %s";
         if (key == "Enter a finite number in each cell.") return "Translated validation reason";
         return key;
     });
