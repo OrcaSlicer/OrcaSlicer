@@ -45,18 +45,14 @@ public:
 
     // The mapping is stashed and delivered on the print-start call.
     bool supports_print_time_mapping() const override { return true; }
-    bool send_filament_mapping(const std::string& dev_id, const std::vector<int>& tool_to_slot) override;
 
 protected:
-    // Starts the print with the stashed filament map, if one was sent
+    // Starts the print with the stashed filament map, if one was sent; AFC's own start when AFC is active
     bool print_uploaded_file(const PrintParams& params, const std::string& filename) override;
 
 private:
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);
-
-    // Cleared by print_uploaded_file() so a stale mapping cannot leak into a later job.
-    std::vector<int> m_pending_filament_map;
 };
 
 } // namespace Slic3r

@@ -73,10 +73,12 @@ void DevicePrintOptionsDialog::init()
         content_sizer->Add(m_rows_view, 0, wxEXPAND);
     }
 
-    content_sizer->AddSpacer(VERT_SPACING);
-    auto* prefs_label = new wxStaticText(this, wxID_ANY, _L("Print Preferences"));
-    prefs_label->SetFont(::Label::Head_14);
-    content_sizer->Add(prefs_label);
+    if (!m_spec.options.empty()) {
+        content_sizer->AddSpacer(VERT_SPACING);
+        auto* prefs_label = new wxStaticText(this, wxID_ANY, _L("Print Preferences"));
+        prefs_label->SetFont(::Label::Head_14);
+        content_sizer->Add(prefs_label);
+    }
 
     for (const DevicePrintOption& opt : m_spec.options) {
         // Remembered per printer, so choices cannot leak onto another printer with the same key.
