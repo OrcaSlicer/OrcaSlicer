@@ -147,6 +147,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/GCodeStatistics.hpp"
 #include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ProjectTask.hpp"
@@ -7055,6 +7056,15 @@ int CLI::run(int argc, char **argv)
                             if (pre_check && (partplate_list.get_plate_count() > 1)) //continue to next plate directly
                                 continue;
                             try {
+                                // Orca: FilamentRenumberRequired asks for one more apply.
+                                const auto process_plate = [&](auto &&...args) {
+                                    try {
+                                        print->process(args...);
+                                    } catch (const FilamentRenumberRequired &) {
+                                        print->apply(model, new_print_config);
+                                        print->process(args...);
+                                    }
+                                };
                                 std::string outfile_final;
                                 BOOST_LOG_TRIVIAL(info) << "start Print::process for partplate "<<index+1 << std::endl;
 #if defined(__linux__) || defined(__LINUX__)
@@ -7097,7 +7107,7 @@ int CLI::run(int argc, char **argv)
                                     if (ret) {
                                         BOOST_LOG_TRIVIAL(warning) << "plate "<< index+1<< ": load Slicing data error, ret=" << ret;
                                         BOOST_LOG_TRIVIAL(warning) << "plate "<< index+1<< ": switch normal slicing";
-                                        print->process();
+                                        process_plate();
                                     }
                                     else {
                                         BOOST_LOG_TRIVIAL(info) << "plate "<< index+1<< ": load cached data success, go on.";
@@ -7107,12 +7117,12 @@ int CLI::run(int argc, char **argv)
                                             cli_status_callback(slicing_status);
                                         }
 #endif
-                                        print->process(nullptr, true);
+                                        process_plate(nullptr, true);
                                         BOOST_LOG_TRIVIAL(info) << "plate "<< index+1<< ": finished print::process.";
                                     }
                                 }
                                 else {
-                                    print->process(&time_using_cache);
+                                    process_plate(&time_using_cache);
                                     BOOST_LOG_TRIVIAL(info) << "print::process: first time_using_cache is " << time_using_cache << " secs.";
                                 }
                                 if (printer_technology == ptFFF) {

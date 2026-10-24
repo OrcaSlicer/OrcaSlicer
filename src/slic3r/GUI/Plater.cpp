@@ -203,6 +203,7 @@
 #include "wxExtensions.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #endif
@@ -7310,6 +7311,8 @@ struct Plater::priv
     bool m_ignore_event{false};
     bool m_slice_all{false};
     bool m_is_slicing {false};
+    // Orca: back-to-back reslices asked for by FilamentRenumberRequired; one is allowed.
+    int  m_filament_renumber_reslices {0};
     // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
     // gate plugin-load re-validation and avoid needlessly recreating the notification when the set
     // is unchanged. Whether missing plugins block slicing is derived directly from PluginResolver
@@ -13416,6 +13419,21 @@ bool Plater::priv::warnings_dialog()
 }
 
 //BBS: add project slice logic
+// Orca: Print::process asks for one more apply when the plate's filaments fit the printer but were
+// numbered past its last tool (see FilamentRenumberRequired).
+static bool is_filament_renumber_request(const SlicingProcessCompletedEvent &evt)
+{
+    if (!evt.error())
+        return false;
+    try {
+        evt.rethrow_exception();
+    } catch (const FilamentRenumberRequired &) {
+        return true;
+    } catch (...) {
+    }
+    return false;
+}
+
 void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 {
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, m_ignore_event %1%, status %2%")%m_ignore_event %evt.status();
@@ -13426,6 +13444,18 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": ignore this event %1%") % evt.status();
         return;
     }
+
+    // Orca: reslice once with the learned numbering; a repeat request or a failed restart is
+    // reported like any other slicing error.
+    if (is_filament_renumber_request(evt) && m_filament_renumber_reslices == 0) {
+        ++m_filament_renumber_reslices;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": filament numbering learned, reslicing plate " << partplate_list.get_curr_plate_index();
+        this->background_process.stop();
+        if (q->start_next_slice() == 0)
+            return;
+    }
+    m_filament_renumber_reslices = 0;
+
     //BBS: add project slice logic
     bool is_finished = !m_slice_all || (m_cur_slice_plate == (partplate_list.get_plate_count() - 1));
 

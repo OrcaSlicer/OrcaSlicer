@@ -3,6 +3,7 @@
 #include "Geometry.hpp"
 #include "CustomGCode.hpp"
 #include "Config.hpp"
+#include "FilamentCompaction.hpp"
 #include "Model.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
@@ -1388,11 +1389,35 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
         set_compensation(extruders.front());
 }
 
-Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
+Print::ApplyStatus Print::apply(const Model &model_in, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
-    check_model_ids_validity(model);
+    check_model_ids_validity(model_in);
 #endif /* _DEBUG */
+
+    // Orca: renumber filaments densely (FilamentCompaction.hpp) before normalization and variant
+    // expansion, which size themselves from the filament count.
+    const size_t nozzle_count = new_full_config.option<ConfigOptionFloats>("nozzle_diameter", true)->values.size();
+    // process() reads the compaction and writes the renumber hint on the slicing thread.
+    std::unique_lock<std::mutex> compaction_lock(this->state_mutex());
+    const std::vector<int> previous_slot_of_tool = std::move(m_filament_compaction.slot_of_tool);
+    m_filament_compaction = FilamentCompaction();
+    if (device_resolves_filament_mapping(new_full_config)) {
+        const ModelFilaments filaments = collect_model_filaments(model_in, new_full_config, FeatureGate::Printed, /*with_wipe_tower=*/true);
+        m_filament_compaction = build_filament_compaction(filaments, m_filament_renumber_hint, new_full_config,
+                                                          filament_namespace_size(new_full_config, nozzle_count));
+    }
+    compaction_lock.unlock();
+    const bool compacting = !m_filament_compaction.slot_of_tool.empty();
+    // The numbering can change with no edit to the source, which mirrored timestamps can't show.
+    const bool compaction_changed = m_filament_compaction.slot_of_tool != previous_slot_of_tool;
+    if (compacting) {
+        // A member, not a local: PrintObjects keep raw pointers into the model sliced from.
+        m_compacted_model = model_in;
+        apply_filament_compaction(m_compacted_model, model_in, m_filament_compaction);
+        apply_filament_compaction(new_full_config, m_filament_compaction);
+    }
+    const Model &model = compacting ? m_compacted_model : model_in;
 
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
@@ -1875,7 +1900,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         // Only volume IDs, volume types, transformation matrices and their order are checked, configuration and other parameters are NOT checked.
         bool solid_or_modifier_differ   = model_volume_list_changed(model_object, model_object_new, solid_or_modifier_types) ||
                                           model_mmu_segmentation_data_changed(model_object, model_object_new) ||
-                                          (model_object_new.is_mm_painted() && num_extruders_changed) ||
+                                          (model_object_new.is_mm_painted() && (num_extruders_changed || compaction_changed)) ||
                                           model_fuzzy_skin_data_changed(model_object, model_object_new);
         bool supports_differ            = model_volume_list_changed(model_object, model_object_new, ModelVolumeType::SUPPORT_BLOCKER) ||
                                           model_volume_list_changed(model_object, model_object_new, ModelVolumeType::SUPPORT_ENFORCER);
@@ -1946,6 +1971,11 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             bool object_config_changed = ! model_object.config.timestamp_matches(model_object_new.config);
 			if (object_config_changed)
 				model_object.config.assign_config(model_object_new.config);
+            else if (compaction_changed && model_object.config.get() != model_object_new.config.get()) {
+                // Orca: assign_config(ModelConfig) skips equal timestamps, which the renumbered copy mirrors.
+                model_object.config.assign_config(model_object_new.config.get());
+                object_config_changed = true;
+            }
             if (! object_diff.empty() || object_config_changed || num_extruders_changed ) {
                 PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders, print_variant_index);
                 for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(model_object)) {
@@ -1960,6 +1990,11 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             //FIXME What to do with m_material_id?
 			model_volume_list_copy_configs(model_object /* dst */, model_object_new /* src */, ModelVolumeType::MODEL_PART);
 			model_volume_list_copy_configs(model_object /* dst */, model_object_new /* src */, ModelVolumeType::PARAMETER_MODIFIER);
+            if (compaction_changed) {
+                assert(model_object.volumes.size() == model_object_new.volumes.size());
+                for (size_t i = 0; i < model_object.volumes.size(); ++ i)
+                    model_object.volumes[i]->config.assign_config(model_object_new.volumes[i]->config.get());
+            }
 			// Synchronize Precise Seam modifier volumes
 			model_volume_list_copy_configs(model_object /* dst */, model_object_new /* src */, precise_seam_types);
             layer_height_ranges_copy_configs(model_object.layer_config_ranges /* dst */, model_object_new.layer_config_ranges /* src */);

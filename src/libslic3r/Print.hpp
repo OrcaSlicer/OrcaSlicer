@@ -10,6 +10,7 @@
 #include "Geometry.hpp"
 #include "CommonDefs.hpp"
 #include "PrintBase.hpp"
+#include "FilamentCompaction.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Fill/AdaptiveInfillField.hpp"
@@ -1101,6 +1102,9 @@ public:
 
     ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied = false) override;
 
+    // Orca: the filament renumbering this Print was sliced with (FilamentCompaction.hpp).
+    const FilamentCompaction& filament_compaction() const { return m_filament_compaction; }
+
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
     // Exports G-code into a file name based on the path_template, returns the file path of the generated G-code file.
     // If preview_data is not null, the preview_data is filled in for the G-code visualization (not used by the command line Slic3r).
@@ -1535,9 +1539,16 @@ private:
     // Orca: static forms, usable before apply() stores the model and config.
     static void append_tool_change_extruders(const Model &model, size_t num_extruders, std::vector<unsigned int> &extruders);
     static void append_wipe_tower_extruder(const PrintConfig &config, std::vector<unsigned int> &extruders);
+    // Orca: the tool numbers the G-code will command. Valid once psWipeTower has built the ordering.
+    std::vector<unsigned int> emitted_tools() const;
     void        update_shrinkage_compensation(size_t num_extruders, std::vector<int> &variant_index);
 
     PrintConfig                             m_config;
+    FilamentCompaction                      m_filament_compaction;
+    // Orca: project slots the last slice showed never print; build_filament_compaction numbers them last.
+    std::vector<int>                        m_filament_renumber_hint;
+    // Orca: must outlive apply(): PrintObjects keep raw pointers into the model sliced from.
+    Model                                   m_compacted_model;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;
