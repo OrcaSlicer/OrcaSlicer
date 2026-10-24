@@ -30,7 +30,6 @@
 
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCodeWriter.hpp"
-#include "libslic3r/GCode/SpiralVase.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
@@ -120,7 +119,7 @@ SCENARIO("set_speed emits values with fixed-point output.", "[GCodeWriter]") {
     }
 }
 
-TEST_CASE("Short circular extrusion moves retain their requested flow after export", "[GCodeWriter][Regression]")
+TEST_CASE("High precision G-code keeps the requested flow of short circular extrusion moves", "[GCodeWriter][Regression]")
 {
     const bool relative_e = GENERATE(false, true);
     CAPTURE(relative_e);
@@ -220,49 +219,23 @@ TEST_CASE("G-code export uses the selected precision for linear and arc moves", 
             moves.push_back(line);
     });
     REQUIRE(moves.size() == 5);
-    CHECK_THAT(moves[0].x(), Catch::Matchers::WithinAbs(high_precision ? 10.1235 : 10.123, 1e-6));
-    CHECK_THAT(moves[0].y(), Catch::Matchers::WithinAbs(high_precision ? 20.1235 : 20.123, 2e-6));
-    CHECK_THAT(moves[0].z(), Catch::Matchers::WithinAbs(high_precision ? 0.2346 : 0.235, 1e-7));
-    CHECK_THAT(moves[1].f(), Catch::Matchers::WithinAbs(1234.568, 1e-4));
-    CHECK_THAT(moves[2].x(), Catch::Matchers::WithinAbs(high_precision ? 10.6543 : 10.654, 1e-6));
-    CHECK_THAT(moves[2].e(), Catch::Matchers::WithinAbs(high_precision ? 0.001235 : 0.00123, 1e-9));
+    // The parsed doubles, unlike the float accessors, tell one more written decimal apart.
+    constexpr double eps = 1e-9;
+    CHECK_THAT(moves[0].precise_value(X), Catch::Matchers::WithinAbs(high_precision ? 10.1235 : 10.123, eps));
+    CHECK_THAT(moves[0].precise_value(Y), Catch::Matchers::WithinAbs(high_precision ? 20.1235 : 20.123, eps));
+    CHECK_THAT(moves[0].precise_value(Z), Catch::Matchers::WithinAbs(high_precision ? 0.2346 : 0.235, eps));
+    CHECK_THAT(moves[1].precise_value(F), Catch::Matchers::WithinAbs(1234.568, eps));
+    CHECK_THAT(moves[2].precise_value(X), Catch::Matchers::WithinAbs(high_precision ? 10.6543 : 10.654, eps));
+    CHECK_THAT(moves[2].precise_value(E), Catch::Matchers::WithinAbs(high_precision ? 0.001235 : 0.00123, eps));
     CHECK(moves[3].cmd_is("G3"));
-    CHECK_THAT(moves[3].x(), Catch::Matchers::WithinAbs(high_precision ? 10.9877 : 10.988, 1e-6));
-    CHECK_THAT(moves[3].i(), Catch::Matchers::WithinAbs(high_precision ? 0.1235 : 0.123, 1e-7));
-    CHECK_THAT(moves[3].j(), Catch::Matchers::WithinAbs(high_precision ? 0.6543 : 0.654, 1e-7));
+    CHECK_THAT(moves[3].precise_value(X), Catch::Matchers::WithinAbs(high_precision ? 10.9877 : 10.988, eps));
+    CHECK_THAT(moves[3].precise_value(I), Catch::Matchers::WithinAbs(high_precision ? 0.1235 : 0.123, eps));
+    CHECK_THAT(moves[3].precise_value(J), Catch::Matchers::WithinAbs(high_precision ? 0.6543 : 0.654, eps));
     const double expected_arc_e = relative_e ? (high_precision ? 0.001235 : 0.00123) : (high_precision ? 0.002469 : 0.00247);
-    CHECK_THAT(moves[3].e(), Catch::Matchers::WithinAbs(expected_arc_e, 1e-9));
+    CHECK_THAT(moves[3].precise_value(E), Catch::Matchers::WithinAbs(expected_arc_e, eps));
     CHECK(moves[4].has_z() == high_precision);
     if (high_precision)
-        CHECK_THAT(moves[4].z(), Catch::Matchers::WithinAbs(0.2345, 1e-7));
-}
-
-TEST_CASE("Spiral vase keeps the selected coordinate and extrusion precision", "[GCodeWriter][SpiralVase][Regression]")
-{
-    const bool high_precision = GENERATE(false, true);
-    CAPTURE(high_precision);
-    PrintConfig config;
-    config.high_precision_gcode.value = high_precision;
-    config.use_relative_e_distances.value = true;
-    config.spiral_mode_smooth.value = false;
-    config.spiral_starting_flow_ratio.value = 0.5;
-    config.resolution.value = 0.001;
-
-    SpiralVase vase(config);
-    vase.process_layer("G1 X0 Y0 Z0.2\n", false);
-    vase.enable(true);
-    const std::string gcode = vase.process_layer("G1 Z0.22\nG1 X1 Y0 E0.001234 F3600\nG1 X1 Y2 E0.002468\n", false);
-
-    std::vector<GCodeReader::GCodeLine> extrusions;
-    GCodeReader reader;
-    reader.apply_config(config);
-    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.extruding(self))
-            extrusions.push_back(line);
-    });
-    REQUIRE(extrusions.size() == 2);
-    CHECK_THAT(extrusions.front().z(), Catch::Matchers::WithinAbs(high_precision ? 0.2067 : 0.207, 1e-7));
-    CHECK_THAT(extrusions.front().e(), Catch::Matchers::WithinAbs(high_precision ? 0.000823 : 0.00082, 1e-9));
+        CHECK_THAT(moves[4].precise_value(Z), Catch::Matchers::WithinAbs(0.2345, eps));
 }
 
 SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {

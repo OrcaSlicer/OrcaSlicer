@@ -368,6 +368,42 @@ TEST_CASE("Sparse infill only arc fitting emits arcs in the sparse infill alone"
     CHECK(arcs_per_type("disabled").empty());
 }
 
+TEST_CASE("Exported moves use the decimal places selected by the G-code precision option", "[GCode]")
+{
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(high_precision);
+    // The pressure equalizer rewrites moves after the writer has formatted them.
+    const std::string gcode = Test::slice({ Test::cube(10.) }, {
+        { "high_precision_gcode",                high_precision },
+        { "max_volumetric_extrusion_rate_slope", 10 },
+    });
+
+    // Trailing zeros are not written, so the longest fraction per axis shows the precision in use.
+    std::map<char, size_t> max_decimals;
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line)) {
+        if (line.rfind("G1 ", 0) != 0 && line.rfind("G2 ", 0) != 0 && line.rfind("G3 ", 0) != 0)
+            continue;
+        std::istringstream words(line.substr(0, line.find(';')));
+        std::string word;
+        words >> word;
+        while (words >> word) {
+            const size_t point = word.find('.');
+            size_t &decimals = max_decimals[word.front()];
+            decimals = std::max(decimals, point == std::string::npos ? size_t(0) : word.size() - point - 1);
+        }
+    }
+
+    const size_t xyz_decimals = high_precision ? 4 : 3;
+    const size_t e_decimals   = high_precision ? 6 : 5;
+    CHECK(max_decimals['X'] == xyz_decimals);
+    CHECK(max_decimals['Y'] == xyz_decimals);
+    CHECK(max_decimals['Z'] <= xyz_decimals);
+    CHECK(max_decimals['E'] == e_decimals);
+    CHECK(max_decimals['F'] <= 3);
+}
+
 TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")
 {
     // Two filaments, so the config block carries the flush matrix already multiplied by flush_multiplier.

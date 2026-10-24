@@ -150,31 +150,31 @@ void FanMover::_put_in_middle_G1(std::list<BufferData>::iterator item_to_split, 
             before.dx = item_to_split->dx * percent;
             item_to_split->x += before.dx;
             item_to_split->dx = item_to_split->dx * (1-percent);
-            change_axis_value(before.raw, 'X', before.x + before.dx, 3);
+            change_axis_value(before.raw, 'X', before.x + before.dx, m_xyz_digits);
         }
         if (item_to_split->dy != 0) {
             before.dy = item_to_split->dy * percent;
             item_to_split->y += before.dy;
             item_to_split->dy = item_to_split->dy * (1 - percent);
-            change_axis_value(before.raw, 'Y', before.y + before.dy, 3);
+            change_axis_value(before.raw, 'Y', before.y + before.dy, m_xyz_digits);
         }
         if (item_to_split->dz != 0) {
             before.dz = item_to_split->dz * percent;
             item_to_split->z += before.dz;
             item_to_split->dz = item_to_split->dz * (1 - percent);
-            change_axis_value(before.raw, 'Z', before.z + before.dz, 3);
+            change_axis_value(before.raw, 'Z', before.z + before.dz, m_xyz_digits);
         }
         if (item_to_split->de != 0) {
             if (relative_e) {
                 before.de = item_to_split->de * percent;
-                change_axis_value(before.raw, 'E', before.de, 5);
+                change_axis_value(before.raw, 'E', before.de, m_e_digits);
                 item_to_split->de = item_to_split->de * (1 - percent);
-                change_axis_value(item_to_split->raw, 'E', item_to_split->de, 5);
+                change_axis_value(item_to_split->raw, 'E', item_to_split->de, m_e_digits);
             } else {
                 before.de = item_to_split->de * percent;
                 item_to_split->e += before.de;
                 item_to_split->de = item_to_split->de * (1 - percent);
-                change_axis_value(before.raw, 'E', before.e + before.de, 5);
+                change_axis_value(before.raw, 'E', before.e + before.de, m_e_digits);
             }
         }
         //add before then line_to_write, then there is the modified data.
@@ -202,20 +202,20 @@ void FanMover::_print_in_middle_G1(BufferData& line_to_split, float nb_sec, cons
         std::string before = line_to_split.raw;
         std::string& after = line_to_split.raw;
         if (line_to_split.dx != 0) {
-            change_axis_value(before, 'X', line_to_split.x + line_to_split.dx * percent, 3);
+            change_axis_value(before, 'X', line_to_split.x + line_to_split.dx * percent, m_xyz_digits);
         }
         if (line_to_split.dy != 0) {
-            change_axis_value(before, 'Y', line_to_split.y + line_to_split.dy * percent, 3);
+            change_axis_value(before, 'Y', line_to_split.y + line_to_split.dy * percent, m_xyz_digits);
         }
         if (line_to_split.dz != 0) {
-            change_axis_value(before, 'Z', line_to_split.z + line_to_split.dz * percent, 3);
+            change_axis_value(before, 'Z', line_to_split.z + line_to_split.dz * percent, m_xyz_digits);
         }
         if (line_to_split.de != 0) {
             if (relative_e) {
-                change_axis_value(before, 'E', line_to_split.de * percent, 5);
-                change_axis_value(after, 'E', line_to_split.de * (1 - percent), 5);
+                change_axis_value(before, 'E', line_to_split.de * percent, m_e_digits);
+                change_axis_value(after, 'E', line_to_split.de * (1 - percent), m_e_digits);
             } else {
-                change_axis_value(before, 'E', line_to_split.e + line_to_split.de * percent, 5);
+                change_axis_value(before, 'E', line_to_split.e + line_to_split.de * percent, m_e_digits);
             }
         }
         m_process_output += before + "\n";

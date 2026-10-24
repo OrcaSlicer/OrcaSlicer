@@ -1243,7 +1243,8 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
 
         output.reserve(size_t(segments) * 40);          // ~40 characters per emitted G1 line
 
-        GCodeG1Formatter w(config.high_precision_gcode.value); // set feedrate
+        // set feedrate
+        GCodeG1Formatter w(config.high_precision_gcode.value);
         w.emit_f(speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         output += w.string();

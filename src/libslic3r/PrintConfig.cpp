@@ -4725,12 +4725,12 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("high_precision_gcode", coBool);
     def->label = L("High precision G-code (experimental)");
-    def->tooltip = L("This experimental option may help stabilize extrusion by reducing G-code rounding errors. "
-                     "May be useful when printing with nozzles of small diameter (e.g. 0.2 mm) and thinner layers (e.g. 0.08 mm or less) "
-                     "that require a smaller extrusion volume per move, so the potential benefit is greater. "
-                     "Results depend strongly on how well the rest of the settings are tuned; the effect may be difficult to notice unless "
-                     "the print profile is well calibrated. Enabling this option increases the G-code file size by ~10% and may "
-                     "reduce performance on older printers.");
+    def->tooltip = L("Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce "
+                     "rounding errors in the G-code. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and "
+                     "thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors "
+                     "matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard "
+                     "to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, "
+                     "which may slow down printers that parse G-code slowly.");
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 

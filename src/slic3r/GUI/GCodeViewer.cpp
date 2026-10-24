@@ -579,7 +579,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         // "ToolPosition" layout width calculation
         const float axes_spacing_x = ImGui::CalcTextSize("sp").x;                                  // Spacing between axes labels
-        const float axes_width     = ImGui::CalcTextSize("X 999.999").x;                           // Width of the longest possible axis label
+        const char* axes_sample    = m_high_precision_gcode ? "X 999.9999" : "X 999.999";          // The longest possible axis label, see the precision of the position below
+        const float axes_width     = ImGui::CalcTextSize(axes_sample).x;                           // Width of the longest possible axis label
         const float axes_content_w = 3.0f * axes_width + 2.0f * axes_spacing_x;                    // Three axes
         const float speed_width    = ImGui::CalcTextSize((_u8L("Speed: ") + "9999  ").c_str()).x;  // Width of the longest possible speed label
         const float detail_width   = ImGui::CalcTextSize(detail_buf).x;                            // Width of the detail text
@@ -779,10 +780,12 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         ImGui::BeginGroup(); // group contents to make information area more compact
 
-        // ORCA Use colorized axes labels & reduce precision on big scaled prints
-        auto pos       =vertex.position;
-        int  max_value = std::round(std::max(std::max(pos[0], pos[1]),pos[2]));
-        auto precision = max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f";
+        // ORCA Use colorized axis labels & reduce precision on large-scale prints,
+        // show one more decimal when the G-code was exported with high precision
+        auto pos       = vertex.position;
+        int  max_value = std::round(std::max(std::max(pos[0], pos[1]), pos[2]));
+        auto precision = m_high_precision_gcode ? (max_value > 9999 ? "%.2f" : max_value > 999 ? "%.3f" : "%.4f")
+                                                : (max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f");
 
         char xBuf[32];
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
@@ -809,7 +812,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         char spdBuf[128];
         sprintf(spdBuf, "%s%.0f ", _u8L("Speed: ").c_str(), vertex.feedrate);
-        ImGuiWrapper::text(spdBuf); // render Speed as differrent item to keep next item in same place
+        ImGuiWrapper::text(spdBuf); // render Speed as different item to keep next item in same place
         
         if (detail_buf[0] != '\0') { // dont render if buffer empty
             ImGui::SameLine(speed_width);
@@ -1408,6 +1411,10 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // config block (GCodeProcessor::export_config_for_render).
     m_belt_view_enabled = gcode_result.belt_tilt_angle > 0.f;
     m_belt_angle_deg    = gcode_result.belt_tilt_angle;
+
+    // The tool position readout shows coordinates with the precision the G-code was exported with.
+    // For a file opened from disk, print.config() holds the value from its config block as well.
+    m_sequential_view.marker.set_high_precision_gcode(print.config().high_precision_gcode.value);
 
     const bool current_top_layer_only = m_viewer.is_top_layer_only_view_range();
     const bool required_top_layer_only = get_app_config()->get_bool("seq_top_layer_only");

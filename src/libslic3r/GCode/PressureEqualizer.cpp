@@ -41,8 +41,9 @@ static constexpr int max_look_back_limit = 128;
 // lines where some extruder pressure will remain (so we should equalize between these small travels)
 static constexpr long max_ignored_gap_between_extruding_segments = 3;
 
-PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config) : m_use_relative_e_distances(config.use_relative_e_distances.value),
-    m_high_precision(config.high_precision_gcode.value)
+PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config)
+    : m_use_relative_e_distances(config.use_relative_e_distances.value),
+      m_high_precision(config.high_precision_gcode.value)
 {
     // Preallocate some data, so that output_buffer.data() will return an empty string.
     output_buffer.assign(32, 0);

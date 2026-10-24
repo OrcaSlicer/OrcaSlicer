@@ -309,7 +309,7 @@ private:
 
 class GCodeFormatter {
 public:
-    explicit GCodeFormatter(bool high_precision = false) : m_high_precision(high_precision) {
+    explicit GCodeFormatter(bool high_precision) : m_high_precision(high_precision) {
         this->buf_end = buf + buflen;
         this->ptr_err.ptr = this->buf;
     }
@@ -317,17 +317,22 @@ public:
     GCodeFormatter(const GCodeFormatter&) = delete;
     GCodeFormatter& operator=(const GCodeFormatter&) = delete;
 
-    // Keep precision local to each print, including its quantization and post-processors.
+    // At extrusion width 0.4mm and layer height 0.15mm, the cross-section of extrusion is 0.4 * 0.15 = 0.06mm2
+    // and the cross-section of a 1.75mm filament is 2.405mm2,
+    // thus the filament moves 2.405 / 0.06 = 40x slower than the XY axes
+    // and we need roughly two decimal digits more on extruder than on XY.
+    // High precision G-code adds one digit to both for an order of magnitude smaller extrusion rate errors.
+    // Feedrate does not benefit from it and keeps three digits.
     static constexpr int xyz_digits(bool high_precision) { return high_precision ? 4 : 3; }
     static constexpr int e_digits(bool high_precision) { return high_precision ? 6 : 5; }
-    static constexpr const int F_EXPORT_DIGITS    = 3;
+    static constexpr const int F_EXPORT_DIGITS = 3;
     static constexpr const std::array<double, 10> pow_10 { 1., 10., 100., 1000., 10000., 100000., 1000000., 10000000., 100000000., 1000000000. };
     static constexpr const std::array<double, 10> pow_10_inv { 1. / 1., 1. / 10., 1. / 100., 1. / 1000., 1. / 10000., 1. / 100000., 1. / 1000000., 1. / 10000000., 1. / 100000000., 1. / 1000000000. };
 
     // Quantize doubles to a resolution of the G-code.
     static double quantize(double v, size_t ndigits) { return std::round(v * pow_10[ndigits]) * pow_10_inv[ndigits]; }
-    static double quantize_xyz(double v, bool high_precision = false) { return quantize(v, xyz_digits(high_precision)); }
-    static double quantize_e(double v, bool high_precision = false) { return quantize(v, e_digits(high_precision)); }
+    static double quantize_xyz(double v, bool high_precision) { return quantize(v, xyz_digits(high_precision)); }
+    static double quantize_e(double v, bool high_precision) { return quantize(v, e_digits(high_precision)); }
 
     void emit_axis(const char axis, const double v, size_t digits);
 
@@ -392,7 +397,7 @@ protected:
 
 class GCodeG1Formatter : public GCodeFormatter {
 public:
-    explicit GCodeG1Formatter(bool high_precision = false) : GCodeFormatter(high_precision) {
+    explicit GCodeG1Formatter(bool high_precision) : GCodeFormatter(high_precision) {
         this->buf[0] = 'G';
         this->buf[1] = '1';
         this->buf_end = buf + buflen;
@@ -405,7 +410,7 @@ public:
 
 class GCodeG2G3Formatter : public GCodeFormatter {
 public:
-    GCodeG2G3Formatter(bool is_ccw, bool high_precision = false) : GCodeFormatter(high_precision) {
+    GCodeG2G3Formatter(bool is_ccw, bool high_precision) : GCodeFormatter(high_precision) {
         this->buf[0] = 'G';
         this->buf[1] = is_ccw ? '3' : '2';
         this->buf_end = buf + buflen;
