@@ -1123,6 +1123,18 @@ std::string NetworkAgent::get_local_camera_stream_url() const
     return {};
 }
 
+bool NetworkAgent::supports_filament_push() const
+{
+    return m_printer_agent && m_printer_agent->supports_filament_push();
+}
+
+bool NetworkAgent::push_filament_info(std::string dev_id, const IPrinterAgent::FilamentSlotInfo& info)
+{
+    if (m_printer_agent)
+        return m_printer_agent->push_filament_info(dev_id, info);
+    return false;
+}
+
 bool NetworkAgent::bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl)
 {
     if (m_printer_agent)

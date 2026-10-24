@@ -283,6 +283,11 @@ namespace Slic3r {
 
 namespace MoonrakerFilamentDialect {
 
+bool dialect_supports_push(Dialect dialect)
+{
+    return dialect == Dialect::afc_lane_data || dialect == Dialect::happy_hare;
+}
+
 std::string dialect_name(Dialect dialect)
 {
     switch (dialect) {
@@ -291,6 +296,27 @@ std::string dialect_name(Dialect dialect)
     case Dialect::none: break;
     }
     return {};
+}
+
+// RRGGBB from the dialog's RRGGBBAA (or #RRGGBB); both dialects store colour without alpha.
+static std::string rgb_of(const std::string& color_rgba)
+{
+    std::string hex;
+    for (char c : color_rgba)
+        if (std::isxdigit(static_cast<unsigned char>(c)))
+            hex.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
+    return hex.size() >= 6 ? hex.substr(0, 6) : "FFFFFF";
+}
+
+std::vector<std::string> afc_push_scripts(const IPrinterAgent::FilamentSlotInfo& info)
+{
+    return {"SET_COLOR LANE=" + info.name + " COLOR=" + rgb_of(info.color_rgba),
+            "SET_MATERIAL LANE=" + info.name + " MATERIAL=" + info.type};
+}
+
+std::string happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info)
+{
+    return "MMU_GATE_MAP GATE=" + std::to_string(info.slot) + " MATERIAL=" + info.type + " COLOR=" + rgb_of(info.color_rgba);
 }
 
 int extruder_index_from_name(const std::string& name)
@@ -959,6 +985,48 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
     return false;
+}
+
+bool MoonrakerPrinterAgent::supports_filament_push() const
+{
+    return MoonrakerFilamentDialect::dialect_supports_push(m_filament_dialect);
+}
+
+bool MoonrakerPrinterAgent::push_filament_info(std::string dev_id, const FilamentSlotInfo& info)
+{
+    using namespace MoonrakerFilamentDialect;
+    if (!ensure_device_info(dev_id))
+        return false;
+
+    // Re-read first: the changer may have been reconfigured or removed since the dialog opened.
+    const Dialect expected = m_filament_dialect;
+    if (!fetch_filament_info(dev_id) || m_filament_dialect != expected) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::push_filament_info: changer no longer reports the "
+                                   << dialect_name(expected) << " dialect; nothing written";
+        return false;
+    }
+
+    std::vector<std::string> scripts;
+    if (m_filament_dialect == Dialect::afc_lane_data) {
+        if (info.name.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::push_filament_info: slot " << info.slot << " has no AFC lane name";
+            return false;
+        }
+        scripts = afc_push_scripts(info);
+    } else if (m_filament_dialect == Dialect::happy_hare) {
+        scripts = {happy_hare_push_script(info)};
+    } else {
+        return false;
+    }
+
+    for (const std::string& script : scripts) {
+        if (!send_gcode_sync(dev_id, script)) {
+            BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::push_filament_info failed: " << script;
+            return false;
+        }
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::push_filament_info ok: " << script;
+    }
+    return true;
 }
 
 std::string MoonrakerPrinterAgent::trim_and_upper(const std::string& input)

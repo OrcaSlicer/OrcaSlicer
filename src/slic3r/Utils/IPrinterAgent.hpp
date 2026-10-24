@@ -478,6 +478,23 @@ public:
      */
     virtual std::string get_camera_url() const { return {}; }
 
+    // Printer-neutral filament assignment for one slot, written by push_filament_info().
+    struct FilamentSlotInfo
+    {
+        int         slot = 0;    ///< 0-based physical tool / lane index
+        std::string name;        ///< the printer's own name for the slot ("lane1", "e1"); "" = none
+        std::string vendor;      ///< filament vendor ("" = unspecified)
+        std::string type;        ///< base material type, e.g. "PLA"
+        std::string sub_type;    ///< vendor product line, e.g. "SnapSpeed" ("" = none)
+        std::string color_rgba;  ///< RRGGBBAA
+    };
+
+    // Slots read from an NFC/RFID tag (DevAmsTray::tag_uid non-zero) must not be pushed; the tag is authoritative.
+    virtual bool supports_filament_push() const { return false; }
+
+    // Blocking. Returns true on printer-confirmed success.
+    virtual bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) { return false; }
+
     // Points REST calls at a printer without opening connect_printer()'s status stream. Returns
     // true once dev_id is addressable (already bound counts).
     virtual bool bind_device_connection(const std::string& dev_id, const std::string& address,

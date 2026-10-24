@@ -48,7 +48,10 @@ struct MoonrakerAmsTrayData {
 // AFC addresses lanes by name, Happy Hare gates by index; neither carries vendor or sub-type.
 namespace MoonrakerFilamentDialect {
 enum class Dialect { none, afc_lane_data, happy_hare };
+bool        dialect_supports_push(Dialect dialect);
 std::string dialect_name(Dialect dialect);
+std::vector<std::string> afc_push_scripts(const IPrinterAgent::FilamentSlotInfo& info);
+std::string              happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info);
 // The lane_data record ("lane" = virtual tool, "unit", optional "unit_name", "slot", "extruder" or
 // "extruder_index") was defined together with the AFC developers. A field the record leaves out or
 // blank keeps what the tray already holds, so an AFC_stepper status object only fills gaps.
@@ -111,6 +114,9 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+    // Writes use the dialect the last fetch read.
+    bool supports_filament_push() const override;
+    bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) override;
     bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl) override;
 
     // JSON helper methods
