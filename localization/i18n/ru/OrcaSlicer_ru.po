@@ -38141,9 +38141,10 @@ msgid "Reset to defaults"
 msgstr "По умолчанию"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Строка таблицы %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Строка таблицы %d: %s"
 
 # AI Translated
 msgid ""
@@ -38200,6 +38201,11 @@ msgstr "Последний коэф. коррекции потока равен 
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Модель пуста. Компенсация потока не применяется."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Модель компенсации потока: %s"
 
 msgid "Import CSV"
 msgstr "Импорт CSV"
@@ -38264,4 +38270,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Средняя кнопка: двигайте график по осям."
-

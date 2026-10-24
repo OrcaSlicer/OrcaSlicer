@@ -400,3 +400,4 @@ src/slic3r/GUI/CurveEditorPanelPaint.cpp
 src/slic3r/GUI/SmallAreaInfillFlowCompensationDialog.cpp
 src/libslic3r/CurveModel.cpp
 src/libslic3r/GCode/SmallAreaInfillFlowCompensationModel.cpp
+src/libslic3r/GCode/SmallAreaInfillFlowCompensator.cpp

@@ -38498,9 +38498,10 @@ msgid "Reset to defaults"
 msgstr "คืนค่าเริ่มต้น"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "แถวตาราง %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "แถวตาราง %d: %s"
 
 # AI Translated
 # Needs human review: Check the mathematical wording for finite values and strictly increasing points.
@@ -38563,6 +38564,11 @@ msgstr "ตัวคูณแก้ไขการไหลสุดท้าย
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "แบบจำลองว่าง จะไม่ชดเชยการไหล"
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "แบบจำลองการชดเชยการไหล: %s"
 
 # Needs human review: Check technical wording and concise UI phrasing.
 msgid "Import CSV"
@@ -38641,4 +38647,3 @@ msgstr ""
 # Needs human review: confirm natural wording for middle-button graph panning.
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "ปุ่มเมาส์กลาง: ลากเพื่อเลื่อนทั้งสองแกน"
-

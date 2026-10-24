@@ -39915,9 +39915,10 @@ msgid "Reset to defaults"
 msgstr "初期値に戻す"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "表の行 %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "表の行 %d: %s"
 
 # AI Translated
 msgid ""
@@ -39974,6 +39975,11 @@ msgstr "最後の流量補正係数は1である必要があります。"
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "モデルが空です。流量補正は適用されません。"
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "流量補正モデル: %s"
 
 msgid "Import CSV"
 msgstr "CSV読込"
@@ -40038,4 +40044,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "マウスの中ボタン：ドラッグで両軸を移動。"
-

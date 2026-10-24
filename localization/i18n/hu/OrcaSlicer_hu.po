@@ -38686,9 +38686,10 @@ msgid "Reset to defaults"
 msgstr "Alappontok"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Táblázat %d. sora: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Táblázat %d. sora: %s"
 
 # AI Translated
 msgid ""
@@ -38745,6 +38746,11 @@ msgstr "Utolsó áramláskorrekciós szorzó legyen 1."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Üres modell. Nincs áramláskompenzáció."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Áramláskompenzációs modell: %s"
 
 msgid "Import CSV"
 msgstr "CSV import"
@@ -38809,4 +38815,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Középső gomb: húzza mindkét tengelyt."
-

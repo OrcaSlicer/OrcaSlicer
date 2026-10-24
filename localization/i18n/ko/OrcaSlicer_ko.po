@@ -39026,9 +39026,10 @@ msgid "Reset to defaults"
 msgstr "기본값 복원"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "표의 %d행: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "표의 %d행: %s"
 
 # AI Translated
 msgid ""
@@ -39085,6 +39086,11 @@ msgstr "마지막 압출량 보정 계수는 1이어야 합니다."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "모델이 비어 있습니다. 압출량 보상이 적용되지 않습니다."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "압출량 보상 모델: %s"
 
 msgid "Import CSV"
 msgstr "CSV 가져오기"
@@ -39149,4 +39155,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "마우스 가운데 버튼: 드래그로 두 축을 이동합니다."
-

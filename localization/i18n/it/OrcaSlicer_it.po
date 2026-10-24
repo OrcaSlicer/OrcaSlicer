@@ -38521,9 +38521,10 @@ msgid "Reset to defaults"
 msgstr "Punti predefiniti"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Riga tabella %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Riga tabella %d: %s"
 
 # AI Translated
 msgid ""
@@ -38580,6 +38581,11 @@ msgstr "Ultimo fattore corr. flusso: deve essere 1."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modello vuoto. Nessuna compensazione del flusso."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Modello di compensazione del flusso: %s"
 
 msgid "Import CSV"
 msgstr "Importa CSV"
@@ -38644,4 +38650,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Tasto centrale: trascina entrambi gli assi."
-
