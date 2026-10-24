@@ -496,10 +496,12 @@ void DesignPanel::mirror_card(CardModel& card, SidebarCtx& cx)
     const float lw = ImGui::GetContentRegionAvail().x * 0.42f;
     auto cell = [&](CardField* f) {
         const float w = std::max(ImGui::GetContentRegionAvail().x, 60.f * em);
+        // A number's box leaves room for its - and + buttons; every other input is held to that same width so they line up.
+        const float box_w = std::max(w - (2.f * ImGui::GetFrameHeight() + 2.f * ImGui::GetStyle().ItemSpacing.x), 40.f * em);
         switch (f->kind()) {
         case CardField::Kind::Num:      draw_num_field(static_cast<NumField*>(f), em, w);       break;
-        case CardField::Kind::Choice:   if (static_cast<ChoiceField*>(f)->IsEditable()) draw_editable_choice(static_cast<ChoiceField*>(f), w); else draw_choice_field(static_cast<ChoiceField*>(f), w); break;
-        case CardField::Kind::Edit:     draw_edit_field(static_cast<TextField*>(f), w);          break;
+        case CardField::Kind::Choice:   if (static_cast<ChoiceField*>(f)->IsEditable()) draw_editable_choice(static_cast<ChoiceField*>(f), box_w); else draw_choice_field(static_cast<ChoiceField*>(f), box_w); break;
+        case CardField::Kind::Edit:     draw_edit_field(static_cast<TextField*>(f), box_w);      break;
         case CardField::Kind::List:     draw_list_field(static_cast<ListField*>(f), em);         break;
         case CardField::Kind::Rows:     draw_rows(static_cast<RowsField*>(f)->list(), em, cx);   break;
         case CardField::Kind::Table: {
