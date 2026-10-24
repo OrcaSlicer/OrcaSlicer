@@ -71,6 +71,7 @@
 #include <windows.h>
 #include <VersionHelpers.h>
 #include <sysinfoapi.h>
+#include <winternl.h>
 #endif
 
 #ifdef __LINUX__
