@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <initializer_list>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
@@ -26,7 +27,10 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintBase.hpp"
 #include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include <limits>
 #include <map>
@@ -2412,6 +2416,62 @@ std::set<int> commanded_tools(const std::string &gcode, int up_to)
     }
     return tools;
 }
+
+// Eight project filaments on a four-tool printer.
+DynamicPrintConfig four_tool_config(std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra)
+{
+    DynamicPrintConfig config = multifilament_config(8, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "enable_prime_tower",             "0" },
+        { "gcode_comments",                 "1" },   // init_print forces it; re-apply must match
+        { "layer_change_gcode",             "G92 E0" },
+    });
+    config.set_deserialize_strict({ { "enable_filament_mapping", "1" }, { "gcode_flavor", "klipper" } });
+    config.set_deserialize_strict(extra);
+    return config;
+}
+
+std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> one_filament_each(std::initializer_list<const char*> filaments)
+{
+    std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> out;
+    for (const char *f : filaments)
+        out.push_back({ { "extruder", f } });
+    return out;
+}
+
+std::string slicing_error(Print &print)
+{
+    try { print.process(); } catch (const Slic3r::SlicingError &e) { return e.what(); }
+    return {};
+}
+
+// validate() accepts the plate; process() refuses it for too many filaments unless it `fits`.
+void check_plate_fits(Print &print, bool fits)
+{
+    const std::string err = print.validate().string;
+    INFO("validate() said: " << err);
+    REQUIRE(err.empty());
+    const std::string slicing = slicing_error(print);
+    INFO("process() said: " << slicing);
+    CHECK(slicing.empty() == fits);
+    if (!fits)
+        CHECK(slicing.find("filaments on one plate") != std::string::npos);
+}
+
+// Makes filament 5 of six a mix of the 1-based `components` ("1,3").
+void with_mix(DynamicPrintConfig &config, const std::string &components)
+{
+    config.set_deserialize_strict({
+        { "filament_is_mixed",               "0,0,0,0,1,0" },
+        { "filament_mixed_components",       ";;;;" + components + ";" },
+        { "filament_mixed_sublayer_ratios",  ";;;;0.5,0.5;" },
+        { "filament_mixed_gradient",         "0,0,0,0,0,0" },
+        { "filament_mixed_gradient_range",   ";;;;;" },
+        { "filament_mixed_gradient_curve",   ";;;;;" },
+        { "filament_mixed_gradient_per_part","0,0,0,0,0,0" },
+    });
+}
 } // namespace
 
 TEST_CASE("A decoupled printer slices logically despite stray manual maps", "[MultiFilament]") {
@@ -2432,7 +2492,7 @@ TEST_CASE("A decoupled printer slices logically despite stray manual maps", "[Mu
 
 // Print::update_filament_maps_to_config() writes derived maps back after slicing; with more
 // filaments than extruders, normalize_fdm_1 must produce the same values or every reapply diffs.
-TEST_CASE("Reapplying an unchanged device-mapped config after slicing does not report a diff", "[MultiFilament]") {
+TEST_CASE("Reapplying an unchanged decoupled config after slicing does not report a diff", "[MultiFilament]") {
     struct Case { const char* name; std::vector<Slic3r::ConfigBase::SetDeserializeItem> config; };
     const Case c = GENERATE(
         // Stray manual map, as a migrated project would carry.
@@ -2460,7 +2520,7 @@ TEST_CASE("Reapplying an unchanged device-mapped config after slicing does not r
 }
 
 // The namespace is the nozzle count.
-TEST_CASE("More filaments than tools slice to logical tool indices when the device resolves mapping", "[MultiFilament]") {
+TEST_CASE("More filaments than tools slice to logical tool indices when filaments are decoupled", "[MultiFilament]") {
     DynamicPrintConfig config = multifilament_config(5, {
         { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
         { "single_extruder_multi_material", "0" },
@@ -2474,6 +2534,181 @@ TEST_CASE("More filaments than tools slice to logical tool indices when the devi
     CHECK(commanded_tools(Slic3r::Test::slice({ TestMesh::cube_with_hole }, config), 5) == std::set<int>{ 0, 1, 3 });
 }
 
+// The option is on by default, so a project that fits the printer's tools must not change.
+TEST_CASE("A plate that fits the printer's tools slices the same with filaments decoupled or not", "[MultiFilament]") {
+    struct Case { const char* name; int filaments; const char* nozzles; };
+    const Case c = GENERATE(Case{ "four tools", 4, "0.4,0.4,0.4,0.4" },
+                            Case{ "two tools",  2, "0.4,0.4" });
+
+    DYNAMIC_SECTION(c.name) {
+        // Comments are dropped: the config dump names the option itself.
+        auto commands = [&](const char* decoupled) {
+            DynamicPrintConfig config = multifilament_config(c.filaments, {
+                { "nozzle_diameter",                c.nozzles },
+                { "single_extruder_multi_material", "0" },
+                { "enable_filament_mapping",        decoupled },
+                { "wall_filament",                  "1" },
+                { "sparse_infill_filament",         "2" },
+                { "solid_infill_filament",          c.filaments },
+                { "enable_prime_tower",             "1" },
+                { "layer_change_gcode",             "G92 E0" },
+            });
+            std::istringstream lines(Slic3r::Test::slice({ TestMesh::cube_with_hole }, config));
+            std::vector<std::string> out;
+            for (std::string line; std::getline(lines, line);)
+                if (line = line.substr(0, line.find(';')); !line.empty())
+                    out.push_back(line);
+            return out;
+        };
+        const std::vector<std::string> coupled = commands("0");
+        REQUIRE_FALSE(coupled.empty());
+        CHECK(commands("1") == coupled);
+    }
+}
+
+// A printer has no tool past its last one, so filaments 1, 4 and 7 print as T0..T2.
+TEST_CASE("A sparse plate slices to consecutive tool ids", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(8, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "enable_filament_mapping",        "1" },
+        { "outer_wall_filament_id",         4 },
+        { "sparse_infill_filament_id",      7 },
+        { "internal_solid_filament_id",     7 },
+        { "enable_prime_tower",             "0" },
+        { "gcode_comments",                 "1" },
+        // Required by validate() for Marlin with relative E.
+        { "layer_change_gcode",             "G92 E0" },
+    });
+    CHECK(commanded_tools(Slic3r::Test::slice({ TestMesh::cube_with_hole }, config), 8) == std::set<int>{ 0, 1, 2 });
+}
+
+TEST_CASE("A mix's components are the tools the printer sees", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(6, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "wall_filament",                  "3" },
+        { "sparse_infill_filament",         "5" },
+        { "solid_infill_filament",          "5" },
+        { "enable_prime_tower",             "0" },
+        { "layer_change_gcode",             "G92 E0" },
+    });
+    with_mix(config, "1,3");
+    config.set_deserialize_strict({ { "enable_filament_mapping", "1" } });
+    const std::string gcode = Slic3r::Test::slice({ TestMesh::cube_with_hole }, config);
+    // Tool changes only; temperature commands are not checked here.
+    std::set<int> tools;
+    for (int tool = 0; tool < 6; ++tool)
+        if (gcode.find("\nT" + std::to_string(tool)) != std::string::npos)
+            tools.insert(tool);
+    CHECK(tools == std::set<int>{ 0, 2 });
+}
+
+// A start sequence that heats every printing filament (non-Klipper) and the heat-up before each
+// further object printed by object must name the mix's components, not the mix.
+TEST_CASE("A mixed slot never reaches the printer as a tool number", "[MultiFilament]") {
+    struct Case { const char *name; PrintSequence sequence; const char *flavor; };
+    const Case c = GENERATE(Case{ "by layer, Marlin",   PrintSequence::ByLayer,  "marlin2" },
+                            Case{ "by object, Klipper", PrintSequence::ByObject, "klipper" });
+    DYNAMIC_SECTION(c.name) {
+        // Four tools; filament 5 mixes filaments 1 and 3, which the plate also prints directly.
+        DynamicPrintConfig config = multifilament_config(6, {
+            { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+            { "single_extruder_multi_material", "0" },
+            { "wall_filament",                  "3" },
+            { "sparse_infill_filament",         "5" },
+            { "solid_infill_filament",          "1" },
+            { "enable_prime_tower",             "0" },
+            { "extruder_clearance_radius",      "1" },
+            { "layer_change_gcode",             "G92 E0" },
+        });
+        with_mix(config, "1,3");
+        config.set_deserialize_strict({ { "enable_filament_mapping", "1" }, { "gcode_flavor", c.flavor } });
+        config.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(c.sequence));
+
+        // Not arranged: by-object printing needs the clearance.
+        std::vector<TriangleMesh> cubes;
+        for (const Vec2d &at : { Vec2d(40, 40), Vec2d(100, 100) }) {
+            cubes.push_back(cube(20));
+            cubes.back().translate(float(at.x()), float(at.y()), 0.f);
+        }
+        Model model;
+        Print print;
+        Slic3r::Test::init_print(std::move(cubes), print, model, config, nullptr, /*arrange=*/false);
+        CHECK(commanded_tools(Slic3r::Test::gcode(print), 100) == std::set<int>{ 0, 2 });
+    }
+}
+
+// Feature filaments are only known after slicing, so that refusal comes from process().
+TEST_CASE("A plate is bounded by the number of distinct filaments it uses, not their numbers", "[MultiFilament]") {
+    struct Case { const char* name; const char* nozzles; bool valid; };
+    const Case c = GENERATE(
+        Case{ "four tools: filament 5 on a three-filament plate is renumbered, fine", "0.4,0.4,0.4,0.4", true  },
+        Case{ "two tools reject a three-filament plate",                              "0.4,0.4",         false });
+
+    DYNAMIC_SECTION(c.name) {
+        DynamicPrintConfig config = multifilament_config(5, {
+            { "nozzle_diameter",                c.nozzles },
+            { "single_extruder_multi_material", "0" },
+            { "enable_filament_mapping",        "1" },
+            { "wall_filament",                  "1" },
+            { "sparse_infill_filament",         "2" },
+            { "solid_infill_filament",          "5" },
+            { "layer_change_gcode",             "G92 E0" },
+        });
+
+        Model model;
+        Print print;
+        Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+        check_plate_fits(print, c.valid);
+    }
+}
+
+TEST_CASE("A plate reaching past the namespace slices to dense tool numbers", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(5, {
+        { "nozzle_diameter",                "0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "enable_filament_mapping",        "1" },
+        { "wall_filament",                  "1" },
+        { "sparse_infill_filament",         "2" },
+        { "solid_infill_filament",          "5" },
+        { "enable_prime_tower",             "1" },
+        { "gcode_comments",                 "1" },
+        { "layer_change_gcode",             "G92 E0" },
+    });
+    const std::string gcode = Slic3r::Test::slice({ TestMesh::cube_with_hole }, config);
+    CHECK(gcode.find("\nT2") != std::string::npos);
+    CHECK(gcode.find("\nT4") == std::string::npos);
+}
+
+TEST_CASE("A mixed filament counts as its components against the namespace", "[MultiFilament]") {
+    struct Case { const char* name; const char* components; bool valid; };
+    const Case c = GENERATE(
+        Case{ "a mix of tools 1 and 2 fits four tools",                 "1,2",     true  },
+        Case{ "a mix that pulls in filament 6 is renumbered to fit",     "1,6",     true  },
+        Case{ "a mix of four plus the wall's filament is five distinct", "2,3,4,6", false });
+
+    DYNAMIC_SECTION(c.name) {
+        DynamicPrintConfig config = multifilament_config(6, {
+            { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+            { "single_extruder_multi_material", "0" },
+            { "enable_filament_mapping",        "1" },
+            { "wall_filament",                  "1" },
+            { "sparse_infill_filament",         "5" },
+            { "solid_infill_filament",          "5" },
+            { "layer_change_gcode",             "G92 E0" },
+        });
+        with_mix(config, c.components);
+
+        Model model;
+        Print print;
+        Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+        check_plate_fits(print, c.valid);
+    }
+}
+
+// The filament set is collected from the model before any region exists, and must match
+// Print::extruders.
 namespace {
 ModelFilaments filaments_from_model(const Model &model, const DynamicPrintConfig &full)
 {
@@ -2525,4 +2760,130 @@ TEST_CASE("A layer tool change and a height range join the model-level filament 
     CHECK(filaments.tool_changes == std::vector<unsigned int>{ 4 });
     // A height range filament is a part filament.
     CHECK(std::count(filaments.parts.begin(), filaments.parts.end(), 3u) == 1);
+}
+
+// The packed copy, including its "unused reference becomes 0" rewrite, is rebuilt on every apply.
+TEST_CASE("A renumbered plate re-applied unchanged stays unchanged", "[MultiFilament][FilamentCompaction]") {
+    DynamicPrintConfig config = multifilament_config(8, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "support_filament",               "2" },   // support is off
+        { "enable_prime_tower",             "0" },
+        { "gcode_comments",                 "1" },   // init_print forces it; re-apply must match
+        { "layer_change_gcode",             "G92 E0" },
+    });
+    config.set_deserialize_strict({ { "enable_filament_mapping", "1" } });
+    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides { { { "extruder", "7" } } };
+    Model model;
+    Print print;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+    REQUIRE(!print.filament_compaction().slot_of_tool.empty());
+    print.process();
+    CHECK((int) print.apply(model, config) == (int) PrintBase::APPLY_STATUS_UNCHANGED);
+}
+
+TEST_CASE("A single-tool printer has no plate filament set", "[MultiFilament][FilamentCompaction]") {
+    DynamicPrintConfig config = multifilament_config(5, { { "outer_wall_filament_id", "5" }, { "layer_change_gcode", "G92 E0" } });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config);
+    CHECK(print.filament_compaction().slot_of_tool.empty());
+    CHECK(print.filament_compaction().used_slots.empty());
+}
+
+// The model needs no support, so the support filament never extrudes. By-object printing and a
+// non-Klipper start sequence still heat every configured filament, so there it is refused.
+TEST_CASE("A support filament that prints nothing does not refuse a four-filament plate", "[MultiFilament][FilamentCompaction]") {
+    struct Case { const char *name; PrintSequence sequence; const char *flavor; bool prints; };
+    const Case c = GENERATE(Case{ "by layer, Klipper",  PrintSequence::ByLayer,  "klipper", true  },
+                            Case{ "by object, Klipper", PrintSequence::ByObject, "klipper", false },
+                            Case{ "by layer, Marlin",   PrintSequence::ByLayer,  "marlin2", false });
+    DYNAMIC_SECTION(c.name) {
+        DynamicPrintConfig config = four_tool_config({ { "enable_support", "1" }, { "support_filament", "2" },
+                                                       { "extruder_clearance_radius", "1" }, { "gcode_flavor", c.flavor } });
+        config.set_key_value("print_sequence", new ConfigOptionEnum<PrintSequence>(c.sequence));
+        const auto overrides = one_filament_each({ "3", "5", "6", "8" });
+
+        // Not arranged: by-object printing needs the clearance.
+        std::vector<TriangleMesh> cubes;
+        for (const Vec2d &at : { Vec2d(40, 40), Vec2d(100, 40), Vec2d(40, 100), Vec2d(100, 100) }) {
+            cubes.push_back(cube(20));
+            cubes.back().translate(float(at.x()), float(at.y()), 0.f);
+        }
+        Model model;
+        Print print;
+        Slic3r::Test::init_print(std::move(cubes), print, model, config, &overrides, /*arrange=*/false);
+        check_plate_fits(print, c.prints);
+        if (c.prints)
+            CHECK(commanded_tools(Slic3r::Test::gcode(print), 8) == std::set<int>{ 0, 1, 2, 3 });
+    }
+}
+
+TEST_CASE("Five part filaments are refused before slicing on four tools", "[MultiFilament][FilamentCompaction]") {
+    const DynamicPrintConfig config = four_tool_config({});
+    const auto overrides = one_filament_each({ "1", "2", "3", "4", "5" });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ cube(10), cube(10), cube(10), cube(10), cube(10) }, print, model, config, &overrides);
+    CHECK(print.validate().string.find("filaments on one plate") != std::string::npos);
+}
+
+TEST_CASE("A feature filament that does print is refused after slicing when it does not fit", "[MultiFilament][FilamentCompaction]") {
+    const DynamicPrintConfig config = four_tool_config({ { "top_surface_filament_id", "7" } });
+    const auto overrides = one_filament_each({ "1", "2", "3", "4" });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ cube(10), cube(10), cube(10), cube(10) }, print, model, config, &overrides);
+    check_plate_fits(print, false);
+}
+
+// A layer tool change only takes effect when every object prints with one filament (ToolOrdering),
+// so filament 7 never prints here, yet it ranks above support, which does.
+TEST_CASE("A plate numbered past the printer's tools is renumbered and resliced", "[MultiFilament][FilamentCompaction]") {
+    // The renumber changes no source object; an object-level reference must still follow it.
+    const bool per_object = GENERATE(false, true);
+    DYNAMIC_SECTION((per_object ? "support filament set on the object" : "support filament set globally")) {
+        const DynamicPrintConfig config = four_tool_config({ { "enable_support", "1" }, { "support_filament", per_object ? "0" : "8" } });
+        auto overrides = one_filament_each({ "1", "2", "3" });
+        if (per_object)
+            overrides.front().push_back({ "support_filament", "8" });
+        Model model;
+        Print print;
+        Slic3r::Test::init_print(std::vector<TriangleMesh>{ mesh(TestMesh::overhang), cube(20), cube(20) }, print, model, config, &overrides);
+        model.plates_custom_gcodes[model.curr_plate_index].gcodes.push_back(
+            CustomGCode::Item{ 5., CustomGCode::Type::ToolChange, 7, "", "" });
+        print.apply(model, config);
+        INFO("validate() said: " << print.validate().string);
+        REQUIRE(print.validate().string.empty());
+
+        // T0-T2 the parts, T3 filament 7 (never printed), T4 the support filament (printed).
+        print.set_status_silent();
+        REQUIRE_THROWS_AS(print.process(), FilamentRenumberRequired);
+
+        // The Print remembers what did not print and numbers it last.
+        print.apply(model, config);
+        CHECK(commanded_tools(Slic3r::Test::gcode(print), 8) == std::set<int>{ 0, 1, 2, 3 });
+        CHECK((int) print.apply(model, config) == (int) PrintBase::APPLY_STATUS_UNCHANGED);
+    }
+}
+
+TEST_CASE("An untouched object follows the numbering when another object's filament changes", "[MultiFilament][FilamentCompaction]") {
+    DynamicPrintConfig config = multifilament_config(9, {
+        { "nozzle_diameter",                "0.4,0.4,0.4,0.4" },
+        { "single_extruder_multi_material", "0" },
+        { "enable_prime_tower",             "0" },
+        { "gcode_comments",                 "1" },
+        { "layer_change_gcode",             "G92 E0" },
+    });
+    config.set_deserialize_strict({ { "enable_filament_mapping", "1" }, { "gcode_flavor", "klipper" } });
+    const auto overrides = one_filament_each({ "1", "5", "8" });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ cube(10), cube(10), cube(10) }, print, model, config, &overrides);
+    REQUIRE(commanded_tools(Slic3r::Test::gcode(print), 8) == std::set<int>{ 0, 1, 2 });
+
+    // Filament 8 on the untouched object moves from T2 to T1.
+    model.objects[1]->config.set("extruder", 9);
+    print.apply(model, config);
+    CHECK(commanded_tools(Slic3r::Test::gcode(print), 8) == std::set<int>{ 0, 1, 2 });
 }
