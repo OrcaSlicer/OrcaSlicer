@@ -2334,6 +2334,8 @@ public:
         plugin_config,
         // PrinterAgentChoice
         printer_agent_select,
+        // A complete numeric curve edited through a dialog, independent of extruder count.
+        curve,
     };
 
 	// Identifier of this option. It is stored here so that it is accessible through the by_serialization_key_ordinal map.
@@ -2353,6 +2355,7 @@ public:
     ConfigOption*						create_default_option() const;
 
     bool                                is_scalar()     const { return (int(this->type) & int(coVectorType)) == 0; }
+    bool                                is_curve()      const { return gui_type == GUIType::curve; }
 
     template<class Archive> ConfigOption* load_option_from_archive(Archive& archive) const
     {
