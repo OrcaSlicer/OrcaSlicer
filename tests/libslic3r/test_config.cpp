@@ -1844,10 +1844,39 @@ TEST_CASE("Every listed filament override is nullable", "[Config]")
 {
     std::set<std::string> overrides(Slic3r::filament_extruder_override_keys.begin(), Slic3r::filament_extruder_override_keys.end());
     overrides.insert({ "filament_retract_length_nc", "filament_ironing_flow", "filament_ironing_spacing", "filament_ironing_inset", "filament_ironing_speed" });
+    overrides = Slic3r::with_filament_flow_overrides(std::move(overrides));
     for (const auto &[key, def] : Slic3r::print_config_def.options) {
         INFO(key);
         CHECK(Slic3r::is_filament_extruder_override_key(key) == (overrides.count(key) == 1));
         if (overrides.count(key) == 1)
             CHECK(def.nullable);
     }
+}
+
+TEST_CASE("Every filament flow override is expanded per extruder variant", "[Config]")
+{
+    // filament_options_with_variant lists the flow overrides literally, so it must follow flow_ratio_overrides.
+    for (const std::string &key : Slic3r::with_filament_flow_overrides(std::vector<std::string>{})) {
+        INFO(key);
+        CHECK(Slic3r::filament_options_with_variant.count(key) == 1);
+    }
+}
+
+TEST_CASE("Empty and short filament override vectors safely inherit", "[Config][Regression]")
+{
+    const size_t slot = GENERATE(size_t(0), size_t(1), size_t(7));
+    ConfigOptionFloatsNullable ratios;
+    ConfigOptionBoolsNullable gates;
+    CHECK_FALSE(has_filament_override(&ratios, slot));
+    CHECK_FALSE(has_filament_override(&gates, slot));
+    CHECK_THAT(resolve_filament_override(ratios, slot, 0.8), Catch::Matchers::WithinAbs(0.8, 1e-9));
+    CHECK(resolve_filament_override(gates, slot, true));
+    ratios.values = {ConfigOptionFloatsNullable::nil_value()};
+    gates.values = {ConfigOptionBoolsNullable::nil_value()};
+    CHECK_FALSE(has_filament_override(&ratios, slot));
+    CHECK_FALSE(has_filament_override(&gates, slot));
+    ratios.values = {1.2};
+    gates.values = {0};
+    CHECK_THAT(resolve_filament_override(ratios, slot, 0.8), Catch::Matchers::WithinAbs(1.2, 1e-9));
+    CHECK_FALSE(resolve_filament_override(gates, slot, true));
 }

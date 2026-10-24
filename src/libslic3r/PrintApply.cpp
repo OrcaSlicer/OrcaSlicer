@@ -802,7 +802,7 @@ PrintObjectRegions::BoundingBox find_modifier_volume_extents(const PrintObjectRe
     return out;
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index);
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index, int active_flow_overrides);
 
 void print_region_ref_inc(PrintRegion &r) { ++ r.m_ref_cnt; }
 void print_region_ref_reset(PrintRegion &r) { r.m_ref_cnt = 0; }
@@ -817,7 +817,8 @@ bool verify_update_print_object_regions(
     size_t                              num_extruders,
     PrintObjectRegions                 &print_object_regions,
     const std::function<void(const PrintRegionConfig&, const PrintRegionConfig&, const t_config_option_keys&)> &callback_invalidate,
-    std::vector<int>& variant_index)
+    std::vector<int>& variant_index,
+    int                                 active_flow_overrides)
 {
     // Sort by ModelVolume ID.
     model_volumes_sort_by_id(model_volumes);
@@ -862,7 +863,7 @@ bool verify_update_print_object_regions(
                             } else if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox))
                                 // Such parent region does not exist. If it is needed, then we need to reslice.
                                 // Only create new region for a modifier, which actually modifies config of it's parent.
-                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume, num_extruders, variant_index);
+                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume, num_extruders, variant_index, active_flow_overrides);
                                     config != parent_region.region->config())
                                     // This modifier newly overrides a region, which it did not before. We need to reslice.
                                     return false;
@@ -870,8 +871,8 @@ bool verify_update_print_object_regions(
                     }
                 }
                 PrintRegionConfig cfg = region.parent == -1 ?
-                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, num_extruders, variant_index) :
-                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume, num_extruders, variant_index);
+                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, num_extruders, variant_index, active_flow_overrides) :
+                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume, num_extruders, variant_index, active_flow_overrides);
                 if (cfg != region.region->config()) {
                     // Region configuration changed.
                     if (print_region_ref_cnt(*region.region) == 0) {
@@ -1049,6 +1050,7 @@ static PrintObjectRegions* generate_print_object_regions(
     const float                                  xy_contour_compensation,
     const std::vector<unsigned int>             &painting_extruders,
     std::vector<int>                            &variant_index,
+    int                                          active_flow_overrides,
     const bool                                   has_painted_fuzzy_skin,
     // Per-part gradient: slot_per_part_enabled[s-1] is true when mixed slot s has
     // filament_mixed_gradient_per_part on. Empty / all-false preserves legacy behavior.
@@ -1118,7 +1120,7 @@ static PrintObjectRegions* generate_print_object_regions(
             if (! mv->is_model_part())
                 continue;
             const DynamicPrintConfig *range_cfg = layer_ranges_regions.empty() ? nullptr : layer_ranges_regions.front().config;
-            PrintRegionConfig vol_cfg = region_config_from_model_volume(default_region_config, range_cfg, *mv, num_extruders, variant_index);
+            PrintRegionConfig vol_cfg = region_config_from_model_volume(default_region_config, range_cfg, *mv, num_extruders, variant_index, active_flow_overrides);
             for (unsigned int s_1based : { (unsigned int)vol_cfg.outer_wall_filament_id.value,
                                            (unsigned int)vol_cfg.inner_wall_filament_id.value,
                                            (unsigned int)vol_cfg.sparse_infill_filament_id.value,
@@ -1160,7 +1162,7 @@ static PrintObjectRegions* generate_print_object_regions(
                 if (const PrintObjectRegions::BoundingBox *bbox = find_volume_extents(layer_range, volume); bbox) {
                     if (volume.is_model_part()) {
                         // Add a model volume, assign an existing region or generate a new one.
-                        PrintRegionConfig vol_cfg = region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders, variant_index);
+                        PrintRegionConfig vol_cfg = region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders, variant_index, active_flow_overrides);
                         ObjectID volume_tag = compute_volume_tag(vol_cfg, volume);
                         layer_range.volume_regions.push_back({
                             &volume, -1,
@@ -1181,7 +1183,7 @@ static PrintObjectRegions* generate_print_object_regions(
                             if (parent_volume.is_model_part() || parent_volume.is_modifier())
                                 if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox)) {
                                     // Only create new region for a modifier, which actually modifies config of it's parent.
-                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume, num_extruders, variant_index);
+                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume, num_extruders, variant_index, active_flow_overrides);
                                         config != parent_region.region->config()) {
                                         added = true;
                                         layer_range.volume_regions.push_back({ &volume, parent_region_id, get_create_region(std::move(config)), bbox });
@@ -1293,6 +1295,7 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
             extruders.emplace_back(i >= num_extruders ? 0 : i);
         }
     };
+    const int active_flow_overrides = active_filament_flow_overrides(m_config);
     for (const ModelObject *model_object : m_model.objects) {
         if (std::none_of(model_object->instances.begin(), model_object->instances.end(), [](const ModelInstance *mi) { return mi->is_printable(); }))
             continue;
@@ -1301,13 +1304,13 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
         for (const ModelVolume *part : model_object->volumes) {
             if (! part->is_model_part())
                 continue;
-            std::vector<PrintRegionConfig> parents { region_config_from_model_volume(m_default_region_config, nullptr, *part, num_extruders, variant_index) };
+            std::vector<PrintRegionConfig> parents { region_config_from_model_volume(m_default_region_config, nullptr, *part, num_extruders, variant_index, active_flow_overrides) };
             for (const auto &[range, range_config] : model_object->layer_config_ranges)
-                parents.emplace_back(region_config_from_model_volume(m_default_region_config, &range_config.get(), *part, num_extruders, variant_index));
+                parents.emplace_back(region_config_from_model_volume(m_default_region_config, &range_config.get(), *part, num_extruders, variant_index, active_flow_overrides));
             for (const PrintRegionConfig &parent : parents) {
                 append_feature_extruders(parent);
                 for (const ModelVolume *modifier : modifiers)
-                    append_feature_extruders(region_config_from_model_volume(parent, nullptr, *modifier, num_extruders, variant_index));
+                    append_feature_extruders(region_config_from_model_volume(parent, nullptr, *modifier, num_extruders, variant_index, active_flow_overrides));
             }
         }
         append_model_object_extruders(*model_object, extruders);
@@ -2125,6 +2128,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // All regions now have distinct settings.
     // Check whether applying the new region config defaults we would get different regions,
     // update regions or create regions from scratch.
+    const int active_flow_overrides = active_filament_flow_overrides(m_config);
     for (auto it_print_object = m_objects.begin(); it_print_object != m_objects.end();) {
         // Find the range of PrintObjects sharing the same associated ModelObject.
         auto                it_print_object_end  = it_print_object;
@@ -2182,7 +2186,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                             if ((*it)->m_shared_regions != nullptr)
                                 update_apply_status((*it)->invalidate_state_by_config_options(old_config, new_config, diff_keys));
                     },
-                    print_variant_index)) {
+                    print_variant_index,
+                    active_flow_overrides)) {
                 // Per-part gradient: PrintRegionConfig alone cannot reveal a change in which slots
                 // have per-part enabled, so compare against the snapshot taken when these regions
                 // were generated and regenerate on any difference (slot toggled, per-part moved
@@ -2214,6 +2219,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 print_object.is_mm_painted() ? 0.f : float(print_object.config().xy_contour_compensation.value),
                 painting_extruders,
                 print_variant_index,
+                active_flow_overrides,
                 print_object.is_fuzzy_skin_painted(),
                 slot_per_part_enabled);
         }

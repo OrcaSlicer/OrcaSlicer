@@ -1833,7 +1833,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "adaptive_bed_mesh_margin"
             || opt_key == "bed_mesh_probe_distance"
             || opt_key == "print_flow_ratio"
-            || opt_key == "first_layer_flow_ratio"
+            || opt_key == "object_flow_ratio_override_mask"
+            || opt_key == "region_flow_ratio_override_mask"
             || opt_key == "top_solid_infill_flow_ratio"
             || opt_key == "bottom_solid_infill_flow_ratio"
             || opt_key == "outer_wall_flow_ratio"
@@ -1853,7 +1854,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else if (
-               opt_key == "flush_into_infill"
+               opt_key == "first_layer_flow_ratio"
+            || opt_key == "set_other_flow_ratios"
+            || opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
             || opt_key == "flush_into_support"
             || opt_key == "belt_purge_tower_object") {
@@ -4294,6 +4297,10 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         src_normalized.normalize_fdm();
         update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
+    config.object_flow_ratio_override_mask.value = 0;
+    for (const auto &override : flow_ratio_overrides)
+        if (config.has(override.key) && object.config.has(override.key))
+            config.object_flow_ratio_override_mask.value |= flow_ratio_override_bit(override.key);
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);
@@ -4320,15 +4327,41 @@ struct FeatureFilamentOverrideMask
     bool inner_wall_filament_id    = false;
 };
 
-static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides, std::vector<int>& variant_index)
+static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides, std::vector<int>& variant_index, int active_flow_overrides)
 {
+    for (const auto &override : flow_ratio_overrides) {
+        const ConfigOption *option = in.option(override.key);
+        // Without a filament override the local value applies anyway, and recording it would split
+        // regions that print identically.
+        const int bit = flow_ratio_override_bit(override.key) & active_flow_overrides;
+        if (bit == 0 || !out.has(override.key) || option == nullptr)
+            continue;
+        // Orca: This is the only process flow override stored as a nullable per-nozzle array.
+        // Identify it by key so nil slots retain filament overrides instead of marking every nozzle as explicitly overridden.
+        if (std::string_view(override.key) == "top_solid_infill_flow_ratio") {
+            // Track explicit values per nozzle; a nil local slot still inherits the filament override.
+            ConfigOptionFloatsNullable explicit_flow(
+                std::max(out.top_solid_infill_flow_ratio.size(), variant_index.size()), ConfigOptionFloatsNullable::nil_value());
+            if (variant_index.empty())
+                explicit_flow.set(option);
+            else
+                set_variant_override(explicit_flow, *static_cast<const ConfigOptionVectorBase *>(option), variant_index);
+            for (size_t i = 0; i < out.region_flow_ratio_override_mask.size(); ++i)
+                if (has_filament_override(&explicit_flow, i))
+                    out.region_flow_ratio_override_mask.values[i] |= bit;
+        } else {
+            for (int &mask : out.region_flow_ratio_override_mask.values)
+                mask |= bit;
+        }
+    }
+
     // 1) Explicit feature filament values take precedence over base extruder fallback.
     auto *opt_extruder = in.opt<ConfigOptionInt>(key_extruder);
     int base_extruder = (opt_extruder != nullptr) ? opt_extruder->value : 0;
 
     // 2) Copy the rest of the values.
     for (auto it = in.cbegin(); it != in.cend(); ++ it)
-        if (it->first != key_extruder)
+        if (it->first != key_extruder && it->first != "region_flow_ratio_override_mask")
             if (ConfigOption* my_opt = out.option(it->first, false); my_opt != nullptr) {
                 if (one_of(it->first, keys_extruders)) {
                     // "Default" (0) clears explicit override for this scope and lets fallback apply.
@@ -4392,9 +4425,12 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
     }
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index)
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index, int active_flow_overrides)
 {
     PrintRegionConfig config = default_or_parent_region_config;
+    if (volume.is_model_part())
+        config.region_flow_ratio_override_mask.values.assign(
+            std::max(config.top_solid_infill_flow_ratio.size(), variant_index.size()), 0);
     FeatureFilamentOverrideMask feature_overrides;
 
     // For model parts, non-zero values coming from the print defaults should stay explicit.
@@ -4410,17 +4446,17 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     if (volume.is_model_part()) {
         // default_or_parent_region_config contains the Print's PrintRegionConfig.
         // Override with ModelObject's PrintRegionConfig values.
-        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides, variant_index);
+        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides, variant_index, active_flow_overrides);
     } else {
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
-    apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
+    apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index, active_flow_overrides);
     if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
+        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index, active_flow_overrides);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());
-    	apply_to_print_region_config(config, *layer_range_config, feature_overrides, variant_index);
+    	apply_to_print_region_config(config, *layer_range_config, feature_overrides, variant_index, active_flow_overrides);
     }
     // Resolve feature defaults and clamp invalid extruders to index 1.
     clamp_feature_filament_to_valid(config.sparse_infill_filament_id, num_extruders);
@@ -4509,13 +4545,14 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
     // BBS
 	size_t              filament_extruders = print_config.filament_diameter.size();
 	object_config = object_config_from_model_object(object_config, model_object, filament_extruders, variant_index);
+    const int active_flow_overrides = active_filament_flow_overrides(print_config);
 
 	std::vector<unsigned int> object_extruders;
 	for (const ModelVolume* model_volume : model_object.volumes)
 		if (model_volume->is_model_part()) {
 			PrintRegion::collect_object_printing_extruders(
 				print_config,
-				region_config_from_model_volume(default_region_config, nullptr, *model_volume, filament_extruders, variant_index),
+				region_config_from_model_volume(default_region_config, nullptr, *model_volume, filament_extruders, variant_index, active_flow_overrides),
                 object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 				object_extruders);
 			for (const std::pair<const t_layer_height_range, ModelConfig> &range_and_config : model_object.layer_config_ranges)
@@ -4527,7 +4564,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 					range_and_config.second.has("bottom_surface_filament_id"))
 					PrintRegion::collect_object_printing_extruders(
 						print_config,
-						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders, variant_index),
+						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders, variant_index, active_flow_overrides),
                         object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 						object_extruders);
 		}
