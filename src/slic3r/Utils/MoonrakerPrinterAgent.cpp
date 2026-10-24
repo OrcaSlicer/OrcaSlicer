@@ -319,6 +319,20 @@ std::string happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info)
     return "MMU_GATE_MAP GATE=" + std::to_string(info.slot) + " MATERIAL=" + info.type + " COLOR=" + rgb_of(info.color_rgba);
 }
 
+int tool_count_from_gcode_help(const nlohmann::json& help)
+{
+    int highest = -1;
+    if (help.is_object()) {
+        for (auto it = help.begin(); it != help.end(); ++it) {
+            const std::string& key = it.key();
+            if (key.size() < 2 || key[0] != 'T' ||
+                !std::all_of(key.begin() + 1, key.end(), [](unsigned char c) { return std::isdigit(c) != 0; }))
+                continue;
+            highest = std::max(highest, std::stoi(key.substr(1)));
+        }
+    }
+    return highest + 1;
+}
 int extruder_index_from_name(const std::string& name)
 {
     static const std::string prefix = "extruder";
@@ -859,6 +873,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
     ams_json["ams"] = ams_array;
     ams_json["changer_dialect"] = MoonrakerFilamentDialect::dialect_name(m_filament_dialect);
+    ams_json["device_tool_count"] = m_tool_count;
     ams_json["ams_exist_bits"] = ams_exist_ss.str();
     ams_json["tray_exist_bits"] = tray_exist_ss.str();
 
@@ -949,6 +964,7 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     if (fetch_afc_filament_info())
         return true;
 
+    probe_tool_count();
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
@@ -977,6 +993,16 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     return false;
 }
 
+void MoonrakerPrinterAgent::probe_tool_count()
+{
+    // A failed probe reports 0 ("unknown"), which never overwrites a cached count.
+    std::string probe_error;
+    if (!fetch_tool_count(device_info.base_url, device_info.api_key, m_tool_count, probe_error)) {
+        m_tool_count = 0;
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: tool count probe failed: " << probe_error;
+    }
+}
+
 bool MoonrakerPrinterAgent::fetch_afc_filament_info()
 {
     std::vector<AmsTrayData> trays;
@@ -987,6 +1013,7 @@ bool MoonrakerPrinterAgent::fetch_afc_filament_info()
         return false;
     }
     m_filament_dialect = MoonrakerFilamentDialect::Dialect::afc_lane_data;
+    probe_tool_count();
     // Older AFC lane_data leaves the unit and slot to its AFC_stepper objects.
     if (!has_topology)
         fetch_afc_lane_topology(trays);
@@ -1811,6 +1838,15 @@ void MoonrakerPrinterAgent::fetch_afc_lane_topology(std::vector<AmsTrayData>& tr
         if (result["status"].contains(key) && result["status"][key].is_object())
             MoonrakerFilamentDialect::apply_lane_topology(result["status"][key], tray);
     }
+}
+
+bool MoonrakerPrinterAgent::fetch_tool_count(const std::string& base_url, const std::string& api_key, int& tool_count, std::string& error) const
+{
+    nlohmann::json json;
+    if (!get_json(join_url(base_url, "/printer/gcode/help"), api_key, {}, json, error))
+        return false;
+    tool_count = MoonrakerFilamentDialect::tool_count_from_gcode_help(json.contains("result") ? json["result"] : json);
+    return true;
 }
 
 int MoonrakerPrinterAgent::send_version_info(const std::string& dev_id)

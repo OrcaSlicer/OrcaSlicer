@@ -46,7 +46,6 @@ FilamentInventoryEditor::FilamentInventoryEditor(wxWindow* parent, const std::st
     m_tool_count  = tool_count;
 
     m_store = load_filament_inventories();
-    const Preset *printer_preset = wxGetApp().preset_bundle->printers.find_preset(printer_preset_name, false);
     refresh_read_only();
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
@@ -67,13 +66,7 @@ FilamentInventoryEditor::FilamentInventoryEditor(wxWindow* parent, const std::st
     main_sizer->AddSpacer(FromDIP(15));
 
     {
-        m_extruder_count = printer_preset ? addressable_tool_count_of(*printer_preset) : 1;
-        const bool memm  = printer_preset && m_extruder_count > 1 && !device().dialect.empty();
-        SlotGridOptions opts;
-        opts.show_extruder_row     = memm;
-        opts.show_extruder_on_tile = memm;
-        opts.show_edit_pencil      = true;
-        m_grid = new SlotGridPanel(this, opts);
+        m_grid = new SlotGridPanel(this, grid_options());
         m_grid->SetOnEditClicked([this](size_t slot) { open_row_editor(slot); });
         main_sizer->Add(m_grid, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(15));
     }
@@ -137,6 +130,22 @@ const Preset* FilamentInventoryEditor::resolved_preset_of(const Row& row) const
     if (!row.type_touched || row.picked_preset.empty())
         return nullptr;
     return wxGetApp().preset_bundle->filaments.find_preset(row.picked_preset, false);
+}
+
+SlotGridOptions FilamentInventoryEditor::grid_options()
+{
+    // The edited preset: a sync records the printer's changer and tool count there before it is saved.
+    const PresetCollection& printers       = wxGetApp().preset_bundle->printers;
+    const Preset*           printer_preset = printers.get_edited_preset().name == m_printer_preset_name
+                                                 ? &printers.get_edited_preset()
+                                                 : printers.find_preset(m_printer_preset_name, false);
+    m_extruder_count = printer_preset ? addressable_tool_count_of(*printer_preset) : 1;
+    const bool memm  = printer_preset && m_extruder_count > 1 && !reported_changer_of(printer_preset->config).empty();
+    SlotGridOptions opts;
+    opts.show_extruder_row     = memm;
+    opts.show_extruder_on_tile = memm;
+    opts.show_edit_pencil      = true;
+    return opts;
 }
 
 void FilamentInventoryEditor::refresh_grid()
@@ -322,6 +331,7 @@ void FilamentInventoryEditor::do_sync_from_printer(bool interactive)
             m_tag_locked_tools.insert(t);
         m_synced_baseline[t] = snapshot_of(m_rows[t]);
     }
+    m_grid->SetOptions(grid_options());
     refresh_grid();
     if (sync.status == Status::Unchanged && interactive)
         MessageDialog(this, _L("The printer did not report any filament information."), _L("Sync from printer"), wxOK | wxICON_INFORMATION).ShowModal();

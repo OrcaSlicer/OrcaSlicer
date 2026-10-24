@@ -2770,11 +2770,14 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
 
 void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
  {
-     if (m_last_slice_state != p->plater->is_background_process_slicing()) {
+     // Orca: a device-resolved printer also requires a live printer session for the selected preset.
+     bool live_ok = !device_resolves_filament_mapping(active_printer_session().profile().config) || active_printer_session().live();
+     bool should_enable_ams = !p->plater->is_background_process_slicing() && live_ok;
+     if (m_last_slice_state != p->plater->is_background_process_slicing() || ams_btn->IsEnabled() != should_enable_ams) {
          m_last_slice_state = p->plater->is_background_process_slicing();
          //btn_sync->Enable(!m_last_slice_state);
          p->m_printer_bbl_sync->Enable(!m_last_slice_state);
-         ams_btn->Enable(!m_last_slice_state);
+         ams_btn->Enable(should_enable_ams);
          Refresh();
      }
  }
@@ -3854,12 +3857,15 @@ void Sidebar::update_all_preset_comboboxes()
         p->m_printer_connect->Hide();
         //only show sync-ams button for BBL printer
         p->m_bpButton_ams_filament->Show();
+        ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
         //update print button default value for bbl or third-party printer
         p_mainframe->set_print_button_to_default(MainFrame::PrintSelectType::ePrintPlate);
     } else {
         //p->btn_connect_printer->Show();
         // ORCA: hide the physical-printer connection button when printer agents are enabled
         p->m_printer_connect->Show(!use_printer_agents);
+        ams_btn->SetToolTip(device_resolves_filament_mapping(cfg) ? _L("Synchronize filament list from printer")
+                                                                  : _L("Synchronize filament list from AMS"));
 
         // ORCA: show/hide sync-ams button based on filament sync mode
         auto agent = wxGetApp().getAgent();
@@ -6142,6 +6148,8 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     // For pull-mode agents (e.g., HTTP REST API), refresh DevFilaSystem first
     auto* agent = wxGetApp().getDeviceManager()->get_agent();
     if (agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+        if (device_resolves_filament_mapping(active_printer_session().profile().config) && obj == active_printer_session().live_machine())
+            active_printer_session().bind_agent();
         if (!agent->fetch_filament_info(obj->get_dev_id())) {
             return filament_ams_list;
         }
@@ -6353,6 +6361,13 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     auto obj = wxGetApp().getDeviceManager()->get_selected_machine();
     if (!obj)
         return;
+
+    // Orca: same gate as update_sync_ams_btn_enable; other entry points bypass the button state.
+    if (device_resolves_filament_mapping(active_printer_session().profile().config) && !active_printer_session().live()) {
+        auto printer_name = p->plater->get_selected_printer_name_in_combox();
+        p->plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
+        return;
+    }
     GUI::wxGetApp().sidebar().load_ams_list(obj);
 
     auto & list = wxGetApp().preset_bundle->filament_ams_list;
@@ -6389,6 +6404,13 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     }
     if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected()) {
         return;
+    }
+    // Orca: the dialog's slot picker reads the stored inventory; fill it from the report just read.
+    // A reported changer is cached into the printer preset here, which makes it device-resolved.
+    if (obj == active_printer_session().live_machine() && obj->GetFilaSystem() && obj->GetFilaSystem()->IsAllToolchanger()) {
+        FilamentInventories store;
+        FilamentInventory&  inventory = load_active_printer_inventory(store);
+        sync_filament_inventory_from_printer(store, inventory, /*fetch=*/false);
     }
     // Orca: a changer this sync reported can show the Printer Material Settings button.
     if (obj == active_printer_session().live_machine())
@@ -6644,7 +6666,8 @@ static bool show_printer_materials_button()
     if (!session.connection().configured())
         return false;
     const DynamicPrintConfig& cfg = session.profile().config;
-    return !wxGetApp().preset_bundle->is_bbl_vendor() && printer_has_viewable_filaments(cfg, reported_changer_dialect());
+    return (!wxGetApp().preset_bundle->is_bbl_vendor() && printer_has_viewable_filaments(cfg, reported_changer_dialect())) ||
+           device_resolves_filament_mapping(cfg);
 }
 
 void Sidebar::show_SEMM_buttons()

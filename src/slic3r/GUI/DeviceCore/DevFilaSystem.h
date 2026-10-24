@@ -354,6 +354,8 @@ public:
     std::map<std::string, DevAms*, NumericStrCompare>& GetAmsList() { return amsList; }
     // Orca: "afc", "happy_hare", or "" for none.
     const std::string& GetChangerDialect() const { return m_changer_dialect; }
+    // Orca: highest registered T<n> + 1, 0 when not probed.
+    int                GetDeviceToolCount() const { return m_device_tool_count; }
     int                             GetAmsCount() const { return amsList.size(); }
 
     /* tray*/
@@ -406,6 +408,7 @@ private:
 
     std::map<std::string, DevAms*, NumericStrCompare> amsList;// key: ams[id], start with 0
     std::string m_changer_dialect;
+    int         m_device_tool_count = 0;
 
     DevAmsSystemSetting m_ams_system_setting{ this };
     std::shared_ptr<DevAmsSystemFirmwareSwitch> m_ams_firmware_switch = DevAmsSystemFirmwareSwitch::Create(this);

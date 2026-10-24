@@ -2787,7 +2787,7 @@ FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_c
 // (>= 2 nozzles, not single_extruder_multi_material), or reported_changer names a filament changer.
 bool printer_has_viewable_filaments(const ConfigBase& printer_config, const std::string& reported_changer);
 
-// The Klipper filament changer reported at the last sync ("afc", "happy_hare", "openace"), or "".
+// The Klipper filament changer reported at the last sync ("afc", "happy_hare"), or "".
 std::string reported_changer_of(const ConfigBase& printer_config);
 
 // Orca: cache the reported changer and T<n> count. An empty changer or a tool count of 0 leaves the

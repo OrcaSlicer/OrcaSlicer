@@ -28,6 +28,7 @@ namespace GUI {
 // physical filaments by id across sessions.
 class PhysicalFilamentComboBox;
 class SlotGridPanel;
+struct SlotGridOptions;
 
 class FilamentInventoryEditor : public wxDialog
 {
@@ -57,6 +58,8 @@ private:
     void on_sync_from_printer(wxCommandEvent& event);
     void update_clear_enabled(Row& row);
     void refresh_grid();
+    // The extruder row once the printer preset records a changer, which the dialog's own sync can do.
+    SlotGridOptions grid_options();
     void add_row_widgets(size_t slot, wxWindow* parent, wxSizer* target_sizer);
     // Reverts the row to its pre-edit snapshot on Cancel; the widgets write into it live.
     void open_row_editor(size_t slot);

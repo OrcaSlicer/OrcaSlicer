@@ -7301,7 +7301,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("device_changer", coString);
     def->label = L("Filament changer reported by the printer");
-    def->tooltip = L("The Klipper filament changer the materials sync found on the printer (AFC, Happy Hare, openACE). "
+    def->tooltip = L("The Klipper filament changer the materials sync found on the printer (AFC, Happy Hare). "
                      "Written by the sync, not by hand; it chooses how the filament map is sent at print time.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionString(""));
