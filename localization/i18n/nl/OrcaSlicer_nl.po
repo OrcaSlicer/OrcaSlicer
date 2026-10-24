@@ -41302,9 +41302,10 @@ msgid "Reset to defaults"
 msgstr "Standaardpunten"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Tabelrij %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Tabelrij %d: %s"
 
 # AI Translated
 msgid ""
@@ -41361,6 +41362,11 @@ msgstr "Laatste flowcorrectiefactor moet 1 zijn."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Het model is leeg. Er wordt geen flow gecompenseerd."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Flowcompensatiemodel: %s"
 
 msgid "Import CSV"
 msgstr "CSV-import"
@@ -41425,6 +41431,8 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Middelste muisknop: sleep beide assen."
+
+
 
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Opties tonen bij het importeren van een STEP-bestand"

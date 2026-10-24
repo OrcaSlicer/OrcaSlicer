@@ -543,14 +543,16 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     main_sizer->Add(footer, 0, wxEXPAND | wxLEFT, FromDIP(10));
     SetSizerAndFit(main_sizer);
     wxGetApp().UpdateDlgDarkUI(this);
-    m_grid->SetCellHighlightColour(StateColor::darkModeColorFor(wxColour("#009688")));
-    m_grid->SetGridLineColour(     StateColor::darkModeColorFor(wxColour("#DFDFDF")));
-    m_grid->SetSelectionBackground(StateColor::darkModeColorFor(wxColour("#BFE1DE")));
-    m_grid->SetSelectionForeground(StateColor::darkModeColorFor(wxColour("#262E30")));
-    m_grid->SetDefaultCellBackgroundColour(GetBackgroundColour());
-    m_grid->SetDefaultCellTextColour(StateColor::darkModeColorFor(wxColour("#262E30")));
-    m_grid->SetLabelBackgroundColour(GetBackgroundColour());
-    m_grid->SetLabelTextColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    update_grid_colours();
+    Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+        event.Skip();
+        // The main frame recolours every window, this dialog included, from its own
+        // handler. Apply the grid's colours once all windows have handled the event.
+        CallAfter([this] {
+            update_grid_colours();
+            Refresh();
+        });
+    });
 
     Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         finish_edit();
@@ -644,6 +646,20 @@ void CurveEditorDialog::update_grid_metrics()
     m_grid->SetColLabelSize(dc.GetTextExtent("Ag").y + FromDIP(8));
     m_grid->SetMinSize(wxSize(std::max(FromDIP(280), m_column_widths[0] + m_column_widths[1] +
         m_grid->GetRowLabelSize() + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_grid)), FromDIP(180)));
+}
+
+void CurveEditorDialog::update_grid_colours()
+{
+    // Theme updates recolour windows but not wxGrid's cell, label and selection attributes.
+    m_grid->SetCellHighlightColour(StateColor::darkModeColorFor(wxColour("#009688")));
+    m_grid->SetGridLineColour(     StateColor::darkModeColorFor(wxColour("#DFDFDF")));
+    m_grid->SetSelectionBackground(StateColor::darkModeColorFor(wxColour("#BFE1DE")));
+    m_grid->SetSelectionForeground(StateColor::darkModeColorFor(wxColour("#262E30")));
+    m_grid->SetDefaultCellBackgroundColour(GetBackgroundColour());
+    m_grid->SetDefaultCellTextColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    m_grid->SetLabelBackgroundColour(GetBackgroundColour());
+    m_grid->SetLabelTextColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    m_grid->ForceRefresh();
 }
 
 void CurveEditorDialog::import_csv()
@@ -744,7 +760,8 @@ bool CurveEditorDialog::read_points(std::vector<double>& x, std::vector<double>&
     const char* message = m_model->read_points(read_rows(), x, y, error_row);
     wxString error = message == nullptr ? wxString() : _L(message);
     if (!error.empty() && error_row >= 0)
-        error = wxString::Format(_L("Table row %d: "), error_row + 1) + error;
+        // TRN %d is a one-based table row number, %s is the validation message for that row.
+        error = wxString::Format(_L("Table row %d: %s"), error_row + 1, error);
     const char* empty_message = m_model->empty_message();
     const wxString status = error.empty() && x.empty() && empty_message != nullptr ? _L(empty_message) : error;
     if (m_status_text != status) {

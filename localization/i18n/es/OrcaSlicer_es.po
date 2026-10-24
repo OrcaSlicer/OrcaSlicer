@@ -38369,9 +38369,10 @@ msgid "Reset to defaults"
 msgstr "Puntos iniciales"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Fila de tabla %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Fila de tabla %d: %s"
 
 # AI Translated
 msgid ""
@@ -38428,6 +38429,11 @@ msgstr "Último factor corrector de flujo: debe ser 1."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modelo vacío. No se compensará el flujo."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Modelo de compensación de flujo: %s"
 
 msgid "Import CSV"
 msgstr "Importar CSV"
@@ -38492,6 +38498,8 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Botón central: arrastra ambos ejes."
+
+
 
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Mostrar opciones al importar archivos STEP"
