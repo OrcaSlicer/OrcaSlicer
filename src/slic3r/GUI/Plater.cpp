@@ -14,6 +14,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <climits>
 #include <array>
 #include <boost/filesystem/fstream.hpp>
@@ -20133,7 +20134,12 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         case FT_DRC: ext = ".drc"; break;
         }
 
-        std::string base_name = boost::filesystem::path(name).stem().string();
+        fs::path name_path(name);
+        std::string suffix = boost::algorithm::to_lower_copy(name_path.extension().string());
+        static const std::unordered_set<std::string> model_exts{
+            ".stl", ".3mf", ".obj", ".step", ".stp", ".amf", ".drc", ".ply", ".svg", ".oltp"
+        };
+        std::string base_name = model_exts.count(suffix) ? name_path.stem().string() : name;
         auto path = dir + base_name + ext;
         int n = 1;
         while (boost::filesystem::exists(path))
