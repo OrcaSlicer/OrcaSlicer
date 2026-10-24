@@ -9,8 +9,54 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "slic3r/Utils/IPrinterAgent.hpp"
 
+using Slic3r::IPrinterAgent;
 using namespace Slic3r::MoonrakerFilamentDialect;
+
+// Orca: g-code each Moonraker filament-changer dialect takes for slot writes and print-time maps.
+
+namespace {
+
+IPrinterAgent::FilamentSlotInfo red_pla(int slot, const std::string& name = "")
+{
+    IPrinterAgent::FilamentSlotInfo info;
+    info.slot       = slot;
+    info.name       = name;
+    info.vendor     = "Polymaker";
+    info.type       = "PLA";
+    info.sub_type   = "PolyTerra";
+    info.color_rgba = "FF0000FF";
+    return info;
+}
+
+} // namespace
+
+TEST_CASE("AFC has no combined command, so a slot write is two commands", "[MoonrakerFilamentDialect]")
+{
+    CHECK(afc_push_scripts(red_pla(2, "e1")) ==
+          std::vector<std::string>{"SET_COLOR LANE=e1 COLOR=FF0000", "SET_MATERIAL LANE=e1 MATERIAL=PLA"});
+}
+
+TEST_CASE("An AFC write with no colour falls back to white", "[MoonrakerFilamentDialect]")
+{
+    IPrinterAgent::FilamentSlotInfo info = red_pla(0, "lane1");
+    info.color_rgba.clear();
+    CHECK(afc_push_scripts(info).front() == "SET_COLOR LANE=lane1 COLOR=FFFFFF");
+}
+
+TEST_CASE("Happy Hare writes a gate in one MMU_GATE_MAP command", "[MoonrakerFilamentDialect]")
+{
+    CHECK(happy_hare_push_script(red_pla(3)) == "MMU_GATE_MAP GATE=3 MATERIAL=PLA COLOR=FF0000");
+}
+
+TEST_CASE("Every changer dialect but none supports a push", "[MoonrakerFilamentDialect]")
+{
+    CHECK(dialect_supports_push(Dialect::afc_lane_data));
+    CHECK(dialect_supports_push(Dialect::happy_hare));
+    CHECK_FALSE(dialect_supports_push(Dialect::none));
+    CHECK(dialect_name(Dialect::afc_lane_data) == "afc");
+}
 
 TEST_CASE("Lane topology is read from the lane's own record", "[MoonrakerFilamentDialect]")
 {
