@@ -32,6 +32,7 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/TabCtrl.hpp"
+#include "Plater.hpp"
 #include <wx/display.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>

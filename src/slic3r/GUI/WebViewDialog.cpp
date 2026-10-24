@@ -20,6 +20,8 @@
 #include "libslic3r/Utils.hpp"
 #include <wx/log.h>
 #include "libslic3r/Config.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "Plater.hpp"
 #include <wx/filefn.h>
 #include <wx/filename.h>
 #include <sstream>

@@ -301,6 +301,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevDefs.h"
+#include "BBLTopbar.hpp"
 
 namespace fs = boost::filesystem;
 using namespace nlohmann;
