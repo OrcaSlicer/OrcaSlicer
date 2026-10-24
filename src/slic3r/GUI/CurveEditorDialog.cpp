@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
@@ -119,13 +120,21 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
 {
     SetBackgroundColour(*wxWHITE);
 
+    // Give every panel a palette background before creating widgets in it. The dark-mode walk
+    // recolours only palette colours, and Orca widgets copy their parent's background.
+    auto new_panel = [](wxWindow* parent) {
+        auto* panel = new wxPanel(parent);
+        panel->SetBackgroundColour(*wxWHITE);
+        return panel;
+    };
     auto* main_sizer = new wxBoxSizer(wxVERTICAL);
     m_content = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    m_content->SetBackgroundColour(*wxWHITE);
     m_content->SetMinSize(FromDIP(wxSize(260, 80)));
     m_content->SetScrollRate(FromDIP(10), FromDIP(10));
-    auto* footer = new wxPanel(this);
-    auto* actions_area = new wxPanel(footer);
-    m_actions_panel = new wxPanel(actions_area);
+    auto* footer = new_panel(this);
+    auto* actions_area = new_panel(footer);
+    m_actions_panel = new_panel(actions_area);
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     auto* help = new wxStaticText(m_content, wxID_ANY, help_text);
     help->SetFont(Label::Body_14);
@@ -135,8 +144,8 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     sizer->AddSpacer(FromDIP(10));
 
     auto* editors = new wxBoxSizer(wxHORIZONTAL);
-    auto* plot_panel = new wxPanel(m_content);
-    auto* table_panel = m_table_panel = new wxPanel(m_content);
+    auto* plot_panel = new_panel(m_content);
+    auto* table_panel = m_table_panel = new_panel(m_content);
     auto* plot_sizer = new wxBoxSizer(wxVERTICAL);
     auto* table_sizer = new wxBoxSizer(wxVERTICAL);
     editors->Add(plot_panel, 1, wxEXPAND | wxRIGHT, FromDIP(12));
@@ -188,19 +197,27 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     });
     plot_sizer->Add(m_chart, 1, wxEXPAND);
 
-    auto make_button = [](wxWindow* button_parent, const wxString& label) {
+    // Orca widgets rasterise their icons and pick theme-dependent styles when rescaled.
+    // Rescale each one on DPI changes, and again from the theme handler below.
+    auto rescale_on_change = [this](wxWindow* widget, std::function<void()> rescale) {
+        widget->Bind(wxEVT_DPI_CHANGED, [rescale](wxDPIChangedEvent& event) {
+            rescale();
+            event.Skip();
+        });
+        m_theme_rescales.push_back(std::move(rescale));
+    };
+    auto make_button = [rescale_on_change](wxWindow* button_parent, const wxString& label) {
         auto* button = new Button(button_parent, label);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
         size_editor_button(*button);
-        button->Bind(wxEVT_DPI_CHANGED, [button](wxDPIChangedEvent& event) {
+        rescale_on_change(button, [button] {
             button->Rescale();
             size_editor_button(*button);
-            event.Skip();
         });
         return button;
     };
 
-    auto* range_panel = new wxPanel(plot_panel);
+    auto* range_panel = new_panel(plot_panel);
     auto* range_sizer = new wxBoxSizer(wxVERTICAL);
     auto* ranges = new wxFlexGridSizer(4, FromDIP(6), FromDIP(8));
     ranges->AddGrowableCol(1, 1);
@@ -284,12 +301,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     range_panel->Hide();
 
     auto* view_actions = new wxBoxSizer(wxHORIZONTAL);
-    auto make_view_checkbox = [this, plot_panel, view_actions](const wxString& label, bool checked, int spacing) {
+    auto make_view_checkbox = [this, plot_panel, view_actions, rescale_on_change](const wxString& label, bool checked, int spacing) {
         auto* checkbox = new CheckBox(plot_panel);
-        checkbox->Bind(wxEVT_DPI_CHANGED, [checkbox](wxDPIChangedEvent& event) {
-            checkbox->Rescale();
-            event.Skip();
-        });
+        rescale_on_change(checkbox, [checkbox] { checkbox->Rescale(); });
         checkbox->SetName(label);
         checkbox->SetValue(checked);
         auto* text = new wxStaticText(plot_panel, wxID_ANY, label);
@@ -341,14 +355,13 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
         if (wxGetApp().app_config)
             wxGetApp().app_config->set("curve_editor_touchpad_controls", event.IsChecked() ? "1" : "0");
     });
-    auto make_action_button = [](wxWindow* parent, const wxString& label, const wxString& icon, int horizontal_padding = 5) {
+    auto make_action_button = [rescale_on_change](wxWindow* parent, const wxString& label, const wxString& icon, int horizontal_padding = 5) {
         auto* button = new Button(parent, label, icon, 0, 16);
         button->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
         size_editor_button(*button, horizontal_padding);
-        button->Bind(wxEVT_DPI_CHANGED, [button, horizontal_padding](wxDPIChangedEvent& event) {
+        rescale_on_change(button, [button, horizontal_padding] {
             button->Rescale();
             size_editor_button(*button, horizontal_padding);
-            event.Skip();
         });
         return button;
     };
@@ -538,7 +551,11 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     // Keep all actions on the same row and outside the scrollable content.
     auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
     footer_sizer->Add(actions_area, 1, wxEXPAND | wxRIGHT, FromDIP(12));
-    footer_sizer->Add(new DialogButtons(footer, {"OK", "Cancel"}), 0, wxEXPAND);
+    auto* dialog_buttons = new DialogButtons(footer, {"OK", "Cancel"});
+    // DialogButtons handles DPI changes itself, but its buttons' focus borders follow the theme.
+    for (Button* button : std::array{dialog_buttons->GetOK(), dialog_buttons->GetCANCEL()})
+        if (button) m_theme_rescales.push_back([button] { button->Rescale(); });
+    footer_sizer->Add(dialog_buttons, 0, wxEXPAND);
     footer->SetSizer(footer_sizer);
     main_sizer->Add(footer, 0, wxEXPAND | wxLEFT, FromDIP(10));
     SetSizerAndFit(main_sizer);
@@ -546,10 +563,15 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     update_grid_colours();
     Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
         event.Skip();
-        // The main frame recolours every window, this dialog included, from its own
-        // handler. Apply the grid's colours once all windows have handled the event.
+        // The main frame recolours every window, this dialog included, from its own handler.
+        // Redraw icons and reapply the grid's colours once all windows have handled the event.
         CallAfter([this] {
+            for (const auto& rescale : m_theme_rescales)
+                rescale();
             update_grid_colours();
+            // Button::Rescale() reapplies the button style, which also resets an icon button's size.
+            m_table_panel->Layout();
+            m_actions_panel->Layout();
             Refresh();
         });
     });
