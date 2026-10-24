@@ -46,6 +46,7 @@
 #include "ElegooLink.hpp"
 #include "3DPrinterOS.hpp"
 #include "Moonraker.hpp"
+#include "SnapmakerPrinterAgent.hpp"
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::PrintHostQueueDialog;
@@ -54,6 +55,48 @@ namespace Slic3r {
 
 
 PrintHost::~PrintHost() {}
+
+MapDelivery effective_map_delivery(FilamentMappingProtocol vendor, const std::string& reported_changer)
+{
+    switch (vendor) {
+    case FilamentMappingProtocol::fmpSnapmaker:   return MapDelivery::snapmaker;
+    case FilamentMappingProtocol::fmpWonderMaker:
+    case FilamentMappingProtocol::fmpNone:        break;
+    }
+    return MapDelivery::none;
+}
+
+DevicePrintSpec device_print_spec(FilamentMappingProtocol vendor, MapDelivery delivery)
+{
+    DevicePrintSpec spec;
+    spec.supports_filament_mapping = delivery != MapDelivery::none;
+    const DevicePrintOption time_lapse{"time_lapse", L("Time-lapse Camera"),
+                                       L("Record a time-lapse video with the printer's camera."), "0"};
+    const DevicePrintOption bed_leveling{"bed_leveling", L("Auto Leveling"),
+                                         L("Probe the bed before printing, as the printer's own screen does."), "1"};
+    switch (vendor) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        // The printer screen's three options, labelled as in the vendor's slicer. Only leveling defaults on.
+        spec.options = {{"flow_calibrate", L("Extrusion Flow Calibration"),
+                         L("Calibrate flow on each tool this plate actually uses before printing."), "0"},
+                        time_lapse, bed_leveling};
+        break;
+    case FilamentMappingProtocol::fmpWonderMaker:
+    case FilamentMappingProtocol::fmpNone:
+        break;
+    }
+    return spec;
+}
+
+std::string build_device_start_script(FilamentMappingProtocol vendor, MapDelivery delivery, const std::string& filename, const DevicePrintJobInfo& job)
+{
+    switch (delivery) {
+    case MapDelivery::none: return {};
+    case MapDelivery::snapmaker:
+        return SnapmakerProtocol::build_start_script(filename, job);
+    }
+    return {};
+}
 
 PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
 {

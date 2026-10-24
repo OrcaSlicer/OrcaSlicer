@@ -292,6 +292,7 @@
 
 #include "PhysicalPrinterDialog.hpp"
 #include "PrintHostDialogs.hpp"
+#include "DevicePrintOptionsDialog.hpp"
 #include "PlateSettingsDialog.hpp"
 #include "DailyTips.hpp"
 #include "CreatePresetsDialog.hpp"
@@ -7762,6 +7763,7 @@ struct Plater::priv
     void on_action_print_all(SimpleEvent&);
     void on_action_export_gcode(SimpleEvent&);
     void on_action_send_gcode(SimpleEvent&);
+    void on_action_upload_gcode(SimpleEvent&);
     void on_action_export_sliced_file(SimpleEvent&);
     void on_action_export_all_sliced_file(SimpleEvent&);
     void on_action_select_sliced_plate(wxCommandEvent& evt);
@@ -8340,6 +8342,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         q->Bind(EVT_GLTOOLBAR_PRINT_ALL, &priv::on_action_print_all, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_GCODE, &priv::on_action_export_gcode, this);
         q->Bind(EVT_GLTOOLBAR_SEND_GCODE, &priv::on_action_send_gcode, this);
+        q->Bind(EVT_GLTOOLBAR_UPLOAD_GCODE, &priv::on_action_upload_gcode, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_SLICED_FILE, &priv::on_action_export_sliced_file, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE, &priv::on_action_export_all_sliced_file, this);
         q->Bind(EVT_GLTOOLBAR_SEND_TO_PRINTER, &priv::on_action_export_to_sdcard, this);
@@ -14114,6 +14117,14 @@ void Plater::priv::on_action_send_gcode(SimpleEvent&)
     if (q != nullptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export gcode event\n" ;
         q->send_gcode_legacy();
+    }
+}
+
+void Plater::priv::on_action_upload_gcode(SimpleEvent&)
+{
+    if (q != nullptr) {
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received upload gcode event\n";
+        q->send_gcode_legacy(-1, nullptr, /*upload_only=*/true);
     }
 }
 
@@ -21148,7 +21159,93 @@ void Plater::reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &
     // and let the background processing start.
     this->p->restart_background_process(state | priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
 }
-void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
+// Orca: re-keys per-project-slot picks onto the g-code's emitted tool numbers, using the
+// compaction the plate was sliced with. Only tools up to the highest one the plate prints are keyed.
+static std::vector<int> device_wire_filament_map(const FilamentCompaction& compaction, const std::vector<int>& filaments_1based,
+                                                 const std::vector<int>& map_1based)
+{
+    if (compaction.slot_of_tool.empty())
+        return map_1based;
+    int tool_count = 0;
+    for (int filament : filaments_1based)
+        tool_count = std::max(tool_count, compaction.tool_of_slot(filament - 1) + 1);
+    std::vector<int> out(size_t(tool_count), 0);
+    for (size_t tool = 0; tool < out.size(); ++tool)
+        if (size_t(compaction.slot_of_tool[tool]) < map_1based.size())
+            out[tool] = map_1based[compaction.slot_of_tool[tool]];
+    return out;
+}
+
+// Orca: per-filament arrays are per project filament; nozzle_diameter and used_physical_tools
+// are per physical tool. Unused filaments keep preset values with zero weight.
+static DevicePrintJobInfo build_device_print_job_info(PartPlate*                                plate,
+                                                      const std::vector<int>&                   filament_map_1based,
+                                                      const std::map<std::string, std::string>& options)
+{
+    DevicePrintJobInfo job;
+    job.filament_map_1based = filament_map_1based;
+    job.options             = options;
+
+    const DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
+
+    const auto* types = config.option<ConfigOptionStrings>("filament_type");
+    const size_t filament_count = types != nullptr ? types->size() : 0;
+    if (types != nullptr)
+        job.filament_type = types->values;
+    auto per_filament = [filament_count](const auto* opt, std::vector<double>& out) {
+        if (opt != nullptr)
+            for (size_t i = 0; i < filament_count; ++i)
+                out.push_back(opt->get_at(i));
+    };
+    per_filament(config.option<ConfigOptionInts>("nozzle_temperature"), job.nozzle_temp);
+    per_filament(config.option<ConfigOptionFloats>("filament_flow_ratio"), job.flow_ratio);
+    per_filament(config.option<ConfigOptionFloats>("filament_diameter"), job.filament_diameter);
+
+    if (const auto* nozzles = config.option<ConfigOptionFloats>("nozzle_diameter"))
+        job.nozzle_diameter = nozzles->values;
+
+    // PartPlate::slice_filaments_info is filled only on 3mf load, so derive usage from the g-code result.
+    job.used_g.assign(filament_count, 0.);
+    job.used_mm.assign(filament_count, 0.);
+    if (plate != nullptr) {
+        PlateData stats;
+        stats.parse_filament_info(plate->get_slice_result());
+        // parse_filament_info keys by g-code tool number; these arrays are project-indexed.
+        for (const FilamentInfo& info : stats.slice_filaments_info) {
+            const int slot = plate->project_slot_of_tool(info.id);
+            if (slot < 0 || (size_t) slot >= filament_count)
+                continue;
+            job.used_g[slot]  = info.used_g;
+            job.used_mm[slot] = info.used_m * 1000.; // parse_filament_info reports metres
+        }
+    }
+
+    // Deduped in first-use order; the firmware skips flow calibration for tools not listed.
+    if (plate != nullptr) {
+        for (int filament : plate->get_device_filaments()) {
+            if (filament < 1 || filament > (int) filament_map_1based.size())
+                continue;
+            const int tool = filament_map_1based[filament - 1] - 1; // 0-based, as the wire wants
+            if (tool < 0)
+                continue;
+            if (std::find(job.used_physical_tools.begin(), job.used_physical_tools.end(), tool) == job.used_physical_tools.end())
+                job.used_physical_tools.push_back(tool);
+        }
+    }
+
+    // line_width is a percentage of the nozzle diameter; the screen sends the resolved value.
+    const double first_nozzle = job.nozzle_diameter.empty() ? 0.4 : job.nozzle_diameter.front();
+    if (const auto* line_width = config.option<ConfigOptionFloatOrPercent>("line_width"))
+        job.line_width = line_width->get_abs_value(first_nozzle);
+    if (const auto* layer_height = config.option<ConfigOptionFloat>("layer_height"))
+        job.layer_height = layer_height->value;
+    if (const auto* wall_speed = config.option<ConfigOptionFloats>("outer_wall_speed"); wall_speed != nullptr && !wall_speed->empty())
+        job.outer_wall_speed = wall_speed->get_at(0);
+
+    return job;
+}
+
+void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool upload_only)
 {
     // if physical_printer is selected, send gcode for this printer
     // DynamicPrintConfig* physical_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
@@ -21223,8 +21320,37 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         const bool flashforge_local_api = host_type == htFlashforge && ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
                                           ff_code_opt != nullptr && !ff_code_opt->value.empty();
 
+        // Orca: protocol and changer as the slice saw them.
+        const FilamentMappingProtocol vendor_protocol = physical_printer_config != nullptr
+                                                            ? filament_mapping_protocol_of(*physical_printer_config)
+                                                            : FilamentMappingProtocol::fmpNone;
+        const std::string sliced_changer = physical_printer_config != nullptr ? reported_changer_of(*physical_printer_config) : std::string();
+        const MapDelivery map_delivery   = effective_map_delivery(vendor_protocol, sliced_changer);
+        const DevicePrintSpec device_spec = (physical_printer_config != nullptr && !upload_only)
+                                                ? device_print_spec(vendor_protocol, map_delivery)
+                                                : DevicePrintSpec();
+        const int  device_plate_idx  = plate_idx == PLATE_ALL_IDX ? get_partplate_list().get_curr_plate_index() : resolved_plate_idx;
+        PartPlate* device_plate      = get_partplate_list().get_plate(device_plate_idx);
+        const std::vector<int> device_plate_filaments = device_plate ? device_plate->get_device_filaments() : std::vector<int>();
+
         std::unique_ptr<PrintHostSendDialog> pDlg;
-        if (host_type == htElegooLink) {
+        DevicePrintOptionsDialog*            device_dlg = nullptr;
+        if (!device_spec.empty()) {
+            // Only Moonraker delivers extended_info["start_script"]; other hosts would start unmapped.
+            const wxString undeliverable = host_type == htMoonraker
+                ? wxString()
+                : _L("This printer's filament mapping can only be sent when its host type is Moonraker. "
+                     "Upload the file and start it from the printer's screen to choose the mapping there, "
+                     "or set Host Type to Moonraker in Printer Settings.");
+            auto owned = std::make_unique<DevicePrintOptionsDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(),
+                                                                    groups, storage_paths, storage_names,
+                                                                    config->get_bool("open_device_tab_post_upload"),
+                                                                    device_spec,
+                                                                    preset_bundle->printers.get_edited_preset().name,
+                                                                    device_plate_filaments, undeliverable);
+            device_dlg = owned.get();
+            pDlg       = std::move(owned);
+        } else if (host_type == htElegooLink) {
             pDlg = std::make_unique<ElegooPrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
                                                                storage_paths, storage_names,
                                                                config->get_bool("open_device_tab_post_upload"));
@@ -21307,7 +21433,10 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                                                                    project_filaments,
                                                                    cfg.opt_bool("manual_filament_change"));
         } else {
-            pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, upload_job.printhost->get_post_upload_actions(), groups,
+            PrintHostPostUploadActions actions = upload_job.printhost->get_post_upload_actions();
+            if (upload_only)
+                actions = PrintHostPostUploadActions();
+            pDlg = std::make_unique<PrintHostSendDialog>(default_output_file, actions, groups,
                                                          storage_paths, storage_names, config->get_bool("open_device_tab_post_upload"));
         }
 
@@ -21323,7 +21452,36 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         upload_job.upload_data.post_action = pDlg->post_action();
         upload_job.upload_data.group       = pDlg->group();
         upload_job.upload_data.storage     = pDlg->storage();
+        // Orca: assignment; device-mapping keys must be added after this line.
         upload_job.upload_data.extended_info = pDlg->extendedInfo();
+        if (physical_printer_config != nullptr) {
+            // The script uses a filename placeholder: the stored name is known only after upload
+            // (it can differ on a collision), and Moonraker substitutes it then.
+            if (device_dlg != nullptr) {
+                if (upload_job.upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
+                    // The dialog re-read the printer; re-validate in case its tool count dropped below what
+                    // the plate addresses.
+                    if (this->p->update_restart_background_process(false, false) & priv::UPDATE_BACKGROUND_PROCESS_INVALID)
+                        return;
+                    DevicePrintJobInfo job = build_device_print_job_info(device_plate, device_dlg->filament_map(),
+                                                                         device_dlg->options());
+                    // used_physical_tools needs the project-slot map; the wire needs emitted tool numbers.
+                    const Print* sliced_print = device_plate != nullptr ? device_plate->fff_print() : nullptr;
+                    job.filament_map_1based = sliced_print != nullptr
+                                                  ? device_wire_filament_map(sliced_print->filament_compaction(), device_plate_filaments,
+                                                                             device_dlg->filament_map())
+                                                  : device_dlg->filament_map();
+                    std::string start_script = build_device_start_script(vendor_protocol, map_delivery,
+                                                                          PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, job);
+                    if (!start_script.empty())
+                        upload_job.upload_data.extended_info["start_script"] = start_script;
+                }
+            }
+            // Never auto-start a print whose filament map did not reach the printer. Only Moonraker
+            // gets a script: the dialog disables Print for other hosts.
+            if (map_delivery != MapDelivery::none && upload_job.upload_data.extended("start_script").empty())
+                upload_job.upload_data.post_action = PrintHostPostUploadAction::None;
+        }
         // Orca: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode) and a bundle may
         // carry several of them, so the upload must name which plate to print via a 1-based plateindex.
         // Even a single-plate bundle needs it, since its gcode entry is still indexed. The host upload

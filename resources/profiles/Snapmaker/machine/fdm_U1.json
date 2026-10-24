@@ -7,6 +7,8 @@
 	"gcode_flavor": "klipper",
 	"printer_structure": "corexy",
 	"single_extruder_multi_material": "0",
+	"filament_mapping_protocol": "snapmaker",
+	"host_type": "moonraker",
 	"bed_model": "Snapmaker U1_bed.stl",
 	"bed_texture": "Snapmaker U1_bed.svg",
 	"max_layer_height": [

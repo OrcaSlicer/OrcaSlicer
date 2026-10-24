@@ -60,6 +60,11 @@ protected:
     void set_auth(Http &http) const;
     std::string make_url(const std::string &path) const;
     bool start_print(wxString &error_msg, const std::string &filename) const;
+    // Orca: starts the print by running a caller-rendered gcode script instead of /printer/print/start.
+    bool start_print_with_script(wxString &error_msg, const std::string &script) const;
+    // Orca: POSTs {"key": value} to a printer endpoint; `action` names the request in logs.
+    bool post_json(wxString &error_msg, const std::string &path, const std::string &key, const std::string &value,
+                   const std::string &action) const;
 };
 
 }

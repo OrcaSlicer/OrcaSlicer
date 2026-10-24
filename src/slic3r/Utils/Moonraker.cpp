@@ -3,6 +3,7 @@
 #include <exception>
 #include <sstream>
 
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -190,27 +191,41 @@ bool Moonraker::start_print(wxString &error_msg, const std::string &filename) co
     //      path inside `root`, no leading slash, with extension), or the original filename
     //      when the reply had none. Build the body via property_tree so that special characters
     //      in the filename (quotes, backslashes) are properly escaped.
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Starting print of %2% at %3%") % get_name() % filename % make_url("printer/print/start");
+    return post_json(error_msg, "printer/print/start", "filename", filename, "starting print");
+}
+
+bool Moonraker::start_print_with_script(wxString &error_msg, const std::string &script) const
+{
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Starting print via custom start script at %2%") % get_name() % make_url("printer/gcode/script");
+    return post_json(error_msg, "printer/gcode/script", "script", script, "starting print via custom start script");
+}
+
+bool Moonraker::post_json(wxString &error_msg, const std::string &path, const std::string &key, const std::string &value,
+                          const std::string &action) const
+{
     const char *name = get_name();
     bool res = true;
-    auto url = make_url("printer/print/start");
+    auto url = make_url(path);
     pt::ptree body_tree;
-    body_tree.put("filename", filename);
+    body_tree.put(key, value);
     std::ostringstream body_ss;
     pt::write_json(body_ss, body_tree, /*pretty=*/false);
     std::string body = body_ss.str();
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Starting print of %2% at %3%") % name % filename % url;
+    // "printer/print/start" -> "print/start"
+    const std::string endpoint = path.substr(path.find('/') + 1);
 
     auto http = Http::post(std::move(url));
     set_auth(http);
     http.header("Content-Type", "application/json")
         .set_post_body(body)
         .on_complete([&](std::string body, unsigned status) {
-            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: print/start HTTP %2%: %3%") % name % status % body;
+            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: %2% HTTP %3%: %4%") % name % endpoint % status % body;
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
-            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error starting print at %2%: %3%, HTTP %4%, body: `%5%`")
-                % name % url % error % status % body;
+            BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error %2% at %3%: %4%, HTTP %5%, body: `%6%`")
+                % name % action % url % error % status % body;
             res = false;
             error_msg = format_error(body, error, status);
         })
@@ -249,6 +264,9 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     const std::string root = upload_data.storage.empty() ? std::string("gcodes") : upload_data.storage;
 
     const bool want_start = upload_data.post_action == PrintHostPostUploadAction::StartPrint;
+    //ORCA: a "start_script" replaces print/start and carries the filament mapping, so it must not
+    //      be preempted by Moonraker's `print` flag below.
+    std::string start_script = upload_data.extended("start_script");
 
     std::string url = make_url("server/files/upload");
     bool result = true;
@@ -274,7 +292,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     http.form_add("root", root);
     if (!plateindex.empty())
         http.form_add("plateindex", plateindex);
-    http.form_add("print", want_start ? "true" : "false");
+    http.form_add("print", want_start && start_script.empty() ? "true" : "false");
     http.form_add_file("file", upload_data.source_path.string(), upload_filename.string())
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: upload HTTP %2%: %3%") % name % status % body;
@@ -332,11 +350,16 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     if (!result)
         return false;
 
+    // A script start is always ours to issue.
     // Fallback only when Moonraker neither started nor queued the print. If the
     // printer cannot start it, the error from this request is what the user sees.
-    if (want_start && !uploaded_path.empty() && !moonraker_started_print) {
+    if (want_start && !uploaded_path.empty() && (!start_script.empty() || !moonraker_started_print)) {
+        if (!start_script.empty())
+            boost::replace_first(start_script, PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, uploaded_path);
         wxString start_msg;
-        if (!start_print(start_msg, uploaded_path)) {
+        const bool started = start_script.empty() ? start_print(start_msg, uploaded_path)
+                                                   : start_print_with_script(start_msg, start_script);
+        if (!started) {
             error_fn(std::move(start_msg));
             return false;
         }

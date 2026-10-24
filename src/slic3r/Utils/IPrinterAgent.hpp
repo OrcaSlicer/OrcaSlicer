@@ -495,6 +495,14 @@ public:
     // Blocking. Returns true on printer-confirmed success.
     virtual bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) { return false; }
 
+    // True when the device's own controller owns the filament->tool mapping and it must be
+    // delivered via send_filament_mapping() before the print-start call.
+    virtual bool supports_print_time_mapping() const { return false; }
+
+    // tool_to_slot[i] is the 1-based slot for 0-based tool i (0 = unassigned). The agent may send it
+    // now or stash it for its print-start call. Returns true once accepted, not necessarily applied.
+    virtual bool send_filament_mapping(const std::string& dev_id, const std::vector<int>& tool_to_slot) { return false; }
+
     // Points REST calls at a printer without opening connect_printer()'s status stream. Returns
     // true once dev_id is addressable (already bound counts).
     virtual bool bind_device_connection(const std::string& dev_id, const std::string& address,
