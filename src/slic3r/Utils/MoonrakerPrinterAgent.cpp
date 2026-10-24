@@ -319,6 +319,63 @@ std::string happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info)
     return "MMU_GATE_MAP GATE=" + std::to_string(info.slot) + " MATERIAL=" + info.type + " COLOR=" + rgb_of(info.color_rgba);
 }
 
+static std::string sd_print_start(const std::string& filename)
+{
+    return "SDCARD_PRINT_FILE FILENAME=\"" + filename + "\"";
+}
+
+std::string afc_mapping_script(const std::vector<int>& tool_to_slot_1based, const std::vector<std::string>& slot_names)
+{
+    // SET_MAP swaps the lane that held T<n> with the one taking it, so assigning in ascending
+    // tool order after a reset settles to exactly the requested map.
+    std::string script = "RESET_AFC_MAPPING";
+    for (size_t tool = 0; tool < tool_to_slot_1based.size(); ++tool) {
+        const int slot = tool_to_slot_1based[tool];
+        if (slot <= 0)
+            continue;
+        if (size_t(slot) > slot_names.size() || slot_names[slot - 1].empty())
+            return {};
+        script += "\nSET_MAP LANE=" + slot_names[slot - 1] + " MAP=T" + std::to_string(tool);
+    }
+    return script;
+}
+
+std::string afc_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based,
+                                     const std::vector<std::string>& slot_names)
+{
+    const std::string map = afc_mapping_script(tool_to_slot_1based, slot_names);
+    return map.empty() ? std::string() : map + "\n" + sd_print_start(filename);
+}
+
+std::string openace_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based)
+{
+    std::string pairs;
+    for (size_t tool = 0; tool < tool_to_slot_1based.size(); ++tool) {
+        const int slot = tool_to_slot_1based[tool];
+        if (slot <= 0)
+            continue;
+        pairs += (pairs.empty() ? "" : ",") + std::string("[") + std::to_string(tool) + "," + std::to_string(slot - 1) + "]";
+    }
+    return sd_print_start(filename) + " OPENACE_MAP=\"[" + pairs + "]\"";
+}
+
+std::string happy_hare_mapping_script(const std::vector<int>& tool_to_slot_1based)
+{
+    std::string script = "MMU_TTG_MAP RESET=1";
+    for (size_t tool = 0; tool < tool_to_slot_1based.size(); ++tool) {
+        const int slot = tool_to_slot_1based[tool];
+        if (slot <= 0)
+            continue;
+        script += "\nMMU_TTG_MAP TOOL=" + std::to_string(tool) + " GATE=" + std::to_string(slot - 1);
+    }
+    return script;
+}
+
+std::string happy_hare_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based)
+{
+    return happy_hare_mapping_script(tool_to_slot_1based) + "\n" + sd_print_start(filename);
+}
+
 int tool_count_from_gcode_help(const nlohmann::json& help)
 {
     int highest = -1;
@@ -673,6 +730,8 @@ int MoonrakerPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusF
 
 bool MoonrakerPrinterAgent::print_uploaded_file(const PrintParams& /*params*/, const std::string& filename)
 {
+    if (!send_changer_map())
+        return false;
     // Start print via gcode script (simpler than JSON-RPC); quoted so spaces and apostrophes stay part of the name
     return send_gcode_sync(device_info.dev_id, "SDCARD_PRINT_FILE FILENAME=\"" + filename + "\"");
 }
@@ -682,6 +741,32 @@ bool MoonrakerPrinterAgent::accepts_3mf() const
     const PresetBundle*     bundle  = GUI::wxGetApp().preset_bundle;
     const ConfigOptionBool* use_3mf = bundle ? bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("use_3mf") : nullptr;
     return use_3mf != nullptr && use_3mf->value;
+}
+
+bool MoonrakerPrinterAgent::supports_print_time_mapping() const
+{
+    return afc_active() || m_filament_dialect == MoonrakerFilamentDialect::Dialect::happy_hare;
+}
+
+// One agent instance addresses one bound device, so the stash is not keyed by dev_id.
+bool MoonrakerPrinterAgent::send_filament_mapping(const std::string& /*dev_id*/, const std::vector<int>& tool_to_slot)
+{
+    m_pending_filament_map = tool_to_slot;
+    return true;
+}
+
+bool MoonrakerPrinterAgent::send_changer_map()
+{
+    if (m_pending_filament_map.empty())
+        return true;
+    const std::vector<int> map    = std::exchange(m_pending_filament_map, {});
+    const std::string      script = afc_active() ? MoonrakerFilamentDialect::afc_mapping_script(map, m_lane_names)
+                                                 : MoonrakerFilamentDialect::happy_hare_mapping_script(map);
+    if (script.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::send_changer_map: a mapped slot has no lane name; print not started";
+        return false;
+    }
+    return send_gcode_sync(device_info.dev_id, script);
 }
 
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
@@ -1014,6 +1099,10 @@ bool MoonrakerPrinterAgent::fetch_afc_filament_info()
     }
     m_filament_dialect = MoonrakerFilamentDialect::Dialect::afc_lane_data;
     probe_tool_count();
+    m_lane_names.assign(size_t(max_lane_index + 1), std::string());
+    for (const AmsTrayData& tray : trays)
+        if (tray.slot_index >= 0 && tray.slot_index <= max_lane_index)
+            m_lane_names[size_t(tray.slot_index)] = tray.slot_name;
     // Older AFC lane_data leaves the unit and slot to its AFC_stepper objects.
     if (!has_topology)
         fetch_afc_lane_topology(trays);

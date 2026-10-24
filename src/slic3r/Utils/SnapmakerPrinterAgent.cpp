@@ -450,16 +450,9 @@ bool SnapmakerPrinterAgent::push_filament_info(std::string dev_id, const Filamen
     return true;
 }
 
-// One agent instance addresses one bound device, so the stash is not keyed by dev_id.
-bool SnapmakerPrinterAgent::send_filament_mapping(const std::string& /*dev_id*/, const std::vector<int>& tool_to_slot)
-{
-    m_pending_filament_map = tool_to_slot;
-    return true;
-}
-
 bool SnapmakerPrinterAgent::print_uploaded_file(const PrintParams& params, const std::string& filename)
 {
-    if (m_pending_filament_map.empty())
+    if (afc_active() || m_pending_filament_map.empty())
         return MoonrakerPrinterAgent::print_uploaded_file(params, filename);
     return send_gcode_sync(device_info.dev_id, SnapmakerProtocol::build_start_script(filename, std::exchange(m_pending_filament_map, {})));
 }

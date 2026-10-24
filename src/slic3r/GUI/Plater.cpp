@@ -202,6 +202,7 @@
 #include "GUI_Factories.hpp"
 #include "wxExtensions.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "../Utils/Moonraker.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r/FilamentCompaction.hpp"
 #ifdef SLIC3R_CAD
@@ -21233,6 +21234,13 @@ static DevicePrintJobInfo build_device_print_job_info(PartPlate*                
         }
     }
 
+    // AFC renders its map by lane name; other dialects ignore these.
+    {
+        FilamentInventories store;
+        for (const auto& slot : load_active_printer_inventory(store).slots)
+            job.slot_names.push_back(slot.name);
+    }
+
     // line_width is a percentage of the nozzle diameter; the screen sends the resolved value.
     const double first_nozzle = job.nozzle_diameter.empty() ? 0.4 : job.nozzle_diameter.front();
     if (const auto* line_width = config.option<ConfigOptionFloatOrPercent>("line_width"))
@@ -21320,7 +21328,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool up
         const bool flashforge_local_api = host_type == htFlashforge && ff_serial_opt != nullptr && !ff_serial_opt->value.empty() &&
                                           ff_code_opt != nullptr && !ff_code_opt->value.empty();
 
-        // Orca: protocol and changer as the slice saw them.
+        // Orca: protocol and changer as the slice saw them; the send below compares against these
+        // after the dialog re-reads the printer.
         const FilamentMappingProtocol vendor_protocol = physical_printer_config != nullptr
                                                             ? filament_mapping_protocol_of(*physical_printer_config)
                                                             : FilamentMappingProtocol::fmpNone;
@@ -21463,6 +21472,19 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool up
                     // the plate addresses.
                     if (this->p->update_restart_background_process(false, false) & priv::UPDATE_BACKGROUND_PROCESS_INVALID)
                         return;
+                    // A changer that appeared or vanished since the slice changes tool numbering.
+                    {
+                        FilamentInventories store;
+                        const std::string   live_changer = load_active_printer_inventory(store).dialect;
+                        if (live_changer != sliced_changer) {
+                            BOOST_LOG_TRIVIAL(warning) << "send_gcode_legacy: sliced with changer '" << sliced_changer
+                                                       << "' but the printer reports '" << live_changer << "'; send aborted";
+                            MessageDialog(this, _L("The printer's filament changer differs from the one this plate was sliced for. "
+                                                   "Sync the printer materials and slice again."),
+                                          _L("Send print"), wxOK | wxICON_WARNING).ShowModal();
+                            return;
+                        }
+                    }
                     DevicePrintJobInfo job = build_device_print_job_info(device_plate, device_dlg->filament_map(),
                                                                          device_dlg->options());
                     // used_physical_tools needs the project-slot map; the wire needs emitted tool numbers.
@@ -21471,7 +21493,10 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool up
                                                   ? device_wire_filament_map(sliced_print->filament_compaction(), device_plate_filaments,
                                                                              device_dlg->filament_map())
                                                   : device_dlg->filament_map();
-                    std::string start_script = build_device_start_script(vendor_protocol, map_delivery,
+                    const auto* moonraker = dynamic_cast<const Moonraker*>(upload_job.printhost.get());
+                    const MapDelivery delivery = print_time_map_delivery(
+                        map_delivery, map_delivery == MapDelivery::afc && moonraker != nullptr && moonraker->has_klipper_object("openace"));
+                    std::string start_script = build_device_start_script(vendor_protocol, delivery,
                                                                           PRINT_HOST_UPLOADED_FILENAME_PLACEHOLDER, job);
                     if (!start_script.empty())
                         upload_job.upload_data.extended_info["start_script"] = start_script;

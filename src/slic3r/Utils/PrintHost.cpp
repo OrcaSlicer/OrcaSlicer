@@ -27,6 +27,7 @@
 #include <wx/arrstr.h>
 
 #include "libslic3r/PrintConfig.hpp"
+#include "MoonrakerPrinterAgent.hpp"
 #include "libslic3r/Channel.hpp"
 #include "OctoPrint.hpp"
 #include "Duet.hpp"
@@ -58,12 +59,19 @@ PrintHost::~PrintHost() {}
 
 MapDelivery effective_map_delivery(FilamentMappingProtocol vendor, const std::string& reported_changer)
 {
+    if (reported_changer == "afc")        return MapDelivery::afc;
+    if (reported_changer == "happy_hare") return MapDelivery::happy_hare;
     switch (vendor) {
     case FilamentMappingProtocol::fmpSnapmaker:   return MapDelivery::snapmaker;
     case FilamentMappingProtocol::fmpWonderMaker:
     case FilamentMappingProtocol::fmpNone:        break;
     }
     return MapDelivery::none;
+}
+
+MapDelivery print_time_map_delivery(MapDelivery sliced, bool printer_has_openace)
+{
+    return sliced == MapDelivery::afc && printer_has_openace ? MapDelivery::openace : sliced;
 }
 
 DevicePrintSpec device_print_spec(FilamentMappingProtocol vendor, MapDelivery delivery)
@@ -76,6 +84,9 @@ DevicePrintSpec device_print_spec(FilamentMappingProtocol vendor, MapDelivery de
                                          L("Probe the bed before printing, as the printer's own screen does."), "1"};
     switch (vendor) {
     case FilamentMappingProtocol::fmpSnapmaker:
+        // A changer that takes the map also starts the print, so the U1's start parameters are never sent.
+        if (delivery != MapDelivery::snapmaker)
+            break;
         // The printer screen's three options, labelled as in the vendor's slicer. Only leveling defaults on.
         spec.options = {{"flow_calibrate", L("Extrusion Flow Calibration"),
                          L("Calibrate flow on each tool this plate actually uses before printing."), "0"},
@@ -94,6 +105,18 @@ std::string build_device_start_script(FilamentMappingProtocol vendor, MapDeliver
     case MapDelivery::none: return {};
     case MapDelivery::snapmaker:
         return SnapmakerProtocol::build_start_script(filename, job);
+    case MapDelivery::afc:
+    case MapDelivery::happy_hare:
+    case MapDelivery::openace: {
+        std::string map;
+        if (delivery == MapDelivery::afc)
+            map = MoonrakerFilamentDialect::afc_mapping_start_script(filename, job.filament_map_1based, job.slot_names);
+        else if (delivery == MapDelivery::happy_hare)
+            map = MoonrakerFilamentDialect::happy_hare_mapping_start_script(filename, job.filament_map_1based);
+        else
+            map = MoonrakerFilamentDialect::openace_mapping_start_script(filename, job.filament_map_1based);
+        return map;
+    }
     }
     return {};
 }
