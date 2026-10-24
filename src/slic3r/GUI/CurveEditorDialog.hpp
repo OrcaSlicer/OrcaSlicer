@@ -64,6 +64,7 @@ private:
     void export_csv();
     void paste_points();
     void layout_content();
+    int grid_height() const;
     void layout_actions();
     void update_grid_metrics();
     void update_grid_colours();
@@ -78,6 +79,9 @@ private:
     wxPanel* m_table_panel;
     wxPanel* m_actions_panel;
     Button* m_add_point;
+    Button* m_remove_point;
+    Button* m_export_csv;
+    Button* m_ok;
     wxStaticText* m_status;
     TextInput* m_range_fields[4];
     wxSpinButton* m_range_arrows[4];
