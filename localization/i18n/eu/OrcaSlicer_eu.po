@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "PO-Revision-Date: 2026-10-19 18:56+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -3226,11 +3226,8 @@ msgstr "Klonatu"
 msgid "Simplify Model"
 msgstr "Modeloa sinplifikatu"
 
-msgid "Subdivision mesh"
-msgstr "Azpibanaketa-sarea"
-
-msgid "(Lost color)"
-msgstr "(Kolorea galdu da)"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Azpibanaketa-sarea (Kolorea galdu da)"
 
 msgid "Center"
 msgstr "Zentratu"
@@ -4849,7 +4846,7 @@ msgstr "Berrabiarazi behar da"
 #. TRN %1% marks where the Home button icon is drawn; keep it in the translation.
 #, boost-format
 msgid "Please home all axes (click %1%) to locate the toolhead's position. This prevents device moving beyond the printable boundary and causing equipment wear."
-msgstr "Mesedez, itzuli ardatz guztiak jatorrira (egin klik %1%) inprimatze-buruaren posizioa kokatzeko. Horrela, gailua inprimatu daitekeen mugatik haratago mugitzea eta ekipoa higatzea saihesten da."
+msgstr "Mesedez, eraman ardatz guztiak jatorrira (egin klik %1%) inprimatze-buruaren posizioa kokatzeko. Horrela, gailua inprimatu daitekeen mugatik haratago mugitzea eta ekipoa higatzea saihesten da."
 
 msgid "Go Home"
 msgstr "Hasierara joan"
@@ -5040,6 +5037,7 @@ msgid ""
 msgstr ""
 "Pita buxatu egin daiteke tenperatura gomendatutako tartetik kanpo dagoenean.\n"
 "Mesedez, ziurtatu inprimatzeko tenperatura hau erabili behar den ala ez.\n"
+"\n"
 
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
@@ -6604,12 +6602,16 @@ msgstr "Mesedez, sartu inprimagailura sartzeko kodea:"
 msgid ""
 "You can find it in \"Settings > Network > Access code\"\n"
 "on the printer, as shown in the figure:"
-msgstr "Inprimagailuan aurki dezakezu, \"Ezarpenak > Sarea > Sarbide-kodea\" atalean, irudian erakusten den bezala:"
+msgstr ""
+"Inprimagailuan aurki dezakezu, \"Ezarpenak > Sarea > Sarbide-kodea\" atalean,\n"
+"irudian erakusten den bezala:"
 
 msgid ""
 "You can find it in \"Setting > Setting > LAN only > Access Code\"\n"
 "on the printer, as shown in the figure:"
-msgstr "Inprimagailuan aurki dezakezu, \"Ezarpenak > Ezarpenak > LAN bakarrik > Sarbide-kodea\" atalean, irudian erakusten den bezala:"
+msgstr ""
+"Inprimagailuan aurki dezakezu, \"Ezarpenak > Ezarpenak > LAN bakarrik > Sarbide-kodea\" atalean,\n"
+"irudian erakusten den bezala:"
 
 msgid "Invalid input"
 msgstr "Sarrera baliogabea"
@@ -6965,7 +6967,7 @@ msgstr "Erakutsi talka-bolumen guztiak"
 
 # AI Translated
 msgid "Show the full height of every configured collision volume, including on an empty bed."
-msgstr "Erakutsi konfiguratutako talka-bolumen bakoitzaren altuera osoa, baita ohe hutsean ere."
+msgstr "Erakutsi konfiguratutako talka-bolumen bakoitzaren altuera osoa, baita ohea hutsik dagoenean ere."
 
 msgid "Show &Overhang"
 msgstr "Erakutsi Irtenguneak"
@@ -9144,7 +9146,8 @@ msgid ""
 "the file be loaded as a single object with multiple parts?"
 msgstr ""
 "Fitxategi honek hainbat altueratan kokatutako zenbait objektu ditu.\n"
-"Objektu anizkoitz gisa hartu beharrean, fitxategia hainbat pieza dituen objektu bakar gisa kargatu nahi duzu?"
+"Objektu anizkoitz gisa hartu beharrean,\n"
+"fitxategia hainbat pieza dituen objektu bakar gisa kargatu nahi duzu?"
 
 msgid "Multi-part object detected"
 msgstr "Pieza anitzeko objektua detektatu da"
@@ -10430,13 +10433,19 @@ msgstr ""
 "Estatikoa: argia finko geratzen da munduan; beraz, itzalak eszena aldatzen denean soilik birkalkulatzen dira.\n"
 "Orbita: argia kamerarekin batera biratzen da, eta itzalak birkalkulatzen dira kamera mugitzen den fotograma bakoitzean."
 
+# AI Translated
+# Needs human review: Preview option; 'glossy' rendered 'distiratsu' (shiny). Check it reads as a glossy-plastic look for toolpaths in realistic view.
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "Inprimatze-ibilbide distiratsuak"
 
+# AI Translated
+# Needs human review: Check 'zeharrargi' (translucent), 'opako' (opaque) and 'matea' (matte), and that 'ikuspegi arrunta' is the name users see for the non-realistic view.
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"Aurrebistako inprimatze-ibilbideei plastiko distiratsuaren distira ematen die ikuspegi errealistan.\n"
+"Desaktibatuta, filamentu zeharrargi bat matea izaten da, eta opako batek ikuspegi arruntaren distira mantentzen du."
 
 msgid "Anti-aliasing"
 msgstr "Antialiasing-a"
@@ -10617,11 +10626,14 @@ msgstr ""
 "\"Ilundu beheko geruzak\" gaituta dagoenean ilundutako geruzak zein distiratsu marrazten diren.\n"
 "%99 balioak ozta-ozta iluntzen ditu, %0 balioak beltz bihurtzen ditu. Gehienez %99 onartzen da, %100 balioak aukera desgaitzearen gauza bera egingo bailuke."
 
+# AI Translated
+# Needs human review: Preview option; 'translucent' rendered 'zeharrargi' (the catalog's older entries use 'garden' for transparent). Check the term.
 msgid "Translucent filaments"
-msgstr ""
+msgstr "Filamentu zeharrargiak"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "Marraztu kolore partzialki gardena duten filamentuen inprimatze-ibilbideak zeharrargi gisa, 3D ikuspegiak haien objektuak marrazten dituen bezala. Desaktibatu filamentu guztiak opako marrazteko."
 
 msgid "Login region"
 msgstr "Saio-hasierako eskualdea"
@@ -12812,6 +12824,8 @@ msgstr ""
 "eta baztertu hemen egindako aldaketak:\n"
 "\"%2%\"."
 
+# AI Translated
+# Needs human review: Restored the English line breaks so %1% and %2% stand on their own lines, as in the sibling 'Switch to' message: the '-n' suffix on %1% became 'Hemen aldatutako ...:'. Check it reads naturally in the Transfer or discard changes dialog.
 #, boost-format
 msgid ""
 "All \"New Value\" settings modified in\n"
@@ -12819,15 +12833,22 @@ msgid ""
 "will be transferred to\n"
 "\"%2%\"."
 msgstr ""
-"\"%1%\"-n aldatutako \"Balio berria\" ezarpen guztiak hona transferituko dira:\n"
+"Hemen aldatutako \"Balio berria\" ezarpen guztiak:\n"
+"\"%1%\"\n"
+"hona transferituko dira:\n"
 "\"%2%\"."
 
+# AI Translated
+# Needs human review: Restored the English line breaks so %1% stands on its own line: the '-n' suffix on %1% became 'hemen gordeko dira:'. Check it reads naturally in the Transfer or discard changes dialog.
 #, boost-format
 msgid ""
 "All \"New Value\" settings are saved in\n"
 "\"%1%\"\n"
 "and \"%2%\" will open without any changes."
-msgstr "\"Balio berria\" ezarpen guztiak \"%1%\"-n gordeko dira, eta \"%2%\" aldaketarik gabe irekiko da."
+msgstr ""
+"\"Balio berria\" ezarpen guztiak hemen gordeko dira:\n"
+"\"%1%\"\n"
+"eta \"%2%\" aldaketarik gabe irekiko da."
 
 msgid "Click the right mouse button to display the full text."
 msgstr "Egin klik saguaren eskuineko botoiarekin testu osoa bistaratzeko."
@@ -13483,7 +13504,7 @@ msgstr "Margotzea"
 
 # AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "Erabilgarri margotzeko tresna bat irekita dagoen bitartean: euskarriak, jostura, gainazal zimurra edo kolorea margotzea."
+msgstr "Erabilgarri margotzeko tresna bat irekita dagoen bitartean: euskarriak, jostura, gainazal zimurra edo kolore-margotzea."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Mugitu: sakatu 1 mm-ko jauzietan atxikitzeko"
@@ -13861,6 +13882,7 @@ msgstr ""
 "Diskoa beteta al dago?"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "G-code mugimendu bat %1% estrusorearen talka-bolumen batekin gurutzatzen da. Horrek inprimagailuaren talka eragin dezake."
@@ -14184,11 +14206,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1% bazterketa-eremutik gertuegi dago. Inprimatzean talkak gerta daitezke."
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "%1% erabilgarri dauden estrusore guztien talka-bolumenekin gurutzatzen da."
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "%1% %2% estrusorearen talka-bolumen batekin gurutzatzen da."
@@ -14589,9 +14613,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "Aukeratu pita guztiek talka-bolumen berberak erabiltzen dituzten, inprimatze-buruarekiko erlatiboak diren bolumenak pita bakoitzaren XY desplazamendutik eratortzen diren, ala estrusore bakoitzerako bolumen independenteak konfiguratzen diren. Modu indibidualean, hautatu estrusore bakoitza Estrusorea orrian haren bolumenak konfiguratzeko."
 
 # AI Translated
-# Needs human review: Option of the collision volume behavior dropdown (shared by all nozzles); check it reads right next to 'Toolhead-relative' and 'Individual per extruder'.
-msgid "Shared"
-msgstr "Partekatua"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "Pita guztiek partekatua"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -14834,11 +14858,14 @@ msgstr "Beheko oskolaren lodiera"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Xerratzean beheko geruza solidoen kopurua handituko da beheko oskol-geruzek kalkulatutako lodiera balio hau baino txikiagoa bada. Horrela, geruza-altuera txikia denean oskola meheegia izatea saihesten da. 0 balioak ezarpena desgaituta dagoela esan nahi du, eta beheko oskolaren lodiera beheko oskol-geruzen kopuruak soilik zehaztuko du."
 
+# AI Translated
+# Needs human review: 'Paint penetration' rendered 'margotzearen barneratze-geruzak' (painting + penetration layers); check the term reads as 'layers the painted color reaches behind the bottom surface'.
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "Beheko margotzearen barneratze-geruzak"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "Beheko gainazal batean margotutako kolorea hartzen duten geruzen kopurua, beheko gainazaleko geruza barne. Ezarri 0 beheko oskol-geruzak erabiltzeko. Beheko oskola baino handiagoa den balio batek margotutako eremuaren gaineko dentsitate baxuko betegarria ere koloreztatzen du."
 
 msgid "Apply gap fill"
 msgstr "Aplikatu hutsuneak betetzea"
@@ -15984,7 +16011,6 @@ msgid ""
 "This option will be disabled if spiral vase mode is enabled."
 msgstr ""
 "Goitik begiratuta, ingeradako-hormen begiztak zein noranzkotan estruitzen diren.\n"
-"\n"
 "Zuloak sestraren kontrako noranzkoan inprimatzen dira, sestra-poligono osatugabeak dituzten eta noranzkoa aldatzen duten geruzekin lerrokadura mantentzeko; horiek zulo baten sestra ere partzialki osatzen dute.\n"
 "\n"
 "Aukera hau desgaitu egingo da espiral formako loreontziaren modua gaituta badago."
@@ -16158,7 +16184,8 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Zubietarako Pressure Advance balio estatikoa. Ezarri 0 horma baliokideen Pressure Advance bera aplikatzeko (ezarpen egokigarriak erabiliz, gaituta badaude).\n"
+"Zubietarako Pressure Advance balio estatikoa. Ezarri 0 horma baliokideen Pressure Advance bera aplikatzeko\n"
+"(ezarpen egokigarriak erabiliz, gaituta badaude).\n"
 "\n"
 "Zubiak inprimatzean PA balio txikiagoak zubien ondorengo azpiestrusio arina murrizten laguntzen du. Airean inprimatzean pitaren presioa jaisten delako gertatzen da, eta PA txikiagoak hori konpentsatzen du."
 
@@ -16174,12 +16201,18 @@ msgstr "Ezarpen hau gaitzean, piezaren hozte-haizagailua ez da inoiz erabat geld
 msgid "Don't slow down outer walls"
 msgstr "Ez moteldu kanpoko hormak"
 
+# AI Translated
+# Needs human review: Restored the English three-item list (the translation had condensed it into one sentence without line breaks). Check the wording of the three items; 'Z banding' is kept in English.
 msgid ""
 "If enabled, this setting will ensure external perimeters are not slowed down to meet the minimum layer time. This is particularly helpful in the below scenarios:\n"
 "1. To avoid changes in shine when printing glossy filaments\n"
 "2. To avoid changes in external wall speed which may create slight wall artifacts that appear like Z banding\n"
 "3. To avoid printing at speeds which cause VFAs (fine artifacts) on the external walls"
-msgstr "Gaituta badago, ezarpen honek kanpoko perimetroak gutxieneko geruza-denbora betetzeko ez moteltzea bermatuko du. Bereziki lagungarria da filamentuen distira-aldaketak, horma-artefaktu arinak eta kanpoko hormetako VFAak saihesteko"
+msgstr ""
+"Gaituta badago, ezarpen honek kanpoko perimetroak gutxieneko geruza-denbora betetzeko ez moteltzea bermatuko du. Bereziki lagungarria da egoera hauetan:\n"
+"1. Filamentu distiratsuak inprimatzean distira-aldaketak saihesteko\n"
+"2. Z banding-aren itxura duten horma-artefaktu arinak sor ditzaketen kanpoko hormaren abiadura-aldaketak saihesteko\n"
+"3. Kanpoko hormetan VFAak (artefaktu finak) eragiten dituzten abiaduretan inprimatzea saihesteko"
 
 msgid "Layer time"
 msgstr "Geruza-denbora"
@@ -16316,7 +16349,7 @@ msgstr "Uzkurdura (XY)"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "Sartu hoztu ondoren filamentuak izango duen uzkurdura-ehunekoa (adibidez, 100 mm-ren ordez 94 mm neurtzen badituzu, %94). Pieza XYn eskalatuko da konpentsatzeko. Material anitzeko inprimaketetan, ziurtatu erabilitako filamentuen uzkurdurak bat datozela.\n"
@@ -16398,8 +16431,9 @@ msgstr "Tresna-aldaketa baten ondoren, pitaren barruan kargatu berri den filamen
 msgid "Wipe tower cooling"
 msgstr "Purgatze-dorrearen hoztea"
 
-msgid "Temperature drop before entering filament tower"
-msgstr "Tenperatura-jaitsiera filamentuen dorrera sartu aurretik"
+# AI Translated
+msgid "Temperature drop before entering the wipe tower."
+msgstr "Tenperatura-jaitsiera purgatze-dorrera sartu aurretik."
 
 msgid "Interface layer pre-extrusion distance"
 msgstr "Interfaze-geruzaren aurre-estrusio distantzia"
@@ -16842,9 +16876,9 @@ msgstr "Klipper-en max_accel_to_decel automatikoki doituko da."
 msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "Klipper-en max_accel_to_decel azelerazioaren %% honetara doituko da."
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "Klipper-en max_accel_to_decel azelerazioaren % honetara doituko da."
 
 msgid "Default jerk."
 msgstr "Jerk lehenetsia."
@@ -17038,21 +17072,21 @@ msgid "Fuzzy skin generator mode"
 msgstr "Gainazal zimurraren sorgailu-modua"
 
 # AI Translated
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Gainazal zimurra sortzeko modua. Arachne-rekin bakarrik funtzionatzen du!\n"
 "Desplazamendua: modu klasikoa; patroia pita jatorrizko ibilbidetik alboetara mugituz sortzen da.\n"
 "Estrusioa: patroia estruitutako plastiko-kantitatearen bidez sortzen den modua. Algoritmo azkar eta zuzena da, pita alferrik astindu gabe patroi leuna sortzen duena. Hala ere, erabilgarriagoa da horma solteak multzo osoan sortzeko.\n"
 "Konbinatua: [Desplazamendua] + [Estrusioa] modu bateratua. Hormen itxura [Desplazamendua] moduaren antzekoa da, baina ez du pororik uzten perimetroen artean.\n"
 "\n"
-"Kontuz! [Estrusioa] eta [Konbinatua] moduek fuzzy_skin_thickness parametroa inprimatutako begiztaren lodiera baino handiagoa ez denean bakarrik funtzionatzen dute. Aldi berean, geruza jakin bateko estrusio-zabalera ere ezin da maila jakin batetik beherakoa izan. Normalean, geruza-altueraren 15-25%% izaten da. Beraz, 0,4 mm-ko perimetro-zabalerarekin eta 0,2 mm-ko geruza-altuerarekin, gainazal zimurraren gehieneko lodiera 0,4-(0,2*0,25)=±0,35 mm izango da! Balio handiagoa sartzen baduzu, Flow::spacing() errorea bistaratuko da eta modeloa ez da xerratuko. Zenbaki hori doitu dezakezu errorea berriro agertu arte."
+"Kontuz! [Estrusioa] eta [Konbinatua] moduek fuzzy_skin_thickness parametroa inprimatutako begiztaren lodiera baino handiagoa ez denean bakarrik funtzionatzen dute. Aldi berean, geruza jakin bateko estrusio-zabalera ere ezin da maila jakin batetik beherakoa izan. Normalean, geruza-altueraren 15-25% izaten da. Beraz, 0,4 mm-ko perimetro-zabalerarekin eta 0,2 mm-ko geruza-altuerarekin, gainazal zimurraren gehieneko lodiera 0,4-(0,2*0,25)=±0,35 mm izango da! Balio handiagoa sartzen baduzu, Flow::spacing() errorea bistaratuko da eta modeloa ez da xerratuko. Zenbaki hori doitu dezakezu errorea berriro agertu arte."
 
 msgid "Displacement"
 msgstr "Desplazamendua"
@@ -17339,7 +17373,7 @@ msgid "Support controlling chamber temperature"
 msgstr "Ganberako tenperatura kontrolatzeko funtzioa"
 
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Aukera hau gaituta dago makinak ganberako tenperatura kontrolatzea onartzen badu\n"
@@ -17349,7 +17383,7 @@ msgid "Support air filtration"
 msgstr "Aire-iragazketa onartu"
 
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Gaitu hau inprimagailuak aire-iragazketa onartzen badu\n"
@@ -17358,7 +17392,7 @@ msgstr ""
 msgid "Use cooling filter"
 msgstr "Erabili hozte-iragazkia"
 
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "Gaitu hau inprimagailuak hozte-iragazkia onartzen badu"
 
 msgid "G-code flavor"
@@ -18274,9 +18308,9 @@ msgstr "Modeloren oinarrian dagoen zulo baten gehieneko azalera, material koniko
 msgid "Detect overhang walls"
 msgstr "Detektatu irtengune-hormak"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Honek irtenguneen ehunekoa detektatzen du lerro-zabalerarekiko eta abiadura desberdina erabiltzen du. 100%%-eko irtengunean zubi-abiadura erabiltzen da."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "Honek irtenguneen ehunekoa detektatzen du lerro-zabalerarekiko eta abiadura desberdina erabiltzen du. 100%-eko irtengunean zubi-abiadura erabiltzen da."
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -19819,11 +19853,14 @@ msgstr "Goiko oskolaren lodiera"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Xerratzean goiko geruza solidoen kopurua handitzen da goiko oskol-geruzek kalkulatutako lodiera balio hau baino txikiagoa bada. Horrela oskola meheegia izatea saihesten da geruza-altuera txikia denean. 0 balioak ezarpena desgaitzen du."
 
+# AI Translated
+# Needs human review: 'Paint penetration' rendered 'margotzearen barneratze-geruzak' (painting + penetration layers); check the term reads as 'layers the painted color reaches behind the top surface'.
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "Goiko margotzearen barneratze-geruzak"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "Goiko gainazal batean margotutako kolorea hartzen duten geruzen kopurua, goiko gainazaleko geruza barne. Ezarri 0 goiko oskolaren geruzak erabiltzeko. Goiko oskola baino handiagoa den balio batek margotutako eremuaren azpiko dentsitate baxuko betegarria ere koloreztatzen du."
 
 msgid "Separated infills"
 msgstr "Betegarri bereiziak"
@@ -20153,7 +20190,7 @@ msgid "G-code thumbnails"
 msgstr "G-codearen miniaturak"
 
 msgid "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the following format: \"XxY, XxY, ...\""
-msgstr " .gcode eta .sl1 / .sl1s fitxategietan gorde beharreko irudien tamainak, formatu honetan: \"XxY, XxY, ...\""
+msgstr ".gcode eta .sl1 / .sl1s fitxategietan gorde beharreko irudien tamainak, formatu honetan: \"XxY, XxY, ...\""
 
 msgid "Format of G-code thumbnails"
 msgstr "G-codearen miniaturen formatua"
@@ -21168,8 +21205,9 @@ msgid "Nozzle volume types"
 msgstr "Pitaren bolumen motak"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "Pitaren IDaren arabera indexatutako pitaren bolumen-aldaerak."
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "Pita-IDaren arabera indexatutako pita-bolumen motak, \"Standard\" edo \"High Flow\" adibidez."
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -21208,12 +21246,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "Uneko geruzara arte inprimatutako masa metatua."
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "Uneko geruzaren masa"
+msgid "Previous layer mass"
+msgstr "Aurreko geruzaren masa"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "Aurreko geruzaren inprimatutako masa."
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "previous_layer_mass-en berdina. Bambu Studiok izen hau erabiltzen du."
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -21252,8 +21294,8 @@ msgid "Timelapse inline photo"
 msgstr "Lerroko timelapse argazkia"
 
 # AI Translated
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "Timelapse argazkia lerroko posizioan kapturatzen den ala ez."
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "Argazkia pita dagoeneko dagoen tokian hartzen den ala ez, lehenik timelapseko posizio seguru batera mugitu gabe."
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -21264,12 +21306,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "Punturik urrunenaren timelapse-posizionamendua aktibo dagoen ala ez."
 
 # AI Translated
-msgid "Clear to X0"
-msgstr "X0 arte libre"
+msgid "Clear path to X0"
+msgstr "X0-rako bide librea"
 
 # AI Translated
-msgid "Whether the timelapse move is clear to X0."
-msgstr "Timelapse-mugimendua X0 arte libre dagoen ala ez."
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "Pita uneko altueran X0-ra mugi daitekeen ala ez, inprimatutako beste objektu batekin talka egin gabe."
 
 # AI Translated
 msgid "Previous extruder"
@@ -21292,16 +21334,16 @@ msgid "Current hotend"
 msgstr "Uneko hotenda"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Irteten ari den filamentuaren estrusorearen indizea, zeroan oinarritua. Bambu inprimagailuetan -1 da, edo pitaren IDa filamentu bat geruzen artean pita batetik bestera mugitzen denean."
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Irteten ari den filamentuaren hotenda, estrusorearen zeroan oinarritutako indize gisa emanda. Bambu inprimagailuetan -1 da, edo pita-IDa da filamentu bat geruzen artean pita batetik bestera aldatzen denean."
 
 # AI Translated
 msgid "Next hotend"
 msgstr "Hurrengo hotenda"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Sartzen ari den filamentuaren estrusorearen indizea, zeroan oinarritua. Bambu inprimagailuetan -1 da, edo pitaren IDa filamentu bat geruzen artean pita batetik bestera mugitzen denean."
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Sartzen ari den filamentuaren hotenda, estrusorearen zeroan oinarritutako indize gisa emanda. Bambu inprimagailuetan -1 da, edo pita-IDa da filamentu bat geruzen artean pita batetik bestera aldatzen denean."
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -21324,16 +21366,18 @@ msgid "Old extruder variant"
 msgstr "Estrusore zaharraren aldaera"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "Irteten ari den estrusorearen pita-bolumenaren aldaera."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "Irteten ari den estrusorearen estrusore mota eta pita-bolumen mota, \"Direct Drive High Flow\" adibidez."
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "Estrusore berriaren aldaera"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "Sartzen ari den estrusorearen pita-bolumenaren aldaera."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "Sartzen ari den estrusorearen estrusore mota eta pita-bolumen mota, \"Direct Drive High Flow\" adibidez."
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -21348,8 +21392,8 @@ msgid "New extruder retracted length"
 msgstr "Estrusore berriaren atzera-egindako luzera"
 
 # AI Translated
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "Sartzen ari den estrusorea une honetan gordeta duen atzera-egitearen luzera."
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "Sartzen ari den estrusoreak aparkatu zenetik oraindik aplikatuta duen atzera-egitearen luzera."
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -21460,16 +21504,16 @@ msgid "First flush volume"
 msgstr "Lehen purgatze-bolumena"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "Lehen purgatze-bolumena."
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "Aurreikusitako purgatze-luzeraren lehen erdia, filamentuaren mm-tan."
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "Bigarren purgatze-bolumena"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "Bigarren purgatze-bolumena."
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "Aurreikusitako purgatze-luzeraren bigarren erdia, filamentuaren mm-tan."
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -21606,30 +21650,24 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "Desplazamenduek garbiketa-perimetroa saihestu behar duten ala ez."
 
 # AI Translated
-# Needs human review: Variable label in the G-code placeholder list; check the wipe term against the wipe area.
-msgid "Wipe avoidance X"
-msgstr "Garbiketa saihesteko X"
+msgid "Wipe tower avoidance X"
+msgstr "Purgatze-dorrea saihesteko X"
 
 # AI Translated
-# Needs human review: Check 'wipe area' rendering against the wipe tower area.
-msgid "X position used to avoid the wipe area."
-msgstr "Garbiketa-eremua saihesteko erabiltzen den X posizioa."
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "Pita joaten den X posizioa, purgatze-dorrearen ondo-ondoan, dorretik aldenduta egoteko."
 
 # AI Translated
 msgid "Prime tower interface"
 msgstr "Purgatze-dorrearen interfazea"
 
 # AI Translated
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "Uneko purgatzea purgatze-dorrearen interfazerako den ala ez."
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "Uneko purgatzea purgatze-dorreko interfaze-geruzarako (material desberdinak elkartzen diren tokian) den ala ez."
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "Filamentuaren dorre-interfazearen inprimatze-tenperatura"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "Filamentuaren dorre-interfazean erabiltzen den inprimatze-tenperatura."
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "Purgatze-dorreko interfaze-geruzaren inprimatze-tenperatura (material desberdinak elkartzen diren tokian)."
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -21652,8 +21690,20 @@ msgid "Wipe tower wait position valid"
 msgstr "Purgatze-dorrearen itxaron-posizioa baliozkoa"
 
 # AI Translated
-msgid "Whether the print has a wipe tower."
-msgstr "Inprimaketak purgatze-dorrea duen ala ez."
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "Itxaron-posizioa ezarrita dagoen ala ez; hala gertatzen da inprimaketak purgatze-dorrea duenean."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_x-en berdina. Bambu Studiok izen hau erabiltzen du."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_y-en berdina. Bambu Studiok izen hau erabiltzen du."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_valid-en berdina. Bambu Studiok izen hau erabiltzen du."
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -21662,10 +21712,6 @@ msgstr "Filamentuaren arabera indexatutako pitaren tenperaturak."
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "Filamentuaren arabera indexatutako lehen geruzako pitaren tenperaturak."
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "Hasierako geruzako pitaren tenperatura"
 
 # AI Translated
 msgid "Extrusion role"
@@ -23591,6 +23637,7 @@ msgid ""
 "Available nozzle profiles for this printer:"
 msgstr ""
 "\n"
+"\n"
 "Inprimagailu honetarako erabilgarri dauden pita-profilak:"
 
 msgid ""
@@ -23598,6 +23645,7 @@ msgid ""
 "\n"
 "Choose YES to switch existing preset:"
 msgstr ""
+"\n"
 "\n"
 "Hautatu BAI lehendik dagoen aurrezarpenera aldatzeko:"
 
@@ -23684,7 +23732,8 @@ msgid ""
 "may have been opened by another program.\n"
 "Please close it and try again."
 msgstr ""
-"Baliteke %s fitxategia beste programa batek irekita edukitzea.\n"
+"Baliteke %s fitxategia\n"
+"beste programa batek irekita edukitzea.\n"
 "Itxi eta saiatu berriro."
 
 msgid ""
@@ -23812,9 +23861,9 @@ msgstr ""
 "Pita mota ez dator bat inprimagailuaren benetako pita motarekin.\n"
 "Egin klik goiko Sinkronizatu botoian eta berrabiarazi kalibrazioa."
 
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "%1s materiala %2s pita batekin inprimatzeak pita kaltetu dezake."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "%1% materiala %2% pita batekin inprimatzeak pita kaltetu dezake."
 
 msgid "Need select printer"
 msgstr "Inprimagailua hautatu behar da"
@@ -25133,19 +25182,19 @@ msgid "Insufficient power"
 msgstr "Potentzia nahikorik ez"
 
 msgid "  Too many AMS drying simultaneously. Please plug in the power or stop other drying processes before starting."
-msgstr " Aldi berean lehortzen ari diren AMS gehiegi daude. Mesedez, konektatu elikatze-kablea edo gelditu beste lehortze-prozesu batzuk martxan jarri aurretik."
+msgstr "  Aldi berean lehortzen ari diren AMS gehiegi daude. Mesedez, konektatu elikatze-kablea edo gelditu beste lehortze-prozesu batzuk martxan jarri aurretik."
 
 msgid "AMS is busy"
 msgstr "AMS lanpetuta dago"
 
 msgid "  AMS is calibrating | reading RFID | loading/unloading material, please wait."
-msgstr " AMS kalibratzen ari da | RFID irakurtzen ari da | materiala kargatzen/deskargatzen ari da; mesedez, itxaron."
+msgstr "  AMS kalibratzen ari da | RFID irakurtzen ari da | materiala kargatzen/deskargatzen ari da; mesedez, itxaron."
 
 msgid "Filament in AMS outlet"
 msgstr "Filamentua AMSren irteeran"
 
 msgid "  The high drying temperature may cause AMS blockage, please unload first."
-msgstr " Lehortze-tenperatura altuak AMSa blokeatzea eragin dezake; mesedez, hustu lehenik."
+msgstr "  Lehortze-tenperatura altuak AMSa blokeatzea eragin dezake; mesedez, hustu lehenik."
 
 msgid "Initiating AMS drying"
 msgstr "AMS lehortzea abiarazten"
@@ -25157,22 +25206,22 @@ msgid "Task in progress"
 msgstr "Zeregina martxan"
 
 msgid "  The AMS might be in use during Task."
-msgstr " Baliteke AMSa zereginean zehar okupatuta egotea."
+msgstr "  Baliteke AMSa zereginean zehar okupatuta egotea."
 
 msgid "  Firmware update in progress, please wait..."
-msgstr " Firmware-aren eguneratzea martxan; mesedez, itxaron..."
+msgstr "  Firmware-aren eguneratzea martxan; mesedez, itxaron..."
 
 msgid "  Please plug in the power and then use the drying function."
-msgstr " Mesedez, konektatu argindarrera eta, ondoren, erabili lehortze-funtzioa."
+msgstr "  Mesedez, konektatu argindarrera eta, ondoren, erabili lehortze-funtzioa."
 
 msgid "  The high drying temperature may cause AMS blockage. Please unload the filament manually before proceeding."
-msgstr " Lehortze-tenperatura altuak AMSa blokeatzea eragin dezake. Mesedez, deskargatu filamentua eskuz jarraitu aurretik."
+msgstr "  Lehortze-tenperatura altuak AMSa blokeatzea eragin dezake. Mesedez, deskargatu filamentua eskuz jarraitu aurretik."
 
 msgid "System is busy"
 msgstr "Sistemaren lanpetuta dago"
 
 msgid "  Initiating other drying processes, please wait a few seconds..."
-msgstr " Lehortze-prozesu gehigarriak abiarazten; mesedez, itxaron segundo batzuk..."
+msgstr "  Lehortze-prozesu gehigarriak abiarazten; mesedez, itxaron segundo batzuk..."
 
 msgid "For better drying results, remove the filament and allow it to rotate."
 msgstr "Lehortze-emaitza hobeak lortzeko, kendu filamentua eta baimendu biratzea."
@@ -35878,8 +35927,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "Ezin duzu zure pluginen harpidetza utzi. Erabili Ezabatu tokiko fitxategiak kentzeko."
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "Python interpretea ixten ari da"
+msgid "Python interpreter is shutting down."
+msgstr "Python interpretatzailea itzaltzen ari da."
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -36620,6 +36669,156 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid "Subdivision mesh"
+#~ msgstr "Azpibanaketa-sarea"
+
+#~ msgid "(Lost color)"
+#~ msgstr "(Kolorea galdu da)"
+
+# AI Translated
+# Needs human review: Option of the collision volume behavior dropdown (shared by all nozzles); check it reads right next to 'Toolhead-relative' and 'Individual per extruder'.
+#~ msgid "Shared"
+#~ msgstr "Partekatua"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "Sartu hoztu ondoren filamentuak izango duen uzkurdura-ehunekoa (adibidez, 100 mm-ren ordez 94 mm neurtzen badituzu, %94). Pieza XYn eskalatuko da konpentsatzeko. Material anitzeko inprimaketetan, ziurtatu erabilitako filamentuen uzkurdurak bat datozela.\n"
+#~ "Utzi objektuen artean nahikoa tarte, konpentsazioa egiaztapenen ondoren egiten baita."
+
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "Tenperatura-jaitsiera filamentuen dorrera sartu aurretik"
+
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "Klipper-en max_accel_to_decel azelerazioaren %% honetara doituko da."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "Gainazal zimurra sortzeko modua. Arachne-rekin bakarrik funtzionatzen du!\n"
+#~ "Desplazamendua: modu klasikoa; patroia pita jatorrizko ibilbidetik alboetara mugituz sortzen da.\n"
+#~ "Estrusioa: patroia estruitutako plastiko-kantitatearen bidez sortzen den modua. Algoritmo azkar eta zuzena da, pita alferrik astindu gabe patroi leuna sortzen duena. Hala ere, erabilgarriagoa da horma solteak multzo osoan sortzeko.\n"
+#~ "Konbinatua: [Desplazamendua] + [Estrusioa] modu bateratua. Hormen itxura [Desplazamendua] moduaren antzekoa da, baina ez du pororik uzten perimetroen artean.\n"
+#~ "\n"
+#~ "Kontuz! [Estrusioa] eta [Konbinatua] moduek fuzzy_skin_thickness parametroa inprimatutako begiztaren lodiera baino handiagoa ez denean bakarrik funtzionatzen dute. Aldi berean, geruza jakin bateko estrusio-zabalera ere ezin da maila jakin batetik beherakoa izan. Normalean, geruza-altueraren 15-25%% izaten da. Beraz, 0,4 mm-ko perimetro-zabalerarekin eta 0,2 mm-ko geruza-altuerarekin, gainazal zimurraren gehieneko lodiera 0,4-(0,2*0,25)=±0,35 mm izango da! Balio handiagoa sartzen baduzu, Flow::spacing() errorea bistaratuko da eta modeloa ez da xerratuko. Zenbaki hori doitu dezakezu errorea berriro agertu arte."
+
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "Aukera hau gaituta dago makinak ganberako tenperatura kontrolatzea onartzen badu\n"
+#~ "G-code komandoa: M141 S(0-255)"
+
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "Gaitu hau inprimagailuak aire-iragazketa onartzen badu\n"
+#~ "G-code komandoa: M106 P3 S(0-255)"
+
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "Gaitu hau inprimagailuak hozte-iragazkia onartzen badu"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "Honek irtenguneen ehunekoa detektatzen du lerro-zabalerarekiko eta abiadura desberdina erabiltzen du. 100%%-eko irtengunean zubi-abiadura erabiltzen da."
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "Pitaren IDaren arabera indexatutako pitaren bolumen-aldaerak."
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "Uneko geruzaren masa"
+
+# AI Translated
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "Timelapse argazkia lerroko posizioan kapturatzen den ala ez."
+
+# AI Translated
+#~ msgid "Clear to X0"
+#~ msgstr "X0 arte libre"
+
+# AI Translated
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "Timelapse-mugimendua X0 arte libre dagoen ala ez."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Irteten ari den filamentuaren estrusorearen indizea, zeroan oinarritua. Bambu inprimagailuetan -1 da, edo pitaren IDa filamentu bat geruzen artean pita batetik bestera mugitzen denean."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Sartzen ari den filamentuaren estrusorearen indizea, zeroan oinarritua. Bambu inprimagailuetan -1 da, edo pitaren IDa filamentu bat geruzen artean pita batetik bestera mugitzen denean."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "Irteten ari den estrusorearen pita-bolumenaren aldaera."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "Sartzen ari den estrusorearen pita-bolumenaren aldaera."
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "Sartzen ari den estrusorea une honetan gordeta duen atzera-egitearen luzera."
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "Lehen purgatze-bolumena."
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "Bigarren purgatze-bolumena."
+
+# AI Translated
+# Needs human review: Variable label in the G-code placeholder list; check the wipe term against the wipe area.
+#~ msgid "Wipe avoidance X"
+#~ msgstr "Garbiketa saihesteko X"
+
+# AI Translated
+# Needs human review: Check 'wipe area' rendering against the wipe tower area.
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "Garbiketa-eremua saihesteko erabiltzen den X posizioa."
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "Uneko purgatzea purgatze-dorrearen interfazerako den ala ez."
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "Filamentuaren dorre-interfazearen inprimatze-tenperatura"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "Filamentuaren dorre-interfazean erabiltzen den inprimatze-tenperatura."
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "Inprimaketak purgatze-dorrea duen ala ez."
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "Hasierako geruzako pitaren tenperatura"
+
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "%1s materiala %2s pita batekin inprimatzeak pita kaltetu dezake."
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "Python interpretea ixten ari da"
 
 # AI Translated
 #, c-format, boost-format

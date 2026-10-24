@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -3102,19 +3102,19 @@ msgid "Along X Axis"
 msgstr "沿 X 轴"
 
 msgid "Mirror along the X axis"
-msgstr ""
+msgstr "沿X轴镜像"
 
 msgid "Along Y Axis"
 msgstr "沿 Y 轴"
 
 msgid "Mirror along the Y axis"
-msgstr ""
+msgstr "沿Y轴镜像"
 
 msgid "Along Z Axis"
 msgstr "沿 Z 轴"
 
 msgid "Mirror along the Z axis"
-msgstr ""
+msgstr "沿Z轴镜像"
 
 # AI Translated
 msgid "Transform"
@@ -3324,11 +3324,8 @@ msgstr "克隆"
 msgid "Simplify Model"
 msgstr "简化模型"
 
-msgid "Subdivision mesh"
-msgstr "细分网格"
-
-msgid "(Lost color)"
-msgstr "（丢失的颜色）"
+msgid "Subdivision mesh (Lost color)"
+msgstr "细分网格（丢失的颜色）"
 
 msgid "Center"
 msgstr "居中"
@@ -10852,13 +10849,17 @@ msgstr ""
 "静态：光源在世界中保持固定，因此仅在场景变化时重新计算阴影。\n"
 "环绕：光源随相机转动，相机移动时每一帧都会重新计算阴影。"
 
+# AI Translated
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "高光泽工具路径"
 
+# AI Translated
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"在写实渲染中，将预览中的工具路径显示为高光泽塑料。\n"
+"关闭时，半透明耗材丝为哑光，不透明耗材丝则保留普通视图的高光。"
 
 msgid "Anti-aliasing"
 msgstr "抗锯齿"
@@ -11039,11 +11040,13 @@ msgstr ""
 "启用“调暗下方图层”时，被调暗的图层以多高的亮度显示。\n"
 "99% 表示几乎不变暗，0% 表示显示为纯黑。上限为 99%，因为 100% 与关闭该选项的效果相同。"
 
+# AI Translated
 msgid "Translucent filaments"
-msgstr ""
+msgstr "半透明耗材丝"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "将颜色部分透明的耗材丝的工具路径绘制为半透明，与 3D 视图绘制其对象的方式一致。关闭后，所有耗材丝均按不透明绘制。"
 
 msgid "Login region"
 msgstr "登录区域"
@@ -12475,7 +12478,7 @@ msgstr "在预设中搜索"
 
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
-msgstr "不支持同步不同的挤出机传动方式或喷嘴内腔体积类型。"
+msgstr "不支持同步不同的挤出机传动方式或喷嘴流量类型。"
 
 # AI Translated
 msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
@@ -14430,6 +14433,7 @@ msgstr ""
 "磁盘是否已满？"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "G-code 移动与挤出机 %1% 的碰撞体积相交。这可能导致打印机碰撞。"
@@ -14441,7 +14445,7 @@ msgstr "G-code 移动与碰撞体积相交。这可能导致打印机碰撞。"
 # AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr "相交的移动位于 G-code 第 %1% 行。归位后其 Z 位置未知，因此 Orca 已按所有高度进行检查。"
+msgstr "相交的移动位于 G-code 第 %1% 行。回原点后其 Z 位置未知，因此 Orca 已按所有高度进行检查。"
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -14759,11 +14763,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1%离屏蔽区域太近，可能会发生碰撞。"
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "%1% 与所有可用挤出机的碰撞体积相交。"
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "%1% 与挤出机 %2% 的碰撞体积相交。"
@@ -15195,9 +15201,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "选择所有喷嘴使用相同的碰撞体积、根据各喷嘴的 XY 偏移推算相对于工具头的碰撞体积，还是为每个挤出机单独配置。在单独模式下，请在“挤出机”页面选择各挤出机来配置其碰撞体积。"
 
 # AI Translated
-# Needs human review: Option name in the collision volume behavior dropdown; check it reads right next to the other two options.
-msgid "Shared"
-msgstr "共用"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "所有喷嘴共享"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -15459,11 +15465,14 @@ msgstr "底部外壳厚度"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "如果由底部外壳层数算出的厚度小于这个数值，那么切片时将自动增加底部外壳层数。这能够避免当层高很小时，底部外壳过薄。0表示关闭这个设置，同时底部外壳的厚度完全由底部外壳层数决定。"
 
+# AI Translated
+# Needs human review: 'Paint penetration' = how many layers behind a painted bottom surface take the painted color; coined as 涂色渗透层数 (涂色 = Color Painting). Check the wording.
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "底部涂色渗透层数"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "采用底面所涂颜色的层数，包括底面层。设为 0 时使用底部外壳层数。该值大于底部外壳时，涂色区域上方的稀疏填充也会被着色。"
 
 # AI Translated
 msgid "Apply gap fill"
@@ -17055,7 +17064,7 @@ msgstr "收缩率（XY）"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "输入耗材丝冷却后的收缩百分比（如果测得 94mm 而不是 100mm，则为 94%）。零件将在 XY 方向上缩放以进行补偿。对于多材料打印，请确保所有使用的耗材丝的收缩率一致。\n"
@@ -17151,8 +17160,8 @@ msgid "Wipe tower cooling"
 msgstr "擦拭塔冷却"
 
 # AI Translated
-msgid "Temperature drop before entering filament tower"
-msgstr "进入擦拭塔前的降温量"
+msgid "Temperature drop before entering the wipe tower."
+msgstr "进入擦拭塔前的降温量。"
 
 msgid "Interface layer pre-extrusion distance"
 msgstr "接触层预挤出距离"
@@ -17615,9 +17624,9 @@ msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "Klipper 的 max_accel_to_decel 将被调整为加速度的此 %%。"
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "Klipper 的 max_accel_to_decel 将被调整为加速度的此 %。"
 
 msgid "Default jerk."
 msgstr "默认抖动"
@@ -17832,21 +17841,21 @@ msgid "Fuzzy skin generator mode"
 msgstr "绒毛表面生成器模式"
 
 # AI Translated
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "绒毛表面生成模式。仅适用于 Arachne！\n"
 "位移：经典模式，通过让喷嘴偏离原始路径向侧面移动来形成图案。\n"
 "挤出：通过挤出塑料的量来形成图案。这是一种快速、直接的算法，没有多余的喷嘴抖动，可产生平滑的图案。但它更适合用于在整组墙中形成疏松的墙。\n"
 "合并：[位移] + [挤出] 的联合模式。墙的外观与 [位移] 模式相似，但墙之间不会留下孔隙。\n"
 "\n"
-"注意！[挤出] 和 [合并] 模式仅在 fuzzy_skin_thickness 参数不大于所打印环的厚度时有效。同时，特定层的挤出宽度也不应低于一定水平，通常为层高的 15-25%%。因此，在墙线宽为 0.4 mm、层高为 0.2 mm 时，最大绒毛表面厚度为 0.4-(0.2*0.25)=±0.35mm！如果输入的参数高于此值，将显示 Flow::spacing() 错误，模型将无法切片。您可以调整此数值，直到不再出现该错误。"
+"注意！[挤出] 和 [合并] 模式仅在 fuzzy_skin_thickness 参数不大于所打印环的厚度时有效。同时，特定层的挤出宽度也不应低于一定水平，通常为层高的 15-25%。因此，在墙线宽为 0.4 mm、层高为 0.2 mm 时，最大绒毛表面厚度为 0.4-(0.2*0.25)=±0.35mm！如果输入的参数高于此值，将显示 Flow::spacing() 错误，模型将无法切片。您可以调整此数值，直到不再出现该错误。"
 
 msgid "Displacement"
 msgstr "位移"
@@ -17988,9 +17997,9 @@ msgid ""
 "\n"
 "Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
-"将 G2 和 G3 圆弧移动拟合到打印路径。墙和表面在分辨率范围内拟合，而稀疏填充、支撑和擦拭塔使用固定公差。\n"
+"将 G2 和 G3 圆弧移动拟合到工具路径。墙和表面在分辨率范围内拟合，而稀疏填充、支撑和擦拭塔使用固定公差。\n"
 " - 禁用：仅使用直线 G1 移动。\n"
-" - 启用：对所有打印路径拟合圆弧。\n"
+" - 启用：对所有工具路径拟合圆弧。\n"
 " - 仅稀疏填充：仅对稀疏填充拟合圆弧，可缩短弧形填充图案的 G-code，且不影响墙和表面。\n"
 "\n"
 "注意：对于 Klipper 机器，建议禁用。Klipper 会将圆弧重新拆分为线段，这会降低表面质量，并可能增加打印时间。"
@@ -18148,7 +18157,7 @@ msgstr "支持腔体温度控制"
 
 # AI Translated
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "如果打印机支持控制腔体温度，请启用此选项\n"
@@ -18158,7 +18167,7 @@ msgid "Support air filtration"
 msgstr "支持空气过滤"
 
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "如果打印机支持空气过滤/排气风扇，可以开启此选项\n"
@@ -18168,7 +18177,7 @@ msgid "Use cooling filter"
 msgstr "开启冷却过滤"
 
 # AI Translated
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "如果打印机支持冷却过滤，请启用此选项"
 
 msgid "G-code flavor"
@@ -19136,9 +19145,9 @@ msgstr "模型底部的孔洞在被圆锥形材料填充前所允许的最大面
 msgid "Detect overhang walls"
 msgstr "识别悬垂墙"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "检测悬垂相对于线宽的百分比，并应用不同的速度打印。100%%的悬垂将使用桥接速度。"
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "检测悬垂相对于线宽的百分比，并应用不同的速度打印。100%的悬垂将使用桥接速度。"
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -20791,11 +20800,14 @@ msgstr "顶部外壳厚度"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "如果由顶部外壳层数算出的厚度小于这个数值，那么切片时将自动增加顶部外壳层数。这能够避免当层高很小时，顶部外壳过薄。0 表示关闭这个设置，同时顶部外壳的厚度完全由顶部外壳层数决定。"
 
+# AI Translated
+# Needs human review: 'Paint penetration' = how many layers behind a painted top surface take the painted color; coined as 涂色渗透层数 (涂色 = Color Painting). Check the wording.
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "顶部涂色渗透层数"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "采用顶面所涂颜色的层数，包括顶面层。设为 0 时使用顶部外壳层数。该值大于顶部外壳时，涂色区域下方的稀疏填充也会被着色。"
 
 # AI Translated
 msgid "Separated infills"
@@ -22239,12 +22251,14 @@ msgid "Nozzle diameters indexed by nozzle ID."
 msgstr "按喷嘴 ID 索引的喷嘴直径。"
 
 # AI Translated
+# Needs human review: Reused 喷嘴内腔体积类型 from the existing 'nozzle volume types' sync message, but this is the Standard/High Flow class, which the catalog elsewhere calls 喷嘴流量 ('Nozzle Flow'). Check which term fits.
 msgid "Nozzle volume types"
-msgstr "喷嘴内腔体积类型"
+msgstr "喷嘴流量类型"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "按喷嘴 ID 索引的喷嘴内腔体积变体。"
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "按喷嘴 ID 索引的喷嘴流量类型，例如 \"Standard\" 或 \"High Flow\"。"
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -22283,12 +22297,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "当前层的累计打印质量。"
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "当前层质量"
+msgid "Previous layer mass"
+msgstr "上一层质量"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "上一层的打印质量。"
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "与 previous_layer_mass 相同。Bambu Studio 使用此名称。"
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -22328,9 +22346,8 @@ msgid "Timelapse inline photo"
 msgstr "延时摄影同线拍照"
 
 # AI Translated
-# Needs human review: Check "inline position" reads right; same term as Timelapse inline photo.
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "延时摄影照片是否在同线位置拍摄。"
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "是否在喷嘴当前所在位置拍照，而不先移动到延时摄影安全位置。"
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -22341,13 +22358,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "最远点延时摄影定位是否生效。"
 
 # AI Translated
-# Needs human review: Variable name; check "clear to X0" is understood as the timelapse move being free to go to X0.
-msgid "Clear to X0"
-msgstr "可移至 X0"
+msgid "Clear path to X0"
+msgstr "通往 X0 的路径畅通"
 
 # AI Translated
-msgid "Whether the timelapse move is clear to X0."
-msgstr "延时摄影移动是否可移至 X0。"
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "喷嘴能否在当前高度移动至 X0，而不会撞到其他已打印的对象。"
 
 # AI Translated
 msgid "Previous extruder"
@@ -22370,16 +22386,16 @@ msgid "Current hotend"
 msgstr "当前热端"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "换出耗材丝从零开始的挤出机索引。在 Bambu 打印机上为 -1；当耗材丝跨层在喷嘴之间移动时，则为喷嘴 ID。"
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "换出耗材丝所在的热端，以从零开始的挤出机索引表示。在 Bambu 打印机上，该值为 -1；当耗材丝跨层在不同喷嘴之间移动时，则为喷嘴 ID。"
 
 # AI Translated
 msgid "Next hotend"
 msgstr "下一个热端"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "换入耗材丝从零开始的挤出机索引。在 Bambu 打印机上为 -1；当耗材丝跨层在喷嘴之间移动时，则为喷嘴 ID。"
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "换入耗材丝所在的热端，以从零开始的挤出机索引表示。在 Bambu 打印机上，该值为 -1；当耗材丝跨层在不同喷嘴之间移动时，则为喷嘴 ID。"
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -22402,16 +22418,18 @@ msgid "Old extruder variant"
 msgstr "旧挤出机变体"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "换出挤出机的喷嘴内腔体积变体。"
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "换出挤出机的挤出机类型和喷嘴流量类型，例如 \"Direct Drive High Flow\"。"
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "新挤出机变体"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "换入挤出机的喷嘴内腔体积变体。"
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "换入挤出机的挤出机类型和喷嘴流量类型，例如 \"Direct Drive High Flow\"。"
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -22426,9 +22444,8 @@ msgid "New extruder retracted length"
 msgstr "新挤出机已回抽长度"
 
 # AI Translated
-# Needs human review: "Currently parked retraction length": check the meaning of "parked" (filament held retracted while the extruder is idle).
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "换入挤出机当前停放时的回抽长度。"
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "换入挤出机在停放时执行、目前仍然生效的回抽长度。"
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -22539,16 +22556,16 @@ msgid "First flush volume"
 msgstr "第一次冲刷体积"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "第一次冲刷体积。"
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "计划冲刷长度的前一半，以耗材丝的毫米数计。"
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "第二次冲刷体积"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "第二次冲刷体积。"
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "计划冲刷长度的后一半，以耗材丝的毫米数计。"
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -22683,28 +22700,24 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "空驶是否应避开擦拭塔轮廓。"
 
 # AI Translated
-msgid "Wipe avoidance X"
-msgstr "擦拭避让 X"
+msgid "Wipe tower avoidance X"
+msgstr "擦拭塔避让 X"
 
 # AI Translated
-msgid "X position used to avoid the wipe area."
-msgstr "用于避开擦拭区域的 X 位置。"
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "紧邻擦拭塔旁的 X 位置，喷嘴移动到此处以避开擦拭塔。"
 
 # AI Translated
 msgid "Prime tower interface"
 msgstr "擦拭塔接触层"
 
 # AI Translated
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "当前冲刷是否用于擦拭塔接触层。"
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "当前冲刷是否用于擦拭塔接触层（不同耗材丝相遇处）。"
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "耗材丝擦拭塔接触层打印温度"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "耗材丝擦拭塔接触层使用的打印温度。"
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "擦拭塔接触层（不同耗材丝相遇处）的打印温度。"
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -22727,8 +22740,20 @@ msgid "Wipe tower wait position valid"
 msgstr "擦拭塔等待位置有效"
 
 # AI Translated
-msgid "Whether the print has a wipe tower."
-msgstr "打印是否有擦拭塔。"
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "等待位置是否已设置；打印包含擦拭塔时即已设置。"
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "与 wipe_tower_wait_pos_x 相同。Bambu Studio 使用此名称。"
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "与 wipe_tower_wait_pos_y 相同。Bambu Studio 使用此名称。"
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "与 wipe_tower_wait_pos_valid 相同。Bambu Studio 使用此名称。"
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -22737,10 +22762,6 @@ msgstr "按耗材丝索引的喷嘴温度。"
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "按耗材丝索引的首层喷嘴温度。"
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "首层喷嘴温度"
 
 # AI Translated
 msgid "Extrusion role"
@@ -25015,9 +25036,9 @@ msgstr ""
 "喷嘴类型与打印机实际喷嘴类型不匹配。\n"
 "请单击上面的同步按钮并重新启动校准。"
 
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "使用 %1s 材料搭配 %2s 喷嘴打印可能会损坏喷嘴。"
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "使用 %1% 材料搭配 %2% 喷嘴打印可能会损坏喷嘴。"
 
 msgid "Need select printer"
 msgstr "需要选择打印机"
@@ -37143,8 +37164,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "无法取消订阅您自己的插件。请使用“删除”来移除本地文件。"
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "Python 解释器正在关闭"
+msgid "Python interpreter is shutting down."
+msgstr "Python 解释器正在关闭。"
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -37906,6 +37927,162 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Subdivision mesh"
+#~ msgstr "细分网格"
+
+#~ msgid "(Lost color)"
+#~ msgstr "（丢失的颜色）"
+
+# AI Translated
+# Needs human review: Option name in the collision volume behavior dropdown; check it reads right next to the other two options.
+#~ msgid "Shared"
+#~ msgstr "共用"
+
+# AI Translated
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "输入耗材丝冷却后的收缩百分比（如果测得 94mm 而不是 100mm，则为 94%）。零件将在 XY 方向上缩放以进行补偿。对于多材料打印，请确保所有使用的耗材丝的收缩率一致。\n"
+#~ "请确保对象之间留有足够的间距，因为此补偿在检查之后进行。"
+
+# AI Translated
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "进入擦拭塔前的降温量"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "Klipper 的 max_accel_to_decel 将被调整为加速度的此 %%。"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "绒毛表面生成模式。仅适用于 Arachne！\n"
+#~ "位移：经典模式，通过让喷嘴偏离原始路径向侧面移动来形成图案。\n"
+#~ "挤出：通过挤出塑料的量来形成图案。这是一种快速、直接的算法，没有多余的喷嘴抖动，可产生平滑的图案。但它更适合用于在整组墙中形成疏松的墙。\n"
+#~ "合并：[位移] + [挤出] 的联合模式。墙的外观与 [位移] 模式相似，但墙之间不会留下孔隙。\n"
+#~ "\n"
+#~ "注意！[挤出] 和 [合并] 模式仅在 fuzzy_skin_thickness 参数不大于所打印环的厚度时有效。同时，特定层的挤出宽度也不应低于一定水平，通常为层高的 15-25%%。因此，在墙线宽为 0.4 mm、层高为 0.2 mm 时，最大绒毛表面厚度为 0.4-(0.2*0.25)=±0.35mm！如果输入的参数高于此值，将显示 Flow::spacing() 错误，模型将无法切片。您可以调整此数值，直到不再出现该错误。"
+
+# AI Translated
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "如果打印机支持控制腔体温度，请启用此选项\n"
+#~ "G-code命令：M141 S(0-255)"
+
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "如果打印机支持空气过滤/排气风扇，可以开启此选项\n"
+#~ "G-code指令：M106 P3 S(0-255)"
+
+# AI Translated
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "如果打印机支持冷却过滤，请启用此选项"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "检测悬垂相对于线宽的百分比，并应用不同的速度打印。100%%的悬垂将使用桥接速度。"
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "按喷嘴 ID 索引的喷嘴内腔体积变体。"
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "当前层质量"
+
+# AI Translated
+# Needs human review: Check "inline position" reads right; same term as Timelapse inline photo.
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "延时摄影照片是否在同线位置拍摄。"
+
+# AI Translated
+# Needs human review: Variable name; check "clear to X0" is understood as the timelapse move being free to go to X0.
+#~ msgid "Clear to X0"
+#~ msgstr "可移至 X0"
+
+# AI Translated
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "延时摄影移动是否可移至 X0。"
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "换出耗材丝从零开始的挤出机索引。在 Bambu 打印机上为 -1；当耗材丝跨层在喷嘴之间移动时，则为喷嘴 ID。"
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "换入耗材丝从零开始的挤出机索引。在 Bambu 打印机上为 -1；当耗材丝跨层在喷嘴之间移动时，则为喷嘴 ID。"
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "换出挤出机的喷嘴内腔体积变体。"
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "换入挤出机的喷嘴内腔体积变体。"
+
+# AI Translated
+# Needs human review: "Currently parked retraction length": check the meaning of "parked" (filament held retracted while the extruder is idle).
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "换入挤出机当前停放时的回抽长度。"
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "第一次冲刷体积。"
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "第二次冲刷体积。"
+
+# AI Translated
+#~ msgid "Wipe avoidance X"
+#~ msgstr "擦拭避让 X"
+
+# AI Translated
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "用于避开擦拭区域的 X 位置。"
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "当前冲刷是否用于擦拭塔接触层。"
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "耗材丝擦拭塔接触层打印温度"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "耗材丝擦拭塔接触层使用的打印温度。"
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "打印是否有擦拭塔。"
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "首层喷嘴温度"
+
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "使用 %1s 材料搭配 %2s 喷嘴打印可能会损坏喷嘴。"
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "Python 解释器正在关闭"
 
 # AI Translated
 #, c-format, boost-format

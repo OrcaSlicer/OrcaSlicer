@@ -2153,7 +2153,7 @@ void ScriptAsyncRuntime::Impl::run_invocation(const std::shared_ptr<Run>& run)
     {
         PythonRuntimeLease lease = PythonInterpreter::instance().acquire_runtime_lease();
         if (!lease) {
-            completion.error = _u8L("Python interpreter is shutting down");
+            completion.error = _u8L("Python interpreter is shutting down.");
         } else {
             pybind11::gil_scoped_acquire gil;
 

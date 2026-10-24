@@ -838,6 +838,32 @@ TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
     CHECK(per_layer.find(";Layer:200 (0.1 mm) max 20\n") != std::string::npos);
 }
 
+// The layer change G-code runs before its layer prints, so the layer mass it gets is the previous layer's.
+TEST_CASE("Layer change G-code gets the previous layer's mass under both placeholder names", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "filament_density",   1.24 },
+        // curr_layer_mass is Bambu Studio's name for previous_layer_mass.
+        { "layer_change_gcode", ";Mass:[layer_num] {if previous_layer_mass > 0}printed{else}none{endif} "
+                                "{if previous_layer_mass == curr_layer_mass}same{else}different{endif}" },
+    });
+    // Nothing is printed before the first layer change; layer 0 is printed before the second.
+    CHECK(gcode.find(";Mass:0 none same\n") != std::string::npos);
+    CHECK(gcode.find(";Mass:1 printed same\n") != std::string::npos);
+}
+
+TEST_CASE("Start G-code gets the wipe tower wait position under both placeholder names", "[Print]")
+{
+    // wipe_tower_center_pos_* are Bambu Studio's names for wipe_tower_wait_pos_*.
+    const std::string gcode = slice({ cube(20) }, {
+        { "machine_start_gcode", "; Wait {if wipe_tower_wait_pos_valid}set{else}unset{endif} "
+                                 "{if wipe_tower_center_pos_valid}set{else}unset{endif} "
+                                 "[wipe_tower_wait_pos_x],[wipe_tower_wait_pos_y] [wipe_tower_center_pos_x],[wipe_tower_center_pos_y]" },
+    });
+    // A single-filament print has no wipe tower, so neither name has a position.
+    CHECK(gcode.find("; Wait unset unset 0,0 0,0\n") != std::string::npos);
+}
+
 TEST_CASE("Timelapse G-code gets the snapshot placeholders on bed slingers and other printers", "[Print]")
 {
     const std::string structure = GENERATE(as<std::string>{}, "i3", "corexy");

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -633,15 +633,15 @@ msgstr "İle:"
 
 # AI Translated
 msgid "Entering color painting"
-msgstr "Renk boyamaya giriliyor"
+msgstr "Renkli boyamaya giriliyor"
 
 # AI Translated
 msgid "Leaving color painting"
-msgstr "Renk boyamasından çıkılıyor"
+msgstr "Renkli boyamadan çıkılıyor"
 
 # AI Translated
 msgid "Color painting editing"
-msgstr "Renk boyaması düzenleme"
+msgstr "Renkli boyama düzenleme"
 
 msgid "Paint-on fuzzy skin"
 msgstr "Pütürlü yüzey boyama"
@@ -3110,19 +3110,19 @@ msgid "Along X Axis"
 msgstr "X ekseni boyunca"
 
 msgid "Mirror along the X axis"
-msgstr ""
+msgstr "X ekseni boyunca aynala"
 
 msgid "Along Y Axis"
 msgstr "Y ekseni boyunca"
 
 msgid "Mirror along the Y axis"
-msgstr ""
+msgstr "Y ekseni boyunca aynala"
 
 msgid "Along Z Axis"
 msgstr "Z ekseni boyunca"
 
 msgid "Mirror along the Z axis"
-msgstr ""
+msgstr "Z ekseni boyunca aynala"
 
 # AI Translated
 msgid "Transform"
@@ -3323,11 +3323,8 @@ msgstr "Klon oluştur"
 msgid "Simplify Model"
 msgstr "Modeli basitleştir"
 
-msgid "Subdivision mesh"
-msgstr "Poligon artırma"
-
-msgid "(Lost color)"
-msgstr "(Renk kaybı)"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Poligon artırma (Renk kaybı)"
 
 msgid "Center"
 msgstr "Merkez"
@@ -7879,7 +7876,7 @@ msgid "Layer: %d/%d"
 msgstr "Katman: %d/%d"
 
 msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
-msgstr "Filamenti yüklemeden veya boşaltmadan önce lütfen nozulu 170 derecenin üzerine ısıtın."
+msgstr "Filamenti yüklemeden veya boşaltmadan önce lütfen nozulu 170℃'nin üzerine ısıtın."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "Yazdırma sırasında soğutma modunda hazne sıcaklığı değiştirilemez."
@@ -8026,7 +8023,9 @@ msgstr "En fazla 16 görüntü seçebilirsiniz."
 msgid ""
 "At least one successful print record of this print profile is required \n"
 "to give a positive rating (4 or 5 stars)."
-msgstr "Bu baskı profiline olumlu bir puan vermek için (4 veya 5 yıldız) en az bir başarılı baskı kaydı gereklidir."
+msgstr ""
+"Bu baskı profiline olumlu bir puan vermek için (4 veya 5 yıldız)\n"
+"en az bir başarılı baskı kaydı gereklidir."
 
 msgid "click to add machine"
 msgstr "makine eklemek için tıklayın"
@@ -10701,13 +10700,18 @@ msgstr ""
 "Sabit: ışık dünyada sabit kalır, bu nedenle gölgeler yalnızca sahne değiştiğinde yeniden hesaplanır.\n"
 "Yörünge: ışık kamerayla birlikte döner ve kamera hareket ettiği her karede gölgeleri yeniden hesaplar."
 
+# AI Translated
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "Parlak takımyolları"
 
+# AI Translated
+# Needs human review: Second line starts "Off," = when the option is off; check that "sade görünüm" (the plain, non-realistic view) and "vurgu" (the specular highlight) read right in Preferences.
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"Gerçekçi görünümde Ön İzleme'deki takımyollarını parlak plastik gibi vurgular.\n"
+"Kapalıyken yarı saydam bir filament mat olur, opak olan ise sade görünümün vurgusunu korur."
 
 msgid "Anti-aliasing"
 msgstr "Anti-Aliasing"
@@ -10896,11 +10900,13 @@ msgstr ""
 "\"Alt katmanları karart\" etkinleştirildiğinde karartılmış katmanların ne kadar parlak görüntüleneceği.\n"
 "%99 neredeyse hiç karartmaz, %0 ise tamamen siyah gösterir. Üst sınır %99 olarak belirlenmiştir, çünkü %100 seçeneği devre dışı bırakmakla aynı olurdu."
 
+# AI Translated
 msgid "Translucent filaments"
-msgstr ""
+msgstr "Yarı saydam filamentler"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "Rengi kısmen saydam olan filamentlerin takımyollarını, 3D görünümde nesnelerinin çizildiği gibi saydam çizer. Her filamenti opak çizmek için kapatın."
 
 msgid "Login region"
 msgstr "Giriş bölgesi"
@@ -12342,8 +12348,9 @@ msgid "Click to reset all settings to the last saved preset."
 msgstr "Tüm ayarları en son kaydedilen ön ayara sıfırlamak için tıklayın."
 
 # AI Translated
+# Needs human review: "Excluded bed area" follows the label and glossary cell "Tablada hariç tutulan bölge"; the Turkish glossary notes say Tabla should become Yatak, so change it here together with the label.
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr "Bu tanım çarpışma hacmi sözdizimi içeriyor. G-code kontrolü ve seyahatten kaçınma için baskı kafası çarpışma hacimlerine eklensin mi? Mevcut hariç tutulan yatak alanı korunacak."
+msgstr "Bu tanım çarpışma hacmi sözdizimi içeriyor. G-code denetimi ve seyahat sırasında kaçınma için baskı kafası çarpışma hacimlerine eklensin mi? Mevcut tablada hariç tutulan bölge korunacak."
 
 # AI Translated
 msgid "Add collision volumes"
@@ -13844,7 +13851,7 @@ msgstr "Boyama"
 
 # AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "Bir boyama gizmosu açıkken kullanılabilir: destek, dikiş, pütürlü yüzey veya renk boyama."
+msgstr "Bir boyama gizmosu açıkken kullanılabilir: destek, dikiş, pütürlü yüzey veya renkli boyama."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Hareket Ettir: 1 mm kadar yaslamak için basın"
@@ -14233,6 +14240,7 @@ msgstr ""
 "Disk dolu mu?"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "Bir G-code hareketi, %1% numaralı ekstruder için bir çarpışma hacmiyle kesişiyor. Bu, yazıcıda çarpışmaya neden olabilir."
@@ -14567,11 +14575,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1%, hariç tutma alanına çok yakın; yazdırma sırasında çarpışmalar meydana gelebilir."
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "%1%, kullanılabilir her ekstruder için çarpışma hacimleriyle kesişiyor."
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "%1%, %2% numaralı ekstruder için bir çarpışma hacmiyle kesişiyor."
@@ -14984,8 +14994,9 @@ msgid "Toolhead collision volumes"
 msgstr "Baskı kafası çarpışma hacimleri"
 
 # AI Translated
+# Needs human review: "Excluded bed area" follows the label and glossary cell "Tablada hariç tutulan bölge"; the Turkish glossary notes say Tabla should become Yatak, so change it here together with the label.
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr "Model ve oluşturulan malzemenin dışarıda tutulması, G-code kontrolü ve seyahatten kaçınma için kullanılan çarpışma hacimleri. Tam yükseklikli bir çokgen için \"XxY, XxY, ...\", Z ile sınırlı bir hacim için \"ZMIN..ZMAX;XxY, XxY, ...\" kullanın. Birden çok hacmi \"|\" ile ayırın. Bu hacimler, hariç tutulan yatak alanına ek olarak uygulanır. Otomatik yerleşim, dışbükey olmayan bir hacmin sınırlayıcı kutusunu temkinli biçimde kullanır."
+msgstr "Model ve oluşturulan malzemeyi hariç tutma, G-code denetimi ve seyahat sırasında kaçınma için kullanılan çarpışma hacimleri. Tam yükseklikli bir çokgen için \"XxY, XxY, ...\" veya Z ile sınırlı bir hacim için \"ZMIN..ZMAX;XxY, XxY, ...\" kullanın. Birden fazla hacmi \"|\" ile ayırın. Bu hacimler, tablada hariç tutulan bölgeye ek olarak geçerlidir. Otomatik hizalama, dışbükey olmayan bir hacmin sınırlayıcı kutusunu ihtiyatlı biçimde kullanır."
 
 # AI Translated
 msgid "Collision volume behavior"
@@ -14996,9 +15007,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "Tüm nozulların aynı çarpışma hacimlerini kullanmasını, her nozulun XY ofsetinden baskı kafasına göreli hacimler türetilmesini veya her ekstruder için bağımsız hacimler yapılandırılmasını seçin. Bireysel modda, hacimlerini yapılandırmak için Ekstruder sayfasında her ekstruderi seçin."
 
 # AI Translated
-# Needs human review: Option of the collision volume behavior dropdown (all nozzles share the same volumes); check it reads right next to the other two options.
-msgid "Shared"
-msgstr "Ortak"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "Tüm nozullar için ortak"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -15249,11 +15260,14 @@ msgstr "Alt katman kalınlığı"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Alt kabuk katmanları tarafından hesaplanan kalınlık bu değerden daha ince ise dilimleme sırasında alt katı katmanların sayısı arttırılır. Bu, katman yüksekliği küçük olduğunda kabuğun çok ince olmasını önleyebilir. 0, bu ayarın devre dışı olduğu ve alt kabuğun kalınlığının mutlaka alt kabuk katmanları tarafından belirlendiği anlamına gelir."
 
+# AI Translated
+# Needs human review: "Paint penetration" rendered "boya nüfuz" (how many layers behind a painted surface take the Renkli boyama color); check it is clear in the Printer/Process settings.
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "Alt boya nüfuz katmanları"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "Alt yüzey katmanı da dahil olmak üzere, alt yüzeye boyanan rengi alan katman sayısı. Alt kabuk katmanlarını kullanmak için 0 olarak ayarlayın. Alt kabuk katman sayısından büyük bir değer, boyanan alanın üstündeki dolguyu da renklendirir."
 
 msgid "Apply gap fill"
 msgstr "Boşluk doldurmayı uygula"
@@ -15950,11 +15964,8 @@ msgstr ""
 "Tek bir katman içinde nesne eş kopyalarının (instances) basılma sırasıdır; bunlar arasındaki seyahat mesafesini ve süresini kontrol eder.\n"
 "\n"
 "Varsayılan (Default): 2-opt algoritması ve hat kesişimi giderme ile iyileştirilmiş en yakın komşu zincirleme yöntemi. Genel kullanım için dengeli ve ideal bir tercihtir.\n"
-"\n"
 "Nesne listesi olarak (As object list): Eş kopyalar (instances), herhangi bir rota optimizasyonu yapılmadan doğrudan nesne listesindeki sıralamayla basılır. Manuel ve öngörülebilir bir sıra istendiğinde kullanılır.\n"
-"\n"
 "Hepsinin en iyisi (en kısa yol): Mevcut tüm stratejiler hesaplanır ve en kısa mesafe sunan rota seçilir. Nesne eş kopyalarının sırası tüm baskı için tek seferde kararlaştırılırken, bağımsız adacıkların sıralaması katman bazında hesaplanır (farklı katmanlarda farklı stratejiler devreye girebilir). Dilimleme süresini biraz uzatabilir.\n"
-"\n"
 "Yılankavi (Snake): 2-opt ile optimize edilmiş satır satır kıvrımlı (serpantin) tarama rotası. Yatağa ızgara şeklinde dizilmiş çok sayıda küçük parçalı baskılar için son derece uygundur.\n"
 "\n"
 "Aynı katmanda birden fazla filament veya nozül/takım kullanıldığında, takım değişimlerini en aza indirmek önceliklidir: Nesneler önce filamente göre gruplanır; bu ayar ise sadece ilgili filament grubu içindeki eş kopyaları (instances) sıralar. Bu nedenle genel hareket sırası plakanın tamamına bakıldığında her zaman en kısa rota gibi görünmeyebilir."
@@ -16769,7 +16780,7 @@ msgstr "Büzülme (XY)"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "Filamentin soğuduktan sonra alacağı büzülme yüzdesini girin (100 mm yerine 94 mm ölçerseniz 94%). Parça, telafi etmek için xy'de ölçeklendirilecektir. Yalnızca çevre için kullanılan filament dikkate alınır.\n"
@@ -16854,9 +16865,9 @@ msgid "Wipe tower cooling"
 msgstr "Silme kulesi soğutması"
 
 # AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "Filament kulesi"; align it once the term is settled.
-msgid "Temperature drop before entering filament tower"
-msgstr "Filament kulesine girmeden önceki sıcaklık düşüşü"
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "Silme kulesi"; align it once the term is settled.
+msgid "Temperature drop before entering the wipe tower."
+msgstr "Silme kulesine girmeden önceki sıcaklık düşüşü."
 
 msgid "Interface layer pre-extrusion distance"
 msgstr "Arayüz katmanı ön ekstrüzyon mesafesi"
@@ -17304,9 +17315,9 @@ msgstr "Klipper'ın max_accel_to_decel'i otomatik olarak ayarlanacak."
 msgid "accel_to_decel"
 msgstr "Accel_to_decel"
 
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "Klipper'ın max_accel_to_decel değeri ivmenin bu %%'sine göre ayarlanacak."
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "Klipper'ın max_accel_to_decel değeri ivmenin bu %'sine göre ayarlanacak."
 
 msgid "Default jerk."
 msgstr "Varsayılan sarsıntı."
@@ -17437,7 +17448,6 @@ msgid ""
 "Set to -1 to disable it."
 msgstr ""
 "Bu parça soğutma fanı hızı, ütüleme sırasında uygulanır. Bu parametrenin normalden daha düşük bir hıza ayarlanması, düşük hacimsel akış hızı nedeniyle nozul tıkanıklığını azaltarak arayüzü daha pürüzsüz hale getirir.\n"
-"\n"
 "Devre dışı bırakmak için -1 olarak ayarlayın."
 
 msgid "Ironing flow"
@@ -17505,21 +17515,21 @@ msgid "Fuzzy skin generator mode"
 msgstr "Pütürlü yüzey oluşturma modu"
 
 # AI Translated
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Pütürlü yüzey oluşturma modu. Sadece Arachne ile çalışır!\n"
 "Yer Değiştirme: Desen, nozulun orijinal yoldan yana kaydırılmasıyla oluşturulduğu klasik mod.\n"
 "Ekstrüzyon: Desenin ekstrüde edilen plastik miktarına göre oluşturulduğu mod. Bu, nozul sarsıntısı olmadan pürüzsüz bir desen veren hızlı ve düz bir algoritmadır. Ancak, tüm dizilimde gevşek duvarlar oluşturmak için daha kullanışlıdır.\n"
 "Birleşik: Eklem modu [Yer Değiştirme] + [Ekstrüzyon]. Duvarların görünümü [Yer Değiştirme] Moduna benzer, ancak çevreler arasında gözenek bırakmaz.\n"
 "\n"
-"Dikkat! [Ekstrüzyon] ve [Birleşik] modları yalnızca fuzzy_skin_thickness parametresini çalıştırır, yazdırılan ilmeğin kalınlığından daha fazla olmamalıdır. Aynı zamanda, belirli bir katman için ekstrüzyon genişliği de belirli bir seviyenin altında olmamalıdır. Genellikle katman yüksekliğinin %%15-25'ine eşittir. Bu nedenle, 0,4 mm çevre genişliği ve 0,2 mm katman yüksekliğine sahip maksimum pütürlü yüzey kalınlığı 0,4-(0,2*0,25)=±0,35 mm olacaktır! Bundan daha yüksek bir parametre girerseniz, Flow::spacing() hatası görüntülenir ve model dilimlenmez. Bu hata tekrarlanana kadar bu sayıyı seçebilirsiniz."
+"Dikkat! [Ekstrüzyon] ve [Birleşik] modları yalnızca fuzzy_skin_thickness parametresini çalıştırır, yazdırılan ilmeğin kalınlığından daha fazla olmamalıdır. Aynı zamanda, belirli bir katman için ekstrüzyon genişliği de belirli bir seviyenin altında olmamalıdır. Genellikle katman yüksekliğinin %15-25'ine eşittir. Bu nedenle, 0,4 mm çevre genişliği ve 0,2 mm katman yüksekliğine sahip maksimum pütürlü yüzey kalınlığı 0,4-(0,2*0,25)=±0,35 mm olacaktır! Bundan daha yüksek bir parametre girerseniz, Flow::spacing() hatası görüntülenir ve model dilimlenmez. Bu hata tekrarlanana kadar bu sayıyı seçebilirsiniz."
 
 msgid "Displacement"
 msgstr "Yer değiştirme"
@@ -17819,7 +17829,7 @@ msgid "Support controlling chamber temperature"
 msgstr "Bölme sıcaklığı kontrolünü destekler"
 
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Bu seçenek, hazne sıcaklığını kontrol eden makine desteği varsa etkinleştirilir\n"
@@ -17829,7 +17839,7 @@ msgid "Support air filtration"
 msgstr "Hava filtrasyonu desteği"
 
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Yazıcı hava filtrelemeyi destekliyorsa bunu etkinleştirin\n"
@@ -17840,7 +17850,7 @@ msgid "Use cooling filter"
 msgstr "Soğutma filtresi kullan"
 
 # AI Translated
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "Yazıcı soğutma filtresini destekliyorsa bunu etkinleştirin"
 
 msgid "G-code flavor"
@@ -18785,9 +18795,9 @@ msgstr "Modelin tabanındaki bir deliğin, konik malzemeyle doldurulmadan önce 
 msgid "Detect overhang walls"
 msgstr "Çıkıntılı duvarı algıla"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Çizgi genişliğine göre çıkıntı yüzdesini tespit edin ve yazdırmak için farklı hızlar kullanın. %%100 çıkıntı için köprü hızı kullanılır."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "Çizgi genişliğine göre çıkıntı yüzdesini tespit edin ve yazdırmak için farklı hızlar kullanın. %100 çıkıntı için köprü hızı kullanılır."
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -20376,11 +20386,14 @@ msgstr "Üst katman kalınlığı"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Üst kabuk katmanları tarafından hesaplanan kalınlık bu değerden daha ince ise dilimleme sırasında üst katı katmanların sayısı artırılır. Bu, katman yüksekliği küçük olduğunda kabuğun çok ince olmasını önleyebilir. 0, bu ayarın devre dışı olduğu ve üst kabuğun kalınlığının kesinlikle üst kabuk katmanları tarafından belirlendiği anlamına gelir."
 
+# AI Translated
+# Needs human review: "Paint penetration" rendered "boya nüfuz" (how many layers behind a painted surface take the Renkli boyama color); check it is clear in the Printer/Process settings.
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "Üst boya nüfuz katmanları"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "Üst yüzey katmanı da dahil olmak üzere, üst yüzeye boyanan rengi alan katman sayısı. Üst kabuk katmanlarını kullanmak için 0 olarak ayarlayın. Üst kabuk katman sayısından büyük bir değer, boyanan alanın altındaki dolguyu da renklendirir."
 
 # AI Translated
 msgid "Separated infills"
@@ -21764,8 +21777,9 @@ msgid "Nozzle volume types"
 msgstr "Nozul hacmi tipleri"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "Nozul kimliğine göre dizinlenmiş nozul hacmi varyantları."
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "Nozul kimliğine göre indekslenmiş nozul hacmi tipleri, örneğin \"Standard\" veya \"High Flow\"."
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -21804,12 +21818,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "Geçerli katmandaki birikmiş basılmış kütle."
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "Geçerli katman kütlesi"
+msgid "Previous layer mass"
+msgstr "Önceki katman kütlesi"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "Önceki katmanın basılmış kütlesi."
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "previous_layer_mass ile aynı. Bambu Studio bu adı kullanır."
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -21849,9 +21867,8 @@ msgid "Timelapse inline photo"
 msgstr "Timelapse satır içi fotoğraf"
 
 # AI Translated
-# Needs human review: Check 'inline position' wording together with the 'Timelapse inline photo' label.
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "Timelapse fotoğrafının satır içi konumda çekilip çekilmediği."
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "Fotoğrafın, önce güvenli bir timelapse konumuna gidilmeden, nozulun o anda bulunduğu yerde çekilip çekilmediği."
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -21862,14 +21879,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "En uzak nokta timelapse konumlandırmasının etkin olup olmadığı."
 
 # AI Translated
-# Needs human review: Short placeholder label with no context; check that 'clear to X0' (path to X0 is free) reads right.
-msgid "Clear to X0"
-msgstr "X0'a kadar serbest"
+msgid "Clear path to X0"
+msgstr "X0'a kadar engelsiz yol"
 
 # AI Translated
-# Needs human review: Check wording together with the 'Clear to X0' label.
-msgid "Whether the timelapse move is clear to X0."
-msgstr "Timelapse hareketinin X0'a kadar serbest olup olmadığı."
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "Nozulun mevcut yükseklikte, yazdırılmış başka bir nesneye çarpmadan X0'a gidip gidemeyeceği."
 
 # AI Translated
 msgid "Previous extruder"
@@ -21892,16 +21907,16 @@ msgid "Current hotend"
 msgstr "Geçerli hotend"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Çıkan filamentin sıfır tabanlı ekstruder indeksi. Bambu yazıcılarda -1'dir veya bir filament katmanlar arasında nozullar arasında geçtiğinde nozul kimliğidir."
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Çıkan filamentin hotend'i, sıfır tabanlı ekstruder indeksi olarak verilir. Bambu yazıcılarda -1'dir veya bir filament katmanlar boyunca nozullar arasında geçtiğinde nozul kimliğidir."
 
 # AI Translated
 msgid "Next hotend"
 msgstr "Sonraki hotend"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Gelen filamentin sıfır tabanlı ekstruder indeksi. Bambu yazıcılarda -1'dir veya bir filament katmanlar arasında nozullar arasında geçtiğinde nozul kimliğidir."
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Gelen filamentin hotend'i, sıfır tabanlı ekstruder indeksi olarak verilir. Bambu yazıcılarda -1'dir veya bir filament katmanlar boyunca nozullar arasında geçtiğinde nozul kimliğidir."
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -21924,16 +21939,18 @@ msgid "Old extruder variant"
 msgstr "Eski ekstruder varyantı"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "Çıkan ekstruderin nozul hacmi varyantı."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "Çıkan ekstruderin ekstruder tipi ve nozul hacmi tipi, örneğin \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "Yeni ekstruder varyantı"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "Gelen ekstruderin nozul hacmi varyantı."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "Gelen ekstruderin ekstruder tipi ve nozul hacmi tipi, örneğin \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -21948,8 +21965,8 @@ msgid "New extruder retracted length"
 msgstr "Yeni ekstruderin geri çekilmiş uzunluğu"
 
 # AI Translated
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "Gelen ekstruderin şu anda park edilmiş geri çekme uzunluğu."
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "Gelen ekstrudere park edildiği andan beri hâlâ uygulanan geri çekme uzunluğu."
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -22072,16 +22089,16 @@ msgid "First flush volume"
 msgstr "İlk yıkama hacmi"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "İlk yıkama hacmi."
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "Planlanan yıkama uzunluğunun ilk yarısı, filament uzunluğu olarak mm cinsinden."
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "İkinci yıkama hacmi"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "İkinci yıkama hacmi."
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "Planlanan yıkama uzunluğunun ikinci yarısı, filament uzunluğu olarak mm cinsinden."
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -22218,28 +22235,28 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "Seyahatin temizleme çevresinden kaçınıp kaçınmayacağı."
 
 # AI Translated
-msgid "Wipe avoidance X"
-msgstr "Temizlemeden kaçınma X"
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "Silme kulesi"; align it once the term is settled.
+msgid "Wipe tower avoidance X"
+msgstr "Silme kulesinden kaçınma X"
 
 # AI Translated
-msgid "X position used to avoid the wipe area."
-msgstr "Temizleme alanından kaçınmak için kullanılan X konumu."
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "silme kulesi"; align it once the term is settled.
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "Nozulun kuleden uzak durmak için gittiği, silme kulesinin hemen yanındaki X konumu."
 
 # AI Translated
 msgid "Prime tower interface"
 msgstr "Prime kulesi arayüzü"
 
 # AI Translated
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "Geçerli yıkamanın bir prime kulesi arayüzü için olup olmadığı."
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ana kule", quoted from the purge length tooltip; align it once the term is settled.
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "Mevcut yıkamanın ana kule arayüz katmanı (farklı malzemelerin buluştuğu yer) için olup olmadığı."
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "Filament kule arayüzü baskı sıcaklığı"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "Filament kule arayüzü için kullanılan baskı sıcaklığı."
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "Ana kule", quoted from the purge length tooltip; align it once the term is settled.
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "Ana kule arayüz katmanı (farklı malzemelerin buluştuğu yer) için yazdırma sıcaklığı."
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -22262,8 +22279,21 @@ msgid "Wipe tower wait position valid"
 msgstr "Silme kulesi bekleme konumu geçerli"
 
 # AI Translated
-msgid "Whether the print has a wipe tower."
-msgstr "Baskıda silme kulesi olup olmadığı."
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "silme kulesi"; align it once the term is settled.
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "Bekleme konumunun ayarlanıp ayarlanmadığı; baskıda silme kulesi olduğunda ayarlanır."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_x ile aynı. Bambu Studio bu adı kullanır."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_y ile aynı. Bambu Studio bu adı kullanır."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_valid ile aynı. Bambu Studio bu adı kullanır."
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -22272,10 +22302,6 @@ msgstr "Filamente göre dizinlenmiş nozul sıcaklıkları."
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "Filamente göre dizinlenmiş ilk katman nozul sıcaklıkları."
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "İlk katman nozul sıcaklığı"
 
 # AI Translated
 msgid "Extrusion role"
@@ -22369,7 +22395,9 @@ msgstr ""
 msgid ""
 "An object has enabled XY Size compensation which will not be used because it is also fuzzy skin painted.\n"
 "XY Size compensation cannot be combined with fuzzy skin painting."
-msgstr "Bir nesne, XY Boyut Telafisini (XY Size Compensation) etkinleştirmiş, ancak bu kullanılmayacak çünkü aynı zamanda pütürlü yüzey (Fuzzy Skin) uygulanmış. XY Boyut Telafisi, Fuzzy Skin ile birlikte kullanılamaz."
+msgstr ""
+"Bir nesne, XY Boyut Telafisini (XY Size Compensation) etkinleştirmiş, ancak bu kullanılmayacak çünkü aynı zamanda pütürlü yüzey (Fuzzy Skin) uygulanmış.\n"
+"XY Boyut Telafisi, Fuzzy Skin ile birlikte kullanılamaz."
 
 msgid "Object name"
 msgstr "Nesne adı"
@@ -22971,8 +22999,7 @@ msgstr ""
 "Artık farklı filamentler için otomatik kalibrasyon ekledik. Bu işlem tamamen otomatik gerçekleşir ve sonuç gelecekte kullanmak üzere yazıcıya kaydedilir. Kalibrasyonu yalnızca aşağıdaki sınırlı durumlarda yapmanız gerekir:\n"
 "1. Farklı marka/modelde yeni bir filament kullanıyorsanız veya filament nemliyse;\n"
 "2. Nozul aşınmışsa veya yeni bir nozul ile değiştirilmişse;\n"
-"3. Filament ayarlarında maksimum hacimsel hız (max volumetric speed) veya baskı sıcaklığı değiştirilmişse.”**\n"
-"Yani çoğu durumda filament değişimi otomatik olarak kalibre edilir ve kullanıcı müdahalesi gerekmez; sadece yukarıdaki özel durumlarda manuel veya tekrar kalibrasyon yapılması gerekir."
+"3. Filament ayarlarında maksimum hacimsel hız (max volumetric speed) veya baskı sıcaklığı değiştirilmişse."
 
 msgid "About this calibration"
 msgstr "Bu kalibrasyon hakkında"
@@ -24327,7 +24354,8 @@ msgid ""
 "may have been opened by another program.\n"
 "Please close it and try again."
 msgstr ""
-"%s dosyası başka bir program tarafından açılmış olabilir.\n"
+"%s dosyası\n"
+"başka bir program tarafından açılmış olabilir.\n"
 "Lütfen kapatıp tekrar deneyin."
 
 msgid ""
@@ -24455,9 +24483,9 @@ msgstr ""
 "Püskürtme ucu türü, gerçek yazıcı püskürtme ucu türüyle eşleşmiyor.\n"
 "Lütfen yukarıdaki Senkronizasyon düğmesine tıklayın ve kalibrasyonu yeniden başlatın."
 
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "%1s malzemeyi %2s püskürtme ucuyla yazdırmak püskürtme ucu hasarına neden olabilir."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "%1% malzemeyi %2% püskürtme ucuyla yazdırmak püskürtme ucu hasarına neden olabilir."
 
 msgid "Need select printer"
 msgstr "Yazıcı seçmeniz gerekiyor"
@@ -36693,8 +36721,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "Kendi eklentilerinizin aboneliği kaldırılamaz. Yerel dosyaları kaldırmak için Sil'i kullanın."
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "Python yorumlayıcısı kapanıyor"
+msgid "Python interpreter is shutting down."
+msgstr "Python yorumlayıcısı kapatılıyor."
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -37437,6 +37465,160 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Subdivision mesh"
+#~ msgstr "Poligon artırma"
+
+#~ msgid "(Lost color)"
+#~ msgstr "(Renk kaybı)"
+
+# AI Translated
+# Needs human review: Option of the collision volume behavior dropdown (all nozzles share the same volumes); check it reads right next to the other two options.
+#~ msgid "Shared"
+#~ msgstr "Ortak"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "Filamentin soğuduktan sonra alacağı büzülme yüzdesini girin (100 mm yerine 94 mm ölçerseniz 94%). Parça, telafi etmek için xy'de ölçeklendirilecektir. Yalnızca çevre için kullanılan filament dikkate alınır.\n"
+#~ "Bu telafi kontrollerden sonra yapıldığından, nesneler arasında yeterli boşluk bıraktığınızdan emin olun."
+
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "Filament kulesi"; align it once the term is settled.
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "Filament kulesine girmeden önceki sıcaklık düşüşü"
+
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "Klipper'ın max_accel_to_decel değeri ivmenin bu %%'sine göre ayarlanacak."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "Pütürlü yüzey oluşturma modu. Sadece Arachne ile çalışır!\n"
+#~ "Yer Değiştirme: Desen, nozulun orijinal yoldan yana kaydırılmasıyla oluşturulduğu klasik mod.\n"
+#~ "Ekstrüzyon: Desenin ekstrüde edilen plastik miktarına göre oluşturulduğu mod. Bu, nozul sarsıntısı olmadan pürüzsüz bir desen veren hızlı ve düz bir algoritmadır. Ancak, tüm dizilimde gevşek duvarlar oluşturmak için daha kullanışlıdır.\n"
+#~ "Birleşik: Eklem modu [Yer Değiştirme] + [Ekstrüzyon]. Duvarların görünümü [Yer Değiştirme] Moduna benzer, ancak çevreler arasında gözenek bırakmaz.\n"
+#~ "\n"
+#~ "Dikkat! [Ekstrüzyon] ve [Birleşik] modları yalnızca fuzzy_skin_thickness parametresini çalıştırır, yazdırılan ilmeğin kalınlığından daha fazla olmamalıdır. Aynı zamanda, belirli bir katman için ekstrüzyon genişliği de belirli bir seviyenin altında olmamalıdır. Genellikle katman yüksekliğinin %%15-25'ine eşittir. Bu nedenle, 0,4 mm çevre genişliği ve 0,2 mm katman yüksekliğine sahip maksimum pütürlü yüzey kalınlığı 0,4-(0,2*0,25)=±0,35 mm olacaktır! Bundan daha yüksek bir parametre girerseniz, Flow::spacing() hatası görüntülenir ve model dilimlenmez. Bu hata tekrarlanana kadar bu sayıyı seçebilirsiniz."
+
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "Bu seçenek, hazne sıcaklığını kontrol eden makine desteği varsa etkinleştirilir\n"
+#~ "G-code komut: M141 S(0-255)"
+
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "Yazıcı hava filtrelemeyi destekliyorsa bunu etkinleştirin\n"
+#~ "G-code komut: M106 P3 S(0-255)"
+
+# AI Translated
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "Yazıcı soğutma filtresini destekliyorsa bunu etkinleştirin"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "Çizgi genişliğine göre çıkıntı yüzdesini tespit edin ve yazdırmak için farklı hızlar kullanın. %%100 çıkıntı için köprü hızı kullanılır."
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "Nozul kimliğine göre dizinlenmiş nozul hacmi varyantları."
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "Geçerli katman kütlesi"
+
+# AI Translated
+# Needs human review: Check 'inline position' wording together with the 'Timelapse inline photo' label.
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "Timelapse fotoğrafının satır içi konumda çekilip çekilmediği."
+
+# AI Translated
+# Needs human review: Short placeholder label with no context; check that 'clear to X0' (path to X0 is free) reads right.
+#~ msgid "Clear to X0"
+#~ msgstr "X0'a kadar serbest"
+
+# AI Translated
+# Needs human review: Check wording together with the 'Clear to X0' label.
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "Timelapse hareketinin X0'a kadar serbest olup olmadığı."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Çıkan filamentin sıfır tabanlı ekstruder indeksi. Bambu yazıcılarda -1'dir veya bir filament katmanlar arasında nozullar arasında geçtiğinde nozul kimliğidir."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Gelen filamentin sıfır tabanlı ekstruder indeksi. Bambu yazıcılarda -1'dir veya bir filament katmanlar arasında nozullar arasında geçtiğinde nozul kimliğidir."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "Çıkan ekstruderin nozul hacmi varyantı."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "Gelen ekstruderin nozul hacmi varyantı."
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "Gelen ekstruderin şu anda park edilmiş geri çekme uzunluğu."
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "İlk yıkama hacmi."
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "İkinci yıkama hacmi."
+
+# AI Translated
+#~ msgid "Wipe avoidance X"
+#~ msgstr "Temizlemeden kaçınma X"
+
+# AI Translated
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "Temizleme alanından kaçınmak için kullanılan X konumu."
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "Geçerli yıkamanın bir prime kulesi arayüzü için olup olmadığı."
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "Filament kule arayüzü baskı sıcaklığı"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "Filament kule arayüzü için kullanılan baskı sıcaklığı."
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "Baskıda silme kulesi olup olmadığı."
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "İlk katman nozul sıcaklığı"
+
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "%1s malzemeyi %2s püskürtme ucuyla yazdırmak püskürtme ucu hasarına neden olabilir."
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "Python yorumlayıcısı kapanıyor"
 
 # AI Translated
 #, c-format, boost-format

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -385,7 +385,7 @@ msgid "Read All"
 msgstr "すべて読み取り"
 
 msgid "Reading "
-msgstr "読み取り中"
+msgstr "読み取り中 "
 
 msgid "Please wait"
 msgstr "お待ちください"
@@ -495,7 +495,7 @@ msgid "Mouse wheel"
 msgstr "マウスホイール"
 
 msgid "Auto support threshold angle: "
-msgstr "自動サポート角度閾値"
+msgstr "自動サポート角度閾値: "
 
 msgid "Circle"
 msgstr "円形"
@@ -628,15 +628,15 @@ msgstr "先:"
 
 # AI Translated
 msgid "Entering color painting"
-msgstr "カラーペイントを開始"
+msgstr "色塗りを開始"
 
 # AI Translated
 msgid "Leaving color painting"
-msgstr "カラーペイントを終了"
+msgstr "色塗りを終了"
 
 # AI Translated
 msgid "Color painting editing"
-msgstr "カラーペイントの編集"
+msgstr "色塗りの編集"
 
 msgid "Paint-on fuzzy skin"
 msgstr "ファジースキンのペイント"
@@ -1964,7 +1964,9 @@ msgstr "選択 1"
 msgid ""
 "Select 2 faces on objects and \n"
 " make objects assemble together."
-msgstr "オブジェクト上の2面を選択し結合する。"
+msgstr ""
+"オブジェクト上の2面を選択し\n"
+"結合する。"
 
 msgid ""
 "Select 2 points or circles on objects and \n"
@@ -3099,19 +3101,19 @@ msgid "Along X Axis"
 msgstr "X軸方向"
 
 msgid "Mirror along the X axis"
-msgstr ""
+msgstr "反転 (X軸)"
 
 msgid "Along Y Axis"
 msgstr "Y軸方向"
 
 msgid "Mirror along the Y axis"
-msgstr ""
+msgstr "反転 (Y軸)"
 
 msgid "Along Z Axis"
 msgstr "Z軸方向"
 
 msgid "Mirror along the Z axis"
-msgstr ""
+msgstr "反転 (Z軸)"
 
 # AI Translated
 msgid "Transform"
@@ -3312,11 +3314,8 @@ msgstr "複製"
 msgid "Simplify Model"
 msgstr "モデルを簡略化"
 
-msgid "Subdivision mesh"
-msgstr "サブディビジョンメッシュ"
-
-msgid "(Lost color)"
-msgstr "（色が失われました）"
+msgid "Subdivision mesh (Lost color)"
+msgstr "サブディビジョンメッシュ（色が失われました）"
 
 msgid "Center"
 msgstr "センター"
@@ -4157,7 +4156,9 @@ msgstr "完了しました。"
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
-msgstr "選択したオブジェクトはロックされたプレートにあるため、自動レイアウトできません"
+msgstr ""
+"選択したオブジェクトはロックされたプレートにあるため、\n"
+"自動レイアウトできません"
 
 msgid "No arrangeable objects are selected."
 msgstr "選択したオブジェクトがレイアウト不可です"
@@ -4165,7 +4166,9 @@ msgstr "選択したオブジェクトがレイアウト不可です"
 msgid ""
 "This plate is locked.\n"
 "Cannot auto-arrange on this plate."
-msgstr "現在のプレートがロックされたため自動レイアウトできません"
+msgstr ""
+"現在のプレートがロックされたため、\n"
+"自動レイアウトできません"
 
 msgid "Arranging..."
 msgstr "レイアウト中"
@@ -4207,7 +4210,9 @@ msgstr ""
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-orient these objects."
-msgstr "選択したオブジェクトはロックされたプレートにあるため、自動向き調整できません。"
+msgstr ""
+"選択したオブジェクトはロックされたプレートにあるため、\n"
+"自動向き調整できません。"
 
 msgid ""
 "This plate is locked.\n"
@@ -4513,7 +4518,7 @@ msgid "License"
 msgstr "ライセンス"
 
 msgid "Orca Slicer is licensed under "
-msgstr "Orca Slicerのライセンス"
+msgstr "Orca Slicerのライセンス "
 
 msgid "GNU Affero General Public License, version 3"
 msgstr "GNU Affero General Public License バージョン3"
@@ -4596,7 +4601,9 @@ msgstr "閉じる"
 msgid ""
 "Nozzle\n"
 "Temperature"
-msgstr "ノズル温度"
+msgstr ""
+"ノズル\n"
+"温度"
 
 msgid "max"
 msgstr "最大"
@@ -5172,9 +5179,11 @@ msgstr ""
 "続行する前に、ご確認ください。\n"
 "\n"
 
+# AI Translated
+# Needs human review: The English spells out "degrees Celsius" without the ℃ sign, so the human translation's ℃ was replaced with 摂氏…度; check it reads naturally.
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
-msgstr "このフィラメントで推奨ノズル温度は %d ~ %d ℃です。"
+msgstr "このフィラメントで推奨ノズル温度は 摂氏 %d ~ %d 度です。"
 
 # AI Translated
 msgid "Adaptive Pressure Advance model validation failed:\n"
@@ -5982,22 +5991,22 @@ msgid "Mixed"
 msgstr "混合"
 
 msgid "Height: "
-msgstr "高度"
+msgstr "高度: "
 
 msgid "Width: "
-msgstr "幅"
+msgstr "幅: "
 
 msgid "Flow: "
-msgstr "フロー"
+msgstr "フロー: "
 
 msgid "Fan: "
-msgstr "ファン回転速度"
+msgstr "ファン回転速度: "
 
 msgid "Temperature: "
-msgstr "温度"
+msgstr "温度: "
 
 msgid "Layer Time: "
-msgstr "積層時間"
+msgstr "積層時間: "
 
 msgid "Tool: "
 msgstr "ツール: "
@@ -6034,7 +6043,7 @@ msgid "Time"
 msgstr "時間"
 
 msgid "Speed: "
-msgstr "速度"
+msgstr "速度: "
 
 msgid "Actual speed profile"
 msgstr "実際の速度プロファイル"
@@ -6706,7 +6715,9 @@ msgstr "キャリブレーション項目"
 msgid ""
 "The calibration program detects the status of your device automatically to minimize deviation.\n"
 "It keeps the device performing optimally."
-msgstr "キャリブレーションではデバイスの状態を検知し、使用により生じた偏差を最小化します。デバイスが最適なパフォーマンスを出せる状態を維持します。"
+msgstr ""
+"キャリブレーションではデバイスの状態を検知し、使用により生じた偏差を最小化します。\n"
+"デバイスが最適なパフォーマンスを出せる状態を維持します。"
 
 msgid "Calibration Flow"
 msgstr "キャリブレーション項目"
@@ -6747,12 +6758,16 @@ msgstr "アクセスコードを入力してください"
 msgid ""
 "You can find it in \"Settings > Network > Access code\"\n"
 "on the printer, as shown in the figure:"
-msgstr "プリンターの「設定 > ネットワーク > アクセスコード」で確認できます。図のとおりです:"
+msgstr ""
+"プリンターの「設定 > ネットワーク > アクセスコード」で確認できます。\n"
+"図のとおりです:"
 
 msgid ""
 "You can find it in \"Setting > Setting > LAN only > Access Code\"\n"
 "on the printer, as shown in the figure:"
-msgstr "プリンターの「設定 > 設定 > LANのみ > アクセスコード」で確認できます。図のとおりです:"
+msgstr ""
+"プリンターの「設定 > 設定 > LANのみ > アクセスコード」で確認できます。\n"
+"図のとおりです:"
 
 msgid "Invalid input"
 msgstr "無効な入力"
@@ -7375,7 +7390,9 @@ msgstr "LAN接続失敗 (ライブビュー開始失敗)"
 msgid ""
 "Virtual Camera Tools is required for this task!\n"
 "Do you want to install them?"
-msgstr "バーチャルカメラツールが必要です。インストールしますか？"
+msgstr ""
+"バーチャルカメラツールが必要です。\n"
+"インストールしますか？"
 
 msgid "Downloading Virtual Camera Tools"
 msgstr "バーチャルカメラツールをダウンロード"
@@ -7385,7 +7402,8 @@ msgid ""
 "Orca Slicer supports only a single virtual camera.\n"
 "Do you want to stop this virtual camera?"
 msgstr ""
-"別のバーチャルカメラを作動しています為、もう一個が起動できません。\n"
+"別のバーチャルカメラを作動しています為、\n"
+"もう一個が起動できません。\n"
 "このバーチャルカメラを停止しますか？"
 
 #, c-format, boost-format
@@ -8509,7 +8527,7 @@ msgid " (Repair)"
 msgstr " (修復)"
 
 msgid " Click here to install it."
-msgstr "こちらでインストールします。"
+msgstr " こちらでインストールします。"
 
 msgid "WARNING:"
 msgstr "警告"
@@ -10649,13 +10667,17 @@ msgstr ""
 "固定: 光源はワールド内に固定されるため、影はシーンが変化したときのみ再計算されます。\n"
 "オービット: 光源がカメラと一緒に回転し、カメラが動くフレームごとに影を再計算します。"
 
+# AI Translated
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "光沢のあるツールパス"
 
+# AI Translated
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"リアルビューで、プレビューのツールパスを光沢のあるプラスチックのようにハイライト表示します。\n"
+"オフの場合、半透明のフィラメントはつや消しになり、不透明なものは通常ビューのハイライトのままです。"
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -10844,11 +10866,13 @@ msgstr ""
 "「下の積層を暗くする」を有効にしたときに、暗くした積層をどの程度の明るさで表示するかを指定します。\n"
 "99%ではほとんど暗くならず、0%では真っ黒になります。100%はオプションを無効にした場合と同じになるため、上限は99%です。"
 
+# AI Translated
 msgid "Translucent filaments"
-msgstr ""
+msgstr "半透明フィラメント"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "色が部分的に透明なフィラメントのツールパスを、3Dビューでオブジェクトを描画する場合と同様に、透けて見えるように描画します。オフにすると、すべてのフィラメントを不透明で描画します。"
 
 msgid "Login region"
 msgstr "地域"
@@ -12267,7 +12291,7 @@ msgstr "検索"
 
 # AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
-msgstr "異なる押出機の駆動方式や内腔容積タイプの同期には対応していません。"
+msgstr "異なる押出機の駆動方式やノズルフロータイプの同期には対応していません。"
 
 # AI Translated
 msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
@@ -12374,7 +12398,9 @@ msgstr "実験的機能: フィラメント交換時により長い距離でフ�
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr "ヘッド無しのタイムラプスビデオを録画する時に、「タイムラプスプライムタワー」を追加してください。プレートで右クリックして、「プリミティブを追加」→「タイムラプスプライムタワー」で追加できます。"
+msgstr ""
+"ヘッド無しのタイムラプスビデオを録画する時に、「タイムラプスプライムタワー」を追加してください。\n"
+"プレートで右クリックして、「プリミティブを追加」→「タイムラプスプライムタワー」で追加できます。"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "現在のシステムプリセットからコピーを作成し、システムプリセットから切り離します。"
@@ -12554,7 +12580,9 @@ msgid ""
 msgid_plural ""
 "Following lines %s contain reserved keywords.\n"
 "Please remove them, or G-code visualization and print time estimation will be broken."
-msgstr[0] "以下のラインでは %s 予約語が入っていますのでG-codeがうまく表示できない可能性があります、削除してください"
+msgstr[0] ""
+"以下のラインでは %s 予約語が入っていますので\n"
+"G-codeがうまく表示できない可能性があります、削除してください"
 
 # AI Translated
 #. TRN %1% is the name of the custom G-code setting, e.g. "Machine start G-code".
@@ -12815,7 +12843,10 @@ msgid ""
 "Single Extruder Multi Material is selected,\n"
 "and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
-msgstr "1つのエクストルーダーのマルチマテリアルプリンターが選択されているため、すべてのエクストルーダーの直径が同じでなければなりません。最初のエクストルーダーの直径で、すべてのエクストルーダーノズルの直径を設定しますか？"
+msgstr ""
+"1つのエクストルーダーのマルチマテリアルプリンターが選択されているため、\n"
+"すべてのエクストルーダーの直径が同じでなければなりません。\n"
+"最初のエクストルーダーの直径で、すべてのエクストルーダーノズルの直径を設定しますか？"
 
 msgid "Nozzle diameter"
 msgstr "ノズル直径"
@@ -12924,7 +12955,7 @@ msgstr "プリセットを削除"
 
 msgid "The following preset will be deleted too:"
 msgid_plural "The following presets will be deleted too:"
-msgstr[0] "以下のプリセットも削除されます: "
+msgstr[0] "以下のプリセットも削除されます:"
 
 msgid ""
 "Are you sure to delete the selected preset?\n"
@@ -13141,13 +13172,17 @@ msgstr "選択したオプションをプリセットにコピーしました。
 msgid ""
 "Save the selected options to preset \n"
 "\"%1%\"."
-msgstr "選択したオプションをプリセット\"%1%\"に保存"
+msgstr ""
+"選択したオプションをプリセット\n"
+"\"%1%\"に保存"
 
 #, boost-format
 msgid ""
 "Transfer the selected options to the newly selected preset \n"
 "\"%1%\"."
-msgstr "選択したオプションをプリセット \"%1%\" にコピーしました。"
+msgstr ""
+"選択したオプションをプリセット\n"
+"\"%1%\" にコピーしました。"
 
 #, boost-format
 msgid "Preset \"%1%\" contains the following unsaved changes:"
@@ -13778,7 +13813,7 @@ msgstr "ペイント"
 
 # AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "ペイントギズモ (サポート、継ぎ目、ファジー壁面、カラーペイント) が開いているときに使用できます。"
+msgstr "ペイントギズモ (サポート、継ぎ目、ファジー壁面、色塗り) が開いているときに使用できます。"
 
 msgid "Move: press to snap by 1mm"
 msgstr "1mm単位で移動"
@@ -14166,6 +14201,7 @@ msgstr ""
 "ディスクの空き容量が不足していませんか？"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "G-codeの動きが押出機%1%の衝突ボリュームと交差しています。プリンターが衝突する可能性があります。"
@@ -14177,7 +14213,7 @@ msgstr "G-codeの動きが衝突ボリュームと交差しています。プリ
 # AI Translated
 #, boost-format
 msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
-msgstr "交差している動きはG-codeの%1%行目です。ホーミング後はそのZ位置が不明なため、Orcaはすべての高さに対してチェックしました。"
+msgstr "交差している動きはG-codeの%1%行目です。原点帰還後はそのZ位置が不明なため、Orcaはすべての高さに対してチェックしました。"
 
 # AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
@@ -14215,7 +14251,9 @@ msgstr "プリントはプライミング領域に非常に近いです。 衝�
 msgid ""
 "Failed to generate G-code for invalid custom G-code.\n"
 "\n"
-msgstr "G-codeを生成できませんでした\n"
+msgstr ""
+"G-codeを生成できませんでした\n"
+"\n"
 
 msgid "Please check the custom G-code or use the default custom G-code."
 msgstr "カスタムG-codeを確認するか、デフォルトを使用してください。"
@@ -14492,11 +14530,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1% は除外エリアに近すぎます。造形時に衝突の可能性があります。"
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "%1%は、利用可能なすべての押出機の衝突ボリュームと交差しています。"
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "%1%は押出機%2%の衝突ボリュームと交差しています。"
@@ -14930,9 +14970,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "すべてのノズルで同じ衝突ボリュームを使用するか、各ノズルのXYオフセットからツールヘッド基準のボリュームを導出するか、押出機ごとに独立したボリュームを設定するかを選択します。個別モードでは、押出機ページで各押出機を選択して、そのボリュームを設定します。"
 
 # AI Translated
-# Needs human review: Option of the collision volume behavior dropdown (all nozzles use the same volumes); check it reads right there.
-msgid "Shared"
-msgstr "共有"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "すべてのノズルで共通"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -15190,11 +15230,14 @@ msgstr "底面厚さ"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "底面の厚さです、底面層数で決まった厚みがこの値より小さい場合、層数を増やします。この値が0にする場合、この設定が無効となり、設定した層数で造形します。"
 
+# AI Translated
+# Needs human review: 'paint penetration' = how many layers deep the painted color reaches behind the painted bottom surface. Check that 色塗り浸透層数 reads right; 色塗り follows the existing Color Painting label.
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "底面の色塗り浸透層数"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "底面の層を含め、底面に塗った色が付く層の数です。0にすると、底面層数の値を使用します。底面層数より大きい値にすると、塗った領域の上にあるスパース インフィルにも色が付きます。"
 
 msgid "Apply gap fill"
 msgstr "ギャップフィルを適用"
@@ -16772,7 +16815,7 @@ msgstr "収縮率 (XY)"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "フィラメントが冷却後に収縮する率を入力します（100mm→94mmならば94%）。この収縮により、パーツはxy方向でスケーリングされて補償されます。補償は、パーツの周囲部分に使用されるフィラメントのみが考慮されます。\n"
@@ -16858,8 +16901,10 @@ msgstr "ツール交換後は、新しくロードされたフィラメントの
 msgid "Wipe tower cooling"
 msgstr "ワイプタワー冷却"
 
-msgid "Temperature drop before entering filament tower"
-msgstr "フィラメントタワーに入る前に温度を下げる"
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
+msgid "Temperature drop before entering the wipe tower."
+msgstr "ワイプタワーに入る前に温度を下げる。"
 
 msgid "Interface layer pre-extrusion distance"
 msgstr "インターフェース層の事前押出し距離"
@@ -17323,9 +17368,9 @@ msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "Klipperのmax_accel_to_decelが、加速度のこの%%に調整されます。"
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "Klipperのmax_accel_to_decelが、加速度のこの%に調整されます。"
 
 msgid "Default jerk."
 msgstr "デフォルトのJerkです。"
@@ -17546,21 +17591,21 @@ msgid "Fuzzy skin generator mode"
 msgstr "ファジースキンの生成モード"
 
 # AI Translated
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "ファジー壁面の生成モードです。Arachneでのみ動作します！\n"
 "変位: ノズルを元のパスから横方向にずらすことでパターンを形成する従来のモードです。\n"
 "押出: 押し出す樹脂の量でパターンを形成するモードです。不要なノズルの振動がない高速で素直なアルゴリズムで、滑らかなパターンが得られます。ただし、壁面全体をゆるく形成する用途により適しています。\n"
 "複合: [変位]と[押出]を組み合わせたモードです。壁面の見た目は[変位]モードに近いですが、外周同士の間に隙間が残りません。\n"
 "\n"
-"注意！[押出]および[複合]モードは、fuzzy_skin_thicknessパラメータが印刷されるループの厚さ以下の場合にのみ動作します。同時に、特定の層における押出幅も一定の水準を下回ってはいけません。通常は積層ピッチの15-25%%程度です。したがって、外周幅0.4 mm、積層ピッチ0.2 mmの場合、ファジー壁面の最大厚さは0.4-(0.2*0.25)=±0.35mmとなります。これより大きい値を入力するとFlow::spacing()エラーが表示され、モデルはスライスされません。このエラーが出なくなるまで値を調整してください。"
+"注意！[押出]および[複合]モードは、fuzzy_skin_thicknessパラメータが印刷されるループの厚さ以下の場合にのみ動作します。同時に、特定の層における押出幅も一定の水準を下回ってはいけません。通常は積層ピッチの15-25%程度です。したがって、外周幅0.4 mm、積層ピッチ0.2 mmの場合、ファジー壁面の最大厚さは0.4-(0.2*0.25)=±0.35mmとなります。これより大きい値を入力するとFlow::spacing()エラーが表示され、モデルはスライスされません。このエラーが出なくなるまで値を調整してください。"
 
 msgid "Displacement"
 msgstr "変位"
@@ -17874,7 +17919,7 @@ msgstr "チャンバー温度の制御サポート"
 
 # AI Translated
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "チャンバー温度の制御に対応した機種の場合に、このオプションが有効になります\n"
@@ -17886,7 +17931,7 @@ msgstr "空気ろ過に対応"
 
 # AI Translated
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "プリンターが空気ろ過に対応している場合に有効にします\n"
@@ -17895,7 +17940,7 @@ msgstr ""
 msgid "Use cooling filter"
 msgstr "冷却フィルターを使用"
 
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "プリンターが冷却フィルターに対応している場合は有効にする"
 
 msgid "G-code flavor"
@@ -18892,9 +18937,9 @@ msgstr "モデル底部の穴が円錐状の材料で埋められる前の最大
 msgid "Detect overhang walls"
 msgstr "オーバーハングを検出"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "この設定により、線幅に対するオーバーハングの割合を検出し、異なる速度で造形します。100%%のオーバーハングの場合、ブリッジの速度が使用されます。"
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "この設定により、線幅に対するオーバーハングの割合を検出し、異なる速度で造形します。100%のオーバーハングの場合、ブリッジの速度が使用されます。"
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -20571,11 +20616,14 @@ msgstr "トップ面厚さ"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "トップ面の厚さです、トップ面層数で決まった厚みがこの値より小さい場合、層数を増やします。この値が0にする場合、この設定が無効となり、設定した層数で造形します。"
 
+# AI Translated
+# Needs human review: 'paint penetration' = how many layers deep the painted color reaches behind the painted top surface; check 色塗り浸透層数. The neighbouring setting 'Top shell layers' is labelled トップ面層数 in the catalog (glossary says Top = 上面), and the tooltip quotes that label.
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "上面の色塗り浸透層数"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "上面の層を含め、上面に塗った色が付く層の数です。0にすると、トップ面層数の値を使用します。トップ面層数より大きい値にすると、塗った領域の下にあるスパース インフィルにも色が付きます。"
 
 # AI Translated
 msgid "Separated infills"
@@ -21114,7 +21162,7 @@ msgid "This option will auto-detect narrow internal solid infill areas. If enabl
 msgstr "ソリッド インフィル領域に狭い部分があるか検出します。その設定を有効にする場合、狭い領域は同心パターンを使用し、それ以外の領域は、直線パターンを使用します。"
 
 msgid "invalid value "
-msgstr "無効な値"
+msgstr "無効な値 "
 
 # AI Translated
 msgid "Invalid collision volume definition."
@@ -21129,14 +21177,14 @@ msgid "Invalid per-extruder collision volume definition."
 msgstr "押出機ごとの衝突ボリュームの定義が無効です。"
 
 msgid "Invalid value when spiral vase mode is enabled: "
-msgstr "スパイラルベースモードが有効な場合、無効な値です："
+msgstr "スパイラルベースモードが有効な場合、無効な値です： "
 
 # AI Translated
 msgid "Bridge line width must not exceed nozzle diameter: "
 msgstr "ブリッジのライン幅はノズル径を超えてはいけません: "
 
 msgid "too large line width "
-msgstr "線幅が大きすぎます"
+msgstr "線幅が大きすぎます "
 
 # AI Translated
 #. TRN %1% is the current value, %2% and %3% the lowest and highest allowed values.
@@ -22048,11 +22096,12 @@ msgstr "ノズルIDで索引付けされたノズル直径。"
 
 # AI Translated
 msgid "Nozzle volume types"
-msgstr "内腔容積タイプ"
+msgstr "ノズルフロータイプ"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "ノズルIDで索引付けされた内腔容積のバリエーション。"
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "ノズルIDをインデックスとするノズルフロータイプ (\"Standard\"、\"High Flow\" など) です。"
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -22091,12 +22140,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "現在の積層までに印刷された累積質量。"
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "現在の積層の質量"
+msgid "Previous layer mass"
+msgstr "前の積層の質量"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "前の積層の印刷質量。"
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "previous_layer_massと同じです。Bambu Studioではこの名前が使われています。"
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -22135,8 +22188,8 @@ msgid "Timelapse inline photo"
 msgstr "タイムラプスのインライン撮影"
 
 # AI Translated
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "タイムラプスの写真をインライン位置で撮影するかどうか。"
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "先にタイムラプスの安全な位置へ移動せず、ノズルの現在位置で写真を撮影するかどうかを示します。"
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -22147,14 +22200,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "最遠点タイムラプスの位置決めが有効かどうか。"
 
 # AI Translated
-# Needs human review: Placeholder name; 'clear' read as unobstructed. Check against how the timelapse move is checked.
-msgid "Clear to X0"
-msgstr "X0まで空き"
+msgid "Clear path to X0"
+msgstr "X0まで障害物なし"
 
 # AI Translated
-# Needs human review: 'Clear to X0' read as unobstructed path to X0; check the intended meaning.
-msgid "Whether the timelapse move is clear to X0."
-msgstr "タイムラプスの移動がX0まで障害物なしで行えるかどうか。"
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "現在の高さで、ノズルが他の造形済みオブジェクトに衝突せずにX0まで移動できるかどうかを示します。"
 
 # AI Translated
 msgid "Previous extruder"
@@ -22177,16 +22228,16 @@ msgid "Current hotend"
 msgstr "現在のホットエンド"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "切り替え前のフィラメントの押出機インデックス（0から始まります）。Bambuプリンターでは-1、または積層をまたいでフィラメントがノズル間を移動する場合はノズルIDです。"
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "切り替え前のフィラメントのホットエンドを、0から始まる押出機インデックスで示します。Bambuプリンターでは-1、またはフィラメントが積層をまたいでノズル間を移動する場合はノズルIDになります。"
 
 # AI Translated
 msgid "Next hotend"
 msgstr "次のホットエンド"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "切り替え後のフィラメントの押出機インデックス（0から始まります）。Bambuプリンターでは-1、または積層をまたいでフィラメントがノズル間を移動する場合はノズルIDです。"
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "切り替え後のフィラメントのホットエンドを、0から始まる押出機インデックスで示します。Bambuプリンターでは-1、またはフィラメントが積層をまたいでノズル間を移動する場合はノズルIDになります。"
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -22209,16 +22260,18 @@ msgid "Old extruder variant"
 msgstr "旧押出機のバリアント"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "切り替え前の押出機の内腔容積バリアント。"
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "切り替え前の押出機の押出機タイプとノズルフロータイプ (\"Direct Drive High Flow\" など) です。"
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "新押出機のバリアント"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "切り替え後の押出機の内腔容積バリアント。"
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "切り替え後の押出機の押出機タイプとノズルフロータイプ (\"Direct Drive High Flow\" など) です。"
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -22233,8 +22286,8 @@ msgid "New extruder retracted length"
 msgstr "新押出機のリトラクション済み長さ"
 
 # AI Translated
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "切り替え後の押出機で現在退避中のリトラクション長さ。"
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "切り替え後の押出機に、パーキング時から適用されたままのリトラクション長さです。"
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -22345,16 +22398,16 @@ msgid "First flush volume"
 msgstr "最初のフラッシュ量"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "最初のフラッシュ量です。"
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "予定されたフラッシュ長さの前半で、フィラメントのmm単位で表します。"
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "2番目のフラッシュ量"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "2番目のフラッシュ量です。"
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "予定されたフラッシュ長さの後半で、フィラメントのmm単位で表します。"
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -22489,12 +22542,14 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "移動で拭き上げ外周を回避するかどうか。"
 
 # AI Translated
-msgid "Wipe avoidance X"
-msgstr "拭き上げ回避X"
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
+msgid "Wipe tower avoidance X"
+msgstr "ワイプタワー回避X"
 
 # AI Translated
-msgid "X position used to avoid the wipe area."
-msgstr "拭き上げエリアを回避するために使用するX位置。"
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "ノズルがタワーを避けるために移動する、ワイプタワーのすぐ横のX位置です。"
 
 # AI Translated
 # Needs human review: Glossary cell for prime/wipe tower is unsettled; used プライムタワー to follow the English 'prime tower'.
@@ -22502,17 +22557,14 @@ msgid "Prime tower interface"
 msgstr "プライムタワーのインターフェース"
 
 # AI Translated
-# Needs human review: Glossary cell for prime/wipe tower is unsettled; used プライムタワー to follow the English 'prime tower'.
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "現在のフラッシュがプライムタワーのインターフェース用かどうか。"
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "現在のフラッシュが、異なる材料が接するプライムタワーのインターフェース層用かどうかを示します。"
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "フィラメントのタワーインターフェース印刷温度"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "フィラメントのタワーインターフェースに使用する印刷温度。"
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "異なる材料が接するプライムタワーのインターフェース層における、造形温度です。"
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -22537,9 +22589,21 @@ msgid "Wipe tower wait position valid"
 msgstr "ワイプタワー待機位置が有効"
 
 # AI Translated
-# Needs human review: Glossary cell for prime/wipe tower is unsettled; used ワイプタワー to follow the English 'wipe tower'.
-msgid "Whether the print has a wipe tower."
-msgstr "印刷にワイプタワーがあるかどうか。"
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "待機位置が設定されているかどうかを示します。プリントにワイプタワーがある場合に設定されます。"
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_xと同じです。Bambu Studioではこの名前が使われています。"
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_yと同じです。Bambu Studioではこの名前が使われています。"
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "wipe_tower_wait_pos_validと同じです。Bambu Studioではこの名前が使われています。"
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -22548,10 +22612,6 @@ msgstr "フィラメント別のノズル温度。"
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "フィラメント別の最初の積層のノズル温度。"
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "最初の積層のノズル温度"
 
 # AI Translated
 msgid "Extrusion role"
@@ -22640,8 +22700,8 @@ msgid ""
 "An object's XY size compensation will not be used because it is also color-painted.\n"
 "XY Size compensation cannot be combined with color-painting."
 msgstr ""
-"オブジェクトにカラーペイントが適用されているため、XYサイズ補正は使用されません。\n"
-"XYサイズ補正はカラーペイントと併用できません。"
+"オブジェクトに色塗りが適用されているため、XYサイズ補正は使用されません。\n"
+"XYサイズ補正は色塗りと併用できません。"
 
 msgid ""
 "An object has enabled XY Size compensation which will not be used because it is also fuzzy skin painted.\n"
@@ -23102,7 +23162,7 @@ msgid "Result can be read by human eyes."
 msgstr "結果は簡単に確認でき、理解できます。"
 
 msgid "Auto-Calibration"
-msgstr " 自動キャリブレーション"
+msgstr "自動キャリブレーション"
 
 msgid "We would use Lidar to read the calibration result"
 msgstr "We would use Lidar to read the calibration result."
@@ -23271,6 +23331,7 @@ msgid ""
 "The calibration results have about 10 percent jitter in our test, which may cause the result not exactly the same in each calibration. We are still investigating the root cause to do improvements with new updates."
 msgstr ""
 "フローダイナミクスキャリブレーションの詳細については、当社のWikiをご覧ください。\n"
+"\n"
 "通常、キャリブレーションは不要です。単一の色や材料で印刷を開始する際に、「フローダイナミクスキャリブレーション」オプションが印刷開始メニューでチェックされていると、プリンターは従来の方法に従い、印刷前にフィラメントをキャリブレーションします。複数の色や材料で印刷を開始する場合、プリンターはフィラメントが切り替わるたびにデフォルトの補正パラメーターを使用し、ほとんどの場合良好な結果が得られます。\n"
 "\n"
 "注意点として、キャリブレーション結果が信頼できない原因となる場合がいくつかあります。例えば、ビルドプレートの接着が不十分な場合です。接着力を向上させるには、ビルドプレートを洗浄したり、糊を塗布することが有効です。このトピックに関する詳細については、当社のWikiを参照してください。\n"
@@ -23412,7 +23473,7 @@ msgstr "キャリブレーション2をスキップ"
 
 #, c-format, boost-format
 msgid "flow ratio : %s "
-msgstr "流量比: %s"
+msgstr "流量比: %s "
 
 msgid "Please choose a block with smoothest top surface."
 msgstr "トップ面が最も滑らかなブロックを選択してください。"
@@ -23638,7 +23699,7 @@ msgid "PA Pattern"
 msgstr "PAパターン"
 
 msgid "Start PA: "
-msgstr "開始PA:"
+msgstr "開始PA: "
 
 msgid "End PA: "
 msgstr "終了PA: "
@@ -24682,7 +24743,9 @@ msgstr ""
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
-msgstr "変更されたプロセスプリセットがあるプリンタ名のみが表示され、選択した各プリンタ名にあるすべてのユーザープロセスプリセットがZIP形式でエクスポートされます。"
+msgstr ""
+"変更されたプロセスプリセットがあるプリンタ名のみが表示され、\n"
+"選択した各プリンタ名にあるすべてのユーザープロセスプリセットがZIP形式でエクスポートされます。"
 
 msgid "Please select at least one printer or filament."
 msgstr "少なくとも1つのプリンターまたはフィラメントを選択してください。"
@@ -24769,9 +24832,9 @@ msgstr ""
 "ノズルタイプが実際のプリンターのノズルタイプと一致しません。\n"
 "上部の同期ボタンをクリックしてキャリブレーションを再開してください。"
 
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "%1s材料を%2sノズルで印刷するとノズルが損傷する可能性があります。"
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "%1%材料を%2%ノズルで印刷するとノズルが損傷する可能性があります。"
 
 msgid "Need select printer"
 msgstr "プリンターを選ぶ必要があります"
@@ -36939,8 +37002,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "自分のプラグインは購読解除できません。ローカルファイルを削除するには「削除」を使用してください。"
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "Pythonインタープリターを終了しています"
+msgid "Python interpreter is shutting down."
+msgstr "Pythonインタープリターはシャットダウン中です。"
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -37509,13 +37572,15 @@ msgstr ""
 "自動向き調整\n"
 "自動向き調整で最適な向きをワンクリックで実現できます。"
 
+# AI Translated
+# Needs human review: Added the missing last sentence (the Place on face function or the F key) to the human translation and changed プレート to the glossary's ベッド for the print bed; check it reads naturally.
 #: resources/data/hints.ini: [hint:Lay on Face]
 msgid ""
 "Lay on Face\n"
 "Did you know that you can quickly orient a model so that one of its faces sits on the print bed? Select the \"Place on face\" function or press the <b>F</b> key."
 msgstr ""
 "底面を選択\n"
-"プレートと接触する面を指定し、オブジェクトの向きを簡単に調整できます。"
+"ベッドと接触する面を指定し、オブジェクトの向きを簡単に調整できます。「面に配置」機能を選択するか、<b>F</b>キーを押してください。"
 
 #: resources/data/hints.ini: [hint:Object List]
 msgid ""
@@ -37693,6 +37758,161 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Subdivision mesh"
+#~ msgstr "サブディビジョンメッシュ"
+
+#~ msgid "(Lost color)"
+#~ msgstr "（色が失われました）"
+
+# AI Translated
+# Needs human review: Option of the collision volume behavior dropdown (all nozzles use the same volumes); check it reads right there.
+#~ msgid "Shared"
+#~ msgstr "共有"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "フィラメントが冷却後に収縮する率を入力します（100mm→94mmならば94%）。この収縮により、パーツはxy方向でスケーリングされて補償されます。補償は、パーツの周囲部分に使用されるフィラメントのみが考慮されます。\n"
+#~ "この補償はチェック後に行われます。オブジェクト間に十分なスペースを確保してください。"
+
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "フィラメントタワーに入る前に温度を下げる"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "Klipperのmax_accel_to_decelが、加速度のこの%%に調整されます。"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "ファジー壁面の生成モードです。Arachneでのみ動作します！\n"
+#~ "変位: ノズルを元のパスから横方向にずらすことでパターンを形成する従来のモードです。\n"
+#~ "押出: 押し出す樹脂の量でパターンを形成するモードです。不要なノズルの振動がない高速で素直なアルゴリズムで、滑らかなパターンが得られます。ただし、壁面全体をゆるく形成する用途により適しています。\n"
+#~ "複合: [変位]と[押出]を組み合わせたモードです。壁面の見た目は[変位]モードに近いですが、外周同士の間に隙間が残りません。\n"
+#~ "\n"
+#~ "注意！[押出]および[複合]モードは、fuzzy_skin_thicknessパラメータが印刷されるループの厚さ以下の場合にのみ動作します。同時に、特定の層における押出幅も一定の水準を下回ってはいけません。通常は積層ピッチの15-25%%程度です。したがって、外周幅0.4 mm、積層ピッチ0.2 mmの場合、ファジー壁面の最大厚さは0.4-(0.2*0.25)=±0.35mmとなります。これより大きい値を入力するとFlow::spacing()エラーが表示され、モデルはスライスされません。このエラーが出なくなるまで値を調整してください。"
+
+# AI Translated
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "チャンバー温度の制御に対応した機種の場合に、このオプションが有効になります\n"
+#~ "G-codeコマンド: M141 S(0-255)"
+
+# AI Translated
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "プリンターが空気ろ過に対応している場合に有効にします\n"
+#~ "G-codeコマンド: M106 P3 S(0-255)"
+
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "プリンターが冷却フィルターに対応している場合は有効にする"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "この設定により、線幅に対するオーバーハングの割合を検出し、異なる速度で造形します。100%%のオーバーハングの場合、ブリッジの速度が使用されます。"
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "ノズルIDで索引付けされた内腔容積のバリエーション。"
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "現在の積層の質量"
+
+# AI Translated
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "タイムラプスの写真をインライン位置で撮影するかどうか。"
+
+# AI Translated
+# Needs human review: Placeholder name; 'clear' read as unobstructed. Check against how the timelapse move is checked.
+#~ msgid "Clear to X0"
+#~ msgstr "X0まで空き"
+
+# AI Translated
+# Needs human review: 'Clear to X0' read as unobstructed path to X0; check the intended meaning.
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "タイムラプスの移動がX0まで障害物なしで行えるかどうか。"
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "切り替え前のフィラメントの押出機インデックス（0から始まります）。Bambuプリンターでは-1、または積層をまたいでフィラメントがノズル間を移動する場合はノズルIDです。"
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "切り替え後のフィラメントの押出機インデックス（0から始まります）。Bambuプリンターでは-1、または積層をまたいでフィラメントがノズル間を移動する場合はノズルIDです。"
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "切り替え前の押出機の内腔容積バリアント。"
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "切り替え後の押出機の内腔容積バリアント。"
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "切り替え後の押出機で現在退避中のリトラクション長さ。"
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "最初のフラッシュ量です。"
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "2番目のフラッシュ量です。"
+
+# AI Translated
+#~ msgid "Wipe avoidance X"
+#~ msgstr "拭き上げ回避X"
+
+# AI Translated
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "拭き上げエリアを回避するために使用するX位置。"
+
+# AI Translated
+# Needs human review: Glossary cell for prime/wipe tower is unsettled; used プライムタワー to follow the English 'prime tower'.
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "現在のフラッシュがプライムタワーのインターフェース用かどうか。"
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "フィラメントのタワーインターフェース印刷温度"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "フィラメントのタワーインターフェースに使用する印刷温度。"
+
+# AI Translated
+# Needs human review: Glossary cell for prime/wipe tower is unsettled; used ワイプタワー to follow the English 'wipe tower'.
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "印刷にワイプタワーがあるかどうか。"
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "最初の積層のノズル温度"
+
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "%1s材料を%2sノズルで印刷するとノズルが損傷する可能性があります。"
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "Pythonインタープリターを終了しています"
 
 # AI Translated
 #, c-format, boost-format

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -3020,10 +3020,7 @@ msgstr ""
 msgid "Simplify Model"
 msgstr ""
 
-msgid "Subdivision mesh"
-msgstr ""
-
-msgid "(Lost color)"
+msgid "Subdivision mesh (Lost color)"
 msgstr ""
 
 msgid "Center"
@@ -12746,6 +12743,7 @@ msgid ""
 "Is the disk full?"
 msgstr ""
 
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr ""
@@ -13023,10 +13021,12 @@ msgstr ""
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr ""
 
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr ""
 
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr ""
@@ -13375,7 +13375,8 @@ msgstr ""
 msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
 msgstr ""
 
-msgid "Shared"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
 msgstr ""
 
 msgid "Toolhead-relative (nozzle offsets)"
@@ -14781,7 +14782,7 @@ msgstr ""
 
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 
@@ -14861,7 +14862,7 @@ msgstr ""
 msgid "Wipe tower cooling"
 msgstr ""
 
-msgid "Temperature drop before entering filament tower"
+msgid "Temperature drop before entering the wipe tower."
 msgstr ""
 
 msgid "Interface layer pre-extrusion distance"
@@ -15249,8 +15250,8 @@ msgstr ""
 msgid "accel_to_decel"
 msgstr ""
 
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
 msgstr ""
 
 msgid "Default jerk."
@@ -15427,14 +15428,14 @@ msgstr ""
 msgid "Fuzzy skin generator mode"
 msgstr ""
 
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 
 msgid "Displacement"
@@ -15684,7 +15685,7 @@ msgid "Support controlling chamber temperature"
 msgstr ""
 
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 
@@ -15692,14 +15693,14 @@ msgid "Support air filtration"
 msgstr ""
 
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 
 msgid "Use cooling filter"
 msgstr ""
 
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr ""
 
 msgid "G-code flavor"
@@ -16526,8 +16527,8 @@ msgstr ""
 msgid "Detect overhang walls"
 msgstr ""
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
 msgstr ""
 
 msgid "Print unsupported walls last"
@@ -19096,7 +19097,8 @@ msgstr ""
 msgid "Nozzle volume types"
 msgstr ""
 
-msgid "Nozzle volume variants indexed by nozzle ID."
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
 msgstr ""
 
 msgid "Retraction distance used when cutting filament."
@@ -19126,10 +19128,13 @@ msgstr ""
 msgid "Accumulated printed mass at the current layer."
 msgstr ""
 
-msgid "Current layer mass"
+msgid "Previous layer mass"
 msgstr ""
 
 msgid "Printed mass of the previous layer."
+msgstr ""
+
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
 msgstr ""
 
 msgid "Current physical extruder ID"
@@ -19159,7 +19164,7 @@ msgstr ""
 msgid "Timelapse inline photo"
 msgstr ""
 
-msgid "Whether the timelapse photo is captured at the inline position."
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
 msgstr ""
 
 msgid "Farthest-point timelapse enabled"
@@ -19168,10 +19173,10 @@ msgstr ""
 msgid "Whether farthest-point timelapse positioning is active."
 msgstr ""
 
-msgid "Clear to X0"
+msgid "Clear path to X0"
 msgstr ""
 
-msgid "Whether the timelapse move is clear to X0."
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
 msgstr ""
 
 msgid "Previous extruder"
@@ -19189,13 +19194,13 @@ msgstr ""
 msgid "Current hotend"
 msgstr ""
 
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
 msgstr ""
 
 msgid "Next hotend"
 msgstr ""
 
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
 msgstr ""
 
 msgid "Next nozzle ID"
@@ -19213,13 +19218,15 @@ msgstr ""
 msgid "Old extruder variant"
 msgstr ""
 
-msgid "Nozzle-volume variant of the outgoing extruder."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
 msgstr ""
 
 msgid "New extruder variant"
 msgstr ""
 
-msgid "Nozzle-volume variant of the incoming extruder."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
 msgstr ""
 
 msgid "Filament nozzle-change retract length"
@@ -19231,7 +19238,7 @@ msgstr ""
 msgid "New extruder retracted length"
 msgstr ""
 
-msgid "Currently parked retraction length of the incoming extruder."
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
 msgstr ""
 
 msgid "Outer wall volumetric speed"
@@ -19315,13 +19322,13 @@ msgstr ""
 msgid "First flush volume"
 msgstr ""
 
-msgid "The first flush volume."
+msgid "First half of the planned purge length, in mm of filament."
 msgstr ""
 
 msgid "Second flush volume"
 msgstr ""
 
-msgid "The second flush volume."
+msgid "Second half of the planned purge length, in mm of filament."
 msgstr ""
 
 msgid "Old filament e feedrate"
@@ -19423,22 +19430,19 @@ msgstr ""
 msgid "Whether travel should avoid the wipe perimeter."
 msgstr ""
 
-msgid "Wipe avoidance X"
+msgid "Wipe tower avoidance X"
 msgstr ""
 
-msgid "X position used to avoid the wipe area."
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
 msgstr ""
 
 msgid "Prime tower interface"
 msgstr ""
 
-msgid "Whether the current purge is for a prime-tower interface."
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
 msgstr ""
 
-msgid "Filament tower interface print temperature"
-msgstr ""
-
-msgid "Print temperature used for the filament tower interface."
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
 msgstr ""
 
 msgid "Wipe tower wait position X"
@@ -19456,16 +19460,22 @@ msgstr ""
 msgid "Wipe tower wait position valid"
 msgstr ""
 
-msgid "Whether the print has a wipe tower."
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr ""
+
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr ""
+
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr ""
+
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
 msgstr ""
 
 msgid "Nozzle temperatures indexed by filament."
 msgstr ""
 
 msgid "First-layer nozzle temperatures indexed by filament."
-msgstr ""
-
-msgid "Nozzle temperature initial layer"
 msgstr ""
 
 msgid "Extrusion role"
@@ -21330,8 +21340,8 @@ msgid ""
 "Please click the Sync button above and restart the calibration."
 msgstr ""
 
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
 msgstr ""
 
 msgid "Need select printer"
@@ -30785,7 +30795,7 @@ msgstr ""
 msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files."
 msgstr ""
 
-msgid "Python interpreter is shutting down"
+msgid "Python interpreter is shutting down."
 msgstr ""
 
 msgid "Plugin system is shutting down."

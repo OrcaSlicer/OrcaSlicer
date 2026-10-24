@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -3212,19 +3212,19 @@ msgid "Along X Axis"
 msgstr "Dọc trục X"
 
 msgid "Mirror along the X axis"
-msgstr ""
+msgstr "Lật dọc trục X"
 
 msgid "Along Y Axis"
 msgstr "Dọc trục Y"
 
 msgid "Mirror along the Y axis"
-msgstr ""
+msgstr "Lật dọc trục Y"
 
 msgid "Along Z Axis"
 msgstr "Dọc trục Z"
 
 msgid "Mirror along the Z axis"
-msgstr ""
+msgstr "Lật dọc trục Z"
 
 # AI Translated
 msgid "Transform"
@@ -3440,12 +3440,8 @@ msgid "Simplify Model"
 msgstr "Đơn giản hóa model"
 
 # AI Translated
-msgid "Subdivision mesh"
-msgstr "Chia nhỏ lưới"
-
-# AI Translated
-msgid "(Lost color)"
-msgstr "(Mất màu)"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Chia nhỏ lưới (Mất màu)"
 
 msgid "Center"
 msgstr "Căn giữa"
@@ -6299,7 +6295,7 @@ msgid "Tool: "
 msgstr "Công cụ: "
 
 msgid "Color: "
-msgstr "Màu:"
+msgstr "Màu: "
 
 # AI Translated
 msgid "Acceleration: "
@@ -11163,13 +11159,17 @@ msgstr ""
 "Tĩnh: nguồn sáng cố định trong không gian, nên bóng đổ chỉ được tính lại khi cảnh thay đổi.\n"
 "Quay quanh: nguồn sáng xoay theo camera, tính lại bóng đổ ở mỗi khung hình khi camera di chuyển."
 
+# AI Translated
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "Đường công cụ bóng"
 
+# AI Translated
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"Hiển thị các đường công cụ trong Xem trước như nhựa bóng ở chế độ xem thực tế.\n"
+"Khi tắt, filament trong mờ không bóng, còn filament không trong suốt giữ vệt sáng của chế độ xem thông thường."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -11358,11 +11358,13 @@ msgstr ""
 "Mức độ sáng khi hiển thị các lớp bị làm mờ nếu bật \"Làm mờ các lớp bên dưới\".\n"
 "99% gần như không tối đi, 0% khiến chúng đen hoàn toàn. Giới hạn ở 99% vì 100% sẽ giống hệt như tắt tùy chọn này."
 
+# AI Translated
 msgid "Translucent filaments"
-msgstr ""
+msgstr "Filament trong mờ"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "Vẽ các đường công cụ của những filament có màu trong suốt một phần ở dạng nhìn xuyên qua được, giống cách chế độ xem 3D vẽ các vật thể của chúng. Tắt để vẽ mọi filament không trong suốt."
 
 # AI Translated
 msgid "Login region"
@@ -14425,7 +14427,7 @@ msgstr "Vẽ"
 
 # AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "Khả dụng khi một gizmo vẽ đang mở: vẽ support, đường nối, fuzzy skin hoặc màu."
+msgstr "Khả dụng khi một gizmo vẽ đang mở: vẽ support, đường nối, fuzzy skin hoặc tô màu."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Di chuyển: nhấn để bám theo 1mm"
@@ -14822,6 +14824,7 @@ msgstr ""
 "Ổ đĩa có bị đầy không?"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "Một lệnh di chuyển G-code giao với thể tích va chạm của extruder %1%. Điều này có thể gây va chạm máy in."
@@ -15151,11 +15154,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1% quá gần vùng loại trừ, có thể có va chạm khi in."
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "%1% giao với thể tích va chạm của mọi extruder khả dụng."
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "%1% giao với một thể tích va chạm của extruder %2%."
@@ -15574,9 +15579,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "Chọn việc mọi đầu phun dùng chung các thể tích va chạm, suy ra thể tích tương đối theo đầu công cụ từ độ lệch XY của từng đầu phun, hoặc cấu hình thể tích độc lập cho từng extruder. Ở chế độ riêng lẻ, hãy chọn từng extruder trong trang Extruder để cấu hình thể tích của nó."
 
 # AI Translated
-# Needs human review: Option of the collision volume behavior dropdown (all nozzles share the same volumes); check it reads right next to the other two options.
-msgid "Shared"
-msgstr "Dùng chung"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "Dùng chung cho tất cả đầu phun"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -15832,11 +15837,14 @@ msgstr "Độ dày vỏ dưới"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Số lượng lớp đặc dưới được tăng lên khi slice nếu độ dày tính bằng lớp vỏ dưới mỏng hơn giá trị này. Điều này có thể tránh vỏ quá mỏng khi chiều cao lớp nhỏ. 0 có nghĩa là cài đặt này bị tắt và độ dày vỏ dưới được xác định tuyệt đối bởi lớp vỏ dưới."
 
+# AI Translated
+# Needs human review: Setting label: how many layers above a painted bottom surface take its color. Check 'Lớp thấm màu vẽ bề mặt dưới' reads as 'paint penetration layers (bottom)'; 'bề mặt' was added for clarity.
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "Lớp thấm màu vẽ bề mặt dưới"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "Số lớp, bao gồm lớp bề mặt dưới, nhận màu đã vẽ trên bề mặt dưới. Đặt 0 để dùng các lớp vỏ dưới. Giá trị lớn hơn vỏ dưới cũng áp màu lên infill thưa phía trên vùng đã vẽ."
 
 msgid "Apply gap fill"
 msgstr "Áp dụng lấp khe"
@@ -17385,7 +17393,7 @@ msgstr "Co ngót (XY)"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "Nhập phần trăm co ngót mà filament sẽ có sau khi làm mát (94% nếu bạn đo 94mm thay vì 100mm). Phần sẽ được tỷ lệ trong XY để bù. Chỉ filament được sử dụng cho chu vi được tính.\n"
@@ -17471,8 +17479,8 @@ msgid "Wipe tower cooling"
 msgstr "Làm mát wipe tower"
 
 # AI Translated
-msgid "Temperature drop before entering filament tower"
-msgstr "Mức giảm nhiệt độ trước khi vào tháp filament"
+msgid "Temperature drop before entering the wipe tower."
+msgstr "Mức giảm nhiệt độ trước khi vào wipe tower."
 
 # AI Translated
 msgid "Interface layer pre-extrusion distance"
@@ -17935,9 +17943,9 @@ msgstr "max_accel_to_decel của Klipper sẽ được điều chỉnh tự đ�
 msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "max_accel_to_decel của Klipper sẽ được điều chỉnh thành %% này của gia tốc."
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "max_accel_to_decel của Klipper sẽ được điều chỉnh thành % này của gia tốc."
 
 msgid "Default jerk."
 msgstr "Giật mặc định."
@@ -18138,21 +18146,21 @@ msgstr "Có áp dụng fuzzy skin trên lớp đầu tiên hay không."
 msgid "Fuzzy skin generator mode"
 msgstr "Chế độ tạo fuzzy skin"
 
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Chế độ tạo fuzzy skin. Chỉ hoạt động với Arachne!\n"
 "Dịch chuyển: Chế độ cổ điển khi mẫu được hình thành bằng cách dịch đầu phun sang bên từ đường dẫn ban đầu.\n"
 "Đùn: Chế độ khi mẫu được hình thành bởi lượng nhựa được đùn. Đây là thuật toán nhanh và thẳng không có rung đầu phun không cần thiết tạo ra mẫu mịn. Nhưng nó hữu ích hơn để tạo thành lỏng lẻo trong toàn bộ mảng của chúng.\n"
 "Kết hợp: Chế độ kết hợp [Dịch chuyển] + [Đùn]. Hình thức của thành tương tự như chế độ [Dịch chuyển], nhưng nó không để lại lỗ chân lông giữa các chu vi.\n"
 "\n"
-"Chú ý! Chế độ [Đùn] và [Kết hợp] chỉ hoạt động khi tham số fuzzy_skin_thickness không lớn hơn độ dày của vòng in. Đồng thời, độ rộng của đùn cho một lớp cụ thể cũng không được dưới một mức nhất định. Nó thường bằng 15-25%% của chiều cao lớp. Do đó, độ dày fuzzy skin tối đa với độ rộng chu vi 0.4 mm và chiều cao lớp 0.2 mm sẽ là 0.4-(0.2*0.25)=±0.35mm! Nếu bạn nhập tham số cao hơn giá trị này, lỗi Flow::spacing() sẽ được hiển thị và model sẽ không được slice. Bạn có thể chọn số này cho đến khi lỗi này được lặp lại."
+"Chú ý! Chế độ [Đùn] và [Kết hợp] chỉ hoạt động khi tham số fuzzy_skin_thickness không lớn hơn độ dày của vòng in. Đồng thời, độ rộng của đùn cho một lớp cụ thể cũng không được dưới một mức nhất định. Nó thường bằng 15-25% của chiều cao lớp. Do đó, độ dày fuzzy skin tối đa với độ rộng chu vi 0.4 mm và chiều cao lớp 0.2 mm sẽ là 0.4-(0.2*0.25)=±0.35mm! Nếu bạn nhập tham số cao hơn giá trị này, lỗi Flow::spacing() sẽ được hiển thị và model sẽ không được slice. Bạn có thể chọn số này cho đến khi lỗi này được lặp lại."
 
 msgid "Displacement"
 msgstr "Dịch chuyển"
@@ -18455,7 +18463,7 @@ msgid "Support controlling chamber temperature"
 msgstr "Hỗ trợ điều khiển nhiệt độ buồng"
 
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Tùy chọn này được bật nếu máy hỗ trợ điều khiển nhiệt độ buồng\n"
@@ -18465,7 +18473,7 @@ msgid "Support air filtration"
 msgstr "Hỗ trợ lọc không khí"
 
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Bật điều này nếu máy in hỗ trợ lọc không khí\n"
@@ -18476,7 +18484,7 @@ msgid "Use cooling filter"
 msgstr "Dùng bộ lọc làm mát"
 
 # AI Translated
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "Bật tùy chọn này nếu máy in hỗ trợ bộ lọc làm mát"
 
 msgid "G-code flavor"
@@ -19435,9 +19443,9 @@ msgstr "Diện tích tối đa của lỗ ở đáy model trước khi nó đư�
 msgid "Detect overhang walls"
 msgstr "Phát hiện thành nhô"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Phát hiện phần trăm nhô tương đối với độ rộng đường và sử dụng tốc độ khác nhau để in. Đối với phần nhô 100%%, tốc độ cầu được sử dụng."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "Phát hiện phần trăm nhô tương đối với độ rộng đường và sử dụng tốc độ khác nhau để in. Đối với phần nhô 100%, tốc độ cầu được sử dụng."
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -21008,11 +21016,14 @@ msgstr "Độ dày vỏ trên"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Số lượng lớp đặc trên được tăng lên khi slice nếu độ dày được tính bởi lớp vỏ trên mỏng hơn giá trị này. Điều này có thể tránh vỏ quá mỏng khi chiều cao lớp nhỏ. 0 có nghĩa là cài đặt này bị tắt và độ dày vỏ trên được xác định tuyệt đối bởi lớp vỏ trên."
 
+# AI Translated
+# Needs human review: Setting label: how many layers below a painted top surface take its color. Check 'Lớp thấm màu vẽ bề mặt trên' reads as 'paint penetration layers (top)'; 'bề mặt' was added for clarity.
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "Lớp thấm màu vẽ bề mặt trên"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "Số lớp, bao gồm lớp bề mặt trên, nhận màu đã vẽ trên bề mặt trên. Đặt 0 để dùng các lớp vỏ trên. Giá trị lớn hơn vỏ trên cũng áp màu lên infill thưa phía dưới vùng đã vẽ."
 
 # AI Translated
 msgid "Separated infills"
@@ -22416,8 +22427,9 @@ msgid "Nozzle volume types"
 msgstr "Các loại thể tích đầu phun"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "Các biến thể thể tích đầu phun được lập chỉ mục theo ID đầu phun."
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "Các loại thể tích đầu phun, được lập chỉ mục theo ID đầu phun, chẳng hạn như \"Standard\" hoặc \"High Flow\"."
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -22456,12 +22468,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "Khối lượng đã in tích lũy tại lớp hiện tại."
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "Khối lượng lớp hiện tại"
+msgid "Previous layer mass"
+msgstr "Khối lượng lớp trước"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "Khối lượng đã in của lớp trước."
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "Giống như previous_layer_mass. Bambu Studio dùng tên này."
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -22501,9 +22517,8 @@ msgid "Timelapse inline photo"
 msgstr "Ảnh timelapse nội tuyến"
 
 # AI Translated
-# Needs human review: Check 'inline position' wording together with the 'Timelapse inline photo' label.
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "Ảnh timelapse có được chụp tại vị trí nội tuyến hay không."
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "Cho biết ảnh có được chụp ngay tại vị trí hiện tại của đầu phun hay không, mà không di chuyển trước đến vị trí timelapse an toàn."
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -22514,14 +22529,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "Có đang bật định vị timelapse tại điểm xa nhất hay không."
 
 # AI Translated
-# Needs human review: Short placeholder label with no context; check that 'clear to X0' (path to X0 is free) reads right.
-msgid "Clear to X0"
-msgstr "Thông tới X0"
+msgid "Clear path to X0"
+msgstr "Đường đi thông thoáng tới X0"
 
 # AI Translated
-# Needs human review: Check wording together with the 'Clear to X0' label.
-msgid "Whether the timelapse move is clear to X0."
-msgstr "Chuyển động timelapse có thông tới X0 hay không."
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "Cho biết đầu phun có thể di chuyển tới X0 ở độ cao hiện tại mà không va vào vật thể đã in khác hay không."
 
 # AI Translated
 msgid "Previous extruder"
@@ -22544,16 +22557,16 @@ msgid "Current hotend"
 msgstr "Hotend hiện tại"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Chỉ số extruder dựa trên không của filament đi ra. Trên máy in Bambu, giá trị là -1, hoặc là ID đầu phun khi một filament chuyển giữa các đầu phun qua các lớp."
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend của filament đi ra, biểu thị bằng chỉ số extruder dựa trên không của nó. Trên máy in Bambu, giá trị là -1, hoặc ID đầu phun khi một filament chuyển giữa các đầu phun qua các lớp."
 
 # AI Translated
 msgid "Next hotend"
 msgstr "Hotend tiếp theo"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Chỉ số extruder dựa trên không của filament đi vào. Trên máy in Bambu, giá trị là -1, hoặc là ID đầu phun khi một filament chuyển giữa các đầu phun qua các lớp."
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend của filament đi vào, biểu thị bằng chỉ số extruder dựa trên không của nó. Trên máy in Bambu, giá trị là -1, hoặc ID đầu phun khi một filament chuyển giữa các đầu phun qua các lớp."
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -22576,16 +22589,18 @@ msgid "Old extruder variant"
 msgstr "Biến thể extruder cũ"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "Biến thể thể tích đầu phun của extruder đi ra."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "Loại extruder và loại thể tích đầu phun của extruder đi ra, chẳng hạn như \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "Biến thể extruder mới"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "Biến thể thể tích đầu phun của extruder đi vào."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "Loại extruder và loại thể tích đầu phun của extruder đi vào, chẳng hạn như \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -22600,8 +22615,8 @@ msgid "New extruder retracted length"
 msgstr "Độ dài đã rút của extruder mới"
 
 # AI Translated
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "Độ dài rút hiện đang được giữ của extruder đi vào."
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "Độ dài rút vẫn còn áp dụng cho extruder đi vào kể từ lúc nó được đậu."
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -22712,16 +22727,16 @@ msgid "First flush volume"
 msgstr "Thể tích xả đầu tiên"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "Thể tích xả đầu tiên."
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "Nửa đầu của độ dài xả dự kiến, tính bằng mm filament."
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "Thể tích xả thứ hai"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "Thể tích xả thứ hai."
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "Nửa sau của độ dài xả dự kiến, tính bằng mm filament."
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -22858,28 +22873,24 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "Có nên tránh chu vi lau khi di chuyển hay không."
 
 # AI Translated
-msgid "Wipe avoidance X"
-msgstr "X tránh lau"
+msgid "Wipe tower avoidance X"
+msgstr "X tránh wipe tower"
 
 # AI Translated
-msgid "X position used to avoid the wipe area."
-msgstr "Vị trí X dùng để tránh vùng lau."
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "Vị trí X ngay cạnh wipe tower mà đầu phun di chuyển tới để tránh xa tháp."
 
 # AI Translated
 msgid "Prime tower interface"
 msgstr "Giao diện prime tower"
 
 # AI Translated
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "Lần xả hiện tại có dành cho giao diện prime tower hay không."
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "Cho biết lần xả hiện tại có dành cho lớp tiếp xúc của prime tower (nơi các vật liệu khác nhau gặp nhau) hay không."
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "Nhiệt độ in giao diện tower của filament"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "Nhiệt độ in dùng cho giao diện tower của filament."
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "Nhiệt độ in cho lớp tiếp xúc của prime tower (nơi các vật liệu khác nhau gặp nhau)."
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -22902,8 +22913,20 @@ msgid "Wipe tower wait position valid"
 msgstr "Vị trí chờ wipe tower hợp lệ"
 
 # AI Translated
-msgid "Whether the print has a wipe tower."
-msgstr "Bản in có wipe tower hay không."
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "Cho biết vị trí chờ đã được đặt hay chưa, điều này xảy ra khi bản in có wipe tower."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "Giống như wipe_tower_wait_pos_x. Bambu Studio dùng tên này."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "Giống như wipe_tower_wait_pos_y. Bambu Studio dùng tên này."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "Giống như wipe_tower_wait_pos_valid. Bambu Studio dùng tên này."
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -22912,10 +22935,6 @@ msgstr "Nhiệt độ đầu phun được lập chỉ mục theo filament."
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "Nhiệt độ đầu phun lớp đầu tiên được lập chỉ mục theo filament."
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "Nhiệt độ đầu phun lớp đầu"
 
 # AI Translated
 msgid "Extrusion role"
@@ -25132,9 +25151,9 @@ msgstr ""
 "Vui lòng nhấn nút Đồng bộ ở trên và khởi động lại quá trình hiệu chỉnh."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "In vật liệu %1s bằng đầu phun %2s có thể làm hỏng đầu phun."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "In vật liệu %1% bằng đầu phun %2% có thể làm hỏng đầu phun."
 
 msgid "Need select printer"
 msgstr "Cần chọn máy in"
@@ -37368,8 +37387,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "Không thể hủy đăng ký plugin của chính bạn. Dùng Xóa để gỡ các file cục bộ."
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "Trình thông dịch Python đang tắt"
+msgid "Python interpreter is shutting down."
+msgstr "Trình thông dịch Python đang tắt."
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -38111,6 +38130,161 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+# AI Translated
+#~ msgid "Subdivision mesh"
+#~ msgstr "Chia nhỏ lưới"
+
+# AI Translated
+#~ msgid "(Lost color)"
+#~ msgstr "(Mất màu)"
+
+# AI Translated
+# Needs human review: Option of the collision volume behavior dropdown (all nozzles share the same volumes); check it reads right next to the other two options.
+#~ msgid "Shared"
+#~ msgstr "Dùng chung"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "Nhập phần trăm co ngót mà filament sẽ có sau khi làm mát (94% nếu bạn đo 94mm thay vì 100mm). Phần sẽ được tỷ lệ trong XY để bù. Chỉ filament được sử dụng cho chu vi được tính.\n"
+#~ "Hãy chắc chắn để đủ khoảng cách giữa các đối tượng, vì bù này được thực hiện sau khi kiểm tra."
+
+# AI Translated
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "Mức giảm nhiệt độ trước khi vào tháp filament"
+
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "max_accel_to_decel của Klipper sẽ được điều chỉnh thành %% này của gia tốc."
+
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "Chế độ tạo fuzzy skin. Chỉ hoạt động với Arachne!\n"
+#~ "Dịch chuyển: Chế độ cổ điển khi mẫu được hình thành bằng cách dịch đầu phun sang bên từ đường dẫn ban đầu.\n"
+#~ "Đùn: Chế độ khi mẫu được hình thành bởi lượng nhựa được đùn. Đây là thuật toán nhanh và thẳng không có rung đầu phun không cần thiết tạo ra mẫu mịn. Nhưng nó hữu ích hơn để tạo thành lỏng lẻo trong toàn bộ mảng của chúng.\n"
+#~ "Kết hợp: Chế độ kết hợp [Dịch chuyển] + [Đùn]. Hình thức của thành tương tự như chế độ [Dịch chuyển], nhưng nó không để lại lỗ chân lông giữa các chu vi.\n"
+#~ "\n"
+#~ "Chú ý! Chế độ [Đùn] và [Kết hợp] chỉ hoạt động khi tham số fuzzy_skin_thickness không lớn hơn độ dày của vòng in. Đồng thời, độ rộng của đùn cho một lớp cụ thể cũng không được dưới một mức nhất định. Nó thường bằng 15-25%% của chiều cao lớp. Do đó, độ dày fuzzy skin tối đa với độ rộng chu vi 0.4 mm và chiều cao lớp 0.2 mm sẽ là 0.4-(0.2*0.25)=±0.35mm! Nếu bạn nhập tham số cao hơn giá trị này, lỗi Flow::spacing() sẽ được hiển thị và model sẽ không được slice. Bạn có thể chọn số này cho đến khi lỗi này được lặp lại."
+
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "Tùy chọn này được bật nếu máy hỗ trợ điều khiển nhiệt độ buồng\n"
+#~ "Lệnh G-code: M141 S(0-255)"
+
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "Bật điều này nếu máy in hỗ trợ lọc không khí\n"
+#~ "Lệnh G-code: M106 P3 S(0-255)"
+
+# AI Translated
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "Bật tùy chọn này nếu máy in hỗ trợ bộ lọc làm mát"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "Phát hiện phần trăm nhô tương đối với độ rộng đường và sử dụng tốc độ khác nhau để in. Đối với phần nhô 100%%, tốc độ cầu được sử dụng."
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "Các biến thể thể tích đầu phun được lập chỉ mục theo ID đầu phun."
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "Khối lượng lớp hiện tại"
+
+# AI Translated
+# Needs human review: Check 'inline position' wording together with the 'Timelapse inline photo' label.
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "Ảnh timelapse có được chụp tại vị trí nội tuyến hay không."
+
+# AI Translated
+# Needs human review: Short placeholder label with no context; check that 'clear to X0' (path to X0 is free) reads right.
+#~ msgid "Clear to X0"
+#~ msgstr "Thông tới X0"
+
+# AI Translated
+# Needs human review: Check wording together with the 'Clear to X0' label.
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "Chuyển động timelapse có thông tới X0 hay không."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Chỉ số extruder dựa trên không của filament đi ra. Trên máy in Bambu, giá trị là -1, hoặc là ID đầu phun khi một filament chuyển giữa các đầu phun qua các lớp."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Chỉ số extruder dựa trên không của filament đi vào. Trên máy in Bambu, giá trị là -1, hoặc là ID đầu phun khi một filament chuyển giữa các đầu phun qua các lớp."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "Biến thể thể tích đầu phun của extruder đi ra."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "Biến thể thể tích đầu phun của extruder đi vào."
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "Độ dài rút hiện đang được giữ của extruder đi vào."
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "Thể tích xả đầu tiên."
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "Thể tích xả thứ hai."
+
+# AI Translated
+#~ msgid "Wipe avoidance X"
+#~ msgstr "X tránh lau"
+
+# AI Translated
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "Vị trí X dùng để tránh vùng lau."
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "Lần xả hiện tại có dành cho giao diện prime tower hay không."
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "Nhiệt độ in giao diện tower của filament"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "Nhiệt độ in dùng cho giao diện tower của filament."
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "Bản in có wipe tower hay không."
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "Nhiệt độ đầu phun lớp đầu"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "In vật liệu %1s bằng đầu phun %2s có thể làm hỏng đầu phun."
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "Trình thông dịch Python đang tắt"
 
 # AI Translated
 #, c-format, boost-format

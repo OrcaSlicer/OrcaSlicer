@@ -1335,7 +1335,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     wipe_avoid_pos_x = get_wipe_avoid_pos_x(box_min, box_max, 3.f);
                 }
 
-                // Nozzle-heating center just outside the wipe tower. Clamp X to the
+                // Position where the nozzle waits to heat, just outside the wipe tower. Clamp X to the
                 // region every extruder can reach (shared printable polygon), which equals the full
                 // printable_area for all current single/dual printers, so existing output is unchanged.
                 Vec2f stop_pos = tool_change_start_pos;
@@ -1347,6 +1347,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     if (stop_pos.x() < printer_bbx.min[0]) stop_pos.x() = float(printer_bbx.min[0]);
                     if (stop_pos.x() > printer_bbx.max[0]) stop_pos.x() = float(printer_bbx.max[0]);
                 }
+                config.set_key_value("wipe_tower_wait_pos_x", new ConfigOptionFloat(stop_pos.x()));
+                config.set_key_value("wipe_tower_wait_pos_y", new ConfigOptionFloat(stop_pos.y()));
+                config.set_key_value("wipe_tower_wait_pos_valid", new ConfigOptionBool(true));
+                // Bambu Studio's names for the wait position, used by its profiles.
                 config.set_key_value("wipe_tower_center_pos_x", new ConfigOptionFloat(stop_pos.x()));
                 config.set_key_value("wipe_tower_center_pos_y", new ConfigOptionFloat(stop_pos.y()));
                 config.set_key_value("wipe_tower_center_pos_valid", new ConfigOptionBool(true));
@@ -3009,6 +3013,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         const int extruder_id = m_processor.get_result().exclusion_volume_conflict_extruder_id;
         std::string warning = extruder_id >= 0 ?
             Slic3r::format(
+                // TRN %1% is the extruder number counted from 1.
                 _(L("A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision.")),
                 std::to_string(extruder_id + 1)) :
             _(L("A G-code move intersects a collision volume. This may cause a printer collision."));
@@ -3769,27 +3774,31 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // For the start / end G-code to do the priming and final filament pull in case there is no wipe tower provided.
     this->placeholder_parser().set("has_wipe_tower", has_wipe_tower);
 
-    // Nozzle-heating center just outside the wipe tower. The tower side is chosen
+    // Position where the nozzle waits to heat, just outside the wipe tower. The tower side is chosen
     // from the full-bed midpoint, then X is clamped to the region every extruder can reach (shared printable
     // polygon) = the full printable_area for all current single/dual printers, so existing output is unchanged.
-    Vec2f wipe_tower_center       = Vec2f::Zero();
-    bool  wipe_tower_center_valid = false;
+    Vec2f wipe_tower_wait_pos       = Vec2f::Zero();
+    bool  wipe_tower_wait_pos_valid = false;
     if (has_wipe_tower) {
         BoundingBoxf bbx = print.wipe_tower_data().bbx;
         bbx.translate(print.get_fake_wipe_tower().pos.cast<double>());
         BoundingBoxf printer_bed_bbx(m_config.printable_area.values);
         if (bbx.center().x() < printer_bed_bbx.center().x())
-            wipe_tower_center = Vec2f(float(bbx.max.x() + 2.f), float(bbx.center().y()));
+            wipe_tower_wait_pos = Vec2f(float(bbx.max.x() + 2.f), float(bbx.center().y()));
         else
-            wipe_tower_center = Vec2f(float(bbx.min.x() - 2.f), float(bbx.center().y()));
+            wipe_tower_wait_pos = Vec2f(float(bbx.min.x() - 2.f), float(bbx.center().y()));
         auto printer_bbx = unscaled(get_extents(print.get_extruder_shared_printable_polygon()));
-        if (wipe_tower_center.x() < printer_bbx.min[0]) wipe_tower_center.x() = float(printer_bbx.min[0]);
-        if (wipe_tower_center.x() > printer_bbx.max[0]) wipe_tower_center.x() = float(printer_bbx.max[0]);
-        wipe_tower_center_valid = true;
+        if (wipe_tower_wait_pos.x() < printer_bbx.min[0]) wipe_tower_wait_pos.x() = float(printer_bbx.min[0]);
+        if (wipe_tower_wait_pos.x() > printer_bbx.max[0]) wipe_tower_wait_pos.x() = float(printer_bbx.max[0]);
+        wipe_tower_wait_pos_valid = true;
     }
-    this->placeholder_parser().set("wipe_tower_center_pos_x", new ConfigOptionFloat(wipe_tower_center.x()));
-    this->placeholder_parser().set("wipe_tower_center_pos_y", new ConfigOptionFloat(wipe_tower_center.y()));
-    this->placeholder_parser().set("wipe_tower_center_pos_valid", new ConfigOptionBool(wipe_tower_center_valid));
+    this->placeholder_parser().set("wipe_tower_wait_pos_x", new ConfigOptionFloat(wipe_tower_wait_pos.x()));
+    this->placeholder_parser().set("wipe_tower_wait_pos_y", new ConfigOptionFloat(wipe_tower_wait_pos.y()));
+    this->placeholder_parser().set("wipe_tower_wait_pos_valid", new ConfigOptionBool(wipe_tower_wait_pos_valid));
+    // Bambu Studio's names for the wait position, used by its profiles.
+    this->placeholder_parser().set("wipe_tower_center_pos_x", new ConfigOptionFloat(wipe_tower_wait_pos.x()));
+    this->placeholder_parser().set("wipe_tower_center_pos_y", new ConfigOptionFloat(wipe_tower_wait_pos.y()));
+    this->placeholder_parser().set("wipe_tower_center_pos_valid", new ConfigOptionBool(wipe_tower_wait_pos_valid));
     this->placeholder_parser().set("has_single_extruder_multi_material_priming", wipe_tower_type == WipeTowerType::Type2 && has_wipe_tower && print.config().single_extruder_multi_material_priming);
     this->placeholder_parser().set("total_toolchanges", DoExport::resolve_total_toolchanges(print.wipe_tower_data(), print.tool_ordering()));
     this->placeholder_parser().set("num_extruders", int(print.config().nozzle_diameter.values.size()));
@@ -6090,12 +6099,15 @@ std::string GCode::process_layer_change_gcode(const Print &print, coordf_t print
     }
     double curr_y_acceleration_limit = -1, curr_accumulated_mass = -1;
     mass_load_limited_machine_acceleration(curr_print_statistics, print, curr_y_acceleration_limit, curr_accumulated_mass);
-    double curr_layer_mass = curr_print_statistics.total_weight - m_last_layer_accumulated_mass;
-    if (curr_layer_mass <= EPSILON) curr_layer_mass = 0.0;
+    // Runs before this layer prints, so the mass added since the last layer change is the previous layer's.
+    double previous_layer_mass = curr_print_statistics.total_weight - m_last_layer_accumulated_mass;
+    if (previous_layer_mass <= EPSILON) previous_layer_mass = 0.0;
     m_last_layer_accumulated_mass = curr_print_statistics.total_weight;
     config.set_key_value("curr_y_acceleration_limit", new ConfigOptionFloat(curr_y_acceleration_limit));
     config.set_key_value("curr_accumulated_mass", new ConfigOptionFloat(curr_accumulated_mass));
-    config.set_key_value("curr_layer_mass", new ConfigOptionFloat(curr_layer_mass));
+    config.set_key_value("previous_layer_mass", new ConfigOptionFloat(previous_layer_mass));
+    // Bambu Studio's name for previous_layer_mass.
+    config.set_key_value("curr_layer_mass", new ConfigOptionFloat(previous_layer_mass));
 
     return this->placeholder_parser_process("layer_change_gcode",
         print.config().layer_change_gcode.value, m_writer.filament()->id(), &config)

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -667,15 +667,15 @@ msgstr "A:"
 
 # AI Translated
 msgid "Entering color painting"
-msgstr "Entrant a pintat de color"
+msgstr "Entrant a la pintura en color"
 
 # AI Translated
 msgid "Leaving color painting"
-msgstr "Sortint de pintat de color"
+msgstr "Sortint de la pintura en color"
 
 # AI Translated
 msgid "Color painting editing"
-msgstr "Edició de pintat de color"
+msgstr "Edició de la pintura en color"
 
 msgid "Paint-on fuzzy skin"
 msgstr "Pell difusa pintada"
@@ -3151,19 +3151,19 @@ msgid "Along X Axis"
 msgstr "Al llarg de l'eix X"
 
 msgid "Mirror along the X axis"
-msgstr ""
+msgstr "Mirall al llarg de l'eix X"
 
 msgid "Along Y Axis"
 msgstr "Al llarg de l'eix Y"
 
 msgid "Mirror along the Y axis"
-msgstr ""
+msgstr "Mirall al llarg de l'eix Y"
 
 msgid "Along Z Axis"
 msgstr "Al llarg de l'eix Z"
 
 msgid "Mirror along the Z axis"
-msgstr ""
+msgstr "Mirall al llarg de l'eix Z"
 
 # AI Translated
 msgid "Transform"
@@ -3364,11 +3364,8 @@ msgstr "Clonar"
 msgid "Simplify Model"
 msgstr "Simplificar el model"
 
-msgid "Subdivision mesh"
-msgstr "Subdivisió de la malla"
-
-msgid "(Lost color)"
-msgstr "(Color perdut)"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Subdivisió de la malla (Color perdut)"
 
 msgid "Center"
 msgstr "Centre"
@@ -4675,7 +4672,9 @@ msgstr "Tancar"
 msgid ""
 "Nozzle\n"
 "Temperature"
-msgstr "Temperatura del broquet( nozzle )"
+msgstr ""
+"Temperatura\n"
+"del broquet( nozzle )"
 
 msgid "max"
 msgstr "màx"
@@ -8047,7 +8046,7 @@ msgid "Upload failed\n"
 msgstr "S'ha produït un error en la pujada\n"
 
 msgid "Obtaining instance_id failed\n"
-msgstr "error en obtenir instance_id \n"
+msgstr "error en obtenir instance_id\n"
 
 # AI Translated
 #, c-format, boost-format
@@ -10757,13 +10756,17 @@ msgstr ""
 "Estàtic: la llum es manté fixa al món, de manera que les ombres només es recalculen quan l'escena canvia.\n"
 "Òrbita: la llum gira amb la càmera i recalcula les ombres a cada fotograma en què la càmera es mou."
 
+# AI Translated
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "Trajectòries d'eina brillants"
 
+# AI Translated
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"Ressalta les trajectòries d'eina a Previsualització com a plàstic brillant a la vista realista.\n"
+"Si es desactiva, un filament translúcid és mat i un d'opac conserva el ressalt de la vista normal."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -10952,11 +10955,13 @@ msgstr ""
 "Amb quina brillantor es mostren les capes enfosquides quan \"Enfosquir les capes inferiors\" està activat.\n"
 "99% amb prou feines s'enfosqueix, 0% les mostra negres. Limitat al 99% perquè el 100% seria el mateix que desactivar l'opció."
 
+# AI Translated
 msgid "Translucent filaments"
-msgstr ""
+msgstr "Filaments translúcids"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "Dibuixa de manera translúcida les trajectòries d'eina dels filaments amb un color parcialment transparent, tal com la vista 3D dibuixa els seus objectes. Desactiveu-ho per dibuixar tots els filaments opacs."
 
 msgid "Login region"
 msgstr "Regió d'inici de sessió"
@@ -13896,7 +13901,7 @@ msgstr "Pintat"
 
 # AI Translated
 msgid "Available while a painting gizmo is open: supports, seam, fuzzy skin or color painting."
-msgstr "Disponible mentre hi ha obert un gizmo de pintat: suports, costura, pell difusa o pintat de color."
+msgstr "Disponible mentre hi ha obert un gizmo de pintat: suports, costura, pell difusa o pintura en color."
 
 msgid "Move: press to snap by 1mm"
 msgstr "Moure: Clicka per ajustar en passos d'1 mm"
@@ -14283,6 +14288,7 @@ msgstr ""
 "El disc està ple?"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "Un moviment del G-code talla un volum de col·lisió de l'extrusor %1%. Això pot provocar una col·lisió de la impressora."
@@ -14611,11 +14617,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1% està massa a prop de l'àrea d'exclusió, pot haver-hi col·lisions en imprimir."
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "%1% talla els volums de col·lisió de tots els extrusors disponibles."
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "%1% talla un volum de col·lisió de l'extrusor %2%."
@@ -15031,9 +15039,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "Trieu si tots els broquets utilitzen els mateixos volums de col·lisió, si es dedueixen volums relatius al capçal a partir del desplaçament XY de cada broquet, o si es configuren volums independents per a cada extrusor. En el mode individual, seleccioneu cada extrusor a la pàgina Extrusor per configurar-ne els volums."
 
 # AI Translated
-# Needs human review: Option of the collision volume behavior dropdown (shared by all nozzles); check it reads right next to 'Toolhead-relative' and 'Individual per extruder'.
-msgid "Shared"
-msgstr "Compartit"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "Compartit per tots els broquets"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -15284,11 +15292,14 @@ msgstr "Gruix mínim de la carcassa inferior"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "El nombre de capes sòlides inferiors s'incrementa en laminar si el gruix calculat per les capes inferiors de la carcassa és més prim que aquest valor. Això pot evitar tenir una carcassa massa fina quan l'alçada de la capa és petita. 0 significa que aquest ajustament està desactivat i que el gruix de la carcassa inferior està absolutament determinat per les capes inferiors de la carcassa"
 
+# AI Translated
+# Needs human review: Compact label: how many layers behind a painted bottom surface take the painted color. Check 'pintura inferior' reads as the paint on a bottom surface and 'penetració' as the depth in layers.
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "Capes de penetració de la pintura inferior"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "El nombre de capes, inclosa la capa superficial inferior, que adopten el color pintat en una superfície inferior. Establiu-lo a 0 per fer servir les capes de la carcassa inferior. Un valor més gran que la carcassa inferior també acoloreix el farciment poc dens situat per sobre de l'àrea pintada."
 
 msgid "Apply gap fill"
 msgstr "Aplicar farciment de buits"
@@ -16187,17 +16198,11 @@ msgid ""
 "3. No filtering - creates internal bridges on every potential internal overhang. This option is useful for heavily slanted top surface models; however, in most cases, it creates too many unnecessary bridges."
 msgstr ""
 "Aquesta opció pot ajudar a reduir el coixí a les superfícies superiors en models molt inclinats o corbats.\n"
-"\n"
 "Per defecte, els ponts interns petits es filtren i el farciment sòlid intern s'imprimeix directament sobre el farciment escàs. Això funciona bé en la majoria dels casos, accelerant la impressió sense comprometre massa la qualitat de la superfície superior.\n"
-"\n"
 "Tanmateix, en models molt inclinats o corbats, especialment quan s'utilitza una densitat de farciment escassa massa baixa, això pot provocar l'enrotllament de l'ompliment sòlid no suportat, provocant un coixí.\n"
-"\n"
 "Si activeu el filtratge limitat o no es fa cap filtratge, s'imprimirà la capa de pont interna sobre un farciment sòlid intern lleugerament incompatible. Les opcions següents controlen la sensibilitat del filtratge, és a dir, controlen on es creen els ponts interns.\n"
-"\n"
 "1. Filtre: activa aquesta opció. Aquest és el comportament predeterminat i funciona bé en la majoria dels casos.\n"
-"\n"
 "2. Filtrat limitat: crea ponts interns en superfícies molt inclinades alhora que s'evita ponts innecessaris. Això funciona bé per a la majoria de models difícils.\n"
-"\n"
 "3. Sense filtres: crea ponts interns a cada voladí intern potencial. Aquesta opció és útil per als models de superfícies superiors molt inclinades; tanmateix, en la majoria dels casos, crea massa ponts innecessaris."
 
 msgid "Filter"
@@ -16832,7 +16837,7 @@ msgstr "Encongiment (XY)"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "Introduïu el percentatge de contracció que obtindrà el filament després del refredament ( 94% i si mesureu 94mm en lloc de 100mm ). La peça s'escalarà en XY per compensar. Només es té en compte el filament utilitzat per al perímetre.\n"
@@ -16916,8 +16921,8 @@ msgid "Wipe tower cooling"
 msgstr "Refrigeració de la Torre de Purga"
 
 # AI Translated
-msgid "Temperature drop before entering filament tower"
-msgstr "Baixada de temperatura abans d'entrar a la torre de filament"
+msgid "Temperature drop before entering the wipe tower."
+msgstr "Baixada de temperatura abans d'entrar a la torre de purga."
 
 msgid "Interface layer pre-extrusion distance"
 msgstr "Distància de pre-extrusió de la capa d'interfície"
@@ -17367,9 +17372,9 @@ msgstr "El max_accel_to_decel de Klipper s'ajustarà automàticament"
 msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "El max_accel_to_decel de Klipper s'ajustarà a aquest %% d'acceleració"
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "El max_accel_to_decel de Klipper s'ajustarà a aquest % d'acceleració"
 
 msgid "Default jerk."
 msgstr "Jerk predeterminat."
@@ -17566,21 +17571,21 @@ msgstr "Si s'ha d'aplicar Pell Difusa a la primera capa"
 msgid "Fuzzy skin generator mode"
 msgstr "Mode del generador de pell difusa"
 
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Mode de generació de pell difusa. Funciona només amb Arachne!\n"
 "Desplaçament: mode clàssic quan el patró es forma desplaçant el broquet lateralment del camí original.\n"
 "Extrusió: mode en què el patró es forma per la quantitat de plàstic extruït. Aquest és l'algoritme ràpid i directe sense sacsejades innecessàries del broquet que dona un patró suau. Però és més útil per formar parets soltes en tot el seu conjunt.\n"
 "Combinat: mode conjunt [Desplaçament] + [Extrusió]. L'aparença de les parets és similar al mode [Desplaçament], però no deixa porus entre els perímetres.\n"
 "\n"
-"Atenció! Els modes [Extrusió] i [Combinat] funcionen només amb el paràmetre fuzzy_skin_thickness no superior al gruix del bucle imprès. Al mateix temps, l'amplada de l'extrusió per a una capa particular tampoc hauria de ser inferior a un cert nivell. Normalment equival al 15-25%% de l'alçada de la capa. Per tant, el gruix màxim de pell difusa amb una amplada de perímetre de 0.4 mm i una alçada de capa de 0.2 mm serà 0.4-(0.2*0.25)=±0.35mm! Si introduïu un paràmetre superior a aquest, es mostrarà l'error Flow::spacing() i el model no es tallarà. Podeu triar aquest número fins que es repeteixi l'error."
+"Atenció! Els modes [Extrusió] i [Combinat] funcionen només amb el paràmetre fuzzy_skin_thickness no superior al gruix del bucle imprès. Al mateix temps, l'amplada de l'extrusió per a una capa particular tampoc hauria de ser inferior a un cert nivell. Normalment equival al 15-25% de l'alçada de la capa. Per tant, el gruix màxim de pell difusa amb una amplada de perímetre de 0.4 mm i una alçada de capa de 0.2 mm serà 0.4-(0.2*0.25)=±0.35mm! Si introduïu un paràmetre superior a aquest, es mostrarà l'error Flow::spacing() i el model no es tallarà. Podeu triar aquest número fins que es repeteixi l'error."
 
 msgid "Displacement"
 msgstr "Desplaçament"
@@ -17876,7 +17881,7 @@ msgid "Support controlling chamber temperature"
 msgstr "Admet Control de temperatura de la cambra"
 
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Aquesta opció està habilitada si la màquina admet el control de la temperatura de la cambra\n"
@@ -17886,7 +17891,7 @@ msgid "Support air filtration"
 msgstr "Admet filtració d'aire"
 
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Habiliteu-lo si la impressora admet la filtració d'aire\n"
@@ -17897,7 +17902,7 @@ msgid "Use cooling filter"
 msgstr "Utilitzar el filtre de refrigeració"
 
 # AI Translated
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "Activeu-ho si la impressora admet el filtre de refrigeració"
 
 msgid "G-code flavor"
@@ -18843,9 +18848,9 @@ msgstr "Àrea màxima d'un forat a la base del model abans que s'ompli amb mater
 msgid "Detect overhang walls"
 msgstr "Detectar voladís de perímetre"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Detectar el percentatge de voladís en relació amb l'amplada de la línia i utilitzar una velocitat diferent per imprimir. Per al voladís del 100%%, s'utilitza la velocitat de pont."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "Detectar el percentatge de voladís en relació amb l'amplada de la línia i utilitzar una velocitat diferent per imprimir. Per al voladís del 100%, s'utilitza la velocitat de pont."
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -20420,11 +20425,14 @@ msgstr "Gruix mínim de la carcassa superior"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "El nombre de capes sòlides superiors augmenta quan es tallen si el gruix calculat per les capes de closca superior és més prim que aquest valor. Això pot evitar tenir una closca massa fina quan l'alçada de la capa és petita. 0 significa que aquesta configuració està desactivada i que el gruix de la carcassa superior està absolutament determinat per les capes de la carcassa superior"
 
+# AI Translated
+# Needs human review: Compact label: how many layers behind a painted top surface take the painted color. Check 'pintura superior' reads as the paint on a top surface and 'penetració' as the depth in layers.
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "Capes de penetració de la pintura superior"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "El nombre de capes, inclosa la capa superficial superior, que adopten el color pintat en una superfície superior. Establiu-lo a 0 per fer servir les capes de la carcassa superior. Un valor més gran que la carcassa superior també acoloreix el farciment poc dens situat per sota de l'àrea pintada."
 
 # AI Translated
 msgid "Separated infills"
@@ -21801,8 +21809,9 @@ msgid "Nozzle volume types"
 msgstr "Tipus de volum del broquet"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "Variants de volum del broquet indexades per identificador de broquet."
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "Tipus de volum dels broquets indexats per ID de broquet, com ara \"Standard\" o \"High Flow\"."
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -21841,12 +21850,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "Massa impresa acumulada fins a la capa actual."
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "Massa de la capa actual"
+msgid "Previous layer mass"
+msgstr "Massa de la capa anterior"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "Massa impresa de la capa anterior."
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "Igual que previous_layer_mass. Bambu Studio utilitza aquest nom."
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -21885,8 +21898,8 @@ msgid "Timelapse inline photo"
 msgstr "Foto de timelapse en línia"
 
 # AI Translated
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "Indica si la foto del timelapse es captura a la posició en línia."
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "Indica si la foto es captura on ja es troba el broquet, sense desplaçar-lo primer a una posició segura de timelapse."
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -21897,12 +21910,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "Indica si el posicionament del timelapse al punt més llunyà està actiu."
 
 # AI Translated
-msgid "Clear to X0"
-msgstr "Lliure fins a X0"
+msgid "Clear path to X0"
+msgstr "Camí lliure fins a X0"
 
 # AI Translated
-msgid "Whether the timelapse move is clear to X0."
-msgstr "Indica si el moviment del timelapse està lliure fins a X0."
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "Indica si el broquet es pot desplaçar fins a X0 a l'alçada actual sense xocar amb cap altre objecte imprès."
 
 # AI Translated
 msgid "Previous extruder"
@@ -21925,16 +21938,16 @@ msgid "Current hotend"
 msgstr "Hotend actual"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Índex de l'extrusor, començant per zero, del filament sortint. A les impressores Bambu val -1, o l'identificador del broquet quan un filament passa d'un broquet a un altre entre capes."
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend del filament sortint, indicat amb el seu índex d'extrusor, que comença per zero. A les impressores Bambu és -1, o l'ID del broquet quan un filament passa d'un broquet a un altre entre capes."
 
 # AI Translated
 msgid "Next hotend"
 msgstr "Hotend següent"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Índex de l'extrusor, començant per zero, del filament entrant. A les impressores Bambu val -1, o l'identificador del broquet quan un filament passa d'un broquet a un altre entre capes."
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend del filament entrant, indicat amb el seu índex d'extrusor, que comença per zero. A les impressores Bambu és -1, o l'ID del broquet quan un filament passa d'un broquet a un altre entre capes."
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -21957,16 +21970,18 @@ msgid "Old extruder variant"
 msgstr "Variant de l'extrusor anterior"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "Variant de volum del broquet de l'extrusor sortint."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "Tipus d'extrusora i tipus de volum del broquet de l'extrusor sortint, com ara \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "Variant de l'extrusor nou"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "Variant de volum del broquet de l'extrusor entrant."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "Tipus d'extrusora i tipus de volum del broquet de l'extrusor entrant, com ara \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -21981,8 +21996,8 @@ msgid "New extruder retracted length"
 msgstr "Longitud retreta de l'extrusor nou"
 
 # AI Translated
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "Longitud de retracció que té actualment en espera l'extrusor entrant."
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "Longitud de retracció que encara s'aplica a l'extrusor entrant des que es va aparcar."
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -22093,16 +22108,16 @@ msgid "First flush volume"
 msgstr "Primer volum de purga"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "El primer volum de purga."
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "Primera meitat de la longitud de purga prevista, en mm de filament."
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "Segon volum de purga"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "El segon volum de purga."
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "Segona meitat de la longitud de purga prevista, en mm de filament."
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -22239,30 +22254,24 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "Indica si els recorreguts han d'evitar el perímetre de neteja."
 
 # AI Translated
-# Needs human review: Variable label in the G-code placeholder list; check the wipe term against the wipe area.
-msgid "Wipe avoidance X"
-msgstr "X d'evitació de neteja"
+msgid "Wipe tower avoidance X"
+msgstr "X d'evitació de la torre de purga"
 
 # AI Translated
-# Needs human review: Check 'wipe area' rendering against the wipe tower area.
-msgid "X position used to avoid the wipe area."
-msgstr "Posició X utilitzada per evitar la zona de neteja."
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "Posició X just al costat de la torre de purga a la qual es desplaça el broquet per mantenir-se allunyat de la torre."
 
 # AI Translated
 msgid "Prime tower interface"
 msgstr "Interfície de la Torre de Purga"
 
 # AI Translated
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "Indica si la purga actual és per a una interfície de la Torre de Purga."
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "Indica si la purga actual és per a la capa d'interfície de la torre de purga (on es troben materials diferents)."
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "Temperatura d'impressió de la interfície de la torre del filament"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "Temperatura d'impressió utilitzada per a la interfície de la torre del filament."
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "Temperatura d'impressió per a la capa d'interfície de la torre de purga (on es troben materials diferents)."
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -22285,8 +22294,20 @@ msgid "Wipe tower wait position valid"
 msgstr "Posició d'espera de la Torre de Purga vàlida"
 
 # AI Translated
-msgid "Whether the print has a wipe tower."
-msgstr "Indica si la impressió té una Torre de Purga."
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "Indica si la posició d'espera està definida, cosa que passa quan la impressió té una torre de purga."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "Igual que wipe_tower_wait_pos_x. Bambu Studio utilitza aquest nom."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "Igual que wipe_tower_wait_pos_y. Bambu Studio utilitza aquest nom."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "Igual que wipe_tower_wait_pos_valid. Bambu Studio utilitza aquest nom."
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -22295,10 +22316,6 @@ msgstr "Temperatures del broquet indexades per filament."
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "Temperatures del broquet de la primera capa indexades per filament."
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "Temperatura del broquet de la capa inicial"
 
 # AI Translated
 msgid "Extrusion role"
@@ -24226,9 +24243,7 @@ msgid "Create filament presets failed. As follows:\n"
 msgstr "S'ha produït un error en la creació de perfils de filament. Pel següent:\n"
 
 msgid "Create process presets failed. As follows:\n"
-msgstr ""
-"S'ha produït un error en la creació de perfils de processament. Pel següent:\n"
-"\n"
+msgstr "S'ha produït un error en la creació de perfils de processament. Pel següent:\n"
 
 msgid "Vendor was not found; please reselect."
 msgstr "El proveïdor no es troba, torneu a seleccionar-ne un."
@@ -24493,9 +24508,9 @@ msgstr ""
 "El tipus de broquet no coincideix amb el tipus de broquet real de la impressora.\n"
 "Feu clic al botó Sincronitza a dalt i reinicieu el calibratge."
 
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "Imprimir material %1s amb broquet %2s pot causar danys al broquet."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "Imprimir material %1% amb broquet %2% pot causar danys al broquet."
 
 msgid "Need select printer"
 msgstr "És necessari que seleccioneu una impressora"
@@ -36715,8 +36730,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "No podeu cancel·lar la subscripció als vostres propis connectors. Feu servir Esborrar per eliminar els fitxers locals."
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "L'intèrpret de Python s'està tancant"
+msgid "Python interpreter is shutting down."
+msgstr "L'intèrpret de Python s'està aturant."
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -37458,6 +37473,157 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Subdivision mesh"
+#~ msgstr "Subdivisió de la malla"
+
+#~ msgid "(Lost color)"
+#~ msgstr "(Color perdut)"
+
+# AI Translated
+# Needs human review: Option of the collision volume behavior dropdown (shared by all nozzles); check it reads right next to 'Toolhead-relative' and 'Individual per extruder'.
+#~ msgid "Shared"
+#~ msgstr "Compartit"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "Introduïu el percentatge de contracció que obtindrà el filament després del refredament ( 94% i si mesureu 94mm en lloc de 100mm ). La peça s'escalarà en XY per compensar. Només es té en compte el filament utilitzat per al perímetre.\n"
+#~ "Assegureu-vos de deixar prou espai entre objectes, ja que aquesta compensació es fa després de les comprovacions."
+
+# AI Translated
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "Baixada de temperatura abans d'entrar a la torre de filament"
+
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "El max_accel_to_decel de Klipper s'ajustarà a aquest %% d'acceleració"
+
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "Mode de generació de pell difusa. Funciona només amb Arachne!\n"
+#~ "Desplaçament: mode clàssic quan el patró es forma desplaçant el broquet lateralment del camí original.\n"
+#~ "Extrusió: mode en què el patró es forma per la quantitat de plàstic extruït. Aquest és l'algoritme ràpid i directe sense sacsejades innecessàries del broquet que dona un patró suau. Però és més útil per formar parets soltes en tot el seu conjunt.\n"
+#~ "Combinat: mode conjunt [Desplaçament] + [Extrusió]. L'aparença de les parets és similar al mode [Desplaçament], però no deixa porus entre els perímetres.\n"
+#~ "\n"
+#~ "Atenció! Els modes [Extrusió] i [Combinat] funcionen només amb el paràmetre fuzzy_skin_thickness no superior al gruix del bucle imprès. Al mateix temps, l'amplada de l'extrusió per a una capa particular tampoc hauria de ser inferior a un cert nivell. Normalment equival al 15-25%% de l'alçada de la capa. Per tant, el gruix màxim de pell difusa amb una amplada de perímetre de 0.4 mm i una alçada de capa de 0.2 mm serà 0.4-(0.2*0.25)=±0.35mm! Si introduïu un paràmetre superior a aquest, es mostrarà l'error Flow::spacing() i el model no es tallarà. Podeu triar aquest número fins que es repeteixi l'error."
+
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "Aquesta opció està habilitada si la màquina admet el control de la temperatura de la cambra\n"
+#~ "Comanda de G-code: M141 S ( 0-255 )"
+
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "Habiliteu-lo si la impressora admet la filtració d'aire\n"
+#~ "Comanda de G-code: M106 P3 S ( 0-255 )"
+
+# AI Translated
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "Activeu-ho si la impressora admet el filtre de refrigeració"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "Detectar el percentatge de voladís en relació amb l'amplada de la línia i utilitzar una velocitat diferent per imprimir. Per al voladís del 100%%, s'utilitza la velocitat de pont."
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "Variants de volum del broquet indexades per identificador de broquet."
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "Massa de la capa actual"
+
+# AI Translated
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "Indica si la foto del timelapse es captura a la posició en línia."
+
+# AI Translated
+#~ msgid "Clear to X0"
+#~ msgstr "Lliure fins a X0"
+
+# AI Translated
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "Indica si el moviment del timelapse està lliure fins a X0."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Índex de l'extrusor, començant per zero, del filament sortint. A les impressores Bambu val -1, o l'identificador del broquet quan un filament passa d'un broquet a un altre entre capes."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Índex de l'extrusor, començant per zero, del filament entrant. A les impressores Bambu val -1, o l'identificador del broquet quan un filament passa d'un broquet a un altre entre capes."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "Variant de volum del broquet de l'extrusor sortint."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "Variant de volum del broquet de l'extrusor entrant."
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "Longitud de retracció que té actualment en espera l'extrusor entrant."
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "El primer volum de purga."
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "El segon volum de purga."
+
+# AI Translated
+# Needs human review: Variable label in the G-code placeholder list; check the wipe term against the wipe area.
+#~ msgid "Wipe avoidance X"
+#~ msgstr "X d'evitació de neteja"
+
+# AI Translated
+# Needs human review: Check 'wipe area' rendering against the wipe tower area.
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "Posició X utilitzada per evitar la zona de neteja."
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "Indica si la purga actual és per a una interfície de la Torre de Purga."
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "Temperatura d'impressió de la interfície de la torre del filament"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "Temperatura d'impressió utilitzada per a la interfície de la torre del filament."
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "Indica si la impressió té una Torre de Purga."
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "Temperatura del broquet de la capa inicial"
+
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "Imprimir material %1s amb broquet %2s pot causar danys al broquet."
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "L'intèrpret de Python s'està tancant"
 
 # AI Translated
 #, c-format, boost-format

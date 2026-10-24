@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -654,15 +654,15 @@ msgstr "Till:"
 
 # AI Translated
 msgid "Entering color painting"
-msgstr "Öppnar färgmålning"
+msgstr "Öppnar färgläggning"
 
 # AI Translated
 msgid "Leaving color painting"
-msgstr "Lämnar färgmålning"
+msgstr "Lämnar färgläggning"
 
 # AI Translated
 msgid "Color painting editing"
-msgstr "Redigering av färgmålning"
+msgstr "Redigering av färgläggning"
 
 # AI Translated
 msgid "Paint-on fuzzy skin"
@@ -3418,19 +3418,19 @@ msgid "Along X Axis"
 msgstr "Längs med X Axis"
 
 msgid "Mirror along the X axis"
-msgstr ""
+msgstr "Spegelvänd längs med X Axis"
 
 msgid "Along Y Axis"
 msgstr "Längs med Y Axis"
 
 msgid "Mirror along the Y axis"
-msgstr ""
+msgstr "Spegelvänd längs med Y Axis"
 
 msgid "Along Z Axis"
 msgstr "Längs med Z Axis"
 
 msgid "Mirror along the Z axis"
-msgstr ""
+msgstr "Spegelvänd längs med Z Axis"
 
 # AI Translated
 msgid "Transform"
@@ -3653,12 +3653,8 @@ msgid "Simplify Model"
 msgstr "Förenkla modellen"
 
 # AI Translated
-msgid "Subdivision mesh"
-msgstr "Underindelning av mesh"
-
-# AI Translated
-msgid "(Lost color)"
-msgstr "(Färg förlorad)"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Underindelning av mesh (Färg förlorad)"
 
 # AI Translated
 msgid "Center"
@@ -3720,14 +3716,14 @@ msgstr "Fila."
 #, c-format, boost-format
 msgid "%1$d error repaired"
 msgid_plural "%1$d errors repaired"
-msgstr[0] "%1$d fel åtgärdat@%1$d felen åtgärdade"
-msgstr[1] "%1$d fel åtgärdat@%1$d felen åtgärdade"
+msgstr[0] "%1$d fel åtgärdat"
+msgstr[1] "%1$d felen åtgärdade"
 
 #, c-format, boost-format
 msgid "Error: %1$d non-manifold edge."
 msgid_plural "Error: %1$d non-manifold edges."
-msgstr[0] "Fel: %1$d inte mångfaldig kant.@Fel: %1$d inte mångfaldiga kanter."
-msgstr[1] "Fel: %1$d inte mångfaldig kant.@Fel: %1$d inte mångfaldiga kanter."
+msgstr[0] "Fel: %1$d inte mångfaldig kant."
+msgstr[1] "Fel: %1$d inte mångfaldiga kanter."
 
 msgid "Remaining errors"
 msgstr "Kvarstående fel"
@@ -3735,8 +3731,8 @@ msgstr "Kvarstående fel"
 #, c-format, boost-format
 msgid "%1$d non-manifold edge"
 msgid_plural "%1$d non-manifold edges"
-msgstr[0] "%1$d inte mångfaldig kant@%1$d inte mångfaldiga kanter"
-msgstr[1] "%1$d inte mångfaldig kant@%1$d inte mångfaldiga kanter"
+msgstr[0] "%1$d inte mångfaldig kant"
+msgstr[1] "%1$d inte mångfaldiga kanter"
 
 # AI Translated
 msgid "Click the icon to repair model object"
@@ -9183,14 +9179,14 @@ msgstr "Matar ut."
 #, c-format, boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
-msgstr[0] "%1$d Objektet har custom support.@%1$d Objekten har custom support."
-msgstr[1] "%1$d Objektet har custom support.@%1$d Objekten har custom support."
+msgstr[0] "%1$d Objektet har custom support."
+msgstr[1] "%1$d Objekten har custom support."
 
 #, c-format, boost-format
 msgid "%1$d Object has color painting."
 msgid_plural "%1$d Objects have color painting."
-msgstr[0] "%1$d Objektet har färgläggning.@%1$d Objekten har färgläggning."
-msgstr[1] "%1$d Objektet har färgläggning.@%1$d Objekten har färgläggning."
+msgstr[0] "%1$d Objektet har färgläggning."
+msgstr[1] "%1$d Objekten har färgläggning."
 
 #, c-format, boost-format
 msgid "%1$d object was loaded as a part of cut object."
@@ -11590,13 +11586,18 @@ msgstr ""
 "Statisk: ljuset står still i världen, så skuggorna beräknas bara om när scenen ändras.\n"
 "Omlopp: ljuset vrids med kameran, och skuggorna beräknas om i varje bildruta där kameran rör sig."
 
+# AI Translated
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "Glansiga verktygsbanor"
 
+# AI Translated
+# Needs human review: 'Highlight' is the specular shine of the toolpaths in realistic view; rendered as 'glans'. Check it reads right next to the label 'Glansiga verktygsbanor'.
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"Ger verktygsbanorna i Förhandsvisning en glans som liknar blank plast i den realistiska vyn.\n"
+"Om det är avstängt är ett genomskinligt filament matt och ett ogenomskinligt behåller glansen från den vanliga vyn."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -11786,11 +11787,13 @@ msgstr ""
 "Hur ljust de dämpade lagren återges när \"Dämpa underliggande lager\" är aktiverat.\n"
 "99% är knappt mörkare, 0% gör dem helt svarta. Begränsat till 99% eftersom 100% skulle vara detsamma som att stänga av alternativet."
 
+# AI Translated
 msgid "Translucent filaments"
-msgstr ""
+msgstr "Genomskinliga filament"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "Rita verktygsbanorna för filament vars färg är delvis transparent som genomskinliga, på samma sätt som 3D-vyn ritar deras objekt. Stäng av för att rita alla filament ogenomskinliga."
 
 msgid "Login region"
 msgstr "Logga in region"
@@ -13324,7 +13327,7 @@ msgstr "Klicka för att återställa alla inställningar till den senast sparade
 
 # AI Translated
 msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
-msgstr "Den här definitionen innehåller syntax för kollisionsvolymer. Vill du lägga till den i verktygshuvudets kollisionsvolymer för G-code-kontroll och undvikande av förflyttningar? Det befintliga uteslutna byggplatteområdet bevaras."
+msgstr "Den här definitionen innehåller syntax för kollisionsvolymer. Vill du lägga till den i verktygshuvudets kollisionsvolymer för G-code-kontroll och undvikande av flyttrörelser? Den befintliga uteslutna ytan av byggplattan bevaras."
 
 # AI Translated
 msgid "Add collision volumes"
@@ -15132,7 +15135,7 @@ msgid "IP"
 msgstr "IP"
 
 msgid "Access Code"
-msgstr "Behörighetskod: "
+msgstr "Behörighetskod"
 
 msgid "HTTPS CA File"
 msgstr "HTTPS CA fil"
@@ -15378,6 +15381,7 @@ msgstr ""
 "Är disken full?"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "En G-code-rörelse skär en kollisionsvolym för extruder %1%. Det kan orsaka en kollision i skrivaren."
@@ -15712,11 +15716,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1% är för nära undantagsområde. Det kan förekomma kollisioner vid utskrift."
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "%1% skär kollisionsvolymer för alla tillgängliga extrudrar."
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "%1% skär en kollisionsvolym för extruder %2%."
@@ -16150,7 +16156,7 @@ msgstr "Verktygshuvudets kollisionsvolymer"
 
 # AI Translated
 msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
-msgstr "Kollisionsvolymer som används för att utesluta modeller och genererat material, för G-code-kontroll och för undvikande av förflyttningar. Använd \"XxY, XxY, ...\" för en polygon i full höjd eller \"ZMIN..ZMAX;XxY, XxY, ...\" för en volym begränsad i Z. Separera flera volymer med \"|\". Dessa volymer gäller utöver det uteslutna byggplatteområdet. Automatisk arrangering använder försiktighetsvis begränsningsrutan för en icke-konvex volym."
+msgstr "Kollisionsvolymer som används för att utesluta modeller och genererat material, för G-code-kontroll och för att undvika flyttrörelser. Använd \"XxY, XxY, ...\" för en polygon i full höjd eller \"ZMIN..ZMAX;XxY, XxY, ...\" för en volym som är begränsad i Z. Avgränsa flera volymer med \"|\". Dessa volymer gäller utöver den uteslutna ytan av byggplattan. Vid automatisk placering används av försiktighet begränsningsrutan för en icke-konvex volym."
 
 # AI Translated
 msgid "Collision volume behavior"
@@ -16161,9 +16167,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "Välj om alla nozzlar använder samma kollisionsvolymer, om verktygshuvudsrelativa volymer härleds från varje nozzels XY-förskjutning, eller om oberoende volymer konfigureras för varje extruder. I individuellt läge väljer du varje extruder på sidan Extruder för att konfigurera dess volymer."
 
 # AI Translated
-# Needs human review: Option name in the collision volume behavior dropdown (all nozzles share the same volumes); check that it reads right next to the other two options.
-msgid "Shared"
-msgstr "Delad"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "Gemensam för alla nozzlar"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -16435,11 +16441,14 @@ msgstr "Bottenskals tjocklek"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Antal solida botten lager ökas vid beredning om tjockleken som beräknas av bottenskalets lager är tunnare än detta värde. Detta kan förhindra ett för tunt skal när lagerhöjden är liten. 0 betyder att denna inställningen är inaktiverad och bottenskalets tjocklek endast styrs av antalet bottenskals lager."
 
+# AI Translated
+# Needs human review: New coined label: number of layers the painted color reaches behind a painted bottom surface. 'Inträngningslager för färgläggning' follows the Color Painting wording 'Färgläggning'; check it reads naturally.
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "Inträngningslager för färgläggning, botten"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "Antalet lager, inklusive bottenytans lager, som får färgen som färglagts på en bottenyta. Sätt till 0 för att använda bottenskalets lager. Ett värde som överstiger bottenskalets lager färgar även den sparsamma ifyllnaden ovanför det färglagda området."
 
 # AI Translated
 msgid "Apply gap fill"
@@ -18105,7 +18114,7 @@ msgstr "Krympning (XY)"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "Ange den krympning i procent som filamentet får efter nedkylning (94 % om du mäter 94 mm i stället för 100 mm). Delen skalas i XY för att kompensera. Vid multimaterialutskrifter bör filamentkrympningen vara densamma för alla använda filament\n"
@@ -18210,8 +18219,9 @@ msgstr "Efter ett verktygsbyte kan den exakta positionen för det nyinmatade fil
 msgid "Wipe tower cooling"
 msgstr "Wipe Tower kylning"
 
-msgid "Temperature drop before entering filament tower"
-msgstr "Temperaturen sjunker innan ankomst till filament tornet"
+# AI Translated
+msgid "Temperature drop before entering the wipe tower."
+msgstr "Temperaturen sjunker innan ankomst till prime tornet."
 
 # AI Translated
 msgid "Interface layer pre-extrusion distance"
@@ -18705,9 +18715,9 @@ msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "Klippers max_accel_to_decel justeras till denna %% av accelerationen."
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "Klippers max_accel_to_decel justeras till denna % av accelerationen."
 
 # AI Translated
 msgid "Default jerk."
@@ -18931,21 +18941,21 @@ msgid "Fuzzy skin generator mode"
 msgstr "Genereringsläge för ojämn yta"
 
 # AI Translated
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Genereringsläge för ojämn yta. Fungerar endast med Arachne!\n"
 "Förskjutning: Klassiskt läge där mönstret bildas genom att nozzeln förskjuts i sidled från den ursprungliga banan.\n"
 "Extrudering: Läge där mönstret bildas av mängden extruderad plast. Detta är den snabba och raka algoritmen utan onödiga nozzelskakningar, som ger ett jämnt mönster. Den är dock mest användbar för att forma lösa väggar i hela deras uppsättning.\n"
 "Kombinerad: Kombinerat läge [Förskjutning] + [Extrudering]. Väggarnas utseende liknar läget [Förskjutning], men det lämnar inga porer mellan perimetrarna.\n"
 "\n"
-"Obs! Lägena [Extrudering] och [Kombinerad] fungerar bara när parametern fuzzy_skin_thickness inte är större än tjockleken på det utskrivna varvet. Samtidigt får extruderingsbredden för ett visst lager inte heller vara under en viss nivå. Den är oftast lika med 15-25%% av en lagerhöjd. Den maximala tjockleken på ojämn yta med en perimeterbredd på 0,4 mm och en lagerhöjd på 0,2 mm blir därför 0,4-(0,2*0,25)=±0,35mm! Om du anger ett högre värde än så visas felet Flow::spacing() och modellen bereds inte. Du kan justera talet tills felet inte längre uppstår."
+"Obs! Lägena [Extrudering] och [Kombinerad] fungerar bara när parametern fuzzy_skin_thickness inte är större än tjockleken på det utskrivna varvet. Samtidigt får extruderingsbredden för ett visst lager inte heller vara under en viss nivå. Den är oftast lika med 15-25% av en lagerhöjd. Den maximala tjockleken på ojämn yta med en perimeterbredd på 0,4 mm och en lagerhöjd på 0,2 mm blir därför 0,4-(0,2*0,25)=±0,35mm! Om du anger ett högre värde än så visas felet Flow::spacing() och modellen bereds inte. Du kan justera talet tills felet inte längre uppstår."
 
 # AI Translated
 msgid "Displacement"
@@ -19273,7 +19283,7 @@ msgstr "Stöd för kontroll av kammarens temperatur"
 
 # AI Translated
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Det här alternativet aktiveras om maskinen stöder styrning av kammartemperaturen\n"
@@ -19284,7 +19294,7 @@ msgstr "Stödjer luftfiltrering"
 
 # AI Translated
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Aktivera detta om skrivaren stöder luftfiltrering\n"
@@ -19293,7 +19303,7 @@ msgstr ""
 msgid "Use cooling filter"
 msgstr "Använd kylfilter"
 
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "Aktivera detta om printern stöder kylfilter"
 
 # AI Translated
@@ -20356,9 +20366,9 @@ msgstr "Största area för ett hål i modellens bas innan det fylls med koniskt 
 msgid "Detect overhang walls"
 msgstr "Upptäck överhängs vägg"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Upptäck överhängs procenten i förhållande till linjebredden och använd olika hastigheter för att skriva ut. Vid 100%% överhäng, bridge/brygg hastighet användas."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "Upptäck överhängs procenten i förhållande till linjebredden och använd olika hastigheter för att skriva ut. Vid 100% överhäng, bridge/brygg hastighet användas."
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -22077,11 +22087,14 @@ msgstr "Övre skalets tjocklek"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Antal solida övre lager ökas när tjockleken kalkyleras och övre skalet är tunnare än detta värde. Detta kan undvika att ha för tunt skal när lagerhöjden är liten. 0 betyder att den här inställningen är inaktiverad och tjockleken på det övre skalet bestäms av de övre skal lagerna"
 
+# AI Translated
+# Needs human review: New coined label: number of layers the painted color reaches behind a painted top surface. 'Inträngningslager för färgläggning' follows the Color Painting wording 'Färgläggning'; check it reads naturally.
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "Inträngningslager för färgläggning, topp"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "Antalet lager, inklusive toppytans lager, som får färgen som färglagts på en toppyta. Sätt till 0 för att använda toppskalets lager. Ett värde som överstiger toppskalets lager färgar även den sparsamma ifyllnaden under det färglagda området."
 
 # AI Translated
 msgid "Separated infills"
@@ -23631,8 +23644,9 @@ msgid "Nozzle volume types"
 msgstr "Typer av nozzelvolym"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "Varianter av nozzelvolym, indexerade efter nozzel-ID."
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "Typer av Nozzle volym indexerade efter nozzel-ID, till exempel \"Standard\" eller \"High Flow\"."
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -23671,12 +23685,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "Ackumulerad utskriven massa på det aktuella lagret."
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "Aktuellt lagers massa"
+msgid "Previous layer mass"
+msgstr "Föregående lagermassa"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "Utskriven massa för föregående lager."
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "Samma som previous_layer_mass. Bambu Studio använder det här namnet."
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -23715,8 +23733,8 @@ msgid "Timelapse inline photo"
 msgstr "Timelapse-inlinefoto"
 
 # AI Translated
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "Om timelapse-fotot tas på inlinepositionen."
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "Om fotot tas där nozzeln redan befinner sig, utan att först flytta till en säker timelapse-position."
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -23727,12 +23745,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "Om positionering av timelapse vid den längsta punkten är aktiv."
 
 # AI Translated
-msgid "Clear to X0"
-msgstr "Fri till X0"
+msgid "Clear path to X0"
+msgstr "Fri väg till X0"
 
 # AI Translated
-msgid "Whether the timelapse move is clear to X0."
-msgstr "Om timelapse-rörelsen är fri till X0."
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "Om nozzeln kan flytta till X0 på den aktuella höjden utan att slå i ett annat utskrivet objekt."
 
 # AI Translated
 msgid "Previous extruder"
@@ -23755,16 +23773,16 @@ msgid "Current hotend"
 msgstr "Aktuell hotend"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Nollbaserat extruderindex för det utgående filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend för det utgående filamentet, angiven som dess nollbaserade extruderindex. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lagren."
 
 # AI Translated
 msgid "Next hotend"
 msgstr "Nästa hotend"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "Nollbaserat extruderindex för det inkommande filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend för det inkommande filamentet, angiven som dess nollbaserade extruderindex. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lagren."
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -23787,16 +23805,18 @@ msgid "Old extruder variant"
 msgstr "Gammal extrudervariant"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "Nozzelvolymvariant för den utgående extrudern."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "Extrudertyp och typ av Nozzle volym för den utgående extrudern, till exempel \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "Ny extrudervariant"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "Nozzelvolymvariant för den inkommande extrudern."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "Extrudertyp och typ av Nozzle volym för den inkommande extrudern, till exempel \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -23811,8 +23831,8 @@ msgid "New extruder retracted length"
 msgstr "Retraherad längd för ny extruder"
 
 # AI Translated
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "Aktuell parkerad retraktionslängd för den inkommande extrudern."
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "Retraktionslängd som fortfarande gäller för den inkommande extrudern sedan den parkerades."
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -23923,16 +23943,16 @@ msgid "First flush volume"
 msgstr "Första rensningsvolym"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "Den första rensningsvolymen."
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "Första halvan av den planerade rensningslängden, i mm filament."
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "Andra rensningsvolym"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "Den andra rensningsvolymen."
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "Andra halvan av den planerade rensningslängden, i mm filament."
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -24068,29 +24088,24 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "Om förflyttningar ska undvika torkperimetern."
 
 # AI Translated
-# Needs human review: Wipe is rendered as the compound stem 'tork-' (glossary: Torka); check it reads right as a setting name.
-msgid "Wipe avoidance X"
-msgstr "Torkundvikande X"
+msgid "Wipe tower avoidance X"
+msgstr "X för att undvika prime tornet"
 
 # AI Translated
-msgid "X position used to avoid the wipe area."
-msgstr "X-position som används för att undvika torkområdet."
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "X-position precis bredvid prime tornet som nozzeln flyttar till för att hålla sig undan tornet."
 
 # AI Translated
 msgid "Prime tower interface"
 msgstr "Prime tornets kontaktyta"
 
 # AI Translated
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "Om den aktuella rensningen gäller en kontaktyta i prime tornet."
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "Om den aktuella rensningen gäller prime tornets gränssnittslager (där olika material möts)."
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "Utskriftstemperatur för filamentets tornkontaktyta"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "Utskriftstemperatur som används för filamentets tornkontaktyta."
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "Utskriftstemperatur för prime tornets gränssnittslager (där olika material möts)."
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -24113,8 +24128,20 @@ msgid "Wipe tower wait position valid"
 msgstr "Prime tornets väntposition giltig"
 
 # AI Translated
-msgid "Whether the print has a wipe tower."
-msgstr "Om utskriften har ett prime torn."
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "Om väntepositionen är angiven, vilket den är när utskriften har ett prime torn."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "Samma som wipe_tower_wait_pos_x. Bambu Studio använder det här namnet."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "Samma som wipe_tower_wait_pos_y. Bambu Studio använder det här namnet."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "Samma som wipe_tower_wait_pos_valid. Bambu Studio använder det här namnet."
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -24123,10 +24150,6 @@ msgstr "Nozzeltemperaturer, indexerade efter filament."
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "Nozzeltemperaturer för första lagret, indexerade efter filament."
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "Nozzeltemperatur första lagret"
 
 # AI Translated
 msgid "Extrusion role"
@@ -24969,7 +24992,7 @@ msgid "Flow Ratio"
 msgstr "Flödes förhållande"
 
 msgid "Please input a valid value (0.0 < flow ratio < 2.0)"
-msgstr "Ange ett giltigt värde (0.0 < flödesförhållande < 2.0) "
+msgstr "Ange ett giltigt värde (0.0 < flödesförhållande < 2.0)"
 
 msgid "Please enter the name of the preset you want to save."
 msgstr "Ange namnet på den förinställning som du vill spara."
@@ -26411,9 +26434,9 @@ msgstr ""
 "Klicka på Synkronisera-knappen ovan och starta om kalibreringen."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "Att skriva ut material %1s med nozzeln %2s kan skada nozzeln."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "Att skriva ut material %1% med nozzeln %2% kan skada nozzeln."
 
 msgid "Need select printer"
 msgstr "Välj printer"
@@ -35545,7 +35568,7 @@ msgid "Summary: This is currently the most suitable position for placement."
 msgstr "Sammanfattning: Detta är för närvarande den lämpligaste placeringen."
 
 msgid "?"
-msgstr " ?"
+msgstr "?"
 
 # AI Translated
 msgid "Wiki->"
@@ -38797,8 +38820,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "Du kan inte avprenumerera på dina egna insticksmoduler. Använd Radera för att ta bort de lokala filerna."
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "Python-tolken avslutas"
+msgid "Python interpreter is shutting down."
+msgstr "Python-tolken håller på att stängas av."
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -39555,6 +39578,162 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "Subdivision mesh"
+#~ msgstr "Underindelning av mesh"
+
+# AI Translated
+#~ msgid "(Lost color)"
+#~ msgstr "(Färg förlorad)"
+
+# AI Translated
+# Needs human review: Option name in the collision volume behavior dropdown (all nozzles share the same volumes); check that it reads right next to the other two options.
+#~ msgid "Shared"
+#~ msgstr "Delad"
+
+# AI Translated
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "Ange den krympning i procent som filamentet får efter nedkylning (94 % om du mäter 94 mm i stället för 100 mm). Delen skalas i XY för att kompensera. Vid multimaterialutskrifter bör filamentkrympningen vara densamma för alla använda filament\n"
+#~ "Se till att lämna tillräckligt med utrymme mellan objekten, eftersom kompensationen görs efter kontrollerna."
+
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "Temperaturen sjunker innan ankomst till filament tornet"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "Klippers max_accel_to_decel justeras till denna %% av accelerationen."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "Genereringsläge för ojämn yta. Fungerar endast med Arachne!\n"
+#~ "Förskjutning: Klassiskt läge där mönstret bildas genom att nozzeln förskjuts i sidled från den ursprungliga banan.\n"
+#~ "Extrudering: Läge där mönstret bildas av mängden extruderad plast. Detta är den snabba och raka algoritmen utan onödiga nozzelskakningar, som ger ett jämnt mönster. Den är dock mest användbar för att forma lösa väggar i hela deras uppsättning.\n"
+#~ "Kombinerad: Kombinerat läge [Förskjutning] + [Extrudering]. Väggarnas utseende liknar läget [Förskjutning], men det lämnar inga porer mellan perimetrarna.\n"
+#~ "\n"
+#~ "Obs! Lägena [Extrudering] och [Kombinerad] fungerar bara när parametern fuzzy_skin_thickness inte är större än tjockleken på det utskrivna varvet. Samtidigt får extruderingsbredden för ett visst lager inte heller vara under en viss nivå. Den är oftast lika med 15-25%% av en lagerhöjd. Den maximala tjockleken på ojämn yta med en perimeterbredd på 0,4 mm och en lagerhöjd på 0,2 mm blir därför 0,4-(0,2*0,25)=±0,35mm! Om du anger ett högre värde än så visas felet Flow::spacing() och modellen bereds inte. Du kan justera talet tills felet inte längre uppstår."
+
+# AI Translated
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "Det här alternativet aktiveras om maskinen stöder styrning av kammartemperaturen\n"
+#~ "G-code-kommando: M141 S(0-255)"
+
+# AI Translated
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "Aktivera detta om skrivaren stöder luftfiltrering\n"
+#~ "G-code-kommando: M106 P3 S(0-255)"
+
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "Aktivera detta om printern stöder kylfilter"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "Upptäck överhängs procenten i förhållande till linjebredden och använd olika hastigheter för att skriva ut. Vid 100%% överhäng, bridge/brygg hastighet användas."
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "Varianter av nozzelvolym, indexerade efter nozzel-ID."
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "Aktuellt lagers massa"
+
+# AI Translated
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "Om timelapse-fotot tas på inlinepositionen."
+
+# AI Translated
+#~ msgid "Clear to X0"
+#~ msgstr "Fri till X0"
+
+# AI Translated
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "Om timelapse-rörelsen är fri till X0."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Nollbaserat extruderindex för det utgående filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Nollbaserat extruderindex för det inkommande filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "Nozzelvolymvariant för den utgående extrudern."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "Nozzelvolymvariant för den inkommande extrudern."
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "Aktuell parkerad retraktionslängd för den inkommande extrudern."
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "Den första rensningsvolymen."
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "Den andra rensningsvolymen."
+
+# AI Translated
+# Needs human review: Wipe is rendered as the compound stem 'tork-' (glossary: Torka); check it reads right as a setting name.
+#~ msgid "Wipe avoidance X"
+#~ msgstr "Torkundvikande X"
+
+# AI Translated
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "X-position som används för att undvika torkområdet."
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "Om den aktuella rensningen gäller en kontaktyta i prime tornet."
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "Utskriftstemperatur för filamentets tornkontaktyta"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "Utskriftstemperatur som används för filamentets tornkontaktyta."
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "Om utskriften har ett prime torn."
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "Nozzeltemperatur första lagret"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "Att skriva ut material %1s med nozzeln %2s kan skada nozzeln."
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "Python-tolken avslutas"
 
 # AI Translated
 #, c-format, boost-format

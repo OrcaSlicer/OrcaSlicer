@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:38-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3089,19 +3089,19 @@ msgid "Along X Axis"
 msgstr "X-tengely mentén"
 
 msgid "Mirror along the X axis"
-msgstr ""
+msgstr "Tükrözés az X-tengely mentén"
 
 msgid "Along Y Axis"
 msgstr "Y-tengely mentén"
 
 msgid "Mirror along the Y axis"
-msgstr ""
+msgstr "Tükrözés az Y-tengely mentén"
 
 msgid "Along Z Axis"
 msgstr "Z-tengely mentén"
 
 msgid "Mirror along the Z axis"
-msgstr ""
+msgstr "Tükrözés a Z-tengely mentén"
 
 # AI Translated
 msgid "Transform"
@@ -3302,11 +3302,8 @@ msgstr "Klónozás"
 msgid "Simplify Model"
 msgstr "Modell egyszerűsítése"
 
-msgid "Subdivision mesh"
-msgstr "Háló felosztása"
-
-msgid "(Lost color)"
-msgstr "(Elveszett szín)"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Háló felosztása (Elveszett szín)"
 
 msgid "Center"
 msgstr "Közép"
@@ -4984,7 +4981,7 @@ msgstr "Újraindítás szükséges"
 #. TRN %1% marks where the Home button icon is drawn; keep it in the translation.
 #, boost-format
 msgid "Please home all axes (click %1%) to locate the toolhead's position. This prevents device moving beyond the printable boundary and causing equipment wear."
-msgstr "Kérlek, állítsd alaphelyzetbe az összes tengelyt (kattints a(z) %1% gombra) a szerszámfej helyzetének meghatározásához. Így a nyomtató nem mozog a nyomtatható területen túlra, ami az eszköz kopását okozná."
+msgstr "Kérlek, mozgasd alaphelyzetbe az összes tengelyt (kattints a(z) %1% gombra) a szerszámfej helyzetének meghatározásához. Így a nyomtató nem mozog a nyomtatható területen túlra, ami az eszköz kopását okozná."
 
 msgid "Go Home"
 msgstr "Alaphelyzet"
@@ -10677,13 +10674,18 @@ msgstr ""
 "Statikus: a fény rögzített helyen marad a térben, így az árnyékok csak a jelenet változásakor számolódnak újra.\n"
 "Keringő: a fény a kamerával együtt fordul, és az árnyékok a kamera mozgása közben minden képkockánál újraszámolódnak."
 
+# AI Translated
 msgid "Glossy toolpaths"
-msgstr ""
+msgstr "Fényes szerszámutak"
 
+# AI Translated
+# Needs human review: 'Plain view' (the non-realistic view) is rendered 'alapnézet' and the specular 'highlight' 'fénypont'. Check both read right.
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
 msgstr ""
+"Valósághű nézetben az Előnézet szerszámútjait fényes műanyagként emeli ki.\n"
+"Kikapcsolva az áttetsző filament matt, az átlátszatlan pedig megtartja az alapnézet fénypontját."
 
 msgid "Anti-aliasing"
 msgstr "Élsimítás"
@@ -10864,11 +10866,13 @@ msgstr ""
 "Milyen fényesen jelenjenek meg az elhalványított rétegek, ha az \"Alsó rétegek elhalványítása\" be van kapcsolva.\n"
 "A 99% alig sötétít, a 0% feketére vált. A felső határ 99%, mert a 100% ugyanaz lenne, mint az opció kikapcsolása."
 
+# AI Translated
 msgid "Translucent filaments"
-msgstr ""
+msgstr "Áttetsző filamentek"
 
+# AI Translated
 msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr ""
+msgstr "A részben átlátszó színű filamentek szerszámútjait áttetszően rajzolja ki, ahogyan a 3D nézet az objektumaikat. Kapcsold ki, hogy minden filament átlátszatlanul jelenjen meg."
 
 msgid "Login region"
 msgstr "Régió"
@@ -14201,6 +14205,7 @@ msgstr ""
 "Megtelt a lemez?"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
 #, boost-format
 msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
 msgstr "Egy G-code mozgás metszi a(z) %1%. extruder ütközési térfogatát. Ez a nyomtató ütközését okozhatja."
@@ -14529,11 +14534,13 @@ msgid "%1% is too close to exclusion area. There may be collisions when printing
 msgstr "%1% túl közel van a tiltott területhez, a nyomtatás során előfordulhatnak ütközések."
 
 # AI Translated
+#. TRN %1% is the object name.
 #, boost-format
 msgid "%1% intersects collision volumes for every available extruder."
 msgstr "A(z) %1% metszi az összes elérhető extruder ütközési térfogatát."
 
 # AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
 #, boost-format
 msgid "%1% intersects a collision volume for extruder %2%."
 msgstr "A(z) %1% metszi a(z) %2%. extruder ütközési térfogatát."
@@ -14948,9 +14955,9 @@ msgid "Choose whether all nozzles use the same collision volumes, derive toolhea
 msgstr "Válaszd ki, hogy minden fúvóka ugyanazokat az ütközési térfogatokat használja-e, a szerszámfejhez viszonyított térfogatokat az egyes fúvókák XY eltolásából kell-e származtatni, vagy minden extrudernek egyedi térfogatokat kell beállítani. Egyedi módban az egyes extrudereket az Extruder oldalon kiválasztva állíthatod be a térfogataikat."
 
 # AI Translated
-# Needs human review: Option name in the collision volume behavior dropdown (Shared / Toolhead-relative / Individual per extruder); check it reads right next to the other options.
-msgid "Shared"
-msgstr "Közös"
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "Közös minden fúvóka számára"
 
 # AI Translated
 msgid "Toolhead-relative (nozzle offsets)"
@@ -15204,11 +15211,14 @@ msgstr "Alsó héj vastagság"
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Az alsó szilárd rétegek száma szeleteléskor megnő, ha az alsó héjrétegek vastagsága kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj, ha a rétegmagasság kicsi. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és az alsó héj vastagságát egyszerűen az alsó héjrétegek száma határozza meg."
 
+# AI Translated
+# Needs human review: 'Paint' is the Color Painting feature (Színfestés). Check 'színfestés-behatolási' reads right for 'paint penetration' (the layers that take the painted color).
 msgid "Bottom paint penetration layers"
-msgstr ""
+msgstr "Alsó színfestés-behatolási rétegek"
 
+# AI Translated
 msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
-msgstr ""
+msgstr "Az alsó felületre festett színt felvevő rétegek száma, az alsó felületi réteget is beleértve. 0-ra állítva az alsó héjrétegek számát használja. Az alsó héjrétegek számánál nagyobb érték a festett terület feletti kitöltést is befesti."
 
 msgid "Apply gap fill"
 msgstr "Hézagkitöltés alkalmazása"
@@ -16721,7 +16731,7 @@ msgstr "Zsugorodás (XY)"
 
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "Add meg a filament lehűlés utáni zsugorodási százalékát (például 94%, ha 100 mm helyett 94 mm-t mérsz). Az alkatrész XY irányban lesz skálázva a kompenzációhoz. Többanyagú nyomtatásnál ügyelj arra, hogy a zsugorodás minden használt filamentnél megegyezzen.\n"
@@ -16803,8 +16813,9 @@ msgstr "Szerszámváltás után az újonnan betöltött filament pontos helyzete
 msgid "Wipe tower cooling"
 msgstr "Törlőtorony hűtése"
 
-msgid "Temperature drop before entering filament tower"
-msgstr "Hőmérsékletcsökkenés a filamenttoronyba lépés előtt"
+# AI Translated
+msgid "Temperature drop before entering the wipe tower."
+msgstr "Hőmérsékletcsökkenés a törlőtoronyba lépés előtt."
 
 msgid "Interface layer pre-extrusion distance"
 msgstr "Érintkezőréteg előextrudálási távolsága"
@@ -17250,9 +17261,9 @@ msgstr "A Klipper max_accel_to_decel értékét a rendszer automatikusan beáll�
 msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "A Klipper max_accel_to_decel értékét a gyorsulás ezen %%-ára állítja."
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "A Klipper max_accel_to_decel értékét a gyorsulás ezen %-ára állítja."
 
 msgid "Default jerk."
 msgstr "Alapértelmezett jerk."
@@ -17449,21 +17460,21 @@ msgstr "Meghatározza, hogy legyen-e barázdált felület az első rétegen."
 msgid "Fuzzy skin generator mode"
 msgstr "A barázdált felület generálási módja"
 
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "A barázdált felület generálási módja. Csak az Arachne használatával működik!\n"
 "Eltolás: Klasszikus mód, amikor a mintázat úgy jön létre, hogy a fúvóka oldalirányban eltér az eredeti útvonaltól.\n"
 "Extrudálás: Olyan mód, amikor a mintázatot az extrudált műanyag mennyisége alakítja ki. Ez egy gyors és egyenes algoritmus, felesleges fúvókarázás nélkül, amely sima mintázatot ad. Ugyanakkor inkább a teljes felületen lazább falak kialakítására hasznos.\n"
 "Kombinált: Egyesített mód [Eltolás] + [Extrudálás]. A falak megjelenése hasonló az [Eltolás] módhoz, de nem hagy pórusokat a kerületek között.\n"
 "\n"
-"Figyelem! Az [Extrudálás] és a [Kombinált] mód csak akkor működik, ha a fuzzy_skin_thickness paraméter nem nagyobb a nyomtatott hurok vastagságánál. Emellett egy adott réteg extrudálási szélessége sem lehet egy bizonyos szint alá csökkentve. Ez általában a rétegmagasság 15-25%%-a. Ezért 0,4 mm kerületszélesség és 0,2 mm rétegmagasság mellett a barázdált felület maximális vastagsága 0,4-(0,2*0,25)=±0,35 mm lesz. Ha ennél nagyobb értéket adsz meg, a Flow::spacing() hiba jelenik meg, és a modell nem lesz szeletelhető. Ezt az értéket addig választhatod, amíg ez a hiba meg nem ismétlődik."
+"Figyelem! Az [Extrudálás] és a [Kombinált] mód csak akkor működik, ha a fuzzy_skin_thickness paraméter nem nagyobb a nyomtatott hurok vastagságánál. Emellett egy adott réteg extrudálási szélessége sem lehet egy bizonyos szint alá csökkentve. Ez általában a rétegmagasság 15-25%-a. Ezért 0,4 mm kerületszélesség és 0,2 mm rétegmagasság mellett a barázdált felület maximális vastagsága 0,4-(0,2*0,25)=±0,35 mm lesz. Ha ennél nagyobb értéket adsz meg, a Flow::spacing() hiba jelenik meg, és a modell nem lesz szeletelhető. Ezt az értéket addig választhatod, amíg ez a hiba meg nem ismétlődik."
 
 msgid "Displacement"
 msgstr "Eltolás"
@@ -17756,7 +17767,7 @@ msgstr "Kamrahőmérséklet-szabályozás engedélyezése"
 
 # AI Translated
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Engedélyezd ezt az opciót, ha a gép támogatja a kamrahőmérséklet szabályozását.\n"
@@ -17767,7 +17778,7 @@ msgstr "Légszűrés támogatása"
 
 # AI Translated
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Engedélyezd ezt, ha a nyomtató támogatja a légszűrést.\n"
@@ -17776,7 +17787,7 @@ msgstr ""
 msgid "Use cooling filter"
 msgstr "Hűtőszűrő használata"
 
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "Engedélyezd a beállítást, ha a nyomtató támogatja a hűtőszűrőt"
 
 # AI Translated
@@ -18715,9 +18726,9 @@ msgstr "A modell alján lévő lyuk maximális területe, mielőtt kúpos anyag 
 msgid "Detect overhang walls"
 msgstr "Túlnyúló falak felismerése"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Felismeri a túlnyúlás százalékos arányát a vonalszélességhez viszonyítva, és más sebességet használ. A 100%%-os túlnyúlás esetén az áthidaláshoz beállított sebességet használja."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "Felismeri a túlnyúlás százalékos arányát a vonalszélességhez viszonyítva, és más sebességet használ. A 100%-os túlnyúlás esetén az áthidaláshoz beállított sebességet használja."
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -20286,11 +20297,14 @@ msgstr "Felső héj vastagság"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "A felső szilárd rétegek száma szeleteléskor megnő, ha a felső héjrétegekből számított vastagság kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj kis rétegmagasságnál. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és a felső héj vastagságát egyszerűen a felső héjrétegek száma határozza meg."
 
+# AI Translated
+# Needs human review: 'Paint' is the Color Painting feature (Színfestés). Check 'színfestés-behatolási' reads right for 'paint penetration' (the layers that take the painted color).
 msgid "Top paint penetration layers"
-msgstr ""
+msgstr "Felső színfestés-behatolási rétegek"
 
+# AI Translated
 msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
-msgstr ""
+msgstr "A felső felületre festett színt felvevő rétegek száma, a felső felületi réteget is beleértve. 0-ra állítva a felső héjrétegek számát használja. A felső héjrétegek számánál nagyobb érték a festett terület alatti kitöltést is befesti."
 
 # AI Translated
 msgid "Separated infills"
@@ -21660,12 +21674,14 @@ msgid "Nozzle diameters indexed by nozzle ID."
 msgstr "Fúvókaátmérők a fúvóka azonosítója szerint indexelve."
 
 # AI Translated
+# Needs human review: Flow class of the nozzle (Standard, High Flow), not the glossary's Nozzle volume. Reuses the catalog's 'fúvókatérfogat-típus'; the Device UI calls the same thing 'Fúvóka anyagáramlása' (Nozzle Flow). Check which term fits.
 msgid "Nozzle volume types"
-msgstr "Fúvóka térfogattípusai"
+msgstr "Fúvókatérfogat-típusok"
 
 # AI Translated
-msgid "Nozzle volume variants indexed by nozzle ID."
-msgstr "Fúvóka térfogatváltozatai a fúvóka azonosítója szerint indexelve."
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "A fúvókatérfogat-típusok fúvókaazonosító szerint indexelve, például \"Standard\" vagy \"High Flow\"."
 
 # AI Translated
 msgid "Retraction distance used when cutting filament."
@@ -21704,12 +21720,16 @@ msgid "Accumulated printed mass at the current layer."
 msgstr "Az aktuális rétegig kinyomtatott összegzett tömeg."
 
 # AI Translated
-msgid "Current layer mass"
-msgstr "Aktuális réteg tömege"
+msgid "Previous layer mass"
+msgstr "Előző réteg tömege"
 
 # AI Translated
 msgid "Printed mass of the previous layer."
 msgstr "Az előző réteg kinyomtatott tömege."
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "Ugyanaz, mint a previous_layer_mass. A Bambu Studio ezt a nevet használja."
 
 # AI Translated
 msgid "Current physical extruder ID"
@@ -21748,8 +21768,8 @@ msgid "Timelapse inline photo"
 msgstr "Timelapse beágyazott fotó"
 
 # AI Translated
-msgid "Whether the timelapse photo is captured at the inline position."
-msgstr "A timelapse fotó a beágyazott pozícióban készül-e."
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "Azt jelzi, hogy a fotó ott készül-e, ahol a fúvóka éppen van, anélkül, hogy előbb egy biztonságos Timelapse-pozícióba mozogna."
 
 # AI Translated
 msgid "Farthest-point timelapse enabled"
@@ -21760,12 +21780,12 @@ msgid "Whether farthest-point timelapse positioning is active."
 msgstr "Aktív-e a timelapse pozicionálása a legtávolabbi pontra."
 
 # AI Translated
-msgid "Clear to X0"
-msgstr "Szabad X0-ig"
+msgid "Clear path to X0"
+msgstr "Szabad út X0-ig"
 
 # AI Translated
-msgid "Whether the timelapse move is clear to X0."
-msgstr "A timelapse mozgás szabad-e X0-ig."
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "Azt jelzi, hogy a fúvóka az aktuális magasságon el tud-e jutni X0-ig anélkül, hogy egy másik nyomtatott objektummal ütközne."
 
 # AI Translated
 msgid "Previous extruder"
@@ -21788,16 +21808,16 @@ msgid "Current hotend"
 msgstr "Jelenlegi fejegység"
 
 # AI Translated
-msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "A kilépő filament extruderének nullától számozott indexe. Bambu nyomtatóknál értéke -1, vagy a fúvóka azonosítója, ha a filament a rétegek között fúvókát vált."
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "A kilépő filament fejegysége, nullától számozott extruderindexként megadva. Bambu nyomtatókon értéke -1, vagy a fúvóka azonosítója, ha a filament rétegről rétegre fúvókát vált."
 
 # AI Translated
 msgid "Next hotend"
 msgstr "Következő fejegység"
 
 # AI Translated
-msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-msgstr "A belépő filament extruderének nullától számozott indexe. Bambu nyomtatóknál értéke -1, vagy a fúvóka azonosítója, ha a filament a rétegek között fúvókát vált."
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "A belépő filament fejegysége, nullától számozott extruderindexként megadva. Bambu nyomtatókon értéke -1, vagy a fúvóka azonosítója, ha a filament rétegről rétegre fúvókát vált."
 
 # AI Translated
 msgid "Next nozzle ID"
@@ -21820,16 +21840,18 @@ msgid "Old extruder variant"
 msgstr "Régi extruder változat"
 
 # AI Translated
-msgid "Nozzle-volume variant of the outgoing extruder."
-msgstr "A kilépő extruder fúvóka-térfogat változata."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "A kilépő extruder típusa és fúvókatérfogat-típusa, például \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "New extruder variant"
 msgstr "Új extruder változat"
 
 # AI Translated
-msgid "Nozzle-volume variant of the incoming extruder."
-msgstr "A belépő extruder fúvóka-térfogat változata."
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "A belépő extruder típusa és fúvókatérfogat-típusa, például \"Direct Drive High Flow\"."
 
 # AI Translated
 msgid "Filament nozzle-change retract length"
@@ -21844,8 +21866,8 @@ msgid "New extruder retracted length"
 msgstr "Új extruder visszahúzott hossza"
 
 # AI Translated
-msgid "Currently parked retraction length of the incoming extruder."
-msgstr "A belépő extruder jelenleg parkolt visszahúzási hossza."
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "A belépő extruder parkolásakor alkalmazott visszahúzási hossz, amely még mindig érvényben van."
 
 # AI Translated
 msgid "Outer wall volumetric speed"
@@ -21956,16 +21978,16 @@ msgid "First flush volume"
 msgstr "Első öblítési térfogat"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "Az első öblítési térfogat."
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "A tervezett öblítési hossz első fele, mm filamentben megadva."
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "Második öblítési térfogat"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "A második öblítési térfogat."
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "A tervezett öblítési hossz második fele, mm filamentben megadva."
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -22100,12 +22122,12 @@ msgid "Whether travel should avoid the wipe perimeter."
 msgstr "A mozgásnak el kell-e kerülnie a törlési kerületet."
 
 # AI Translated
-msgid "Wipe avoidance X"
-msgstr "Törlés elkerülése X"
+msgid "Wipe tower avoidance X"
+msgstr "Törlőtorony elkerülése X"
 
 # AI Translated
-msgid "X position used to avoid the wipe area."
-msgstr "A törlési terület elkerüléséhez használt X pozíció."
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "A közvetlenül a törlőtorony melletti X pozíció, ahová a fúvóka mozog, hogy távol maradjon a toronytól."
 
 # AI Translated
 # Needs human review: Placeholder name; check that interface (the tower layers between materials) reads as átmeneti réteg and matches the existing prime-tower interface wording.
@@ -22113,16 +22135,12 @@ msgid "Prime tower interface"
 msgstr "Törlőtorony átmeneti rétege"
 
 # AI Translated
-msgid "Whether the current purge is for a prime-tower interface."
-msgstr "Az aktuális öblítés a törlőtorony átmeneti rétegéhez tartozik-e."
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "Azt jelzi, hogy az aktuális öblítés a törlőtorony érintkezőrétegéhez (ahol a különböző anyagok találkoznak) tartozik-e."
 
 # AI Translated
-msgid "Filament tower interface print temperature"
-msgstr "Filament tornyának átmeneti rétegéhez használt nyomtatási hőmérséklet"
-
-# AI Translated
-msgid "Print temperature used for the filament tower interface."
-msgstr "A filament tornyának átmeneti rétegéhez használt nyomtatási hőmérséklet."
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "Nyomtatási hőmérséklet a törlőtorony érintkezőrétegéhez (ahol a különböző anyagok találkoznak)."
 
 # AI Translated
 msgid "Wipe tower wait position X"
@@ -22145,8 +22163,20 @@ msgid "Wipe tower wait position valid"
 msgstr "Törlőtorony várakozási pozíciója érvényes"
 
 # AI Translated
-msgid "Whether the print has a wipe tower."
-msgstr "Van-e törlőtorony a nyomtatásban."
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "Azt jelzi, hogy be van-e állítva a várakozási pozíció, ami akkor áll fenn, ha a nyomtatásnak van törlőtornya."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "Ugyanaz, mint a wipe_tower_wait_pos_x. A Bambu Studio ezt a nevet használja."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "Ugyanaz, mint a wipe_tower_wait_pos_y. A Bambu Studio ezt a nevet használja."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "Ugyanaz, mint a wipe_tower_wait_pos_valid. A Bambu Studio ezt a nevet használja."
 
 # AI Translated
 msgid "Nozzle temperatures indexed by filament."
@@ -22155,10 +22185,6 @@ msgstr "Fúvókahőmérsékletek filament szerint indexelve."
 # AI Translated
 msgid "First-layer nozzle temperatures indexed by filament."
 msgstr "Első réteg fúvókahőmérsékletei filament szerint indexelve."
-
-# AI Translated
-msgid "Nozzle temperature initial layer"
-msgstr "Fúvókahőmérséklet a kezdő rétegnél"
 
 # AI Translated
 msgid "Extrusion role"
@@ -24335,9 +24361,9 @@ msgstr ""
 "A fúvóka típusa nem egyezik a nyomtató tényleges fúvókatípusával.\n"
 "Kattints a fenti Szinkronizálás gombra, majd indítsd újra a kalibrálást."
 
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "%1s anyag nyomtatása %2s fúvókával a fúvóka károsodását okozhatja."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "%1% anyag nyomtatása %2% fúvókával a fúvóka károsodását okozhatja."
 
 msgid "Need select printer"
 msgstr "Ki kell választanod a nyomtatót"
@@ -36572,8 +36598,8 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "A saját bővítményeidről nem lehet leiratkozni. A helyi fájlok eltávolításához használd a Törlés lehetőséget."
 
 # AI Translated
-msgid "Python interpreter is shutting down"
-msgstr "A Python-értelmező leáll"
+msgid "Python interpreter is shutting down."
+msgstr "A Python-értelmező leáll."
 
 # AI Translated
 msgid "Plugin system is shutting down."
@@ -37316,6 +37342,155 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Subdivision mesh"
+#~ msgstr "Háló felosztása"
+
+#~ msgid "(Lost color)"
+#~ msgstr "(Elveszett szín)"
+
+# AI Translated
+# Needs human review: Option name in the collision volume behavior dropdown (Shared / Toolhead-relative / Individual per extruder); check it reads right next to the other options.
+#~ msgid "Shared"
+#~ msgstr "Közös"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "Add meg a filament lehűlés utáni zsugorodási százalékát (például 94%, ha 100 mm helyett 94 mm-t mérsz). Az alkatrész XY irányban lesz skálázva a kompenzációhoz. Többanyagú nyomtatásnál ügyelj arra, hogy a zsugorodás minden használt filamentnél megegyezzen.\n"
+#~ "Biztosíts elegendő helyet az objektumok között, mert ez a kompenzáció az ellenőrzések után történik."
+
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "Hőmérsékletcsökkenés a filamenttoronyba lépés előtt"
+
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "A Klipper max_accel_to_decel értékét a gyorsulás ezen %%-ára állítja."
+
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "A barázdált felület generálási módja. Csak az Arachne használatával működik!\n"
+#~ "Eltolás: Klasszikus mód, amikor a mintázat úgy jön létre, hogy a fúvóka oldalirányban eltér az eredeti útvonaltól.\n"
+#~ "Extrudálás: Olyan mód, amikor a mintázatot az extrudált műanyag mennyisége alakítja ki. Ez egy gyors és egyenes algoritmus, felesleges fúvókarázás nélkül, amely sima mintázatot ad. Ugyanakkor inkább a teljes felületen lazább falak kialakítására hasznos.\n"
+#~ "Kombinált: Egyesített mód [Eltolás] + [Extrudálás]. A falak megjelenése hasonló az [Eltolás] módhoz, de nem hagy pórusokat a kerületek között.\n"
+#~ "\n"
+#~ "Figyelem! Az [Extrudálás] és a [Kombinált] mód csak akkor működik, ha a fuzzy_skin_thickness paraméter nem nagyobb a nyomtatott hurok vastagságánál. Emellett egy adott réteg extrudálási szélessége sem lehet egy bizonyos szint alá csökkentve. Ez általában a rétegmagasság 15-25%%-a. Ezért 0,4 mm kerületszélesség és 0,2 mm rétegmagasság mellett a barázdált felület maximális vastagsága 0,4-(0,2*0,25)=±0,35 mm lesz. Ha ennél nagyobb értéket adsz meg, a Flow::spacing() hiba jelenik meg, és a modell nem lesz szeletelhető. Ezt az értéket addig választhatod, amíg ez a hiba meg nem ismétlődik."
+
+# AI Translated
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "Engedélyezd ezt az opciót, ha a gép támogatja a kamrahőmérséklet szabályozását.\n"
+#~ "G-code parancs: M141 S(0-255)"
+
+# AI Translated
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "Engedélyezd ezt, ha a nyomtató támogatja a légszűrést.\n"
+#~ "G-code parancs: M106 P3 S(0-255)"
+
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "Engedélyezd a beállítást, ha a nyomtató támogatja a hűtőszűrőt"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "Felismeri a túlnyúlás százalékos arányát a vonalszélességhez viszonyítva, és más sebességet használ. A 100%%-os túlnyúlás esetén az áthidaláshoz beállított sebességet használja."
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "Fúvóka térfogatváltozatai a fúvóka azonosítója szerint indexelve."
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "Aktuális réteg tömege"
+
+# AI Translated
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "A timelapse fotó a beágyazott pozícióban készül-e."
+
+# AI Translated
+#~ msgid "Clear to X0"
+#~ msgstr "Szabad X0-ig"
+
+# AI Translated
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "A timelapse mozgás szabad-e X0-ig."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "A kilépő filament extruderének nullától számozott indexe. Bambu nyomtatóknál értéke -1, vagy a fúvóka azonosítója, ha a filament a rétegek között fúvókát vált."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "A belépő filament extruderének nullától számozott indexe. Bambu nyomtatóknál értéke -1, vagy a fúvóka azonosítója, ha a filament a rétegek között fúvókát vált."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "A kilépő extruder fúvóka-térfogat változata."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "A belépő extruder fúvóka-térfogat változata."
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "A belépő extruder jelenleg parkolt visszahúzási hossza."
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "Az első öblítési térfogat."
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "A második öblítési térfogat."
+
+# AI Translated
+#~ msgid "Wipe avoidance X"
+#~ msgstr "Törlés elkerülése X"
+
+# AI Translated
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "A törlési terület elkerüléséhez használt X pozíció."
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "Az aktuális öblítés a törlőtorony átmeneti rétegéhez tartozik-e."
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "Filament tornyának átmeneti rétegéhez használt nyomtatási hőmérséklet"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "A filament tornyának átmeneti rétegéhez használt nyomtatási hőmérséklet."
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "Van-e törlőtorony a nyomtatásban."
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "Fúvókahőmérséklet a kezdő rétegnél"
+
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "%1s anyag nyomtatása %2s fúvókával a fúvóka károsodását okozhatja."
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "A Python-értelmező leáll"
 
 # AI Translated
 #, c-format, boost-format
