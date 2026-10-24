@@ -55,7 +55,7 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
     std::string series_id;
     {
         MoonrakerDeviceInfo info;
-        if (fetch_device_info(device_info.base_url, device_info.api_key, info, error)) {
+        if (fetch_device_info(device_info.base_url, device_info.api_key, info, error, {})) {
             series_id = infer_series_id(info.model_id, info.dev_name);
         }
     }

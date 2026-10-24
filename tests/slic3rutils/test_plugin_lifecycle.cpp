@@ -41,16 +41,19 @@ namespace fs = boost::filesystem;
 // -> unload.
 //
 // Each Catch2 test case runs in its own process (catch_discover_tests), so the PluginManager and
-// interpreter singletons are brought up at most once per test.
+// interpreter singletons are brought up at most once per test. Running the binary directly runs
+// every case in one process: the interpreter is then initialized once and finalized after the
+// last case (see PythonInterpreterRunEnd in slic3rutils_tests_main.cpp).
 
 namespace {
 
-// Brings the plugin system up, and tears it down explicitly at the end of the test.
+// Brings the plugin system up, and tears the manager down at the end of the test.
 //
-// Shutting the interpreter down here, rather than leaving it to PythonInterpreter's static
-// destructor, mirrors what the app does (GUI_App finalizes it before exit). Left to static
-// destruction, shutdown()'s logging runs after boost::log has torn down its thread-local storage
-// and throws, aborting the process after the tests have already passed.
+// The interpreter itself is not finalized here: it is process-wide. CPython cannot be
+// reinitialized after Py_Finalize (a second init aborts inside _datetime), and the app likewise
+// finalizes it only at exit (GUI_App). slic3rutils_tests_main.cpp finalizes it once, after the
+// last test case and before static destruction, where shutdown()'s logging is still ahead of
+// boost::log's teardown.
 //
 // Declare this FIRST in a test so it is destroyed last.
 struct ScopedPluginManager
@@ -61,11 +64,7 @@ struct ScopedPluginManager
     bool initialized = false;
 
     ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 // A minimal script plugin exposing exactly one capability, "Echo".

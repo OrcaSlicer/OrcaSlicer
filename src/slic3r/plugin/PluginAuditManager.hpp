@@ -13,6 +13,12 @@
 
 namespace Slic3r {
 
+struct PluginPermissions;
+
+// Thread creation exposes no user-supplied target, so both the runtime audit event and a
+// request_permissions(threading=True) declaration use this fixed target.
+inline constexpr const char* kThreadPermissionTarget = "thread";
+
 struct AuditDecision {
     bool        allowed = true;
     std::string reason;
@@ -102,12 +108,13 @@ public:
     bool is_denied_filename(const boost::filesystem::path& candidate) const;
 
     // --- denied-path-keyword registry ---
-    // Keywords that categorically deny a path if ANY component matches one case-insensitively --
+    // Keywords that categorically deny a path when a component matches one case-insensitively --
     // e.g. a "secrets" subfolder, a "certificates" folder, a "conf"/"config" directory, or a
     // .conf/.ini file anywhere the plugin can otherwise reach, including inside an allowed root.
-    // This is broader than the exact-name is_denied_filename registry, but it is not a substring
-    // match: importable modules such as numpy/__config__.py, configparser.py, sysconfig.py, or
-    // user folders such as "Conference" and "Concert" are unrelated names and must stay promptable.
+    // The components above the app's data_dir() are not considered (see below). This is broader
+    // than the exact-name is_denied_filename registry, but it is not a substring match:
+    // importable modules such as numpy/__config__.py, configparser.py, sysconfig.py, or user
+    // folders such as "Conference" and "Concert" are unrelated names and must stay promptable.
     void add_denied_path_keyword(const std::string& keyword);
 
     // The list install_hook() seeds into the keyword registry. Exposed so tests seed the exact
@@ -115,7 +122,10 @@ public:
     static std::vector<std::string> default_denied_path_keywords();
 
     // True when any component of candidate's (canonicalized) path matches a registered keyword,
-    // case-insensitively. A registered "conf" keyword also blocks .conf/.ini file components.
+    // case-insensitively. Inside data_dir(), only the components below data_dir() are checked:
+    // the app's own data folder may itself sit under a component named like a keyword (Flatpak
+    // keeps it under .../config/OrcaSlicer), which must not deny everything inside it. A
+    // registered "conf" keyword also blocks .conf/.ini file components.
     bool is_denied_path_keyword(const boost::filesystem::path& candidate) const;
 
     // is_denied_filename(candidate) || is_denied_path_keyword(candidate). Convenience for
@@ -130,12 +140,12 @@ public:
     AuditDecision check_path_access(const boost::filesystem::path& candidate, bool is_write);
     AuditDecision check_open(const std::string& path, const std::string& mode);
 
-    // Ask the user to grant the requested filesystem-read paths. The request may originate on a
-    // plugin load worker, so the implementation marshals the modal dialog to the wx main thread.
-    // Returns true only when every missing path was granted and persisted; denial aborts the plugin
-    // load without adding a permission.
-    bool request_filesystem_read_permissions(const std::string& plugin_key,
-                                             const std::vector<std::string>& paths);
+    // Ask the user to grant the requested permissions. The request may originate on a plugin
+    // load worker, so the implementation marshals the modal dialog to the wx main thread.
+    // Targets already persisted for the plugin are not shown or asked for again. Returns true
+    // only when every missing target was granted and persisted; denial aborts the plugin load
+    // without adding a permission.
+    bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
 
     void report_violation(const AuditViolation& violation);
     bool audit_denial_pending() const;

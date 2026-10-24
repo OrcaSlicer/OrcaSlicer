@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-10-19 09:48-0300\n"
-"PO-Revision-Date: 2026-07-20 13:33+0200\n"
+"PO-Revision-Date: 2026-10-19 18:56+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
 "Language: eu\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.9\n"
+"X-Generator: Poedit 3.10\n"
 
 # AI Translated
 msgid "Main Extruder"
@@ -32,15 +32,15 @@ msgstr "estrusore nagusia"
 
 # AI Translated
 msgid "Auxiliary Extruder"
-msgstr "Estrusore lagungarria"
+msgstr "Estrusore laguntzailea"
 
 # AI Translated
 msgid "Auxiliary extruder"
-msgstr "Estrusore lagungarria"
+msgstr "Estrusore laguntzailea"
 
 # AI Translated
 msgid "auxiliary extruder"
-msgstr "estrusore lagungarria"
+msgstr "estrusore laguntzailea"
 
 msgid "Left Extruder"
 msgstr "Ezkerreko estrusorea"
@@ -74,15 +74,15 @@ msgstr "pita nagusia"
 
 # AI Translated
 msgid "Auxiliary Nozzle"
-msgstr "Pita lagungarria"
+msgstr "Pita laguntzailea"
 
 # AI Translated
 msgid "Auxiliary nozzle"
-msgstr "Pita lagungarria"
+msgstr "Pita laguntzailea"
 
 # AI Translated
 msgid "auxiliary nozzle"
-msgstr "pita lagungarria"
+msgstr "pita laguntzailea"
 
 msgid "Left Nozzle"
 msgstr "Ezkerreko pita"
@@ -117,15 +117,15 @@ msgstr "hotend nagusia"
 
 # AI Translated
 msgid "Auxiliary Hotend"
-msgstr "Hotend lagungarria"
+msgstr "Hotend laguntzailea"
 
 # AI Translated
 msgid "Auxiliary hotend"
-msgstr "Hotend lagungarria"
+msgstr "Hotend laguntzailea"
 
 # AI Translated
 msgid "auxiliary hotend"
-msgstr "hotend lagungarria"
+msgstr "hotend laguntzailea"
 
 # AI Translated
 msgid "Left Hotend"
@@ -157,7 +157,7 @@ msgstr "nagusia"
 
 # AI Translated
 msgid "auxiliary"
-msgstr "lagungarria"
+msgstr "laguntzailea"
 
 # AI Translated
 msgid "Main"
@@ -165,7 +165,7 @@ msgstr "Nagusia"
 
 # AI Translated
 msgid "Auxiliary"
-msgstr "Lagungarria"
+msgstr "Laguntzailea"
 
 msgid "left"
 msgstr "ezkerra"
@@ -776,7 +776,7 @@ msgstr "Lerrokatu ezkerrean"
 
 # AI Translated
 msgid "Align left-right center"
-msgstr "Lerrokatu erdian ezker-eskuin norabidean"
+msgstr "Lerrokatu erdian X norabidean"
 
 # AI Translated
 msgid "Align right"
@@ -789,7 +789,7 @@ msgstr "Lerrokatu aurrean"
 # AI Translated
 # Needs human review: Object menu item that aligns object centers on the plate's front-back (Y) axis; check that the 'aurre-atze' compound reads naturally.
 msgid "Align front-back center"
-msgstr "Lerrokatu erdian aurre-atze norabidean"
+msgstr "Lerrokatu erdian Y norabidean"
 
 # AI Translated
 msgid "Align back"
@@ -802,7 +802,7 @@ msgstr "Lerrokatu behean"
 # AI Translated
 # Needs human review: Object menu item that aligns object centers on the vertical (Z) axis; check that the 'goi-behe' compound reads naturally.
 msgid "Align top-bottom center"
-msgstr "Lerrokatu erdian goi-behe norabidean"
+msgstr "Lerrokatu erdian Z norabidean"
 
 # AI Translated
 msgid "Align top"
@@ -810,24 +810,24 @@ msgstr "Lerrokatu goian"
 
 # AI Translated
 msgid "Distribute left-right"
-msgstr "Banatu ezker-eskuin norabidean"
+msgstr "Berdinbanatu X norabidean"
 
 # AI Translated
 # Needs human review: Object menu item that spaces objects evenly along the plate's front-back (Y) axis; check that the 'aurre-atze' compound reads naturally.
 msgid "Distribute front-back"
-msgstr "Banatu aurre-atze norabidean"
+msgstr "Berdinbanatu Y norabidean"
 
 # AI Translated
 # Needs human review: Object menu item that spaces objects evenly along the vertical (Z) axis; check that the 'goi-behe' compound reads naturally.
 msgid "Distribute top-bottom"
-msgstr "Banatu goi-behe norabidean"
+msgstr "Berdinbanatu Z norabidean"
 
 msgid "Drop"
 msgstr "Askatu"
 
 # AI Translated
 msgid "Move the selection along Z so that its lowest point touches the bed."
-msgstr "Mugitu hautapena Z ardatzean, bere punturik baxuenak ohea ukitu dezan."
+msgstr "Mugitu hautaketa Z ardatzean, bere punturik baxuenak ohea ukitu dezan."
 
 msgid "Absolute"
 msgstr "Absolutua"
@@ -12086,7 +12086,7 @@ msgid "It can't be deleted or modified."
 msgstr "Ezin da ezabatu edo aldatu."
 
 msgid "Any modifications should be saved as a new preset inherited from this one."
-msgstr "Aldaketa guztiak honetatik herentzian hartutako aurrezarpen berri gisa gorde behar dira.."
+msgstr "Aldaketa guztiak honetatik herentzian hartutako aurrezarpen berri gisa gorde behar lirateke."
 
 msgid "To do that please specify a new name for the preset."
 msgstr "Horretarako, zehaztu aurrezarpenaren izen berri bat."
@@ -13197,11 +13197,11 @@ msgstr "Pertsonalizatua"
 
 # AI Translated
 msgid "Welcome to Orca Slicer"
-msgstr "Ongi etorri Orca Slicer-era"
+msgstr "Ongi etorri OrcaSlicer-era"
 
 # AI Translated
 msgid "Orca Slicer will be set up in several steps. Let's start!"
-msgstr "Orca Slicer hainbat urratsetan konfiguratuko da. Has gaitezen!"
+msgstr "OrcaSlicer hainbat urratsetan konfiguratuko da. Has gaitezen!"
 
 # AI Translated
 msgid "Get Started"
@@ -13535,7 +13535,7 @@ msgstr "Sareko pluginaren eguneratzea"
 
 # AI Translated
 msgid "Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."
-msgstr "Egin klik Ados botoian Sareko plugina orain eguneratzeko. Fitxategiren bat erabiltzen ari bada, eguneraketa Orca Slicer hurrengoan abiaraztean aplikatuko da."
+msgstr "Egin klik Ados botoian Sareko plugina orain eguneratzeko. Fitxategiren bat erabiltzen ari bada, eguneraketa OrcaSlicer hurrengoan abiaraztean aplikatuko da."
 
 # AI Translated
 msgid "A new Network plug-in is available. Do you want to install it?"
@@ -14917,7 +14917,7 @@ msgid ""
 "If set to 0, the line width will match the Internal solid infill width, or the nozzle diameter for thick bridges."
 msgstr ""
 "Zubiaren lerro-zabalera. % gisa adierazten bada, pitaren diametroaren arabera kalkulatuko da.\n"
-"Zubien dentsitate handiagoarekin edo zubien fluxu-ratio handiagoarekin erabiltzea gomendatzen da.\n"
+"Zubiaren dentsitate handiagoarekin edo zubiaren fluxu-ratio handiagoarekin erabiltzea gomendatzen da.\n"
 "\n"
 "Gehieneko balioa %100 edo pitaren diametroa da.\n"
 "0 ezartzen bada, lerro-zabalera barruko betegarri solidoaren zabalerarekin bat etorriko da, edo pitaren diametroarekin zubi lodietan."
@@ -17140,7 +17140,7 @@ msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Ohearen formarekiko [0,1] tartean automatikoki antolatzeko posizio onena."
 
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Gaitu aukera hau makinak piezaren hozterako haizagailu lagungarria badu. G-code komandoa: M106 P2 S(0-255)."
+msgstr "Gaitu aukera hau makinak piezaren hozterako haizagailu laguntzailea badu. G-code komandoa: M106 P2 S(0-255)."
 
 msgid "Fan direction"
 msgstr "Haizagailuaren norabidea"
@@ -17246,7 +17246,7 @@ msgstr "Saltatu G-code-aren konfigurazio-blokea"
 
 # AI Translated
 msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "Ez idatzi CONFIG_BLOCK (xerragailuaren konfigurazioko gako/balio bikoteak) G-code fitxategian. Lagungarria izan daiteke firmwareak iruzkin-lerro horiek prozesatzean huts egiten duen inprimagailuetan (adib. Anycubic go-klipper). Oharra: G-code fitxategiak ez ditu jada xerragailuaren ezarpenak edukiko; beraz, OrcaSlicer-era berriro inportatzeak ez du konfigurazioa berreskuratuko."
+msgstr "Ez idatzi CONFIG_BLOCK (xerratzailearen konfigurazioko gako/balio bikoteak) G-code fitxategian. Lagungarria izan daiteke firmwareak iruzkin-lerro horiek prozesatzean huts egiten duen inprimagailuetan (adib. Anycubic go-klipper). Oharra: G-code fitxategiak ez ditu jada xerratzailearen ezarpenak edukiko; beraz, OrcaSlicer-era berriro inportatzeak ez du konfigurazioa berreskuratuko."
 
 msgid "Pellet Modded Printer"
 msgstr "Pelletekin moldatutako inprimagailua"
@@ -18025,7 +18025,7 @@ msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
 "Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
 msgstr ""
-"Piezaren hozte-haizagailu lagungarriaren abiadura. Haizagailu lagungarria abiadura honetan ibiliko da inprimatzean, hozterik gabeko geruzek definitutako lehen geruzetan izan ezik.\n"
+"Piezaren hozte-haizagailu laguntzailearen abiadura. Haizagailu laguntzailea abiadura honetan ibiliko da inprimatzean, hozterik gabeko geruzek definitutako lehen geruzetan izan ezik.\n"
 "Gaitu auxiliary_fan inprimagailuaren ezarpenetan ezaugarri hau erabiltzeko. G-code komandoa: M106 P2 S(0-255)"
 
 msgid "For the first"
@@ -25278,7 +25278,7 @@ msgstr "Sortu lehenik ebakitzeko gorputz solido bat"
 
 # AI Translated
 msgid "Cut — needs a solid body to slice"
-msgstr "Ebaki — gorputz solido bat behar du zatitzeko"
+msgstr "Ebaki — gorputz solido bat behar du xerratzeko"
 
 # AI Translated
 msgid "Color — set the selected body's display color"
@@ -30069,7 +30069,7 @@ msgstr "Modeloaren irudiak"
 
 # AI Translated
 msgid "Auxiliaries"
-msgstr "Lagungarriak"
+msgstr "Laguntzaileak"
 
 # AI Translated
 msgid "Belt Purge Tower"
@@ -30615,7 +30615,7 @@ msgstr "Altzairu-urdina"
 # AI Translated
 # Needs human review: Flower name not known in Basque; rendered as Lore-urdina (flower blue), check for a proper name.
 msgid "Cornflower blue"
-msgstr "Lore-urdina"
+msgstr "Urdin bizia"
 
 # AI Translated
 msgid "Royal blue"
@@ -30807,7 +30807,7 @@ msgstr "Uhin-egurra"
 # AI Translated
 # Needs human review: Plant name (Hippophae); check the Basque name and whether a color-only name reads better.
 msgid "Sea buckthorn"
-msgstr "Itsas elorri-zuria"
+msgstr "Elorri horia"
 
 # AI Translated
 msgid "Sunset reef"
@@ -31052,7 +31052,7 @@ msgstr "Okre-horia"
 # AI Translated
 # Needs human review: Source name looks like a RAL variant; check the rendering.
 msgid "Traffic orange yellow"
-msgstr "Trafiko-laranja horixka"
+msgstr "Trafikoko laranja-horixka"
 
 # AI Translated
 msgid "Curry"
@@ -32310,7 +32310,7 @@ msgstr "OrcaCloud irekitzen du Hasiera orrian, pluginak arakatzeko."
 
 # AI Translated
 msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
-msgstr "Inportatu zure irudi propioa altuera-mapa gisa. Xerragailuak finkatzeko erabiltzen duen formatura bihurtzen da eta zure testura-karpeta pertsonalean gordetzen da, OrcaSlicer-ekin datozen testuretatik bereizita."
+msgstr "Inportatu zure irudi propioa altuera-mapa gisa. Xerratzaileak finkatzeko erabiltzen duen formatura bihurtzen da eta zure testura-karpeta pertsonalean gordetzen da, OrcaSlicer-ekin datozen testuretatik bereizita."
 
 # AI Translated
 msgid "PNG, JPG or BMP - converted to a height map on import. Hover one of yours to remove it."
@@ -33266,7 +33266,7 @@ msgstr "Garbitu triangelu meheak"
 
 # AI Translated
 msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
-msgstr "Desegin fintzeak modeloaren teselaziotik heredatzen dituen triangelu meheak, desplazamenduak laginak hartu aurretik. Triangelu mehe baten hiru erpinak testuraren hiru zati desberdinetan erortzen dira, eta horregatik ikusten da erliebea zerratua."
+msgstr "Desplazamendu-laginketa gertatu baino lehen, kendu errefinamenduak modeloaren jatorrizko teselaziotik jasotzen dituen triangelu meheak. Triangelu mehe baten hiru erpinak testuraren hiru zati desberdinetan erortzen dira, eta horregatik ikusten da erliebea zerratua."
 
 # AI Translated
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
@@ -36068,8 +36068,7 @@ msgstr ""
 "Banatu inprimaketak plaketan\n"
 "Ba al zenekien pieza asko dituen modelo bat inprimatzeko prest dauden plaka banatan bana dezakezula? Horrek pieza guztien jarraipena egitea erraztuko du."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -36141,8 +36140,7 @@ msgstr ""
 "Hobetu erresistentzia\n"
 "Ba al zenekien horma-begizta gehiago eta dentsitate baxuko betegarriaren dentsitate handiagoa erabil ditzakezula modeloaren erresistentzia hobetzeko?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

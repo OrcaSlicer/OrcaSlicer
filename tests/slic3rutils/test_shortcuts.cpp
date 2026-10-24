@@ -221,7 +221,9 @@ TEST_CASE("Every shortcut is listed under the section of its table row", "[Short
     CHECK(shortcut_section(Shortcut::GizmoBrimEars) == ShortcutSection::Gizmos);
     CHECK(shortcut_section(Shortcut::MovesSliderEnd) == ShortcutSection::Sliders);
     CHECK(shortcut_section(Shortcut::ViewDefault) == ShortcutSection::Camera);
+    CHECK(shortcut_section(Shortcut::ShowCollisionVolumes) == ShortcutSection::Display);
     CHECK(shortcut_section(Shortcut::KeyboardShortcuts) == ShortcutSection::Application);
+    CHECK(shortcut_section(Shortcut::Quit) == ShortcutSection::Application);
     CHECK(std::string(section_name(ShortcutSection::SlicingAndPrinting)) == "Slicing and printing");
 }
 

@@ -2,6 +2,7 @@
 #include "GeneratedConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "PluginAuditManager.hpp"
+#include "PythonPluginBridge.hpp"
 #include <atomic>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -663,6 +664,11 @@ bool PythonInterpreter::initialize()
         // Persist Python stderr (plugin tracebacks, including uncaught
         // background-thread exceptions) to <data_dir>/log/python_*.log.
         install_python_stderr_redirect();
+
+        // Attribute plugin-spawned Python threads to the plugin/capability that created them.
+        // Must run while the GIL is still held here, after the audit hook is in place and
+        // before the GIL is released below.
+        install_python_thread_audit_shim();
 
         // Release the GIL so other threads can acquire it via PyGILState_Ensure.
         // Without this, calls from background threads will block trying to acquire the GIL.

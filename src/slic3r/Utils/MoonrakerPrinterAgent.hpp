@@ -112,7 +112,12 @@ protected:
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
-    virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+    // An override must give up its request once `cancelled` returns true, or the destructor waits out its timeout
+    virtual bool fetch_device_info(const std::string&           base_url,
+                                   const std::string&           api_key,
+                                   MoonrakerDeviceInfo&         info,
+                                   std::string&                 error,
+                                   const std::function<bool()>& cancelled) const;
     void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
     void stop_status_stream();
 
@@ -137,7 +142,11 @@ private:
     int send_access_code(const std::string& dev_id);
 
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
-    bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
+    bool query_printer_status(const std::string&           base_url,
+                              const std::string&           api_key,
+                              nlohmann::json&              status,
+                              std::string&                 error,
+                              const std::function<bool()>& cancelled) const;
     bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
     void send_gcode_async(const std::string& dev_id, const std::string& gcode,
                           std::function<void(bool)> on_result = {}) const;

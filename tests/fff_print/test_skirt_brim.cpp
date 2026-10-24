@@ -212,6 +212,36 @@ TEST_CASE("Object brims are generated per instance", "[SkirtBrim]")
     }
 }
 
+TEST_CASE("Brim groups the parts of an object by contact", "[SkirtBrim]")
+{
+    // 10 mm cubes along X as the parts of one object: A and B overlap, C and D touch, and E stands 0.5 mm clear of D.
+    const std::vector<double> part_x{ 0., 8., 30., 40., 50.5 };
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "skirt_loops", 0 }, { "brim_type", "outer_only" }, { "brim_width", 3 }, { "layer_height", 0.2 } });
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config, nullptr, false);
+    for (size_t i = 1; i < part_x.size(); ++ i) {
+        TriangleMesh part = cube(10);
+        part.translate(float(part_x[i]), 0.f, 0.f);
+        model.objects.front()->add_volume(std::move(part), ModelVolumeType::MODEL_PART, false);
+    }
+    print.apply(model, config);
+    print.process();
+
+    const PrintObject &object = *print.objects().front();
+    std::set<std::set<size_t>> groups;
+    for (const groupedVolumeSlices &group : object.firstLayerObjGroups()) {
+        std::set<size_t> parts;
+        for (const ObjectID &volume_id : group.volume_ids)
+            for (size_t i = 0; i < object.model_object()->volumes.size(); ++ i)
+                if (object.model_object()->volumes[i]->id() == volume_id)
+                    parts.insert(i);
+        groups.insert(parts);
+    }
+    CHECK(groups == std::set<std::set<size_t>>{ { 0, 1 }, { 2, 3 }, { 4 } });
+}
+
 TEST_CASE("Uncombined neighboring brims precede their respective objects", "[SkirtBrim]")
 {
     Print print;
@@ -1088,6 +1118,32 @@ TEST_CASE("Belt brim is absent when both widths are zero", "[SkirtBrim][belt]")
         });
         const std::string gcode = slice({ cube(20) }, config);
         CHECK(role_passes(gcode, "brim") == 0);
+    }
+}
+
+TEST_CASE("Belt brim layers give layer change G-code every layer change placeholder", "[SkirtBrim][belt]")
+{
+    DynamicPrintConfig config = belt_brim_config();
+    config.set_deserialize_strict({
+        { "brim_type",           "outer_only" },
+        { "brim_width",          10 },
+        { "leading_brim_length", 30 },
+        { "brim_object_gap",     0 },
+        { "layer_change_gcode",  "G92 E0\n; LC [layer_num] [most_used_physical_extruder_id] [curr_y_acceleration_limit] "
+                                 "[curr_accumulated_mass] [curr_layer_mass]\n" },
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.process();
+    const int bands = belt_brim_apron_bands(*print.objects().front());
+    REQUIRE(bands > 0);
+    std::string gc;
+    REQUIRE_NOTHROW(gc = gcode(print));
+    // The apron bands print first, so they are layers 0 to bands - 1.
+    for (int layer = 0; layer < bands; ++ layer) {
+        INFO(layer);
+        CHECK(gc.find("\n; LC " + std::to_string(layer) + " 0 ") != std::string::npos);
     }
 }
 

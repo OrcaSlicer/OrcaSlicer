@@ -1209,7 +1209,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
         if (opt_key == "printable_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else if (opt_key == "bed_exclude_area")
-            ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+            ret = from_u8(config.option<ConfigOptionPoints>(opt_key)->serialize());
         else if (opt_key == "wrapping_exclude_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else
@@ -1320,7 +1320,7 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
         if (opt_key == "printable_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else if (opt_key == "bed_exclude_area")
-            ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+            ret = from_u8(config.option<ConfigOptionPoints>(opt_key)->serialize());
         else if (opt_key == "wrapping_exclude_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else
@@ -1330,6 +1330,21 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
     default: break;
     }
     return ret;
+}
+
+bool ConfigOptionsGroup::commit_config_value(const t_config_option_key& opt_key, int opt_index)
+{
+    if (m_config == nullptr)
+        return false;
+
+    // m_opt_map is filled while the option lines are created, so it still resolves the option when
+    // the group's controls (and thus its fields) have not been built yet.
+    const std::string opt_id = option_id_in_map(m_opt_map, opt_key, opt_index);
+    if (opt_id.empty())
+        return false;
+
+    on_change_OG(opt_id, get_config_value2(*m_config, opt_key, opt_index));
+    return true;
 }
 
 Field* ConfigOptionsGroup::get_fieldc(const t_config_option_key& opt_key, int opt_index)

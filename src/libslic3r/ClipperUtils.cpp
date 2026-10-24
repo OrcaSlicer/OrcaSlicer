@@ -7,9 +7,13 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <unordered_map>
 
+#include <tbb/parallel_for.h>
+
 #include "ClipperUtils.hpp"
+#include "AABBTreeIndirect.hpp"
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
 #include "Point.hpp"
@@ -276,6 +280,7 @@ Polylines c2_to_polylines(const C2::Paths64 &paths)
     return out;
 }
 
+// Only sizes the reserve of c2_to_expolygons(): for a tree Clipper2 misnested (see below) the count is approximate.
 size_t c2_count_expolygons(const C2::PolyPath64 &outer)
 {
     size_t cnt = 1;
@@ -285,17 +290,90 @@ size_t c2_count_expolygons(const C2::PolyPath64 &outer)
     return cnt;
 }
 
-void c2_append_expolygons(const C2::PolyPath64 &outer, ExPolygons &out)
+// Clipper2 sometimes puts a path at the wrong level of its PolyTree: a hole beside the outer path around it instead of
+// under it, or an island at the level of holes. Taken as they are, a misplaced hole becomes a clockwise contour and its
+// outer an expolygon that covers it; whole-layer booleans cancel the two, but anything handling expolygons one at a time
+// sees the hole filled. So the orientation of a path decides its role: a clockwise path where a contour belongs is
+// collected in stray_holes, for c2_attach_stray_holes() to give to the contour around it.
+void c2_append_expolygons(const C2::PolyPath64 &outer, ExPolygons &out, std::vector<const C2::Path64*> &stray_holes)
 {
-    ExPolygon &expoly = out.emplace_back();
-    expoly.contour.points = c2_to_points(outer.Polygon());
-    expoly.holes.reserve(outer.Count());
-    for (const auto &hole : outer)
-        expoly.holes.emplace_back().points = c2_to_points(hole->Polygon());
-    // Islands inside the holes.
-    for (const auto &hole : outer)
-        for (const auto &island : *hole)
-            c2_append_expolygons(*island, out);
+    if (C2::Area(outer.Polygon()) < 0.) {
+        stray_holes.emplace_back(&outer.Polygon());
+        for (const auto &island : outer)
+            c2_append_expolygons(*island, out, stray_holes);
+        return;
+    }
+    // Indexed, as the recursion below may reallocate out.
+    const size_t idx = out.size();
+    out.emplace_back().contour.points = c2_to_points(outer.Polygon());
+    out[idx].holes.reserve(outer.Count());
+    for (const auto &child : outer)
+        if (C2::Area(child->Polygon()) > 0.)
+            c2_append_expolygons(*child, out, stray_holes);
+        else {
+            out[idx].holes.emplace_back().points = c2_to_points(child->Polygon());
+            // Islands inside the hole.
+            for (const auto &island : *child)
+                c2_append_expolygons(*island, out, stray_holes);
+        }
+}
+
+// Whether outer encloses inner, two paths of one Clipper2 result. Such paths don't cross, they only touch, and rounding
+// both to the grid leaves a touching vertex up to about 1.5 units across the other path. So a vertex of inner that close
+// to outer doesn't count, the first vertex clear of it decides, and a path touching at every vertex goes by a point
+// strictly inside it: either lies on the same side of outer as the whole path. A sliver too thin to hold such a point is
+// taken as not enclosed. A hole closely hugging an island inside it would pass, so callers skip any outer no larger than
+// inner: a path inside another is always the smaller.
+bool path_encloses(const Polygon &outer, const Polygon &inner)
+{
+    // The rounding of the two paths, and of the projection Polygon::on_boundary() measures to.
+    static constexpr double touching = 3.;
+    for (const Point &pt : inner.points)
+        if (! outer.on_boundary(pt, touching))
+            return contains(outer, pt, true);
+    const std::optional<Point> pt = ClipperUtils::interior_point(inner);
+    return pt && contains(outer, *pt, true);
+}
+
+// Gives each stray hole to the innermost of the contours out[first..] around it. Contours of a Clipper2 result don't
+// cross, so those around a hole are nested and the innermost one is the smallest: candidates are tried smallest first,
+// from the first one larger than the hole.
+void c2_attach_stray_holes(ExPolygons &out, size_t first, const std::vector<const C2::Path64*> &stray_holes)
+{
+    if (stray_holes.empty())
+        return;
+    using Tree = AABBTreeIndirect::Tree<2, coord_t>;
+    std::vector<AABBTreeIndirect::BoundingBoxWrapper> bboxes;
+    bboxes.reserve(out.size() - first);
+    for (size_t i = first; i < out.size(); ++ i)
+        bboxes.emplace_back(i, get_extents(out[i].contour));
+    Tree tree;
+    tree.build_modify_input(bboxes);
+    // Contour areas, computed when a contour first becomes a candidate.
+    std::vector<double> areas(out.size(), 0.);
+    std::vector<size_t> candidates;
+    for (const C2::Path64 *path : stray_holes) {
+        Polygon hole;
+        hole.points = c2_to_points(*path);
+        const double            hole_area = - C2::Area(*path);
+        const BoundingBox       bbox      = get_extents(hole);
+        const Tree::BoundingBox hole_bbox(bbox.min, bbox.max);
+        candidates.clear();
+        AABBTreeIndirect::traverse(tree,
+            [&hole_bbox](const Tree::Node &node) { return node.bbox.contains(hole_bbox); },
+            [&candidates](const Tree::Node &node) { candidates.emplace_back(node.idx); return true; });
+        for (size_t idx : candidates)
+            if (areas[idx] == 0.)
+                areas[idx] = out[idx].contour.area();
+        std::sort(candidates.begin(), candidates.end(), [&areas](size_t a, size_t b) { return areas[a] < areas[b]; });
+        auto larger = std::upper_bound(candidates.begin(), candidates.end(), hole_area, [&areas](double area, size_t idx) { return area < areas[idx]; });
+        if (auto it = std::find_if(larger, candidates.end(), [&out, &hole](size_t idx) { return path_encloses(out[idx].contour, hole); });
+            it == candidates.end())
+            // Nothing around it: keep the path as Clipper2 returned it.
+            out.emplace_back().contour = std::move(hole);
+        else
+            out[*it].holes.emplace_back(std::move(hole));
+    }
 }
 
 ExPolygons c2_to_expolygons(const C2::PolyTree64 &tree)
@@ -305,8 +383,10 @@ ExPolygons c2_to_expolygons(const C2::PolyTree64 &tree)
         cnt += c2_count_expolygons(*outer);
     ExPolygons out;
     out.reserve(cnt);
+    std::vector<const C2::Path64*> stray_holes;
     for (const auto &outer : tree)
-        c2_append_expolygons(*outer, out);
+        c2_append_expolygons(*outer, out, stray_holes);
+    c2_attach_stray_holes(out, 0, stray_holes);
     return out;
 }
 
@@ -335,14 +415,15 @@ Polylines c2_clip_open(C2::ClipType type, const C2::Paths64 &subject, const C2::
 }
 
 // Clipper1 semantics: miter limit at least 2, arc tolerance (also for round caps) at most a quarter of the offset.
-void c2_offset_setup(C2::ClipperOffset &co, float delta, JoinType joinType, double miterLimit)
+// Without a round join, a positive capTolerance replaces Clipper1's 0.25 for the round caps.
+void c2_offset_setup(C2::ClipperOffset &co, float delta, JoinType joinType, double miterLimit, double capTolerance = 0.)
 {
     const double max_arc_tolerance = std::abs(delta) * 0.25;
     if (joinType == jtRound)
         co.ArcTolerance(miterLimit > 0. ? std::min(miterLimit, max_arc_tolerance) : 0.25);
     else {
         co.MiterLimit(std::max(miterLimit, 2.));
-        co.ArcTolerance(std::min(0.25, max_arc_tolerance));
+        co.ArcTolerance(std::min(capTolerance > 0. ? capTolerance : 0.25, max_arc_tolerance));
     }
 }
 
@@ -466,7 +547,7 @@ ExPolygons c2_expolygons_offset_ex(const ExPolygonRange &src, float delta, JoinT
 }
 
 template<class PathsProvider>
-Polygons c2_offset_lines(PathsProvider &&src, float delta, JoinType joinType, double miterLimit, EndType endType)
+Polygons c2_offset_lines(PathsProvider &&src, float delta, JoinType joinType, double miterLimit, EndType endType, double capTolerance = 0.)
 {
     C2::Paths64 out;
     if (endType == etClosedPolygon) {
@@ -480,7 +561,7 @@ Polygons c2_offset_lines(PathsProvider &&src, float delta, JoinType joinType, do
     for (const Points &path : src)
         append_offset_path(paths, path, shortest, end);
     C2::ClipperOffset co;
-    c2_offset_setup(co, delta, joinType, miterLimit);
+    c2_offset_setup(co, delta, joinType, miterLimit, capTolerance);
     co.AddPaths(paths, to_c2(joinType), end);
     co.Execute(delta, out);
     return c2_to_polygons(out);
@@ -536,8 +617,8 @@ Slic3r::Polygons offset(const Slic3r::Polyline3 &polyline, const float delta, Jo
     assert(delta > 0);
     return c2_offset_lines(ClipperUtils::SinglePathProvider(polyline.to_polyline().points), delta, joinType, miterLimit, end_type);
 }
-Slic3r::Polygons offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType, double miterLimit, EndType end_type)
-    { assert(delta > 0); return c2_offset_lines(ClipperUtils::PolylinesProvider(polylines), delta, joinType, miterLimit, end_type); }
+Slic3r::Polygons offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType, double miterLimit, EndType end_type, double cap_tolerance)
+    { assert(delta > 0); return c2_offset_lines(ClipperUtils::PolylinesProvider(polylines), delta, joinType, miterLimit, end_type, cap_tolerance); }
 
 Polygons contour_to_polygons(const Polygon &polygon, const float line_width, JoinType join_type, double miter_limit)
     { assert(line_width > 1.f); return c2_offset_lines(ClipperUtils::SinglePathProvider(polygon.points), line_width / 2, join_type, miter_limit, etClosedLine); }
@@ -667,6 +748,24 @@ Slic3r::Polygons diff(const Slic3r::ExPolygons &subject, const Slic3r::ExPolygon
     { return _clipper(ctDifference, ClipperUtils::ExPolygonsProvider(subject), ClipperUtils::ExPolygonsProvider(clip), do_safety_offset); }
 Slic3r::Polygons diff(const Slic3r::Surfaces &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper(ctDifference, ClipperUtils::SurfacesProvider(subject), ClipperUtils::PolygonsProvider(clip), do_safety_offset); }
+Slic3r::Polygons diff_expanded(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, float delta)
+{
+    if (subject.empty())
+        return {};
+    // Each path simplified on its own, and kept as it is where simplifying would turn a contour into a hole or back.
+    Polygons coarse;
+    for (const Polygon &path : clip) {
+        Polygons simplified = polygons_simplify({ path }, delta / 8.);
+        if (!simplified.empty() && (area(simplified) > 0.) != path.is_counter_clockwise())
+            coarse.emplace_back(path);
+        else
+            append(coarse, std::move(simplified));
+    }
+    // The miter limit argument of a round join is its arc tolerance.
+    if (diff(subject, expand(coarse, 0.7f * delta, jtRound, 0.01 * delta)).empty())
+        return {};
+    return diff(subject, expand(clip, delta));
+}
 Slic3r::Polygons intersection(const Slic3r::Polygon &subject, const Slic3r::Polygon &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper(ctIntersection, ClipperUtils::SinglePathProvider(subject.points), ClipperUtils::SinglePathProvider(clip.points), do_safety_offset); }
 Slic3r::Polygons intersection_clipped(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset) 
@@ -800,6 +899,114 @@ Slic3r::ExPolygons intersection_ex(const Slic3r::Surfaces &subject, const Slic3r
     { return _clipper_ex(ctIntersection, ClipperUtils::SurfacesProvider(subject), ClipperUtils::SurfacesProvider(clip), do_safety_offset); }
 Slic3r::ExPolygons intersection_ex(const Slic3r::SurfacesPtr &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper_ex(ctIntersection, ClipperUtils::SurfacesPtrProvider(subject), ClipperUtils::ExPolygonsProvider(clip), do_safety_offset); }
+
+namespace ClipperUtils {
+    std::vector<ExPolygonsTile> tile_expolygons(const ExPolygons &expolygons, size_t per_tile)
+    {
+        BoundingBox              extent;
+        std::vector<BoundingBox> bboxes;
+        bboxes.reserve(expolygons.size());
+        for (const ExPolygon &expoly : expolygons) {
+            bboxes.emplace_back(get_extents(expoly));
+            extent.merge(bboxes.back());
+        }
+        if (! extent.defined)
+            return {};
+        const int     tiles  = std::clamp(int(std::sqrt(double(expolygons.size()) / double(std::max<size_t>(per_tile, 1)))), 1, 32);
+        const Point   size   = extent.size();
+        const coord_t tile_w = std::max<coord_t>(1, size.x() / tiles + 1), tile_h = std::max<coord_t>(1, size.y() / tiles + 1);
+        std::vector<ExPolygonsTile> out(size_t(tiles * tiles));
+        for (size_t i = 0; i < expolygons.size(); ++ i) {
+            const Point c = bboxes[i].center();
+            ExPolygonsTile &tile = out[size_t(std::clamp(int((c.y() - extent.min.y()) / tile_h), 0, tiles - 1) * tiles +
+                                              std::clamp(int((c.x() - extent.min.x()) / tile_w), 0, tiles - 1))];
+            tile.members.emplace_back(i);
+            tile.bbox.merge(bboxes[i]);
+        }
+        out.erase(std::remove_if(out.begin(), out.end(), [](const ExPolygonsTile &tile) { return tile.members.empty(); }), out.end());
+        return out;
+    }
+
+    // Between two consecutive heights of its vertices the polygon is a set of trapezoids, and the line through the middle
+    // of that band meets no vertex and no horizontal edge: its crossings with the edges alternate into and out of the
+    // polygon, and there each trapezoid is at least half as wide as at its widest. So the bands are tried widest first,
+    // until the middle of the widest span on that line rounds to a point strictly inside. A band under two units has no
+    // grid line inside it.
+    std::optional<Point> interior_point(const Polygon &polygon)
+    {
+        std::vector<coord_t> heights;
+        heights.reserve(polygon.size());
+        for (const Point &pt : polygon.points)
+            heights.emplace_back(pt.y());
+        std::sort(heights.begin(), heights.end());
+        heights.erase(std::unique(heights.begin(), heights.end()), heights.end());
+        std::vector<std::pair<coord_t, coord_t>> bands;
+        for (size_t i = 1; i < heights.size(); ++ i)
+            if (heights[i] - heights[i - 1] >= 2)
+                bands.emplace_back(heights[i - 1], heights[i]);
+        std::sort(bands.begin(), bands.end(), [](const auto &a, const auto &b) { return a.second - a.first > b.second - b.first; });
+        std::vector<double> crossings;
+        for (const auto &[low, high] : bands) {
+            const coord_t y = low + (high - low) / 2;
+            crossings.clear();
+            for (size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j = i ++) {
+                const Point &a = polygon.points[j];
+                const Point &b = polygon.points[i];
+                if ((a.y() > y) != (b.y() > y))
+                    crossings.emplace_back(double(a.x()) + double(y - a.y()) * double(b.x() - a.x()) / double(b.y() - a.y()));
+            }
+            std::sort(crossings.begin(), crossings.end());
+            // Inside from the first crossing to the second, from the third to the fourth...
+            double left = 0., right = 0.;
+            for (size_t i = 1; i < crossings.size(); i += 2)
+                if (crossings[i] - crossings[i - 1] > right - left) {
+                    left  = crossings[i - 1];
+                    right = crossings[i];
+                }
+            if (const Point pt(coord_t(std::round(0.5 * (left + right))), y); right > left && contains(polygon, pt, false))
+                return pt;
+        }
+        return std::nullopt;
+    }
+}
+
+static Slic3r::ExPolygons clipper_ex_by_piece(ClipType clipType, const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
+{
+    // A few dozen subject ExPolygons to a tile, each tile one Clipper call with the clip cut to the tile's box.
+    const std::vector<ClipperUtils::ExPolygonsTile> tiles = ClipperUtils::tile_expolygons(subject, 32);
+    // One tile is the plain call: cutting the clip would only cost time.
+    if (tiles.size() <= 1)
+        return _clipper_ex(clipType, ClipperUtils::ExPolygonsProvider(subject), ClipperUtils::PolygonsProvider(clip), do_safety_offset);
+    std::vector<BoundingBox> clip_bboxes;
+    clip_bboxes.reserve(clip.size());
+    for (const Polygon &polygon : clip)
+        clip_bboxes.emplace_back(get_extents(polygon));
+
+    std::vector<Slic3r::ExPolygons> out_tiles(tiles.size());
+    tbb::parallel_for(size_t(0), tiles.size(), [&](size_t tile_idx) {
+        const ClipperUtils::ExPolygonsTile &tile = tiles[tile_idx];
+        Slic3r::ExPolygons local_subject;
+        local_subject.reserve(tile.members.size());
+        for (size_t i : tile.members)
+            local_subject.emplace_back(subject[i]);
+        // Grown so that the cut edges of the clip stay clear of the subject, also after the safety offset.
+        const BoundingBox bbox = tile.bbox.inflated(SCALED_EPSILON);
+        Polygons local_clip;
+        for (size_t i = 0; i < clip.size(); ++i)
+            if (clip_bboxes[i].overlap(bbox))
+                if (Polygon clipped = ClipperUtils::clip_clipper_polygon_with_subject_bbox(clip[i], bbox); ! clipped.empty())
+                    local_clip.emplace_back(std::move(clipped));
+        out_tiles[tile_idx] = _clipper_ex(clipType, ClipperUtils::ExPolygonsProvider(local_subject), ClipperUtils::PolygonsProvider(local_clip), do_safety_offset);
+    });
+    Slic3r::ExPolygons out;
+    for (Slic3r::ExPolygons &out_tile : out_tiles)
+        append(out, std::move(out_tile));
+    return out;
+}
+Slic3r::ExPolygons diff_ex_by_piece(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
+    { return clipper_ex_by_piece(ctDifference, subject, clip, do_safety_offset); }
+Slic3r::ExPolygons intersection_ex_by_piece(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
+    { return clipper_ex_by_piece(ctIntersection, subject, clip, do_safety_offset); }
 // May be used to "heal" unusual models (3DLabPrints etc.) by providing fill_type (pftEvenOdd, pftNonZero, pftPositive, pftNegative).
 Slic3r::ExPolygons union_ex(const Slic3r::Polygons &subject, PolyFillType fill_type)
     { return _clipper_ex(ctUnion, ClipperUtils::PolygonsProvider(subject), ClipperUtils::EmptyPathsProvider(), ApplySafetyOffset::No, fill_type); }
@@ -1007,24 +1214,75 @@ Lines _clipper_ln(ClipType clipType, const Lines &subject, const Polygons &clip)
     return retval;
 }
 
-static void traverse_pt_outside_in(const C2::PolyPath64 &parent, Polygons *retval)
+// Chains the loops of one level of the tree, each followed by the loops under it, depth first. Clipper2 may put a loop
+// beside the loop around it instead of under it (see c2_append_expolygons()), out of the nesting order the callers rely
+// on: the spiral of FillSpiralInset continues only into a loop inside the last one. So a loop whose orientation doesn't
+// fit its level (CCW under the top or a CW loop, CW under a CCW loop) goes under the smallest loop of the level around
+// it, the one Clipper2 failed to put it under, and stays where it is if none is.
+static void traverse_pt_outside_in(const std::vector<const C2::PolyPath64*> &nodes, bool holes, Polygons *retval)
 {
-    // collect ordering points
-    Points ordering_points;
-    ordering_points.reserve(parent.Count());
-    for (const auto &node : parent)
-        ordering_points.emplace_back(node->Polygon().front().x, node->Polygon().front().y);
+    struct Loop
+    {
+        const C2::PolyPath64              *node;
+        double                             area;
+        // The loops to traverse under this one: its children, then the misplaced loops it takes in.
+        std::vector<const C2::PolyPath64*> next;
+        bool                               moved = false;
+    };
+    std::vector<Loop>   loops;
+    std::vector<size_t> fitting, misfits;
+    loops.reserve(nodes.size());
+    for (const C2::PolyPath64 *node : nodes) {
+        Loop &loop = loops.emplace_back(Loop{ node, C2::Area(node->Polygon()), {} });
+        loop.next.reserve(node->Count());
+        for (const auto &child : *node)
+            loop.next.emplace_back(child.get());
+        ((loop.area < 0.) == holes ? fitting : misfits).emplace_back(loops.size() - 1);
+    }
+    if (! misfits.empty()) {
+        // Candidates are tried smallest first, from the first one larger than the misplaced loop (see path_encloses()).
+        std::sort(fitting.begin(), fitting.end(), [&loops](size_t a, size_t b) { return std::abs(loops[a].area) < std::abs(loops[b].area); });
+        std::vector<C2::Rect64> bounds(loops.size());
+        for (size_t i = 0; i < loops.size(); ++ i)
+            bounds[i] = C2::GetBounds(loops[i].node->Polygon());
+        for (size_t misfit : misfits) {
+            Loop             &loop = loops[misfit];
+            const C2::Rect64 &box  = bounds[misfit];
+            Polygon           inner;
+            inner.points = c2_to_points(loop.node->Polygon());
+            for (size_t idx : fitting) {
+                // The slack of a vertex rounded across the candidate, as in c2_attach_stray_holes().
+                const C2::Rect64 &around = bounds[idx];
+                if (std::abs(loops[idx].area) <= std::abs(loop.area) || around.left - SCALED_EPSILON > box.left ||
+                    around.right + SCALED_EPSILON < box.right || around.top - SCALED_EPSILON > box.top || around.bottom + SCALED_EPSILON < box.bottom)
+                    continue;
+                Polygon outer;
+                outer.points = c2_to_points(loops[idx].node->Polygon());
+                if (path_encloses(outer, inner)) {
+                    loops[idx].next.emplace_back(loop.node);
+                    loop.moved = true;
+                    break;
+                }
+            }
+        }
+    }
 
-    // Perform the ordering, push results recursively.
+    // Chain the loops staying on this level, push results recursively.
+    std::vector<size_t> staying;
+    Points              ordering_points;
+    for (size_t i = 0; i < loops.size(); ++ i)
+        if (! loops[i].moved) {
+            staying.emplace_back(i);
+            ordering_points.emplace_back(loops[i].node->Polygon().front().x, loops[i].node->Polygon().front().y);
+        }
     //FIXME pass the last point to chain_points?
     for (size_t idx : chain_points(ordering_points)) {
-        const C2::PolyPath64 &node = *parent.Child(idx);
-        retval->emplace_back().points = c2_to_points(node.Polygon());
-        if (node.IsHole())
+        const Loop &loop = loops[staying[idx]];
+        retval->emplace_back().points = c2_to_points(loop.node->Polygon());
+        if (loop.area < 0.)
             // Orient a hole, which is clockwise oriented, to CCW.
             retval->back().reverse();
-        // traverse the next depth
-        traverse_pt_outside_in(node, retval);
+        traverse_pt_outside_in(loop.next, loop.area > 0., retval);
     }
 }
 
@@ -1032,8 +1290,12 @@ Polygons union_pt_chained_outside_in(const Polygons &subject)
 {
     C2::PolyTree64 tree;
     c2_clip(C2::ClipType::Union, to_paths64(ClipperUtils::PolygonsProvider(subject)), {}, C2::FillRule::EvenOdd, tree);
+    std::vector<const C2::PolyPath64*> top_level;
+    top_level.reserve(tree.Count());
+    for (const auto &node : tree)
+        top_level.emplace_back(node.get());
     Polygons retval;
-    traverse_pt_outside_in(tree, &retval);
+    traverse_pt_outside_in(top_level, false, &retval);
     return retval;
 }
 
@@ -1070,6 +1332,8 @@ ExPolygons top_level_expolygons(const ExPolygons &expolygons, ExPolygons *nested
     c2_clip(C2::ClipType::Union, to_paths64(ClipperUtils::ExPolygonsProvider(expolygons)), {}, C2::FillRule::EvenOdd, tree);
     ExPolygons out;
     out.reserve(tree.Count());
+    const size_t                   first_nested = nested ? nested->size() : 0;
+    std::vector<const C2::Path64*> stray_holes;
     for (const auto &outer : tree) {
         ExPolygon &expoly = out.emplace_back();
         expoly.contour.points = c2_to_points(outer->Polygon());
@@ -1077,9 +1341,11 @@ ExPolygons top_level_expolygons(const ExPolygons &expolygons, ExPolygons *nested
             expoly.holes.emplace_back().points = c2_to_points(hole->Polygon());
             if (nested)
                 for (const auto &island : *hole)
-                    c2_append_expolygons(*island, *nested);
+                    c2_append_expolygons(*island, *nested, stray_holes);
         }
     }
+    if (nested)
+        c2_attach_stray_holes(*nested, first_nested, stray_holes);
     return out;
 }
 

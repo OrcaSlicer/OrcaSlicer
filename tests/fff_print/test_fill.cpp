@@ -1392,6 +1392,27 @@ TEST_CASE("Gyroid infill of an object matches the infill of a larger object with
     }
 }
 
+TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
+{
+    // A left turn by 135 degrees, drawn as two lines half of the 0.4 mm spacing to each side of it.
+    const double turn = 0.75 * PI;
+    Polylines paths{ Polyline{ Point::new_scale(0., 0.), Point::new_scale(10., 0.),
+                               Point::new_scale(10. + 10. * std::cos(turn), 10. * std::sin(turn)) } };
+    FillParams params;
+    params.multiline = 2;
+    multiline_fill(paths, params, 0.4f);
+    REQUIRE(paths.size() == 1);
+
+    // The outer line turns at the miter point, where the lines 0.2 mm out from both legs meet.
+    const Point miter = Point::new_scale(10. + 0.2 * std::tan(0.5 * turn), -0.2);
+    double nearest = std::numeric_limits<double>::max();
+    for (const Point &point : paths.front().points)
+        nearest = std::min(nearest, (point - miter).cast<double>().norm());
+    REQUIRE(nearest < scaled<double>(0.001));
+    // The round ends are flattened to a fraction of the offset rather than to the integer grid.
+    REQUIRE(paths.front().size() < 100);
+}
+
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
     const int    multiline = GENERATE(2, 3);
@@ -2416,4 +2437,71 @@ TEST_CASE("Infill lines that cannot reverse join only end to start", "[Fill]")
         CHECK(position(a) < position(b));
         CHECK(position(c) < position(d));
     }
+}
+
+// Orca: the top surface fills of the topmost layer, which keep their order, each as its extrusions in print order.
+static std::vector<std::vector<const ExtrusionEntity *>> top_surface_fills(const Print &print)
+{
+    std::vector<std::vector<const ExtrusionEntity *>> fills;
+    for (const LayerRegion *region : print.objects().front()->layers().back()->regions())
+        for (const ExtrusionEntity *entity : region->fills.entities)
+            if (auto *fill = dynamic_cast<const ExtrusionEntityCollection *>(entity); fill && fill->no_sort)
+                if (std::any_of(fill->entities.begin(), fill->entities.end(), [](const ExtrusionEntity *ee) { return ee->role() == erTopSolidInfill; }))
+                    fills.emplace_back(fill->entities.begin(), fill->entities.end());
+    return fills;
+}
+
+static double travel_between(const std::vector<const ExtrusionEntity *> &extrusions)
+{
+    double travel = 0.;
+    for (size_t i = 1; i < extrusions.size(); ++ i)
+        travel += unscale<double>((extrusions[i]->first_point() - extrusions[i - 1]->last_point()).cast<double>().norm());
+    return travel;
+}
+
+TEST_CASE("Monotonic line top surfaces print their gap fill next to their lines and keep the lines in order", "[Fill]")
+{
+    // The slanted legs of the letter A leave gap fill along the walls where the lines end.
+    auto slice_letter = [](Print &print, Model &model, const char *gap_fill_target) {
+        auto config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"top_surface_pattern", "monotonicline"},
+                                       {"gap_fill_target", gap_fill_target},
+                                       {"filter_out_gap_fill", 0},
+                                       {"top_shell_layers", 3},
+                                       {"layer_height", 0.2},
+                                       {"initial_layer_print_height", 0.2}});
+        Slic3r::Test::init_print({Slic3r::Test::TestMesh::A}, print, model, config);
+        print.process();
+    };
+    Print print_without, print_with;
+    Model model_without, model_with;
+    slice_letter(print_without, model_without, "nowhere");
+    slice_letter(print_with, model_with, "topbottom");
+    const auto without = top_surface_fills(print_without);
+    const auto with    = top_surface_fills(print_with);
+    REQUIRE(with.size() == without.size());
+
+    auto   is_gap_fill = [](const ExtrusionEntity *ee) { return ee->role() == erGapFill; };
+    size_t gap_fills = 0, gap_fills_before_a_line = 0;
+    for (size_t i = 0; i < with.size(); ++ i) {
+        std::vector<const ExtrusionEntity *> lines, gaps;
+        std::partition_copy(with[i].begin(), with[i].end(), std::back_inserter(gaps), std::back_inserter(lines), is_gap_fill);
+        const auto last_line = std::find_if_not(with[i].rbegin(), with[i].rend(), is_gap_fill);
+        gap_fills += gaps.size();
+        gap_fills_before_a_line += std::count_if(last_line, with[i].rend(), is_gap_fill);
+        // The lines are those of the surface without gap fill, in the same order and direction.
+        REQUIRE(lines.size() == without[i].size());
+        for (size_t j = 0; j < lines.size(); ++ j) {
+            CHECK(lines[j]->first_point() == without[i][j]->first_point());
+            CHECK(lines[j]->last_point() == without[i][j]->last_point());
+        }
+        // Printed where they are, the gap fills travel less than printed after the last line.
+        if (! gaps.empty()) {
+            std::vector<const ExtrusionEntity *> appended = lines;
+            appended.insert(appended.end(), gaps.begin(), gaps.end());
+            CHECK(travel_between(with[i]) < travel_between(appended));
+        }
+    }
+    REQUIRE(gap_fills > 0);
+    CHECK(gap_fills_before_a_line > 0);
 }

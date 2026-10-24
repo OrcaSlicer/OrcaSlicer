@@ -2024,7 +2024,9 @@ static Semver installable_cache_version(const boost::filesystem::path& dir, cons
     const auto cache_ver = Semver::parse(VendorCacheFile::peek_version((dir / (vendor + ".opc")).string(), vendor));
     if (! cache_ver)
         return Semver::invalid();
-    const Semver profile_ver = get_version_from_json((dir / (vendor + ".json")).string());
+    // Packaging prunes the profile of every vendor that ships a cache.
+    const boost::filesystem::path json = dir / (vendor + ".json");
+    const Semver profile_ver = boost::filesystem::exists(json) ? get_version_from_json(json.string()) : Semver();
     return cache_covers(*cache_ver, profile_ver) ? *cache_ver : Semver::invalid();
 }
 
