@@ -5,7 +5,7 @@
 #include <pybind11/cast.h>
 #include "slic3r/plugin/PluginAuditManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp" // PythonGILState
-#include "slic3r/plugin/PluginFsUtils.hpp"   // json_to_py / py_to_json
+#include "slic3r/plugin/PluginJsonPy.hpp"
 
 #include <functional>
 #include <exception>
