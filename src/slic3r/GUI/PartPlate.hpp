@@ -516,6 +516,12 @@ public:
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx
     std::vector<int> get_used_filaments();
+    // Orca: 1-based project filaments the device must map for this plate: those the G-code
+    // extrudes once sliced, otherwise the set the plate's Print collected.
+    std::vector<int> get_device_filaments() const;
+    // Orca: the 0-based project filament behind a G-code tool of this plate's last slice; `tool`
+    // itself when the plate has no Print.
+    int project_slot_of_tool(int tool) const { return m_print != nullptr ? m_print->filament_compaction().project_slot_of_tool(tool) : tool; }
     const std::vector<FilamentInfo>& get_slice_filaments_info() const { return slice_filaments_info; }
     int  get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
     int  get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
