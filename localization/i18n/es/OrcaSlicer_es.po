@@ -13054,13 +13054,12 @@ msgid "Ramming customization"
 msgstr "Personalización de Moldeado de Extremo"
 
 # AI Translated
-# Needs human review: Kept the human text (typo 'impresorad' fixed, 'cambio de cabezal' changed to the glossary's 'cambio de herramienta') and added the missing sentences 'This phase is important... are adjustable.' plus the final expert-level paragraph; check the added wording.
 msgid ""
 "Ramming denotes the rapid extrusion just before a tool change in a single-extruder MM printer. Its purpose is to properly shape the end of the unloaded filament so it does not prevent insertion of the new filament and can itself be reinserted later. This phase is important and different materials can require different extrusion speeds to get the good shape. For this reason, the extrusion rates during ramming are adjustable.\n"
 "\n"
 "This is an expert-level setting, incorrect adjustment will likely lead to jams, extruder wheel grinding into filament etc."
 msgstr ""
-"El moldeado de extremo se refiere a una extrusión rápida justo antes del cambio de herramienta en impresoras MM de extrusor único. Su propósito es dar una forma adecuada al final del filamento descargado para no impedir la inserción del nuevo filamento, y que pueda ser reinsertada por si misma posteriormente. Esta fase es importante y los distintos materiales pueden requerir distintas velocidades de extrusión para obtener una buena forma. Por este motivo, las velocidades de extrusión durante el moldeado de extremo son ajustables.\n"
+"El moldeado de extremo se refiere a una extrusión rápida justo antes del cambio de cabezal en impresoras MM de extrusor único. Su propósito es dar una forma adecuada al final del filamento descargado para no impedir la inserción del nuevo filamento, y que pueda ser reinsertada por si misma posteriormente. Esta fase es importante y los distintos materiales pueden requerir distintas velocidades de extrusión para obtener una buena forma. Por este motivo, las velocidades de extrusión durante el moldeado de extremo son ajustables.\n"
 "\n"
 "Este es un ajuste de nivel experto: un ajuste incorrecto probablemente provocará atascos, que la rueda del extrusor desgaste el filamento, etc."
 
@@ -15513,7 +15512,6 @@ msgid "Extra bridge layers (beta)"
 msgstr "Capas extra de puente (beta)"
 
 # AI Translated
-# Needs human review: Kept the human text with glossary terms ('infill' -> 'relleno', 'infill disperso' -> 'relleno de baja densidad', 'cáscara' -> 'cubierta') and no period after the options, as in the English; added the missing first paragraph and the last sentence of options 2 and 3. Check the added wording.
 msgid ""
 "This option enables the generation of an extra bridge layer over internal and/or external bridges.\n"
 "\n"
@@ -15529,15 +15527,15 @@ msgid ""
 msgstr ""
 "Esta opción permite generar una capa de puente adicional sobre los puentes internos y/o externos.\n"
 "\n"
-"Las capas adicionales de puente ayudan a mejorar la apariencia y la fiabilidad de los puentes, ya que el relleno sólido queda mejor soportado. Esto es especialmente útil en impresoras rápidas, donde las velocidades de puente y de relleno sólido varían mucho. La capa extra de puente reduce el 'pillowing' en las superficies superiores y disminuye la separación de la capa externa del puente respecto a los perímetros circundantes.\n"
+"Las capas adicionales de puente ayudan a mejorar la apariencia y la fiabilidad de los puentes, ya que el infill sólido queda mejor soportado. Esto es especialmente útil en impresoras rápidas, donde las velocidades de puente y de infill sólido varían mucho. La capa extra de puente reduce el 'pillowing' en las superficies superiores y disminuye la separación de la capa externa del puente respecto a los perímetros circundantes.\n"
 "\n"
 "Se recomienda generalmente establecer esto al menos en 'Solo puente externo', a menos que se encuentren problemas específicos con el modelo laminado.\n"
 "\n"
 "Opciones:\n"
-"1. Desactivado - no genera segundas capas de puente. Este es el valor por defecto para compatibilidad\n"
-"2. Solo puente externo - genera segundas capas de puente únicamente para puentes con cara externa. Tenga en cuenta que los puentes pequeños que sean más cortos o estrechos que el número de perímetros establecidos serán omitidos, ya que no se benefician de una segunda capa. Si se genera, la segunda capa de puente se extruirá en paralelo a la primera para reforzar la resistencia del puente\n"
-"3. Solo puente interno - genera segundas capas de puente para puentes internos sobre relleno de baja densidad únicamente. Tenga en cuenta que los puentes internos cuentan para el número de capas de la cubierta superior del modelo. La segunda capa interna de puente se extruirá lo más perpendicular posible respecto a la primera. Si hay varias regiones en la misma isla con distintos ángulos de puente, se tomará como referencia de ángulo la última región de esa isla\n"
-"4. Aplicar a todos - genera segundas capas de puente tanto para puentes internos como externos\n"
+"1. Desactivado - no genera segundas capas de puente. Este es el valor por defecto para compatibilidad.\n"
+"2. Solo puente externo - genera segundas capas de puente únicamente para puentes con cara externa. Tenga en cuenta que los puentes pequeños que sean más cortos o estrechos que el número de perímetros establecidos serán omitidos, ya que no se benefician de una segunda capa. Si se genera, la segunda capa de puente se extruirá en paralelo a la primera para reforzar la resistencia del puente.\n"
+"3. Solo puente interno - genera segundas capas de puente para puentes internos sobre infill disperso únicamente. Tenga en cuenta que los puentes internos cuentan para el número de capas de la cáscara superior del modelo. La segunda capa interna de puente se extruirá lo más perpendicular posible respecto a la primera. Si hay varias regiones en la misma isla con distintos ángulos de puente, se tomará como referencia de ángulo la última región de esa isla.\n"
+"4. Aplicar a todos - genera segundas capas de puente tanto para puentes internos como externos.\n"
 
 msgid "External bridge only"
 msgstr "Solo puente externo"

@@ -19108,7 +19108,7 @@ msgid ""
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
 "A varrat láthatóságának csökkentéséhez zárt hurkú extrudálásnál a hurok megszakad és a megadott mértékben rövidül.\n"
-"Ez az érték megadható milliméterben vagy a fúvóka átmérőjének százalékában. A paraméter alapértéke 10%."
+"Ez az érték megadható milliméterben vagy a fúvóka átmérőjének százalékában. Ennek a paraméternek az alapértelmezett értéke 10%."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Átlapolt varrat (béta)"

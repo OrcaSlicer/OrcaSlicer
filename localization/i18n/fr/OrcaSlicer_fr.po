@@ -18670,7 +18670,7 @@ msgid ""
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
 "Afin de réduire la visibilité de la couture dans une extrusion en boucle fermée, la boucle est interrompue et raccourcie d’une valeur spécifiée.\n"
-"Cette valeur peut être spécifiée en millimètres ou en pourcentage du diamètre de la buse. La valeur par défaut de ce paramètre est 10%."
+"Cette quantité peut être spécifiée en millimètres ou en pourcentage du diamètre de la buse. La valeur par défaut de ce paramètre est 10%."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Couture en biseau (beta)"

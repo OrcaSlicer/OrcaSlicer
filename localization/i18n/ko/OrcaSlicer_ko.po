@@ -17031,7 +17031,7 @@ msgstr "프라임 타워 냉각"
 
 # AI Translated
 msgid "Temperature drop before entering the wipe tower."
-msgstr "프라임 타워 진입 전 온도 강하입니다."
+msgstr "프라임 타워 진입 전 온도 강하."
 
 msgid "Interface layer pre-extrusion distance"
 msgstr "인터페이스 레이어 사전 압출 거리"
@@ -24743,10 +24743,9 @@ msgstr ""
 "위의 동기화 버튼을 클릭하고 보정을 다시 시작하세요."
 
 # AI Translated
-# Needs human review: Moved the material phrase before the nozzle phrase so %1s and %2s keep the source order, and changed 자료 (data) to 재료 (material).
 #, boost-format
 msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
-msgstr "%1% 재료를 %2% 노즐로 인쇄하면 노즐이 손상될 수 있습니다."
+msgstr "%2% 노즐로 %1% 재료를 인쇄하면 노즐이 손상될 수 있습니다."
 
 msgid "Need select printer"
 msgstr "프린터 선택 필요"

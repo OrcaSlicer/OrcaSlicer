@@ -18884,8 +18884,8 @@ msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
-"Um die Sichtbarkeit der Naht bei einer geschlossenen Schleifenextrusion zu verringern, wird die Schleife unterbrochen und um einen bestimmten Betrag verkürzt.\n"
-"Dieser Betrag kann in Millimetern oder als Prozentsatz des Düsendurchmessers angegeben werden. Der Standardwert für diesen Parameter beträgt 10%."
+"Um die Sichtbarkeit der Naht in einer geschlossenen Schleifenextrusion zu reduzieren, wird die Schleife unterbrochen und um eine bestimmte Menge verkürzt.\n"
+"Diese Menge kann in Millimetern oder als Prozentsatz des Düsendurchmessers angegeben werden. Der Standardwert für diesen Parameter beträgt 10%. Dies wird durchgeführt, um das endgültige Produkt glatter und nahtloser aussehen zu lassen."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Schrägnaht (Beta)"
@@ -23987,13 +23987,12 @@ msgid "Only printer names with user printer presets will be displayed, and each 
 msgstr "Nur Druckernamen mit Benutzerdruckerprofilen  werden angezeigt, und jedes Profil, das Sie auswählen, wird als ZIP exportiert."
 
 # AI Translated
-# Needs human review: The earlier translation was cut off; completed the sentence and used the glossary term Profil for preset.
 msgid ""
 "Only the filament names with user filament presets will be displayed, \n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
-"Nur die Filamentnamen mit Benutzer-Filamentprofilen werden angezeigt, \n"
-"und alle Benutzer-Filamentprofile in jedem Filamentnamen, den Sie auswählen, werden als ZIP-Archiv exportiert."
+"Nur die Filamentnamen mit Benutzerfilamentvorlagen werden angezeigt, \n"
+"und alle Benutzerfilamentvorlagen in jedem Filamentnamen, den Sie auswählen, werden als ZIP-Archiv exportiert."
 
 msgid ""
 "Only printer names with changed process presets will be displayed, \n"

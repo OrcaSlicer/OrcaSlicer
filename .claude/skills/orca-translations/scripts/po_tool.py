@@ -177,6 +177,11 @@ class Entry:
         while pos < len(lines) and (lines[pos] == "#" or lines[pos].startswith("# ")):
             pos += 1
         add = []
+        if not ai:  # a person's words: drop a stale AI mark
+            lines = [l for l in lines if l != "# " + AI_TAG]
+            pos = 0
+            while pos < len(lines) and (lines[pos] == "#" or lines[pos].startswith("# ")):
+                pos += 1
         if review is not None:  # "" clears an earlier note, a reason replaces it
             lines = [l for l in lines if not l.startswith("# " + REVIEW_TAG)]
             pos = 0
@@ -504,15 +509,44 @@ def similar_entries(c, e, pool, cutoff=0.72):
     sm = difflib.SequenceMatcher(autojunk=False)
     sm.set_seq2(e.msgid)
     best = []
-    for other, msgstr, obsolete in pool:
+    for other, msgstr, obsolete, human in pool:
         sm.set_seq1(other)
         if sm.real_quick_ratio() < cutoff or sm.quick_ratio() < cutoff:
             continue
         r = sm.ratio()
         if r >= cutoff and other != e.msgid:
-            best.append((r, other, msgstr, obsolete))
+            best.append((r, other, msgstr, obsolete, human))
     best.sort(key=lambda t: -t[0])
-    return [{"msgid": o, "msgstr": s, "obsolete": ob, "similarity": round(r, 2)} for r, o, s, ob in best[:2]]
+    return [dict({"msgid": o, "msgstr": s, "obsolete": ob, "similarity": round(r, 2)}, **({"human": True} if h else {}))
+            for r, o, s, ob, h in best[:2]]
+
+
+def similar_pool(c):
+    return [(x.msgid, x.msgstrs()[0], x.obsolete, not x.ai) for x in c.entries
+            if not x.is_header and x.msgstrs() and x.msgstrs()[0] and not x.fuzzy and 8 < len(x.msgid) < 600]
+
+
+def human_drift(e, strs, pool):
+    """Why a translation strays from a person's text more than the English change explains, or None."""
+    import difflib
+    alike = lambda x, y: difflib.SequenceMatcher(None, x, y, autojunk=False).ratio()
+    new, old = "\n".join(strs), "\n".join(e.msgstrs())
+    if old.strip() and not e.ai:
+        r = alike(old, new)
+        if r < 0.85:
+            return (f"replaces a person's translation with text only {r:.0%} like it: keep their words and change "
+                    f"only what the fix needs, or give \"rewrite\": \"<reason>\"")
+        return None
+    if old.strip() or len(e.msgid) <= 8:
+        return None
+    for s in similar_entries(None, e, pool, cutoff=0.85):
+        if s.get("human"):
+            r = alike(s["msgstr"], new)
+            if r < s["similarity"] - 0.1:
+                return (f"the English is {s['similarity']:.0%} like a string a person translated, but this translation is "
+                        f"only {r:.0%} like theirs: patch their translation, or give \"rewrite\": \"<reason>\"")
+            break
+    return None
 
 
 def cmd_pending(a):
@@ -520,8 +554,7 @@ def cmd_pending(a):
     g = Glossary(a.wiki, langs=[a.lang])
     todo = [e for e in c.active() if needs_translation(e, c.nplurals, a.include_fuzzy)]
     batch = todo[a.offset:a.offset + a.limit] if a.limit else todo[a.offset:]
-    pool = [(x.msgid, x.msgstrs()[0], x.obsolete) for x in c.entries
-            if not x.is_header and x.msgstrs() and x.msgstrs()[0] and not x.fuzzy and 8 < len(x.msgid) < 600]
+    pool = similar_pool(c)
     items = []
     for e in batch:
         item = {"id": e.id(), "msgctxt": e.msgctxt, "msgid": e.msgid}
@@ -561,6 +594,7 @@ def cmd_apply(a):
     items = data["entries"] if isinstance(data, dict) else data
     idx = c.index()
     by_id = {c.entries[i].id(): i for i in idx.values()}
+    pool = similar_pool(c)
     applied, skipped, rejected, warned = 0, 0, [], []
     for it in items:
         if "msgid" in it:
@@ -588,9 +622,16 @@ def cmd_apply(a):
         if errors:
             rejected.append((label, errors))
             continue
+        drift = None if it.get("rewrite") else human_drift(e, strs, pool)
+        if drift:
+            rejected.append((label, [drift]))
+            continue
         if warnings:
             warned.append((label, warnings))
-        c.changes[i] = e.rewrite(strs, ai=not a.human, review=it.get("review"))
+        review = it.get("review")
+        if it.get("rewrite") and not review:
+            review = "Rewrote a person's translation: " + it["rewrite"]
+        c.changes[i] = e.rewrite(strs, ai=not a.human, review=review)
         applied += 1
     if not a.dry_run and c.changes:
         c.save()

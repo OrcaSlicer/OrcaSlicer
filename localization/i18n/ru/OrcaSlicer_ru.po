@@ -4128,14 +4128,12 @@ msgstr "неизвестно"
 msgid "Done."
 msgstr "Готово."
 
-# AI Translated
-# Needs human review: Split the sentence in two to restore the English line break; check it still reads naturally.
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
 msgstr ""
-"Все выбранные модели находятся на заблокированном столе.\n"
-"Авторасстановка недоступна."
+"Авторасстановка недоступна,\n"
+"так как все выбранные модели находятся на заблокированном столе."
 
 msgid "No arrangeable objects are selected."
 msgstr "Не выбраны модели для расстановки."
@@ -4184,14 +4182,12 @@ msgstr ""
 "При расстановке были проигнорированы следующие модели, которые не помещаются на одном столе:\n"
 "%s"
 
-# AI Translated
-# Needs human review: Split the sentence in two to restore the English line break; check it still reads naturally.
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-orient these objects."
 msgstr ""
-"Все выбранные модели находятся на заблокированном столе.\n"
-"Автоориентация недоступна."
+"Автоориентация недоступна,\n"
+"так как все выбранные модели находятся на заблокированном столе."
 
 msgid ""
 "This plate is locked.\n"
@@ -17641,15 +17637,14 @@ msgstr "Обе стороны"
 
 # "only custom start G-code" в Орке не существует. Вероятно, забыли стереть при портировании из SuperSlicer.
 # AI Translated
-# Needs human review: Rewritten from the person's text to keep G0/G1 and the English line structure (custom G-code barrier, start G-code, 0 disables); check the wording.
 msgid ""
 "Start the fan this number of seconds earlier than its target start time (you can use fractional seconds). It assumes infinite acceleration for this time estimation, and will only take into account G1 and G0 moves (arc fitting is unsupported).\n"
 "It won't move fan commands from custom G-code (they act as a sort of 'barrier').\n"
 "It won't move fan commands into the start G-code if the 'only custom start G-code' is activated.\n"
 "Use 0 to deactivate."
 msgstr ""
-"Сместить управление вентилятором на заданное время для его запуска заранее. Можно указать дробное количество секунд. Расчёт смещения не учитывает ускорения и использует только перемещения G1 и G0 (аппроксимация дугами не поддерживается).\n"
-"Команды вентилятора из пользовательского G-code не смещаются (они служат своего рода барьером).\n"
+"Сместить управление вентилятором на заданное время для его запуска заранее. Можно указать дробное количество секунд.\n"
+"Примечание: расчёт смещения не учитывает ускорения, команды движения по дуге (аппроксимацию дугами) и пользовательский G-code; учитываются только перемещения G1 и G0.\n"
 "Команды вентилятора не переносятся в стартовый G-code, если включён «только пользовательский стартовый G-code».\n"
 "0 – отключить."
 
@@ -19061,13 +19056,12 @@ msgstr "Ступенчато смещать швы внутренних пери
 msgid "Seam gap"
 msgstr "Зазор шва"
 
-# AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
-"Чтобы уменьшить заметность шва при экструзии замкнутого контура, контур прерывается и укорачивается на заданную величину.\n"
-"Эту величину можно указать в миллиметрах или в процентах от диаметра сопла. Значение по умолчанию — 10%."
+"Позволяет укоротить периметры на заданную длину, чтобы уменьшить видимость шва.\n"
+"Можно указать значение в миллиметрах или процент от диаметра сопла. Значение по умолчанию – 10%. Внимание: большой зазор может ухудшить печать коротких периметров."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Косой шов (beta)"

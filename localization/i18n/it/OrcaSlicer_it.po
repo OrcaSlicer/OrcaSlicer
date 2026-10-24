@@ -18988,7 +18988,7 @@ msgid ""
 "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
 "Per ridurre la visibilità della cucitura in un'estrusione ad anello chiuso, l'anello viene interrotto e accorciato di una quantità specificata.\n"
-"Questa quantità può essere specificata in millimetri o come percentuale del diametro dell'ugello. Il valore predefinito di questo parametro è 10%."
+"Questa quantità può essere specificata in millimetri o come percentuale del diametro dell'ugello. Il valore predefinito per questo parametro è 10%."
 
 msgid "Scarf joint seam (beta)"
 msgstr "Cucitura obliqua (beta)"

@@ -37573,14 +37573,13 @@ msgstr ""
 "自動向き調整で最適な向きをワンクリックで実現できます。"
 
 # AI Translated
-# Needs human review: Added the missing last sentence (the Place on face function or the F key) to the human translation and changed プレート to the glossary's ベッド for the print bed; check it reads naturally.
 #: resources/data/hints.ini: [hint:Lay on Face]
 msgid ""
 "Lay on Face\n"
 "Did you know that you can quickly orient a model so that one of its faces sits on the print bed? Select the \"Place on face\" function or press the <b>F</b> key."
 msgstr ""
 "底面を選択\n"
-"ベッドと接触する面を指定し、オブジェクトの向きを簡単に調整できます。「面に配置」機能を選択するか、<b>F</b>キーを押してください。"
+"プレートと接触する面を指定し、オブジェクトの向きを簡単に調整できます。「面に配置」機能を選択するか、<b>F</b>キーを押してください。"
 
 #: resources/data/hints.ini: [hint:Object List]
 msgid ""

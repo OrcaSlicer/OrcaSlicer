@@ -112,6 +112,8 @@ For each language:
      - `note`: the developer's `TRN` comment.
      - `flags`: `c-format` or `boost-format`.
      - `description`: present when a sense has to be chosen.
+     - `similar`: earlier translations of similar English. `"human": true` marks a person's work: when
+       the English barely changed, patch that translation instead of translating again (see the rules).
 3. Read every apply message:
    - **REJECTED:** a hard rule broke. Fix the translation and apply the corrected items again.
    - **WARNING:** something worth a second look, such as a glossary rendering not found, ending
@@ -121,13 +123,17 @@ For each language:
 
 `apply` adds `# AI Translated` to every entry it writes, and `# Needs human review: <reason>` where an
 item has `review`. On an `--overwrite`, `"review": ""` removes an earlier note. Never add either to a translation a person wrote. `--human` is for applying their
-text.
+text, and for a fix that keeps their words; it also drops a stale AI mark. `apply` rejects text that
+strays from a person's translation more than the English change explains, unless the item says why
+with `"rewrite": "<reason>"`.
 
 **The work is large:** every new string, times every language. When subagents are available, give each
 one a language or a few. Each agent only touches its own catalogs, so they can run
 in parallel. Settle step 3 first. Give each agent the language list, this skill's path, the rules file,
 and these instructions:
 - Fill every empty entry.
+- Patch a person's earlier translation (`"human": true` in `similar`) instead of translating again, and
+  keep their words when fixing their entries.
 - Don't add glossary rows.
 - Report what it could not translate, the review notes it added, and any term it thinks the glossary
   still lacks.
