@@ -640,10 +640,38 @@ body.cloud-mode #LeftBoard
 	padding: 6px 0px;
 }
 
+#RecentFindBtn,
 #RecentClearAllBtn
 {
 	margin-left: auto;
 	display: none;
+}
+
+body.RecentScanning #RecentFindBtn,
+body.RecentScanning .FileMissingBtn[data-action="find"]
+{
+	cursor: default;
+	color: var(--button-fg-disabled);
+}
+
+body.RecentScanning #RecentFindBtn::before,
+body.RecentScanning .FileMissingBtn[data-action="find"]::before
+{
+	content: "";
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 6px;
+	width: 10px;
+	height: 10px;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: RecentScanSpin 0.8s linear infinite;
+}
+
+@keyframes RecentScanSpin
+{
+	to { transform: rotate(360deg); }
 }
 
 #RecentToolBlock
@@ -850,6 +878,22 @@ body.cloud-mode #LeftBoard
 	color: var(--fg-color-disabled);
 }
 
+/* Above .FileTip, which covers the whole file to show its path. */
+.FileMissingActions
+{
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 184px;
+	height: 184px;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
 #FileList.ListView
 {
 	flex-direction: column;
@@ -898,7 +942,41 @@ body.cloud-mode #LeftBoard
 	flex: 0 0 auto;
 }
 
-/*
+/* A row has room for the name, date and actions together, so hovering it doesn't swap them. */
+#FileList.ListView .FileItem:hover .FileNamePack
+{
+	display: flex;
+}
+
+#FileList.ListView .FileItem:hover .FileDate
+{
+	display: block;
+}
+
+#FileList.ListView .FileActions
+{
+	display: flex;
+	visibility: hidden;
+	flex: 0 0 auto;
+	width: auto;
+	margin-top: 0px;
+	gap: 8px;
+}
+
+#FileList.ListView .FileItem:hover .FileActions
+{
+	visibility: visible;
+}
+
+#FileList.ListView .FileMissingActions
+{
+	position: relative;
+	flex: 0 0 auto;
+	width: auto;
+	height: auto;
+	flex-direction: row;
+}
+
 #recnet_context_menu
 {
 	position: absolute;
@@ -931,55 +1009,12 @@ body.cloud-mode #LeftBoard
 	color: #fff;
 }
 
-
-.CT_Icon
-{
-	margin-right: 6px;
-	width: 16px;
-	height: 16px;	
-}
-
-#CT_Delete_Bar:hover  .CT_Delete
-{
-	background: url("../img/remove2.svg");
-	background-repeat: no-repeat;
-	background-size: contain;	
-}
-
-.CT_Delete
-{
-	background: url("../img/remove.svg");
-	background-repeat: no-repeat;
-	background-size: contain;	
-}
-
-#CT_Folder_Bar:hover .CT_Explore
-{
-	background: url("../img/open_folder2.svg");
-	background-repeat: no-repeat;
-	background-size: contain;	
-}
-
-.CT_Explore
-{
-	background: url("../img/open_folder.svg");
-	background-repeat: no-repeat;
-	background-size: contain;		
-}
-
-
-.CT_Seperate
-{
-	border-bottom:1px solid  #C5C5C5;
-}
-
 .CT_Text
 {
 	line-height: 20px;
 	height: 20px;	
 	display: block;
 }
-*/
 
 /*ORCA Hide filename and date on hover and show action buttons*/
 .FileActions {

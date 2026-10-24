@@ -103,6 +103,7 @@ public:
 
 public:
     void SendRecentList();
+    void SendRecentScanRunning(bool running);
     void SetLoginPanelVisibility(bool bshow);
     void SendDesignStaffpick(bool on);
     void OpenModelDetail(std::string id, NetworkAgent *agent);

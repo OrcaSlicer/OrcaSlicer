@@ -656,6 +656,10 @@ void AppConfig::set_defaults()
         set("max_recent_count", "18");
     }
 
+    if (get("max_project_history").empty()) {
+        set("max_project_history", "1000");
+    }
+
     if (get("recent_models").empty()) {
         set("recent_models", "0");
     }
@@ -1553,11 +1557,12 @@ void AppConfig::set_recent_projects(const std::vector<std::string>& recent_proje
         it = m_storage.insert(std::map<std::string, std::map<std::string, std::string>>::value_type("recent_projects", std::map<std::string, std::string>())).first;
 
     it->second.clear();
+    // The keys are read back in text order, so they are zero-padded to the same width.
+    const size_t key_width = std::max<size_t>(3, std::to_string(recent_projects.size()).length());
     for (unsigned int i = 0; i < (unsigned int)recent_projects.size(); ++i)
     {
         auto n = std::to_string(i + 1);
-        if (n.length() == 1) n = "00" + n;
-        else if (n.length() == 2) n = "0" + n;
+        n.insert(0, key_width - n.length(), '0');
         it->second[n] = recent_projects[i];
     }
 }

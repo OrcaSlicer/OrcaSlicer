@@ -477,6 +477,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrimitiveSizeDialog.hpp
     GUI/RecentThumbnailHandler.cpp
     GUI/RecentThumbnailHandler.hpp
+    GUI/RecentProjectFinder.cpp
+    GUI/RecentProjectFinder.hpp
     GUI/PrinterCloudAuthDialog.cpp
     GUI/PrinterCloudAuthDialog.hpp
     GUI/Printer/PrinterFileSystem.cpp

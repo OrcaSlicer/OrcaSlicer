@@ -5696,6 +5696,20 @@ std::string GUI_App::handle_web_request(std::string cmd)
             else if (command_str.compare("homepage_delete_all_recentfile") == 0) {
                 this->request_remove_project("");
             }
+            else if (command_str.compare("homepage_find_missing_recentfile") == 0) {
+                boost::optional<std::string> path = root.get_optional<std::string>("data.path");
+                if (path.has_value())
+                    mainframe->find_missing_recent_project(wxString::FromUTF8(path.value()));
+            }
+            else if (command_str.compare("homepage_find_projects") == 0) {
+                mainframe->find_new_recent_projects();
+            }
+            else if (command_str.compare("homepage_move_recentfile") == 0) {
+                boost::optional<std::string> path = root.get_optional<std::string>("data.path");
+                boost::optional<std::string> tab  = root.get_optional<std::string>("data.tab");
+                if (path.has_value() && (tab == std::string("project") || tab == std::string("downloaded")))
+                    mainframe->move_recent_project(wxString::FromUTF8(path.value()), tab.value());
+            }
             else if (command_str.compare("homepage_explore_recentfile") == 0) {
                 if (root.get_child_optional("data") != boost::none) {
                     pt::ptree                    data_node = root.get_child("data");

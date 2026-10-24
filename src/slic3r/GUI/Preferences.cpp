@@ -1879,6 +1879,11 @@ void PreferencesDialog::create_items()
     });
     g_sizer->Add(item_max_recent_count);
 
+    auto item_max_project_history = create_item_input(_L("Maximum project history"), "",
+        _L("Maximum count of files kept in the project history of the Home page. Past it, the oldest files are dropped."),
+        "max_project_history", [](wxString) { wxGetApp().mainframe->resize_project_history(); });
+    g_sizer->Add(item_max_project_history);
+
     auto item_recent_models    = create_item_checkbox(_L("Add STL/STEP files to recent files list"), "", "recent_models");
     g_sizer->Add(item_recent_models);
 

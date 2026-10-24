@@ -136,6 +136,7 @@
 		    <div class="RecentTab Content-Title TextS1" data-tab="downloaded" onClick="SelectRecentTab('downloaded')" data-i18n="downloaded_projects">Downloaded</div>
 		    <div class="RecentTab Content-Title TextS1" data-tab="mesh" onClick="SelectRecentTab('mesh')" data-i18n="mesh_files">Mesh</div>
 		    <div class="RecentTab Content-Title TextS1" data-tab="step" onClick="SelectRecentTab('step')" data-i18n="step_files">Step</div>
+			<div id="RecentFindBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnFindRecentProjects()" data-i18n="find_projects">Find 3MFs</div>
 			<div id="RecentClearAllBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnDeleteAllRecentFiles()" data-i18n="clear_all">Clear all</div>
 		</div>
 		<div id="RecentToolBlock">
@@ -143,6 +144,7 @@
 			<select id="RecentSort" class="TextS1" onChange="SelectRecentSort(this.value, true)">
 				<option value="opened" data-i18n="sort_last_opened">Last opened</option>
 				<option value="modified" data-i18n="sort_date_modified">Date modified</option>
+				<option value="added" data-i18n="sort_date_added">Date added</option>
 				<option value="name" data-i18n="sort_name">Name</option>
 			</select>
 			<div class="RecentViewBtn TextS1" data-view="grid" onClick="SelectRecentView('grid', true)" data-i18n="view_grid">Grid</div>
@@ -175,18 +177,11 @@
 	</div>
 	
     <div style="height: 14px;"></div>	
-	<!--
 	<div id="recnet_context_menu">
-		<div id="CT_Delete_Bar" class="CT_Item" onClick="OnDeleteRecentFile()">
-			<div class="CT_Icon CT_Delete"></div>
-			<div class="CT_Text" data-i18n="remove">Remove</div>
+		<div id="CT_Move_Bar" class="CT_Item" onClick="OnMoveRecentFile()">
+			<div class="CT_Text"></div>
 		</div>
-		<div id="CT_Folder_Bar" class="CT_Item " onClick="OnExploreRecentFile()" >
-			<div class="CT_Icon CT_Explore"></div>
-			<div class="CT_Text" data-i18n="open_containing_folder">Open Containing Folder</div>
-		</div>				
     </div>
-	-->	
 </div>
 
 </div>	

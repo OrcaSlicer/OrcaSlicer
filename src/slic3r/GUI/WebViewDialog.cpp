@@ -95,6 +95,10 @@ static json home_page_strings()
         // TRN Home page tab: recently opened STEP files.
         {"step_files", _u8L("Step")},
         {"clear_all", _u8L("Clear all")},
+        // TRN Home page button: look in a folder for 3MFs to add to the project history, and for missing ones.
+        {"find_projects", _u8L("Find 3MFs")},
+        // TRN Home page button on a recent project whose file was moved or deleted: look for it in a folder.
+        {"find_missing", _u8L("Find missing")},
         // TRN Home page: placeholder of the box that filters the recent files by name.
         {"search_files", _u8L("Search")},
         // TRN Home page: sort the recent files by when they were last opened.
@@ -103,12 +107,18 @@ static json home_page_strings()
         {"sort_date_modified", _u8L("Date modified")},
         // TRN Home page: sort the recent files by file name.
         {"sort_name", _u8L("Name")},
+        // TRN Home page: sort the recent files by when they were added to the history.
+        {"sort_date_added", _u8L("Date added")},
         // TRN Home page: show the recent files as a grid of thumbnails.
         {"view_grid", _u8L("Grid")},
         // TRN Home page: show the recent files as a list, one file per row.
         {"view_list", _u8L("List")},
         {"remove", _u8L("Remove")},
         {"show_in_folder", _u8L("Show in folder")},
+        // TRN Home page right-click menu: list the project under the "My projects" tab.
+        {"move_to_my_projects", _u8L("Move to My projects")},
+        // TRN Home page right-click menu: list the project under the "Downloaded" tab.
+        {"move_to_downloaded", _u8L("Move to Downloaded")},
     };
 }
 
@@ -830,6 +840,14 @@ void WebViewPanel::SendRecentList()
     std::wostringstream oss;
     pt::write_json(oss, req, false);
     RunScript(wxString::Format("window.postMessage(%s)", oss.str()));
+}
+
+void WebViewPanel::SendRecentScanRunning(bool running)
+{
+    json message       = json::object();
+    message["command"] = "recent_scan";
+    message["running"] = running ? 1 : 0;
+    RunScript(wxString::Format("window.postMessage(%s)", message.dump()));
 }
 
 void WebViewPanel::SendDesignStaffpick(bool on)

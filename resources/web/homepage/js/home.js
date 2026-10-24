@@ -36,7 +36,7 @@ function Set_RecentFile_MouseRightBtn_Event()
 			
 			if(e.which == 3){
 				//鼠标点击了右键+$(this).attr('ff') );
-				//ShowRecnetFileContextMenu();
+				ShowRecnetFileContextMenu();
 			}else if(e.which == 2){
 				//鼠标点击了中键
 			}else if(e.which == 1){
@@ -88,13 +88,13 @@ function Set_RecentFile_MouseRightBtn_Event()
 		var e = e || window.event;
         var elem = e.target || e.srcElement;
         while (elem) {
-			//if (elem.id && elem.id == 'recnet_context_menu') {
-            //        return;
-			//}
+			if (elem.id && elem.id == 'recnet_context_menu') {
+                      return;
+			}
 			elem = elem.parentNode;
 		}		
 		
-		//$("#recnet_context_menu").hide();
+		$("#recnet_context_menu").hide();
 	} );
 
 	
@@ -111,6 +111,9 @@ function HandleStudio( pVal )
 	
 	if (strCmd == "get_recent_projects") {
     ShowRecentFileList(pVal["response"]);
+  } else if (strCmd == "recent_scan") {
+    // A class on the body, so the file list can be rebuilt during the scan and keep showing it.
+    $("body").toggleClass("RecentScanning", pVal["running"] * 1 == 1);
   } else if (strCmd == "orca_userlogin") {
     SetOrcaLoginInfo(pVal["data"]["avatar"], pVal["data"]["name"], pVal["data"]["account"]);
   } else if (strCmd == "orca_useroffline") {
@@ -409,6 +412,9 @@ function SortRecentFiles( pList, strSort )
 		return [...pList].sort((A, B) => A['project_name'].localeCompare(B['project_name'], undefined, {numeric: true, sensitivity: 'base'}));
 	if (strSort == 'modified')
 		return [...pList].sort((A, B) => ModifiedTimeOf(B).localeCompare(ModifiedTimeOf(A)));
+	// Files added before the date was kept have none, so they sort as the oldest.
+	if (strSort == 'added')
+		return [...pList].sort((A, B) => B['added'].localeCompare(A['added']));
 	return pList;
 }
 
@@ -460,6 +466,7 @@ function ShowRecentTab()
 		
 		let sBadge=sPublished? '<span class="FilePublishedBadge">'+T("published_badge", "PUB")+'</span>':'';
 		let sLogoBadge=sPublished? '<img class="FileLogoBadge" src="../../images/OrcaSlicer_gradient_circle.svg" alt="" />':'';
+		let sMissingActions=IsMissingProject(OneFile)? MissingProjectActionsHtml():'';
 
 		let TmpHtml='<div class="FileItem"  fpath="'+sPath+'"  >'+
 						'<a class="FileTip" title="'+sPath+'"></a>'+
@@ -473,6 +480,7 @@ function ShowRecentTab()
 								'<div class="icon16"/></div>'+
 							'</div>'+
 						'</div>'+
+						sMissingActions+
 			    	'</div>';
 		
 		strHtml+=TmpHtml;
@@ -482,11 +490,56 @@ function ShowRecentTab()
 	TranslatePage();   // translate the data-i18n attributes on the freshly inserted cards
 	
     Set_RecentFile_MouseRightBtn_Event();
+	Set_MissingProject_Buttons_Event();
 	UpdateRecentClearBtnDisplay();
 }
-/*
+
+function IsProjectFile( OneFile )
+{
+	return OneFile['kind'] == 'project' || OneFile['kind'] == 'downloaded';
+}
+
+// Only a 3MF can be found again: the scan looks for 3MFs.
+function IsMissingProject( OneFile )
+{
+	return OneFile['missing'] == '1' && IsProjectFile(OneFile);
+}
+
+function MissingProjectActionsHtml()
+{
+	return '<div class="FileMissingActions">'+
+			'<div class="FileMissingBtn ButtonTypeCompact ButtonStyleConfirm" data-action="find">'+T("find_missing", "Find missing")+'</div>'+
+		'</div>';
+}
+
+// The buttons sit on the file, so they stop the mousedown that would open it.
+function Set_MissingProject_Buttons_Event()
+{
+	$(".FileMissingBtn").mousedown(
+		function(e)
+		{
+			e.stopPropagation();
+			if (e.which != 1)
+				return;
+			if (!$("body").hasClass("RecentScanning"))
+				OnFindMissingRecentFile($(this).closest('.FileItem').attr('fpath'));
+		});
+}
+
+function RecentFileOfPath( strPath )
+{
+	return m_RecentFiles.find(OneFile => OneFile['path'] == strPath);
+}
+
+// The menu only holds Move, which goes to the other projects tab, so it is only offered for a 3MF.
 function ShowRecnetFileContextMenu()
 {
+	let OneFile=RecentFileOfPath(RightBtnFilePath);
+	if (!OneFile || !IsProjectFile(OneFile))
+		return;
+	let strLabel=OneFile['kind'] == 'downloaded'? T("move_to_my_projects", "Move to My projects"): T("move_to_downloaded", "Move to Downloaded");
+	$("#CT_Move_Bar .CT_Text").text(strLabel);
+
 	$("#recnet_context_menu").offset({top: 10000, left:-10000});
 	$('#recnet_context_menu').show();
 	
@@ -506,7 +559,7 @@ function ShowRecnetFileContextMenu()
 	
 	$("#recnet_context_menu").offset({top: RealY, left:RealX});
 }
-*/
+
 /*-------RecentFile MX Message------*/
 function SendMsg_GetLoginInfo()
 {
@@ -601,6 +654,39 @@ function OnDeleteRecentFile( )
 	SendWXMessage( JSON.stringify(tSend) );
 }
 
+function OnFindMissingRecentFile( strPath )
+{
+	var tSend={};
+	tSend['sequence_id']=Math.round(new Date() / 1000);
+	tSend['command']="homepage_find_missing_recentfile";
+	tSend['data']={};
+	tSend['data']['path']=strPath;
+	
+	SendWXMessage( JSON.stringify(tSend) );
+}
+
+function OnFindRecentProjects()
+{
+	SendSimpleCommand("homepage_find_projects");
+}
+
+function OnMoveRecentFile()
+{
+	$("#recnet_context_menu").hide();
+	let OneFile=RecentFileOfPath(RightBtnFilePath);
+	if (!OneFile)
+		return;
+	
+	var tSend={};
+	tSend['sequence_id']=Math.round(new Date() / 1000);
+	tSend['command']="homepage_move_recentfile";
+	tSend['data']={};
+	tSend['data']['path']=RightBtnFilePath;
+	tSend['data']['tab']=OneFile['kind'] == 'downloaded'? 'project': 'downloaded';
+	
+	SendWXMessage( JSON.stringify(tSend) );
+}
+
 function OnDeleteAllRecentFiles()
 {
 	$('#FileList').html('');
@@ -621,6 +707,7 @@ function UpdateRecentClearBtnDisplay()
 		$("#RecentClearAllBtn").show();
 	else
 		$("#RecentClearAllBtn").hide();
+	$("#RecentFindBtn").toggle(m_RecentTab=='project' || m_RecentTab=='downloaded');
 }
 
 
