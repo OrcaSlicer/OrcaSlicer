@@ -418,6 +418,9 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     m_grid->DisableDragRowSize();
     m_grid->Bind(wxEVT_GRID_CELL_CHANGED, [this](wxGridEvent& event) { update_preview(); event.Skip(); });
     m_grid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& event) {
+        // wxGrid commits an open edit only after announcing the new cell (e.g. from a row label click).
+        // Commit it first: the preview it refreshes would otherwise select the previous row again.
+        finish_edit();
         // Moving the grid cursor (including from the graph) doesn't select a row by itself.
         m_grid->SelectRow(event.GetRow());
         m_chart->select_point(event.GetRow());
@@ -446,7 +449,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     auto* paste_button = make_action_button(table_panel, _L("Paste"), "menu_paste", 10);
     paste_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { paste_points(); });
     csv_actions->Add(paste_button, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
-    auto* export_button = make_action_button(table_panel, _L("Export CSV"), "design_export", 10);
+    auto* export_button = m_export_csv = make_action_button(table_panel, _L("Export CSV"), "design_export", 10);
     export_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { export_csv(); });
     export_button->SetToolTip(_L("Export the current points to CSV. This does not save changes to the preset."));
     auto* import_button = make_action_button(table_panel, _L("Import CSV"), "menu_load", 10);
@@ -467,30 +470,25 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     };
     m_add_point = add_button(_L("Add point"), "param_add", [this](wxCommandEvent&) {
         finish_edit();
-        const int count = m_grid->GetNumberRows();
-        if (size_t(count) >= m_model->maximum_point_count()) return;
-        if (count == 0) {
+        auto rows = read_rows();
+        if (rows.empty()) {
             const auto seeds = m_model->seed_rows();
             if (seeds.size() > m_model->maximum_point_count()) return;
             load_points(seeds);
         } else {
-            std::vector<double> x, y;
-            const bool valid = read_points(x, y) && count > 1;
-            int row = valid ? std::min(std::max(1, m_grid->GetGridCursorRow() + 1), count - 1) : count;
-            if (valid) {
-                auto rows = read_rows();
-                if (!m_model->insert_point(rows, row)) return;
-                m_grid->InsertRows(row);
-                m_grid->SetCellValue(row, 0, wxString::FromUTF8(rows[row].first));
-                m_grid->SetCellValue(row, 1, wxString::FromUTF8(rows[row].second));
-            } else m_grid->InsertRows(row);
+            // Insert only a valid interpolated point; the edit committed above may have invalidated the table.
+            int row = m_grid->GetGridCursorRow() + 1;
+            if (!m_model->insert_point(rows, row)) return;
+            m_grid->InsertRows(row);
+            m_grid->SetCellValue(row, 0, wxString::FromUTF8(rows[row].first));
+            m_grid->SetCellValue(row, 1, wxString::FromUTF8(rows[row].second));
             m_grid->SetGridCursor(row, 0);
             if (m_table_panel->IsShown()) m_grid->MakeCellVisible(row, 0);
         }
         update_preview();
     });
     m_add_point->SetToolTip(point_limit);
-    add_button(_L("Remove point"), "param_remove", [this](wxCommandEvent&) {
+    m_remove_point = add_button(_L("Remove point"), "param_remove", [this](wxCommandEvent&) {
         finish_edit();
         const int row = m_grid->GetGridCursorRow();
         if (row >= 0 && row < m_grid->GetNumberRows()) {
@@ -552,6 +550,7 @@ CurveEditorDialog::CurveEditorDialog(wxWindow* parent, const wxString& title, co
     auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
     footer_sizer->Add(actions_area, 1, wxEXPAND | wxRIGHT, FromDIP(12));
     auto* dialog_buttons = new DialogButtons(footer, {"OK", "Cancel"});
+    m_ok = dialog_buttons->GetOK();
     // DialogButtons handles DPI changes itself, but its buttons' focus borders follow the theme.
     for (Button* button : std::array{dialog_buttons->GetOK(), dialog_buttons->GetCANCEL()})
         if (button) m_theme_rescales.push_back([button] { button->Rescale(); });
@@ -814,12 +813,23 @@ void CurveEditorDialog::refresh_chart_data(const std::vector<double>& x, const s
 
 void CurveEditorDialog::update_preview()
 {
-    m_add_point->Enable(size_t(m_grid->GetNumberRows()) < m_model->maximum_point_count());
+    auto rows = read_rows();
+    m_remove_point->Enable(!rows.empty());
+    // Enable Add point only when it can seed an empty table or insert a valid point.
+    int row = 0;
+    m_add_point->Enable(rows.empty() ? m_model->seed_rows().size() <= m_model->maximum_point_count()
+                                     : m_model->insert_point(rows, row));
     std::vector<double> x, y;
-    if (!read_points(x, y)) {
+    const bool valid = read_points(x, y);
+    // OK and Export CSV accept only valid rows; show them disabled while the status reports an error.
+    m_ok->Enable(valid);
+    m_export_csv->Enable(valid);
+    if (!valid) {
         x.clear();
         y.clear();
     }
+    // read_points() lays out only for a new status; also fit the table to added or removed rows.
+    if (m_grid->GetMinSize().y != grid_height()) layout_content();
     refresh_chart_data(x, y);
 }
 
@@ -916,9 +926,7 @@ void CurveEditorDialog::layout_content()
 {
     wxRecursionGuard guard(m_layout_depth);
     if (guard.IsInside()) return;
-    // Show only occupied rows, with the grid's own scrollbar for longer models.
-    const int height = m_grid->GetColLabelSize() + m_grid->GetDefaultRowSize() *
-        std::clamp(m_grid->GetNumberRows(), 1, 12);
+    const int height = grid_height();
     if (m_grid->GetMinSize().y != height)
         m_grid->SetMinSize(wxSize(m_grid->GetMinSize().x, height));
     // Sizers force size events even when geometry is unchanged. Relayout only
@@ -929,6 +937,12 @@ void CurveEditorDialog::layout_content()
     // Scrollbars can change the available width. Rewrap after the current layout completes.
     if (width != m_content->GetClientSize().x) m_content->SendSizeEvent(wxSEND_EVENT_POST);
     layout_actions();
+}
+
+int CurveEditorDialog::grid_height() const
+{
+    // Show only occupied rows, with the grid's own scrollbar for longer models.
+    return m_grid->GetColLabelSize() + m_grid->GetDefaultRowSize() * std::clamp(m_grid->GetNumberRows(), 1, 12);
 }
 
 void CurveEditorDialog::layout_actions()

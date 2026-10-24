@@ -110,15 +110,20 @@ Use a disposable print preset. Keep any fixture project separate from normal use
    selection and view must survive, and size hints/scrollbars must follow the new scale.
    On Linux and macOS, repeat between displays with different scale/backing factors
    supported by the desktop and check that native font scaling is not applied twice.
-2. Select a graph point and a table row in turn. Both selections must agree. Edit both
-   columns, drag a point, add/remove points, restore defaults and use Reset View. Reset
-   View and navigation must change only the viewport. Stationary/horizontal/vertical
+2. Select a graph point and a table row in turn. Both selections must agree, also when
+   a changed cell is still being edited and another row's cell or row number is clicked.
+   Edit both columns, drag a point, add/remove points, restore defaults and use Reset
+   View. Reset View and navigation must change only the viewport. Stationary/horizontal/vertical
    drags must not accidentally change the other coordinate or dirty unchanged values.
    Release and immediately grab the point again: dragging must still start when the
    second press is recognized as a double click. Repeat this for middle-button panning.
 3. Reach the model's point limit. Add point must disable, then re-enable after removing
-   a point. Import an oversized CSV: show an error and keep the current curve. Open a
-   larger saved model: preserve its points and allow editing/export without extra additions.
+   a point. Make the table invalid (clear a cell, or leave a single row): Add point, Export
+   CSV and OK must disable without adding a blank row, then re-enable once the values are
+   valid. Remove points, then add them back: the table height must follow its rows, up to
+   12 visible rows, and Remove point must disable once the table is empty. Import an
+   oversized CSV: show an error and keep the current curve. Open a larger saved model:
+   preserve its points and allow editing/export without extra additions.
 4. Toggle Show range and Show table repeatedly at wide and narrow window sizes. Check
    stacking, scrollbars, retained draft values and selection. Hidden table controls must
    not hide graph actions or validation errors. Re-enable the table and continue editing.
