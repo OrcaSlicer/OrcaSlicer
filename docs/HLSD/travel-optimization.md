@@ -10,7 +10,9 @@ things shorten the travel between infill paths:
 - the fill generators join their lines into as few paths as they can, since
   every separate path needs a travel to it;
 - the G-code export refines the greedy chain with a local search that shortens
-  the straight-line travel between the paths.
+  the straight-line travel between the paths;
+- a fill that keeps its order prints each piece of its gap fill where it passes
+  by, since the G-code export cannot reorder it.
 
 The refinement covers every chain that `chain_and_reorder_extrusion_entities()`
 builds from a start point: the infill and ironing of `GCode::extrude_infill()`
@@ -96,6 +98,22 @@ their open ends next to each other; by length alone, neighboring pairs were
 joined at different walls and the travel between them crossed the island. Lines
 that cannot reverse, such as Grid's, only join the end of one to the start of the
 next, and fills that keep their order are left alone.
+
+## Gap fill in a fill that keeps its order
+
+`Fill::_create_gap_fill()` adds the gap fill of a solid surface, where
+`gap_fill_target` asks for it, after the lines of the fill. The chain mixes it
+in with the lines of a sortable fill like any other path. A fill that keeps its
+order, such as monotonic, would print all of its lines and then come back for
+every piece of gap fill, most of which lies at the walls where the lines end.
+
+So each piece, in turn, goes between the two extrusions of the fill where it
+adds the least travel, flipped when that is shorter. A closed piece counts from
+its point nearest the nozzle, where `GCode::extrude_loop()` starts it. The two
+ends of the fill cost nothing, since the travel to and from them depends on what
+is printed before and after. The fill's own extrusions keep their order and
+direction, so a monotonic fill stays monotonic. When the result travels no less
+than the gap fill printed after the lines in its own order, that order is kept.
 
 ## The search
 

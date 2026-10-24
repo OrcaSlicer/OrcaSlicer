@@ -146,6 +146,14 @@ beast::error_code run_until_done(net::io_context& ioc, const std::atomic<bool>& 
     return done ? result : beast::error_code{net::error::operation_aborted};
 }
 
+Slic3r::Http::ProgressFn cancel_when(std::function<bool()> cancelled)
+{
+    if (!cancelled) {
+        return {};
+    }
+    return [cancelled = std::move(cancelled)](Slic3r::Http::Progress, bool& cancel) { cancel = cancelled(); };
+}
+
 uint64_t steady_now_ms()
 {
     return static_cast<uint64_t>(
@@ -214,9 +222,6 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
         gen = ++connect_generation;
         base_url = device_info.base_url;
         api_key  = device_info.api_key;
-        if (connect_thread.joinable()) {
-            connect_thread.detach();
-        }
     }
 
     // Stop existing status stream and clear state
@@ -232,7 +237,20 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
     // Launch connection in background thread (capture by value to avoid data races)
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
-        connect_thread = std::thread([this, dev_id = params.dev_id, base_url, api_key, gen]() { perform_connection_async(dev_id, base_url, api_key, gen); });
+        // Each connection thread joins the one it supersedes, so the destructor's join waits for all of them
+        // Shared, so a failed thread start does not destroy the superseded thread while it is still joinable
+        auto superseded = std::make_shared<std::thread>(std::move(connect_thread));
+        try {
+            connect_thread = std::thread([this, dev_id = params.dev_id, base_url, api_key, gen, superseded]() {
+                perform_connection_async(dev_id, base_url, api_key, gen);
+                if (superseded->joinable()) {
+                    superseded->join();
+                }
+            });
+        } catch (...) {
+            connect_thread = std::move(*superseded);
+            throw;
+        }
     }
 
     return BAMBU_NETWORK_SUCCESS;
@@ -244,9 +262,6 @@ int MoonrakerPrinterAgent::disconnect_printer()
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
         device_info = MoonrakerDeviceInfo{};
         ++connect_generation;  // Invalidate any in-flight connection
-        if (connect_thread.joinable()) {
-            connect_thread.detach();
-        }
     }
 
     stop_status_stream();
@@ -1123,10 +1138,11 @@ bool MoonrakerPrinterAgent::init_device_info(const std::string& dev_id, const st
     return true;
 }
 
-bool MoonrakerPrinterAgent::fetch_device_info(const std::string&   base_url,
-                                              const std::string&   api_key,
-                                              MoonrakerDeviceInfo& info,
-                                              std::string&         error) const
+bool MoonrakerPrinterAgent::fetch_device_info(const std::string&           base_url,
+                                              const std::string&           api_key,
+                                              MoonrakerDeviceInfo&         info,
+                                              std::string&                 error,
+                                              const std::function<bool()>& cancelled) const
 {
     auto fetch_json = [&](const std::string& url, nlohmann::json& out) {
         std::string response_body;
@@ -1139,6 +1155,7 @@ bool MoonrakerPrinterAgent::fetch_device_info(const std::string&   base_url,
         }
         http.timeout_connect(5)
             .timeout_max(10)
+            .on_progress(cancel_when(cancelled))
             .on_complete([&](std::string body, unsigned status) {
                 if (status == 200) {
                     response_body = body;
@@ -1182,10 +1199,11 @@ bool MoonrakerPrinterAgent::fetch_device_info(const std::string&   base_url,
     return true;
 }
 
-bool MoonrakerPrinterAgent::query_printer_status(const std::string& base_url,
-                                                 const std::string& api_key,
-                                                 nlohmann::json&    status,
-                                                 std::string&       error) const
+bool MoonrakerPrinterAgent::query_printer_status(const std::string&           base_url,
+                                                 const std::string&           api_key,
+                                                 nlohmann::json&              status,
+                                                 std::string&                 error,
+                                                 const std::function<bool()>& cancelled) const
 {
     std::string url = join_url(base_url, "/printer/objects/query?print_stats&virtual_sdcard&extruder&heater_bed&fan");
 
@@ -1199,6 +1217,7 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string& base_url,
     }
     http.timeout_connect(5)
         .timeout_max(10)
+        .on_progress(cancel_when(cancelled))
         .on_complete([&](std::string body, unsigned status_code) {
             if (status_code == 200) {
                 response_body = body;
@@ -1331,7 +1350,7 @@ bool MoonrakerPrinterAgent::fetch_object_list(const std::string&     base_url,
     http.timeout_connect(5)
         .timeout_max(10)
         // Gives up once the status stream, the only caller, stops
-        .on_progress([this](Http::Progress, bool& cancel) { cancel = ws_stop.load(); })
+        .on_progress(cancel_when([this] { return ws_stop.load(); }))
         .on_complete([&](std::string body, unsigned status) {
             if (status == 200) {
                 response_body = body;
@@ -2253,8 +2272,10 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
 
     try {
         MoonrakerDeviceInfo fetched_info;
-        if (!fetch_device_info(base_url, api_key, fetched_info, error_msg)) {
-            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg;
+        if (!fetch_device_info(base_url, api_key, fetched_info, error_msg, is_stale)) {
+            if (!is_stale()) {
+                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg;
+            }
             // Orca todo: revist here, for now don't send error, this is set current MachineObject to null
             // dispatch_local_connect(ConnectStatusFailed, dev_id, "server_info_failed");
             return;
@@ -2275,12 +2296,15 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
 #if 1
         // Query initial status
         nlohmann::json initial_status;
-        if (query_printer_status(base_url, api_key, initial_status, error_msg)) {
-            {
-                update_status_cache(initial_status);
+        if (query_printer_status(base_url, api_key, initial_status, error_msg, is_stale)) {
+            // Under connect_mutex, so a superseded connection never writes into the next connection's cache
+            std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+            if (is_stale()) {
+                return;
             }
+            update_status_cache(initial_status);
             BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: Initial status queried successfully";
-        } else {
+        } else if (!is_stale()) {
             BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: Initial status query failed: " << error_msg;
         }
 
@@ -2304,12 +2328,15 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
         result    = BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
     }
 
-    // Only dispatch if this connection is still the current one
-    if (result == BAMBU_NETWORK_SUCCESS && !is_stale()) {
-        dispatch_local_connect(ConnectStatusOk, dev_id, "0");
-        dispatch_printer_connected(dev_id);
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: connect_printer completed - dev_id=" << dev_id;
-    } else if (result != BAMBU_NETWORK_SUCCESS && result != BAMBU_NETWORK_ERR_CANCELED) {
+    if (result == BAMBU_NETWORK_SUCCESS) {
+        // Under connect_mutex, so a superseded connection never reports itself connected
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        if (!is_stale()) {
+            dispatch_local_connect(ConnectStatusOk, dev_id, "0");
+            dispatch_printer_connected(dev_id);
+            BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: connect_printer completed - dev_id=" << dev_id;
+        }
+    } else if (result != BAMBU_NETWORK_ERR_CANCELED) {
         // Orca todo: revist here, for now don't send error, this is set current MachineObject to null
         // dispatch_local_connect(ConnectStatusFailed, dev_id, error_msg);
     }

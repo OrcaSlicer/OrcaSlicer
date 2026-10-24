@@ -411,6 +411,7 @@ public:
     const boost::optional<Semver>& last_config_version() const { return m_last_config_version; }
 
     // Reconcile the live printer agent with the stored preset selection.
+    // No-op until the main window exists; the startup preset load installs the agent then.
     void switch_printer_agent();
     // Install the selected preset's agent if it is registered but not live, e.g. when its plugin
     // finishes loading after the startup preset was applied. Otherwise leave the live agent alone.
@@ -434,6 +435,8 @@ public:
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
     void set_closing(bool closing) { m_is_closing.store(closing, std::memory_order_release); }
+    // Called once closing can no longer be vetoed: ends the process if closing does not finish in time.
+    void start_exit_watchdog();
     
     // SoftFever
     bool show_gcode_window() const { return m_show_gcode_window; }

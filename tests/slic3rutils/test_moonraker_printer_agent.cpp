@@ -53,7 +53,8 @@ public:
     mutable unsigned fetch_count = 0;
 
 protected:
-    bool fetch_device_info(const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&) const override
+    bool fetch_device_info(
+        const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&, const std::function<bool()>&) const override
     {
         ++fetch_count;
         info.dev_name = "Test printer";
@@ -61,13 +62,12 @@ protected:
     }
 };
 
-class StreamAgent : public MoonrakerPrinterAgent
+// Connects without the app's printer preset, and counts the device info queries that have returned.
+class ConnectAgent : public MoonrakerPrinterAgent
 {
 public:
     using MoonrakerPrinterAgent::MoonrakerPrinterAgent;
-    using MoonrakerPrinterAgent::start_status_stream;
-    using MoonrakerPrinterAgent::stop_status_stream;
-    using MoonrakerPrinterAgent::ws_timings;
+    std::shared_ptr<std::atomic<int>> fetches_returned;
 
 protected:
     bool init_device_info(
@@ -79,7 +79,32 @@ protected:
         return true;
     }
 
-    bool fetch_device_info(const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&) const override
+    bool fetch_device_info(const std::string&           base_url,
+                           const std::string&           api_key,
+                           MoonrakerDeviceInfo&         info,
+                           std::string&                 error,
+                           const std::function<bool()>& cancelled) const override
+    {
+        // Copied first, since the base destructor that waits for this query runs after this class's members are gone
+        const std::shared_ptr<std::atomic<int>> counter = fetches_returned;
+        const bool fetched = MoonrakerPrinterAgent::fetch_device_info(base_url, api_key, info, error, cancelled);
+        if (counter)
+            ++*counter;
+        return fetched;
+    }
+};
+
+class StreamAgent : public ConnectAgent
+{
+public:
+    using ConnectAgent::ConnectAgent;
+    using MoonrakerPrinterAgent::start_status_stream;
+    using MoonrakerPrinterAgent::stop_status_stream;
+    using MoonrakerPrinterAgent::ws_timings;
+
+protected:
+    bool fetch_device_info(
+        const std::string&, const std::string&, MoonrakerDeviceInfo& info, std::string&, const std::function<bool()>&) const override
     {
         info.dev_name = "Test printer";
         return true;
@@ -96,7 +121,7 @@ enum class Behavior {
     HangsUpWithoutAnswer,      // Closes the websocket without sending anything
     IgnoresClose,              // Reports Klippy disconnected, then never answers the close
     StallsObjectList,          // Never answers the stream's object list request
-    StallsStatusQuery,         // Never answers HTTP requests until released, then hangs up on them
+    StallsHttp,                // Never answers HTTP requests until released, then hangs up on them
 };
 
 class FakePrinter
@@ -253,7 +278,7 @@ private:
             wait_for_release();
             return;
         }
-        if (m_behavior == Behavior::StallsStatusQuery) {
+        if (m_behavior == Behavior::StallsHttp) {
             wait_for_release();
             beast::error_code ec;
             socket.close(ec);
@@ -400,6 +425,22 @@ struct StreamFixture
     FakePrinter printer;
     StreamAgent agent{""};
 };
+
+PrinterConnectionParams connection_to(const FakePrinter& printer)
+{
+    PrinterConnectionParams params;
+    params.dev_id = "printer";
+    params.host   = printer.host();
+    params.port   = printer.port();
+    return params;
+}
+
+// Destroys the agent, giving it `limit` to return.
+template<class Agent> bool destroys_within(std::unique_ptr<Agent>& agent, std::chrono::milliseconds limit)
+{
+    auto destroyed = std::async(std::launch::async, [&] { agent.reset(); });
+    return destroyed.wait_for(limit) == std::future_status::ready;
+}
 
 } // namespace
 
@@ -574,12 +615,8 @@ TEST_CASE("The status stream sends no heartbeat while the printer has nothing ne
 
 TEST_CASE("A disconnect during the connection queries keeps the status stream from starting", "[MoonrakerPrinterAgent][StatusStream]")
 {
-    StreamFixture f(Behavior::StallsStatusQuery);
-    PrinterConnectionParams params;
-    params.dev_id = "printer";
-    params.host   = f.printer.host();
-    params.port   = f.printer.port();
-    f.agent.connect_printer(params);
+    StreamFixture f(Behavior::StallsHttp);
+    f.agent.connect_printer(connection_to(f.printer));
     REQUIRE(f.printer.wait_for_http_requests(1));
 
     f.agent.disconnect_printer();
@@ -587,4 +624,33 @@ TEST_CASE("A disconnect during the connection queries keeps the status stream fr
     // The query has returned once the printer hangs up on it, and a stream would connect right after.
     REQUIRE(f.printer.wait_for_http_hang_ups(1));
     CHECK_FALSE(f.printer.wait_for_ready_connections(1, 500ms));
+}
+
+TEST_CASE("Destroying the agent waits for the connection threads it superseded", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::StallsHttp);
+    const auto fetches_returned = std::make_shared<std::atomic<int>>(0);
+    auto agent                  = std::make_unique<ConnectAgent>("");
+    agent->fetches_returned     = fetches_returned;
+
+    agent->connect_printer(connection_to(printer));
+    REQUIRE(printer.wait_for_http_requests(1));
+    agent->connect_printer(connection_to(printer));
+    REQUIRE(printer.wait_for_http_requests(2));
+    agent->disconnect_printer();
+
+    // The stalled queries see the change within 1 s of curl progress.
+    CHECK(destroys_within(agent, 2s));
+    CHECK(*fetches_returned == 2);
+}
+
+TEST_CASE("Destroying the agent stops a stalled status query", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::StallsHttp);
+    auto agent = std::make_unique<StreamAgent>("");
+    agent->connect_printer(connection_to(printer));
+    REQUIRE(printer.wait_for_http_requests(1));
+
+    // The stalled query sees the change within 1 s of curl progress.
+    CHECK(destroys_within(agent, 2s));
 }

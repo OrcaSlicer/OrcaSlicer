@@ -890,6 +890,8 @@ if (APPLE)
             GUI/DeepLinkHandlerMac.mm
             GUI/DeepLinkHandlerMac.h
             GUI/GUI_UtilsMac.mm
+            GUI/MacIME.mm
+            GUI/MacIME.hpp
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()

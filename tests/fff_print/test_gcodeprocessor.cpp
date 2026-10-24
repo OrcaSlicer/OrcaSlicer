@@ -282,6 +282,48 @@ TEST_CASE("A seam takes the actual speed of the move it follows", "[GCodeProcess
     REQUIRE(seams > 0);
 }
 
+TEST_CASE("A pause keeps the moves around it in order and on their own layers", "[GCodeProcessor][Regression]")
+{
+    // libvgcode numbers layers from the order of the moves, so the moves around a pause must stay in layer and
+    // line order. The pause vertex itself moves to the first extrusion after it and keeps its own line.
+    std::ostringstream gcode;
+    gcode << "M83\nG90\n";
+    for (int layer = 1; layer <= 3; ++layer) {
+        gcode << "; CHANGE_LAYER\n; LAYER_HEIGHT: 0.2\n";
+        if (layer == 2)
+            gcode << "G1 E-0.8 F3000\n; PAUSE_PRINTING\nM601\n";
+        gcode << "G1 X10 Y10 F12000\nG1 Z" << 0.2 * layer << "\n";
+        if (layer == 2)
+            gcode << "G1 E0.8 F3000\n";
+        gcode << "; FEATURE: Outer wall\n"
+              << "G1 X50 Y10 E2 F3000\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n";
+    }
+    GCodeProcessorResult result;
+    process_gcode(gcode.str(), result);
+    const auto &moves = result.moves;
+
+    REQUIRE(result.custom_gcode_per_print_z.size() == 1);
+    CHECK_THAT(result.custom_gcode_per_print_z.front().print_z, Catch::Matchers::WithinAbs(0.4, 1e-4));
+    REQUIRE(std::count_if(moves.begin(), moves.end(), [](const auto &move) { return move.internal_only; }) > 0);
+
+    const auto pause = std::find_if(moves.begin(), moves.end(), [](const auto &move) { return move.type == EMoveType::Pause_Print; });
+    REQUIRE(pause != moves.end());
+    CHECK(pause->layer_id == 1);
+    CHECK_THAT(pause->position.z(), Catch::Matchers::WithinAbs(0.4f, 1e-4f));
+
+    const GCodeProcessorResult::MoveVertex *previous = nullptr;
+    for (const auto &move : moves) {
+        if (move.type == EMoveType::Pause_Print)
+            continue;
+        if (previous != nullptr) {
+            CAPTURE(previous->gcode_id, move.gcode_id, static_cast<int>(move.type));
+            CHECK(move.layer_id >= previous->layer_id);
+            CHECK(move.gcode_id >= previous->gcode_id);
+        }
+        previous = &move;
+    }
+}
+
 TEST_CASE("Line ends of the exported G-code mark every newline in the file", "[GCodeProcessor]")
 {
     struct Case

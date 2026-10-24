@@ -127,6 +127,8 @@ set(lisbslic3r_sources
     Emboss.hpp
     EmbossShape.hpp
     enum_bitmask.hpp
+    ExclusionVolumeGeometry.cpp
+    ExclusionVolumeGeometry.hpp
     Execution/Execution.hpp
     Execution/ExecutionSeq.hpp
     Execution/ExecutionTBB.hpp
@@ -257,6 +259,10 @@ set(lisbslic3r_sources
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
+    GCode/ExclusionVolumePathCheck.cpp
+    GCode/ExclusionVolumePathCheck.hpp
+    GCode/ExclusionVolumeTravelAvoidance.cpp
+    GCode/ExclusionVolumeTravelAvoidance.hpp
     GCode/TimelapsePosPicker.cpp
     GCode/TimelapsePosPicker.hpp
     GCode.cpp
@@ -281,6 +287,8 @@ set(lisbslic3r_sources
     GCode/RetractWhenCrossingPerimeters.hpp
     GCode/SeamPlacer.cpp
     GCode/SeamPlacer.hpp
+    GCode/SeamContour.cpp
+    GCode/SeamContour.hpp
     GCode/PreciseSeam.cpp
     GCode/PreciseSeam.hpp
     GCode/PreciseSeamInternal.hpp

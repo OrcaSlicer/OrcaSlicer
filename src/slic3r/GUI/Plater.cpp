@@ -1118,11 +1118,15 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
         // ORCA: a non-Bambu printer with several extruders lists one nozzle row per tool; Bambu's own
         // multi-extruder printers keep the left/right pair above.
         const bool multi_extruder_rows = !preset_bundle.is_bbl_vendor() && extruder_count > 1;
+        const auto &diameters = cfg.option<ConfigOptionFloats>("nozzle_diameter")->values;
+        const bool mixed_diameters = std::any_of(diameters.begin(), diameters.end(), [&diameters](double value) {
+            return get_diameter_string(value) != get_diameter_string(diameters.front());
+        });
 
         // The variant box switches the machine variant. The card below lists the nozzles when there
-        // are flow variants to choose or several extruders to show; otherwise the box says it all.
+        // are flow variants to choose or extruders of different diameters; otherwise the box says it all.
         panel_nozzle_dia->Show(true);
-        extruder_single_sizer->Show(has_flow_variant || multi_extruder_rows);
+        extruder_single_sizer->Show(has_flow_variant || (multi_extruder_rows && mixed_diameters));
         single_extruder->SetNozzleRowCount(multi_extruder_rows ? size_t(extruder_count) : 1);
     } else {
         panel_nozzle_dia->Show(false);
@@ -4018,7 +4022,8 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto extruder_max_nozzle_count = printer_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
-        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count](ExtruderGroup & extruder, size_t row, int index) {
+        const bool has_flow_variant = preset_bundle.support_different_extruders();
+        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant](ExtruderGroup & extruder, size_t row, int index) {
             ComboBox *combo_flow = extruder.rows[row].flow;
             combo_flow->Clear();
             // A profile may leave the per-extruder lists shorter than the nozzle count (they are
@@ -4054,8 +4059,8 @@ void Sidebar::update_presets(Preset::Type preset_type)
             if (select == -1)
                 select = combo_flow->GetCount() - 1;
             combo_flow->SetSelection(select);
-            // No flow variant for this extruder: the diameter keeps the whole row.
-            combo_flow->Show(combo_flow->GetCount() > 0);
+            // No flow variant for this printer or extruder: the diameter keeps the whole row.
+            combo_flow->Show(has_flow_variant && combo_flow->GetCount() > 0);
         };
 
         auto update_extruder_diameter = [&diameters, &nozzle_diameter, &diameter](int extruder_index,ExtruderGroup & extruder) {
@@ -7830,7 +7835,8 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     , main_frame(main_frame)
     //BBS: add bed_exclude_area
     , config(Slic3r::DynamicPrintConfig::new_from_defaults_keys({
-        "printable_area", "bed_exclude_area", "wrapping_exclude_area", "extruder_printable_area", "bed_custom_texture", "bed_custom_model", "print_sequence",
+        "printable_area", "bed_exclude_area", "bed_exclude_volumes", "bed_exclude_volume_mode", "extruder_bed_exclude_volumes", "extruder_offset",
+        "wrapping_exclude_area", "extruder_printable_area", "bed_custom_texture", "bed_custom_model", "print_sequence",
         "extruder_clearance_radius",
         "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
 		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
@@ -9282,12 +9288,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (config_substitutions.unrecogized_keys.size() > 0) {
                                 wxString text  = wxString::Format(_L("The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"),
                                                                  file_version.to_string_sf(), std::string(SLIC3R_APP_FULL_NAME), app_version.to_string_sf());
-                                text += "\n";
-                                wxString context = text;
-                                wxString append = _L("You should update your software.\n");
-                                context += "\n\n";
-                                context += append;
-                                log_and_show_3mf_info(context, newer_3mf_title);
+                                text += "\n" + from_u8(boost::algorithm::join(config_substitutions.unrecogized_keys, ", ")) + "\n\n";
+                                text += _L("You should update your software.\n");
+                                log_and_show_3mf_info(text, newer_3mf_title);
                             }
                             else {
                                 //if the minor version is not matched
@@ -9345,9 +9348,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                             else if (load_config) {
                                 // Logged, not shown: it is the same for every BambuStudio project and needs no action.
-                                std::string unrecognized;
-                                for (const std::string& key : config_substitutions.unrecogized_keys)
-                                    unrecognized += (unrecognized.empty() ? "" : ", ") + key;
+                                const std::string unrecognized = boost::algorithm::join(config_substitutions.unrecogized_keys, ", ");
                                 BOOST_LOG_TRIVIAL(info) << "BambuStudio " << file_version.to_string() << " project " << path.string()
                                                         << ", unrecognized settings: " << (unrecognized.empty() ? "none" : unrecognized);
                             }
@@ -10859,6 +10860,11 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
 
     m_worker.cancel_all();
 
+    // Stop slicing before reinit() deletes the plates' prints. Deleting a Print only cancels the
+    // background thread once a print-level step has started, so a slice still generating
+    // perimeters or infill would keep running on freed layers.
+    this->background_process.stop();
+
     //BBS: clear the partplate list's object before object cleared
     partplate_list.reinit();
     partplate_list.update_slice_context_to_current_plate(background_process);
@@ -11037,10 +11043,68 @@ void Plater::priv::split_volume()
     wxGetApp().obj_list()->split();
 }
 
+// Boxes within bed that clear every rectangular exclusion zone: the rectangles spanned by bed and
+// exclusion edges that overlap no exclusion. Slivers no wider than the bed padding are dropped.
+static std::vector<BoundingBoxf3> free_print_volumes(const BoundingBoxf3& bed, const std::vector<BoundingBoxf3>& excludes)
+{
+    std::vector<double> xs{ bed.min.x(), bed.max.x() };
+    std::vector<double> ys{ bed.min.y(), bed.max.y() };
+    for (const BoundingBoxf3& ex : excludes) {
+        for (const double x : { ex.min.x(), ex.max.x() })
+            if (x > bed.min.x() && x < bed.max.x())
+                xs.push_back(x);
+        for (const double y : { ex.min.y(), ex.max.y() })
+            if (y > bed.min.y() && y < bed.max.y())
+                ys.push_back(y);
+    }
+    std::sort(xs.begin(), xs.end());
+    std::sort(ys.begin(), ys.end());
+    xs.erase(std::unique(xs.begin(), xs.end()), xs.end());
+    ys.erase(std::unique(ys.begin(), ys.end()), ys.end());
+
+    const double min_size = 2. * Slic3r::BuildVolume::SceneEpsilon;
+    std::vector<BoundingBoxf3> free_volumes;
+    for (size_t i = 0; i < xs.size(); ++i)
+    for (size_t j = i + 1; j < xs.size(); ++j)
+    for (size_t k = 0; k < ys.size(); ++k)
+    for (size_t l = k + 1; l < ys.size(); ++l) {
+        const double min_x = xs[i], max_x = xs[j], min_y = ys[k], max_y = ys[l];
+        if (max_x - min_x <= min_size || max_y - min_y <= min_size)
+            continue;
+
+        const bool blocked = std::any_of(excludes.begin(), excludes.end(), [&](const BoundingBoxf3& ex) {
+            return min_x < ex.max.x() && max_x > ex.min.x() && min_y < ex.max.y() && max_y > ex.min.y();
+        });
+        if (blocked)
+            continue;
+
+        BoundingBoxf3 box = bed;
+        box.min.x() = min_x;
+        box.min.y() = min_y;
+        box.max.x() = max_x;
+        box.max.y() = max_y;
+        free_volumes.push_back(box);
+    }
+    return free_volumes;
+}
+
 void Plater::priv::scale_selection_to_fit_print_volume()
 {
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
-    this->view3D->get_canvas3d()->get_selection().scale_to_fit_print_volume(this->bed.build_volume());
+    const BuildVolume volume = this->bed.build_volume();
+    // Every plate shares the bed size, but each sits at its own origin: fit onto the
+    // plate the selection is on instead of always onto the first one.
+    PartPlate*    plate      = this->partplate_list.get_curr_plate();
+    const Vec3d   bed_center = plate != nullptr ? plate->get_center_origin() :
+                                                  Vec3d(volume.bed_center().x(), volume.bed_center().y(), 0.);
+    // On a multi-nozzle printer each nozzle reaches only part of the bed, so a model fitted
+    // to the bed can still exceed a nozzle's printable range. Fit into the volume every
+    // nozzle shares, which is also the area Arrange places items in, minus any exclusion zone.
+    const BoundingBoxf3 bed_box = plate != nullptr ? plate->get_build_volume(true) : volume.bounding_volume();
+    std::vector<BoundingBoxf3> print_volumes{ bed_box };
+    if (plate != nullptr && !plate->get_exclude_areas().empty())
+        print_volumes = free_print_volumes(bed_box, plate->get_exclude_areas());
+    this->view3D->get_canvas3d()->get_selection().scale_to_fit_print_volume(volume, Vec2d(bed_center.x(), bed_center.y()), print_volumes);
 #else
     this->view3D->get_canvas3d()->get_selection().scale_to_fit_print_volume(*config);
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
@@ -17176,8 +17240,10 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     canvas->do_scale("");
 
     auto cur_flowrate = filament_config->option<ConfigOptionFloats>("filament_flow_ratio")->get_at(0); // TODO: per-filament param
-    std::vector<double> internal_solid_speeds = generate_max_speed_parameter_value("internal_solid_infill_speed", linear, pass);
-    std::vector<double> top_surface_speeds = generate_max_speed_parameter_value("top_surface_speed", linear, pass);
+    // Cap the speeds for the extrusion the test prints, not the profile's line width and layer height
+    const float infill_line_width = nozzle_diameter * 1.2f;
+    std::vector<double> internal_solid_speeds = generate_max_speed_parameter_value("internal_solid_infill_speed", infill_line_width, layer_height, linear, pass);
+    std::vector<double> top_surface_speeds = generate_max_speed_parameter_value("top_surface_speed", infill_line_width, layer_height, linear, pass);
 
     // adjust parameters
     for (auto _obj : objects) {
@@ -17196,8 +17262,8 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("detect_thin_wall", new ConfigOptionBool(true));
         _obj->config.set_key_value("filter_out_gap_fill", new ConfigOptionFloat(0));
         _obj->config.set_key_value("sparse_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-        _obj->config.set_key_value("top_surface_line_width", new ConfigOptionFloatOrPercent(nozzle_diameter * 1.2f, false));
-        _obj->config.set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(nozzle_diameter * 1.2f, false));
+        _obj->config.set_key_value("top_surface_line_width", new ConfigOptionFloatOrPercent(infill_line_width, false));
+        _obj->config.set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(infill_line_width, false));
         // ORCA: use the pattern parameter
         _obj->config.set_key_value("top_surface_pattern", new ConfigOptionEnum<InfillPattern>(pattern));
         const auto *top_solid_flow = dynamic_cast<const ConfigOptionFloatsNullable *>(_obj->config.option("top_solid_infill_flow_ratio"));
@@ -19064,6 +19130,19 @@ bool Plater::is_view3D_shown() const { return p->is_view3D_shown(); }
 bool Plater::are_view3D_labels_shown() const { return p->are_view3D_labels_shown(); }
 void Plater::show_view3D_labels(bool show) { p->show_view3D_labels(show); }
 
+bool Plater::are_collision_volumes_shown() const
+{
+    return wxGetApp().app_config->get_bool("show_collision_volumes");
+}
+
+void Plater::show_collision_volumes(bool show)
+{
+    wxGetApp().app_config->set_bool("show_collision_volumes", show);
+    p->partplate_list.invalidate_exclusion_volume_previews();
+    p->view3D->get_canvas3d()->set_as_dirty();
+    p->view3D->get_canvas3d()->request_extra_frame();
+}
+
 bool Plater::is_view3D_overhang_shown() const { return p->is_view3D_overhang_shown(); }
 void Plater::show_view3D_overhang(bool show)  {  p->show_view3D_overhang(show); }
 
@@ -19891,9 +19970,9 @@ bool Plater::check_printer_initialized(MachineObject *obj, bool only_warning, bo
                     dlg.ShowModal();
                 }
 
-                PrinterPartsDialog *print_parts_dlg = new PrinterPartsDialog(nullptr);
-                print_parts_dlg->update_machine_obj(obj);
-                print_parts_dlg->ShowModal();
+                PrinterPartsDialog print_parts_dlg(nullptr);
+                print_parts_dlg.update_machine_obj(obj);
+                print_parts_dlg.ShowModal();
             } else {
                 auto printer_name = get_selected_printer_name_in_combox(); // wxString(obj->get_preset_printer_model_name(machine_print_name))
                 pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
@@ -21435,6 +21514,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 {
     bool update_scheduled = false;
     bool bed_shape_changed = false;
+    bool exclusion_preview_changed = false;
     bool imex_changed = false;
     //bool print_sequence_changed = false;
     t_config_option_keys diff_keys = p->config->diff(config);
@@ -21453,6 +21533,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 
             if (update_filament_colors_in_full_config()) {
                 p->sidebar->update_mixed_filament_list();
+                p->partplate_list.invalidate_exclusion_volume_previews();
                 p->sidebar->obj_list()->update_filament_colors();
                 p->sidebar->update_dynamic_filament_list();
                 continue;
@@ -21476,6 +21557,12 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         }
 
         p->config->set_key_value(opt_key, config.option(opt_key)->clone());
+        if (opt_key == "bed_exclude_volume_mode" || opt_key == "bed_exclude_area" ||
+            opt_key == "bed_exclude_volumes" || opt_key == "extruder_bed_exclude_volumes" || opt_key == "extruder_offset" ||
+            opt_key == "master_extruder_id" || opt_key == "nozzle_diameter" ||
+            opt_key == "printable_height" || opt_key == "extruder_colour")
+            exclusion_preview_changed = true;
+
         if (opt_key == "printer_technology") {
             this->set_printer_technology(config.opt_enum<PrinterTechnology>(opt_key));
             // print technology is changed, so we should to update a search list
@@ -21487,7 +21574,8 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             p->partplate_list.invalid_all_slice_result();
         }
         //BBS: add bed_exclude_area
-        else if (opt_key == "printable_area" || opt_key == "bed_exclude_area"
+        else if (opt_key == "printable_area" || opt_key == "bed_exclude_volume_mode" || opt_key == "bed_exclude_area"
+            || opt_key == "bed_exclude_volumes" || opt_key == "extruder_bed_exclude_volumes" || opt_key == "extruder_offset"
             || opt_key == "bed_custom_texture" || opt_key == "bed_custom_model"
             || opt_key == "extruder_clearance_height_to_lid"
             || opt_key == "extruder_clearance_height_to_rod") {
@@ -21509,6 +21597,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         }
         else if(opt_key == "extruder_colour") {
             update_scheduled = true;
+            p->partplate_list.invalidate_exclusion_volume_previews();
             //p->sidebar->obj_list()->update_extruder_colors();
         }
         else if (opt_key == "printable_height") {
@@ -21533,8 +21622,12 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         else if (opt_key == "support_interface_filament" || opt_key == "support_filament" ||
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
-                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {
+                 opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id" ||
+                 opt_key == "enable_support" || opt_key == "raft_layers" || opt_key == "wall_loops" ||
+                 opt_key == "sparse_infill_density" || opt_key == "top_shell_layers" ||
+                 opt_key == "bottom_shell_layers" || opt_key == "brim_type" || opt_key == "brim_width") {
             update_scheduled = true;
+            p->partplate_list.invalidate_exclusion_volume_previews();
         }
         // IDEX/IQEX: when is_imex toggles the mode icon needs to be repositioned on every plate.
         // set_shape() short-circuits when the bed geometry is unchanged, so we refresh explicitly.
@@ -21548,8 +21641,16 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             p->view3D->get_canvas3d()->set_as_dirty();
     }
 
-    if (bed_shape_changed)
+    if (bed_shape_changed) {
         set_bed_shape();
+        get_current_canvas3D()->requires_check_outside_state();
+    }
+
+    if (exclusion_preview_changed)
+        p->partplate_list.invalidate_exclusion_volume_previews();
+
+    if (bed_shape_changed || exclusion_preview_changed)
+        get_current_canvas3D()->request_extra_frame();
 
     // After any bed-shape or is_imex change, ensure the IMEX mode icon geometry and
     // raycaster are correct.  set_shape() short-circuits when the bed is unchanged,
@@ -21630,9 +21731,10 @@ void Plater::set_bed_shape() const
             }
         }
     }
+    const ConfigOptionPoints *bed_exclude_area = p->config->option<ConfigOptionPoints>("bed_exclude_area");
     set_bed_shape(p->config->option<ConfigOptionPoints>("printable_area")->values,
         //BBS: add bed exclude areas
-        p->config->option<ConfigOptionPoints>("bed_exclude_area")->values,
+        bed_exclude_area->values,
         p->config->option<ConfigOptionPoints>("wrapping_exclude_area")->values,
         p->config->option<ConfigOptionFloat>("printable_height")->value,
         p->config->option<ConfigOptionPointsGroups>("extruder_printable_area")->values,
@@ -21873,6 +21975,7 @@ void Plater::set_global_filament_map(const std::vector<int>& filament_map)
 {
     auto& project_config = wxGetApp().preset_bundle->project_config;
     project_config.option<ConfigOptionInts>("filament_map")->values = filament_map;
+    p->partplate_list.invalidate_exclusion_volume_previews();
 }
 
 void Plater::set_global_filament_volume_map(const std::vector<int>& filament_volume_map)
@@ -22125,6 +22228,7 @@ void Plater::changed_mesh(int obj_idx)
 void Plater::changed_object(ModelObject &object){
     assert(object.get_model() == &p->model); // is object from same model?
     object.invalidate_bounding_box();
+    p->partplate_list.invalidate_exclusion_volume_previews();
 
     // recenter and re - align to Z = 0
     object.ensure_on_bed(p->printer_technology != ptSLA);
@@ -22165,6 +22269,8 @@ void Plater::changed_objects(const std::vector<size_t>& object_idxs)
 {
     if (object_idxs.empty())
         return;
+
+    p->partplate_list.invalidate_exclusion_volume_previews();
 
     for (size_t obj_idx : object_idxs) {
         if (obj_idx < p->model.objects.size()) {
@@ -22354,7 +22460,9 @@ void Plater::clone_selection()
     dlg.ShowModal();
 }
 
-std::vector<Vec2f> Plater::get_empty_cells(const Vec2f step)
+std::vector<Vec2f> Plater::get_empty_cells(const Vec2f step,
+                                           const std::vector<BoundingBoxf> &local_exclude_boxes,
+                                           bool include_plate_exclude_areas)
 {
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     BoundingBoxf3 build_volume = plate->get_build_volume(true);
@@ -22363,11 +22471,18 @@ std::vector<Vec2f> Plater::get_empty_cells(const Vec2f step)
     std::vector<Vec2f> cells;
     auto min_x = step(0)/2;// start_point.x() - step(0) * int((start_point.x() - bbox.min.x()) / step(0));
     auto min_y = step(1)/2;// start_point.y() - step(1) * int((start_point.y() - bbox.min.y()) / step(1));
-    auto& exclude_box3s = plate->get_exclude_areas();
     std::vector<BoundingBoxf> exclude_boxs;
-    for (auto& box : exclude_box3s) {
-        Vec2d vmin(box.min.x(), box.min.y()), vmax(box.max.x(), box.max.y());
-        exclude_boxs.emplace_back(vmin, vmax);
+    if (include_plate_exclude_areas) {
+        const auto &exclude_box3s = plate->get_exclude_areas();
+        for (const auto &box : exclude_box3s) {
+            Vec2d vmin(box.min.x(), box.min.y()), vmax(box.max.x(), box.max.y());
+            exclude_boxs.emplace_back(vmin, vmax);
+        }
+    }
+    const Vec3d plate_origin = plate->get_origin();
+    for (BoundingBoxf box : local_exclude_boxes) {
+        box.translate(Vec2d(plate_origin.x(), plate_origin.y()));
+        exclude_boxs.emplace_back(std::move(box));
     }
     for (float x = min_x + bbox.min.x(); x < bbox.max.x() - step(0) / 2; x += step(0))
         for (float y = min_y + bbox.min.y(); y < bbox.max.y() - step(1) / 2; y += step(1)) {

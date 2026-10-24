@@ -286,6 +286,39 @@ size_t count_opt_key(const std::vector<StringObjectException>& warnings, const s
         [&](const StringObjectException& w) { return w.opt_key == key; });
 }
 
+DynamicPrintConfig dual_extruder_exclusion_config(
+    BedExcludeVolumeMode mode,
+    const std::vector<std::string> &per_extruder,
+    const std::vector<int> &filament_map = {1})
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(2);
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4, 0.4});
+    config.set_key_value("extruder_offset", new ConfigOptionPoints{Vec2d::Zero(), Vec2d(20.0, 0.0)});
+    config.set_key_value("extruder_printable_height", new ConfigOptionFloatsNullable{256.0, 256.0});
+    config.set_key_value("bed_exclude_volume_mode", new ConfigOptionEnum<BedExcludeVolumeMode>(mode));
+    config.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings(per_extruder));
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
+    config.set_key_value("filament_map", new ConfigOptionInts(filament_map));
+    return config;
+}
+
+StringObjectException validate_multimaterial_cube(const DynamicPrintConfig &config)
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *first = object->add_volume(cube(20));
+    ModelVolume *second = object->add_volume(cube(20));
+    first->config.set("extruder", 1);
+    second->config.set("extruder", 2);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    Print print;
+    print.apply(model, config);
+    return print.validate();
+}
+
 // Make `default_acceleration` exceed the machine's extruding-acceleration limit.
 void trigger_acceleration_warning(DynamicPrintConfig& c)
 {
@@ -311,6 +344,73 @@ void trigger_precise_wall_warning(DynamicPrintConfig& c)
 }
 
 } // namespace
+
+TEST_CASE("Print validation applies individual exclusion volumes to the mapped physical extruder", "[Print][ExclusionVolume][MultiNozzle]")
+{
+    const std::string colliding = "0..256;-100x-100,300x-100,300x300,-100x300";
+    std::vector<StringObjectException> warnings;
+
+    SECTION("mapped colliding extruder is rejected") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {colliding, ""}, {1});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("extruder 1") != std::string::npos);
+    }
+
+    SECTION("mapped clear extruder is accepted") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {colliding, ""}, {2});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+
+    SECTION("an unrelated nozzle exclusion does not reject the object") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {"", colliding}, {1});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+}
+
+TEST_CASE("Print validation applies shared exclusions and ignores volumes above the object", "[Print][ExclusionVolume]")
+{
+    std::vector<StringObjectException> warnings;
+
+    SECTION("shared volume intersects") {
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, {2});
+        config.set_key_value("bed_exclude_volumes", new ConfigOptionString("0..30;-100x-100,300x-100,300x300,-100x300"));
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("extruder 2") != std::string::npos);
+    }
+
+    SECTION("elevated shared volume clears a 20mm cube") {
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, {1});
+        config.set_key_value("bed_exclude_volumes", new ConfigOptionString("30..50;-100x-100,300x-100,300x300,-100x300"));
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+}
+
+TEST_CASE("Legacy excluded areas retain object placement validation", "[Print][ExclusionVolume][Compatibility]")
+{
+    DynamicPrintConfig config = dual_extruder_exclusion_config(
+        BedExcludeVolumeMode::Shared, {"", ""}, {1});
+    config.set_deserialize_strict("bed_exclude_area", "-100x-100,300x-100,300x300,-100x300");
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = validate_cubes(config, warnings);
+    CHECK_FALSE(error.string.empty());
+}
+
+TEST_CASE("Print validation checks every nozzle used by a multimaterial object", "[Print][ExclusionVolume][MultiNozzle]")
+{
+    const std::string colliding = "0..256;-100x-100,300x-100,300x300,-100x300";
+    const DynamicPrintConfig config = dual_extruder_exclusion_config(
+        BedExcludeVolumeMode::PerExtruder, {"", colliding}, {1, 2});
+
+    const StringObjectException error = validate_multimaterial_cube(config);
+    CHECK(error.string.find("extruder 2") != std::string::npos);
+}
 
 // ---------------------------------------------------------------------------
 // {first_object_name} filename placeholder
@@ -725,15 +825,49 @@ TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
                 })
               .find("; between-object-gcode") != std::string::npos);
 
-    // [layer_num] keeps counting across sequentially printed objects (199 then 399).
+    // [layer_num] keeps counting across sequentially printed objects (199 then 399), and [max_layer_z]
+    // stays at the first object's 20mm top while the second object starts.
     const std::string per_layer = slice_two_cubes_arranged({
         { "print_sequence",             "by object" },
-        { "layer_change_gcode",         ";Layer:[layer_num] ([layer_z] mm)" },
+        { "layer_change_gcode",         ";Layer:[layer_num] ([layer_z] mm) max [max_layer_z]" },
         { "layer_height",               0.1 },
         { "initial_layer_print_height", 0.1 },
     });
     CHECK(per_layer.find(";Layer:199 ") != std::string::npos);
     CHECK(per_layer.find(";Layer:399 ") != std::string::npos);
+    CHECK(per_layer.find(";Layer:200 (0.1 mm) max 20\n") != std::string::npos);
+}
+
+TEST_CASE("Timelapse G-code gets the snapshot placeholders on bed slingers and other printers", "[Print]")
+{
+    const std::string structure = GENERATE(as<std::string>{}, "i3", "corexy");
+    CAPTURE(structure);
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = slice({ cube(20) }, {
+                        { "printer_structure",         structure },
+                        { "printable_area",            "0x0,200x0,200x200,0x200" },
+                        { "bed_exclude_area",          "0x0" },
+                        { "extruder_clearance_radius", 40 },
+                        { "timelapse_type",            "0" },
+                        { "time_lapse_gcode",  "; Timelapse {if has_timelapse_safe_pos}safe{else}none{endif} [timelapse_pos_x] "
+                                               "[clear_to_x0] [curr_physical_extruder_id]" },
+                    }));
+    CHECK(gcode.find("\n; Timelapse safe ") != std::string::npos);
+}
+
+TEST_CASE("The first filament start G-code on Bambu Lab printers gets the layer placeholders", "[Print]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_start_gcode", new ConfigOptionStrings({ "; Start [layer_num] [layer_z] [max_layer_z]" }));
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.is_BBL_printer() = true;
+
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = Slic3r::Test::gcode(print));
+    // The first filament start G-code runs before the first layer.
+    CHECK(gcode.find("\n; Start -1 ") != std::string::npos);
 }
 
 // The final print statistics are known only after the whole G-code is generated, yet every custom G-code,

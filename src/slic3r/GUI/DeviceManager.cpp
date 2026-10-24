@@ -11,6 +11,7 @@
 
 #include "GUI_App.hpp"
 #include "DeviceErrorDialog.hpp"
+#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "ReleaseNote.hpp"
 #include <string>
@@ -4751,7 +4752,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 void MachineObject::set_ctt_dlg( wxString text){
     if (!m_set_ctt_dlg) {
         m_set_ctt_dlg = true;
-        auto print_error_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
+        // Parented so it is destroyed with the main frame: a parentless top-level window,
+        // even hidden, keeps wx from leaving the event loop on exit.
+        auto print_error_dlg = new GUI::SecondaryCheckDialog(GUI::wxGetApp().mainframe, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle
         print_error_dlg->update_text(text);
         print_error_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
             if (!e.IsShown()) {
@@ -4786,7 +4789,8 @@ void MachineObject::show_unsupported_dlg(int code)
     // note: constructed directly rather than through CallAfter because every publish_json caller
     // is on the UI thread - clicks come from wx handlers, and the agent marshals its own push
     // callbacks back to main before parse_json runs. set_ctt_dlg relies on the same property.
-    auto unsupported_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"),
+    // Parented for the same reason as in set_ctt_dlg.
+    auto unsupported_dlg = new GUI::SecondaryCheckDialog(GUI::wxGetApp().mainframe, wxID_ANY, _L("Warning"),
                                                          GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM);
     unsupported_dlg->update_text(text);
     unsupported_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
@@ -4875,7 +4879,7 @@ void MachineObject::update_model_task()
             unsigned int http_code = 404;
             std::string  http_error;
             int          res = -1;
-            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error);
+            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             request_model_result++;
             BOOST_LOG_TRIVIAL(info) << "request times: " << request_model_result << " http code: " << http_code;
             auto rating_info = new DevPrintTaskRatingInfo();
@@ -5064,7 +5068,7 @@ void MachineObject::get_firmware_info()
             unsigned int http_code;
             std::string  http_body;
             if (!m_agent) return;
-            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body);
+            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             if (result < 0) {
                 // get upgrade list failed
                 return;

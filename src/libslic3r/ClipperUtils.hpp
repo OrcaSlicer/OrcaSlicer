@@ -358,7 +358,8 @@ Slic3r::Polygons offset(const Slic3r::Polygon &polygon, const float delta, JoinT
 // Input polygons for negative offset shall be "normalized": There must be no overlap / intersections between the input polygons.
 Slic3r::Polygons   offset(const Slic3r::Polyline &polyline, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType);
 Slic3r::Polygons   offset(const Slic3r::Polyline3 &polyline, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType);
-Slic3r::Polygons   offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType);
+// cap_tolerance: the arc tolerance of round end caps when joinType is not jtRound, 0 for the default.
+Slic3r::Polygons   offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType, double cap_tolerance = 0.);
 Slic3r::Polygons   offset(const Slic3r::Polygons &polygons, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 Slic3r::Polygons   offset(const Slic3r::ExPolygon &expolygon, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 Slic3r::Polygons   offset(const Slic3r::ExPolygons &expolygons, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
@@ -462,6 +463,12 @@ Slic3r::ExPolygons diff_clipped(const Slic3r::ExPolygons &src, const Slic3r::ExP
 Slic3r::Polygons   diff(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   diff(const Slic3r::ExPolygons &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   diff(const Slic3r::Surfaces &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
+// The part of subject farther than delta from clip, as diff(subject, expand(clip, delta)). Expanding finely detailed polygons by
+// a large delta is slow, so a cheaper, smaller round expansion of the simplified clip, which lies within the full one, is tried
+// first: where it covers the subject, so does the full expansion. That holds as long as both expansions grow the regions their
+// paths enclose; the offsets' own input decimation can fold a sliver thinner than about 0.01 * delta and break it, so the
+// result may then differ from diff with expand. Callers use it where such a difference cannot matter.
+Slic3r::Polygons   diff_expanded(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, float delta);
 Slic3r::ExPolygons diff_ex(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::ExPolygons diff_ex(const Slic3r::Polygons &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::ExPolygons diff_ex(const Slic3r::Polygons &subject, const Slic3r::Surfaces &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);

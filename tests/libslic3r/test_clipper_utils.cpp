@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cmath>
+#include <random>
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Polygon.hpp"
@@ -21,6 +23,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/MultiPoint.hpp"
 #include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
@@ -392,6 +395,172 @@ TEST_CASE("Tiled diff and intersection return the same polygons as the plain cal
     const ExPolygons intersection_tiled = intersection_ex_by_piece(subject, clip, safety);
     REQUIRE(area(intersection_plain) > 0.);
     CHECK(same_rings(intersection_tiled, intersection_plain, tolerance));
+}
+
+TEST_CASE("Subtracting a far expansion gives the same polygons as diff with expand", "[ClipperUtils]") {
+    // As bridge_over_infill uses it: the lower layer's solids, each shrunk by the solid infill spacing on its own, expanded by
+    // two or four spacings.
+    const float spacing = scaled<float>(0.45);
+    const float delta   = GENERATE(2.f, 4.f) * spacing;
+    const auto  expanded_diff = [delta](const Polygons &subject, const Polygons &clip) { return diff(subject, expand(clip, delta)); };
+    // Whether the smaller round expansion that diff_expanded tries first covers the subject on its own.
+    const auto  coarse_covers = [delta](const Polygons &subject, const Polygons &coarse) {
+        return diff(subject, expand(coarse, 0.7f * delta, jtRound, 0.01 * delta)).empty();
+    };
+    const auto  rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygon::new_scale({ { x0, y0 }, { x1, y0 }, { x1, y1 }, { x0, y1 } });
+    };
+    // A rectangle whose sides are sawteeth 12 µm deep, as the slices of a relief are.
+    const auto  sawtooth = [](double x0, double y0, double x1, double y1) {
+        const Vec2d corners[] = { { x0, y0 }, { x1, y0 }, { x1, y1 }, { x0, y1 } };
+        Polygon     out;
+        for (size_t i = 0; i < 4; ++ i) {
+            const Vec2d a = corners[i], b = corners[(i + 1) % 4], outward = Vec2d((b - a).y(), (a - b).x()).normalized();
+            const int   teeth = int(std::round((b - a).norm() / 0.024));
+            for (int t = 0; t < teeth; ++ t) {
+                out.points.emplace_back(Point::new_scale(a + (b - a) * (t / double(teeth))));
+                out.points.emplace_back(Point::new_scale(a + (b - a) * ((t + 0.5) / teeth) + 0.012 * outward));
+            }
+        }
+        return out;
+    };
+
+    SECTION("A crack between solids shrunk apart is covered") {
+        const Polygons solids = shrink(Polygons{ rectangle(0., 0., 10., 10.), rectangle(10., 0., 20., 10.) }, spacing);
+        const Polygons subject{ rectangle(2., 2., 18., 8.) };
+        REQUIRE_FALSE(diff(subject, solids).empty());
+        CHECK(coarse_covers(subject, polygons_simplify(solids, delta / 8.)));
+        CHECK(expanded_diff(subject, solids).empty());
+        CHECK(diff_expanded(subject, solids, delta).empty());
+    }
+    SECTION("A crack between detailed solids shrunk apart is covered") {
+        const Polygons solids = shrink(Polygons{ sawtooth(0., 0., 10., 10.), sawtooth(10., 0., 20., 10.) }, spacing);
+        const Polygons subject{ rectangle(2., 2., 18., 8.) };
+        REQUIRE_FALSE(diff(subject, solids).empty());
+        // The shrink's miters cut steep teeth about 1.4 spacings deep, which widens the crack to about what the coarse
+        // expansion reaches at two spacings. So only the default reach, four spacings, is sure to take the early-out.
+        if (delta > 3.f * spacing)
+            CHECK(coarse_covers(subject, polygons_simplify(solids, delta / 8.)));
+        CHECK(expanded_diff(subject, solids).empty());
+        CHECK(diff_expanded(subject, solids, delta).empty());
+    }
+    SECTION("Strips too thin to survive the shrink leave the subject unsupported") {
+        const Polygons solids = shrink(Polygons{ rectangle(0., 0., 10., 10.), rectangle(10., 0., 10.6, 10.), rectangle(11.2, 0., 11.8, 10.),
+                                                 rectangle(12.4, 0., 13., 10.) },
+                                       spacing);
+        const Polygons subject{ rectangle(1., 1., 14., 9.) };
+        const Polygons expected = expanded_diff(subject, solids);
+        REQUIRE_FALSE(expected.empty());
+        CHECK(diff_expanded(subject, solids, delta) == expected);
+    }
+    SECTION("A hole wider than the expansion leaves the subject over it") {
+        Polygon hole = rectangle(5., 5., 15., 15.);
+        hole.reverse();
+        const Polygons solids{ rectangle(0., 0., 20., 20.), hole };
+        const Polygons subject{ rectangle(2., 2., 18., 18.) };
+        const Polygons expected = expanded_diff(subject, solids);
+        REQUIRE_FALSE(expected.empty());
+        CHECK(diff_expanded(subject, solids, delta) == expected);
+    }
+    SECTION("A hole that simplification removes is covered") {
+        Polygon hole = rectangle(5., 9.975, 10., 10.025);
+        hole.reverse();
+        const Polygons solids{ rectangle(0., 0., 20., 20.), hole };
+        const Polygons subject{ rectangle(2., 2., 18., 18.) };
+        REQUIRE(polygons_simplify({ hole }, delta / 8.).empty());
+        CHECK(expanded_diff(subject, solids).empty());
+        CHECK(diff_expanded(subject, solids, delta).empty());
+    }
+    SECTION("A thin C that simplification would turn into a hole is kept as it is") {
+        // A C 100 µm wide over a 10 mm radius at a tolerance of 0.5 mm, scaled with the tolerance. Arcs of 3,200 and 2,500
+        // points leave 0.05 radians open at each end, and the path starts 4,500 points in.
+        const double scale = delta / 8. / scaled<double>(0.5);
+        const auto   arc   = [](double radius, int n, Points &out) {
+            for (int i = 0; i < n; ++ i) {
+                const double a = 0.05 + (2. * PI - 0.1) * i / (n - 1);
+                out.emplace_back(coord_t(std::round(radius * std::cos(a))), coord_t(std::round(radius * std::sin(a))));
+            }
+        };
+        Points outer, inner;
+        arc(std::round(scale * scaled<double>(10.)) + std::round(scale * scaled<double>(0.1)), 3200, outer);
+        arc(std::round(scale * scaled<double>(10.)), 2500, inner);
+        Polygon c(std::move(outer));
+        c.points.insert(c.points.end(), inner.rbegin(), inner.rend());
+        std::rotate(c.points.begin(), c.points.begin() + 4500, c.points.end());
+        REQUIRE(c.is_counter_clockwise());
+        REQUIRE(area(polygons_simplify({ c }, delta / 8.)) < 0.);
+        // A square beside the C, halfway round, which its own round expansion covers.
+        const coord_t  x = coord_t(-scale * scaled<double>(10.05)), half = coord_t(scale * scaled<double>(0.2));
+        const Polygons subject{ Polygon({ { x - half, -half }, { x + half, -half }, { x + half, half }, { x - half, half } }) };
+        CHECK(coarse_covers(subject, { c }));
+        CHECK(expanded_diff(subject, { c }).empty());
+        CHECK(diff_expanded(subject, { c }, delta).empty());
+    }
+    SECTION("A path that simplifies into several contours and holes keeps its sign") {
+        // A band 1 mm wide winding once and a radian more, its end 20 µm outside its start, then on as a strand 40 µm wide for
+        // two radians. Simplified, the end crosses the start, closing a ring around holes, and the strand's sides cross each other.
+        const double radius = scaled<double>(5.), width = scaled<double>(1.), pitch = width + scaled<double>(0.02), band_end = 2. * PI + 1.,
+                     end = band_end + 2.;
+        const int    n      = 6000;
+        Points       outer, inner;
+        for (int i = 0; i < n; ++ i) {
+            const double t = end * i / (n - 1), centre = radius + pitch * t / (2. * PI), half = t <= band_end ? width / 2. : scaled<double>(0.02);
+            outer.emplace_back(coord_t(std::round((centre + half) * std::cos(t))), coord_t(std::round((centre + half) * std::sin(t))));
+            inner.emplace_back(coord_t(std::round((centre - half) * std::cos(t))), coord_t(std::round((centre - half) * std::sin(t))));
+        }
+        Polygon band(std::move(outer));
+        band.points.insert(band.points.end(), inner.rbegin(), inner.rend());
+        REQUIRE(band.is_counter_clockwise());
+        Points path = MultiPoint::_douglas_peucker(to_polyline(band).points, delta / 8.);
+        path.pop_back();
+        const Polygons simplified = polygons_simplify({ band }, delta / 8.);
+        const size_t   contours   = size_t(std::count_if(simplified.begin(), simplified.end(), [](const Polygon &p) { return p.is_counter_clockwise(); }));
+        CHECK(contours >= 2);
+        CHECK(simplified.size() - contours >= 1);
+        CHECK((area(simplified) > 0.) == (Polygon(path).area() > 0.));
+        const Polygons subject{ rectangle(-8., -8., 8., 8.) };
+        CHECK(diff_expanded(subject, { band }, delta) == expanded_diff(subject, { band }));
+    }
+    SECTION("Random solids give the same polygons") {
+        // Overlapping rectangles, some too thin to survive the shrink, and jittered rings, under the region they cover and on
+        // every other seed a rectangle more.
+        size_t empty = 0, unsupported = 0;
+        for (unsigned seed = 1; seed <= 24; ++ seed) {
+            std::mt19937 rng(seed);
+            const auto   uniform = [&rng](double from, double to) { return from + (to - from) * double(rng()) / double(std::mt19937::max()); };
+            Polygons     solids;
+            for (int i = 0; i < 6; ++ i) {
+                const double x = uniform(0., 40.), y = uniform(0., 40.);
+                solids.emplace_back(rectangle(x, y, x + uniform(0.3, 12.), y + uniform(0.3, 12.)));
+            }
+            for (int i = 0; i < 2; ++ i) {
+                const Vec2d  centre(uniform(5., 45.), uniform(5., 45.));
+                const double r = uniform(2., 8.), r_hole = r * uniform(0.3, 0.7);
+                Polygon      ring, hole;
+                for (int k = 0; k < 96; ++ k) {
+                    const Vec2d direction(std::cos(2. * PI * k / 96), std::sin(2. * PI * k / 96));
+                    ring.points.emplace_back(Point::new_scale(centre + r * uniform(0.97, 1.03) * direction));
+                    hole.points.emplace_back(Point::new_scale(centre + r_hole * uniform(0.97, 1.03) * direction));
+                }
+                hole.reverse();
+                solids.emplace_back(std::move(ring));
+                solids.emplace_back(std::move(hole));
+            }
+            Polygons covered = solids;
+            if (seed % 2 == 0) {
+                const double x = uniform(0., 40.), y = uniform(0., 40.);
+                covered.emplace_back(rectangle(x, y, x + uniform(2., 10.), y + uniform(2., 10.)));
+            }
+            const Polygons subject  = shrink(union_(covered), spacing);
+            const Polygons shrunk   = shrink(solids, spacing);
+            const Polygons expected = expanded_diff(subject, shrunk);
+            CHECK(diff_expanded(subject, shrunk, delta) == expected);
+            ++ (expected.empty() ? empty : unsupported);
+        }
+        // The seeds give both outcomes: subjects the solids support entirely, and subjects with unsupported parts left.
+        CHECK(empty > 0);
+        CHECK(unsupported > 0);
+    }
 }
 
 // An outline with a small clockwise hole well inside it, cut along its edge by three clip polygons that never reach the

@@ -5320,6 +5320,9 @@ msgstr ""
 msgid "This parameter expects a valid template."
 msgstr ""
 
+msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
+msgstr ""
+
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
 msgstr ""
 
@@ -6516,6 +6519,12 @@ msgid "Show &Labels"
 msgstr ""
 
 msgid "Show object labels in 3D scene."
+msgstr ""
+
+msgid "Show all collision volumes"
+msgstr ""
+
+msgid "Show the full height of every configured collision volume, including on an empty bed."
 msgstr ""
 
 msgid "Show &Overhang"
@@ -11049,6 +11058,12 @@ msgstr ""
 msgid "Click to reset all settings to the last saved preset."
 msgstr ""
 
+msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
+msgstr ""
+
+msgid "Add collision volumes"
+msgstr ""
+
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr ""
 
@@ -12708,6 +12723,17 @@ msgid ""
 "Is the disk full?"
 msgstr ""
 
+#, possible-boost-format
+msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
+msgstr ""
+
+msgid "A G-code move intersects a collision volume. This may cause a printer collision."
+msgstr ""
+
+#, possible-boost-format
+msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
+msgstr ""
+
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
 #, possible-boost-format
 msgid ""
@@ -12972,6 +12998,14 @@ msgstr ""
 
 #, possible-boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% intersects collision volumes for every available extruder."
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% intersects a collision volume for extruder %2%."
 msgstr ""
 
 #, possible-boost-format
@@ -13303,7 +13337,34 @@ msgstr ""
 msgid "Excluded bed area"
 msgstr ""
 
-msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as polygon by points in following format: \"XxY, XxY, ...\""
+msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
+msgstr ""
+
+msgid "Toolhead collision volumes"
+msgstr ""
+
+msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
+msgstr ""
+
+msgid "Collision volume behavior"
+msgstr ""
+
+msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
+msgstr ""
+
+msgid "Shared"
+msgstr ""
+
+msgid "Toolhead-relative (nozzle offsets)"
+msgstr ""
+
+msgid "Individual per extruder"
+msgstr ""
+
+msgid "Extruder collision volumes"
+msgstr ""
+
+msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
 msgstr ""
 
 msgid "Bed custom texture"
@@ -18214,6 +18275,15 @@ msgid "This option will auto-detect narrow internal solid infill areas. If enabl
 msgstr ""
 
 msgid "invalid value "
+msgstr ""
+
+msgid "Invalid collision volume definition."
+msgstr ""
+
+msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
+msgstr ""
+
+msgid "Invalid per-extruder collision volume definition."
 msgstr ""
 
 msgid "Invalid value when spiral vase mode is enabled: "
