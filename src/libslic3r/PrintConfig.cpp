@@ -139,6 +139,15 @@ bool is_filament_extruder_override_key(const std::string &opt_key)
            (opt_key.compare(0, 9, "filament_") == 0 && flow_ratio_override_bit(opt_key.substr(9)) != 0);
 }
 
+int active_filament_flow_overrides(const ConfigBase &config)
+{
+    int mask = 0;
+    for (const auto &override : flow_ratio_overrides)
+        if (const ConfigOption *option = config.option(std::string("filament_") + override.key); option != nullptr && !option->is_nil())
+            mask |= flow_ratio_override_bit(override.key);
+    return mask;
+}
+
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
 {
     if (filament_id < config.filament_map.size()) {
@@ -10184,8 +10193,23 @@ std::set<std::string> print_options_with_variant = {
     "top_solid_infill_flow_ratio"
 };
 
-std::set<std::string> filament_options_with_variant = with_filament_flow_overrides(std::set<std::string>{
+std::set<std::string> filament_options_with_variant = {
     "filament_flow_ratio",
+    // Orca: one per flow_ratio_overrides entry. Listed literally because scripts/orca_profile_tool.py
+    // and the CLI tests parse these initializers from the source.
+    "filament_top_solid_infill_flow_ratio",
+    "filament_bottom_solid_infill_flow_ratio",
+    "filament_brim_flow_ratio",
+    "filament_set_other_flow_ratios",
+    "filament_first_layer_flow_ratio",
+    "filament_outer_wall_flow_ratio",
+    "filament_inner_wall_flow_ratio",
+    "filament_overhang_flow_ratio",
+    "filament_sparse_infill_flow_ratio",
+    "filament_internal_solid_infill_flow_ratio",
+    "filament_gap_fill_flow_ratio",
+    "filament_support_flow_ratio",
+    "filament_support_interface_flow_ratio",
     "filament_max_volumetric_speed",
     // Per-variant ramming / pre-cooling / nozzle-change filament overrides
     "filament_ramming_volumetric_speed",
@@ -10255,7 +10279,7 @@ std::set<std::string> filament_options_with_variant = with_filament_flow_overrid
     "activate_air_filtration_on_completion",
     "during_print_exhaust_fan_speed",
     "complete_print_exhaust_fan_speed"
-});
+};
 
 // Parameters that are the same as the number of extruders
 std::set<std::string> printer_extruder_options = {
