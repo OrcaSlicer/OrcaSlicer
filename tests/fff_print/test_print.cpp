@@ -1989,3 +1989,27 @@ TEST_CASE("Height ranges and modifiers count for the filament shrinkage compensa
     });
     CHECK(mismatch_warning == ! object_on_filament_2);
 }
+
+TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][Regression]")
+{
+    const std::string key = "high_precision_gcode";
+    CAPTURE(key);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict(key, "0");
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.process();
+    print.set_gcode_file_ready();
+
+    REQUIRE(print.is_step_done(psGCodeExport));
+    REQUIRE(print.objects().front()->is_step_done(posSlice));
+    REQUIRE(print.objects().front()->is_step_done(posPerimeters));
+
+    config.set_deserialize_strict(key, "1");
+    print.apply(model, config);
+
+    CHECK_FALSE(print.is_step_done(psGCodeExport));
+    CHECK(print.objects().front()->is_step_done(posSlice));
+    CHECK(print.objects().front()->is_step_done(posPerimeters));
+}
