@@ -806,30 +806,11 @@ void CurveEditorDialog::move_point(int row, double proposed_x, double proposed_y
     if (row < 0 || row >= int(m_points_x.size())) return;
     auto x = m_points_x;
     auto y = m_points_y;
-    const wxString old_x = m_grid->GetCellValue(row, 0);
-    const wxString old_y = m_grid->GetCellValue(row, 1);
-    const CurveEditorView bounds = m_model->drag_bounds(row, x, y, m_chart->view());
-    if (bounds.min_x > bounds.max_x || bounds.min_y > bounds.max_y) return;
-    auto set_value = [this, row](int column, double value, double lower, double upper, double& current) {
-        value = std::clamp(value, lower, upper);
-        if (value == current) return;
-        const wxString text = wxString::FromUTF8(m_model->format_point_number(value));
-        double rounded;
-        if (!read_number(text, rounded) || rounded < lower || rounded > upper) return;
-        if (rounded != current) {
-            current = rounded;
-            m_grid->SetCellValue(row, column, text);
-        }
-    };
-    set_value(0, proposed_x, bounds.min_x, bounds.max_x, x[row]);
-    set_value(1, proposed_y, bounds.min_y, bounds.max_y, y[row]);
-    if (x[row] == m_points_x[row] && y[row] == m_points_y[row]) return;
-    int error_row;
-    if (m_model->validate_points(x, y, error_row)) {
-        m_grid->SetCellValue(row, 0, old_x);
-        m_grid->SetCellValue(row, 1, old_y);
-        return;
-    }
+    const CurveModel::Row original = {into_u8(m_grid->GetCellValue(row, 0)), into_u8(m_grid->GetCellValue(row, 1))};
+    CurveModel::Row point = original;
+    if (!m_model->move_point(row, proposed_x, proposed_y, m_chart->view(), x, y, point)) return;
+    if (point.first != original.first) m_grid->SetCellValue(row, 0, wxString::FromUTF8(point.first));
+    if (point.second != original.second) m_grid->SetCellValue(row, 1, wxString::FromUTF8(point.second));
     refresh_chart_data(x, y);
 }
 

@@ -33,6 +33,7 @@
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 using Catch::Matchers::WithinAbs;
+using Catch::Matchers::WithinULP;
 
 namespace {
 
@@ -692,8 +693,11 @@ TEST_CASE("Graph point selection and dragging release capture when cancelled", "
 {
     Fixture f;
     f.panel->set_touchpad_controls(true);
-    f.panel->set_data({20, 30, 40}, {.2, .5, .8}, {"first", "middle", "last"}, [](double) { return .5; });
-    const wxPoint position = f.middle_point();
+    // Recomputing .7042 from its position in the .2-.8 view gives .7041999999999999 with or without
+    // fused multiply-add, so the exact check below fails if an unmoved axis is recomputed.
+    f.panel->set_data({20, 30, 40}, {.2, .7042, .8}, {"first", "middle", "last"}, [](double) { return .5; });
+    const auto plot = f.plot_rect();
+    const wxPoint position(plot.x + plot.width / 2, plot.y + plot.height - int((.7042 - .2) / (.8 - .2) * plot.height));
     int selected = -1, moved = -1;
     double moved_x = 0, moved_y = 0;
     f.panel->on_select = [&](int row) { selected = row; };
@@ -724,7 +728,9 @@ TEST_CASE("Graph point selection and dragging release capture when cancelled", "
     f.panel->GetEventHandler()->ProcessEvent(motion);
     REQUIRE(moved == 1);
     CHECK(moved_x > 30);
-    CHECK_THAT(moved_y, WithinAbs(.5, 1e-12));
+    // CurveModel::move_point keeps an axis proposed at its current value, so the
+    // unmoved axis must arrive as the exact start value, not a recomputed one.
+    CHECK_THAT(moved_y, WithinULP(.7042, 0));
     wxMouseCaptureLostEvent lost;
     f.panel->GetEventHandler()->ProcessEvent(lost);
     CHECK_FALSE(f.panel->HasCapture());

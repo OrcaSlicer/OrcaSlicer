@@ -479,6 +479,71 @@ TEST_CASE("Dragging adjacent flow points stops one decimal step from each neighb
     CHECK_THAT(clipped.max_y, WithinAbs(0.9898, 1e-12));
 }
 
+TEST_CASE("Dragging a flow point along one axis keeps the other coordinate's saved text", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    struct Drag {
+        CurveModel::Rows rows;
+        int row;
+        CurveView view;
+        bool horizontal;
+        CurveModel::Row expected;
+    };
+    // Each untouched coordinate lies outside the bounds that a dragged coordinate is clamped to:
+    // within one decimal step of a neighbor, of a view edge, or of the locked endpoint.
+    const auto drag = GENERATE(
+        Drag{{{"0", "0"}, {"5", "0.99995"}, {"10", "1"}}, 1, {0, 11, 0, 1}, true, {"6", "0.99995"}},
+        Drag{{{"0", "0"}, {"9.99995", "0.5"}, {"10", "1"}}, 1, {0, 11, 0, 1}, false, {"9.99995", "0.6"}},
+        Drag{{{"0", "0"}, {"0.00005", "0.5"}, {"10", "1"}}, 1, {0, 11, 0, 1}, false, {"0.00005", "0.6"}},
+        Drag{{{"0", "0"}, {"5", "0.12345"}, {"10", "1"}}, 1, {0, 11, 0.12341, 1}, true, {"6", "0.12345"}},
+        Drag{{{"0", "0"}, {"10", "0.99999999999999989"}}, 1, {0, 11, 0, 1}, true, {"11", "0.99999999999999989"}},
+        // The first length is locked, so a horizontal drag changes nothing.
+        Drag{{{"0", "-0.12345"}, {"10", "1"}}, 0, {0, 11, -0.12345, 1}, true, {"0", "-0.12345"}});
+    const FlowModel model;
+    std::vector<double> x, y;
+    int error_row = -1;
+    REQUIRE(model.read_points(drag.rows, x, y, error_row) == nullptr);
+    // The graph proposes the drag-start value for the axis the pointer has not moved.
+    const double proposed_x = drag.horizontal ? x[drag.row] + 1 : x[drag.row];
+    const double proposed_y = drag.horizontal ? y[drag.row] : y[drag.row] + 0.1;
+    auto point = drag.rows[drag.row];
+    const bool moved = model.move_point(drag.row, proposed_x, proposed_y, drag.view, x, y, point);
+    CHECK(point == drag.expected);
+    CHECK(moved == (drag.expected != drag.rows[drag.row]));
+}
+
+TEST_CASE("Dragging a flow point clamps and rounds only the moved coordinate", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    const FlowModel model;
+    std::vector<double> x = {0, 5, 10}, y = {0, 0.5, 1};
+    CurveModel::Row point = {"5", "0.5"};
+    REQUIRE(model.move_point(1, 5, 2.0, {0, 11, 0, 1}, x, y, point));
+    CHECK(point == CurveModel::Row{"5", "0.9999"});
+    CHECK_THAT(y[1], WithinAbs(0.9999, 1e-12));
+    REQUIRE(model.move_point(1, 5.123456, y[1], {0, 11, 0, 1}, x, y, point));
+    CHECK(point == CurveModel::Row{"5.1235", "0.9999"});
+    CHECK_THAT(x[1], WithinAbs(5.1235, 1e-12));
+}
+
+TEST_CASE("A flow point with no room on one axis still moves along the other", "[SmallAreaInfillFlowCompensation][Regression]")
+{
+    // Legacy factors closer than two decimal steps leave inverted Y bounds for the middle point.
+    const FlowModel model;
+    const CurveModel::Rows rows = {{"0", "0"}, {"5", "0.5"}, {"6", "0.50005"}, {"7", "0.5001"}, {"10", "1"}};
+    std::vector<double> x, y;
+    int error_row = -1;
+    REQUIRE(model.read_points(rows, x, y, error_row) == nullptr);
+    const CurveView view = {0, 11, 0, 1};
+    const auto bounds = model.drag_bounds(2, x, y, view);
+    REQUIRE(bounds.min_y > bounds.max_y);
+    auto moved_x = x, moved_y = y;
+    auto moved = rows[2];
+    REQUIRE(model.move_point(2, 6.5, y[2], view, moved_x, moved_y, moved));
+    CHECK(moved == CurveModel::Row{"6.5", "0.50005"});
+    auto locked = rows[2];
+    CHECK_FALSE(model.move_point(2, x[2], 0.6, view, x, y, locked));
+    CHECK(locked == rows[2]);
+}
+
 TEST_CASE("Generated flow coordinates use at most four decimal places", "[SmallAreaInfillFlowCompensation][Regression]")
 {
     const auto sample = GENERATE(std::pair<double, std::string>{0.7229999999999986, "0.723"},

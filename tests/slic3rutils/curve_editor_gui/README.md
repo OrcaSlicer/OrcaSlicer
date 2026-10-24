@@ -82,6 +82,7 @@ translation wording and the UI fit of longer labels need human review.
 | Validation, finite numbers, endpoints, strict ordering, decimal commas | Core model suite |
 | Opening, editing, accepting, canceling, defaults, empty curves, precision | Core model suite; GUI value integration |
 | Add/remove, exhausted float intervals, model-defined point limits | Core model suite |
+| Dragged-point clamping and rounding, untouched axis kept verbatim, axis locked by close neighbors | Core model suite; standalone panel checks |
 | CSV separators, recognized headers, BOM, malformed rows, physical line errors, import limit | Core model suite |
 | CSV precision, Unicode paths, embedded nulls, safe file replacement | Core model suite; standalone file checks |
 | Pan/zoom bounds, minimum spans, cursor anchor, adaptive bed/model limits | Core model suite |
