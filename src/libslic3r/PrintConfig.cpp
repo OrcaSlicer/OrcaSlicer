@@ -174,6 +174,11 @@ static bool one_filament_per_nozzle(const ConfigBase& printer_config)
     return semm == nullptr || !semm->getBool();
 }
 
+bool printer_has_viewable_filaments(const ConfigBase& printer_config, const std::string& reported_changer)
+{
+    return one_filament_per_nozzle(printer_config) || !reported_changer.empty();
+}
+
 // Orca: the same test the CLI uses. Bambu printers assign filaments to nozzles through filament_map.
 static bool is_bambu_printer_model(const ConfigBase& printer_config)
 {
