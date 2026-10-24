@@ -2343,3 +2343,56 @@ TEST_CASE("More filaments than tools slice to logical tool indices when the devi
     });
     CHECK(commanded_tools(Slic3r::Test::slice({ TestMesh::cube_with_hole }, config), 5) == std::set<int>{ 0, 1, 3 });
 }
+
+namespace {
+ModelFilaments filaments_from_model(const Model &model, const DynamicPrintConfig &full)
+{
+    return Print::collect_model_filaments(model, full, FeatureGate::Printed, /*with_wipe_tower=*/true);
+}
+} // namespace
+
+TEST_CASE("The model-level filament set is the set the slicer tools up", "[MultiFilament]") {
+    struct Case { const char* name; std::vector<Slic3r::ConfigBase::SetDeserializeItem> config; std::vector<Slic3r::ConfigBase::SetDeserializeItem> object; };
+    const Case c = GENERATE(
+        Case{ "plain object",                         {},                                                                  {} },
+        Case{ "object filament 3",                    {},                                                                  { { "extruder", "3" } } },
+        Case{ "outer wall filament 2",                { { "outer_wall_filament_id", "2" } },                               {} },
+        Case{ "infill filament with no infill",       { { "sparse_infill_filament_id", "3" }, { "sparse_infill_density", "0%" } }, {} },
+        Case{ "top filament with no top shells",      { { "top_surface_filament_id", "4" }, { "top_shell_layers", "0" } }, {} },
+        Case{ "support filament, support on",         { { "enable_support", "1" }, { "support_filament", "4" } },          {} },
+        Case{ "support filament, support off",        { { "enable_support", "0" }, { "support_filament", "4" } },          {} },
+        Case{ "raft with an interface filament",      { { "raft_layers", "2" }, { "support_interface_filament", "3" } },   {} },
+        Case{ "prime tower filament",                 { { "enable_prime_tower", "1" }, { "wipe_tower_filament", "4" },
+                                                        { "outer_wall_filament_id", "2" } },                               {} });
+
+    DYNAMIC_SECTION(c.name) {
+        DynamicPrintConfig config = multifilament_config(5, { { "layer_change_gcode", "G92 E0" } });
+        for (const auto &item : c.config)
+            config.set_deserialize_strict(item.opt_key, item.opt_value);
+        const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides { c.object };
+
+        Model model;
+        Print print;
+        Slic3r::Test::init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        CHECK(filaments_from_model(model, print.full_print_config()).all() == print.extruders(/*conside_custom_gcode=*/true));
+    }
+}
+
+TEST_CASE("A layer tool change and a height range join the model-level filament set", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(5, { { "layer_change_gcode", "G92 E0" } });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config);
+
+    model.plates_custom_gcodes[model.curr_plate_index].gcodes.push_back(
+        CustomGCode::Item{ 5., CustomGCode::Type::ToolChange, 5, "", "" });
+    model.objects.front()->layer_config_ranges[{ 2., 6. }].set("extruder", 4);
+    print.apply(model, print.full_print_config());
+
+    const ModelFilaments filaments = filaments_from_model(model, print.full_print_config());
+    CHECK(filaments.all() == print.extruders(/*conside_custom_gcode=*/true));
+    CHECK(filaments.tool_changes == std::vector<unsigned int>{ 4 });
+    // A height range filament is a part filament.
+    CHECK(std::count(filaments.parts.begin(), filaments.parts.end(), 3u) == 1);
+}

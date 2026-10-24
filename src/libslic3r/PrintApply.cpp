@@ -1259,6 +1259,89 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
+std::vector<unsigned int> ModelFilaments::all() const
+{
+    std::vector<unsigned int> out;
+    for (const std::vector<unsigned int>* tier : { &parts, &features, &wipe_tower, &tool_changes, &support })
+        out.insert(out.end(), tier->begin(), tier->end());
+    sort_remove_duplicates(out);
+    return out;
+}
+
+ModelFilaments Print::collect_model_filaments(const Model &model, const PrintConfig &print_config,
+                                              const PrintObjectConfig &default_object_config,
+                                              const PrintRegionConfig &default_region_config,
+                                              size_t num_extruders, std::vector<int> &variant_index,
+                                              FeatureGate gate, bool with_wipe_tower)
+{
+    ModelFilaments out;
+
+    // The brim gate is Print-wide (any object's brim prints every outer wall), so resolve all first.
+    std::vector<std::pair<const ModelObject*, PrintObjectConfig>> printable;
+    bool has_brim = false;
+    for (const ModelObject *model_object : model.objects) {
+        if (std::none_of(model_object->instances.begin(), model_object->instances.end(), [](const ModelInstance *mi) { return mi->is_printable(); }))
+            continue;
+        PrintObjectConfig object_config = PrintObject::object_config_from_model_object(default_object_config, *model_object, num_extruders, variant_index);
+        has_brim |= PrintObject::has_brim(object_config, *model_object);
+        printable.emplace_back(model_object, std::move(object_config));
+    }
+
+    const auto append_features = [&](const PrintRegionConfig &config) {
+        if (gate == FeatureGate::Printed) {
+            PrintRegion::collect_object_printing_extruders(print_config, config, has_brim, out.features);
+            return;
+        }
+        for (int id : { config.outer_wall_filament_id.value, config.inner_wall_filament_id.value, config.sparse_infill_filament_id.value,
+                        config.internal_solid_filament_id.value, config.top_surface_filament_id.value, config.bottom_surface_filament_id.value }) {
+            const unsigned int i = (unsigned int)std::max(0, id - 1);
+            out.features.emplace_back(i >= num_extruders ? 0 : i);
+        }
+    };
+    for (const auto &[model_object, object_config] : printable) {
+        std::vector<const ModelVolume*> modifiers;
+        std::copy_if(model_object->volumes.begin(), model_object->volumes.end(), std::back_inserter(modifiers), [](const ModelVolume *mv) { return mv->is_modifier(); });
+        for (const ModelVolume *part : model_object->volumes) {
+            if (! part->is_model_part())
+                continue;
+            std::vector<PrintRegionConfig> parents { region_config_from_model_volume(default_region_config, nullptr, *part, num_extruders, variant_index) };
+            for (const auto &[range, range_config] : model_object->layer_config_ranges)
+                parents.emplace_back(region_config_from_model_volume(default_region_config, &range_config.get(), *part, num_extruders, variant_index));
+            for (const PrintRegionConfig &parent : parents) {
+                append_features(parent);
+                for (const ModelVolume *modifier : modifiers)
+                    append_features(region_config_from_model_volume(parent, nullptr, *modifier, num_extruders, variant_index));
+            }
+        }
+        append_model_object_extruders(*model_object, out.parts);
+        if (PrintObject::has_support_material(object_config))
+            append_support_extruders(object_config, (unsigned int)num_extruders, out.support);
+    }
+    append_tool_change_extruders(model, num_extruders, out.tool_changes);
+
+    for (std::vector<unsigned int>* tier : { &out.parts, &out.features, &out.tool_changes, &out.support })
+        sort_remove_duplicates(*tier);
+    if (with_wipe_tower) {
+        std::vector<unsigned int> used = out.all();
+        const size_t              before = used.size();
+        append_wipe_tower_extruder(print_config, used);
+        out.wipe_tower.assign(used.begin() + before, used.end());
+    }
+    return out;
+}
+
+ModelFilaments Print::collect_model_filaments(const Model &model, const DynamicPrintConfig &full_config, FeatureGate gate,
+                                              bool with_wipe_tower)
+{
+    PrintConfig       print_config;    print_config.apply(full_config, true);
+    PrintObjectConfig object_defaults; object_defaults.apply(full_config, true);
+    PrintRegionConfig region_defaults; region_defaults.apply(full_config, true);
+    // Filament ids and feature gates are not variant options.
+    std::vector<int>  no_variant;
+    return collect_model_filaments(model, print_config, object_defaults, region_defaults, print_config.filament_diameter.size(),
+                                   no_variant, gate, with_wipe_tower);
+}
+
 // Orca: The shrinkage compensation is baked into the PrintObject transformations, so it has to be known before apply()
 // creates them. Derive it from the filaments the new model prints with instead of from the existing PrintObjects and
 // their regions, which do not exist yet on the first apply(). Every feature filament of every part, height range and
@@ -1286,44 +1369,16 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
         return;
     }
 
-    std::vector<unsigned int> extruders;
-    const auto append_feature_extruders = [num_extruders, &extruders](const PrintRegionConfig &config) {
-        for (int id : { config.outer_wall_filament_id.value, config.inner_wall_filament_id.value, config.sparse_infill_filament_id.value,
-                        config.internal_solid_filament_id.value, config.top_surface_filament_id.value, config.bottom_surface_filament_id.value }) {
-            const unsigned int i = (unsigned int)std::max(0, id - 1);
-            extruders.emplace_back(i >= num_extruders ? 0 : i);
-        }
-    };
-    for (const ModelObject *model_object : m_model.objects) {
-        if (std::none_of(model_object->instances.begin(), model_object->instances.end(), [](const ModelInstance *mi) { return mi->is_printable(); }))
-            continue;
-        std::vector<const ModelVolume*> modifiers;
-        std::copy_if(model_object->volumes.begin(), model_object->volumes.end(), std::back_inserter(modifiers), [](const ModelVolume *mv) { return mv->is_modifier(); });
-        for (const ModelVolume *part : model_object->volumes) {
-            if (! part->is_model_part())
-                continue;
-            std::vector<PrintRegionConfig> parents { region_config_from_model_volume(m_default_region_config, nullptr, *part, num_extruders, variant_index) };
-            for (const auto &[range, range_config] : model_object->layer_config_ranges)
-                parents.emplace_back(region_config_from_model_volume(m_default_region_config, &range_config.get(), *part, num_extruders, variant_index));
-            for (const PrintRegionConfig &parent : parents) {
-                append_feature_extruders(parent);
-                for (const ModelVolume *modifier : modifiers)
-                    append_feature_extruders(region_config_from_model_volume(parent, nullptr, *modifier, num_extruders, variant_index));
-            }
-        }
-        append_model_object_extruders(*model_object, extruders);
-        const PrintObjectConfig object_config = PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, variant_index);
-        if (PrintObject::has_support_material(object_config))
-            append_support_extruders(object_config, (unsigned int)num_extruders, extruders);
-    }
-    this->append_tool_change_extruders(extruders);
+    std::vector<unsigned int> extruders = collect_model_filaments(m_model, m_config, m_default_object_config, m_default_region_config,
+                                                                  num_extruders, variant_index, FeatureGate::AllConfigured,
+                                                                  /*with_wipe_tower=*/false).all();
     // A mixed slot prints with its physical components.
     const auto expand_and_sort = [this, &extruders]() {
         extruders = expand_mixed_filaments(extruders, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values);
     };
     expand_and_sort();
     // The wipe tower filament may also be flushed into the objects.
-    this->append_wipe_tower_extruder(extruders);
+    append_wipe_tower_extruder(m_config, extruders);
     expand_and_sort();
 
     m_same_shrinkage_compensations = ! extruders.empty() &&

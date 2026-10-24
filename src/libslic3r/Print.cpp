@@ -776,31 +776,30 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
     append(extruders, this->support_material_extruders());
 
     if (conside_custom_gcode)
-        this->append_tool_change_extruders(extruders);
-    this->append_wipe_tower_extruder(extruders);
+        append_tool_change_extruders(m_model, m_config.filament_colour.size(), extruders);
+    append_wipe_tower_extruder(m_config, extruders);
     sort_remove_duplicates(extruders);
     return extruders;
 }
 
 // Appends 0-based indices of the filaments the tool changes of the current plate switch to.
-void Print::append_tool_change_extruders(std::vector<unsigned int> &extruders) const
+void Print::append_tool_change_extruders(const Model &model, size_t num_extruders, std::vector<unsigned int> &extruders)
 {
     //BBS
-    int num_extruders = m_config.filament_colour.size();
-    if (m_model.plates_custom_gcodes.find(m_model.curr_plate_index) != m_model.plates_custom_gcodes.end()) {
-        for (auto item : m_model.plates_custom_gcodes.at(m_model.curr_plate_index).gcodes) {
-            if (item.type == CustomGCode::Type::ToolChange && item.extruder <= num_extruders)
+    if (model.plates_custom_gcodes.find(model.curr_plate_index) != model.plates_custom_gcodes.end()) {
+        for (auto item : model.plates_custom_gcodes.at(model.curr_plate_index).gcodes) {
+            if (item.type == CustomGCode::Type::ToolChange && item.extruder <= int(num_extruders))
                 extruders.push_back((unsigned int)(item.extruder - 1));
         }
     }
 }
 
-void Print::append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const
+void Print::append_wipe_tower_extruder(const PrintConfig &config, std::vector<unsigned int> &extruders)
 {
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
-    if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
-        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament <= int(config().filament_diameter.size()));
-        extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
+    if (has_wipe_tower(config) && config.wipe_tower_filament != 0 && extruders.size() > 1) {
+        assert(config.wipe_tower_filament > 0 && config.wipe_tower_filament <= int(config.filament_diameter.size()));
+        extruders.emplace_back(config.wipe_tower_filament - 1); // config value is 1-based
     }
 }
 
@@ -5219,23 +5218,23 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
 }
 
 // Wipe tower support.
-bool Print::has_wipe_tower() const
+bool Print::has_wipe_tower(const PrintConfig &config)
 {
     // Belt printers never get the classic wipe tower: its G-code is generated
     // directly in machine XY coordinates and bypasses the belt rotation
     // transform. Purging is routed into the belt purge prism instead
     // (see has_belt_purge_tower() / _plan_belt_purge()).
-    if (m_config.belt_printer.value)
+    if (config.belt_printer.value)
         return false;
 
-    if (m_config.enable_prime_tower.value == true) {
-        if (m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2)
+    if (config.enable_prime_tower.value == true) {
+        if (config.enable_wrapping_detection.value && config.wrapping_exclude_area.values.size() > 2)
             return true;
 
-        if (enable_timelapse_print())
+        if (enable_timelapse_print(config))
             return true;
 
-        return !m_config.spiral_mode.value && m_config.filament_diameter.values.size() > 1;
+        return !config.spiral_mode.value && config.filament_diameter.values.size() > 1;
     }
     return false;
 }
@@ -5265,9 +5264,9 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
     return m_wipe_tower_data;
 }
 
-bool Print::enable_timelapse_print() const
+bool Print::enable_timelapse_print(const PrintConfig &config)
 {
-    return m_config.timelapse_type.value == TimelapseType::tlSmooth;
+    return config.timelapse_type.value == TimelapseType::tlSmooth;
 }
 
 
