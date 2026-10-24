@@ -431,7 +431,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "printer_notes",
         "use_3mf",
         // Bounds the plate in validate() only; the toolpaths are unaffected.
-        "device_tool_count"
+        "device_tool_count",
+        // Drives the flushing dialog only; the blocks it writes are diffed on their own.
+        "flush_volumes_synced"
     };
 
     static std::unordered_set<std::string> steps_ignore;

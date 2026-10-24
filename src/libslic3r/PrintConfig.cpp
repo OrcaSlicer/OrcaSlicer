@@ -8430,6 +8430,12 @@ void PrintConfigDef::init_fff_params()
                                                     280.f, 280.f,   0.f, 280.f,
                                                     280.f, 280.f, 280.f,   0.f });
 
+    def = this->add("flush_volumes_synced", coBool);
+    def->label = L("Same flushing volumes for all extruders");
+    def->tooltip = L("Edit one flushing-volume matrix and apply it to every extruder. Off: each extruder keeps its own matrix.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
     def = this->add("flush_multiplier", coFloats);
     def->label = L("Flush multiplier");
     def->tooltip = L("The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table.");

@@ -133,6 +133,7 @@ static std::vector<std::string> s_project_options {
     "wipe_tower_y",
     "curr_bed_type",
     "flush_multiplier",
+    "flush_volumes_synced",
     // Fast-purge mode: project-level purge control, inert at Default.
     "flush_multiplier_fast",
     "prime_volume_mode",

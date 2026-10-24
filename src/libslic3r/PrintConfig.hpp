@@ -2146,6 +2146,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloats,             filament_prime_volume_nc))
     ((ConfigOptionFloatsNullable,     filament_preheat_temperature_delta))
     ((ConfigOptionFloats,             flush_multiplier))
+    ((ConfigOptionBool,               flush_volumes_synced))
     // Fast-purge mode. Kept out of the g-code config block (banned_keys in
     // GCode::append_full_config) so registering them leaves the shipping fleet's g-code byte-identical;
     // consumed only on the prime_volume_mode==pvmFast / pvmSaving branch (default pvmDefault = inert).

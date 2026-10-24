@@ -6689,7 +6689,15 @@ void Sidebar::show_SEMM_buttons()
 
     p->m_bpButton_add_filament->Show(single_or_bbl);
     p->m_bpButton_del_filament->Show(is_multi);
-    p->m_flushing_volume_btn->Show(  is_multi);
+    // Orca: a device-resolved printer shows it only where filament swaps through a nozzle; a plain toolchanger never purges.
+    {
+        const auto& printer_cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const auto* nozzles     = printer_cfg.option<ConfigOptionFloats>("nozzle_diameter");
+        const bool  multi_nozzle = nozzles != nullptr && nozzles->size() > 1;
+        const bool  swaps = !device_resolves_filament_mapping(printer_cfg) || printer_cfg.opt_bool("single_extruder_multi_material") ||
+                            (multi_nozzle && !reported_changer_of(printer_cfg).empty());
+        p->m_flushing_volume_btn->Show(is_multi && swaps);
+    }
 
     if (is_multi) {
         for (auto &c : p->combos_filament)
