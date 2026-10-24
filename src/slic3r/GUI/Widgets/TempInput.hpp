@@ -53,7 +53,16 @@ class TempInput : public wxNavigationEnabled<StaticBox>
     int  min_temp     = 0;
     std::unordered_set<int> additional_temps;
     bool warning_mode = false;
-    TempInputType m_input_type;
+    TempInputType m_input_type = TEMP_OF_NORMAL_TYPE;
+    wxString      m_display_id_text; // optional badge (T1, T2, ...) beside the icon
+
+    // Badge shown over the round icon: L/R for Bambu's main/deputy nozzle, or the explicit tool id.
+    wxString badge_text() const;
+    bool     has_tool_id_badge() const
+    {
+        return m_input_type == TEMP_OF_NORMAL_TYPE && !m_display_id_text.IsEmpty();
+    }
+    int      badge_width(wxDC &dc) const;
 
     int              padding_left    = 0;
     static const int TempInputWidth  = 200;
@@ -123,6 +132,8 @@ public:
     wxString GetCurrTemp() { return GetLabel(); }
     int get_max_temp() { return max_temp; }
     void SetLabel(const wxString &label) override;
+    // Tool identity shown in the round badge (for printers with more than two toolheads).
+    void SetDisplayIdText(const wxString &text);
 
     void SetTextColor(StateColor const &color);
 
