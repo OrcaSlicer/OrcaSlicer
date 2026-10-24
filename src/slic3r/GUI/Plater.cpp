@@ -20771,13 +20771,16 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         PlateData *plate_data = plate_data_list[i];
         plate_data->printer_model_id = printer_model_id;
         plate_data->nozzle_diameters = nozzle_diameter_str;
+        // ids are g-code tool numbers; look up project data via the compaction slot but keep the id.
+        PartPlate* plate = p->partplate_list.get_plate(i);
         for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+            const int slot = plate != nullptr ? plate->project_slot_of_tool(it->id) : it->id;
             std::string display_filament_type;
-            it->type  = cfg.get_filament_type(display_filament_type, it->id);
-            it->filament_id = filament_id_opt ? filament_id_opt->get_at(it->id) : "";
+            it->type  = cfg.get_filament_type(display_filament_type, slot);
+            it->filament_id = filament_id_opt ? filament_id_opt->get_at(slot) : "";
             if (id_agent)
                 it->filament_id = id_agent->from_orca_filament_id(it->filament_id);
-            it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
+            it->color = filament_color ? filament_color->get_at(slot) : "#FFFFFF";
             // save filament info used in curr plate
             int index = p->partplate_list.get_curr_plate_index();
             if (store_params.id_bboxes.size() > index) {
@@ -21230,14 +21233,18 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
             DynamicPrintConfig          cfg                 = wxGetApp().preset_bundle->full_config();
             const auto*                 filament_color      = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_colour"));
             const auto*                 filament_id_opt     = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_ids"));
+            // Orca: FilamentInfo::id is the g-code tool number and must stay so for extendedInfo();
+            // project-indexed lookups go through the compaction slot.
+            PartPlate* sliced_plate = get_partplate_list().get_plate(resolved_plate_idx);
             auto enrich_project_filaments = [&](std::vector<FilamentInfo>& filaments) {
                 for (auto& filament : filaments) {
                     if (filament.id < 0)
                         continue;
+                    const int slot = sliced_plate != nullptr ? sliced_plate->project_slot_of_tool(filament.id) : filament.id;
 
                     std::string display_filament_type;
                     try {
-                        filament.type = cfg.get_filament_type(display_filament_type, filament.id);
+                        filament.type = cfg.get_filament_type(display_filament_type, slot);
                     } catch (...) {
                     }
 
@@ -21246,8 +21253,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                     if (filament.type.empty())
                         filament.type = "Unknown";
 
-                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(filament.id)) : "";
-                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(filament.id)) : "#FFFFFF";
+                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(slot)) : "";
+                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(slot)) : "#FFFFFF";
                     if (filament.color.empty())
                         filament.color = "#FFFFFF";
                 }
@@ -21261,10 +21268,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
             if (selected_plate_data != nullptr)
                 project_filaments = selected_plate_data->slice_filaments_info;
 
-            if (project_filaments.empty()) {
-                if (PartPlate* plate = get_partplate_list().get_plate(resolved_plate_idx); plate != nullptr)
-                    project_filaments = plate->get_slice_filaments_info();
-            }
+            if (project_filaments.empty() && sliced_plate != nullptr)
+                project_filaments = sliced_plate->get_slice_filaments_info();
 
             if (!project_filaments.empty())
                 enrich_project_filaments(project_filaments);
@@ -22118,9 +22123,9 @@ const std::vector<std::vector<wxColour>>& Plater::get_filament_gradient_ramps() 
 /* Get vector of colors used for rendering of a Preview scene in "Color print" mode
  * It consists of extruder colors and colors, saved in model.custom_gcode_per_print_z
  */
-std::vector<std::string> Plater::get_colors_for_color_print(const GCodeProcessorResult* const result) const
+std::vector<std::string> Plater::get_colors_for_color_print(const GCodeProcessorResult* const result, std::vector<std::string> filament_colors) const
 {
-    std::vector<std::string> colors = get_extruder_colors_from_plater_config(result);
+    std::vector<std::string> colors = std::move(filament_colors);
 
     if (wxGetApp().is_gcode_viewer() && result != nullptr) {
         for (const CustomGCode::Item& code : result->custom_gcode_per_print_z) {
