@@ -50,6 +50,7 @@
 #include <system_error>
 #include <string_view>
 #include <vector>
+#include <regex>
 
 #include "Semver.hpp"
 #include "format.hpp"
@@ -2295,6 +2296,30 @@ boost::filesystem::path extended_path(const boost::filesystem::path& path) {
 #else
     return path;
 #endif
+}
+
+bool is_printables_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://printables.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_makerworld_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://makerworld.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_thingiverse_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://www.thingiverse.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+std::string sanitize_filename(const std::string &filename)
+{
+    const std::regex special_chars("[/\\\\:*?\"<>|]");
+    return std::regex_replace(filename, special_chars, "_");
 }
 
 }; // namespace Slic3r
