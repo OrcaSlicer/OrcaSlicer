@@ -101,6 +101,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/ConfigValueFormatter.hpp
     GUI/ConfigWizard.cpp
     GUI/ConfigWizard.hpp
+    GUI/ConfigWizardTypes.hpp
     GUI/ConfigWizard_private.hpp
     GUI/ConnectPrinter.cpp
     GUI/ConnectPrinter.hpp

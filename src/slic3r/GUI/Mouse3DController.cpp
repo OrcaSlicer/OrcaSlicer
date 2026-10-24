@@ -5,6 +5,7 @@
 
 #include "Camera.hpp"
 #include "GUI_App.hpp"
+#include "ImGuiWrapper.hpp"
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
 #include "NotificationManager.hpp"

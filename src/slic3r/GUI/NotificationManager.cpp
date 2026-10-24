@@ -51,6 +51,7 @@
 #include <wx/time.h>
 
 #include "GUI_App.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
 #include "FilamentMapDialog.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
