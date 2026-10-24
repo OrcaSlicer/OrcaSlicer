@@ -637,6 +637,93 @@ capability instance is created. Denying the request aborts the plugin load.)pbdo
 
 }
 
+void install_python_thread_audit_shim()
+{
+    // Runs with the GIL held from PythonInterpreter::initialize(). CPython's own thread bootstrap
+    // calls the target with no knowledge of the audit context that created it: the calling
+    // thread is the only place the plugin key and capability are still available. Capture them
+    // here, then re-establish the same ScopedPluginAuditContext inside the spawned thread before
+    // the plugin body runs. The identity lives only in this C++ closure -- no Python-visible
+    // setter is added.
+    try {
+        py::object thread_module = py::module_::import("_thread");
+
+        const int installed = PyObject_HasAttrString(thread_module.ptr(), "_orca_thread_audit_shim_installed");
+        if (installed == 1) {
+            BOOST_LOG_TRIVIAL(debug) << "[AUDIT] Python thread attribution shim already installed";
+            return;
+        }
+        if (installed < 0)
+            PyErr_Clear();
+
+        py::object original = py::reinterpret_steal<py::object>(
+            PyObject_GetAttrString(thread_module.ptr(), "start_new_thread"));
+        if (!original || !PyCallable_Check(original.ptr())) {
+            PyErr_Clear();
+            BOOST_LOG_TRIVIAL(error) << "[AUDIT] _thread.start_new_thread is missing or not callable; "
+                                        "plugin threads will run without audit attribution";
+            return;
+        }
+
+        py::object shim = py::cpp_function(
+            [original](py::object function, py::object args, py::object kwargs) -> py::object {
+                const std::string plugin_key  = PluginAuditManager::instance().current_plugin();
+                if (plugin_key.empty()) {
+                    // Not called from a plugin: preserve the stock implementation untouched.
+                    return kwargs.is_none() ? original(function, args) : original(function, args, kwargs);
+                }
+                const std::string capability = PluginAuditManager::instance().current_capability();
+
+                py::object guarded = py::cpp_function(
+                    [function, plugin_key, capability](py::args call_args, py::kwargs call_kwargs) -> py::object {
+                        ScopedPluginAuditContext audit_scope(plugin_key, capability);
+                        PyObject* result = PyObject_Call(function.ptr(), call_args.ptr(), call_kwargs.ptr());
+                        if (result == nullptr)
+                            throw py::error_already_set();
+                        return py::reinterpret_steal<py::object>(result);
+                    });
+                return kwargs.is_none() ? original(guarded, args) : original(guarded, args, kwargs);
+            },
+            py::arg("function"), py::arg("args"), py::arg("kwargs") = py::none());
+
+        if (PyObject_SetAttrString(thread_module.ptr(), "start_new_thread", shim.ptr()) < 0) {
+            PyErr_Clear();
+            BOOST_LOG_TRIVIAL(error)
+                << "[AUDIT] Failed to install Python thread attribution shim on _thread.start_new_thread";
+            return;
+        }
+        if (PyObject_SetAttrString(thread_module.ptr(), "_orca_thread_audit_shim_installed", Py_True) < 0)
+            PyErr_Clear();
+
+        // threading.py caches the function at import time (as `_start_new_thread` in 3.12, and as
+        // `start_new_thread` in older versions). Patch the cached reference too when the module is
+        // already loaded; otherwise its Thread.start() would keep calling the unwrapped original.
+        py::object sys_modules = py::module_::import("sys").attr("modules");
+        PyObject*  threading_module = PyDict_GetItemString(sys_modules.ptr(), "threading");
+        if (threading_module && threading_module != Py_None) {
+            const char* cached_names[] = {"_start_new_thread", "start_new_thread"};
+            for (const char* cached_name : cached_names) {
+                const int has_cached_name = PyObject_HasAttrString(threading_module, cached_name);
+                if (has_cached_name < 0) {
+                    PyErr_Clear();
+                    continue;
+                }
+                if (has_cached_name != 1)
+                    continue;
+                if (PyObject_SetAttrString(threading_module, cached_name, shim.ptr()) < 0) {
+                    PyErr_Clear();
+                    BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Failed to update threading." << cached_name
+                                               << " with the Python thread attribution shim";
+                }
+            }
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "[AUDIT] Python thread attribution shim installed";
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT] Failed to install Python thread attribution shim: " << ex.what();
+    }
+}
+
 } // namespace Slic3r
 
 #ifdef ORCA_PYTHON_STUBGEN_MODULE

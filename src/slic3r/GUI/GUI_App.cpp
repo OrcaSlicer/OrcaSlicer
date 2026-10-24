@@ -132,6 +132,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <regex>
+#include <system_error>
 #include <thread>
 #include <string_view>
 
@@ -139,6 +140,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/sources/severity_feature.hpp>
+#include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -1292,6 +1296,32 @@ void GUI_App::shutdown()
     NetworkAgentFactory::clear_printer_agent_cache();
 
     BOOST_LOG_TRIVIAL(info) << "GUI_App::shutdown exit";
+}
+
+void GUI_App::start_exit_watchdog()
+{
+    // Last resort for code that never returns while the app closes (plugins, vendor libraries,
+    // network calls). The app config is saved on idle and again in MainFrame::shutdown, so ending
+    // the process loses little; static destructors and atexit handlers are skipped too, as they may
+    // be what is stuck.
+    constexpr auto grace = std::chrono::seconds(30);
+    try {
+        // Made now: by the time the watchdog fires, static destruction may be under way. The logger
+        // holds its own reference, which keeps boost::log's core and sinks alive.
+        boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level> logger;
+        std::thread([grace, logger]() mutable {
+            std::this_thread::sleep_for(grace);
+            try {
+                BOOST_LOG_SEV(logger, boost::log::trivial::error)
+                    << "OrcaSlicer did not finish closing within " << grace.count() << " s; ending the process";
+            } catch (...) {
+                // A failing log sink must not stop the exit.
+            }
+            std::_Exit(EXIT_FAILURE);
+        }).detach();
+    } catch (const std::system_error& ex) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not start the exit watchdog: " << ex.what();
+    }
 }
 
 
@@ -4352,8 +4382,27 @@ void GUI_App::select_machine(const std::string& agent_id)
     const auto& preset = preset_bundle->printers.get_edited_preset();
     const DynamicPrintConfig* host_cfg = &preset.config;
 
+    // Hands the machine to the Device tab's full selection flow (UI updates, callbacks, etc.).
+    auto select_dev = [this](const std::string& dev_id) {
+        if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+            monitor->select_machine(dev_id);
+            BOOST_LOG_TRIVIAL(info) << "GUI_App::select_machine" << ": triggered select_machine for dev_id=" << dev_id;
+        } else if (m_device_manager->set_selected_machine(dev_id)) {
+            // The Device tab's own state is set when the tab is built.
+            MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
+            BOOST_LOG_TRIVIAL(info) << "GUI_App::select_machine" << ": set_selected_machine dev_id=" << dev_id;
+        }
+    };
+
     std::string print_host = host_cfg->opt_string("print_host");
     if (print_host.empty()) {
+        // Orca: a printer bound from the Device tab is kept as a device of the agent rather than in
+        // the preset's print_host. Select it when it is the agent's only one, as
+        // MainFrame::load_printer_url() does; otherwise nothing is selected until the print dialog
+        // picks it, and filament sync has no printer to read from.
+        const auto machines = m_device_manager->get_my_machine_list(agent_id);
+        if (machines.size() == 1 && machines.begin()->second)
+            select_dev(machines.begin()->second->get_dev_id());
         return;
     }
     std::string port = host_cfg->opt_string("printhost_port");
@@ -4400,17 +4449,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         existing->set_access_code(access_code);
     }
     existing->local_use_ssl = boost::istarts_with(print_host, "https://");
-
-    // Use MonitorPanel::select_machine() to trigger full selection flow
-    // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
-    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
-        monitor->select_machine(dev_id);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
-    } else if (m_device_manager->set_selected_machine(dev_id)) {
-        // The Device tab's own state is set when the tab is built.
-        MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": set_selected_machine dev_id=" << dev_id;
-    }
+    select_dev(dev_id);
 }
 
 bool GUI_App::dark_mode()
@@ -9030,7 +9069,8 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
     // Render settings the canvas reads every frame; a change needs one redraw to show.
     static constexpr const char* opengl_render_setting_keys[] = {
         SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
-        SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS
+        SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
+        SETTING_OPENGL_REALISTIC_GLOSS
     };
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)

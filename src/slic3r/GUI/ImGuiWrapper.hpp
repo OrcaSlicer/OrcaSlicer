@@ -73,6 +73,10 @@ class ImGuiWrapper
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     std::map<wchar_t, int> m_custom_glyph_rects_ids;
     std::string m_clipboard_text;
+    // Keys held down, each with whether ImGui claimed its press.
+    std::map<int, bool> m_key_claims;
+    // Whether ImGui claimed the last key-down, for the char event that follows it.
+    std::optional<bool> m_char_claim;
 
 public:
     struct LastSliderStatus {
@@ -224,8 +228,21 @@ public:
     bool text_input_active() const;
     // True while an ImGui modal popup is on screen.
     bool modal_popup_open() const;
+    // True while any ImGui popup is on screen, modal or not.
+    bool popup_open() const;
+    // Closes the topmost popup on screen unless it is a modal, which handles Esc itself.
+    void close_top_popup();
     // True for every key while a modal is open, and for text-editing keys while an InputText is active.
     bool owns_key(const KeyChord& chord) const;
+    // True while the left mouse button holds an ImGui item, such as a slider being dragged.
+    bool item_held() const;
+    // True while a popup is open, an item is held or an InputText is active.
+    bool owns_keyboard() const;
+    // Returns owns_keyboard() as of the key's key-down, so its repeats, char event and release get the
+    // same answer. Call it once per event.
+    bool claim_key_event(const wxKeyEvent& evt);
+    // Drops the record of held keys, whose key-ups are sent to the window that takes the focus.
+    void forget_key_claims();
 
     // Optional inputs are used for set up value inside of an optional, with default value
     // 

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <array>
 #include <cassert>
 #include <cstdio>
 #include "libslic3r/Technologies.hpp"
@@ -506,6 +505,11 @@ bool ImGuiWrapper::update_mouse_data(wxMouseEvent& evt)
     io.MouseDown[0] = evt.LeftIsDown();
     io.MouseDown[1] = evt.RightIsDown();
     io.MouseDown[2] = evt.MiddleIsDown();
+    // Replaces a modifier left held when its key-up was sent to another window.
+    io.KeyCtrl  = evt.ControlDown();
+    io.KeyShift = evt.ShiftDown();
+    io.KeyAlt   = evt.AltDown();
+    io.KeySuper = evt.MetaDown();
     // Only a vertical wheel event with a direction is a wheel step. A macOS trackpad reports sideways motion
     // as separate horizontal events, and its wheel events often carry a rotation of 0: wx truncates the
     // sub-pixel deltas to whole ones and passes on events with no delta at all. Read as vertical steps,
@@ -587,16 +591,6 @@ void ImGuiWrapper::new_frame()
     // BBL: copy & paste form prusa github repo (https://github.com/prusa3d/PrusaSlicer/blob/master/src/slic3r/GUI/ImGuiWrapper.cpp#L375C5-L402C6)
     // synchronize key states
     // when the application loses the focus it may happen that the key up event is not processed
-
-    // synchronize modifier keys
-    constexpr std::array<std::pair<ImGuiKeyModFlags_, wxKeyCode>, 3> imgui_mod_keys{
-        std::make_pair(ImGuiKeyModFlags_Ctrl, WXK_CONTROL),
-        std::make_pair(ImGuiKeyModFlags_Shift, WXK_SHIFT),
-        std::make_pair(ImGuiKeyModFlags_Alt, WXK_ALT) };
-    for (const std::pair<ImGuiKeyModFlags_, wxKeyCode>& key : imgui_mod_keys) {
-        if ((io.KeyMods & key.first) != 0 && !wxGetKeyState(key.second))
-            io.KeyMods &= ~key.first;
-    }
 
     // Not sure if it is neccessary
     // values from 33 to 126 are reserved for the standard ASCII characters
@@ -2137,23 +2131,79 @@ bool ImGuiWrapper::want_any_input() const
 
 bool ImGuiWrapper::text_input_active() const
 {
-    const ImGuiID id = ImGui::GetActiveID();
-    return id != 0 && ImGui::GetInputTextState(id) != nullptr;
+    // An active InputText requests text input in each frame that draws it, and NewFrame() moves the
+    // request into io.WantTextInput.
+    const ImGuiContext& g = *ImGui::GetCurrentContext();
+    return g.WithinFrameScope ? g.IO.WantTextInput : g.WantTextInputNextFrame == 1;
+}
+
+// A popup stays on the popup stack while its canvas is hidden, so it counts only if the last finished frame
+// drew it, which NewFrame() moves from Active to WasActive.
+static bool drawn_last_frame(const ImGuiWindow* popup)
+{
+    return popup != nullptr && (ImGui::GetCurrentContext()->WithinFrameScope ? popup->WasActive : popup->Active);
 }
 
 bool ImGuiWrapper::modal_popup_open() const
 {
-    // A modal stays on the popup stack while its canvas is hidden, so it counts only if the last finished
-    // frame drew it, which NewFrame() moves from Active to WasActive.
-    const ImGuiWindow* modal = ImGui::GetTopMostPopupModal();
-    if (modal == nullptr)
-        return false;
-    return ImGui::GetCurrentContext()->WithinFrameScope ? modal->WasActive : modal->Active;
+    return drawn_last_frame(ImGui::GetTopMostPopupModal());
+}
+
+bool ImGuiWrapper::popup_open() const
+{
+    const ImVector<ImGuiPopupData>& stack = ImGui::GetCurrentContext()->OpenPopupStack;
+    return std::any_of(stack.begin(), stack.end(), [](const ImGuiPopupData& popup) { return drawn_last_frame(popup.Window); });
+}
+
+void ImGuiWrapper::close_top_popup()
+{
+    const ImVector<ImGuiPopupData>& stack = ImGui::GetCurrentContext()->OpenPopupStack;
+    for (int level = stack.Size - 1; level >= 0; --level) {
+        const ImGuiWindow* popup = stack[level].Window;
+        if (!drawn_last_frame(popup))
+            continue;
+        if ((popup->Flags & ImGuiWindowFlags_Modal) == 0)
+            ImGui::ClosePopupToLevel(level, true);
+        return;
+    }
 }
 
 bool ImGuiWrapper::owns_key(const KeyChord& chord) const
 {
     return modal_popup_open() || (chord.edits_text() && text_input_active());
+}
+
+bool ImGuiWrapper::item_held() const
+{
+    return ImGui::GetIO().MouseDown[0] && ImGui::GetActiveID() != 0;
+}
+
+bool ImGuiWrapper::owns_keyboard() const
+{
+    return popup_open() || item_held() || text_input_active();
+}
+
+bool ImGuiWrapper::claim_key_event(const wxKeyEvent& evt)
+{
+    const bool claimed = owns_keyboard();
+    const int  key     = evt.GetKeyCode();
+    if (evt.GetEventType() == wxEVT_KEY_DOWN) {
+        m_char_claim = m_key_claims.try_emplace(key, claimed).first->second;
+        return *m_char_claim;
+    }
+    if (evt.GetEventType() == wxEVT_KEY_UP) {
+        m_char_claim.reset();
+        if (const auto press = m_key_claims.extract(key))
+            return press.mapped();
+        return claimed;
+    }
+    return std::exchange(m_char_claim, std::nullopt).value_or(claimed);
+}
+
+void ImGuiWrapper::forget_key_claims()
+{
+    m_key_claims.clear();
+    m_char_claim.reset();
 }
 
 ImFontAtlasCustomRect* ImGuiWrapper::GetTextureCustomRect(const wchar_t& tex_id)
