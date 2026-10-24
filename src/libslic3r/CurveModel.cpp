@@ -174,6 +174,35 @@ bool CurveModel::insert_point(Rows& rows, int& row) const
     return false;
 }
 
+bool CurveModel::move_point(int row, double proposed_x, double proposed_y, const CurveView& view,
+                            std::vector<double>& x, std::vector<double>& y, Row& point) const
+{
+    if (row < 0 || size_t(row) >= x.size() || x.size() != y.size()) return false;
+    const CurveView bounds = drag_bounds(row, x, y, view);
+    auto moved_x = x;
+    auto moved_y = y;
+    Row moved = point;
+    auto move_axis = [this](double value, double lower, double upper, double& current, std::string& text) {
+        // The graph proposes the drag-start value for an axis the pointer has not moved. Saved
+        // points may lie closer to a neighbor or a view edge than these bounds, so clamping
+        // that value would silently rewrite it.
+        if (value == current || lower > upper) return;
+        std::string rounded_text = format_point_number(std::clamp(value, lower, upper));
+        double rounded;
+        if (!read_number(rounded_text, rounded) || rounded < lower || rounded > upper || rounded == current) return;
+        current = rounded;
+        text = std::move(rounded_text);
+    };
+    move_axis(proposed_x, bounds.min_x, bounds.max_x, moved_x[row], moved.first);
+    move_axis(proposed_y, bounds.min_y, bounds.max_y, moved_y[row], moved.second);
+    int error_row;
+    if (moved == point || validate_points(moved_x, moved_y, error_row)) return false;
+    x = std::move(moved_x);
+    y = std::move(moved_y);
+    point = std::move(moved);
+    return true;
+}
+
 const char* CurveModel::read_csv(const std::string& text, Rows& rows, int& line) const
 {
     std::istringstream stream(text.compare(0, 3, "\xEF\xBB\xBF") == 0 ? text.substr(3) : text);
