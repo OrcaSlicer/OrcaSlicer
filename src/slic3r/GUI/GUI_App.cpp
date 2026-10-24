@@ -6,6 +6,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "BindDialog.hpp"
