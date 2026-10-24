@@ -1,1 +1,0 @@
-Upstream source: https://github.com/SoftFever/nanosvg
