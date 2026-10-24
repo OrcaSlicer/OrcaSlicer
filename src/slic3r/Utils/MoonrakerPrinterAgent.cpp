@@ -11,6 +11,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/miniz_extension.hpp"
+#include "slic3r/GUI/ActivePrinterSession.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -743,8 +744,53 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
 }
 
+bool MoonrakerPrinterAgent::bind_device_connection(const std::string& dev_id, const std::string& address,
+                                                   const std::string& access_code, bool use_ssl)
+{
+    if (dev_id.empty() || address.empty())
+        return false;
+    // Compare the full URL, not just dev_id: a stale binding may have the wrong scheme
+    // (MachineObject::local_use_ssl defaults to true). The address carries any port itself.
+    const std::string expected_base_url = normalize_base_url(use_ssl, address, std::string());
+    if (device_info.base_url == expected_base_url && device_info.dev_id == dev_id)
+        return true;
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::bind_device_connection: device_info for dev_id=" << dev_id
+                            << " bound to address=" << address << " ssl=" << use_ssl;
+    return init_device_info(dev_id, address, std::string(), access_code, use_ssl, std::string());
+}
+
+bool MoonrakerPrinterAgent::ensure_device_info(const std::string& dev_id)
+{
+    if (dev_id.empty())
+        return false;
+    if (!device_info.base_url.empty() && device_info.dev_id == dev_id)
+        return true;
+
+    // Last resort: MachineObject::dev_ip may be stale, restored from a previous session's AppConfig
+    // and never refreshed for an existing dev_id.
+    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
+    if (!dev_manager) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::ensure_device_info: no DeviceManager, dev_id=" << dev_id;
+        return false;
+    }
+    MachineObject* obj = dev_manager->get_my_machine(dev_id);
+    if (!obj || obj->get_dev_ip().empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::ensure_device_info: no known IP for dev_id=" << dev_id;
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::ensure_device_info: rebuilding device_info for dev_id=" << dev_id
+                             << " from MachineObject::get_dev_ip()=" << obj->get_dev_ip()
+                             << " (this dev_id was never bound from a printer profile)";
+    return init_device_info(dev_id, obj->get_dev_ip(), std::string(), obj->get_access_code(), obj->local_use_ssl, std::string());
+}
+
 bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
@@ -1310,13 +1356,12 @@ bool MoonrakerPrinterAgent::init_device_info(const std::string& dev_id, const st
         return false;
     }
 
-    auto&       preset      = preset_bundle->printers.get_edited_preset();
-    const auto& printer_cfg = preset.config;
+    const GUI::ActivePrinterSession& session = GUI::active_printer_session();
 
     device_info.dev_ip     = dev_ip;
     device_info.api_key    = password;
-    device_info.model_name = printer_cfg.opt_string("printer_model");
-    device_info.model_id   = preset.get_printer_type(preset_bundle);
+    device_info.model_name = session.profile().config.opt_string("printer_model");
+    device_info.model_id   = session.printer_type();
     device_info.base_url   = normalize_base_url(use_ssl, dev_ip, port);
     device_info.dev_id     = dev_id;
     device_info.version    = "";
