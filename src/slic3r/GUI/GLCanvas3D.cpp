@@ -6791,6 +6791,13 @@ void GLCanvas3D::_render_3d_navigator()
 
     const float size  = NAVIGATOR_SIZE * sc;
     m_canvas_toolbar_pos[0] = size;
+    // Idle, the cube fades back so it does not compete with the model; the pointer over it, or a drag on it, brings it forward.
+    const ImVec2 mp         = io.MousePos;
+    const bool   nav_active = m_navigator_dragging || (mp.x >= viewManipulateLeft && mp.x < viewManipulateLeft + size &&
+                                                       mp.y >= viewManipulateTop  && mp.y < viewManipulateTop + size);
+    if (!nav_active)
+        for (const auto c : {ImGuizmo::COLOR::DIRECTION_X, ImGuizmo::COLOR::DIRECTION_Y, ImGuizmo::COLOR::DIRECTION_Z, ImGuizmo::COLOR::TEXT, ImGuizmo::COLOR::FACE})
+            style.Colors[c].w *= 0.45f;
     const auto result = ImGuizmo::ViewManipulate(cameraView, cameraProjection, ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::WORLD, nullptr,
                                                  camDistance, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(size, size),
                                                  0x00101010);
