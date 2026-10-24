@@ -6,6 +6,7 @@
 #include "DeviceManager.hpp"
 #include "GUI_App.hpp"
 #include "IPrinterAgent.hpp"
+#include "Tab.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
 #include <algorithm>
@@ -16,6 +17,7 @@
 #include <libslic3r/Config.hpp>
 #include <string>
 #include <memory>
+#include <libslic3r/PrintConfig.hpp>
 #include <wx/colour.h>
 #include <vector>
 
@@ -200,6 +202,14 @@ DeviceSyncOutcome sync_filament_inventory_from_printer(FilamentInventories& stor
     }
 
     inv.dialect = fila_system->GetChangerDialect();
+    // Seeds changer and tool count into the edited printer preset as an unsaved modification.
+    if (seed_printer_from_report(wxGetApp().preset_bundle->printers.get_edited_preset().config, inv.dialect,
+                                 fila_system->GetDeviceToolCount())) {
+        if (Tab* printer_tab = wxGetApp().get_tab(Preset::TYPE_PRINTER)) {
+            printer_tab->update_dirty();
+            printer_tab->reload_config();
+        }
+    }
     inv.ensure_ids();
     save_filament_inventories(store);
     outcome.status = applied ? Status::Applied : Status::Unchanged;
