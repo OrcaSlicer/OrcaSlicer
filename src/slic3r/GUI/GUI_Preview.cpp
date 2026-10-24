@@ -49,6 +49,7 @@
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 
 class wxDropTarget;
 namespace libvgcode { enum class EViewType : uint8_t; }
@@ -259,6 +260,21 @@ Preview::Preview(
 {
     if (init(parent, bed, model))
         load_print();
+}
+
+// Orca: the preview indexes colours by g-code tool id, which a compacted plate renumbers.
+// `print` must be the Print that produced the result (per plate), not Plater::fff_print().
+static std::vector<std::string> filament_colors_for_gcode_tools(const Slic3r::Print* print, std::vector<std::string> project_colors)
+{
+    static const Slic3r::FilamentCompaction empty_compaction;
+    const Slic3r::FilamentCompaction& compaction = print != nullptr ? print->filament_compaction() : empty_compaction;
+    if (compaction.slot_of_tool.empty())
+        return project_colors;
+    std::vector<std::string> tool_colors;
+    tool_colors.reserve(compaction.slot_of_tool.size());
+    for (int slot : compaction.slot_of_tool)
+        tool_colors.push_back(size_t(slot) < project_colors.size() ? project_colors[slot] : std::string("#808080"));
+    return tool_colors;
 }
 
 void Preview::update_gcode_result(GCodeProcessorResult* gcode_result)
@@ -573,7 +589,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
     check_layers_slider_values(ticks_info_from_curr_plate.gcodes, layers_z);
 
     // first of all update extruder colors to avoid crash, when we are switching printer preset from MM to SM
-    m_layers_slider->SetExtruderColors(plater->get_extruder_colors_from_plater_config(wxGetApp().is_editor() ? nullptr : m_gcode_result));
+    m_layers_slider->SetExtruderColors(filament_colors_for_gcode_tools(m_process->fff_print(), plater->get_extruder_colors_from_plater_config(wxGetApp().is_editor() ? nullptr : m_gcode_result)));
     m_layers_slider->SetSliderValues(layers_z);
     assert(m_layers_slider->GetMinValue() == 0);
     m_layers_slider->SetMaxValue(layers_z.empty() ? 0 : layers_z.size() - 1);
@@ -693,12 +709,15 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
     const bool gcode_preview_data_valid = !m_gcode_result->moves.empty();
     const bool is_pregcode_preview = !gcode_preview_data_valid && wxGetApp().is_editor();
 
-    const std::vector<std::string> tool_colors = wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result);
+    const Slic3r::Print* sliced_print = m_process->fff_print();
+    const std::vector<std::string> tool_colors = filament_colors_for_gcode_tools(sliced_print, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
+    m_canvas->get_gcode_viewer().set_filament_display_ids(sliced_print != nullptr ? sliced_print->filament_compaction().slot_of_tool : std::vector<int>());
     const std::vector<CustomGCode::Item>& color_print_values = wxGetApp().is_editor() ?
         wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_gcode_result->custom_gcode_per_print_z;
     std::vector<std::string> color_print_colors;
     if (!color_print_values.empty()) {
-        color_print_colors = wxGetApp().plater()->get_colors_for_color_print(m_gcode_result);
+        // Orca: this palette is indexed by g-code tool, with colour changes appended after the tools.
+        color_print_colors = wxGetApp().plater()->get_colors_for_color_print(m_gcode_result, tool_colors);
         color_print_colors.push_back("#808080"); // gray color for pause print or custom G-code
     }
 
