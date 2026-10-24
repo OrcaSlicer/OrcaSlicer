@@ -60,6 +60,8 @@ public:
     void SetSlots(const std::vector<SlotGridSlot>& slots, size_t extruder_count);
     void SetOnSlotClicked(std::function<void(size_t slot_index)> cb) { m_on_slot = std::move(cb); }
     void SetOnEditClicked(std::function<void(size_t slot_index)> cb) { m_on_edit = std::move(cb); }
+    // Takes effect at the next SetSlots().
+    void SetOptions(const SlotGridOptions& options) { m_options = options; }
 
     // -1 = all.
     void SelectExtruder(int extruder);

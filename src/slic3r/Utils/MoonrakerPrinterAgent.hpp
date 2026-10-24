@@ -52,6 +52,9 @@ bool        dialect_supports_push(Dialect dialect);
 std::string dialect_name(Dialect dialect);
 std::vector<std::string> afc_push_scripts(const IPrinterAgent::FilamentSlotInfo& info);
 std::string              happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info);
+// Highest T<n> + 1 in /printer/gcode/help; not the count, since toolchanger T0..T3 have no help
+// text and are not listed. 0 = none found.
+int tool_count_from_gcode_help(const nlohmann::json& help);
 // The lane_data record ("lane" = virtual tool, "unit", optional "unit_name", "slot", "extruder" or
 // "extruder_index") was defined together with the AFC developers. A field the record leaves out or
 // blank keeps what the tray already holds, so an AFC_stepper status object only fills gaps.
@@ -227,6 +230,9 @@ private:
 
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool fetch_has_free_storage(const std::string& base_url, const std::string& api_key, bool& has_free, std::string& error) const;
+    bool fetch_tool_count(const std::string& base_url, const std::string& api_key, int& tool_count, std::string& error) const;
+    // Refreshes m_tool_count from the printer's T<n> macros.
+    void probe_tool_count();
     // AFC keeps a lane's unit/extruder/map in its Klipper status object, not in lane_data.
     void fetch_afc_lane_topology(std::vector<AmsTrayData>& trays) const;
     bool query_printer_status(const std::string&           base_url,
@@ -275,6 +281,8 @@ private:
     bool fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
     // Dialect of the last successful fetch; published with the slots so a send can re-confirm it.
     MoonrakerFilamentDialect::Dialect m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
+    // Logical tools registered at the last fetch (0 = not probed).
+    int m_tool_count = 0;
 
     static std::string normalize_color_value(const std::string& color);
 

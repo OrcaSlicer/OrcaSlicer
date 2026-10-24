@@ -2054,3 +2054,44 @@ TEST_CASE("A printer has viewable filaments with one per nozzle or a reported ch
     CHECK_FALSE(printer_has_viewable_filaments(config, ""));     // nozzles share one hotend
     CHECK(printer_has_viewable_filaments(config, "afc"));
 }
+
+// A reported changer alone makes a plain Klipper profile device-resolved.
+TEST_CASE("A reported changer is cached beside the vendor protocol, never over it", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(reported_changer_of(config).empty());
+    CHECK_FALSE(device_resolves_filament_mapping(config));
+
+    CHECK(seed_printer_from_report(config, "afc", 0));
+    CHECK(reported_changer_of(config) == "afc");
+    CHECK(filament_mapping_protocol_of(config) == FilamentMappingProtocol::fmpNone);
+    CHECK(device_resolves_filament_mapping(config));
+    CHECK_FALSE(seed_printer_from_report(config, "afc", 0));
+    // "" (nothing reported) never clears the cached changer.
+    CHECK(seed_printer_from_report(config, "happy_hare", 0));
+    CHECK_FALSE(seed_printer_from_report(config, "", 0));
+    CHECK(reported_changer_of(config) == "happy_hare");
+
+    DynamicPrintConfig vendor = DynamicPrintConfig::full_print_config();
+    vendor.set_deserialize_strict({ { "filament_mapping_protocol", "wondermaker" } });
+    CHECK(seed_printer_from_report(vendor, "afc", 32));
+    CHECK(filament_mapping_protocol_of(vendor) == FilamentMappingProtocol::fmpWonderMaker);
+    CHECK(reported_changer_of(vendor) == "afc");
+    CHECK(vendor.opt_int("device_tool_count") == 32);
+}
+
+// Without a vendor constant the namespace is the nozzle count.
+TEST_CASE("The filament namespace is the probed tool count, else the vendor's constant", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    CHECK(filament_namespace_size(config, 4) == 4);
+    config.set_deserialize_strict({ { "filament_mapping_protocol", "snapmaker" } });
+    CHECK(filament_namespace_size(config, 4) == 32);
+    config.set_key_value("device_tool_count", new ConfigOptionInt(28));
+    CHECK(filament_namespace_size(config, 4) == 28);
+    config.set_deserialize_strict({ { "filament_mapping_protocol", "wondermaker" } });
+    config.set_key_value("device_tool_count", new ConfigOptionInt(0));
+    CHECK(filament_namespace_size(config, 4) == 4);
+    // A reported count of 0 leaves the cached one.
+    CHECK(seed_printer_from_report(config, "", 4));
+    CHECK_FALSE(seed_printer_from_report(config, "", 0));
+    CHECK(filament_namespace_size(config, 4) == 4);
+}
