@@ -98,13 +98,17 @@ inline nlohmann::json py_to_json(const pybind11::handle& o, int depth = 0)
 
 struct PluginPermissions
 {
+    // Filesystem targets. A target ending in "/*" (e.g. "/path/to/folder/*") grants the folder
+    // and its whole subtree, at any depth; "*" is the only wildcard and only as the final path
+    // component. Reads and writes stay separate buckets: a wildcard in one never grants the other.
     std::vector<std::string> fs_read;
     std::vector<std::string> fs_readwrite;
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
     std::vector<std::string> process;
     std::vector<std::string> threading;
-    // Grants for audit events that expose no target, keyed "<category>:<event>" (e.g. "Socket:socket.__new__").
+    // Grants for audit events that expose no target, keyed "<category>:<event>" (e.g.
+    // "Socket:socket.__new__"). Matched verbatim; the filesystem wildcard does not apply.
     std::vector<std::string> events;
 };
 

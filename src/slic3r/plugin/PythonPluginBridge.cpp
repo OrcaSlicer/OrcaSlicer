@@ -608,6 +608,15 @@ report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, so
 for network_socket, and commands for process. threading=True requests permission to start
 threads. Targets already granted to the plugin are not asked for again.
 
+A filesystem target may end in "/*" to grant a whole directory tree, for example
+"/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.
+"*" is the only wildcard and is recognized only as the final path component; a "*" anywhere
+else in a target is an ordinary character. Wildcards apply to fs_read and fs_readwrite only,
+and a grant in one of those buckets never authorizes the other direction. Tree grants are
+matched on canonical paths, so a symlink below the granted folder does not extend the grant
+outside it. Paths the host denies by name or keyword stay denied even when a wildcard covers
+them.
+
 The host presents one request to the user after register_capabilities() returns and before any
 capability instance is created. Denying the request aborts the plugin load.)pbdoc");
 

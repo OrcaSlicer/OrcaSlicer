@@ -54,7 +54,9 @@ enum class AuditEventCategory {
 };
 
 // Returns true if candidate resolves to a path inside allowed_root.
-// Uses weakly_canonical and component-wise comparison to reject traversal attacks.
+// Uses weakly_canonical and component-wise comparison to reject traversal attacks. A candidate
+// whose final component is a dangling symlink is never inside: containment fails closed rather
+// than authorizing the destination a write through it would create.
 bool is_inside_allowed_root(const boost::filesystem::path& candidate,
                             const boost::filesystem::path& allowed_root);
 
@@ -145,6 +147,23 @@ public:
     // Targets already persisted for the plugin are not shown or asked for again. Returns true
     // only when every missing target was granted and persisted; denial aborts the plugin load
     // without adding a permission.
+    //
+    // A filesystem target may name a directory tree: a trailing "/*" (e.g. "/path/to/folder/*")
+    // grants the folder itself and every path beneath it, at any depth. "*" is the only wildcard
+    // and is only recognized as the final path component; elsewhere it is an ordinary character.
+    // The wildcard applies to fs_read and fs_readwrite only, never to event grants or the other
+    // buckets, and a read grant still never authorizes a write (or the reverse). Denied paths
+    // stay denied regardless of a covering wildcard.
+    //
+    // A relative tree grant is resolved against the working directory when the request is made:
+    // the prompt shows, and the sidecar stores, the absolute scope it covers. Exact grants and
+    // the non-filesystem buckets are stored and compared verbatim.
+    //
+    // Tree grants are matched on canonical paths: a symlink below the granted folder does not
+    // extend the grant outside it, and a grant whose root is a symlink applies to its target. A
+    // target whose final component is a dangling symlink is never covered, since a write through
+    // it would create the link's target rather than the path the grant describes. Exact
+    // (non-tree) grants keep their verbatim string comparison.
     bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
 
     void report_violation(const AuditViolation& violation);
@@ -173,6 +192,12 @@ public:
     // Answers permission prompts in place of the dialog, for tests. Production never sets it.
     using PermissionPrompt = std::function<bool(const std::string& event_name, const std::vector<std::string>& targets)>;
     static void set_permission_prompt_for_testing(PermissionPrompt prompt);
+
+    // Answers the combined permission-request prompt in place of the dialog, receiving the message
+    // it would show. Tests run without a wxApp, so this seam also stands in for the app check.
+    // Production never sets it.
+    using PermissionMessagePrompt = std::function<bool(const std::string& message)>;
+    static void set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt);
 
     bool verbose_events = true;
 

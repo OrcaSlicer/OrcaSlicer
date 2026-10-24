@@ -6,6 +6,7 @@
 #include "libslic3r_version.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
@@ -203,6 +204,33 @@ boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& 
     return canon;
 }
 
+// True when the final component of `path` is a symlink whose target does not exist.
+//
+// weakly_canonical() leaves such a link in its lexical tail: it stats the prefix and stops at the
+// first non-existing component, and exists() follows the link and reports false for a dangling
+// one. A target such as <tree>/link would therefore compare as if it lived inside the tree even
+// though a write through it lands at the link's target, which the grant does not describe.
+//
+// A link whose target exists is not dangling: symlink_status() reports the link itself (it does
+// not follow it) while exists() follows it and succeeds. The canonical form of such a candidate is
+// already resolved to the target, so this check does not fire for it. An intermediate dangling
+// component is not reported here and needs no special case: the open cannot follow it either, so
+// nothing is created.
+bool ends_in_dangling_symlink(const boost::filesystem::path& path)
+{
+    namespace fs = boost::filesystem;
+
+    boost::system::error_code ec;
+    const fs::file_status status = fs::symlink_status(path, ec);
+    // symlink_status does not follow the link, so a missing target still reports symlink; a path
+    // that does not exist at all reports an error instead.
+    if (ec || !fs::is_symlink(status))
+        return false;
+
+    // exists() follows the link: false means the target is missing.
+    return !fs::exists(path, ec);
+}
+
 bool same_path_component(const boost::filesystem::path& lhs, const boost::filesystem::path& rhs)
 {
 #ifdef _WIN32
@@ -252,8 +280,17 @@ bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
 
 bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boost::filesystem::path& allowed_root)
 {
+    const boost::filesystem::path canonical_candidate = canonical_for_comparison(candidate);
+
+    // Fail closed on a dangling final symlink instead of comparing the path it is spelled as: the
+    // grant describes the link, not the destination a write through it would create. The test is
+    // applied to the canonical form, which leaves a dangling link unresolved as its final
+    // component, so a trailing separator does not hide it either.
+    if (ends_in_dangling_symlink(canonical_candidate))
+        return false;
+
     boost::filesystem::path suffix;
-    return suffix_inside_root(canonical_for_comparison(candidate), canonical_for_comparison(allowed_root), suffix);
+    return suffix_inside_root(canonical_candidate, canonical_for_comparison(allowed_root), suffix);
 }
 
 // ---------------------------------------------------------------------------
@@ -848,9 +885,99 @@ std::string event_grant_key(AuditEventCategory category, const std::string& even
     return std::string(category_name(category)) + ":" + event_name;
 }
 
-bool has_permission(const std::vector<std::string>& granted, const std::string& target)
+// The directory named by a directory-tree grant, i.e. "<dir>/*". "*" is the only wildcard, and
+// only as the grant's final path component; any other "*" is an ordinary character, so a grant
+// can never widen into a pattern the plugin did not spell out. Returns false for a grant that is
+// not a tree grant.
+bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
 {
-    return std::find(granted.begin(), granted.end(), target) != granted.end();
+    if (grant.size() < 2 || grant.back() != '*' || grant.find('*') != grant.size() - 1)
+        return false;
+
+    const boost::filesystem::path path(grant);
+    if (path.filename() != "*")
+        return false;
+
+    const boost::filesystem::path parent = path.parent_path();
+    if (parent.empty())
+        return false;
+
+    // Never resolve ".." here: a grant shown to the user as "/a/../*" must not silently become
+    // the root or another ancestor. Without a wildcard the string still matches verbatim.
+    for (const boost::filesystem::path& component : parent) {
+        if (component == "..")
+            return false;
+    }
+
+    // Rebuild from the components so "." and duplicate separators do not affect the canonical
+    // comparison below.
+    boost::filesystem::path normalized;
+    for (const boost::filesystem::path& component : parent.lexically_normal()) {
+        if (!component.empty())
+            normalized /= component;
+    }
+    root = std::move(normalized);
+    return !root.empty();
+}
+
+// The grant to display and store for a permission request: a recognized tree grant is resolved
+// against the working directory when the request is made, so a relative "<dir>/*" names the
+// directory it actually covers. Grants that are already absolute, exact (non-tree) grants, and
+// the non-filesystem buckets are returned unchanged: they are matched verbatim, and re-rendering
+// them would change the string the user approved.
+std::string absolute_tree_grant(const std::string& grant)
+{
+    boost::filesystem::path root;
+    if (!tree_grant_root(grant, root) || root.is_absolute())
+        return grant;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path absolute_root = boost::filesystem::absolute(root, ec);
+    if (ec || !absolute_root.is_absolute())
+        return grant;
+
+    return (absolute_root.lexically_normal() / "*").string();
+}
+
+// True when a filesystem grant covers a target: the exact string, or -- for a tree grant -- the
+// granted folder itself and every path beneath it, at any depth. Components are compared one by
+// one, so "/root/*" covers "/root/a/b" but not "/root-other/file".
+//
+// A tree grant and its target are both canonicalized before the comparison, so a symlink inside
+// the granted folder cannot launder access to a path outside it, and a grant rooted at a symlink
+// applies to the symlink's target. weakly_canonical keeps a write target whose tail does not
+// exist yet matchable: it canonicalizes the existing prefix and appends the rest lexically. A
+// dangling final symlink is not covered at all: containment fails closed, because a write through
+// it would land at its target rather than at the granted path.
+bool fs_grant_covers(const std::string& grant, const std::string& target)
+{
+    if (grant == target)
+        return true;
+    if (target.empty())
+        return false;
+
+    boost::filesystem::path root;
+    if (!tree_grant_root(grant, root))
+        return false;
+
+    return is_inside_allowed_root(boost::filesystem::path(target), root);
+}
+
+// True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant:
+// an event grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses,
+// commands) are matched verbatim, as before.
+bool has_permission(AuditEventCategory category, bool by_event, const std::vector<std::string>& granted,
+                    const std::string& target)
+{
+    const bool fs_bucket =
+        !by_event && (category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite);
+    for (const auto& grant : granted) {
+        if (grant == target)
+            return true;
+        if (fs_bucket && fs_grant_covers(grant, target))
+            return true;
+    }
+    return false;
 }
 
 // A sandbox plugin may not have a sidecar yet. Seed the small amount of install metadata the
@@ -869,6 +996,8 @@ void seed_install_metadata(const PluginDescriptor& descriptor, PluginInstallStat
 
 bool persist_permission(const std::string&        plugin_key,
                         PluginInstallState&       state,
+                        AuditEventCategory        category,
+                        bool                      by_event,
                         std::vector<std::string>& permission_list,
                         const std::string&        target)
 {
@@ -878,7 +1007,7 @@ bool persist_permission(const std::string&        plugin_key,
 
     seed_install_metadata(descriptor, state);
 
-    if (!has_permission(permission_list, target))
+    if (!has_permission(category, by_event, permission_list, target))
         permission_list.push_back(target);
     return write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
 }
@@ -982,10 +1111,11 @@ void persist_grant(const std::string& plugin_key, AuditEventCategory category, b
         return;
 
     for (const auto& key : keys)
-        persist_permission(plugin_key, state, *permission_list, key);
+        persist_permission(plugin_key, state, category, by_event, *permission_list, key);
 }
 
 static PluginAuditManager::PermissionPrompt s_permission_prompt_for_testing;
+static PluginAuditManager::PermissionMessagePrompt s_permission_message_prompt_for_testing;
 
 static const char* audit_category_name(AuditEventCategory category)
 {
@@ -1067,7 +1197,7 @@ int decide_audited_event(PluginAuditManager&             mgr,
     if (permission_list) {
         unresolved.clear();
         for (const auto& key : keys)
-            if (!has_permission(*permission_list, key))
+            if (!has_permission(category, by_event, *permission_list, key))
                 unresolved.push_back(key);
         if (unresolved.empty())
             return 0;
@@ -1083,7 +1213,7 @@ int decide_audited_event(PluginAuditManager&             mgr,
 
     if (permission_list)
         for (const auto& key : unresolved)
-            persist_permission(plugin_key, state, *permission_list, key);
+            persist_permission(plugin_key, state, category, by_event, *permission_list, key);
     return 0;
 }
 
@@ -1168,11 +1298,22 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     const auto collect_missing = [&missing_buckets](AuditEventCategory category,
                                                     const std::vector<std::string>& requested_targets,
                                                     const std::vector<std::string>& granted_targets) {
+        // Only the filesystem buckets accept a tree grant; the others match verbatim.
+        const bool tree_grant_bucket =
+            category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite;
         MissingBucket bucket{category, {}};
-        for (const std::string& target : requested_targets) {
-            if (target.empty())
+        for (const std::string& requested_target : requested_targets) {
+            if (requested_target.empty())
                 continue;
-            if (std::find(granted_targets.begin(), granted_targets.end(), target) == granted_targets.end() &&
+            // A relative wildcard names a directory relative to the working directory the request
+            // is made in, while the audit hook reports absolute targets. Resolve it once, here, so
+            // the prompt shows and the sidecar stores the scope the grant actually covers.
+            const std::string target = tree_grant_bucket
+                                           ? PluginAuditDetail::absolute_tree_grant(requested_target)
+                                           : requested_target;
+            // A saved wildcard already covers a more specific request. Deduplicate inside the
+            // request verbatim only: two requested entries may cover different sets.
+            if (!PluginAuditDetail::has_permission(category, /*by_event=*/false, granted_targets, target) &&
                 std::find(bucket.targets.begin(), bucket.targets.end(), target) == bucket.targets.end())
                 bucket.targets.push_back(target);
         }
@@ -1190,9 +1331,6 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (missing_buckets.empty())
         return true;
 
-    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
-        return false;
-
     const auto build_message = [](const std::string& plugin_name, const std::vector<MissingBucket>& buckets) {
         wxString message;
         for (const MissingBucket& bucket : buckets) {
@@ -1209,7 +1347,13 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     };
 
     bool granted = false;
-    if (wxIsMainThread()) {
+    if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
+        // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
+        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(
+            build_message(descriptor.name, missing_buckets).utf8_string());
+    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
+        return false;
+    } else if (wxIsMainThread()) {
         granted = PluginAuditDetail::prompt_for_permission_message(build_message(descriptor.name, missing_buckets));
     } else {
         auto result = std::make_shared<std::promise<bool>>();
@@ -1335,6 +1479,11 @@ void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
 void PluginAuditManager::set_permission_prompt_for_testing(PermissionPrompt prompt)
 {
     PluginAuditDetail::s_permission_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt)
+{
+    PluginAuditDetail::s_permission_message_prompt_for_testing = std::move(prompt);
 }
 
 int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user_data)

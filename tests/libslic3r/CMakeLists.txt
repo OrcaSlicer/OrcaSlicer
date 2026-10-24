@@ -12,6 +12,8 @@ add_executable(${_TEST_NAME}_tests
     test_precise_seam_3mf.cpp
     # Pure perimeter extraction is independent of Print/Layer fixtures.
     test_precise_seam.cpp
+    # Contour correspondence is pure geometry; Print integration stays in fff_print.
+    test_seam_contour.cpp
     test_aabbindirect.cpp
     test_appconfig.cpp
     test_arachne_walls.cpp
