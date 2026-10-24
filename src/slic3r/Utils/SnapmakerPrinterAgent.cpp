@@ -16,6 +16,7 @@
 #include <sstream>
 #include <ios>
 #include <cstdint>
+#include <algorithm>
 
 namespace Slic3r {
 
@@ -244,6 +245,30 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     }
 
     build_ams_payload(slot_count, slot_count - 1, trays, AmsUnitShape::Toolchanger);
+    return true;
+}
+
+bool SnapmakerPrinterAgent::push_filament_info(std::string dev_id, const FilamentSlotInfo& info)
+{
+    if (!ensure_device_info(dev_id))
+        return false;
+
+    // Every parameter is mandatory: omitting one errors yet partially applies, so empty values
+    // are sent quoted. Sub-type and vendor may contain spaces.
+    auto quoted = [](std::string v) {
+        v.erase(std::remove(v.begin(), v.end(), '"'), v.end());
+        return "\"" + v + "\"";
+    };
+    std::string color = info.color_rgba.empty() ? "FFFFFFFF" : info.color_rgba;
+    std::string script = "SET_PRINT_FILAMENT_CONFIG CONFIG_EXTRUDER=" + std::to_string(info.slot) +
+                         " FILAMENT_TYPE=" + info.type +
+                         " FILAMENT_SUBTYPE=" + quoted(info.sub_type) +
+                         " FILAMENT_COLOR_RGBA=" + color +
+                         " VENDOR=" + quoted(info.vendor) + " SAVE=1";
+
+    if (!send_gcode_sync(dev_id, script))
+        return false;
+    BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::push_filament_info ok: " << script;
     return true;
 }
 

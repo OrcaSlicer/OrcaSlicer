@@ -24,6 +24,9 @@ public:
 
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
+    bool supports_filament_push() const override { return true; }
+    bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) override;
+
 private:
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);
