@@ -2,6 +2,7 @@
 
 #include "CurveEditorPanel.hpp"
 #include <array>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -84,6 +85,8 @@ private:
     wxString m_status_text;
     std::vector<double> m_points_x;
     std::vector<double> m_points_y;
+    // Redraw theme-dependent widget icons and styles after a system appearance change.
+    std::vector<std::function<void()>> m_theme_rescales;
     wxRecursionGuardFlag m_layout_depth = 0;
     wxRecursionGuardFlag m_grid_resize_depth = 0;
 };
