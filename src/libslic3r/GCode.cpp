@@ -10364,7 +10364,9 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         const bool is_short_travel = travel.length() < scale_(EXTRUDER_CONFIG(retraction_minimum_travel));
 
         if (NOZZLE_CONFIG(default_acceleration) > 0) {
-            if (role == erOverhangPerimeter && is_short_travel) {
+            if ((role == erOverhangPerimeter || role == erExternalPerimeter) && is_short_travel && NOZZLE_CONFIG(travel_short_distance_acceleration) > 0) {
+                acceleration_to_set = (unsigned int) floor(NOZZLE_CONFIG(travel_short_distance_acceleration) + 0.5);
+            } else if (role == erOverhangPerimeter && is_short_travel) {
                 const double bridge_acceleration  = m_config.get_abs_value_at("bridge_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
 
                 if (bridge_acceleration > 0)

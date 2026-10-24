@@ -1272,6 +1272,37 @@ TEST_CASE("Custom G-code motion limits are restored before generated moves", "[G
     REQUIRE(gcode.find("M205 X8 Y8 ; adjust jerk", custom_gcode_pos) != std::string::npos);
 }
 
+TEST_CASE("Short travels into outer walls use the short travel acceleration only when it is set", "[GCodeWriter]")
+{
+    // retraction_minimum_travel is far above the size of the plate, so every travel counts as short.
+    const auto slice_with_short_travel_acceleration = [](const char *acceleration) {
+        return Slic3r::Test::slice({ cube(20) }, {
+            { "gcode_flavor",                      "marlin" },
+            { "gcode_comments",                    "1" },
+            { "machine_start_gcode",               "" },
+            { "layer_height",                      "0.2" },
+            { "initial_layer_print_height",        "0.2" },
+            { "z_hop",                             "0" },
+            { "retraction_minimum_travel",         "1000" },
+            { "default_acceleration",              "6000" },
+            { "initial_layer_acceleration",        "6000" },
+            { "inner_wall_acceleration",           "6000" },
+            { "outer_wall_acceleration",           "3000" },
+            { "travel_acceleration",               "10000" },
+            { "travel_short_distance_acceleration", acceleration },
+        });
+    };
+
+    SECTION("a set value is used") {
+        REQUIRE_THAT(slice_with_short_travel_acceleration("777"), Catch::Matchers::ContainsSubstring("M204 S777"));
+    }
+    SECTION("zero leaves the outer wall acceleration in charge") {
+        const std::string gcode = slice_with_short_travel_acceleration("0");
+        REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("M204 S3000"));
+        REQUIRE_THAT(gcode, !Catch::Matchers::ContainsSubstring("M204 S777"));
+    }
+}
+
 TEST_CASE("Klipper acceleration commands send accel_to_decel both as ACCEL_TO_DECEL and as the cruise ratio", "[GCodeWriter]")
 {
     // Klipper 0.13 defines MINIMUM_CRUISE_RATIO = 1 - ACCEL_TO_DECEL / ACCEL; older releases read only the

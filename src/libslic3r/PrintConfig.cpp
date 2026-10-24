@@ -2325,6 +2325,21 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsNullable{10000.0});
 
+    // Ported from BambuStudio PR #9141 (a Prusa feature). Disabled by default, so existing profiles slice as before.
+    def = this->add("travel_short_distance_acceleration", coFloats);
+    def->label = L("Short travel");
+    def->category = L("Speed");
+    def->tooltip = L("Acceleration of short travel moves that follow an outer wall or an overhang wall, those shorter than "
+                     "the \"Travel distance threshold\". Lower values reduce ringing and vertical fine artifacts on the outer "
+                     "surface without slowing down the long travels.\n"
+                     "Set to 0 to disable: these travels then use the outer wall acceleration (the bridge acceleration "
+                     "after an overhang wall).");
+    def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{0.0});
+
     def = this->add("initial_layer_travel_acceleration", coFloatsOrPercents);
     def->label = L("First layer travel");
     def->tooltip = L("Travel acceleration of first layer.\nThe percentage value is relative to Travel Acceleration.");
@@ -10109,6 +10124,7 @@ std::set<std::string> print_options_with_variant = {
     "default_acceleration",
     "bridge_acceleration",
     "travel_acceleration",
+    "travel_short_distance_acceleration",
     "initial_layer_travel_acceleration",
     "initial_layer_acceleration",
     "outer_wall_acceleration",

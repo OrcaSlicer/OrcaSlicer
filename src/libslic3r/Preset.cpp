@@ -1376,6 +1376,7 @@ static std::vector<std::string> s_Preset_print_options{
     "relative_bridge_angle",
     "filter_out_gap_fill",
     "travel_acceleration",
+    "travel_short_distance_acceleration",
     "inner_wall_acceleration",
     "min_width_top_surface",
     "default_jerk",
