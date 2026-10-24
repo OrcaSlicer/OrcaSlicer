@@ -105,6 +105,35 @@ TEST_CASE("find looks up physical filaments by id", "[FilamentInventory]") {
     REQUIRE(inv.find(0) == nullptr);
 }
 
+TEST_CASE("Proposal auto-matches each plate filament to a physical id", "[FilamentInventory]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}, {2, "#00FF00", "PLA"}};
+    std::vector<std::string> colors = {"#00FF00", "#FE0101"};
+    std::vector<std::string> types  = {"PLA", "PLA"};
+    std::vector<int> plate = {2, 1};
+    std::vector<int> res = compute_physical_map_proposal(colors, types, {}, {}, plate, inv);
+    REQUIRE(res == std::vector<int>{1, 2});
+}
+
+TEST_CASE("inventory_all_unset is true only when every slot on every tool is empty", "[FilamentInventory]") {
+    FilamentInventory empty_inv; empty_inv.slots.resize(2);
+    REQUIRE(inventory_all_unset(empty_inv));
+
+    FilamentInventory loaded_inv; loaded_inv.slots = {{1, "#FF0000", "PLA"}, {}};
+    REQUIRE_FALSE(inventory_all_unset(loaded_inv));
+    // A slot with an id but nothing recorded is still unset.
+    FilamentInventory id_only; id_only.slots = {{7, "", ""}};
+    REQUIRE(inventory_all_unset(id_only));
+}
+
+TEST_CASE("Proposal leaves every row unassigned for an all-unset inventory", "[FilamentInventory]") {
+    FilamentInventory inv; inv.slots.resize(2);
+    std::vector<std::string> colors = {"#FF0000", "#00FF00"};
+    std::vector<std::string> types  = {"PLA", "PLA"};
+    std::vector<int> res = compute_physical_map_proposal(colors, types, {}, {}, {1, 2}, inv);
+    REQUIRE(res == std::vector<int>{0, 0});
+}
+
 TEST_CASE("ensure_ids mints ids for non-empty slots only and floors next_id", "[FilamentInventory]") {
     FilamentInventory inv;
     inv.slots = {{0, "#FF0000", "PLA"}, {7, "#00FF00", "PETG"}, {0, "#0000FF", "PLA"}, {0, "", ""}};
@@ -249,4 +278,218 @@ TEST_CASE("derive_filament_subtype strips vendor and type tokens from a display 
     // A dashed type variant is one token: not stripped by its base type.
     CHECK(derive_filament_subtype("Generic PLA-CF", "Generic", "PLA-CF") == "");
     CHECK(derive_filament_subtype("", "Generic", "PLA") == "");
+}
+
+TEST_CASE("Auto-map matcher never selects an empty slot even when it is the only slot", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1});
+}
+
+TEST_CASE("Auto-map never family-matches an empty-type slot to a project filament with no type either", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", ""}}; // color but no type: not empty()
+    std::vector<ProjectFilamentInfo> project = {{"", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1});
+}
+
+TEST_CASE("Auto-map treats PLA and PLA+ as family-compatible", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA+"}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{1});
+}
+
+TEST_CASE("Auto-map picks the nearest-RGB family-compatible candidate", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}, {2, "#FE0101", "PLA"}, {3, "#000000", "PLA"}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FE0101", ""}}; // nearest is tool 1 (id 2), not the exact-but-farther tool 0
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{2});
+}
+
+TEST_CASE("Auto-map uses vendor to break an exact color tie", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}, {2, "#FF0000", "PLA"}};
+    inv.slots[1].preset = "Snapmaker PLA SnapSpeed"; // vendor token "Snapmaker"
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", "Snapmaker"}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{2});  // tool 1 wins on vendor despite identical color distance
+}
+
+TEST_CASE("Proposal uses vendor to break an exact color tie", "[FilamentInventory]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}, {2, "#FF0000", "PLA"}};
+    inv.slots[0].preset = "Generic PLA";
+    inv.slots[1].preset = "Snapmaker PLA SnapSpeed"; // vendor token "Snapmaker"
+    std::vector<std::string> colors  = {"#FF0000"};
+    std::vector<std::string> types   = {"PLA"};
+    std::vector<std::string> vendors = {"Snapmaker"};
+    std::vector<int>         plate   = {1};
+    std::vector<int> res = compute_physical_map_proposal(colors, types, vendors, {}, plate, inv);
+    REQUIRE(res.size() == 1);
+    CHECK(res[0] == 2);
+}
+
+TEST_CASE("Auto-map trusts an exact preset match over a closer color match", "[FilamentInventory][AutoMap]") {
+    // Slot 1 stays within the color cutoff (squared distance 3025).
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}, {2, "#C80000", "PLA"}}; // slot 0: exact color, no preset
+    inv.slots[1].preset = "Snapmaker PLA SnapSpeed @U1";         // slot 1: exact preset
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", "", "Snapmaker PLA SnapSpeed @U1"}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{2});
+}
+
+TEST_CASE("Auto-map's exact-preset tier ignores a type mismatch on the slot record", "[FilamentInventory][AutoMap]") {
+    // A stale/miscategorized type on the slot must not veto an exact profile match.
+    FilamentInventory inv;
+    inv.slots = {{1, "", "PETG"}};
+    inv.slots[0].preset = "Snapmaker PLA SnapSpeed @U1";
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", "", "Snapmaker PLA SnapSpeed @U1"}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{1});
+}
+
+TEST_CASE("Auto-map's exact-preset tier is color-aware for the U1 five-filament repro", "[FilamentInventory][AutoMap]") {
+    // Five filaments share one preset in different colors. Only white is within the cutoff of a
+    // same-preset slot (T4); every other candidate is over 10000 away, so the rest stay unmatched.
+    FilamentInventory inv;
+    inv.slots = {{1, "#0000FF", "PolyTerra PLA"},   // T1: no matching preset
+                 {2, "#008080", "PLA"},             // T2: SnapSpeed preset, teal
+                 {},                                // T3: empty
+                 {4, "#FFFFFF", "PLA"}};            // T4: SnapSpeed preset, white
+    inv.slots[1].preset = "Snapmaker PLA SnapSpeed";
+    inv.slots[3].preset = "Snapmaker PLA SnapSpeed";
+    std::vector<ProjectFilamentInfo> project = {
+        {"PLA", "#FF0000", "", "Snapmaker PLA SnapSpeed"}, // red
+        {"PLA", "#FFFFFF", "", "Snapmaker PLA SnapSpeed"}, // white
+        {"PLA", "#000000", "", "Snapmaker PLA SnapSpeed"}, // black
+        {"PLA", "#00FF00", "", "Snapmaker PLA SnapSpeed"}, // green
+        {"PLA", "#D2B48C", "", "Snapmaker PLA SnapSpeed"}, // tan
+    };
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1, 4, -1, -1, -1}); // white -> T4
+}
+
+
+TEST_CASE("Auto-map leaves a filament unmatched rather than propose a wildly different color", "[FilamentInventory][AutoMap]") {
+    // Unmatched lets the caller prompt instead of committing a wrong color.
+    FilamentInventory inv;
+    inv.slots = {{1, "#0000FF", "PLA"}}; // the only PLA slot, and it's blue
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}}; // project filament is red
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1});
+}
+
+TEST_CASE("Proposal leaves a row unproposed rather than a wildly different color, through the dialog path", "[FilamentInventory]") {
+    // Same cutoff through the dialog's proposal path.
+    FilamentInventory inv;
+    inv.slots = {{1, "#0000FF", "PLA"}};
+    std::vector<std::string> colors = {"#FF0000"};
+    std::vector<std::string> types  = {"PLA"};
+    std::vector<int> plate = {1};
+    std::vector<int> res = compute_physical_map_proposal(colors, types, {}, {}, plate, inv);
+    REQUIRE(res == std::vector<int>{0});
+}
+
+TEST_CASE("Auto-map's color cutoff still lets an unknown-color slot qualify on type alone", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "", "PLA"}}; // type matches, color unrecorded
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{1});
+}
+
+TEST_CASE("Auto-map still matches a moderately different shade of the same color family", "[FilamentInventory][AutoMap]") {
+    // #FF0000 vs #AB0000 is 7056, under the 10000 cutoff.
+    FilamentInventory inv;
+    inv.slots = {{1, "#AB0000", "PLA"}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{1});
+}
+
+// #FF0000 vs #9A0000 is 10201, just over the 10000 cutoff; fails if the cutoff is removed.
+TEST_CASE("Auto-map's color cutoff disqualifies a shade just past the threshold", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#9A0000", "PLA"}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1});
+}
+
+TEST_CASE("Auto-map's exact-preset tier falls through to unmatched when the color is a gross mismatch", "[FilamentInventory][AutoMap]") {
+    // Beyond the cutoff a preset match falls through to the family/color tier, which rejects the
+    // same slot.
+    FilamentInventory inv;
+    inv.slots = {{1, "#0000FF", "PLA"}};
+    inv.slots[0].preset = "Snapmaker PLA SnapSpeed @U1";
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", "", "Snapmaker PLA SnapSpeed @U1"}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1});
+}
+
+TEST_CASE("Auto-map's exact-preset tier falls through to the family/color tier when beyond the cutoff and a family candidate is in range", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}, {2, "#0000FF", "PLA"}}; // tool 0: exact color; tool 1: exact preset, blue
+    inv.slots[1].preset = "Snapmaker PLA SnapSpeed @U1";
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", "", "Snapmaker PLA SnapSpeed @U1"}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{1});  // tool 0 (family/color tier), not tool 1 (the disqualified preset match)
+}
+
+TEST_CASE("Auto-map's exact-preset tier breaks a tie between two preset matches by nearest color", "[FilamentInventory][AutoMap]") {
+    // #FFFFFF is 97283 from teal and 675 from near-white, so slot 1 wins despite being scanned second.
+    FilamentInventory inv;
+    inv.slots = {{1, "#008080", "PLA"}, {2, "#F0F0F0", "PLA"}};
+    inv.slots[0].preset = "Snapmaker PLA SnapSpeed";
+    inv.slots[1].preset = "Snapmaker PLA SnapSpeed";
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FFFFFF", "", "Snapmaker PLA SnapSpeed"}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{2});
+}
+
+TEST_CASE("Proposal matches a PLA+ project filament to a plain PLA slot", "[FilamentInventory]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}};
+    std::vector<std::string> colors = {"#FF0000"};
+    std::vector<std::string> types  = {"PLA+"};
+    std::vector<int> plate = {1};
+    std::vector<int> res = compute_physical_map_proposal(colors, types, {}, {}, plate, inv);
+    REQUIRE(res == std::vector<int>{1});
+}
+
+TEST_CASE("Auto-map breaks a full tie (color and vendor) with the lowest tool index", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}, {2, "#FF0000", "PLA"}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{1});
+}
+
+TEST_CASE("Auto-map leaves only the filament with no compatible slot unresolved", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PETG"}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}, {"PETG", "#FF0000", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1, 1});
+}
+
+TEST_CASE("Auto-map on an empty inventory marks every filament unmatched", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots.resize(2); // no physical filaments recorded
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}, {"PETG", "#00FF00", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{-1, -1});
+}
+
+TEST_CASE("Auto-map allows two project filaments to merge onto the same tool", "[FilamentInventory][AutoMap]") {
+    FilamentInventory inv;
+    inv.slots = {{1, "#FF0000", "PLA"}};
+    std::vector<ProjectFilamentInfo> project = {{"PLA", "#FF0000", ""}, {"PLA", "#FE0101", ""}};
+    CHECK(auto_map_filaments(project, inv) == std::vector<int>{1, 1});
+}
+
+TEST_CASE("type_compatible matches exact types and small families only", "[FilamentInventory]") {
+    // Exact, case/whitespace-insensitive.
+    CHECK(type_compatible("PLA", "pla"));
+    CHECK(type_compatible(" PETG ", "PETG"));
+    // Family table: PLA/PLA+ and PETG/PETG+.
+    CHECK(type_compatible("PLA", "PLA+"));
+    CHECK(type_compatible("PETG+", "PETG"));
+    // Distinct chemistries never match, however similar.
+    CHECK_FALSE(type_compatible("PCTG", "PETG"));
+    CHECK_FALSE(type_compatible("PLA", "ABS"));
+    // Filled variants are their own types.
+    CHECK_FALSE(type_compatible("PLA-CF", "PLA"));
+    // Unknown on either side is not compatible.
+    CHECK_FALSE(type_compatible("", "PLA"));
+    CHECK_FALSE(type_compatible("PLA", ""));
 }

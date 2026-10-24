@@ -71,6 +71,37 @@ struct FilamentInventories
 // "Snapmaker PLA SnapSpeed" -> "SnapSpeed"; "Generic PLA" -> "".
 std::string derive_filament_subtype(const std::string& display_name, const std::string& vendor, const std::string& type);
 
+// True when every slot is empty(); the mapping dialog then picks bare slots instead of filaments.
+bool inventory_all_unset(const FilamentInventory& inv);
+
+// Exact match (case/whitespace-insensitive) or same family (PLA/PLA+, PETG/PETG+). Empty on either
+// side is not compatible; callers handle unknown types.
+bool type_compatible(const std::string& project_type, const std::string& slot_type);
+
+// The mapping dialog's proposal, one entry per plate_filaments entry: the physical filament id
+// auto_map_filaments picks for it, 0 when none.
+std::vector<int> compute_physical_map_proposal(
+    const std::vector<std::string>& filament_colors,
+    const std::vector<std::string>& filament_types,
+    const std::vector<std::string>& filament_vendors,
+    const std::vector<std::string>& filament_presets,
+    const std::vector<int>&         plate_filaments,
+    const FilamentInventory&        inventory);
+
+struct ProjectFilamentInfo
+{
+    std::string type;   // empty = unknown
+    std::string color;  // "#RRGGBB" or "#RRGGBBAA"; empty = unknown
+    std::string vendor;
+    std::string preset; // exact filament preset name; empty = unknown
+};
+
+// The physical id per project filament, -1 when unresolved. Resolves each by priority: (1) the
+// color-nearest slot with the same preset; (2) the color-nearest type_compatible slot, tie-broken by
+// vendor then slot index. Both tiers reject slots beyond kMaxFamilyColorDistance unless a color is
+// unknown. Several filaments may share a slot.
+std::vector<int> auto_map_filaments(const std::vector<ProjectFilamentInfo>& project, const FilamentInventory& inventory);
+
 } // namespace Slic3r
 
 #endif // slic3r_FilamentInventory_hpp_
