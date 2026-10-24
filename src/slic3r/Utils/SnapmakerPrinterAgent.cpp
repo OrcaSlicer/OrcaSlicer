@@ -1,7 +1,10 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "DeviceJson.hpp"
+
+#include <boost/format.hpp>
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
@@ -18,6 +21,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <cctype>
+#include "PrintHost.hpp"
 
 namespace Slic3r {
 
@@ -154,6 +158,95 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
 }
 
 } // anonymous namespace
+
+std::string SnapmakerProtocol::render_map_table(const std::vector<int>& filament_map_1based)
+{
+    std::string map_table = "[";
+    bool        first = true;
+    for (size_t i = 0; i < filament_map_1based.size(); ++i) {
+        // Unassigned filaments are omitted; the device keeps its default mapping for them.
+        if (filament_map_1based[i] <= 0)
+            continue;
+        if (!first) map_table += ", ";
+        map_table += "[" + std::to_string(i) + ", " + std::to_string(filament_map_1based[i] - 1) + "]";
+        first = false;
+    }
+    map_table += "]";
+    return map_table;
+}
+
+std::string SnapmakerProtocol::build_start_script(const std::string& filename, const std::vector<int>& filament_map_1based)
+{
+    // The firmware reads an absent BED_LEVEL as off; the touchscreen default is on.
+    return "SDCARD_PRINT_FILE_WITH_PARAMETERS FILENAME=\"" + filename + "\" MAP_TABLE=\"" +
+           render_map_table(filament_map_1based) + "\" BED_LEVEL=\"1\"";
+}
+
+namespace {
+// The firmware parses these as Python literals: "[a, b, c]", strings single-quoted.
+template<class T, class Fmt> std::string render_list(const std::vector<T>& values, Fmt fmt)
+{
+    std::string out = "[";
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (i) out += ", ";
+        out += fmt(values[i]);
+    }
+    return out + "]";
+}
+
+// Trailing zeros trimmed as the screen renders them: "220.0", "0.42", "0.966".
+std::string render_double(double v)
+{
+    std::string out = (boost::format("%.6f") % v).str();
+    const size_t dot = out.find('.');
+    if (dot != std::string::npos) {
+        size_t last = out.find_last_not_of('0');
+        if (last == dot) ++last; // keep exactly one decimal, matching "220.0"
+        out.erase(last + 1);
+    }
+    return out;
+}
+
+std::string quoted_param(const std::string& key, const std::string& value) { return " " + key + "=\"" + value + "\""; }
+} // namespace
+
+std::string SnapmakerProtocol::build_start_script(const std::string& filename, const DevicePrintJobInfo& job)
+{
+    // Options are always stated, even when "0": the firmware reads an absent parameter as off.
+    std::string script = "SDCARD_PRINT_FILE_WITH_PARAMETERS";
+    script += quoted_param("FILENAME", filename);
+    script += quoted_param("MAP_TABLE", render_map_table(job.filament_map_1based));
+    script += quoted_param("BED_LEVEL", job.option_on("bed_leveling") ? "1" : "0");
+    script += quoted_param("TIME_LAPSE_CAMERA", job.option_on("time_lapse") ? "1" : "0");
+
+    // Only tools this plate uses are calibrated.
+    const bool flow = job.option_on("flow_calibrate");
+    script += quoted_param("FLOW_CALIBRATE", flow ? "1" : "0");
+    script += quoted_param("FLOW_CALIBRATE_EXTRUDERS",
+                           render_list(flow ? job.used_physical_tools : std::vector<int>{},
+                                       [](int v) { return std::to_string(v); }));
+    // End-of-print unloading is left to the printer's own setting.
+    script += quoted_param("END_UNLOAD_FILAMENT",
+                           render_list(std::vector<int>(job.nozzle_diameter.size(), 0),
+                                       [](int v) { return std::to_string(v); }));
+
+    // The firmware calibrates flow under the plate's conditions.
+    script += quoted_param("LINE_WIDTH", render_double(job.line_width));
+    script += quoted_param("LAYER_HEIGHT", render_double(job.layer_height));
+    script += quoted_param("OUTER_WALL_SPEED", render_double(job.outer_wall_speed));
+
+    // Per physical tool.
+    script += quoted_param("NOZZLE_DIAMETER_LIST", render_list(job.nozzle_diameter, render_double));
+    // Per logical filament.
+    script += quoted_param("NOZZLE_TEMP", render_list(job.nozzle_temp, render_double));
+    script += quoted_param("FILAMENT_TYPE", render_list(job.filament_type,
+                                                        [](const std::string& v) { return "'" + v + "'"; }));
+    script += quoted_param("FILAMENT_FLOW_RATIO", render_list(job.flow_ratio, render_double));
+    script += quoted_param("FILAMENT_DIAMETER", render_list(job.filament_diameter, render_double));
+    script += quoted_param("FILAMENT_USED_G", render_list(job.used_g, render_double));
+    script += quoted_param("FILAMENT_USED_MM", render_list(job.used_mm, render_double));
+    return script;
+}
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
@@ -355,6 +448,20 @@ bool SnapmakerPrinterAgent::push_filament_info(std::string dev_id, const Filamen
         return false;
     BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::push_filament_info ok: " << script;
     return true;
+}
+
+// One agent instance addresses one bound device, so the stash is not keyed by dev_id.
+bool SnapmakerPrinterAgent::send_filament_mapping(const std::string& /*dev_id*/, const std::vector<int>& tool_to_slot)
+{
+    m_pending_filament_map = tool_to_slot;
+    return true;
+}
+
+bool SnapmakerPrinterAgent::print_uploaded_file(const PrintParams& params, const std::string& filename)
+{
+    if (m_pending_filament_map.empty())
+        return MoonrakerPrinterAgent::print_uploaded_file(params, filename);
+    return send_gcode_sync(device_info.dev_id, SnapmakerProtocol::build_start_script(filename, std::exchange(m_pending_filament_map, {})));
 }
 
 } // namespace Slic3r
