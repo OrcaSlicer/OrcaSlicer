@@ -937,7 +937,10 @@ std::string AppConfig::load(bool read_only)
                 }
             } else if (it.key() == "orca_presets") {
                 for (auto& j_model : it.value()) {
-                    m_printer_settings[j_model["machine"].get<std::string>()] = j_model;
+                    auto& settings = m_printer_settings[j_model["machine"].get<std::string>()];
+                    settings.clear();
+                    for (auto item = j_model.begin(); item != j_model.end(); ++item)
+                        settings[item.key()] = item.value().is_string() ? item.value().get<std::string>() : item.value().dump();
                 }
             } else if (it.key() == "local_machines") {
                 for (auto m = it.value().begin(); m != it.value().end(); ++m) {

@@ -293,6 +293,7 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 #endif // __WINDOWS__
 
 #endif
+#include <nlohmann/json.hpp>
 #ifdef _WIN32
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <direct.h>

@@ -6,7 +6,6 @@
 #include <map>
 #include <string>
 #include "LocalesUtils.hpp"
-#include "nlohmann/json.hpp"
 #include <boost/algorithm/string/trim_all.hpp>
 #include <utility>
 #include <vector>
@@ -258,7 +257,7 @@ public:
 	const VendorMap&    vendors() const { return m_vendors; }
 
 	// Orca printer settings
-    typedef std::map<std::string, nlohmann::json> MachineSettingMap;
+    typedef std::map<std::string, std::map<std::string, std::string>> MachineSettingMap;
     bool has_printer_settings(std::string printer) const {
         return m_printer_settings.find(printer) != m_printer_settings.end();
     }
@@ -269,9 +268,7 @@ public:
     bool has_printer_setting(std::string printer, std::string name) {
         if (!has_printer_settings(printer))
             return false;
-        if (!m_printer_settings[printer].contains(name))
-            return false;
-        return true;
+        return m_printer_settings[printer].count(name) != 0;
     }
     std::string get_printer_setting(std::string printer, std::string name) {
         if (!has_printer_setting(printer, name))

@@ -31,6 +31,7 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/gil.h>
 #include "slic3r/GUI/I18N.hpp"
+#include <nlohmann/json.hpp>
 
 namespace py = pybind11;
 

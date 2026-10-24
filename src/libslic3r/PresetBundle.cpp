@@ -88,6 +88,7 @@
 #include <tbb/partitioner.h>
 #include <vector>
 #include <utility>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 
