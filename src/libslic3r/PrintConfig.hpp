@@ -2627,6 +2627,9 @@ public:
     // state is considered changed from perspective of the undo/redo stack.
     void         reset() { m_data.clear(); touch(); }
 
+    // Orca: for a copy derived deterministically from rhs, so it doesn't read as changed.
+    void         mirror_timestamp_of(const ModelConfig &rhs) { m_timestamp = rhs.m_timestamp; }
+
     void         assign_config(const ModelConfig &rhs) {
         if (m_timestamp != rhs.m_timestamp) {
             m_data      = rhs.m_data;
