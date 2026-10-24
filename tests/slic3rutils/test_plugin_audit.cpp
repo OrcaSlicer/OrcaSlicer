@@ -557,7 +557,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
 server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-threading.Thread(target=server.serve_forever, daemon=True).start()
+server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+server_thread.start()
 PORT = server.server_address[1]
 BASE = "http://127.0.0.1:%d" % PORT
 URL_A, URL_B, URL_REDIRECT = BASE + "/a", BASE + "/b", BASE + "/redirect"
@@ -613,10 +614,14 @@ std::string describe(const std::vector<Prompt>& prompts)
 
 // The plugin system with the audit hook installed, and the permission dialog replaced by a
 // recorder that answers with `approve`. Declare it first in a test, so it is destroyed last.
+//
+// Only the manager is torn down here; the interpreter is finalized once per test process by
+// PythonInterpreterRunEnd in slic3rutils_tests_main.cpp.
 struct AuditHarness
 {
     // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log.
-    // data_dir() is a global allowed root from then on, so the test files live in `outside`.
+    // data_dir() is a global allowed root from then on -- the first test to initialize Python in
+    // this process (under ctest, this one) -- so the test files live in `outside`.
     ScopedDataDir                      data{"plugin-audit-hook"};
     bool                               initialized = PluginManager::instance().initialize();
     ScopedTemporaryDir                 outside{"orca-plugin-audit-outside"};
@@ -625,6 +630,11 @@ struct AuditHarness
 
     AuditHarness()
     {
+        PluginAuditManager& audit = PluginAuditManager::instance();
+        audit.clear_current_plugin();
+        audit.clear_current_capability();
+        audit.clear_audit_denial();
+        audit.clear_last_violation();
         PluginAuditManager::set_permission_prompt_for_testing(
             [this](const std::string& event, const std::vector<std::string>& targets) {
                 prompts.push_back({PluginAuditManager::instance().current_plugin(), event, targets});
@@ -636,7 +646,6 @@ struct AuditHarness
     {
         PluginAuditManager::set_permission_prompt_for_testing(nullptr);
         PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
     }
 
     // Call before taking the GIL: discovery is not Python work.
@@ -669,7 +678,7 @@ struct AuditHarness
 };
 
 // The test-side Python globals. Construct and destroy it with the GIL held; it stops the HTTP
-// server before the interpreter shuts down.
+// server before the test case ends, so nothing keeps serving once the test's temp dirs are gone.
 struct PythonSide
 {
     py::dict globals;
@@ -682,7 +691,7 @@ struct PythonSide
     }
 
     // A Python error fails the test here, as text: an error_already_set left to propagate would
-    // outlive the interpreter the harness shuts down.
+    // outlive the test case and keep a traceback with references into the interpreter.
     void exec(const char* code)
     {
         std::string error;
@@ -698,8 +707,11 @@ struct PythonSide
     ~PythonSide()
     {
         try {
+            // Stop the server thread while Python is still up: the interpreter now outlives the
+            // test case, so a daemon thread must not keep serving (and touching test temp dirs).
             globals["server"].attr("shutdown")();
             globals["server"].attr("server_close")();
+            globals["server_thread"].attr("join")();
         } catch (...) {
         }
     }

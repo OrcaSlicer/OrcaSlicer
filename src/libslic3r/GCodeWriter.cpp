@@ -1140,6 +1140,19 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     return out_string;
 }
 
+std::pair<double, double> GCodeWriter::planned_travel_z(const Vec3d &point, const bool force_z) const
+{
+    double destination_z = point.z();
+    if (std::abs(m_to_lift) > EPSILON) {
+        if ((!this->is_current_position_clear() || m_pos != point) &&
+            m_to_lift + m_pos.z() > point.z())
+            destination_z = m_to_lift + m_pos.z();
+    } else if (!force_z && !this->will_move_z(point.z())) {
+        destination_z = m_pos.z();
+    }
+    return { m_pos.z(), destination_z };
+}
+
 std::string GCodeWriter::travel_to_z(double z, const std::string &comment, bool force)
 {
     /*  If target Z is lower than current Z but higher than nominal Z
@@ -1202,7 +1215,7 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
                                  : this->config.travel_speed.get_at(m_cached_extruder_idx);
     }
 
-    if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
+    if (this->config.enable_arc_fitting.value == ArcFittingMode::Disabled) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
         const double z_start = m_pos(2); // starting Z height
 
         const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration

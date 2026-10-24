@@ -17,6 +17,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/LayOnFace.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include <string>
 #include <vector>
@@ -1455,11 +1456,9 @@ void Selection::flattening_rotate(const Vec3d& normal)
 
     for (unsigned int i : m_list) {
         GLVolume& v = *(*m_volumes)[i];
-        // Normal transformed from the object coordinate space to the world coordinate space.
+        // Additional rotation to align the face normal with the down vector in the world coordinate space.
         const Geometry::Transformation& old_inst_trafo = v.get_instance_transformation();
-        const Vec3d tnormal = old_inst_trafo.get_matrix().matrix().block(0, 0, 3, 3).inverse().transpose() * normal;
-        // Additional rotation to align tnormal with the down vector in the world coordinate space.
-        const Transform3d rotation_matrix = Transform3d(Eigen::Quaterniond().setFromTwoVectors(tnormal, -Vec3d::UnitZ()));
+        const Transform3d rotation_matrix = lay_on_face_rotation(normal, old_inst_trafo.get_matrix_no_offset());
         v.set_instance_transformation(old_inst_trafo.get_offset_matrix() * rotation_matrix * old_inst_trafo.get_matrix_no_offset());
     }
 
@@ -1479,7 +1478,7 @@ void Selection::scale(const Vec3d& scale, TransformationType transformation_type
 }
 
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
-void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
+void Selection::scale_to_fit_print_volume(const BuildVolume& volume, const Vec2d& bed_center, const std::vector<BoundingBoxf3>& print_volumes)
 {
     auto fit = [this](double s, Vec3d offset) {
         if (s <= 0.0 || s == 1.0)
@@ -1509,22 +1508,30 @@ void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
         //wxGetApp().obj_manipul()->set_dirty();
     };
 
-    auto fit_rectangle = [this, fit](const BuildVolume& volume) {
-        const BoundingBoxf3 print_volume = volume.bounding_volume();
-        const Vec3d print_volume_size = print_volume.size();
-
+    auto fit_rectangle = [this, fit, &print_volumes]() {
         // adds 1/100th of a mm on all sides to avoid false out of print volume detections due to floating-point roundings
         const Vec3d box_size = get_bounding_box().size() + 0.02 * Vec3d::Ones();
 
-        const double sx = (box_size.x() != 0.0) ? print_volume_size.x() / box_size.x() : 0.0;
-        const double sy = (box_size.y() != 0.0) ? print_volume_size.y() / box_size.y() : 0.0;
-        const double sz = (box_size.z() != 0.0) ? print_volume_size.z() / box_size.z() : 0.0;
+        double best_s = 0.0;
+        const BoundingBoxf3* best = nullptr;
+        for (const BoundingBoxf3& print_volume : print_volumes) {
+            const Vec3d print_volume_size = print_volume.size();
 
-        if (sx != 0.0 && sy != 0.0 && sz != 0.0)
-            fit(std::min(sx, std::min(sy, sz)), print_volume.center() - get_bounding_box().center());
+            const double sx = (box_size.x() != 0.0) ? print_volume_size.x() / box_size.x() : 0.0;
+            const double sy = (box_size.y() != 0.0) ? print_volume_size.y() / box_size.y() : 0.0;
+            const double sz = (box_size.z() != 0.0) ? print_volume_size.z() / box_size.z() : 0.0;
+
+            if (sx != 0.0 && sy != 0.0 && sz != 0.0 && std::min(sx, std::min(sy, sz)) > best_s) {
+                best_s = std::min(sx, std::min(sy, sz));
+                best = &print_volume;
+            }
+        }
+
+        if (best != nullptr)
+            fit(best_s, best->center() - get_bounding_box().center());
     };
 
-    auto fit_circle = [this, fit](const BuildVolume& volume) {
+    auto fit_circle = [this, fit, &bed_center](const BuildVolume& volume) {
         const Geometry::Circled& print_circle = volume.circle();
         double print_circle_radius = unscale<double>(print_circle.radius);
 
@@ -1555,7 +1562,9 @@ void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
         const double s = std::min(print_circle_radius / circle_radius, volume.printable_height() / max_z);
         const Vec3d sel_center = get_bounding_box().center();
         const Vec3d offset = s * (Vec3d(unscale<double>(circle.center.x()), unscale<double>(circle.center.y()), 0.5 * max_z) - sel_center);
-        const Vec3d print_center = { unscale<double>(print_circle.center.x()), unscale<double>(print_circle.center.y()), 0.5 * volume.printable_height() };
+        // The active plate's bed is the same circle, moved by its centre.
+        const Vec3d plate_shift = Vec3d(bed_center.x() - volume.bed_center().x(), bed_center.y() - volume.bed_center().y(), 0.);
+        const Vec3d print_center = Vec3d(unscale<double>(print_circle.center.x()), unscale<double>(print_circle.center.y()), 0.5 * volume.printable_height()) + plate_shift;
         fit(s, print_center - (sel_center + offset));
     };
 
@@ -1564,7 +1573,7 @@ void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
 
     switch (volume.type())
     {
-    case BuildVolume_Type::Rectangle: { fit_rectangle(volume); break; }
+    case BuildVolume_Type::Rectangle: { fit_rectangle(); break; }
     case BuildVolume_Type::Circle:    { fit_circle(volume); break; }
     default: { break; }
     }

@@ -733,6 +733,14 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 m_value = into_u8(str);
             }
             break;
+        } else if (m_opt.opt_key == "bed_exclude_volumes" || m_opt.opt_key == "extruder_bed_exclude_volumes") {
+            const std::string definition = into_u8(str);
+            if (!is_valid_bed_exclude_volumes_string(definition, std::numeric_limits<double>::max())) {
+                show_error(m_parent, _L("Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."));
+                const std::string old_value = m_value.empty() ? std::string{} : boost::any_cast<std::string>(m_value);
+                set_value(from_u8(old_value), true);
+                break;
+            }
         } else if (m_opt.opt_key == "extra_solid_infills") {
             std::string ustr(str.utf8_string());
             // New rule: accept either interval form (N or N#K) or explicit list (e.g. 1,7,9), with optional quotes.
@@ -784,11 +792,18 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
     case coPoints: {
         std::vector<Vec2d> out_values;
         str.Replace(" ", wxEmptyString, true);
+        const bool bed_exclusion_volume_syntax = m_opt_id == "bed_exclude_area" &&
+            (str.Find("|") != wxNOT_FOUND || (str.Find("..") != wxNOT_FOUND && str.Find(";") != wxNOT_FOUND));
+        if (bed_exclusion_volume_syntax) {
+            // Leave volume validation and the copy prompt to the printer tab.
+            m_value = into_u8(str);
+            break;
+        }
         if (!str.IsEmpty()) {
             bool invalid_val = false;
-            wxStringTokenizer thumbnails(str, ",");
-            while (thumbnails.HasMoreTokens()) {
-                wxString token = thumbnails.GetNextToken();
+            wxStringTokenizer points(str, ",");
+            while (points.HasMoreTokens()) {
+                wxString token = points.GetNextToken();
                 double x, y;
                 wxStringTokenizer thumbnail(token, "x");
                 if (thumbnail.HasMoreTokens()) {
@@ -807,10 +822,11 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
 
             if (invalid_val) {
                 wxString text_value;
-                if (!m_value.empty())
+                if (!m_value.empty() && boost::any_cast<std::vector<Vec2d>>(&m_value) != nullptr)
                     text_value = get_thumbnails_string(boost::any_cast<std::vector<Vec2d>>(m_value));
                 set_value(text_value, true);
-                show_error(m_parent, format_wxstr(_L("Invalid format. Expected vector format: \"%1%\""),"XxY, XxY, ..." ));
+                show_error(m_parent, format_wxstr(_L("Invalid format. Expected vector format: \"%1%\""), "XxY, XxY, ..."));
+                break;
             }
         }
 

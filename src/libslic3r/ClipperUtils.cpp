@@ -748,6 +748,24 @@ Slic3r::Polygons diff(const Slic3r::ExPolygons &subject, const Slic3r::ExPolygon
     { return _clipper(ctDifference, ClipperUtils::ExPolygonsProvider(subject), ClipperUtils::ExPolygonsProvider(clip), do_safety_offset); }
 Slic3r::Polygons diff(const Slic3r::Surfaces &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper(ctDifference, ClipperUtils::SurfacesProvider(subject), ClipperUtils::PolygonsProvider(clip), do_safety_offset); }
+Slic3r::Polygons diff_expanded(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, float delta)
+{
+    if (subject.empty())
+        return {};
+    // Each path simplified on its own, and kept as it is where simplifying would turn a contour into a hole or back.
+    Polygons coarse;
+    for (const Polygon &path : clip) {
+        Polygons simplified = polygons_simplify({ path }, delta / 8.);
+        if (!simplified.empty() && (area(simplified) > 0.) != path.is_counter_clockwise())
+            coarse.emplace_back(path);
+        else
+            append(coarse, std::move(simplified));
+    }
+    // The miter limit argument of a round join is its arc tolerance.
+    if (diff(subject, expand(coarse, 0.7f * delta, jtRound, 0.01 * delta)).empty())
+        return {};
+    return diff(subject, expand(clip, delta));
+}
 Slic3r::Polygons intersection(const Slic3r::Polygon &subject, const Slic3r::Polygon &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper(ctIntersection, ClipperUtils::SinglePathProvider(subject.points), ClipperUtils::SinglePathProvider(clip.points), do_safety_offset); }
 Slic3r::Polygons intersection_clipped(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset) 

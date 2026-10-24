@@ -242,6 +242,14 @@ void AppConfig::set_defaults()
         set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
+    // ORCA: whether the G-code preview keeps the opacity of the filament colors
+    if (get("preview_translucent_filaments").empty())
+        set_bool("preview_translucent_filaments", true);
+
+    // ORCA: whether realistic view gives the opaque toolpaths a glossy highlight
+    if (get(SETTING_OPENGL_REALISTIC_GLOSS).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_GLOSS, true);
+
     // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
     // multi material prints, Line Type for single material ones), "last" restores the view type the user
     // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
@@ -410,6 +418,8 @@ void AppConfig::set_defaults()
 
     if (get("show_labels").empty())
         set_bool("show_labels", false);
+    if (get("show_collision_volumes").empty())
+        set_bool("show_collision_volumes", false);
 
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);

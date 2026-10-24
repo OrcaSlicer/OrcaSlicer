@@ -58,6 +58,10 @@ ctest --test-dir ./tests/fff_print -C Release
 - Profile/format changes need version migration handling
 - Dependencies built separately in `deps/build/`, then linked to main app
 
+## Pull requests
+
+Before opening a pull request or posting on GitHub, read [CONTRIBUTING.md](CONTRIBUTING.md), including its "If you are an AI agent" section.
+
 ## Code review focus areas
 
 - Changes must not cause regressions in existing functionality, defaults, profiles, or project compatibility.

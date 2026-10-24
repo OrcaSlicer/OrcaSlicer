@@ -143,9 +143,11 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"top_shell_layers", L("Top solid layers"), 1},
        {"top_shell_thickness", L("Top minimum shell thickness"), 1},
        {"top_surface_density", L("Top Surface Density"), 1},
+       {"top_color_penetration_layers", "", 1},
        {"bottom_shell_layers", L("Bottom solid layers"), 1},
        {"bottom_shell_thickness", L("Bottom minimum shell thickness"), 1},
        {"bottom_surface_density", L("Bottom Surface Density"), 1},
+       {"bottom_color_penetration_layers", "", 1},
        {"sparse_infill_density", "", 1},
        {"fill_multiline", "", 1},
        {"sparse_infill_pattern", "", 1},
@@ -651,7 +653,7 @@ void MenuFactory::load_handy_model(std::size_t index)
         return;
     pl->load_files(input_files, LoadStrategy::LoadModel);
     if (model.arrange_after_import) {
-        pl->set_prepare_state(Job::PREPARE_STATE_MENU);
+        pl->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
         pl->arrange();
     }
 

@@ -181,7 +181,7 @@ void update_speed_parameter( const std::string& key)
     }
 }
 
-std::vector<double> generate_max_speed_parameter_value(const std::string &key, const bool linear, const int pass)
+std::vector<double> generate_max_speed_parameter_value(const std::string &key, const float line_width, const float layer_height, const bool linear, const int pass)
 {
     auto  preset_bundle   = wxGetApp().preset_bundle;
     auto &printer_config  = preset_bundle->printers.get_edited_preset().config;
@@ -193,8 +193,6 @@ std::vector<double> generate_max_speed_parameter_value(const std::string &key, c
     std::vector<int> nozzle_volume_types = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
 
     float nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values[0];
-    float layer_height    = print_config.option<ConfigOptionFloat>("layer_height")->value;
-    float line_width      = print_config.get_abs_value("line_width", nozzle_diameter);
 
     Flow flow = Flow(line_width, layer_height, nozzle_diameter);
 
