@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <sstream>
+#include <string>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/format.hpp>
@@ -110,6 +111,32 @@ bool Moonraker::test(wxString &msg) const
     .perform_sync();
 
     return res;
+}
+
+bool Moonraker::has_klipper_object(const std::string &object) const
+{
+    bool found = false;
+    auto http  = Http::get(make_url("printer/objects/list"));
+    set_auth(http);
+    http.timeout_max(5)
+        .on_error([&](std::string body, std::string error, unsigned status) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Could not list Klipper objects: %2%, HTTP %3%, body: `%4%`") % get_name() %
+                                              error % status % body;
+        })
+        .on_complete([&](std::string body, unsigned) {
+            try {
+                std::stringstream ss(body);
+                pt::ptree         ptree;
+                pt::read_json(ss, ptree);
+                if (const auto objects = ptree.get_child_optional("result.objects"))
+                    for (const auto &child : *objects)
+                        found = found || child.second.get_value<std::string>() == object;
+            } catch (const std::exception &ex) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Could not parse Klipper objects: %2%") % get_name() % ex.what();
+            }
+        })
+        .perform_sync();
+    return found;
 }
 
 bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_name) const

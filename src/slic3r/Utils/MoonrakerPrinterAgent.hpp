@@ -52,6 +52,16 @@ bool        dialect_supports_push(Dialect dialect);
 std::string dialect_name(Dialect dialect);
 std::vector<std::string> afc_push_scripts(const IPrinterAgent::FilamentSlotInfo& info);
 std::string              happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info);
+// Print-start scripts: reset the map, assign each used tool, then SD start. tool_to_slot_1based:
+// index = 0-based tool, value = 1-based slot, 0 = unassigned. Empty when a used AFC slot has no name.
+// The *_mapping_script forms stop before the SD start, for a caller that starts the print itself.
+std::string afc_mapping_script(const std::vector<int>& tool_to_slot_1based, const std::vector<std::string>& slot_names);
+std::string happy_hare_mapping_script(const std::vector<int>& tool_to_slot_1based);
+std::string afc_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based,
+                                     const std::vector<std::string>& slot_names);
+std::string happy_hare_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based);
+// SD start with OPENACE_MAP="[[sliced,virtual],...]" (0-based); no reset, the job map ends with the job.
+std::string openace_mapping_start_script(const std::string& filename, const std::vector<int>& tool_to_slot_1based);
 // Highest T<n> + 1 in /printer/gcode/help; not the count, since toolchanger T0..T3 have no help
 // text and are not listed. 0 = none found.
 int tool_count_from_gcode_help(const nlohmann::json& help);
@@ -120,6 +130,9 @@ public:
     // Writes use the dialect the last fetch read.
     bool supports_filament_push() const override;
     bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) override;
+    // AFC and Happy Hare take the map before the print starts.
+    bool supports_print_time_mapping() const override;
+    bool send_filament_mapping(const std::string& dev_id, const std::vector<int>& tool_to_slot) override;
     bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl) override;
 
     // JSON helper methods
@@ -133,6 +146,10 @@ protected:
     // it first. True when AFC lanes were read and reported.
     bool fetch_afc_filament_info();
     bool afc_active() const { return m_filament_dialect == MoonrakerFilamentDialect::Dialect::afc_lane_data; }
+    // Sends the changer map that send_filament_mapping() stashed; true when none was stashed.
+    bool send_changer_map();
+    // Cleared by each print start so a stale mapping cannot leak into a later job.
+    std::vector<int> m_pending_filament_map;
 
     struct MoonrakerDeviceInfo
     {
@@ -281,6 +298,8 @@ private:
     bool fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
     // Dialect of the last successful fetch; published with the slots so a send can re-confirm it.
     MoonrakerFilamentDialect::Dialect m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
+    // AFC lane names by slot index, from the last AFC read; SET_MAP addresses lanes by name.
+    std::vector<std::string> m_lane_names;
     // Logical tools registered at the last fetch (0 = not probed).
     int m_tool_count = 0;
 

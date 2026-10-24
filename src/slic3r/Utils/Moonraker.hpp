@@ -50,6 +50,8 @@ public:
     bool get_storage(wxArrayString &storage_path, wxArrayString &storage_name) const override;
     const std::string& get_apikey() const { return m_apikey; }
     const std::string& get_cafile() const { return m_cafile; }
+    // Whether Klipper registers `object` (GET /printer/objects/list); false when unreachable.
+    bool has_klipper_object(const std::string& object) const;
 
 protected:
     std::string m_host;

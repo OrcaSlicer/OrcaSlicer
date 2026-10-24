@@ -2,11 +2,13 @@
 
 #include <fstream>
 #include <set>
+#include <string>
 
+#include "libslic3r/PrintConfig.hpp"
 #include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <string>
 #include <utility>
 #include <vector>
 #include "slic3r/Utils/IPrinterAgent.hpp"
@@ -56,6 +58,114 @@ TEST_CASE("Every changer dialect but none supports a push", "[MoonrakerFilamentD
     CHECK(dialect_supports_push(Dialect::happy_hare));
     CHECK_FALSE(dialect_supports_push(Dialect::none));
     CHECK(dialect_name(Dialect::afc_lane_data) == "afc");
+}
+
+// Print-time mapping: tool_to_slot is a 1-based slot per 0-based tool, 0 = unassigned.
+
+TEST_CASE("AFC start script resets the map, assigns used tools by lane name, then starts", "[MoonrakerFilamentDialect]")
+{
+    const std::vector<std::string> names = {"lane1", "lane2", "lane3"};
+    CHECK(afc_mapping_start_script("cube.gcode", {3, 1, 0}, names) ==
+          "RESET_AFC_MAPPING\n"
+          "SET_MAP LANE=lane3 MAP=T0\n"
+          "SET_MAP LANE=lane1 MAP=T1\n"
+          "SDCARD_PRINT_FILE FILENAME=\"cube.gcode\"");
+}
+
+TEST_CASE("An AFC tool mapped to a slot with no lane name renders no script", "[MoonrakerFilamentDialect]")
+{
+    CHECK(afc_mapping_start_script("cube.gcode", {2}, {"lane1", ""}).empty());
+    CHECK(afc_mapping_start_script("cube.gcode", {2}, {"lane1"}).empty());
+}
+
+TEST_CASE("An AFC map alone is the reset and one SET_MAP per used tool", "[MoonrakerFilamentDialect]")
+{
+    CHECK(afc_mapping_script({3, 1, 0}, {"lane1", "lane2", "lane3"}) ==
+          "RESET_AFC_MAPPING\n"
+          "SET_MAP LANE=lane3 MAP=T0\n"
+          "SET_MAP LANE=lane1 MAP=T1");
+    CHECK(afc_mapping_script({2}, {"lane1", ""}).empty());
+}
+
+TEST_CASE("A Happy Hare map alone is the reset and one MMU_TTG_MAP per used tool", "[MoonrakerFilamentDialect]")
+{
+    CHECK(happy_hare_mapping_script({3, 1, 0}) ==
+          "MMU_TTG_MAP RESET=1\n"
+          "MMU_TTG_MAP TOOL=0 GATE=2\n"
+          "MMU_TTG_MAP TOOL=1 GATE=0");
+}
+
+TEST_CASE("Happy Hare start script resets the tool-to-gate map and assigns used tools", "[MoonrakerFilamentDialect]")
+{
+    CHECK(happy_hare_mapping_start_script("cube.gcode", {3, 1, 0}) ==
+          "MMU_TTG_MAP RESET=1\n"
+          "MMU_TTG_MAP TOOL=0 GATE=2\n"
+          "MMU_TTG_MAP TOOL=1 GATE=0\n"
+          "SDCARD_PRINT_FILE FILENAME=\"cube.gcode\"");
+}
+
+TEST_CASE("A reported changer renders the map in its own dialect on a plain Klipper printer", "[MoonrakerFilamentDialect]")
+{
+    using Slic3r::FilamentMappingProtocol;
+    using Slic3r::MapDelivery;
+    Slic3r::DevicePrintJobInfo job;
+    job.filament_map_1based = {2, 1};
+    job.slot_names          = {"lane1", "lane2"};
+    CHECK(Slic3r::effective_map_delivery(FilamentMappingProtocol::fmpNone, "afc") == MapDelivery::afc);
+    CHECK(Slic3r::build_device_start_script(FilamentMappingProtocol::fmpNone, MapDelivery::afc, "cube.gcode", job) ==
+          "RESET_AFC_MAPPING\nSET_MAP LANE=lane2 MAP=T0\nSET_MAP LANE=lane1 MAP=T1\nSDCARD_PRINT_FILE FILENAME=\"cube.gcode\"");
+    CHECK(Slic3r::build_device_start_script(FilamentMappingProtocol::fmpNone, MapDelivery::happy_hare, "cube.gcode", job) ==
+          "MMU_TTG_MAP RESET=1\nMMU_TTG_MAP TOOL=0 GATE=1\nMMU_TTG_MAP TOOL=1 GATE=0\nSDCARD_PRINT_FILE FILENAME=\"cube.gcode\"");
+    const Slic3r::DevicePrintSpec spec = Slic3r::device_print_spec(FilamentMappingProtocol::fmpNone, MapDelivery::afc);
+    CHECK(spec.supports_filament_mapping);
+    CHECK(spec.options.empty());
+}
+
+TEST_CASE("A U1 whose map goes through AFC offers none of the U1's print options", "[MoonrakerFilamentDialect]")
+{
+    using Slic3r::FilamentMappingProtocol;
+    using Slic3r::MapDelivery;
+    // AFC starts the print, so the U1's own start parameters are never sent.
+    const Slic3r::DevicePrintSpec afc = Slic3r::device_print_spec(FilamentMappingProtocol::fmpSnapmaker, MapDelivery::afc);
+    CHECK(afc.supports_filament_mapping);
+    CHECK(afc.options.empty());
+    CHECK_FALSE(Slic3r::device_print_spec(FilamentMappingProtocol::fmpSnapmaker, MapDelivery::snapmaker).options.empty());
+}
+
+TEST_CASE("A plain Klipper printer with no changer has no delivery and no map script", "[MoonrakerFilamentDialect]")
+{
+    using Slic3r::FilamentMappingProtocol;
+    using Slic3r::MapDelivery;
+    CHECK(Slic3r::effective_map_delivery(FilamentMappingProtocol::fmpNone, "") == MapDelivery::none);
+    CHECK_FALSE(Slic3r::device_print_spec(FilamentMappingProtocol::fmpNone, MapDelivery::none).supports_filament_mapping);
+    Slic3r::DevicePrintJobInfo job;
+    CHECK(Slic3r::build_device_start_script(FilamentMappingProtocol::fmpNone, MapDelivery::none, "a.gcode", job).empty());
+    CHECK(Slic3r::effective_map_delivery(FilamentMappingProtocol::fmpSnapmaker, "") == MapDelivery::snapmaker);
+    CHECK(Slic3r::effective_map_delivery(FilamentMappingProtocol::fmpWonderMaker, "afc") == MapDelivery::afc);
+}
+
+TEST_CASE("An AFC printer that registers openACE takes the map on the SD start at print time", "[MoonrakerFilamentDialect]")
+{
+    using Slic3r::MapDelivery;
+    CHECK(Slic3r::print_time_map_delivery(MapDelivery::afc, true) == MapDelivery::openace);
+    CHECK(Slic3r::print_time_map_delivery(MapDelivery::afc, false) == MapDelivery::afc);
+    CHECK(Slic3r::print_time_map_delivery(MapDelivery::happy_hare, true) == MapDelivery::happy_hare);
+    CHECK(Slic3r::print_time_map_delivery(MapDelivery::none, true) == MapDelivery::none);
+}
+
+TEST_CASE("openACE start script carries the map as OPENACE_MAP pairs on the SD start", "[MoonrakerFilamentDialect]")
+{
+    CHECK(openace_mapping_start_script("cube.gcode", {4, 0, 2}) ==
+          "SDCARD_PRINT_FILE FILENAME=\"cube.gcode\" OPENACE_MAP=\"[[0,3],[2,1]]\"");
+    CHECK(openace_mapping_start_script("cube.gcode", {}) == "SDCARD_PRINT_FILE FILENAME=\"cube.gcode\" OPENACE_MAP=\"[]\"");
+}
+
+TEST_CASE("openACE delivery renders its start line for a plain Klipper printer", "[MoonrakerFilamentDialect]")
+{
+    Slic3r::DevicePrintJobInfo job;
+    job.filament_map_1based = {4};
+    CHECK(Slic3r::build_device_start_script(Slic3r::FilamentMappingProtocol::fmpNone, Slic3r::MapDelivery::openace, "cube.gcode", job) ==
+          "SDCARD_PRINT_FILE FILENAME=\"cube.gcode\" OPENACE_MAP=\"[[0,3]]\"");
 }
 
 // The U1 lists T4..T31 but not T0..T3, so the count is the highest index, not the entry count.
