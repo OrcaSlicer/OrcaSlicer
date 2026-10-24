@@ -36,6 +36,8 @@
 #include "libslic3r/MultiNozzleUtils.hpp" // filament-change-gap model for the best-position popup
 #include "BackgroundSlicingProcess.hpp"   // complete type for background_process().get_current_gcode_result()
 #include "DeviceCore/DevStorage.h"
+#include "FilamentMapRowsView.hpp"        // collect_device_map_table_for_send (device-owned mapping)
+#include "libslic3r/PrintConfig.hpp"      // FilamentMappingProtocol
 
 #include <wx/event.h>
 #include <string>
@@ -3640,6 +3642,25 @@ void SelectMachineDialog::on_send_print()
 
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
 
+    // Device-owned mapping (e.g. Snapmaker U1): ask for the pick before any export/upload starts.
+    // Only FROM_NORMAL guarantees the edited preset matches the target printer.
+    std::vector<int> device_map_table;
+    if (m_print_type == PrintFromType::FROM_NORMAL) {
+        const DynamicPrintConfig& target_printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const ConfigOption*       protocol_opt           = target_printer_config.option("filament_mapping_protocol");
+        if (protocol_opt != nullptr && protocol_opt->getInt() == (int) FilamentMappingProtocol::fmpSnapmaker) {
+            PartPlate*        part_plate      = m_plater->get_partplate_list().get_plate(m_print_plate_idx);
+            std::vector<int>  plate_filaments = part_plate ? part_plate->get_device_filaments() : std::vector<int>();
+            auto picked = collect_device_map_table_for_send(this, plate_filaments, _L("Map filaments to tools"));
+            if (!picked.has_value()) {
+                BOOST_LOG_TRIVIAL(info) << "print_job: filament map dialog canceled for send";
+                m_status_bar->set_status_text(task_canceled_text);
+                return;
+            }
+            device_map_table = *picked;
+        }
+    }
+
     if (m_print_type == PrintFromType::FROM_NORMAL) {
         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {
             if (this->m_is_canceled) return;
@@ -3722,6 +3743,7 @@ void SelectMachineDialog::on_send_print()
     m_print_job->task_ams_mapping      = ams_mapping_array;
     m_print_job->task_ams_mapping2     = ams_mapping_array2;
     m_print_job->task_ams_mapping_info = ams_mapping_info;
+    m_print_job->task_device_map_table = device_map_table;
     // Print-dispatch nozzle mapping (H2C hotend rack): attach ONLY when a mapping result exists.
     // For every non-rack printer (X1/P1/A1/H2S/H2D) the mapping json is empty, so task_nozzle_mapping
     // stays absent and the print payload is unchanged.

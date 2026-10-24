@@ -8,6 +8,7 @@
 #include <wx/string.h>
 #include <exception>
 #include <cstddef>
+#include <vector>
 #include "libslic3r/PrintConfig.hpp"
 #include "Job.hpp"
 #include "slic3r/GUI/DeviceCore/DevStorage.h" 
@@ -71,6 +72,9 @@ public:
     std::string task_ams_mapping;
     std::string task_ams_mapping2;
     std::string task_ams_mapping_info;
+    // Device-owned mapping (e.g. Snapmaker U1), sent via IPrinterAgent::send_filament_mapping().
+    // 1-based filament->tool over the full project filament list; empty when unsupported.
+    std::vector<int> task_device_map_table;
     std::string task_nozzles_info;
     std::string connection_type;
     std::string m_print_type;
