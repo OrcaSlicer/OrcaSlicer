@@ -34,6 +34,7 @@
 #include <wx/event.h>
 #include <wx/gauge.h>
 #include <wx/sizer.h>
+#include <wx/statline.h>
 
 #ifdef __WXGTK__
 #include "slic3r/GUI/Widgets/StateColor.hpp"

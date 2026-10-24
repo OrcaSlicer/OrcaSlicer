@@ -269,6 +269,7 @@
 #endif // __APPLE__
 
 #include <libslic3r/CutUtils.hpp>
+#include <wx/statline.h>
 #include <wx/glcanvas.h>    // Needs to be last because reasons :-/
 #include <libslic3r/miniz_extension.hpp>
 #include <math.h>
