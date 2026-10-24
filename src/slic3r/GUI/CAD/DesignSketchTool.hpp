@@ -19,6 +19,7 @@
 #include "libslic3r/Color.hpp"
 #include <math.h>
 #include <vector>
+#include <set>
 #include <string>
 #include <map>
 #include <utility>
@@ -1007,6 +1008,8 @@ public:
     bool dim_names() const { return m_dim_names; }
     void toggle_dim_names() { m_dim_names = !m_dim_names; }
     bool has_dim_exprs() const { return !m_dim_exprs.empty(); }
+    // The members of `known` named by the expressions of the dimensions that touch the hovered entity.
+    std::set<std::string> hover_variable_names(const std::set<std::string>& known) const;
 private:
     std::string dim_text(const DimAnnot& a) const;                          // rendered label string
     void render_dimensions(double unit_per_px);                            // quote lines + labels
@@ -1202,6 +1205,8 @@ private:
     Handle                m_drag_handle;           // the handle being dragged
     bool                  m_has_hover_handle{false};// cursor is near a handle (highlight it)
     Handle                m_hover_handle;          // the hovered handle (recomputed on move)
+    int                   m_hover_ent{-1};         // entity under the cursor (handle or segment), or -1
+    int                   m_hover_dim{-1};         // dimension label under the cursor, or -1
     std::vector<DimAnnot> m_live_quotes;           // live non-driving characteristic quotes,
                                                    // clickable to promote to driving dims
     Vec2d                 m_live_poly_side_label{0,0};  // polygon side-length quote label

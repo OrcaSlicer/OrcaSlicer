@@ -426,6 +426,8 @@ void draw_table_field(TableField* t, float em, std::function<void()> refocus)
         ImGui::TableHeadersRow();
         for (int i = 0; i < n; ++i) {
             ImGui::TableNextRow();
+            if (t->highlight.count(u8(t->GetItemText(i, 0))))
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(0.18f, 0.65f, 0.59f, 0.55f)));
             ImGui::TableSetColumnIndex(0);
             ImGui::PushID(i);
             if (ImGui::Selectable(u8(t->GetItemText(i, 0)).c_str(), i == sel, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick)) {
@@ -500,7 +502,17 @@ void DesignPanel::mirror_card(CardModel& card, SidebarCtx& cx)
         case CardField::Kind::Edit:     draw_edit_field(static_cast<TextField*>(f), w);          break;
         case CardField::Kind::List:     draw_list_field(static_cast<ListField*>(f), em);         break;
         case CardField::Kind::Rows:     draw_rows(static_cast<RowsField*>(f)->list(), em, cx);   break;
-        case CardField::Kind::Table:    draw_table_field(static_cast<TableField*>(f), em, cx.refocus); break;
+        case CardField::Kind::Table: {
+            auto* t = static_cast<TableField*>(f);
+            t->highlight.clear();
+            if (t == m_var_list && m_viewport != nullptr) {   // hovering a sketch segment lights up the variables behind its dimensions
+                std::set<std::string> known;
+                for (int i = 0; i < t->GetItemCount(); ++i) known.insert(u8(t->GetItemText(i, 0)));
+                t->highlight = m_viewport->mcp_sketch_tool().hover_variable_names(known);
+            }
+            draw_table_field(t, em, cx.refocus);
+            break;
+        }
         case CardField::Kind::Toggle:   draw_toggle_field(static_cast<ToggleField*>(f));        break;
         case CardField::Kind::Button:   draw_button_field(static_cast<ButtonField*>(f), em);    break;
         case CardField::Kind::CheckList: draw_check_list(static_cast<CheckListField*>(f), em);  break;

@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -301,6 +302,7 @@ public:
     int  GetSelection() const { return m_sel; }
 
     std::function<void()> on_activate;   // a double click on a row
+    std::set<std::string> highlight;     // names (column 0) of rows to light up, set by the owner every frame
     void user_select(int i, bool activate)
     {
         CallAfter([this, i, activate] {

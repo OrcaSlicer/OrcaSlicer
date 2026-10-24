@@ -39,6 +39,7 @@
 #include <math.h>
 #include "libslic3r/CAD/SketchSolver.hpp"
 #include "libslic3r/Line.hpp"
+#include <cctype>
 #include <string>
 #include "libslic3r/CAD/SketchInference.hpp"
 #include <utility>
@@ -1154,7 +1155,11 @@ bool DesignSketchTool::update_hover(GLCanvas3D& canvas, wxMouseEvent& evt)
     Handle h;
     m_has_hover_handle = hit_test_handle(p, tol, h);
     if (m_has_hover_handle) m_hover_handle = h;
-    return (had != m_has_hover_handle) ||
+    // What the cursor is on, for the variables panel: a dimension label, else a handle's entity, else a segment.
+    const int prev_ent = m_hover_ent, prev_dim = m_hover_dim;
+    m_hover_dim = hit_test_dimension(p, tol);
+    m_hover_ent = m_has_hover_handle ? h.ei : hit_test(p, tol);
+    return (had != m_has_hover_handle) || prev_ent != m_hover_ent || prev_dim != m_hover_dim ||
            (m_has_hover_handle && (prev.ei != h.ei || prev.role != h.role));
 }
 
@@ -2491,6 +2496,31 @@ void DesignSketchTool::set_dimension_value(double v)
 void DesignSketchTool::cancel_dimension_value()
 {
     m_pending_dim = -1;   // keep the placed dimension at its measured value
+}
+
+std::set<std::string> DesignSketchTool::hover_variable_names(const std::set<std::string>& known) const
+{
+    std::set<std::string> out;
+    if (m_dim_exprs.empty()) return out;
+    const int ei = m_hover_ent;
+    const int dk = (m_hover_dim >= 0 && m_hover_dim < int(m_dimensions.size())) ? m_dimensions[m_hover_dim].con : -1;
+    for (const auto& [k, ex] : m_dim_exprs) {
+        if (k < 0 || k >= int(m_constraints.size())) continue;
+        if (k != dk && (ei < 0 || (m_constraints[k].ea != ei && m_constraints[k].eb != ei))) continue;
+        const std::string& s = ex.first;
+        for (size_t i = 0; i < s.size();) {   // identifiers: letter or _ first, then letters, digits, _
+            if (std::isalpha((unsigned char) s[i]) || s[i] == '_') {
+                size_t j = i + 1;
+                while (j < s.size() && (std::isalnum((unsigned char) s[j]) || s[j] == '_')) ++j;
+                const std::string id = s.substr(i, j - i);
+                if (known.count(id)) out.insert(id);
+                i = j;
+            } else if (std::isdigit((unsigned char) s[i])) {   // a number such as 2e3 or 1.5 is not an identifier
+                while (i < s.size() && (std::isalnum((unsigned char) s[i]) || s[i] == '.')) ++i;
+            } else ++i;
+        }
+    }
+    return out;
 }
 
 std::string DesignSketchTool::dim_text(const DimAnnot& a) const
