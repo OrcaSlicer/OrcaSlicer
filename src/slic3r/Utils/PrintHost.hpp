@@ -55,7 +55,7 @@ struct DevicePrintSpec
 };
 
 // Orca: how the filament->tool map reaches the printer; a reported Klipper changer overrides the vendor's.
-enum class MapDelivery { none, snapmaker, afc, happy_hare, openace };
+enum class MapDelivery { none, snapmaker, wondermaker, afc, happy_hare, openace };
 MapDelivery effective_map_delivery(FilamentMappingProtocol vendor, const std::string& reported_changer);
 // openACE reports AFC's lane_data, so a sync reads it as AFC; at print time a printer that registers
 // an "openace" Klipper object takes the map on the SD start instead of through SET_MAP.

@@ -48,6 +48,7 @@
 #include "3DPrinterOS.hpp"
 #include "Moonraker.hpp"
 #include "SnapmakerPrinterAgent.hpp"
+#include "WonderMakerPrinterAgent.hpp"
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::PrintHostQueueDialog;
@@ -63,7 +64,7 @@ MapDelivery effective_map_delivery(FilamentMappingProtocol vendor, const std::st
     if (reported_changer == "happy_hare") return MapDelivery::happy_hare;
     switch (vendor) {
     case FilamentMappingProtocol::fmpSnapmaker:   return MapDelivery::snapmaker;
-    case FilamentMappingProtocol::fmpWonderMaker:
+    case FilamentMappingProtocol::fmpWonderMaker: return MapDelivery::wondermaker;
     case FilamentMappingProtocol::fmpNone:        break;
     }
     return MapDelivery::none;
@@ -93,6 +94,9 @@ DevicePrintSpec device_print_spec(FilamentMappingProtocol vendor, MapDelivery de
                         time_lapse, bed_leveling};
         break;
     case FilamentMappingProtocol::fmpWonderMaker:
+        // The ZR probes before every print, so leveling defaults on. No flow-calibration hook.
+        spec.options = {time_lapse, bed_leveling};
+        break;
     case FilamentMappingProtocol::fmpNone:
         break;
     }
@@ -105,9 +109,15 @@ std::string build_device_start_script(FilamentMappingProtocol vendor, MapDeliver
     case MapDelivery::none: return {};
     case MapDelivery::snapmaker:
         return SnapmakerProtocol::build_start_script(filename, job);
+    case MapDelivery::wondermaker:
+        return WonderMakerProtocol::build_start_script(filename, job.filament_map_1based, job.option_on("bed_leveling"),
+                                                       job.option_on("time_lapse"));
     case MapDelivery::afc:
     case MapDelivery::happy_hare:
     case MapDelivery::openace: {
+        std::string prelude;
+        if (vendor == FilamentMappingProtocol::fmpWonderMaker)
+            prelude = WonderMakerProtocol::build_prelude(job.option_on("bed_leveling"), job.option_on("time_lapse"));
         std::string map;
         if (delivery == MapDelivery::afc)
             map = MoonrakerFilamentDialect::afc_mapping_start_script(filename, job.filament_map_1based, job.slot_names);
@@ -115,7 +125,7 @@ std::string build_device_start_script(FilamentMappingProtocol vendor, MapDeliver
             map = MoonrakerFilamentDialect::happy_hare_mapping_start_script(filename, job.filament_map_1based);
         else
             map = MoonrakerFilamentDialect::openace_mapping_start_script(filename, job.filament_map_1based);
-        return map;
+        return map.empty() ? std::string() : prelude + map;
     }
     }
     return {};
