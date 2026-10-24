@@ -26,7 +26,9 @@ using namespace Slic3r;
 namespace {
 
 // Same idiom as ScopedPluginManager in test_plugin_lifecycle.cpp: the trampolines refuse to call
-// into Python unless PythonInterpreter::instance() reports initialized.
+// into Python unless PythonInterpreter::instance() reports initialized. Only the manager is torn
+// down here; the interpreter is finalized once per test process by PythonInterpreterRunEnd in
+// slic3rutils_tests_main.cpp.
 struct ScopedPluginManager
 {
     // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
@@ -34,11 +36,7 @@ struct ScopedPluginManager
     ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = PluginManager::instance().initialize();
 
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 // The host reaches a printer agent plugin through IPrinterAgent, so the tests do too. The Python

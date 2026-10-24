@@ -1,6 +1,6 @@
 ---
 name: orca-translations
-description: Use when updating, filling, reviewing or fixing OrcaSlicer translations in localization/i18n — running scripts/run_gettext --full, translating empty or new msgids in the .po catalogs, AI translation passes and their "# AI Translated" / "# Needs human review" comments, plural forms, msgctxt homonyms, and keeping catalogs consistent with the localization glossary (OrcaSlicer_WIKI localization_glossary.tsv), including adding new glossary terms. Also use for msgfmt or run_gettext failures, placeholder or line-break mismatches, and reviewing a translation PR against the glossary.
+description: Use when updating, filling, reviewing or fixing OrcaSlicer translations in localization/i18n — running scripts/run_gettext --full, translating empty or new msgids in the .po catalogs, AI translation passes and their "# AI Translated" / "# Needs human review" comments, plural forms, msgctxt homonyms, and keeping catalogs consistent with the localization glossary (OrcaSlicer_WIKI developer_reference/glossary), including adding new glossary terms. Also use for msgfmt or run_gettext failures, placeholder or line-break mismatches, and reviewing a translation PR against the glossary.
 ---
 
 # OrcaSlicer translations
@@ -9,7 +9,7 @@ The UI strings live in gettext catalogs: `localization/i18n/OrcaSlicer.pot` is t
 `localization/i18n/<lang>/OrcaSlicer_<lang>.po` holds each language. The `en` catalog is empty on
 purpose, so skip it. Recurring terms are fixed by the
 [localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/localization_glossary.md),
-whose source is `developer_reference/localization_glossary.tsv` in the **OrcaSlicer_WIKI** repository.
+whose source is the per-language files in `developer_reference/glossary/` (`terms.tsv`, `languages.txt` and one `<lang>.tsv`) in the **OrcaSlicer_WIKI** repository.
 A translation pass therefore touches two repositories: the catalogs here, and the glossary there.
 
 All catalog editing goes through [`scripts/po_tool.py`](scripts/po_tool.py) (standard library only).
@@ -112,6 +112,8 @@ For each language:
      - `note`: the developer's `TRN` comment.
      - `flags`: `c-format` or `boost-format`.
      - `description`: present when a sense has to be chosen.
+     - `similar`: earlier translations of similar English. `"human": true` marks a person's work: when
+       the English barely changed, patch that translation instead of translating again (see the rules).
 3. Read every apply message:
    - **REJECTED:** a hard rule broke. Fix the translation and apply the corrected items again.
    - **WARNING:** something worth a second look, such as a glossary rendering not found, ending
@@ -121,13 +123,17 @@ For each language:
 
 `apply` adds `# AI Translated` to every entry it writes, and `# Needs human review: <reason>` where an
 item has `review`. On an `--overwrite`, `"review": ""` removes an earlier note. Never add either to a translation a person wrote. `--human` is for applying their
-text.
+text, and for a fix that keeps their words; it also drops a stale AI mark. `apply` rejects text that
+strays from a person's translation more than the English change explains, unless the item says why
+with `"rewrite": "<reason>"`.
 
 **The work is large:** every new string, times every language. When subagents are available, give each
 one a language or a few. Each agent only touches its own catalogs, so they can run
 in parallel. Settle step 3 first. Give each agent the language list, this skill's path, the rules file,
 and these instructions:
 - Fill every empty entry.
+- Patch a person's earlier translation (`"human": true` in `similar`) instead of translating again, and
+  keep their words when fixing their entries.
 - Don't add glossary rows.
 - Report what it could not translate, the review notes it added, and any term it thinks the glossary
   still lacks.
@@ -153,7 +159,7 @@ Report:
 - anything left empty, and why;
 - the glossary rows added or filled.
 
-The catalogs (and `OrcaSlicer.pot`) and the glossary (`localization_glossary.tsv` and `.md`) are
+The catalogs (and `OrcaSlicer.pot`) and the glossary (`developer_reference/glossary/*.tsv` and `localization_glossary.md`) are
 separate changes in separate repositories. The wiki change should land with, or before, the catalog
 change. Commit or open PRs only when asked.
 
@@ -210,7 +216,7 @@ with the translators, followed by the catalogs.
 When this skill and the checkouts disagree, the checkouts win:
 - `scripts/run_gettext.sh` / `.bat` for extraction and merging;
 - `localization/i18n/list.txt` for the scanned sources;
-- the wiki's `localization_guide.md` and `localization_glossary.md` / `.tsv` for the rules and terms;
+- the wiki's `localization_guide.md` and `localization_glossary.md` and `glossary/*.tsv` for the rules and terms;
 - `AGENTS.md` (Localization & translations) for the repository's conventions.
 
 ## Editing this skill

@@ -1,4 +1,4 @@
-#include "FillTpmsAdaptive.hpp"
+#include "AdaptiveInfillField.hpp"
 
 #include <algorithm>
 #include <array>
@@ -146,11 +146,11 @@ void rasterize(const ExPolygons &expolygons, const Vec2d &origin, double cell, i
 }
 
 // Scale of the pattern relative to the surface at a depth from 0 at the surface to 1 at the deepest point.
-double target_scale(double ratio, TpmsAdaptiveGradient gradient, double depth)
+double target_scale(double ratio, AdaptiveInfillGradient gradient, double depth)
 {
     switch (gradient) {
-    case TpmsAdaptiveGradient::Quadratic: return 1. + (ratio - 1.) * depth * depth;
-    case TpmsAdaptiveGradient::Exponential: return std::pow(ratio, depth);
+    case AdaptiveInfillGradient::Quadratic: return 1. + (ratio - 1.) * depth * depth;
+    case AdaptiveInfillGradient::Exponential: return std::pow(ratio, depth);
     default: return 1. + (ratio - 1.) * depth;
     }
 }
@@ -159,7 +159,7 @@ double target_scale(double ratio, TpmsAdaptiveGradient gradient, double depth)
 // continuous level of the target of a depth.
 struct DensityLevels
 {
-    DensityLevels(double ratio, double step, TpmsAdaptiveGradient gradient)
+    DensityLevels(double ratio, double step, AdaptiveInfillGradient gradient)
         : ratio(ratio), gradient(gradient), count(int(std::ceil(std::abs(std::log(ratio)) / std::log(step) - EPSILON)))
     {}
 
@@ -170,7 +170,7 @@ struct DensityLevels
     }
 
     double               ratio;
-    TpmsAdaptiveGradient gradient;
+    AdaptiveInfillGradient gradient;
     int                  count;
 };
 
@@ -212,12 +212,12 @@ private:
 
 } // namespace
 
-TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, TpmsAdaptiveMode mode,
+AdaptiveInfillField::AdaptiveInfillField(const std::vector<Slice> &slices, const BoundingBox &bbox, AdaptiveInfillMode mode,
                                  const std::function<void()> &throw_if_canceled)
     : m_mode(mode)
-    , m_axis(mode == TpmsAdaptiveMode::NormalX ? 0 : mode == TpmsAdaptiveMode::NormalY ? 1 : mode == TpmsAdaptiveMode::NormalZ ? 2 : -1)
+    , m_axis(mode == AdaptiveInfillMode::NormalX ? 0 : mode == AdaptiveInfillMode::NormalY ? 1 : mode == AdaptiveInfillMode::NormalZ ? 2 : -1)
 {
-    assert(!slices.empty() && mode != TpmsAdaptiveMode::Disabled);
+    assert(!slices.empty() && mode != AdaptiveInfillMode::Disabled);
     const Vec3d min(unscaled(bbox.min.x()), unscaled(bbox.min.y()), slices.front().bottom_z);
     const Vec3d extent = Vec3d(unscaled(bbox.max.x()), unscaled(bbox.max.y()), slices.back().top_z) - min;
 
@@ -269,7 +269,7 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     // Bodies are the connected inside nodes, none of which is on the border. The deepest nodes of a body are the
     // centers of its lobes, unless the depth between them stays above NeckRatio; where the depth ties, the center
     // is the node nearest to the middle of the tied nodes.
-    const bool lobes = m_mode != TpmsAdaptiveMode::SteppedShells && m_mode != TpmsAdaptiveMode::SmoothBlend;
+    const bool lobes = m_mode != AdaptiveInfillMode::SteppedShells && m_mode != AdaptiveInfillMode::SmoothBlend;
     m_body.assign(depth.size(), -1);
     std::vector<size_t> body_nodes;
     for (size_t seed = 0; seed < depth.size(); ++seed) {
@@ -341,7 +341,7 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     }
     throw_if_canceled();
 
-    if (m_mode == TpmsAdaptiveMode::SteppedShells || m_mode == TpmsAdaptiveMode::SmoothBlend || m_mode == TpmsAdaptiveMode::DistanceWarp) {
+    if (m_mode == AdaptiveInfillMode::SteppedShells || m_mode == AdaptiveInfillMode::SmoothBlend || m_mode == AdaptiveInfillMode::DistanceWarp) {
         m_depth.assign(depth.size(), 0.f);
         for (size_t i = 0; i < depth.size(); ++i)
             if (m_body[i] >= 0)
@@ -421,7 +421,7 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
             lobe.reach.resize(log_reach.size());
             std::transform(log_reach.begin(), log_reach.end(), lobe.reach.begin(), [](double v) { return float(std::exp(v)); });
 
-            if (m_mode == TpmsAdaptiveMode::DistanceWarp) {
+            if (m_mode == AdaptiveInfillMode::DistanceWarp) {
                 std::vector<double> mean(log_reach.size() * (Samples + 1));
                 for (size_t d = 0; d < log_reach.size(); ++d) {
                     const Vec3d dir         = direction(int(d) / Azimuth, int(d) % Azimuth);
@@ -488,7 +488,7 @@ TpmsRadialField::TpmsRadialField(const std::vector<Slice> &slices, const Boundin
     }
 }
 
-double TpmsRadialField::depth(const Vec3d &pt) const
+double AdaptiveInfillField::depth(const Vec3d &pt) const
 {
     assert(!m_depth.empty());
     const Vec3d           f = (pt - m_origin) / m_cell;
@@ -508,7 +508,7 @@ double TpmsRadialField::depth(const Vec3d &pt) const
     return value;
 }
 
-Vec3d TpmsRadialField::offset(const Vec3d &pt, const Vec3d &center) const
+Vec3d AdaptiveInfillField::offset(const Vec3d &pt, const Vec3d &center) const
 {
     Vec3d d = pt - center;
     if (m_axis >= 0)
@@ -516,7 +516,7 @@ Vec3d TpmsRadialField::offset(const Vec3d &pt, const Vec3d &center) const
     return d;
 }
 
-double TpmsRadialField::radial(const Lobe &lobe, const Vec3d &pt) const
+double AdaptiveInfillField::radial(const Lobe &lobe, const Vec3d &pt) const
 {
     const Vec3d  d = this->offset(pt, lobe.center);
     const double r = d.norm();
@@ -562,7 +562,7 @@ double TpmsRadialField::radial(const Lobe &lobe, const Vec3d &pt) const
     return warp(mean);
 }
 
-size_t TpmsRadialField::radial(const Vec3d &pt, Radials &out) const
+size_t AdaptiveInfillField::radial(const Vec3d &pt, Radials &out) const
 {
     assert(!this->empty());
     Vec3i32 idx;
@@ -588,7 +588,7 @@ size_t TpmsRadialField::radial(const Vec3d &pt, Radials &out) const
     return count;
 }
 
-size_t TpmsRadialField::body_radial(size_t node, const Vec3d &pt, float weight, Radial *out) const
+size_t AdaptiveInfillField::body_radial(size_t node, const Vec3d &pt, float weight, Radial *out) const
 {
     const Body &body = m_bodies[m_body[node]];
     if (body.lobes == 1) {
@@ -641,7 +641,7 @@ struct AdaptiveTpmsField
     const long             gsize  = std::lround(gsizef / rsizef);
 
     const AdaptiveTpms    &tpms;
-    const TpmsRadialField &radial_field;
+    const AdaptiveInfillField &radial_field;
     RadialScale            scale;
     DensityLevels          levels;
     Point                  size;
@@ -650,7 +650,7 @@ struct AdaptiveTpmsField
     double                 cos_angle;
     double                 sin_angle;
 
-    AdaptiveTpmsField(const AdaptiveTpms &tpms, const TpmsRadialField &radial_field, const BoundingBox &bbox, coordf_t z, float angle)
+    AdaptiveTpmsField(const AdaptiveTpms &tpms, const AdaptiveInfillField &radial_field, const BoundingBox &bbox, coordf_t z, float angle)
         : tpms(tpms), radial_field(radial_field), scale(tpms, radial_field.axis() < 0 ? 3 : 2)
         , levels(std::max(tpms.interior_frequency / tpms.surface_frequency, 1e-3), BlendRatio, tpms.gradient)
         , size(bbox.size()), offs(bbox.min), z(z)
@@ -666,7 +666,7 @@ struct AdaptiveTpmsField
         const double                           x  = unscaled(pt.x());
         const double                           y  = unscaled(pt.y());
         const Vec3d                            obj(cos_angle * x - sin_angle * y, sin_angle * x + cos_angle * y, z);
-        if (radial_field.mode() == TpmsAdaptiveMode::SmoothBlend) {
+        if (radial_field.mode() == AdaptiveInfillMode::SmoothBlend) {
             // The regular patterns of the two levels around the target of the depth, blended by a smoothstep.
             auto lattice = [this, x, y](int level) {
                 const double frequency = tpms.surface_frequency * levels.scale(level);
@@ -681,7 +681,7 @@ struct AdaptiveTpmsField
             return float((w < 1. ? (1. - w) * lattice(k) : 0.) + (w > 0. ? w * lattice(k + 1) : 0.));
         }
         const int                              axis = radial_field.axis();
-        TpmsRadialField::Radials               radials;
+        AdaptiveInfillField::Radials               radials;
         const size_t                           count = radial_field.radial(obj, radials);
         float                                  value = 0.f;
         for (size_t i = 0; i < count; ++i) {
@@ -708,20 +708,20 @@ template<> struct _RasterTraits<AdaptiveTpmsField>
 };
 
 // Continuous density level of the depth over a layer, in the object frame.
-struct TpmsLevelField
+struct AdaptiveLevelField
 {
     static constexpr float gsizef = 0.5f;
     static constexpr float rsizef = 0.05f;
     const coord_t          rsize  = scaled(rsizef);
     const long             gsize  = std::lround(gsizef / rsizef);
 
-    const TpmsRadialField &field;
+    const AdaptiveInfillField &field;
     const DensityLevels   &levels;
     Point                  size;
     Point                  offs;
     double                 z;
 
-    TpmsLevelField(const TpmsRadialField &field, const DensityLevels &levels, const BoundingBox &bbox, coordf_t z)
+    AdaptiveLevelField(const AdaptiveInfillField &field, const DensityLevels &levels, const BoundingBox &bbox, coordf_t z)
         : field(field), levels(levels), size(bbox.size()), offs(bbox.min), z(z)
     {}
 
@@ -736,19 +736,19 @@ struct TpmsLevelField
     inline Point   to_Point(const Coord &p) const { return Point(to_coord(p.c) + offs.x(), to_coord(p.r) + offs.y()); }
 };
 
-template<> struct _RasterTraits<TpmsLevelField>
+template<> struct _RasterTraits<AdaptiveLevelField>
 {
     using ValueType = float;
-    static float  get(const TpmsLevelField &sf, size_t row, size_t col) { return sf.get_scalar(Coord(long(row), long(col))); }
-    static size_t rows(const TpmsLevelField &sf) { return sf.to_coordr(sf.size.y()); }
-    static size_t cols(const TpmsLevelField &sf) { return sf.to_coordr(sf.size.x()); }
+    static float  get(const AdaptiveLevelField &sf, size_t row, size_t col) { return sf.get_scalar(Coord(long(row), long(col))); }
+    static size_t rows(const AdaptiveLevelField &sf) { return sf.to_coordr(sf.size.y()); }
+    static size_t cols(const AdaptiveLevelField &sf) { return sf.to_coordr(sf.size.x()); }
 };
 
 } // namespace marchsq
 
 namespace Slic3r {
 
-Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &field, BoundingBox bbox,
+Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const AdaptiveInfillField &field, BoundingBox bbox,
                              coordf_t z, coordf_t layer_height, coordf_t spacing, float angle)
 {
     // A cell of margin for the rings closed along the raster border, and a fixed sampling grid for every region.
@@ -775,21 +775,21 @@ Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &fi
     return polylines;
 }
 
-std::vector<TpmsShell> make_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z,
-                                        float surface_density, float interior_density, TpmsAdaptiveGradient gradient)
+std::vector<AdaptiveInfillShell> make_adaptive_infill_shells(const AdaptiveInfillField &field, const ExPolygon &expolygon, coordf_t z,
+                                        float surface_density, float interior_density, AdaptiveInfillGradient gradient)
 {
     const DensityLevels levels(interior_density / surface_density, ShellRatio, gradient);
     if (levels.count == 0)
         return {{surface_density, {expolygon}}};
     // A fixed sampling grid, so that every region of a layer gets the same shells.
-    const coord_t cell = scaled(marchsq::TpmsLevelField::gsizef);
+    const coord_t cell = scaled(marchsq::AdaptiveLevelField::gsizef);
     BoundingBox   bbox = get_extents(expolygon);
     bbox.offset(cell);
     bbox.merge(align_to_grid(bbox.min, Point(cell, cell)));
-    const marchsq::TpmsLevelField raster(field, levels, bbox, z);
+    const marchsq::AdaptiveLevelField raster(field, levels, bbox, z);
 
     // Each level takes the part deeper than the middle between it and the previous one.
-    std::vector<TpmsShell> shells;
+    std::vector<AdaptiveInfillShell> shells;
     ExPolygons             remaining{expolygon};
     for (int level = 0; level < levels.count && !remaining.empty(); ++level) {
         Polygons deeper;
@@ -808,12 +808,12 @@ std::vector<TpmsShell> make_tpms_shells(const TpmsRadialField &field, const ExPo
     return shells;
 }
 
-void fill_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z, const FillParams &params, coordf_t spacing,
+void fill_adaptive_infill_shells(const AdaptiveInfillField &field, const ExPolygon &expolygon, coordf_t z, const FillParams &params, coordf_t spacing,
                       const std::function<void(const FillParams &, const ExPolygon &)> &fill_shell)
 {
     FillParams shell_params    = params;
-    shell_params.tpms_adaptive = TpmsAdaptiveMode::Disabled;
-    for (const TpmsShell &shell : make_tpms_shells(field, expolygon, z, params.density, params.tpms_interior_density, params.tpms_adaptive_gradient)) {
+    shell_params.adaptive_infill_mode = AdaptiveInfillMode::Disabled;
+    for (const AdaptiveInfillShell &shell : make_adaptive_infill_shells(field, expolygon, z, params.density, params.adaptive_infill_interior_density, params.adaptive_infill_gradient)) {
         shell_params.density = shell.density;
         for (const ExPolygon &part : offset_ex(shell.expolygons, -float(scale_(0.5 * spacing))))
             fill_shell(shell_params, part);

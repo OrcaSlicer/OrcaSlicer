@@ -1,8 +1,8 @@
-# Adaptive TPMS infill — High Level Design
+# Adaptive infill — High Level Design
 
 ## Purpose and scope
 
-`tpms_adaptive` grades the sparse infill of the Gyroid, TPMS-D and TPMS-FK
+`adaptive_infill_mode` grades the sparse infill of the Gyroid, TPMS-D and TPMS-FK
 patterns inside the object: the cells grow continuously from the surface
 towards the center of the object. `distance_warp`, `smooth_blend` and
 `stepped_shells` follow the distance to the nearest surface, including the top
@@ -10,8 +10,8 @@ and bottom, like concentric shells; `lobes` follows the whole 3D shape towards
 the center of each lobe of the object; `normal_z`, `normal_y` and `normal_x`
 follow each section of the object normal to that axis, so the grading does not
 change along the axis, as suits a profile extruded along it.
-`sparse_infill_density` is the density at the surface, `tpms_interior_density`
-the density at the center, and `tpms_adaptive_gradient` picks how the density
+`sparse_infill_density` is the density at the surface, `adaptive_infill_interior_density`
+the density at the center, and `adaptive_infill_gradient` picks how the density
 goes from one to the other. Only internal sparse infill is graded; the Gyroid
 Z-buckling optimization does not apply to it.
 
@@ -22,9 +22,9 @@ split into shells or blended between densities.
 
 ## Radial field
 
-`TpmsRadialField` gives every point of an object the center of its lobe and a
+`AdaptiveInfillField` gives every point of an object the center of its lobe and a
 radial coordinate: 0 at the center, 1 at the surface along the ray from the
-center. `PrintObject::prepare_tpms_radial_fields()` builds it in
+center. `PrintObject::prepare_adaptive_infill_fields()` builds it in
 `bridge_over_infill()`, next to the adaptive cubic octree, because the anchoring
 infill generated there has to match the printed infill. A field is built for
 every mode a region uses, and is shared by the regions using that mode: the
@@ -202,7 +202,7 @@ built for them.
 
 ## Constraints
 
-- With `tpms_adaptive` disabled, or for other patterns, the fill parameters are reset
+- With `adaptive_infill_mode` disabled, or for other patterns, the fill parameters are reset
   to their defaults, so they neither change the infill nor split fill batches.
 - `Layer::get_sparse_infill_max_void_area()` uses the sparser of the two
   densities, as the voids at the center are that large.

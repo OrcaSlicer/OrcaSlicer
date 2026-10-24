@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-14 10:04-0300\n"
+"POT-Creation-Date: 2026-10-24 15:39-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -654,15 +654,15 @@ msgstr "Till:"
 
 # AI Translated
 msgid "Entering color painting"
-msgstr "Öppnar färgmålning"
+msgstr "Öppnar färgläggning"
 
 # AI Translated
 msgid "Leaving color painting"
-msgstr "Lämnar färgmålning"
+msgstr "Lämnar färgläggning"
 
 # AI Translated
 msgid "Color painting editing"
-msgstr "Redigering av färgmålning"
+msgstr "Redigering av färgläggning"
 
 # AI Translated
 msgid "Paint-on fuzzy skin"
@@ -744,6 +744,9 @@ msgstr "mm"
 msgid "Part selection"
 msgstr "Val av del"
 
+msgid "Select multiple objects"
+msgstr "Välj flera objekt"
+
 # AI Translated
 msgid "Fixed step drag"
 msgstr "Dra i fasta steg"
@@ -814,8 +817,83 @@ msgid "Relative"
 msgstr "Relativ"
 
 # AI Translated
+msgid "Selection"
+msgstr "Markering"
+
+msgid "Plate"
+msgstr "Platta"
+
+# AI Translated
+# Needs human review: Glossary has no Swedish rendering for Distribute; matches the existing 'Justera/Fördela'.
+msgid "Distribute"
+msgstr "Fördela"
+
+# AI Translated
 msgid "Coordinate system used for transform actions."
 msgstr "Koordinatsystem som används för transformeringar."
+
+# AI Translated
+msgid "Reference for alignment"
+msgstr "Referens för justering"
+
+# AI Translated
+msgid "Select at least 3 parts or objects"
+msgstr "Välj minst 3 delar eller objekt"
+
+# AI Translated
+msgid "Align left"
+msgstr "Justera vänsterkant"
+
+# AI Translated
+msgid "Align left-right center"
+msgstr "Justera mitten i sidled"
+
+# AI Translated
+msgid "Align right"
+msgstr "Justera högerkant"
+
+# AI Translated
+msgid "Align front"
+msgstr "Justera framkant"
+
+# AI Translated
+msgid "Align front-back center"
+msgstr "Justera mitten i djupled"
+
+# AI Translated
+msgid "Align back"
+msgstr "Justera bakkant"
+
+# AI Translated
+msgid "Align bottom"
+msgstr "Justera nederkant"
+
+# AI Translated
+msgid "Align top-bottom center"
+msgstr "Justera mitten i höjdled"
+
+# AI Translated
+msgid "Align top"
+msgstr "Justera överkant"
+
+# AI Translated
+msgid "Distribute left-right"
+msgstr "Fördela i sidled"
+
+# AI Translated
+msgid "Distribute front-back"
+msgstr "Fördela i djupled"
+
+# AI Translated
+msgid "Distribute top-bottom"
+msgstr "Fördela i höjdled"
+
+msgid "Drop"
+msgstr "Släpp"
+
+# AI Translated
+msgid "Move the selection along Z so that its lowest point touches the bed."
+msgstr "Flytta markeringen längs Z så att dess lägsta punkt når byggplattan."
 
 # AI Translated
 msgid "Absolute"
@@ -1268,6 +1346,10 @@ msgid "Embossed text"
 msgstr "Präglad text"
 
 # AI Translated
+msgid "Default font"
+msgstr "Standardteckensnitt"
+
+# AI Translated
 msgid "Enter emboss gizmo"
 msgstr "Öppna präglings-gizmot"
 
@@ -1317,10 +1399,6 @@ msgstr "MODERN"
 # AI Translated
 msgid "First font"
 msgstr "Första teckensnittet"
-
-# AI Translated
-msgid "Default font"
-msgstr "Standardteckensnitt"
 
 msgid "Advanced"
 msgstr "Avancerat"
@@ -1858,7 +1936,7 @@ msgid "Stroke of shape (%1%) contains unsupported: %2%."
 msgstr "Formens linje (%1%) innehåller något som inte stöds: %2%."
 
 # AI Translated
-msgid "Not valid state please report reproduction steps on github"
+msgid "Not valid state please report reproduction steps on GitHub"
 msgstr "Ogiltigt tillstånd, rapportera stegen för att återskapa det på GitHub"
 
 # AI Translated
@@ -1866,11 +1944,11 @@ msgid "No embossed file"
 msgstr "Ingen präglad fil"
 
 # AI Translated
-msgid "Missing svg file in embossed shape"
+msgid "Missing SVG file in embossed shape"
 msgstr "SVG-fil saknas i den präglade formen"
 
 # AI Translated
-msgid "Missing data of svg file"
+msgid "Missing data of SVG file"
 msgstr "Data för SVG-filen saknas"
 
 # AI Translated
@@ -2261,6 +2339,22 @@ msgstr "Öppnar monterings-gizmot"
 # AI Translated
 msgid "Leaving Assembly gizmo"
 msgstr "Lämnar monterings-gizmot"
+
+# AI Translated
+msgid "Parts of a cut object cannot be moved"
+msgstr "Delar av ett klippt objekt kan inte flyttas"
+
+# AI Translated
+msgid "Aligning to the plate is available in X and Y only"
+msgstr "Justering mot plattan är bara tillgänglig i X och Y"
+
+# AI Translated
+msgid "Turn off Auto-Drop for the selected objects to move them in Z"
+msgstr "Avaktivera automatiskt nedsläpp för de valda objekten för att flytta dem i Z"
+
+# AI Translated
+msgid "All selected objects must be on the same plate"
+msgstr "Alla valda objekt måste ligga på samma platta"
 
 msgid "Shift+"
 msgstr "Shift+"
@@ -3299,9 +3393,6 @@ msgstr "Rensa in i det här objektet"
 msgid "Flush into objects' support"
 msgstr "Rensa in i objektets support"
 
-msgid "Edit in Parameter Table"
-msgstr "Redigera i Parameter Tabell"
-
 msgid "Convert from Inches"
 msgstr "Konvertera ifrån inch"
 
@@ -3323,6 +3414,43 @@ msgstr "Montera de valda objekten till ett objekt med multipla delar"
 msgid "Assemble the selected objects into an object with single part"
 msgstr "Montera de valda objekten till ett objekt med en enda del"
 
+msgid "Along X Axis"
+msgstr "Längs med X Axis"
+
+msgid "Mirror along the X axis"
+msgstr "Spegelvänd längs med X Axis"
+
+msgid "Along Y Axis"
+msgstr "Längs med Y Axis"
+
+msgid "Mirror along the Y axis"
+msgstr "Spegelvänd längs med Y Axis"
+
+msgid "Along Z Axis"
+msgstr "Längs med Z Axis"
+
+msgid "Mirror along the Z axis"
+msgstr "Spegelvänd längs med Z Axis"
+
+# AI Translated
+msgid "Transform"
+msgstr "Transformera"
+
+msgid "Split"
+msgstr "Dela"
+
+msgid "To Objects"
+msgstr "Till objekten"
+
+msgid "Split the selected object into multiple objects"
+msgstr "Dela det valda objektet till multipla objekt"
+
+msgid "To Parts"
+msgstr "Till delarna"
+
+msgid "Split the selected object into multiple parts"
+msgstr "Dela det valda objektet till multipla delar"
+
 # AI Translated
 msgid "Mesh boolean"
 msgstr "Boolesk mesh-operation"
@@ -3330,26 +3458,12 @@ msgstr "Boolesk mesh-operation"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "Mesh boolean operationer inklusive union och subtraktion"
 
-msgid "Along X Axis"
-msgstr "Längs med X Axis"
+# AI Translated
+msgid "Modify"
+msgstr "Ändra"
 
-msgid "Mirror along the X Axis"
-msgstr "Spegelvänd längs med X Axis"
-
-msgid "Along Y Axis"
-msgstr "Längs med Y Axis"
-
-msgid "Mirror along the Y Axis"
-msgstr "Spegelvänd längs med Y Axis"
-
-msgid "Along Z Axis"
-msgstr "Längs med Z Axis"
-
-msgid "Mirror along the Z Axis"
-msgstr "Spegelvänd längs med Z Axis"
-
-msgid "Mirror object"
-msgstr "Spegelvänd objektet"
+msgid "More"
+msgstr "Mer"
 
 # AI Translated
 msgid "Precise Seam Type"
@@ -3415,29 +3529,19 @@ msgstr "Lägg till modeller"
 msgid "Show Labels"
 msgstr "Visa Etiketter"
 
-msgid "To Objects"
-msgstr "Till objekten"
-
-msgid "Split the selected object into multiple objects"
-msgstr "Dela det valda objektet till multipla objekt"
-
-msgid "To Parts"
-msgstr "Till delarna"
-
-msgid "Split the selected object into multiple parts"
-msgstr "Dela det valda objektet till multipla delar"
-
-msgid "Split"
-msgstr "Dela"
-
-msgid "Split the selected object"
-msgstr "Dela det valda objektet"
+# AI Translated
+msgid "Instances"
+msgstr "Instanser"
 
 msgid "Auto orientation"
 msgstr "Auto placera"
 
 msgid "Auto orient the object to improve print quality"
 msgstr "Auto placera objektet för att förbättra utskriftskvaliteten."
+
+# AI Translated
+msgid "Paste Process Settings"
+msgstr "Klistra in processinställningar"
 
 msgid "Edit"
 msgstr "Redigera"
@@ -3480,13 +3584,11 @@ msgstr "Arrangera"
 msgid "Arrange current plate"
 msgstr "Arrangera plattan"
 
-# AI Translated
-msgid "Reload All"
-msgstr "Läs in allt igen"
+msgid "Auto Rotate"
+msgstr "Auto Rotera"
 
-# AI Translated
-msgid "Reload all from disk"
-msgstr "Läs in allt från disk igen"
+msgid "Auto rotate current plate"
+msgstr "auto rotera plattan"
 
 # AI Translated
 msgid "Fix All"
@@ -3504,17 +3606,13 @@ msgstr "Fixa alla plattor"
 msgid "Fix all models on all plates"
 msgstr "Fixa alla modeller på alla plattor"
 
-msgid "Auto Rotate"
-msgstr "Auto Rotera"
+# AI Translated
+msgid "Reload All"
+msgstr "Läs in allt igen"
 
-msgid "Auto rotate current plate"
-msgstr "auto rotera plattan"
-
-msgid "Delete Plate"
-msgstr "Radera platta"
-
-msgid "Remove the selected plate"
-msgstr "Radera den valda plattan"
+# AI Translated
+msgid "Reload all from disk"
+msgstr "Läs in allt från disk igen"
 
 # AI Translated
 msgid "Add instance"
@@ -3555,64 +3653,12 @@ msgid "Simplify Model"
 msgstr "Förenkla modellen"
 
 # AI Translated
-msgid "Subdivision mesh"
-msgstr "Underindelning av mesh"
-
-# AI Translated
-msgid "(Lost color)"
-msgstr "(Färg förlorad)"
+msgid "Subdivision mesh (Lost color)"
+msgstr "Underindelning av mesh (Färg förlorad)"
 
 # AI Translated
 msgid "Center"
 msgstr "Centrera"
-
-# AI Translated
-msgid "Distribute left-right"
-msgstr "Fördela i sidled"
-
-# AI Translated
-msgid "Distribute front-back"
-msgstr "Fördela i djupled"
-
-# AI Translated
-msgid "Distribute top-bottom"
-msgstr "Fördela i höjdled"
-
-# AI Translated
-msgid "Align left"
-msgstr "Justera vänsterkant"
-
-# AI Translated
-msgid "Align left-right center"
-msgstr "Justera mitten i sidled"
-
-# AI Translated
-msgid "Align right"
-msgstr "Justera högerkant"
-
-# AI Translated
-msgid "Align front"
-msgstr "Justera framkant"
-
-# AI Translated
-msgid "Align front-back center"
-msgstr "Justera mitten i djupled"
-
-# AI Translated
-msgid "Align back"
-msgstr "Justera bakkant"
-
-# AI Translated
-msgid "Align bottom"
-msgstr "Justera nederkant"
-
-# AI Translated
-msgid "Align top-bottom center"
-msgstr "Justera mitten i höjdled"
-
-# AI Translated
-msgid "Align top"
-msgstr "Justera överkant"
 
 # AI Translated
 msgid "Align/Distribute"
@@ -3622,9 +3668,6 @@ msgstr "Justera/Fördela"
 msgid "Align and distribute objects"
 msgstr "Justera och fördela objekt"
 
-msgid "Drop"
-msgstr "Släpp"
-
 msgid "Edit Process Settings"
 msgstr "Redigera Process Inställningar"
 
@@ -3632,9 +3675,8 @@ msgstr "Redigera Process Inställningar"
 msgid "Copy Process Settings"
 msgstr "Kopiera processinställningar"
 
-# AI Translated
-msgid "Paste Process Settings"
-msgstr "Klistra in processinställningar"
+msgid "Edit in Parameter Table"
+msgstr "Redigera i Parameter Tabell"
 
 msgid "Edit print parameters for a single object"
 msgstr "Redigera utskriftsinställningar för ett enda objekt"
@@ -3658,6 +3700,12 @@ msgstr "Lås"
 msgid "Edit Plate Name"
 msgstr "Redigera plattans namn"
 
+msgid "Delete Plate"
+msgstr "Radera platta"
+
+msgid "Remove the selected plate"
+msgstr "Radera den valda plattan"
+
 msgid "Name"
 msgstr "Namn"
 
@@ -3668,14 +3716,14 @@ msgstr "Fila."
 #, c-format, boost-format
 msgid "%1$d error repaired"
 msgid_plural "%1$d errors repaired"
-msgstr[0] "%1$d fel åtgärdat@%1$d felen åtgärdade"
-msgstr[1] "%1$d fel åtgärdat@%1$d felen åtgärdade"
+msgstr[0] "%1$d fel åtgärdat"
+msgstr[1] "%1$d felen åtgärdade"
 
 #, c-format, boost-format
 msgid "Error: %1$d non-manifold edge."
 msgid_plural "Error: %1$d non-manifold edges."
-msgstr[0] "Fel: %1$d inte mångfaldig kant.@Fel: %1$d inte mångfaldiga kanter."
-msgstr[1] "Fel: %1$d inte mångfaldig kant.@Fel: %1$d inte mångfaldiga kanter."
+msgstr[0] "Fel: %1$d inte mångfaldig kant."
+msgstr[1] "Fel: %1$d inte mångfaldiga kanter."
 
 msgid "Remaining errors"
 msgstr "Kvarstående fel"
@@ -3683,8 +3731,8 @@ msgstr "Kvarstående fel"
 #, c-format, boost-format
 msgid "%1$d non-manifold edge"
 msgid_plural "%1$d non-manifold edges"
-msgstr[0] "%1$d inte mångfaldig kant@%1$d inte mångfaldiga kanter"
-msgstr[1] "%1$d inte mångfaldig kant@%1$d inte mångfaldiga kanter"
+msgstr[0] "%1$d inte mångfaldig kant"
+msgstr[1] "%1$d inte mångfaldiga kanter"
 
 # AI Translated
 msgid "Click the icon to repair model object"
@@ -4011,9 +4059,6 @@ msgstr "Ingen Brim"
 msgid "Outer wall speed"
 msgstr "Ytterväggs hastighet"
 
-msgid "Plate"
-msgstr "Platta"
-
 # AI Translated
 msgid "Brim"
 msgstr "Brim"
@@ -4035,9 +4080,6 @@ msgstr "Linje typ"
 #, c-format, boost-format
 msgid "1x1 Grid: %d mm"
 msgstr "Rutnät 1x1: %d mm"
-
-msgid "More"
-msgstr "Mer"
 
 msgid "Open Preferences"
 msgstr "Öppna inställningar"
@@ -4947,6 +4989,10 @@ msgstr "Skriptinsticksmodulen hoppades över."
 msgid "Script plugin finished."
 msgstr "Skriptinsticksmodulen är klar."
 
+# AI Translated
+msgid "Script plugin started."
+msgstr "Skriptinsticksmodulen startades."
+
 msgid "Printer"
 msgstr "Skrivare"
 
@@ -5407,7 +5453,7 @@ msgstr "Spara projekt och starta om programmet."
 msgid "Unknown C++ exception."
 msgstr "Okänt C++-undantag."
 
-msgid "Processing G-Code from previous file…"
+msgid "Processing G-code from previous file…"
 msgstr "Processera G-Code från Föregående fil…"
 
 msgid "Slicing complete"
@@ -6333,6 +6379,10 @@ msgid "This parameter expects a valid template."
 msgstr "Den här parametern kräver en giltig mall."
 
 # AI Translated
+msgid "Invalid collision volume format. Use XxY, XxY, ... or ZMIN..ZMAX;XxY, XxY, ... and separate multiple volumes with |."
+msgstr "Ogiltigt format för kollisionsvolym. Använd XxY, XxY, ... eller ZMIN..ZMAX;XxY, XxY, ... och separera flera volymer med |."
+
+# AI Translated
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
 msgstr "Ogiltigt mönster. Använd N, N#K eller en kommaseparerad lista med valfritt #K per post. Exempel: 5, 5#2, 1,7,9, 5,9#2,18."
 
@@ -6909,6 +6959,21 @@ msgstr "Vänster nozzel: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Höger nozzel: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+msgid "Mirror object"
+msgstr "Spegelvänd objektet"
+
+# AI Translated
+#. TRN %1% is the plate number.
+#, boost-format
+msgid "The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."
+msgstr "Prime tornet på platta %1% får inte längre plats där det placerades. Det finns inget ledigt utrymme kvar på plattan, så det flyttades till ett objekt."
+
+# AI Translated
+#. TRN %1% is the plate number.
+#, boost-format
+msgid "The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."
+msgstr "Prime tornet på platta %1% får inte längre plats där det placerades, så det flyttades till ledigt utrymme på plattan."
+
 msgid "Tool move"
 msgstr "Verktygs Förflyttning"
 
@@ -7095,6 +7160,11 @@ msgstr "Axlar"
 msgid "Gridlines"
 msgstr "Rutnät"
 
+# AI Translated
+# Needs human review: Glossary has no Swedish rendering for Focus mode yet; check Fokusläge fits the view-mode name.
+msgid "Focus mode"
+msgstr "Fokusläge"
+
 msgid "Labels"
 msgstr "Etiketter"
 
@@ -7180,18 +7250,18 @@ msgid "Tool %d"
 msgstr "Verktyg %d"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
-msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable range of the %2%."
+msgstr[0] "Filamentet %1% är placerat i %2%, men den genererade G-code-banan överskrider det utskrivbara området för %2%."
+msgstr[1] "Filamenten %1% är placerade i %2%, men den genererade G-code-banan överskrider det utskrivbara området för %2%."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
-msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
+#, boost-format
+msgid "Filament %1% is placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgid_plural "Filaments %1% are placed in the %2%, but the generated G-code path exceeds the printable height of the %2%."
+msgstr[0] "Filamentet %1% är placerat i %2%, men den genererade G-code-banan överskrider den utskrivbara höjden för %2%."
+msgstr[1] "Filamenten %1% är placerade i %2%, men den genererade G-code-banan överskrider den utskrivbara höjden för %2%."
 
 # AI Translated
 msgid "Open wiki for more information."
@@ -7681,6 +7751,14 @@ msgstr "Visa & Etiketter"
 
 msgid "Show object labels in 3D scene."
 msgstr "Visa objekt etiketter i 3D-scenen"
+
+# AI Translated
+msgid "Show all collision volumes"
+msgstr "Visa alla kollisionsvolymer"
+
+# AI Translated
+msgid "Show the full height of every configured collision volume, including on an empty bed."
+msgstr "Visa hela höjden för varje konfigurerad kollisionsvolym, även på en tom byggplatta."
 
 msgid "Show &Overhang"
 msgstr "Visa & Överhäng"
@@ -9101,14 +9179,14 @@ msgstr "Matar ut."
 #, c-format, boost-format
 msgid "%1$d Object has custom supports."
 msgid_plural "%1$d Objects have custom supports."
-msgstr[0] "%1$d Objektet har custom support.@%1$d Objekten har custom support."
-msgstr[1] "%1$d Objektet har custom support.@%1$d Objekten har custom support."
+msgstr[0] "%1$d Objektet har custom support."
+msgstr[1] "%1$d Objekten har custom support."
 
 #, c-format, boost-format
 msgid "%1$d Object has color painting."
 msgid_plural "%1$d Objects have color painting."
-msgstr[0] "%1$d Objektet har färgläggning.@%1$d Objekten har färgläggning."
-msgstr[1] "%1$d Objektet har färgläggning.@%1$d Objekten har färgläggning."
+msgstr[0] "%1$d Objektet har färgläggning."
+msgstr[1] "%1$d Objekten har färgläggning."
 
 #, c-format, boost-format
 msgid "%1$d object was loaded as a part of cut object."
@@ -9195,10 +9273,6 @@ msgstr "Klicka för mer information."
 
 msgid "Cut connectors"
 msgstr "Klipp kontakter"
-
-# AI Translated
-msgid "Instances"
-msgstr "Instanser"
 
 # AI Translated
 #, c-format, boost-format
@@ -11512,6 +11586,19 @@ msgstr ""
 "Statisk: ljuset står still i världen, så skuggorna beräknas bara om när scenen ändras.\n"
 "Omlopp: ljuset vrids med kameran, och skuggorna beräknas om i varje bildruta där kameran rör sig."
 
+# AI Translated
+msgid "Glossy toolpaths"
+msgstr "Glansiga verktygsbanor"
+
+# AI Translated
+# Needs human review: 'Highlight' is the specular shine of the toolpaths in realistic view; rendered as 'glans'. Check it reads right next to the label 'Glansiga verktygsbanor'.
+msgid ""
+"Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
+"Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
+msgstr ""
+"Ger verktygsbanorna i Förhandsvisning en glans som liknar blank plast i den realistiska vyn.\n"
+"Om det är avstängt är ett genomskinligt filament matt och ett ogenomskinligt behåller glansen från den vanliga vyn."
+
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
 
@@ -11700,6 +11787,14 @@ msgstr ""
 "Hur ljust de dämpade lagren återges när \"Dämpa underliggande lager\" är aktiverat.\n"
 "99% är knappt mörkare, 0% gör dem helt svarta. Begränsat till 99% eftersom 100% skulle vara detsamma som att stänga av alternativet."
 
+# AI Translated
+msgid "Translucent filaments"
+msgstr "Genomskinliga filament"
+
+# AI Translated
+msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
+msgstr "Rita verktygsbanorna för filament vars färg är delvis transparent som genomskinliga, på samma sätt som 3D-vyn ritar deras objekt. Stäng av för att rita alla filament ogenomskinliga."
+
 msgid "Login region"
 msgstr "Logga in region"
 
@@ -11854,6 +11949,14 @@ msgstr "Visa förinställningar som inte stöds"
 # AI Translated
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "Visa inkompatibla förinställningar och förinställningar som inte stöds i rullgardinslistorna för skrivare och filament. Dessa förinställningar kan inte väljas."
+
+# AI Translated
+msgid "Export statistics with G-code"
+msgstr "Exportera statistik med G-code"
+
+# AI Translated
+msgid "If enabled, exporting a G-code file also writes its statistics as JSON next to it, as <name>.statistics.json, and an exported sliced 3MF file holds them inside: print time, filament and feature totals, and the same per layer and per object."
+msgstr "Om det är aktiverat skrivs statistiken även som JSON bredvid G-code-filen vid export, som <name>.statistics.json, och en exporterad beredd 3MF-fil innehåller den: utskriftstid, totaler för filament och linjetyper, samt samma sak per lager och per objekt."
 
 # AI Translated
 msgid "Experimental Features"
@@ -12753,6 +12856,10 @@ msgstr "Det gick inte att ladda upp filen till skrivarens lagring. Försök igen
 msgid "Send Failed"
 msgstr "Sändningen misslyckades"
 
+# AI Translated
+msgid "No available printers"
+msgstr "Inga tillgängliga skrivare"
+
 msgid "The name length exceeds the limit."
 msgstr "Namnlängden överskrider gränsen."
 
@@ -13217,6 +13324,14 @@ msgstr "Parametrar med den här ikonen kan ställas in per nozzel."
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Klicka för att återställa alla inställningar till den senast sparade förinställningen."
+
+# AI Translated
+msgid "This definition contains collision-volume syntax. Add it to the toolhead collision volumes for G-code checking and travel avoidance? The existing excluded bed area will be preserved."
+msgstr "Den här definitionen innehåller syntax för kollisionsvolymer. Vill du lägga till den i verktygshuvudets kollisionsvolymer för G-code-kontroll och undvikande av flyttrörelser? Den befintliga uteslutna ytan av byggplattan bevaras."
+
+# AI Translated
+msgid "Add collision volumes"
+msgstr "Lägg till kollisionsvolymer"
 
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "Prime tower krävs för nozzle byte. Det kan bli brister på modellen utan prime tower. Är du säker på att du vill inaktivera prime tower?"
@@ -13784,10 +13899,6 @@ msgstr "Mall för anpassad G-code"
 
 msgid "Motion ability"
 msgstr "Rörelseförmåga"
-
-# AI Translated
-msgid "Normal"
-msgstr "Normal"
 
 # AI Translated
 msgid "Resonance Compensation"
@@ -14592,10 +14703,6 @@ msgid "from/to"
 msgstr "från/till"
 
 # AI Translated
-msgid "Please choose the filament color"
-msgstr "Välj filamentfärg"
-
-# AI Translated
 msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr "Molnagenten är inte tillgänglig. Starta om OrcaSlicer och försök igen."
 
@@ -14808,8 +14915,8 @@ msgid "Left mouse"
 msgstr "Vänster musknapp"
 
 # AI Translated
-msgid "Available anywhere in the window, even while typing in a text field."
-msgstr "Tillgängligt överallt i fönstret, även när du skriver i ett textfält."
+msgid "Available anywhere in the window."
+msgstr "Tillgängligt var som helst i fönstret."
 
 # AI Translated
 msgid "Run favorite 1 to 10"
@@ -14834,9 +14941,6 @@ msgstr "Tillgängligt när 3D-vyn på fliken Förbered har fokus."
 
 msgid "Select a part"
 msgstr "Välj del"
-
-msgid "Select multiple objects"
-msgstr "Välj flera objekt"
 
 msgid "Select objects by rectangle"
 msgstr "Välj objekt efter rektangel"
@@ -14923,10 +15027,6 @@ msgstr "%s är tilldelat till %s. Vill du tilldela det till %s i stället?"
 #, c-format, boost-format
 msgid "The default %s is assigned to %s. Reassign it to %s?"
 msgstr "Standardkortkommandot %s är tilldelat till %s. Vill du tilldela det till %s i stället?"
-
-# AI Translated
-msgid "Global shortcuts also apply while typing."
-msgstr "Globala kortkommandon gäller även när du skriver."
 
 # AI Translated
 msgid "A key that types a character cannot be a global shortcut."
@@ -15035,7 +15135,7 @@ msgid "IP"
 msgstr "IP"
 
 msgid "Access Code"
-msgstr "Behörighetskod: "
+msgstr "Behörighetskod"
 
 msgid "HTTPS CA File"
 msgstr "HTTPS CA fil"
@@ -15281,6 +15381,21 @@ msgstr ""
 "Är disken full?"
 
 # AI Translated
+#. TRN %1% is the extruder number counted from 1.
+#, boost-format
+msgid "A G-code move intersects a collision volume for extruder %1%. This may cause a printer collision."
+msgstr "En G-code-rörelse skär en kollisionsvolym för extruder %1%. Det kan orsaka en kollision i skrivaren."
+
+# AI Translated
+msgid "A G-code move intersects a collision volume. This may cause a printer collision."
+msgstr "En G-code-rörelse skär en kollisionsvolym. Det kan orsaka en kollision i skrivaren."
+
+# AI Translated
+#, boost-format
+msgid "The intersecting move is at G-code line %1%. Its Z position is unknown after homing, so Orca checked it against every height."
+msgstr "Den skärande rörelsen finns på G-code-rad %1%. Dess Z-position är okänd efter nollställning, så Orca kontrollerade den mot alla höjder."
+
+# AI Translated
 #. TRN %1% is the temporary file path, %2% the output file path, %3% the system error message.
 #, boost-format
 msgid ""
@@ -15408,6 +15523,11 @@ msgstr "modifieraren \"%1%\" för \"%2%\" (%3% totalt) hade ingen effekt på sö
 # AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "Sömmens placering kan skilja sig från det förväntade."
+
+# AI Translated
+#, boost-format
+msgid "Failed to write the G-code statistics to %1%."
+msgstr "Det gick inte att skriva G-code-statistiken till %1%."
 
 # AI Translated
 msgid "Internal Bridge"
@@ -15594,6 +15714,18 @@ msgstr ""
 #, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% är för nära undantagsområde. Det kan förekomma kollisioner vid utskrift."
+
+# AI Translated
+#. TRN %1% is the object name.
+#, boost-format
+msgid "%1% intersects collision volumes for every available extruder."
+msgstr "%1% skär kollisionsvolymer för alla tillgängliga extrudrar."
+
+# AI Translated
+#. TRN %1% is the object name, %2% the extruder number counted from 1.
+#, boost-format
+msgid "%1% intersects a collision volume for extruder %2%."
+msgstr "%1% skär en kollisionsvolym för extruder %2%."
 
 #, boost-format
 msgid "%1% is too close to others, and collisions may be caused."
@@ -16014,8 +16146,46 @@ msgstr "Ordnad lista med uteslutna byggplattsområden per antal parallella skriv
 msgid "Excluded bed area"
 msgstr "Utesluten yta av byggplattan"
 
-msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as polygon by points in following format: \"XxY, XxY, ...\""
-msgstr "Område som inte kan skrivas ut i XY-planet. För skrivare i X1-serien används till exempel det främre vänstra hörnet för att skära av filamentet vid byte av filament. Området uttrycks som en polygon med punkter i följande format: \"XxY, XxY, ...\""
+# AI Translated
+msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as a polygon in the format \"XxY, XxY, ...\". It constrains material and model placement, but allows machine travel. Configure toolhead collision volumes separately for G-code checking and travel avoidance."
+msgstr "Område som inte kan skrivas ut i XY-planet. Till exempel använder skrivare i X1-serien det främre vänstra hörnet för att skära av filamentet vid filamentbyte. Området anges som en polygon i formatet \"XxY, XxY, ...\". Det begränsar placeringen av material och modeller, men tillåter maskinens förflyttningar. Konfigurera verktygshuvudets kollisionsvolymer separat för G-code-kontroll och undvikande av förflyttningar."
+
+# AI Translated
+msgid "Toolhead collision volumes"
+msgstr "Verktygshuvudets kollisionsvolymer"
+
+# AI Translated
+msgid "Collision volumes used for model and generated-material exclusion, G-code checking, and travel avoidance. Use \"XxY, XxY, ...\" for a full-height polygon or \"ZMIN..ZMAX;XxY, XxY, ...\" for a Z-limited volume. Separate multiple volumes with \"|\". These volumes are additional to the excluded bed area. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
+msgstr "Kollisionsvolymer som används för att utesluta modeller och genererat material, för G-code-kontroll och för att undvika flyttrörelser. Använd \"XxY, XxY, ...\" för en polygon i full höjd eller \"ZMIN..ZMAX;XxY, XxY, ...\" för en volym som är begränsad i Z. Avgränsa flera volymer med \"|\". Dessa volymer gäller utöver den uteslutna ytan av byggplattan. Vid automatisk placering används av försiktighet begränsningsrutan för en icke-konvex volym."
+
+# AI Translated
+msgid "Collision volume behavior"
+msgstr "Beteende för kollisionsvolymer"
+
+# AI Translated
+msgid "Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes."
+msgstr "Välj om alla nozzlar använder samma kollisionsvolymer, om verktygshuvudsrelativa volymer härleds från varje nozzels XY-förskjutning, eller om oberoende volymer konfigureras för varje extruder. I individuellt läge väljer du varje extruder på sidan Extruder för att konfigurera dess volymer."
+
+# AI Translated
+#. TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+msgid "Shared by all nozzles"
+msgstr "Gemensam för alla nozzlar"
+
+# AI Translated
+msgid "Toolhead-relative (nozzle offsets)"
+msgstr "Relativt verktygshuvudet (nozzelförskjutningar)"
+
+# AI Translated
+msgid "Individual per extruder"
+msgstr "Individuellt per extruder"
+
+# AI Translated
+msgid "Extruder collision volumes"
+msgstr "Extruderns kollisionsvolymer"
+
+# AI Translated
+msgid "Collision volumes used only by this extruder in individual mode. Use the same polygon and optional Z-range format as the shared collision volumes. Leave empty for no collision volumes on this extruder. Automatic arrangement conservatively uses the bounding box of a non-convex volume."
+msgstr "Kollisionsvolymer som i individuellt läge endast används av den här extrudern. Använd samma format för polygon och valfritt Z-intervall som för de delade kollisionsvolymerna. Lämna tomt om den här extrudern inte ska ha några kollisionsvolymer. Automatisk arrangering använder försiktighetsvis begränsningsrutan för en icke-konvex volym."
 
 msgid "Bed custom texture"
 msgstr "Anpassad byggplattas textur"
@@ -16270,6 +16440,15 @@ msgstr "Bottenskals tjocklek"
 # AI Translated
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Antal solida botten lager ökas vid beredning om tjockleken som beräknas av bottenskalets lager är tunnare än detta värde. Detta kan förhindra ett för tunt skal när lagerhöjden är liten. 0 betyder att denna inställningen är inaktiverad och bottenskalets tjocklek endast styrs av antalet bottenskals lager."
+
+# AI Translated
+# Needs human review: New coined label: number of layers the painted color reaches behind a painted bottom surface. 'Inträngningslager för färgläggning' follows the Color Painting wording 'Färgläggning'; check it reads naturally.
+msgid "Bottom paint penetration layers"
+msgstr "Inträngningslager för färgläggning, botten"
+
+# AI Translated
+msgid "The number of layers, including the bottom surface layer, that take the color painted on a bottom surface. Set to 0 to use the bottom shell layers. A value larger than the bottom shell also colors the sparse infill above the painted area."
+msgstr "Antalet lager, inklusive bottenytans lager, som får färgen som färglagts på en bottenyta. Sätt till 0 för att använda bottenskalets lager. Ett värde som överstiger bottenskalets lager färgar även den sparsamma ifyllnaden ovanför det färglagda området."
 
 # AI Translated
 msgid "Apply gap fill"
@@ -17935,7 +18114,7 @@ msgstr "Krympning (XY)"
 # AI Translated
 #, no-c-format, no-boost-format
 msgid ""
-"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
 "Be sure to allow enough space between objects, as this compensation is done after the checks."
 msgstr ""
 "Ange den krympning i procent som filamentet får efter nedkylning (94 % om du mäter 94 mm i stället för 100 mm). Delen skalas i XY för att kompensera. Vid multimaterialutskrifter bör filamentkrympningen vara densamma för alla använda filament\n"
@@ -18040,8 +18219,9 @@ msgstr "Efter ett verktygsbyte kan den exakta positionen för det nyinmatade fil
 msgid "Wipe tower cooling"
 msgstr "Wipe Tower kylning"
 
-msgid "Temperature drop before entering filament tower"
-msgstr "Temperaturen sjunker innan ankomst till filament tornet"
+# AI Translated
+msgid "Temperature drop before entering the wipe tower."
+msgstr "Temperaturen sjunker innan ankomst till prime tornet."
 
 # AI Translated
 msgid "Interface layer pre-extrusion distance"
@@ -18535,9 +18715,9 @@ msgid "accel_to_decel"
 msgstr "accel_to_decel"
 
 # AI Translated
-#, c-format, boost-format
-msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-msgstr "Klippers max_accel_to_decel justeras till denna %% av accelerationen."
+#, no-c-format, no-boost-format
+msgid "Klipper's max_accel_to_decel will be adjusted to this % of acceleration."
+msgstr "Klippers max_accel_to_decel justeras till denna % av accelerationen."
 
 # AI Translated
 msgid "Default jerk."
@@ -18761,21 +18941,21 @@ msgid "Fuzzy skin generator mode"
 msgstr "Genereringsläge för ojämn yta"
 
 # AI Translated
-#, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Genereringsläge för ojämn yta. Fungerar endast med Arachne!\n"
 "Förskjutning: Klassiskt läge där mönstret bildas genom att nozzeln förskjuts i sidled från den ursprungliga banan.\n"
 "Extrudering: Läge där mönstret bildas av mängden extruderad plast. Detta är den snabba och raka algoritmen utan onödiga nozzelskakningar, som ger ett jämnt mönster. Den är dock mest användbar för att forma lösa väggar i hela deras uppsättning.\n"
 "Kombinerad: Kombinerat läge [Förskjutning] + [Extrudering]. Väggarnas utseende liknar läget [Förskjutning], men det lämnar inga porer mellan perimetrarna.\n"
 "\n"
-"Obs! Lägena [Extrudering] och [Kombinerad] fungerar bara när parametern fuzzy_skin_thickness inte är större än tjockleken på det utskrivna varvet. Samtidigt får extruderingsbredden för ett visst lager inte heller vara under en viss nivå. Den är oftast lika med 15-25%% av en lagerhöjd. Den maximala tjockleken på ojämn yta med en perimeterbredd på 0,4 mm och en lagerhöjd på 0,2 mm blir därför 0,4-(0,2*0,25)=±0,35mm! Om du anger ett högre värde än så visas felet Flow::spacing() och modellen bereds inte. Du kan justera talet tills felet inte längre uppstår."
+"Obs! Lägena [Extrudering] och [Kombinerad] fungerar bara när parametern fuzzy_skin_thickness inte är större än tjockleken på det utskrivna varvet. Samtidigt får extruderingsbredden för ett visst lager inte heller vara under en viss nivå. Den är oftast lika med 15-25% av en lagerhöjd. Den maximala tjockleken på ojämn yta med en perimeterbredd på 0,4 mm och en lagerhöjd på 0,2 mm blir därför 0,4-(0,2*0,25)=±0,35mm! Om du anger ett högre värde än så visas felet Flow::spacing() och modellen bereds inte. Du kan justera talet tills felet inte längre uppstår."
 
 # AI Translated
 msgid "Displacement"
@@ -18923,14 +19103,29 @@ msgid "Arc fitting"
 msgstr "Arc passning"
 
 # AI Translated
+# Needs human review: The three mode names (Disabled / Enabled / Sparse infill only) must match the option labels (Avstängd / Aktiverat / Endast sparsam ifyllnad); check the bulleted names against the dropdown.
 msgid ""
-"Enable this to get a G-code file which has G2 and G3 moves. The fitting tolerance is same as the resolution.\n"
+"Fit G2 and G3 arc moves to the toolpaths. Walls and surfaces are fitted within the resolution, while sparse infill, supports and the wipe tower use fixed tolerances.\n"
+" - Disabled: only straight G1 moves are used.\n"
+" - Enabled: arcs are fitted to all toolpaths.\n"
+" - Sparse infill only: arcs are fitted to the sparse infill only, which shortens the G-code of curved infill patterns without affecting the walls and surfaces.\n"
 "\n"
-"Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from arc commands as these are split again into line segments by the firmware. This results in a reduction in surface quality as line segments are converted to arcs by the slicer and then back to line segments by the firmware."
+"Note: For Klipper machines, Disabled is recommended. Klipper splits arcs back into line segments, which lowers the surface quality and can increase the print time."
 msgstr ""
-"Aktivera detta för att få en G-code-fil med G2- och G3-rörelser. Anpassningstoleransen är densamma som upplösningen.\n"
+"Anpassar G2- och G3-bågrörelser till verktygsbanorna. Väggar och ytor anpassas inom upplösningen, medan sparsam ifyllnad, support och prime tornet använder fasta toleranser.\n"
+" - Avstängd: endast raka G1-rörelser används.\n"
+" - Aktiverat: bågar anpassas till alla verktygsbanor.\n"
+" - Endast sparsam ifyllnad: bågar anpassas endast till den sparsamma ifyllnaden, vilket förkortar G-code för böjda ifyllnadsmönster utan att påverka väggarna och ytorna.\n"
 "\n"
-"Obs! För Klipper-maskiner rekommenderas att alternativet är avstängt. Klipper har ingen nytta av bågkommandon, eftersom de delas upp i linjesegment igen av den fasta programvaran. Det ger sämre ytkvalitet, eftersom linjesegment omvandlas till bågar av beredningsprogrammet och sedan tillbaka till linjesegment av den fasta programvaran."
+"Obs: För Klipper-maskiner rekommenderas Avstängd. Klipper delar upp bågar i linjesegment igen, vilket sänker ytkvaliteten och kan öka utskriftstiden."
+
+# AI Translated
+msgid "Enabled"
+msgstr "Aktiverat"
+
+# AI Translated
+msgid "Sparse infill only"
+msgstr "Endast sparsam ifyllnad"
 
 msgid "Add line number"
 msgstr "Lägg till rad nummer"
@@ -19088,7 +19283,7 @@ msgstr "Stöd för kontroll av kammarens temperatur"
 
 # AI Translated
 msgid ""
-"This option is enabled if machine support controlling chamber temperature\n"
+"This option is enabled if the machine supports controlling the chamber temperature\n"
 "G-code command: M141 S(0-255)"
 msgstr ""
 "Det här alternativet aktiveras om maskinen stöder styrning av kammartemperaturen\n"
@@ -19099,7 +19294,7 @@ msgstr "Stödjer luftfiltrering"
 
 # AI Translated
 msgid ""
-"Enable this if printer support air filtration\n"
+"Enable this if the printer supports air filtration\n"
 "G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Aktivera detta om skrivaren stöder luftfiltrering\n"
@@ -19108,7 +19303,7 @@ msgstr ""
 msgid "Use cooling filter"
 msgstr "Använd kylfilter"
 
-msgid "Enable this if printer support cooling filter"
+msgid "Enable this if the printer supports a cooling filter"
 msgstr "Aktivera detta om printern stöder kylfilter"
 
 # AI Translated
@@ -19164,6 +19359,14 @@ msgstr "Exkludera objekt"
 # AI Translated
 msgid "Enable this option to add EXCLUDE OBJECT command in G-code."
 msgstr "Aktivera det här alternativet för att lägga till kommandot EXCLUDE OBJECT i G-code."
+
+# AI Translated
+msgid "Outline tolerance"
+msgstr "Konturtolerans"
+
+# AI Translated
+msgid "Maximum deviation of the object outline written to EXCLUDE_OBJECT_DEFINE from the original outline. Larger values give fewer points, which helps firmware that stalls while parsing G-code with many objects. 0 keeps every point."
+msgstr "Största avvikelse för objektkonturen som skrivs till EXCLUDE_OBJECT_DEFINE från den ursprungliga konturen. Större värden ger färre punkter, vilket hjälper fast programvara som hänger sig vid tolkning av G-code med många objekt. 0 behåller alla punkter."
 
 # AI Translated
 msgid "Verbose G-code"
@@ -19616,12 +19819,6 @@ msgstr "Denna G-code infogas vid varje lagerbyte efter Z-lyftet."
 # AI Translated
 msgid "Clumping detection G-code"
 msgstr "G-code för klumpdetektering"
-
-msgid "Silent Mode"
-msgstr "Tyst läge"
-
-msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
-msgstr "Om maskinen stöder tyst läge där maskinen använder lägre acceleration för att skriva ut"
 
 # AI Translated
 msgid "Emit limits to G-code"
@@ -20169,9 +20366,9 @@ msgstr "Största area för ett hål i modellens bas innan det fylls med koniskt 
 msgid "Detect overhang walls"
 msgstr "Upptäck överhängs vägg"
 
-#, c-format, boost-format
-msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-msgstr "Upptäck överhängs procenten i förhållande till linjebredden och använd olika hastigheter för att skriva ut. Vid 100%% överhäng, bridge/brygg hastighet användas."
+#, no-c-format, no-boost-format
+msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used."
+msgstr "Upptäck överhängs procenten i förhållande till linjebredden och använd olika hastigheter för att skriva ut. Vid 100% överhäng, bridge/brygg hastighet användas."
 
 # AI Translated
 msgid "Print unsupported walls last"
@@ -20415,6 +20612,10 @@ msgstr "Z-hop-typ"
 msgid "Type of Z-hop."
 msgstr "Typ av Z-hop."
 
+# AI Translated
+msgid "Normal"
+msgstr "Normal"
+
 msgid "Slope"
 msgstr "Lutning"
 
@@ -20592,10 +20793,10 @@ msgstr "Sömmens mellanrum"
 # AI Translated
 msgid ""
 "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-"This amount can be specified in millimeters or as a percentage of the current extruder diameter. The default value for this parameter is 10%."
+"This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%."
 msgstr ""
 "För att minska sömmens synlighet i en sluten varvextrudering avbryts och förkortas varvet med en angiven mängd.\n"
-"Mängden kan anges i millimeter eller som en procentandel av den aktuella extruderdiametern. Standardvärdet för den här parametern är 10 %."
+"Mängden kan anges i millimeter eller som en procentandel av nozzelns diameter. Standardvärdet för den här parametern är 10%."
 
 # AI Translated
 msgid "Scarf joint seam (beta)"
@@ -20804,10 +21005,6 @@ msgstr ""
 "Ett dragskydd är användbart för att skydda en ABS- eller ASA-utskrift från att slå sig och lossna från byggplattan på grund av luftdrag. Det behövs oftast bara med öppna skrivare, det vill säga utan kåpa.\n"
 "\n"
 "Aktiverat = skirten är lika hög som det högsta utskrivna objektet. Annars används 'Skirt höjd'."
-
-# AI Translated
-msgid "Enabled"
-msgstr "Aktiverat"
 
 # AI Translated
 msgid "Skirt type"
@@ -21891,6 +22088,15 @@ msgid "The number of top solid layers is increased when slicing if the thickness
 msgstr "Antal solida övre lager ökas när tjockleken kalkyleras och övre skalet är tunnare än detta värde. Detta kan undvika att ha för tunt skal när lagerhöjden är liten. 0 betyder att den här inställningen är inaktiverad och tjockleken på det övre skalet bestäms av de övre skal lagerna"
 
 # AI Translated
+# Needs human review: New coined label: number of layers the painted color reaches behind a painted top surface. 'Inträngningslager för färgläggning' follows the Color Painting wording 'Färgläggning'; check it reads naturally.
+msgid "Top paint penetration layers"
+msgstr "Inträngningslager för färgläggning, topp"
+
+# AI Translated
+msgid "The number of layers, including the top surface layer, that take the color painted on a top surface. Set to 0 to use the top shell layers. A value larger than the top shell also colors the sparse infill below the painted area."
+msgstr "Antalet lager, inklusive toppytans lager, som får färgen som färglagts på en toppyta. Sätt till 0 för att använda toppskalets lager. Ett värde som överstiger toppskalets lager färgar även den sparsamma ifyllnaden under det färglagda området."
+
+# AI Translated
 msgid "Separated infills"
 msgstr "Separerade ifyllnader"
 
@@ -22438,6 +22644,18 @@ msgstr "Detta val kommer att auto upptäcka tight inre solid ifyllnads område. 
 msgid "invalid value "
 msgstr "ogiltigt värde "
 
+# AI Translated
+msgid "Invalid collision volume definition."
+msgstr "Ogiltig definition av kollisionsvolym."
+
+# AI Translated
+msgid "A nozzle offset is required for every extruder when toolhead-relative collision volumes are enabled."
+msgstr "En nozzelförskjutning krävs för varje extruder när verktygshuvudsrelativa kollisionsvolymer är aktiverade."
+
+# AI Translated
+msgid "Invalid per-extruder collision volume definition."
+msgstr "Ogiltig definition av kollisionsvolym per extruder."
+
 msgid "Invalid value when spiral vase mode is enabled: "
 msgstr "Ogiltigt värde när spiralvas läget är aktiverat: "
 
@@ -22746,6 +22964,14 @@ msgstr "Mata ut katalog"
 
 msgid "This is the output directory for exported files."
 msgstr "Mata ut katalogen för exporterade filer."
+
+# AI Translated
+msgid "Export statistics"
+msgstr "Exportera statistik"
+
+# AI Translated
+msgid "Write the statistics of each sliced plate as JSON, as plate_N.statistics.json next to its G-code in the output directory and inside the 3MF of --export-3mf: print time, filament and feature totals, and the same per layer and per object."
+msgstr "Skriv statistiken för varje beredd platta som JSON, som plate_N.statistics.json bredvid dess G-code i utdatamappen och inuti 3MF-filen från --export-3mf: utskriftstid, totaler för filament och linjetyper, samt samma sak per lager och per objekt."
 
 msgid "Debug level"
 msgstr "Felsökningsnivå"
@@ -23092,12 +23318,12 @@ msgid "Total cost of the material wasted on the wipe tower. Calculated from fila
 msgstr "Total kostnad för materialet som går åt på prime tornet. Beräknas från värdet filament_cost i filamentinställningarna."
 
 # AI Translated
-msgid "Wipe tower volume"
-msgstr "Prime tornets volym"
+msgid "Total wipe tower filament"
+msgstr "Totalt filament i prime tornet"
 
 # AI Translated
-msgid "Total filament volume extruded on the wipe tower."
-msgstr "Total filamentvolym som extruderas på prime tornet."
+msgid "Total length of filament used on the wipe tower, in mm."
+msgstr "Total längd filament som används i prime tornet, i mm."
 
 msgid "Used filament"
 msgstr "Använt filament"
@@ -23354,8 +23580,8 @@ msgid "Layer number"
 msgstr "Lagernummer"
 
 # AI Translated
-msgid "Index of the current layer. Zero-based (i.e. first layer is number 0), except in extrusion role change G-code, where it is one-based."
-msgstr "Index för det aktuella lagret. Nollbaserat (dvs. första lagret har nummer 0), utom i G-code för byte av extruderingstyp, där det är ettbaserat."
+msgid "Index of the current layer. The index is zero-based (first layer has index 0). Before the first layer starts, it is -1. In extrusion role change G-code, the index is one-based (first layer has index 1)."
+msgstr "Index för det aktuella lagret. Indexet är nollbaserat (första lagret har index 0). Innan det första lagret startar är det -1. I G-code för byte av extruderingstyp är indexet ettbaserat (första lagret har index 1)."
 
 # AI Translated
 msgid "Layer Z"
@@ -23378,24 +23604,243 @@ msgid "Filament extruder ID"
 msgstr "Filamentets extruder-ID"
 
 # AI Translated
-msgid "The current extruder ID. The same as current_extruder."
-msgstr "Det aktuella extruder-ID:t. Samma som current_extruder."
+msgid "In filament start G-code, the index of the filament that is being loaded. In filament end G-code, the index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At a tool change, filament end G-code gets the extruder index instead, unless the Type 1 wipe tower does the tool change. Machine end G-code gets the value from the last filament end G-code at the end of the print."
+msgstr "I filamentets start-G-code är det indexet för filamentet som lastas in. I filamentets slut-G-code är det indexet för filamentet som lastas ur. Indexet är nollbaserat (första filamentet har index 0). Vid ett verktygsbyte får filamentets slut-G-code extruderindexet i stället, såvida inte prime tornet av typ 1 utför verktygsbytet. Maskinens slut-G-code får värdet från den sista slut-G-coden för filament i slutet av utskriften."
+
+# AI Translated
+msgid "Current filament ID"
+msgstr "Aktuellt filament-ID"
+
+# AI Translated
+msgid "Index of the currently active filament. The index is zero-based (first filament has index 0)."
+msgstr "Index för det för närvarande aktiva filamentet. Indexet är nollbaserat (första filamentet har index 0)."
+
+# AI Translated
+msgid "Current extruder ID"
+msgstr "Aktuellt extruder-ID"
+
+# AI Translated
+msgid "Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."
+msgstr "Index för den för närvarande aktiva fysiska extrudern. Indexet är nollbaserat (första extrudern har index 0)."
+
+# AI Translated
+msgid "Current nozzle ID"
+msgstr "Aktuellt nozzel-ID"
+
+# AI Translated
+msgid "Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."
+msgstr "Index för den för närvarande aktiva nozzeln. Indexet är nollbaserat (första nozzeln har index 0)."
+
+# AI Translated
+msgid "Nozzle diameters"
+msgstr "Nozzeldiametrar"
+
+# AI Translated
+msgid "Nozzle diameters indexed by nozzle ID."
+msgstr "Nozzeldiametrar, indexerade efter nozzel-ID."
+
+# AI Translated
+msgid "Nozzle volume types"
+msgstr "Typer av nozzelvolym"
+
+# AI Translated
+#. TRN The quoted values are G-code identifiers; keep them in English.
+msgid "Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."
+msgstr "Typer av Nozzle volym indexerade efter nozzel-ID, till exempel \"Standard\" eller \"High Flow\"."
+
+# AI Translated
+msgid "Retraction distance used when cutting filament."
+msgstr "Retraktionsavstånd som används vid kapning av filament."
+
+# AI Translated
+msgid "Long retraction when cut"
+msgstr "Lång retraktion vid kapning"
+
+# AI Translated
+msgid "Whether long retraction is used when cutting filament."
+msgstr "Om lång retraktion används vid kapning av filament."
+
+# AI Translated
+msgid "Most-used physical extruder ID"
+msgstr "ID för den mest använda fysiska extrudern"
+
+# AI Translated
+msgid "Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."
+msgstr "Index för den fysiska extruder som används oftast på det aktuella lagret. Indexet är nollbaserat (första extrudern har index 0)."
+
+# AI Translated
+msgid "Current Y acceleration limit"
+msgstr "Aktuell accelerationsgräns för Y"
+
+# AI Translated
+msgid "Current Y-axis acceleration limit after the bed-mass adjustment."
+msgstr "Aktuell accelerationsgräns för Y-axeln efter justeringen för byggplattans massa."
+
+# AI Translated
+msgid "Current accumulated mass"
+msgstr "Aktuell ackumulerad massa"
+
+# AI Translated
+msgid "Accumulated printed mass at the current layer."
+msgstr "Ackumulerad utskriven massa på det aktuella lagret."
+
+# AI Translated
+msgid "Previous layer mass"
+msgstr "Föregående lagermassa"
+
+# AI Translated
+msgid "Printed mass of the previous layer."
+msgstr "Utskriven massa för föregående lager."
+
+# AI Translated
+msgid "Same as previous_layer_mass. Bambu Studio uses this name."
+msgstr "Samma som previous_layer_mass. Bambu Studio använder det här namnet."
+
+# AI Translated
+msgid "Current physical extruder ID"
+msgstr "Aktuellt ID för fysisk extruder"
+
+# AI Translated
+msgid "Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."
+msgstr "Index för den fysiska extruder som är aktiv för det aktuella lagret. Indexet är nollbaserat (första extrudern har index 0)."
+
+# AI Translated
+msgid "Timelapse position X"
+msgstr "Timelapse-position X"
+
+# AI Translated
+msgid "Selected X position for timelapse capture."
+msgstr "Vald X-position för timelapse-bilden."
+
+# AI Translated
+msgid "Timelapse position Y"
+msgstr "Timelapse-position Y"
+
+# AI Translated
+msgid "Selected Y position for timelapse capture."
+msgstr "Vald Y-position för timelapse-bilden."
+
+# AI Translated
+msgid "Has timelapse safe position"
+msgstr "Har säker timelapse-position"
+
+# AI Translated
+msgid "Whether a safe timelapse position was found."
+msgstr "Om en säker timelapse-position hittades."
+
+# AI Translated
+msgid "Timelapse inline photo"
+msgstr "Timelapse-inlinefoto"
+
+# AI Translated
+msgid "Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."
+msgstr "Om fotot tas där nozzeln redan befinner sig, utan att först flytta till en säker timelapse-position."
+
+# AI Translated
+msgid "Farthest-point timelapse enabled"
+msgstr "Timelapse vid längsta punkten aktiverad"
+
+# AI Translated
+msgid "Whether farthest-point timelapse positioning is active."
+msgstr "Om positionering av timelapse vid den längsta punkten är aktiv."
+
+# AI Translated
+msgid "Clear path to X0"
+msgstr "Fri väg till X0"
+
+# AI Translated
+msgid "Whether the nozzle can move to X0 at the current height without hitting another printed object."
+msgstr "Om nozzeln kan flytta till X0 på den aktuella höjden utan att slå i ett annat utskrivet objekt."
 
 # AI Translated
 msgid "Previous extruder"
 msgstr "Föregående extruder"
 
 # AI Translated
-msgid "Index of the extruder that is being unloaded. The index is zero based (first extruder has index 0)."
-msgstr "Index för extrudern som lastas ur. Indexet är nollbaserat (första extrudern har index 0)."
+msgid "Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."
+msgstr "Index för filamentet som lastas ur. Indexet är nollbaserat (första filamentet har index 0). I början av utskriften, när inget filament har lastats in än, är det -1."
 
 # AI Translated
 msgid "Next extruder"
 msgstr "Nästa extruder"
 
 # AI Translated
-msgid "Index of the extruder that is being loaded. The index is zero based (first extruder has index 0)."
-msgstr "Index för extrudern som lastas in. Indexet är nollbaserat (första extrudern har index 0)."
+msgid "Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."
+msgstr "Index för filamentet som lastas in. Indexet är nollbaserat (första filamentet har index 0)."
+
+# AI Translated
+msgid "Current hotend"
+msgstr "Aktuell hotend"
+
+# AI Translated
+msgid "Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend för det utgående filamentet, angiven som dess nollbaserade extruderindex. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lagren."
+
+# AI Translated
+msgid "Next hotend"
+msgstr "Nästa hotend"
+
+# AI Translated
+msgid "Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+msgstr "Hotend för det inkommande filamentet, angiven som dess nollbaserade extruderindex. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lagren."
+
+# AI Translated
+msgid "Next nozzle ID"
+msgstr "Nästa nozzel-ID"
+
+# AI Translated
+msgid "Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."
+msgstr "Index för nozzeln som hör till det inkommande filamentet. Indexet är nollbaserat (första nozzeln har index 0)."
+
+# AI Translated
+msgid "Next filament ID"
+msgstr "Nästa filament-ID"
+
+# AI Translated
+msgid "Index of the incoming filament. The index is zero-based (first filament has index 0)."
+msgstr "Index för det inkommande filamentet. Indexet är nollbaserat (första filamentet har index 0)."
+
+# AI Translated
+msgid "Old extruder variant"
+msgstr "Gammal extrudervariant"
+
+# AI Translated
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."
+msgstr "Extrudertyp och typ av Nozzle volym för den utgående extrudern, till exempel \"Direct Drive High Flow\"."
+
+# AI Translated
+msgid "New extruder variant"
+msgstr "Ny extrudervariant"
+
+# AI Translated
+#. TRN The quoted value is a G-code identifier; keep it in English.
+msgid "Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."
+msgstr "Extrudertyp och typ av Nozzle volym för den inkommande extrudern, till exempel \"Direct Drive High Flow\"."
+
+# AI Translated
+msgid "Filament nozzle-change retract length"
+msgstr "Filamentets retraktionslängd vid nozzelbyte"
+
+# AI Translated
+msgid "Nozzle-change retraction length of the outgoing filament."
+msgstr "Retraktionslängd vid nozzelbyte för det utgående filamentet."
+
+# AI Translated
+msgid "New extruder retracted length"
+msgstr "Retraherad längd för ny extruder"
+
+# AI Translated
+msgid "Retraction length still applied to the incoming extruder from when it was parked."
+msgstr "Retraktionslängd som fortfarande gäller för den inkommande extrudern sedan den parkerades."
+
+# AI Translated
+msgid "Outer wall volumetric speed"
+msgstr "Volymetrisk hastighet för yttre vägg"
+
+# AI Translated
+msgid "Volumetric speed used for the outer wall."
+msgstr "Volymetrisk hastighet som används för den yttre väggen."
 
 # AI Translated
 msgid "Relative e-axis"
@@ -23412,6 +23857,14 @@ msgstr "Antal verktygsbyten"
 # AI Translated
 msgid "The number of toolchanges throughout the print."
 msgstr "Antalet verktygsbyten under hela utskriften."
+
+# AI Translated
+msgid "Toolchange Z"
+msgstr "Z vid verktygsbyte"
+
+# AI Translated
+msgid "The Z position during the toolchange."
+msgstr "Z-positionen under verktygsbytet."
 
 # AI Translated
 msgid "Old retract length"
@@ -23490,16 +23943,16 @@ msgid "First flush volume"
 msgstr "Första rensningsvolym"
 
 # AI Translated
-msgid "The first flush volume."
-msgstr "Den första rensningsvolymen."
+msgid "First half of the planned purge length, in mm of filament."
+msgstr "Första halvan av den planerade rensningslängden, i mm filament."
 
 # AI Translated
 msgid "Second flush volume"
 msgstr "Andra rensningsvolym"
 
 # AI Translated
-msgid "The second flush volume."
-msgstr "Den andra rensningsvolymen."
+msgid "Second half of the planned purge length, in mm of filament."
+msgstr "Andra halvan av den planerade rensningslängden, i mm filament."
 
 # AI Translated
 msgid "Old filament e feedrate"
@@ -23596,6 +24049,107 @@ msgstr "Rensningslängd 4"
 # AI Translated
 msgid "The fourth flush length."
 msgstr "Den fjärde rensningslängden."
+
+# AI Translated
+msgid "Flush length"
+msgstr "Rensningslängd"
+
+# AI Translated
+msgid "Total flush length."
+msgstr "Total rensningslängd."
+
+# AI Translated
+msgid "Flush volumetric speeds"
+msgstr "Volymetriska hastigheter vid rensning"
+
+# AI Translated
+msgid "Flush volumetric speeds for each filament."
+msgstr "Volymetriska hastigheter vid rensning för varje filament."
+
+# AI Translated
+msgid "Flush temperatures"
+msgstr "Rensningstemperaturer"
+
+# AI Translated
+msgid "Flush temperatures for each filament."
+msgstr "Rensningstemperaturer för varje filament."
+
+# AI Translated
+msgid "Filament cooling before tower"
+msgstr "Filamentkylning före tornet"
+
+# AI Translated
+# Needs human review: Setting name: 'wipe perimeter' is the outline around the wipe area that travel moves avoid; check that 'torkperimeter' reads right.
+msgid "Avoid wipe perimeter"
+msgstr "Undvik torkperimeter"
+
+# AI Translated
+msgid "Whether travel should avoid the wipe perimeter."
+msgstr "Om förflyttningar ska undvika torkperimetern."
+
+# AI Translated
+msgid "Wipe tower avoidance X"
+msgstr "X för att undvika prime tornet"
+
+# AI Translated
+msgid "X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."
+msgstr "X-position precis bredvid prime tornet som nozzeln flyttar till för att hålla sig undan tornet."
+
+# AI Translated
+msgid "Prime tower interface"
+msgstr "Prime tornets kontaktyta"
+
+# AI Translated
+msgid "Whether the current purge is for the prime tower interface layer (where different materials meet)."
+msgstr "Om den aktuella rensningen gäller prime tornets gränssnittslager (där olika material möts)."
+
+# AI Translated
+msgid "Print temperature for prime tower interface layer (where different materials meet)."
+msgstr "Utskriftstemperatur för prime tornets gränssnittslager (där olika material möts)."
+
+# AI Translated
+msgid "Wipe tower wait position X"
+msgstr "Prime tornets väntposition X"
+
+# AI Translated
+msgid "X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."
+msgstr "X-koordinat för nozzelns väntposition vid prime tornet, 2 mm utanför tornets kant."
+
+# AI Translated
+msgid "Wipe tower wait position Y"
+msgstr "Prime tornets väntposition Y"
+
+# AI Translated
+msgid "Y coordinate of the nozzle's wipe-tower wait position."
+msgstr "Y-koordinat för nozzelns väntposition vid prime tornet."
+
+# AI Translated
+msgid "Wipe tower wait position valid"
+msgstr "Prime tornets väntposition giltig"
+
+# AI Translated
+msgid "Whether the wait position is set, which is the case when the print has a wipe tower."
+msgstr "Om väntepositionen är angiven, vilket den är när utskriften har ett prime torn."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."
+msgstr "Samma som wipe_tower_wait_pos_x. Bambu Studio använder det här namnet."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."
+msgstr "Samma som wipe_tower_wait_pos_y. Bambu Studio använder det här namnet."
+
+# AI Translated
+msgid "Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."
+msgstr "Samma som wipe_tower_wait_pos_valid. Bambu Studio använder det här namnet."
+
+# AI Translated
+msgid "Nozzle temperatures indexed by filament."
+msgstr "Nozzeltemperaturer, indexerade efter filament."
+
+# AI Translated
+msgid "First-layer nozzle temperatures indexed by filament."
+msgstr "Nozzeltemperaturer för första lagret, indexerade efter filament."
 
 # AI Translated
 msgid "Extrusion role"
@@ -23795,6 +24349,10 @@ msgstr "Kompileringen av det reguljära uttrycket misslyckades"
 # Needs human review: English says 'non-boolean operators' but means operands; translated as 'operander'. Check the source wording.
 msgid "Cannot apply logical operation to non-boolean operands."
 msgstr "Kan inte tillämpa logisk operation på icke-booleska operander."
+
+# AI Translated
+msgid "This value is known only after the G-code is generated. It can be printed, but not used in a calculation or a comparison."
+msgstr "Det här värdet är inte känt förrän G-code har genererats. Det kan skrivas ut, men inte användas i en beräkning eller jämförelse."
 
 # AI Translated
 msgid "Trying to index a scalar variable"
@@ -24434,7 +24992,7 @@ msgid "Flow Ratio"
 msgstr "Flödes förhållande"
 
 msgid "Please input a valid value (0.0 < flow ratio < 2.0)"
-msgstr "Ange ett giltigt värde (0.0 < flödesförhållande < 2.0) "
+msgstr "Ange ett giltigt värde (0.0 < flödesförhållande < 2.0)"
 
 msgid "Please enter the name of the preset you want to save."
 msgstr "Ange namnet på den förinställning som du vill spara."
@@ -25366,7 +25924,7 @@ msgstr "test av %s startar..."
 
 # AI Translated
 #, c-format, boost-format
-msgid "test %s ip resolved = %s"
+msgid "test %s IP resolved = %s"
 msgstr "test av %s: IP uppslagen = %s"
 
 # AI Translated
@@ -25876,9 +26434,9 @@ msgstr ""
 "Klicka på Synkronisera-knappen ovan och starta om kalibreringen."
 
 # AI Translated
-#, c-format, boost-format
-msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr "Att skriva ut material %1s med nozzeln %2s kan skada nozzeln."
+#, boost-format
+msgid "Printing %1% material with %2% nozzle may cause nozzle damage."
+msgstr "Att skriva ut material %1% med nozzeln %2% kan skada nozzeln."
 
 msgid "Need select printer"
 msgstr "Välj printer"
@@ -28082,10 +28640,6 @@ msgstr "(alla kanter)"
 # AI Translated
 msgid "Placement (transform / mirror / mate)"
 msgstr "Placering (transformera / spegelvänd / parning)"
-
-# AI Translated
-msgid "Transform"
-msgstr "Transformera"
 
 # AI Translated
 msgid "Move and/or rotate an existing body"
@@ -31278,10 +31832,6 @@ msgid "Reference"
 msgstr "Referens"
 
 # AI Translated
-msgid "Modify"
-msgstr "Ändra"
-
-# AI Translated
 msgctxt "Design"
 msgid "Sketch"
 msgstr "Skiss"
@@ -32126,10 +32676,6 @@ msgstr "Öppna Snabbval"
 # AI Translated
 msgid "Slicing and printing"
 msgstr "Beredning och utskrift"
-
-# AI Translated
-msgid "Selection"
-msgstr "Markering"
 
 # AI Translated
 msgid "Editing"
@@ -33035,6 +33581,1648 @@ msgstr[0] "Den aktuella filamentlistan innehåller inte %s. Ett projektfilament 
 msgstr[1] "Den aktuella filamentlistan innehåller inte %s. Projektfilament som det blandade filamentet kräver skapas automatiskt efter uppdelningen."
 
 # AI Translated
+msgid "Color Picker"
+msgstr "Färgväljare"
+
+# AI Translated
+msgid "Basic Colors"
+msgstr "Grundfärger"
+
+# AI Translated
+# Needs human review: Glossary has no Swedish rendering for Palette; check 'palett' (also Paletter).
+#. TRN: Keep the brand name "Orca" unchanged; translate only the palette descriptor.
+msgid "Orca Palette"
+msgstr "Orca-palett"
+
+# AI Translated
+#. TRN: Keep the standard/brand name "RAL" unchanged.
+msgid "RAL Classic"
+msgstr "RAL Klassisk"
+
+# AI Translated
+msgid "Gradients"
+msgstr "Gradienter"
+
+# AI Translated
+msgctxt "Color picker"
+msgid "Solid"
+msgstr "Enfärgad"
+
+# AI Translated
+msgid "Gradient"
+msgstr "Gradient"
+
+# AI Translated
+msgid "Gradient start"
+msgstr "Gradientstart"
+
+# AI Translated
+msgid "Gradient end"
+msgstr "Gradientslut"
+
+# AI Translated
+msgid "Gradient color"
+msgstr "Gradientfärg"
+
+# AI Translated
+msgid "Add color"
+msgstr "Lägg till färg"
+
+# AI Translated
+msgid "Remove color"
+msgstr "Ta bort färg"
+
+# AI Translated
+msgid "Saturation"
+msgstr "Färgmättnad"
+
+# AI Translated
+msgid "Original color"
+msgstr "Ursprunglig färg"
+
+# AI Translated
+#. TRN: Clicking the current color preview adds it to the saved favorites.
+msgid "Save current color"
+msgstr "Spara aktuell färg"
+
+# AI Translated
+# Needs human review: Glossary has no Swedish rendering for Palette; check 'Paletter'.
+msgid "Palettes"
+msgstr "Paletter"
+
+# AI Translated
+msgid "Search colors"
+msgstr "Sök färger"
+
+# AI Translated
+msgid "Filter colors"
+msgstr "Filtrera färger"
+
+# AI Translated
+msgid "No matching colors"
+msgstr "Inga matchande färger"
+
+# AI Translated
+msgid "Hex color"
+msgstr "Hexfärg"
+
+# AI Translated
+msgid "Opacity"
+msgstr "Opacitet"
+
+# AI Translated
+msgid "Opacity percent"
+msgstr "Opacitet i procent"
+
+# AI Translated
+msgid "Save color"
+msgstr "Spara färg"
+
+# AI Translated
+msgid "Enter a complete hexadecimal color"
+msgstr "Ange en komplett hexadecimal färg"
+
+# AI Translated
+msgid "The current multi-color selection is kept until you choose a different color."
+msgstr "Det aktuella flerfärgsvalet behålls tills du väljer en annan färg."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Up to %d colors supported."
+msgstr "Upp till %d färger stöds."
+
+# AI Translated
+msgid "Crimson"
+msgstr "Karmosinröd"
+
+# AI Translated
+msgid "Orange red"
+msgstr "Orangeröd"
+
+# AI Translated
+msgid "Tomato"
+msgstr "Tomatröd"
+
+# AI Translated
+msgid "Orange"
+msgstr "Orange"
+
+# AI Translated
+msgid "Dark orange"
+msgstr "Mörkorange"
+
+# AI Translated
+msgid "Gold"
+msgstr "Guld"
+
+# AI Translated
+# Needs human review: CSS color; check Träbrun conveys burlywood (light tan wood).
+msgid "Burly wood"
+msgstr "Träbrun"
+
+# AI Translated
+msgid "Bisque"
+msgstr "Aprikosbeige"
+
+# AI Translated
+msgid "Misty rose"
+msgstr "Dimrosa"
+
+# AI Translated
+msgid "Light yellow"
+msgstr "Ljusgul"
+
+# AI Translated
+msgid "Lemon chiffon"
+msgstr "Citronchiffong"
+
+# AI Translated
+msgid "Beige"
+msgstr "Beige"
+
+# AI Translated
+msgid "Light golden rod yellow"
+msgstr "Ljus gullrisgul"
+
+# AI Translated
+msgid "Pale golden rod"
+msgstr "Blek gullrisgul"
+
+# AI Translated
+msgid "Khaki"
+msgstr "Khaki"
+
+# AI Translated
+msgid "Dark khaki"
+msgstr "Mörk khaki"
+
+# AI Translated
+msgid "Peach puff"
+msgstr "Persikokräm"
+
+# AI Translated
+msgid "Moccasin"
+msgstr "Mockasin"
+
+# AI Translated
+msgid "Papaya whip"
+msgstr "Papayakräm"
+
+# AI Translated
+msgid "Blanched almond"
+msgstr "Blancherad mandel"
+
+# AI Translated
+msgid "Antique white"
+msgstr "Antikvit"
+
+# AI Translated
+msgid "Navajo white"
+msgstr "Navajovit"
+
+# AI Translated
+msgid "Wheat"
+msgstr "Vete"
+
+# AI Translated
+msgid "Golden rod"
+msgstr "Gullrisgul"
+
+# AI Translated
+msgid "Chocolate"
+msgstr "Choklad"
+
+# AI Translated
+msgid "Peru"
+msgstr "Peru"
+
+# AI Translated
+msgid "Fire brick"
+msgstr "Tegelröd"
+
+# AI Translated
+msgid "Sienna"
+msgstr "Sienna"
+
+# AI Translated
+msgid "Saddle brown"
+msgstr "Sadelbrun"
+
+# AI Translated
+msgid "Brown"
+msgstr "Brun"
+
+# AI Translated
+msgid "Rosy brown"
+msgstr "Rosabrun"
+
+# AI Translated
+msgid "Salmon"
+msgstr "Lax"
+
+# AI Translated
+msgid "Light salmon"
+msgstr "Ljus lax"
+
+# AI Translated
+msgid "Dark salmon"
+msgstr "Mörk lax"
+
+# AI Translated
+msgid "Sandy brown"
+msgstr "Sandbrun"
+
+# AI Translated
+msgid "Coral"
+msgstr "Korall"
+
+# AI Translated
+msgid "Light coral"
+msgstr "Ljus korall"
+
+# AI Translated
+msgid "Indian red"
+msgstr "Indianröd"
+
+# AI Translated
+msgid "Dark red"
+msgstr "Mörkröd"
+
+# AI Translated
+# Needs human review: Kept as Maroon (loan word); Rödbrun/Brunröd are taken by RAL names.
+msgid "Maroon"
+msgstr "Maroon"
+
+# AI Translated
+msgid "Green yellow"
+msgstr "Gröngul"
+
+# AI Translated
+msgid "Yellow green"
+msgstr "Gulgrön"
+
+# AI Translated
+msgid "Chartreuse"
+msgstr "Chartreuse"
+
+# AI Translated
+msgid "Lawn green"
+msgstr "Gräsmattegrön"
+
+# AI Translated
+msgid "Lime green"
+msgstr "Limegrön"
+
+# AI Translated
+msgid "Spring green"
+msgstr "Vårgrön"
+
+# AI Translated
+msgid "Medium spring green"
+msgstr "Mellan vårgrön"
+
+# AI Translated
+msgid "Lime"
+msgstr "Lime"
+
+# AI Translated
+msgid "Forest green"
+msgstr "Skogsgrön"
+
+# AI Translated
+msgid "Dark green"
+msgstr "Mörkgrön"
+
+# AI Translated
+msgid "Olive drab"
+msgstr "Armégrön"
+
+# AI Translated
+msgid "Olive"
+msgstr "Oliv"
+
+# AI Translated
+msgid "Dark olive green"
+msgstr "Mörk olivgrön"
+
+# AI Translated
+msgid "Pale green"
+msgstr "Blekgrön"
+
+# AI Translated
+msgid "Light green"
+msgstr "Ljusgrön"
+
+# AI Translated
+msgid "Medium sea green"
+msgstr "Mellan havsgrön"
+
+# AI Translated
+msgid "Sea green"
+msgstr "Havsgrön"
+
+# AI Translated
+msgid "Dark sea green"
+msgstr "Mörk havsgrön"
+
+# AI Translated
+msgid "Cadet blue"
+msgstr "Kadettblå"
+
+# AI Translated
+msgid "Medium aqua marine"
+msgstr "Mellan akvamarin"
+
+# AI Translated
+msgid "Turquoise"
+msgstr "Turkos"
+
+# AI Translated
+msgid "Medium turquoise"
+msgstr "Mellanturkos"
+
+# AI Translated
+msgid "Dark turquoise"
+msgstr "Mörkturkos"
+
+# AI Translated
+msgid "Pale turquoise"
+msgstr "Blekturkos"
+
+# AI Translated
+msgid "Aqua"
+msgstr "Aqua"
+
+# AI Translated
+msgid "Light cyan"
+msgstr "Ljuscyan"
+
+# AI Translated
+msgid "Mint cream"
+msgstr "Mintkräm"
+
+# AI Translated
+msgid "Honey dew"
+msgstr "Honungsmelon"
+
+# AI Translated
+msgid "Aquamarine"
+msgstr "Akvamarin"
+
+# AI Translated
+msgid "Light sea green"
+msgstr "Ljus havsgrön"
+
+# AI Translated
+msgid "Dark cyan"
+msgstr "Mörkcyan"
+
+# AI Translated
+# Needs human review: Rendered Petrol; check it reads as teal.
+msgid "Teal"
+msgstr "Petrol"
+
+# AI Translated
+msgid "Dark slate gray"
+msgstr "Mörk skiffergrå"
+
+# AI Translated
+msgid "Light slate gray"
+msgstr "Ljus skiffergrå"
+
+# AI Translated
+msgid "Slate gray"
+msgstr "Skiffergrå"
+
+# AI Translated
+msgid "Deep sky blue"
+msgstr "Djup himmelsblå"
+
+# AI Translated
+msgid "Dodger Blue"
+msgstr "Dodgerblå"
+
+# AI Translated
+msgid "Sky blue"
+msgstr "Himmelsblå"
+
+# AI Translated
+msgid "Light sky blue"
+msgstr "Ljus himmelsblå"
+
+# AI Translated
+msgid "Light blue"
+msgstr "Ljusblå"
+
+# AI Translated
+msgid "Powder blue"
+msgstr "Pulverblå"
+
+# AI Translated
+msgid "Light steel blue"
+msgstr "Ljus stålblå"
+
+# AI Translated
+msgid "Steel blue"
+msgstr "Stålblå"
+
+# AI Translated
+msgid "Cornflower blue"
+msgstr "Blåklintsblå"
+
+# AI Translated
+msgid "Royal blue"
+msgstr "Kungsblå"
+
+# AI Translated
+msgid "Medium blue"
+msgstr "Mellanblå"
+
+# AI Translated
+msgid "Midnight blue"
+msgstr "Midnattsblå"
+
+# AI Translated
+msgid "Dark blue"
+msgstr "Mörkblå"
+
+# AI Translated
+msgid "Navy"
+msgstr "Marinblå"
+
+# AI Translated
+msgid "Slate blue"
+msgstr "Skifferblå"
+
+# AI Translated
+msgid "Dark slate blue"
+msgstr "Mörk skifferblå"
+
+# AI Translated
+msgid "Medium slate blue"
+msgstr "Mellan skifferblå"
+
+# AI Translated
+msgid "Blue violet"
+msgstr "Blåviolett"
+
+# AI Translated
+msgid "Indigo"
+msgstr "Indigo"
+
+# AI Translated
+msgid "Dark violet"
+msgstr "Mörkviolett"
+
+# AI Translated
+msgid "Dark orchid"
+msgstr "Mörk orkidé"
+
+# AI Translated
+msgid "Medium orchid"
+msgstr "Mellan orkidé"
+
+# AI Translated
+msgid "Orchid"
+msgstr "Orkidé"
+
+# AI Translated
+msgid "Violet"
+msgstr "Violett"
+
+# AI Translated
+msgid "Medium purple"
+msgstr "Mellanlila"
+
+# AI Translated
+msgid "Purple"
+msgstr "Lila"
+
+# AI Translated
+msgid "Rebecca purple"
+msgstr "Rebecca-lila"
+
+# AI Translated
+msgid "Medium violet red"
+msgstr "Mellan violettröd"
+
+# AI Translated
+msgid "Pale violet red"
+msgstr "Blek violettröd"
+
+# AI Translated
+msgid "Deep pink"
+msgstr "Djuprosa"
+
+# AI Translated
+msgid "Hot pink"
+msgstr "Knallrosa"
+
+# AI Translated
+msgid "Light pink"
+msgstr "Ljusrosa"
+
+# AI Translated
+msgid "Pink"
+msgstr "Rosa"
+
+# AI Translated
+msgid "Plum"
+msgstr "Plommon"
+
+# AI Translated
+msgid "Thistle"
+msgstr "Tistel"
+
+# AI Translated
+msgid "Fuchsia"
+msgstr "Fuchsia"
+
+# AI Translated
+msgid "Dark magenta"
+msgstr "Mörk magenta"
+
+# AI Translated
+msgid "Linen"
+msgstr "Linne"
+
+# AI Translated
+msgid "Old lace"
+msgstr "Gammal spets"
+
+# AI Translated
+msgid "Sea shell"
+msgstr "Snäckskal"
+
+# AI Translated
+msgid "Ivory"
+msgstr "Elfenben"
+
+# AI Translated
+msgid "Floral white"
+msgstr "Blomvit"
+
+# AI Translated
+msgid "Lavender blush"
+msgstr "Lavendelrosa"
+
+# AI Translated
+msgid "Ghost white"
+msgstr "Spökvit"
+
+# AI Translated
+msgid "Alice blue"
+msgstr "Alice-blå"
+
+# AI Translated
+msgid "Lavender"
+msgstr "Lavendel"
+
+# AI Translated
+msgid "White smoke"
+msgstr "Rökvit"
+
+# AI Translated
+msgid "Gainsboro"
+msgstr "Gainsboro"
+
+# AI Translated
+msgid "Black"
+msgstr "Svart"
+
+# AI Translated
+msgid "Coral fire"
+msgstr "Korallglöd"
+
+# AI Translated
+msgid "Sea anemone"
+msgstr "Havsanemon"
+
+# AI Translated
+msgid "Deep abyss"
+msgstr "Djup avgrund"
+
+# AI Translated
+msgid "Lobster red"
+msgstr "Hummerröd"
+
+# AI Translated
+msgid "Sandy clay"
+msgstr "Sandlera"
+
+# AI Translated
+msgid "Driftwood"
+msgstr "Drivved"
+
+# AI Translated
+msgid "Sea buckthorn"
+msgstr "Havtorn"
+
+# AI Translated
+msgid "Sunset reef"
+msgstr "Solnedgångsrev"
+
+# AI Translated
+msgid "Tiger coral"
+msgstr "Tigerkorall"
+
+# AI Translated
+msgid "Pink coral"
+msgstr "Rosa korall"
+
+# AI Translated
+msgid "Seashell glow"
+msgstr "Snäckskalsglöd"
+
+# AI Translated
+msgid "Sand"
+msgstr "Sand"
+
+# AI Translated
+msgid "Golden kelp"
+msgstr "Gyllene tång"
+
+# AI Translated
+msgid "Sunlit dune"
+msgstr "Solbelyst dyn"
+
+# AI Translated
+msgid "Amber nautilus"
+msgstr "Bärnstensnautilus"
+
+# AI Translated
+msgid "Sea lemon"
+msgstr "Havscitron"
+
+# AI Translated
+msgid "Pale starfish"
+msgstr "Blek sjöstjärna"
+
+# AI Translated
+msgid "Spring tide"
+msgstr "Springflod"
+
+# AI Translated
+msgid "Lime algae"
+msgstr "Limealg"
+
+# AI Translated
+msgid "Sea grass"
+msgstr "Ålgräs"
+
+# AI Translated
+msgid "Neon plankton"
+msgstr "Neonplankton"
+
+# AI Translated
+msgid "Kelp forest"
+msgstr "Tångskog"
+
+# AI Translated
+msgid "Emerald wave"
+msgstr "Smaragdvåg"
+
+# AI Translated
+msgid "Whale shadow"
+msgstr "Valskugga"
+
+# AI Translated
+msgid "Sea turtle"
+msgstr "Havssköldpadda"
+
+# AI Translated
+msgid "Lagoon"
+msgstr "Lagun"
+
+# AI Translated
+msgid "Tropical current"
+msgstr "Tropisk ström"
+
+# AI Translated
+msgid "Midnight trench"
+msgstr "Midnattsgrav"
+
+# AI Translated
+msgid "Dark kelp"
+msgstr "Mörk tång"
+
+# AI Translated
+msgid "Crystal surf"
+msgstr "Kristallbränning"
+
+# AI Translated
+msgid "Turquoise bay"
+msgstr "Turkos vik"
+
+# AI Translated
+msgid "Sky over reef"
+msgstr "Himmel över revet"
+
+# AI Translated
+# Needs human review: Ocean-themed color name; check 'Grund himmel' reads as a color.
+msgid "Shallow sky"
+msgstr "Grund himmel"
+
+# AI Translated
+msgid "Electric blue"
+msgstr "Elektrisk blå"
+
+# AI Translated
+msgid "Dolphin"
+msgstr "Delfin"
+
+# AI Translated
+msgid "Ocean depths"
+msgstr "Havsdjup"
+
+# AI Translated
+msgid "Whale"
+msgstr "Val"
+
+# AI Translated
+msgid "Indigo abyss"
+msgstr "Indigoavgrund"
+
+# AI Translated
+msgid "Sea urchin"
+msgstr "Sjöborre"
+
+# AI Translated
+msgid "Lavender coral"
+msgstr "Lavendelkorall"
+
+# AI Translated
+msgid "Violet tide"
+msgstr "Violett tidvatten"
+
+# AI Translated
+msgid "Deep sea orchid"
+msgstr "Djuphavsorkidé"
+
+# AI Translated
+msgid "Neon jelly"
+msgstr "Neonmanet"
+
+# AI Translated
+msgid "Fuchsia coral"
+msgstr "Fuchsiakorall"
+
+# AI Translated
+msgid "Pink jellyfish"
+msgstr "Rosa manet"
+
+# AI Translated
+msgid "Foam"
+msgstr "Skum"
+
+# AI Translated
+msgid "Seashell white"
+msgstr "Snäckskalsvit"
+
+# AI Translated
+msgid "Pebble gray"
+msgstr "Kiselgrå"
+
+# AI Translated
+msgid "Storm cloud"
+msgstr "Stormmoln"
+
+# AI Translated
+msgid "Ink black"
+msgstr "Bläckssvart"
+
+# AI Translated
+msgid "Green beige"
+msgstr "Grönbeige"
+
+# AI Translated
+msgid "Sand yellow"
+msgstr "Sandgul"
+
+# AI Translated
+msgid "Signal yellow"
+msgstr "Signalgul"
+
+# AI Translated
+msgid "Golden yellow"
+msgstr "Gyllengul"
+
+# AI Translated
+msgid "Honey yellow"
+msgstr "Honungsgul"
+
+# AI Translated
+msgid "Maize yellow"
+msgstr "Majsgul"
+
+# AI Translated
+msgid "Daffodil yellow"
+msgstr "Påskliljegul"
+
+# AI Translated
+msgid "Brown beige"
+msgstr "Brunbeige"
+
+# AI Translated
+msgid "Lemon yellow"
+msgstr "Citrongul"
+
+# AI Translated
+msgid "Oyster white"
+msgstr "Ostronvit"
+
+# AI Translated
+msgid "Light ivory"
+msgstr "Ljust elfenben"
+
+# AI Translated
+msgid "Zinc yellow"
+msgstr "Zinkgul"
+
+# AI Translated
+msgid "Grey beige"
+msgstr "Gråbeige"
+
+# AI Translated
+msgid "Olive yellow"
+msgstr "Olivgul"
+
+# AI Translated
+msgid "Rape yellow"
+msgstr "Rapsgul"
+
+# AI Translated
+msgid "Traffic yellow"
+msgstr "Trafikgul"
+
+# AI Translated
+msgid "Ochre yellow"
+msgstr "Ockragul"
+
+# AI Translated
+msgid "Traffic orange yellow"
+msgstr "Trafikorangegul"
+
+# AI Translated
+msgid "Curry"
+msgstr "Curry"
+
+# AI Translated
+msgid "Melon yellow"
+msgstr "Melongul"
+
+# AI Translated
+msgid "Broom yellow"
+msgstr "Ginstgul"
+
+# AI Translated
+msgid "Dahlia yellow"
+msgstr "Dahliagul"
+
+# AI Translated
+msgid "Pastel yellow"
+msgstr "Pastellgul"
+
+# AI Translated
+msgid "Pearl beige"
+msgstr "Pärlbeige"
+
+# AI Translated
+msgid "Pearl gold"
+msgstr "Pärlguld"
+
+# AI Translated
+msgid "Sun yellow"
+msgstr "Solgul"
+
+# AI Translated
+msgid "Yellow orange"
+msgstr "Gulorange"
+
+# AI Translated
+msgid "Deep orange"
+msgstr "Djuporange"
+
+# AI Translated
+msgid "Vermilion"
+msgstr "Cinnober"
+
+# AI Translated
+msgid "Pearl orange"
+msgstr "Pärlorange"
+
+# AI Translated
+msgid "Pure orange"
+msgstr "Ren orange"
+
+# AI Translated
+msgid "Luminous orange"
+msgstr "Lysorange"
+
+# AI Translated
+msgid "Luminous bright orange"
+msgstr "Ljus lysorange"
+
+# AI Translated
+msgid "Bright red orange"
+msgstr "Ljus rödorange"
+
+# AI Translated
+msgid "Traffic orange"
+msgstr "Trafikorange"
+
+# AI Translated
+msgid "Signal orange"
+msgstr "Signalorange"
+
+# AI Translated
+msgid "Salmon orange"
+msgstr "Laxorange"
+
+# AI Translated
+msgid "Pearl pink"
+msgstr "Pärlrosa"
+
+# AI Translated
+msgid "Copper orange"
+msgstr "Kopparorange"
+
+# AI Translated
+msgid "Signal brown"
+msgstr "Signalbrun"
+
+# AI Translated
+# Needs human review: Odd RAL name; translated literally as Granorange.
+msgid "Fir orange"
+msgstr "Granorange"
+
+# AI Translated
+msgid "Signal red"
+msgstr "Signalröd"
+
+# AI Translated
+msgid "Luminous red"
+msgstr "Lysröd"
+
+# AI Translated
+msgid "Carmine red"
+msgstr "Karminröd"
+
+# AI Translated
+msgid "Pearl carmine red"
+msgstr "Pärlkarminröd"
+
+# AI Translated
+msgid "Pure red"
+msgstr "Ren röd"
+
+# AI Translated
+msgid "Luminous deep red"
+msgstr "Djup lysröd"
+
+# AI Translated
+msgid "Currant red"
+msgstr "Vinbärsröd"
+
+# AI Translated
+msgid "Pearl ruby red"
+msgstr "Pärlrubinröd"
+
+# AI Translated
+msgid "Fire red"
+msgstr "Eldröd"
+
+# AI Translated
+msgid "Ruby red"
+msgstr "Rubinröd"
+
+# AI Translated
+msgid "Purple red"
+msgstr "Lilaröd"
+
+# AI Translated
+msgid "Wine red"
+msgstr "Vinröd"
+
+# AI Translated
+msgid "Black red"
+msgstr "Svartröd"
+
+# AI Translated
+msgid "Oxide red"
+msgstr "Oxidröd"
+
+# AI Translated
+msgid "Brown red"
+msgstr "Brunröd"
+
+# AI Translated
+msgid "Pine red"
+msgstr "Tallröd"
+
+# AI Translated
+msgid "Tomato red"
+msgstr "Tomatröd"
+
+# AI Translated
+msgid "Antique pink"
+msgstr "Antikrosa"
+
+# AI Translated
+msgid "Coral red"
+msgstr "Korallröd"
+
+# AI Translated
+msgid "Rose"
+msgstr "Ros"
+
+# AI Translated
+msgid "Strawberry red"
+msgstr "Jordgubbsröd"
+
+# AI Translated
+msgid "Traffic red"
+msgstr "Trafikröd"
+
+# AI Translated
+msgid "Salmon pink"
+msgstr "Laxrosa"
+
+# AI Translated
+msgid "Luminous rose"
+msgstr "Lysrosa"
+
+# AI Translated
+msgid "Luminous bright red"
+msgstr "Ljus lysröd"
+
+# AI Translated
+msgid "Raspberry red"
+msgstr "Hallonröd"
+
+# AI Translated
+msgid "Orient red"
+msgstr "Orientröd"
+
+# AI Translated
+msgid "Pearl ruby"
+msgstr "Pärlrubin"
+
+# AI Translated
+msgid "Red purple"
+msgstr "Rödlila"
+
+# AI Translated
+msgid "Red violet"
+msgstr "Rödviolett"
+
+# AI Translated
+msgid "Heather violet"
+msgstr "Ljungviolett"
+
+# AI Translated
+msgid "Bordeaux violet"
+msgstr "Bordeauxviolett"
+
+# AI Translated
+msgid "Mahogany"
+msgstr "Mahogny"
+
+# AI Translated
+msgid "Grey purple"
+msgstr "Grålila"
+
+# AI Translated
+msgid "Signal violet"
+msgstr "Signalviolett"
+
+# AI Translated
+msgid "Fir green"
+msgstr "Grangrön"
+
+# AI Translated
+# Needs human review: RAL name; check the Swedish form.
+msgid "Sabine grey"
+msgstr "Sabinegrå"
+
+# AI Translated
+msgid "Pearl violet"
+msgstr "Pärlviolett"
+
+# AI Translated
+msgid "Pearl blackberry"
+msgstr "Pärlbjörnbär"
+
+# AI Translated
+msgid "Green blue"
+msgstr "Grönblå"
+
+# AI Translated
+msgid "Ultramarine blue"
+msgstr "Ultramarinblå"
+
+# AI Translated
+msgid "Sapphire blue"
+msgstr "Safirblå"
+
+# AI Translated
+msgid "Black blue"
+msgstr "Svartblå"
+
+# AI Translated
+msgid "Signal blue"
+msgstr "Signalblå"
+
+# AI Translated
+msgid "Brilliant blue"
+msgstr "Briljantblå"
+
+# AI Translated
+msgid "Grey blue"
+msgstr "Gråblå"
+
+# AI Translated
+msgid "Azure blue"
+msgstr "Azurblå"
+
+# AI Translated
+msgid "Gentian blue"
+msgstr "Gentianablå"
+
+# AI Translated
+msgid "Cobalt blue"
+msgstr "Koboltblå"
+
+# AI Translated
+msgid "Pigeon blue"
+msgstr "Duvblå"
+
+# AI Translated
+msgid "Traffic blue"
+msgstr "Trafikblå"
+
+# AI Translated
+msgid "Turquoise blue"
+msgstr "Turkosblå"
+
+# AI Translated
+msgid "Capri blue"
+msgstr "Capriblå"
+
+# AI Translated
+msgid "Ocean blue"
+msgstr "Havsblå"
+
+# AI Translated
+msgid "Water blue"
+msgstr "Vattenblå"
+
+# AI Translated
+msgid "Night blue"
+msgstr "Nattblå"
+
+# AI Translated
+msgid "Distant blue"
+msgstr "Avlägsen blå"
+
+# AI Translated
+msgid "Pastel blue"
+msgstr "Pastellblå"
+
+# AI Translated
+msgid "Pearl gentian blue"
+msgstr "Pärlgentianablå"
+
+# AI Translated
+msgid "Pearl midnight blue"
+msgstr "Pärlmidnattsblå"
+
+# AI Translated
+msgid "Patina green"
+msgstr "Patinagrön"
+
+# AI Translated
+msgid "Emerald green"
+msgstr "Smaragdgrön"
+
+# AI Translated
+msgid "Leaf green"
+msgstr "Lövgrön"
+
+# AI Translated
+msgid "Olive green"
+msgstr "Olivgrön"
+
+# AI Translated
+msgid "Blue green"
+msgstr "Blågrön"
+
+# AI Translated
+msgid "Moss green"
+msgstr "Mossgrön"
+
+# AI Translated
+msgid "Grey olive"
+msgstr "Gråoliv"
+
+# AI Translated
+msgid "Pine green"
+msgstr "Tallgrön"
+
+# AI Translated
+msgid "Pine brown"
+msgstr "Tallbrun"
+
+# AI Translated
+msgid "Grass green"
+msgstr "Gräsgrön"
+
+# AI Translated
+msgid "Reseda green"
+msgstr "Resedagrön"
+
+# AI Translated
+msgid "Brown green"
+msgstr "Brungrön"
+
+# AI Translated
+msgid "Reed green"
+msgstr "Vassgrön"
+
+# AI Translated
+msgid "Black green"
+msgstr "Svartgrön"
+
+# AI Translated
+msgid "Turquoise green"
+msgstr "Turkosgrön"
+
+# AI Translated
+msgid "May green"
+msgstr "Majgrön"
+
+# AI Translated
+msgid "Chrome oxide green"
+msgstr "Kromoxidgrön"
+
+# AI Translated
+msgid "Traffic green"
+msgstr "Trafikgrön"
+
+# AI Translated
+msgid "Fern green"
+msgstr "Ormbunksgrön"
+
+# AI Translated
+msgid "Opal green"
+msgstr "Opalgrön"
+
+# AI Translated
+msgid "Mint green"
+msgstr "Mintgrön"
+
+# AI Translated
+msgid "Bronze green"
+msgstr "Bronsgrön"
+
+# AI Translated
+msgid "Pearl green"
+msgstr "Pärlgrön"
+
+# AI Translated
+# Needs human review: RAL name; check the Swedish form.
+msgid "Sax turquoise"
+msgstr "Saxturkos"
+
+# AI Translated
+msgid "Pearl turquoise"
+msgstr "Pärlturkos"
+
+# AI Translated
+msgid "Pearl jade"
+msgstr "Pärljade"
+
+# AI Translated
+msgid "Pure green"
+msgstr "Ren grön"
+
+# AI Translated
+msgid "Luminous green"
+msgstr "Lysgrön"
+
+# AI Translated
+msgid "Squirrel grey"
+msgstr "Ekorrgrå"
+
+# AI Translated
+msgid "Silver grey"
+msgstr "Silvergrå"
+
+# AI Translated
+msgid "Olive grey"
+msgstr "Olivgrå"
+
+# AI Translated
+msgid "Moss grey"
+msgstr "Mossgrå"
+
+# AI Translated
+msgid "Signal grey"
+msgstr "Signalgrå"
+
+# AI Translated
+msgid "Mouse grey"
+msgstr "Musgrå"
+
+# AI Translated
+msgid "Beige grey"
+msgstr "Beigegrå"
+
+# AI Translated
+msgid "Khaki grey"
+msgstr "Khakigrå"
+
+# AI Translated
+msgid "Green grey"
+msgstr "Gröngrå"
+
+# AI Translated
+msgid "Tarpaulin grey"
+msgstr "Presenninggrå"
+
+# AI Translated
+msgid "Iron grey"
+msgstr "Järngrå"
+
+# AI Translated
+msgid "Basalt grey"
+msgstr "Basaltgrå"
+
+# AI Translated
+msgid "Brown grey"
+msgstr "Brungrå"
+
+# AI Translated
+msgid "Slate grey"
+msgstr "Skiffergrå"
+
+# AI Translated
+msgid "Anthracite grey"
+msgstr "Antracitgrå"
+
+# AI Translated
+msgid "Light grey"
+msgstr "Ljusgrå"
+
+# AI Translated
+msgid "Umber grey"
+msgstr "Umbragrå"
+
+# AI Translated
+msgid "Concrete grey"
+msgstr "Betonggrå"
+
+# AI Translated
+msgid "Graphite grey"
+msgstr "Grafitgrå"
+
+# AI Translated
+msgid "Granite grey"
+msgstr "Granitgrå"
+
+# AI Translated
+msgid "Stone grey"
+msgstr "Stengrå"
+
+# AI Translated
+msgid "Pebble grey"
+msgstr "Kiselgrå"
+
+# AI Translated
+msgid "Cement grey"
+msgstr "Cementgrå"
+
+# AI Translated
+msgid "Yellow grey"
+msgstr "Gulgrå"
+
+# AI Translated
+msgid "Platinum grey"
+msgstr "Platinagrå"
+
+# AI Translated
+msgid "Dusty grey"
+msgstr "Dammgrå"
+
+# AI Translated
+msgid "Agate grey"
+msgstr "Agatgrå"
+
+# AI Translated
+msgid "Quartz grey"
+msgstr "Kvartsgrå"
+
+# AI Translated
+msgid "Window grey"
+msgstr "Fönstergrå"
+
+# AI Translated
+msgid "Traffic grey A"
+msgstr "Trafikgrå A"
+
+# AI Translated
+msgid "Traffic grey B"
+msgstr "Trafikgrå B"
+
+# AI Translated
+msgid "Silk grey"
+msgstr "Sidengrå"
+
+# AI Translated
+msgid "Telegrey 1"
+msgstr "Telegrå 1"
+
+# AI Translated
+msgid "Telegrey 2"
+msgstr "Telegrå 2"
+
+# AI Translated
+msgid "Telegrey 4"
+msgstr "Telegrå 4"
+
+# AI Translated
+msgid "Pearl mouse grey"
+msgstr "Pärlmusgrå"
+
+# AI Translated
+msgid "Green brown"
+msgstr "Grönbrun"
+
+# AI Translated
+msgid "Ochre brown"
+msgstr "Ockrabrun"
+
+# AI Translated
+msgid "Clay brown"
+msgstr "Lerbrun"
+
+# AI Translated
+msgid "Copper brown"
+msgstr "Kopparbrun"
+
+# AI Translated
+msgid "Chocolate brown"
+msgstr "Chokladbrun"
+
+# AI Translated
+msgid "Olive brown"
+msgstr "Olivbrun"
+
+# AI Translated
+msgid "Nut brown"
+msgstr "Nötbrun"
+
+# AI Translated
+msgid "Red brown"
+msgstr "Rödbrun"
+
+# AI Translated
+msgid "Sepia brown"
+msgstr "Sepiabrun"
+
+# AI Translated
+msgid "Chestnut brown"
+msgstr "Kastanjebrun"
+
+# AI Translated
+msgid "Mahogany brown"
+msgstr "Mahognybrun"
+
+# AI Translated
+msgid "Grey brown"
+msgstr "Gråbrun"
+
+# AI Translated
+msgid "Pearl copper"
+msgstr "Pärlkoppar"
+
+# AI Translated
+msgid "Beige brown"
+msgstr "Beigebrun"
+
+# AI Translated
+msgid "Pearl mocha brown"
+msgstr "Pärlmockabrun"
+
+# AI Translated
+msgid "Earth brown"
+msgstr "Jordbrun"
+
+# AI Translated
+msgid "Pearl brown"
+msgstr "Pärlbrun"
+
+# AI Translated
+msgid "Cream"
+msgstr "Kräm"
+
+# AI Translated
+msgid "Grey white"
+msgstr "Gråvit"
+
+# AI Translated
+msgid "Signal white"
+msgstr "Signalvit"
+
+# AI Translated
+msgid "Signal black"
+msgstr "Signalsvart"
+
+# AI Translated
+msgid "Jet black"
+msgstr "Kolsvart"
+
+# AI Translated
+msgid "White aluminium"
+msgstr "Vitt aluminium"
+
+# AI Translated
+msgid "Grey aluminium"
+msgstr "Grått aluminium"
+
+# AI Translated
+msgid "Pure white"
+msgstr "Ren vit"
+
+# AI Translated
+msgid "Graphite black"
+msgstr "Grafitsvart"
+
+# AI Translated
+msgid "Traffic white"
+msgstr "Trafikvit"
+
+# AI Translated
+msgid "Traffic black"
+msgstr "Trafiksvart"
+
+# AI Translated
+msgid "Papyrus white"
+msgstr "Papyrusvit"
+
+# AI Translated
+msgid "Pearl light grey"
+msgstr "Pärl-ljusgrå"
+
+# AI Translated
+msgid "Metal: Silver"
+msgstr "Metall: Silver"
+
+# AI Translated
+msgid "Metal: Brass"
+msgstr "Metall: Mässing"
+
+# AI Translated
+msgid "Metal: Gold"
+msgstr "Metall: Guld"
+
+# AI Translated
+msgid "Metal: Copper"
+msgstr "Metall: Koppar"
+
+# AI Translated
+msgid "Metal: Bronze"
+msgstr "Metall: Brons"
+
+# AI Translated
+msgid "Nature: Pearl"
+msgstr "Natur: Pärla"
+
+# AI Translated
+msgid "Nature: Rainbow"
+msgstr "Natur: Regnbåge"
+
+# AI Translated
+msgid "Nature: Clear Sky"
+msgstr "Natur: Klar himmel"
+
+# AI Translated
+msgid "Nature: Sunset"
+msgstr "Natur: Solnedgång"
+
+# AI Translated
+msgid "Wood: Dark"
+msgstr "Trä: Mörkt"
+
+# AI Translated
+msgid "Wood: Medium"
+msgstr "Trä: Medel"
+
+# AI Translated
+msgid "Wood: Light"
+msgstr "Trä: Ljust"
+
+# AI Translated
 msgid "Alternate nozzles:"
 msgstr "Alternativa nozzlar:"
 
@@ -33380,7 +35568,7 @@ msgid "Summary: This is currently the most suitable position for placement."
 msgstr "Sammanfattning: Detta är för närvarande den lämpligaste placeringen."
 
 msgid "?"
-msgstr " ?"
+msgstr "?"
 
 # AI Translated
 msgid "Wiki->"
@@ -33509,12 +35697,24 @@ msgid "Built-in"
 msgstr "Inbyggda"
 
 # AI Translated
+msgid "My textures"
+msgstr "Mina texturer"
+
+# AI Translated
 msgid "No textures found."
 msgstr "Inga texturer hittades."
 
 # AI Translated
-msgid "My textures"
-msgstr "Mina texturer"
+msgid "Texture libraries"
+msgstr "Texturbibliotek"
+
+# AI Translated
+msgid "Explore more texture libraries"
+msgstr "Utforska fler texturbibliotek"
+
+# AI Translated
+msgid "Opens OrcaCloud in the Home page to browse for plugins."
+msgstr "Öppnar OrcaCloud på startsidan för att bläddra bland insticksmoduler."
 
 # AI Translated
 msgid "Import your own image as a height map. It is converted to the format the slicer bakes from and saved to your personal texture folder, kept separate from the textures shipped with OrcaSlicer."
@@ -33918,6 +36118,14 @@ msgid "How wide one copy of the texture is on the model. Smaller repeats the pat
 msgstr "Hur bred en kopia av texturen är på modellen. Mindre värden upprepar mönstret oftare och gör detaljerna finare; med Sida vid sida avstängt är detta storleken på den enda kopian."
 
 # AI Translated
+msgid "Larger"
+msgstr "Större"
+
+# AI Translated
+msgid "Smaller"
+msgstr "Mindre"
+
+# AI Translated
 msgid "Turns the texture on the surface, in degrees - for lining a pattern up with an edge of the model."
 msgstr "Vrider texturen på ytan, i grader - för att rikta in ett mönster mot en kant på modellen."
 
@@ -33990,6 +36198,16 @@ msgstr "Blandade färger"
 # AI Translated
 msgid "The most mixed filaments a bake may add. They are picked from the texture's colors, and only the ones the bake actually uses are created."
 msgstr "Det högsta antalet blandade filament som en inbakning får lägga till. De väljs ur texturens färger, och endast de som inbakningen faktiskt använder skapas."
+
+# AI Translated
+# Needs human review: Bare label in the app; check Få/Många fit their context.
+msgid "Few"
+msgstr "Få"
+
+# AI Translated
+# Needs human review: Bare label in the app; check Få/Många fit their context.
+msgid "Many"
+msgstr "Många"
 
 # AI Translated
 #. TRN The %2% part of "%1% printable colors %2%"; %1% is the number of filaments.
@@ -34114,10 +36332,6 @@ msgstr "Projektionsram"
 # AI Translated
 msgid "Opens a window you drag over the model. Whatever you can see through it is what gets the texture, and its border becomes the edge of the projection."
 msgstr "Öppnar ett fönster som du drar över modellen. Det du kan se genom det är det som får texturen, och dess kant blir projektionens kant."
-
-# AI Translated
-msgid "Opacity"
-msgstr "Opacitet"
 
 # AI Translated
 msgid "How solid the frame window looks while you place it. Lower to see the model through it; it does not affect the result."
@@ -34348,6 +36562,16 @@ msgstr "Ombyggnad av mesh"
 # AI Translated
 msgid "Triangle size the whole model is rebuilt with, in millimetres. Displacement works best on an even mesh; this is what makes one out of an uneven import."
 msgstr "Triangelstorleken som hela modellen byggs om med, i millimeter. Förskjutning fungerar bäst på en jämn mesh; det är detta som skapar en sådan av en ojämn import."
+
+# AI Translated
+# Needs human review: Bare label in the app; check Före/Efter fit their context.
+msgid "Before"
+msgstr "Före"
+
+# AI Translated
+# Needs human review: Bare label in the app; check Före/Efter fit their context.
+msgid "After"
+msgstr "Efter"
 
 # AI Translated
 msgid "Keep sharp edges"
@@ -36042,19 +38266,6 @@ msgstr "okänt namn"
 # AI Translated
 #, c-format, boost-format
 msgid ""
-"Plugin \"%s\" requests filesystem read access to:\n"
-"%s"
-msgstr ""
-"Insticksmodulen \"%s\" begär läsåtkomst till:\n"
-"%s"
-
-# AI Translated
-msgid "Plugin permissions"
-msgstr "Behörigheter för insticksmodul"
-
-# AI Translated
-#, c-format, boost-format
-msgid ""
 "Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
 "\n"
 "This operation does not expose a target the audit hook can display."
@@ -36123,23 +38334,21 @@ msgstr[1] ""
 "Insticksmodulen \"%s\" begär att få radera följande filer:\n"
 "%s"
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
-"Plugin \"%s\" is requesting to make an HTTP request to:\n"
-"%s"
+"Plugin \"%s\" is requesting network access to:\n"
+"%s\n"
+"\n"
+"Approval covers HTTP or HTTPS access and raw network connections to the listed hosts. It does not restrict ports. A URL with a path, query or port is covered only for that exact URL."
 msgstr ""
-"Insticksmodulen \"%s\" begär att få göra en HTTP-begäran till:\n"
-"%s"
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
-"Plugin \"%s\" is requesting to open a network connection to:\n"
-"%s"
+"Plugin \"%s\" is requesting network access to:\n"
+"%s\n"
+"\n"
+"Approval covers raw network connections to the listed hosts. It does not restrict ports."
 msgstr ""
-"Insticksmodulen \"%s\" begär att få öppna en nätverksanslutning till:\n"
-"%s"
 
 # AI Translated
 #, c-format, boost-format
@@ -36180,6 +38389,10 @@ msgid "Plugin permission request"
 msgstr "Behörighetsbegäran från insticksmodul"
 
 # AI Translated
+msgid "Plugin permissions"
+msgstr "Behörigheter för insticksmodul"
+
+# AI Translated
 msgid "The preset stores invalid plugin capability configuration JSON."
 msgstr "Förinställningen lagrar ogiltig JSON för konfigurationen av insticksmodulens förmågor."
 
@@ -36218,6 +38431,10 @@ msgstr "Skript"
 # AI Translated
 msgid "Slicing Pipeline"
 msgstr "Beredningspipeline"
+
+# AI Translated
+msgid "Resource Texture"
+msgstr "Resurstextur"
 
 # AI Translated
 msgid "The plugin's configuration UI was empty. Showing the default editor."
@@ -36365,6 +38582,30 @@ msgstr "Insticksmodulens mapp innehåller både .py- och .whl-startfiler"
 # AI Translated
 msgid "Plugin directory does not contain a .py or .whl entry file"
 msgstr "Insticksmodulens mapp innehåller ingen .py- eller .whl-startfil"
+
+# AI Translated
+msgid "Resource texture directory is not set"
+msgstr "Mappen för resurstexturer är inte angiven"
+
+# AI Translated
+msgid "Resource texture directory could not be resolved"
+msgstr "Mappen för resurstexturer kunde inte lösas upp"
+
+# AI Translated
+msgid "Resource texture path is not a directory"
+msgstr "Sökvägen för resurstexturer är ingen mapp"
+
+# AI Translated
+msgid "Plugin folder could not be resolved"
+msgstr "Insticksmodulens mapp kunde inte lösas upp"
+
+# AI Translated
+msgid "Resource texture directory is outside the plugin folder"
+msgstr "Mappen för resurstexturer ligger utanför insticksmodulens mapp"
+
+# AI Translated
+msgid "Resource texture directory could not be read"
+msgstr "Mappen för resurstexturer kunde inte läsas"
 
 # AI Translated
 #, boost-format
@@ -36579,8 +38820,16 @@ msgid "Cannot unsubscribe your own plugins. Use Delete to remove the local files
 msgstr "Du kan inte avprenumerera på dina egna insticksmoduler. Använd Radera för att ta bort de lokala filerna."
 
 # AI Translated
-msgid "Plugin filesystem read permission request denied"
-msgstr "Begäran om läsbehörighet till filsystemet för insticksmodulen nekades"
+msgid "Python interpreter is shutting down."
+msgstr "Python-tolken håller på att stängas av."
+
+# AI Translated
+msgid "Plugin system is shutting down."
+msgstr "Insticksmodulsystemet avslutas."
+
+# AI Translated
+msgid "Plugin permission request denied"
+msgstr "Behörighetsbegäran från insticksmodul nekades"
 
 # AI Translated
 msgid "Profile has fewer than 2 points"
@@ -36826,7 +39075,7 @@ msgstr "Det gick inte att läsa in konfigurationsfilen \"%1%\": %2%"
 # AI Translated
 #. TRN %1% is the application name.
 #, boost-format
-msgid "Not a gcode file generated by %1%."
+msgid "Not a G-code file generated by %1%."
 msgstr "Inte en G-code-fil som genererats av %1%."
 
 # AI Translated
@@ -36946,7 +39195,7 @@ msgid "Failed making a temporary copy of G-code file %1% before running a post-p
 msgstr "Det gick inte att skapa en tillfällig kopia av G-code-filen %1% innan ett efterbearbetningsskript kördes: %2%"
 
 # AI Translated
-msgid "Post-processor can't find exported gcode file"
+msgid "Post-processor can't find exported G-code file"
 msgstr "Efterbearbetningen hittar inte den exporterade G-code-filen"
 
 # AI Translated
@@ -37329,6 +39578,296 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
+
+# AI Translated
+#~ msgid "Subdivision mesh"
+#~ msgstr "Underindelning av mesh"
+
+# AI Translated
+#~ msgid "(Lost color)"
+#~ msgstr "(Färg förlorad)"
+
+# AI Translated
+# Needs human review: Option name in the collision volume behavior dropdown (all nozzles share the same volumes); check that it reads right next to the other two options.
+#~ msgid "Shared"
+#~ msgstr "Delad"
+
+# AI Translated
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
+#~ msgstr ""
+#~ "Ange den krympning i procent som filamentet får efter nedkylning (94 % om du mäter 94 mm i stället för 100 mm). Delen skalas i XY för att kompensera. Vid multimaterialutskrifter bör filamentkrympningen vara densamma för alla använda filament\n"
+#~ "Se till att lämna tillräckligt med utrymme mellan objekten, eftersom kompensationen görs efter kontrollerna."
+
+#~ msgid "Temperature drop before entering filament tower"
+#~ msgstr "Temperaturen sjunker innan ankomst till filament tornet"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
+#~ msgstr "Klippers max_accel_to_decel justeras till denna %% av accelerationen."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
+#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
+#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
+#~ "\n"
+#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
+#~ msgstr ""
+#~ "Genereringsläge för ojämn yta. Fungerar endast med Arachne!\n"
+#~ "Förskjutning: Klassiskt läge där mönstret bildas genom att nozzeln förskjuts i sidled från den ursprungliga banan.\n"
+#~ "Extrudering: Läge där mönstret bildas av mängden extruderad plast. Detta är den snabba och raka algoritmen utan onödiga nozzelskakningar, som ger ett jämnt mönster. Den är dock mest användbar för att forma lösa väggar i hela deras uppsättning.\n"
+#~ "Kombinerad: Kombinerat läge [Förskjutning] + [Extrudering]. Väggarnas utseende liknar läget [Förskjutning], men det lämnar inga porer mellan perimetrarna.\n"
+#~ "\n"
+#~ "Obs! Lägena [Extrudering] och [Kombinerad] fungerar bara när parametern fuzzy_skin_thickness inte är större än tjockleken på det utskrivna varvet. Samtidigt får extruderingsbredden för ett visst lager inte heller vara under en viss nivå. Den är oftast lika med 15-25%% av en lagerhöjd. Den maximala tjockleken på ojämn yta med en perimeterbredd på 0,4 mm och en lagerhöjd på 0,2 mm blir därför 0,4-(0,2*0,25)=±0,35mm! Om du anger ett högre värde än så visas felet Flow::spacing() och modellen bereds inte. Du kan justera talet tills felet inte längre uppstår."
+
+# AI Translated
+#~ msgid ""
+#~ "This option is enabled if machine support controlling chamber temperature\n"
+#~ "G-code command: M141 S(0-255)"
+#~ msgstr ""
+#~ "Det här alternativet aktiveras om maskinen stöder styrning av kammartemperaturen\n"
+#~ "G-code-kommando: M141 S(0-255)"
+
+# AI Translated
+#~ msgid ""
+#~ "Enable this if printer support air filtration\n"
+#~ "G-code command: M106 P3 S(0-255)"
+#~ msgstr ""
+#~ "Aktivera detta om skrivaren stöder luftfiltrering\n"
+#~ "G-code-kommando: M106 P3 S(0-255)"
+
+#~ msgid "Enable this if printer support cooling filter"
+#~ msgstr "Aktivera detta om printern stöder kylfilter"
+
+#, c-format, boost-format
+#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
+#~ msgstr "Upptäck överhängs procenten i förhållande till linjebredden och använd olika hastigheter för att skriva ut. Vid 100%% överhäng, bridge/brygg hastighet användas."
+
+# AI Translated
+#~ msgid "Nozzle volume variants indexed by nozzle ID."
+#~ msgstr "Varianter av nozzelvolym, indexerade efter nozzel-ID."
+
+# AI Translated
+#~ msgid "Current layer mass"
+#~ msgstr "Aktuellt lagers massa"
+
+# AI Translated
+#~ msgid "Whether the timelapse photo is captured at the inline position."
+#~ msgstr "Om timelapse-fotot tas på inlinepositionen."
+
+# AI Translated
+#~ msgid "Clear to X0"
+#~ msgstr "Fri till X0"
+
+# AI Translated
+#~ msgid "Whether the timelapse move is clear to X0."
+#~ msgstr "Om timelapse-rörelsen är fri till X0."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Nollbaserat extruderindex för det utgående filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
+
+# AI Translated
+#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
+#~ msgstr "Nollbaserat extruderindex för det inkommande filamentet. På Bambu-skrivare är det -1, eller nozzel-ID när ett filament flyttas mellan nozzlar över lager."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the outgoing extruder."
+#~ msgstr "Nozzelvolymvariant för den utgående extrudern."
+
+# AI Translated
+#~ msgid "Nozzle-volume variant of the incoming extruder."
+#~ msgstr "Nozzelvolymvariant för den inkommande extrudern."
+
+# AI Translated
+#~ msgid "Currently parked retraction length of the incoming extruder."
+#~ msgstr "Aktuell parkerad retraktionslängd för den inkommande extrudern."
+
+# AI Translated
+#~ msgid "The first flush volume."
+#~ msgstr "Den första rensningsvolymen."
+
+# AI Translated
+#~ msgid "The second flush volume."
+#~ msgstr "Den andra rensningsvolymen."
+
+# AI Translated
+# Needs human review: Wipe is rendered as the compound stem 'tork-' (glossary: Torka); check it reads right as a setting name.
+#~ msgid "Wipe avoidance X"
+#~ msgstr "Torkundvikande X"
+
+# AI Translated
+#~ msgid "X position used to avoid the wipe area."
+#~ msgstr "X-position som används för att undvika torkområdet."
+
+# AI Translated
+#~ msgid "Whether the current purge is for a prime-tower interface."
+#~ msgstr "Om den aktuella rensningen gäller en kontaktyta i prime tornet."
+
+# AI Translated
+#~ msgid "Filament tower interface print temperature"
+#~ msgstr "Utskriftstemperatur för filamentets tornkontaktyta"
+
+# AI Translated
+#~ msgid "Print temperature used for the filament tower interface."
+#~ msgstr "Utskriftstemperatur som används för filamentets tornkontaktyta."
+
+# AI Translated
+#~ msgid "Whether the print has a wipe tower."
+#~ msgstr "Om utskriften har ett prime torn."
+
+# AI Translated
+#~ msgid "Nozzle temperature initial layer"
+#~ msgstr "Nozzeltemperatur första lagret"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
+#~ msgstr "Att skriva ut material %1s med nozzeln %2s kan skada nozzeln."
+
+# AI Translated
+#~ msgid "Python interpreter is shutting down"
+#~ msgstr "Python-tolken avslutas"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
+#~ msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
+#~ msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider det utskrivbara området för %s."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
+#~ msgstr[0] "Filamentet %s är placerat i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
+#~ msgstr[1] "Filamenten %s är placerade i %s, men den genererade G-code-banan överskrider den utskrivbara höjden för %s."
+
+#~ msgid "Mirror along the X Axis"
+#~ msgstr "Spegelvänd längs med X Axis"
+
+#~ msgid "Mirror along the Y Axis"
+#~ msgstr "Spegelvänd längs med Y Axis"
+
+#~ msgid "Mirror along the Z Axis"
+#~ msgstr "Spegelvänd längs med Z Axis"
+
+#~ msgid "Split the selected object"
+#~ msgstr "Dela det valda objektet"
+
+#~ msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as polygon by points in following format: \"XxY, XxY, ...\""
+#~ msgstr "Område som inte kan skrivas ut i XY-planet. För skrivare i X1-serien används till exempel det främre vänstra hörnet för att skära av filamentet vid byte av filament. Området uttrycks som en polygon med punkter i följande format: \"XxY, XxY, ...\""
+
+# AI Translated
+#~ msgid ""
+#~ "Enable this to get a G-code file which has G2 and G3 moves. The fitting tolerance is same as the resolution.\n"
+#~ "\n"
+#~ "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from arc commands as these are split again into line segments by the firmware. This results in a reduction in surface quality as line segments are converted to arcs by the slicer and then back to line segments by the firmware."
+#~ msgstr ""
+#~ "Aktivera detta för att få en G-code-fil med G2- och G3-rörelser. Anpassningstoleransen är densamma som upplösningen.\n"
+#~ "\n"
+#~ "Obs! För Klipper-maskiner rekommenderas att alternativet är avstängt. Klipper har ingen nytta av bågkommandon, eftersom de delas upp i linjesegment igen av den fasta programvaran. Det ger sämre ytkvalitet, eftersom linjesegment omvandlas till bågar av beredningsprogrammet och sedan tillbaka till linjesegment av den fasta programvaran."
+
+#~ msgid "Silent Mode"
+#~ msgstr "Tyst läge"
+
+#~ msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
+#~ msgstr "Om maskinen stöder tyst läge där maskinen använder lägre acceleration för att skriva ut"
+
+# AI Translated
+#~ msgid ""
+#~ "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
+#~ "This amount can be specified in millimeters or as a percentage of the current extruder diameter. The default value for this parameter is 10%."
+#~ msgstr ""
+#~ "För att minska sömmens synlighet i en sluten varvextrudering avbryts och förkortas varvet med en angiven mängd.\n"
+#~ "Mängden kan anges i millimeter eller som en procentandel av den aktuella extruderdiametern. Standardvärdet för den här parametern är 10 %."
+
+# AI Translated
+#~ msgid "Wipe tower volume"
+#~ msgstr "Prime tornets volym"
+
+# AI Translated
+#~ msgid "Total filament volume extruded on the wipe tower."
+#~ msgstr "Total filamentvolym som extruderas på prime tornet."
+
+# AI Translated
+#~ msgid "Index of the current layer. Zero-based (i.e. first layer is number 0), except in extrusion role change G-code, where it is one-based."
+#~ msgstr "Index för det aktuella lagret. Nollbaserat (dvs. första lagret har nummer 0), utom i G-code för byte av extruderingstyp, där det är ettbaserat."
+
+# AI Translated
+#~ msgid "The current extruder ID. The same as current_extruder."
+#~ msgstr "Det aktuella extruder-ID:t. Samma som current_extruder."
+
+# AI Translated
+#~ msgid "Index of the extruder that is being unloaded. The index is zero based (first extruder has index 0)."
+#~ msgstr "Index för extrudern som lastas ur. Indexet är nollbaserat (första extrudern har index 0)."
+
+# AI Translated
+#~ msgid "Index of the extruder that is being loaded. The index is zero based (first extruder has index 0)."
+#~ msgstr "Index för extrudern som lastas in. Indexet är nollbaserat (första extrudern har index 0)."
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Plugin \"%s\" requests filesystem read access to:\n"
+#~ "%s"
+#~ msgstr ""
+#~ "Insticksmodulen \"%s\" begär läsåtkomst till:\n"
+#~ "%s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Plugin \"%s\" is requesting to make an HTTP request to:\n"
+#~ "%s"
+#~ msgstr ""
+#~ "Insticksmodulen \"%s\" begär att få göra en HTTP-begäran till:\n"
+#~ "%s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Plugin \"%s\" is requesting to open a network connection to:\n"
+#~ "%s"
+#~ msgstr ""
+#~ "Insticksmodulen \"%s\" begär att få öppna en nätverksanslutning till:\n"
+#~ "%s"
+
+# AI Translated
+#~ msgid "Plugin filesystem read permission request denied"
+#~ msgstr "Begäran om läsbehörighet till filsystemet för insticksmodulen nekades"
+
+# AI Translated
+# Needs human review: Possibly meant Daffodil yellow (RAL 1007); translated literally.
+#~ msgid "Dalmatian yellow"
+#~ msgstr "Dalmatinergul"
+
+# AI Translated
+#~ msgid "Capsanthin violet"
+#~ msgstr "Capsanthinviolett"
+
+# AI Translated
+# Needs human review: Probably RAL Olive grey; translated as Olivgrå.
+#~ msgid "Olivestone"
+#~ msgstr "Olivgrå"
+
+# AI Translated
+#~ msgid "Available anywhere in the window, even while typing in a text field."
+#~ msgstr "Tillgängligt överallt i fönstret, även när du skriver i ett textfält."
+
+# AI Translated
+#~ msgid "Global shortcuts also apply while typing."
+#~ msgstr "Globala kortkommandon gäller även när du skriver."
+
+# AI Translated
+#~ msgid "Please choose the filament color"
+#~ msgstr "Välj filamentfärg"
 
 # AI Translated
 #~ msgid ""
@@ -37842,10 +40381,6 @@ msgstr ""
 #~ msgid "no configured tool"
 #~ msgstr "inget konfigurerat verktyg"
 
-# AI Translated
-#~ msgid "Add end G-Code when finishing the entire print."
-#~ msgstr "Lägg till slut-G-code när hela utskriften avslutas."
-
 #~ msgid "Maximum X speed"
 #~ msgstr "Max X hastighet"
 
@@ -37863,24 +40398,8 @@ msgstr ""
 #~ msgstr "Python-insticksmoduler som anropas vid varje steg i beredningspipelinen för att läsa och ändra mellanliggande beredningsdata, inklusive ett avslutande efterbearbetningssteg för G-code. Forskning/experimentellt."
 
 # AI Translated
-#~ msgid "When enabled, the slicer emits g-code with the primary zone's contents centered on bed origin (0,0). The printer firmware is responsible for placing copies/mirrors at each physical zone position. Enable only on printers whose firmware applies its own zone offsets in copy/mirror mode (e.g. RepRapFirmware IDEX duplication mode). Has no effect in Primary mode."
-#~ msgstr "När detta är aktiverat genererar beredningsprogrammet G-code med den primära zonens innehåll centrerat kring byggplattans origo (0,0). Skrivarens fasta programvara ansvarar för att placera kopior/speglingar på varje fysisk zonposition. Aktivera endast på skrivare vars fasta programvara tillämpar egna zonförskjutningar i läget Kopia/Spegel (t.ex. dupliceringsläget för IDEX i RepRapFirmware). Har ingen effekt i läget Primär."
-
-# AI Translated
 #~ msgid "Per-plate override mapping physical heads to filament slots (1-based). Empty means use pem-inversion defaults."
 #~ msgstr "Åsidosättning per platta som mappar fysiska huvuden till filamentplatser (1-baserade). Tomt innebär att standardvärdena för pem-inversion används."
-
-# AI Translated
-#~ msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the g-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
-#~ msgstr "Axeln som meshen roteras kring före beredning. Detta är bandskrivarens lutning: en isometrisk (förvrängningsfri) rotation som även styr renderingen av byggplattan och tyngdkraftslutningen för support, och som G-code-baktransformationen inverterar före skjuvningen/skalningen och ommappningen till maskinkoordinatsystemet. X är den typiska portallutningen (bandet rör sig längs Y)."
-
-# AI Translated
-#~ msgid "Expert override: set the machine-frame (g-code shear/scale) tilt angle independently of the pre-slice rotation angle. When disabled, the machine-frame transform is derived from the belt tilt angle, so a single angle drives both stages. Enable only to compensate for a machine whose physical gantry tilt differs from the slicing rotation."
-#~ msgstr "Expertinställning: ange lutningsvinkeln för maskinkoordinatsystemet (G-code-skjuvning/skalning) oberoende av rotationsvinkeln före beredning. När detta är inaktiverat härleds transformationen till maskinkoordinatsystemet från bandets lutningsvinkel, så att en enda vinkel styr båda stegen. Aktivera endast för att kompensera för en maskin vars fysiska portallutning skiljer sig från beredningsrotationen."
-
-# AI Translated
-#~ msgid "The maximum deviation allowed when reducing the resolution for the 'Maximum wall resolution' setting. If you increase this, the print will be less accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits 'Maximum wall resolution', so if the two conflict, 'Maximum wall deviation' takes precedence."
-#~ msgstr "Den största avvikelse som tillåts när upplösningen minskas för inställningen 'Maximal väggupplösning'. Om du ökar den blir utskriften mindre exakt, men G-code:n blir mindre. 'Maximal väggavvikelse' begränsar 'Maximal väggupplösning', så om de två står i konflikt har 'Maximal väggavvikelse' företräde."
 
 #~ msgid " not in range "
 #~ msgstr " inte inom intervallet "

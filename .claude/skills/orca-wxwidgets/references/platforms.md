@@ -372,7 +372,9 @@ form a chain of parents. Window icons come from the `.desktop` file. The full li
   `references/mouse-keyboard-focus.md`;
 - GL blending must keep destination alpha at 1 (d8369e5f75);
 - GL post-init must retry until the surface is committed (d2c24fdabb) →
-  `references/webview-gl-aui-media.md`.
+  `references/webview-gl-aui-media.md`;
+- a shown GTK tooltip is the topmost `xdg_popup`, so it must be hidden before a popup maps
+  (`PopupWindow::Show`) → `references/popups-menus.md` §9.
 
 ### XWayland (GTK3 X11 backend inside a Wayland session)
 
@@ -409,7 +411,8 @@ start there when looking for prior art. The sites below are exemplars, cited by 
   (`focus_left_popup(...)`) instead of hit-testing `wxGetMousePosition()`.
 - `PopupWindow::Create`: on GTK it binds the top-level `wxEVT_ACTIVATE` to `topWindowActiavate` →
   `DismissAndNotify()`, gated by the virtual `ShouldDismissOnTopWindowDeactivate()`, which `DropDown`
-  overrides for Wayland popup chains. On `__WXOSX__` with `wxPU_CONTAINS_CONTROLS`,
+  overrides for Wayland popup chains. `PopupWindow::Show` (GTK) hides visible GTK tooltips before mapping
+  on Wayland. On `__WXOSX__` with `wxPU_CONTAINS_CONTROLS`,
   `PopupWindow::OnMouseEvent2` hit-tests children, re-dispatches mouse events and synthesises
   enter/leave.
 - `SidePopup::Popup` (`Widgets/SideMenuPopup.cpp`): on `__APPLE__` the menu is anchored flush against
@@ -569,12 +572,19 @@ on the **first** call. So:
 #endif
 ```
 
-**Before GTK starts**, only the environment exists. `CLI::run` (`src/OrcaSlicer.cpp`) branches on
-`GDK_BACKEND` (an `x11` prefix means the X11 opt-in). On the default path it forces `GDK_BACKEND=x11`
-when wx lacks EGL and `WAYLAND_DISPLAY` is set. It sets `WEBKIT_DISABLE_COMPOSITING_MODE=1`
-(non-replacing) only when both `DISPLAY` and `WAYLAND_DISPLAY` are set, and calls `XInitThreads()`
+**Before GTK starts**, only the environment exists. `CLI::run` (`src/OrcaSlicer.cpp`) sets the NVIDIA
+DMABUF workaround and then branches on `GDK_BACKEND` (an `x11` prefix means the X11 opt-in). On both
+paths, when `/proc/driver/nvidia/version` exists and the linked WebKitGTK honours the switch (>= 2.44,
+`WebView::SupportsForceSharedMemory()`), it sets `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` and
+`WEBKIT_FORCE_DMABUF_RENDERER=1` (non-replacing): the proprietary driver cannot back WebKit's hardware
+DMABUF renderer. On a hypervisor guest (`/proc/cpuinfo` `hypervisor` flag) and WebKitGTK >= 2.44 it sets
+`WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` alone, since virtual GPUs cannot back the hardware path either. On the default path it forces `GDK_BACKEND=x11` when wx lacks EGL and `WAYLAND_DISPLAY`
+is set, and sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` (non-replacing) inside that branch when the linked
+WebKitGTK is older than 2.42: a forced X11 backend in a Wayland session is the only default-path case
+that runs through XWayland, which `DISPLAY` and `WAYLAND_DISPLAY` alone do not tell you (a native
+Wayland app inherits both). It calls `XInitThreads()`
 only when `DISPLAY` is set. With neither variable set, the GUI refuses to start ("Neither DISPLAY nor
-WAYLAND_DISPLAY set"). The details and the WebKit rule (c12912e0df) are in
+WAYLAND_DISPLAY set"). The details and the WebKit rules (c12912e0df) are in
 `references/webview-gl-aui-media.md` §WebKitGTK on Linux sessions.
 
 **wx's own detectors**, for reference:
@@ -626,7 +636,7 @@ headers. Rows marked [source] or "protocol" come from the implementation or from
 | `wxBitmap(const wxCursor&)` | creates an invalid bitmap | `interface/wx/bitmap.h:393-395` | — |
 | OpenGL | only EGL; `PreferGLX()` has no effect. Without EGL in the build, wxGTK's `wxGLCanvas` shows a fatal message and refuses to work [source: `src/gtk/glcanvas.cpp` `IsAvailable`]. The EGL surface is a subsurface over the canvas, ready only after map and a frame callback [source: `src/unix/glegl.cpp`] | `interface/wx/glcanvas.h:1094-1095` | `CLI::run` forces X11 when wx lacks EGL; overlays are drawn in GL/ImGui, never as wx children over the canvas → `references/webview-gl-aui-media.md` |
 | AUI | the doc note "live resize is always used … for wxOSX and wxGTK3 when using Wayland" is obsolete: "As of wxWidgets 3.3.0 this function always returns false", and `wxAUI_MGR_LIVE_RESIZE` is in the default flags. Floating panes need global positions | `interface/wx/aui/framemanager.h:336-345` | `Plater::priv::priv` clears `wxAUI_MGR_ALLOW_FLOATING`; `sanitize_window_layout_for_wayland` strips floating state from the saved layout → `references/webview-gl-aui-media.md` §wxAuiManager |
-| Popups | a GTK popup is an `xdg_popup` only for COMBO/DROPDOWN/POPUP_MENU hints, so wx creates popups with `GDK_WINDOW_TYPE_HINT_COMBO` [source]. A chained popup's parent must be the mapped popup, and mapping it with a grab deactivates the toplevel (Orca's comments in `DropDown::mouseMove`, `DropDown::ShouldDismissOnTopWindowDeactivate`) | `src/gtk/popupwin.cpp:110-114` | `DropDown` transient-for chain, `ShouldDismissOnTopWindowDeactivate` → `references/popups-menus.md` |
+| Popups | a GTK popup is an `xdg_popup` only for COMBO/DROPDOWN/POPUP_MENU hints, so wx creates popups with `GDK_WINDOW_TYPE_HINT_COMBO` [source]. A chained popup's parent must be the mapped popup, and mapping it with a grab deactivates the toplevel (Orca's comments in `DropDown::mouseMove`, `DropDown::ShouldDismissOnTopWindowDeactivate`). A GTK tooltip of a widget in a shown popup maps as that popup's grabbing child and deactivates the toplevel the same way | `src/gtk/popupwin.cpp:110-114` | `DropDown` transient-for chain, `ShouldDismissOnTopWindowDeactivate`, the tooltip check in `PopupWindow::topWindowActiavate` → `references/popups-menus.md` |
 | Fractional scale | arrives as an integer GDK scale | `docs/doxygen/overviews/high_dpi.md:348-351` | → `references/dpi-bitmaps-fonts.md` |
 | Window decorations | some desktop environments draw a title bar on undecorated windows anyway | — | [Undecorated windows](#wayland-undecorated-top-level-windows-splash) |
 | `wxWebViewChromium` | X11 only | `interface/wx/webview_chromium.h:133-146` | not built (`wxUSE_WEBVIEW_CHROMIUM` OFF) |

@@ -156,12 +156,16 @@ function SetCloudMode( bOn )
 
 	m_CloudMode=bOn;
 	$("body").toggleClass("cloud-mode", bOn);
+
+	if( bOn )
+	{
+		$(".BtnItem").removeClass("BtnItemSelected");
+		$(".BtnShortcut").addClass("BtnItemSelected");
+	}
 }
 
 function GotoCloud()
 {
-	$(".BtnItem").removeClass("BtnItemSelected");
-	$(".BtnShortcut").addClass("BtnItemSelected");
 	SetCloudMode(true);
 	SendSimpleCommand("homepage_open_cloud");
 }

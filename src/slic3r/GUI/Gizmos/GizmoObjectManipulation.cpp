@@ -748,11 +748,17 @@ void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &
 void GizmoObjectManipulation::reset_align_state()
 {
     m_hovered_align_type = GLGizmoAlignment::AlignType::NONE;
-    m_align_to_parent    = !m_alignment_helper.can_align(GLGizmoAlignment::AlignType::X_MIN);
+    m_can_align_within   = m_alignment_helper.can_align(GLGizmoAlignment::AlignType::X_MIN);
+    m_align_to_parent    = !m_can_align_within;
 }
 
 void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit)
 {
+    float scale = m_glcanvas.get_scale();
+#ifdef WIN32
+    scale *= (float)get_dpi_for_window(wxGetApp().GetTopWindow()) / (float)DPI_DEFAULT;
+#endif // WIN32
+
     // BBS: GUI refactor: move gizmo to the right
     if (abs(last_move_input_window_width) > 0.01f) {
         if (x + last_move_input_window_width > m_glcanvas.get_canvas_size().get_width()) {
@@ -824,7 +830,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     // Rotation
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
     // Four align buttons sit under each axis' input, a space before the next axis, so the inputs widen to hold them.
-    const float align_icon_size   = 16.f * m_glcanvas.get_scale(); // ORCA use 16px icons
+    const float align_icon_size   = 16.f * scale;
     const float align_button_size = align_icon_size + 2.f * style.FramePadding.x;  // ORCA
     if (show_align) {
         unit_size = std::max(unit_size, 3.f * align_button_size);
@@ -852,11 +858,12 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
         combox_changed = true;
     }
+    ImGuiWrapper::pop_combo_style();
+    // After pop_combo_style(): its light popup background would hide the tooltip's white text.
     if (ImGui::IsItemHovered()) {
         auto tooltip_str = _L("Coordinate system used for transform actions.");
         imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
     }
-    ImGuiWrapper::pop_combo_style();
 
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
@@ -918,7 +925,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
 
-    // Align and distribute along the world axes, within the selection or to the object or plate holding it.
+    // Align and distribute along the coordinate system of the panel, within the selection or to the object or plate holding it.
     using AlignType                = GLGizmoAlignment::AlignType;
     const bool old_align_to_parent = m_align_to_parent;
     AlignType  hovered_align_type  = AlignType::NONE;
@@ -926,6 +933,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+        m_alignment_helper.set_object_cs(is_instance_coordinates());
 
         // Each row is row_height tall, separated by ItemSpacing.y. Every control is centered vertically in its row.
         const float       row_y         = ImGui::GetCursorPosY();
@@ -948,7 +956,13 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             _u8L("Selection"),
             m_alignment_helper.is_parts_selection(true) ? _u8L("Object") : _u8L("Plate")
         };
-        if (!m_alignment_helper.can_align(AlignType::X_MIN)) {
+        // Selecting enough items to align within them makes that the default, as when the tool opens.
+        const bool can_align_within = m_alignment_helper.can_align(AlignType::X_MIN);
+        if (can_align_within != m_can_align_within) {
+            m_can_align_within = can_align_within;
+            m_align_to_parent  = !can_align_within;
+        }
+        if (!can_align_within) {
             align_modes.erase(align_modes.begin());
             m_align_to_parent = true;
         }
@@ -959,11 +973,12 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         if (render_combo(imgui_wrapper, "", align_modes, align_mode_idx, 0, coord_combo_width))
             m_align_to_parent = align_mode_idx + 1 == align_modes.size();
         ImGui::PopID();
+        ImGuiWrapper::pop_combo_style();
+        // After pop_combo_style(): its light popup background would hide the tooltip's white text.
         if (ImGui::IsItemHovered()) {
             wxString tooltip_str = _L("Reference for alignment");
             imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
         }
-        ImGuiWrapper::pop_combo_style();
 
         const bool dark_mode    = wxGetApp().dark_mode();
         int        current_axis = -1;
@@ -1372,11 +1387,12 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
         combox_changed = true;
     }
+    ImGuiWrapper::pop_combo_style();
+    // After pop_combo_style(): its light popup background would hide the tooltip's white text.
     if (ImGui::IsItemHovered()) {
         auto tooltip_str = _L("Coordinate system used for transform actions.");
         imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
     }
-    ImGuiWrapper::pop_combo_style();
 
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;

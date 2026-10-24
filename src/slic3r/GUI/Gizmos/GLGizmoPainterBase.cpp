@@ -115,6 +115,11 @@ Vec3f GLGizmoPainterBase::get_tilt_up_direction() const
 
 void GLGizmoPainterBase::render_triangles(const Selection& selection, const ModelVolume* skip) const
 {
+    render_triangles(selection, skip == nullptr ? std::vector<const ModelVolume*>{} : std::vector<const ModelVolume*>{skip});
+}
+
+void GLGizmoPainterBase::render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const
+{
     auto* shader = wxGetApp().get_shader("mm_gouraud");
     if (!shader)
         return;
@@ -135,7 +140,7 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const Mode
             continue;
 
         ++mesh_id;
-        if (mv == skip)
+        if (std::find(skip.begin(), skip.end(), mv) != skip.end())
             continue;
 
         Transform3d trafo_matrix;

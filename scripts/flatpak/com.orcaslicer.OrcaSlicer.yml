@@ -226,10 +226,10 @@ modules:
         sha256: f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
         dest: external-packages/OpenVDB
 
-      # GMP 6.2.1
+      # GMP 6.3.0
       - type: file
-        url: https://github.com/SoftFever/OrcaSlicer_deps/releases/download/gmp-6.2.1/gmp-6.2.1.tar.bz2
-        sha256: eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a36b4d7c
+        url: https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+        sha256: a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
         dest: external-packages/GMP
 
       # MPFR 4.2.2
@@ -336,10 +336,10 @@ modules:
         sha256: 3d22d46c566b1761a0e15ea397589b3a5f36ac09b7c785382e6470156c04247f
         dest: external-packages/PNG
 
-      # libjpeg-turbo 3.0.1
+      # libjpeg-turbo 3.2.0
       - type: file
-        url: https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.0.1.zip
-        sha256: d6d99e693366bc03897677650e8b2dfa76b5d6c54e2c9e70c03f0af821b0a52f
+        url: https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.2.0.zip
+        sha256: 1b4c2cb6cba1ca5e53b9e85eeeab02154cab4b70894c96e97a9c747a26d19d63
         dest: external-packages/JPEG
 
       # Freetype 2.12.1

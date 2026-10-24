@@ -2,6 +2,7 @@
 #include "GeneratedConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "PluginAuditManager.hpp"
+#include "PythonPluginBridge.hpp"
 #include <atomic>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -584,6 +585,19 @@ bool PythonInterpreter::initialize()
         }
         BOOST_LOG_TRIVIAL(debug) << "Program name set successfully";
 
+        // Keep bytecode out of the Python home. The shipped .pyc files are stale against their
+        // sources, so a writable install would rewrite them inside the app (breaking a signed
+        // macOS bundle's seal) and a read-only one would recompile them on every launch.
+        const std::string pycache_prefix = data_dir() + "/python/pycache";
+#ifdef _WIN32
+        status = PyConfig_SetString(&config, &config.pycache_prefix, boost::nowide::widen(pycache_prefix).c_str());
+#else
+        status = PyConfig_SetBytesString(&config, &config.pycache_prefix, pycache_prefix.c_str());
+#endif
+        if (PyStatus_Exception(status))
+            BOOST_LOG_TRIVIAL(warning) << "Failed to set the Python bytecode cache to " << pycache_prefix << ": "
+                                       << (status.err_msg ? status.err_msg : "unknown error");
+
         // Use pybind11's scoped_interpreter which properly initializes
         // pybind11 internals for multi-threaded use — raw Py_InitializeFromConfig
         // does not set up thread state tracking that pybind11 requires.
@@ -650,6 +664,11 @@ bool PythonInterpreter::initialize()
         // Persist Python stderr (plugin tracebacks, including uncaught
         // background-thread exceptions) to <data_dir>/log/python_*.log.
         install_python_stderr_redirect();
+
+        // Attribute plugin-spawned Python threads to the plugin/capability that created them.
+        // Must run while the GIL is still held here, after the audit hook is in place and
+        // before the GIL is released below.
+        install_python_thread_audit_shim();
 
         // Release the GIL so other threads can acquire it via PyGILState_Ensure.
         // Without this, calls from background threads will block trying to acquire the GIL.

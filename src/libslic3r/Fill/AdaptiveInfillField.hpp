@@ -21,7 +21,7 @@ namespace Slic3r {
 // lobe, 1 at its surface. Lobes are parts of a body separated by a neck, like two spheres united. In the 2D modes,
 // every section normal to the axis has its own bodies and lobes, and distances are measured within the section. The
 // modes following the distance to the surface use the depth of every point instead; Distance warp also the lobes.
-class TpmsRadialField
+class AdaptiveInfillField
 {
 public:
     struct Slice
@@ -39,7 +39,7 @@ public:
     };
 
     // Slices sorted by z, in the XY coordinates of the fill and the print Z.
-    TpmsRadialField(const std::vector<Slice> &slices, const BoundingBox &bbox, TpmsAdaptiveMode mode,
+    AdaptiveInfillField(const std::vector<Slice> &slices, const BoundingBox &bbox, AdaptiveInfillMode mode,
                     const std::function<void()> &throw_if_canceled);
 
     // Lobes blended near the sides between them, from a body or from each of the two sections around a point.
@@ -56,7 +56,7 @@ public:
 
     // Axis normal to the sections in the 2D modes, -1 in the modes graded in 3D.
     int              axis() const { return m_axis; }
-    TpmsAdaptiveMode mode() const { return m_mode; }
+    AdaptiveInfillMode mode() const { return m_mode; }
 
     // In the modes following the distance to the surface: depth relative to the deepest point of the body, from 0 at
     // the surface to 1.
@@ -91,7 +91,7 @@ private:
     static constexpr int Polar   = 24;
     static constexpr int Azimuth = 48;
 
-    TpmsAdaptiveMode  m_mode;
+    AdaptiveInfillMode  m_mode;
     int               m_axis;
     Vec3d             m_origin;
     double            m_cell;
@@ -106,9 +106,9 @@ private:
     std::vector<float> m_depth;
 };
 
-using TpmsRadialFieldPtr = std::unique_ptr<TpmsRadialField>;
+using AdaptiveInfillFieldPtr = std::unique_ptr<AdaptiveInfillField>;
 // A field for every adaptive mode in use, indexed by the mode.
-using TpmsRadialFields = std::array<TpmsRadialFieldPtr, size_t(TpmsAdaptiveMode::Count)>;
+using AdaptiveInfillFields = std::array<AdaptiveInfillFieldPtr, size_t(AdaptiveInfillMode::Count)>;
 
 struct AdaptiveTpms
 {
@@ -117,14 +117,14 @@ struct AdaptiveTpms
     // Pattern frequencies at the surface and at the center, in radians per mm.
     double               surface_frequency;
     double               interior_frequency;
-    TpmsAdaptiveGradient gradient;
+    AdaptiveInfillGradient gradient;
 };
 
 // Infill lines in the fill frame, the object frame rotated by -angle; z is the print_z of the layer.
-Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const TpmsRadialField &field, BoundingBox bbox,
+Polylines make_adaptive_tpms(const AdaptiveTpms &tpms, const AdaptiveInfillField &field, BoundingBox bbox,
                              coordf_t z, coordf_t layer_height, coordf_t spacing, float angle);
 
-struct TpmsShell
+struct AdaptiveInfillShell
 {
     float      density;
     ExPolygons expolygons;
@@ -132,12 +132,12 @@ struct TpmsShell
 
 // Stepped shells: the parts of an expolygon in the object frame at each density, from the surface inwards; z is the
 // middle of the layer.
-std::vector<TpmsShell> make_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z,
-                                        float surface_density, float interior_density, TpmsAdaptiveGradient gradient);
+std::vector<AdaptiveInfillShell> make_adaptive_infill_shells(const AdaptiveInfillField &field, const ExPolygon &expolygon, coordf_t z,
+                                        float surface_density, float interior_density, AdaptiveInfillGradient gradient);
 
 // Stepped shells: fills every shell with fill_shell at its density, each shrunk by half a line like a filled region,
 // so the lines connected along the boundaries of two shells don't overlap.
-void fill_tpms_shells(const TpmsRadialField &field, const ExPolygon &expolygon, coordf_t z, const FillParams &params, coordf_t spacing,
+void fill_adaptive_infill_shells(const AdaptiveInfillField &field, const ExPolygon &expolygon, coordf_t z, const FillParams &params, coordf_t spacing,
                       const std::function<void(const FillParams &, const ExPolygon &)> &fill_shell);
 
 } // namespace Slic3r

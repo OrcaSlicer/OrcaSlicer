@@ -22,10 +22,10 @@
 #include <boost/any.hpp>
 #include "I18N.hpp"
 
-#include <wx/colourdata.h>
+#include <wx/colour.h>
 #include <wx/spinctrl.h>
 #include <wx/bmpcbox.h>
-#include <wx/clrpicker.h>
+#include <optional>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"
@@ -610,41 +610,27 @@ private:
 };
 
 class ColourPicker : public Field {
-	using Field::Field;
-
-    void            set_undef_value(wxColourPickerCtrl* field);
-    void            draw_bmp_btn(wxColourPickerCtrl* field, wxColour color);
 public:
 	ColourPicker(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id) {}
 	ColourPicker(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(parent, opt, id) {}
-	~ColourPicker() {}
 
 	wxWindow*		window{ nullptr };
 	void			BUILD()  override;
-
-	void			set_value(const std::string& value, bool change_event = false) {
-		m_disable_change_event = !change_event;
-		dynamic_cast<wxColourPickerCtrl*>(window)->SetColour(value);
-		m_disable_change_event = false;
-	 	}
+	void			set_value(const std::string& value, bool change_event = false);
 	void			set_value(const boost::any& value, bool change_event = false) override;
 	boost::any&		get_value() override;
     void            msw_rescale() override;
     void            sys_color_changed() override;
-
-    void			enable() override { dynamic_cast<wxColourPickerCtrl*>(window)->Enable(); }
-    void			disable() override{ dynamic_cast<wxColourPickerCtrl*>(window)->Disable(); }
+    void			enable() override { if (window) window->Enable(); }
+    void			disable() override{ if (window) window->Disable(); }
 	wxWindow*		getWindow() override { return window; }
 
 private:
-    void convert_to_picker_widget(wxColourPickerCtrl *widget);
-    void on_button_click(wxCommandEvent &WXUNUSED(ev));
-    void save_colors_to_config();
-private:
-#if !defined(__linux__) && !defined(__LINUX__)
-    wxColourData*  m_clrData{nullptr};
-    wxColourPickerWidget* m_picker_widget{nullptr};
-#endif
+    // An absent result is cancellation; transparent color is the undefined field.
+    void apply_user_color(const std::optional<wxColour>& color);
+    void draw_bmp_btn();
+    void on_button_click(wxCommandEvent& event);
+    wxColour m_colour = wxTransparentColour;
 };
 
 class PointCtrl : public Field {

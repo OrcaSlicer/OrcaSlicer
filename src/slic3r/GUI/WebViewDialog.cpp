@@ -537,7 +537,7 @@ void WebViewPanel::cloud_signed_out(const wxString& signout_url)
     }
 }
 
-void WebViewPanel::set_cloud_mode(bool on, const wxString& url)
+void WebViewPanel::set_cloud_mode(bool on, const wxString& url, const wxString& page_url)
 {
     if (on) {
         // load_cloud_url records the origin from whatever it loads, including the plain cloud
@@ -546,6 +546,10 @@ void WebViewPanel::set_cloud_mode(bool on, const wxString& url)
             create_cloud_browser();
             m_cloud_seed_url = url;
             schedule_cloud_load(url.empty() ? wxString(kCloudUrl) : url);
+        } else if (!page_url.empty()) {
+            // The pane already holds a session, so an explicit page loads straight in; the handoff is
+            // only needed to establish one, not to reach an ordinary page.
+            load_cloud_url(page_url);
         } else if (!url.empty() && url != m_cloud_seed_url) {
             // Re-seed only when the Start URL actually changed — a login, an account switch or a
             // sign-out changes it; an ordinary re-open does not (guide §8). Reloading an unchanged
@@ -556,6 +560,10 @@ void WebViewPanel::set_cloud_mode(bool on, const wxString& url)
             load_cloud_after_signout(url);
         }
         m_cloud_browser->Show();
+        // The homepage shell owns the nav highlight and the cloud-mode layout class. A native open
+        // (not the page's own GotoCloud) must ask it to switch; the page's SetCloudMode no-ops if it
+        // already did. OnDocumentLoaded re-applies this when the homepage was still loading.
+        RunScript("SetCloudMode(true)");
     } else if (m_cloud_browser) {
         // Closing keeps the pane alive with its session, so re-opening does not have to sign in
         // again (guide §10). Nothing is cleared here.
@@ -824,7 +832,7 @@ void WebViewPanel::SendDesignStaffpick(bool on)
 void WebViewPanel::OpenModelDetail(std::string id, NetworkAgent *agent)
 {
     std::string url;
-    if ((agent ? agent->get_model_mall_detail_url(&url, id) : get_model_mall_detail_url(&url, id)) == 0) 
+    if ((agent ? agent->get_model_mall_detail_url(&url, id, wxGetApp().get_printer_cloud_provider()) : get_model_mall_detail_url(&url, id)) == 0)
     {
         if (url.find("?") != std::string::npos) 
         { 

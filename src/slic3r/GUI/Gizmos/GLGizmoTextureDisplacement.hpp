@@ -15,6 +15,7 @@
 #include <array>
 #include <atomic>
 #include "libslic3r/Color.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include <cstddef>
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -69,6 +70,14 @@ public:
                                                          // to the samplers so a ModelUV layer drives
                                                          // the refinement through its own layout.
                                                          const std::vector<Vec2f>                    &model_uv,
+                                                         // `base`'s coordinates -> the frame the bake
+                                                         // samples the texture in, so the refinement
+                                                         // follows the texture the bake will apply.
+                                                         // Only the sampling moves into it: the mesh,
+                                                         // and every length in `params`, stay in
+                                                         // `base`'s own coordinates. Identity samples
+                                                         // there as well.
+                                                         const Transform3d                           &texture_frame,
                                                          const TextureDisplacementPrepareParams      &params,
                                                          const TextureColorSettings                  &color_settings,
                                                          const DisplacementProgressFn                &progress,
@@ -185,6 +194,35 @@ public:
         ColorRGBA                 color;
     };
     std::vector<PreviewColorRun> m_preview_color_runs;
+
+    // The displaced preview of each painted model part *other* than the one owning the layer stack. That
+    // part keeps m_preview_glmodel and m_preview_its, which the paint overlays, the wireframe and the UV
+    // and seam editors are all keyed to; the remaining parts of a multibody object only need their
+    // geometry drawn, so that is all this holds. Built by the same preview job, one entry per part.
+    //
+    // Held behind unique_ptr because GLModel owns GPU buffers and has no move constructor: a vector of
+    // them by value would copy the handles on reallocation and free them twice.
+    struct PartPreview
+    {
+        ObjectID                     volume_id;
+        GLModel                      glmodel;
+        std::vector<PreviewColorRun> color_runs;
+    };
+    std::vector<std::unique_ptr<PartPreview>> m_part_previews;
+    // The part `preview` was built for, or nullptr if it has gone away or had its mesh replaced since -
+    // in which case that part's own volume is drawn instead of a preview that no longer describes it.
+    const ModelVolume *preview_part(const PartPreview &preview) const;
+    // Whether the true-displacement view has anything to draw. Asking m_preview_glmodel alone would
+    // hide the real volumes behind an empty preview whenever only another part is painted.
+    bool has_true_preview() const { return m_preview_glmodel.is_initialized() || !m_part_previews.empty(); }
+    // The preview mesh as it is uploaded: when the run reported a palette entry per triangle, the index
+    // buffer is reordered so that each palette colour becomes one contiguous draw range (returned in
+    // `runs`); otherwise `its` is handed back unchanged and `runs` stays empty. Only the index buffer is
+    // permuted, never the vertices - see PreviewColorRun.
+    static indexed_triangle_set group_preview_by_color(const indexed_triangle_set   &its,
+                                                       const std::vector<uint8_t>   &triangle_color,
+                                                       const std::vector<ColorRGBA> &entry_colors,
+                                                       std::vector<PreviewColorRun> &runs);
     // True if any of the volume's layers would actually colour something: colour turned on, and a
     // texture that has colour to give. What decides whether a palette is captured into a job at all,
     // and so whether the colour criterion and the mmu write ever run.
@@ -258,11 +296,45 @@ private:
     void on_shutdown() override;
     PainterGizmoType get_painter_type() const override;
 
-    // Phase 1 restricts the texture layer list to the first model-part volume of the current
-    // object (the common single-volume case); multi-part objects only get texture layers on
-    // their first part until a later phase. Returns nullptr if there is no model part.
+    // The model part that owns the object's texture layer stack, its options, and the unwrap the UV and
+    // seam editors work on: the first model part of the current object. Those are object-wide settings
+    // kept on one part rather than copied onto all of them. Returns nullptr if there is no model part.
+    //
+    // This is *not* the set of parts a bake acts on - see painted_parts(). Reading the layer stack and
+    // baking are different questions, and answering the second one with this is what made texture
+    // displacement ignore every part of a multibody object but the first.
     ModelVolume*       texture_volume();
     const ModelVolume* texture_volume() const;
+
+    // Every model part of the current object, in the object's own volume order - which is also the
+    // order update_from_model_object() builds m_triangle_selectors in, so index i here is selector i.
+    std::vector<ModelVolume *> texture_parts();
+    // The parts a bake or a preview acts on: those of texture_parts() carrying paint in at least one
+    // slot. Empty when nothing is painted anywhere on the object, which is what the Bake button and its
+    // "nothing is painted" check test.
+    std::vector<ModelVolume *> painted_parts();
+    bool                       any_part_painted() const;
+
+    // The object's layer stack as it applies to `part`. The stack itself lives on texture_volume(), but
+    // four of each layer's fields index *that* part's mesh and the chart ids of *its* unwrap - the LSCM
+    // seam edges, the island placements, their join groups and the per-vertex uv overrides. Carried onto
+    // another part they would address triangles and charts that have nothing to do with it, so they are
+    // dropped and that part unwraps on its own. Everything else - the image, depth, tiling, projection
+    // method, blend mode, colour - applies unchanged, since every part is baked in the one texture frame
+    // anchored at texture_anchor(); that is what lets one stack texture a whole multibody object.
+    std::vector<TextureDisplacementLayer> layers_for_part(const ModelVolume &part) const;
+    // The world point the object's texture is anchored at: texture_volume()'s origin. Every part is
+    // baked and previewed in the frame anchored there (see texture_displacement_bake_frame()), so a
+    // tiled pattern runs on across the parts and a view projection lands where it was aimed on each.
+    Vec3d texture_anchor() const;
+    // For each of `parts`, at the same index: how far the object's lowest point lies below that part's
+    // own, in mm - what its bake lowers its resting plane by, so every part is clamped against the one
+    // plane the object rests on. 0 for the lowest part, and so for a single-part object.
+    std::vector<float> resting_drops(const std::vector<ModelVolume *> &parts);
+    // Where prepare_mesh() samples `part`'s texture: the frame its bake samples in when the object has
+    // several model parts, so they are all refined for one continuous texture. A single-part object
+    // keeps the identity, the frame it has always been refined in.
+    Transform3d prepare_texture_frame(const ModelVolume &part);
 
     void add_texture_layer();
     void remove_texture_layer(int slot);
@@ -310,8 +382,14 @@ private:
     //  - `unchanged_msg`, when not empty, is shown if the run had nothing to do. Standard's Bake passes
     //    nothing: a mesh that already meets the criteria is not an error there, it just goes straight
     //    on to the displacement.
+    //  - `scope` is which of the object's model parts to prepare. Anything feeding a displacement
+    //    prepares exactly the parts that displacement will move; a plain Remesh is a mesh operation on
+    //    the object and takes all of them, so painting the rest of a multibody object afterwards has a
+    //    dense enough mesh to show relief on.
+    enum class PrepareScope { PaintedParts, AllParts };
     void queue_prepare(const TextureDisplacementPrepareParams &params, const std::string &snapshot_name,
-                       bool then_bake, const std::string &unchanged_msg);
+                       bool then_bake, const std::string &unchanged_msg,
+                       PrepareScope scope = PrepareScope::PaintedParts);
     // Set from queue_prepare() until its job's result has been committed. Distinct from
     // m_bake_in_progress because Standard's Bake sets both in turn, and because every button that would
     // read or replace the mesh has to stay disabled for the whole of it.
@@ -351,14 +429,14 @@ private:
     // volume's slot among them, or -1 if it has none (no selection, or the lists disagree).
     int texture_volume_raycaster_index() const;
 
-    // Paints exactly the facets currently visible from the camera onto the active layer, replacing
-    // whatever that layer had painted. "Visible" is two tests: the facet faces the camera, and its
-    // centroid is not hidden behind other geometry (a real raycast, so a concave part's far inner
-    // wall is correctly excluded). When `uv_clip` is given (the projection frame's matrix), facets
-    // whose centroid falls outside the frame's uv unit square are skipped first - which both clips
-    // the selection to the frame and spares the raycast for everything outside it. Costs one ray
-    // query per surviving facet, so it is a one-shot action, never a per-frame one. Returns the
-    // number of facets selected.
+    // Paints exactly the facets currently visible from the camera onto the active layer, on every model
+    // part, replacing whatever that layer had painted on each. "Visible" is two tests: the facet faces
+    // the camera, and its centroid is not hidden behind other geometry of any part (a real raycast, so
+    // a concave part's far inner wall is correctly excluded). When `uv_clip` is given (the projection
+    // frame's matrix), facets whose centroid falls outside the frame's uv unit square are skipped first
+    // - which both clips the selection to the frame and spares the raycast for everything outside it.
+    // Costs one ray query per surviving facet and part, so it is a one-shot action, never a per-frame
+    // one. Returns the number of facets selected.
     int select_visible_faces(const std::array<float, 12> *uv_clip = nullptr);
 
     // When set, "Capture current view" also re-selects the visible faces, so the viewpoint the
@@ -428,6 +506,10 @@ private:
     void render_texture_library_popup(const ImVec2 &panel_min, const ImVec2 &panel_max);
     int  m_picker_slot         = -1;
     bool m_picker_open_request = false;
+    // Set when the popup opens, so the next layout scrolls the layer's current texture into view.
+    bool  m_picker_reveal_selected = false;
+    float m_picker_scroll_target   = 0.f;  // see ease_wheel_scroll()
+    float m_picker_scroll_applied  = -1.f;
     void set_layer_texture(TextureDisplacementLayer &layer, const TextureLibraryEntry &entry);
     void import_custom_texture(TextureDisplacementLayer &layer);
 
@@ -1062,6 +1144,8 @@ private:
 
     // Library textures the picker has shown at least once, keyed by file path (see LibraryTexture).
     std::map<std::string, LibraryTexture> m_library_textures;
+    // Generation of the library the above were cached against; a change clears them.
+    uint64_t                              m_library_generation = 0;
 
     // Everything the *unwrap* depends on. update_uv_editor() runs from rebuild_preview(), i.e. on
     // every stroke end and every slider release - but depth/tiling/rotation/offset/blend change
@@ -1103,12 +1187,15 @@ private:
     // The config key behind m_undocked.
     static constexpr const char *UNDOCKED_CONFIG_KEY = "texture_displacement_panel_undocked";
 
-    // Smooth scrolling for the panel body (everything between the header and the pinned Bake footer).
-    // ImGui jumps a fixed number of lines per wheel notch, which on tall layer cards reads as a hard
-    // jolt rather than a scroll. The wheel is intercepted (ImGuiWindowFlags_NoScrollWithMouse) and
-    // moves a *target* offset instead; the real scroll is eased toward it over the following frames.
+    // Smooth scrolling for a child window, called inside it: the panel body (everything between the header
+    // and the pinned Bake footer) and the texture library's grid. ImGui jumps a fixed number of lines per
+    // wheel notch, which on tall layer cards reads as a hard jolt rather than a scroll. The child sets
+    // ImGuiWindowFlags_NoScrollWithMouse, and the wheel moves `target` instead; the real scroll is eased
+    // toward it over the following frames. `applied` is what the easing wrote last frame, <0 until the
+    // first one.
+    void  ease_wheel_scroll(float &target, float &applied);
     float m_panel_scroll_target  = 0.f;
-    float m_panel_scroll_applied = -1.f; // what the easing wrote last frame; <0 until the first one
+    float m_panel_scroll_applied = -1.f;
     // Last frame's body content height and footer height. The body is a child window that has to be
     // given its height before its content is laid out, so it is sized from the previous frame: as tall
     // as its content, capped so the footer still fits above the bottom of the canvas.

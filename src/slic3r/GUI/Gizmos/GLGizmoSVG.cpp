@@ -1350,7 +1350,7 @@ void GLGizmoSVG::draw_window()
     assert(m_volume_id.valid());
     if (m_volume == nullptr ||
         m_volume_id.invalid()) {
-        ImGui::Text("%s", _u8L("Not valid state please report reproduction steps on github").c_str());
+        ImGui::Text("%s", _u8L("Not valid state please report reproduction steps on GitHub").c_str());
         return;
     }
 
@@ -1362,13 +1362,13 @@ void GLGizmoSVG::draw_window()
 
     assert(m_volume->emboss_shape->svg_file.has_value());
     if (!m_volume->emboss_shape->svg_file.has_value()){
-        ImGui::Text("%s", _u8L("Missing svg file in embossed shape").c_str());
+        ImGui::Text("%s", _u8L("Missing SVG file in embossed shape").c_str());
         return;
     }
 
     assert(m_volume->emboss_shape->svg_file->file_data != nullptr);
     if (m_volume->emboss_shape->svg_file->file_data == nullptr){
-        ImGui::Text("%s", _u8L("Missing data of svg file").c_str());
+        ImGui::Text("%s", _u8L("Missing data of SVG file").c_str());
         return;
     }
 

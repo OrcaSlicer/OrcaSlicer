@@ -26,6 +26,7 @@ orcaslicer_add_cmake_project(OpenCV
     URL https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
     URL_HASH SHA256=1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
     PATCH_COMMAND git apply ${OpenCV_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-vs.patch  ${CMAKE_CURRENT_LIST_DIR}/0002-clang19-macos.patch
+    DEPENDS ${JPEG_PKG}
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=0
        -DBUILD_PERE_TESTS=OFF
@@ -34,7 +35,8 @@ orcaslicer_add_cmake_project(OpenCV
        -DBUILD_EXAMPLES=OFF
        -DBUILD_JASPER=OFF
        -DBUILD_JAVA=OFF
-       -DBUILD_JPEG=ON
+       # Share Orca's libjpeg to avoid conflicting codec symbols in the application.
+       -DBUILD_JPEG=OFF
        -DBUILD_APPS_LIST=version
        -DBUILD_opencv_apps=OFF
        -DBUILD_opencv_java=OFF
@@ -67,7 +69,8 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_OPENJPEG=OFF
        -DWITH_QUIRC=OFF
        -DWITH_VTK=OFF
-       -DWITH_JPEG=OFF
+       # Textured GLB/OBJ imports decode embedded and external JPEGs with cv::imdecode.
+       -DWITH_JPEG=ON
        -DWITH_WEBP=OFF
        -DWITH_TIFF=OFF
        -DBUILD_TIFF=OFF

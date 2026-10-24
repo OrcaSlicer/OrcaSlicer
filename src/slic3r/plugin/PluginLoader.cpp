@@ -9,6 +9,7 @@
 #include "PluginFsUtils.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
+#include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -385,6 +386,37 @@ bool load(const PluginDescriptor&                          descriptor,
                             << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
                             << "': has_config_ui() failed (" << ex.what() << "); falling back to the default JSON editor";
                         instance->set_config_ui_available(false);
+                    }
+
+                    // ResourceTexture capabilities resolve their texture directory here, under the
+                    // GIL this block already holds, and cache the validated result. A resolution
+                    // fault only costs this capability its textures, so it is caught locally like
+                    // has_config_ui() above rather than failing the load.
+                    if (auto* resource_texture = dynamic_cast<ResourceTexturePluginCapability*>(instance.get())) {
+                        try {
+                            const std::string texture_dir = resource_texture->get_texture_dir();
+                            if (texture_dir.empty()) {
+                                resource_texture->set_texture_dir({});
+                            } else {
+                                std::string texture_error;
+                                collect_resource_texture_files(texture_dir, descriptor.plugin_root, texture_error);
+                                if (texture_error.empty()) {
+                                    resource_texture->set_texture_dir(texture_dir);
+                                } else {
+                                    BOOST_LOG_TRIVIAL(warning)
+                                        << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                                        << "': texture directory rejected (" << texture_error
+                                        << "); the capability will provide no textures";
+                                    resource_texture->set_texture_dir({});
+                                }
+                            }
+                        } catch (const std::exception& ex) {
+                            BOOST_LOG_TRIVIAL(warning)
+                                << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
+                                << "': get_texture_dir() failed (" << ex.what()
+                                << "); the capability will provide no textures";
+                            resource_texture->set_texture_dir({});
+                        }
                     }
 
                     capabilities.push_back(std::move(instance));
