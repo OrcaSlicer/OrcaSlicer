@@ -23,6 +23,7 @@
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
+#include <wx/dialog.h>
 #include <wx/statbox.h>
 #include <wx/statline.h>
 #include <wx/stattext.h>
@@ -460,6 +461,36 @@ void SlotPickPopup::PopupBelow(wxWindow* anchor)
         if (!IsShown())
             Popup();
     });
+}
+
+SlotPickDialog::SlotPickDialog(wxWindow* parent, const std::vector<SlotGridSlot>& slots, size_t extruder_count, int current)
+    : wxDialog(parent, wxID_ANY, _L("Pick the printer's filament"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
+{
+    SetBackgroundColour(*wxWHITE);
+    wxGetApp().UpdateDlgDarkUI(this);
+    SlotGridOptions opts;
+    opts.pick_mode             = true;
+    opts.show_extruder_row     = true;
+    opts.show_extruder_on_tile = true;
+    auto* grid = new SlotGridPanel(this, opts);
+    grid->SetOnSlotClicked([this](size_t i) {
+        m_picked = (int) i;
+        EndModal(wxID_OK);
+    });
+    grid->SetSlots(slots, extruder_count);
+    // Start filtered on the current pick's extruder.
+    if (current >= 0 && (size_t) current < slots.size() && slots[current].extruder >= 0)
+        grid->SelectExtruder(slots[current].extruder);
+    auto* hint = new wxStaticText(this, wxID_ANY,
+                                  _L("Click an extruder to see its slots, then a slot. Two filaments on one extruder are swapped and purged during the print."));
+    hint->SetFont(::Label::Body_12);
+    hint->Wrap(FromDIP(420));
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+    sizer->Add(hint, 0, wxALL, FromDIP(12));
+    sizer->Add(grid, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(12));
+    SetSizerAndFit(sizer);
+    SetEscapeId(wxID_CANCEL);
+    CenterOnParent();
 }
 
 } // namespace GUI

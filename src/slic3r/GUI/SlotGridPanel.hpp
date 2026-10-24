@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include <wx/dialog.h>
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -86,7 +87,7 @@ std::vector<SlotGridSlot> slot_grid_rows(const FilamentInventory& inv, const Pre
 // "#RRGGBB" or "#RRGGBBAA"; `fallback` when empty or malformed.
 wxColour colour_or(const std::string& hex, const wxColour& fallback);
 
-// Slot picker for the sync dialog on a toolchanger.
+// Slot picker without an extruder row (single-extruder changers and the sync dialog).
 class SlotPickPopup : public PopupWindow
 {
 public:
@@ -98,6 +99,17 @@ public:
 private:
     SlotGridPanel*              m_grid{nullptr};
     std::function<void(size_t)> m_on_pick;
+};
+
+// Slot picker with the extruder row, for multi-extruder changers. Picked() is -1 when cancelled.
+class SlotPickDialog : public wxDialog
+{
+public:
+    SlotPickDialog(wxWindow* parent, const std::vector<SlotGridSlot>& slots, size_t extruder_count, int current);
+    int Picked() const { return m_picked; }
+
+private:
+    int m_picked{-1};
 };
 
 } // namespace GUI
