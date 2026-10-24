@@ -49,6 +49,10 @@
 #endif
 #include <imgui/imgui_internal.h>
 
+#ifdef __APPLE__
+#include "MacIME.hpp"
+#endif
+
 #include "libslic3r/libslic3r.h"
 #include <libslic3r/ClipperUtils.hpp>
 #include "libslic3r/Utils.hpp"
@@ -612,6 +616,11 @@ void ImGuiWrapper::new_frame()
 
 ImDrawData* ImGuiWrapper::end_frame()
 {
+#ifdef __APPLE__
+    // io.ImeWindowHandle is the focused canvas' view (GLCanvas3D::on_set_focus()).
+    if (void* view = ImGui::GetIO().ImeWindowHandle)
+        mac_ime_set_active(view, ImGui::GetIO().WantTextInput);
+#endif
     ImGui::Render();
     m_new_frame_open = false;
     return ImGui::GetDrawData();
@@ -3221,6 +3230,14 @@ void ImGuiWrapper::init_input()
 
     // Don't let imgui special-case Mac, wxWidgets already do that
     io.ConfigMacOSXBehaviors = false;
+
+#ifdef __APPLE__
+    // Places the input method's candidate window at the text cursor.
+    io.ImeSetInputScreenPosFn = [](int x, int y) {
+        if (void* view = ImGui::GetIO().ImeWindowHandle)
+            mac_ime_set_caret(view, x, y, int(ImGui::GetFontSize()));
+    };
+#endif
 
     // Setup clipboard interaction callbacks
     io.SetClipboardTextFn = clipboard_set;

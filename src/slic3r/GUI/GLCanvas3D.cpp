@@ -120,6 +120,10 @@
 #include "slic3r/Utils/RetinaHelper.hpp"
 #endif
 
+#ifdef __APPLE__
+#include "MacIME.hpp"
+#endif
+
 #include <glad/gl.h>
 
 #include <wx/glcanvas.h>
@@ -3906,6 +3910,13 @@ void GLCanvas3D::bind_event_handlers()
                     finish_selection_edit();
                 release_held_modifiers();
                 wxGetApp().imgui()->forget_key_claims();
+#ifdef __APPLE__
+                // ImGuiWrapper stops updating the view once it is no longer the IME target.
+                if (ImGui::GetIO().ImeWindowHandle == m_canvas->GetHandle()) {
+                    mac_ime_set_active(m_canvas->GetHandle(), false);
+                    ImGui::GetIO().ImeWindowHandle = nullptr;
+                }
+#endif
                 ImGui::SetWindowFocus(nullptr);
                 render();
                 evt.Skip();
@@ -4348,6 +4359,12 @@ void GLCanvas3D::release_held_modifiers()
 
 void GLCanvas3D::on_key(wxKeyEvent& evt)
 {
+#ifdef __APPLE__
+    // A key the input method used for a composition must not also edit the text field: Esc would revert
+    // it, Backspace delete a character, Enter add a line.
+    if (evt.GetEventType() == wxEVT_KEY_DOWN && mac_ime_owns_key(m_canvas->GetHandle()))
+        return;
+#endif
 
     auto       imgui         = wxGetApp().imgui();
     const int  keyCode       = evt.GetKeyCode();
@@ -5518,6 +5535,10 @@ void GLCanvas3D::force_set_focus() {
 
 void GLCanvas3D::on_set_focus(wxFocusEvent& evt)
 {
+#ifdef __APPLE__
+    // The focused canvas is the one whose view takes input-method text (see ImGuiWrapper::end_frame()).
+    ImGui::GetIO().ImeWindowHandle = m_canvas->GetHandle();
+#endif
     m_tooltip_enabled = false;
     _refresh_if_shown_on_screen();
     m_tooltip_enabled = true;
