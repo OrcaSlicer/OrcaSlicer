@@ -243,6 +243,8 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         }
         if (m_tree_overlay_on)
             m_tree_overlay.render(imgui, m_canvas->get_scale(), m_sidebar_on ? left : 0.f, std::max(top, 0.f) + 34.f * em * ((m_ribbon_on || m_topbar_on) ? 0.f : 1.f));
+        m_canvas->set_navigator_left_inset(m_sidebar_on ? m_sidebar.drawn_width() : 0.f);   // the navigator's left corners start past the panel,
+        m_canvas->set_navigator_top_inset(std::max(top, 0.f));                               // and its top ones below the ribbon
         render_select_panel(std::max(top, 0.f) + (m_topbar_on ? 8.f : 34.f) * em);
     };
 
@@ -1314,7 +1316,10 @@ void DesignCanvas::render_select_panel(float top)
     const DesignSketchTool::PickFilter f0 = f;
     const bool cycle0 = cycle;
     ImGuiWrapper::push_common_window_style(m_canvas->get_scale());
-    imgui.set_next_window_pos(ds.x - 12.f * em, top + 8.f * em, ImGuiCond_FirstUseEver, 1.f, 0.f);
+    // At the top-right the navigator takes the corner, and the panel stands below it.
+    const bool  under_nav = m_canvas->navigator_right() && !m_canvas->navigator_bottom();
+    imgui.set_next_window_pos(ds.x - 12.f * em, top + 8.f * em + (under_nav ? m_canvas->navigator_height() : 0.f),
+                              under_nav ? ImGuiCond_Always : ImGuiCond_FirstUseEver, 1.f, 0.f);
     imgui.begin(_u8L("Select") + "##design_select",
                 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
     auto box = [&](const std::string& label, bool& v) {
@@ -1380,7 +1385,9 @@ void DesignCanvas::render_hud()
              std::max(ds.x * 0.6f - left, 120.f * em), m_status_hud_colour.IsOk() ? &col : nullptr);
     }
     if (!m_hud_last.empty())
-        chip("##design_readout", m_hud_last, ds.x - margin, 1.f, 0.f, &ImGuiWrapper::COL_ORCA);
+        chip("##design_readout", m_hud_last,
+             ds.x - margin - (m_canvas->navigator_right() && m_canvas->navigator_bottom() ? m_canvas->navigator_width() : 0.f),
+             1.f, 0.f, &ImGuiWrapper::COL_ORCA);
 }
 
 void DesignCanvas::set_highlight_faces(const std::vector<std::pair<int, int>>& faces)
