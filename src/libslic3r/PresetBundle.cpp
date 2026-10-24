@@ -5573,7 +5573,13 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     std::vector<int> filament_volume_maps(num_filaments, (int)nvtStandard);
 
     ConfigOptionInts* filament_volume_map_opt = out.option<ConfigOptionInts>("filament_volume_map");
-    if (filament_maps_new.has_value())
+    // The printer routes logical tools itself, so force the same identity map normalize_fdm_1 uses.
+    if (device_resolves_filament_mapping(out)) {
+        const std::vector<int> extruder_of_filament = non_bbl_identity_filament_extruder_map(out, num_filaments);
+        filament_maps.resize(num_filaments);
+        for (size_t i = 0; i < num_filaments; ++i)
+            filament_maps[i] = extruder_of_filament[i] + 1;
+    } else if (filament_maps_new.has_value())
         filament_maps = *filament_maps_new;
     if (filament_volume_maps_new.has_value()) {
         filament_volume_maps = *filament_volume_maps_new;

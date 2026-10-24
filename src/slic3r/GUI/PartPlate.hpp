@@ -1132,7 +1132,9 @@ public:
     * if with_gcode = true and specify plate_idx, export plate_idx gcode only
     */
     int store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool with_slice_info = true, int plate_idx = -1, bool with_statistics = false);
-    int load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count = 1);
+    // nozzle_count < 0 uses the active printer preset's extruder count. Project 3mf loads must pass
+    // the loaded project's count, since its printer preset is applied after this returns.
+    int load_from_3mf_structure(PlateDataPtrs& plate_data_list, int filament_count = 1, int nozzle_count = -1);
     //load gcode files
     int load_gcode_files();
 
