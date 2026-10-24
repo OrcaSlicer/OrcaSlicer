@@ -414,6 +414,24 @@ TEST_CASE("Explicit default flow keeps a separate print region", "[Flow][Regress
     CHECK(print.objects()[0]->printing_region(0).config() == print.objects()[1]->printing_region(0).config());
 }
 
+TEST_CASE("Explicit default flow shares the region config until a filament overrides it", "[Flow][Regression]")
+{
+    // The explicit value equals the inherited one, so it only matters once a filament override exists.
+    auto config = multifilament_config(1, {{"top_solid_infill_flow_ratio", "1"}});
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = {
+        {}, {{"top_solid_infill_flow_ratio", "1"}}
+    };
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{cube(4), cube(4)}, print, model, config, &overrides);
+    REQUIRE(print.objects().size() == 2);
+    CHECK(print.objects()[0]->printing_region(0).config() == print.objects()[1]->printing_region(0).config());
+    config.set_deserialize_strict("filament_top_solid_infill_flow_ratio", "0.8");
+    print.apply(model, config);
+    REQUIRE(print.objects().size() == 2);
+    CHECK(print.objects()[0]->printing_region(0).config() != print.objects()[1]->printing_region(0).config());
+}
+
 
 TEST_CASE("Each object brim honors its local flow override", "[Flow][Regression]")
 {
