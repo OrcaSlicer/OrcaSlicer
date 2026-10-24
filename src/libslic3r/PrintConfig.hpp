@@ -2776,6 +2776,10 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
 
+// True when the printer's loaded filaments are worth viewing and editing: one filament per nozzle
+// (>= 2 nozzles, not single_extruder_multi_material), or reported_changer names a filament changer.
+bool printer_has_viewable_filaments(const ConfigBase& printer_config, const std::string& reported_changer);
+
 // True when the project's filaments are decoupled from the printer's tools: enable_filament_mapping
 // on a non-Bambu printer with one filament per nozzle (>= 2 nozzles, not
 // single_extruder_multi_material).

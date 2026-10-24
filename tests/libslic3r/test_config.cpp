@@ -2128,3 +2128,20 @@ TEST_CASE("Filaments are decoupled from tools on a multi-tool printer unless it 
         CHECK_FALSE(decouples_filaments_from_tools(config));
     }
 }
+
+TEST_CASE("A printer has viewable filaments with one per nozzle or a reported changer", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+    CHECK_FALSE(printer_has_viewable_filaments(config, ""));     // plain single-nozzle printer
+    CHECK(printer_has_viewable_filaments(config, "afc"));
+    CHECK(printer_has_viewable_filaments(config, "happy_hare"));
+
+    // A multi-head toolchanger such as the Snapmaker U1 qualifies on its own nozzles.
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+    CHECK(printer_has_viewable_filaments(config, ""));
+
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+    CHECK_FALSE(printer_has_viewable_filaments(config, ""));     // nozzles share one hotend
+    CHECK(printer_has_viewable_filaments(config, "afc"));
+}
