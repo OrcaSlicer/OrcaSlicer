@@ -2373,8 +2373,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             ++object_idx;
         }
 
-        const ConfigOptionStrings* filament_ids_opt = config.option<ConfigOptionStrings>("filament_settings_id");
-        int max_filament_id = filament_ids_opt ? filament_ids_opt->size() : std::numeric_limits<int>::max();
+        // Either array may be missing or left at its single-entry default; use the longer one.
+        int max_filament_id = 0;
+        for (const char* key : { "filament_colour", "filament_settings_id" })
+            if (const ConfigOptionStrings* opt = config.option<ConfigOptionStrings>(key); opt != nullptr)
+                max_filament_id = std::max(max_filament_id, (int) opt->size());
+        if (max_filament_id == 0)
+            max_filament_id = std::numeric_limits<int>::max();
         for (ModelObject* mo : m_model->objects) {
             const ConfigOptionInt* extruder_opt = dynamic_cast<const ConfigOptionInt*>(mo->config.option("extruder"));
             int extruder_id = 0;

@@ -5766,6 +5766,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
         recalc_filament_scroll_sizes();
         update_mixed_filament_list();
         update_dynamic_filament_list();
+        // Orca: the count is unchanged but the presets/colors behind it may not be (e.g. printer
+        // reselect), and nothing else refreshes the combos in that case.
+        if (device_resolves_filament_mapping(wxGetApp().preset_bundle->printers.get_edited_preset().config))
+            for (PlaterPresetComboBox *choice : choices)
+                choice->update();
         return;
     }
 
@@ -6614,7 +6619,8 @@ bool Sidebar::should_show_SEMM_buttons()
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
+    // Also for device-owned protocols: the filament list can still outgrow the tool count.
+    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor || device_resolves_filament_mapping(cfg);
 }
 
 // Orca: the changer the live printer reports, else the one recorded by an earlier sync.
