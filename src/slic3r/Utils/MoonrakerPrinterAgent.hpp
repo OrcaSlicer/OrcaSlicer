@@ -70,6 +70,7 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl) override;
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
@@ -137,6 +138,10 @@ protected:
     virtual bool accepts_3mf() const;
     void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
     void stop_status_stream();
+
+    // Rebuilds device_info from the MachineObject when dev_id was never bound via
+    // bind_device_connection(). No-op if already current.
+    bool ensure_device_info(const std::string& dev_id);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;

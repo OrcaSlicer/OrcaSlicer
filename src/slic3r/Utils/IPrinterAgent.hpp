@@ -477,6 +477,11 @@ public:
      * Only meaningful when get_camera_stream_mode() returns an HTTP, HTTPS, or RTSP mode.
      */
     virtual std::string get_camera_url() const { return {}; }
+
+    // Points REST calls at a printer without opening connect_printer()'s status stream. Returns
+    // true once dev_id is addressable (already bound counts).
+    virtual bool bind_device_connection(const std::string& dev_id, const std::string& address,
+                                        const std::string& access_code, bool use_ssl) { return false; }
 };
 
 } // namespace Slic3r

@@ -193,6 +193,7 @@ public:
     std::string get_local_camera_stream_url() const;
     std::string to_orca_filament_id(const std::string& printer_filament_id) const;
     std::string from_orca_filament_id(const std::string& orca_filament_id) const;
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl);
     int request_bind_ticket(std::string* ticket);
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback);
 
