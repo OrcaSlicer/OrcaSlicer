@@ -274,34 +274,25 @@ void PresetComboBox::update_selection()
 
 void PresetComboBox::update_source_arrow()
 {
-    if (!wxGetApp().app_config->get_bool("show_preset_source_indicators") || !m_collection || m_last_selected < 0 || m_last_selected >= static_cast<int>(GetCount())) {
-        this->SetIcon("drop_down");
-        return;
-    }
-
-    std::string preset_name = GetItemAlias(m_last_selected).ToUTF8().data();
-    if (preset_name.empty())
-        preset_name = GetString(m_last_selected).ToUTF8().data();
-    preset_name = Preset::remove_suffix_modified(preset_name);
-
-    const Preset* preset = m_collection->find_preset(preset_name);
-
-    if (!preset && m_type == Preset::TYPE_PRINTER) {
-        for (const Preset& p : m_collection->get_presets()) {
-            if (p.config.has("printer_model") && p.config.opt_string("printer_model") == preset_name) {
-                preset = &p;
-                break;
-            }
+    std::string icon = "drop_down";
+    if (wxGetApp().app_config->get_bool("show_preset_source_indicators") && m_last_selected >= 0 && m_last_selected < int(GetCount())) {
+        const Marker  marker = reinterpret_cast<Marker>(GetClientData(m_last_selected));
+        const Preset* preset = nullptr;
+        if (marker == LABEL_ITEM_PHYSICAL_PRINTER) {
+            // A physical printer item stands for the printer preset selected in the collection.
+            if (m_collection->get_selected_idx() != size_t(-1))
+                preset = &m_collection->get_selected_preset();
+        } else if (marker != LABEL_ITEM_PRINTER_MODELS) {
+            const wxString alias = GetItemAlias(m_last_selected);
+            preset = m_collection->find_preset(Preset::remove_suffix_modified(into_u8(alias.empty() ? GetString(m_last_selected) : alias)));
         }
+        // Printer model items in the plater combo are listed only for system presets.
+        if (marker == LABEL_ITEM_PRINTER_MODELS || (preset && (preset->is_system || preset->is_default)))
+            icon = "drop_down_indicator_system";
+        else if (preset) // bundle presets are shown as user presets
+            icon = preset->is_project_embedded ? "drop_down_indicator_project" : "drop_down_indicator_user";
     }
-
-    if (!preset && m_collection->get_selected_idx() != size_t(-1) && m_collection->get_selected_idx() < m_collection->get_presets().size()) {
-        preset = &m_collection->get_selected_preset();
-    }
-
-    this->SetIcon(!preset ? "drop_down" :
-        "drop_down_indicator_" + std::string((preset->is_default || preset->is_system) ? "system" :
-                                             preset->is_project_embedded               ? "project" : "user"));
+    SetIcon(icon);
 }
 
 int PresetComboBox::update_ams_color()

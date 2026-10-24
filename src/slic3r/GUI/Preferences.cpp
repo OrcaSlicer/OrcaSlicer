@@ -5,6 +5,8 @@
 #include "MainFrame.hpp"
 #include "WebViewDialog.hpp"
 #include "Plater.hpp"
+#include "PresetComboBoxes.hpp"
+#include "Tab.hpp"
 #include "GLCanvas3D.hpp" // ORCA: for live preview refresh when toggling "Dim lower layers"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
@@ -1177,12 +1179,15 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         }
 
         if (param == "show_preset_source_indicators") {
+            // Only rebuild the combos; update_presets() would also reload presets and relayout the sidebar.
+            for (Tab* tab : wxGetApp().tabs_list)
+                tab->update_tab_ui();
             if (Plater* plater = wxGetApp().plater()) {
                 Sidebar& sidebar = plater->sidebar();
-                for (Preset::Type type : {Preset::TYPE_PRINTER, Preset::TYPE_FILAMENT, Preset::TYPE_PRINT}) {
-                    sidebar.update_presets(type);
-                }
-                sidebar.Refresh(true);
+                if (PlaterPresetComboBox* combo = sidebar.printer_combox())
+                    combo->update();
+                for (PlaterPresetComboBox* combo : sidebar.combos_filament())
+                    combo->update();
             }
         }
 
@@ -1783,7 +1788,7 @@ void PreferencesDialog::create_items()
     auto item_remember_printer = create_item_checkbox(_L("Remember printer configuration"), _L("If enabled, Orca will remember and switch filament/process configuration for each printer automatically."), "remember_printer_config");
     g_sizer->Add(item_remember_printer);
 
-    auto item_show_preset_source = create_item_checkbox(_L("Show preset source indicators"), _L("Show a colored dot on preset icons to differentiate between System, User, and Project profiles."), "show_preset_source_indicators");
+    auto item_show_preset_source = create_item_checkbox(_L("Show preset source indicators"), _L("Color the dropdown arrow of preset lists to show whether the selected preset is a System, User, or Project preset."), "show_preset_source_indicators");
     g_sizer->Add(item_show_preset_source);
 
     auto item_filament_preset_grouping = create_item_combobox(_L("Group user filament presets"), _L("Group user filament presets based on selection"),
