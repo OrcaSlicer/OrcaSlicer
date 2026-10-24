@@ -19,8 +19,11 @@
 #include "libslic3r/Color.hpp"
 #include <math.h>
 #include <vector>
+#include <set>
 #include <string>
+#include <map>
 #include <utility>
+#include <algorithm>
 
 class wxPoint;
 
@@ -156,7 +159,52 @@ public:
     // whole-body pick that the armed capture then rejects. The host turns this off for as long
     // as a pick is armed.
     void set_escalate_on_repick(bool on) { m_escalate_repick = on; }
+
+    // SELECT filter: which kinds a click or hover may take. A filtered-out kind is skipped, not
+    // refused: with Vertex off, the pointer at a corner takes the edge (or the face) under it.
+    struct PickFilter { bool face{true}, edge{true}, vertex{true}; };
+    void              set_pick_filter(const PickFilter& f) { m_pick_filter = f; }
+    const PickFilter& pick_filter() const { return m_pick_filter; }
+    // Click mode. false (default): re-clicking the same thing escalates to the whole body. true:
+    // re-clicking within a few pixels steps through every candidate under the pointer, nearest first.
+    void set_click_cycle(bool on) { m_click_cycle = on; }
+    bool click_cycle() const { return m_click_cycle; }
+    // Everything a click at (mx,my) could take, nearest first, at most 20: the first entry is what a
+    // plain click takes, the rest are the faces behind it. Read-only; the Select Other list and the
+    // click-cycling both come from here.
+    struct PickCandidate { int kind{0}; int body{-1}, face{-1}, edge{-1}; };   // kind: SolidSel as int
+    std::vector<PickCandidate> pick_candidates(GLCanvas3D& canvas, int mx, int my) const;
+
+    // Select Other. A press held ~0.5 s without moving more than 4 px asks for the list (take_hold, polled
+    // by the canvas each frame); the press is then consumed, so its release is no click.
+    bool pick_waiting() const { return m_pick_pending; }
+    // Type-first length: with a line's first point down and the pointer elsewhere, a typed digit completes the segment
+    // at the pointer and opens its Length field with that character already in it. False when nothing is pending.
+    // A digit typed with the first point of a shape down completes the shape at the cursor and types into its first value field
+    // (a line: the length; a rectangle: the width; a circle: the radius ...), then the rest of its fields follow.
+    bool begin_typed_length(char c);
+    std::function<void(const std::string&)> on_inline_seed;
+    // Double-click on a picked body edge: extend the selection over the edges that continue it tangentially
+    // (within 2 degrees) — the whole smooth loop. False when the edge has no tangent neighbour.
+    bool select_tangent_loop();
+    int  solid_sel_kind() const { return int(m_solid_sel); }   // SolidSel as int: 0 none, 1 whole, 2 face, 3 edge, 4 vertex
+    bool take_hold(int& x, int& y);
+    std::vector<std::string> open_other(GLCanvas3D& canvas, int x, int y);   // fills the list, returns its row labels
+    void hover_other(int i);    // preview row i (-1 clears)
+    void choose_other(int i);   // take row i
     bool constrain_value_anchor(wxPoint& out) const; // screen anchor over the picked constrain geometry
+
+    // 3D sketch (slices 8b input + 8c snapping): click points in space. The cursor rides a virtual
+    // plane through the last point whose normal is the chosen world axis (Tab cycles X/Y/Z), and
+    // snaps to body vertices, edge midpoints and circle centres within a screen-px tolerance.
+    void begin_sketch3d(const Vec3d& start, std::vector<Vec3d> snap_targets);
+    void end_sketch3d() { m_s3_active = false; m_s3_pts.clear(); m_s3_targets.clear(); }
+    bool sketch3d_active() const { return m_s3_active; }
+    // Tab / Enter / Backspace / Esc / S. True when the key was consumed.
+    bool sketch3d_key(int key);
+    std::function<void(const std::vector<Vec3d>&, bool smooth)> on_sketch3d_done;
+    std::function<void()>                                       on_sketch3d_cancel;
+    std::function<void(int axis, int npoints, bool smooth)>     on_sketch3d_state;
 
     void begin(const SketchPlane& plane, Mode mode = Mode::Polyline);
     // Re-open a committed entity sketch for full in-canvas editing: load its entities +
@@ -174,6 +222,11 @@ public:
     bool add_imported_regions(const std::vector<std::vector<std::vector<Vec2d>>>& regions);
     void set_tool(Mode mode);                 // switch tool, keep accumulated entities
     void set_construction(bool c) { m_construction = c; }
+    // Face push/pull: the extrude arrow may be dragged past the face into the body (negative depth).
+    void set_extrude_signed(bool on) { m_ex_signed = on; }
+    // Grid snap: draw tools land on multiples of `step` (mm) in sketch (u,v). Inference snaps and
+    // Shift (the existing "no snapping" modifier) take priority over it.
+    void set_grid_snap(bool on, double step) { m_grid_on = on; m_grid_step = step; }
     void set_polygon_sides(int n) { m_polygon_sides = (n < 3 ? 3 : n); }
     void set_polygon_circumscribed(bool c) { m_polygon_circumscribed = c; }
     void finish();                            // emit accumulated entities, end session
@@ -210,7 +263,7 @@ public:
                                       || (m_solid_bodies != nullptr && !m_solid_bodies->empty())
                                       || !m_datum_planes.empty()
                                       || m_show_planes || m_show_axes
-                                      || m_ex_active || m_mv_active || m_fl_active
+                                      || m_s3_active || m_ex_active || m_mv_active || m_fl_active
                                       || m_hl_active || m_th_active || m_sh_active
                                       || m_dr_active || m_ct_active || m_dz_active || m_dbp_active || m_hx_active || m_rb_active; }
 
@@ -304,6 +357,7 @@ public:
     // Entities forming the currently click-selected loop (for a per-loop extrude); empty
     // if no loop is selected.
     std::vector<SketchEntity> selected_loop_entities() const;
+    std::vector<std::vector<SketchEntity>> selected_loop_groups() const;   // one per Ctrl-picked region
     // Per closed loop, the indices into `ents` that form it (for hiding already-extruded
     // loops from the committed-sketch overlay).
     std::vector<std::vector<int>> region_entity_indices(const std::vector<SketchEntity>& ents) const;
@@ -311,12 +365,12 @@ public:
     // holes, in that order — the exact list a per-loop extrude of a region WITH holes stores
     // (see selected_loop_entities()). Needed to match a consumed loop against its source sketch.
     std::vector<std::vector<int>> region_entity_indices_with_holes(const std::vector<SketchEntity>& ents) const;
-    void clear_display_pick() { m_display_pick = -1; m_display_pick_region = -1; }
+    void clear_display_pick() { m_display_pick = -1; m_display_pick_region = -1; m_display_pick_extra.clear(); }
     // Adopt a loop pick the tool did not make itself. The live-sketch path resolves the region
     // BEFORE the sketch is committed, so once finish_sketch() has turned it into a display
     // sketch there is nothing left that would set this — and selected_loop_entities(), which is
     // what Extrude consumes, reads exactly these two fields.
-    void set_display_pick(int feature, int region) { m_display_pick = feature; m_display_pick_region = region; }
+    void set_display_pick(int feature, int region) { m_display_pick = feature; m_display_pick_region = region; m_display_pick_extra.clear(); }
     int  display_pick() const { return m_display_pick; }
     int  display_pick_region() const { return m_display_pick_region; }
 
@@ -370,6 +424,7 @@ public:
                        std::vector<std::string> labels = {});
     void clear_base_pick();
     std::function<void(int base)> on_datum_base_picked;
+    std::function<void(int base)> on_datum_base_activated;   // double-click on a reference/datum plane: sketch on it
     // The base drawn as selected, or -1. Asked once a frame rather than set, because what decides it
     // (the panel's chosen sketch plane, a picked face, the Plane card's base) changes in many places.
     std::function<int()> selected_base;
@@ -580,13 +635,18 @@ public:
     int  dof()      const { return m_dof; }
     bool solve_ok() const { return m_solve_ok; }
     // Append entities exactly as a finished gesture does. Returns the index of the first one.
-    int  add_entities_scripted(const std::vector<SketchEntity>& ents);
+    // infer=false skips the exact-relation inference (coincident joints, axis-aligned H/V), so a caller that states its
+    // own constraints is not rejected as redundant against ones the add would have made.
+    int  add_entities_scripted(const std::vector<SketchEntity>& ents, bool infer = true);
     // Replace the selection with these entity indices (out-of-range ones are ignored).
     bool select_indices(const std::vector<int>& idx);
     // Append candidates, live-solve, and roll back the batch if it turns the system
     // inconsistent. Returns true when the batch was kept. Public so the panel's live-constraint
     // path can commit a plan through the SAME append→solve→keep-or-rollback the gestures use.
     bool try_add_constraints(const std::vector<SketchEntityConstraintDef>& cands);
+    // The end of a point drag: a point let go on another point, a midpoint, a curve or the origin is placed exactly there and gets the
+    // relation (coincident, midpoint, on object) so it stays through later edits. Shift / Ctrl / Alt bypass it, as for drawing.
+    void snap_dragged_point(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& at);
     // Click-to-delete on a constraint badge: drop the constraint whose glyph sits under `p`
     // and re-solve. Returns true if one was removed (the caller then repaints).
     bool remove_constraint_near(const Vec2d& p);
@@ -741,6 +801,7 @@ private:
     // of {0,30,45,60,90} deg (replicated every 90 deg) when within tolerance, keeping
     // the same length. Sets `locked` when a snap was applied. Suppressed by m_snap_off.
     Vec2d snap_dir(const Vec2d& anchor, const Vec2d& raw, bool& locked) const;
+    void  draw_guide_line();   // highlights the line the rubber band is parallel/perpendicular to
     // Snap a placed point onto the nearest existing entity endpoint within ~8 px so
     // chains join across entities (a line + an arc can close into one loop). Shift
     // disables it. `snapped` reports whether a vertex was hit.
@@ -872,6 +933,7 @@ private:
     void open_primary_autoedit();
     // Compact "current values" string for the bottom-right HUD (see on_readout).
     std::string build_readout() const;
+    std::string guide_tag() const;      // what the cursor is locked onto: "//", "T" (perpendicular), "End", "Mid", "On", "Ctr", "Origin"; "" when free
     // Open a characteristic live quote as a TENTATIVE driving dimension: the constraint is
     // appended only if the user commits a value (Enter); cancel (Esc) adds nothing — so
     // drawing never silently over-constrains. (place_dimension is the eager Select-mode twin.)
@@ -941,6 +1003,14 @@ private:
     // a Coincident) are one dimension, so they replace each other instead of stacking.
     int upsert_dimension_constraint(const SketchEntityConstraintDef& c);
     int  place_dimension(DimAnnot a);                                       // create+drive+notify
+public:
+    void set_dim_exprs(std::map<int, std::pair<std::string, double>> e) { m_dim_exprs = std::move(e); }
+    bool dim_names() const { return m_dim_names; }
+    void toggle_dim_names() { m_dim_names = !m_dim_names; }
+    bool has_dim_exprs() const { return !m_dim_exprs.empty(); }
+    // The members of `known` named by the expressions of the dimensions that touch the hovered entity.
+    std::set<std::string> hover_variable_names(const std::set<std::string>& known) const;
+private:
     std::string dim_text(const DimAnnot& a) const;                          // rendered label string
     void render_dimensions(double unit_per_px);                            // quote lines + labels
     // Draw ONE dimension's quote (extension/dimension lines, arrowheads, label) and
@@ -1079,10 +1149,22 @@ private:
     bool                m_polygon_circumscribed{false};
     Vec2d               m_cursor{0,0};
     bool                m_has_cursor{false};
+    mutable Vec2d       m_pre_grid{0, 0};       // the cursor as snap_vertex received it, before the grid moved it
+    mutable int         m_guide_kind{0};         // 1 parallel, 2 perpendicular (with m_guide_ent)
+    mutable int         m_guide_ent{-1};        // the line the rubber band is parallel/perpendicular to (-1: none)
+    bool                m_infer_off{false};     // Ctrl/Alt held -> no snapping and no auto-constraints
     bool                m_snap_off{false};      // Shift held -> suppress angle snapping
+    bool                m_grid_on{false};
+    bool                m_ex_signed{false};     // extrude gizmo depth may be negative (face push/pull)
+    double              m_grid_step{1.0};
     InferenceSnap       m_cursor_snap;          // last cursor inference target (for hint render)
     bool                m_cursor_locked{false}; // rubber-band segment is angle-locked
+    // Press-drag-release drawing for the two-point shapes: a press that places the first point and is released
+    // elsewhere (> 6 px away) places the second, so the shape can be drawn click-click or in one drag.
+    GLCanvas3D*         m_last_canvas{nullptr};   // the canvas of the last mouse event: a typed digit completes a shape through the same path as a click
+    int                 m_dr_n{-1}, m_dr_x{0}, m_dr_y{0};   // points held when the press landed (-1: no press), and where
     bool                m_awaiting_length{false}; // inline value editor open -> freeze canvas
+    bool                m_typed_line{false};      // a length was typed on a free line: its field opens
     int                 m_autoedit_seen{-1};      // entity count baseline for draw-then-edit
     bool                m_autoedit_pending{false};// a new entity just committed -> open editor
     // Draw-then-edit step queue: every characteristic dimension of the freshly-drawn shape
@@ -1123,6 +1205,8 @@ private:
     Handle                m_drag_handle;           // the handle being dragged
     bool                  m_has_hover_handle{false};// cursor is near a handle (highlight it)
     Handle                m_hover_handle;          // the hovered handle (recomputed on move)
+    int                   m_hover_ent{-1};         // entity under the cursor (handle or segment), or -1
+    int                   m_hover_dim{-1};         // dimension label under the cursor, or -1
     std::vector<DimAnnot> m_live_quotes;           // live non-driving characteristic quotes,
                                                    // clickable to promote to driving dims
     Vec2d                 m_live_poly_side_label{0,0};  // polygon side-length quote label
@@ -1156,6 +1240,13 @@ private:
         size_t after_entities{0};           size_t after_constraints{0};
     };
     std::vector<SketchSnap> m_sketch_redo;
+    // Drag = ONE undo step. The state before each completed point/handle drag; undo restores it when nothing was
+    // added or removed since (the entity/constraint counts still match), ahead of removing the last entity.
+    std::vector<SketchSnap> m_drag_hist;
+    SketchSnap              m_drag_pre;
+    bool                    m_drag_pre_valid{false};
+    void drag_begin_snapshot();
+    void drag_end_commit();
     int    m_skipped_last{0};       // constraints the last solve could not apply (reported on change)
     double m_chain_dup_tol{1e-9};   // plane units ~3 px at the last chain click (double-click repeat)
     int                   m_open_feature{-1};      // index of the Feature being built, or -1
@@ -1234,12 +1325,22 @@ private:
     int               m_dof{-1};          // remaining DoF; 0 = fully constrained, <0 = unknown
     bool              m_solve_ok{true};   // solver consistent (no conflicting constraints)
     std::vector<char> m_entity_conflict;  // per-entity flag: touched by a conflicting constraint
+    // Per-entity "still has a free DoF" (sketch_entity_free), recomputed only when the entity list
+    // or constraint set changes — a drag frame keeps both, so it reuses this. Empty = unknown, the
+    // renderer then falls back to the sketch-wide DoF.
+    std::vector<char> m_entity_free;
+    size_t            m_entity_free_key{0};
+    void              refresh_entity_free();
     std::vector<DimAnnot> m_dimensions;           // placed dimension quotes (Mode::Dimension)
     std::vector<int>      m_bad_dims;             // dims whose driving constraint the solver rejected
     int                 m_dim_e0{-1};             // first picked point's entity (Dimension)
     SketchPointRole     m_dim_r0{SketchPointRole::P0};
     bool                m_dim_has0{false};        // a first point is pending
     int                 m_pending_dim{-1};        // dim awaiting a value-card entry
+    // The expressions bound to the dimensions of the sketch being edited (m_constraints index -> expression, and the value it
+    // had when loaded: a dimension whose value has moved on since is no longer that expression's, and shows its number).
+    std::map<int, std::pair<std::string, double>> m_dim_exprs;
+    bool                m_dim_names{false};       // label a bound dimension with its expression instead of its value (per session)
     Mode                m_mode{Mode::Polyline};
     int                 m_sel_a{-1};   // picked segment endpoints (legacy Constrain mode)
     int                 m_sel_b{-1};
@@ -1319,6 +1420,14 @@ private:
         Vec3d              vertex_pt{Vec3d::Zero()};
     };
     bool resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, SolidPick& out) const;
+    std::vector<SolidPick> candidate_picks(GLCanvas3D& canvas, int mx, int my) const;
+    std::vector<SolidPick> m_other;                       // the rows of the Select Other list
+    long long  m_pick_press_ms{0};
+    int        m_pick_cur_x{0}, m_pick_cur_y{0};          // last pointer position while the press is down
+    PickFilter m_pick_filter;
+    bool       m_click_cycle{false};
+    int        m_cyc_x{0}, m_cyc_y{0}, m_cyc_i{0}, m_cyc_n{0};   // click-cycling: where, which, of how many
+    size_t     m_cyc_sig{0};                                     // model signature: a rebuild restarts the cycle
     // HOVER PRE-HIGHLIGHT (9xw part 3). Vertex-beats-edge-beats-face is a rule the user
     // cannot see until after they commit to a click; showing the outcome under the pointer is
     // what makes the precedence learnable at all, and is the charter's L5 (one click, one visible
@@ -1380,6 +1489,16 @@ private:
     GLModel m_body_edges_model;
     GLModel m_solid_vertex_model;
     int m_display_pick_region{-1}; // selected closed-region index within that feature (-1 none)
+    // Ctrl+click adds more regions of the SAME sketch (the Onshape multi-profile pick). The primary
+    // above is the latest click; these are the earlier ones. All of them extrude together.
+    std::vector<int> m_display_pick_extra;
+    bool region_picked(int feature, int region) const {
+        return feature == m_display_pick && region >= 0
+            && (region == m_display_pick_region
+                || std::find(m_display_pick_extra.begin(), m_display_pick_extra.end(), region) != m_display_pick_extra.end());
+    }
+    // Apply a loop click: plain = replace the pick; Ctrl on a region of the same sketch = toggle it.
+    void apply_loop_click(int feature, int region, bool additive);
 
     // Visual Extrude gizmo state (C5b). GUI-only; fed by the panel each refresh_preview.
     bool        m_ex_active{false};
@@ -1451,6 +1570,25 @@ private:
     void render_reference_axes(const Vec3d& origin, double half);
     void render_base_pick();
     int  hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent& evt) const;
+
+    // 3D sketch state.
+    bool               m_s3_active{false};
+    std::vector<Vec3d> m_s3_pts;
+    std::vector<Vec3d> m_s3_targets;
+    Vec3d              m_s3_start{Vec3d::Zero()};   // working plane origin until the first point exists
+    int                m_s3_axis{2};                // working-plane normal: 0 X, 1 Y, 2 Z
+    bool               m_s3_smooth{false};
+    Vec3d              m_s3_cursor{Vec3d::Zero()};
+    bool               m_s3_has_cursor{false};
+    bool               m_s3_snapped{false};
+    int                m_s3_press_x{0}, m_s3_press_y{0};
+    bool               m_s3_pending{false};
+    GLModel            m_s3_model;
+    void   s3_update_cursor(GLCanvas3D& canvas, const wxMouseEvent& evt);
+    void   s3_finish();
+    void   s3_notify() const { if (on_sketch3d_state) on_sketch3d_state(m_s3_axis, int(m_s3_pts.size()), m_s3_smooth); }
+    void   render_sketch3d();
+    void   draw_strokes3d(GLModel& model, const std::vector<std::pair<Vec3d, Vec3d>>& segs, double hw, const ColorRGBA& color);
 
     // Move-body gizmo state: 3 world-axis translate arrows + 3 world-axis rotate rings.
     // Delta model: offset/rot are deltas about a fixed pivot, composed onto m_mv_base_xform

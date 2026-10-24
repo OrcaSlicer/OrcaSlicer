@@ -1,3 +1,4 @@
+#include "slic3r/GUI/CAD/DesignPanel.hpp"   // PhaseLog
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -38,6 +39,7 @@
 #include <math.h>
 #include "libslic3r/CAD/SketchSolver.hpp"
 #include "libslic3r/Line.hpp"
+#include <cctype>
 #include <string>
 #include "libslic3r/CAD/SketchInference.hpp"
 #include <utility>
@@ -58,6 +60,11 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
+#include <wx/event.h>
+#include <wx/time.h>
+#include <wx/timer.h>
+#include <wx/app.h>
+#include <wx/defs.h>
 
 class TopoDS_Shape;
 
@@ -103,6 +110,8 @@ static double ray_axis_proj(const Linef3& ray, const Vec3d& anchor, const Vec3d&
 void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
 {
     m_sketch_redo.clear();
+    m_drag_hist.clear();
+    m_drag_pre_valid = false;
 
     m_plane = plane;
     m_mode = mode;
@@ -128,6 +137,7 @@ void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
     m_dof = -1; m_solve_ok = true; m_entity_conflict.clear();
     m_features.clear();
     m_open_feature = -1;
+    m_dim_exprs.clear();
     m_active = true;
 }
 
@@ -141,6 +151,21 @@ void DesignSketchTool::begin_edit(const std::vector<SketchEntity>& entities,
     begin(plane, Mode::Select);
     m_entities    = entities;
     m_constraints = constraints;
+    // A committed sketch keeps its dimensions as constraints only; give each driving one back its label.
+    m_dimensions.clear();
+    for (int i = 0; i < int(m_constraints.size()); ++i) {
+        const SketchEntityConstraintDef& c = m_constraints[i];
+        DimAnnot a;
+        a.con = i; a.value = c.value; a.ea = c.ea; a.ra = c.ra; a.eb = c.eb; a.rb = c.rb;
+        using T = SketchConstraintType;
+        if (c.type == T::Distance && c.ea == c.eb && c.ra == SketchPointRole::P0 && c.rb == SketchPointRole::P1) a.kind = DimType::Length;
+        else if (c.type == T::Distance || c.type == T::DistanceX || c.type == T::DistanceY)                     a.kind = DimType::Distance;
+        else if (c.type == T::Diameter)                                                                          a.kind = DimType::Diameter;
+        else if (c.type == T::Radius)                                                                            a.kind = DimType::Radius;
+        else if (c.type == T::Angle)                                                                             a.kind = DimType::Angle;
+        else continue;
+        m_dimensions.push_back(a);
+    }
     rebuild_features_from_entities();
     resolve_live();
 }
@@ -345,6 +370,8 @@ void DesignSketchTool::set_tool(Mode mode)
 void DesignSketchTool::cancel()
 {
     m_sketch_redo.clear();
+    m_drag_hist.clear();
+    m_drag_pre_valid = false;
     close_session_chrome();     // same orphaned-field freeze as finish() — see yce
     m_active = false;
     m_step_mode_last = -1;
@@ -493,9 +520,50 @@ bool DesignSketchTool::redo_last_entity()
     return true;
 }
 
+void DesignSketchTool::drag_begin_snapshot()
+{
+    m_drag_pre = SketchSnap{ m_entities, m_constraints, m_features, m_dimensions, m_entities.size(), m_constraints.size() };
+    m_drag_pre_valid = true;
+}
+
+// Called when a drag ends: keep the pre-drag state as one undo step, unless the geometry did not actually move.
+void DesignSketchTool::drag_end_commit()
+{
+    if (!m_drag_pre_valid) return;
+    m_drag_pre_valid = false;
+    bool moved = m_drag_pre.entities.size() != m_entities.size();
+    for (size_t i = 0; !moved && i < m_entities.size(); ++i) {
+        const SketchEntity& a = m_drag_pre.entities[i];
+        const SketchEntity& b = m_entities[i];
+        moved = (a.p0 - b.p0).norm() > 1e-9 || (a.p1 - b.p1).norm() > 1e-9 || (a.center - b.center).norm() > 1e-9 ||
+                std::abs(a.radius - b.radius) > 1e-9 || std::abs(a.start_angle - b.start_angle) > 1e-9 ||
+                std::abs(a.end_angle - b.end_angle) > 1e-9 || a.ctrl.size() != b.ctrl.size();
+    }
+    if (!moved) return;
+    m_drag_hist.push_back(std::move(m_drag_pre));
+    if (m_drag_hist.size() > 64) m_drag_hist.erase(m_drag_hist.begin());
+}
+
 bool DesignSketchTool::undo_last_entity()
 {
-    if (!m_active || m_entities.empty()) return false;
+    if (!m_active) return false;
+    if (!m_drag_hist.empty() && m_drag_hist.back().after_entities == m_entities.size() &&
+        m_drag_hist.back().after_constraints == m_constraints.size()) {
+        if (!can_redo_entity()) m_sketch_redo.clear();
+        SketchSnap now{ m_entities, m_constraints, m_features, m_dimensions, m_entities.size(), m_constraints.size() };
+        SketchSnap s = std::move(m_drag_hist.back());
+        m_drag_hist.pop_back();
+        m_entities = std::move(s.entities); m_constraints = std::move(s.constraints);
+        m_features = std::move(s.features); m_dimensions = std::move(s.dimensions);
+        m_sketch_redo.push_back(std::move(now));
+        m_selection.clear();
+        m_point_sel.clear();
+        reset_autoedit();
+        resolve_live();
+        if (on_selection_changed) on_selection_changed(0);
+        return true;
+    }
+    if (m_entities.empty()) return false;
     if (!can_redo_entity()) m_sketch_redo.clear();   // the sketch moved on since the last undo
     SketchSnap snap{ m_entities, m_constraints, m_features, m_dimensions, 0, 0 };
     const int last = int(m_entities.size()) - 1;
@@ -870,6 +938,21 @@ void DesignSketchTool::resolve_live()
     resolve_live_drag(-1, SketchPointRole::P0);
 }
 
+// ponytail: N+1 solves, only on a topology change; capped so a 500-entity sketch cannot stall an edit.
+void DesignSketchTool::refresh_entity_free()
+{
+    size_t key = std::hash<size_t>()(m_entities.size()) * 31 + m_constraints.size();
+    for (const SketchEntity& e : m_entities) key = key * 131 + size_t(e.type);
+    for (const SketchEntityConstraintDef& c : m_constraints)
+        key = key * 131 + size_t(c.type) * 7 + size_t(c.ea + 2) * 1009 + size_t(c.eb + 2) * 917 + size_t(c.ec + 2) * 31
+              + size_t(c.ra) * 3 + size_t(c.rb);
+    if (key == m_entity_free_key && m_entity_free.size() == m_entities.size()) return;
+    m_entity_free_key = key;
+    constexpr size_t kMaxProbed = 200;
+    if (m_entities.empty() || m_entities.size() > kMaxProbed || !m_solve_ok) { m_entity_free.clear(); return; }
+    m_entity_free = sketch_entity_free(m_entities, m_constraints);
+}
+
 void DesignSketchTool::resolve_live_drag(int dragged_ei, SketchPointRole dragged_role)
 {
     const bool has = !m_constraints.empty();
@@ -893,9 +976,10 @@ void DesignSketchTool::resolve_live_drag(int dragged_ei, SketchPointRole dragged
                                                              : SketchPointRole::P0;
             cons.push_back(fix);
         }
-        const SketchSolveResult r = (dragged_ei >= 0)
+        SketchSolveResult r;
+        { PhaseLog t("sketch.resolve_live solve"); r = (dragged_ei >= 0)
             ? sketch_solve_drag(m_entities, cons, dragged_ei, dragged_role)
-            : sketch_solve(m_entities, cons);
+            : sketch_solve(m_entities, cons); }
         m_dof      = r.dof;
         m_solve_ok = r.ok;
         // Constraints the solver had to leave out (no representation for the part they name)
@@ -926,6 +1010,8 @@ void DesignSketchTool::resolve_live_drag(int dragged_ei, SketchPointRole dragged
         m_dof = -1; m_solve_ok = true;
         m_bad_dims.clear();
     }
+    // The per-entity "still free" probe (N+1 solves) is only drawn, so it runs in render(), once per change of topology:
+    // done here it cost ~30 ms after every constraint a script added.
     if (on_solve_state) on_solve_state(m_dof, m_solve_ok, has);
     announce_loop_defects();
 }
@@ -1069,7 +1155,11 @@ bool DesignSketchTool::update_hover(GLCanvas3D& canvas, wxMouseEvent& evt)
     Handle h;
     m_has_hover_handle = hit_test_handle(p, tol, h);
     if (m_has_hover_handle) m_hover_handle = h;
-    return (had != m_has_hover_handle) ||
+    // What the cursor is on, for the variables panel: a dimension label, else a handle's entity, else a segment.
+    const int prev_ent = m_hover_ent, prev_dim = m_hover_dim;
+    m_hover_dim = hit_test_dimension(p, tol);
+    m_hover_ent = m_has_hover_handle ? h.ei : hit_test(p, tol);
+    return (had != m_has_hover_handle) || prev_ent != m_hover_ent || prev_dim != m_hover_dim ||
            (m_has_hover_handle && (prev.ei != h.ei || prev.role != h.role));
 }
 
@@ -1528,7 +1618,11 @@ void DesignSketchTool::open_next_autoedit_dim()
             if (step.apply) step.apply(v);
             // A refused value brought the same field back (show_refusal): stay on this step.
             if (inline_editor != nullptr && inline_editor->is_open()) return;
-            ++m_autoedit_dim_idx;
+            const int n = int(m_autoedit_dims.size());
+            if (m_autoedit_dim_idx >= 0 && m_autoedit_dim_idx < n) m_autoedit_dims[size_t(m_autoedit_dim_idx)].value = v;   // a field visited again shows what was typed
+            const int dir = inline_editor != nullptr ? inline_editor->last_commit_dir() : 0;
+            if (dir == 0) ++m_autoedit_dim_idx;                                            // Enter: on, and the chain ends after the last
+            else          m_autoedit_dim_idx = (m_autoedit_dim_idx + dir + n) % std::max(n, 1);   // Tab / Shift+Tab: round the fields, wrapping
             wxGetApp().CallAfter([this] { open_next_autoedit_dim(); });
         },
         [this]() { m_autoedit_dim_idx = -1; });   // cancel: keep as drawn, stop the chain
@@ -2404,24 +2498,43 @@ void DesignSketchTool::cancel_dimension_value()
     m_pending_dim = -1;   // keep the placed dimension at its measured value
 }
 
+std::set<std::string> DesignSketchTool::hover_variable_names(const std::set<std::string>& known) const
+{
+    std::set<std::string> out;
+    if (m_dim_exprs.empty()) return out;
+    const int ei = m_hover_ent;
+    const int dk = (m_hover_dim >= 0 && m_hover_dim < int(m_dimensions.size())) ? m_dimensions[m_hover_dim].con : -1;
+    for (const auto& [k, ex] : m_dim_exprs) {
+        if (k < 0 || k >= int(m_constraints.size())) continue;
+        if (k != dk && (ei < 0 || (m_constraints[k].ea != ei && m_constraints[k].eb != ei))) continue;
+        const std::string& s = ex.first;
+        for (size_t i = 0; i < s.size();) {   // identifiers: letter or _ first, then letters, digits, _
+            if (std::isalpha((unsigned char) s[i]) || s[i] == '_') {
+                size_t j = i + 1;
+                while (j < s.size() && (std::isalnum((unsigned char) s[j]) || s[j] == '_')) ++j;
+                const std::string id = s.substr(i, j - i);
+                if (known.count(id)) out.insert(id);
+                i = j;
+            } else if (std::isdigit((unsigned char) s[i])) {   // a number such as 2e3 or 1.5 is not an identifier
+                while (i < s.size() && (std::isalnum((unsigned char) s[i]) || s[i] == '.')) ++i;
+            } else ++i;
+        }
+    }
+    return out;
+}
+
 std::string DesignSketchTool::dim_text(const DimAnnot& a) const
 {
-    char buf[32];
+    if (m_dim_names && a.con >= 0 && a.con < int(m_constraints.size())) {
+        auto it = m_dim_exprs.find(a.con);
+        if (it != m_dim_exprs.end() && std::abs(it->second.second - m_constraints[a.con].value) < 1e-6)
+            return it->second.first;
+    }
     const char* prefix = (a.kind == DimType::Diameter) ? "\xC3\x98"   // 'Ø'
                        : (a.kind == DimType::Radius)   ? "R" : "";
     // Two decimals, trailing zeros dropped: the same precision the HUD readout uses, so a label
-    // and the readout never show the same length two ways.
-    std::snprintf(buf, sizeof(buf), "%.2f", a.value);
-    // Force the international (en) decimal point: wx sets LC_NUMERIC to the user
-    // locale at startup, so snprintf can emit a comma. Normalise it.
-    for (char& ch : buf)
-        if (ch == ',') ch = '.';
-    std::string num(buf);
-    if (num.find('.') != std::string::npos) {
-        while (num.back() == '0') num.pop_back();
-        if (num.back() == '.') num.pop_back();
-    }
-    if (num == "-0") num = "0";
+    // and the readout never show the same length two ways (format_dim_number, locale independent).
+    const std::string num = format_dim_number(a.value, 2);
     // The Design tab models in millimetres whatever the slicer's inch preference says: the
     // kernel, the value fields and the readouts are all mm. The suffix used to follow that
     // preference while the number did not, so an inch user read "25.4 in" for one inch.
@@ -2454,12 +2567,18 @@ void DesignSketchTool::apply_segment_length(double len)
 
 void DesignSketchTool::keep_segment_as_drawn()
 {
+    bool chain = false;
+    Vec2d chain_from = Vec2d::Zero();
     if (m_points.size() == 2) {
         const int base = int(m_entities.size());
         push_line(m_points[0], m_points[1]);  // accrues into the session's entities
         infer_auto_constraints(base);         // auto Coincident at snapped ends + H/V
+        // A free line goes on from where it ended (Esc or a right-click ends the chain), so a polyline is drawn in one run.
+        chain = m_mode == Mode::Line && !m_typed_line && wxGetApp().app_config->get("design_sketch_autodim_line") != "1";
+        chain_from = m_points[1];
     }
     m_points.clear();
+    if (chain) m_points.push_back(chain_from);
     m_has_cursor = false;
     m_awaiting_length = false;
 }
@@ -2557,14 +2676,35 @@ bool DesignSketchTool::snap_chain_start(GLCanvas3D& canvas, const wxMouseEvent& 
     return true;
 }
 
+void DesignSketchTool::draw_guide_line()
+{
+    if (m_guide_ent < 0 || m_guide_ent >= int(m_entities.size()) || !m_cursor_locked) return;
+    const SketchEntity& e = m_entities[size_t(m_guide_ent)];
+    std::vector<Vec2d> seg = { e.p0, e.p1 };
+    draw_quad_strip(m_line_model, seg, false, ColorRGBA(0.95f, 0.30f, 0.85f, 1.0f));
+}
+
 Vec2d DesignSketchTool::snap_dir(const Vec2d& anchor, const Vec2d& raw, bool& locked) const
 {
     locked = false;
+    m_guide_ent = -1;
+    m_guide_kind = 0;
     if (m_snap_off) return raw;
 
     const Vec2d d = raw - anchor;
     const double r = d.norm();
     if (r < 1e-9) return raw;
+
+    // Parallel / perpendicular to a line already in the sketch wins over the fixed-angle table: the relation is
+    // the point of drawing near it, and infer_relations then pins it as a constraint on commit.
+    // Measured on the cursor BEFORE the grid rounded it: a coarse grid would otherwise push the direction out of range.
+    const DirectionGuide g = infer_direction_guide(m_entities, anchor, m_grid_on ? m_pre_grid : raw, 4.0 * M_PI / 180.0);
+    if (g.kind != DirectionGuide::Kind::None) {
+        locked = true;
+        m_guide_ent = g.entity;
+        m_guide_kind = g.kind == DirectionGuide::Kind::Parallel ? 1 : 2;
+        return anchor + (m_grid_on ? (m_pre_grid - anchor).norm() : r) * g.dir;
+    }
 
     const double tol_deg = 5.0;                 // inference half-window
     double ang = std::atan2(d.y(), d.x()) * 180.0 / M_PI;  // (-180,180]
@@ -2588,6 +2728,36 @@ Vec2d DesignSketchTool::snap_dir(const Vec2d& anchor, const Vec2d& raw, bool& lo
     return anchor + r * Vec2d(std::cos(rad), std::sin(rad));
 }
 
+void DesignSketchTool::snap_dragged_point(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& at)
+{
+    if (m_drag_ei < 0 || m_drag_ei >= int(m_entities.size())) return;
+    if (evt.ShiftDown() || evt.ControlDown() || evt.AltDown()) return;
+    // look for a target among the OTHER entities: the dragged one is parked far away so its own ends do not answer
+    std::vector<SketchEntity> others = m_entities;
+    SketchEntity away; away.type = SketchEntity::Type::Point; away.p0 = away.center = Vec2d(1e9, 1e9);
+    others[size_t(m_drag_ei)] = away;
+    const InferenceSnap s = infer_point_snap(others, at, screen_tol(canvas, evt, at));
+    if (!s.snapped()) return;
+    SketchEntityConstraintDef d;
+    d.ea = m_drag_ei; d.ra = m_drag_role;
+    switch (s.kind) {
+    case InferenceSnap::Kind::Endpoint: case InferenceSnap::Kind::Center:
+        d.type = SketchConstraintType::Coincident; d.eb = s.entity; d.rb = s.role; break;
+    case InferenceSnap::Kind::Origin:
+        d.type = SketchConstraintType::Coincident; d.eb = kSketchRefOrigin; d.rb = SketchPointRole::P0; break;
+    case InferenceSnap::Kind::Midpoint:
+        d.type = SketchConstraintType::Midpoint; d.eb = s.entity; break;
+    case InferenceSnap::Kind::OnEdge:
+        d.type = SketchConstraintType::PointOnObject; d.eb = s.entity; break;
+    default: return;
+    }
+    if (s.kind != InferenceSnap::Kind::OnEdge) set_point(m_drag_ei, m_drag_role, s.point);   // land exactly on it
+    if (!try_add_constraints({ d })) {   // refused (redundant or over-constrained): the point stays where it was dropped
+        set_point(m_drag_ei, m_drag_role, at);
+        resolve_live_drag(m_drag_ei, m_drag_role);
+    }
+}
+
 double DesignSketchTool::screen_tol(GLCanvas3D& canvas, const wxMouseEvent& evt,
                                     const Vec2d& at, double px) const
 {
@@ -2600,7 +2770,7 @@ double DesignSketchTool::screen_tol(GLCanvas3D& canvas, const wxMouseEvent& evt,
 InferenceSnap DesignSketchTool::infer_at(GLCanvas3D& canvas, const wxMouseEvent& evt,
                                          const Vec2d& raw) const
 {
-    if (evt.ShiftDown()) { InferenceSnap s; s.point = raw; return s; }   // Shift suppresses
+    if (evt.ShiftDown() || evt.ControlDown() || evt.AltDown()) { InferenceSnap s; s.point = raw; return s; }   // Shift/Ctrl/Alt suppress
     const double tol = screen_tol(canvas, evt, raw);
     return infer_point_snap(m_entities, raw, tol);
 }
@@ -2630,11 +2800,15 @@ bool DesignSketchTool::click_snaps() const
 Vec2d DesignSketchTool::snap_vertex(GLCanvas3D& canvas, const wxMouseEvent& evt,
                                     const Vec2d& raw, bool& snapped) const
 {
+    m_pre_grid = raw;
     const InferenceSnap s = infer_at(canvas, evt, raw);
     // Cache the target so render() can draw a snap hint; only endpoint/centre/origin
     // count as a "vertex" snap for the callers that gate angle inference on it.
     const_cast<DesignSketchTool*>(this)->m_cursor_snap = s;
     snapped = s.snapped();   // any hard snap moves the cursor + suppresses angle lock
+    // Grid last: an endpoint / centre / axis inference wins, and Shift bypasses both. The grid is
+    // not reported as `snapped`, so a line's angle inference still gets to act on the result.
+    if (!snapped && m_grid_on && !evt.ShiftDown()) return snap_to_grid(raw, m_grid_step);
     return s.point;
 }
 
@@ -2654,7 +2828,10 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     if (cands.empty()) return true;
     const size_t mark = m_constraints.size();
     for (const auto& c : cands) m_constraints.push_back(c);
-    if (solve_sketch_entities(m_entities, m_constraints)) {
+    bool solved;
+    { PhaseLog t("sketch.try_add solve"); solved = solve_sketch_entities(m_entities, m_constraints); }
+    if (solved) {
+        resolve_live();                         // refresh dof / solve state, or dof() reports the sketch before this batch
         if (on_constraints_changed) on_constraints_changed();
         return true;
     }
@@ -2718,7 +2895,7 @@ static int sketch_endpoint_roles(const SketchEntity& e, SketchPointRole out[2])
 void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, double weld_tol)
 {
     const int n = int(m_entities.size());
-    if (base < 0 || base >= n) return;
+    if (base < 0 || base >= n || m_infer_off) return;   // Ctrl/Alt held: draw exactly what was clicked
 
 
     // 1) Coincident between a new endpoint and any (co-located) endpoint of another
@@ -3424,6 +3601,28 @@ void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p
                   face_feat, face_reg, edge_feat, edge_reg, edge_ent);
 }
 
+void DesignSketchTool::apply_loop_click(int feature, int region, bool additive)
+{
+    if (additive && feature == m_display_pick && m_display_pick_region >= 0 && region >= 0) {
+        if (region_picked(feature, region)) {
+            // Ctrl on an already-picked region drops it.
+            if (region == m_display_pick_region) {
+                if (m_display_pick_extra.empty()) { m_display_pick_region = -1; return; }
+                m_display_pick_region = m_display_pick_extra.back();
+                m_display_pick_extra.pop_back();
+            } else {
+                m_display_pick_extra.erase(std::remove(m_display_pick_extra.begin(), m_display_pick_extra.end(), region),
+                                           m_display_pick_extra.end());
+            }
+            return;
+        }
+        m_display_pick_extra.push_back(m_display_pick_region);
+        m_display_pick_region = region;
+        return;
+    }
+    m_display_pick = feature; m_display_pick_region = region; m_display_pick_extra.clear();
+}
+
 std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
 {
     if (m_display_pick < 0 || m_display_pick_region < 0) return {};
@@ -3446,6 +3645,41 @@ std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
         return out;
     }
     return {};
+}
+
+// One entity list per picked region (primary first), each region with its own holes. A region that is
+// the hole of another picked region rides with that one rather than being extruded on its own. The
+// kernel refuses disjoint regions in a single extrude on purpose, so the panel makes one feature per
+// group.
+std::vector<std::vector<SketchEntity>> DesignSketchTool::selected_loop_groups() const
+{
+    std::vector<std::vector<SketchEntity>> groups;
+    if (m_display_pick < 0 || m_display_pick_region < 0) return groups;
+    for (const DisplaySketch& d : m_display_sketches) {
+        if (d.feature != m_display_pick) continue;
+        const std::vector<RegionLoop> loops = region_loops(d.entities);
+        std::vector<int> regions = { m_display_pick_region };
+        for (auto it = m_display_pick_extra.rbegin(); it != m_display_pick_extra.rend(); ++it) regions.push_back(*it);
+        std::vector<int> is_hole;   // holes of picked regions
+        for (int r : regions)
+            if (r >= 0 && r < int(loops.size()))
+                for (int h : loops[r].holes) is_hole.push_back(h);
+        for (int r : regions) {
+            if (r < 0 || r >= int(loops.size())) continue;
+            if (std::find(is_hole.begin(), is_hole.end(), r) != is_hole.end()) continue;
+            std::vector<SketchEntity> g;
+            auto take = [&](int region) {
+                if (region < 0 || region >= int(loops.size())) return;
+                for (int ei : loops[region].ents)
+                    if (ei >= 0 && ei < int(d.entities.size())) g.push_back(d.entities[ei]);
+            };
+            take(r);
+            for (int h : loops[r].holes) take(h);
+            if (!g.empty()) groups.push_back(std::move(g));
+        }
+        break;
+    }
+    return groups;
 }
 
 // ---- Solid topology selection (whole -> face -> edge cycle) ----
@@ -3927,15 +4161,19 @@ void DesignSketchTool::pick_bodies_in_rectangle()
         pts.push_back(c / 3.0); owner.push_back(b);
     }
 
-    std::vector<int> hits(m_solid_bodies->size(), 0);
+    std::vector<int> hits(m_solid_bodies->size(), 0), total(m_solid_bodies->size(), 0);
+    for (int o : owner) if (o >= 0 && o < int(total.size())) ++total[o];
     if (!pts.empty())
         for (unsigned int i : m_rubber.contains(pts))
             if (i < owner.size() && owner[i] >= 0 && owner[i] < int(hits.size()))
                 ++hits[owner[i]];
 
+    // Direction decides, as in every CAD box select: dragged left-to-right is a WINDOW (a body is taken only
+    // when it lies entirely inside), right-to-left is CROSSING (touching is enough).
+    const bool window = m_pick_cur_x > m_pick_press_x;
     int best = -1, best_n = 0;
     for (int b = 0; b < int(hits.size()); ++b)
-        if (hits[b] > best_n) { best_n = hits[b]; best = b; }
+        if (hits[b] > best_n && (!window || hits[b] == total[b])) { best_n = hits[b]; best = b; }
 
     if (best < 0) clear_solid_selection();        // swept empty space -> drop the selection
     else          select_body(best);
@@ -4060,20 +4298,158 @@ bool DesignSketchTool::resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, So
             vtol = std::min(vtol, narrow);
             etol = std::min(etol, narrow);
         }
-        if (have_vtx && best_vd <= vtol) {
+        if (m_pick_filter.vertex && have_vtx && best_vd <= vtol) {
             out.vertex_pt = vtx;
             out.kind      = SolidSel::Vertex;
-        } else if (have_edge && best_ed <= etol) {
+        } else if (m_pick_filter.edge && have_edge && best_ed <= etol) {
             // Promote the face-relative pick to a STABLE GLOBAL edge id so dress-up ops
             // (fillet/chamfer) can target this exact edge across recomputes.
             out.edge     = GeometryEngine::edge_index_of(bshape, ed_edge);
             out.edge_pts = std::move(ed_pts);
             out.kind     = SolidSel::Edge;
-        } else {
+        } else if (m_pick_filter.face) {
             out.kind = SolidSel::Face;
+        } else {
+            out = SolidPick{};   // the only thing here is a kind the filter turned off
+            return false;
         }
     }
     return true;
+}
+
+// The picks stacked under (mx,my): what a plain click takes first, then every other face the ray
+// crosses, nearest first, one per (body, face). The Select Other list and click-cycling read this.
+std::vector<DesignSketchTool::SolidPick> DesignSketchTool::candidate_picks(GLCanvas3D& canvas, int mx, int my) const
+{
+    std::vector<SolidPick> out;
+    SolidPick top;
+    if (!resolve_solid_pick(canvas, mx, my, top)) return out;
+    out.push_back(top);
+    if (!m_pick_filter.face) return out;
+    const Linef3 r = canvas.mouse_ray(Point(mx, my));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    const indexed_triangle_set& its = m_solid_mesh->its;
+    std::map<std::pair<int, int>, double> nearest;   // (body, face) -> smallest t
+    for (size_t i = 0; i < its.indices.size(); ++i) {
+        const int body = (m_solid_tri_body && i < m_solid_tri_body->size()) ? (*m_solid_tri_body)[i] : -1;
+        const int face = (m_solid_tri_face && i < m_solid_tri_face->size()) ? (*m_solid_tri_face)[i] : -1;
+        if (body < 0 || face < 0 || body >= int(m_solid_bodies->size()) || !body_pickable(body)) continue;
+        const auto& idx = its.indices[i];
+        double t;
+        if (!ray_triangle(ro, rd, its.vertices[idx(0)].cast<double>(), its.vertices[idx(1)].cast<double>(),
+                          its.vertices[idx(2)].cast<double>(), t)) continue;
+        auto it = nearest.find({body, face});
+        if (it == nearest.end() || t < it->second) nearest[{body, face}] = t;
+    }
+    std::vector<std::pair<double, std::pair<int, int>>> order;
+    for (const auto& kv : nearest) order.push_back({kv.second, kv.first});
+    std::sort(order.begin(), order.end());
+    for (const auto& o : order) {
+        if (out.size() >= 20) break;
+        if (top.kind == SolidSel::Face && o.second.first == top.body && o.second.second == top.face) continue;
+        SolidPick f;
+        f.kind = SolidSel::Face; f.body = o.second.first; f.face = o.second.second;
+        out.push_back(std::move(f));
+    }
+    return out;
+}
+
+bool DesignSketchTool::begin_typed_length(char c)
+{
+    const bool two_click = m_mode == Mode::CornerRect || m_mode == Mode::CenterRect || m_mode == Mode::CenterCircle ||
+                           m_mode == Mode::TwoPointCircle || m_mode == Mode::Polygon;
+    if (m_active && two_click && m_points.size() == 1 && m_has_cursor && !m_awaiting_length && m_last_canvas &&
+        (m_cursor - m_points[0]).norm() > 1e-6) {
+        if (on_inline_seed) on_inline_seed(std::string(1, c));
+        wxMouseEvent down(wxEVT_LEFT_DOWN);      // the second click, at the cursor: the shape commits and its fields open
+        down.SetPosition(wxPoint(m_last_mouse_x, m_last_mouse_y));
+        down.SetLeftDown(true);
+        on_mouse_impl(down, *m_last_canvas);
+        return true;
+    }
+    if (!m_active || m_mode != Mode::Line || m_points.size() != 1 || !m_has_cursor || m_awaiting_length) return false;
+    if ((m_cursor - m_points[0]).norm() < 1e-6) return false;
+    if (on_inline_seed) on_inline_seed(std::string(1, c));
+    m_typed_line = true;   // typing a length asks for the field: open it even though lines are otherwise drawn freely
+    m_points.push_back(m_cursor);
+    keep_segment_as_drawn();
+    return true;
+}
+
+bool DesignSketchTool::select_tangent_loop()
+{
+    if (m_solid_sel != SolidSel::Edge || m_sel_edge < 0 || m_sel_shape.IsNull()) return false;
+    const std::vector<int> chain = GeometryEngine::tangent_edge_chain(m_sel_shape, m_sel_edge, 2.0);
+    if (chain.size() < 2) return false;
+    m_sel_edges_more.clear();
+    m_sel_edges_more_pts.clear();
+    for (int e : chain) {
+        if (e == m_sel_edge) continue;
+        std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(GeometryEngine::edge_by_index(m_sel_shape, e));
+        for (Vec3d& q : pts) q = body_xform_pt(m_sel_body, q);
+        m_sel_edges_more.push_back(e);
+        m_sel_edges_more_pts.push_back(std::move(pts));
+    }
+    dp_pick_trace("tangent loop -> %zu edge(s)", chain.size());
+    if (on_solid_selection_changed)
+        on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+    return true;
+}
+
+bool DesignSketchTool::take_hold(int& x, int& y)
+{
+    if (!m_pick_pending || m_rubber.is_dragging()) return false;
+    const long long dt = wxGetLocalTimeMillis().GetValue() - m_pick_press_ms;
+    if (dt >= 3000) { m_pick_pending = false; return false; }   // a release we never saw: stop asking
+    if (dt < 500) return false;
+    dp_pick_trace("hold poll dt=%lld drift=%d", dt, std::max(std::abs(m_pick_cur_x - m_pick_press_x), std::abs(m_pick_cur_y - m_pick_press_y)));
+    if (std::max(std::abs(m_pick_cur_x - m_pick_press_x), std::abs(m_pick_cur_y - m_pick_press_y)) > 4) return false;
+    m_pick_pending = false;
+    x = m_pick_press_x; y = m_pick_press_y;
+    return true;
+}
+
+std::vector<std::string> DesignSketchTool::open_other(GLCanvas3D& canvas, int x, int y)
+{
+    m_other = candidate_picks(canvas, x, y);
+    std::vector<std::string> labels;
+    for (const SolidPick& p : m_other) {
+        const char* k = p.kind == SolidSel::Vertex ? "Vertex" : p.kind == SolidSel::Edge ? "Edge" : "Face";
+        const int   n = p.kind == SolidSel::Edge ? p.edge : p.face;
+        labels.push_back(std::string(k) + (n >= 0 ? " " + std::to_string(n + 1) : std::string()) + "  (body " + std::to_string(p.body + 1) + ")");
+    }
+    return labels;
+}
+
+void DesignSketchTool::hover_other(int i)
+{
+    m_pre = (i >= 0 && i < int(m_other.size())) ? m_other[size_t(i)] : SolidPick{};
+}
+
+void DesignSketchTool::choose_other(int i)
+{
+    if (i < 0 || i >= int(m_other.size())) return;
+    SolidPick p = m_other[size_t(i)];
+    if (p.body < 0 || p.body >= int(m_solid_bodies->size())) return;
+    m_sel_edges_more.clear();
+    m_sel_edges_more_pts.clear();
+    m_sel_body      = p.body;
+    m_sel_shape     = (*m_solid_bodies)[p.body].shape;
+    m_sel_face      = p.face;
+    m_sel_edge      = p.edge;
+    m_sel_edge_pts  = std::move(p.edge_pts);
+    m_sel_vertex_pt = p.vertex_pt;
+    m_solid_sel     = p.kind;
+    m_pre           = SolidPick{};
+    if (on_solid_selection_changed)
+        on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+}
+
+std::vector<DesignSketchTool::PickCandidate> DesignSketchTool::pick_candidates(GLCanvas3D& canvas, int mx, int my) const
+{
+    std::vector<PickCandidate> out;
+    for (const SolidPick& p : candidate_picks(canvas, mx, my)) out.push_back({int(p.kind), p.body, p.face, p.edge});
+    return out;
 }
 
 // A click on the solid takes the smallest thing under the cursor (vertex/edge/face). Returns
@@ -4082,7 +4458,19 @@ bool DesignSketchTool::resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, So
 bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt)
 {
     SolidPick p;
-    if (!resolve_solid_pick(canvas, evt.GetX(), evt.GetY(), p))
+    if (m_click_cycle) {
+        // Candidate mode: the same spot again (within 4 px, same model) takes the next thing under it.
+        std::vector<SolidPick> c = candidate_picks(canvas, evt.GetX(), evt.GetY());
+        if (c.empty()) { m_cyc_n = 0; return false; }
+        const size_t sig = (m_solid_mesh ? m_solid_mesh->its.indices.size() : 0) * 131 + (m_solid_bodies ? m_solid_bodies->size() : 0);
+        const bool again = m_cyc_n > 0 && sig == m_cyc_sig && std::abs(evt.GetX() - m_cyc_x) <= 4 && std::abs(evt.GetY() - m_cyc_y) <= 4;
+        m_cyc_i   = again ? (m_cyc_i + 1) % int(c.size()) : 0;
+        m_cyc_n   = int(c.size());
+        m_cyc_sig = sig;
+        if (!again) { m_cyc_x = evt.GetX(); m_cyc_y = evt.GetY(); }
+        p = std::move(c[size_t(m_cyc_i)]);
+        if (p.kind == SolidSel::Face) p.edge_pts.clear();
+    } else if (!resolve_solid_pick(canvas, evt.GetX(), evt.GetY(), p))
         return false;   // missed the solid, or no solid data — same two exits as before
 
     // What was selected BEFORE this pick — the escalation below is the only thing that reads
@@ -4163,7 +4551,7 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
           : m_solid_sel == SolidSel::Edge   ? m_sel_edge == prev_edge
           : m_solid_sel == SolidSel::Face   ? m_sel_face == prev_face
                                             : true);
-    if (same_pick && m_escalate_repick) {
+    if (same_pick && m_escalate_repick && !m_click_cycle) {
         select_body(m_sel_body);   // clears face/edge/vertex, tints the whole body
         dp_pick_trace("re-pick -> escalated to whole body %d", m_sel_body);
     }
@@ -4911,7 +5299,10 @@ void DesignSketchTool::drag_extrude_arrow(GLCanvas3D& canvas, const wxMouseEvent
     const double a = e.dot(e), b = e.dot(rd), c = rd.dot(rd), dd = e.dot(w0), ee = rd.dot(w0);
     const double denom = a * c - b * b;
     if (std::abs(denom) < 1e-7) return;                        // camera ∥ axis: leave depth as-is
-    const double depth = std::max(0.01, (b * ee - c * dd) / denom);
+    const double raw = (b * ee - c * dd) / denom;
+    // Never exactly 0 (a zero-depth extrude is refused), but a face pull keeps its sign.
+    const double depth = m_ex_signed ? (std::abs(raw) < 0.01 ? (raw < 0 ? -0.01 : 0.01) : raw)
+                                     : std::max(0.01, raw);
     if (which == 1) m_ex_depth2 = depth; else m_ex_depth = depth;
     if (on_extrude_depth_changed) on_extrude_depth_changed(depth, which == 1);
 }
@@ -4923,7 +5314,7 @@ void DesignSketchTool::open_extrude_editor(int which)
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
     on_inline_edit(px, cur, "",
         [this, which](double v) {
-            const double d = std::max(0.01, v);
+            const double d = m_ex_signed ? (std::abs(v) < 0.01 ? (v < 0 ? -0.01 : 0.01) : v) : std::max(0.01, v);
             if (which == 1) m_ex_depth2 = d; else m_ex_depth = d;
             if (on_extrude_depth_changed) on_extrude_depth_changed(d, which == 1);
         },
@@ -5798,6 +6189,167 @@ int DesignSketchTool::hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent&
 
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     return pick_reference_square(squares, H, r.a, r.b - r.a);
+}
+
+
+// ---- 3D sketch (slices 8b input, 8c snapping) -------------------------------------------------
+void DesignSketchTool::begin_sketch3d(const Vec3d& start, std::vector<Vec3d> snap_targets)
+{
+    m_s3_active     = true;
+    m_s3_pts.clear();
+    m_s3_targets    = std::move(snap_targets);
+    m_s3_start      = start;
+    m_s3_axis       = 2;
+    m_s3_smooth     = false;
+    m_s3_has_cursor = false;
+    m_s3_snapped    = false;
+    m_s3_pending    = false;
+    m_pick_pending  = false;
+    m_pre           = SolidPick{};   // no hover outline promising a click that will not be taken
+    s3_notify();
+}
+
+void DesignSketchTool::s3_finish()
+{
+    std::vector<Vec3d> pts = m_s3_pts;
+    const bool smooth = m_s3_smooth;
+    end_sketch3d();
+    if (pts.size() >= 2) { if (on_sketch3d_done) on_sketch3d_done(pts, smooth); }
+    else if (on_sketch3d_cancel)                 on_sketch3d_cancel();
+}
+
+bool DesignSketchTool::sketch3d_key(int key)
+{
+    if (!m_s3_active) return false;
+    switch (key) {
+    case WXK_TAB:       m_s3_axis = (m_s3_axis + 1) % 3; m_s3_has_cursor = false; s3_notify(); return true;
+    case WXK_RETURN:
+    case WXK_NUMPAD_ENTER: s3_finish(); return true;
+    case WXK_BACK:      if (!m_s3_pts.empty()) m_s3_pts.pop_back(); m_s3_has_cursor = false; s3_notify(); return true;
+    case 'S':           m_s3_smooth = !m_s3_smooth; s3_notify(); return true;
+    case WXK_ESCAPE:    end_sketch3d(); if (on_sketch3d_cancel) on_sketch3d_cancel(); return true;
+    default:            return false;
+    }
+}
+
+// The cursor is the mouse ray's hit on the working plane (through the last point, normal = chosen
+// world axis), unless a snap target is within 12 px on screen, which wins and is exact.
+void DesignSketchTool::s3_update_cursor(GLCanvas3D& canvas, const wxMouseEvent& evt)
+{
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Eigen::Matrix4d to_clip = cam.get_projection_matrix().matrix() * cam.get_view_matrix().matrix();
+    const std::array<int, 4>& vp  = cam.get_viewport();
+    auto to_screen = [&](const Vec3d& x, Vec2d& out) {
+        const Eigen::Vector4d clip = to_clip * x.homogeneous();
+        if (clip.w() <= 1e-9) return false;
+        const Vec3d ndc = clip.head<3>() / clip.w();
+        out = Vec2d(vp[0] + (ndc.x() * 0.5 + 0.5) * vp[2], vp[1] + (1.0 - (ndc.y() * 0.5 + 0.5)) * vp[3]);
+        return true;
+    };
+    const Vec2d mouse(evt.GetX(), evt.GetY());
+    m_s3_snapped = false;
+    double best = 12.0;   // px
+    auto try_snap = [&](const Vec3d& p) {
+        Vec2d s;
+        if (!to_screen(p, s)) return;
+        const double d = (s - mouse).norm();
+        if (d < best) { best = d; m_s3_cursor = p; m_s3_snapped = true; m_s3_has_cursor = true; }
+    };
+    for (const Vec3d& p : m_s3_targets) try_snap(p);
+    for (const Vec3d& p : m_s3_pts)     try_snap(p);
+    if (m_s3_snapped) return;
+
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d  rd = r.b - r.a;
+    const Vec3d  n  = Vec3d::Unit(m_s3_axis);
+    const Vec3d  o  = m_s3_pts.empty() ? m_s3_start : m_s3_pts.back();
+    const double denom = rd.dot(n);
+    if (std::abs(denom) < 1e-9 * rd.norm()) return;   // looking along the plane: keep the last cursor
+    const double t = (o - r.a).dot(n) / denom;
+    if (t < 0.) return;
+    m_s3_cursor = r.a + t * rd;
+    m_s3_has_cursor = true;
+}
+
+// Camera-facing quads for 3D segments (draw_strokes lifts 2D points through m_plane; these are 3D).
+void DesignSketchTool::draw_strokes3d(GLModel& model, const std::vector<std::pair<Vec3d, Vec3d>>& segs,
+                                      double hw, const ColorRGBA& color)
+{
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d fwd = cam.get_dir_forward().normalized();
+    GLModel::Geometry g;
+    g.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+    unsigned int base = 0;
+    for (const auto& s : segs) {
+        const Vec3d d = s.second - s.first;
+        if (d.norm() < 1e-9) continue;
+        Vec3d n = d.cross(fwd);
+        if (n.norm() < 1e-9) continue;
+        n = n.normalized() * hw;
+        g.add_vertex((Vec3f)(s.first + n).cast<float>());
+        g.add_vertex((Vec3f)(s.second + n).cast<float>());
+        g.add_vertex((Vec3f)(s.second - n).cast<float>());
+        g.add_vertex((Vec3f)(s.first - n).cast<float>());
+        g.add_triangle(base, base + 1, base + 2);
+        g.add_triangle(base, base + 2, base + 3);
+        base += 4;
+    }
+    if (base == 0) return;
+    model.reset();
+    model.init_from(std::move(g));
+    model.set_color(color);
+    model.render();
+}
+
+void DesignSketchTool::render_sketch3d()
+{
+    if (!m_s3_active) return;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const Vec3d right = cam.get_dir_right().normalized();
+    const Vec3d up    = cam.get_dir_up().normalized();
+    const ColorRGBA cols[3] = { ColorRGBA(0.92f, 0.28f, 0.28f, 1.0f), ColorRGBA(0.30f, 0.80f, 0.34f, 1.0f),
+                                ColorRGBA(0.32f, 0.55f, 0.95f, 1.0f) };
+    glsafe(::glDisable(GL_DEPTH_TEST));
+
+    // The curve so far, plus the leg the next click would add.
+    std::vector<std::pair<Vec3d, Vec3d>> done, live;
+    for (size_t i = 1; i < m_s3_pts.size(); ++i) done.emplace_back(m_s3_pts[i - 1], m_s3_pts[i]);
+    if (m_s3_has_cursor && !m_s3_pts.empty()) live.emplace_back(m_s3_pts.back(), m_s3_cursor);
+    draw_strokes3d(m_s3_model, done, std::max(0.9 * upp, 1e-4), ColorRGBA(1.0f, 0.55f, 0.10f, 1.0f));
+    draw_strokes3d(m_s3_model, live, std::max(0.6 * upp, 1e-4), ColorRGBA(1.0f, 0.80f, 0.45f, 1.0f));
+
+    // Points: small billboard squares (the first one bigger, so a closing click is easy to aim at).
+    auto square = [&](const Vec3d& p, double h, const ColorRGBA& c) {
+        draw_strokes3d(m_s3_model, { { p - right * h, p + right * h } }, std::max(h, 1e-4), c);
+        (void) up;
+    };
+    for (size_t i = 0; i < m_s3_pts.size(); ++i)
+        square(m_s3_pts[i], (i == 0 ? 4.0 : 2.5) * upp, ColorRGBA(1.0f, 0.85f, 0.25f, 1.0f));
+
+    // Snap targets within reach are dots, so the user sees what a click can land on.
+    for (const Vec3d& t : m_s3_targets)
+        square(t, 1.4 * upp, ColorRGBA(0.55f, 0.85f, 1.0f, 1.0f));
+
+    if (m_s3_has_cursor) {
+        const double L = 38.0 * upp;
+        const Vec3d  c = m_s3_cursor;
+        // Compass: three world-axis stubs through the cursor; the active one (the working plane's
+        // normal) is the thick one.
+        for (int a = 0; a < 3; ++a) {
+            const Vec3d e = Vec3d::Unit(a);
+            draw_strokes3d(m_s3_model, { { c - e * (L * 0.3), c + e * L } },
+                           std::max((a == m_s3_axis ? 1.6 : 0.6) * upp, 1e-4), cols[a]);
+        }
+        // The working plane as a square outline around the cursor.
+        const Vec3d u = Vec3d::Unit((m_s3_axis + 1) % 3), v = Vec3d::Unit((m_s3_axis + 2) % 3);
+        const double h = L * 0.8;
+        const Vec3d p0 = c - u * h - v * h, p1 = c + u * h - v * h, p2 = c + u * h + v * h, p3 = c - u * h + v * h;
+        draw_strokes3d(m_s3_model, { { p0, p1 }, { p1, p2 }, { p2, p3 }, { p3, p0 } },
+                       std::max(0.5 * upp, 1e-4), ColorRGBA(cols[m_s3_axis].r(), cols[m_s3_axis].g(), cols[m_s3_axis].b(), 0.7f));
+        if (m_s3_snapped) square(c, 5.0 * upp, ColorRGBA(1.0f, 1.0f, 0.2f, 1.0f));
+    }
+    glsafe(::glEnable(GL_DEPTH_TEST));
 }
 
 // ---- Move-body gizmo (M5) -------------------------------------------------------------
@@ -7927,10 +8479,12 @@ void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane
     }
     const ImVec2 pos = ImGui::GetCursorScreenPos();
     const ImGuiStyle& st = ImGui::GetStyle();
+    // Dark translucent pill, bright text: legible over the grey canvas, the bed grid, a light theme
+    // and a model alike. The Measure gizmo's white-on-white-50% pill vanished against all of them.
     dl->AddRectFilled(ImVec2(pos.x - st.FramePadding.x, pos.y + st.FramePadding.y),
                       ImVec2(pos.x + ts.x + 2.0f * st.FramePadding.x,
                              pos.y + ts.y + 2.0f * st.FramePadding.y),
-                      ImGuiWrapper::to_ImU32(ColorRGBA(1.0f, 1.0f, 1.0f, 0.5f)));
+                      ImGuiWrapper::to_ImU32(ColorRGBA(0.06f, 0.07f, 0.09f, 0.78f)), 4.0f);
     ImGui::SetCursorScreenPos(ImVec2(pos.x + st.FramePadding.x, pos.y));
     imgui->text(txt);
     imgui->end();
@@ -9579,13 +10133,16 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // Draw-then-edit: a creation tool that just committed a new entity/feature (gesture now
     // idle) gets its result auto-selected — so render_live_quotes below computes its quotes —
     // and the primary value editor armed (opened after those quotes exist, see service block).
-    if (m_active && is_creation_autoedit_mode() && m_points.empty() &&
+    // Lines are drawn freely (no prompt after each segment; dimension them afterwards) unless design_sketch_autodim_line is "1".
+    const bool free_line = m_mode == Mode::Line && wxGetApp().app_config->get("design_sketch_autodim_line") != "1";
+    if (m_active && is_creation_autoedit_mode() && (!free_line || m_typed_line) && m_points.empty() &&
         m_open_feature < 0 && !m_awaiting_length) {
         const int n = int(m_entities.size());
         if (m_autoedit_seen >= 0 && n > m_autoedit_seen && n > 0) {
             m_selection.clear();
             m_selection.push_back(n - 1);   // feature_of(last) groups rect/slot/poly/ellipse
             m_autoedit_pending = true;
+            m_typed_line = false;
         }
         m_autoedit_seen = n;
     }
@@ -9623,7 +10180,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             m_plane = ds.plane;
             const std::vector<RegionLoop> loops = region_loops(ds.entities);
             for (int r = 0; r < int(loops.size()); ++r) {
-                const bool sel = (ds.feature == m_display_pick && r == m_display_pick_region);
+                const bool sel = region_picked(ds.feature, r);
                 const ColorRGBA* hlc = sketch_hl_color(ds.feature);
                 ColorRGBA fc = sel ? sface : dface;
                 if (hlc && !sel) { fc = *hlc; fc.a(0.20f); }
@@ -9641,6 +10198,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             if (ds.feature == m_display_pick && m_display_pick_region >= 0) {
                 const std::vector<RegionLoop> loops = region_loops(ds.entities);
                 if (m_display_pick_region < int(loops.size())) {
+                    std::vector<int> picked = { m_display_pick_region };
+                    for (int r : m_display_pick_extra) picked.push_back(r);
                     // The holes light up with their region. The highlight has to show what will
                     // be EXTRUDED, and a hole is part of that — a plate whose bore stays orange
                     // while its outline turns cyan would say the circle is not coming along,
@@ -9650,8 +10209,11 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                         for (int ei : loops[region].ents)
                             if (ei >= 0 && ei < int(sel_ent.size())) sel_ent[ei] = 1;
                     };
-                    mark(m_display_pick_region);
-                    for (int h : loops[m_display_pick_region].holes) mark(h);
+                    for (int r : picked) {
+                        mark(r);
+                        if (r >= 0 && r < int(loops.size()))
+                            for (int h : loops[r].holes) mark(h);
+                    }
                 }
             }
             std::vector<Vec2d> point_markers, sel_point_markers;
@@ -9692,6 +10254,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (m_rb_active) render_rib_gizmo();
         if (m_ex_active) render_extrude_gizmo();
         if (m_mv_active) render_move_gizmo();
+        if (m_s3_active) render_sketch3d();
         if (m_fl_active) render_fillet_gizmo();
         if (m_hl_active) render_hole_gizmo();
         if (m_th_active) render_thread_gizmo();
@@ -9817,10 +10380,27 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     const ColorRGBA sel_col = design_selection_color();
     const ColorRGBA green(0.30f, 0.85f, 0.42f, 1.0f);
     const ColorRGBA conflict(1.0f, 0.22f, 0.22f, 1.0f);
+    const ColorRGBA under(0.25f, 0.55f, 1.0f, 1.0f);          // under-constrained: blue
+    const ColorRGBA constrained(0.04f, 0.04f, 0.04f, 1.0f);   // fully constrained: black
     const ColorRGBA opref(0.80f, 0.45f, 1.0f, 1.0f);     // violet: the edit-op's reference pick
     const double    upp_dash = 1.0 / std::max(camera.get_zoom(), 1e-6);   // world units per pixel
     const ColorRGBA editing(1.0f, 0.78f, 0.10f, 1.0f);   // amber: entity whose dim is being typed
     const bool fully = (m_dof == 0 && m_solve_ok);
+    // Snap grid: a patch of dots around the cursor, wide enough to read where a click will land.
+    // Adaptive: the SNAP step is the user's, but the DRAWN step grows x2/x5/x10 until the dots are
+    // at least ~8 px apart, so zooming out never paints a solid carpet.
+    if (m_grid_on && m_grid_step > 0. && m_has_cursor) {
+        double drawn = m_grid_step;
+        static const double kMul[] = {2., 2.5, 2.};   // 1 -> 2 -> 5 -> 10, repeating
+        for (int k = 0; drawn < 8.0 * upp_dash && k < 60; ++k) drawn *= kMul[k % 3];
+        const Vec2d c = snap_to_grid(m_cursor, drawn);
+        const ColorRGBA dot(0.78f, 0.78f, 0.82f, 1.0f);
+        std::vector<Vec2d> dots;
+        for (int ix = -12; ix <= 12; ++ix)
+            for (int iy = -12; iy <= 12; ++iy)
+                dots.emplace_back(c.x() + ix * drawn, c.y() + iy * drawn);
+        draw_vertices(m_vertex_model, dots, dot, std::max(1.2 * upp_dash, 1e-4));
+    }
     // While an auto-edit value field is open, the active step names the entities its dimension
     // drives — light them up so it's obvious WHICH feature the number (e.g. a circle's radius)
     // changes.
@@ -9828,6 +10408,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         (m_autoedit_dim_idx >= 0 && m_autoedit_dim_idx < int(m_autoedit_dims.size()))
             ? &m_autoedit_dims[m_autoedit_dim_idx].hi : nullptr;
     std::vector<Vec2d> point_markers, sel_point_markers;
+    refresh_entity_free();   // blue/black colouring below; keyed on the topology, so a drag frame does not repeat it
     for (size_t i = 0; i < m_entities.size(); ++i) {
         const SketchEntity& e = m_entities[i];
         const bool selected =
@@ -9847,7 +10428,11 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         else if (selected)       col = sel_col;
         else if (bad)            col = conflict;
         else if (e.construction) col = grey;
-        else                     col = fully ? green : orange;
+        else {
+            // Blue = still has freedom, black = pinned down (RF47). Red above is a conflict.
+            const bool pinned = i < m_entity_free.size() ? !m_entity_free[i] : fully;
+            col = pinned ? constrained : under;
+        }
         if (e.type == SketchEntity::Type::Point) {
             (selected ? sel_point_markers : point_markers).push_back(e.p0);
             continue;
@@ -9985,6 +10570,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             pts.push_back(m_cursor);
         draw_quad_strip(m_highlight_model, pts, false, preview);
         draw_vertices(m_vertex_model, m_points, yellow);
+        draw_guide_line();
         // Teal rubber-band = the new segment is locked to an inference angle.
         if (m_cursor_locked && m_has_cursor && !m_points.empty()) {
             const ColorRGBA lock(0.10f, 0.85f, 0.80f, 1.0f);
@@ -9995,6 +10581,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     }
 
     case Mode::Line: {
+        draw_guide_line();
         std::vector<Vec2d> pts = m_points;
         if (m_has_cursor && m_points.size() == 1)
             pts.push_back(m_cursor);
@@ -10242,7 +10829,26 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     glsafe(::glEnable(GL_CULL_FACE));
     glsafe(::glEnable(GL_DEPTH_TEST));
 
-    if (on_readout) on_readout(build_readout());   // bottom-right viewport HUD
+    if (on_readout) {   // bottom-right viewport HUD: the values, then what the cursor is locked onto
+        std::string r = build_readout();
+        const std::string tag = m_has_cursor && m_active ? guide_tag() : std::string();
+        if (!tag.empty()) r += (r.empty() ? "" : "    ") + std::string("[") + tag + "]";
+        on_readout(r);
+    }
+}
+
+std::string DesignSketchTool::guide_tag() const
+{
+    if (m_guide_ent >= 0 && m_cursor_locked && m_guide_kind != 0) return m_guide_kind == 1 ? "//" : "\xE2\x8A\xA5";   // parallel / perpendicular
+    if (!m_cursor_snap.snapped()) return std::string();
+    switch (m_cursor_snap.kind) {
+    case InferenceSnap::Kind::Endpoint: return _u8L("End");
+    case InferenceSnap::Kind::Center:   return _u8L("Centre");
+    case InferenceSnap::Kind::Midpoint: return _u8L("Mid");
+    case InferenceSnap::Kind::OnEdge:   return _u8L("On");
+    case InferenceSnap::Kind::Origin:   return _u8L("Origin");
+    default: return std::string();
+    }
 }
 
 // Compact "current values" for the bottom-right HUD: the live segment being drawn (length
@@ -10255,7 +10861,7 @@ std::string DesignSketchTool::build_readout() const
         !m_points.empty() && m_has_cursor) {
         const Vec2d d = m_cursor - m_points.back();
         double ang = std::atan2(d.y(), d.x()) * 180.0 / M_PI; if (ang < 0.0) ang += 360.0;
-        char b[80]; std::snprintf(b, sizeof(b), "L %.2f mm    %.1f\xC2\xB0", d.norm(), ang);
+        char b[80]; std::snprintf(b, sizeof(b), "L %s mm    %s\xC2\xB0", format_dim_number(d.norm(), 2).c_str(), format_dim_number(ang, 1).c_str());
         en(b);
         std::string out = b;
         // Tell the user how to end a polyline chain — there's no other affordance for it.
@@ -10437,7 +11043,7 @@ static void translate_entity(SketchEntity& e, const Vec2d& d)
 // pick still offers the multi-entity verbs.
 // ---- Scripted surface (MCP) ------------------------------------------------------------
 
-int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ents)
+int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ents, bool infer)
 {
     if (ents.empty()) return -1;
     const int base = int(m_entities.size());
@@ -10462,8 +11068,8 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     // common point up to 0.0021 mm away, because welding is TRANSITIVE and three vertices near
     // the origin chained into one. Exactly-equal endpoints still weld, which is what keeps a
     // scripted profile closed — a ring's last point IS its first point.
-    infer_auto_constraints(base, 0.0, 0.0);
-    resolve_live();
+    if (infer) { PhaseLog t("sketch.infer_auto_constraints"); infer_auto_constraints(base, 0.0, 0.0); }
+    { PhaseLog t("sketch.resolve_live (add)"); resolve_live(); }
     // A scripted add is not a drawn gesture, and draw-then-edit must not fire for it. The render
     // pass arms that on a jump in the entity count (see the m_autoedit_seen block in render()),
     // so a bulk load made while a creation tool is armed selected the last scripted entity and
@@ -10792,6 +11398,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     // projection — the design canvas's viewport isn't valid outside its own paint).
     m_last_mouse_x = evt.GetX();
     m_last_mouse_y = evt.GetY();
+    m_last_canvas  = &canvas;
+    if (evt.LeftDClick()) dp_pick_trace("dclick x=%d y=%d dbp=%d", evt.GetX(), evt.GetY(), int(m_dbp_active));
 
     // Line draw-then-edit: while the length editor is open right after the second click,
     // freeze the canvas so a stray move/click can't push a third point or rubber-band a
@@ -10830,6 +11438,19 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         // is the side-panel dependency this tab exists to remove. Fit keeps the rest of the
         // plate, so nothing is taken away.
         if (evt.LeftDClick()) {
+            // A reference or datum plane's label sketches on that plane. The first click of the
+            // pair already picked it (resolved on release); this acts on the second. A label is
+            // a precise target, so it wins over the fit-view fallback below.
+            // The first click of the pair picked a solid edge under the pointer: the double-click widens it to its
+            // smooth (tangent) loop. That is a more specific target than a datum label drawn across the same pixels.
+            if (select_tangent_loop()) return true;
+            if (m_dbp_active && on_datum_base_activated) {
+                const int h = hit_test_base_pick(canvas, evt);
+                if (h >= 0 && h < int(m_dbp_base.size())) {
+                    on_datum_base_activated(m_dbp_base[h]);
+                    return true;
+                }
+            }
             int f = -1, r = -1, e = -1, ff = -1, fr = -1; double dbest = 1e30;
             const Linef3 dray  = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
             const Linef3 dray8 = canvas.mouse_ray(Point(evt.GetX() + 8, evt.GetY()));
@@ -10942,6 +11563,26 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 canvas.set_as_dirty();
                 if (h >= 0) return true;   // caller render()s on true -> hover repaints on software GL
             }
+        }
+        // 3D sketch: the click places a point in space, Tab/Enter/Backspace/S/Esc come in via
+        // sketch3d_key, right-click or a double-click finishes. Orbit stays free: a press is only
+        // a click if the pointer is still near where it went down.
+        if (m_s3_active) {
+            if (evt.Moving()) { s3_update_cursor(canvas, evt); return true; }
+            if (evt.Dragging()) { m_s3_pending = false; return false; }
+            if (evt.LeftDown()) {
+                m_s3_press_x = evt.GetX(); m_s3_press_y = evt.GetY(); m_s3_pending = true;
+                return false;
+            }
+            if (evt.LeftUp() && m_s3_pending) {
+                m_s3_pending = false;
+                if (std::max(std::abs(evt.GetX() - m_s3_press_x), std::abs(evt.GetY() - m_s3_press_y)) > 6) return false;
+                s3_update_cursor(canvas, evt);
+                if (m_s3_has_cursor) { m_s3_pts.push_back(m_s3_cursor); s3_notify(); }
+                return true;
+            }
+            if (evt.LeftDClick() || evt.RightDown()) { s3_finish(); return true; }
+            return false;
         }
         // Visual Extrude gizmo (C5b): while the Extrude card is open the depth arrow is
         // grabbable — drag changes the depth live; a click (no drag) on the arrow opens the
@@ -11126,6 +11767,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             if (update_solid_hover(canvas, evt)) canvas.set_as_dirty();
             return false;
         }
+        if (evt.LeftIsDown()) { m_pick_cur_x = evt.GetX(); m_pick_cur_y = evt.GetY(); }
         const bool left_drag_sweeps =
             evt.ShiftDown() || std::atoi(wxGetApp().app_config->get("left_mouse_drag_action").c_str()) == 0;
         if (evt.Dragging() && evt.LeftIsDown() && m_pick_pending && (left_drag_sweeps || m_rubber.is_dragging())) {
@@ -11157,6 +11799,15 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             m_pick_press_x = evt.GetX();
             m_pick_press_y = evt.GetY();
             m_pick_pending = true;
+            m_pick_cur_x = m_pick_press_x; m_pick_cur_y = m_pick_press_y;
+            m_pick_press_ms = wxGetLocalTimeMillis().GetValue();
+            // The overlay pass polls for the 0.5 s hold, but a frame requested from INSIDE a frame is dropped, so
+            // nothing would paint in that window. A timer on the canvas window asks for the frame instead.
+            canvas.set_as_dirty();
+            GLCanvas3D* cv = &canvas;
+            auto* t = new wxTimer();
+            t->Bind(wxEVT_TIMER, [t, cv](wxTimerEvent&) { cv->set_as_dirty(); wxTheApp->CallAfter([t] { delete t; }); });
+            t->StartOnce(540);
             dp_pick_trace("down x=%d y=%d", evt.GetX(), evt.GetY());
             return false;
         }
@@ -11195,8 +11846,11 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             hit_display_sketch(d, p, tol, edge_feat, edge_reg, edge_ent, edge_d, face_feat, face_reg);
         }
         // A precise hit on a loop outline wins over the solid face beneath it.
+        // Ctrl (or Cmd) adds another region of the same sketch to the pick. The camera binds Ctrl
+        // only to wheel and drag; a click that stays inside the drag budget is ours.
+        const bool additive = evt.ControlDown() || evt.CmdDown();
         if (edge_feat >= 0) {
-            m_display_pick = edge_feat; m_display_pick_region = edge_reg;
+            apply_loop_click(edge_feat, edge_reg, additive);
             if (on_display_sketch_selected) on_display_sketch_selected(edge_feat, edge_reg, edge_ent);
             return true;
         }
@@ -11204,11 +11858,11 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         if (handle_solid_click(canvas, evt)) return true;
         // Interior of a committed loop with no solid behind it.
         if (face_feat >= 0) {
-            m_display_pick = face_feat; m_display_pick_region = face_reg;
+            apply_loop_click(face_feat, face_reg, additive);
             if (on_display_sketch_selected) on_display_sketch_selected(face_feat, face_reg, -1);
             return true;
         }
-        m_display_pick = -1; m_display_pick_region = -1;  // clicked bare plate -> drop highlight
+        m_display_pick = -1; m_display_pick_region = -1; m_display_pick_extra.clear();  // clicked bare plate -> drop highlight
         // ...and the SOLID selection goes with it (od0). A click that hits nothing has to
         // mean what a rubber band that sweeps nothing already means — pick_bodies_in_rectangle
         // clears on an empty sweep, and the two gestures cannot disagree about the same outcome.
@@ -11531,8 +12185,10 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 else {
                     set_point(m_drag_ei, m_drag_role, p);
                     resolve_live_drag(m_drag_ei, m_drag_role);
+                    snap_dragged_point(canvas, evt, p);
                 }
                 m_dragging_point = false;
+                drag_end_commit();
                 m_drag_ei = -1;
                 m_drag_poly_fi = -1;
                 m_drag_rect_fi = -1;
@@ -11544,6 +12200,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 screen_to_plane(canvas, evt, p);
                 set_handle(m_drag_handle, p);
                 m_dragging_handle = false;
+                drag_end_commit();
                 return true;
             }
             return false;
@@ -11635,6 +12292,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 if (hit_test_handle(p, tol, hh) &&
                     (hh.role == HandleRole::RadiusHandle || hh.role == HandleRole::MajorAxis ||
                      hh.role == HandleRole::MinorAxis || hh.role == HandleRole::BSplineCtrl)) {
+                    drag_begin_snapshot();
                     m_dragging_handle = true;
                     m_drag_handle     = hh;
                     m_selection.clear();
@@ -11662,6 +12320,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                         m_point_sel.push_back(key);
                     }
                     // Arm the drag so the grabbed point follows the cursor.
+                    drag_begin_snapshot();
                     m_dragging_point = true;
                     m_drag_ei = pe;
                     m_drag_role = pr;
@@ -11810,8 +12469,30 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         return false;                                  // let drag orbit the camera
     }
 
-    if (evt.Moving()) {
-        m_snap_off = evt.ShiftDown();
+    // The shapes whose first two points can be had by one press-drag-release (the rest of a longer one is then clicked as usual).
+    const bool two_point = m_mode == Mode::CornerRect || m_mode == Mode::CenterRect || m_mode == Mode::CenterCircle ||
+                           m_mode == Mode::TwoPointCircle || m_mode == Mode::Polygon || m_mode == Mode::Line ||
+                           m_mode == Mode::ObliqueRect || m_mode == Mode::RoundedRect || m_mode == Mode::ThreePointCircle ||
+                           m_mode == Mode::ThreePointArc || m_mode == Mode::CenterArc || m_mode == Mode::Slot ||
+                           m_mode == Mode::ArcSlot || m_mode == Mode::Ellipse || m_mode == Mode::EllipseArc;
+    bool draw_drag = false;
+    if (two_point) {
+        if (evt.LeftDown()) { m_dr_n = int(m_points.size()); m_dr_x = evt.GetX(); m_dr_y = evt.GetY(); }
+        draw_drag = evt.Dragging() && evt.LeftIsDown() && m_dr_n == 0 && m_points.size() == 1;
+        if (evt.LeftUp()) {
+            const bool released_away = m_dr_n == 0 && m_points.size() == 1 &&
+                std::max(std::abs(evt.GetX() - m_dr_x), std::abs(evt.GetY() - m_dr_y)) > 6;
+            m_dr_n = -1;
+            if (released_away) {          // the release is the second click
+                wxMouseEvent down(evt);
+                down.SetEventType(wxEVT_LEFT_DOWN);
+                down.SetLeftDown(true);
+                return on_mouse_impl(down, canvas);
+            }
+        }
+    }
+    if (evt.Moving() || draw_drag) {
+        m_snap_off = evt.ShiftDown() || evt.ControlDown() || evt.AltDown(); m_infer_off = evt.ControlDown() || evt.AltDown();
         screen_to_plane(canvas, evt, m_cursor);
         m_has_cursor = true;
         m_cursor_locked = false;
@@ -11839,7 +12520,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         if (evt.LeftDown()) {
             Vec2d p;
             screen_to_plane(canvas, evt, p);
-            m_snap_off = evt.ShiftDown();
+            m_snap_off = evt.ShiftDown() || evt.ControlDown() || evt.AltDown(); m_infer_off = evt.ControlDown() || evt.AltDown();
             bool vsnap = false;
             p = snap_vertex(canvas, evt, p, vsnap);   // snap onto an existing endpoint
             if (snap_chain_start(canvas, evt, p)) {   // clicked the previewed close target
@@ -11885,7 +12566,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         if (evt.LeftDown()) {
             Vec2d p;
             screen_to_plane(canvas, evt, p);
-            m_snap_off = evt.ShiftDown();
+            m_snap_off = evt.ShiftDown() || evt.ControlDown() || evt.AltDown(); m_infer_off = evt.ControlDown() || evt.AltDown();
             bool vsnap = false;
             p = snap_vertex(canvas, evt, p, vsnap);   // snap onto an existing endpoint
             if (m_points.empty()) {     // first click = anchor
@@ -12237,7 +12918,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         // geometry); double-click or right-click finishes as an open spline.
         if (evt.LeftDown()) {
             Vec2d p; screen_to_plane(canvas, evt, p);
-            m_snap_off = evt.ShiftDown();
+            m_snap_off = evt.ShiftDown() || evt.ControlDown() || evt.AltDown(); m_infer_off = evt.ControlDown() || evt.AltDown();
             bool vsnap = false;
             p = snap_vertex(canvas, evt, p, vsnap);   // poles can land on endpoints
             m_chain_dup_tol = screen_tol(canvas, evt, p, 3.0);

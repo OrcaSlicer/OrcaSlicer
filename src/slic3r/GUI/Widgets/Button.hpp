@@ -12,6 +12,7 @@
 #include <wx/dc.h>
 #include <wx/tipwin.h>
 #include <wx/colour.h>
+#include <string>
 
 class ButtonProps
 {
@@ -72,6 +73,7 @@ public:
     bool SetFont(const wxFont& font) override;
 
     void SetIcon(const wxString& icon);
+    const std::string& GetIconName() const { return active_icon.name(); }   // for a second view of the button (the ImGui sidebar)
     void SetIcon(const wxBitmap& icon);
 
     void SetMinSize(const wxSize& size) override;

@@ -1,0 +1,524 @@
+{
+ "id": "31-fillet-l-all-edges",
+ "name": "All-edge fillet on an L block",
+ "description": "L profile (60x40, 8 thick legs) extruded 20; every edge filleted R2 - mixed convex/concave corners.",
+ "exercises": [
+  "fillet",
+  "concave_edge",
+  "mixed_corner"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "LSketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       60,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       60.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       60,
+       8
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       60.0,
+       8.0
+      ]
+     },
+     "end": {
+      "at": [
+       8,
+       8
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       8.0,
+       8.0
+      ]
+     },
+     "end": {
+      "at": [
+       8,
+       40
+      ]
+     },
+     "id": "l4"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l4.end",
+      "at": [
+       8.0,
+       40.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       40
+      ]
+     },
+     "id": "l5"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l5.end",
+      "at": [
+       0.0,
+       40.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l6"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "LSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4",
+        "l5",
+        "l6"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 20,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "L"
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "Fillet1",
+   "type": "constant_radius",
+   "radius": 2,
+   "tangent_chain": false,
+   "edge_selection": "all 18 edges of L",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      8.0,
+      40.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      40.0,
+      0.0
+     ],
+     "point": [
+      4.0,
+      40.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      40.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      40.0,
+      20.0
+     ],
+     "point": [
+      0.0,
+      40.0,
+      10.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      8.0,
+      40.0,
+      20.0
+     ],
+     "end": [
+      0.0,
+      40.0,
+      20.0
+     ],
+     "point": [
+      4.0,
+      40.0,
+      20.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      8.0,
+      40.0,
+      0.0
+     ],
+     "end": [
+      8.0,
+      40.0,
+      20.0
+     ],
+     "point": [
+      8.0,
+      40.0,
+      10.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      8.0,
+      8.0,
+      0.0
+     ],
+     "end": [
+      8.0,
+      40.0,
+      0.0
+     ],
+     "point": [
+      8.0,
+      24.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      8.0,
+      8.0,
+      20.0
+     ],
+     "end": [
+      8.0,
+      40.0,
+      20.0
+     ],
+     "point": [
+      8.0,
+      24.0,
+      20.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      8.0,
+      8.0,
+      0.0
+     ],
+     "end": [
+      8.0,
+      8.0,
+      20.0
+     ],
+     "point": [
+      8.0,
+      8.0,
+      10.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      60.0,
+      8.0,
+      0.0
+     ],
+     "end": [
+      8.0,
+      8.0,
+      0.0
+     ],
+     "point": [
+      34.0,
+      8.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      60.0,
+      8.0,
+      20.0
+     ],
+     "end": [
+      8.0,
+      8.0,
+      20.0
+     ],
+     "point": [
+      34.0,
+      8.0,
+      20.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      60.0,
+      8.0,
+      0.0
+     ],
+     "end": [
+      60.0,
+      8.0,
+      20.0
+     ],
+     "point": [
+      60.0,
+      8.0,
+      10.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      60.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      60.0,
+      8.0,
+      0.0
+     ],
+     "point": [
+      60.0,
+      4.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      60.0,
+      0.0,
+      20.0
+     ],
+     "end": [
+      60.0,
+      8.0,
+      20.0
+     ],
+     "point": [
+      60.0,
+      4.0,
+      20.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      60.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      60.0,
+      0.0,
+      20.0
+     ],
+     "point": [
+      60.0,
+      0.0,
+      10.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      60.0,
+      0.0,
+      0.0
+     ],
+     "point": [
+      30.0,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      0.0,
+      20.0
+     ],
+     "end": [
+      60.0,
+      0.0,
+      20.0
+     ],
+     "point": [
+      30.0,
+      0.0,
+      20.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      20.0
+     ],
+     "point": [
+      0.0,
+      0.0,
+      10.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      40.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "point": [
+      0.0,
+      20.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      40.0,
+      20.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      20.0
+     ],
+     "point": [
+      0.0,
+      20.0,
+      20.0
+     ]
+    }
+   ]
+  }
+ ]
+}

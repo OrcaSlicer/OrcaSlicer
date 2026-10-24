@@ -103,6 +103,7 @@ static const bool kOfferRowFlat[] = {
 
 static const OfferVerb kOfferVerbs[] = {
     {"sketch", L_CONTEXT("Sketch", "Design"), 0, "Shift+S", "key:S+S", L("Select a flat face or a reference plane to sketch on"), 0x00000403u, 0, 0, false, false, nullptr, "design_sketch", L("Sketch on the selected flat face or plane, or click one next")},
+    {"sketch3d", L_CONTEXT("3D Sketch", "Design"), 0, nullptr, "btn:sketch3d", nullptr, 0x00000001u, 0, 0, false, false, nullptr, "design_sketch", L("Click points in space; Tab cycles the working plane. Use it as a Sweep path")},
     {"extrude", L_CONTEXT("Extrude", "Design"), 1, "Shift+E", "key:S+E", L("Create a sketch, or pick a solid face, first"), 0x00004002u, 0, 0, false, false, nullptr, "design_extrude", L("Extrude a sketch profile, or push/pull a picked face")},
     {"revolve", L_CONTEXT("Revolve", "Design"), 1, "Shift+R", "key:S+R", L("Create a sketch profile to revolve first"), 0x00004000u, 0, 0, false, false, nullptr, "design_revolve", L("Revolve a profile about an axis")},
     {"sweep", L_CONTEXT("Sweep", "Design"), 1, "Shift+W", "key:S+W", L("Create a profile sketch to sweep first"), 0x00004000u, 0, 2, false, false, nullptr, "design_sweep", L("Sweep a profile along a path")},
@@ -137,9 +138,10 @@ static const OfferVerb kOfferVerbs[] = {
     {"axis", L_CONTEXT("Axis", "Design"), 6, "Shift+A", "key:S+A", nullptr, 0x00000057u, 0, 0, false, false, nullptr, "design_line", L("Datum axis (two points, face normal, cylinder centerline, two planes, along edge)")},
     {"coordsys_v", L_CONTEXT("Coordinate system", "Design"), 6, "Shift+C", "key:S+C", nullptr, 0x00000043u, 0, 0, false, false, nullptr, "design_point", L("Datum coordinate system (world point, or face + direction edge)")},
     {"helix", L_CONTEXT("Helix", "Design"), 6, nullptr, "fly:plane#3", nullptr, 0x00000405u, 0, 0, false, false, nullptr, "design_thread", L("Helical curve (spring path) — use as a sweep path for coils / springs / augers")},
-    {"project", L_CONTEXT("Project", "Design"), 6, nullptr, "fly:plane#4", L("Project needs a body — add or import one first"), 0x00000482u, 1, 0, false, false, nullptr, "design_sketch", L("Project body edges onto a plane as sketch entities")},
+    {"project", L_CONTEXT("Project", "Design"), 6, nullptr, "fly:plane#4", L("Project needs a body or a sketch — add or import one first"), 0x00004482u, 0, 0, false, false, nullptr, "design_sketch", L("Project body edges, or a whole sketch (Use), onto a plane")},
     {"measure", L_CONTEXT("Measure", "Design"), 6, nullptr, nullptr, nullptr, 0x000b03feu, 0, 0, false, false, nullptr, nullptr, L("Measure between the picked points, edges or faces")},
     {"mass_props", L_CONTEXT("Volume and area", "Design"), 6, nullptr, "btn:mass", nullptr, 0x000000feu, 1, 0, false, false, nullptr, "info", L("Report the volume and surface area of the selected body")},
+    {"quotes", L_CONTEXT("Dimensions", "Design"), 6, nullptr, "btn:quotes", nullptr, 0x00000081u, 1, 0, false, false, nullptr, nullptr, L("Show the dimensions of the body in drafting style: overall size, hole diameters and fillet radii; click one to edit it")},
     {"interference", L_CONTEXT("Interference", "Design"), 6, nullptr, "btn:interference", L("Interference needs at least two bodies"), 0x00000280u, 2, 0, false, false, nullptr, nullptr, L("Check whether two bodies overlap — reports, changes nothing")},
     {"edit_feature", L_CONTEXT("Edit", "Design"), 7, nullptr, "btn:edit", nullptr, 0x00007d8eu, 0, 0, false, false, nullptr, "design_edit", L("Reopen the selected feature to change what it was made from")},
     {"rename", L_CONTEXT("Rename…", "Design"), 8, "F2", "btn:rename", L("Select a feature, or a body, to rename it"), 0x00004080u, 0, 0, false, false, nullptr, nullptr, L("Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)")},
@@ -204,8 +206,36 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_length", L_CONTEXT("Length…", "Design"), 7, "V", "key:V", nullptr, 0x00010000u, 0, 0, false, true, nullptr, "design_dimension", L("Type the length of this line")},
     {"sk_radius", L_CONTEXT("Radius / diameter…", "Design"), 7, "V", "key:V", nullptr, 0x00020000u, 0, 0, false, true, nullptr, "design_dimension", L("Type the radius of this arc, or the diameter of this circle")},
     {"sk_angdist", L_CONTEXT("Angle / distance…", "Design"), 7, "V", "key:V", nullptr, 0x00080000u, 0, 0, false, true, nullptr, "design_dimension", L("Type the angle between two lines, or the distance between the two picks")},
+    {"sheet_base", L_CONTEXT("Base flange", "Design"), 1, nullptr, "fly:sheet#0", L("Create a sketch first"), 0x0000c001u, 0, 1, false, false, nullptr, "design_sheet_base", L("A plate of the sheet thickness from a closed sketch")},
+    {"sheet_flange", L_CONTEXT("Edge flange", "Design"), 1, nullptr, "fly:sheet#1", L("Sheet metal needs a sheet body — make a base flange first"), 0x00000010u, 1, 0, false, false, nullptr, "design_sheet_flange", L("Bend a flange up from the picked end edges of the sheet")},
+    {"sheet_contour", L_CONTEXT("Contour flange", "Design"), 1, nullptr, "fly:sheet#2", L("Create a sketch first"), 0x00018001u, 0, 1, false, false, nullptr, "design_sheet_contour", L("A bent sheet from an open chain of lines")},
+    {"sheet_hem", L_CONTEXT("Hem", "Design"), 1, nullptr, "fly:sheet#3", L("Sheet metal needs a sheet body — make a base flange first"), 0x00000010u, 1, 0, false, false, nullptr, "design_sheet_hem", L("Fold the end of a flange back over itself")},
+    {"sheet_unfold", L_CONTEXT("Unfold", "Design"), 7, nullptr, "fly:sheet#4", L("Sheet metal needs a sheet body — make a base flange first"), 0x00000081u, 1, 0, false, false, nullptr, "design_sheet_unfold", L("Flatten every bend")},
+    {"sheet_refold", L_CONTEXT("Refold", "Design"), 7, nullptr, "fly:sheet#5", L("Unfold the sheet first"), 0x00000081u, 1, 0, false, false, nullptr, "design_sheet_refold", L("Fold a flattened sheet back, carrying the cuts made while flat")},
+    {"sheet_rule", L_CONTEXT("Sheet rule", "Design"), 1, nullptr, "fly:sheet#6", nullptr, 0x00000001u, 0, 0, false, false, nullptr, "design_sheet_rule", L("Thickness, bend radius, K-factor and hem gap for the sheet features after it")},
+    {"con_horizontal", L_CONTEXT("Horizontal", "Design"), 6, nullptr, "con:Horizontal", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_horizontal", L("Make the selected line (or two points) horizontal")},
+    {"con_vertical", L_CONTEXT("Vertical", "Design"), 6, nullptr, "con:Vertical", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_vertical", L("Make the selected line (or two points) vertical")},
+    {"con_parallel", L_CONTEXT("Parallel", "Design"), 6, nullptr, "con:Parallel", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_parallel", L("Make two selected lines parallel")},
+    {"con_perpendicular", L_CONTEXT("Perpendicular", "Design"), 6, nullptr, "con:Perpendicular", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_perpendicular", L("Make two selected lines perpendicular")},
+    {"con_coincident", L_CONTEXT("Coincident", "Design"), 6, nullptr, "con:Coincident", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_coincident", L("Join two selected points, or a point onto a curve")},
+    {"con_equallength", L_CONTEXT("Equal length", "Design"), 6, nullptr, "con:EqualLength", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_equal", L("Make two selected lines the same length")},
+    {"con_equalradius", L_CONTEXT("Equal radius", "Design"), 6, nullptr, "con:EqualRadius", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_equal_radius", L("Make two selected circles or arcs the same radius")},
+    {"con_collinear", L_CONTEXT("Collinear", "Design"), 6, nullptr, "con:Collinear", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_collinear", L("Put two selected lines on one line")},
+    {"con_concentric", L_CONTEXT("Concentric", "Design"), 6, nullptr, "con:Concentric", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_concentric", L("Give two selected circles or arcs one centre")},
+    {"con_tangent", L_CONTEXT("Tangent", "Design"), 6, nullptr, "con:Tangent", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_tangent", L("Make two selected curves tangent")},
+    {"con_midpoint", L_CONTEXT("Midpoint", "Design"), 6, nullptr, "con:Midpoint", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_midpoint", L("Put a selected point at the middle of a selected line")},
+    {"con_symmetric", L_CONTEXT("Symmetric", "Design"), 6, nullptr, "con:Symmetric", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_symmetric", L("Make two points mirror images about a selected line")},
+    {"con_symmetricabouty", L_CONTEXT("Symmetric about the vertical axis", "Design"), 6, nullptr, "con:SymmetricAboutY", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_sym_v", L("Make two points mirror images about the vertical axis")},
+    {"con_symmetricaboutx", L_CONTEXT("Symmetric about the horizontal axis", "Design"), 6, nullptr, "con:SymmetricAboutX", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_sym_h", L("Make two points mirror images about the horizontal axis")},
+    {"con_angle", L_CONTEXT("Angle", "Design"), 6, nullptr, "con:Angle", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_angle", L("Fix the angle between two selected lines")},
+    {"con_radius", L_CONTEXT("Radius", "Design"), 6, nullptr, "con:Radius", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_radius", L("Fix the radius of the selected arc or circle")},
+    {"con_diameter", L_CONTEXT("Diameter", "Design"), 6, nullptr, "con:Diameter", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_diameter", L("Fix the diameter of the selected circle")},
+    {"con_fix", L_CONTEXT("Fix point", "Design"), 6, nullptr, "con:Fix", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_fix", L("Anchor the selected point where it is")},
+    {"con_distancex", L_CONTEXT("Horizontal distance", "Design"), 6, nullptr, "con:DistanceX", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_dist_x", L("Fix the horizontal distance between two points")},
+    {"con_distancey", L_CONTEXT("Vertical distance", "Design"), 6, nullptr, "con:DistanceY", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_dist_y", L("Fix the vertical distance between two points")},
+    {"sk_dim_names", L_CONTEXT("Dimension names", "Design"), 6, "J", "key:J", nullptr, 0x000f8000u, 0, 0, false, true, L("Constrain"), nullptr, L("Show the variable behind each dimension instead of its value, and back")},
 };
-static const int kOfferVerbCount = 93;
+static const int kOfferVerbCount = 123;
 
 }} // namespace Slic3r::GUI
 

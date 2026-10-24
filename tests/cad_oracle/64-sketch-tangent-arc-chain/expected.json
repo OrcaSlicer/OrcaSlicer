@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "solved sketch: 80x20 rectangle whose top is 4 tangent R12 arcs on 20 mm chords alternating up/down (net area 1600); prism h3: V = A h, area = 2A + perimeter*h, Green's theorem for centroid",
+  "body_count": 1,
+  "volume_mm3": 4799.999999999989,
+  "area_mm2": 3843.711905601287,
+  "center_of_mass": [
+    38.11191357516195,
+    -9.585748181923725,
+    1.5
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      -20.0,
+      0.0
+    ],
+    "max": [
+      80.0,
+      5.3667504192892,
+      3.0
+    ]
+  },
+  "faces": 9
+}

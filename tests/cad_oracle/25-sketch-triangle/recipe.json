@@ -1,0 +1,184 @@
+{
+ "id": "25-sketch-triangle",
+ "name": "Sketch solver: triangle with lengths and angle",
+ "description": "Triangle drawn roughly; l1 horizontal from origin, |l1|=50, |l2|=45, angle(l1,l3)=60 deg. Solved sketch extruded 5 mm.",
+ "exercises": [
+  "sketch_only",
+  "sketch_constraints",
+  "angle_dim"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Triangle",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       2,
+       1
+      ]
+     },
+     "end": {
+      "at": [
+       45,
+       3
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       45.0,
+       3.0
+      ]
+     },
+     "end": {
+      "at": [
+       22,
+       35
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       22.0,
+       35.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       2.0,
+       1.0
+      ]
+     },
+     "id": "l3"
+    }
+   ],
+   "constraints": [
+    {
+     "type": "coincident",
+     "refs": [
+      "l1.start",
+      "origin"
+     ]
+    },
+    {
+     "type": "horizontal",
+     "refs": [
+      "l1"
+     ]
+    }
+   ],
+   "dimensions": [
+    {
+     "type": "distance",
+     "refs": [
+      "l1.start",
+      "l1.end"
+     ],
+     "value": 50,
+     "unit": "mm",
+     "orientation": "aligned"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "l2.start",
+      "l2.end"
+     ],
+     "value": 45,
+     "unit": "mm",
+     "orientation": "aligned"
+    },
+    {
+     "type": "angle",
+     "refs": [
+      "l1",
+      "l3"
+     ],
+     "value": 60,
+     "unit": "deg",
+     "text_at": [
+      8,
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Triangle",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 5,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Triangle"
+   ]
+  }
+ ]
+}

@@ -2433,9 +2433,15 @@ static constexpr float CANVAS_TOOLBAR_PADDING = 2.f;
 static constexpr float CANVAS_TOOLBAR_BUTTON  = 36.f;
 static constexpr float CANVAS_TOOLBAR_SPACING = 6.f;
 
+// The navigator and the round buttons beside it sit in the corner chosen in Preferences. The bottom-left one is the
+// only one the plate switcher and the status line must keep clear of.
+static bool navigator_at_bottom_left() { return !wxGetApp().navigator_right() && wxGetApp().navigator_bottom(); }
+
 // What the corner takes at the left edge of the canvas: the 3D navigator, or else the canvas toolbar.
 static float canvas_corner_height()
 {
+    if (!navigator_at_bottom_left())
+        return CANVAS_TOOLBAR_MARGIN;
     if (wxGetApp().show_3d_navigator())
         return NAVIGATOR_SIZE;
     const int buttons = wxGetApp().show_canvas_zoom_button() ? 3 : 2;
@@ -2449,8 +2455,32 @@ float GLCanvas3D::get_canvas_toolbar_right() const
 #ifdef WIN32
     sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
 #endif // WIN32
+    if (!navigator_at_bottom_left())   // the bottom-left corner is free
+        return CANVAS_TOOLBAR_MARGIN * sc;
     const float left = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE : CANVAS_TOOLBAR_MARGIN;
     return (left + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * sc;
+}
+
+bool GLCanvas3D::navigator_right() const  { return wxGetApp().navigator_right(); }
+bool GLCanvas3D::navigator_bottom() const { return wxGetApp().navigator_bottom(); }
+
+float GLCanvas3D::navigator_width() const
+{
+    float sc = get_scale();
+#ifdef WIN32
+    sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
+#endif // WIN32
+    const float nav = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE : CANVAS_TOOLBAR_MARGIN;
+    return (nav + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * sc;
+}
+
+float GLCanvas3D::navigator_height() const
+{
+    float sc = get_scale();
+#ifdef WIN32
+    sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
+#endif // WIN32
+    return wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE * sc : 0.f;
 }
 
 GLToolbar& GLCanvas3D::collapse_toolbar() const
@@ -2592,7 +2622,9 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
     // below once it is known whether the frame differs from the one on screen.
-    const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
+    // The Design canvas hosts its ImGui overlays (top bar, left panel, labels) inside the scene pass, so a frame that skips the pass
+    // would draw none of them: it never reuses the cached scene.
+    const bool reuse_scene = !scene_dirty && m_design_sketch_tool == nullptr && _can_reuse_cached_scene(camera);
     // Only frames that redraw the scene are profiled.
     if (!reuse_scene && (_is_render_timings_enabled() || m_frame_profiler.is_averaging()))
         m_frame_profiler.begin_frame();
@@ -2918,7 +2950,9 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     // Design tab: interactive 2D sketch overlay, drawn over the scene but
     // beneath the UI overlays (toolbars, labels).
 #ifdef SLIC3R_CAD
-    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display())
+    // Always: the canvas's ImGui overlays (top bar, left panel) are drawn from inside it, and exist on an empty design too.
+    // render() returns early by itself when there is nothing of the tool's own to draw.
+    if (m_design_sketch_tool != nullptr)
         m_design_sketch_tool->render(*this);
 #endif
 
@@ -6781,8 +6815,10 @@ void GLCanvas3D::_render_3d_navigator()
     sc *= (float) dpi / (float) DPI_DEFAULT;
 #endif // WIN32
 
-    const float viewManipulateLeft = 0;
-    const float viewManipulateTop  = io.DisplaySize.y;
+    // The corner is a preference, the same in Prepare and Design; on the left, Design starts past its panel.
+    const float nav_size           = NAVIGATOR_SIZE * sc;
+    const float viewManipulateLeft = wxGetApp().navigator_right() ? io.DisplaySize.x - nav_size : m_navigator_left_inset;
+    const float viewManipulateTop  = wxGetApp().navigator_bottom() ? io.DisplaySize.y - nav_size : m_navigator_top_inset;
     const float camDistance        = 8.f;
 
     Camera&     camera           = wxGetApp().plater()->get_camera();
@@ -6800,8 +6836,15 @@ void GLCanvas3D::_render_3d_navigator()
 
     const float size  = NAVIGATOR_SIZE * sc;
     m_canvas_toolbar_pos[0] = size;
+    // Idle, the cube fades back so it does not compete with the model; the pointer over it, or a drag on it, brings it forward.
+    const ImVec2 mp         = io.MousePos;
+    const bool   nav_active = m_navigator_dragging || (mp.x >= viewManipulateLeft && mp.x < viewManipulateLeft + size &&
+                                                       mp.y >= viewManipulateTop  && mp.y < viewManipulateTop + size);
+    if (!nav_active)
+        for (const auto c : {ImGuizmo::COLOR::DIRECTION_X, ImGuizmo::COLOR::DIRECTION_Y, ImGuizmo::COLOR::DIRECTION_Z, ImGuizmo::COLOR::TEXT, ImGuizmo::COLOR::FACE})
+            style.Colors[c].w *= 0.45f;
     const auto result = ImGuizmo::ViewManipulate(cameraView, cameraProjection, ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::WORLD, nullptr,
-                                                 camDistance, ImVec2(viewManipulateLeft, viewManipulateTop - size), ImVec2(size, size),
+                                                 camDistance, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(size, size),
                                                  0x00101010);
 
     // Restore the real mouse-down state
@@ -10475,7 +10518,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
     const float y_offset = is_collapse_toolbar_on_left() ? (get_collapse_toolbar_height() + 5) : 0;
     // Make sure the window does not overlap the 3d navigator
     auto window_height_max = canvas_h - y_offset;
-    if (wxGetApp().show_3d_navigator()) {
+    if (wxGetApp().show_3d_navigator() && navigator_at_bottom_left()) {
         window_height_max -= (128 * f_scale + 5);
     }
     else { // ORCA spacing for canvas menu
@@ -10992,13 +11035,18 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImVec2        margin   = ImVec2(m_canvas_toolbar_pos[0] > 0 ? 0.f : (CANVAS_TOOLBAR_MARGIN * sc), CANVAS_TOOLBAR_MARGIN * sc);
     ImVec2        spacing  = ImVec2(CANVAS_TOOLBAR_SPACING, CANVAS_TOOLBAR_SPACING) * sc;
     ImVec2        padding  = ImVec2(CANVAS_TOOLBAR_PADDING, CANVAS_TOOLBAR_PADDING) * sc;
-    Vec2i32       pos      = {
-        m_canvas_toolbar_pos[0]        + margin.x,
-        get_canvas_size().get_height() - margin.y
+    // The column stands beside the navigator, on its inner side, in the same corner.
+    const bool    at_right  = wxGetApp().navigator_right();
+    const bool    at_bottom = wxGetApp().navigator_bottom();
+    const float   tb_w      = btn_size.x + 2.f * padding.x;
+    const float   nav_w     = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE * sc : CANVAS_TOOLBAR_MARGIN * sc;
+    Vec2i32       pos       = {
+        int(at_right ? float(get_canvas_size().get_width()) - tb_w - nav_w : m_navigator_left_inset + nav_w),
+        int(at_bottom ? float(get_canvas_size().get_height()) - margin.y : m_navigator_top_inset + margin.y)
     };
     bool          zoom_btn = wxGetApp().show_canvas_zoom_button();
 
-    imgui.set_next_window_pos(pos[0], pos[1], ImGuiCond_Always, 0, 1); // pivot bottom-left
+    imgui.set_next_window_pos(pos[0], pos[1], ImGuiCond_Always, 0, at_bottom ? 1 : 0); // pivot: the corner's own
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0    );
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , {0,0});

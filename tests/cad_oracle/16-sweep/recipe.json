@@ -1,0 +1,182 @@
+{
+ "id": "16-sweep",
+ "name": "Sweep along path",
+ "description": "d=6 circle on XY at origin swept along a path on XZ: line up 30, tangent R20 arc, line 30 along +X.",
+ "exercises": [
+  "sketch_xz",
+  "sweep",
+  "path_chain"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Path",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       0.0,
+       -30.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       0.0,
+       -30.0
+      ]
+     },
+     "mid": [
+      5.857864376,
+      -44.142135624
+     ],
+     "end": {
+      "at": [
+       20.0,
+       -50.0
+      ]
+     },
+     "id": "a1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a1.end",
+      "at": [
+       20.0,
+       -50.0
+      ]
+     },
+     "end": {
+      "at": [
+       50.0,
+       -50.0
+      ]
+     },
+     "id": "l2"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "sketch",
+   "name": "ProfileSketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 3,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "sweep",
+   "name": "Sweep1",
+   "operation": "new",
+   "profile": {
+    "sketch": "ProfileSketch",
+    "loops": [
+     {
+      "outer": true,
+      "curves": [
+       "c1"
+      ]
+     }
+    ]
+   },
+   "path": {
+    "sketch": "Path",
+    "curves": [
+     "l1",
+     "a1",
+     "l2"
+    ],
+    "chained": true
+   },
+   "orientation": "perpendicular",
+   "result_bodies": [
+    "Tube"
+   ]
+  }
+ ]
+}

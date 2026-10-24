@@ -583,6 +583,10 @@ if (SLIC3R_CAD)
     list(APPEND lisbslic3r_sources
             CAD/GeometryEngine.cpp
             CAD/GeometryEngine.hpp
+            CAD/TopoRemap.cpp
+            CAD/TopoRemap.hpp
+            CAD/Quotes.cpp
+            CAD/Quotes.hpp
             CAD/SketchEngine.cpp
             CAD/SketchEngine.hpp
             CAD/SketchConstraints.cpp
@@ -593,8 +597,11 @@ if (SLIC3R_CAD)
             CAD/SketchInference.hpp
             CAD/SketchImport.cpp
             CAD/SketchImport.hpp
+            CAD/SheetMetal.cpp
+            CAD/SheetMetal.hpp
             CAD/CadDocument.cpp
             CAD/CadDocument.hpp
+            CAD/CadFeatureFields.hpp
             CAD/ThreadStandards.cpp
             CAD/ThreadStandards.hpp
         )
@@ -690,6 +697,7 @@ find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
 set(OCCT_LIBS
+    TKDEIGES
     TKDESTEP
     TKDE
     TKXCAF

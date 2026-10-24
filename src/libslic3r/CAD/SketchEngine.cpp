@@ -42,6 +42,10 @@
 #include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepAlgoAPI_Splitter.hxx>
+#include <BRepBuilderAPI_MakePolygon.hxx>
+#include <BRepTools.hxx>
+#include <NCollection_List.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
@@ -225,10 +229,15 @@ TopoDS_Shape SketchEngine::make_extrude_taper(const TopoDS_Wire& wire, const Ske
     if (std::abs(off) < 1e-7) return straight();
     try {
         // 1) offset the planar base wire in its own plane by `off`
-        BRepOffsetAPI_MakeOffset mko(wire, GeomAbs_Arc);
-        mko.Perform(off);
-        if (!mko.IsDone()) return straight();
-        TopoDS_Shape offShape = mko.Shape();
+        // Sharp (intersection) joins: arc joins round the convex corners of an outward offset, so the top of a tapered
+        // polygon came out short of the exact frustum. Arc joins remain the fallback.
+        TopoDS_Shape offShape;
+        for (GeomAbs_JoinType join : {GeomAbs_Intersection, GeomAbs_Arc}) {
+            BRepOffsetAPI_MakeOffset mko(wire, join);
+            mko.Perform(off);
+            if (mko.IsDone() && !mko.Shape().IsNull()) { offShape = mko.Shape(); break; }
+        }
+        if (offShape.IsNull()) return straight();
         TopoDS_Wire topFlat;
         if (offShape.ShapeType() == TopAbs_WIRE) topFlat = TopoDS::Wire(offShape);
         else { for (TopExp_Explorer ex(offShape, TopAbs_WIRE); ex.More(); ex.Next()) { topFlat = TopoDS::Wire(ex.Current()); break; } }
@@ -408,20 +417,71 @@ TopoDS_Shape SketchEngine::make_sweep(const TopoDS_Wire& profile, const TopoDS_W
     return pipe.Shape();
 }
 
-TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled)
+// A copy of `w` moved along its own plane normal by `strength` * (distance to `toward`'s centre),
+// on the side that faces `toward`. Null if the wire has no plane.
+static TopoDS_Wire normal_section(const TopoDS_Wire& w, const TopoDS_Wire& toward, double strength)
+{
+    auto face_of = [](const TopoDS_Wire& x) { return BRepBuilderAPI_MakeFace(x).Face(); };
+    const TopoDS_Face fa = face_of(w), fb = face_of(toward);
+    BRepAdaptor_Surface sa(fa);
+    if (sa.GetType() != GeomAbs_Plane) return TopoDS_Wire();
+    GProp_GProps pa, pb;
+    BRepGProp::SurfaceProperties(fa, pa);
+    BRepGProp::SurfaceProperties(fb, pb);
+    const gp_Pnt ca = pa.CentreOfMass(), cb = pb.CentreOfMass();
+    gp_Vec n(sa.Plane().Axis().Direction());
+    const gp_Vec gap(ca, cb);
+    if (gap.Magnitude() < 1e-9) return TopoDS_Wire();
+    if (n.Dot(gap) < 0) n.Reverse();
+    gp_Trsf tr;
+    tr.SetTranslation(n * (strength * std::abs(n.Dot(gap))));
+    BRepBuilderAPI_Transform xf(w, tr, true);
+    return TopoDS::Wire(xf.Shape());
+}
+
+TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                     int start_cond, int end_cond, double strength)
 {
     if (profiles.size() < 2)
         throw std::runtime_error(_u8L("loft needs at least 2 profiles"));
     BRepOffsetAPI_ThruSections loft(true /*solid*/, ruled);
-    for (const TopoDS_Wire& w : profiles) {
+    for (size_t i = 0; i < profiles.size(); ++i) {
+        const TopoDS_Wire& w = profiles[i];
         if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
         loft.AddWire(w);
+        // Normal-to-profile end condition: one auxiliary section right after the first profile / right
+        // before the last, so the smooth skin leaves (arrives) perpendicular to that profile.
+        if (!ruled && i == 0 && start_cond == 1) {
+            const TopoDS_Wire aux = normal_section(w, profiles[1], strength);
+            if (!aux.IsNull()) loft.AddWire(aux);
+        }
+        if (!ruled && i + 2 == profiles.size() && end_cond == 1) {
+            const TopoDS_Wire aux = normal_section(profiles.back(), w, strength);
+            if (!aux.IsNull()) loft.AddWire(aux);
+        }
     }
     loft.Build();
     if (!loft.IsDone()) throw std::runtime_error(_u8L("loft failed"));
     TopoDS_Shape s = loft.Shape();
     if (s.IsNull()) throw std::runtime_error(_u8L("loft produced no solid"));
     return s;
+}
+
+TopoDS_Shape SketchEngine::make_loft_to_point(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                              const gp_Pnt* apex_first, const gp_Pnt* apex_last)
+{
+    if (profiles.empty() || (profiles.size() < 2 && !(apex_first && apex_last) && !(profiles.size() == 1 && (apex_first || apex_last))))
+        throw std::runtime_error(_u8L("loft needs a section besides the point"));
+    BRepOffsetAPI_ThruSections loft(true /*solid*/, ruled);
+    if (apex_first) loft.AddVertex(BRepBuilderAPI_MakeVertex(*apex_first));
+    for (const TopoDS_Wire& w : profiles) {
+        if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
+        loft.AddWire(w);
+    }
+    if (apex_last) loft.AddVertex(BRepBuilderAPI_MakeVertex(*apex_last));
+    loft.Build();
+    if (!loft.IsDone() || loft.Shape().IsNull()) throw std::runtime_error(_u8L("loft to a point failed"));
+    return loft.Shape();
 }
 
 // ponytail: sibling of make_loft that builds an open shell (sheet) instead of a solid.
@@ -1003,6 +1063,191 @@ TopoDS_Face SketchEngine::wires_to_face(const std::vector<TopoDS_Wire>& wires,
     ShapeFix_Face sff(fm.Face());
     sff.FixOrientation();
     return checked_profile_face(sff.Face());
+}
+
+std::vector<TopoDS_Face> SketchEngine::wires_to_faces(const std::vector<TopoDS_Wire>& wires, const SketchPlane& plane)
+{
+    if (wires.empty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
+    const gp_Pln pln(gp_Pnt(plane.origin.x(), plane.origin.y(), plane.origin.z()), gp_Dir(plane.normal.x(), plane.normal.y(), plane.normal.z()));
+    const size_t n = wires.size();
+    std::vector<TopoDS_Face> plain(n);
+    std::vector<gp_Pnt> probe(n);
+    for (size_t i = 0; i < n; ++i) {
+        BRepBuilderAPI_MakeFace fm(pln, wires[i]);
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
+        plain[i] = fm.Face();
+        TopExp_Explorer ex(wires[i], TopAbs_VERTEX);
+        if (!ex.More()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
+        probe[i] = BRep_Tool::Pnt(TopoDS::Vertex(ex.Current()));
+    }
+    // parent[i] = the smallest loop that contains loop i (-1 = none); depth follows from the chain
+    std::vector<double> area(n);
+    for (size_t i = 0; i < n; ++i) { GProp_GProps pr; BRepGProp::SurfaceProperties(plain[i], pr); area[i] = std::abs(pr.Mass()); }
+    std::vector<int> parent(n, -1);
+    for (size_t i = 0; i < n; ++i)
+        for (size_t j = 0; j < n; ++j) {
+            if (i == j || area[j] <= area[i]) continue;
+            BRepClass_FaceClassifier fc(plain[j], probe[i], 1e-7);
+            if (fc.State() == TopAbs_IN && (parent[i] < 0 || area[j] < area[size_t(parent[i])])) parent[i] = int(j);
+        }
+    auto depth = [&](size_t i) { int d = 0; for (int p = parent[i]; p >= 0; p = parent[size_t(p)]) ++d; return d; };
+    std::vector<TopoDS_Face> out;
+    for (size_t i = 0; i < n; ++i) {
+        if (depth(i) % 2 != 0) continue;   // a hole: it rides along with the region around it
+        BRepBuilderAPI_MakeFace fm(pln, wires[i]);
+        for (size_t k = 0; k < n; ++k)
+            if (parent[k] == int(i)) fm.Add(wires[k]);
+        if (!fm.IsDone()) throw std::runtime_error(_u8L("sketch loop does not bound a face"));
+        ShapeFix_Face sff(fm.Face());
+        sff.FixOrientation();
+        out.push_back(checked_profile_face(sff.Face()));
+    }
+    return out;
+}
+
+// ---- planar subdivision of a sketch ----------------------------------------------------------------------------------------
+namespace {
+bool arr_kind_ok(const SketchEntity& e)
+{
+    return e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc || e.type == SketchEntity::Type::Circle;
+}
+// distance from p to the curve of `e`, +inf when p is beyond an arc's sweep
+double arr_dist(const SketchEntity& e, const Vec2d& p)
+{
+    if (e.type == SketchEntity::Type::Line) {
+        const Vec2d d = e.p1 - e.p0;
+        const double L2 = d.squaredNorm();
+        const double t = L2 > 1e-18 ? std::clamp((p - e.p0).dot(d) / L2, 0.0, 1.0) : 0.0;
+        return (e.p0 + d * t - p).norm();
+    }
+    const double r = (p - e.center).norm();
+    if (e.type == SketchEntity::Type::Arc) {
+        double a = std::atan2(p.y() - e.center.y(), p.x() - e.center.x());
+        double a0 = e.start_angle, sweep = e.end_angle - e.start_angle;
+        while (sweep < 0) sweep += 2 * M_PI;
+        double rel = a - a0;
+        while (rel < 0) rel += 2 * M_PI;
+        while (rel >= 2 * M_PI) rel -= 2 * M_PI;
+        if (rel > sweep + 1e-9) return std::numeric_limits<double>::infinity();
+    }
+    return std::abs(r - e.radius);
+}
+}
+
+bool SketchEngine::arrangement_needed(const std::vector<SketchEntity>& entities)
+{
+    std::vector<const SketchEntity*> v;
+    for (const SketchEntity& e : entities) {
+        if (e.construction || e.type == SketchEntity::Type::Point) continue;
+        if (!arr_kind_ok(e)) return false;
+        v.push_back(&e);
+    }
+    const double tol = std::max(sketch_join_tol(), 1e-6);   // as loose as the sketch welds its own joints
+    for (const SketchEntity* a : v) {
+        if (a->type == SketchEntity::Type::Circle) continue;
+        for (const Vec2d& p : { a->p0, a->p1 })
+            for (const SketchEntity* b : v) {
+                if (b == a) continue;
+                // p must touch b away from b's own ends (an end-to-end joint is an ordinary chain)
+                if (arr_dist(*b, p) > tol) continue;
+                if (b->type != SketchEntity::Type::Circle && ((p - b->p0).norm() <= tol || (p - b->p1).norm() <= tol)) continue;
+                return true;
+            }
+    }
+    return false;
+}
+
+std::vector<TopoDS_Face> SketchEngine::arrangement_faces(const std::vector<SketchEntity>& entities, const SketchPlane& plane)
+{
+    const gp_Pln pln(gp_Pnt(plane.origin.x(), plane.origin.y(), plane.origin.z()), gp_Dir(plane.normal.x(), plane.normal.y(), plane.normal.z()));
+    auto P3 = [&](const Vec2d& p) { const Vec3d w = plane.to_world(p); return gp_Pnt(w.x(), w.y(), w.z()); };
+    NCollection_List<TopoDS_Shape> tools;
+    Vec2d lo(1e300, 1e300), hi(-1e300, -1e300);
+    auto grow = [&](const Vec2d& p) { lo = lo.cwiseMin(p); hi = hi.cwiseMax(p); };
+    for (const SketchEntity& e : entities) {
+        if (e.construction || e.type == SketchEntity::Type::Point) continue;
+        if (e.type == SketchEntity::Type::Line) {
+            if ((e.p1 - e.p0).norm() < 1e-9) continue;
+            tools.Append(BRepBuilderAPI_MakeEdge(P3(e.p0), P3(e.p1)).Edge());
+            grow(e.p0); grow(e.p1);
+        } else if (e.type == SketchEntity::Type::Circle) {
+            if (e.radius <= 1e-9) continue;
+            const Vec3d n = plane.x_axis.cross(plane.y_axis);
+            tools.Append(BRepBuilderAPI_MakeEdge(gp_Circ(gp_Ax2(P3(e.center), gp_Dir(n.x(), n.y(), n.z())), e.radius)).Edge());
+            grow(e.center - Vec2d(e.radius, e.radius)); grow(e.center + Vec2d(e.radius, e.radius));
+        } else if (e.type == SketchEntity::Type::Arc) {
+            const double mid = 0.5 * (e.start_angle + e.end_angle);
+            GC_MakeArcOfCircle mk(P3(e.p0), P3(e.center + Vec2d(std::cos(mid), std::sin(mid)) * e.radius), P3(e.p1));
+            if (!mk.IsDone()) throw std::runtime_error(_u8L("sketch arc could not be built"));
+            tools.Append(BRepBuilderAPI_MakeEdge(mk.Value()).Edge());
+            grow(e.center - Vec2d(e.radius, e.radius)); grow(e.center + Vec2d(e.radius, e.radius));
+        }
+    }
+    if (tools.IsEmpty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
+    const double pad = std::max(10.0, 0.25 * (hi - lo).maxCoeff());
+    const Vec2d c[4] = { lo - Vec2d(pad, pad), Vec2d(hi.x() + pad, lo.y() - pad), hi + Vec2d(pad, pad), Vec2d(lo.x() - pad, hi.y() + pad) };
+    BRepBuilderAPI_MakePolygon poly;
+    for (const Vec2d& p : c) poly.Add(P3(p));
+    poly.Close();
+    BRepBuilderAPI_MakeFace bigf(pln, poly.Wire());
+    if (!bigf.IsDone()) throw std::runtime_error(_u8L("sketch regions could not be found"));
+
+    BRepAlgoAPI_Splitter sp;
+    NCollection_List<TopoDS_Shape> args;
+    args.Append(bigf.Face());
+    sp.SetArguments(args);
+    sp.SetTools(tools);
+    sp.SetFuzzyValue(std::max(sketch_join_tol(), 1e-6));
+    sp.Build();
+    if (!sp.IsDone()) throw std::runtime_error(_u8L("sketch regions could not be found"));
+
+    // keep the bounded pieces: the unbounded one still has a corner of the big rectangle
+    std::vector<TopoDS_Face> faces;
+    for (TopExp_Explorer ex(sp.Shape(), TopAbs_FACE); ex.More(); ex.Next()) {
+        const TopoDS_Face f = TopoDS::Face(ex.Current());
+        bool outer = false;
+        for (TopExp_Explorer vx(f, TopAbs_VERTEX); vx.More() && !outer; vx.Next())
+            for (const Vec2d& p : c)
+                if (BRep_Tool::Pnt(TopoDS::Vertex(vx.Current())).Distance(P3(p)) < 1e-5) { outer = true; break; }
+        if (!outer) faces.push_back(f);
+    }
+    // a region that fills a hole of another region is that hole (even depth = region, odd = hole)
+    const size_t n = faces.size();
+    std::vector<std::vector<TopoDS_Shape>> outer_edges(n), inner_edges(n);
+    std::vector<double> area(n);
+    for (size_t i = 0; i < n; ++i) {
+        const TopoDS_Wire ow = BRepTools::OuterWire(faces[i]);
+        for (TopExp_Explorer ex(ow, TopAbs_EDGE); ex.More(); ex.Next()) outer_edges[i].push_back(ex.Current());
+        for (TopExp_Explorer wx(faces[i], TopAbs_WIRE); wx.More(); wx.Next())
+            if (!wx.Current().IsSame(ow))
+                for (TopExp_Explorer ex(wx.Current(), TopAbs_EDGE); ex.More(); ex.Next()) inner_edges[i].push_back(ex.Current());
+        GProp_GProps pr;
+        BRepGProp::SurfaceProperties(faces[i], pr);
+        area[i] = std::abs(pr.Mass());
+    }
+    std::vector<int> parent(n, -1);
+    for (size_t i = 0; i < n; ++i)
+        for (size_t j = 0; j < n; ++j) {
+            if (i == j || outer_edges[i].empty()) continue;
+            bool all = true;
+            for (const TopoDS_Shape& e : outer_edges[i]) {
+                bool found = false;
+                for (const TopoDS_Shape& g : inner_edges[j]) if (g.IsSame(e)) { found = true; break; }
+                if (!found) { all = false; break; }
+            }
+            if (all && (parent[i] < 0 || area[j] < area[size_t(parent[i])])) parent[i] = int(j);
+        }
+    auto depth = [&](size_t i) { int d = 0; for (int p = parent[i]; p >= 0; p = parent[size_t(p)]) ++d; return d; };
+    std::vector<TopoDS_Face> out;
+    for (size_t i = 0; i < n; ++i) {
+        if (depth(i) % 2 != 0) continue;
+        ShapeFix_Face sff(faces[i]);
+        sff.Perform();   // the pieces carry the weld tolerance of the joints they were cut at: let OCCT tidy their wires
+        sff.FixOrientation();
+        out.push_back(sff.Face());
+    }
+    if (out.empty()) throw std::runtime_error(_u8L("sketch has no closed loop"));
+    return out;
 }
 
 std::vector<SketchEntity> SketchEngine::mirror_entities(

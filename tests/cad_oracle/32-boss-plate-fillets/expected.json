@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate 60x60x8 + boss (r10, z 8..23) with R3 concave base and R2 convex top fillets taken as one solid of revolution: V, z-moment and lateral area from Pappus/Green on its (r,z) profile (quarter-circle fillet arcs); plate top loses the r13 disc",
+  "body_count": 1,
+  "volume_mm3": 33590.34963015678,
+  "area_mm2": 9929.863617615047,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    5.602823546473236
+  ],
+  "bbox": {
+    "min": [
+      -30.0,
+      -30.0,
+      0.0
+    ],
+    "max": [
+      30.0,
+      30.0,
+      23.0
+    ]
+  },
+  "faces": 10
+}

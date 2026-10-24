@@ -13,17 +13,24 @@
 #include <wx/colour.h>
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
+#include <wx/sizer.h>
 #include <wx/string.h>
 
+#include <set>
 #include <vector>
 #include <memory>
 #include <functional>
 #include <map>
 
 #include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/CAD/Quotes.hpp"
+#include "slic3r/GUI/CAD/DesignCardModel.hpp"
+#include "slic3r/GUI/CAD/DesignImGuiUi.hpp"
 #include "slic3r/GUI/CAD/DesignInteraction.hpp"   // CadLevel: what one Esc press means
 #include "slic3r/GUI/AuiMgr.hpp"
 #include "slic3r/GUI/Lazy.hpp"
+#include "slic3r/GUI/CAD/DesignOffer.hpp"
+#include <wx/stattext.h>
 
 class ComboBox;    // Orca dropdown (Widgets/ComboBox.hpp) — replaces wxChoice everywhere here
 class StaticBox;   // Orca rounded card frame (Widgets/StaticBox.hpp)
@@ -52,6 +59,15 @@ class ScalableButton;
 
 namespace Slic3r { namespace GUI {
 
+// Logs "Design: <name> <ms> ms" when its scope took 5 ms or more: where the time of an edit goes (kernel rebuild or UI refresh).
+struct PhaseLog {
+    explicit PhaseLog(const char* name);
+    ~PhaseLog();
+private:
+    const char* m_name;
+    long long   m_t0;
+};
+
 class DesignTextDialog;
 class DesignRowList;
 
@@ -60,6 +76,8 @@ class DesignCanvas;
 // Design (CAD) tab: a sketch-first, Onshape-style form-driven CAD panel.
 // Sketch and Extrude are independent tools: the user creates a Sketch first,
 // then selects it and Extrudes to produce a solid.
+struct SidebarCtx;   // DesignSidebarMirror.cpp
+
 class DesignPanel : public wxPanel, public LazyInstance<DesignPanel>
 {
 public:
@@ -83,6 +101,11 @@ public:
 
     // MCP control hooks: let the external control server (McpControl.cpp) drive and
     // perceive the SAME kernel the GUI uses. Called only on the wx main thread.
+    void         mcp_set_imgui_tree(bool on) { set_imgui_tree(on); }
+    void         mcp_set_imgui_ribbon(bool on) { set_imgui_ribbon(on); }
+    void         mcp_set_imgui_topbar(bool on) { set_imgui_topbar(on); }
+    void         mcp_set_imgui_sidebar(bool on) { set_imgui_sidebar(on); }
+    void         mcp_set_imgui_menu(bool on);
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
     void         mcp_after_change() { after_tree_edit(true); } // refresh tree + viewport + status
     DesignCanvas* mcp_viewport()  { return m_viewport; }        // live sketch + 3D view
@@ -102,6 +125,19 @@ public:
     // verb instead of spending a letter and every verb is reachable — including the rows with no
     // keyboard shortcut, which are otherwise invisible to anything that parses key tables.
     int  mcp_offer_selection_kind() const { return offer_selection_kind(); }  // OfferSel as int
+    // Rig driver for the wx feature cards: open one, set a field, commit it. Names: dressup extrude shell draft pattern.
+    bool mcp_card_open(const std::string& card);
+    bool mcp_card_set(const std::string& key, double value);
+    void mcp_drop_selection() { drop_selection(); }   // a replaced document must not keep the old pick (a stale body index poisons the next feature)
+    bool mcp_card_confirm_enabled() const { return confirm_enabled(); }
+    std::vector<int> mcp_tree_selection() const { return tree_selected_rows(); }
+    void mcp_tree_event(const std::string& kind, int row);   // rig driver: copy | paste | delete | toggle on a tree row
+    bool mcp_card_confirm() { if (!confirm_enabled()) return false; tool_confirm(); return true; }
+    bool mcp_card_check_feature(int feature_index, bool on);
+    // The open card as the rig sees it: Tool as int (0 = none), whether the check mark would act, the status line.
+    int         mcp_active_tool() const { return int(m_active); }
+    bool        mcp_confirm_enabled() const { return confirm_enabled(); }
+    std::string mcp_status() const { return m_status ? m_status->GetLabel().utf8_string() : std::string(); }
     void mcp_run_action(const char* action) { run_offer_action(action); }     // dispatch an action string
     // Defined out of line in DesignPanel.cpp: it needs kOfferVerbs, which this header deliberately
     // does not include (the table is generated and belongs to the offer-menu code).
@@ -115,7 +151,7 @@ public:
     void hydrate_from_model();
 
 private:
-    enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix, Mate };
+    enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix, Mate, Sheet };
     // Which numeric fields an expression can be bound to, per feature type. A member rather
     // than a file-static helper so Tool — 32 values of purely internal card state — does not
     // have to become part of this panel's public API just to be named in a signature.
@@ -191,6 +227,12 @@ private:
     void on_add_mirror();
     void on_add_thicken();
     void on_add_rib();
+    // Sheet metal: ONE card with a mode (rule / base flange / edge flange / contour flange / hem / unfold / refold).
+    void on_add_sheet();
+    void open_sheet(int mode);              // the ribbon verbs: preset the mode, check the document, open the card
+    void sheet_sync_mode();                 // show the rows of the chosen mode
+    void sheet_sync_edges();                // the "N edges picked" label
+    void load_sheet_feature(const CadFeature& f);
     void on_add_project();
     void on_add_delete_face();
     void on_add_helix();
@@ -209,12 +251,12 @@ private:
     // Fill `c` with the bodies as they existed just before `as_of_feature` and select
     // `want`. Re-editing any feature that stores a body index needs this: the index was
     // recorded against the body list at that point in the timeline, not the final one.
-    void fill_body_choice(ComboBox* c, int as_of_feature, int want);
-    void populate_sheet_body_choices(ComboBox* c) const;   // bodies where is_sheet_shape() is true
+    template<class C> void fill_body_choice(C* c, int as_of_feature, int want);
+    template<class C> void populate_sheet_body_choices(C* c) const;   // bodies where is_sheet_shape() is true
     // Rows of a sheet-filtered picker are not body indices; go through these two, never
     // GetSelection()/SetSelection() directly.
-    static int  sheet_choice_body(ComboBox* c);            // real body index of the current row, or -1
-    static void select_sheet_choice(ComboBox* c, int body);// select the row holding this body index
+    template<class C> static int  sheet_choice_body(C* c);            // real body index of the current row, or -1
+    template<class C> static void select_sheet_choice(C* c, int body);// select the row holding this body index
     // Import rigid 2D art (Text / SVG) as a new Sketch feature carrying
     // imported_regions (no solver entities). on_add_text/on_import_svg gather
     // input; add_imported_sketch builds the feature, refreshes tree + display.
@@ -254,6 +296,11 @@ private:
 
     // Feature-tree editing (Onshape-style): act on the selected tree row.
     void on_delete_feature();
+    std::set<int> m_tree_multi;                                  // the ImGui tree's multi-selection (the primary row is the wx tree's)
+    std::vector<std::pair<int, CadFeature>> m_feature_clip;      // Copy: {index, feature} in history order
+    void copy_selected_features();
+    void paste_features();
+    std::vector<int> tree_selected_rows() const;                 // the multi-selection, or the single selected row
     // "Delete Body" — the geometry-first counterpart, reached by pointing at a body or any of
     // its faces. Resolves the body to the feature that created it and removes THAT, because a
     // body is a recomputed result and has nothing else to delete.
@@ -305,7 +352,11 @@ private:
     void drop_solid_pick();            // the solid and hit-face part of drop_selection
     bool begin_renumber();             // before delete/reorder: refuse while an index is held, else close the card, checkpoint, drop picks
     void load_feature_into_dialog(const CadFeature& f);
-    void reset_edit_state();           // back to add-mode (m_edit_index = -1)
+    void reset_edit_state();
+    // Edit Sketch rolls the history back to just after the sketch (what comes later is not built while it is edited);
+    // these put the full history back. `commit` = a replace_feature follows, which rebuilds anyway.
+    bool m_edit_rolled{false};
+    void end_edit_rollback(bool commit = false);           // back to add-mode (m_edit_index = -1)
 
     // Onshape loop: Button -> open_tool (show dialog) -> refresh_preview (ghost) ->
     // confirm_tool (commit) / cancel_tool (abort).
@@ -345,7 +396,7 @@ private:
     int        resolve_extrude_sketch() const;
     // Plane pickers: fill a choice with XY/XZ/YZ + the document's datum planes, and
     // map a choice row back to the actual SketchPlane (rows 0-2 base, 3+ datum).
-    void        populate_plane_choices(ComboBox* c) const;
+    template<class C> void        populate_plane_choices(C* c) const;
     wxString    ref_plane_name(int row) const;   // "XY" / a datum's name, for the on-geometry hint
     SketchPlane plane_from_choice(int row) const;
     // Where a new sketch goes, resolved from what is SELECTED IN THE VIEWPORT rather than from a
@@ -385,6 +436,8 @@ private:
     void       refresh_mate_connectors(); // push connector frames so verse + polarity are visible
     void       update_reference_planes(); // the XY/XZ/YZ planes + axes: Origin row, plane choice, Plane tool
     void       toggle_origin();           // the Origin row's eye (and Ctrl+Shift+O): keep the reference planes up
+    void       toggle_toolbar();          // the Toolbar row's eye: show or hide the ribbon
+    void       apply_toolbar_visibility();
     void       toggle_bed();              // the Bed row's eye (and Ctrl+Shift+B): draw the printer bed, or not
     void       refresh_pinned();          // rebuild the Origin and Bed rows (their eyes and label colours)
     // Sketch: open a session on the picked face or plane, or with none picked, put the planes up
@@ -410,9 +463,8 @@ private:
     std::map<int, std::function<void()>> m_keys_sketch;
     std::map<int, std::function<void()>> m_keys_feature;
 
-    StaticBox* m_tree_box{nullptr};   // framed feature-tree section
-    StaticBox* m_parts_box{nullptr};  // framed bodies section (hidden while empty)
-    StaticBox* m_cards{nullptr};      // one framed panel holding every tool dialog (one visible at a time)
+    CardModel* m_tree_box{nullptr};   // framed feature-tree section
+    CardModel* m_parts_box{nullptr};  // framed bodies section (hidden while empty)
     void      update_cards_frame();     // show that frame iff some card inside it is visible
     void      show_move_card(bool show);
     void      apply_move_card();       // numeric move/rotate -> same xform the gizmo builds
@@ -421,40 +473,53 @@ private:
     CommitMode      m_commit_mode{CommitMode::Assembly};
     ScalableButton* m_commit_btn{nullptr};   // main face: runs the current commit mode
     DropDown*       m_commit_drop{nullptr};  // commit-mode choices, owned via m_flyout_keepalive
+    // The 3D (Solid, Surface) and 2D (Sketch) tool groups of the ribbon table, as buttons in the top row next to
+    // New / Import / Export: always shown, greyed by the same verb_state the ribbon uses (projects-is6a).
+    struct ToolboxBtn { ScalableButton* btn{nullptr}; ScalableButton* arrow{nullptr}; std::string group; std::vector<const OfferVerb*> verbs; const OfferVerb* cur{nullptr}; };
+    std::vector<ToolboxBtn> m_toolbox;
+    wxSizer*  m_tb_tools{nullptr};
+    wxTimer   m_toolbox_timer;
+    void build_toolbox();
+    void update_toolbox();
     wxSizer*  m_tb_doc{nullptr};      // toolbar document/view actions (new, commit, export, section, place)
-    wxSizer*  m_box_move{nullptr};      // Move/Rotate numeric options (distance, axis, angle)
-    wxSizer*  m_box_sketch{nullptr};
-    wxSizer*  m_box_extrude{nullptr};
-    wxSizer*  m_box_dressup{nullptr};
-    wxSizer*  m_box_hole{nullptr};
-    wxSizer*  m_box_thread{nullptr};
-    wxSizer*  m_box_shell{nullptr};
-    wxSizer*  m_box_revolve{nullptr};
-    wxSizer*  m_box_sweep{nullptr};
-    wxSizer*  m_box_pattern{nullptr};
-    wxSizer*  m_box_plane{nullptr};
-    wxSizer*  m_box_loft{nullptr};
-    wxSizer*  m_box_draft{nullptr};
-    wxSizer*  m_box_boolean{nullptr};
-    wxSizer*  m_box_cut{nullptr};
-    wxSizer*  m_box_axis{nullptr};
-    wxSizer*  m_box_coordsys{nullptr};
-    wxSizer*  m_box_surf_extrude{nullptr};
-    wxSizer*  m_box_surf_revolve{nullptr};
-    wxSizer*  m_box_surf_loft{nullptr};
-    wxSizer*  m_box_surf_fill{nullptr};
-    wxSizer*  m_box_surf_offset{nullptr};
-    wxSizer*  m_box_surf_thicken{nullptr};
-    wxSizer*  m_box_transform{nullptr};
-    wxSizer*  m_box_mirror{nullptr};
-    wxSizer*  m_box_thicken{nullptr};
-    wxSizer*  m_box_rib{nullptr};
-    wxSizer*  m_box_project{nullptr};
-    wxSizer*  m_box_delete_face{nullptr};
-    wxSizer*  m_box_helix{nullptr};
-    wxSizer*  m_box_mate{nullptr};
-    wxSizer*  m_box_insert{nullptr};   // Confirm/Cancel card for placing Text/SVG art
-    wxSizer*  m_box_expr{nullptr};     // expression binding card (visible during edit only)
+    // The tool cards that are tables, by the (empty) sizer that places each in the card stack.
+    std::vector<std::unique_ptr<CardModel>> m_card_models;   // the tool cards, in the order the sidebar draws them
+    std::vector<std::unique_ptr<CardModel>> m_list_cards;    // the feature tree, the bodies and the variables
+    std::unique_ptr<CardText> m_status_text, m_dof_status_text;
+    CardModel*  m_box_move{nullptr};      // Move/Rotate numeric options (distance, axis, angle)
+    CardModel*  m_box_sketch{nullptr};
+    CardModel*  m_box_extrude{nullptr};
+    CardModel*  m_box_dressup{nullptr};
+    CardModel*  m_box_hole{nullptr};
+    CardModel*  m_box_thread{nullptr};
+    CardModel*  m_box_shell{nullptr};
+    CardModel*  m_box_revolve{nullptr};
+    CardModel*  m_box_sweep{nullptr};
+    CardModel*  m_box_pattern{nullptr};
+    CardModel*  m_box_plane{nullptr};
+    CardModel*  m_box_loft{nullptr};
+    CardModel*  m_box_draft{nullptr};
+    CardModel*  m_box_boolean{nullptr};
+    CardModel*  m_box_cut{nullptr};
+    CardModel*  m_box_axis{nullptr};
+    CardModel*  m_box_coordsys{nullptr};
+    CardModel*  m_box_surf_extrude{nullptr};
+    CardModel*  m_box_surf_revolve{nullptr};
+    CardModel*  m_box_surf_loft{nullptr};
+    CardModel*  m_box_surf_fill{nullptr};
+    CardModel*  m_box_surf_offset{nullptr};
+    CardModel*  m_box_surf_thicken{nullptr};
+    CardModel*  m_box_transform{nullptr};
+    CardModel*  m_box_mirror{nullptr};
+    CardModel*  m_box_thicken{nullptr};
+    CardModel*  m_box_rib{nullptr};
+    CardModel*  m_box_sheet{nullptr};
+    CardModel*  m_box_project{nullptr};
+    CardModel*  m_box_delete_face{nullptr};
+    CardModel*  m_box_helix{nullptr};
+    CardModel*  m_box_mate{nullptr};
+    CardModel*  m_box_insert{nullptr};   // Confirm/Cancel card for placing Text/SVG art
+    CardModel*  m_box_expr{nullptr};     // expression binding card (visible during edit only)
     int       m_insert_feat{-1};       // provisional imported-art feature awaiting Confirm
     // The open Text dialog, the feature it draws into (-1 until there is text to draw) and,
     // for a new text, where it goes: plane, offset in that plane, and the body of the face it
@@ -480,43 +545,44 @@ private:
 
     // Onshape-style dialog-card title rows (icon + bold feature name), retitled
     // per tool in open_tool() (edit-mode shows the feature's actual name).
-    wxStaticText* m_hdr_move{nullptr};
-    wxStaticText* m_hdr_sketch{nullptr};
+    CardText* m_hdr_move{nullptr};
+    CardText* m_hdr_sketch{nullptr};
     // Onshape sketch-entry card (plane/orientation) that opens on "New sketch" and
     // persists until Finish (Phase 3).
-    wxSizer*      m_box_sketch_session{nullptr};
-    wxStaticText* m_hdr_sketch_session{nullptr};
-    wxStaticText* m_sketch_hint{nullptr};   // "click a plane" / "drawing on X" — must match the status
-    wxStaticText* m_hdr_extrude{nullptr};
-    wxStaticText* m_hdr_dressup{nullptr};
-    wxStaticText* m_hdr_hole{nullptr};
-    wxStaticText* m_hdr_thread{nullptr};
-    wxStaticText* m_hdr_shell{nullptr};
-    wxStaticText* m_hdr_revolve{nullptr};
-    wxStaticText* m_hdr_sweep{nullptr};
-    wxStaticText* m_hdr_pattern{nullptr};
-    wxStaticText* m_hdr_plane{nullptr};
-    wxStaticText* m_hdr_loft{nullptr};
-    wxStaticText* m_hdr_draft{nullptr};
-    wxStaticText* m_hdr_boolean{nullptr};
-    wxStaticText* m_hdr_cut{nullptr};
-    wxStaticText* m_hdr_axis{nullptr};
-    wxStaticText* m_hdr_coordsys{nullptr};
-    wxStaticText* m_hdr_surf_extrude{nullptr};
-    wxStaticText* m_hdr_surf_revolve{nullptr};
-    wxStaticText* m_hdr_surf_loft{nullptr};
-    wxStaticText* m_hdr_surf_fill{nullptr};
-    wxStaticText* m_hdr_surf_offset{nullptr};
-    wxStaticText* m_hdr_surf_thicken{nullptr};
-    wxStaticText* m_hdr_transform{nullptr};
-    wxStaticText* m_hdr_mirror{nullptr};
-    wxStaticText* m_hdr_thicken{nullptr};
-    wxStaticText* m_hdr_rib{nullptr};
-    wxStaticText* m_hdr_project{nullptr};
-    wxStaticText* m_hdr_delete_face{nullptr};
-    wxStaticText* m_hdr_helix{nullptr};
-    wxStaticText* m_hdr_mate{nullptr};
-    wxStaticText* m_hdr_insert{nullptr};
+    CardModel*      m_box_sketch_session{nullptr};
+    CardText* m_hdr_sketch_session{nullptr};
+    CardText* m_sketch_hint{nullptr};   // "click a plane" / "drawing on X" — must match the status
+    CardText* m_hdr_extrude{nullptr};
+    CardText* m_hdr_dressup{nullptr};
+    CardText* m_hdr_hole{nullptr};
+    CardText* m_hdr_thread{nullptr};
+    CardText* m_hdr_shell{nullptr};
+    CardText* m_hdr_revolve{nullptr};
+    CardText* m_hdr_sweep{nullptr};
+    CardText* m_hdr_pattern{nullptr};
+    CardText* m_hdr_plane{nullptr};
+    CardText* m_hdr_loft{nullptr};
+    CardText* m_hdr_draft{nullptr};
+    CardText* m_hdr_boolean{nullptr};
+    CardText* m_hdr_cut{nullptr};
+    CardText* m_hdr_axis{nullptr};
+    CardText* m_hdr_coordsys{nullptr};
+    CardText* m_hdr_surf_extrude{nullptr};
+    CardText* m_hdr_surf_revolve{nullptr};
+    CardText* m_hdr_surf_loft{nullptr};
+    CardText* m_hdr_surf_fill{nullptr};
+    CardText* m_hdr_surf_offset{nullptr};
+    CardText* m_hdr_surf_thicken{nullptr};
+    CardText* m_hdr_transform{nullptr};
+    CardText* m_hdr_mirror{nullptr};
+    CardText* m_hdr_thicken{nullptr};
+    CardText* m_hdr_rib{nullptr};
+    CardText* m_hdr_sheet{nullptr};
+    CardText* m_hdr_project{nullptr};
+    CardText* m_hdr_delete_face{nullptr};
+    CardText* m_hdr_helix{nullptr};
+    CardText* m_hdr_mate{nullptr};
+    CardText* m_hdr_insert{nullptr};
 
     wxScrolledWindow* m_form{nullptr};
     DesignCanvas*     m_viewport{nullptr};
@@ -562,11 +628,51 @@ private:
     std::vector<std::function<void()>> m_icon_refresh;
     void refresh_icons();
     wxCheckBox*       m_construction{nullptr};   // sketch-mode construction toggle
-    wxSpinCtrlDouble* m_move_dx{nullptr};        // Move/Rotate card: world translation
-    wxSpinCtrlDouble* m_move_dy{nullptr};
-    wxSpinCtrlDouble* m_move_dz{nullptr};
-    ComboBox*         m_move_axis{nullptr};      // rotation axis: X/Y/Z
-    wxSpinCtrlDouble* m_move_angle{nullptr};     // rotation angle (deg)
+    // Project card source combo, row by row: >= 0 a body index, <= -2 a SKETCH feature (= -v - 2).
+    // A sketch source is the "Use" flavour: parent-linked, re-projected on every recompute.
+    std::vector<int>  m_proj_src_map;
+    void              fill_project_sources(int editing_feature, bool want_sketch, int want);
+    wxCheckBox*       m_grid_snap{nullptr};      // sketch grid snap on/off (persisted)
+    wxSpinCtrlDouble* m_grid_step{nullptr};      // snap step, mm (persisted)
+    void              push_grid_snap();          // spin/check -> viewport + config
+    // Feature tree on the canvas (ImGui) instead of the side panel's wx list. The wx list stays alive,
+    // hidden, as the selection model: the overlay emits events that call the same handlers.
+    void              set_imgui_tree(bool on);
+    void              apply_tree_events(const std::vector<TreeEvent>& evs);
+    TreeView          build_tree_view() const;
+    bool              m_imgui_tree{false};
+    // The ribbon (tabs -> groups -> tools) drawn on the canvas; the wx toolbar's tool groups hide
+    // while it is on (its Confirm/Cancel bar and document buttons stay).
+    void              set_imgui_ribbon(bool on);
+    // The row above the viewport (document actions, toolbox, Commit, Confirm / Cancel) drawn on the canvas with ImGui; the wx
+    // row hides while it is on. Off = the wx row, as before.
+    void              set_imgui_topbar(bool on);
+    // The left panel drawn with ImGui at the canvas's left edge: a view over this panel's wx form, which stays alive (hidden) as
+    // the model, so every handler runs as before (DesignSidebarMirror.cpp). Off = the wx pane, as before.
+    void              set_imgui_sidebar(bool on);
+    void              draw_sidebar_imgui();
+    void              mirror_card(CardModel& card, SidebarCtx& cx);
+    bool              m_imgui_sidebar{false};
+    DesignRowList*    m_sb_rename_list{nullptr};   // a row being renamed in the ImGui view
+    int               m_sb_rename_row{-1};
+    std::string       m_sb_rename_text;
+    bool              m_sb_rename_focus{false};
+    bool              m_imgui_topbar{false};
+    bool              action_bar_active() const;   // a tool or mode is open: the Confirm / Cancel pair shows
+    // Is this verb usable right now, and if not why: ONE rule for the ribbon, the palette and the offer.
+    DesignRibbonOverlay::VerbState verb_state(const struct OfferVerb& v) const;
+    void              wire_palette();   // the Ctrl+K command box: items, runner, recents
+    // The right-click offer as an ImGui popup instead of a wx menu (item 3). False = not handled:
+    // the caller falls back to the wx menu (the Mate palette's hover ghosts live there).
+    bool              open_imgui_offer(const wxPoint& screen_pos);
+    bool              m_imgui_menu{false};
+    bool              m_imgui_ribbon{false};
+    void              start_sketch3d();          // free 3D curve: click points, Tab cycles the working plane
+    NumField* m_move_dx{nullptr};        // Move/Rotate card: world translation
+    NumField* m_move_dy{nullptr};
+    NumField* m_move_dz{nullptr};
+    ChoiceField*         m_move_axis{nullptr};      // rotation axis: X/Y/Z
+    NumField* m_move_angle{nullptr};     // rotation angle (deg)
     // Polygon's two parameters are chosen FROM THE TOOL, in the offer's Polygon submenu, not
     // from a card on the left: the side count cannot be edited after drawing (the inline editor
     // offers Side and Angle only), so it has to be settled at the moment the tool is armed —
@@ -593,200 +699,230 @@ private:
     // The Feature tree's Bed row: draws the printer bed and its plate grid. A view preference
     // (AppConfig "design_show_bed"), not part of the recipe.
     bool              m_show_bed{true};
-    ComboBox*         m_shape{nullptr};
-    ComboBox*         m_mode{nullptr};
-    wxSpinCtrlDouble* m_width{nullptr};
-    wxSpinCtrlDouble* m_height{nullptr};
-    wxSpinCtrlDouble* m_radius{nullptr};
-    wxSpinCtrlDouble* m_distance{nullptr};
-    ComboBox*         m_extrude_end{nullptr};   // Blind/Symmetric/TwoSided/ThroughAll/UpTo*
-    wxSpinCtrlDouble* m_distance2{nullptr};     // second-side depth (Two-sided)
-    wxSpinCtrlDouble* m_taper{nullptr};         // draft angle (deg)
-    CheckBox*         m_flip{nullptr};          // reverse extrude direction
+    // The Feature tree's Toolbar row: shows or hides the ribbon (or the wx tool groups). A view
+    // preference (AppConfig "design_show_toolbar", absent = shown). Confirm/Cancel are never hidden.
+    bool              m_show_toolbar{true};
+    ChoiceField*         m_shape{nullptr};
+    ChoiceField*         m_mode{nullptr};
+    NumField* m_width{nullptr};
+    NumField* m_height{nullptr};
+    NumField* m_radius{nullptr};
+    NumField* m_distance{nullptr};
+    ChoiceField*         m_extrude_end{nullptr};   // Blind/Symmetric/TwoSided/ThroughAll/UpTo*
+    NumField* m_distance2{nullptr};     // second-side depth (Two-sided)
+    NumField* m_taper{nullptr};         // draft angle (deg)
+    ToggleField*         m_flip{nullptr};          // reverse extrude direction
 
-    wxStaticText*     m_extrude_sketch_label{nullptr};
+    CardText*     m_extrude_sketch_label{nullptr};
     int               m_extrude_sketch_ref{-1};
     int               m_extrude_auto_body{-1};   // body the profile touches: the inferred Join target
 
     // Revolve controls (sweep a sketch profile about an in-plane axis).
-    wxStaticText*     m_revolve_sketch_label{nullptr};
-    wxSpinCtrlDouble* m_revolve_angle{nullptr};
-    ComboBox*         m_revolve_axis{nullptr};   // Plane X, Plane Y, then the sketch's lines
+    CardText*     m_revolve_sketch_label{nullptr};
+    NumField* m_revolve_angle{nullptr};
+    ChoiceField*         m_revolve_axis{nullptr};   // Plane X, Plane Y, then the sketch's lines
     std::vector<int>  m_revolve_axis_ents;       // entity index of each line entry, in order
-    ComboBox*         m_revolve_mode{nullptr};   // New/Add/Cut/Intersect
-    CheckBox*         m_revolve_flip{nullptr};
+    ChoiceField*         m_revolve_mode{nullptr};   // New/Add/Cut/Intersect
+    ToggleField*         m_revolve_flip{nullptr};
     int               m_revolve_sketch_ref{-1};
 
     // Sweep controls (sweep a profile sketch along a path sketch).
-    wxStaticText*     m_sweep_profile_label{nullptr};
-    ComboBox*         m_sweep_path{nullptr};       // path Sketch picker (feature index in client data)
-    ComboBox*         m_sweep_mode{nullptr};       // New/Add/Cut/Intersect
+    CardText*     m_sweep_profile_label{nullptr};
+    ChoiceField*         m_sweep_path{nullptr};       // path Sketch picker (feature index in client data)
+    ChoiceField*         m_sweep_mode{nullptr};       // New/Add/Cut/Intersect
     int               m_sweep_profile_ref{-1};
     int               m_sweep_path_ref{-1};        // path Sketch feature index (for re-edit pre-select)
 
     // Loft controls (skin a solid through 2+ ordered profile Sketches).
-    wxCheckListBox*   m_loft_list{nullptr};        // every Sketch; check 2+ in list order = profiles
-    CheckBox*         m_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
-    ComboBox*         m_loft_mode{nullptr};        // New/Add/Cut/Intersect
+    CheckListField*   m_loft_list{nullptr};        // every Sketch; check 2+ in list order = profiles
+    ToggleField*         m_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
+    ChoiceField*         m_loft_start_cond{nullptr};  // first profile: Contact / Normal to profile
+    ChoiceField*         m_loft_end_cond{nullptr};    // last profile
+    ChoiceField*         m_loft_mode{nullptr};        // New/Add/Cut/Intersect
     std::vector<int>  m_loft_sketch_idx;           // feature index for each row in m_loft_list
     std::vector<int>  m_loft_refs;                 // chosen profile refs (for re-edit pre-check)
 
     // Surface Extrude controls (sheet from sketch profile).
-    wxStaticText*     m_surf_extrude_sketch_label{nullptr};
-    wxSpinCtrlDouble* m_surf_extrude_distance{nullptr};
+    CardText*     m_surf_extrude_sketch_label{nullptr};
+    NumField* m_surf_extrude_distance{nullptr};
     int               m_surf_extrude_sketch_ref{-1};
 
     // Surface Revolve controls (sheet from sketch about axis).
-    wxStaticText*     m_surf_revolve_sketch_label{nullptr};
-    wxSpinCtrlDouble* m_surf_revolve_angle{nullptr};
-    ComboBox*         m_surf_revolve_axis{nullptr};   // as m_revolve_axis
+    CardText*     m_surf_revolve_sketch_label{nullptr};
+    NumField* m_surf_revolve_angle{nullptr};
+    ChoiceField*         m_surf_revolve_axis{nullptr};   // as m_revolve_axis
     std::vector<int>  m_surf_revolve_axis_ents;
     // Fill a revolve axis combo for the profile sketch `sketch_ref`: "Plane X", "Plane Y", then
     // one entry per Line of the sketch (entity index in `ents`), and select axis/entity. A fresh
     // revolve passes entity = -2: the sketch's only centerline when it has exactly one, else X.
-    void fill_revolve_axes(ComboBox* combo, std::vector<int>& ents, int sketch_ref, int axis, int entity);
+    template<class C> void fill_revolve_axes(C* combo, std::vector<int>& ents, int sketch_ref, int axis, int entity);
     // The combo's selection as CadFeature::revolve_axis + revolve_axis_entity.
-    static void read_revolve_axis(ComboBox* combo, const std::vector<int>& ents, int& axis, int& entity);
-    CheckBox*         m_surf_revolve_flip{nullptr};
+    template<class C> static void read_revolve_axis(C* combo, const std::vector<int>& ents, int& axis, int& entity);
+    ToggleField*         m_surf_revolve_flip{nullptr};
     int               m_surf_revolve_sketch_ref{-1};
 
     // Surface Loft controls (skin a sheet through 2+ ordered profile sketches).
-    wxCheckListBox*   m_surf_loft_list{nullptr};        // every Sketch; check 2+ in list order = profiles
-    CheckBox*         m_surf_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
+    CheckListField*   m_surf_loft_list{nullptr};        // every Sketch; check 2+ in list order = profiles
+    ToggleField*         m_surf_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
     std::vector<int>  m_surf_loft_sketch_idx;           // feature index for each row
     std::vector<int>  m_surf_loft_refs;                 // chosen profile refs (for re-edit pre-check)
 
     // Surface Fill controls (one-face sheet from a sketch boundary).
-    wxStaticText*     m_surf_fill_sketch_label{nullptr};
+    CardText*     m_surf_fill_sketch_label{nullptr};
     int               m_surf_fill_sketch_ref{-1};
 
     // Surface Offset controls (offset a SHEET body).
-    ComboBox*         m_surf_offset_body{nullptr};       // sheet-body picker
-    wxSpinCtrlDouble* m_surf_offset_distance{nullptr};
+    ChoiceField*         m_surf_offset_body{nullptr};       // sheet-body picker
+    NumField* m_surf_offset_distance{nullptr};
 
     // Thicken Surface controls (thicken a SHEET body into a solid).
-    ComboBox*         m_surf_thicken_body{nullptr};      // sheet-body picker
-    wxSpinCtrlDouble* m_surf_thicken_thickness{nullptr};
-    CheckBox*         m_surf_thicken_flip{nullptr};
+    ChoiceField*         m_surf_thicken_body{nullptr};      // sheet-body picker
+    NumField* m_surf_thicken_thickness{nullptr};
+    ToggleField*         m_surf_thicken_flip{nullptr};
 
     // Transform controls (rigid move/rotate of a body).
-    ComboBox*         m_xf_body{nullptr};            // body to transform
-    wxSpinCtrlDouble* m_xf_dx{nullptr};              // translate X
-    wxSpinCtrlDouble* m_xf_dy{nullptr};              // translate Y
-    wxSpinCtrlDouble* m_xf_dz{nullptr};              // translate Z
-    ComboBox*         m_xf_axis{nullptr};            // rotation axis: X/Y/Z
-    wxSpinCtrlDouble* m_xf_angle{nullptr};           // rotation angle (deg)
-    wxSpinCtrlDouble* m_xf_pivot_x{nullptr};         // pivot X
-    wxSpinCtrlDouble* m_xf_pivot_y{nullptr};         // pivot Y
-    wxSpinCtrlDouble* m_xf_pivot_z{nullptr};         // pivot Z
-    CheckBox*         m_xf_copy{nullptr};            // keep original (make a copy)
+    ChoiceField*         m_xf_body{nullptr};            // body to transform
+    NumField* m_xf_dx{nullptr};              // translate X
+    NumField* m_xf_dy{nullptr};              // translate Y
+    NumField* m_xf_dz{nullptr};              // translate Z
+    ChoiceField*         m_xf_axis{nullptr};            // rotation axis: X/Y/Z
+    NumField* m_xf_angle{nullptr};           // rotation angle (deg)
+    NumField* m_xf_pivot_x{nullptr};         // pivot X
+    NumField* m_xf_pivot_y{nullptr};         // pivot Y
+    NumField* m_xf_pivot_z{nullptr};         // pivot Z
+    ToggleField*         m_xf_copy{nullptr};            // keep original (make a copy)
 
     // Mirror controls (reflect a body about a plane).
-    ComboBox*         m_mirror_body{nullptr};        // body to mirror
-    ComboBox*         m_mirror_plane{nullptr};       // mirror plane (XY/XZ/YZ + datums)
-    CheckBox*         m_mirror_keep{nullptr};        // keep original body
+    ChoiceField*         m_mirror_body{nullptr};        // body to mirror
+    ChoiceField*         m_mirror_plane{nullptr};       // mirror plane (XY/XZ/YZ + datums)
+    ToggleField*         m_mirror_keep{nullptr};        // keep original body
 
     // Thicken controls (offset one solid face into a thin plate).
-    ComboBox*         m_thicken_body{nullptr};       // source body
-    wxStaticText*     m_thicken_face_label{nullptr}; // picked face
-    wxSpinCtrlDouble* m_thicken_thickness{nullptr};
-    CheckBox*         m_thicken_flip{nullptr};       // flip direction
+    ChoiceField*         m_thicken_body{nullptr};       // source body
+    CardText*     m_thicken_face_label{nullptr}; // picked face
+    NumField* m_thicken_thickness{nullptr};
+    ToggleField*         m_thicken_flip{nullptr};       // flip direction
 
     // Rib controls (thin wall from an open sketch line).
-    ComboBox*         m_rib_body{nullptr};           // target body
-    ComboBox*         m_rib_sketch{nullptr};         // sketch holding the open line (feature index in client data)
-    wxSpinCtrl*       m_rib_entity{nullptr};         // entity index within the sketch
-    wxSpinCtrlDouble* m_rib_thickness{nullptr};
-    wxSpinCtrlDouble* m_rib_depth{nullptr};
+    ChoiceField*         m_rib_body{nullptr};           // target body
+    ChoiceField*         m_rib_sketch{nullptr};         // sketch holding the open line (feature index in client data)
+    NumField*       m_rib_entity{nullptr};         // entity index within the sketch
+    NumField* m_rib_thickness{nullptr};
+    NumField* m_rib_depth{nullptr};
+    // Sheet metal card.
+    ChoiceField*         m_sheet_mode{nullptr};         // 0 rule, 1 base flange, 2 edge flange, 3 contour flange, 4 hem, 5 unfold, 6 refold
+    ChoiceField*         m_sheet_sketch{nullptr};       // base / contour sketch (feature index in client data)
+    ChoiceField*         m_sheet_unfold{nullptr};       // refold: the Unfold feature (feature index in client data)
+    NumField *m_sheet_t{nullptr}, *m_sheet_r{nullptr}, *m_sheet_k{nullptr}, *m_sheet_gap{nullptr};
+    NumField *m_sheet_height{nullptr}, *m_sheet_angle{nullptr}, *m_sheet_len{nullptr};
+    ToggleField*         m_sheet_flip{nullptr};
+    CardText*     m_sheet_edges_label{nullptr};
+    CardText*     m_sheet_len_label{nullptr};
+    CardText*     m_sheet_hint{nullptr};
+    CardGroup *m_sheet_g_rule{nullptr}, *m_sheet_g_sketch{nullptr}, *m_sheet_g_edges{nullptr}, *m_sheet_g_flange{nullptr},
+              *m_sheet_g_len{nullptr}, *m_sheet_g_flip{nullptr}, *m_sheet_g_unfold{nullptr};
 
     // Project controls (project body edges onto a plane as sketch entities).
-    ComboBox*         m_proj_source_body{nullptr};   // source body
-    wxStaticText*     m_proj_face_label{nullptr};    // picked face (or "all edges")
-    ComboBox*         m_proj_plane{nullptr};         // target plane
+    ChoiceField*         m_proj_source_body{nullptr};   // source body
+    CardText*     m_proj_face_label{nullptr};    // picked face (or "all edges")
+    ChoiceField*         m_proj_plane{nullptr};         // target plane
 
     // Delete Face controls (remove faces, heal the solid).
-    ComboBox*         m_del_face_body{nullptr};      // target body
-    ::Button*         m_del_face_add_btn{nullptr};   // "Add picked face" button
-    wxStaticText*     m_del_face_list{nullptr};      // shows the accumulated face ids
+    ChoiceField*         m_del_face_body{nullptr};      // target body
+    ButtonField*         m_del_face_add_btn{nullptr};   // "Add picked face" button
+    CardText*     m_del_face_list{nullptr};      // shows the accumulated face ids
     std::vector<int>  m_del_faces;                   // accumulated face list
 
     // Helix controls (helical curve).
-    ComboBox*         m_helix_plane{nullptr};        // axis plane (XY/XZ/YZ + datums)
-    wxSpinCtrlDouble* m_helix_radius{nullptr};
-    wxSpinCtrlDouble* m_helix_pitch{nullptr};
-    wxSpinCtrlDouble* m_helix_height{nullptr};
-    CheckBox*         m_helix_left_handed{nullptr};
-    wxSpinCtrlDouble* m_helix_taper{nullptr};
+    ChoiceField*         m_helix_plane{nullptr};        // axis plane (XY/XZ/YZ + datums)
+    NumField* m_helix_radius{nullptr};
+    NumField* m_helix_pitch{nullptr};
+    NumField* m_helix_height{nullptr};
+    ToggleField*         m_helix_left_handed{nullptr};
+    NumField* m_helix_taper{nullptr};
 
     // Mate (assembly) controls
-    ComboBox*         m_mate_kind{nullptr};
-    ComboBox*         m_mate_cs_a{nullptr};
-    ComboBox*         m_mate_cs_b{nullptr};
-    wxSpinCtrlDouble* m_mate_offset{nullptr};
-    wxSpinCtrlDouble* m_mate_angle{nullptr};
-    CheckBox*         m_mate_flip{nullptr};
-    wxStaticText*     m_offset_label{nullptr};
-    wxStaticText*     m_angle_label{nullptr};
+    ChoiceField*         m_mate_kind{nullptr};
+    ChoiceField*         m_mate_cs_a{nullptr};
+    ChoiceField*         m_mate_cs_b{nullptr};
+    NumField* m_mate_offset{nullptr};
+    NumField* m_mate_angle{nullptr};
+    ToggleField*         m_mate_flip{nullptr};
+    CardText*     m_offset_label{nullptr};
+    CardText*     m_angle_label{nullptr};
 
     // Expression binding (per-feature, visible during edit only)
-    ComboBox*         m_expr_field{nullptr};     // field-name picker (editable)
-    wxTextCtrl*       m_expr_text{nullptr};      // expression string
-    ::Button*         m_expr_set_btn{nullptr};   // Apply / bind
-    ::Button*         m_expr_clear_btn{nullptr}; // Remove binding
-    wxStaticText*     m_expr_status{nullptr};    // shows current bindings for the edited feature
+    ChoiceField*         m_expr_field{nullptr};     // field-name picker (editable)
+    TextField*       m_expr_text{nullptr};      // expression string
+    ButtonField*         m_expr_set_btn{nullptr};   // Apply / bind
+    ButtonField*         m_expr_clear_btn{nullptr}; // Remove binding
+    CardText*     m_expr_status{nullptr};    // shows current bindings for the edited feature
     void              populate_expr_fields(Tool t);   // fill m_expr_field from feature-type fields
     void              on_set_expr();                   // checkpoint + write -> recompute -> undo on fail
     void              on_clear_expr();                 // remove selected binding
 
     // Document variables panel (below the feature tree / parts)
-    StaticBox*        m_var_box{nullptr};
-    wxListCtrl*       m_var_list{nullptr};
-    ::Button*         m_btn_add_var{nullptr};
-    ::Button*         m_btn_edit_var{nullptr};
-    ::Button*         m_btn_del_var{nullptr};
+    CardModel*        m_var_box{nullptr};
+    TableField*       m_var_list{nullptr};
     void              refresh_variables();            // rebuild m_var_list from m_doc.variables
     void              on_add_variable();
     void              on_edit_variable();
     void              on_remove_variable();
 
     // Feature-tree button
-    ::Button*         m_btn_interfere{nullptr};
 
     // Pattern controls (replicate the target body: linear or circular).
-    ComboBox*         m_pattern_type{nullptr};      // 0 = Linear, 1 = Circular
-    wxSpinCtrlDouble* m_pattern_count{nullptr};     // total instances incl. seed
-    wxSpinCtrlDouble* m_pattern_spacing{nullptr};   // linear step (mm)
-    ComboBox*         m_pattern_dir{nullptr};        // linear direction: 0 = plane X, 1 = plane Y
-    wxSpinCtrlDouble* m_pattern_angle{nullptr};     // circular total angle (deg)
+    ChoiceField*         m_pattern_type{nullptr};      // 0 = Linear, 1 = Circular
+    NumField* m_pattern_count{nullptr};     // total instances incl. seed
+    NumField* m_pattern_spacing{nullptr};   // linear step (mm)
+    ChoiceField*         m_pattern_dir{nullptr};        // linear direction: 0 = plane X, 1 = plane Y
+    NumField* m_pattern_angle{nullptr};     // circular total angle (deg)
+    // Feature pattern: repeat what chosen earlier features did (instead of copying the whole body)
+    ChoiceField*         m_pattern_what{nullptr};      // 0 = whole body, 1 = selected features
+    CheckListField*   m_pattern_feat_list{nullptr};
+    std::vector<int>  m_pattern_feat_idx;           // feature index per row of the list
+    ChoiceField*         m_pattern_axis{nullptr};      // world X / Y / Z: line, rotation axis or mirror-plane normal
+    ChoiceField*         m_pattern_axis2{nullptr};     // second grid direction
+    NumField* m_pattern_count2{nullptr};
+    NumField* m_pattern_spacing2{nullptr};
+    NumField* m_pattern_mirror_off{nullptr};   // mirror plane offset along its normal from the model origin
+    CardGroup*       m_pattern_feat_group{nullptr};
+    void sync_pattern_mode();
+    std::vector<int> m_pattern_edit_features;   // checked features of a feature pattern being edited
+    void fill_feature_pattern(CadFeature& f) const;
+    void populate_pattern_features();
+    // Thin extrude (wall around the outline)
+    NumField* m_thin_in{nullptr};
+    NumField* m_thin_out{nullptr};
     // Boolean controls (combine two existing bodies).
-    ComboBox*         m_bool_op{nullptr};            // 0 = Union, 1 = Subtract, 2 = Intersect
-    ComboBox*         m_bool_target{nullptr};        // body that survives (selection == body index)
-    ComboBox*         m_bool_tool{nullptr};          // body consumed (selection == body index)
+    ChoiceField*         m_bool_op{nullptr};            // 0 = Union, 1 = Subtract, 2 = Intersect
+    ChoiceField*         m_bool_target{nullptr};        // body that survives (selection == body index)
+    ChoiceField*         m_bool_tool{nullptr};          // body consumed (selection == body index)
     // Which operand the NEXT viewport body pick fills: 0 = target, 1 = tool. Reset when the
     // card opens, so the first two clicks in the viewport always mean "keep this, cut with
     // that" in that order. The combos remain the typed half and mirror whatever is picked.
     int               m_bool_next_slot{0};
-    CheckBox*         m_bool_keep{nullptr};          // keep the tool body after the op
-    wxSpinCtrlDouble* m_bool_tol{nullptr};           // OCCT fuzzy tolerance (mm); robust cut on near-coincident faces
+    ToggleField*         m_bool_keep{nullptr};          // keep the tool body after the op
+    NumField* m_bool_tol{nullptr};           // OCCT fuzzy tolerance (mm); robust cut on near-coincident faces
 
     // Plane Cut (split-by-plane): a reference plane + offset splits the target body into
     // two separate bodies (both pieces kept).
-    ComboBox*         m_cut_plane{nullptr};          // XY/XZ/YZ + datum planes (cut plane)
-    ComboBox*         m_cut_target{nullptr};         // body to cut (selection == body index)
-    wxSpinCtrlDouble* m_cut_offset{nullptr};         // offset along the plane normal (mm)
+    ChoiceField*         m_cut_plane{nullptr};          // XY/XZ/YZ + datum planes (cut plane)
+    ChoiceField*         m_cut_target{nullptr};         // body to cut (selection == body index)
+    NumField* m_cut_offset{nullptr};         // offset along the plane normal (mm)
     // Datum plane controls (derive a selectable sketch plane: offset + tilt from a base).
-    ComboBox*         m_plane_base{nullptr};         // 0=XY,1=XZ,2=YZ, 3+N = Nth datum plane
-    wxSpinCtrlDouble* m_plane_offset{nullptr};       // offset along base normal (mm)
-    wxSpinCtrlDouble* m_plane_tilt{nullptr};         // tilt about a base axis (deg) / Angle / Tangent angle
-    ComboBox*         m_plane_tilt_axis{nullptr};    // 0 = base X, 1 = base Y
+    ChoiceField*         m_plane_base{nullptr};         // 0=XY,1=XZ,2=YZ, 3+N = Nth datum plane
+    NumField* m_plane_offset{nullptr};       // offset along base normal (mm)
+    NumField* m_plane_tilt{nullptr};         // tilt about a base axis (deg) / Angle / Tangent angle
+    ChoiceField*         m_plane_tilt_axis{nullptr};    // 0 = base X, 1 = base Y
     // Plane construction method + contextual face/edge reference picks (Onshape/Fusion parity).
-    ComboBox*         m_plane_type{nullptr};         // PlaneType: Offset/Angle/Midplane/Tangent/TwoEdges/Coincident
-    ::Button*         m_plane_pick_faceA{nullptr};   wxStaticText* m_plane_faceA_lbl{nullptr};
-    ::Button*         m_plane_pick_faceB{nullptr};   wxStaticText* m_plane_faceB_lbl{nullptr};
-    ::Button*         m_plane_pick_edgeA{nullptr};   wxStaticText* m_plane_edgeA_lbl{nullptr};
-    ::Button*         m_plane_pick_edgeB{nullptr};   wxStaticText* m_plane_edgeB_lbl{nullptr};
-    wxSpinCtrlDouble* m_plane_usize{nullptr};        // datum rectangle extent u (mm) — also driven by drag handles
-    wxSpinCtrlDouble* m_plane_vsize{nullptr};        // datum rectangle extent v (mm)
+    ChoiceField*         m_plane_type{nullptr};         // PlaneType: Offset/Angle/Midplane/Tangent/TwoEdges/Coincident
+    ButtonField*         m_plane_pick_faceA{nullptr};   CardText* m_plane_faceA_lbl{nullptr};
+    ButtonField*         m_plane_pick_faceB{nullptr};   CardText* m_plane_faceB_lbl{nullptr};
+    ButtonField*         m_plane_pick_edgeA{nullptr};   CardText* m_plane_edgeA_lbl{nullptr};
+    ButtonField*         m_plane_pick_edgeB{nullptr};   CardText* m_plane_edgeB_lbl{nullptr};
+    NumField* m_plane_usize{nullptr};        // datum rectangle extent u (mm) — also driven by drag handles
+    NumField* m_plane_vsize{nullptr};        // datum rectangle extent v (mm)
     // Captured references for the candidate datum (body index + face/edge index, -1 = none).
     int m_pl_faceA_body{-1}, m_pl_faceA{-1};
     int m_pl_faceB_body{-1}, m_pl_faceB{-1};
@@ -795,7 +931,18 @@ private:
     PlanePick m_plane_pick{PlanePick::None};         // which ref the next solid pick fills
     // Click-selected solid topology (whole/face/edge cycle): face id for up-to-face / dress-up.
     int               m_sel_solid_body{-1};   // which body the face/edge selection is on
+    // The dimensions on view: those of the selected body, else of every body. Recomputed only when the shapes or the selection change.
+    std::vector<Quotes::Quote> m_quote_cache;
+    uint64_t m_quote_gen{0};
+    int      m_quote_body{-2};
+    size_t   m_quote_nbodies{0};
+    const std::vector<Quotes::Quote>& quotes_for_view();
+    void on_toggle_quotes();
     int               m_sel_solid_face{-1};
+    // The face a sketch session was started on (start_sketch_on_target): the committed Sketch records it so it follows the
+    // face through upstream edits. Checked against the committed plane before it is trusted.
+    int               m_attach_body{-1};
+    int               m_attach_face{-1};
     int               m_sel_solid_edge{-1};
     // The picked edge set (Shift/Ctrl+click), m_sel_solid_edge last. Read through dressup_edges(),
     // which drops it once m_sel_solid_edge moves on — the many places that reset the single edge
@@ -852,17 +999,20 @@ private:
     // -1 = ordinary sketch/loop extrude. Set when opening the Extrude card, consumed on add.
     int               m_extrude_face_src{-1};
 
-    ComboBox*         m_dressup_type{nullptr};
-    ComboBox*         m_face_group{nullptr};
-    wxSpinCtrlDouble* m_dressup_size{nullptr};
-    wxStaticText*     m_dressup_edge_label{nullptr}; // shows the picked edge, or the group fallback
+    ChoiceField*         m_dressup_type{nullptr};
+    ChoiceField*         m_face_group{nullptr};
+    NumField* m_dressup_size{nullptr};
+    ChoiceField*         m_dressup_law{nullptr};        // fillet size law: 0 constant radius, 1 variable (start -> end), 2 chord length
+    NumField* m_dressup_size2{nullptr};      // the end radius of a variable fillet
+    void apply_dressup_law(CadFeature& f) const;
+    CardText*     m_dressup_edge_label{nullptr}; // shows the picked edge, or the group fallback
 
-    ComboBox*         m_hole_plane{nullptr};
-    wxSpinCtrlDouble* m_hole_diameter{nullptr};
-    wxSpinCtrlDouble* m_hole_depth{nullptr};
-    CheckBox*         m_hole_through{nullptr};
-    wxSpinCtrlDouble* m_hole_x{nullptr};
-    wxSpinCtrlDouble* m_hole_y{nullptr};
+    ChoiceField*         m_hole_plane{nullptr};
+    NumField* m_hole_diameter{nullptr};
+    NumField* m_hole_depth{nullptr};
+    ToggleField*         m_hole_through{nullptr};
+    NumField* m_hole_x{nullptr};
+    NumField* m_hole_y{nullptr};
     // #2: when the Hole tool is opened on a picked solid face, drill on that face centred
     // on it (origin = face centroid, normal = inward). m_hole_x/y then read as the offset
     // from the face centre. Falls back to the m_hole_plane dropdown when no face is picked.
@@ -876,58 +1026,63 @@ private:
     // Says which face the latch above is holding. Thicken/Shell/Draft show theirs because their
     // face IS the live selection; this one has to be shown precisely BECAUSE it is not, and the
     // status line goes on saying "Nothing selected" while the ghost keeps drilling. 200.
-    wxStaticText*     m_hole_target_label{nullptr};
+    CardText*     m_hole_target_label{nullptr};
 
-    ComboBox*         m_thread_plane{nullptr};
-    ComboBox*         m_thread_std{nullptr};   // standard designation (M6, 1/4-20 UNC, ...)
-    wxSpinCtrlDouble* m_thread_radius{nullptr};
-    wxSpinCtrlDouble* m_thread_pitch{nullptr};
-    wxSpinCtrlDouble* m_thread_height{nullptr};
-    wxSpinCtrlDouble* m_thread_depth{nullptr};
-    CheckBox*         m_thread_internal{nullptr};
-    wxSpinCtrlDouble* m_thread_x{nullptr};
-    wxSpinCtrlDouble* m_thread_y{nullptr};
+    ChoiceField*         m_thread_plane{nullptr};
+    ChoiceField*         m_thread_std{nullptr};   // standard designation (M6, 1/4-20 UNC, ...)
+    NumField* m_thread_radius{nullptr};
+    NumField* m_thread_pitch{nullptr};
+    NumField* m_thread_height{nullptr};
+    NumField* m_thread_depth{nullptr};
+    ToggleField*         m_thread_internal{nullptr};
+    NumField* m_thread_x{nullptr};
+    NumField* m_thread_y{nullptr};
     // #3: when the Thread tool is opened on a picked cylindrical face (a hole bore or a
     // cylinder), thread that surface — plane on its axis, radius/internal derived from it.
     bool              m_thread_on_face{false};
     SketchPlane       m_thread_face_plane;
     int               m_thread_face_body{-1};
-    wxStaticText*     m_thread_target_label{nullptr};   // the latched face/edge — see m_hole_target_label
+    CardText*     m_thread_target_label{nullptr};   // the latched face/edge — see m_hole_target_label
 
-    wxSpinCtrlDouble* m_shell_thickness{nullptr};
-    wxStaticText*     m_shell_face_label{nullptr};   // shows the picked face to remove
+    NumField* m_shell_thickness{nullptr};
+    CardText*     m_shell_face_label{nullptr};   // shows the picked face to remove
+    ButtonField*         m_shell_add_btn{nullptr};      // "Add picked face": more than one face to open
+    std::vector<int>  m_shell_extra;                 // faces added so far (the live pick counts too)
+    ButtonField*         m_draft_add_btn{nullptr};
+    std::vector<int>  m_draft_extra;
+    void sync_face_list_labels();
 
     // Draft controls (taper a single picked solid face about the body bottom).
-    wxSpinCtrlDouble* m_draft_angle{nullptr};
-    wxStaticText*     m_draft_face_label{nullptr};   // shows the picked face to draft
+    NumField* m_draft_angle{nullptr};
+    CardText*     m_draft_face_label{nullptr};   // shows the picked face to draft
 
     // Axis controls (datum axis: line through two points or derived from geometry).
-    ComboBox*         m_axis_type{nullptr};          // AxisType: TwoPoints/FaceNormal/CylinderCenterline/PlaneIntersection/AlongEdge
-    ::Button*         m_axis_pick_face{nullptr};     wxStaticText* m_axis_face_lbl{nullptr};
-    ::Button*         m_axis_pick_edge{nullptr};     wxStaticText* m_axis_edge_lbl{nullptr};
-    ComboBox*         m_axis_plane_a{nullptr};
-    ComboBox*         m_axis_plane_b{nullptr};
-    wxSpinCtrlDouble* m_axis_p1x{nullptr};           wxSpinCtrlDouble* m_axis_p1y{nullptr};           wxSpinCtrlDouble* m_axis_p1z{nullptr};
-    wxSpinCtrlDouble* m_axis_p2x{nullptr};           wxSpinCtrlDouble* m_axis_p2y{nullptr};           wxSpinCtrlDouble* m_axis_p2z{nullptr};
+    ChoiceField*         m_axis_type{nullptr};          // AxisType: TwoPoints/FaceNormal/CylinderCenterline/PlaneIntersection/AlongEdge
+    ButtonField*         m_axis_pick_face{nullptr};     CardText* m_axis_face_lbl{nullptr};
+    ButtonField*         m_axis_pick_edge{nullptr};     CardText* m_axis_edge_lbl{nullptr};
+    ChoiceField*         m_axis_plane_a{nullptr};
+    ChoiceField*         m_axis_plane_b{nullptr};
+    NumField* m_axis_p1x{nullptr};           NumField* m_axis_p1y{nullptr};           NumField* m_axis_p1z{nullptr};
+    NumField* m_axis_p2x{nullptr};           NumField* m_axis_p2y{nullptr};           NumField* m_axis_p2z{nullptr};
     int m_ax_face_body{-1}, m_ax_face{-1};
     int m_ax_edge_body{-1}, m_ax_edge{-1};
     AxisPick m_axis_pick{AxisPick::None};
 
     // CoordSys controls (datum coordinate system: point + orthonormal frame).
-    ComboBox*         m_coordsys_type{nullptr};      // CoordSysType: PointWorld/FaceAndDirection
-    ComboBox*         m_cs_body{nullptr};             // body-focus chooser: restrict picking to one body
-    wxSpinCtrlDouble* m_cs_x{nullptr};               wxSpinCtrlDouble* m_cs_y{nullptr};               wxSpinCtrlDouble* m_cs_z{nullptr};
-    ::Button*         m_cs_pick_face{nullptr};       wxStaticText* m_cs_face_lbl{nullptr};
-    ::Button*         m_cs_pick_edge{nullptr};       wxStaticText* m_cs_edge_lbl{nullptr};
-    wxSpinCtrlDouble* m_cs_hx{nullptr};              wxSpinCtrlDouble* m_cs_hy{nullptr};              wxSpinCtrlDouble* m_cs_hz{nullptr};
+    ChoiceField*         m_coordsys_type{nullptr};      // CoordSysType: PointWorld/FaceAndDirection
+    ChoiceField*         m_cs_body{nullptr};             // body-focus chooser: restrict picking to one body
+    NumField* m_cs_x{nullptr};               NumField* m_cs_y{nullptr};               NumField* m_cs_z{nullptr};
+    ButtonField*         m_cs_pick_face{nullptr};       CardText* m_cs_face_lbl{nullptr};
+    ButtonField*         m_cs_pick_edge{nullptr};       CardText* m_cs_edge_lbl{nullptr};
+    NumField* m_cs_hx{nullptr};              NumField* m_cs_hy{nullptr};              NumField* m_cs_hz{nullptr};
     int m_cs_face_body{-1}, m_cs_face{-1};
     int m_cs_edge_body{-1}, m_cs_edge{-1};
     CoordSysPick m_coordsys_pick{CoordSysPick::None};
 
     // Onshape-style docked value-entry card (Angle/Radius/Diameter/Offset/Fillet).
-    wxSizer*          m_box_value{nullptr};
-    wxStaticText*     m_value_label{nullptr};
-    wxTextCtrl*       m_value_input{nullptr};   // plain text field: forces en ('.') decimals
+    CardModel*          m_box_value{nullptr};
+    CardText*     m_value_label{nullptr};
+    TextField*       m_value_input{nullptr};   // plain text field: forces en ('.') decimals
     double            m_value_min{0.0};         // range for confirm-time clamping
     double            m_value_max{0.0};
     std::function<void(double)> m_value_cont;   // deferred apply, run on Confirm
@@ -958,11 +1113,8 @@ private:
     // Bodies list under the feature tree: one row per body (parallel to m_doc.bodies). Selecting
     // one highlights that body and makes it the target for the next op.
     DesignRowList*            m_parts{nullptr};
-    wxStaticText*             m_parts_label{nullptr};  // its "Bodies" caption (hidden when empty)
-    wxBoxSizer*               m_parts_hdr{nullptr};    // Bodies card header (icon + title + body actions)
-    wxStaticLine*             m_parts_rule{nullptr};   // rule under that header
-    wxBoxSizer*               m_hdr_tree_row{nullptr}; // Feature tree header: title + list actions
-    wxStaticText*             m_hdr_tree{nullptr};     // its title label
+    CardText*             m_parts_label{nullptr};  // its "Bodies" caption (hidden when empty)
+    CardText*             m_hdr_tree{nullptr};     // its title label
 
     // Section views (non-destructive): named "Section View N" entries listed in the tree, each a
     // horizontal clip height. View-only — NOT bodies/features, never serialized. Key X adds one;
@@ -1009,7 +1161,7 @@ private:
     void set_tree_selection(int row);
     static const char* tree_icon_for(CadFeatureType t);
 
-    wxStaticText*     m_status{nullptr};
+    CardText*     m_status{nullptr};
     // m_status's foreground as created, captured before any caller touches it. Callers signal
     // "no opinion" by setting wxNullColour, which restores exactly this — so it is the only
     // reliable way to tell a chosen colour (the error red) from the default. See set_status().
@@ -1021,7 +1173,7 @@ private:
     // mode is a DesignSketchTool::Mode; passed as an int because this header deliberately does
     // not include the tool's, and the .cpp (which does) casts it back.
     void              on_sketch_step(int mode, int step, int picks);
-    wxStaticText*     m_dof_status{nullptr};   // DoF / constraint-state readout (P3)
+    CardText*     m_dof_status{nullptr};   // DoF / constraint-state readout (P3)
     // Last live-solve result, so entering Constrain can restore the readout without a solve.
     int               m_dof_last{-1};
     bool              m_dof_last_ok{true};
@@ -1041,9 +1193,18 @@ private:
     int               m_constrain_feat{-1};
 
     // Constraint-manager card (C3.4): header + a rebuildable list of constraint rows.
-    wxSizer*          m_box_constraints{nullptr};
-    wxStaticText*     m_hdr_constraints{nullptr};
-    wxSizer*          m_constraint_rows{nullptr};
+    CardModel*          m_box_constraints{nullptr};
+    CardText*     m_hdr_constraints{nullptr};
+    // Collapsible side-panel sections (Constraints, Feature tree, Bodies, Variables).
+    struct FoldSection {
+        std::string                              key;
+        bool                                     collapsed{false};
+    };
+    std::vector<FoldSection> m_folds;
+    void add_fold_key(const char* key);
+    bool is_folded(const char* key) const;
+    void toggle_fold(const std::string& key);
+    ListField*        m_constraint_list{nullptr};
     int               m_constraint_sel{-1};   // highlighted constraint row, or -1
 };
 

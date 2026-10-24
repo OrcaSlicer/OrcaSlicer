@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "as 68 with a 45 deg bend: setback (R+t)tan22.5 = 2.071068, base y 2.071068..60, bend annulus 2.5..5 over 45 deg about (y 2.071068, z 5), flat leg 15 - setback = 12.928932 turned 45 deg; extrusion along x 100",
+  "body_count": 1,
+  "volume_mm3": 18450.776872252372,
+  "area_mm2": 15629.637035246944,
+  "center_of_mass": [
+    50.0,
+    23.482458906299712,
+    2.253104112858446
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      -10.606601717798213,
+      0.0
+    ],
+    "max": [
+      100.0,
+      60.0,
+      12.37436867076458
+    ]
+  },
+  "note": "SolidCraft convention: flange height (15) is measured along the flange's outer face from the virtual sharp at the original edge (y 0, z 0), so the outer top corner is at (y, z) = (-15 cos45, 15 sin45)."
+}

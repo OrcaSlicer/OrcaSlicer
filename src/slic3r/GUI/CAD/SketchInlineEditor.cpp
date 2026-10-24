@@ -209,6 +209,11 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
     // No CharsDecimal: it lets only the LOCALE's decimal separator through, so in a C locale a
     // comma could not be typed at all, and it admits '*' and '/' that the parser then refuses.
     // parse_value() is the one judge of what is a number.
+    // Type-first characters go in BEFORE the widget runs: ImGui empties its character queue at the end of the frame.
+    if (m_active && !m_seed.empty()) {
+        for (char c : m_seed) ImGui::GetIO().AddInputCharacter((unsigned int) (unsigned char) c);
+        m_seed.clear();
+    }
     const bool entered = ImGui::InputText("##sketchvalue_in", m_buf, sizeof(m_buf),
                                           ImGuiInputTextFlags_EnterReturnsTrue
                                               | ImGuiInputTextFlags_AutoSelectAll);
@@ -238,8 +243,10 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
 
     // Act AFTER end(): do_commit can reopen the field for the next queued dimension, and that
     // must not happen inside this frame's window.
-    if (entered || tabbed)
+    if (entered || tabbed) {
+        m_last_dir = tabbed && !entered ? (ImGui::GetIO().KeyShift ? -1 : 1) : 0;
         do_commit();
+    }
     else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
         do_cancel();
     return true;

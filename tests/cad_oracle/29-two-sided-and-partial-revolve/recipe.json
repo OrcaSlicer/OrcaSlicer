@@ -1,0 +1,289 @@
+{
+ "id": "29-two-sided-and-partial-revolve",
+ "name": "Two-sided extrude + partial revolve cut",
+ "description": "Rectangle 40x20 on XZ extruded two sides (+10 along normal, 25 opposite); then a 270 deg revolve cut of an 8x8 square about the world Z axis.",
+ "exercises": [
+  "extrude_two_sides",
+  "revolve_partial",
+  "revolve_cut"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Sketch1",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       -20.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       20.0,
+       0.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       20.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       20.0,
+       -20.0
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       20.0,
+       -20.0
+      ]
+     },
+     "end": {
+      "at": [
+       -20.0,
+       -20.0
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       -20.0,
+       -20.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       -20.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Sketch1",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "two_sides",
+    "side1": 10,
+    "side2_opposite": 25
+   },
+   "result_bodies": [
+    "Block"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "RevolveSketch",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       4.0,
+       -12.0
+      ]
+     },
+     "end": {
+      "at": [
+       12.0,
+       -12.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       12.0,
+       -12.0
+      ]
+     },
+     "end": {
+      "at": [
+       12.0,
+       -20.0
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       12.0,
+       -20.0
+      ]
+     },
+     "end": {
+      "at": [
+       4.0,
+       -20.0
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       4.0,
+       -20.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       4.0,
+       -12.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "revolve",
+   "name": "RevolveCut",
+   "operation": "cut",
+   "profile": {
+    "sketch": "RevolveSketch",
+    "loops": [
+     {
+      "outer": true,
+      "curves": [
+       "l1",
+       "l2",
+       "l3",
+       "l4"
+      ]
+     }
+    ]
+   },
+   "axis": {
+    "ref": "world Z axis",
+    "origin": [
+     0,
+     0,
+     0
+    ],
+    "dir": [
+     0,
+     0,
+     1
+    ]
+   },
+   "angle": 270,
+   "result_bodies": [
+    "Block"
+   ]
+  }
+ ]
+}

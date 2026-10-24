@@ -1,0 +1,413 @@
+{
+ "id": "47-draft-curved-pocket",
+ "name": "Draft on an obround pocket",
+ "description": "80x60x25 block; obround pocket (centres (25,30),(55,30), R10) cut 10 deep from the top; 5 deg draft on the 4 pocket walls (2 planes + 2 half-cylinders), neutral plane = top face.",
+ "exercises": [
+  "extrude_cut",
+  "draft",
+  "draft_curved"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Block_sketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       80,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       80.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       80,
+       60
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       80.0,
+       60.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       60
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       0.0,
+       60.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Block",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Block_sketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 25,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Block"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "PocketSketch",
+   "plane": {
+    "ref": "face: top of block (z=25)",
+    "origin": [
+     0.0,
+     0.0,
+     25.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "face": {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "plane_normal_outward": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "point": [
+      40.0,
+      30.0,
+      25.0
+     ]
+    }
+   },
+   "entities": [
+    {
+     "type": "arc_center_start_sweep",
+     "center": {
+      "at": [
+       25.0,
+       30.0
+      ]
+     },
+     "start": {
+      "at": [
+       25.0,
+       40.0
+      ]
+     },
+     "sweep_deg": 180,
+     "id": "a1"
+    },
+    {
+     "type": "arc_center_start_sweep",
+     "center": {
+      "at": [
+       55.0,
+       30.0
+      ]
+     },
+     "start": {
+      "at": [
+       55.0,
+       20.0
+      ]
+     },
+     "sweep_deg": 180,
+     "id": "a2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a1.end",
+      "at": [
+       25.0,
+       20.0
+      ]
+     },
+     "end": {
+      "ref": "a2.start",
+      "at": [
+       55.0,
+       20.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a2.end",
+      "at": [
+       55.0,
+       40.0
+      ]
+     },
+     "end": {
+      "ref": "a1.start",
+      "at": [
+       25.0,
+       40.0
+      ]
+     },
+     "id": "l2"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Pocket",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "PocketSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "a1",
+        "a2",
+        "l1",
+        "l2"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 10,
+    "direction": "negative"
+   },
+   "result_bodies": [
+    "Block"
+   ]
+  },
+  {
+   "op": "draft",
+   "name": "Draft1",
+   "faces": [
+    {
+     "type": "cylinder",
+     "normal_at_point_on_face": [
+      1.0,
+      -0.0,
+      0.0
+     ],
+     "axis_origin": [
+      25.0,
+      30.0,
+      25.0
+     ],
+     "axis": [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     "point": [
+      15.0,
+      30.0,
+      20.0
+     ]
+    },
+    {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "plane_normal_outward": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "point": [
+      40.0,
+      20.0,
+      20.0
+     ]
+    },
+    {
+     "type": "cylinder",
+     "normal_at_point_on_face": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "axis_origin": [
+      55.0,
+      30.0,
+      25.0
+     ],
+     "axis": [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     "point": [
+      65.0,
+      30.0,
+      20.0
+     ]
+    },
+    {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "plane_normal_outward": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "point": [
+      40.0,
+      40.0,
+      20.0
+     ]
+    }
+   ],
+   "face_selection": "the 4 pocket wall faces",
+   "neutral_plane": {
+    "type": "plane",
+    "normal_at_point_on_face": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "plane_normal_outward": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "point": [
+     40.0,
+     50.0,
+     25.0
+    ]
+   },
+   "neutral_selection": "top face (z=25)",
+   "angle": 5,
+   "flipped": false,
+   "tangent_chain": false
+  }
+ ]
+}

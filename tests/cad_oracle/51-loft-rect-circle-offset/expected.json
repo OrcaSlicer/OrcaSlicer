@@ -1,0 +1,24 @@
+{
+  "source": "freecad 1.1.4",
+  "method": "FreeCAD (OpenCASCADE) build of recipe.json by tools/freecad-oracle/build.py: Part.makeLoft",
+  "body_count": 1,
+  "volume_mm3": 61133.11623557925,
+  "area_mm2": 9411.65454371453,
+  "center_of_mass": [
+    4.254944428543755,
+    2.1274722141148166,
+    21.274722141148143
+  ],
+  "bbox": {
+    "min": [
+      -30.0000001,
+      -15.0000001,
+      -1e-07
+    ],
+    "max": [
+      30.0000001,
+      20.0000001,
+      50.00000010000001
+    ]
+  }
+}

@@ -35,8 +35,11 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/CAD/CadDocument.hpp"
+#include "slic3r/GUI/CAD/DesignRibbonTable.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/CAD/DesignOffer.hpp"
+#include <catch2/catch_message.hpp>
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -463,4 +466,39 @@ TEST_CASE("A move arrow pressed while looking down its axis does not jump on the
     CHECK_THAT(moved.translation().x(), WithinAbs(0., 1e-9));
     tool.drag_move_arrow(ray_at(15.));
     CHECK_THAT(moved.translation().x(), WithinAbs(2., 1e-9));
+}
+
+
+// Item 2 (ribbon): the table is derived from the atlas, so every verb is reachable, exactly once.
+TEST_CASE("The ribbon table reaches every offer verb exactly once", "[Ribbon]")
+{
+    using namespace Slic3r::GUI;
+    const std::vector<RibbonTab> tabs = build_ribbon_table();
+    REQUIRE(tabs.size() == 4);
+    std::vector<int> seen(kOfferVerbCount, 0);
+    for (const RibbonTab& t : tabs)
+        for (const RibbonGroup& g : t.groups) {
+            CHECK_FALSE(g.verbs.empty());
+            for (const OfferVerb* v : g.verbs) ++seen[v - kOfferVerbs];
+        }
+    for (int i = 0; i < kOfferVerbCount; ++i)
+    {
+        INFO("verb " << kOfferVerbs[i].id << " appears " << seen[i] << " times");
+        CHECK(seen[i] == 1);
+    }
+
+    auto find_group = [&](const char* name) -> const RibbonGroup* {
+        for (const RibbonTab& t : tabs) for (const RibbonGroup& g : t.groups) if (g.name == name) return &g;
+        return nullptr;
+    };
+    const RibbonGroup* add = find_group("Add material");
+    REQUIRE(add != nullptr);
+    CHECK(add->verbs.size() >= 4);                    // Extrude | Revolve | Sweep | Loft: one split button
+    const RibbonGroup* dress = find_group("Dress-up");
+    REQUIRE(dress != nullptr);
+    CHECK(dress->verbs.size() >= 3);                  // Fillet | Chamfer | Draft
+    // Sketch-mode verbs live on the Sketch tab only; model verbs never do.
+    for (const RibbonGroup& g : tabs[2].groups) for (const OfferVerb* v : g.verbs) CHECK(v->sketch_mode);
+    for (int t : {0, 1, 3})
+        for (const RibbonGroup& g : tabs[t].groups) for (const OfferVerb* v : g.verbs) CHECK_FALSE(v->sketch_mode);
 }

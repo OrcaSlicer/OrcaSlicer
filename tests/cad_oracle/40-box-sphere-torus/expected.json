@@ -1,0 +1,26 @@
+{
+  "source": "analytic",
+  "method": "box 60x60x10 (z -10..0) + upper hemisphere r12 + spherical cap h2 below z=-10 (V = pi h^2(3R-h)/3, A = 2 pi R h) - lower half torus R22 r4 (Pappus: V = pi r^2/2 * 2 pi R, centroid -4r/3pi, A = pi r * 2 pi R); top loses disc r12 and annulus 18..26, bottom loses disc r sqrt(44)",
+  "body_count": 1,
+  "volume_mm3": 36287.43285471473,
+  "area_mm2": 10696.165473259409,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    -4.390960875015068
+  ],
+  "bbox": {
+    "min": [
+      -30.0,
+      -30.0,
+      -12.0
+    ],
+    "max": [
+      30.0,
+      30.0,
+      12.0
+    ]
+  },
+  "faces": 10,
+  "note": "faces: bottom, 4 sides, top split by the groove into an annulus (r 12..18) and the outer part, upper sphere, lower cap, torus"
+}

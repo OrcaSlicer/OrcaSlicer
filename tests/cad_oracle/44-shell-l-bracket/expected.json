@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "L prism (area 736, perimeter 200) x 20 minus cavity = L shrunk by 2 (SolidCraft's intersection-join shell convention: inner faces offset by 2 and extended to meet, sharp inner corner at (6,6); area 352) from z=2 to 20. A rounded (arc) join would give V 8368.5487, A 8768.5487, 16 faces",
+  "body_count": 1,
+  "volume_mm3": 8384.000000000004,
+  "area_mm2": 8784.000000000004,
+  "center_of_mass": [
+    21.26717557251906,
+    11.267175572519093,
+    9.244274809160306
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      60.0,
+      40.0,
+      20.0
+    ]
+  },
+  "faces": 15
+}

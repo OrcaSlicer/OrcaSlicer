@@ -1,0 +1,645 @@
+{
+ "id": "59-enclosure-base",
+ "name": "Enclosure base with bosses and ribs",
+ "description": "100x60x30 box, vertical edges R6, shelled 2 (top open); 4 d8 screw bosses to z=26 with d3 holes 20 deep; a 2 mm rib along Y 10 tall.",
+ "exercises": [
+  "fillet",
+  "shell",
+  "extrude_join",
+  "extrude_cut",
+  "realistic"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Box_sketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       100,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       100.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       100,
+       60
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       100.0,
+       60.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       60
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       0.0,
+       60.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Box",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Box_sketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 30,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Enclosure"
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "CornerFillet",
+   "type": "constant_radius",
+   "radius": 6,
+   "tangent_chain": false,
+   "edge_selection": "the 4 outer vertical edges",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      60.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      60.0,
+      30.0
+     ],
+     "point": [
+      0.0,
+      60.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      100.0,
+      60.0,
+      0.0
+     ],
+     "end": [
+      100.0,
+      60.0,
+      30.0
+     ],
+     "point": [
+      100.0,
+      60.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      100.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      100.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      100.0,
+      0.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      0.0,
+      0.0,
+      15.0
+     ]
+    }
+   ]
+  },
+  {
+   "op": "shell",
+   "name": "Shell1",
+   "faces_removed": [
+    {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "plane_normal_outward": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "point": [
+      50.0,
+      30.0,
+      30.0
+     ]
+    }
+   ],
+   "face_selection": "top face (z=30)",
+   "inside_thickness": 2,
+   "outside_thickness": 0,
+   "tangent_chain": false
+  },
+  {
+   "op": "construction_plane",
+   "name": "Floor2",
+   "method": "offset",
+   "base": "XY",
+   "offset": 2
+  },
+  {
+   "op": "sketch",
+   "name": "Bosses",
+   "plane": {
+    "ref": "construction plane Floor2 (inner floor, z=2)",
+    "origin": [
+     0.0,
+     0.0,
+     2.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       8,
+       8
+      ]
+     },
+     "radius": 4,
+     "id": "c1"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       92,
+       8
+      ]
+     },
+     "radius": 4,
+     "id": "c2"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       8,
+       52
+      ]
+     },
+     "radius": 4,
+     "id": "c3"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       92,
+       52
+      ]
+     },
+     "radius": 4,
+     "id": "c4"
+    },
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       49,
+       2
+      ]
+     },
+     "end": {
+      "at": [
+       51,
+       2
+      ]
+     },
+     "id": "r1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "r1.end",
+      "at": [
+       51.0,
+       2.0
+      ]
+     },
+     "end": {
+      "at": [
+       51,
+       58
+      ]
+     },
+     "id": "r2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "r2.end",
+      "at": [
+       51.0,
+       58.0
+      ]
+     },
+     "end": {
+      "at": [
+       49,
+       58
+      ]
+     },
+     "id": "r3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "r3.end",
+      "at": [
+       49.0,
+       58.0
+      ]
+     },
+     "end": {
+      "ref": "r1.start",
+      "at": [
+       49.0,
+       2.0
+      ]
+     },
+     "id": "r4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Bosses",
+   "operation": "join",
+   "profiles": [
+    {
+     "sketch": "Bosses",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "Bosses",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c2"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "Bosses",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c3"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "Bosses",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 24,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Enclosure"
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Rib",
+   "operation": "join",
+   "profiles": [
+    {
+     "sketch": "Bosses",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "r1",
+        "r2",
+        "r3",
+        "r4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 10,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Enclosure"
+   ]
+  },
+  {
+   "op": "construction_plane",
+   "name": "BossTop",
+   "method": "offset",
+   "base": "XY",
+   "offset": 26
+  },
+  {
+   "op": "sketch",
+   "name": "ScrewHoles",
+   "plane": {
+    "ref": "construction plane BossTop (z=26)",
+    "origin": [
+     0.0,
+     0.0,
+     26.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       8,
+       8
+      ]
+     },
+     "radius": 1.5,
+     "id": "c1"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       92,
+       8
+      ]
+     },
+     "radius": 1.5,
+     "id": "c2"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       8,
+       52
+      ]
+     },
+     "radius": 1.5,
+     "id": "c3"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       92,
+       52
+      ]
+     },
+     "radius": 1.5,
+     "id": "c4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "ScrewHoles",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "ScrewHoles",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "ScrewHoles",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c3"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "ScrewHoles",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c2"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "ScrewHoles",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 20,
+    "direction": "negative"
+   },
+   "result_bodies": [
+    "Enclosure"
+   ]
+  }
+ ]
+}

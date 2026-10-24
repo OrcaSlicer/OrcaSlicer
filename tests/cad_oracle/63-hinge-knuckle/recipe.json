@@ -1,0 +1,420 @@
+{
+ "id": "63-hinge-knuckle",
+ "name": "Hinge leaf with knuckles",
+ "description": "40x30x3 leaf; knuckle cylinder r4 along X at (y=33, z=4); d4 pin hole; gap x 12..28 (y 29..40) cut through all from z=0, which removes the knuckle between x=12 and 28.",
+ "exercises": [
+  "sketch_yz",
+  "extrude_join",
+  "extrude_cut",
+  "symmetric",
+  "realistic"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Leaf_sketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       40,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       40.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       40,
+       30
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       40.0,
+       30.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       30
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       0.0,
+       30.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Leaf",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Leaf_sketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 3,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Hinge"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "Knuckle",
+   "plane": {
+    "ref": "YZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     1.0,
+     0.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       -4.0,
+       33.0
+      ]
+     },
+     "radius": 4,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Knuckle",
+   "operation": "join",
+   "profiles": [
+    {
+     "sketch": "Knuckle",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 40,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Hinge"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "Pin",
+   "plane": {
+    "ref": "YZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     1.0,
+     0.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       -4.0,
+       33.0
+      ]
+     },
+     "radius": 2,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "PinHole",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "Pin",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "symmetric",
+    "distance": 100,
+    "is_full_length": false,
+    "meaning": "distance on each side"
+   },
+   "result_bodies": [
+    "Hinge"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "Gap",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       12,
+       29
+      ]
+     },
+     "end": {
+      "at": [
+       28,
+       29
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       28.0,
+       29.0
+      ]
+     },
+     "end": {
+      "at": [
+       28,
+       40
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       28.0,
+       40.0
+      ]
+     },
+     "end": {
+      "at": [
+       12,
+       40
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       12.0,
+       40.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       12.0,
+       29.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Gap",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "Gap",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "through_all",
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Hinge"
+   ]
+  }
+ ]
+}

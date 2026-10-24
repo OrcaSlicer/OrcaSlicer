@@ -404,3 +404,72 @@ TEST_CASE("slvs: reference-based constraint adds no degrees of freedom", "[slvs]
     REQUIRE(res.ok);
     CHECK(res.dof == 1);
 }
+
+// Item 5 (constraint colouring): per-entity DoF from a total-only solver.
+TEST_CASE("slvs: sketch_entity_free separates pinned, loose and conflicting geometry", "[slvs][constraintcolour]")
+{
+    // A pinned: fixed corner, horizontal, length 10 => fully constrained.
+    // B loose: untouched line. C: circle with fixed centre but free radius.
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 0}), line({20, 0}, {25, 5}), circle({40, 0}, 3) };
+    std::vector<SketchEntityConstraintDef> cons = {
+        con(CT::Fix,        0, R::P0, 0, R::P0),
+        con(CT::Horizontal, 0, R::P0, 0, R::P1),
+        con(CT::Distance,   0, R::P0, 0, R::P1, 10.0),
+        con(CT::Fix,        2, R::Center, 2, R::Center),
+    };
+    const std::vector<char> f = sketch_entity_free(ents, cons);
+    REQUIRE(f.size() == 3);
+    CHECK(f[0] == 0);   // pinned
+    CHECK(f[1] == 1);   // loose
+    CHECK(f[2] == 1);   // centre pinned, radius still free
+
+    // Add the radius: the circle is now pinned down too.
+    cons.push_back(con(CT::Radius, 2, R::P0, 2, R::P0, 3.0));
+    const std::vector<char> g = sketch_entity_free(ents, cons);
+    REQUIRE(g.size() == 3);
+    CHECK(g[2] == 0);
+    CHECK(g[1] == 1);
+
+    // Fully pinned sketch: nothing is free.
+    cons.push_back(con(CT::Fix, 1, R::P0, 1, R::P0));
+    cons.push_back(con(CT::Fix, 1, R::P1, 1, R::P1));
+    const std::vector<char> h = sketch_entity_free(ents, cons);
+    REQUIRE(h.size() == 3);
+    CHECK(h[0] + h[1] + h[2] == 0);
+
+    // Unconstrained sketch: everything free.
+    const std::vector<char> n = sketch_entity_free(ents, {});
+    CHECK(n[0] + n[1] + n[2] == 3);
+}
+
+// Item 6 (grid snap): the quantiser.
+TEST_CASE("snap_to_step quantises to the nearest multiple, symmetrically", "[gridsnap]")
+{
+    CHECK(snap_to_step(2.4, 1.0) == Approx(2.0));
+    CHECK(snap_to_step(2.6, 1.0) == Approx(3.0));
+    CHECK(snap_to_step(-2.4, 1.0) == Approx(-2.0));      // negatives round to the nearest, not toward 0
+    CHECK(snap_to_step(-2.6, 1.0) == Approx(-3.0));
+    CHECK(snap_to_step(2.5, 1.0) == Approx(3.0));        // half-way rounds away from zero ...
+    CHECK(snap_to_step(-2.5, 1.0) == Approx(-3.0));      // ... on both sides: the grid is symmetric
+    CHECK(snap_to_step(7.3, 0.5) == Approx(7.5));        // step change
+    CHECK(snap_to_step(7.3, 5.0) == Approx(5.0));
+    CHECK(snap_to_step(7.3, 0.0) == Approx(7.3));        // 0 = no grid
+    const Vec2d p = snap_to_grid({12.34, -5.67}, 0.25);
+    CHECK(p.x() == Approx(12.25));
+    CHECK(p.y() == Approx(-5.75));
+}
+
+// Item 12 (dimension text): the label number formatter.
+TEST_CASE("format_dim_number trims zeros, never says -0, always uses a point", "[dimtext]")
+{
+    CHECK(format_dim_number(5.0) == "5");
+    CHECK(format_dim_number(5.2) == "5.2");
+    CHECK(format_dim_number(5.25) == "5.25");
+    CHECK(format_dim_number(-0.5) == "-0.5");
+    CHECK(format_dim_number(1e-9) == "0");
+    CHECK(format_dim_number(-1e-9) == "0");          // not "-0"
+    CHECK(format_dim_number(100.0) == "100");        // zeros before the point survive
+    CHECK(format_dim_number(5.254) == "5.25");       // capped at two places
+    CHECK(format_dim_number(5.256) == "5.26");
+    CHECK(format_dim_number(341.57, 1) == "341.6");  // angles use one place
+}

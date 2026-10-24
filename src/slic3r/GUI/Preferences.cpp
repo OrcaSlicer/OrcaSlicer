@@ -1896,6 +1896,11 @@ void PreferencesDialog::create_items()
     auto item_camera_nav_style = create_item_combobox(_L("Camera style"), _L("Select camera navigation style.\nDefault: LMB+move for rotation, RMB/MMB+move for panning.\nTouchpad: Alt+move for rotation, Shift+move for panning."), "camera_navigation_style", CameraNavStyle);
     g_sizer->Add(item_camera_nav_style);
 
+    std::vector<wxString>    NavCorner       = {_L("Top right"), _L("Top left"), _L("Bottom right"), _L("Bottom left")};
+    std::vector<std::string> NavCornerValues = {"top_right", "top_left", "bottom_right", "bottom_left"};
+    auto item_nav_corner = create_item_combobox(_L("3D navigator corner"), _L("The corner of the 3D view that holds the navigator cube and the round view buttons, in Prepare and Design alike."), "navigator_corner", NavCorner, NavCornerValues);
+    g_sizer->Add(item_nav_corner);
+
     auto camera_orbit_mult     = create_camera_orbit_mult_input(_L("Orbit speed multiplier"), _L("Multiplies the orbit speed for finer or coarser camera movement."));
     g_sizer->Add(camera_orbit_mult);
 

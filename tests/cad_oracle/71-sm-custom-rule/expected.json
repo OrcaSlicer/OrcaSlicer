@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "U channel, rule t 1.5, R 3, K 0.33 (K unused folded): base y 4.5..45.5 x 1.5; two 90 deg bend annuli R 3..4.5; flanges y 0..1.5 and 48.5..50, z 4.5..20; extrusion along x 80",
+  "body_count": 1,
+  "volume_mm3": 10053.716694115408,
+  "area_mm2": 13896.29850950676,
+  "center_of_mass": [
+    40.0,
+    24.999999999999996,
+    5.19228129375018
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      80.0,
+      50.0,
+      20.0
+    ]
+  },
+  "note": "the rule edit applies to the whole sheet body (base built before it is 1.5 thick too, as the recipe's edge picks at z = 1.5 state)"
+}

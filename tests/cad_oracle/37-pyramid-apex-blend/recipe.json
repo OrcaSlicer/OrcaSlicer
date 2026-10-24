@@ -1,0 +1,361 @@
+{
+ "id": "37-pyramid-apex-blend",
+ "name": "Pyramid apex: 4-edge corner blend",
+ "description": "Loft from a 40x40 square (XY) to a point at (0,0,30) = square pyramid; all edges filleted R2 (apex blends 4 edges).",
+ "exercises": [
+  "loft_to_point",
+  "fillet",
+  "corner_blend_4"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Base",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       -20,
+       -20
+      ]
+     },
+     "end": {
+      "at": [
+       20,
+       -20
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       20.0,
+       -20.0
+      ]
+     },
+     "end": {
+      "at": [
+       20,
+       20
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       20.0,
+       20.0
+      ]
+     },
+     "end": {
+      "at": [
+       -20,
+       20
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       -20.0,
+       20.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       -20.0,
+       -20.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "construction_plane",
+   "name": "Apex30",
+   "method": "offset",
+   "base": "XY",
+   "offset": 30
+  },
+  {
+   "op": "sketch",
+   "name": "Apex",
+   "plane": {
+    "ref": "construction plane Apex30 (XY offset 30)",
+    "origin": [
+     0.0,
+     0.0,
+     30.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "point",
+     "at": [
+      0,
+      0
+     ],
+     "fixed": false,
+     "id": "p1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "loft",
+   "name": "Loft1",
+   "operation": "new",
+   "sections": [
+    {
+     "sketch": "Base",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "Apex",
+     "point": "p1",
+     "world": [
+      0,
+      0,
+      30
+     ]
+    }
+   ],
+   "end_conditions": "free",
+   "solid": true,
+   "result_bodies": [
+    "Pyramid"
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "Fillet1",
+   "type": "constant_radius",
+   "radius": 2,
+   "tangent_chain": false,
+   "edge_selection": "all 8 edges of the pyramid",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      -20.0,
+      20.0,
+      0.0
+     ],
+     "end": [
+      -20.0,
+      -20.0,
+      0.0
+     ],
+     "point": [
+      -20.0,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      20.0,
+      20.0,
+      0.0
+     ],
+     "end": [
+      -20.0,
+      20.0,
+      0.0
+     ],
+     "point": [
+      0.0,
+      20.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      20.0,
+      -20.0,
+      0.0
+     ],
+     "end": [
+      20.0,
+      20.0,
+      0.0
+     ],
+     "point": [
+      20.0,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      -20.0,
+      -20.0,
+      0.0
+     ],
+     "end": [
+      20.0,
+      -20.0,
+      0.0
+     ],
+     "point": [
+      0.0,
+      -20.0,
+      0.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      -20.0,
+      -20.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      -10.0,
+      -10.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      -20.0,
+      20.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      -10.0,
+      10.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      20.0,
+      -20.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      10.0,
+      -10.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      20.0,
+      20.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      10.0,
+      10.0,
+      15.0
+     ]
+    }
+   ]
+  }
+ ]
+}

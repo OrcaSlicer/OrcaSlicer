@@ -236,6 +236,23 @@
       "hint": "Sketch on the selected flat face or plane, or click one next"
     },
     {
+      "id": "sketch3d",
+      "name": "3D Sketch",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch3D",
+      "mcp": "sketch3d",
+      "accepts": [
+        "none"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:sketch3d",
+      "icon": "design_sketch",
+      "hint": "Click points in space; Tab cycles the working plane. Use it as a Sweep path"
+    },
+    {
       "id": "extrude",
       "name": "Extrude",
       "slot": "add",
@@ -937,16 +954,15 @@
       "accepts": [
         "body_solid",
         "face_planar",
-        "datum_plane"
+        "datum_plane",
+        "sk_loop"
       ],
-      "needs": {
-        "bodies": 1
-      },
-      "refusal": "Project needs a body — add or import one first",
+      "needs": {},
+      "refusal": "Project needs a body or a sketch — add or import one first",
       "gui": true,
       "action": "fly:plane#4",
       "icon": "design_sketch",
-      "hint": "Project body edges onto a plane as sketch entities"
+      "hint": "Project body edges, or a whole sketch (Use), onto a plane"
     },
     {
       "id": "measure",
@@ -1000,6 +1016,26 @@
       "action": "btn:mass",
       "icon": "info",
       "hint": "Report the volume and surface area of the selected body"
+    },
+    {
+      "id": "quotes",
+      "name": "Dimensions",
+      "slot": "reference",
+      "key": null,
+      "feature": null,
+      "mcp": null,
+      "accepts": [
+        "none",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": null,
+      "gui": true,
+      "action": "btn:quotes",
+      "icon": null,
+      "hint": "Show the dimensions of the body in drafting style: overall size, hole diameters and fillet radii; click one to edit it"
     },
     {
       "id": "interference",
@@ -2226,6 +2262,606 @@
       "action": "key:V",
       "icon": "design_dimension",
       "hint": "Type the angle between two lines, or the distance between the two picks"
+    },
+    {
+      "id": "sheet_base",
+      "name": "Base flange",
+      "slot": "add",
+      "key": null,
+      "feature": "SheetBase",
+      "mcp": "sm_base",
+      "accepts": [
+        "none",
+        "sk_loop",
+        "sk_none"
+      ],
+      "needs": {
+        "sketches": 1
+      },
+      "refusal": "Create a sketch first",
+      "gui": true,
+      "action": "fly:sheet#0",
+      "icon": "design_sheet_base",
+      "hint": "A plate of the sheet thickness from a closed sketch"
+    },
+    {
+      "id": "sheet_flange",
+      "name": "Edge flange",
+      "slot": "add",
+      "key": null,
+      "feature": "SheetFlange",
+      "mcp": "sm_flange",
+      "accepts": [
+        "edge_str"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Sheet metal needs a sheet body — make a base flange first",
+      "gui": true,
+      "action": "fly:sheet#1",
+      "icon": "design_sheet_flange",
+      "hint": "Bend a flange up from the picked end edges of the sheet"
+    },
+    {
+      "id": "sheet_contour",
+      "name": "Contour flange",
+      "slot": "add",
+      "key": null,
+      "feature": "SheetContour",
+      "mcp": "sm_contour",
+      "accepts": [
+        "none",
+        "sk_line",
+        "sk_none"
+      ],
+      "needs": {
+        "sketches": 1
+      },
+      "refusal": "Create a sketch first",
+      "gui": true,
+      "action": "fly:sheet#2",
+      "icon": "design_sheet_contour",
+      "hint": "A bent sheet from an open chain of lines"
+    },
+    {
+      "id": "sheet_hem",
+      "name": "Hem",
+      "slot": "add",
+      "key": null,
+      "feature": "SheetHem",
+      "mcp": "sm_hem",
+      "accepts": [
+        "edge_str"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Sheet metal needs a sheet body — make a base flange first",
+      "gui": true,
+      "action": "fly:sheet#3",
+      "icon": "design_sheet_hem",
+      "hint": "Fold the end of a flange back over itself"
+    },
+    {
+      "id": "sheet_unfold",
+      "name": "Unfold",
+      "slot": "modify",
+      "key": null,
+      "feature": "SheetUnfold",
+      "mcp": "sm_unfold",
+      "accepts": [
+        "none",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Sheet metal needs a sheet body — make a base flange first",
+      "gui": true,
+      "action": "fly:sheet#4",
+      "icon": "design_sheet_unfold",
+      "hint": "Flatten every bend"
+    },
+    {
+      "id": "sheet_refold",
+      "name": "Refold",
+      "slot": "modify",
+      "key": null,
+      "feature": "SheetRefold",
+      "mcp": "sm_refold",
+      "accepts": [
+        "none",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Unfold the sheet first",
+      "gui": true,
+      "action": "fly:sheet#5",
+      "icon": "design_sheet_refold",
+      "hint": "Fold a flattened sheet back, carrying the cuts made while flat"
+    },
+    {
+      "id": "sheet_rule",
+      "name": "Sheet rule",
+      "slot": "add",
+      "key": null,
+      "feature": "SheetRule",
+      "mcp": "sm_rule",
+      "accepts": [
+        "none"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:sheet#6",
+      "icon": "design_sheet_rule",
+      "hint": "Thickness, bend radius, K-factor and hem gap for the sheet features after it"
+    },
+    {
+      "id": "con_horizontal",
+      "name": "Horizontal",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Horizontal",
+      "icon": "design_c_horizontal",
+      "hint": "Make the selected line (or two points) horizontal"
+    },
+    {
+      "id": "con_vertical",
+      "name": "Vertical",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Vertical",
+      "icon": "design_c_vertical",
+      "hint": "Make the selected line (or two points) vertical"
+    },
+    {
+      "id": "con_parallel",
+      "name": "Parallel",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Parallel",
+      "icon": "design_c_parallel",
+      "hint": "Make two selected lines parallel"
+    },
+    {
+      "id": "con_perpendicular",
+      "name": "Perpendicular",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Perpendicular",
+      "icon": "design_c_perpendicular",
+      "hint": "Make two selected lines perpendicular"
+    },
+    {
+      "id": "con_coincident",
+      "name": "Coincident",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Coincident",
+      "icon": "design_c_coincident",
+      "hint": "Join two selected points, or a point onto a curve"
+    },
+    {
+      "id": "con_equallength",
+      "name": "Equal length",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:EqualLength",
+      "icon": "design_c_equal",
+      "hint": "Make two selected lines the same length"
+    },
+    {
+      "id": "con_equalradius",
+      "name": "Equal radius",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:EqualRadius",
+      "icon": "design_c_equal_radius",
+      "hint": "Make two selected circles or arcs the same radius"
+    },
+    {
+      "id": "con_collinear",
+      "name": "Collinear",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Collinear",
+      "icon": "design_c_collinear",
+      "hint": "Put two selected lines on one line"
+    },
+    {
+      "id": "con_concentric",
+      "name": "Concentric",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Concentric",
+      "icon": "design_c_concentric",
+      "hint": "Give two selected circles or arcs one centre"
+    },
+    {
+      "id": "con_tangent",
+      "name": "Tangent",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Tangent",
+      "icon": "design_c_tangent",
+      "hint": "Make two selected curves tangent"
+    },
+    {
+      "id": "con_midpoint",
+      "name": "Midpoint",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Midpoint",
+      "icon": "design_c_midpoint",
+      "hint": "Put a selected point at the middle of a selected line"
+    },
+    {
+      "id": "con_symmetric",
+      "name": "Symmetric",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Symmetric",
+      "icon": "design_c_symmetric",
+      "hint": "Make two points mirror images about a selected line"
+    },
+    {
+      "id": "con_symmetricabouty",
+      "name": "Symmetric about the vertical axis",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:SymmetricAboutY",
+      "icon": "design_c_sym_v",
+      "hint": "Make two points mirror images about the vertical axis"
+    },
+    {
+      "id": "con_symmetricaboutx",
+      "name": "Symmetric about the horizontal axis",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:SymmetricAboutX",
+      "icon": "design_c_sym_h",
+      "hint": "Make two points mirror images about the horizontal axis"
+    },
+    {
+      "id": "con_angle",
+      "name": "Angle",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Angle",
+      "icon": "design_c_angle",
+      "hint": "Fix the angle between two selected lines"
+    },
+    {
+      "id": "con_radius",
+      "name": "Radius",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Radius",
+      "icon": "design_c_radius",
+      "hint": "Fix the radius of the selected arc or circle"
+    },
+    {
+      "id": "con_diameter",
+      "name": "Diameter",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Diameter",
+      "icon": "design_c_diameter",
+      "hint": "Fix the diameter of the selected circle"
+    },
+    {
+      "id": "con_fix",
+      "name": "Fix point",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:Fix",
+      "icon": "design_c_fix",
+      "hint": "Anchor the selected point where it is"
+    },
+    {
+      "id": "con_distancex",
+      "name": "Horizontal distance",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:DistanceX",
+      "icon": "design_c_dist_x",
+      "hint": "Fix the horizontal distance between two points"
+    },
+    {
+      "id": "con_distancey",
+      "name": "Vertical distance",
+      "slot": "reference",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "family": "Constrain",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "con:DistanceY",
+      "icon": "design_c_dist_y",
+      "hint": "Fix the vertical distance between two points"
+    },
+    {
+      "id": "sk_dim_names",
+      "name": "Dimension names",
+      "slot": "reference",
+      "key": "J",
+      "family": "Constrain",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:J",
+      "icon": null,
+      "hint": "Show the variable behind each dimension instead of its value, and back"
     }
   ],
   "chrome_only": {

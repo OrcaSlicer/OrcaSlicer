@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "prism h10 of the 60x40 rectangle with four R5 corner rounds and two d8 holes at (+-15,20): V = A h, area = 2A + perimeter*h",
+  "body_count": 1,
+  "volume_mm3": 22780.08851424851,
+  "area_mm2": 6972.831792783061,
+  "center_of_mass": [
+    -1.4178560266764932e-15,
+    20.00000000000026,
+    5.0
+  ],
+  "bbox": {
+    "min": [
+      -30.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      30.0,
+      40.0,
+      10.0
+    ]
+  },
+  "faces": 12
+}

@@ -50,6 +50,9 @@
 #include <wx/toplevel.h>
 #include <wx/window.h>
 #include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/CAD/DesignImGuiUi.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 
 #if defined(__WXMSW__) && wxUSE_POPUPWIN
 #include <wx/popupwin.h>
@@ -105,6 +108,12 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     m_canvas->set_design_canvas(true);   // home-position bed, triad and CAD grid at the modeling origin
 
     m_canvas->set_design_sketch_tool(&m_sketch_tool);
+    {   // SELECT panel: the last filter and click mode
+        AppConfig* cfg = wxGetApp().app_config;
+        auto get = [cfg](const char* k, bool def) { const std::string v = cfg->get(k); return v.empty() ? def : v == "1" || v == "true"; };
+        m_sketch_tool.set_pick_filter({ get("design_pick_face", true), get("design_pick_edge", true), get("design_pick_vertex", true) });
+        m_sketch_tool.set_click_cycle(get("design_click_cycle", false));
+    }
     m_sketch_tool.on_commit = [this](const SketchProfile& prof, const SketchPlane& pl) {
         if (m_on_sketch_commit) m_on_sketch_commit(prof, pl);
         if (m_canvas) m_canvas->set_as_dirty();
@@ -185,6 +194,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     };
     // Let the tool force-close the field (keep-as-drawn) — polyline right-click/double-click
     // ends the chain even while a per-segment value field is open.
+    m_sketch_tool.on_inline_seed = [this](const std::string& s) { if (m_inline_editor) m_inline_editor->seed(s); };
     m_sketch_tool.on_inline_dismiss = [this]() {
         if (m_inline_editor) m_inline_editor->cancel();
     };
@@ -196,7 +206,47 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // — are drawn by the canvas itself, in the tool's ImGui pass: they go away with the canvas,
     // the tab and the window, and never take the keyboard.
     m_sketch_tool.on_readout      = [this](const std::string& s) { set_readout(s); };
-    m_sketch_tool.render_overlays = [this] { render_hud(); };
+    m_other_menu.on_hover  = [this](int i) { m_sketch_tool.hover_other(i); if (m_canvas) m_canvas->set_as_dirty(); };
+    m_other_menu.on_choose = [this](int i) { m_sketch_tool.choose_other(i); if (m_canvas) m_canvas->set_as_dirty(); };
+    m_sketch_tool.render_overlays = [this] {
+        render_hud();
+        ImGuiWrapper& imgui = *wxGetApp().imgui();
+        const float   em    = imgui.get_style_scaling();
+        if (std::getenv("ORCA_CAD_UITRACE")) std::fprintf(stderr, "[UI] overlays ribbon=%d tree=%d em=%.2f\n", int(m_ribbon_on), int(m_tree_overlay_on), double(em));
+        float top = 0.f;
+        m_offer_popup.render(imgui, m_canvas->get_scale());
+        m_palette.render(imgui, m_canvas->get_scale());
+        {   // Select Other: a press held on the solid opens the list of everything under it
+            int hx, hy;
+            if (m_sketch_tool.pick_waiting()) m_canvas->set_as_dirty();   // frames keep coming while a press may turn into a hold
+            if (m_sketch_tool.take_hold(hx, hy)) {
+                std::vector<std::string> rows = m_sketch_tool.open_other(*m_canvas, hx, hy);
+                m_other_menu.open(float(hx), float(hy), std::move(rows));
+            }
+            m_other_menu.render(imgui, m_canvas->get_scale());
+            if (m_other_menu.is_open()) m_canvas->set_as_dirty();
+        }
+        if (m_palette.is_open()) m_canvas->set_as_dirty();   // keep frames coming: the box takes focus on the frame AFTER it opens
+        if (m_quotes_on) m_quotes.render(imgui, wxGetApp().plater()->get_camera(), m_canvas->get_scale());   // under the bars: they draw after
+        float left = 34.f * em;   // clear of the corner collapse button
+        if (m_topbar_on) {   // the document actions, the toolbox and Confirm / Cancel: one row from the canvas's left edge, the panel hangs under it
+            m_topbar.render(imgui, m_canvas->get_scale(), m_sidebar_on ? 0.f : left);
+            top = m_topbar.height();
+        }
+        if (m_sidebar_on) {       // the left panel, under the bar; the ribbon starts at its edge
+            m_sidebar.render(imgui, m_canvas->get_scale(), top);
+            left = m_sidebar.drawn_width();
+        }
+        if (m_ribbon_on) {
+            m_ribbon.render(imgui, m_canvas->get_scale(), left, top);
+            top += m_ribbon.height();
+        }
+        if (m_tree_overlay_on)
+            m_tree_overlay.render(imgui, m_canvas->get_scale(), m_sidebar_on ? left : 0.f, std::max(top, 0.f) + 34.f * em * ((m_ribbon_on || m_topbar_on) ? 0.f : 1.f));
+        m_canvas->set_navigator_left_inset(m_sidebar_on ? m_sidebar.drawn_width() : 0.f);   // the navigator's left corners start past the panel,
+        m_canvas->set_navigator_top_inset(std::max(top, 0.f));                               // and its top ones below the ribbon
+        render_select_panel(std::max(top, 0.f) + (m_topbar_on ? 8.f : 34.f) * em);
+    };
 
     refresh_bed();
 
@@ -459,6 +509,8 @@ void DesignCanvas::clear_preview()
     }
 }
 
+wxWindow* DesignCanvas::input_window() const { return m_canvas_widget; }
+
 void DesignCanvas::fit_view()
 {
     if (m_canvas && !m_model.objects.empty()) {
@@ -496,6 +548,7 @@ void DesignCanvas::set_view(const std::string& view_name)
 void DesignCanvas::begin_sketch(const SketchPlane& plane, DesignSketchTool::Mode mode)
 {
     m_sketch_tool.begin(plane, mode);
+    square_up_on_entry();
     if (m_canvas) m_canvas->set_as_dirty();
     if (m_canvas_widget) m_canvas_widget->Refresh();
 }
@@ -505,6 +558,7 @@ void DesignCanvas::edit_sketch(const std::vector<SketchEntity>& entities,
                                const SketchPlane& plane)
 {
     m_sketch_tool.begin_edit(entities, constraints, plane);
+    square_up_on_entry();
     if (m_canvas) m_canvas->set_as_dirty();
     if (m_canvas_widget) m_canvas_widget->Refresh();
 }
@@ -519,6 +573,14 @@ void DesignCanvas::set_sketch_tool(DesignSketchTool::Mode mode)
 void DesignCanvas::set_sketch_construction(bool c)
 {
     m_sketch_tool.set_construction(c);
+}
+
+void DesignCanvas::set_extrude_signed(bool on) { m_sketch_tool.set_extrude_signed(on); }
+
+void DesignCanvas::set_sketch_grid_snap(bool on, double step)
+{
+    m_sketch_tool.set_grid_snap(on, step);
+    request_repaint();
 }
 
 bool DesignCanvas::edit_sketch_selection_value()
@@ -672,6 +734,11 @@ void DesignCanvas::set_on_display_sketch_selected(std::function<void(int, int, i
 void DesignCanvas::set_on_display_sketch_activated(std::function<void(int)> cb)
 {
     m_sketch_tool.on_display_sketch_activated = std::move(cb);
+}
+
+std::vector<std::vector<SketchEntity>> DesignCanvas::selected_loop_groups() const
+{
+    return m_sketch_tool.selected_loop_groups();
 }
 
 std::vector<SketchEntity> DesignCanvas::selected_loop_entities() const
@@ -1047,6 +1114,11 @@ void DesignCanvas::set_on_datum_base_picked(std::function<void(int)> cb)
     m_sketch_tool.on_datum_base_picked = std::move(cb);
 }
 
+void DesignCanvas::set_on_datum_base_activated(std::function<void(int)> cb)
+{
+    m_sketch_tool.on_datum_base_activated = std::move(cb);
+}
+
 void DesignCanvas::set_selected_base(std::function<int()> cb)
 {
     m_sketch_tool.selected_base = std::move(cb);
@@ -1082,6 +1154,10 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
     m_canvas_widget->Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
         m_ctx_press     = e.GetPosition();
         m_ctx_travelled = false;
+        // A press over an ImGui window (the on-canvas tree, ribbon, a popup) belongs to ImGui: the
+        // offer must not open under it, and the sketch tool must not see the click.
+        m_ctx_over_ui = ImGui::GetIO().WantCaptureMouse;
+        if (m_ctx_over_ui) { e.Skip(); return; }
         // Drop any press the tool still keeps (only a click's release takes it, so a pan's stays)
         // before the canvas offers it this one, which ImGui may take instead.
         m_sketch_tool.drop_right_click();
@@ -1095,6 +1171,7 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
         e.Skip();
     });
     m_canvas_widget->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
+        if (m_ctx_over_ui) { m_ctx_over_ui = false; e.Skip(); return; }   // ImGui's click, not the canvas's
         const wxPoint d  = e.GetPosition() - m_ctx_press;
         // Click, or navigation? A press that travelled panned or orbited; one that did not, did not.
         const bool is_click = !m_ctx_travelled && std::max(std::abs(d.x), std::abs(d.y)) <= kCadRightClickDriftPx;
@@ -1117,6 +1194,25 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
         }
         e.Skip();
     });
+}
+
+void DesignCanvas::open_palette()
+{
+    if (!m_canvas_widget) return;
+    const wxSize sz = m_canvas_widget->GetClientSize();
+    wxPoint p = m_canvas_widget->ScreenToClient(wxGetMousePosition());
+    if (p.x < 0 || p.y < 0 || p.x >= sz.x || p.y >= sz.y) p = wxPoint(sz.x / 2 - 160, sz.y / 4);
+    m_canvas_widget->SetFocus();
+    // ImGui is fed from the canvas: after a ribbon click focus is elsewhere and the box would take no text
+    m_palette.open(float(p.x), float(p.y));
+    request_repaint();
+}
+
+void DesignCanvas::open_offer_popup(std::string header, std::vector<OfferNode> nodes, const wxPoint& screen)
+{
+    const wxPoint p = m_canvas_widget ? m_canvas_widget->ScreenToClient(screen) : screen;
+    m_offer_popup.open(std::move(header), std::move(nodes), float(p.x), float(p.y));
+    request_repaint();
 }
 
 void DesignCanvas::set_display_sketches(std::vector<DesignSketchTool::DisplaySketch> ds)
@@ -1206,6 +1302,50 @@ void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
     request_repaint();
 }
 
+// SELECT: which kinds a click or hover may take on the solids, and what a repeated click does. Not drawn while a sketch is open
+// (a sketch has its own picking). Saved with the app settings.
+void DesignCanvas::render_select_panel(float top)
+{
+    m_select_hits.clear();
+    if (m_sketch_tool.is_active() || m_canvas == nullptr) return;
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    const ImVec2  ds    = ImGui::GetIO().DisplaySize;
+    const float   em    = imgui.get_style_scaling();
+    DesignSketchTool::PickFilter f = m_sketch_tool.pick_filter();
+    bool cycle = m_sketch_tool.click_cycle();
+    const DesignSketchTool::PickFilter f0 = f;
+    const bool cycle0 = cycle;
+    ImGuiWrapper::push_common_window_style(m_canvas->get_scale());
+    // At the top-right the navigator takes the corner, and the panel stands below it.
+    const bool  under_nav = m_canvas->navigator_right() && !m_canvas->navigator_bottom();
+    imgui.set_next_window_pos(ds.x - 12.f * em, top + 8.f * em + (under_nav ? m_canvas->navigator_height() : 0.f),
+                              under_nav ? ImGuiCond_Always : ImGuiCond_FirstUseEver, 1.f, 0.f);
+    imgui.begin(_u8L("Select") + "##design_select",
+                ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
+    auto box = [&](const std::string& label, bool& v) {
+        ImGui::Checkbox(label.c_str(), &v);
+        const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+        m_select_hits.emplace_back(a.x + 10.f * em, 0.5f * (a.y + b.y));   // the box itself, not the label
+    };
+    box(_u8L("Faces"), f.face);
+    box(_u8L("Edges"), f.edge);
+    box(_u8L("Vertices"), f.vertex);
+    ImGui::Separator();
+    box(_u8L("Click cycles candidates"), cycle);
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", _u8L("Off: clicking the same spot again takes the whole body. On: it steps through everything under the pointer.").c_str());
+    imgui.end();
+    ImGuiWrapper::pop_common_window_style();
+    if (f.face != f0.face || f.edge != f0.edge || f.vertex != f0.vertex) {
+        m_sketch_tool.set_pick_filter(f);
+        AppConfig* cfg = wxGetApp().app_config;
+        cfg->set("design_pick_face", f.face ? "1" : "0"); cfg->set("design_pick_edge", f.edge ? "1" : "0"); cfg->set("design_pick_vertex", f.vertex ? "1" : "0");
+    }
+    if (cycle != cycle0) {
+        m_sketch_tool.set_click_cycle(cycle);
+        wxGetApp().app_config->set("design_click_cycle", cycle ? "1" : "0");
+    }
+}
+
 void DesignCanvas::render_hud()
 {
     if (m_hud_last.empty() && m_status_hud_last.IsEmpty()) return;
@@ -1232,11 +1372,11 @@ void DesignCanvas::render_hud()
         ImGuiWrapper::pop_common_window_style();
     };
     if (!m_status_hud_last.IsEmpty()) {
-        // Past the view cube and the round view buttons, which own the bottom-left corner. Asked
+        // Past the left panel, and the view cube and the round view buttons where they own the bottom-left corner. Asked
         // of the canvas, which lays them out: they follow the monitor's DPI on Windows, where `em`
         // does not, so a fixed inset in `em` let them cover the start of the line at 150%.
         // A sentence can be a sentence: it wraps to the room left of the readout chip.
-        const float  left = m_canvas->get_canvas_toolbar_right() + margin;
+        const float  left = std::max(m_canvas->get_canvas_toolbar_right(), m_sidebar.drawn_width()) + margin;   // past the left panel too
         const ImVec4 col  = m_status_hud_colour.IsOk()
             ? ImVec4(m_status_hud_colour.Red() / 255.f, m_status_hud_colour.Green() / 255.f,
                      m_status_hud_colour.Blue() / 255.f, 1.f)
@@ -1245,7 +1385,9 @@ void DesignCanvas::render_hud()
              std::max(ds.x * 0.6f - left, 120.f * em), m_status_hud_colour.IsOk() ? &col : nullptr);
     }
     if (!m_hud_last.empty())
-        chip("##design_readout", m_hud_last, ds.x - margin, 1.f, 0.f, &ImGuiWrapper::COL_ORCA);
+        chip("##design_readout", m_hud_last,
+             ds.x - margin - (m_canvas->navigator_right() && m_canvas->navigator_bottom() ? m_canvas->navigator_width() : 0.f),
+             1.f, 0.f, &ImGuiWrapper::COL_ORCA);
 }
 
 void DesignCanvas::set_highlight_faces(const std::vector<std::pair<int, int>>& faces)
@@ -1544,6 +1686,15 @@ bool DesignCanvas::is_constraining_entities() const
 int DesignCanvas::sketch_selection_count() const
 {
     return int(m_sketch_tool.selection().size());
+}
+
+// Entering a sketch brings the view normal to its plane (the N key does the same on demand).
+// "design_sketch_auto_normal" = 0 turns the automatic part off.
+void DesignCanvas::square_up_on_entry()
+{
+    if (wxGetApp().app_config->get("design_sketch_auto_normal") == "0") return;
+    if (!m_camera_swapped) return;   // the Design tab is not showing (an MCP client began the sketch): the plater's camera is Prepare's or Preview's
+    view_normal_to_sketch();
 }
 
 bool DesignCanvas::view_normal_to_sketch()

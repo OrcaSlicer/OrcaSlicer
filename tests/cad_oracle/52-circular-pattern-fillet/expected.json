@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "disc r40 h8 + 6 x (boss r6 h10 with R2 concave base fillet as a solid of revolution, Pappus/Green on its (r,z) profile) at radius 28; disc top loses 6 discs r8",
+  "body_count": 1,
+  "volume_mm3": 47206.85017171979,
+  "area_mm2": 14142.17116758171,
+  "center_of_mass": [
+    3.8532318867475695e-17,
+    5.394524641446597e-16,
+    5.313317447963345
+  ],
+  "bbox": {
+    "min": [
+      -40.0,
+      -40.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      40.0,
+      18.0
+    ]
+  },
+  "faces": 21
+}

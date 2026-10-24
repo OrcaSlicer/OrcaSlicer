@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "50x40x30 box shelled inward 2 with the top open: box minus cavity [2,48]x[2,38]x[2,30]; A = outer bottom + outer sides + rim + cavity floor + cavity walls",
+  "body_count": 1,
+  "volume_mm3": 13632.0,
+  "area_mm2": 13992.0,
+  "center_of_mass": [
+    25.0,
+    20.0,
+    11.598591549295774
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      50.0,
+      40.0,
+      30.0
+    ]
+  },
+  "faces": 11
+}

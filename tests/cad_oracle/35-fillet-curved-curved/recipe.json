@@ -1,0 +1,193 @@
+{
+ "id": "35-fillet-curved-curved",
+ "name": "Fillet between two cylinders",
+ "description": "Cylinder r15 along X (x -40..40) joined with a cylinder r10 along +Z (z 0..35); the saddle intersection edge filleted R3.",
+ "exercises": [
+  "sketch_yz",
+  "symmetric",
+  "extrude_join",
+  "fillet",
+  "curved_curved_edge"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "MainSketch",
+   "plane": {
+    "ref": "YZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     1.0,
+     0.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "radius": 15,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Main",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "MainSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "symmetric",
+    "distance": 40,
+    "is_full_length": false,
+    "meaning": "distance on each side"
+   },
+   "result_bodies": [
+    "Tee"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "BranchSketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 10,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Branch",
+   "operation": "join",
+   "profiles": [
+    {
+     "sketch": "BranchSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 35,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Tee"
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "SaddleFillet",
+   "type": "constant_radius",
+   "radius": 3,
+   "tangent_chain": false,
+   "edge_selection": "edge(s) whose both adjacent faces are cylinders (the branch/main intersection curve)",
+   "edges": [
+    {
+     "type": "nurbs",
+     "start": [
+      0.0,
+      -10.0,
+      11.180339887
+     ],
+     "end": [
+      0.0,
+      -10.0,
+      11.180339887
+     ],
+     "point": [
+      0.0,
+      10.0,
+      11.180339887
+     ]
+    }
+   ]
+  }
+ ]
+}

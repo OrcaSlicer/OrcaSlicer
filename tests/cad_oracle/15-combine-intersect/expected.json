@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "cube [-20,20]^3 intersect sphere R=25: sphere minus 6 disjoint caps of height h=5 (caps cannot overlap: two would need x^2+y^2 > 800 > R^2); V = 4/3 pi R^3 - 6 pi h^2 (3R-h)/3, A = 4 pi R^2 - 6 * 2 pi R h + 6 pi (R^2-20^2)",
+  "body_count": 1,
+  "volume_mm3": 54454.27266222308,
+  "area_mm2": 7382.7427359360145,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "bbox": {
+    "min": [
+      -20.0,
+      -20.0,
+      -20.0
+    ],
+    "max": [
+      20.0,
+      20.0,
+      20.0
+    ]
+  },
+  "faces": 7
+}

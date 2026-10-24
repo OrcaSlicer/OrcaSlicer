@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate 90x70x5 minus 12 through cylinders r=3 at (15+20i, 15+20j), i<4, j<3: V = abc - 12 pi r^2 t, A = 2(ab+bc+ca) + 12(2 pi r t - 2 pi r^2)",
+  "body_count": 1,
+  "volume_mm3": 29803.53996706153,
+  "area_mm2": 14652.38934211693,
+  "center_of_mass": [
+    44.99999999999998,
+    34.99999999999999,
+    2.4999999999999964
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      90.0,
+      70.0,
+      5.0
+    ]
+  },
+  "faces": 18
+}

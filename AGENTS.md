@@ -118,3 +118,7 @@ See `.claude/skills/orca-translations/references/source-audit.md` for the full c
 - `scripts/run_gettext.bat --full` (Windows) regenerates the template, merges every catalog and compiles the `.mo` files. It must exit 0.
 - Or check a single catalog with `msgfmt --check-format -o <out>.mo localization/i18n/<lang>/OrcaSlicer_<lang>.po`.
 - Fuzzy entries are not shown to users. If you correct one, clear its `fuzzy` flag, otherwise the fix never ships.
+
+## Design tab (CAD) over MCP
+
+- To drive the Design tab from an agent (sketches, features, variables, export), use the skills `skills/orca-cad-modeling/SKILL.md` (the verbs) and `skills/orca-cad-ai-assisted-design/SKILL.md` (the parametric workflow and its traps); the app lists its own tools through `describe_tools`. The fields `set_feature_expr` can bind are in `docs/CAD/mcp_bindable_fields.md`, generated from the app by `scripts/CAD/gen_bindable_fields.py`.

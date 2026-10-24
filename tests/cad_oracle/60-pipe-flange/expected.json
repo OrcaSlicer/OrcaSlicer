@@ -1,0 +1,25 @@
+{
+  "source": "freecad 1.1.4",
+  "method": "FreeCAD (OpenCASCADE) build of recipe.json by tools/freecad-oracle/build.py: Part revolve, Part extrude cut, pattern (tools transformed and re-applied), Part makeChamfer, Part makeFillet",
+  "body_count": 1,
+  "volume_mm3": 323660.9792237058,
+  "area_mm2": 56984.564025960535,
+  "center_of_mass": [
+    8.992072670155864e-17,
+    -3.0983486149956997e-15,
+    14.841104660417978
+  ],
+  "bbox": {
+    "min": [
+      -75.0,
+      -75.0,
+      0.0
+    ],
+    "max": [
+      75.0,
+      75.0,
+      50.0
+    ]
+  },
+  "note": "No reference.stl: over 409600 bytes even at 0.02 mm deflection (11380 facets)."
+}

@@ -64,6 +64,10 @@ inline int role_idx(Role r) { return int(r); }
 
 } // namespace
 
+static thread_local bool g_skip_bad = false;
+SketchSolveNoBad::SketchSolveNoBad() : m_prev(g_skip_bad) { g_skip_bad = true; }
+SketchSolveNoBad::~SketchSolveNoBad() { g_skip_bad = m_prev; }
+
 static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
                                       const std::vector<SketchEntityConstraintDef>& constraints,
                                       int dragged_ei, Role dragged_role)
@@ -361,6 +365,22 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
                     // not being changed by another constraint in the same solve; if some other
                     // constraint drives the radius, re-solving restores tangency. Tying them
                     // would need an auxiliary point constrained onto both circle and line.
+                    // When one end of the line is held ON the circle, "the centre is a radius from the line" is a double root
+                    // there (every line through a point of the circle is at most a radius from the centre), so the solver
+                    // cannot converge on it. Say what it means instead: the radius to that end is square to the line.
+                    int touch = -1;
+                    for (const auto& k : constraints) {
+                        if (k.type != CT::PointOnObject && k.type != CT::Coincident) continue;
+                        const bool fwd = k.ea == li && k.eb == ci, rev = k.eb == li && k.ea == ci;
+                        if (!fwd && !rev) continue;
+                        const Role lr = fwd ? k.ra : k.rb;
+                        if (lr == Role::P0 || lr == Role::P1) touch = lr == Role::P0 ? 0 : 1;
+                    }
+                    if (touch >= 0 && slot[ci].center && (touch == 0 ? slot[li].p0 : slot[li].p1)) {
+                        const Slvs_hEntity radius_line = b.E(Slvs_MakeLineSegment(++b.eh, G_SK, b.wp, slot[ci].center,
+                                                                                  touch == 0 ? slot[li].p0 : slot[li].p1));
+                        b.C(SLVS_C_PERPENDICULAR, 0, 0, 0, primOf(li), radius_line);
+                    } else
                     b.C(SLVS_C_PT_LINE_DISTANCE, side_of(ci, Role::Center, li) * entities[ci].radius,
                         ptOf(ci, Role::Center), 0, primOf(li), 0);
                 } else {
@@ -432,7 +452,7 @@ static SketchSolveResult solve_system(std::vector<SketchEntity>& entities,
     std::vector<Slvs_hConstraint> failed(b.cons.size() + 1, 0);
     sys.failed = failed.data();
     sys.faileds = int(failed.size());
-    sys.calculateFaileds = 1;
+    sys.calculateFaileds = g_skip_bad ? 0 : 1;
 
     // Drag pin: feed the dragged point's two params into sys.dragged[] so the solver
     // favours keeping that point at the cursor and re-solves the rest around it.
@@ -680,6 +700,49 @@ SketchSolveResult sketch_solve_drag(std::vector<SketchEntity>& entities,
                                     int dragged_ei, SketchPointRole dragged_role)
 {
     return solve_impl(entities, constraints, dragged_ei, dragged_role);
+}
+
+std::vector<char> sketch_entity_free(const std::vector<SketchEntity>& entities,
+                                     const std::vector<SketchEntityConstraintDef>& constraints)
+{
+    std::vector<char> out(entities.size(), 1);
+    if (constraints.empty()) return out;                  // nothing constrains anything
+    std::vector<SketchEntity> work = entities;
+    const SketchSolveResult base = sketch_solve(work, constraints);
+    if (!base.ok || base.dof < 0) return {};
+    if (base.dof == 0) { out.assign(entities.size(), 0); return out; }
+    // One probe per owned role (and per circle radius). A pin that repeats what the constraints
+    // already force is REDUNDANT, which libslvs reports as a failed solve: that role is pinned. A
+    // clean solve whose total DoF drops means the role still had freedom.
+    auto role_free = [&](SketchEntityConstraintDef extra) {
+        std::vector<SketchEntityConstraintDef> probe = constraints;
+        probe.push_back(extra);
+        std::vector<SketchEntity> w = entities;
+        const SketchSolveResult r = sketch_solve(w, probe);
+        return r.ok && r.dof >= 0 && r.dof < base.dof;
+    };
+    for (size_t i = 0; i < entities.size(); ++i) {
+        const SketchEntity& e = entities[i];
+        std::vector<Role> roles;
+        switch (e.type) {
+        case SketchEntity::Type::Line:   roles = {Role::P0, Role::P1}; break;
+        case SketchEntity::Type::Point:  roles = {Role::P0}; break;
+        case SketchEntity::Type::Arc:    roles = {Role::Center, Role::P0, Role::P1}; break;
+        case SketchEntity::Type::Circle: roles = {Role::Center}; break;
+        default: continue;   // ellipse / spline: no probe, stays free while the sketch is
+        }
+        bool is_free = false;
+        for (Role r : roles) {
+            SketchEntityConstraintDef c; c.type = SketchConstraintType::Fix; c.ea = int(i); c.ra = r;
+            if (role_free(c)) { is_free = true; break; }
+        }
+        if (!is_free && e.type == SketchEntity::Type::Circle) {
+            SketchEntityConstraintDef c; c.type = SketchConstraintType::Radius; c.ea = int(i); c.value = e.radius;
+            is_free = role_free(c);
+        }
+        out[i] = is_free ? 1 : 0;
+    }
+    return out;
 }
 
 } // namespace Slic3r

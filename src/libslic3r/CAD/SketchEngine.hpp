@@ -11,6 +11,11 @@
 #include <TopoDS_Wire.hxx>
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Face.hxx>
+#include <cmath>
+#include <ios>
+#include <locale>
+#include <sstream>
+#include <string>
 #include <vector>
 #include <utility>
 
@@ -87,6 +92,31 @@ struct SketchProfile {
 // kernel refused it at 1e-4, which extruded a solid the user never drew.
 // Nothing legitimate in a mm-scale sketch is 1 um apart.
 inline constexpr double kSketchJoinTol = 1e-3;   // mm
+
+// Nearest multiple of `step` (half-way rounds away from zero, so the grid is symmetric about 0).
+// step <= 0 means "no grid" and returns v untouched.
+inline double snap_to_step(double v, double step)
+{
+    return step > 0. ? std::round(v / step) * step : v;
+}
+// A length for a label: at most `decimals` places, trailing zeros dropped, never "-0", always a '.'
+// (a stream imbued with the classic locale ignores LC_NUMERIC, unlike snprintf, which wx points at the user's locale;
+// std::to_chars is not used: its floating-point overloads need macOS 13.3).
+inline std::string format_dim_number(double v, int decimals = 2)
+{
+    std::ostringstream os;
+    os.imbue(std::locale::classic());
+    os.setf(std::ios::fixed, std::ios::floatfield);
+    os.precision(decimals);
+    os << v;
+    std::string s = os.str();
+    if (s.find('.') != std::string::npos) {
+        while (s.back() == '0') s.pop_back();
+        if (s.back() == '.') s.pop_back();
+    }
+    return (s == "-0") ? std::string("0") : s;
+}
+inline Vec2d snap_to_grid(const Vec2d& p, double step) { return {snap_to_step(p.x(), step), snap_to_step(p.y(), step)}; }
 
 // Effective sketch joint tolerance. ONE value for the viewport (region_loops /
 // loop_report / connected_loop) and the kernel (entities_to_wires): if these ever
@@ -254,7 +284,16 @@ public:
 
     // Loft a solid through 2+ closed profile wires (each on its own plane), in the
     // given order. ruled=true => straight (ruled) sections; false => smooth (C2).
-    static TopoDS_Shape make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled);
+    // start_cond / end_cond: 0 = Contact, 1 = Normal to profile (smooth lofts only). Normal adds an
+    // auxiliary section a fraction `strength` of the gap to the neighbouring profile, along the
+    // profile's own plane normal, so the interpolated surface leaves perpendicular to the profile.
+    static TopoDS_Shape make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                  int start_cond = 0, int end_cond = 0, double strength = 0.25);
+
+    // Loft that ends (or starts) in a single point: `profiles` are the wire sections, `apex_first` / `apex_last` a vertex placed
+    // before the first / after the last of them (a pyramid or a cone tip).
+    static TopoDS_Shape make_loft_to_point(const std::vector<TopoDS_Wire>& profiles, bool ruled,
+                                           const gp_Pnt* apex_first, const gp_Pnt* apex_last);
 
     // Skin `profiles` WITHOUT end caps -> an open shell (sheet). Same as make_loft but the
     // ThruSections solid flag is false. // ponytail: a sibling instead of a bool param, so no
@@ -290,6 +329,16 @@ public:
     // A planar face from a set of coplanar loops: the largest-area loop is the outer boundary
     // and every other loop is a hole in it. Throws std::runtime_error with a message naming the
     // problem when the loops do not describe one such region.
+    // Every closed region of a set of loops, as faces: a loop inside another one is a hole of the region around it, a loop inside
+    // a hole is a region of its own again (even depth = region, odd depth = hole). Unlike wires_to_face, disjoint regions are fine.
+    static std::vector<TopoDS_Face> wires_to_faces(const std::vector<TopoDS_Wire>& wires, const SketchPlane& plane);
+    // Sketches whose curves meet in T-junctions (a line ending on a circle or on the middle of another line / arc, as in a belt
+    // around two pulleys) do not break into closed chains: the circle belongs to several regions at once. For those the regions
+    // are the faces of the planar subdivision. Only lines, arcs and circles take part; any other entity answers false.
+    static bool arrangement_needed(const std::vector<SketchEntity>& entities);
+    // The bounded regions of the subdivision as faces, holes by the same even / odd rule as wires_to_faces (a region wholly
+    // inside another region's boundary is its hole).
+    static std::vector<TopoDS_Face> arrangement_faces(const std::vector<SketchEntity>& entities, const SketchPlane& plane);
     static TopoDS_Face wires_to_face(const std::vector<TopoDS_Wire>& wires,
                                      const SketchPlane& plane);
 
