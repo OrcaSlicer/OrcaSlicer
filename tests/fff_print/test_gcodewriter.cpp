@@ -231,11 +231,62 @@ TEST_CASE("G-code export uses the selected precision for linear and arc moves", 
     CHECK_THAT(moves[3].precise_value(X), Catch::Matchers::WithinAbs(high_precision ? 10.9877 : 10.988, eps));
     CHECK_THAT(moves[3].precise_value(I), Catch::Matchers::WithinAbs(high_precision ? 0.1235 : 0.123, eps));
     CHECK_THAT(moves[3].precise_value(J), Catch::Matchers::WithinAbs(high_precision ? 0.6543 : 0.654, eps));
-    const double expected_arc_e = relative_e ? (high_precision ? 0.001235 : 0.00123) : (high_precision ? 0.002469 : 0.00247);
+    // High precision carries the rounding of relative E into the next move: 0.00123456 was written as 0.001235,
+    // so the arc writes 0.00123456 - 0.00000044, which rounds to 0.001234.
+    const double expected_arc_e = relative_e ? (high_precision ? 0.001234 : 0.00123) : (high_precision ? 0.002469 : 0.00247);
     CHECK_THAT(moves[3].precise_value(E), Catch::Matchers::WithinAbs(expected_arc_e, eps));
     CHECK(moves[4].has_z() == high_precision);
     if (high_precision)
         CHECK_THAT(moves[4].precise_value(Z), Catch::Matchers::WithinAbs(0.2345, eps));
+}
+
+TEST_CASE("High precision G-code carries the rounding of relative extrusion into the next move", "[GCodeWriter][Regression]")
+{
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(high_precision);
+
+    PrintConfig config;
+    config.high_precision_gcode.value           = high_precision;
+    config.gcode_flavor.value                   = gcfKlipper;
+    config.use_relative_e_distances.value       = true;
+    config.single_extruder_multi_material.value = false;
+    config.filament_diameter.values             = {1.75};
+    config.filament_flow_ratio.values           = {1.0};
+    config.filament_map.values                  = {1};
+
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    writer.set_extruders({0});
+    writer.set_extruder(0);
+
+    // Rounded on its own, every move of 0.0003061 mm is written as 0.00031 at 5 decimals and as 0.000306 at 6,
+    // which over- or under-extrudes all of them the same way.
+    constexpr int    move_count = 100;
+    constexpr double move_e     = 0.0003061;
+    std::string gcode;
+    for (int i = 1; i <= move_count; ++i)
+        gcode += writer.extrude_to_xy(Vec2d(0.1 * i, 0.), move_e);
+
+    std::vector<double> written_e;
+    GCodeReader reader;
+    reader.apply_config(writer.config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.extruding(self))
+            written_e.push_back(line.precise_value(E));
+    });
+    REQUIRE(written_e.size() == size_t(move_count));
+
+    if (high_precision) {
+        // The written moves add up to the extruded length within half of the last decimal.
+        double total = 0.;
+        for (const double e : written_e)
+            total += e;
+        CHECK_THAT(total, Catch::Matchers::WithinAbs(move_count * move_e, 0.5e-6 + 1e-12));
+    } else {
+        // Without the option, each move is rounded on its own as before.
+        for (const double e : written_e)
+            CHECK_THAT(e, Catch::Matchers::WithinAbs(0.00031, 1e-12));
+    }
 }
 
 SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {

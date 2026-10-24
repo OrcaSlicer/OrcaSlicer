@@ -1321,7 +1321,7 @@ void GCodeWriter::extrude_to_xy(std::string &out, const Vec2d &point, double dE,
         w.emit_xy(point_on_plate);
     }
     if (!force_no_extrusion)
-        w.emit_e(filament()->E());
+        w.emit_e(filament()->E_to_emit());
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
@@ -1403,7 +1403,7 @@ void GCodeWriter::extrude_arc_to_xy(std::string &out, const Vec2d& point, const 
     w.emit_xy(point_on_plate);
     w.emit_ij(center_offset);
     if (!force_no_extrusion)
-        w.emit_e(filament()->E());
+        w.emit_e(filament()->E_to_emit());
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
@@ -1446,7 +1446,7 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
     }
     if (!force_no_extrusion)
-        w.emit_e(filament()->E());
+        w.emit_e(filament()->E_to_emit());
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
@@ -1490,7 +1490,7 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
         else {
             // BBS
             GCodeG1Formatter w(config.high_precision_gcode.value);
-            w.emit_e(filament()->E());
+            w.emit_e(filament()->E_to_emit());
             w.emit_f(filament()->retract_speed() * 60.);
             // BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -1522,7 +1522,7 @@ std::string GCodeWriter::unretract(float extra_retract)
             GCodeG1Formatter w(config.high_precision_gcode.value);
             // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
             // default -> identical to the plain deretract E position.
-            w.emit_e(filament()->E() + extra_retract);
+            w.emit_e(filament()->E_to_emit(extra_retract));
             w.emit_f(filament()->deretract_speed() * 60.);
             //BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");
