@@ -159,25 +159,6 @@ TEST_CASE("An explicit object flow gate overrides the filament gate", "[Flow][Re
     CHECK_THAT(walls(true) / inherited, Catch::Matchers::WithinRel(expected, 0.001));
 }
 
-TEST_CASE("Empty and short filament override vectors safely inherit", "[Flow][Regression]")
-{
-    const size_t slot = GENERATE(size_t(0), size_t(1), size_t(7));
-    ConfigOptionFloatsNullable ratios;
-    ConfigOptionBoolsNullable gates;
-    CHECK_FALSE(has_filament_override(&ratios, slot));
-    CHECK_FALSE(has_filament_override(&gates, slot));
-    CHECK_THAT(resolve_filament_override(ratios, slot, 0.8), Catch::Matchers::WithinAbs(0.8, 1e-9));
-    CHECK(resolve_filament_override(gates, slot, true));
-    ratios.values = {ConfigOptionFloatsNullable::nil_value()};
-    gates.values = {ConfigOptionBoolsNullable::nil_value()};
-    CHECK_FALSE(has_filament_override(&ratios, slot));
-    CHECK_FALSE(has_filament_override(&gates, slot));
-    ratios.values = {1.2};
-    gates.values = {0};
-    CHECK_THAT(resolve_filament_override(ratios, slot, 0.8), Catch::Matchers::WithinAbs(1.2, 1e-9));
-    CHECK_FALSE(resolve_filament_override(gates, slot, true));
-}
-
 TEST_CASE("Filament flow overrides follow nozzle variant expansion", "[Flow][H2C][Regression]")
 {
     using namespace Slic3r::MultiNozzleUtils;

@@ -828,6 +828,10 @@ Value resolve_filament_override(const Option &option, size_t index, Value fallba
     return has_filament_override(&option, index) ? Value(option.get_at(index)) : fallback;
 }
 
+// Bits of flow_ratio_overrides that some filament or variant in config sets. A local flow ratio
+// can only take precedence over these, so the derived region override masks only record them.
+int active_filament_flow_overrides(const ConfigBase &config);
+
 // Full override-key check, including flow and ironing overrides.
 extern bool is_filament_extruder_override_key(const std::string &opt_key);
 

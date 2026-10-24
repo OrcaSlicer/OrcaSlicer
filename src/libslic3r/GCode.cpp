@@ -8376,7 +8376,10 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "printhost_cafile"sv,
         "printhost_user"sv,
         "printhost_password"sv,
-        "printhost_port"sv
+        "printhost_port"sv,
+        // Derived per-object/per-region provenance of local flow ratios; the full config only holds the 0 default.
+        "object_flow_ratio_override_mask"sv,
+        "region_flow_ratio_override_mask"sv
     });
     auto is_banned = [](const std::string &key) {
         return banned_keys.find(key) != banned_keys.end();
