@@ -91,6 +91,7 @@
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "Plater.hpp"
+#include "PartPlate.hpp"
 #include "ParamsDialog.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"

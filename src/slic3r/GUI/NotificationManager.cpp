@@ -46,6 +46,7 @@
 #include "libslic3r/Model.hpp"
 #include <wx/dataview.h>
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <wx/time.h>
