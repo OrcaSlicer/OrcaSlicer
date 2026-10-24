@@ -2,14 +2,17 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
 
@@ -157,6 +160,118 @@ const PhysicalFilament* FilamentInventory::find(int id) const
     return nullptr;
 }
 
+static std::string trim_lower(const std::string& s) { return boost::algorithm::to_lower_copy(boost::algorithm::trim_copy(s)); }
+
+// CF/GF and other variants are separate types and only match themselves.
+static bool same_material_family(const std::string& a, const std::string& b)
+{
+    static const std::vector<std::vector<const char*>> families = {
+        {"pla", "pla+"},
+        {"petg", "petg+"},
+    };
+    for (const auto& family : families) {
+        bool has_a = std::find(family.begin(), family.end(), a) != family.end();
+        bool has_b = std::find(family.begin(), family.end(), b) != family.end();
+        if (has_a && has_b)
+            return true;
+    }
+    return false;
+}
+
+bool type_compatible(const std::string& project_type, const std::string& slot_type)
+{
+    std::string a = trim_lower(project_type);
+    std::string b = trim_lower(slot_type);
+    if (a.empty() || b.empty())
+        return false;
+    if (a == b)
+        return true;
+    return same_material_family(a, b);
+}
+
+// Squared RGB distance, alpha ignored. An unparseable color is max distance, so it ranks last.
+static bool parse_hex_rgb(const std::string& s, int& r, int& g, int& b)
+{
+    if ((s.size() != 7 && s.size() != 9) || s[0] != '#')
+        return false;
+    try {
+        r = std::stoi(s.substr(1, 2), nullptr, 16);
+        g = std::stoi(s.substr(3, 2), nullptr, 16);
+        b = std::stoi(s.substr(5, 2), nullptr, 16);
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
+
+static float auto_map_color_distance(const std::string& a, const std::string& b)
+{
+    int ar, ag, ab, br, bg, bb;
+    if (!parse_hex_rgb(a, ar, ag, ab) || !parse_hex_rgb(b, br, bg, bb))
+        return std::numeric_limits<float>::max();
+    float dr = float(ar - br), dg = float(ag - bg), db = float(ab - bb);
+    return dr * dr + dg * dg + db * db;
+}
+
+// Squared-RGB cutoff beyond which auto-mapping won't propose a slot. Unknown colors are exempt.
+static constexpr float kMaxFamilyColorDistance = 10000.f;
+
+// Vendor per the "<Vendor> <Type> <SubType>" naming convention; empty without a preset.
+static std::string preset_vendor_token(const std::string& preset)
+{
+    size_t space = preset.find(' ');
+    return trim_lower(space == std::string::npos ? preset : preset.substr(0, space));
+}
+
+static bool within_color_cutoff(float dist)
+{
+    return dist == std::numeric_limits<float>::max() || dist <= kMaxFamilyColorDistance;
+}
+
+std::vector<int> auto_map_filaments(const std::vector<ProjectFilamentInfo>& project, const FilamentInventory& inventory)
+{
+    std::vector<int> result(project.size(), -1);
+    for (size_t i = 0; i < project.size(); ++i) {
+        const std::string project_vendor = trim_lower(project[i].vendor);
+        // Color-nearest non-empty slot that `eligible` accepts; ties keep the lowest slot index unless
+        // prefer_vendor lets a vendor match win.
+        auto nearest = [&](auto eligible, bool prefer_vendor, float& best_dist) {
+            const PhysicalFilament* best        = nullptr;
+            bool                    best_vendor = false;
+            for (const PhysicalFilament& pf : inventory.slots) {
+                if (pf.empty())
+                    continue;
+                const float dist = auto_map_color_distance(project[i].color, pf.color);
+                if (!eligible(pf, dist))
+                    continue;
+                const bool vendor = prefer_vendor && !project_vendor.empty() && project_vendor == preset_vendor_token(pf.preset);
+                if (best == nullptr || dist < best_dist || (dist == best_dist && vendor && !best_vendor)) {
+                    best        = &pf;
+                    best_dist   = dist;
+                    best_vendor = vendor;
+                }
+            }
+            return best;
+        };
+
+        float dist = 0.f;
+        // Cut off after picking: a same-preset slot of unknown color must not beat a nearer one that is
+        // out of range; the filament falls through to the family tier instead.
+        if (!project[i].preset.empty()) {
+            const PhysicalFilament* pf = nearest([&](const PhysicalFilament& s, float) { return s.preset == project[i].preset; }, false, dist);
+            if (pf != nullptr && within_color_cutoff(dist)) {
+                result[i] = pf->id;
+                continue;
+            }
+        }
+        const PhysicalFilament* pf = nearest(
+            [&](const PhysicalFilament& s, float d) { return type_compatible(project[i].type, s.type) && within_color_cutoff(d); }, true, dist);
+        if (pf != nullptr)
+            result[i] = pf->id;
+    }
+    return result;
+}
+
 std::string derive_filament_subtype(const std::string& display_name, const std::string& vendor, const std::string& type)
 {
     std::vector<std::string> tokens;
@@ -166,6 +281,40 @@ std::string derive_filament_subtype(const std::string& display_name, const std::
         if (!token.empty() && !boost::algorithm::iequals(token, vendor) && !boost::algorithm::iequals(token, type))
             result += (result.empty() ? "" : " ") + token;
     return result;
+}
+
+bool inventory_all_unset(const FilamentInventory& inv)
+{
+    for (const auto& pf : inv.slots)
+        if (!pf.empty())
+            return false;
+    return true;
+}
+
+std::vector<int> compute_physical_map_proposal(
+    const std::vector<std::string>& filament_colors,
+    const std::vector<std::string>& filament_types,
+    const std::vector<std::string>& filament_vendors,
+    const std::vector<std::string>& filament_presets,
+    const std::vector<int>&         plate_filaments,
+    const FilamentInventory&        inventory)
+{
+    std::vector<ProjectFilamentInfo> project(filament_colors.size());
+    for (size_t i = 0; i < project.size(); ++i) {
+        project[i].color  = filament_colors[i];
+        project[i].type   = i < filament_types.size() ? filament_types[i] : std::string();
+        project[i].vendor = i < filament_vendors.size() ? filament_vendors[i] : std::string();
+        project[i].preset = i < filament_presets.size() ? filament_presets[i] : std::string();
+    }
+    const std::vector<int> auto_result = auto_map_filaments(project, inventory);
+
+    std::vector<int> proposal(plate_filaments.size(), 0);
+    for (size_t i = 0; i < plate_filaments.size(); ++i) {
+        int filament_id = plate_filaments[i] - 1; // stored 1-based, arrays are 0-based
+        int matched = (filament_id >= 0 && (size_t) filament_id < auto_result.size()) ? auto_result[filament_id] : -1;
+        proposal[i] = matched > 0 ? matched : 0;
+    }
+    return proposal;
 }
 
 std::string FilamentInventories::serialize() const
