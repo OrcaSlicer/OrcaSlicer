@@ -59,6 +59,12 @@ public:
     // Insert in the requested interval, or the nearest one with room for a valid point.
     // Leave rows and the requested position unchanged at the limit or when no interval can be split.
     bool insert_point(Rows& rows, int& row) const;
+    // Move a point within drag_bounds(), rounding each moved coordinate with format_point_number().
+    // A coordinate proposed at its current value keeps its value and text, even outside the bounds,
+    // so dragging along one axis never rewrites the other. On success update x, y and point;
+    // otherwise leave them unchanged.
+    bool move_point(int row, double proposed_x, double proposed_y, const CurveView& view,
+                    std::vector<double>& x, std::vector<double>& y, Row& point) const;
     // CSV uses stable column identifiers and locale-independent export. Failed reads/writes
     // leave the output untouched; line is a physical CSV line, row is a table row (zero-based).
     const char* read_csv(const std::string& text, Rows& rows, int& line) const;
@@ -79,7 +85,7 @@ public:
     // Return true when the limits change so the editor can update its controls.
     virtual bool expand_view_limits(const std::vector<double>&) { return false; }
     virtual const char* x_view_limit_message() const { return nullptr; }
-    // Equal bounds lock an axis. Inverted bounds mean no move is possible in this viewport.
+    // Equal bounds lock an axis. Inverted bounds mean that axis cannot move in this viewport.
     virtual CurveView drag_bounds(int row, const std::vector<double>& x, const std::vector<double>& y,
                                   const CurveView& view) const = 0;
     virtual Rows default_rows() const = 0;
