@@ -38584,9 +38584,10 @@ msgid "Reset to defaults"
 msgstr "Varsayılanlar"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Tablo satırı %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Tablo satırı %d: %s"
 
 # AI Translated
 msgid ""
@@ -38643,6 +38644,11 @@ msgstr "Son akış düzeltme katsayısı 1 olmalı."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Model boş. Akış telafisi uygulanmayacak."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Akış telafisi modeli: %s"
 
 msgid "Import CSV"
 msgstr "CSV içe aktar"
@@ -38707,4 +38713,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Orta fare düğmesi: iki ekseni sürükleyin."
-

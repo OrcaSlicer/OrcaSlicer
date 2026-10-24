@@ -40925,9 +40925,10 @@ msgid "Reset to defaults"
 msgstr "Standardpunkter"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Tabellrad %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Tabellrad %d: %s"
 
 # AI Translated
 msgid ""
@@ -40984,6 +40985,11 @@ msgstr "Sista flödeskorr. faktorn måste vara 1."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modellen är tom. Ingen flödeskompensation används."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Modell för flödeskompensation: %s"
 
 msgid "Import CSV"
 msgstr "CSV-import"
@@ -41048,4 +41054,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Mittknapp: dra för att flytta båda axlarna."
-

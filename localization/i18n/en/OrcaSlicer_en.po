@@ -32312,8 +32312,9 @@ msgstr ""
 msgid "Reset to defaults"
 msgstr ""
 
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
 msgstr ""
 
 msgid ""
@@ -32355,6 +32356,11 @@ msgid "The last flow correction factor must be 1."
 msgstr ""
 
 msgid "The model is empty. No flow compensation will be applied."
+msgstr ""
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
 msgstr ""
 
 msgid "Import CSV"
@@ -32405,4 +32411,3 @@ msgstr ""
 
 msgid "Middle mouse button: drag to pan both axes."
 msgstr ""
-

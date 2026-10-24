@@ -32239,8 +32239,9 @@ msgstr ""
 msgid "Reset to defaults"
 msgstr ""
 
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
 #, possible-c-format, possible-boost-format
-msgid "Table row %d: "
+msgid "Table row %d: %s"
 msgstr ""
 
 msgid ""
@@ -32282,6 +32283,11 @@ msgid "The last flow correction factor must be 1."
 msgstr ""
 
 msgid "The model is empty. No flow compensation will be applied."
+msgstr ""
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, possible-c-format, possible-boost-format
+msgid "Flow Compensation Model: %s"
 msgstr ""
 
 msgid "Import CSV"

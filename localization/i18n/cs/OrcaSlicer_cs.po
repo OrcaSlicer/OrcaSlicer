@@ -38947,9 +38947,10 @@ msgid "Reset to defaults"
 msgstr "Výchozí body"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Řádek tabulky %d: "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Řádek tabulky %d: %s"
 
 # AI Translated
 msgid ""
@@ -39006,6 +39007,11 @@ msgstr "Poslední faktor korekce průtoku má být 1."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Model je prázdný. Průtok se nebude kompenzovat."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Model kompenzace průtoku: %s"
 
 msgid "Import CSV"
 msgstr "Načíst CSV"
@@ -39070,4 +39076,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Prostřední tlačítko: tažením posuňte osy."
-

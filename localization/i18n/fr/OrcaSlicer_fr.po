@@ -37706,9 +37706,10 @@ msgid "Reset to defaults"
 msgstr "Points par défaut"
 
 # AI Translated
-#, possible-c-format, possible-boost-format
-msgid "Table row %d: "
-msgstr "Ligne du tableau %d : "
+#. TRN %d is a one-based table row number, %s is the validation message for that row.
+#, c-format, boost-format
+msgid "Table row %d: %s"
+msgstr "Ligne du tableau %d : %s"
 
 # AI Translated
 msgid ""
@@ -37765,6 +37766,11 @@ msgstr "Dernier coeff. corr. du débit : 1 requis."
 # AI Translated
 msgid "The model is empty. No flow compensation will be applied."
 msgstr "Modèle vide. Aucune compensation de débit."
+
+#. TRN %s is the reason the small area flow compensation model is invalid.
+#, c-format, boost-format
+msgid "Flow Compensation Model: %s"
+msgstr "Modèle de compensation de débit : %s"
 
 msgid "Import CSV"
 msgstr "Importer CSV"
@@ -37829,4 +37835,3 @@ msgstr ""
 # AI Translated
 msgid "Middle mouse button: drag to pan both axes."
 msgstr "Bouton du milieu : glissez sur les 2 axes."
-

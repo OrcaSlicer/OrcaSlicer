@@ -65,6 +65,7 @@ private:
     void layout_content();
     void layout_actions();
     void update_grid_metrics();
+    void update_grid_colours();
 
     CurveEditorAppearance m_appearance;
     std::unique_ptr<CurveModel> m_model;
