@@ -2695,6 +2695,10 @@ int MachineObject::connect()
 
     // This strips out the http/https prefix
     std::string host = Http::get_host_from_url(input, &port);
+    // Orca: a print host's dev_id is its host:port. Records saved by older builds can hold the
+    // bare IP as dev_ip, so take the port from the dev_id rather than falling back to port 80.
+    if (port.empty() && printer_agent_id == MOONRAKER_PRINTER_AGENT_ID)
+        Http::get_host_from_url(get_dev_id(), &port);
     std::string ca_file;
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {

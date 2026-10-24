@@ -1584,10 +1584,16 @@ void MoonrakerPrinterAgent::announce_printhost_device()
 
     const std::string model_id = device_info.model_id;
 
+    // Announce the address with its port. The saved device record takes its dev_ip from here
+    // and the next connection reads the port back from it; a bare IP would mean port 80.
+    std::string address = device_info.base_url;
+    if (const auto scheme_end = address.find("://"); scheme_end != std::string::npos)
+        address = address.substr(scheme_end + 3);
+
     nlohmann::json payload;
     payload["dev_name"]     = dev_name;
     payload["dev_id"]       = device_info.dev_id;
-    payload["dev_ip"]       = device_info.dev_ip;
+    payload["dev_ip"]       = address;
     payload["dev_type"]     = model_id.empty() ? dev_name : model_id;
     payload["dev_signal"]   = "0";
     payload["connect_type"] = "lan";
