@@ -8,6 +8,7 @@
 #include "catch2/catch_approx.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
 #include "test_utils.hpp"
@@ -19,6 +20,7 @@
 
 #include <boost/nowide/fstream.hpp>
 #include "libslic3r/Config.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
@@ -1931,6 +1933,109 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
 
     edited.apply_only(saved, {"filament_ids#0"});
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
+}
+
+TEST_CASE("normalize_plate_filament_map preserves empty-means-global-fallback semantics", "[Config]") {
+    std::vector<int> values;
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values.empty());
+}
+
+TEST_CASE("normalize_plate_filament_map pads a short map with 1", "[Config]") {
+    std::vector<int> values = {2, 1};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{2, 1, 1, 1});
+}
+
+TEST_CASE("normalize_plate_filament_map clamps out-of-range entries into [1, nozzle_count]", "[Config]") {
+    // Per-plate maps are bounded by the project's own nozzle count.
+    std::vector<int> values = {2, 0, -5, 99};
+    normalize_plate_filament_map(values, 4, 1);
+    REQUIRE(values == std::vector<int>{1, 1, 1, 1});
+}
+
+TEST_CASE("normalize_plate_filament_map leaves a well-formed map unchanged", "[Config]") {
+    // BBL dual-nozzle no-op case: already the right length, already in range.
+    std::vector<int> values = {1, 2, 1, 2};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{1, 2, 1, 2});
+}
+
+TEST_CASE("normalize_plate_filament_map never truncates a longer map", "[Config]") {
+    std::vector<int> values = {1, 2, 1, 2, 1};
+    normalize_plate_filament_map(values, 4, 2);
+    REQUIRE(values == std::vector<int>{1, 2, 1, 2, 1});
+}
+
+TEST_CASE("Preset::normalize keeps per-filament options at filament count when filaments exceed extruders", "[Config]") {
+    // Extruder options follow nozzle_diameter, per-filament options the filament count: a lost 5th
+    // filament_settings_id would surface as a "(project)" embedded preset on load.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("enable_filament_mapping", new ConfigOptionBool(true));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+    config.set_key_value("filament_diameter", new ConfigOptionFloats({1.75, 1.75, 1.75, 1.75, 1.75}));
+    config.set_key_value("filament_settings_id",
+                         new ConfigOptionStrings({"F1", "F2", "F3", "F4", "F5"}));
+    config.set_key_value("filament_type",
+                         new ConfigOptionStrings({"PLA", "PLA", "PLA", "PLA", "PLA"}));
+
+    Preset::normalize(config);
+
+    const auto& ids = config.option<ConfigOptionStrings>("filament_settings_id")->values;
+    REQUIRE(ids.size() == 5);
+    CHECK(ids[4] == "F5");
+    REQUIRE(config.option<ConfigOptionStrings>("filament_type")->values.size() == 5);
+}
+
+TEST_CASE("Preset::normalize sizes per-filament options by the extruder count when the printer resolves no mapping", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+    config.set_key_value("filament_diameter", new ConfigOptionFloats({1.75, 1.75, 1.75, 1.75, 1.75}));
+    config.set_key_value("filament_type", new ConfigOptionStrings({"PLA", "PLA", "PLA", "PLA", "PLA"}));
+    REQUIRE_FALSE(device_resolves_filament_mapping(config));
+
+    Preset::normalize(config);
+
+    CHECK(config.option<ConfigOptionStrings>("filament_type")->values.size() == 4);
+}
+
+TEST_CASE("enable_filament_mapping defaults to off and is a printer option", "[Config]") {
+    // Decoupling the project's filament count from the printer's tool count is an explicit
+    // opt-in: by default a multi-tool printer keeps one filament per tool.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    REQUIRE_FALSE(config.opt_bool("enable_filament_mapping"));
+    const auto& printer_opts = Preset::printer_options();
+    CHECK(std::find(printer_opts.begin(), printer_opts.end(), "enable_filament_mapping") != printer_opts.end());
+}
+
+TEST_CASE("Device-resolved mapping needs the flag, two tools and no SEMM", "[Config]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    REQUIRE_FALSE(device_resolves_filament_mapping(config));   // flag off
+
+    config.set_deserialize_strict({{"enable_filament_mapping", "1"}});
+    REQUIRE(device_resolves_filament_mapping(config));
+
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+    CHECK_FALSE(device_resolves_filament_mapping(config));     // single tool
+
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+    CHECK_FALSE(device_resolves_filament_mapping(config));     // SEMM
+}
+
+TEST_CASE("A native mapping protocol resolves the mapping without the flag", "[Config]") {
+    // A protocol printer already routes logical tools itself, so the printer-agnostic opt-in
+    // is redundant there (the Printer Settings line is hidden for exactly this reason).
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4, 0.4}));
+    config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    config.set_deserialize_strict({{"filament_mapping_protocol", "snapmaker"}});
+    REQUIRE_FALSE(config.opt_bool("enable_filament_mapping"));
+    CHECK(device_resolves_filament_mapping(config));
 }
 
 TEST_CASE("A printer has viewable filaments with one per nozzle or a reported changer", "[Config]") {
