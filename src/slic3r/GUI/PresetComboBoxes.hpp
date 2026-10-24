@@ -256,6 +256,30 @@ public:
 };
 
 // ---------------------------------
+// ***  PhysicalFilamentComboBox  ***
+// ---------------------------------
+
+// Filament preset picker rendered like the sidebar's; selection never touches the project's
+// filament_presets.
+class PhysicalFilamentComboBox : public PresetComboBox
+{
+public:
+    PhysicalFilamentComboBox(wxWindow* parent);
+
+    void update() override;
+    // "" clears the selection.
+    void select_preset(const std::string& name);
+    const Preset* get_selected_preset() const;
+
+    // User picks only, not programmatic selection.
+    std::function<void()> on_preset_picked;
+
+private:
+    std::map<int, std::string> m_item_presets; // item index -> preset name
+    std::string                m_wanted;       // "" = none
+};
+
+// ---------------------------------
 // ***  CalibrateFilamentComboBox  ***
 // ---------------------------------
 

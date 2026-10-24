@@ -299,6 +299,11 @@
 #include "../Utils/OrcaCloudServiceAgent.hpp"
 #include "StepMeshDialog.hpp"
 #include "FilamentMapDialog.hpp"
+#include "FilamentInventoryEditor.hpp"
+#include "ActivePrinterSession.hpp"
+#include "FilamentInventoryStore.hpp"
+#include "libslic3r/FilamentInventory.hpp"
+#include "DeviceManager.hpp"
 #include "CloneDialog.hpp"
 #include "PurgeModeDialog.hpp"
 
@@ -977,6 +982,8 @@ struct Sidebar::priv
     ScalableButton* m_printer_connect = nullptr;
     ScalableButton* m_printer_bbl_sync = nullptr;
     ScalableButton* m_printer_setting = nullptr;
+    // Orca: opens FilamentInventoryEditor; visibility set in Sidebar::show_SEMM_buttons.
+    ScalableButton* m_printer_inventory = nullptr;
     wxStaticText *  m_text_printer_settings = nullptr;
     wxPanel* m_panel_printer_content = nullptr;
     // Filament Track Switch status overlay: an icon floated over the left/single extruder AMS area,
@@ -2771,6 +2778,8 @@ void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
      }
  }
 
+template<typename T> void setup_dialog_position(T& info);
+
 Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
 {
@@ -2857,6 +2866,30 @@ Sidebar::Sidebar(Plater *parent)
             wxGetApp().run_wizard(RunReason::RR_USER, StartPage::SP_PRINTERS);
             });
 
+        p->m_printer_inventory = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "menu_filament");
+        p->m_printer_inventory->SetToolTip(_L("Printer Material Settings"));
+        p->m_printer_inventory->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+            // Defer the modal: otherwise the button's LEFT_UP can be re-delivered to the title panel
+            // when the modal loop exits, collapsing the printer section.
+            CallAfter([this]() {
+                const Preset  &printer_preset = active_printer_session().profile();
+                FilamentInventoryEditor dlg(this, printer_preset.name, addressable_tool_count_of(printer_preset));
+                // Restore the saved position, else place beside the printer section. Size always refits,
+                // since it depends on the tool count.
+                if (wxGetApp().window_pos_restore(&dlg, "filament_inventory_editor")) {
+                    dlg.Fit();
+                } else {
+                    struct { wxPoint dialog_pos; bool dialog_pos_align_right = true; } at;
+                    setup_dialog_position(at);
+                    const int x = at.dialog_pos_align_right ? at.dialog_pos.x : at.dialog_pos.x - dlg.GetSize().x;
+                    dlg.SetPosition(wxPoint(x, p->m_panel_printer_title->GetScreenPosition().y));
+                }
+                wxGetApp().window_pos_sanitize(&dlg);
+                dlg.ShowModal();
+                wxGetApp().window_pos_save(&dlg, "filament_inventory_editor");
+            });
+        });
+
         wxBoxSizer* h_sizer_title = new wxBoxSizer(wxHORIZONTAL);
         h_sizer_title->Add(p->m_printer_icon, 0, wxALIGN_CENTRE | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
@@ -2864,6 +2897,7 @@ Sidebar::Sidebar(Plater *parent)
         //h_sizer_title->AddStretchSpacer();
         h_sizer_title->Add(p->m_printer_connect , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_bbl_sync, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
+        h_sizer_title->Add(p->m_printer_inventory, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_setting, 0, wxALIGN_CENTER);
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->SetMinSize(-1, 3 * em);
@@ -6350,6 +6384,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected()) {
         return;
     }
+    // Orca: a changer this sync reported can show the Printer Material Settings button.
+    if (obj == active_printer_session().live_machine())
+        show_SEMM_buttons();
     std::string ams_filament_ids = wxGetApp().app_config->get("ams_filament_ids", p->ams_list_device);
     std::vector<std::string> list2;
     if (!ams_filament_ids.empty()) {
@@ -6580,9 +6617,35 @@ bool Sidebar::should_show_SEMM_buttons()
     return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
 }
 
+// Orca: the changer the live printer reports, else the one recorded by an earlier sync.
+static std::string reported_changer_dialect()
+{
+    const ActivePrinterSession& session = active_printer_session();
+    if (MachineObject* machine = session.live_machine())
+        if (std::shared_ptr<DevFilaSystem> fila_system = machine->GetFilaSystem(); fila_system && !fila_system->GetChangerDialect().empty())
+            return fila_system->GetChangerDialect();
+    const FilamentInventories store = load_filament_inventories();
+    const auto                it    = store.by_preset.find(session.profile().name);
+    return it != store.by_preset.end() ? it->second.dialect : std::string();
+}
+
+// Orca: needs a configured connection to read the printer's filaments; not gated on host_type since
+// the agent layer picks its own transport. BBL printers have their own AMS sync.
+static bool show_printer_materials_button()
+{
+    const ActivePrinterSession& session = active_printer_session();
+    if (!session.connection().configured())
+        return false;
+    const DynamicPrintConfig& cfg = session.profile().config;
+    return !wxGetApp().preset_bundle->is_bbl_vendor() && printer_has_viewable_filaments(cfg, reported_changer_dialect());
+}
+
 void Sidebar::show_SEMM_buttons()
 {
     // ORCA
+    if (p && p->m_printer_inventory)
+        p->m_printer_inventory->Show(show_printer_materials_button());
+
     if (!p || p->combos_filament.empty() || !p->m_bpButton_add_filament || !p->m_bpButton_del_filament || !p->m_flushing_volume_btn)
         return;
     
