@@ -99,6 +99,8 @@ Use a disposable print preset. Keep any fixture project separate from normal use
 1. Open the editor with default, empty and invalid point data. Check that the description,
    axis labels and single-line table headers are readable in light/dark themes and at
    different DPI/font sizes. Test a locale with longer labels.
+   Switch the system appearance while the editor is open: table cells, headers, grid
+   lines and the selected row must follow the new theme without reopening the dialog.
    On Windows, move the open dialog between monitors at 100%, 150% and 200% scaling,
    then move it back, with table/range shown and hidden. Check fonts, icons, compact
    buttons, range fields/arrows, row heights, headers and footer alignment. Draft values,
