@@ -402,6 +402,8 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
         {
             if (jj["ams"].contains("changer_dialect") && jj["ams"]["changer_dialect"].is_string())
                 system->m_changer_dialect = jj["ams"]["changer_dialect"].get<std::string>();
+            if (jj["ams"].contains("device_tool_count") && jj["ams"]["device_tool_count"].is_number_integer())
+                system->m_device_tool_count = jj["ams"]["device_tool_count"].get<int>();
             if (jj["ams"].contains("ams_exist_bits"))
             {
                 obj->ams_exist_bits = stol(jj["ams"]["ams_exist_bits"].get<std::string>(), nullptr, 16);

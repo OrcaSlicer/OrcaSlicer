@@ -58,6 +58,22 @@ TEST_CASE("Every changer dialect but none supports a push", "[MoonrakerFilamentD
     CHECK(dialect_name(Dialect::afc_lane_data) == "afc");
 }
 
+// The U1 lists T4..T31 but not T0..T3, so the count is the highest index, not the entry count.
+TEST_CASE("The tool count is the highest registered T command plus one", "[MoonrakerFilamentDialect]")
+{
+    nlohmann::json help = nlohmann::json::object();
+    help["T4"]               = "G-code macro";
+    help["T31"]              = "G-code macro";
+    help["TEMPERATURE_WAIT"] = "Wait for a temperature";
+    help["T1_ALIAS"]         = "";
+    CHECK(tool_count_from_gcode_help(help) == 32);
+    CHECK(tool_count_from_gcode_help(nlohmann::json::object()) == 0);
+    CHECK(tool_count_from_gcode_help(nlohmann::json::array()) == 0);
+    help.clear();
+    help["T0"] = "Virtual tool T0";
+    CHECK(tool_count_from_gcode_help(help) == 1);
+}
+
 TEST_CASE("Lane topology is read from the lane's own record", "[MoonrakerFilamentDialect]")
 {
     CHECK(extruder_index_from_name("extruder") == 0);
