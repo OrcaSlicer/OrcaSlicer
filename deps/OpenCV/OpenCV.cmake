@@ -17,6 +17,13 @@ if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     set(_disable_carotene "-DWITH_CAROTENE=OFF")
 endif ()
 
+# clang-cl parses template bodies at the end of each file. In softfloat.cpp that
+# is after OpenCV's own float32_t, which then hides the NEON one in arm_neon.h.
+set(_clang_cl_flags "")
+if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(_clang_cl_flags "-DOPENCV_EXTRA_CXX_FLAGS=-fno-delayed-template-parsing")
+endif ()
+
 orcaslicer_add_cmake_project(OpenCV
     ${_options}
     URL https://github.com/opencv/opencv/archive/refs/tags/4.14.0.tar.gz
@@ -94,5 +101,6 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_WIN32UI=OFF
        -DHAVE_WIN32UI=FALSE
        ${_disable_carotene}
+       ${_clang_cl_flags}
 )
 
