@@ -291,6 +291,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/FilamentMapDialog.hpp
     GUI/ActivePrinterSession.cpp
     GUI/ActivePrinterSession.hpp
+    GUI/FilamentInventoryStore.cpp
+    GUI/FilamentInventoryStore.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
     GUI/IMEXFilamentPickerPopover.cpp
