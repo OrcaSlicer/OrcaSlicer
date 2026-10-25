@@ -118,7 +118,10 @@ public:
     // Shows/hides the native OrcaCloud pane beside this homepage nav column. `url` is the
     // cloud Start URL ({web}/auth/handoff?next=…&user_id=…), which the page uses to decide
     // whether it already has a session; empty falls back to the plain cloud page.
-    void set_cloud_mode(bool on, const wxString& url = wxString());
+    // `page_url` is a full {web} page URL: an already-open pane is navigated straight there,
+    // without re-running the handoff, which is what an explicit "open this page" wants. Empty
+    // keeps whatever page the pane holds.
+    void set_cloud_mode(bool on, const wxString& url = wxString(), const wxString& page_url = wxString());
 
     // True while the OrcaCloud pane exists and is visible.
     bool cloud_mode_active() const { return m_cloud_browser && m_cloud_browser->IsShown(); }

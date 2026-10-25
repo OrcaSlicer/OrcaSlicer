@@ -587,8 +587,23 @@ void CalibrationPresetPage::on_sys_color_changed()
     m_ams_sync_button->msw_rescale();
 }
 
-int CalibrationPresetPage::get_extruder_id(int ams_id)
+int CalibrationPresetPage::get_extruder_id_by_tray_id(int tray_id)
 {
+    // An AMS behind a Filament Track Switch feeds both extruders, so the extruder is the one
+    // whose panel the filament was selected in.
+    if (curr_obj && curr_obj->is_multi_extruders()) {
+        for (FilamentComboBox *fcb : get_selected_filament_combobox()) {
+            if (fcb->get_tray_id() != tray_id)
+                continue;
+            const bool is_deputy = std::find(m_deputy_filament_comboBox_list.begin(), m_deputy_filament_comboBox_list.end(), fcb) !=
+                                   m_deputy_filament_comboBox_list.end();
+            return is_deputy ? DEPUTY_EXTRUDER_ID : MAIN_EXTRUDER_ID;
+        }
+    }
+
+    int ams_id = tray_id / 4, slot_id, unused_tray_id;
+    if (curr_obj)
+        get_tray_ams_and_slot_id(curr_obj, tray_id, ams_id, slot_id, unused_tray_id);
     if (m_ams_id_to_extruder_id_map.find(ams_id) != m_ams_id_to_extruder_id_map.end()) {
         return m_ams_id_to_extruder_id_map[ams_id];
     }
@@ -864,6 +879,18 @@ static void fill_nozzle_volume_combo(ComboBox *combo)
                           (void *) (intptr_t) nozzle_volume_type_def->enum_keys_map->at(nozzle_volume_type_def->enum_values[i]));
     }
     select_nozzle_volume(combo, NozzleVolumeType::nvtStandard);
+}
+
+static DynamicPrintConfig empty_tray_config()
+{
+    DynamicPrintConfig config;
+    config.set_key_value("filament_id", new ConfigOptionStrings{""});
+    config.set_key_value("tag_uid", new ConfigOptionStrings{""});
+    config.set_key_value("filament_type", new ConfigOptionStrings{""});
+    config.set_key_value("tray_name", new ConfigOptionStrings{""});
+    config.set_key_value("filament_colour", new ConfigOptionStrings{""});
+    config.set_key_value("filament_exist", new ConfigOptionBools{false});
+    return config;
 }
 
 void CalibrationPresetPage::init_selection_values()
@@ -2272,27 +2299,36 @@ void CalibrationPresetPage::sync_ams_info(MachineObject* obj)
         }
     }
 
-    // init virtual tray info
-    if (full_filament_ams_list.find(VIRTUAL_TRAY_MAIN_ID) != full_filament_ams_list.end()) {
-        filament_ams_list[VIRTUAL_TRAY_MAIN_ID] = full_filament_ams_list[VIRTUAL_TRAY_MAIN_ID];
-    }
+    // init virtual tray info. With a Filament Track Switch installed the external spools feed
+    // through the switch, so they can't be calibrated as their own trays.
+    if (obj->GetFilaSwitch()->IsInstalled()) {
+        filament_ams_list[VIRTUAL_TRAY_MAIN_ID]   = empty_tray_config();
+        filament_ams_list[VIRTUAL_TRAY_DEPUTY_ID] = empty_tray_config();
+    } else {
+        if (full_filament_ams_list.find(VIRTUAL_TRAY_MAIN_ID) != full_filament_ams_list.end()) {
+            filament_ams_list[VIRTUAL_TRAY_MAIN_ID] = full_filament_ams_list[VIRTUAL_TRAY_MAIN_ID];
+        }
 
-    if (full_filament_ams_list.find(VIRTUAL_TRAY_DEPUTY_ID) != full_filament_ams_list.end()) {
-        filament_ams_list[VIRTUAL_TRAY_DEPUTY_ID] = full_filament_ams_list[VIRTUAL_TRAY_DEPUTY_ID];
+        if (full_filament_ams_list.find(VIRTUAL_TRAY_DEPUTY_ID) != full_filament_ams_list.end()) {
+            filament_ams_list[VIRTUAL_TRAY_DEPUTY_ID] = full_filament_ams_list[VIRTUAL_TRAY_DEPUTY_ID];
+        }
     }
 
     // update filament from panel, display only obj has ams
     // update multi ams panel, display only obj has multi ams
     if (obj->HasAms()) {
         if (obj->is_multi_extruders()) {
+            // An AMS behind a Filament Track Switch is bound to both extruders and appears in both panels.
             bool main_done   = false;
             bool deputy_done = false;
             for (auto &ams_item : obj->GetFilaSystem()->GetAmsList()) {
-                if (ams_item.second->GetExtruderId() == 0 && !main_done) {
-                    update_multi_extruder_filament_combobox(ams_item.second->GetAmsId(), ams_item.second->GetExtruderId());
+                const auto &extruder_set = ams_item.second->GetBindedExtruderSet();
+                if (!main_done && extruder_set.count(MAIN_EXTRUDER_ID) != 0) {
+                    update_multi_extruder_filament_combobox(ams_item.second->GetAmsId(), MAIN_EXTRUDER_ID);
                     main_done = true;
-                } else if (ams_item.second->GetExtruderId() == 1 && !deputy_done) {
-                    update_multi_extruder_filament_combobox(ams_item.second->GetAmsId(), ams_item.second->GetExtruderId());
+                }
+                if (!deputy_done && extruder_set.count(DEPUTY_EXTRUDER_ID) != 0) {
+                    update_multi_extruder_filament_combobox(ams_item.second->GetAmsId(), DEPUTY_EXTRUDER_ID);
                     deputy_done = true;
                 }
             }
@@ -2333,10 +2369,11 @@ void CalibrationPresetPage::sync_ams_info(MachineObject* obj)
         if (ams->second->IsExist()
             && info.parse_ams_info(obj, ams->second, obj->GetFilaSystem()->IsDetectRemainEnabled(), obj->is_support_ams_humidity)) {
             ams_info.push_back(info);
-            if (info.nozzle_id == 0) {
-                main_ams_info.push_back(info);
-            } else {
-                deputy_ams_info.push_back(info);
+            for (int extruder_id : ams->second->GetBindedExtruderSet()) {
+                if (extruder_id == MAIN_EXTRUDER_ID)
+                    main_ams_info.push_back(info);
+                else
+                    deputy_ams_info.push_back(info);
             }
         }
         m_ams_id_to_extruder_id_map[stoi(info.ams_id)] = info.nozzle_id;
@@ -2584,13 +2621,7 @@ void CalibrationPresetPage::update_multi_extruder_filament_combobox(const std::s
         }
     }
 
-    DynamicPrintConfig empty_config;
-    empty_config.set_key_value("filament_id", new ConfigOptionStrings{""});
-    empty_config.set_key_value("tag_uid", new ConfigOptionStrings{""});
-    empty_config.set_key_value("filament_type", new ConfigOptionStrings{""});
-    empty_config.set_key_value("tray_name", new ConfigOptionStrings{""});
-    empty_config.set_key_value("filament_colour", new ConfigOptionStrings{""});
-    empty_config.set_key_value("filament_exist", new ConfigOptionBools{false});
+    DynamicPrintConfig empty_config = empty_tray_config();
 
     if (filament_ams_list.empty()) return;
 

@@ -529,6 +529,7 @@ std::string PluginConfig::capability_type_label(PluginCapabilityType type)
     case PluginCapabilityType::Visualization: return _u8L("Visualization");
     case PluginCapabilityType::Script: return _u8L("Script");
     case PluginCapabilityType::SlicingPipeline: return _u8L("Slicing Pipeline");
+    case PluginCapabilityType::ResourceTexture: return _u8L("Resource Texture");
     default: return _u8L("Unknown");
     }
 }

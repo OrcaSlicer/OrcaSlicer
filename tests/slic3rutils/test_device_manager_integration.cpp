@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
@@ -16,6 +17,7 @@
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace Slic3r;
 using json = nlohmann::json;
@@ -48,6 +50,21 @@ public:
     }
 
     AgentInfo get_agent_info() override { return m_info; }
+
+    int send_message(std::string dev_id, std::string json_str, int, int) override
+    {
+        published_device = std::move(dev_id);
+        published_message = json::parse(json_str);
+        return 0;
+    }
+
+    int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override
+    {
+        return send_message(std::move(dev_id), std::move(json_str), qos, flag);
+    }
+
+    std::string published_device;
+    json published_message;
 
 private:
     AgentInfo m_info;
@@ -159,4 +176,63 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(object->printer_agent_id == "integration-agent-b");
     CHECK(manager.get_my_machine_list("integration-agent-a").empty());
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
+}
+
+TEST_CASE("AMS filament settings keep legacy single-color commands compatible", "[DeviceManager][AMSMaterialsSetting][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+    MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
+    object.dev_connection_type = GENERATE("lan", "cloud");
+
+    REQUIRE(object.command_ams_filament_settings(1, 2, "filament-id", "setting-id", "FF000080", "PLA", 190, 220) == 0);
+
+    const json& payload = agent->published_message.at("print");
+    CHECK(agent->published_device == object.get_dev_id());
+    CHECK(payload.at("command") == "ams_filament_setting");
+    CHECK(payload.at("ams_id") == 1);
+    CHECK(payload.at("slot_id") == 2);
+    CHECK(payload.at("tray_color") == "FF000080");
+    CHECK_FALSE(payload.contains("cols"));
+    CHECK_FALSE(payload.contains("ctype"));
+}
+
+TEST_CASE("AMS filament settings preserve ordered gradient and multicolor RGBA components", "[DeviceManager][AMSMaterialsSetting][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+    MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
+    object.dev_connection_type = GENERATE("lan", "cloud");
+    const int color_type = GENERATE(0, 1);
+    const std::vector<std::string> colors{"FF000080", "0000FF40", "00FF00FF"};
+
+    REQUIRE(object.command_ams_filament_settings(1, 2, "filament-id", "setting-id", colors.front(), "PLA", 190, 220,
+                                                 colors, color_type) == 0);
+
+    const json& payload = agent->published_message.at("print");
+    CHECK(payload.at("tray_color") == colors.front());
+    CHECK(payload.at("cols").get<std::vector<std::string>>() == colors);
+    CHECK(payload.at("ctype") == color_type);
+}
+
+TEST_CASE("AMS filament settings default a supplied single-color list to type two", "[DeviceManager][AMSMaterialsSetting][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+    MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
+    object.dev_connection_type = GENERATE("lan", "cloud");
+    const std::vector<std::string> colors{"FF000080"};
+
+    REQUIRE(object.command_ams_filament_settings(1, 2, "filament-id", "setting-id", colors.front(), "PLA", 190, 220,
+                                                 colors) == 0);
+
+    const json& payload = agent->published_message.at("print");
+    CHECK(payload.at("cols").get<std::vector<std::string>>() == colors);
+    CHECK(payload.at("ctype") == 2);
 }

@@ -71,6 +71,7 @@
 #if !defined(_WIN32)
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/file.h>
 #include <cerrno>
 #endif
 
@@ -145,10 +146,9 @@ public:
 #else
         m_fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
         if (m_fd == -1) { m_locked = true; return; }              // can't open -> don't block
-        struct flock fl{};
-        fl.l_type = F_WRLCK; fl.l_whence = SEEK_SET; fl.l_start = 0; fl.l_len = 0;
         int rc;
-        do { rc = ::fcntl(m_fd, F_SETLKW, &fl); } while (rc == -1 && errno == EINTR); // blocks in kernel
+        // An fcntl lock would not block other threads in this process, and any close() of this file would release it.
+        do { rc = ::flock(m_fd, LOCK_EX); } while (rc == -1 && errno == EINTR); // blocks in kernel
         m_locked = (rc != -1);
 #endif
     }
@@ -1917,13 +1917,20 @@ RefreshResult OrcaCloudServiceAgent::refresh_from_storage(const std::string& rea
 
 bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const std::string& reason)
 {
-    bool needs_refresh = false;
-    {
+    const auto needs_refresh = [&] {
         std::lock_guard<std::mutex> lock(session_mutex);
-        needs_refresh = should_refresh_locked(skew);
-    }
+        return should_refresh_locked(skew);
+    };
+    if (!needs_refresh())
+        return true;
 
-    if (!needs_refresh)
+    // A refresh may already be running on another thread, e.g. the one start() launches. Wait for
+    // it and check again instead of spending the refresh token it is rotating. Bounded: the
+    // refresh POST times out after 30 s.
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+    while (refresh_running.load() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    if (!needs_refresh())
         return true;
 
     // First attempt. refresh_from_storage blocks on the cross-process lock and reads the
@@ -1935,6 +1942,8 @@ bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const
     // One retry, only for a transient network failure of the refresh POST (lost response,
     // timeout, 429/5xx -> Transient). The retry re-acquires the lock and re-reads the store.
     std::this_thread::sleep_for(std::chrono::milliseconds(750));
+    if (!needs_refresh())
+        return true;
     return refresh_from_storage(reason + "_retry", false) == RefreshResult::Success;
 }
 

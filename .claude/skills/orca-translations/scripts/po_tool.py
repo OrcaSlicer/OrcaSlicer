@@ -28,13 +28,14 @@ import sys
 import tempfile
 import time
 import unicodedata
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
 I18N = REPO / "localization" / "i18n"
 SKIP_LANGS = {"en"}  # the English catalog is intentionally empty
-GLOSSARY_TSV = Path("developer_reference") / "localization_glossary.tsv"
+GLOSSARY_DIR = Path("developer_reference") / "glossary"  # terms.tsv, languages.txt and one <lang>.tsv per language
 GLOSSARY_MD = Path("developer_reference") / "localization_glossary.md"
 MISSING = {"", "—"}
 RAW_URL = "https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer_WIKI/main/"
@@ -176,6 +177,11 @@ class Entry:
         while pos < len(lines) and (lines[pos] == "#" or lines[pos].startswith("# ")):
             pos += 1
         add = []
+        if not ai:  # a person's words: drop a stale AI mark
+            lines = [l for l in lines if l != "# " + AI_TAG]
+            pos = 0
+            while pos < len(lines) and (lines[pos] == "#" or lines[pos].startswith("# ")):
+                pos += 1
         if review is not None:  # "" clears an earlier note, a reason replaces it
             lines = [l for l in lines if not l.startswith("# " + REVIEW_TAG)]
             pos = 0
@@ -252,30 +258,40 @@ def all_langs():
 
 def find_wiki(arg):
     for cand in [arg, os.environ.get("ORCA_WIKI_DIR"), REPO.parent / "OrcaSlicer_WIKI", REPO.parent / "OrcaSlicer.wiki"]:
-        if cand and (Path(cand) / GLOSSARY_TSV).exists():
+        if cand and (Path(cand) / GLOSSARY_DIR / "terms.tsv").exists():
             return Path(cand)
     return None
 
 
-def _download(rel):
-    cache = Path(tempfile.gettempdir()) / ("orca_glossary_" + rel.name)
+def _download(rel, required=True):
+    cache = Path(tempfile.gettempdir()) / "orca_glossary" / rel
     if not cache.exists() or time.time() - cache.stat().st_mtime > 3600:
-        with urllib.request.urlopen(RAW_URL + rel.as_posix(), timeout=30) as r:
-            cache.write_bytes(r.read())
+        try:
+            with urllib.request.urlopen(RAW_URL + rel.as_posix(), timeout=30) as r:
+                data = r.read()
+        except urllib.error.HTTPError:
+            if required:
+                raise
+            return None
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_bytes(data)
     return cache
 
 
 class Glossary:
-    def __init__(self, wiki_arg=None, quiet=False):
+    """The glossary: rows of [English, Description, <one translation per language loaded>]."""
+
+    def __init__(self, wiki_arg=None, quiet=False, langs=None):
         self.wiki = find_wiki(wiki_arg)
+        self.langs = langs  # only these languages' files are read (and downloaded); None means all
         if self.wiki:
-            self.tsv, self.md = self.wiki / GLOSSARY_TSV, self.wiki / GLOSSARY_MD
+            self.dir, self.md = self.wiki / GLOSSARY_DIR, self.wiki / GLOSSARY_MD
             if not quiet:
                 self.report_clone_state()
         else:
             if not quiet:
                 print("note: no OrcaSlicer_WIKI clone found; using the published glossary read-only", file=sys.stderr)
-            self.tsv, self.md = _download(GLOSSARY_TSV), _download(GLOSSARY_MD)
+            self.dir, self.md = _download(GLOSSARY_DIR / "terms.tsv").parent, _download(GLOSSARY_MD)
         self.load()
 
     def report_clone_state(self):
@@ -290,11 +306,23 @@ class Glossary:
         if behind and behind != "0":
             print(f"note: the wiki clone is {behind} commits behind origin/main (as of its last fetch)", file=sys.stderr)
 
+    def _read(self, name, required=True):
+        path = self.dir / name if self.wiki else _download(GLOSSARY_DIR / name, required)
+        return path.read_text(encoding="utf-8-sig").splitlines() if path and path.exists() else None
+
     def load(self):
-        rows = [l.split("\t") for l in self.tsv.read_text(encoding="utf-8-sig").splitlines() if l.strip()]
-        self.header = rows[0]
-        # "—" marks a language with no established rendering yet
-        self.rows = [[c if c.strip() not in MISSING else "" for c in r] + [""] * (len(rows[0]) - len(r)) for r in rows[1:]]
+        terms = [l.split("	") for l in self._read("terms.tsv")[1:] if l.strip()]
+        langs = [l.strip() for l in self._read("languages.txt") if l.strip()]
+        langs = [l for l in langs if self.langs is None or l in self.langs]
+        self.header = ["English", "Description"] + langs
+        self.rows = [[r[0], r[1] if len(r) > 1 else ""] + [""] * len(langs) for r in terms]
+        index = {r[0]: r for r in self.rows}
+        for col, lang in enumerate(langs, start=2):
+            for line in (self._read(f"{lang}.tsv", required=False) or [])[1:]:
+                cells = line.split("	")
+                # "—" marks a language with no established rendering yet
+                if len(cells) > 2 and cells[0] in index and cells[2].strip() not in MISSING:
+                    index[cells[0]][col] = cells[2].strip()
         self.matchers = []
         for row in self.rows:
             base = re.sub(r"\s*\([^)]*\)\s*$", "", row[0]).strip()
@@ -379,9 +407,9 @@ def validate(e, msgstrs, nplurals, glossary=None, lang=None):
         b1, c1 = _placeholders(src, flags)
         b2, c2 = _placeholders(s, flags)
         positional = any("$" in p for p in c1)
-        c_bad = sorted(c1) != sorted(c2) if positional else c1 != c2
+        c_bad = set(c1) != set(c2) if positional else c1 != c2
         bad = []
-        if sorted(b1) != sorted(b2):
+        if set(b1) != set(b2):
             bad.append(f"boost placeholders {b1} -> {b2}")
         if c_bad:
             bad.append(f"printf placeholders {c1} -> {c2}" + ("" if positional else " (order must match)"))
@@ -481,24 +509,52 @@ def similar_entries(c, e, pool, cutoff=0.72):
     sm = difflib.SequenceMatcher(autojunk=False)
     sm.set_seq2(e.msgid)
     best = []
-    for other, msgstr, obsolete in pool:
+    for other, msgstr, obsolete, human in pool:
         sm.set_seq1(other)
         if sm.real_quick_ratio() < cutoff or sm.quick_ratio() < cutoff:
             continue
         r = sm.ratio()
         if r >= cutoff and other != e.msgid:
-            best.append((r, other, msgstr, obsolete))
+            best.append((r, other, msgstr, obsolete, human))
     best.sort(key=lambda t: -t[0])
-    return [{"msgid": o, "msgstr": s, "obsolete": ob, "similarity": round(r, 2)} for r, o, s, ob in best[:2]]
+    return [dict({"msgid": o, "msgstr": s, "obsolete": ob, "similarity": round(r, 2)}, **({"human": True} if h else {}))
+            for r, o, s, ob, h in best[:2]]
+
+
+def similar_pool(c):
+    return [(x.msgid, x.msgstrs()[0], x.obsolete, not x.ai) for x in c.entries
+            if not x.is_header and x.msgstrs() and x.msgstrs()[0] and not x.fuzzy and 8 < len(x.msgid) < 600]
+
+
+def human_drift(e, strs, pool):
+    """Why a translation strays from a person's text more than the English change explains, or None."""
+    import difflib
+    alike = lambda x, y: difflib.SequenceMatcher(None, x, y, autojunk=False).ratio()
+    new, old = "\n".join(strs), "\n".join(e.msgstrs())
+    if old.strip() and not e.ai:
+        r = alike(old, new)
+        if r < 0.85:
+            return (f"replaces a person's translation with text only {r:.0%} like it: keep their words and change "
+                    f"only what the fix needs, or give \"rewrite\": \"<reason>\"")
+        return None
+    if old.strip() or len(e.msgid) <= 8:
+        return None
+    for s in similar_entries(None, e, pool, cutoff=0.85):
+        if s.get("human"):
+            r = alike(s["msgstr"], new)
+            if r < s["similarity"] - 0.1:
+                return (f"the English is {s['similarity']:.0%} like a string a person translated, but this translation is "
+                        f"only {r:.0%} like theirs: patch their translation, or give \"rewrite\": \"<reason>\"")
+            break
+    return None
 
 
 def cmd_pending(a):
     c = Catalog(catalog_path(a.lang))
-    g = Glossary(a.wiki)
+    g = Glossary(a.wiki, langs=[a.lang])
     todo = [e for e in c.active() if needs_translation(e, c.nplurals, a.include_fuzzy)]
     batch = todo[a.offset:a.offset + a.limit] if a.limit else todo[a.offset:]
-    pool = [(x.msgid, x.msgstrs()[0], x.obsolete) for x in c.entries
-            if not x.is_header and x.msgstrs() and x.msgstrs()[0] and not x.fuzzy and 8 < len(x.msgid) < 600]
+    pool = similar_pool(c)
     items = []
     for e in batch:
         item = {"id": e.id(), "msgctxt": e.msgctxt, "msgid": e.msgid}
@@ -533,11 +589,12 @@ def cmd_pending(a):
 
 def cmd_apply(a):
     c = Catalog(catalog_path(a.lang))
-    g = None if a.no_glossary else Glossary(a.wiki, quiet=True)
+    g = None if a.no_glossary else Glossary(a.wiki, quiet=True, langs=[a.lang])
     data = json.loads(Path(a.input).read_text(encoding="utf-8"))
     items = data["entries"] if isinstance(data, dict) else data
     idx = c.index()
     by_id = {c.entries[i].id(): i for i in idx.values()}
+    pool = similar_pool(c)
     applied, skipped, rejected, warned = 0, 0, [], []
     for it in items:
         if "msgid" in it:
@@ -565,9 +622,16 @@ def cmd_apply(a):
         if errors:
             rejected.append((label, errors))
             continue
+        drift = None if it.get("rewrite") else human_drift(e, strs, pool)
+        if drift:
+            rejected.append((label, [drift]))
+            continue
         if warnings:
             warned.append((label, warnings))
-        c.changes[i] = e.rewrite(strs, ai=not a.human, review=it.get("review"))
+        review = it.get("review")
+        if it.get("rewrite") and not review:
+            review = "Rewrote a person's translation: " + it["rewrite"]
+        c.changes[i] = e.rewrite(strs, ai=not a.human, review=review)
         applied += 1
     if not a.dry_run and c.changes:
         c.save()
@@ -588,7 +652,7 @@ def find_msgfmt():
 
 
 def cmd_check(a):
-    g = None if a.no_glossary else Glossary(a.wiki, quiet=True)
+    g = None if a.no_glossary else Glossary(a.wiki, quiet=True, langs=a.lang or None)
     msgfmt = find_msgfmt()
     status = 0
     for lang in a.lang or all_langs():
@@ -613,7 +677,7 @@ def cmd_check(a):
         if msgfmt:
             fd, mo = tempfile.mkstemp(suffix=".mo")  # Windows msgfmt cannot write to "nul"
             os.close(fd)
-            r = subprocess.run([msgfmt, "--check-format", "-o", mo, str(c.path)], capture_output=True, text=True)
+            r = subprocess.run([msgfmt, "--check-format", "--check-header", "-o", mo, str(c.path)], capture_output=True, text=True)
             os.unlink(mo)
             if r.returncode:
                 print(f"{lang}: msgfmt --check-format failed\n{r.stderr.strip()}")
@@ -646,7 +710,7 @@ def cmd_lookup(a):
 
 
 def cmd_glossary(a):
-    g = Glossary(a.wiki)
+    g = Glossary(a.wiki, langs=[a.lang])
     col = g.column(a.lang)
     if col is None:
         print(f"'{a.lang}' has no glossary column yet; add one with glossary-set --set {a.lang}=...")
@@ -733,6 +797,17 @@ def cmd_candidates(a):
         print(f"{cnt:7} {langs:6}  {text}{'  [label]' if k in labels else ''}  e.g. {ex[:70]}{'…' if len(ex) > 70 else ''}")
 
 
+def _edit_tsv(path, edit):
+    """Apply edit(lines) to a glossary TSV, keeping its BOM and line endings."""
+    data = path.read_bytes()
+    bom = data.startswith(b"\xef\xbb\xbf")
+    text = data.decode("utf-8-sig")
+    nl = "\r\n" if "\r\n" in text else "\n"
+    lines = text.splitlines()
+    edit(lines)
+    path.write_bytes((b"\xef\xbb\xbf" if bom else b"") + (nl.join(lines) + nl).encode("utf-8"))
+
+
 def cmd_glossary_set(a):
     wiki = find_wiki(a.wiki)
     if not wiki:
@@ -741,8 +816,21 @@ def cmd_glossary_set(a):
               f"  {a.term}: " + ", ".join(a.set) + "\n"
               "Clone https://github.com/OrcaSlicer/OrcaSlicer_WIKI next to this repository, or pass --wiki.", file=sys.stderr)
         return 2
-    tsv = wiki / GLOSSARY_TSV
-    lock = tsv.with_suffix(".lock")
+    gdir = wiki / GLOSSARY_DIR
+    gen = wiki / "generate_glossary.py"
+    if not gen.exists():
+        sys.exit(f"{gen} not found")
+    run_gen = lambda *args: subprocess.run([sys.executable, str(gen), *args], cwd=wiki, capture_output=True, text=True)
+    langs = [l.strip() for l in (gdir / "languages.txt").read_text(encoding="utf-8-sig").splitlines() if l.strip()]
+    values = {}
+    for s in a.set:
+        lang, _, val = s.partition("=")
+        if lang not in langs:
+            sys.exit(f"no glossary language '{lang}' (add it to {GLOSSARY_DIR.as_posix()}/languages.txt)")
+        if "\t" in val or "\n" in val:
+            sys.exit("values cannot contain tabs or line breaks")
+        values[lang] = val.strip()
+    lock = gdir / ".lock"
     for _ in range(100):
         try:
             fd = os.open(lock, os.O_CREAT | os.O_EXCL)
@@ -752,50 +840,51 @@ def cmd_glossary_set(a):
     else:
         sys.exit(f"could not lock {lock}; remove it if no other run is active")
     try:
-        data = tsv.read_bytes()
-        bom = data.startswith(b"\xef\xbb\xbf")
-        text = data.decode("utf-8-sig")
-        nl = "\r\n" if "\r\n" in text else "\n"
-        lines = text.splitlines()
-        header = lines[0].split("\t")
-        values = {}
-        for s in a.set:
-            lang, _, val = s.partition("=")
-            if lang not in header:
-                sys.exit(f"no glossary column '{lang}'")
-            if "\t" in val or "\n" in val:
-                sys.exit("values cannot contain tabs or line breaks")
-            values[header.index(lang)] = val.strip()
-        row_i = next((i for i, l in enumerate(lines[1:], 1) if l.split("\t")[0] == a.term), None)
-        new = row_i is None
-        if new:
-            if not a.description:
-                sys.exit("a new term needs --description (one sentence saying what it is)")
-            row = [a.term, a.description] + [""] * (len(header) - 2)
-            lines.append("")
-            row_i = len(lines) - 1
-        else:
-            row = lines[row_i].split("\t")
-            row += [""] * (len(header) - len(row))
-            if a.description:
-                row[1] = a.description
-        conflicts = [f"{header[i]}: '{row[i]}' -> '{v}'" for i, v in values.items() if row[i].strip() not in MISSING and row[i] != v]
+        terms = (gdir / "terms.tsv").read_text(encoding="utf-8-sig").splitlines()
+        new = not any(l.split("\t")[0] == a.term for l in terms[1:])
+        if new and not a.description:
+            sys.exit("a new term needs --description (one sentence saying what it is)")
+        # an established translation is only replaced on request
+        conflicts = []
+        for lang, v in values.items():
+            for line in (gdir / f"{lang}.tsv").read_text(encoding="utf-8-sig").splitlines()[1:]:
+                cells = line.split("\t")
+                if cells[0] == a.term and len(cells) > 2 and cells[2].strip() not in MISSING and cells[2] != v:
+                    conflicts.append(f"{lang}: '{cells[2]}' -> '{v}'")
         if conflicts and not a.replace:
             sys.exit("established translations differ (pass --replace, and update the catalogs to match):\n  " + "\n  ".join(conflicts))
-        for i, v in values.items():
-            row[i] = v
-        lines[row_i] = "\t".join(row)
-        tsv.write_bytes((b"\xef\xbb\xbf" if bom else b"") + (nl.join(lines) + nl).encode("utf-8"))
+
+        def edit_terms(lines):
+            for i, l in enumerate(lines):
+                if i and l.split("\t")[0] == a.term:
+                    if a.description:
+                        lines[i] = f"{a.term}\t{a.description}"
+                    return
+            lines.append(f"{a.term}\t{a.description}")
+        if new or a.description:
+            _edit_tsv(gdir / "terms.tsv", edit_terms)
+            r = run_gen("--sync")  # copies the term and description into every language file
+            if r.returncode:
+                sys.exit((r.stdout + r.stderr).strip())
+
+        def setter(lang, v):
+            def edit(lines):
+                for i, l in enumerate(lines):
+                    cells = l.split("\t")
+                    if i and cells[0] == a.term:
+                        lines[i] = "\t".join(cells[:2] + [v])
+                        return
+                sys.exit(f"{lang}.tsv has no row for '{a.term}'")
+            return edit
+        for lang, v in values.items():
+            _edit_tsv(gdir / f"{lang}.tsv", setter(lang, v))
     finally:
         os.close(fd)
         os.unlink(lock)
     print(f"glossary: {'added' if new else 'updated'} '{a.term}'")
-    gen = wiki / "generate_glossary.py"
-    if gen.exists():
-        r = subprocess.run([sys.executable, str(gen), "--update"], cwd=wiki, capture_output=True, text=True)
-        print((r.stdout + r.stderr).strip())
-        return r.returncode
-    return 0
+    r = run_gen("--update")
+    print((r.stdout + r.stderr).strip())
+    return r.returncode
 
 
 def main():

@@ -355,6 +355,9 @@ private:
     std::atomic<bool>    m_restart_sync_pending {false};
     std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
+    bool                 m_user_preset_pull_pending {false}; // set when a sync thread starts, cleared once its pull is applied; a failed pull or a stopped sync leaves it set
+    bool                 m_legacy_filament_check_due {false}; // the startup check waits for that pull
+    bool                 m_legacy_filament_check_running {false}; // a check is in progress, its dialog may be open
     std::atomic<bool>    m_migration_retry_pending {false};
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
@@ -365,6 +368,8 @@ private:
     // and a generation counter so a superseded mint/login result is dropped (guide §5, "only the
     // newest request counts").
     std::string      m_cloud_handoff_state;
+    // The OrcaCloud path the open requests target, remembered so a login re-seed keeps the same page.
+    std::string      m_cloud_open_path;
     uint64_t         m_cloud_handoff_gen { 0 };
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
@@ -406,7 +411,11 @@ public:
     const boost::optional<Semver>& last_config_version() const { return m_last_config_version; }
 
     // Reconcile the live printer agent with the stored preset selection.
+    // No-op until the main window exists; the startup preset load installs the agent then.
     void switch_printer_agent();
+    // Install the selected preset's agent if it is registered but not live, e.g. when its plugin
+    // finishes loading after the startup preset was applied. Otherwise leave the live agent alone.
+    void switch_printer_agent_if_pending();
 
     std::string resolve_printer_agent_id(const std::string& stored_id) const;
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
@@ -426,6 +435,8 @@ public:
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
     void set_closing(bool closing) { m_is_closing.store(closing, std::memory_order_release); }
+    // Called once closing can no longer be vetoed: ends the process if closing does not finish in time.
+    void start_exit_watchdog();
     
     // SoftFever
     bool show_gcode_window() const { return m_show_gcode_window; }
@@ -466,6 +477,9 @@ public:
 #if wxUSE_WEBVIEW_EDGE
     void            init_webview_runtime();
 #endif
+    // Switches to the Home tab and opens the OrcaCloud pane beside the homepage on `next`, a
+    // same-site OrcaCloud path (empty = the page's default). Work is deferred internally.
+    void            open_orca_cloud(const std::string& next = std::string());
     static unsigned get_colour_approx_luma(const wxColour& colour);
     static bool     dark_mode();
     const wxColour  get_label_default_clr_system();
@@ -572,7 +586,7 @@ public:
     // called from the pane when the page asks for a session; it opens the desktop login dialog if
     // signed out, otherwise mints a one-time token on a worker thread and loads the Complete URL
     // in the same webview.
-    wxString        cloud_webview_handoff();
+    wxString        cloud_webview_handoff(const std::string& next = std::string());
     void            request_cloud_web_session(const std::string& state);
     void            mint_cloud_web_session(const std::string& state, uint64_t gen);
     void            on_cloud_web_session_minted(const std::string& state, uint64_t gen, const std::string& token_hash);
@@ -589,7 +603,8 @@ public:
     void            check_new_version_sf(bool show_tips = false, int by_user = 0);
     // Offers to migrate user filament presets made against an older release that lost printers their parent
     // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
-    // reminded; by_user also reports when there is nothing to migrate.
+    // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also
+    // reports when there is nothing to migrate.
     void            check_legacy_user_filament_presets(bool by_user);
     bool            process_network_msg(std::string dev_id, std::string msg);
     void            request_new_version(int by_user);
@@ -600,7 +615,8 @@ public:
     std::string     format_IP(const std::string& ip);
     void            show_dialog(wxString msg);
     void            push_notification(const MachineObject* obj, wxString msg, wxString title = wxEmptyString, UserNotificationStyle style = UserNotificationStyle::UNS_NORMAL);
-    void            reload_settings();
+    // Returns false when the cloud presets could not be fetched, so nothing was reloaded.
+    bool            reload_settings();
     void            remove_user_presets();
 
     bool            maybe_migrate_user_presets_on_login();

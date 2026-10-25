@@ -11,7 +11,8 @@ can detect; everything else is on the translator.
 A rejected entry is not written. Fix it and apply again.
 
 - **Placeholders stay exactly as written:** `%s`, `%d`, `%.1f`, `%1$d`, `%1%`, `%%`. Never `%1 %`, never
-  `%` for `%%`. Plain printf placeholders keep their order; only positional ones (`%1$s`, `%1%`) may move.
+  `%` for `%%`. Plain printf placeholders keep their order; only positional ones (`%1$s`, `%1%`) may move,
+  and one the msgid repeats may appear just once.
   A broken placeholder crashes the app.
 - **Line breaks:** the same number of `\n`, with the same leading and trailing ones. Don't add breaks to fit
   text, least of all in parameter names.
@@ -25,6 +26,26 @@ A rejected entry is not written. Fix it and apply again.
 - **Plural entries** need every form from the catalog's `Plural-Forms` header (`nplurals`: 1 for
   ja/ko/zh/th/vi, 3 for ru/cs/pl/lt, 4 for uk). Each form is really inflected for its quantity. Repeating
   one sentence is a bug in Slavic and Baltic languages, but correct in Turkish and Hungarian.
+
+## A person's translation: patch it, don't rewrite it
+
+A translator's wording is kept unless it is wrong. Machine output never replaces it wholesale.
+
+- **A reworded string:** `pending` lists earlier translations of similar English under `similar`, and
+  marks a person's work with `"human": true`. When the English barely changed, start from that
+  translation and change only what the English change requires: a renamed term, an added clause, a
+  period. Keep the translator's wording, word order, terms and line structure. If they already wrote what
+  the new English says, the translation does not change at all.
+- **A fix in a person's translation:** for a check error (a line break, a space, placeholder order, a
+  missing clause), change only what the error needs. Keep the rest of their words, even where they differ
+  from the glossary or from how you would phrase it. Report such glossary differences instead.
+- **Rewrite only what is plainly wrong:** another string's text, a cut-off sentence, a mistranslation.
+  Say why with `"rewrite": "<what was wrong>"` in the item; the reason becomes the review note.
+- `apply` enforces this. It rejects text that strays further from a person's translation than the
+  English change explains (below 85% alike for a fix, or clearly less alike than the English for a
+  reworded string), unless the item carries `rewrite`.
+- Apply a fix that keeps the person's words with `--human`, so the entry stays theirs. Text you wrote
+  gets the default `# AI Translated`.
 
 ## Mechanical: not detectable, still required
 

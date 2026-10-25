@@ -867,6 +867,8 @@ append_shortcut_item(export_menu, Shortcut::ExportSlicedFile, true, _L("Export p
   itself; never keep a raw pointer (`interface/wx/tipwin.h:20-110`).
 - `wxRichToolTip` is not a window: each `ShowFor()` creates a new one, and the native MSW version
   only applies to text controls (`interface/wx/richtooltip.h:70-192`).
+- On Wayland, a GTK tooltip of a widget inside a shown popup maps as a grabbing `xdg_popup` and takes the
+  keyboard focus from the toplevel, which reports a deactivation → `references/popups-menus.md` §9.
 
 | Static [source] | MSW | GTK | macOS |
 |---|---|---|---|

@@ -1,5 +1,7 @@
 name: Check profiles
 on:
+  # approve_pr_checks.yml approves these runs for first-time contributors and finds this
+  # workflow by its file name.
   pull_request:
     # release/* is included because pr-merge-bot.yml lets delegates merge into
     # it, and it gates on this workflow's result. Without it a delegated merge
@@ -37,6 +39,9 @@ jobs:
     # delegated merge. Renaming it silently disables that gate.
     name: Check profiles
     runs-on: ubuntu-24.04
+    # approve_pr_checks.yml starts first-time contributors' runs without a maintainer looking
+    # at the pull request first. A run takes 2-6 minutes; this bounds a runaway one.
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -231,6 +236,31 @@ jobs:
         run: |
           mkdir -p ${{ runner.temp }}/profile-check-results
           echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
+
+      # Builds a readable diff of the custom G-code the PR changes, which GitHub shows as
+      # one long line per setting, for check_profiles_comment.yml to post.
+      - name: Diff custom G-code
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags --depth=2 origin "$(git rev-parse HEAD)"
+          results=${{ runner.temp }}/profile-check-results
+          diff=${{ runner.temp }}/gcode_diff.md
+          # HEAD is the PR's merge commit, so HEAD^1 is the base it merges onto.
+          python3 ./scripts/orca_profile_tool.py gcode-diff --base HEAD^1 --head HEAD > "$diff"
+          if [ -s "$diff" ]; then
+            {
+              echo "<!-- profile-gcode-diff-comment -->"
+              cat "$diff"
+              echo ""
+              # The comment workflow finds this line as the only one starting with <sub>.
+              echo "<sub>For commit ${PR_HEAD_SHA} of this PR.</sub>"
+            } > "$results/gcode_diff.md"
+          fi
+          # Tells the comment workflow that a missing gcode_diff.md means no G-code changed.
+          touch "$results/gcode_diff_done.txt"
 
       - name: Prepare comment artifact
         if: ${{ always() && github.event_name == 'pull_request' && (steps.profile_tool.outcome == 'failure' || steps.legacy_compat.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}

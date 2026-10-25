@@ -395,7 +395,7 @@ bool run_post_process_scripts(
 
     auto gcode_file = boost::filesystem::path(path);
     if (!boost::filesystem::exists(gcode_file))
-        throw Slic3r::RuntimeError(_u8L("Post-processor can't find exported gcode file"));
+        throw Slic3r::RuntimeError(_u8L("Post-processor can't find exported G-code file"));
 
     // Store print configuration into environment variables.
     config.setenv_();

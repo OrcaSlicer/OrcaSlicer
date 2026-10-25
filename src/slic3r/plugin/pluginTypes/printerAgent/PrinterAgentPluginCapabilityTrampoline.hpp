@@ -282,11 +282,11 @@ public:
     int request_bind_ticket(std::string* ticket) override
     {
         try {
-            ORCA_PY_AUDIT_SCOPE();
             ::Slic3r::PluginCapabilityInterface::RefCounter _orca_ref_counter(*this);
             ::Slic3r::PythonGILState gil;
             if (!gil)
                 throw std::runtime_error("Python interpreter is shutting down");
+            ORCA_PY_AUDIT_SCOPE();
             pybind11::function override =
                 pybind11::get_override(static_cast<const PrinterAgentPluginCapability*>(this), "request_bind_ticket");
             if (!override)

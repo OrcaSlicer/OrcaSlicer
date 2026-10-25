@@ -13,7 +13,6 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/core/error.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/beast/core/buffers_to_string.hpp>
 #include <map>
 #include <unordered_set>
@@ -37,6 +36,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
+#include "AsioUtils.hpp"
 #include "Http.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
@@ -212,50 +212,65 @@ std::string CrealityPrint::safe_filename(const std::string &filename) const
     return safe_filename;
 }
 
+// Run every websocket call through run_until_done(), since expires_after() does not apply to synchronous Beast calls.
 static void ws_connect(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws,
-                       const std::string& host_url, const std::string& port)
+                       const std::string& host_url, const std::string& port, std::chrono::milliseconds timeout)
 {
     std::string host = Http::get_host_from_url(host_url);
 
     tcp::resolver resolver{ioc};
-    beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(5));
-    auto const results = resolver.resolve(host, port);
-    beast::get_lowest_layer(ws).connect(results);
-    host += ':' + std::to_string(beast::get_lowest_layer(ws).socket().remote_endpoint().port());
+    beast::tcp_stream& stream = beast::get_lowest_layer(ws);
+    if (const auto ec = connect_until_done(ioc, stream, resolver.resolve(host, port), timeout))
+        throw beast::system_error{ec};
+    host += ':' + std::to_string(stream.socket().remote_endpoint().port());
 
     ws.set_option(websocket::stream_base::decorator(
         [](websocket::request_type& req) {
             req.set(http::field::user_agent,
                 std::string(BOOST_BEAST_VERSION_STRING) + " websocket-client-coro");
         }));
-    ws.handshake(host, "/");
+    stream.expires_after(timeout);
+    if (const auto ec = run_until_done(ioc, [&](auto&& handler) { ws.async_handshake(host, "/", handler); }))
+        throw beast::system_error{ec};
     // K1-family firmware requires TEXT-mode WebSocket frames; K2-family accepts both.
-    // SO_RCVTIMEO is a no-op with Boost.Asio on macOS/Linux (kqueue/epoll); use
-    // expires_after() on the tcp_stream layer instead (managed per-call by the caller).
     ws.text(true);
 }
 
-static std::string ws_send_and_read(websocket::stream<beast::tcp_stream>& ws, const json& cmd, const std::string& expected_key, int max_reads = 20)
+static beast::error_code ws_write(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const std::string& text)
 {
-    ws.write(net::buffer(to_string(cmd)));
+    return run_until_done(ioc, [&](auto&& handler) { ws.async_write(net::buffer(text), handler); });
+}
+
+static void ws_send(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const json& cmd)
+{
+    if (const auto ec = ws_write(ioc, ws, to_string(cmd)))
+        throw beast::system_error{ec};
+}
+
+static beast::error_code ws_read(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, beast::flat_buffer& buffer)
+{
+    return run_until_done(ioc, [&](auto&& handler) { ws.async_read(buffer, handler); });
+}
+
+static std::string ws_send_and_read(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, const json& cmd, const std::string& expected_key, int max_reads = 20)
+{
+    ws_send(ioc, ws, cmd);
 
     // total caps the loop if the printer sends a continuous stream of heartbeats
     for (int reads = 0, total = 0; reads < max_reads && total < max_reads * 3; ++total) {
         beast::flat_buffer buf;
-        beast::error_code ec;
-        ws.read(buf, ec);
-        // would_block  = SO_RCVTIMEO fired (Windows/raw sockets)
-        // beast::error::timeout = expires_after() fired (Boost.Beast, macOS/Linux)
-        if (ec == net::error::would_block || ec == beast::error::timeout)
-            break;
+        const beast::error_code ec = ws_read(ioc, ws, buf);
+        if (ec == beast::error::timeout) {
+            BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: Timed out waiting for a '" << expected_key << "' response";
+            return {};
+        }
         if (ec)
             throw beast::system_error{ec};
         std::string msg = beast::buffers_to_string(buf.data());
         // K1-family firmware sends periodic heartbeat pings; ack them so the
         // printer does not close the connection, then keep reading.
         if (msg.find("heart_beat") != std::string::npos) {
-            beast::error_code wr_ec;
-            ws.write(net::buffer(std::string("ok")), wr_ec);
+            ws_write(ioc, ws, "ok");
             continue;
         }
         ++reads;
@@ -264,6 +279,13 @@ static std::string ws_send_and_read(websocket::stream<beast::tcp_stream>& ws, co
     }
     BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: No '" << expected_key << "' response after " << max_reads << " messages";
     return {};
+}
+
+// The K1 SE closes its side after a reply and K1-family printers after a start command, so a close error is not a failure.
+static void ws_close(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws, std::chrono::milliseconds timeout)
+{
+    beast::get_lowest_layer(ws).expires_after(timeout);
+    run_until_done(ioc, [&](auto&& handler) { ws.async_close(websocket::close_code::normal, handler); });
 }
 
 // K1-family firmware stores gcodes under /usr/data and uses a stricter WebSocket
@@ -337,17 +359,13 @@ std::string CrealityPrint::query_boxes_info() const
     try {
         net::io_context ioc;
         websocket::stream<beast::tcp_stream> ws{ioc};
-        ws_connect(ioc, ws, m_host, "9999");
+        ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
 
-        beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(10));
+        beast::get_lowest_layer(ws).expires_after(ws_settings.reply);
         json boxs_query = {{"method", "get"}, {"params", {{"boxsInfo", 1}}}};
-        std::string result = ws_send_and_read(ws, boxs_query, "boxsInfo");
+        std::string result = ws_send_and_read(ioc, ws, boxs_query, "boxsInfo");
 
-        // K1 SE closes its side after responding; use the error_code overload so
-        // the resulting EOF does not throw and discard the already-received result.
-        beast::error_code close_ec;
-        beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(3));
-        ws.close(websocket::close_code::normal, close_ec);
+        ws_close(ioc, ws, ws_settings.close);
         return result;
     } catch (std::exception const& e) {
         BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query boxsInfo: " << e.what();
@@ -363,9 +381,12 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
 
         net::io_context ioc;
         websocket::stream<beast::tcp_stream> ws{ioc};
-        ws_connect(ioc, ws, m_host, "9999");
+        ws_connect(ioc, ws, m_host, ws_settings.port, ws_settings.connect);
 
-        if (supports_multi_color_print()) {
+        // Runs before the reply deadline starts, since it can query the printer over HTTP.
+        const bool multi_color = supports_multi_color_print();
+        beast::get_lowest_layer(ws).expires_after(ws_settings.reply);
+        if (multi_color) {
             // Build colorMatch list from the mapping provided by the dialog
             bool use_spool_holder = false;
             json color_list = json::array();
@@ -409,7 +430,7 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
                         {"enableSelfTest", enable_self_test}
                     }}
                 };
-                ws.write(net::buffer(to_string(cmd)));
+                ws_send(ioc, ws, cmd);
             } else {
                 json color_match = {
                     {"method", "set"},
@@ -420,7 +441,7 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
                         }}
                     }}
                 };
-                ws.write(net::buffer(to_string(color_match)));
+                ws_send(ioc, ws, color_match);
 
                 json multi_color_print = {
                     {"method", "set"},
@@ -431,7 +452,7 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
                         }}
                     }}
                 };
-                ws.write(net::buffer(to_string(multi_color_print)));
+                ws_send(ioc, ws, multi_color_print);
             }
         } else {
             json cmd = {
@@ -440,26 +461,25 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
                     {"opGcodeFile", "printprt:" + gcode_path}
                 }}
             };
-            ws.write(net::buffer(to_string(cmd)));
+            ws_send(ioc, ws, cmd);
 
             // K1-family firmware closes the WebSocket right after accepting the
             // start command, so a blocking read here surfaces a benign
             // "End of file [asio.misc:2]" even though the print already started
-            // (the command is delivered by write()). Read best-effort, ignore errors.
+            // (ws_send() delivers the command). Read best-effort, ignore errors.
             beast::flat_buffer buffer;
-            beast::error_code  read_ec;
-            ws.read(buffer, read_ec);
+            ws_read(ioc, ws, buffer);
         }
 
-        // Same reason: the printer may have already closed the connection. A close
-        // error here is not a failure — the start command was sent above.
-        beast::error_code close_ec;
-        beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(3));
-        ws.close(websocket::close_code::normal, close_ec);
+        ws_close(ioc, ws, ws_settings.close);
         return true;
     } catch(std::exception const& e) {
         BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Error starting print: " << e.what();
-        msg = wxString::FromUTF8(e.what());
+        // Shows a websocket error without Boost's source location, and a timeout the same way as an HTTP one
+        if (const auto* system_error = dynamic_cast<const beast::system_error*>(&e))
+            msg = system_error->code() == beast::error::timeout ? timed_out_message() : wxString::FromUTF8(system_error->code().message());
+        else
+            msg = wxString::FromUTF8(e.what());
         return false;
     }
 }

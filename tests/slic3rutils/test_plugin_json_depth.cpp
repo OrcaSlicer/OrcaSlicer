@@ -3,7 +3,6 @@
 
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
-#include <slic3r/plugin/PythonInterpreter.hpp>
 
 #include "plugin_test_utils.hpp"
 
@@ -19,17 +18,14 @@
 using namespace Slic3r;
 
 namespace {
-// Brings the embedded interpreter up for one test and tears it down before boost::log does,
-// mirroring the ScopedPluginManager idiom in the other plugin tests.
+// Brings the embedded interpreter up for one test and tears the manager down afterwards; the
+// interpreter itself is process-wide and finalized once by PythonInterpreterRunEnd in
+// slic3rutils_tests_main.cpp (CPython cannot be reinitialized after Py_Finalize).
 struct ScopedPluginManager
 {
     ScopedDataDir python_data_dir{"plugin-json-depth"};
     bool          initialized = PluginManager::instance().initialize();
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 } // namespace
 

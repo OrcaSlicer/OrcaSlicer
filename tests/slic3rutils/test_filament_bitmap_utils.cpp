@@ -22,6 +22,13 @@
 #include <cmath>
 
 #include <wx/colour.h>
+#ifdef __WXMSW__
+#include <wx/bitmap.h>
+#include <wx/image.h>
+#include <cstdlib>
+#include <utility>
+#include <catch2/generators/catch_generators.hpp>
+#endif
 #include <wx/string.h>
 
 #include "libslic3r/FilamentMixer.hpp"
@@ -260,3 +267,71 @@ TEST_CASE("sample_gradient_ramp returns nothing without a usable curve or step c
     curve.points = {{0.0, kGradientMaxRatio, NAN, NAN}, {1.0, kGradientMinRatio, NAN, NAN}};
     REQUIRE(Slic3r::GUI::sample_gradient_ramp(wxColour(255, 0, 0), wxColour(0, 0, 255), curve, 0).empty());
 }
+
+// The headless GTK/macOS suite does not initialize GUI display/font stock objects.
+// Exercise native bitmap pixels on Windows without adding that dependency elsewhere.
+#ifdef __WXMSW__
+TEST_CASE("Filament gradient pixels follow both endpoint directions without changing input", "[FilamentBitmapUtils]")
+{
+    const bool reverse = GENERATE(false, true);
+    const std::vector<wxColour> colors = reverse ? std::vector<wxColour>{wxColour(0, 0, 255), wxColour(255, 0, 0)}
+                                                 : std::vector<wxColour>{wxColour(255, 0, 0), wxColour(0, 0, 255)};
+    const auto original = colors;
+    const wxBitmap bitmap = Slic3r::GUI::create_filament_bitmap(colors, wxSize(64, 16), true);
+    REQUIRE(bitmap.IsOk());
+    const wxImage image = bitmap.ConvertToImage();
+    REQUIRE(image.IsOk());
+    // Interior pixels avoid backend-specific rasterization at the gradient boundary.
+    for (const auto& sample : {std::pair<int, wxColour>{2, colors.front()}, {61, colors.back()}}) {
+        REQUIRE(std::abs(int(image.GetRed(sample.first, 8)) - int(sample.second.Red())) <= 16);
+        REQUIRE(std::abs(int(image.GetBlue(sample.first, 8)) - int(sample.second.Blue())) <= 16);
+    }
+    REQUIRE(colors == original);
+}
+
+TEST_CASE("Filament halves preserve the same caller color order as gradients", "[FilamentBitmapUtils]")
+{
+    const bool reverse = GENERATE(false, true);
+    const std::vector<wxColour> colors = reverse ? std::vector<wxColour>{wxColour(0, 0, 255), wxColour(255, 0, 0)}
+                                                 : std::vector<wxColour>{wxColour(255, 0, 0), wxColour(0, 0, 255)};
+    const auto original = colors;
+    const wxBitmap bitmap = Slic3r::GUI::create_filament_bitmap(colors, wxSize(64, 16), false);
+    REQUIRE(bitmap.IsOk());
+    const wxImage image = bitmap.ConvertToImage();
+    REQUIRE(image.IsOk());
+    require_same_rgb(wxColour(image.GetRed(16, 8), image.GetGreen(16, 8), image.GetBlue(16, 8)), colors.front());
+    require_same_rgb(wxColour(image.GetRed(48, 8), image.GetGreen(48, 8), image.GetBlue(48, 8)), colors.back());
+    REQUIRE(colors == original);
+}
+
+TEST_CASE("Three color filament stripes retain caller order", "[FilamentBitmapUtils]")
+{
+    const std::vector<wxColour> colors{wxColour(0, 0, 255), wxColour(0, 255, 0), wxColour(255, 0, 0)};
+    const auto original = colors;
+    const wxBitmap bitmap = Slic3r::GUI::create_filament_bitmap(colors, wxSize(72, 24), false);
+    REQUIRE(bitmap.IsOk());
+    const wxImage image = bitmap.ConvertToImage();
+    REQUIRE(image.IsOk());
+    for (int i = 0; i < 3; ++i) {
+        const int x = 12 + i * 24;
+        require_same_rgb(wxColour(image.GetRed(x, 12), image.GetGreen(x, 12), image.GetBlue(x, 12)), colors[i]);
+    }
+    REQUIRE(colors == original);
+}
+
+TEST_CASE("Four color filament quadrants retain caller order", "[FilamentBitmapUtils]")
+{
+    const std::vector<wxColour> colors{wxColour(0, 0, 255), wxColour(0, 255, 0), wxColour(255, 0, 0), wxColour(255, 255, 0)};
+    const auto original = colors;
+    const wxBitmap bitmap = Slic3r::GUI::create_filament_bitmap(colors, wxSize(64, 32), false);
+    REQUIRE(bitmap.IsOk());
+    const wxImage image = bitmap.ConvertToImage();
+    REQUIRE(image.IsOk());
+    for (int i = 0; i < 4; ++i) {
+        const int x = i % 2 ? 48 : 16, y = i / 2 ? 24 : 8;
+        require_same_rgb(wxColour(image.GetRed(x, y), image.GetGreen(x, y), image.GetBlue(x, y)), colors[i]);
+    }
+    REQUIRE(colors == original);
+}
+
+#endif // __WXMSW__

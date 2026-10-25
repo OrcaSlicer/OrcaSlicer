@@ -1,5 +1,6 @@
 
 #include <catch2/catch_test_macros.hpp>
+#include <boost/filesystem/path.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -51,6 +52,7 @@
 #include <catch2/catch_tostring.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <memory>
 #include <string>
 #include <sstream>
 #include <type_traits> // for std::enable_if_t
@@ -178,6 +180,78 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
             }
         }
     }
+}
+
+TEST_CASE("Volumetric per-extruder exclusions survive a 3MF round-trip", "[3mf][ExclusionVolume][MultiNozzle]")
+{
+    // The importer creates a backup tree for the reloaded model. Give that
+    // process-global temp root a writable, isolated location on every OS.
+    ScopedSlic3rTemporaryDir temporary_dir("orca_exclusion");
+
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(10.0, 10.0, 10.0));
+    object->add_instance();
+
+    // Keep the project config intentionally sparse: this test owns only the
+    // exclusion settings and should not depend on unrelated printer-profile
+    // defaults surviving the project archive round-trip.
+    DynamicPrintConfig source;
+    source.set_key_value("bed_exclude_volume_mode",
+                         new ConfigOptionEnum<BedExcludeVolumeMode>(BedExcludeVolumeMode::PerExtruder));
+    source.set_deserialize_strict("bed_exclude_area", "0x0,10x0,10x10,0x10");
+    source.set_key_value("bed_exclude_volumes", new ConfigOptionString("0..10;1x1,2x1,2x2,1x2"));
+    source.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings{
+        "0..25;5x5,15x5,15x15,5x15",
+        "30..80;40x40,55x40,55x55,40x55|0..5;70x10,80x10,80x20,70x20",
+    });
+
+    const boost::filesystem::path backup_dir = temporary_dir.path() / "source_backup";
+    model.set_backup_path(backup_dir.string());
+
+    const boost::filesystem::path path = temporary_dir.path() / "round_trip.3mf";
+    const std::string path_string = path.string();
+    auto plate = std::make_unique<PlateData>();
+    plate->plate_index = 0;
+    StoreParams store_params;
+    store_params.path = path_string.c_str();
+    store_params.model = &model;
+    store_params.config = &source;
+    store_params.plate_data_list.push_back(plate.get());
+    store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+    REQUIRE(store_bbs_3mf(store_params));
+
+    Model reloaded_model;
+    DynamicPrintConfig reloaded;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Disable};
+    PlateDataPtrs reloaded_plates;
+    std::vector<Preset *> project_presets;
+    bool is_bbl_3mf = false;
+    bool is_orca_3mf = false;
+    Semver file_version;
+    const bool loaded = load_bbs_3mf(
+        path_string.c_str(), &reloaded, &substitutions, &reloaded_model, &reloaded_plates,
+        &project_presets, &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+        LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+    release_PlateData_list(reloaded_plates);
+
+    REQUIRE(loaded);
+    REQUIRE(reloaded.option<ConfigOptionEnum<BedExcludeVolumeMode>>("bed_exclude_volume_mode") != nullptr);
+    CHECK(reloaded.option<ConfigOptionEnum<BedExcludeVolumeMode>>("bed_exclude_volume_mode")->value ==
+          BedExcludeVolumeMode::PerExtruder);
+
+    const auto *areas = reloaded.option<ConfigOptionStrings>("extruder_bed_exclude_volumes");
+    REQUIRE(areas != nullptr);
+    REQUIRE(areas->values.size() == 2);
+    CHECK(areas->values == source.option<ConfigOptionStrings>("extruder_bed_exclude_volumes")->values);
+
+    const auto *shared_volumes = reloaded.option<ConfigOptionString>("bed_exclude_volumes");
+    REQUIRE(shared_volumes != nullptr);
+    CHECK(shared_volumes->value == source.opt_string("bed_exclude_volumes"));
+
+    const auto *legacy = reloaded.option<ConfigOptionPoints>("bed_exclude_area");
+    REQUIRE(legacy != nullptr);
+    CHECK(legacy->serialize() == "0x0,10x0,10x10,0x10");
 }
 
 SCENARIO("Mirrored instance transforms survive 3mf round trips", "[3mf][Regression]") {
@@ -503,6 +577,28 @@ TEST_CASE("A project whose components reference themselves fails to load", "[3mf
     bool               loaded = true;
     REQUIRE_NOTHROW(loaded = load_project(temp.string(), model, backup_dir));
     REQUIRE_FALSE(loaded);
+}
+
+TEST_CASE("A project in the 2.4.x layout keeps auto drop off from its build item", "[3mf][Regression]")
+{
+    // 2.4.x wrote auto_drop on the build item and left it off the object, so the object is re-laid out here.
+    ScopedTemporaryFile temp(".3mf");
+    {
+        Model        model;
+        ModelObject* object = model.add_object();
+        object->add_volume(make_cube(10., 10., 10.));
+        object->add_instance();
+        object->auto_drop = false;
+        store_project(model, temp.string(), SaveStrategy::Zip64 | SaveStrategy::Silence);
+    }
+    REQUIRE(replace_in_3mf_entry(temp.string(), "model_settings.config", " auto_drop=\"0\"", ""));
+    REQUIRE(replace_in_3mf_entry(temp.string(), "3dmodel.model", "printable=\"1\"/>", "printable=\"1\" auto_drop=\"0\"/>"));
+
+    ScopedTemporaryDir backup_dir("orca_auto_drop_dst");
+    Model              model;
+    REQUIRE(load_project(temp.string(), model, backup_dir));
+    REQUIRE(model.objects.size() == 1);
+    CHECK_FALSE(model.objects.front()->auto_drop);
 }
 
 TEST_CASE("An object loads up to the component reference budget and fails past it", "[3mf][Regression]")
