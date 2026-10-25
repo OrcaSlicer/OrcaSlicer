@@ -428,6 +428,7 @@ public:
     const DesignSketchTool& mcp_sketch_tool() const { return m_sketch_tool; }
 
     void request_repaint();
+    GLCanvas3D* gl_canvas() { return m_canvas; }
     // Repaint synchronously, once the pending show/resize has settled. Needed when the
     // notebook re-shows the Design page: an invalidation issued while the page is still
     // being shown is dropped on hardware GL and no wxEVT_PAINT ever follows, leaving the

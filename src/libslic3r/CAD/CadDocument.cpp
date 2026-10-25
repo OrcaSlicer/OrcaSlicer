@@ -315,7 +315,12 @@ static double eval_expr(const std::string& src, const std::map<std::string, doub
             size_t start = i;
             while (i < src.size() && (isdigit(src[i]) || src[i] == '.')) ++i;
             Token t{Token::Num, src.substr(start, i - start)};
-            t.num = std::stod(t.val);
+            // The classic locale: under it_IT "3.6" would parse as 3 with std::stod. A literal that is not entirely a number
+            // (`1.2.3`) is an error, never a silent truncation.
+            std::istringstream ns(t.val);
+            ns.imbue(std::locale::classic());
+            ns >> t.num;
+            if (ns.fail() || ns.peek() != std::char_traits<char>::eof()) throw std::runtime_error("bad number '" + t.val + "'");
             tokens.push_back(t);
             prev_was_val = true;
             continue;
@@ -574,6 +579,8 @@ static const struct { const char* name; double CadFeature::* member; } kBindable
     {"sm_thickness", &CadFeature::sm_thickness},
     {"taper_deg", &CadFeature::taper_deg},
     {"thicken_thickness", &CadFeature::thicken_thickness},
+    {"thin_in", &CadFeature::thin_in},
+    {"thin_out", &CadFeature::thin_out},
     {"thread_depth", &CadFeature::thread_depth},
     {"thread_height", &CadFeature::thread_height},
     {"thread_pitch", &CadFeature::thread_pitch},
@@ -3117,6 +3124,24 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
                         }
                         return unify_same_domain(acc);
                     }
+                    if (f.extrude_entities.empty() && !sk.entities.empty()) {
+                        // Several islands in one sketch (two separate outlines): one prism per region, together in one body.
+                        // A single region (holes included) stays on the plain path below.
+                        const std::vector<TopoDS_Wire> loops = SketchEngine::entities_to_wires(sk.entities, sk.plane, true);
+                        if (loops.size() > 1) {
+                            const std::vector<TopoDS_Face> regions = SketchEngine::wires_to_faces(loops, sk.plane);
+                            if (regions.size() > 1) {
+                                TopoDS_Compound all;
+                                BRep_Builder bb;
+                                bb.MakeCompound(all);
+                                for (const TopoDS_Face& region : regions) {
+                                    const TopoDS_Shape part = one_region(region);
+                                    for (TopExp_Explorer ex(part, TopAbs_SOLID); ex.More(); ex.Next()) bb.Add(all, ex.Current());
+                                }
+                                return TopoDS_Shape(all);
+                            }
+                        }
+                    }
                     if (f.extrude_entities.empty()) return one_region(build_sketch_face(sk));
                     if (SketchEngine::arrangement_needed(sk.entities)) {   // the chosen curves meet in T-junctions: see above
                         TopoDS_Shape acc;
@@ -5036,12 +5061,27 @@ bool CadDocument::recompute()
             if (!same) f.plane = np;
             f.attach_face = face;
         };
+        // A sketch on a datum plane lies on that plane as it is NOW (its offset may be bound to a variable).
+        auto datum_update = [&](size_t fi) {
+            CadFeature& f = features[fi];
+            const int pi = f.attach_datum;
+            if (pi < 0 || pi >= int(features.size()) || features[pi].type != CadFeatureType::Plane || !features[pi].enabled) {
+                feature_warnings.emplace_back(int(fi), _u8L("the datum plane this sketch was drawn on is gone; the sketch stays where it is"));
+                return;
+            }
+            size_t k = 0;
+            for (int j = 0; j < pi; ++j)
+                if (features[j].type == CadFeatureType::Plane && features[j].enabled) ++k;
+            const auto datums = resolve_datum_planes();
+            if (k < datums.size()) f.plane = datums[k].second;
+        };
         m_pre_states.clear();
         struct ReplayFlag { bool& f; explicit ReplayFlag(bool& x) : f(x) { f = true; } ~ReplayFlag() { f = false; } } replay_flag(m_in_replay);
         for (size_t fi = 0; fi < features.size(); ++fi) {
             if (rollback_index >= 0 && int(fi) > rollback_index) break;   // rolled back to rollback_index
             replaying = fi;
             m_pre_states.push_back(built);   // the state this feature starts from (feature patterns look back at it)
+            if (features[fi].enabled && features[fi].type == CadFeatureType::Sketch && features[fi].attach_datum >= 0) datum_update(fi);
             if (!incremental) { replay_feature(fi, built); ++replay_stats.replayed; continue; }
             if (features[fi].enabled && features[fi].type == CadFeatureType::Sketch && features[fi].attach_face >= 0) {
                 attach_update(fi);

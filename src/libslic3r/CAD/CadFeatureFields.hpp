@@ -41,6 +41,8 @@ template<class V, class F> void cad_fields_sketch(V& v, F& f)
     v(f.text_string); v(f.text_font); v(f.text_height);
     v(f.sk3_points); v(f.sk3_closed); v(f.sk3_smooth);
     v(f.attach_body); v(f.attach_face);
+    v.ref(f.attach_datum);
+    v(f.dim_names);
 }
 template<class V, class F> void cad_fields_import(V& v, F& f)
 {

@@ -46,6 +46,10 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include <wx/base64.h>
+#include <wx/mstream.h>
+#include <tuple>
+#include <sstream>
 #include <wx/dcscreen.h>
 #include <wx/evtloop.h>
 #include <wx/textctrl.h>
@@ -85,6 +89,11 @@
 #include <GProp_GProps.hxx>
 #include <BRepGProp.hxx>
 #include <Bnd_Box.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
+#include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
+#include <gp_Trsf.hxx>
 #include <BRepBndLib.hxx>
 #include <initializer_list>
 #include <GeomAbs_SurfaceType.hxx>
@@ -197,7 +206,8 @@ bool read_only_method(const std::string& m)
     static const std::set<std::string> k = {
         "describe_tools", "describe_scene", "query_topology", "measure", "mass_properties",
         "slice_body", "validate_against", "list_verbs", "sketch_describe", "sketch_validate",
-        "check_interference", "inspect_design", "list_commands", "export", "save", "screenshot", "ui.inspect", "ui.candidates", "ui.worldToScreen", "ui.screenshot", "variables_export", "sketch_dimensions" };
+        "check_interference", "select_topology", "min_distance", "analyze_printability", "inspect_design", "list_commands", "export", "save", "screenshot", "ui.inspect", "ui.candidates", "ui.worldToScreen", "ui.screenshot", "variables_export", "sketch_dimensions", "list_fields",
+        "sweep_variable", "set_body_visible", "isolate_body", "set_body_color", "set_body_opacity", "explode", "section_set" };
     return k.count(m) > 0;
 }
 
@@ -584,7 +594,12 @@ json describe_tools_core()
             json{{"name", "export"}, {"summary", "Write the design's bodies to a STEP, IGES, STL (binary) or OBJ file (absolute path under $HOME or /tmp; ORCA_CAD_MCP_ALLOW overrides the roots). The project itself is `save`."},
                  {"params", json::array({
                      json{{"name", "path"},   {"type", "string"}},
-                     json{{"name", "format"}, {"type", "string"}, {"enum", json::array({"step", "iges", "stl", "obj"})}, {"default", "step"}},
+                     json{{"name", "format"}, {"type", "string"}, {"enum", json::array({"step", "iges", "stl", "obj"})}, {"description", "default: from the path's extension; a mismatch is refused"}},
+                     json{{"name", "bodies"}, {"type", "array"}, {"description", "[body ids] to export; default all"}},
+                     json{{"name", "weld"}, {"type", "boolean"}, {"description", "fuse the chosen bodies into one solid before writing"}},
+                     json{{"name", "rotate"}, {"type", "array"}, {"description", "[rx, ry, rz] degrees about each body's centre (print orientation)"}},
+                     json{{"name", "drop_to_bed"}, {"type", "boolean"}, {"description", "set each body's lowest point on z=0"}},
+                     json{{"name", "plate"}, {"type", "object"}, {"description", "{gap: mm}: lay the bodies out in a row on the bed, dropped to z=0"}},
                  })}},
             json{{"name", "undo"}, {"summary", "Undo the last feature-level change (one step per user action). ok is true even when there was nothing to undo; check `did`."},
                  {"params", json::array()}},
@@ -598,6 +613,19 @@ json describe_tools_core()
                  })}},
         })},
     };
+}
+
+// A body's id that outlives re-indexing: the feature that made it and which of that feature's bodies it is ("f3.0"). Booleans,
+// undo and deletes shift body INDICES; the recompute carries colour, name and every feature's body reference by this identity,
+// so a caller that keeps the id keeps the body. It changes only when the history is reordered or the maker is deleted.
+int body_by_name(const CadDocument& doc, const std::string& name);   // defined with the other body helpers
+
+std::string body_stable_id(const CadDocument& doc, int i)
+{
+    int ord = 0;
+    for (int j = 0; j < i; ++j)
+        if (doc.bodies[j].source_feature == doc.bodies[i].source_feature) ++ord;
+    return "f" + std::to_string(doc.bodies[i].source_feature) + "." + std::to_string(ord);
 }
 
 json describe_scene(DesignPanel* panel)
@@ -619,6 +647,7 @@ json describe_scene(DesignPanel* panel)
         // The user's name when the body has one, the derived maker name otherwise — the same
         // rule the Bodies row shows, so a driver and a person read the same thing.
         json b{{"index", int(i)},
+               {"id", body_stable_id(doc, int(i))},
                {"name", doc.bodies[i].has_user_name ? doc.bodies[i].user_name : doc.bodies[i].name},
                {"user_name", doc.bodies[i].has_user_name},
                {"has_color", doc.bodies[i].has_color}};
@@ -667,6 +696,7 @@ json describe_tools()
         compact_tool("sketch_add", "Add entities to the open sketch. Auto-inferred exact relations (coincident joints, H/V, origin) unless infer:false.", {
             {"entities", "array", "[{type:line,p0,p1}|{type:circle,center,radius}|{type:arc,center,radius,start_angle,end_angle}|{type:point,p}...]"},
             {"type", "string", "single-entity shorthand"}, {"rect", "array", "[x0,y0,x1,y1] rectangle shorthand"},
+            {"shape", "string", "rounded_rect {rect, radius} | slot {p0, p1, width} | trapezoid {base:[x0,x1], y, top_width, height, top_x0?}: closed outline, exact geometry, auto-constrained"},
             {"construction", "boolean", "add as construction geometry"}, {"infer", "boolean", "default true; false adds geometry only, so your own constraints are not rejected as redundant"}}),
         compact_tool("sketch_commit", "Close the open sketch into a Sketch feature; returns sketch_index, to hand to extrude/revolve/sweep/loft.", {}),
         compact_tool("sketch_cancel", "Discard the open sketch.", {}),
@@ -685,6 +715,21 @@ json describe_tools()
         compact_tool("set_parameter", "Same as set_variable, and says how many features the change rebuilt (recomputed) and how many came from the cache (restored).", {{"name", "string", ""}, {"expr", "string", "number or expression"}}),
         compact_tool("list_commands", "Every tool and every ribbon verb with whether it can run now and, if not, why. filter = a substring of the name.", {{"filter", "string", "optional substring"}}),
         compact_tool("execute", "Run a tool by name or a ribbon verb by id (see list_commands). verbose:false returns only ok and the error.", {{"command", "string", "tool name or verb id"}, {"params", "object", "that command's parameters"}, {"verbose", "boolean", "default true"}}),
+        compact_tool("sweep_variable", "Regression run: set a variable to each of `values`, rebuild, record volume / size / interferences and check them against `expect` ({bodies, volume_min, volume_max, size_min, size_max, no_interference}). The design is restored afterwards.", {{"name", "string", "variable"}, {"values", "array", "expressions or numbers"}, {"expect", "object", "optional limits"}}),
+        compact_tool("select_topology", "Find faces or edges by what they are, not by id: where {normal '+z'|[x,y,z], kind planar|cylindrical|line|circle, radius/radius_min/radius_max, length_min/length_max, parallel x|y|z, z, extreme max_z|min_x.., near [x,y,z]}. Returns ids with the generation they are good for; use them before the next rebuild (fillet, chamfer, hole...).", {{"body", "integer", "body index, id or name"}, {"type", "string", "face|edge"}, {"where", "object", "filters"}, {"limit", "integer", "default 200"}}),
+        compact_tool("support_fin", "A breakaway support fin against a near-vertical planar face (the Support Fins technique): a thin wall standing off the face by gap, plus horizontal one-layer tines crossing the gap into the part, fused to it. Parameters: gap 0.2, thickness 1.2, tine_width 0.6, tine_height 0.2, tine_reach 0.5, tine_rows 5, tines_per_row 2, margin 1.", {{"face", "integer", "face id (select_topology)"}, {"body", "integer", "body index, id or name; default last"}, {"gap", "number", "mm"}, {"thickness", "number", "mm"}, {"tine_rows", "integer", ""}}),
+        compact_tool("job_status", "Any tool call with async:true in its params answers at once with a job id and runs in the background; this returns {state: running|done, elapsed_s, reply}. Answered even while the app is busy with the job.", {{"job", "string", "job id from the async call"}}),
+        compact_tool("name_dimension", "Name a sketch dimension (index from sketch_dimensions); set_feature_expr then takes field \"dim:<name>\". name \"\" removes it. Names are positions: deleting a constraint from the sketch shifts the ones after it.", {{"sketch", "integer", "Sketch feature index"}, {"index", "integer", "dimension index"}, {"name", "string", "letters, digits, _"}}),
+        compact_tool("min_distance", "Shortest distance between two bodies and the closest points; b can be tried at a hypothetical offset (move_b) without changing anything.", {{"a", "integer", "body index or name"}, {"b", "integer", "body index or name"}, {"move_b", "array", "[dx,dy,dz] mm"}}),
+        compact_tool("analyze_printability", "Overhang area and levels (a flat pocket ceiling shows as one level), bed contact, height and disconnected solids of a body in a print orientation. rotate [rx,ry,rz] deg; the body rests on its lowest point.", {{"body", "integer", "body index or name"}, {"rotate", "array", "[rx,ry,rz] deg"}, {"overhang_angle", "number", "deg from vertical, default 45"}}),
+        compact_tool("rename_body", "Give a body a name. Verbs that take `body` then accept the name as well as the index (extrude, hole, pattern, fillet, boolean...).", {{"body", "integer", "body index"}, {"name", "string", "unique name"}}),
+        compact_tool("set_body_visible", "Show or hide a body in the viewport (the eye in the Bodies list). Display only.", {{"body", "integer", "body id"}, {"visible", "boolean", "default true"}}),
+        compact_tool("isolate_body", "Hide every body but this one; with no body (or show_all:true) show them all again.", {{"body", "integer", "body id"}, {"show_all", "boolean", ""}}),
+        compact_tool("set_body_color", "Colour a body and/or make it translucent. color '#rrggbb' or [r,g,b]; opacity 0..1. Display only.", {{"body", "integer", "body id"}, {"color", "string", "#rrggbb"}, {"opacity", "number", "0..1"}}),
+        compact_tool("set_body_opacity", "Same as set_body_color; use opacity to see through a body.", {{"body", "integer", "body id"}, {"opacity", "number", "0..1"}}),
+        compact_tool("explode", "Spread the bodies apart from the middle of the whole by distance mm to see inside an assembly; 0 puts them back. Display only, but a mesh committed to the plate while exploded ships exploded.", {{"distance", "number", "mm"}}),
+        compact_tool("section_set", "Section view: cut the model at z = offset and keep the lower or upper half. on:false removes it.", {{"on", "boolean", "default true"}, {"offset", "number", "z in mm (default: mid height)"}, {"side", "string", "lower|upper"}}),
+        compact_tool("list_fields", "The field names set_feature_expr accepts, and (with feature) what that feature has bound now.", {{"feature", "integer", "optional feature index"}}),
         compact_tool("set_feature_expr", "Bind a feature field to an expression and recompute. An unknown field is refused (\"unknown parameter\"). Fields: " + bindable_fields_text() + ", and dim:<N> for sketch dimension N.", {{"feature", "integer", "feature index"}, {"field", "string", "field name"}, {"expr", "string", "expression over the variables"}}),
         compact_tool("sweep", "Sweep a profile sketch along a path sketch.", {{"profile", "integer", "Sketch feature index"}, {"path", "integer", "Sketch feature index"}, {"boolean", "string", "new|union|subtract|intersect"}}),
         compact_tool("loft", "Loft through two or more profile sketches, in order.", {{"profiles", "array", "[Sketch feature index,...]"}, {"ruled", "boolean", "straight (ruled) instead of smooth"}, {"boolean", "string", "new|union|subtract|intersect"}}),
@@ -711,12 +756,12 @@ json describe_tools()
         compact_tool("rename_variable", "Rename a variable; every expression that uses it follows (token-wise).", {{"from", "string", ""}, {"to", "string", ""}}),
         compact_tool("variables_export", "The variables as CSV (name,expression); also written to `path` when given.", {{"path", "string", "optional absolute .csv"}}),
         compact_tool("variables_import", "Add or replace variables from CSV text or a file; all rows are checked first.", {{"csv", "string", ""}, {"path", "string", ""}}),
-        compact_tool("sketch_dimensions", "The dimensions of a committed sketch with their index, value and bound expression. Bind one with set_feature_expr {feature: sketch, field: \"dim:<index>\", expr}.", {{"sketch", "integer", "Sketch feature index"}}),
+        compact_tool("sketch_dimensions", "The dimensions of a committed sketch, in creation order (the index is stable until the sketch is edited), with their kind, value and bound expression. Bind one with set_feature_expr {feature: sketch, field: \"dim:<index>\", expr}.", {{"sketch", "integer", "Sketch feature index"}}),
         compact_tool("rename_feature", "Rename a feature in the history.", {{"feature", "integer", "feature index"}, {"name", "string", "new name"}}),
         compact_tool("move_feature", "Move a feature to another history position; stops where a dependency (a sketch below its consumer) forbids the next step.", {{"feature", "integer", "feature index"}, {"to", "integer", "destination index"}}),
         compact_tool("suppress", "Suppress (or restore) a feature; downstream features rebuild without it.", {{"feature", "integer", "feature index"}, {"suppressed", "boolean", "default true"}}),
         compact_tool("rollback", "Roll the history back to just after a feature (later ones are kept but not built); -1 restores the full history.", {{"index", "integer", "feature index or -1"}}),
-        compact_tool("save", "Save the project (the design recipe travels inside the 3MF) to an absolute .3mf path under $HOME or /tmp.", {{"path", "string", ""}}),
+        compact_tool("save", "Save the project to an absolute .3mf path under $HOME or /tmp. The 3MF holds the design recipe (reopens editable) and the bodies as printable objects; the bodies are sent to the plate first when it is empty (mesh:false never, mesh:true always).", {{"path", "string", ""}, {"mesh", "boolean", "commit the bodies as objects (default: when the plate has none)"}}),
         compact_tool("open", "Open a .3mf project, replacing the current one. Refused while it has unsaved changes unless discard:true. Applied on the next UI turn.", {{"path", "string", ""}, {"discard", "boolean", ""}}),
         compact_tool("screenshot", "PNG of the design viewport (X11 screen read-back; the window must be visible).", {{"path", "string", "absolute .png under $HOME or /tmp"}, {"view", "string", "iso|top|front|... applied first"}, {"fit", "boolean", "fit the view first"}}),
     }) {
@@ -783,7 +828,7 @@ bool profile_from(const json& params, SketchProfile& out)
 const TopoDS_Shape& body_shape(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
-    int idx = params.value("body", 0);
+    int idx = params.contains("body") && params["body"].is_string() ? body_by_name(doc, params["body"].get<std::string>()) : params.value("body", 0);
     if (idx < 0 || idx >= int(doc.bodies.size()))
         throw std::runtime_error("body index out of range (have " + std::to_string(doc.bodies.size()) + ")");
     if (doc.bodies[idx].shape.IsNull())
@@ -845,6 +890,82 @@ json query_topology(DesignPanel* panel, const json& params)
                 // The ids above are indices into this exact topology and expire with it. Echo
                 // this back as "generation" on the calls that consume them.
                 {"generation", panel->mcp_doc().topo_generation}};
+}
+
+// Faces and edges by what they ARE, not by an id that means something else after the next rebuild: ask here, then use the ids in
+// the same turn (they carry the `generation` they are good for). {body, type:"face"|"edge", where:{...}, limit?}
+//   normal "+z"|"-z"|"+x"|... or [x,y,z] (faces, within ~1 degree)    kind "planar"|"cylindrical"|"line"|"circle"
+//   radius (+ tol) or radius_min / radius_max                         length_min / length_max (edges)
+//   parallel "x"|"y"|"z" (edges)       z (centroid / mid height, +- tol, default 1e-3)
+//   extreme "max_z"|"min_z"|"max_x"|"min_x"|"max_y"|"min_y"           near [x,y,z] (closest first)
+json action_select_topology(DesignPanel* panel, const json& params)
+{
+    const std::string type = params.value("type", std::string("face"));
+    if (type != "face" && type != "edge") throw std::runtime_error("type is face or edge");
+    const json where = params.value("where", json::object());
+    json topo = query_topology(panel, params);
+    const json& all = topo[type == "face" ? "faces" : "edges"];
+    auto axis_of = [](const std::string& a) -> Vec3d {
+        if (a.size() == 2 && (a[0] == '+' || a[0] == '-')) {
+            const double sg = a[0] == '+' ? 1. : -1.;
+            if (a[1] == 'x') return Vec3d(sg, 0, 0);
+            if (a[1] == 'y') return Vec3d(0, sg, 0);
+            if (a[1] == 'z') return Vec3d(0, 0, sg);
+        }
+        throw std::runtime_error("an axis is \"+x\", \"-x\", \"+y\", \"-y\", \"+z\" or \"-z\"");
+    };
+    auto v3 = [](const json& a) { return Vec3d(a[0].get<double>(), a[1].get<double>(), a[2].get<double>()); };
+    std::vector<const json*> hit;
+    for (const json& e : all) {
+        if (where.contains("kind") && e.value("kind", std::string()) != where["kind"].get<std::string>()) continue;
+        if (where.contains("radius")) {
+            if (!e.contains("radius") || std::abs(e["radius"].get<double>() - where["radius"].get<double>()) > where.value("tol", 1e-3)) continue;
+        }
+        if (where.contains("radius_min") && (!e.contains("radius") || e["radius"].get<double>() < where["radius_min"].get<double>())) continue;
+        if (where.contains("radius_max") && (!e.contains("radius") || e["radius"].get<double>() > where["radius_max"].get<double>())) continue;
+        if (type == "face" && where.contains("normal")) {
+            const Vec3d want = where["normal"].is_string() ? axis_of(where["normal"].get<std::string>()) : Vec3d(v3(where["normal"]).normalized());
+            if (v3(e["normal"]).normalized().dot(want) < 0.9998) continue;
+        }
+        if (type == "edge") {
+            const Vec3d a = v3(e["p0"]), b = v3(e["p1"]);
+            const double len = e["length"].get<double>();
+            if (where.contains("length_min") && len < where["length_min"].get<double>()) continue;
+            if (where.contains("length_max") && len > where["length_max"].get<double>()) continue;
+            if (where.contains("parallel")) {
+                const std::string ax = where["parallel"].get<std::string>();
+                const Vec3d u = axis_of("+" + ax);
+                const Vec3d d = (b - a);
+                if (d.norm() < 1e-9 || std::abs(d.normalized().dot(u)) < 0.9998) continue;
+            }
+        }
+        if (where.contains("z")) {
+            const double z = type == "face" ? v3(e["centroid"]).z() : 0.5 * (v3(e["p0"]).z() + v3(e["p1"]).z());
+            if (std::abs(z - where["z"].get<double>()) > where.value("tol", 1e-3)) continue;
+        }
+        hit.push_back(&e);
+    }
+    auto pos = [&](const json& e) { return type == "face" ? v3(e["centroid"]) : Vec3d(0.5 * (v3(e["p0"]) + v3(e["p1"]))); };
+    if (where.contains("extreme") && !hit.empty()) {
+        const std::string ex = where["extreme"].get<std::string>();
+        if (ex.size() != 5 || (ex.substr(0, 4) != "max_" && ex.substr(0, 4) != "min_")) throw std::runtime_error("extreme is max_x|min_x|max_y|min_y|max_z|min_z");
+        const int k = ex[4] == 'x' ? 0 : ex[4] == 'y' ? 1 : 2;
+        const bool mx = ex[1] == 'a';
+        double best = mx ? -1e300 : 1e300;
+        for (const json* e : hit) best = mx ? std::max(best, pos(*e)[k]) : std::min(best, pos(*e)[k]);
+        std::vector<const json*> keep;
+        for (const json* e : hit) if (std::abs(pos(*e)[k] - best) < 1e-3) keep.push_back(e);
+        hit.swap(keep);
+    }
+    if (where.contains("near")) {
+        const Vec3d q = v3(where["near"]);
+        std::sort(hit.begin(), hit.end(), [&](const json* a, const json* b) { return (pos(*a) - q).norm() < (pos(*b) - q).norm(); });
+    }
+    const size_t limit = size_t(std::max(1, params.value("limit", 200)));
+    if (hit.size() > limit) hit.resize(limit);
+    json ids = json::array(), matches = json::array();
+    for (const json* e : hit) { ids.push_back((*e)["id"]); matches.push_back(*e); }
+    return json{{"ok", true}, {"type", type}, {"count", int(ids.size())}, {"ids", ids}, {"matches", matches}, {"generation", topo["generation"]}};
 }
 
 // One measurement reference -> a representative point and (optionally) a direction.
@@ -1131,6 +1252,8 @@ int sketch_ref_arg(const json& params, const CadDocument& doc)
     return s;
 }
 
+int target_body_arg(const json& params, const CadDocument& doc);   // defined below, with the other body helpers
+
 json action_extrude(DesignPanel* panel, const json& params)
 {
     const double d = params.value("distance", 10.0);
@@ -1147,11 +1270,13 @@ json action_extrude(DesignPanel* panel, const json& params)
         w = params.value("width", 20.0); h = params.value("height", 20.0);
         if (w <= 0 || h <= 0) throw std::runtime_error("width and height must be > 0");
     }
+    const int target = target_body_arg(params, doc);   // the body a union / subtract acts on; default the last
     doc.checkpoint();
     int s = sk >= 0 ? sk
           : has_prof ? doc.add_sketch_profile(prof, pl, "Sketch")
                      : doc.add_sketch(SketchShape::Rectangle, pl, w, h, 0.0, "Sketch");
     int e = doc.add_extrude(s, d, /*symmetric*/false, mode, "Extrude");
+    if (target >= 0) doc.features[size_t(e)].target_body = target;
     // End condition (Onshape parity). apply reads extrude_end directly; the kernel `symmetric`
     // bool is unused, so set the field here. up_to_face id comes from query_topology on the
     // target (last) body. taper_deg lofts the side wall; flip negates the direction.
@@ -1212,9 +1337,26 @@ json action_revolve(DesignPanel* panel, const json& params)
 
 // Resolve an optional explicit body target. Default (no `body`, or <0) = last body, which is
 // what the kernel picks anyway. Validated BEFORE any checkpoint so a bad index throws clean.
+// A body by index, or by the name it carries (rename_body, or the label inspect_design shows): an index shifts when a boolean
+// merges bodies or an earlier feature is undone, a name does not.
+int body_by_name(const CadDocument& doc, const std::string& name)
+{
+    for (int i = 0; i < int(doc.bodies.size()); ++i)   // the stable id inspect_design shows ("f3.0")
+        if (body_stable_id(doc, i) == name) return i;
+    int found = -1;
+    for (int i = 0; i < int(doc.bodies.size()); ++i) {
+        const CadBody& b = doc.bodies[i];
+        if ((b.has_user_name ? b.user_name : b.name) != name) continue;
+        if (found >= 0) throw std::runtime_error("more than one body is called '" + name + "'; use its index or rename_body");
+        found = i;
+    }
+    if (found < 0) throw std::runtime_error("no body called '" + name + "'");
+    return found;
+}
+
 int target_body_arg(const json& params, const CadDocument& doc)
 {
-    int bi = params.value("body", -1);
+    int bi = params.contains("body") && params["body"].is_string() ? body_by_name(doc, params["body"].get<std::string>()) : params.value("body", -1);
     if (bi >= int(doc.bodies.size()))
         throw std::runtime_error("body index out of range (have " + std::to_string(doc.bodies.size()) + ")");
     return bi;   // <0 -> kernel uses the last body
@@ -1318,11 +1460,12 @@ json action_hole(DesignPanel* panel, const json& params)
             pts.emplace_back(jn(p, 0), jn(p, 1));
         }
     } else pts.emplace_back(x, y);
+    const int target = target_body_arg(params, doc);
     doc.checkpoint();
     int h = -1;
     const double tip = params.value("tip_angle", 0.0);
     if (tip < 0 || tip >= 180) throw std::runtime_error("tip_angle must be in [0, 180)");
-    for (const auto& p : pts) { h = doc.add_hole(dia, depth, thru, p.first, p.second, pl, "Hole"); doc.features[size_t(h)].hole_tip_angle = tip; }
+    for (const auto& p : pts) { h = doc.add_hole(dia, depth, thru, p.first, p.second, pl, "Hole"); doc.features[size_t(h)].hole_tip_angle = tip; if (target >= 0) doc.features[size_t(h)].target_body = target; }
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
@@ -1450,8 +1593,10 @@ json action_boolean(DesignPanel* panel, const json& params)
 {
     BooleanMode m = bool_from(params.value("op", std::string("subtract")));
     if (m == BooleanMode::New) throw std::runtime_error("op must be union | subtract | intersect");
-    const int target = params.value("target", 0);
-    const int tool   = params.value("tool", 1);
+    CadDocument& d0 = panel->mcp_doc();
+    auto body_of = [&](const char* k, int dflt) { return !params.contains(k) ? dflt : params[k].is_string() ? body_by_name(d0, params[k].get<std::string>()) : params[k].get<int>(); };
+    const int target = body_of("target", 0);
+    const int tool   = body_of("tool", 1);
     const bool keep  = params.value("keep_tool", false);
     const double tol = params.value("tolerance", 0.0);
     CadDocument& doc = panel->mcp_doc();
@@ -1465,6 +1610,71 @@ json action_boolean(DesignPanel* panel, const json& params)
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"boolean_index", b}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+// Support fin (Slant3D / the Support Fins plugin, docs/FIN-SPEC.md): a thin wall standing off a near-vertical face by `gap`, and
+// horizontal one-layer tines that cross the gap and fuse into the part, so the fin both props and holds. Built from the same
+// features a person would use (a fin extrude, one extrude per row of tines, a union with the part), so the history stays editable.
+// {body?, face, gap=0.2, thickness=1.2, tine_width=0.6, tine_height=0.2, tine_reach=0.5, tine_rows=5, tines_per_row=2, margin=1}
+// Rows crowd toward the base and thin out with height; tines are one layer tall so each prints as a single bead.
+json action_support_fin(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (!params.contains("face") || !params["face"].is_number_integer()) throw std::runtime_error("support_fin needs 'face' (id from query_topology or select_topology)");
+    const int body = params.contains("body") ? (params["body"].is_string() ? body_by_name(doc, params["body"].get<std::string>()) : params["body"].get<int>()) : int(doc.bodies.size()) - 1;
+    if (body < 0 || body >= int(doc.bodies.size())) throw std::runtime_error("no such body");
+    const TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[body].shape, params["face"].get<int>());
+    if (fc.IsNull()) throw std::runtime_error("no such face on that body (ids expire when the model rebuilds)");
+    if (BRepAdaptor_Surface(fc).GetType() != GeomAbs_Plane) throw std::runtime_error("the fin stands against a planar face");
+    const Vec3d n = GeometryEngine::face_normal_world(fc).normalized();
+    if (std::abs(n.z()) > 0.2) throw std::runtime_error("the fin stands against a near-vertical face (normal within 12 degrees of horizontal)");
+    const double gap = params.value("gap", 0.2), thick = params.value("thickness", 1.2);
+    const double tw = params.value("tine_width", 0.6), th = params.value("tine_height", 0.2), reach = params.value("tine_reach", 0.5);
+    const int rows = params.value("tine_rows", 5), per = params.value("tines_per_row", 2);
+    const double margin = params.value("margin", 1.0);
+    if (gap < 0 || thick <= 0 || tw <= 0 || th <= 0 || reach < 0 || rows < 1 || per < 1) throw std::runtime_error("gap >= 0, thickness, tine_width, tine_height > 0, tine_rows and tines_per_row >= 1");
+
+    // The plane frame exactly as plane_from builds it, so profile coordinates mean what extrude will read them as.
+    const Vec3d h = std::abs(n.x()) < 0.9 ? Vec3d(1, 0, 0) : Vec3d(0, 1, 0);
+    const Vec3d ax = (h - n * h.dot(n)).normalized(), ay = n.cross(ax);
+    const Vec3d c = GeometryEngine::face_centroid_world(fc);
+    Bnd_Box bb; BRepBndLib::Add(fc, bb);
+    double x0, y0, z0, x1, y1, z1; bb.Get(x0, y0, z0, x1, y1, z1);
+    double u0 = 1e300, u1 = -1e300, v0 = 1e300, v1 = -1e300;
+    for (int i = 0; i < 8; ++i) {
+        const Vec3d q((i & 1 ? x1 : x0), (i & 2 ? y1 : y0), (i & 4 ? z1 : z0));
+        const double u = (q - c).dot(ax), v = (q - c).dot(ay);
+        u0 = std::min(u0, u); u1 = std::max(u1, u); v0 = std::min(v0, v); v1 = std::max(v1, v);
+    }
+    if (u1 - u0 < 2 * margin + tw || v1 - v0 < 2 * margin) throw std::runtime_error("the face is too small for a fin with that margin");
+    auto model_origin = [&](double shift) { const Vec3d o = c + n * shift - doc.modeling_origin; return json::array({o.x(), o.y(), o.z()}); };
+    auto rect = [](double a0, double b0, double a1, double b1) { return json::array({json::array({a0, b0}), json::array({a1, b0}), json::array({a1, b1}), json::array({a0, b1})}); };
+    const json nrm = json::array({n.x(), n.y(), n.z()});
+
+    // 1. the fin: a wall at `gap` off the face, `thickness` out from it
+    const int part_n = int(doc.bodies.size());
+    json r = action_extrude(panel, json{{"normal", nrm}, {"origin", model_origin(gap)}, {"profile", rect(u0, v0, u1, v1)}, {"distance", thick}, {"boolean", "new"}});
+    if (!r.value("ok", false)) return r;
+    const int fin = int(doc.bodies.size()) - 1;
+    if (fin < part_n) throw std::runtime_error("the fin did not make a body");
+
+    // 2. a row of tines per station, from just inside the fin across the gap to `reach` into the part
+    int tines = 0;
+    for (int k = 0; k < rows; ++k) {
+        const double f = rows == 1 ? 0.0 : std::pow(double(k) / double(rows - 1), 1.6);   // crowded at the base, sparser up the wall
+        const double vz = v0 + margin + f * (v1 - v0 - 2 * margin - th);
+        for (int j = 0; j < per; ++j) {
+            const double uc = u0 + (u1 - u0) * (double(j) + 1.0) / (double(per) + 1.0);
+            json t = action_extrude(panel, json{{"normal", nrm}, {"origin", model_origin(gap + 0.1)}, {"profile", rect(uc - 0.5 * tw, vz, uc + 0.5 * tw, vz + th)},
+                                                {"distance", gap + 0.1 + reach}, {"flip", true}, {"boolean", "union"}, {"body", fin}});
+            if (!t.value("ok", false)) return t;
+            ++tines;
+        }
+    }
+    // 3. the fin and the part become one solid through the tines
+    json b = action_boolean(panel, json{{"op", "union"}, {"target", body}, {"tool", fin}});
+    b["fin_body_was"] = fin; b["tines"] = tines; b["rows"] = rows;
+    return b;
 }
 
 json action_pattern(DesignPanel* panel, const json& params)
@@ -1861,7 +2071,7 @@ std::vector<int> sketch_targets(const json& params, DesignSketchTool& t, bool al
 }
 
 // The face a sketch being drawn is attached to; written onto the Sketch feature by sketch_commit.
-struct PendingAttach { int body{-1}; int face{-1}; };
+struct PendingAttach { int body{-1}; int face{-1}; int datum{-1}; };
 PendingAttach g_pending_attach;
 
 json action_sketch_begin(DesignPanel* panel, const json& params)
@@ -1903,6 +2113,10 @@ json action_sketch_begin(DesignPanel* panel, const json& params)
         const int  n      = std::atoi(pl.c_str() + 6);
         if (n < 0 || n >= int(datums.size())) throw std::runtime_error("no such datum plane: " + pl);
         plane = datums[n].second;
+        int seen = 0;   // the Plane FEATURE behind that datum: the sketch follows it when the plane moves
+        const CadDocument& dd = panel->mcp_doc();
+        for (int j = 0; j < int(dd.features.size()); ++j)
+            if (dd.features[j].type == CadFeatureType::Plane && dd.features[j].enabled && seen++ == n) { g_pending_attach.datum = j; break; }
     }
     else if (pl != "XY") throw std::runtime_error("plane must be XY, XZ, YZ or datum:N");
     // Every plane passes through modeling_origin (the bed centre), as the GUI's, the datum planes', extrude{profile}'s,
@@ -1933,6 +2147,7 @@ json action_sketch_commit(DesignPanel* panel, const json& params)
     const int last = cd.last_added >= 0 && cd.last_added < int(cd.features.size()) ? cd.last_added : int(cd.features.size()) - 1;
     const bool is_sk = last >= 0 && cd.features[last].type == CadFeatureType::Sketch;
     if (is_sk && g_pending_attach.face >= 0) { cd.features[last].attach_body = g_pending_attach.body; cd.features[last].attach_face = g_pending_attach.face; }
+    if (is_sk && g_pending_attach.datum >= 0) cd.features[last].attach_datum = g_pending_attach.datum;
     g_pending_attach = {};
     return json{{"ok", true}, {"features", int(cd.features.size())}, {"sketch_index", is_sk ? last : -1}};
 }
@@ -1948,12 +2163,67 @@ json action_sketch_cancel(DesignPanel* panel, const json& params)
     return json{{"ok", true}};
 }
 
+// The closed outlines a caller would otherwise hand-compute: {shape:"rounded_rect", rect:[x0,y0,x1,y1], radius},
+// {shape:"slot", p0:[x,y], p1:[x,y], width} (centre to centre of the end arcs) and
+// {shape:"trapezoid", base:[x0,x1], y, top_width, height, top_x0?} (top centred over the base unless top_x0 is given).
+// Exact geometry, so the auto-constraint pass welds the corners and tangent joins and sets horizontal / vertical on its own.
+std::vector<SketchEntity> sketch_shape_from(const json& params)
+{
+    const std::string shape = params.at("shape").get<std::string>();
+    const bool cons = params.value("construction", false);
+    std::vector<SketchEntity> out;
+    auto line = [&](Vec2d a, Vec2d b) { SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b; e.construction = cons; out.push_back(e); };
+    auto arc = [&](Vec2d c, double r, double a0, double a1) {
+        SketchEntity e; e.type = SketchEntity::Type::Arc; e.center = c; e.radius = r; e.start_angle = a0; e.end_angle = a1; e.construction = cons;
+        e.p0 = c + r * Vec2d(std::cos(a0), std::sin(a0)); e.p1 = c + r * Vec2d(std::cos(a1), std::sin(a1));
+        out.push_back(e);
+    };
+    auto pt = [&](const char* k) {
+        if (!params.contains(k) || !params[k].is_array() || params[k].size() < 2) throw std::runtime_error(std::string("'") + k + "' must be [x, y]");
+        return Vec2d(jn(params[k], 0), jn(params[k], 1));
+    };
+    const double H = M_PI / 2.0;
+    if (shape == "rounded_rect") {
+        if (!params.contains("rect") || !params["rect"].is_array() || params["rect"].size() < 4) throw std::runtime_error("rounded_rect needs 'rect' [x0, y0, x1, y1] and 'radius'");
+        const double x0 = std::min(jn(params["rect"], 0), jn(params["rect"], 2)), x1 = std::max(jn(params["rect"], 0), jn(params["rect"], 2));
+        const double y0 = std::min(jn(params["rect"], 1), jn(params["rect"], 3)), y1 = std::max(jn(params["rect"], 1), jn(params["rect"], 3));
+        const double r = params.value("radius", 0.0);
+        if (r <= 0 || 2 * r > (x1 - x0) + 1e-9 || 2 * r > (y1 - y0) + 1e-9) throw std::runtime_error("radius must be > 0 and at most half the shorter side");
+        line({x0 + r, y0}, {x1 - r, y0}); arc({x1 - r, y0 + r}, r, -H, 0.0);
+        line({x1, y0 + r}, {x1, y1 - r}); arc({x1 - r, y1 - r}, r, 0.0, H);
+        line({x1 - r, y1}, {x0 + r, y1}); arc({x0 + r, y1 - r}, r, H, 2 * H);
+        line({x0, y1 - r}, {x0, y0 + r}); arc({x0 + r, y0 + r}, r, 2 * H, 3 * H);
+    } else if (shape == "slot") {
+        const Vec2d a = pt("p0"), b = pt("p1");
+        const double w = params.value("width", 0.0);
+        if (w <= 0 || (b - a).norm() < 1e-9) throw std::runtime_error("slot needs two different centres and a positive 'width'");
+        const Vec2d d = (b - a).normalized(), n(-d.y(), d.x());
+        const double th = std::atan2(d.y(), d.x()), r = 0.5 * w;
+        line(a + n * r, b + n * r); arc(b, r, th - H, th + H);
+        line(b - n * r, a - n * r); arc(a, r, th + H, th + 3 * H);
+    } else if (shape == "trapezoid") {
+        if (!params.contains("base") || !params["base"].is_array() || params["base"].size() < 2) throw std::runtime_error("trapezoid needs 'base' [x0, x1], 'y', 'top_width' and 'height'");
+        const double bx0 = jn(params["base"], 0), bx1 = jn(params["base"], 1), y = params.value("y", 0.0);
+        const double tw = params.value("top_width", 0.0), h = params.value("height", 0.0);
+        if (bx1 <= bx0 || tw <= 0 || h <= 0) throw std::runtime_error("trapezoid needs base x1 > x0, top_width > 0 and height > 0");
+        const double tx0 = params.contains("top_x0") ? params["top_x0"].get<double>() : 0.5 * (bx0 + bx1) - 0.5 * tw;
+        line({bx0, y}, {bx1, y}); line({bx1, y}, {tx0 + tw, y + h});
+        line({tx0 + tw, y + h}, {tx0, y + h}); line({tx0, y + h}, {bx0, y});
+    } else
+        throw std::runtime_error("unknown shape '" + shape + "' (rounded_rect, slot, trapezoid)");
+    return out;
+}
+
+json action_sketch_constrain(DesignPanel* panel, const json& params);   // defined below
+
 json action_sketch_add(DesignPanel* panel, const json& params)
 {
     DesignSketchTool& t = mcp_sketch(panel);
     std::vector<SketchEntity> ents;
     if (params.contains("entities")) {
         for (const auto& j : params.at("entities")) ents.push_back(sketch_entity_from(j));
+    } else if (params.contains("shape")) {
+        ents = sketch_shape_from(params);
     } else if (params.contains("type")) {
         ents.push_back(sketch_entity_from(params));      // single-entity shorthand
     } else if (params.contains("rect")) {
@@ -1971,11 +2241,19 @@ json action_sketch_add(DesignPanel* panel, const json& params)
         ents.push_back(seg({x1, y1}, {x0, y1}));
         ents.push_back(seg({x0, y1}, {x0, y0}));
     } else {
-        throw std::runtime_error("sketch_add needs 'entities', a single 'type', or 'rect'");
+        throw std::runtime_error("sketch_add needs 'entities', a single 'type', 'rect', or a 'shape' (rounded_rect, slot, trapezoid)");
     }
     int base;
     { PhaseLog p("sketch_add.add_entities"); base = t.add_entities_scripted(ents, params.value("infer", true)); }
     panel->mcp_viewport()->request_repaint();
+    // A rounded outline: each line meets its arc tangentially (the inference welds the joints; tangency it does not set).
+    json tangents = json::array();
+    if (params.contains("shape") && base >= 0 && params.value("tangent", true)) {
+        const std::string sh = params["shape"].get<std::string>();
+        const int n = sh == "rounded_rect" ? 8 : sh == "slot" ? 4 : 0;
+        for (int k = 0; k < n; ++k) tangents.push_back(json{{"type", "tangent"}, {"a", base + k}, {"b", base + (k + 1) % n}});
+        if (!tangents.empty()) { try { action_sketch_constrain(panel, json{{"atomic", false}, {"constraints", tangents}}); } catch (const std::exception&) { /* geometry stays; dof reports what is free */ } }
+    }
     int dof;
     { PhaseLog p("sketch_add.dof"); dof = t.dof(); }
     return json{{"ok", base >= 0}, {"first_index", base}, {"added", int(ents.size())},
@@ -2651,9 +2929,75 @@ json action_mate(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"mate_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+// ---- verification without touching the design --------------------------------------------------------------------------
+// {a, b, move_b?:[dx,dy,dz]}: two bodies (index or name) as they are, or with b moved: "does the lid clear the box if it sits
+// 3 mm lower?" is answered here without transforming a copy, intersecting and undoing.
+struct BodyPair { TopoDS_Shape a, b; int ia{-1}, ib{-1}; };
+
+BodyPair pair_arg(DesignPanel* panel, const json& params, const char* what)
+{
+    CadDocument& doc = panel->mcp_doc();
+    auto one = [&](const char* k) {
+        if (!params.contains(k)) throw std::runtime_error(std::string(what) + " needs 'a' and 'b' (body index or name)");
+        const json& v = params[k];
+        const int i = v.is_string() ? body_by_name(doc, v.get<std::string>()) : v.is_number_integer() ? v.get<int>() : -1;
+        if (i < 0 || i >= int(doc.bodies.size()) || doc.bodies[i].shape.IsNull()) throw std::runtime_error(std::string("'") + k + "' is not a body");
+        return i;
+    };
+    BodyPair r;
+    r.ia = one("a"); r.ib = one("b");
+    if (r.ia == r.ib) throw std::runtime_error("'a' and 'b' are the same body");
+    r.a = doc.bodies[r.ia].shape; r.b = doc.bodies[r.ib].shape;
+    if (params.contains("move_b")) {
+        if (!params["move_b"].is_array() || params["move_b"].size() != 3) throw std::runtime_error("'move_b' is [dx, dy, dz] in mm");
+        gp_Trsf t; t.SetTranslation(gp_Vec(jn(params["move_b"], 0), jn(params["move_b"], 1), jn(params["move_b"], 2)));
+        r.b = BRepBuilderAPI_Transform(r.b, t, true).Shape();
+    }
+    return r;
+}
+
+json distance_report(const TopoDS_Shape& a, const TopoDS_Shape& b)
+{
+    BRepExtrema_DistShapeShape d(a, b);
+    if (!d.IsDone() || d.NbSolution() < 1) return json{{"distance", nullptr}};
+    const gp_Pnt pa = d.PointOnShape1(1), pb = d.PointOnShape2(1);
+    return json{{"distance", d.Value()}, {"point_a", {pa.X(), pa.Y(), pa.Z()}}, {"point_b", {pb.X(), pb.Y(), pb.Z()}}};
+}
+
+// Shortest distance between two bodies and where, 0 when they touch or overlap.
+json action_min_distance(DesignPanel* panel, const json& params)
+{
+    const BodyPair p = pair_arg(panel, params, "min_distance");
+    json r = distance_report(p.a, p.b);
+    r["ok"] = true; r["a"] = p.ia; r["b"] = p.ib;
+    return r;
+}
+
+// The overlap volume of one pair (with b optionally moved) and the gap: status is "interferes", "touching" or "clear".
+json pair_interference(const BodyPair& p, double min_volume)
+{
+    double v = 0;
+    BRepAlgoAPI_Common common(p.a, p.b);
+    common.Build();
+    if (common.IsDone() && !common.Shape().IsNull()) {
+        GProp_GProps props; BRepGProp::VolumeProperties(common.Shape(), props);
+        v = std::abs(props.Mass());
+    }
+    json r = distance_report(p.a, p.b);
+    const double gap = r["distance"].is_number() ? r["distance"].get<double>() : 0.;
+    r["volume"] = v; r["a"] = p.ia; r["b"] = p.ib;
+    r["status"] = v > min_volume ? "interferes" : gap < 1e-6 ? "touching" : "clear";
+    return r;
+}
+
+// {min_volume?} lists every overlapping pair; {a, b, move_b?} answers for that one pair, hypothetical placement included.
 json action_check_interference(DesignPanel* panel, const json& params)
 {
     const double min_volume = params.value("min_volume", 1e-6);
+    if (params.contains("a") || params.contains("b")) {
+        json r = pair_interference(pair_arg(panel, params, "check_interference"), min_volume);
+        r["ok"] = true; return r;
+    }
     CadDocument& doc = panel->mcp_doc();
     // Read-only: no checkpoint(), no recompute(), no mcp_after_change().
     const auto hits = doc.check_interference(min_volume);
@@ -2662,6 +3006,119 @@ json action_check_interference(DesignPanel* panel, const json& params)
         arr.push_back(json{{"body_a", h.body_a}, {"body_b", h.body_b}, {"volume", h.volume}});
     }
     return json{{"ok", true}, {"count", int(hits.size())}, {"interferences", arr}};
+}
+
+// {body, rotate?:[rx,ry,rz deg], overhang_angle?:45}: what a printer would meet with the body in that orientation, resting on
+// its lowest point. Down-facing triangles steeper than the angle from vertical are overhangs; they are grouped by height so a
+// flat pocket ceiling shows as one level with its area. Thin walls are not measured here.
+json action_analyze_printability(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    const int b = params.contains("body") && params["body"].is_string() ? body_by_name(doc, params["body"].get<std::string>()) : params.value("body", 0);
+    if (b < 0 || b >= int(doc.bodies.size()) || b >= int(doc.display_body_meshes.size())) throw std::runtime_error("no body " + std::to_string(b));
+    const double ang = params.value("overhang_angle", 45.0);
+    if (ang <= 0 || ang >= 90) throw std::runtime_error("overhang_angle is in (0, 90) degrees from vertical");
+    TriangleMesh m = doc.display_body_meshes[b];
+    if (params.contains("rotate")) {
+        if (!params["rotate"].is_array() || params["rotate"].size() != 3) throw std::runtime_error("'rotate' is [rx, ry, rz] in degrees");
+        const double k = M_PI / 180.0;
+        const Vec3d c = m.bounding_box().center();
+        Transform3d t = Transform3d::Identity();
+        t.translate(c);
+        t.rotate(Eigen::AngleAxisd(jn(params["rotate"], 2) * k, Vec3d::UnitZ()) * Eigen::AngleAxisd(jn(params["rotate"], 1) * k, Vec3d::UnitY()) * Eigen::AngleAxisd(jn(params["rotate"], 0) * k, Vec3d::UnitX()));
+        t.translate(-c);
+        m.transform(t);
+    }
+    const BoundingBoxf3 bb = m.bounding_box();
+    const double zmin = bb.min.z();
+    const double cos_lim = std::cos((90.0 - ang) * M_PI / 180.0);   // a down-facing normal with -nz > cos_lim overhangs by more than `ang`
+    double area = 0, bed = 0, over = 0;
+    std::map<long, std::array<double, 7>> levels;   // z (0.1 mm) -> area, x0, y0, x1, y1, z
+    for (const stl_triangle_vertex_indices& f : m.its.indices) {
+        const Vec3f& p0 = m.its.vertices[f(0)]; const Vec3f& p1 = m.its.vertices[f(1)]; const Vec3f& p2 = m.its.vertices[f(2)];
+        const Vec3d n = (p1 - p0).cast<double>().cross((p2 - p0).cast<double>());
+        const double a = 0.5 * n.norm();
+        if (a < 1e-12) continue;
+        area += a;
+        const double nz = n.z() / n.norm();
+        if (nz >= -1e-9) continue;
+        const double zc = (p0.z() + p1.z() + p2.z()) / 3.0;
+        if (zc - zmin < 0.05 && -nz > 0.99) { bed += a; continue; }   // flat on the bed: contact, not an overhang
+        if (-nz <= cos_lim) continue;
+        over += a;
+        auto& L = levels[std::lround(zc * 10.0)];
+        if (L[0] == 0) L = {0, 1e30, 1e30, -1e30, -1e30, zc, 0};
+        L[0] += a;
+        for (const Vec3f* q : {&p0, &p1, &p2}) { L[1] = std::min<double>(L[1], q->x()); L[2] = std::min<double>(L[2], q->y()); L[3] = std::max<double>(L[3], q->x()); L[4] = std::max<double>(L[4], q->y()); }
+    }
+    std::vector<std::array<double, 7>> top;
+    for (auto& kv : levels) top.push_back(kv.second);
+    std::sort(top.begin(), top.end(), [](const auto& x, const auto& y) { return x[0] > y[0]; });
+    json lv = json::array();
+    for (size_t i = 0; i < top.size() && i < 6; ++i)
+        lv.push_back(json{{"z", top[i][5] - zmin}, {"area_mm2", top[i][0]}, {"min", {top[i][1], top[i][2]}}, {"max", {top[i][3], top[i][4]}}});
+    int solids = 0;
+    for (TopExp_Explorer ex(doc.bodies[b].shape, TopAbs_SOLID); ex.More(); ex.Next()) ++solids;
+    return json{{"ok", true}, {"body", b}, {"height_mm", bb.size().z()}, {"footprint_mm", {bb.size().x(), bb.size().y()}},
+                {"bed_contact_mm2", bed}, {"overhang_mm2", over}, {"overhang_pct", area > 0 ? 100.0 * over / area : 0.0},
+                {"overhang_angle", ang}, {"overhang_levels", lv}, {"solids", solids},
+                {"warnings", solids > 1 ? json::array({"the body is " + std::to_string(solids) + " disconnected solids"}) : json::array()}};
+}
+
+// {name, values:[expr...], expect?:{bodies, volume_min, volume_max, size_max:[x,y,z], size_min:[x,y,z], no_interference}}
+// A parametric regression run: for each value the variable is set, the model rebuilt, and volume, bounding size and overlapping
+// pairs recorded; `expect` turns that into pass/fail per value. The design is put back as it was, whatever happens.
+json action_sweep_variable(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    const std::string name = params.value("name", std::string());
+    if (!doc.variables.count(name)) throw std::runtime_error("no variable '" + name + "'");
+    if (!params.contains("values") || !params["values"].is_array() || params["values"].empty() || params["values"].size() > 100)
+        throw std::runtime_error("'values' is 1-100 expressions or numbers");
+    const json expect = params.value("expect", json::object());
+    const std::string saved = doc.variables[name];
+    doc.checkpoint();
+    json rows = json::array();
+    int failed = 0;
+    for (const json& v : params["values"]) {
+        std::string expr;
+        if (v.is_string()) expr = v.get<std::string>();
+        else { std::ostringstream os; os.imbue(std::locale::classic()); os << v.get<double>(); expr = os.str(); }   // not to_string: it writes "10,000000" under it_IT
+        doc.variables[name] = expr;
+        json row{{"value", v}};
+        bool ok = false;
+        try { ok = doc.recompute(); } catch (const std::exception& e) { doc.error = e.what(); }
+        row["rebuilt"] = ok;
+        std::vector<std::string> why;
+        if (!ok) { row["error"] = doc.error; why.push_back("rebuild failed: " + doc.error); }
+        else {
+            double vol = 0;
+            for (int i = 0; i < int(doc.bodies.size()); ++i) vol += std::abs(doc.body_mass_properties(i).volume);
+            BoundingBoxf3 bb;
+            for (const TriangleMesh& m : doc.display_body_meshes) if (!m.empty()) bb.merge(m.bounding_box());
+            const Vec3d sz = bb.defined ? bb.size() : Vec3d::Zero();
+            const int pairs = int(doc.check_interference().size());
+            row["bodies"] = int(doc.bodies.size()); row["volume"] = vol; row["size"] = {sz.x(), sz.y(), sz.z()}; row["interferences"] = pairs;
+            if (expect.contains("bodies") && int(doc.bodies.size()) != expect["bodies"].get<int>()) why.push_back("bodies " + std::to_string(doc.bodies.size()) + " != " + std::to_string(expect["bodies"].get<int>()));
+            if (expect.contains("volume_min") && vol < expect["volume_min"].get<double>()) why.push_back("volume below volume_min");
+            if (expect.contains("volume_max") && vol > expect["volume_max"].get<double>()) why.push_back("volume above volume_max");
+            for (int k = 0; k < 3; ++k) {
+                if (expect.contains("size_max") && sz[k] > expect["size_max"][k].get<double>() + 1e-6) why.push_back("size above size_max on axis " + std::to_string(k));
+                if (expect.contains("size_min") && sz[k] < expect["size_min"][k].get<double>() - 1e-6) why.push_back("size below size_min on axis " + std::to_string(k));
+            }
+            if (expect.value("no_interference", false) && pairs > 0) why.push_back(std::to_string(pairs) + " overlapping pairs");
+        }
+        row["pass"] = why.empty();
+        if (!why.empty()) { ++failed; row["why"] = why; }
+        rows.push_back(row);
+    }
+    doc.variables[name] = saved;   // put it back: the checkpoint's undo restores the features, this the variable
+    doc.undo();
+    doc.variables[name] = saved;
+    bool back = false;
+    try { back = doc.recompute(); } catch (const std::exception&) {}
+    panel->mcp_after_change();
+    return json{{"ok", back}, {"variable", name}, {"restored", saved}, {"failed", failed}, {"rows", rows}};
 }
 
 json action_set_variable(DesignPanel* panel, const json& params)
@@ -2683,6 +3140,19 @@ json action_set_variable(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"name", name}, {"error", doc.error}};
 }
 
+// The fields set_feature_expr takes: the bindable names, plus what a feature has bound now and its sketch dimensions.
+json action_list_fields(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    json bound = json::object();
+    if (params.contains("feature")) {
+        const int fi = params["feature"].get<int>();
+        if (fi < 0 || fi >= (int)doc.features.size()) return json{{"ok", false}, {"error", "feature index out of range"}};
+        for (const auto& kv : doc.features[fi].expr) bound[kv.first] = kv.second;
+    }
+    return json{{"ok", true}, {"fields", CadDocument::bindable_fields()}, {"sketch_dimension_fields", "dim:<index>, see sketch_dimensions"}, {"bound", bound}};
+}
+
 json action_set_feature_expr(DesignPanel* panel, const json& params)
 {
     if (!params.contains("feature")) throw std::runtime_error("set_feature_expr needs 'feature' index");
@@ -2694,10 +3164,31 @@ json action_set_feature_expr(DesignPanel* panel, const json& params)
         return json{{"ok", false}, {"error", "feature index out of range"}};
     std::string field = params["field"].get<std::string>();
     std::string expr  = params["expr"].get<std::string>();
-    std::string old = doc.features[fi].expr.count(field) ? doc.features[fi].expr[field] : "";
+    if (field.rfind("dim:", 0) == 0 && field.size() > 4 && field.find_first_not_of("0123456789", 4) != std::string::npos) {
+        // "dim:<name>": a dimension named with name_dimension
+        const std::string nm = field.substr(4);
+        int hit = -1;
+        for (const auto& kv : doc.features[fi].dim_names) if (kv.second == nm) hit = kv.first;
+        if (hit < 0) {
+            std::string have;
+            for (const auto& kv : doc.features[fi].dim_names) have += (have.empty() ? "" : ", ") + kv.second;
+            return json{{"ok", false}, {"feature", fi}, {"field", field}, {"error", "no dimension named '" + nm + "' on feature " + std::to_string(fi) + (have.empty() ? " (name one with name_dimension)" : "; named: " + have)}};
+        }
+        field = "dim:" + std::to_string(hit);
+    }
+    // A name the evaluator does not know would break every later recompute, so it is refused before anything is touched.
+    if (!CadDocument::is_bindable_field(field)) {
+        std::string names;
+        for (const std::string& n : CadDocument::bindable_fields()) names += (names.empty() ? "" : ", ") + n;
+        return json{{"ok", false}, {"feature", fi}, {"field", field},
+                    {"error", "'" + field + "' is not a field an expression can drive (see list_fields {feature}); bindable: " + names + ", dim:<n>"}};
+    }
     doc.checkpoint();
     doc.features[fi].expr[field] = expr;
-    bool ok = doc.recompute();
+    bool ok = false;
+    std::string thrown;
+    try { ok = doc.recompute(); } catch (const std::exception& e) { thrown = e.what(); }
+    if (!thrown.empty()) doc.error = thrown;
     // undo() recomputes, which succeeds and clears doc.error; carry the reason across so
     // the JSON reply below reports why the edit was rejected instead of an empty string.
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
@@ -2974,17 +3465,103 @@ std::string checked_out_path(const json& params, const char* what)
     return (dir / p.filename()).string();
 }
 
+// {path, format?, bodies?:[ids], rotate?:[rx,ry,rz deg], drop_to_bed?, plate?:{gap}}
+// The format comes from the extension (.step/.stp, .iges/.igs, .stl, .obj); an explicit `format` that disagrees with it is
+// refused, because a STEP in a file called .stl opens as nothing. `bodies` exports just those bodies (a STEP of all of them
+// is one compound, which a viewer may show fused). `rotate` turns each body about its own centre, `drop_to_bed` then sets
+// its lowest point on z=0, and `plate` lays the bodies out in a row along X on the bed, `gap` mm apart (default 5).
 json action_export(DesignPanel* panel, const json& params)
 {
-    const std::string fmt = params.value("format", std::string("step"));
-    if (fmt != "step" && fmt != "iges" && fmt != "stl" && fmt != "obj") throw std::runtime_error("format must be step, iges, stl or obj (the project itself is `save`)");
+    bool xf_note_welded = false;
     const std::string path = checked_out_path(params, "export");
+    const std::string ext  = boost::algorithm::to_lower_copy(boost::filesystem::path(path).extension().string());
+    std::string by_ext;
+    if (ext == ".step" || ext == ".stp") by_ext = "step";
+    else if (ext == ".iges" || ext == ".igs") by_ext = "iges";
+    else if (ext == ".stl") by_ext = "stl";
+    else if (ext == ".obj") by_ext = "obj";
+    const std::string fmt = params.contains("format") ? params["format"].get<std::string>() : by_ext;
+    if (fmt != "step" && fmt != "iges" && fmt != "stl" && fmt != "obj") throw std::runtime_error("format must be step, iges, stl or obj (the project itself is `save`); give it, or end the path in .step/.iges/.stl/.obj");
+    if (!by_ext.empty() && by_ext != fmt) throw std::runtime_error("format '" + fmt + "' does not match the extension '" + ext + "'");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("nothing to export - the design has no bodies");
-    const std::vector<Transform3d> xf(doc.bodies.size(), Transform3d::Identity());   // bodies as modelled, no Move-gizmo offsets
+
+    std::vector<int> ids;
+    if (params.contains("bodies")) {
+        for (const json& v : params["bodies"]) {
+            const int i = v.get<int>();
+            if (i < 0 || i >= int(doc.bodies.size())) throw std::runtime_error("no body " + std::to_string(i));
+            ids.push_back(i);
+        }
+        if (ids.empty()) throw std::runtime_error("'bodies' is empty");
+    } else
+        for (int i = 0; i < int(doc.bodies.size()); ++i) ids.push_back(i);
+
+    // A copy that holds only the chosen bodies; the writers need nothing else of the document.
+    CadDocument out;
+    for (int i : ids) out.bodies.push_back(doc.bodies[i]);
+
+    // What a slicer would meet in them: a body that is several disconnected solids, or a mesh with open edges.
+    json warnings = json::array();
+    for (size_t k = 0; k < out.bodies.size(); ++k) {
+        int solids = 0;
+        for (TopExp_Explorer ex(out.bodies[k].shape, TopAbs_SOLID); ex.More(); ex.Next()) ++solids;
+        if (solids > 1) warnings.push_back("body " + std::to_string(ids[k]) + " is " + std::to_string(solids) + " disconnected solids");
+        if (ids[k] < int(doc.display_body_meshes.size()) && (fmt == "stl" || fmt == "obj")) {
+            const int open = doc.display_body_meshes[ids[k]].stats().open_edges;
+            if (open > 0) warnings.push_back("body " + std::to_string(ids[k]) + "'s mesh has " + std::to_string(open) + " open edges (not watertight)");
+        }
+    }
+    // weld:true fuses the chosen bodies that touch into one solid, so a print is one part, not two that merely meet.
+    if (params.value("weld", false) && out.bodies.size() > 1) {
+        TopoDS_Shape acc = out.bodies[0].shape;
+        for (size_t k = 1; k < out.bodies.size(); ++k) {
+            BRepAlgoAPI_Fuse fuse(acc, out.bodies[k].shape);
+            fuse.Build();
+            if (!fuse.IsDone()) throw std::runtime_error("could not weld body " + std::to_string(ids[k]));
+            acc = fuse.Shape();
+        }
+        CadBody w = out.bodies[0];
+        w.shape = acc;
+        out.bodies.assign(1, w);
+        xf_note_welded = true;
+    }
+
+    // Bodies as modelled, no Move-gizmo offsets, unless a print orientation or a plate layout was asked for.
+    std::vector<Transform3d> xf(out.bodies.size(), Transform3d::Identity());
+    const bool plate = params.contains("plate");
+    if (params.contains("rotate") || params.value("drop_to_bed", false) || plate) {
+        Vec3d rot = Vec3d::Zero();
+        if (params.contains("rotate")) {
+            if (!params["rotate"].is_array() || params["rotate"].size() != 3) throw std::runtime_error("'rotate' is [rx, ry, rz] in degrees");
+            for (int k = 0; k < 3; ++k) rot[k] = params["rotate"][k].get<double>() * M_PI / 180.0;
+        }
+        const double gap = plate && params["plate"].is_object() ? params["plate"].value("gap", 5.0) : 5.0;
+        double cursor = 0.;
+        for (size_t i = 0; i < out.bodies.size(); ++i) {
+            auto box = [&](const Transform3d& m) {
+                gp_Trsf t;
+                t.SetValues(m(0,0), m(0,1), m(0,2), m(0,3), m(1,0), m(1,1), m(1,2), m(1,3), m(2,0), m(2,1), m(2,2), m(2,3));
+                Bnd_Box bb; BRepBndLib::Add(BRepBuilderAPI_Transform(out.bodies[i].shape, t, true).Shape(), bb);
+                Vec3d lo, hi; bb.Get(lo.x(), lo.y(), lo.z(), hi.x(), hi.y(), hi.z());
+                return std::pair<Vec3d, Vec3d>(lo, hi);
+            };
+            const auto [lo0, hi0] = box(Transform3d::Identity());
+            const Vec3d c = 0.5 * (lo0 + hi0);
+            Transform3d m = Transform3d::Identity();   // about the centre: -c, rotate, +c
+            m.translate(c);
+            m.rotate(Eigen::AngleAxisd(rot.z(), Vec3d::UnitZ()) * Eigen::AngleAxisd(rot.y(), Vec3d::UnitY()) * Eigen::AngleAxisd(rot.x(), Vec3d::UnitX()));
+            m.translate(-c);
+            const auto [lo, hi] = box(m);
+            Vec3d shift = Vec3d::Zero();
+            if (params.value("drop_to_bed", false) || plate) shift.z() = -lo.z();
+            if (plate) { shift.x() = cursor - lo.x(); shift.y() = -lo.y(); cursor += (hi.x() - lo.x()) + gap; }
+            xf[i] = Eigen::Translation3d(shift) * m;
+        }
+    }
     std::string err;
-    const bool ok = fmt == "step" ? doc.export_step(path, xf, err) : doc.export_other(fmt, path, xf, err);
-    return json{{"ok", ok}, {"format", fmt}, {"path", path}, {"bodies", int(doc.bodies.size())}, {"error", err}};
+    const bool ok = fmt == "step" ? out.export_step(path, xf, err) : out.export_other(fmt, path, xf, err);
+    return json{{"ok", ok}, {"format", fmt}, {"path", path}, {"bodies", int(out.bodies.size())}, {"body_ids", ids}, {"welded", xf_note_welded}, {"warnings", warnings}, {"error", err}};
 }
 
 // ---- sweep / loft / thread / cut -----------------------------------------------------------------------------
@@ -3068,12 +3645,125 @@ json action_cut(DesignPanel* panel, const json& params)
 
 // ---- save / open / screenshot ----------------------------------------------------------------------------------
 // The recipe travels inside the project 3MF, so saving the project saves the design.
-json action_save(DesignPanel*, const json& params)
+// The 3MF carries the feature history (so Orca CAD reopens it editable) AND the bodies as printable objects, so a slicer
+// opens it too. The bodies reach the plate the way Commit sends them, once: a plate that already holds objects is left alone
+// (mesh:false skips it, mesh:true commits even then).
+json action_save(DesignPanel* panel, const json& params)
 {
     const std::string path = checked_out_path(params, "save");
     if (boost::algorithm::to_lower_copy(boost::filesystem::path(path).extension().string()) != ".3mf") throw std::runtime_error("path must end in .3mf");
-    const int rc = wxGetApp().plater()->export_3mf(path);
-    return json{{"ok", rc == 0}, {"path", path}, {"error", rc == 0 ? std::string() : "export_3mf returned " + std::to_string(rc)}};
+    Plater* pl = wxGetApp().plater();
+    bool committed = false;
+    const bool want_mesh = params.contains("mesh") && params["mesh"].is_boolean() ? params["mesh"].get<bool>() : pl->model().objects.empty();
+    if (want_mesh && !panel->mcp_doc().bodies.empty()) {
+        const size_t before = pl->model().objects.size();
+        panel->mcp_commit_meshes();
+        committed = pl->model().objects.size() > before;
+    }
+    const int rc = pl->export_3mf(path);
+    return json{{"ok", rc == 0}, {"path", path}, {"mesh_committed", committed}, {"objects", int(pl->model().objects.size())},
+                {"error", rc == 0 ? std::string() : "export_3mf returned " + std::to_string(rc)}};
+}
+
+// {body, name}: the name travels with the body across recomputes and into the saved project.
+json action_rename_body(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (!params.contains("body") || !(params["body"].is_number_integer() || params["body"].is_string())) throw std::runtime_error("rename_body needs 'body' (index, id or name)");
+    const int b = params["body"].is_string() ? body_by_name(doc, params["body"].get<std::string>()) : params["body"].get<int>();
+    if (b < 0 || b >= int(doc.bodies.size())) throw std::runtime_error("no body " + std::to_string(b));
+    const std::string name = params.value("name", std::string());
+    if (name.empty() || name.size() > 80) throw std::runtime_error("'name' must be 1-80 characters");
+    for (int i = 0; i < int(doc.bodies.size()); ++i)
+        if (i != b && (doc.bodies[i].has_user_name ? doc.bodies[i].user_name : doc.bodies[i].name) == name)
+            throw std::runtime_error("body " + std::to_string(i) + " is already called '" + name + "'");
+    doc.checkpoint();
+    doc.bodies[b].has_user_name = true;
+    doc.bodies[b].user_name     = name;
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"body", b}, {"name", name}};
+}
+
+// ---- viewport: what the GUI shows per body, the same state its eye / colour / section buttons set ----------------------
+int body_arg(DesignPanel* panel, const json& params, const char* what)
+{
+    if (!params.contains("body") || !(params["body"].is_number_integer() || params["body"].is_string())) throw std::runtime_error(std::string(what) + " needs 'body' (an index, id or name from inspect_design)");
+    const int b = params["body"].is_string() ? body_by_name(panel->mcp_doc(), params["body"].get<std::string>()) : params["body"].get<int>();
+    if (b < 0 || b >= int(panel->mcp_doc().bodies.size())) throw std::runtime_error("no body " + std::to_string(b));
+    return b;
+}
+
+json view_state(DesignPanel* panel)
+{
+    json vis = json::array();
+    for (bool v : panel->mcp_visible_flags()) vis.push_back(v);
+    return json{{"visible", vis}, {"section", json{{"on", panel->mcp_section_on()}, {"plane", "z"}, {"offset", panel->mcp_section_z()},
+                                                   {"side", panel->mcp_section_upper() ? "upper" : "lower"}}}};
+}
+
+json action_set_body_visible(DesignPanel* panel, const json& params)
+{
+    const int b = body_arg(panel, params, "set_body_visible");
+    panel->mcp_body_visible(b, params.value("visible", true));
+    json r = view_state(panel); r["ok"] = true; return r;
+}
+
+// {body} hides every other body; no body (or show_all) shows them all again.
+json action_isolate_body(DesignPanel* panel, const json& params)
+{
+    const int n = int(panel->mcp_doc().bodies.size());
+    const bool all = params.value("show_all", false) || !params.contains("body");
+    const int keep = all ? -1 : body_arg(panel, params, "isolate_body");
+    for (int i = 0; i < n; ++i) panel->mcp_body_visible(i, all || i == keep);
+    json r = view_state(panel); r["ok"] = true; return r;
+}
+
+ColorRGBA color_arg(const json& c)
+{
+    auto byte = [](double v) { return (unsigned char)std::lround(std::max(0., std::min(255., v))); };
+    if (c.is_string()) {
+        std::string h = c.get<std::string>();
+        if (!h.empty() && h[0] == '#') h.erase(0, 1);
+        if (h.size() != 6 || h.find_first_not_of("0123456789abcdefABCDEF") != std::string::npos) throw std::runtime_error("color is '#rrggbb' or [r,g,b] (0-255)");
+        const unsigned long v = std::stoul(h, nullptr, 16);
+        return ColorRGBA(byte((v >> 16) & 255), byte((v >> 8) & 255), byte(v & 255), (unsigned char)255);
+    }
+    if (c.is_array() && c.size() == 3) return ColorRGBA(byte(c[0].get<double>()), byte(c[1].get<double>()), byte(c[2].get<double>()), (unsigned char)255);
+    throw std::runtime_error("color is '#rrggbb' or [r,g,b] (0-255)");
+}
+
+// {body, color?, opacity?}: opacity 0..1 (1 solid) goes on the colour's alpha, so it keeps the colour the body has now.
+json action_set_body_color(DesignPanel* panel, const json& params)
+{
+    const int b = body_arg(panel, params, "set_body_color");
+    if (!params.contains("color") && !params.contains("opacity")) throw std::runtime_error("set_body_color needs 'color' and/or 'opacity'");
+    ColorRGBA c = panel->mcp_viewport()->body_color(b);
+    if (params.contains("color")) c = color_arg(params["color"]);
+    if (params.contains("opacity")) {
+        const double o = params["opacity"].get<double>();
+        if (o < 0. || o > 1.) throw std::runtime_error("opacity is 0..1");
+        c.a(float(o));
+    }
+    panel->mcp_body_color(b, c);
+    return json{{"ok", true}, {"body", b}, {"color", json::array({c.r_uchar(), c.g_uchar(), c.b_uchar()})}, {"opacity", c.a()}};
+}
+
+// {distance mm}: bodies spread out from the middle of the whole (display only); 0 puts them back.
+json action_explode(DesignPanel* panel, const json& params)
+{
+    panel->mcp_explode(params.value("distance", 0.0));
+    return json{{"ok", true}, {"distance", params.value("distance", 0.0)}};
+}
+
+// {on?, offset (mm along z), side lower|upper}: the section view the toolbar toggles. Only horizontal cuts are supported.
+json action_section_set(DesignPanel* panel, const json& params)
+{
+    if (params.value("plane", std::string("z")) != "z") throw std::runtime_error("section_set cuts along z only (plane: \"z\")");
+    const bool on = params.value("on", true);
+    const std::string side = params.value("side", std::string("lower"));
+    if (side != "lower" && side != "upper") throw std::runtime_error("side is lower or upper");
+    panel->mcp_section(on, params.value("offset", panel->mcp_viewport()->model_mid_z()), side == "upper");
+    json r = view_state(panel); r["ok"] = true; return r;
 }
 
 // Replaces the open project. Refused while it has unsaved changes unless discard:true, because the app would ask.
@@ -3111,18 +3801,45 @@ json action_screenshot(DesignPanel* panel, const json& params)
     }
     if (params.contains("view")) v->set_view(params["view"].get<std::string>());
     if (params.value("fit", false)) v->fit_view();
-    v->Refresh(); v->Update();
-    const std::string path = checked_out_path(params, "screenshot");
     const wxSize sz = v->GetClientSize();
     if (sz.x < 8 || sz.y < 8) throw std::runtime_error("the design viewport is not visible");
-    wxScreenDC sdc;
-    wxBitmap bmp(sz.x, sz.y);
-    wxMemoryDC mdc(bmp);
-    const wxPoint o = v->ClientToScreen(wxPoint(0, 0));
-    mdc.Blit(0, 0, sz.x, sz.y, &sdc, o.x, o.y);
-    mdc.SelectObject(wxNullBitmap);
-    const bool ok = bmp.ConvertToImage().SaveFile(wxString::FromUTF8(path), wxBITMAP_TYPE_PNG);
-    return json{{"ok", ok}, {"path", path}, {"width", sz.x}, {"height", sz.y}, {"error", ok ? std::string() : "could not write the PNG"}};
+    // The frame comes from GL itself (the canvas's back buffer, just before it is presented), not from the X screen: reading
+    // the screen returned a blank PNG whenever the window was covered or the display would not share its pixels.
+    auto frame = std::make_shared<std::tuple<bool, std::vector<unsigned char>, int, int>>(false, std::vector<unsigned char>(), 0, 0);
+    v->gl_canvas()->capture_next_frame([frame](std::vector<unsigned char>&& px, int w, int h) { *frame = {true, std::move(px), w, h}; });
+    for (int i = 0; i < 40 && !std::get<0>(*frame); ++i) {   // paint, then let the event loop run until the frame arrives (<= ~2 s)
+        v->request_repaint(); v->Refresh(); v->Update();
+        if (wxEventLoopBase* loop = wxEventLoopBase::GetActive()) loop->YieldFor(wxEVT_CATEGORY_UI);
+        if (!std::get<0>(*frame)) wxMilliSleep(50);
+    }
+    if (!std::get<0>(*frame)) { v->gl_canvas()->capture_next_frame(nullptr); throw std::runtime_error("the viewport did not render a frame (is the Design tab shown?)"); }
+    const int fw = std::get<2>(*frame), fh = std::get<3>(*frame);
+    if (fw <= 0 || fh <= 0) throw std::runtime_error("the viewport rendered an empty frame");
+    wxImage img(fw, fh, false);
+    unsigned char* rgb = (unsigned char*) malloc(size_t(fw) * size_t(fh) * 3);
+    const std::vector<unsigned char>& px = std::get<1>(*frame);
+    size_t lit = 0;
+    for (size_t i = 0, n = size_t(fw) * size_t(fh); i < n; ++i) {
+        rgb[3 * i] = px[4 * i]; rgb[3 * i + 1] = px[4 * i + 1]; rgb[3 * i + 2] = px[4 * i + 2];
+        if (px[4 * i] || px[4 * i + 1] || px[4 * i + 2]) ++lit;
+    }
+    img.SetData(rgb);
+    const std::string path = checked_out_path(params, "screenshot");
+    const bool ok = img.SaveFile(wxString::FromUTF8(path), wxBITMAP_TYPE_PNG);
+    json r{{"ok", ok}, {"path", path}, {"width", fw}, {"height", fh}, {"non_black_pct", 100.0 * double(lit) / double(size_t(fw) * size_t(fh))},
+           {"error", ok ? std::string() : "could not write the PNG"}};
+    if (params.value("inline", false)) {   // the picture itself, base64 PNG, scaled to max_width (default 800) so the reply stays small
+        const int mw = std::max(64, std::min(2000, params.value("max_width", 800)));
+        wxImage small = img;
+        if (fw > mw) small = img.Scale(mw, std::max(1, fh * mw / fw), wxIMAGE_QUALITY_HIGH);
+        wxMemoryOutputStream out;
+        small.SaveFile(out, wxBITMAP_TYPE_PNG);
+        std::vector<unsigned char> bytes(out.GetSize());
+        out.CopyTo(bytes.data(), bytes.size());
+        r["png_base64"] = wxBase64Encode(bytes.data(), bytes.size()).ToStdString();
+        r["inline_width"] = small.GetWidth(); r["inline_height"] = small.GetHeight();
+    }
+    return r;
 }
 
 // ---- ui.* : synthetic input, through the same handlers a real mouse and keyboard reach --------------------------------
@@ -3472,9 +4189,31 @@ json action_sketch_dimensions(DesignPanel* panel, const json& params)
         if (c.type != T::Distance && c.type != T::DistanceX && c.type != T::DistanceY && c.type != T::Angle && c.type != T::Radius && c.type != T::Diameter) continue;
         const std::string field = "dim:" + std::to_string(i);
         const char* kind = c.type == T::Angle ? "angle" : c.type == T::Radius ? "radius" : c.type == T::Diameter ? "diameter" : c.type == T::DistanceX ? "distance_x" : c.type == T::DistanceY ? "distance_y" : "distance";
-        dims.push_back(json{{"index", int(i)}, {"field", field}, {"kind", kind}, {"value", c.value}, {"expr", f.expr.count(field) ? f.expr.at(field) : std::string()}});
+        dims.push_back(json{{"index", int(i)}, {"field", field}, {"name", f.dim_names.count(int(i)) ? f.dim_names.at(int(i)) : std::string()}, {"kind", kind}, {"value", c.value}, {"expr", f.expr.count(field) ? f.expr.at(field) : std::string()}});
     }
     return json{{"ok", true}, {"sketch", sk}, {"dimensions", dims}};
+}
+
+// {sketch, index, name}: give a dimension a name; set_feature_expr then takes field "dim:<name>". name "" removes it.
+json action_name_dimension(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    const int sk = sketch_ref_arg(params, doc);
+    if (sk < 0) throw std::runtime_error("name_dimension needs 'sketch' (a Sketch feature index)");
+    if (!params.contains("index") || !params["index"].is_number_integer()) throw std::runtime_error("name_dimension needs 'index' (from sketch_dimensions)");
+    const int idx = params["index"].get<int>();
+    CadFeature& f = doc.features[sk];
+    if (idx < 0 || idx >= int(f.entity_constraints.size())) throw std::runtime_error("no dimension " + std::to_string(idx) + " on that sketch");
+    const std::string nm = params.value("name", std::string());
+    if (!nm.empty()) {
+        if (nm.find_first_not_of("0123456789") == std::string::npos) throw std::runtime_error("a name cannot be only digits (that is an index)");
+        for (char ch : nm) if (!(std::isalnum(static_cast<unsigned char>(ch)) || ch == '_')) throw std::runtime_error("a name is letters, digits and _");
+        for (const auto& kv : f.dim_names) if (kv.second == nm && kv.first != idx) throw std::runtime_error("the name '" + nm + "' is already on dimension " + std::to_string(kv.first));
+    }
+    doc.checkpoint();
+    if (nm.empty()) f.dim_names.erase(idx); else f.dim_names[idx] = nm;
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"sketch", sk}, {"index", idx}, {"name", nm}};
 }
 
 // Suppress (disable) or restore a feature; downstream features rebuild without it.
@@ -3760,6 +4499,12 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
         return action_sheet(panel, method, params);
     if (method == "cut")            return action_cut(panel, params);
     if (method == "save")           return action_save(panel, params);
+    if (method == "rename_body")    return action_rename_body(panel, params);
+    if (method == "set_body_visible") return action_set_body_visible(panel, params);
+    if (method == "isolate_body")   return action_isolate_body(panel, params);
+    if (method == "set_body_color" || method == "set_body_opacity") return action_set_body_color(panel, params);
+    if (method == "explode")        return action_explode(panel, params);
+    if (method == "section_set")    return action_section_set(panel, params);
     if (method == "open")           return action_open(panel, params);
     if (method == "screenshot")     return action_screenshot(panel, params);
     if (method == "undo")           return action_undo(panel, params);
@@ -3774,6 +4519,7 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
     if (method == "helix")          return action_helix(panel, params);
     if (method == "set_variable")     return action_set_variable(panel, params);
     if (method == "set_feature_expr") return action_set_feature_expr(panel, params);
+    if (method == "list_fields")      return action_list_fields(panel, params);
     if (method == "surface_extrude")  return action_surface_extrude(panel, params);
     if (method == "surface_revolve")  return action_surface_revolve(panel, params);
     if (method == "thicken_surface")  return action_thicken_surface(panel, params);
@@ -3782,6 +4528,12 @@ json call_method_core(DesignPanel* panel, const std::string& method, const json&
     if (method == "surface_fill")    return action_surface_fill(panel, params);
     if (method == "mate")          return action_mate(panel, params);
     if (method == "check_interference") return action_check_interference(panel, params);
+    if (method == "min_distance")       return action_min_distance(panel, params);
+    if (method == "name_dimension")     return action_name_dimension(panel, params);
+    if (method == "support_fin")        return action_support_fin(panel, params);
+    if (method == "select_topology")    return action_select_topology(panel, params);
+    if (method == "sweep_variable")     return action_sweep_variable(panel, params);
+    if (method == "analyze_printability") return action_analyze_printability(panel, params);
     throw MethodNotFound{};
 }
 
@@ -4035,6 +4787,12 @@ std::string handle_on_main(const std::string& method, const json& params, const 
 
 std::string dispatch_once(const std::string& method, const json& params, const json& id);
 
+// Background jobs (async:true), the newest 50 kept.
+struct McpJob { std::string method, reply; unsigned seq{0}; bool done{false}; std::chrono::steady_clock::time_point t0, t_end; };
+std::mutex g_jobs_mtx;
+std::map<std::string, McpJob> g_jobs;
+unsigned g_job_seq = 0;
+
 // Marshal a request to the main thread and block (with a timeout) for the reply.
 // The generation of the topology this connection last read (query_topology, describe_scene). One thread serves one
 // connection, so thread_local is per client. A call that takes a face or edge id and does not say which generation its ids
@@ -4094,6 +4852,39 @@ std::string dispatch_request(const std::string& line)
     if (method == "ui.screenshot") method = "screenshot";
     if (t_has_seen_generation && params.is_object() && !params.contains("generation") && takes_topology_ids(params))
         params["generation"] = t_seen_generation;   // an id the client did not date is dated by its own last read
+    // Long operations: {"async": true} in the params answers at once with a job id and runs the call in the background;
+    // job_status {job} says running or done and carries the reply when it is. These two are answered here, on the client's own
+    // thread, so they respond even while the UI thread is busy with the job. (Progress is elapsed time only: the kernel
+    // reports none from inside a rebuild.)
+    if (method == "job_status") {
+        const std::string jid = params.value("job", std::string());
+        std::lock_guard<std::mutex> lk(g_jobs_mtx);
+        auto it = g_jobs.find(jid);
+        if (it == g_jobs.end()) return rpc_error(id, -32000, "no such job '" + jid + "' (the last 50 are kept)");
+        const double el = std::chrono::duration<double>((it->second.done ? it->second.t_end : std::chrono::steady_clock::now()) - it->second.t0).count();
+        json res{{"job", jid}, {"method", it->second.method}, {"state", it->second.done ? "done" : "running"}, {"elapsed_s", el}};
+        if (it->second.done) { try { res["reply"] = json::parse(it->second.reply); } catch (const std::exception&) { res["reply"] = it->second.reply; } }
+        return json{{"jsonrpc", "2.0"}, {"id", id}, {"result", res}}.dump();
+    }
+    if (params.is_object() && params.value("async", false)) {
+        json inner = params; inner.erase("async");
+        std::string jid;
+        {
+            std::lock_guard<std::mutex> lk(g_jobs_mtx);
+            jid = "j" + std::to_string(++g_job_seq);
+            McpJob j; j.method = method; j.seq = g_job_seq; j.t0 = std::chrono::steady_clock::now();
+            g_jobs[jid] = j;
+            while (g_jobs.size() > 50) { auto old = g_jobs.begin(); for (auto q = g_jobs.begin(); q != g_jobs.end(); ++q) if (q->second.seq < old->second.seq) old = q; g_jobs.erase(old); }
+        }
+        std::thread([jid, method, inner, id]() {
+            std::string r;
+            try { r = dispatch_once(method, inner, id); } catch (...) { r = rpc_error(id, -32000, "internal error"); }
+            std::lock_guard<std::mutex> lk(g_jobs_mtx);
+            auto it = g_jobs.find(jid);
+            if (it != g_jobs.end()) { it->second.reply = std::move(r); it->second.t_end = std::chrono::steady_clock::now(); it->second.done = true; }
+        }).detach();
+        return json{{"jsonrpc", "2.0"}, {"id", id}, {"result", json{{"job", jid}, {"state", "running"}, {"poll", "job_status {job}"}}}}.dump();
+    }
     const auto t0 = std::chrono::steady_clock::now();
     for (;;) {
         std::string r = dispatch_once(method, params, id);

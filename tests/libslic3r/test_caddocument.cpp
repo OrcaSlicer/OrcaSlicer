@@ -2486,8 +2486,8 @@ TEST_CASE("a truncated feature keeps what it could read", "[CadDocument][recipe]
     // pattern_spacing2 (double).
     // + shell_faces and draft_faces (two lists), draft_has_neutral (bool), draft_pull / draft_neutral (6 doubles), thin_in / thin_out.
     // + pattern_mirror (bool), extrude_entities (a list)
-    const size_t drop = sizeof(uint32_t) + 10 * sizeof(bool) + 11 * sizeof(cereal::size_type) + 29 * sizeof(double)
-                        + 8 * sizeof(int);   // 4 + the face attachment (attach_body, attach_face)
+    const size_t drop = sizeof(uint32_t) + 10 * sizeof(bool) + 12 * sizeof(cereal::size_type) + 29 * sizeof(double)
+                        + 9 * sizeof(int);   // 4 + the face attachment (attach_body, attach_face) + attach_datum
     REQUIRE(f_len[1] > drop);
     std::string shortened = blob;
     shortened.erase(f_off[1] + 4 + f_len[1] - drop, drop);
@@ -7849,13 +7849,14 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
                    Catch::Matchers::WithinRel(M_PI * 100.0 * 5.0, 0.01));
     }
 
-    SECTION("two disjoint circles are rejected too") {
+    SECTION("two disjoint circles are two islands of one extrude") {
         CadDocument doc;
         int sk = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) },
                                         SketchPlane::XY(), "Sketch");
         doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
-        CHECK_FALSE(doc.recompute());
-        CHECK(doc.error.find("disjoint") != std::string::npos);
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.bodies.size() == 1);
+        CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(2 * M_PI * 64.0 * 5.0, 0.01));
     }
 }
 
@@ -7952,14 +7953,14 @@ TEST_CASE("a closed polygon still extrudes exactly as before", "[CadDocument][sk
     REQUIRE_THAT(double(doc.display_mesh.volume()), Catch::Matchers::WithinRel(expected, 0.01));
 }
 
-TEST_CASE("two disjoint regions are refused, not guessed", "[CadDocument][sketchwire]")
+TEST_CASE("two disjoint regions extrude as two islands, neither dropped nor merged into a hole", "[CadDocument][sketchwire]")
 {
     std::vector<SketchEntity> ents = { circle_entity({-10, 0}, 5.0), circle_entity({10, 0}, 5.0) };
     CadDocument doc = plate_doc(ents, 10.0);
 
-    CHECK_FALSE(doc.recompute());
-    CHECK(doc.error.find("disjoint") != std::string::npos);
-    CHECK(doc.bodies.empty());
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(2 * M_PI * 25.0 * 10.0, 0.01));
 }
 
 TEST_CASE("entities_to_wires returns one wire per loop", "[CadDocument][sketchwire]")
@@ -8714,7 +8715,7 @@ TEST_CASE("add_extrude_entities builds a plate with a bore", "[CadDocument][hole
     REQUIRE(face_count == 7);
 }
 
-TEST_CASE("two disjoint circles are refused by name", "[CadDocument][holes]")
+TEST_CASE("two disjoint circles extrude as two islands", "[CadDocument][holes]")
 {
     CadDocument doc;
 
@@ -8725,8 +8726,9 @@ TEST_CASE("two disjoint circles are refused by name", "[CadDocument][holes]")
 
     doc.add_extrude_entities({a, b}, SketchPlane::XY(), 10.0, false, BooleanMode::New, "Extrude1");
 
-    REQUIRE_FALSE(doc.recompute());
-    REQUIRE_CONTAINS(doc.error, "disjoint");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(2 * M_PI * 400.0 * 10.0, 0.01));
 }
 
 // Same plate-with-a-bore, but the bore circle is wound CLOCKWISE (geometric winding opposite
@@ -10863,4 +10865,70 @@ TEST_CASE("bindable fields: the reported list is the accepted list", "[CadDocume
     CHECK_FALSE(CadDocument::is_bindable_field("pattern_spacing3"));
     CHECK_FALSE(CadDocument::is_bindable_field("dim:"));
     CHECK_FALSE(CadDocument::is_bindable_field(""));
+}
+
+TEST_CASE("Expression literals parse with a dot whatever the process locale", "[CadDocument][expr]")
+{
+    // it_IT used to turn "3.6" into 3 and "0.2" into 0 (std::stod reads the locale's decimal separator).
+    std::locale prev;
+    try { std::locale::global(std::locale("it_IT.UTF-8")); } catch (const std::exception&) { /* not installed here: the check below still holds */ }
+    CadDocument doc;
+    const int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "S");
+    const int ex = doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    doc.features[ex].expr["distance"] = "3.6 + 0.2";
+    const bool ok = doc.recompute();
+    std::locale::global(prev);
+    REQUIRE(ok);
+    CHECK(std::abs(doc.features[ex].distance - 3.8) < 1e-9);
+    doc.features[ex].expr["distance"] = "1.2.3";   // never a silent truncation
+    CHECK_FALSE(doc.recompute());
+}
+
+TEST_CASE("Pattern grid and thin-wall fields can be bound, and the list names them", "[CadDocument][expr]")
+{
+    for (const char* f : { "pattern_spacing2", "pattern_count2", "thin_in", "thin_out" }) {
+        INFO(f);
+        CHECK(CadDocument::is_bindable_field(f));
+    }
+    const auto names = CadDocument::bindable_fields();
+    CHECK(std::find(names.begin(), names.end(), "thread_diameter") != names.end());
+    CHECK(std::find(names.begin(), names.end(), "distance") != names.end());
+    CHECK(std::is_sorted(names.begin(), names.end()));
+}
+
+TEST_CASE("One sketch with two separate outlines extrudes both", "[CadDocument][extrude]")
+{
+    CadDocument doc;
+    auto rect = [](double x0, double y0, double x1, double y1) {
+        std::vector<SketchEntity> v(4);
+        const Vec2d p[4] = {{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}};
+        for (int i = 0; i < 4; ++i) { v[i].type = SketchEntity::Type::Line; v[i].p0 = p[i]; v[i].p1 = p[(i + 1) % 4]; }
+        return v;
+    };
+    std::vector<SketchEntity> ents = rect(0, 0, 10, 10);
+    for (const SketchEntity& e : rect(30, 0, 40, 10)) ents.push_back(e);
+    const int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "S");
+    doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    CHECK_THAT(doc.body_mass_properties(0).volume, Catch::Matchers::WithinRel(1000.0, 1e-6));
+}
+
+TEST_CASE("A sketch on a datum plane follows the plane when its offset variable changes", "[CadDocument][datum]")
+{
+    CadDocument doc;
+    doc.variables["off"] = "10";
+    const int pl = doc.add_plane(0, 10, 0, 0, "P");
+    doc.features[pl].expr["plane_offset"] = "off";
+    REQUIRE(doc.recompute());
+    const auto datums = doc.resolve_datum_planes();
+    REQUIRE(datums.size() == 1);
+    const int sk = doc.add_sketch(SketchShape::Rectangle, datums[0].second, 20, 20, 0, "S");
+    doc.features[sk].attach_datum = pl;
+    doc.add_extrude(sk, 5, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    const double z0 = doc.display_mesh.bounding_box().min.z();
+    doc.variables["off"] = "30";
+    REQUIRE(doc.recompute());
+    CHECK_THAT(doc.display_mesh.bounding_box().min.z() - z0, Catch::Matchers::WithinAbs(20.0, 1e-6));
 }

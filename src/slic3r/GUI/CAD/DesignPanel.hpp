@@ -107,6 +107,17 @@ public:
     void         mcp_set_imgui_sidebar(bool on) { set_imgui_sidebar(on); }
     void         mcp_set_imgui_menu(bool on);
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
+    void         mcp_commit_meshes() { on_commit(false); }
+    // What the GUI keeps per body for the viewport, reachable from the MCP: show/hide, colour (alpha = opacity), the section
+    // plane and an exploded layout. All of it is display only; the solids and what Export writes are untouched.
+    bool         mcp_body_visible(int b, bool visible);
+    bool         mcp_body_color(int b, const ColorRGBA& c);
+    void         mcp_section(bool on, double z, bool keep_upper);
+    void         mcp_explode(double distance);
+    const std::vector<bool>& mcp_visible_flags() { sync_body_visible(); return m_body_visible; }
+    bool         mcp_section_on() const { return m_section_on; }
+    double       mcp_section_z() const  { return m_section_cut_z; }
+    bool         mcp_section_upper() const { return m_section_upper; }     // ship the bodies to the plate as objects, staying on this tab
     void         mcp_after_change() { after_tree_edit(true); } // refresh tree + viewport + status
     DesignCanvas* mcp_viewport()  { return m_viewport; }        // live sketch + 3D view
     // Put the PANEL into (or out of) sketch mode, not just the canvas tool. Measured on the
@@ -281,7 +292,7 @@ private:
     // Move / enlarge / stretch (independent X/Y) an imported Text/SVG sketch:
     // a modal dialog editing the feature's placement transform in place.
     void on_transform_imported(int feat_idx);
-    void on_commit();
+    void on_commit(bool to_prepare = true);
     // What Commit to Plate sends: one object with a part per body (an assembly, which keeps the
     // bodies' relative placement), or, "as bodies", one Prepare object per body. The split
     // button's dropdown switches it, like Prepare's Slice button, without committing.

@@ -2763,6 +2763,24 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     wxGetApp().imgui()->render(draw_data);
     m_frame_profiler.mark("imgui draw");
 
+    if (m_frame_capture) {
+        FrameCapture cb = std::move(m_frame_capture);
+        m_frame_capture = nullptr;
+        const Size cs = get_canvas_size();
+        const int  w = cs.get_width(), h = cs.get_height();
+        if (w > 0 && h > 0) {
+            std::vector<unsigned char> px(size_t(w) * size_t(h) * 4), flipped(px.size());
+            glsafe(::glBindFramebuffer(GL_READ_FRAMEBUFFER, 0));
+            glsafe(::glReadBuffer(GL_BACK));
+            glsafe(::glPixelStorei(GL_PACK_ALIGNMENT, 1));
+            glsafe(::glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data()));
+            for (int y = 0; y < h; ++y)   // GL rows run bottom-up
+                std::copy_n(px.begin() + ptrdiff_t(size_t(h - 1 - y) * size_t(w) * 4), size_t(w) * 4, flipped.begin() + ptrdiff_t(size_t(y) * size_t(w) * 4));
+            cb(std::move(flipped), w, h);
+        } else
+            cb({}, 0, 0);
+    }
+
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.
     // Code run from inside this frame - a modal dialog a gizmo opened from its ImGui panel, a

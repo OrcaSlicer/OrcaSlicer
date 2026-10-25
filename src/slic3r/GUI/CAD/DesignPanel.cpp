@@ -7937,6 +7937,58 @@ void DesignPanel::sync_body_visible()
     m_body_visible.resize(m_doc.bodies.size(), true);
 }
 
+bool DesignPanel::mcp_body_visible(int b, bool visible)
+{
+    sync_body_visible();
+    if (b < 0 || b >= int(m_body_visible.size())) return false;
+    m_body_visible[b] = visible;
+    if (m_viewport != nullptr) {
+        feed_bodies();
+        m_viewport->set_solid_pick(&m_doc.bodies, &m_disp_pick_mesh, &m_doc.display_tri_face, &m_doc.display_tri_body, &m_body_visible, &m_body_xform);
+    }
+    refresh_tree();
+    return true;
+}
+
+bool DesignPanel::mcp_body_color(int b, const ColorRGBA& c)
+{
+    if (b < 0 || b >= int(m_doc.bodies.size())) return false;
+    m_doc.bodies[b].has_color = true;
+    m_doc.bodies[b].color     = c;
+    feed_bodies();
+    return true;
+}
+
+void DesignPanel::mcp_section(bool on, double z, bool keep_upper)
+{
+    if (!m_viewport) return;
+    m_section_on = on;
+    if (on) { m_section_cut_z = z; m_section_upper = keep_upper; }
+    m_viewport->set_section_plane(on, on ? z : 0.0, keep_upper);
+    update_section_flip_btn();
+}
+
+// Each body is moved away from the middle of the whole by `distance` mm along the line through the two centres (a body at the
+// middle goes up). 0 puts everything back.
+void DesignPanel::mcp_explode(double distance)
+{
+    sync_body_xform();
+    const std::vector<TriangleMesh>& src = m_doc.display_body_meshes;
+    BoundingBoxf3 all;
+    std::vector<Vec3d> centres;
+    for (const TriangleMesh& m : src) {
+        const BoundingBoxf3 bb = m.bounding_box();
+        centres.push_back(bb.center());
+        all.merge(bb);
+    }
+    for (size_t b = 0; b < m_body_xform.size() && b < centres.size(); ++b) {
+        Vec3d d = centres[b] - all.center();
+        d = d.norm() > 1e-6 ? Vec3d(d.normalized()) : Vec3d(Vec3d::UnitZ());
+        m_body_xform[b] = distance == 0. ? Transform3d::Identity() : Transform3d(Eigen::Translation3d(d * distance));
+    }
+    feed_bodies();
+}
+
 void DesignPanel::sync_body_xform()
 {
     // Parallel to bodies; new bodies default to identity (no move). Stable on resize.
@@ -10502,7 +10554,7 @@ void DesignPanel::set_commit_mode(CommitMode mode)
         m_commit_drop->SetSelection(int(mode));   // the check on the current row
 }
 
-void DesignPanel::on_commit()
+void DesignPanel::on_commit(bool to_prepare)
 {
     // A feature tool open with a live preview ghost (e.g. a fillet being previewed) is
     // NOT yet part of the body. Apply it first so "Commit to Plate" ships exactly what
@@ -10550,7 +10602,7 @@ void DesignPanel::on_commit()
     // doc clears it, keeping non-CAD projects clean.
     sync_recipe_to_model();
 
-    if (wxGetApp().mainframe != nullptr)
+    if (to_prepare && wxGetApp().mainframe != nullptr)
         wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
 }
 

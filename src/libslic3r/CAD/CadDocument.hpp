@@ -398,6 +398,13 @@ struct CadFeature {
     // face through upstream edits (TopoRemap) and carries the sketch plane with it; -1 = a free plane.
     int                attach_body{-1};
     int                attach_face{-1};
+    // A sketch drawn on a datum Plane: the index of that Plane feature. recompute() seats the sketch on the plane as it is
+    // now, so a plane whose offset is bound to a variable takes the sketch (and what was extruded from it) along. -1 = none.
+    int                attach_datum{-1};
+    // Names a caller gave to sketch dimensions: entity_constraints index -> name. set_feature_expr takes "dim:<name>" for
+    // "dim:<index>", so a binding does not depend on remembering a number. Indices are positions: a constraint deleted
+    // from the sketch shifts those after it, and the names stay where they were put.
+    std::map<int, std::string> dim_names;
 
     bool             project_from_sketch{false};
     int              project_source_sketch{-1}; // feature index; remapped on delete (orphan -> -1 = Error)
@@ -499,7 +506,7 @@ struct CadFeature {
                thin_in, thin_out, pattern_mirror, extrude_entities,
                hole_tip_angle,
                sm_thickness, sm_radius, sm_k, sm_gap, sm_angle, sm_ref,
-               dressup_fit_taper);
+               dressup_fit_taper, attach_datum, dim_names);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -557,7 +564,7 @@ struct CadFeature {
                thin_in, thin_out, pattern_mirror, extrude_entities,
                hole_tip_angle,
                sm_thickness, sm_radius, sm_k, sm_gap, sm_angle, sm_ref,
-               dressup_fit_taper);
+               dressup_fit_taper, attach_datum, dim_names);
     }
     // The pre-framing (v4) layout, FROZEN. A v4 recipe is one flat stream with no per-feature
     // length, so it can only be read with exactly the field list it was written with; reading it
