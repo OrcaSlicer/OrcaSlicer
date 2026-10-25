@@ -12,6 +12,8 @@
 
 #include <cstddef>
 #include <string>
+#include <string_view>
+#include <vector>
 
 using namespace Slic3r;
 
@@ -64,4 +66,53 @@ TEST_CASE("Split extrusions keep the overhang profile marker on every piece", "[
     INFO(output);
     REQUIRE(pieces > 1);
     CHECK(marked_pieces == pieces);
+}
+
+// Overhang metadata comments sit between the moves only when the option is on. The equalizer looks back over a
+// number of lines, so it must not count them, or turning the metadata on would change the ramps it writes.
+TEST_CASE("Overhang metadata comments leave the equalized commands unchanged", "[PressureEqualizer][Overhang][Regression]")
+{
+    const auto equalize = [](bool metadata) {
+        GCodeConfig config;
+        config.max_volumetric_extrusion_rate_slope.value                = 1.;
+        config.max_volumetric_extrusion_rate_slope_segment_length.value = 2.;
+        config.use_relative_e_distances.value                           = true;
+        PressureEqualizer equalizer(config);
+        const std::string comments = metadata ?
+            ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) + "100\n" +
+            ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line) + "4,0,0*3,100\n" : std::string();
+        // Three moves, the middle one slower: with no line between them the equalizer leaves them alone, while a
+        // comment line between them would bring them into one of its windows.
+        std::string layer = ";_EXTRUSION_ROLE:" + std::to_string(int(erSolidInfill)) + "\n"
+            "G1 X0 Y0 F6000\n"
+            "G1 E1 F2400\n"
+            "G1 F6000;_EXTRUDE_SET_SPEED\n"
+            "G1 X10 Y0 E0.4\n" + comments +
+            "G1 F600\n"
+            "G1 X20 Y0 E0.4\n" + comments +
+            "G1 F6000\n"
+            "G1 X30 Y0 E0.4\n"
+            ";_EXTRUDE_END\n";
+        // A run of short fast moves before a slow one: more than half of the look-back window once comments count.
+        layer += "G1 F6000;_EXTRUDE_SET_SPEED\n";
+        for (int i = 1; i <= 100; ++i)
+            layer += comments + "G1 X" + std::to_string(30 + i) + " Y0 E0.04\n";
+        layer += comments + "G1 F600\nG1 X140 Y0 E0.4\nG1 Y1 E0.04\n;_EXTRUDE_END\n";
+        equalizer.process_layer(LayerResult{layer, 0, false, false, false});
+        const std::string output = equalizer.process_layer(LayerResult::make_nop_layer_result()).gcode;
+        std::vector<std::string> commands;
+        size_t metadata_lines = 0;
+        GCodeReader reader;
+        reader.parse_buffer(output, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+            if (!line.cmd().empty())
+                commands.push_back(line.raw().substr(0, line.raw().find(';')));
+            else if (line.comment().find("OVERHANG") != std::string_view::npos)
+                ++metadata_lines;
+        });
+        CHECK(metadata_lines == (metadata ? 2u * 103u : 0u));
+        return commands;
+    };
+    const std::vector<std::string> without = equalize(false);
+    REQUIRE_FALSE(without.empty());
+    CHECK(equalize(true) == without);
 }

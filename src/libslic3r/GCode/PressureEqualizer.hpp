@@ -180,7 +180,13 @@ private:
 
         bool        extrude_set_speed_tag = false;
         bool        extrude_end_tag       = false;
+
+        // Orca: Overhang metadata lines written before this line, with their line ends.
+        std::string overhang_metadata;
     };
+
+    // Orca: Overhang metadata lines waiting for the line they precede.
+    std::string m_overhang_metadata;
 
     // Output buffer will only grow. It will not be reallocated over and over.
     std::vector<char>               output_buffer;
