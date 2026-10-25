@@ -1777,9 +1777,12 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     // Orca: Color the same metadata by percentage or its geometric angle, preserving travel colors.
     case EViewType::Overhang:
     {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
-            get_color_range(EViewType::Overhang).get_color_at(
-                m_settings.overhang_percentage ? v.overhang_share() : v.overhang_degree());
+        if (v.is_travel())
+            return get_option_color(move_type_to_option(v.type));
+        if (!v.has_overhang())
+            return NO_OVERHANG_COLOR;
+        return get_color_range(EViewType::Overhang).get_color_at(
+            m_settings.overhang_percentage ? v.overhang_share() : v.overhang_degree());
     }
     case EViewType::Speed:
     {

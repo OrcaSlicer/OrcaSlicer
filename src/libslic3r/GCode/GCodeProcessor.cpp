@@ -4466,10 +4466,9 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // extrusion role tag
     if (boost::starts_with(comment, reserved_tag(ETags::Role))) {
         set_extrusion_role(ExtrusionEntity::string_to_role(comment.substr(reserved_tag(ETags::Role).length())));
-        // Preview metadata covers model infill. Supports and auxiliary extrusions must not
-        // inherit a value from the model printed before them, including the shared ironing role.
-        if (!is_perimeter(m_extrusion_role) && m_extrusion_role != erGapFill &&
-            (!is_infill(m_extrusion_role) || m_extrusion_role == erIroning))
+        // A measured role entered without a fresh reading must not inherit the model printed before
+        // a support or another unmeasured section.
+        if (!measures_overhang(m_extrusion_role))
             m_overhang_percentage = 0.0f;
         if (m_extrusion_role == erExternalPerimeter)
             m_seams_detector.activate(true);
@@ -7830,7 +7829,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_object_label_id,
         m_print_z,
         // Orca: Snapshot the active percentage on every move so libvgcode can split color spans.
-        m_overhang_percentage,
+        measures_overhang(m_extrusion_role) ? m_overhang_percentage : NO_OVERHANG_PERCENTAGE,
         // Orca: Preserve the reference-plane spacing through move buffering and arc discretization.
         m_overhang_z_distance
     });

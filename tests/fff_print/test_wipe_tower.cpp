@@ -324,7 +324,7 @@ TEST_CASE("Overhang metadata resets across wipe tower toolchanges", "[WipeTower]
             saw_fresh_percentage = true;
             percentage = std::stof(std::string(line.comment().substr(overhang_tag.size())));
         }
-        if (role != erWipeTower && role != erNone && line.extruding(self) && (line.has_x() || line.has_y())) {
+        if (GCodeProcessor::measures_overhang(role) && line.extruding(self) && (line.has_x() || line.has_y())) {
             CAPTURE(lines_after_tower);
             CHECK(saw_fresh_percentage);
             if (is_perimeter(role)) {

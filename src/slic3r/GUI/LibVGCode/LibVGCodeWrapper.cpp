@@ -219,8 +219,10 @@ Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode)
     }
 }
 
-// Orca: Both sides of the overhang metadata agree on the cap of a wall's unsupported width.
+// Orca: Both sides of the overhang metadata agree on the cap of a wall's unsupported width, and on a negative
+// percentage for lines without data.
 static_assert(libvgcode::PathVertex::MAX_OVERHANG_PERCENTAGE == Slic3r::GCodeProcessor::MAX_OVERHANG_PERCENTAGE);
+static_assert(Slic3r::GCodeProcessor::NO_OVERHANG_PERCENTAGE < 0.0f);
 
 // libvgcode finds where a path starts from a phantom vertex placed at the previous move's
 // position. Every move that is not an option marker (extrusions, travels, wipes, and Noop or

@@ -1215,7 +1215,7 @@ TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCo
     CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
 }
 
-// Model infill consumes preview metadata; support and auxiliary roles still reset it.
+// Model infill consumes preview metadata; support and auxiliary roles have none and reset it.
 TEST_CASE("Overhang metadata follows model infill roles and excludes supports", "[GCodeProcessor][Overhang][Regression]")
 {
     struct Case {
@@ -1231,15 +1231,15 @@ TEST_CASE("Overhang metadata follows model infill roles and excludes supports", 
         {erTopSolidInfill, 42.0f},
         {erBottomSurface, 42.0f},
         {erGapFill, 42.0f},
-        {erIroning, 0.0f},
-        {erSupportMaterial, 0.0f},
-        {erSupportMaterialInterface, 0.0f},
-        {erSupportTransition, 0.0f},
-        {erSkirt, 0.0f},
-        {erBrim, 0.0f},
-        {erWipeTower, 0.0f},
-        {erCustom, 0.0f},
-        {erNone, 0.0f},
+        {erIroning, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erSupportMaterial, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erSupportMaterialInterface, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erSupportTransition, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erSkirt, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erBrim, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erWipeTower, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erCustom, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
+        {erNone, GCodeProcessor::NO_OVERHANG_PERCENTAGE},
     }};
 
     for (const Case &test : cases) {
@@ -1255,7 +1255,13 @@ TEST_CASE("Overhang metadata follows model infill roles and excludes supports", 
             const auto &move = processor.get_result().moves.back();
             REQUIRE(move.type == EMoveType::Extrude);
             CHECK(move.extrusion_role == test.role);
+            CHECK(GCodeProcessor::measures_overhang(test.role) == (test.expected_percentage >= 0.0f));
             CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(test.expected_percentage, 1e-6));
+            // A measured role entered after an unmeasured one does not inherit the reading before it.
+            processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) +
+                ExtrusionEntity::role_to_string(erExternalPerimeter) + "\nG1 X20 E1\n");
+            CHECK_THAT(processor.get_result().moves.back().overhang_percentage,
+                Catch::Matchers::WithinAbs(GCodeProcessor::measures_overhang(test.role) ? 42.0 : 0.0, 1e-6));
         }
     }
 }

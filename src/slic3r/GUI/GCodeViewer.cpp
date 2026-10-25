@@ -485,7 +485,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 break;
             // Orca: Match the active legend units at the sequential marker; non-extrusion moves have no overhang.
             case libvgcode::EViewType::Overhang:
-                if (is_extrusion) {
+                if (is_extrusion && vertex.has_overhang()) {
                     if (viewer->is_overhang_percentage())
                         sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), vertex.overhang_share());
                     else
@@ -549,9 +549,10 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             // Orca: Missing metadata is not evidence of a fully supported wall. Match the selector's
             // availability rule, but retain both representations for files that actually provide them.
             if (has_overhang_metadata) {
-                if (is_extrusion) sprintf(buff, "%.1f %%", vertex.overhang_share()); else strcpy(buff, NA_CSTR);
+                const bool has_overhang = is_extrusion && vertex.has_overhang();
+                if (has_overhang) sprintf(buff, "%.1f %%", vertex.overhang_share()); else strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (%)"), buff);
-                if (is_extrusion) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
+                if (has_overhang) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (°)"), buff);
             }
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
@@ -4890,6 +4891,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         // Orca: Fractional labels distinguish the closely spaced low-end stops of the logarithmic scale.
         const bool logarithmic = m_viewer.is_overhang_logarithmic();
         append_range(m_viewer.get_color_range(libvgcode::EViewType::Overhang), logarithmic ? 1 : 0);
+        // Orca: Lines the G-code does not measure keep their own color.
+        append_item(EItemType::Rect, libvgcode::convert(libvgcode::NO_OVERHANG_COLOR), { { _u8L("N/A"), 0 } });
+        if (ImGui::IsItemHovered())
+            imgui.tooltip(_u8L("Supports, skirt, brim, the wipe tower and ironing have no overhang data."), ImGui::GetFontSize() * 20.0f);
         ImGui::Spacing();
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();

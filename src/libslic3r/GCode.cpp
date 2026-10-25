@@ -9618,7 +9618,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     bool path_overhang_fan_active = false;
     std::vector<ProcessedPoint> new_points {};
     // Orca: Keep overhang metadata opt-in because every emitted value increases the final G-code size.
-    const bool emit_overhangs = m_config.gcode_overhangs;
+    // Supports and the other unmeasured roles get none: the preview shows them as N/A.
+    const bool emit_overhangs = m_config.gcode_overhangs && GCodeProcessor::measures_overhang(path.role());
 
     const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
         (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers);
@@ -9709,8 +9710,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
 
     // Orca: Keep visualization independent of the speed/fan options: every emitted move is sampled
     // without changing the toolpath geometry. The first layer and layers over a raft have no
-    // meaningful model-layer support reference. Ironing shares its role with support ironing.
-    const bool infill_material_reference = (is_infill(path.role()) && path.role() != erIroning) || path.role() == erGapFill;
+    // meaningful model-layer support reference.
+    const bool infill_material_reference = GCodeProcessor::measures_overhang(path.role()) && !is_perimeter(path.role());
     // Orca: Infill combination prints one bead for several layers, resting on the layer under its bottom.
     // Bridges, which may be thicker than their layer, rest on the layer below.
     const Layer *overhang_support_layer = m_layer != nullptr ? m_layer->lower_layer : nullptr;

@@ -265,7 +265,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             int  object_label_id{-1};
             float print_z{0.0f};
             // Orca: Unsupported extrusion width in percent of the line width, copied from the active G-code tag.
-            // Walls may exceed 100, up to MAX_OVERHANG_PERCENTAGE.
+            // Walls may exceed 100, up to MAX_OVERHANG_PERCENTAGE; NO_OVERHANG_PERCENTAGE where the role is not measured.
             float overhang_percentage{ 0.0f };
             // Orca: Distance between the contours' slicing planes in mm; zero means unavailable in legacy G-code.
             float overhang_z_distance{ 0.0f };
@@ -752,6 +752,14 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         static constexpr size_t MAX_OVERHANG_PROFILE_SAMPLES = 65536;
         // Walls report their contour offset past a full bead, up to ten widths, so the angle preview stays continuous.
         static constexpr float MAX_OVERHANG_PERCENTAGE = 1000.0f;
+        // The percentage of a move whose role the overhang metadata does not measure; the preview shows N/A.
+        static constexpr float NO_OVERHANG_PERCENTAGE = -1.0f;
+        // Roles the overhang metadata measures: walls, gap fill and infill. Supports, skirt, brim, the wipe tower,
+        // custom extrusions and ironing, whose role support ironing shares, carry none.
+        static bool measures_overhang(ExtrusionRole role)
+        {
+            return is_perimeter(role) || role == erGapFill || (is_infill(role) && role != erIroning);
+        }
         // Whether one of the semicolon-separated fields of an inline comment (the text after its first ';') is `tag`.
         static bool has_inline_tag(std::string_view comment, ETags tag);
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }

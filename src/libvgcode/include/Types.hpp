@@ -225,6 +225,8 @@ static constexpr std::size_t COLOR_RANGE_TYPES_COUNT = static_cast<std::size_t>(
 // Predefined colors
 //
 static const Color DUMMY_COLOR{ 64, 64, 64 };
+// Orca: Lines without overhang data, such as supports, in the Overhang view.
+static const Color NO_OVERHANG_COLOR{ 128, 128, 128 };
 
 //
 // Mapping from EMoveType to EOptionType

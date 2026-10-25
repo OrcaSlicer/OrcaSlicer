@@ -64,3 +64,18 @@ TEST_CASE("Overhang angles convert walls continuously and saturate bridges", "[G
         }
     }
 }
+
+// Lines without overhang data, such as supports, are not fully supported lines.
+TEST_CASE("Overhang preview tells lines without data from supported ones", "[GCodeViewer][Overhang]")
+{
+    libvgcode::PathVertex vertex;
+    vertex.role  = libvgcode::EGCodeExtrusionRole::SupportMaterial;
+    vertex.width = 0.4f;
+    vertex.height = 0.2f;
+    vertex.overhang_percentage = -1.0f;
+    CHECK_FALSE(vertex.has_overhang());
+    vertex.role = libvgcode::EGCodeExtrusionRole::ExternalPerimeter;
+    vertex.overhang_percentage = 0.0f;
+    CHECK(vertex.has_overhang());
+    CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(0.0, 1e-6));
+}

@@ -1142,7 +1142,8 @@ TEST_CASE("Infill preview metadata preserves commands and excludes support paths
             CHECK_THAT(move.fan_speed, Catch::Matchers::WithinAbs(baseline.fan_speed, 1e-6));
             if (move.type == EMoveType::Extrude && move.extrusion_role == role &&
                 std::abs(move.position.z() - target_print_z) < 1e-4) {
-                CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(has_metadata ? 50.0 : 0.0, 0.1));
+                CHECK_THAT(move.overhang_percentage,
+                    Catch::Matchers::WithinAbs(has_metadata ? 50.0 : GCodeProcessor::NO_OVERHANG_PERCENTAGE, 0.1));
                 if (has_metadata)
                     CHECK_THAT(move.overhang_z_distance, Catch::Matchers::WithinAbs(extrusion_height, 1e-5));
                 else
