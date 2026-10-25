@@ -120,6 +120,11 @@ public:
     // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
     // Default 0 -> byte-identical to the plain deretract.
     std::string unretract(float extra_retract = 0.f);
+    std::string ironing_e_move(double dE, const std::string &comment);
+    // A zero flow ironing pass is in progress: its strokes keep an explicit E word even though they
+    // extrude nothing, and the filament stays parked where the ironing retract left it.
+    void set_zero_flow_ironing(bool active) { m_zero_flow_ironing = active; }
+    bool zero_flow_ironing() const { return m_zero_flow_ironing; }
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
@@ -274,6 +279,20 @@ private:
     //BBS
     int             m_last_bed_temperature;
     bool            m_last_bed_temperature_reached;
+    double          m_lifted;
+
+    // BBS
+    double          m_to_lift;
+    LiftType        m_to_lift_type;
+    Vec3d           m_pos = Vec3d::Zero();
+    //BBS: this flag is used to indicate whether the m_pos is real.
+    //A example that of the first move, the m_pos is zero, but the real position of extruder doesn't
+    //Pos must be clear after the first xyz travel move
+    bool            m_is_current_pos_clear = false;
+    //BBS: x, y offset for gcode generated
+    double          m_x_offset{ 0 };
+    double          m_y_offset{ 0 };
+    bool            m_zero_flow_ironing = false;
 
     // Orca: slicing resolution in mm
     double          m_resolution = 0.01;

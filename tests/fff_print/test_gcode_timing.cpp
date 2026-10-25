@@ -483,6 +483,41 @@ TEST_CASE("Per-slot machine limits follow the active nozzle", "[GCodeTiming][Mul
     }
 }
 
+TEST_CASE("Zero-flow ironing strokes classify as ironing extrusions, travels and unretracts stay themselves", "[GCodeProcessor]")
+{
+    // Zero-flow ironing strokes carry an explicit E word with zero displacement;
+    // travel moves carry no E word. The preview relies on that difference: the
+    // strokes must render as ironing, while travels between islands must not be
+    // painted as extrusions and the closing unretract must not pollute flow/stats.
+    const char* gcode =
+        "M83\n"
+        "; FEATURE: Ironing\n"
+        "G1 X10 Y10 E0 F1200\n"   // stroke
+        "G1 X20 Y10 E0\n"         // stroke
+        "G1 X30 Y30 F7200\n"      // travel to the next island
+        "G1 X40 Y30 E0 F1200\n"   // stroke
+        "G1 E25.5 F1800\n";       // ironing unretract
+
+    FullPrintConfig config = make_config(0., 0., 0.);
+    GCodeProcessor proc;
+    run_processor(proc, config, gcode);
+
+    int iron_strokes = 0, travels = 0, unretracts = 0;
+    for (const auto& mv : proc.get_result().moves) {
+        if (mv.type == EMoveType::Extrude && mv.extrusion_role == erIroning)
+            ++iron_strokes;
+        else if (mv.type == EMoveType::Travel)
+            ++travels;
+        else if (mv.type == EMoveType::Unretract)
+            ++unretracts;
+    }
+    // The processor discretizes each G1 into several vertices, so compare against
+    // lower bounds instead of exact per-line counts.
+    REQUIRE(iron_strokes >= 3);
+    REQUIRE(travels >= 1);
+    REQUIRE(unretracts == 1);
+}
+
 // Junction planning decides the speeds the "actual speed" / "actual flow" preview shows. Per-axis
 // jerk limits a corner by the largest single-axis component of the velocity change, allowing sqrt(2)
 // more speed on a diagonal than on an axis -- a four-lobed ripple around every circle. Klipper and
