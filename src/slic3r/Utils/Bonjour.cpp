@@ -2,6 +2,7 @@
 
 #include <boost/optional/optional.hpp>
 #include <boost/asio/ip/udp.hpp>
+#include <chrono>
 #include <cstddef>
 #include <boost/none.hpp>
 #include <boost/asio/ip/address_v4.hpp>
@@ -11,6 +12,7 @@
 #include <boost/asio/ip/multicast.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/placeholders.hpp>
+#include <boost/asio/post.hpp>
 #include <cassert>
 #include <cctype>
 #include <boost/asio/ip/host_name.hpp>
