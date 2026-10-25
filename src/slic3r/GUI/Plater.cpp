@@ -5833,7 +5833,6 @@ void Sidebar::add_filament() {
 
 void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (is_new_project_in_gcode3mf()) { return; }
-    if (p->combos_filament.size() <= 1) return;
 
     size_t filament_count = p->combos_filament.size() - 1;
     if (filament_id == size_t(-2)) {
@@ -5841,6 +5840,11 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     }
     if (filament_id == size_t(-1)) {
         filament_id = filament_count;
+    }
+    // Virtual mixed slots have no sidebar combo. They may still be deleted after the
+    // final physical filament has become the only visible combo.
+    if (p->combos_filament.size() <= 1 && filament_id < p->combos_filament.size()) {
+        return;
     }
 
     // Mixed (virtual) slots have no combo of their own, so their config index lies past
@@ -15663,6 +15667,26 @@ bool Plater::is_project_dirty() const { return p->is_project_dirty(); }
 bool Plater::is_presets_dirty() const { return p->is_presets_dirty(); }
 void Plater::set_plater_dirty(bool is_dirty) { p->set_plater_dirty(is_dirty); }
 void Plater::update_project_dirty_from_presets() { p->update_project_dirty_from_presets(); }
+
+bool Plater::supports_multi_material() const
+{
+    auto& preset_bundle = *wxGetApp().preset_bundle;
+    const Preset& printer = preset_bundle.printers.get_edited_preset();
+    return printer.printer_technology() == ptFFF &&
+        (preset_bundle.is_bbl_vendor() ||
+         printer.config.opt_bool("single_extruder_multi_material") ||
+         preset_bundle.get_printer_extruder_count() > 1);
+}
+
+bool Plater::supports_multiple_bed_types() const
+{
+    auto& preset_bundle = *wxGetApp().preset_bundle;
+    const Preset& printer = preset_bundle.printers.get_edited_preset();
+    return printer.printer_technology() == ptFFF &&
+        (preset_bundle.is_bbl_vendor() ||
+         printer.config.opt_bool("support_multi_bed_types"));
+}
+
 int  Plater::save_project_if_dirty(const wxString& reason) { return p->save_project_if_dirty(reason); }
 void Plater::reset_project_dirty_after_save() { p->reset_project_dirty_after_save(); }
 void Plater::reset_project_dirty_initial_presets() { p->reset_project_dirty_initial_presets(); }
@@ -15680,25 +15704,81 @@ void Plater::normalize_bed_types(bool multi_bed_changed)
     if (preset_bundle.printers.get_edited_preset().printer_technology() != ptFFF)
         return;
 
-    const auto &printer_config = preset_bundle.printers.get_edited_preset().config;
-
-    const bool supports_multiple_bed_types =
-        preset_bundle.is_bbl_vendor() || printer_config.opt_bool("support_multi_bed_types");
     // Clear local overrides for single-bed printers.
-    const bool overrides_reset = !supports_multiple_bed_types &&
+    const bool overrides_reset = !supports_multiple_bed_types() &&
         !p->partplate_list.check_all_plate_local_bed_type({});
 
     if (overrides_reset) {
         set_plater_dirty(true);
-        show_info(this,
-                  _L("The selected printer does not support multiple bed types.\nBed type overrides were reset to the global bed type."),
-                  _L("Plate bed types reset"));
+        const wxString message = _L("The selected printer does not support multiple bed types.")
+                                + "\n"  // splitted for easier translation
+                                + _L("Bed type overrides were reset to the global bed type.");
+        InfoDialog dialog(this, wxEmptyString, message, false, wxOK | wxICON_WARNING);
+        dialog.ShowModal();
     }
 
     // Refresh the controls after a capability change, even when no override was reset.
     if (multi_bed_changed || overrides_reset) {
         sidebar().update_all_preset_comboboxes();
         wxGetApp().obj_list()->update_and_show_object_settings_item();
+        if (auto* plate_tab = dynamic_cast<TabPrintPlate*>(wxGetApp().get_plate_tab()))
+            plate_tab->update_model_config();
+    }
+}
+
+void Plater::normalize_filaments(bool printer_setting_changed)
+{
+    if (only_gcode_mode() || is_gcode_3mf() || supports_multi_material())
+        return;
+
+    auto& preset_bundle = *wxGetApp().preset_bundle;
+    if (preset_bundle.printers.get_edited_preset().printer_technology() != ptFFF)
+        return;
+
+    const size_t initial_filament_count = preset_bundle.filament_presets.size();
+    const bool had_multiple_filaments = initial_filament_count > 1;
+    if (had_multiple_filaments) {
+        // The deletion path updates the sidebar as it removes each slot.
+        on_filament_count_change(preset_bundle.filament_presets.size());
+        while (preset_bundle.filament_presets.size() > 1) {
+            const size_t count = preset_bundle.filament_presets.size();
+            sidebar().delete_filament(count - 1);
+            // delete_filament() may reject a request when the current project cannot
+            // be modified. Do not retry the same slot indefinitely.
+            if (preset_bundle.filament_presets.size() == count)
+                break;
+        }
+        on_filament_count_change(preset_bundle.filament_presets.size());
+    }
+
+    const size_t remaining_filaments = preset_bundle.filament_presets.size();
+    const bool filaments_reduced = remaining_filaments < initial_filament_count;
+    auto* print_tab = dynamic_cast<TabPrint*>(wxGetApp().get_tab(Preset::TYPE_PRINT));
+    const bool global_assignments_reset = printer_setting_changed && remaining_filaments == 1 &&
+                                          print_tab && print_tab->reset_filament_selectors();
+
+    if (!printer_setting_changed && !had_multiple_filaments)
+        return;
+
+    sidebar().update_all_preset_comboboxes();
+    if (print_tab)
+        print_tab->update();
+    wxGetApp().obj_list()->update_object_list_by_printer_technology();
+    if (filaments_reduced || global_assignments_reset)
+        set_plater_dirty(true);
+    if (global_assignments_reset)
+        wxGetApp().params_panel()->notify_object_config_changed();
+
+    if (filaments_reduced || global_assignments_reset || remaining_filaments > 1) {
+        wxString message = _L("The selected printer supports only one filament.");
+        if (remaining_filaments > 1)
+            message += "\n" + _L("Some filaments could not be removed.");
+        else if (filaments_reduced)
+            message += "\n" + _L("The number of filaments was reduced to one.");
+        if (global_assignments_reset)
+            message += "\n" + _L("Global filament settings were reset to Default.");
+        InfoDialog dialog(this, wxEmptyString, message, false, wxOK | wxICON_WARNING);
+        dialog.ShowModal();
     }
 }
 
@@ -16282,8 +16362,9 @@ void Plater::load_project(wxString const& filename2,
         p->dirty_state.update_from_undo_redo_stack(true);
     up_to_date(true, true);
 
-    // Clear plate overrides that are incompatible with the selected printer.
+    // Normalize project settings unsupported by the selected printer.
     normalize_bed_types(false);
+    normalize_filaments(false);
 
     wxGetApp().params_panel()->switch_to_object_if_has_object_configs();
 
@@ -18409,8 +18490,10 @@ std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files,
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
     bool config_loaded = false;
     std::vector<size_t> result = p->load_files(input_files, strategy, ask_multi, published_out, &config_loaded);
-    if (config_loaded && !is_loading_project())
+    if (config_loaded && !is_loading_project()) {
         normalize_bed_types(false);
+        normalize_filaments(false);
+    }
     return result;
 }
 

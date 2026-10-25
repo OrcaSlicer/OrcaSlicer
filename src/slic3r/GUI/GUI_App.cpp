@@ -7072,6 +7072,7 @@ bool GUI_App::reload_settings()
             if (plater_) {
                 plater_->sidebar().update_all_preset_comboboxes();
                 plater_->normalize_bed_types(false);
+                plater_->normalize_filaments(false);
             }
         };
         if (is_main_thread_active())

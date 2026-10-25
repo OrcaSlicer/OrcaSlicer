@@ -1247,8 +1247,11 @@ bool GuideFrame::run()
 
         app.app_config->set_legacy_datadir(false);
         app.update_mode();
-        if (Plater *plater = app.plater())
+
+        if (Plater *plater = app.plater()) {
             plater->normalize_bed_types(false);
+            plater->normalize_filaments(false);
+        }
         // BBS
         //app.obj_manipul()->update_ui_from_settings();
         BOOST_LOG_TRIVIAL(info) << "GuideFrame applied";

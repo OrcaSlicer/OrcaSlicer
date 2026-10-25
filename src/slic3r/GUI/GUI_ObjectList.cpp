@@ -753,6 +753,9 @@ ModelConfig& ObjectList::get_item_config(const wxDataViewItem& item) const
 
 void ObjectList::update_filament_values_for_items(const size_t filaments_count)
 {
+    // Keep assignments that exceed the current single-material printer's capacity.
+    // They remain available if the project later has those filament slots again.
+    const bool clear_invalid_assignments = printer_technology() != ptFFF || wxGetApp().plater()->supports_multi_material();
     for (size_t i = 0; i < m_objects->size(); ++i)
     {
         wxDataViewItem item = m_objects_model->GetItemById(i);
@@ -760,9 +763,13 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
 
         auto object = (*m_objects)[i];
         wxString extruder;
-        if (!object->config.has("extruder") || size_t(object->config.extruder()) > filaments_count) {
+        if (!object->config.has("extruder")) {
             extruder = "1";
-            object->config.set_key_value("extruder", new ConfigOptionInt(1));
+        }
+        else if (size_t(object->config.extruder()) > filaments_count) {
+            extruder = "1";
+            if (clear_invalid_assignments)
+                object->config.erase("extruder");
         }
         else {
             extruder = wxString::Format("%d", object->config.extruder());
@@ -771,7 +778,7 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
 
         static const char *keys[] = {"support_filament", "support_interface_filament"};
         for (auto key : keys)
-            if (object->config.has(key) && object->config.opt_int(key) > filaments_count)
+            if (clear_invalid_assignments && object->config.has(key) && object->config.opt_int(key) > filaments_count)
                 object->config.erase(key);
 
         if (object->volumes.size() > 1) {
@@ -780,11 +787,12 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
                 if (!item) continue;
                 if (!object->volumes[id]->config.has("extruder") ||
                     size_t(object->volumes[id]->config.extruder()) > filaments_count) {
-                    extruder = wxString::Format("%d", object->config.extruder());
+                    extruder = wxString::Format("%d", object->config.has("extruder") ? object->config.extruder() : 1);
                     // Clear the stale per-volume assignment so it falls back to the object's
                     // extruder; otherwise the out-of-range index survives. Ported from
                     // BambuStudio (STUDIO-15763).
-                    object->volumes[id]->config.erase("extruder");
+                    if (clear_invalid_assignments)
+                        object->volumes[id]->config.erase("extruder");
                 }
                 else {
                     extruder = wxString::Format("%d", object->volumes[id]->config.extruder());
@@ -793,7 +801,7 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
                 m_objects_model->SetExtruder(extruder, item);
 
                 for (auto key : keys)
-                    if (object->volumes[id]->config.has(key) && object->volumes[id]->config.opt_int(key) > filaments_count)
+                    if (clear_invalid_assignments && object->volumes[id]->config.has(key) && object->volumes[id]->config.opt_int(key) > filaments_count)
                         object->volumes[id]->config.erase(key);
             }
         }
@@ -6123,14 +6131,16 @@ void ObjectList::update_settings_item_and_selection(wxDataViewItem item, wxDataV
 
 void ObjectList::update_object_list_by_printer_technology()
 {
+    const bool prevent_canvas_selection_update = m_prevent_canvas_selection_update;
     m_prevent_canvas_selection_update = true;
     wxDataViewItemArray sel;
     GetSelections(sel); // stash selection
 
-    wxDataViewItemArray object_items;
-    m_objects_model->GetChildren(wxDataViewItem(nullptr), object_items);
+    for (ModelObject* object : *m_objects) {
+        wxDataViewItem object_item = m_objects_model->GetObjectItem(object);
+        if (!object_item)
+            continue;
 
-    for (auto& object_item : object_items) {
         // update custom supports info
         update_info_items(m_objects_model->GetObjectIdByItem(object_item), &sel);
 
@@ -6184,7 +6194,7 @@ void ObjectList::update_object_list_by_printer_technology()
 
     // restore selection:
     SetSelections(sel);
-    m_prevent_canvas_selection_update = false;
+    m_prevent_canvas_selection_update = prevent_canvas_selection_update;
 }
 
 void ObjectList::instances_to_separated_object(const int obj_idx, const std::set<int>& inst_idxs)

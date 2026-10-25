@@ -31,6 +31,14 @@ namespace GUI {
 
 namespace {
 
+const char* const physical_filament_selector_keys[] = {
+    "support_filament", "support_interface_filament", "wipe_tower_filament"
+};
+const char* const feature_filament_selector_keys[] = {
+    "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+    "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+};
+
 std::string trim_copy(const std::string& text)
 {
     const auto first = text.find_first_not_of(" \t\r\n");
@@ -61,6 +69,40 @@ bool ConfigManipulation::is_applying() const { return is_msg_dlg_already_exist; 
 t_config_option_keys const &ConfigManipulation::applying_keys() const
 {
     return m_applying_keys;
+}
+
+bool ConfigManipulation::reset_filament_selectors(DynamicPrintConfig* config, bool reset_to_default)
+{
+    const int filament_cnt = wxGetApp().preset_bundle->filament_presets.size();
+    DynamicPrintConfig selector_config;
+    auto reset_invalid_filament = [config, filament_cnt, reset_to_default, &selector_config](const char* key, bool allow_mixed) {
+        auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
+        if (opt == nullptr)
+            return;
+        const int  val          = opt->getInt();
+        const bool out_of_range = val > filament_cnt;
+        const bool is_mixed     = !allow_mixed && val > 0 && val <= filament_cnt &&
+                                  wxGetApp().preset_bundle->is_mixed_filament(val - 1);
+        if (!out_of_range && !is_mixed && !(reset_to_default && val != 0))
+            return;
+
+        int new_value = 0;
+        if (out_of_range && !reset_to_default) {
+            const DynamicPrintConfig* config_template = wxGetApp().plater()->config();
+            if (config_template != nullptr && config_template->has(key))
+                new_value = config_template->opt_int(key);
+        }
+        if (new_value != val)
+            selector_config.set_key_value(key, new ConfigOptionInt(new_value));
+    };
+    for (const char* key : physical_filament_selector_keys)
+        reset_invalid_filament(key, false);
+    for (const char* key : feature_filament_selector_keys)
+        reset_invalid_filament(key, true);
+    if (selector_config.empty())
+        return false;
+    apply(config, &selector_config);
+    return true;
 }
 
 void ConfigManipulation::toggle_field(const std::string &opt_key, const bool toggle, int opt_index /* = -1*/)
@@ -637,38 +679,9 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         }
     }
 
-    // BBS
-    // Reset filament overrides pointing at a slot that no longer exists. Support and the wipe
-    // tower additionally reject mixed slots: the engine consumes those keys directly, so a virtual
-    // slot would reach the G-code unresolved, while the per-feature keys are resolved per layer.
-    static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "wipe_tower_filament" };
-    static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
-                                          "sparse_infill_filament_id", "internal_solid_filament_id",
-                                          "top_surface_filament_id", "bottom_surface_filament_id" };
-    auto reset_invalid_filament = [this, config, filament_cnt](const char* key, bool allow_mixed) {
-        auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
-        if (opt == nullptr)
-            return;
-        const int  val          = opt->getInt();
-        const bool out_of_range = val > filament_cnt;
-        const bool is_mixed     = !allow_mixed && val > 0 && val <= filament_cnt &&
-                                  wxGetApp().preset_bundle->is_mixed_filament(val - 1);
-        if (!out_of_range && !is_mixed)
-            return;
-        DynamicPrintConfig new_conf = *config;
-        int new_value = 0;
-        if (out_of_range) {
-            const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
-            if (conf_temp != nullptr && conf_temp->has(key))
-                new_value = conf_temp->opt_int(key);
-        }
-        new_conf.set_key_value(key, new ConfigOptionInt(new_value));
-        apply(config, &new_conf);
-    };
-    for (const char* key : physical_only_keys)
-        reset_invalid_filament(key, false);
-    for (const char* key : feature_keys)
-        reset_invalid_filament(key, true);
+    // Plater::normalize_filaments() validates global selectors for single-material printers.
+    if (wxGetApp().plater()->supports_multi_material())
+        reset_filament_selectors(config);
 
     // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes
     // those sub-layer heights vary per layer, which degrades the blend. Warn once per enable.

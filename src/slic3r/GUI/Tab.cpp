@@ -3681,6 +3681,11 @@ void TabPrint::clear_pages()
     m_top_bottom_shell_thickness_explanation = nullptr;
 }
 
+bool TabPrint::reset_filament_selectors()
+{
+    return m_config_manipulation.reset_filament_selectors(m_config, true);
+}
+
 //BBS: GUI refactor
 
 static std::vector<std::string> intersect(std::vector<std::string> const& l, std::vector<std::string> const& r)
@@ -7431,6 +7436,9 @@ bool Tab::select_preset(
     bool canceled      = false;
     bool no_transfer = false;
     bool technology_changed = false;
+    Plater* plater = wxGetApp().plater();
+    const bool initial_multi_bed_types = printer_tab && plater && plater->supports_multiple_bed_types();
+    const bool initial_multi_material = printer_tab && plater && plater->supports_multi_material();
     m_dependent_tabs.clear();
     if ((m_presets->type() == Preset::TYPE_FILAMENT) && !preset_name.empty())
     {
@@ -7649,14 +7657,17 @@ bool Tab::select_preset(
         }
         load_current_preset();
 
-        // Wait for the settings dialog to close; its edits are still provisional.
-        if (printer_tab && is_selected) {
-            Plater *plater = wxGetApp().plater();
-            ParamsDialog *dialog = wxGetApp().params_dialog();
-            if (plater && !plater->is_loading_project() &&
-                (!dialog || !dialog->IsShown()))
-                plater->normalize_bed_types(false);
+        // Normalize capability-dependent project state after selecting or editing a printer preset.
+        // If the Printer Settings dialog is open, defer until it closes.
+        ParamsDialog* dialog = wxGetApp().params_dialog();
+        if (printer_tab && is_selected && plater && !plater->is_loading_project() &&
+            (!dialog || !dialog->IsShown())) {
+            plater->normalize_bed_types(initial_multi_bed_types != plater->supports_multiple_bed_types());
+            plater->normalize_filaments(initial_multi_material != plater->supports_multi_material());
         }
+        else if (m_type == Preset::TYPE_PRINT && is_selected && plater && !plater->is_loading_project() &&
+                 !plater->supports_multi_material())
+            plater->normalize_filaments(false);
 
         {
             Slic3r::LifecycleEventContext ctx;

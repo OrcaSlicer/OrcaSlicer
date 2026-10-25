@@ -42,6 +42,18 @@ ParamsDialog::ParamsDialog(wxWindow * parent)
     Bind(wxEVT_SHOW, [this](auto &event) {
         if (IsShown()) {
             m_winDisabler = new wxWindowDisabler(this);
+            // Capture the initial capabilities after the show event for comparison on close.
+            wxGetApp().CallAfter([this] {
+                if (!IsShown())
+                    return;
+
+                auto *tab = dynamic_cast<Tab *>(m_panel->get_current_tab());
+                if (tab && tab->type() == Preset::TYPE_PRINTER) {
+                    Plater *plater = wxGetApp().plater();
+                    m_initial_multi_bed_types = plater->supports_multiple_bed_types();
+                    m_initial_multi_material  = plater->supports_multi_material();
+                }
+            });
         } else {
             delete m_winDisabler;
             m_winDisabler = nullptr;
@@ -74,11 +86,12 @@ ParamsDialog::ParamsDialog(wxWindow * parent)
         Hide();
         if (tab && tab->type() == Preset::TYPE_PRINTER) {
             // Normalize only after the dialog closes, when the final capability is known.
-            auto &preset_bundle = *wxGetApp().preset_bundle;
-            const bool supports_multiple_bed_types = preset_bundle.is_bbl_vendor() ||
-                preset_bundle.printers.get_edited_preset().config.opt_bool("support_multi_bed_types");
-            if (m_initial_multi_bed_types != supports_multiple_bed_types)
-                wxGetApp().plater()->normalize_bed_types(true);
+            Plater* plater = wxGetApp().plater();
+            if (m_initial_multi_bed_types != plater->supports_multiple_bed_types())
+                plater->normalize_bed_types(true);
+
+            if (m_initial_multi_material != plater->supports_multi_material())
+                plater->normalize_filaments(true);
         }
 
         if (!m_editing_filament_id.empty()) {
@@ -104,13 +117,6 @@ void ParamsDialog::Popup()
         if (!m_editing_filament_id.empty()) just_edit = true;
         auto *tab = dynamic_cast<Tab *>(m_panel->get_current_tab());
         tab->set_just_edit(just_edit);
-        if (tab->type() == Preset::TYPE_PRINTER) {
-            // Remember the initial capability and compare it when the dialog closes.
-            // Bambu profiles support multiple bed types even when this option is unset.
-            auto &preset_bundle = *wxGetApp().preset_bundle;
-            m_initial_multi_bed_types = preset_bundle.is_bbl_vendor() ||
-                preset_bundle.printers.get_edited_preset().config.opt_bool("support_multi_bed_types");
-        }
     }
     Show();
 }
