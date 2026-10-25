@@ -1128,6 +1128,11 @@ void SelectMachineDialog::finish_mode()
 
 void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &result)
 {
+    // Orca: BBL machines never report IsAllToolchanger(), so this is inert for them.
+    DeviceManager* dev_toolchanger = wxGetApp().getDeviceManager();
+    MachineObject* obj_toolchanger = dev_toolchanger ? dev_toolchanger->get_selected_machine() : nullptr;
+    const bool     is_toolchanger  = obj_toolchanger && obj_toolchanger->GetFilaSystem()->IsAllToolchanger();
+
     // A rack / filament-switcher printer grows its filament cards to show the mapped-nozzle row.
     // Reflow the grid so the taller cards aren't clipped; no-op for printers that never show it.
     auto relayout_nozzle_cards = [this]() {
@@ -1172,7 +1177,7 @@ void SelectMachineDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &res
                 {
                     ams_id = _L("Ext");
                 }else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    ams_id = wxGetApp().tray_display_label(f->tray_id, is_toolchanger);
                 } else {
                     ams_id = "-";
                 }

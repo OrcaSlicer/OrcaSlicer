@@ -191,6 +191,15 @@ void AmsMapingPopup::update(MachineObject* obj,
         }
     }
 
+    // Orca: toolchangers have no ext spool and are AMS units in name only.
+    if (obj->GetFilaSystem()->IsAllToolchanger()) {
+        set_sizer_title(m_right_split_ams_sizer, _L("Tool"));
+        set_sizer_title(m_left_split_ams_sizer, _L("Tool"));
+        m_right_split_ext_sizer->Show(false);
+        m_right_extra_slot->Hide();
+        m_left_extra_slot->Hide();
+    }
+
     Layout();
     Fit();
     Refresh();
@@ -224,11 +233,13 @@ static std::optional<TrayData> sGetTrayData(DevAmsTray* tray,
         ams_type == DevAmsType::AMS_LITE ||
         ams_type == DevAmsType::N3F) {
         td.id = ams_id * 4 + tray_id;
-    } else if (ams_type == DevAmsType::N3S) {
+    } else if (ams_type == DevAmsType::N3S || ams_type == DevAmsType::TOOLCHANGER) {
         td.id = ams_id + tray_id;
     } else if(ams_type == DevAmsType::EXT_SPOOL){
         td.id = tray_id;
     }
+
+    td.is_toolchanger = (ams_type == DevAmsType::TOOLCHANGER);
 
     if (ams_type != EXT_SPOOL && !tray->is_exists) {
         td.type = EMPTY;
@@ -469,6 +480,13 @@ void AmsMapingPopup::update_ams_data_multi_machines()
 
 void AmsMapingPopup::update_title(MachineObject* obj)
 {
+    // Orca: the left/right nozzle wording below assumes a BBL dual-nozzle head.
+    if (obj && obj->GetFilaSystem()->IsAllToolchanger()) {
+        m_split_line_panel->Hide();
+        m_title_text->SetLabelText(_L("Please select the filament for this tool."));
+        return;
+    }
+
     const auto& full_config = wxGetApp().preset_bundle->full_config();
     size_t nozzle_nums = full_config.option<ConfigOptionFloatsNullable>("nozzle_diameter")->values.size();
     if (nozzle_nums > 1) {
@@ -591,7 +609,7 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
             && (tray_data[i].id == VIRTUAL_TRAY_MAIN_ID || tray_data[i].id == VIRTUAL_TRAY_DEPUTY_ID)) {
             m_mapping_item->set_tray_index(tray_data[i].id == VIRTUAL_TRAY_MAIN_ID ? _L("Ext-R") : _L("Ext-L"));
         } else {
-            m_mapping_item->set_tray_index(wxGetApp().transition_tridid(tray_data[i].id));
+            m_mapping_item->set_tray_index(wxGetApp().tray_display_label(tray_data[i].id, tray_data[i].is_toolchanger));
         }
 
         m_mapping_item->SetSize(wxSize(FromDIP(48), FromDIP(60)));

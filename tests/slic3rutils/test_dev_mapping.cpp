@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "libslic3r/ProjectTask.hpp"
+#include <string>
 #include <vector>
 #include <catch2/catch_message.hpp>
 
@@ -85,6 +86,37 @@ TEST_CASE("An AMS unit is shown under the name its status gives it", "[DevFilaSy
     DevFilaSystemParser::ParseV1_0(unnamed, &obj, obj.GetFilaSystem().get(), false);
 
     CHECK(ams->GetDisplayName().ToStdString() == "AMS-1");
+}
+
+TEST_CASE("Toolchanger units past the 32nd report whether they exist and hold filament", "[DevFilaSystem]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    // One unit per lane, as the printer agents send a toolchanger. The exist bitmasks are
+    // 32-bit on some platforms, so they only cover the first units; unit 35 is loaded and
+    // unit 36 is empty.
+    constexpr int unit_count = 40;
+    json units = json::array();
+    for (int id = 0; id < unit_count; ++id) {
+        json tray = {{"id", "0"}, {"tray_color", "00000000"}, {"tray_slot_placeholder", "1"}};
+        if (id == 0 || id == 35)
+            tray = {{"id", "0"}, {"tray_color", "FF0000FF"}};
+        units.push_back({{"id", std::to_string(id)}, {"info", "0006"}, {"tray", json::array({tray})}});
+    }
+    const json print_push = {{"ams", {{"ams", units}, {"ams_exist_bits", "7FFFFFFF"}, {"tray_exist_bits", "1"}}}};
+    DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
+
+    const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+    REQUIRE(ams_list.size() == unit_count);
+    CHECK(ams_list.at("35")->IsExist());
+    CHECK(ams_list.at("39")->IsExist());
+
+    DevAmsTray* loaded = obj.GetFilaSystem()->GetAmsTray("35", "0");
+    DevAmsTray* empty  = obj.GetFilaSystem()->GetAmsTray("36", "0");
+    REQUIRE(loaded != nullptr);
+    REQUIRE(empty != nullptr);
+    CHECK(loaded->is_exists);
+    CHECK_FALSE(empty->is_exists);
 }
 
 TEST_CASE("Switch-bound AMS trays map to the left extruder", "[DevMapping]")
@@ -253,4 +285,131 @@ TEST_CASE("Switch-bound AMS with an invalid track is excluded from mapping", "[D
     REQUIRE_FALSE(obj_no_switch.GetFilaSwitch()->IsInstalled());
     DevFilaSystemParser::ParseV1_0(print_push, &obj_no_switch, obj_no_switch.GetFilaSystem().get(), false);
     REQUIRE(obj_no_switch.GetFilaSystem()->GetAmsList().count("0") == 0);
+}
+
+TEST_CASE("A toolchanger's tools all resolve in filament mapping", "[DevMapping]")
+{
+    // Guards both the TOOLCHANGER tray-index arm in DevMapping.cpp and its 0-based is_exists bits.
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    // info 0006 = DevAms::TOOLCHANGER; tray_exist_bits bit n = unit n / slot 0, as build_ams_payload writes.
+    json print_push = json::parse(R"({
+        "ams": {
+            "tray_exist_bits": "F",
+            "ams": [
+                { "id": "0", "info": "0006", "tray": [ { "id": "0", "tray_color": "FF0000FF" } ] },
+                { "id": "1", "info": "0006", "tray": [ { "id": "0", "tray_color": "00FF00FF" } ] },
+                { "id": "2", "info": "0006", "tray": [ { "id": "0", "tray_color": "0000FFFF" } ] },
+                { "id": "3", "info": "0006", "tray": [ { "id": "0", "tray_color": "FFFF00FF" } ] }
+            ]
+        }
+    })");
+    DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
+
+    const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+    std::vector<std::string> colors = {"FF0000FF", "00FF00FF", "0000FFFF", "FFFF00FF"};
+    std::vector<FilamentInfo> filaments;
+    for (int i = 0; i < 4; ++i) {
+        REQUIRE(ams_list.count(std::to_string(i)) == 1);
+        // TOOLCHANGER units have no extruder nibble and default to MAIN_EXTRUDER_ID.
+        REQUIRE(ams_list.at(std::to_string(i))->GetExtruderId() == MAIN_EXTRUDER_ID);
+
+        // Type resolution needs the GUI preset bundle, so it is set directly.
+        DevAmsTray* tray = obj.GetFilaSystem()->GetAmsTray(std::to_string(i), "0");
+        REQUIRE(tray != nullptr);
+        tray->m_fila_type = "PLA";
+
+        FilamentInfo fila;
+        fila.id    = i;
+        fila.type  = "PLA";
+        fila.color = colors[i];
+        filaments.push_back(fila);
+    }
+
+    std::vector<FilamentInfo> result;
+    std::vector<bool> map_opt(4, false);
+    map_opt[MappingOption::USE_RIGHT_AMS] = true;
+    DevMappingUtil::ams_filament_mapping(&obj, filaments, result, map_opt, {}, false);
+
+    REQUIRE(result.size() == 4);
+    for (int i = 0; i < 4; ++i) {
+        INFO("filament " << i);
+        REQUIRE(result[i].tray_id >= 0);
+        CHECK(result[i].tray_id == i);
+    }
+    CHECK(DevMappingUtil::is_valid_mapping_result(&obj, result, true));
+}
+
+TEST_CASE("Both AMS unit shapes MoonrakerPrinterAgent::build_ams_payload emits parse into the right unit/tray layout", "[DevMapping]")
+{
+    SECTION("Toolchanger shape: 4 lanes become 4 one-slot units")
+    {
+        // build_ams_payload's Toolchanger shape; info 0006 == DevAms::TOOLCHANGER.
+        json print_push = json::parse(R"({
+            "ams": {
+                "tray_exist_bits": "F",
+                "ams": [
+                    { "id": "0", "info": "0006", "tray": [ { "id": "0", "tray_color": "FF0000FF" } ] },
+                    { "id": "1", "info": "0006", "tray": [ { "id": "0", "tray_color": "00FF00FF" } ] },
+                    { "id": "2", "info": "0006", "tray": [ { "id": "0", "tray_color": "0000FFFF" } ] },
+                    { "id": "3", "info": "0006", "tray": [ { "id": "0", "tray_color": "FFFF00FF" } ] }
+                ]
+            }
+        })");
+
+        MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+        DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
+
+        const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+        REQUIRE(ams_list.size() == 4);
+        for (int i = 0; i < 4; ++i) {
+            INFO("unit " << i);
+            REQUIRE(ams_list.count(std::to_string(i)) == 1);
+            CHECK(ams_list.at(std::to_string(i))->GetTrays().size() == 1);
+        }
+
+        // Global tray index == unit index for TOOLCHANGER (DevFilaSystem.cpp GetTrayIndexMap).
+        auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+        for (int i = 0; i < 4; ++i) {
+            INFO("tray index " << i);
+            REQUIRE(tray_index_map.count(i) == 1);
+            CHECK(tray_index_map.at(i).first == i);   // ams_id
+            CHECK(tray_index_map.at(i).second == 0);  // slot_id
+        }
+    }
+
+    SECTION("Box4 shape: 4 slots stay chunked into a single AMS_LITE unit")
+    {
+        // build_ams_payload's Box4 shape; info 0002 == DevAms::AMS_LITE.
+        json print_push = json::parse(R"({
+            "ams": {
+                "tray_exist_bits": "F",
+                "ams": [
+                    { "id": "0", "info": "0002", "tray": [
+                        { "id": "0", "tray_color": "FF0000FF" },
+                        { "id": "1", "tray_color": "00FF00FF" },
+                        { "id": "2", "tray_color": "0000FFFF" },
+                        { "id": "3", "tray_color": "FFFF00FF" }
+                    ] }
+                ]
+            }
+        })");
+
+        MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+        DevFilaSystemParser::ParseV1_0(print_push, &obj, obj.GetFilaSystem().get(), false);
+
+        const auto& ams_list = obj.GetFilaSystem()->GetAmsList();
+        REQUIRE(ams_list.size() == 1);
+        REQUIRE(ams_list.count("0") == 1);
+        CHECK(ams_list.at("0")->GetTrays().size() == 4);
+
+        // Global tray index == ams_id*4 + slot_id for AMS_LITE (DevFilaSystem.cpp GetTrayIndexMap).
+        auto tray_index_map = obj.GetFilaSystem()->GetTrayIndexMap();
+        for (int i = 0; i < 4; ++i) {
+            INFO("tray index " << i);
+            REQUIRE(tray_index_map.count(i) == 1);
+            CHECK(tray_index_map.at(i).first == 0);   // ams_id
+            CHECK(tray_index_map.at(i).second == i);  // slot_id
+        }
+    }
 }
