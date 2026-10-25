@@ -58,6 +58,11 @@ struct ObjectVolumeID {
 
 typedef Event<ObjectVolumeID> ObjectSettingEvent;
 
+enum class ObjectOrder { Name, Filament, Height, Size };
+
+// Stable ascending sort: natural name order, filament, top Z, or bounding box volume of the first instance.
+void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order);
+
 class PartPlate;
 
 wxDECLARE_EVENT(EVT_OBJ_LIST_OBJECT_SELECT, SimpleEvent);
@@ -495,6 +500,8 @@ public:
     void on_plate_added(PartPlate* part_plate);
     void on_plate_deleted(int plate_index);
     void reload_all_plates(bool notify_partplate = false);
+    // Sorts the objects of the selected plate, or of every plate, which also sets their print order.
+    void order_objects(ObjectOrder order, bool all_plates);
     void on_plate_selected(int plate_index);
     void notify_instance_updated(int obj_idx);
     void object_config_options_changed(const ObjectVolumeID& ov_id);
