@@ -16991,7 +16991,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
     auto cur_plate = get_partplate_list().get_plate(0);
 
     // add "handle" cube
-    sidebar().obj_list()->load_generic_subobject("Cube", ModelVolumeType::INVALID);
+    sidebar().obj_list()->load_generic_subobject("Cube", ModelVolumeType::INVALID, false);
     auto *cube = model().objects[0];
 
     CalibPressureAdvancePattern pa_pattern(

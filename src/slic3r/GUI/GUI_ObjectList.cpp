@@ -1,4 +1,5 @@
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "GUI_ObjectList.hpp"
@@ -26,6 +27,7 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "SingleChoiceDialog.hpp"
 #include "StepMeshDialog.hpp"
+#include "PrimitiveSizeDialog.hpp"
 
 
 #include "slic3r/GUI/Event.hpp"
@@ -65,6 +67,9 @@
 #include <unordered_map>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/log/trivial.hpp>
 #include <wx/arrstr.h>
 #include <wx/dc.h>
@@ -2502,41 +2507,112 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
     }
 }
 
-static TriangleMesh create_mesh(const std::string& type_name, const BoundingBoxf3& bb)
+// The dimensions the size dialog asks for, filled with the default size of the primitive.
+static std::vector<PrimitiveSizeDialog::Field> primitive_size_fields(const std::string& type_name)
 {
     const double side = wxGetApp().plater()->canvas3D()->get_size_proportional_to_max_bed_size(0.1);
 
+    if (type_name == "Cube")
+        return {{_L("X"), side}, {_L("Y"), side}, {_L("Z"), side}};
+    if (type_name == "Cylinder" || type_name == "Cone")
+        return {{_L("Diameter"), side}, {_L("Height"), side}};
+    if (type_name == "Sphere")
+        return {{_L("Diameter"), side}};
+    if (type_name == "Disc")
+        return {{_L("Diameter"), side}, {_L("Height"), 0.2}};
+    if (type_name == "Torus")
+        // TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+        return {{_L("Inner diameter"), 0.75 * side}, {_L("Tube diameter"), 0.25 * side}};
+    return {};
+}
+
+// Replaces the default values with the size the user saved for the primitive, stored as space separated numbers.
+static void apply_saved_primitive_size(std::vector<PrimitiveSizeDialog::Field>& fields, const std::string& saved)
+{
+    std::vector<std::string> tokens;
+    boost::split(tokens, saved, boost::is_space(), boost::token_compress_on);
+    if (tokens.size() != fields.size())
+        return;
+    std::vector<double> values;
+    for (const std::string& token : tokens) {
+        const double value = string_to_double_decimal_point(token);
+        if (!std::isfinite(value) || value <= 0.)
+            return;
+        values.push_back(value);
+    }
+    for (size_t i = 0; i < fields.size(); ++i)
+        fields[i].value = values[i];
+}
+
+// interactive starts from the size the user saved and asks for the size unless the user turned the dialog off;
+// otherwise the primitive gets its built-in default size. nullopt when the user cancels.
+static std::optional<std::vector<double>> primitive_size(const std::string& type_name, bool interactive)
+{
+    std::vector<PrimitiveSizeDialog::Field> fields     = primitive_size_fields(type_name);
+    AppConfig*                              app_config = wxGetApp().app_config;
+    if (interactive && !fields.empty()) {
+        apply_saved_primitive_size(fields, app_config->get("primitive_size", type_name));
+        if (app_config->get_bool("enable_primitive_size_dialog")) {
+            PrimitiveSizeDialog dlg(wxGetApp().mainframe, _L(type_name), fields);
+            if (dlg.ShowModal() != wxID_OK)
+                return std::nullopt;
+            if (dlg.dont_show_again())
+                app_config->set_bool("enable_primitive_size_dialog", false);
+            if (dlg.save_as_default()) {
+                std::string saved;
+                for (double value : dlg.get_values())
+                    saved += (saved.empty() ? "" : " ") + float_to_string_decimal_point(value);
+                app_config->set_str("primitive_size", type_name, saved);
+            }
+            return dlg.get_values();
+        }
+    }
+    std::vector<double> size;
+    for (const PrimitiveSizeDialog::Field& field : fields)
+        size.push_back(field.value);
+    return size;
+}
+
+// Angle step that keeps the facets of a circle of this radius within 0.002 mm of it, in 16 to 720 segments.
+static double primitive_angle_step(double radius)
+{
+    const double step = 2. * std::acos(1. - std::min(1., 0.002 / radius));
+    return std::clamp(step, 2. * PI / 720., 2. * PI / 16.);
+}
+
+// size holds the values of primitive_size_fields(type_name).
+static TriangleMesh create_mesh(const std::string& type_name, const std::vector<double>& size, const BoundingBoxf3& bb)
+{
     TriangleMesh mesh;
     if (type_name == "Cube")
         // Sitting on the print bed, left front front corner at (0, 0).
-        mesh = TriangleMesh(its_make_cube(side, side, side));
-    else if (type_name == "Cylinder")
+        mesh = TriangleMesh(its_make_cube(size[0], size[1], size[2]));
+    else if (type_name == "Cylinder" || type_name == "Disc")
         // Centered around 0, sitting on the print bed.
-        // The cylinder has the same volume as the box above.
-        mesh = TriangleMesh(its_make_cylinder(0.5 * side, side));
+        mesh = TriangleMesh(its_make_cylinder(0.5 * size[0], size[1], primitive_angle_step(0.5 * size[0])));
     else if (type_name == "Sphere")
         // Centered around 0, half the sphere below the print bed, half above.
-        // The sphere has the same volume as the box above.
-        mesh = TriangleMesh(its_make_sphere(0.5 * side, PI / 90));
+        mesh = TriangleMesh(its_make_sphere(0.5 * size[0], primitive_angle_step(0.5 * size[0])));
     else if (type_name == "Slab")
         // Sitting on the print bed, left front front corner at (0, 0).
         mesh = TriangleMesh(its_make_cube(bb.size().x() * 1.5, bb.size().y() * 1.5, bb.size().z() * 0.5));
     else if (type_name == "Cone")
-        mesh = TriangleMesh(its_make_cone(0.5 * side, side));
-    else if (type_name == "Disc")
-        mesh = TriangleMesh(its_make_cylinder(0.5 * side, 0.2f));
-    else if (type_name == "Torus")
-        mesh = TriangleMesh(its_make_torus(0.5 * side, 0.125 * side,(PI / 60)));
+        mesh = TriangleMesh(its_make_cone(0.5 * size[0], size[1], primitive_angle_step(0.5 * size[0])));
+    else if (type_name == "Torus") {
+        const double tube_radius = 0.5 * size[1];
+        const double radius      = 0.5 * size[0] + tube_radius;
+        mesh = TriangleMesh(its_make_torus(radius, tube_radius, primitive_angle_step(radius + tube_radius), primitive_angle_step(tube_radius)));
+    }
     return mesh;
 }
 
-void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type)
+void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive)
 {
     // BBS: single snapshot
     Plater::SingleSnapshot single(wxGetApp().plater());
 
     if (type == ModelVolumeType::INVALID) {
-        load_shape_object(type_name);
+        load_shape_object(type_name, interactive);
         return;
     }
 
@@ -2555,6 +2631,10 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     if (instance_idx == -1)
         return;
 
+    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive);
+    if (!size)
+        return;
+
     take_snapshot(_u8L("Add primitive"));
 
     // Selected object
@@ -2562,7 +2642,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     // Bounding box of the selected instance in world coordinate system including the translation, without modifiers.
     BoundingBoxf3 instance_bb = model_object.instance_bounding_box(instance_idx);
 
-    TriangleMesh mesh = create_mesh(type_name, instance_bb);
+    TriangleMesh mesh = create_mesh(type_name, *size, instance_bb);
 
 	// Mesh will be centered when loading.
     ModelVolume *new_volume = model_object.add_volume(std::move(mesh), type);
@@ -2636,7 +2716,7 @@ void ObjectList::switch_to_object_process()
     }
 }
 
-void ObjectList::load_shape_object(const std::string &type_name)
+void ObjectList::load_shape_object(const std::string &type_name, bool interactive)
 {
     const Selection& selection = wxGetApp().plater()->canvas3D()->get_selection();
     //assert(selection.get_object_idx() == -1); // Add nothing is something is selected on 3DScene
@@ -2647,11 +2727,15 @@ void ObjectList::load_shape_object(const std::string &type_name)
     if (obj_idx < 0)
         return;
 
+    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive);
+    if (!size)
+        return;
+
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Add Primitive"));
 
     // Create mesh
     BoundingBoxf3 bb;
-    TriangleMesh mesh = create_mesh(type_name, bb);
+    TriangleMesh mesh = create_mesh(type_name, *size, bb);
     // Rotate the largest overhang area toward the part cooling fan so new shapes start in a
     // cooling friendly orientation. Skip the plain cube: the pressure advance pattern
     // calibration reuses it as an axis-aligned anchor and scales it by its bounding box,

@@ -705,6 +705,9 @@ void AppConfig::set_defaults()
     if (get("is_split_compound").empty()) {
         set_bool("is_split_compound", false);
     }
+    if (get("enable_primitive_size_dialog").empty()) {
+        set_bool("enable_primitive_size_dialog", true);
+    }
 
     if(get("installed_networking").empty()) {
         set_bool("installed_networking", false);
