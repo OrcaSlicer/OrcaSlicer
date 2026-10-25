@@ -70,8 +70,9 @@ public:
     // process exit to end, rather than keeping a closing app alive.
     void shutdown();
 
-    // Waits up to timeout for Python's non-daemon threads to end and returns how many are still
-    // running. The caller must hold the GIL. Public so tests can reach it: shutdown() itself can
+    // Runs the threading atexit hooks, which end idle worker threads, then waits for Python's
+    // non-daemon threads to end, up to timeout in all, and returns how many are still running.
+    // The caller must hold the GIL. Public so tests can reach it: shutdown() itself can
     // only run once per process.
     static int join_non_daemon_threads(std::chrono::milliseconds timeout);
 

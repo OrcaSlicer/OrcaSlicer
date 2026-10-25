@@ -753,6 +753,28 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
         const pybind11::module_ threading   = pybind11::module_::import("threading");
         const pybind11::object  main_thread = threading.attr("main_thread")();
         const auto              deadline    = std::chrono::steady_clock::now() + timeout;
+        const auto              seconds_left = [deadline] {
+            return std::chrono::duration<double>(
+                       std::max(deadline - std::chrono::steady_clock::now(), std::chrono::steady_clock::duration::zero()))
+                .count();
+        };
+
+        // An idle concurrent.futures worker only ends once the hooks registered with
+        // threading._register_atexit() tell it to, which Py_Finalize does before it joins the
+        // threads. They run first here, on a daemon thread: a hook joins its workers without a
+        // timeout, so one stuck in a task would block the hook, and Py_Finalize, for good.
+        pybind11::object hooks;
+        if (pybind11::hasattr(threading, "_threading_atexits")) {
+            hooks = threading.attr("Thread")(pybind11::arg("target") = pybind11::cpp_function([threading] {
+                                                 const pybind11::list calls = threading.attr("_threading_atexits");
+                                                 for (pybind11::ssize_t i = calls.size(); i-- > 0;)
+                                                     calls[i]();
+                                             }),
+                                             pybind11::arg("name") = "orca-threading-atexit", pybind11::arg("daemon") = true);
+            hooks.attr("start")();
+            hooks.attr("join")(seconds_left());
+        }
+
         // Enumerated again after each pass: a thread being joined may start another one.
         for (;;) {
             int seen    = 0;
@@ -763,14 +785,16 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
                 if (thread.is(main_thread) || thread.attr("daemon").cast<bool>())
                     continue;
                 ++seen;
-                const std::chrono::duration<double> left = std::max(deadline - std::chrono::steady_clock::now(),
-                                                                    std::chrono::steady_clock::duration::zero());
-                thread.attr("join")(left.count());
+                thread.attr("join")(seconds_left());
                 if (thread.attr("is_alive")().cast<bool>())
                     ++running;
             }
-            if (seen == 0 || std::chrono::steady_clock::now() >= deadline)
+            if (seen == 0 || std::chrono::steady_clock::now() >= deadline) {
+                // A hook still running would be run again, and waited for, by Py_Finalize.
+                if (hooks && hooks.attr("is_alive")().cast<bool>())
+                    running = std::max(running, 1);
                 return running;
+            }
         }
     } catch (const std::exception& ex) {
         BOOST_LOG_TRIVIAL(warning) << "Could not wait for Python threads: " << ex.what();
