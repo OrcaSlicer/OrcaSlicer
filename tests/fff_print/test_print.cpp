@@ -2040,3 +2040,49 @@ TEST_CASE("Height ranges and modifiers count for the filament shrinkage compensa
     });
     CHECK(mismatch_warning == ! object_on_filament_2);
 }
+
+TEST_CASE("Belt printers apply the Z shrinkage compensation to the slicing height once", "[Print][belt][Regression]")
+{
+    // A 20 mm cube printed with a filament that shrinks to xy % / z % is sliced like an uncompensated box
+    // 20 * 100 / xy wide and 20 * 100 / z tall. The span of the layers is compared, as the belt Z offset
+    // depends on where the object is centred.
+    const auto [xy, z, angle] = GENERATE(table<double, double, double>({ { 100., 95., 45. }, { 100., 105., 45. }, { 90., 95., 45. }, { 100., 105., 0. } }));
+    const auto sliced_height = [](const TriangleMesh &mesh, double xy, double z, double angle) {
+        DynamicPrintConfig config = belt_test_config();
+        config.set_deserialize_strict({ { "filament_shrink", xy }, { "filament_shrinkage_compensation_z", z }, { "belt_slice_rotation_angle", angle } });
+        Print print;
+        init_and_process_print({ mesh }, print, config);
+        const PrintObject &object = *print.objects().front();
+        return std::make_pair(object.slicing_parameters().object_print_z_max,
+                              object.layers().back()->print_z - object.layers().front()->print_z);
+    };
+
+    const auto [compensated_max_z, compensated_span] = sliced_height(cube(20.), xy, z, angle);
+    const auto [expected_max_z, expected_span]       = sliced_height(make_cube(20. * 100. / xy, 20. * 100. / xy, 20. * 100. / z), 100., 100., angle);
+    CHECK_THAT(compensated_max_z, Catch::Matchers::WithinAbs(expected_max_z, EPSILON));
+    CHECK_THAT(compensated_span, Catch::Matchers::WithinAbs(expected_span, 0.2 * 100. / z));
+}
+
+TEST_CASE("The belt build height check uses the compensated height", "[Print][belt][validate][Regression]")
+{
+    // printable_height is 100 mm. Z shrinkage 105 % prints 101 mm at about 96.2 mm, which fits, and 106 mm at
+    // about 101 mm, which does not; with 95 % a 97 mm object only becomes too tall through the compensation.
+    const auto [z, height, expected] = GENERATE(table<double, double, std::string>({
+        { 105., 101., "" },
+        { 105., 106., "exceeds the maximum build volume height." },
+        { 95., 92., "" },
+        { 95., 97., "because of material shrinkage compensation" },
+    }));
+    DynamicPrintConfig config = belt_test_config();
+    config.set_deserialize_strict({ { "printable_height", 100. }, { "filament_shrinkage_compensation_z", z } });
+
+    Print print;
+    Model model;
+    init_print({ make_cube(20., 20., height) }, print, model, config);
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (expected.empty())
+        CHECK(error.empty());
+    else
+        CHECK(error.find(expected) != std::string::npos);
+}

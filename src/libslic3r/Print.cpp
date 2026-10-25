@@ -2405,7 +2405,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 print_object.model_object(),
                 ""
             };
-        } else if (effective_max_z > this->config().printable_height + EPSILON) {
+        } else if (compensated_max_z > this->config().printable_height + EPSILON) {
             return StringObjectException{
                 last_layer_below_max ?
                 Slic3r::format(_u8L("While the object %1% itself fits the build volume, its last layer exceeds the maximum build volume height."), print_object.model_object()->name) +
