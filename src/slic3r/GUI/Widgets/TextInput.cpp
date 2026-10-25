@@ -277,7 +277,8 @@ void TextInput::render(wxDC& dc)
             if (pt.x * 2 + szIcon.x + 0 + labelSize.x < size.x)
                 pt.x = (size.x - (szIcon.x + 0 + labelSize.x)) / 2;
         }
-        pt.x += szIcon.x / 4.f;
+        // Fixed gap, so a wide item bitmap lines up with its row in the DropDown list.
+        pt.x += FromDIP(2);
         dc.DrawBitmap(icon_1.bmp(), pt);
         pt.x += szIcon.x + 0;
     }

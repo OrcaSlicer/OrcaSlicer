@@ -1,6 +1,5 @@
 #include "GradientCurveEditor.hpp"
 #include "FilamentBitmapUtils.hpp"
-#include "GUI_App.hpp"
 #include "GuiColor.hpp"
 #include "I18N.hpp"
 #include "Widgets/StateColor.hpp"
@@ -56,7 +55,7 @@ GradientCurveEditor::GradientCurveEditor(wxWindow* parent,
     , m_color_high(color_high)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
-    SetBackgroundColour(wxGetApp().get_window_default_clr());
+    SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     // Wide enough so the X-axis "Material Ratio" label fits past the arrow tip without overlap.
     SetMinSize(FromDIP(wxSize(260, 200)));
 
@@ -301,9 +300,9 @@ int GradientCurveEditor::hit_test_curve(int px, int py, int* seg_out) const
 void GradientCurveEditor::on_paint(wxPaintEvent& /*evt*/)
 {
     // Resolve theme colors every paint so dark-mode toggles (no re-construction) take
-    // effect without an explicit listener. Window bg is read from GUI_App, not
-    // GetBackgroundColour(), since the latter is snapshotted at construction time.
-    const wxColour bg            = wxGetApp().get_window_default_clr();
+    // effect without an explicit listener. The bg is resolved here because GetBackgroundColour()
+    // is snapshotted at construction time.
+    const wxColour bg            = StateColor::darkModeColorFor(*wxWHITE);
     const wxColour grid_color    = StateColor::darkModeColorFor(kGridColor);
     const wxColour axis_color    = StateColor::darkModeColorFor(kAxisColor);
     const wxColour label_muted   = StateColor::darkModeColorFor(kLabelMuted);

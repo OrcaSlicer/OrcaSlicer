@@ -26,6 +26,7 @@
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include <wx/display.h>
 #include <wx/scrolwin.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
@@ -199,8 +200,8 @@ MixedFilamentDialog::MixedFilamentDialog(wxWindow* parent,
 
 void MixedFilamentDialog::on_dpi_changed(const wxRect&)
 {
-    int h = (num_components() >= 3) ? FromDIP(680) : FromDIP(580);
-    SetSize(FromDIP(439), h);
+    SetSize(compute_dialog_size());
+    Layout();
     Refresh();
 }
 
@@ -631,14 +632,18 @@ void MixedFilamentDialog::build_ui()
     m_right_sizer->Add(create_material_selection(), 0, wxEXPAND);
     m_right_sizer->Add(create_gradient_section(), 0, wxEXPAND | wxTOP, FromDIP(7));
 
-    m_ratio_sizer = create_ratio_slider();
-    m_right_sizer->Add(m_ratio_sizer, 0, wxEXPAND | wxTOP, FromDIP(7));
-
-    m_triangle_sizer = create_triangle_picker();
-    m_right_sizer->Add(m_triangle_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(7));
-
     top_sizer->Add(m_right_sizer, 1, wxTOP | wxRIGHT | wxBOTTOM, FromDIP(20));
     main_sizer->Add(top_sizer, 0, wxEXPAND);
+
+    // The ratio pickers span the full dialog width, using the space below the preview too.
+    m_ratio_sizer = create_ratio_slider();
+    main_sizer->Add(m_ratio_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(25));
+
+    main_sizer->Add(m_curve_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(25));
+    main_sizer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(25));
+
+    m_triangle_sizer = create_triangle_picker();
+    main_sizer->Add(m_triangle_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(25));
 
     main_sizer->Add(create_recommendation_grid(), 1, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(25));
 
@@ -965,7 +970,8 @@ wxBoxSizer* MixedFilamentDialog::create_triangle_picker()
                                    {StateColor::darkModeColorFor(*wxWHITE),
                                     StateColor::darkModeColorFor(wxColour("#CECECE")),
                                     StateColor::darkModeColorFor(wxColour("#262E30")),
-                                    StateColor::darkModeColorFor(COLOR_LABEL_MUTED)});
+                                    StateColor::darkModeColorFor(COLOR_LABEL_MUTED)},
+                                   MIN_COMPONENT_RATIO / 100.0);
 
         if (m_result.ratios.size() >= 3) {
             dc.SetFont(::Label::Body_10);
@@ -1059,7 +1065,7 @@ wxBoxSizer* MixedFilamentDialog::create_triangle_picker()
         m_tri_dragging = false;
     });
 
-    sizer->Add(m_triangle_panel, 0);
+    sizer->Add(m_triangle_panel, 0, wxEXPAND);
 
     return sizer;
 }
@@ -1091,6 +1097,7 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     outer->Add(m_gradient_sizer, 0, wxEXPAND);
 
     // Custom curve editor: visible only when gradient is on and exactly 2 components are mixed.
+    // build_ui places it and the per-part toggle below it at the full dialog width.
     m_curve_sizer = new wxBoxSizer(wxVERTICAL);
     m_curve_editor = new GradientCurveEditor(this, comp_colour(0), comp_colour(1));
     if (!m_result.gradient_curve.empty())
@@ -1100,9 +1107,8 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
                                         (m_result.gradient_direction == 0) ? 0.1 : 0.9);
     m_curve_editor->Bind(wxEVT_GRADIENT_CURVE_CHANGED,
         [this](wxCommandEvent&) { on_gradient_curve_changed(); });
-    m_curve_sizer->Add(m_curve_editor, 0, wxEXPAND | wxTOP, FromDIP(4));
+    m_curve_sizer->Add(m_curve_editor, 0, wxALIGN_CENTER_HORIZONTAL);
 
-    outer->Add(m_curve_sizer, 0, wxEXPAND | wxTOP, FromDIP(6));
     const bool curve_visible = m_result.gradient_enabled && num_components() == 2;
     m_curve_sizer->ShowItems(curve_visible);
 
@@ -1121,7 +1127,6 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
     m_per_part_gradient_sizer->Add(m_label_per_part_gradient, 0,
         wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
 
-    outer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxTOP, FromDIP(2));
     m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
 
     return outer;
@@ -1775,23 +1780,31 @@ void MixedFilamentDialog::update_gradient_direction_items()
         m_combo_gradient_dir->SetSelection(0);
 }
 
-wxSize MixedFilamentDialog::compute_dialog_size() const
+wxSize MixedFilamentDialog::compute_dialog_size()
 {
     const bool is_three      = (num_components() >= 3);
     const bool curve_visible = !is_three && m_result.gradient_enabled;
 
-    int w = FromDIP(439);
-    int h = FromDIP(580);
-    if (is_three) {
-        h = FromDIP(680);
-    } else if (curve_visible) {
-        // Wider so the gradient editor can show "Material Ratio" intact;
-        // +40 over the 3-color height to fit the curve editor while keeping the
-        // recommendation list visible (it can still scroll if needed).
-        w = FromDIP(470);
-        h = FromDIP(720);
-    }
-    return wxSize(w, h);
+    // Wider in gradient mode, where the gradient row also holds the direction combo.
+    const int    w       = FromDIP(curve_visible ? 470 : 439);
+    const wxSize frame   = GetSize() - GetClientSize();
+    const int    content = w - frame.x - 2 * FromDIP(25);
+
+    // The triangle and the gradient graph span the content width at their own aspect (the
+    // triangle's side follows the shorter side of its panel), unless that would make the dialog
+    // taller than its display; then they shrink, down to their old fixed size.
+    auto fit_pickers = [this, content, frame](int shrink) {
+        const int tri_h   = std::max(FromDIP(160), content - shrink);
+        const int graph_h = std::max(FromDIP(200), mixed_gradient_plot_height(content) - shrink);
+        m_triangle_panel->SetMinSize(wxSize(FromDIP(160), tri_h));
+        m_curve_editor->SetMinSize(wxSize(std::min(content, content * graph_h / mixed_gradient_plot_height(content)), graph_h));
+        return GetSizer()->CalcMin().y + frame.y;
+    };
+    int       h     = fit_pickers(0);
+    const int avail = wxDisplay(this).GetClientArea().height;
+    if (h > avail)
+        h = fit_pickers(h - avail);
+    return wxSize(w, std::min(h, avail));
 }
 
 void MixedFilamentDialog::update_component_count_ui()

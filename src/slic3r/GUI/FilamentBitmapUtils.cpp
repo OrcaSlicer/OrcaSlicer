@@ -67,10 +67,19 @@ void tri_barycentric(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2,
 
 TriPoint tri_clamp(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2)
 {
-    double w0, w1, w2;
-    tri_barycentric(p, v0, v1, v2, w0, w1, w2);
-    return {w0 * v0.x + w1 * v1.x + w2 * v2.x,
-            w0 * v0.y + w1 * v1.y + w2 * v2.y};
+    if (tri_contains(p, v0, v1, v2))
+        return p;
+    // Snap a point outside to the nearest point on the outline.
+    auto closest_on_edge = [p](TriPoint a, TriPoint b) {
+        const double dx = b.x - a.x, dy = b.y - a.y;
+        const double len2 = dx * dx + dy * dy;
+        const double t = len2 > 0 ? std::clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / len2, 0.0, 1.0) : 0.0;
+        return TriPoint{a.x + t * dx, a.y + t * dy};
+    };
+    auto dist2 = [p](TriPoint q) { return (q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y); };
+    const std::array<TriPoint, 3> candidates{closest_on_edge(v0, v1), closest_on_edge(v1, v2), closest_on_edge(v2, v0)};
+    return *std::min_element(candidates.begin(), candidates.end(),
+                             [&dist2](TriPoint a, TriPoint b) { return dist2(a) < dist2(b); });
 }
 
 void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from, const wxColour& to)
@@ -534,6 +543,11 @@ wxRect mixed_gradient_plot_rect(const wxSize& sz)
     return wxRect(x, y, side, side);
 }
 
+int mixed_gradient_plot_height(int canvas_width)
+{
+    return static_cast<int>(std::lround(canvas_width * (kPlotRightRatio - kPlotLeftRatio) / (kPlotBottomRatio - kPlotTopRatio)));
+}
+
 void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
                               const std::vector<MixedGradientCurve>& curves,
                               const std::vector<wxPoint2DDouble>& anchors,
@@ -568,6 +582,8 @@ void draw_mixed_gradient_plot(wxDC& raw_dc, const wxSize& canvas,
     // Set the label font first so text width measurements drive arrow / label placement.
     wxFont label_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     label_font.SetPointSize(std::max(7, label_font.GetPointSize() - 1));
+    // GDI+ on a window-less memory DC draws text at 96 DPI on MSW; scale the font like the dip_px geometry.
+    label_font = label_font.Scaled(dip_px(100) / 100.f);
     dc.SetFont(label_font);
 
     const wxString axis_y_title = _L("Material Ratio");
@@ -739,10 +755,11 @@ struct TriCacheKey
     int w, h;
     int c0r, c0g, c0b, c1r, c1g, c1b, c2r, c2g, c2b;
     int bg_r, bg_g, bg_b, ol_r, ol_g, ol_b;
+    double min_weight;
     bool operator<(const TriCacheKey& o) const
     {
-        return std::tie(w, h, c0r, c0g, c0b, c1r, c1g, c1b, c2r, c2g, c2b, bg_r, bg_g, bg_b, ol_r, ol_g, ol_b) <
-               std::tie(o.w, o.h, o.c0r, o.c0g, o.c0b, o.c1r, o.c1g, o.c1b, o.c2r, o.c2g, o.c2b, o.bg_r, o.bg_g, o.bg_b, o.ol_r, o.ol_g, o.ol_b);
+        return std::tie(w, h, c0r, c0g, c0b, c1r, c1g, c1b, c2r, c2g, c2b, bg_r, bg_g, bg_b, ol_r, ol_g, ol_b, min_weight) <
+               std::tie(o.w, o.h, o.c0r, o.c0g, o.c0b, o.c1r, o.c1g, o.c1b, o.c2r, o.c2g, o.c2b, o.bg_r, o.bg_g, o.bg_b, o.ol_r, o.ol_g, o.ol_b, o.min_weight);
     }
 };
 
@@ -767,7 +784,8 @@ std::array<TriPoint, 3> mixed_triangle_vertices(const wxSize& size, double margi
 }
 
 void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<wxColour, 3>& colours,
-                                const std::array<double, 3>& weights, const MixedTriangleTheme& theme)
+                                const std::array<double, 3>& weights, const MixedTriangleTheme& theme,
+                                double min_weight)
 {
     if (size.GetWidth() <= 0 || size.GetHeight() <= 0)
         return;
@@ -785,7 +803,8 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
                           c1.Red(), c1.Green(), c1.Blue(),
                           c2.Red(), c2.Green(), c2.Blue(),
                           theme.background.Red(), theme.background.Green(), theme.background.Blue(),
-                          theme.outline.Red(), theme.outline.Green(), theme.outline.Blue()};
+                          theme.outline.Red(), theme.outline.Green(), theme.outline.Blue(),
+                          min_weight};
 
     wxBitmap& bmp = tri_cache()[key];
     if (!bmp.IsOk()) {
@@ -813,6 +832,11 @@ void draw_mixed_triangle_picker(wxDC& dc, const wxSize& size, const std::array<w
                     Slic3r::filament_mixer_lerp(mr, mg, mb, c2.Red(), c2.Green(), c2.Blue(), float(w2), &mr, &mg, &mb);
                 } else {
                     mr = c2.Red(); mg = c2.Green(); mb = c2.Blue();
+                }
+                if (std::min({w0, w1, w2}) < min_weight) {
+                    mr = (mr + theme.background.Red()) / 2;
+                    mg = (mg + theme.background.Green()) / 2;
+                    mb = (mb + theme.background.Blue()) / 2;
                 }
                 mdc.SetPen(wxPen(wxColour(mr, mg, mb)));
                 mdc.DrawPoint(px, py);

@@ -555,7 +555,8 @@ void Button::OnParentMotion(wxMouseEvent& event)
     wxString tip       = this->GetToolTipText();
     if (!tip.IsEmpty() && !this->IsEnabled() && screen_rect.Contains(pos)) {
         if (!tipWindow) {
-            tipWindow = wxTipWindow::New(this, tip);
+            // wxTipWindow wraps at 100 px by default, far narrower than a native MSW tooltip.
+            tipWindow = wxTipWindow::New(this, tip, FromDIP(400));
             if (!tipWindow)
                 return event.Skip();
             tipWindow->Enable(false);

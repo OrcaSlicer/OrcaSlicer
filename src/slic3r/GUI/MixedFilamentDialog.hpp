@@ -98,9 +98,9 @@ private:
     void update_ok_button_state();
     void update_gradient_direction_items();
     void update_component_count_ui();
-    // Picks dialog (width, height) based on current state so the gradient curve
-    // editor and the recommendation list stay visible at the same time.
-    wxSize compute_dialog_size() const;
+    // Picks dialog (width, height) based on current state and sizes the triangle and the
+    // gradient curve editor to fill the dialog width, keeping it on its display.
+    wxSize compute_dialog_size();
     void rebuild_all_combos();
     void rebuild_recommendation_items();
     void refresh_curve_editor_colors();
