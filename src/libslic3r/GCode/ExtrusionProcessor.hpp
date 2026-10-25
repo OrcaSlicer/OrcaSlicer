@@ -667,19 +667,21 @@ public:
     // Takes the data computed ahead for the layer about to be generated, replacing the previous layer's.
     void set_precomputed_layers(std::vector<PrecomputedOverhangLayer> &&layers) { precomputed_layers = std::move(layers); }
 
-    // Measures the layer against the layer prepared before it.
+    // Measures the layer against the layer below it. Not against the layer prepared before it: process_layer() skips
+    // layers that need no overhang detection, e.g. where a height range modifier turns overhang speed off.
     void prepare_for_new_layer(const PrintObject * obj, const Layer *layer)
     {
         if (layer == nullptr) return;
         const PrintObject *object = obj;
-        const Layer *prev = std::exchange(last_prepared_layers[object], layer);
+        const Layer *prev = layer->lower_layer;
+        last_prepared_layers[object] = layer;
         next_layer_boundaries[object].reset();
         prev_layer_sources[object] = prev;
         const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
         if (prev == nullptr) {
             prev_layer_boundaries[object]  = nullptr;
             prev_curled_extrusions[object] = nullptr;
-        } else if (precomputed != nullptr && precomputed->layer == layer && layer->lower_layer == prev) {
+        } else if (precomputed != nullptr && precomputed->layer == layer) {
             prev_layer_boundaries[object]  = precomputed->lower_boundaries;
             prev_curled_extrusions[object] = precomputed->lower_curled_lines;
         } else {
@@ -688,8 +690,8 @@ public:
         }
     }
 
-    // Orca: Overhang metadata measures a wall against the layer directly below it, whichever layers the speed and fan
-    // estimate prepared before. `lower_boundaries` may hand over that layer's outline computed ahead.
+    // Orca: Overhang metadata measures a wall against the layer directly below it like prepare_for_new_layer(), but for
+    // every layer and without the curled-edge trees. `lower_boundaries` may hand over that layer's outline computed ahead.
     void prepare_for_lower_layer(const PrintObject *object, const Layer *layer,
                                  std::shared_ptr<const Boundaries> lower_boundaries = nullptr)
     {
