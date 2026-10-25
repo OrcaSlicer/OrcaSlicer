@@ -30,7 +30,6 @@
 #include <array>
 #include <atomic>
 #include <cmath>
-#include <chrono>
 #include <deque>
 #include <functional>
 #include <limits>
@@ -145,6 +144,7 @@ struct PaintedCreaseIntent {
     // Contact source is independent of point/ray versus finite body classification.
     std::vector<Vec3d> contact_source;
     std::array<Vec3d, 2> root_normals;
+    bool full_expansion = false; // Both source patches are at least 80 degrees from horizontal.
     // Independent nodes: no geometric welding to ordinary or other crease paths.
     std::vector<size_t> nodes;
 
@@ -184,12 +184,22 @@ struct PaintedCreaseIntent {
     }
 };
 
+// A selected crease-side chain is already resolved geometry. It bypasses
+// ordinary fitting/correction but uses ordinary contact and finite-path rules.
+struct PaintedOrdinaryPathIntent {
+    size_t crease, pair;
+    std::vector<Vec3d> points;
+    Vec3d macro_normal;
+    std::vector<size_t> nodes;
+};
+
 struct PaintedIntentGraph {
     Vec3d macro_normal = Vec3d::Zero();
     std::vector<PaintedIntentNode> nodes;
     std::vector<PaintedIntentStroke> strokes;
     std::vector<PaintedIntentPoint> points;
     std::vector<std::shared_ptr<const PaintedCreaseIntent>> creases;
+    std::vector<PaintedOrdinaryPathIntent> ordinary_paths;
 };
 
 struct PaintedIsland {
@@ -197,10 +207,51 @@ struct PaintedIsland {
     PaintedIntentGraph intent;
 };
 
+// Debug-only drawing snapshots are owned by the island until intent resolution
+// finishes. Render once, with each source chart/stage in its own row.
+struct PaintedIslandDiagnostic {
+    struct Page {
+        Vec2d size;
+        std::function<void(SVG &)> draw;
+    };
+    std::string filename;
+    std::vector<Page> pages;
+
+    explicit PaintedIslandDiagnostic(std::string path) : filename(std::move(path)) {}
+
+    void write(const PrintObject &object) const
+    {
+        if (pages.empty())
+            return;
+        Vec2d size = Vec2d::Zero();
+        for (const Page &page : pages) {
+            size.x() = std::max(size.x(), page.size.x());
+            if (page.size.y() > 0.)
+                size.y() += page.size.y() + 2.;
+        }
+        SVG svg(filename, BoundingBox(Point(0, 0), Point::new_scale(size.x(), size.y())), scale_(1.));
+        if (!svg.is_opened()) {
+            BOOST_LOG_TRIVIAL(warning) << "Fin support diagnostic open failed: " << filename;
+            return;
+        }
+        const Point origin = svg.origin;
+        double y = size.y();
+        for (const Page &page : pages) {
+            if (object.print()->canceled())
+                throw CanceledException();
+            if (page.size.y() > 0.)
+                y -= page.size.y() + 2.;
+            svg.origin = origin - Point::new_scale(0., y);
+            page.draw(svg);
+        }
+    }
+};
+
 struct PaintedSides {
     size_t crease_run = 0;
     std::vector<PaintedLayer> layers;
     std::vector<PaintedIsland> islands;
+    std::map<size_t, PaintedIslandDiagnostic> diagnostics;
     size_t persistent_crease_edges = 0;
     size_t undersized_painted_islands = 0;
     size_t unreliable_intent_charts = 0;
@@ -467,168 +518,6 @@ struct TracedFin {
 
 Point scaled_point(const Vec2d &p) { return Point::new_scale(p.x(), p.y()); }
 
-// Failure-only snapshots. Callers supply actual intermediate geometry, not
-// reconstructed/re-solved substitutes. Keep this local to Fin Support.
-struct FinGeometryDebugSet {
-    std::string label;
-    ExPolygons regions;
-    Polylines paths;
-    Points points;
-};
-
-void export_fin_geometry_failure(const PrintObject &object, const TracedFin &fin,
-                                 size_t layer_id, const char *stage, const char *reason,
-                                 std::vector<FinGeometryDebugSet> sets)
-{
-    static std::atomic_size_t sequence{0};
-    const auto stamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-    const std::string filename = debug_out_path("fin-support/geometry-failure-%lld-%llu.svg",
-        static_cast<long long>(stamp), static_cast<unsigned long long>(sequence.fetch_add(1)));
-    const bool has_layer = layer_id < object.layer_count();
-    std::ostringstream context;
-    context.precision(17);
-    context << "failure_stage=" << stage << " reason=" << reason
-            << " layer=" << (has_layer ? static_cast<long long>(layer_id) : -1)
-            << " island=" << fin.seed.intent_island.value_or(std::numeric_limits<size_t>::max())
-            << " edge=" << fin.seed.intent_edge.value_or(std::numeric_limits<size_t>::max())
-            << " roots=" << fin.intent_root_count
-            << " thickness=" << fin.seed.dimensions.thickness
-            << " contact_width=" << fin.seed.dimensions.contact_width
-            << " gap=" << object.config().support_object_xy_distance.value;
-    if (has_layer) {
-        const Layer &layer = *object.get_layer(int(layer_id));
-        context << " slice_z=" << layer.slice_z << " print_z=" << layer.print_z;
-        sets.insert(sets.begin(), {"model at slice_z", layer.lslices, {}, {}});
-    }
-    if (fin.seed.crease_intent)
-        context << " crease=" << fin.seed.crease_intent->crease
-                << " pair=" << fin.seed.crease_intent->pair << " part=" << fin.seed.crease_intent->part;
-    if (fin.seed.path) {
-        Polyline input;
-        for (const Vec3d &point : fin.seed.path->points)
-            input.points.push_back(scaled_point(point.head<2>()));
-        sets.push_back({"input path XY (all source heights)", {}, {std::move(input)}, {}});
-    } else {
-        sets.push_back({"point intent", {}, {}, {scaled_point(fin.seed.point)}});
-    }
-    if (layer_id < fin.layer_paths.size())
-        sets.push_back({"retained path after gap", {}, {fin.layer_paths[layer_id]}, {}});
-    if (layer_id < fin.path_present.size() && fin.path_present[layer_id] && layer_id < fin.body_start.size())
-        sets.push_back({"A1", {}, {}, {scaled_point(fin.body_start[layer_id])}});
-    if (layer_id < fin.wall_present.size() && fin.wall_present[layer_id] && layer_id < fin.boundary.size())
-        sets.push_back({"actual contact point",
-                        {}, {}, {scaled_point(fin.boundary[layer_id])}});
-    if (layer_id < fin.contact_sources.size() && fin.contact_sources[layer_id])
-        sets.push_back({"contact-axis source on model", {}, {}, {scaled_point(*fin.contact_sources[layer_id])}});
-    if (layer_id < fin.wall_present.size() && fin.wall_present[layer_id] &&
-        layer_id < fin.contact_directions.size() && layer_id < fin.contact_front_normals.size()) {
-        const Vec2d &wall = fin.boundary[layer_id];
-        sets.push_back({"contact axis (unit outward)", {},
-            {Polyline{scaled_point(wall), scaled_point(wall + fin.contact_directions[layer_id])}}, {}});
-        sets.push_back({"contact front normal (unit outward)", {},
-            {Polyline{scaled_point(wall), scaled_point(wall + fin.contact_front_normals[layer_id])}}, {}});
-    }
-    if (layer_id < fin.body_boundaries.size())
-        sets.push_back({"owned open member boundary", {}, {fin.body_boundaries[layer_id]}, {}});
-    if (layer_id < fin.body_axes.size()) {
-        FinGeometryDebugSet members{"member axes including root depth", {}, {}, {}};
-        for (const auto &axis : fin.body_axes[layer_id])
-            members.paths.push_back(
-                Polyline{scaled_point(axis.outer), scaled_point(axis.inner)});
-        sets.push_back(std::move(members));
-    }
-    BoundingBox bounds;
-    for (const auto &set : sets) {
-        for (const auto &region : set.regions) {
-            bounds.merge(region.contour.points);
-            for (const auto &hole : region.holes)
-                bounds.merge(hole.points);
-        }
-        for (const auto &path : set.paths)
-            bounds.merge(path.points);
-        bounds.merge(set.points);
-    }
-    Vec2d size = Vec2d::Zero();
-    if (bounds.defined)
-        size = unscale(Point(bounds.max - bounds.min));
-    const double panel_width = std::max(65., size.x() + 8.);
-    const double panel_height = std::max(30., size.y() + 12.);
-    const size_t panels = sets.size() + 1, columns = std::min(size_t(3), panels);
-    const size_t rows = (panels + columns - 1) / columns;
-    SVG svg(filename, BoundingBox(Point(0, 0),
-        scaled_point(Vec2d(columns * panel_width, rows * panel_height + 8.))), scale_(1.));
-    BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
-        << " stage=geometry-failure-dump " << context.str() << " svg=" << filename
-        << " opened=" << svg.is_opened();
-    if (!svg.is_opened())
-        return;
-    svg.add_comment(context.str());
-    if (fin.seed.path) {
-        std::ostringstream source;
-        source.precision(17);
-        source << "input_xyz_mm=";
-        for (const Vec3d &point : fin.seed.path->points)
-            source << point.x() << "," << point.y() << "," << point.z() << ";";
-        svg.add_comment(source.str());
-    }
-    svg.add_comment("Panels share scale and world bounds. raw_points are original scaled integer XY, not panel coordinates.");
-    const std::array<const char *, 8> colors{{"#777777", "#009e73", "#e69f00", "#0072b2",
-                                           "#cc79a7", "#d55e00", "#56b4e9", "#202020"}};
-    auto offset = [&](size_t panel) {
-        return Point(scaled_point(Vec2d((panel % columns) * panel_width + 4.,
-            (panel / columns) * panel_height + 4.)) - bounds.min);
-    };
-    auto raw = [&](size_t set, const std::string &kind, const Points &points) {
-        std::ostringstream record;
-        record << "set=" << set << " kind=" << kind << " raw_points=";
-        for (const Point &point : points)
-            record << point.x() << "," << point.y() << ";";
-        svg.add_comment(record.str());
-    };
-    auto draw = [&](const FinGeometryDebugSet &set, size_t panel, const char *color, bool labels) {
-        const Point shift = offset(panel);
-        for (size_t r = 0; r < set.regions.size(); ++r) {
-            ExPolygon region = set.regions[r];
-            region.translate(shift);
-            svg.draw(region, color, 0.15f);
-            svg.draw_outline(region, color, color, scale_(0.06));
-            if (labels && !region.contour.points.empty())
-                svg.draw_text(region.contour.points.front(), ("R" + std::to_string(r)).c_str(), color, 1);
-        }
-        for (Polyline path : set.paths) {
-            path.translate(shift);
-            if (path.points.size() >= 2)
-                svg.draw(path, color, scale_(0.1));
-        }
-        for (const Point &point : set.points)
-            svg.draw(Point(point + shift), color, scale_(0.15));
-    };
-    svg.draw_text(scaled_point(Vec2d(2., panel_height - 3.)), "OVERLAY (see numbered panels)", "#202020", 1);
-    for (size_t i = 0; i < sets.size(); ++i) {
-        const auto &set = sets[i];
-        const char *color = colors[i % colors.size()];
-        const size_t holes = std::accumulate(set.regions.begin(), set.regions.end(), size_t(0),
-            [](size_t n, const ExPolygon &region) { return n + region.holes.size(); });
-        const std::string legend = std::to_string(i) + " " + set.label + " regions=" +
-            std::to_string(set.regions.size()) + " holes=" + std::to_string(holes);
-        svg.add_comment(legend);
-        svg.draw_text(scaled_point(Vec2d(((i + 1) % columns) * panel_width + 2.,
-            ((i + 1) / columns + 1) * panel_height - 3.)), legend.c_str(), color, 1);
-        draw(set, 0, color, false);
-        draw(set, i + 1, color, true);
-        for (size_t r = 0; r < set.regions.size(); ++r) {
-            raw(i, "region-" + std::to_string(r), set.regions[r].contour.points);
-            for (size_t h = 0; h < set.regions[r].holes.size(); ++h)
-                raw(i, "region-" + std::to_string(r) + "-hole-" + std::to_string(h), set.regions[r].holes[h].points);
-        }
-        for (size_t q = 0; q < set.paths.size(); ++q)
-            raw(i, "path-" + std::to_string(q), set.paths[q].points);
-        raw(i, "points", set.points);
-    }
-    svg.draw_text(scaled_point(Vec2d(2., rows * panel_height + 4.)), context.str().c_str(), "#202020", 1);
-}
-
 Polygon fin_bed_shape(const PrintObject &object)
 {
     Polygon bed = get_bed_shape_with_excluded_area(object.print()->config());
@@ -648,6 +537,12 @@ constexpr double fin_intent_weak_continuation_alignment = 0.5; // cos(60 degrees
 constexpr double fin_intent_continuation_margin = 0.1;
 constexpr double fin_intent_coarsening_width_ratio = 1.;
 constexpr double fin_blue_group_alignment = 0.96592582628906828675; // cos(15 degrees).
+
+bool fin_surface_near_vertical(const Vec3d &normal)
+{
+    const double length = normal.norm();
+    return length > EPSILON && std::abs(normal.z()) <= max_fin_vertical_point_normal_z * length;
+}
 
 // Diagnostic-only projection of a persistent crease. Segment metadata keeps
 // the two adjacent source faces identifiable across separate patch SVGs.
@@ -1080,22 +975,92 @@ std::vector<std::vector<PaintedCreaseCapSpan>> painted_crease_cap_spans(
 }
 
 struct PaintedBlueDiagnostic {
-    struct Compact {
-        double length, width, threshold;
-        bool point;
+    struct SkeletonEdge {
+        Line line;
+        bool compact, protected_axis, first_pass, cap_retained, retained;
     };
-    std::vector<Compact> components;
-    struct Path {
-        std::vector<PaintedIntentSample> samples; // Immediately before cap trimming.
-        double front_trim, back_trim;
-        size_t begin, end; // Surviving source interval, end exclusive.
-    };
-    std::vector<Path> paths;
+    std::vector<SkeletonEdge> skeleton;
+    size_t cap_discarded_branches = 0;
+    std::vector<std::vector<PaintedIntentSample>> paths; // Paired paths after both pruning passes.
     size_t groups = 0;
     double longest_length = 0., group_width = 0.;
     bool point = false;
     std::optional<PaintedIntentPoint> output_point;
 };
+
+void export_painted_skeleton_stages(size_t chart, const ExPolygon &area,
+                                    const PaintedBlueDiagnostic &blue,
+                                    const std::vector<std::vector<PaintedIntentSample>> &coarsened,
+                                    const std::vector<std::vector<PaintedIntentSample>> &retained,
+                                    PaintedIslandDiagnostic &diagnostic)
+{
+    const BoundingBox bounds = get_extents(area);
+    const Vec2d minimum = unscale(bounds.min), extent = unscale(bounds.size());
+    const double display_scale = std::min(4., 24. / std::max(extent.maxCoeff(), EPSILON));
+    const double panel_width = std::max(24., display_scale * extent.x() + 4.);
+    const double panel_height = display_scale * extent.y() + 7.;
+    // Two rows keep the stage comparison usable without an excessively wide canvas.
+    diagnostic.pages.push_back({Vec2d(4. * panel_width, 2. * panel_height + 4.), [=](SVG &svg) {
+        const std::array<const char *, 8> titles{{"1 RAW", "2 COMPACT", "3 PASS 1",
+            "4 CAP TRIM", "5 PASS 2", "6 ORANGE", "7 COARSENED", "8 DARK BLUE"}};
+        const std::string heading = "CHART " + std::to_string(chart) + " / gray=paint; cyan=protected in pass 1";
+        svg.draw_text(scaled_point(Vec2d(2., 2. * panel_height + 1.)), heading.c_str(), "#202020", 1);
+        auto display = [&](const Vec2d &point, size_t panel) {
+            return scaled_point(Vec2d(display_scale * (point - minimum) +
+                Vec2d((panel % 4) * panel_width + 2., panel < 4 ? panel_height + 2. : 2.)));
+        };
+        auto draw_points = [&](const Points &points, size_t panel, const char *color, double width) {
+            Polyline line;
+            for (const Point &point : points)
+                line.points.push_back(display(unscale(point), panel));
+            if (line.points.size() > 1)
+                svg.draw(line, color, scale_(width));
+        };
+        for (size_t panel = 0; panel < titles.size(); ++panel) {
+            svg.draw_text(scaled_point(Vec2d((panel % 4) * panel_width + 2.,
+                (panel < 4 ? 2. : 1.) * panel_height - 2.)), titles[panel], "#202020", 1);
+            auto outline = [&](const Polygon &polygon) {
+                Points points = polygon.points;
+                if (!points.empty())
+                    points.push_back(points.front());
+                draw_points(points, panel, "#cccccc", 0.06);
+            };
+            outline(area.contour);
+            for (const Polygon &hole : area.holes)
+                outline(hole);
+            for (const auto &edge : blue.skeleton) {
+                const bool selected = panel == 0 || (panel == 1 && !edge.compact) ||
+                    (panel == 2 && edge.first_pass) || (panel == 3 && edge.cap_retained) ||
+                    (panel == 4 && edge.retained);
+                if (selected)
+                    svg.draw(Line(display(unscale(edge.line.a), panel), display(unscale(edge.line.b), panel)),
+                        panel == 2 && edge.protected_axis ? "#00bcd4" : "#e69f00", scale_(0.18));
+            }
+            if (panel == 5)
+                for (const auto &path : blue.paths) {
+                    Points points;
+                    for (const auto &sample : path)
+                        points.push_back(scaled_point(sample.chart));
+                    draw_points(points, panel, "#e69f00", 0.18);
+                }
+            if (panel == 6 || panel == 7) {
+                for (const auto &path : panel == 6 ? coarsened : retained) {
+                    Points points;
+                    for (const auto &sample : path)
+                        points.push_back(scaled_point(sample.chart));
+                    draw_points(points, panel, "#0072b2", 0.18);
+                }
+                if (panel == 7 && blue.output_point) {
+                    const Point point = display(blue.output_point->chart, panel);
+                    svg.draw(point, "#000000", scale_(0.4));
+                    svg.draw_text(point, "POINT", "#000000", 1);
+                }
+            }
+        }
+        svg.add_comment("Compact filtering and both pruning passes are separate snapshots. Cyan marks the first-pass protected axis. "
+                        "Caps are trimmed once between passes. Only surviving edges are drawn; gray outlines are paint.");
+    }});
+}
 
 void export_painted_crease_probes(const PrintObject &object, size_t run, size_t chart,
                                  size_t patch, size_t source_chart, const ExPolygon &area,
@@ -1104,23 +1069,27 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
                                  const std::vector<PaintedCreaseProbePath> &creases,
                                  const PaintedCreaseSelection &selection,
                                  const std::vector<std::vector<PaintedCreaseCapSpan>> &cap_spans,
-                                 const PaintedBlueDiagnostic &blue_diagnostic)
+                                 const PaintedBlueDiagnostic &blue_diagnostic,
+                                 PaintedIslandDiagnostic &diagnostic, SVG *output = nullptr)
 {
-    const std::string filename = debug_out_path(
-        "fin-support/painted-shape-crease-probe-%d-%d.svg", int(run), int(chart));
+    const std::string &filename = diagnostic.filename;
     BoundingBox bounds = get_extents(area);
     for (const auto &path : blue_diagnostic.paths)
-        for (const auto &sample : path.samples)
+        for (const auto &sample : path)
             bounds.merge(scaled_point(sample.chart));
-    const size_t cap_discarded = std::count_if(blue_diagnostic.paths.begin(), blue_diagnostic.paths.end(),
-        [](const auto &path) { return path.end - path.begin < 2; });
     const char *blue_reason = !blue_diagnostic.point ? "retained-groups" :
         blue_diagnostic.groups > 0 ? "longest-below-width" :
-        !blue_diagnostic.components.empty() &&
-            std::all_of(blue_diagnostic.components.begin(), blue_diagnostic.components.end(),
-                [](const auto &component) { return component.point; }) ? "compact-components" :
-        !blue_diagnostic.paths.empty() && cap_discarded == blue_diagnostic.paths.size() ?
-            "cap-trim-no-line" : "preparation-no-line";
+        !blue_diagnostic.skeleton.empty() &&
+            std::all_of(blue_diagnostic.skeleton.begin(), blue_diagnostic.skeleton.end(),
+                [](const auto &edge) { return edge.compact; }) ? "compact-components" :
+        std::any_of(blue_diagnostic.skeleton.begin(), blue_diagnostic.skeleton.end(),
+            [](const auto &edge) { return edge.first_pass; }) &&
+            std::none_of(blue_diagnostic.skeleton.begin(), blue_diagnostic.skeleton.end(),
+                [](const auto &edge) { return edge.cap_retained; }) ? "cap-trim-no-line" :
+        std::any_of(blue_diagnostic.skeleton.begin(), blue_diagnostic.skeleton.end(),
+            [](const auto &edge) { return edge.cap_retained; }) &&
+            std::none_of(blue_diagnostic.skeleton.begin(), blue_diagnostic.skeleton.end(),
+                [](const auto &edge) { return edge.retained; }) ? "second-pass-no-line" : "preparation-no-line";
     std::ostringstream blue_status;
     blue_status << (blue_diagnostic.point ? "POINT" : "LINE") << " / " << blue_reason;
     if (blue_diagnostic.groups > 0)
@@ -1147,19 +1116,30 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
     // Keep raw direction results separate from the final point selection.
     const Vec2d minimum = unscale(bounds.min);
     const Vec2d extent = unscale(bounds.size());
-    const double panel_width = std::max(60., 4. * extent.x() + 4.);
+    const bool draw_probes = convex_segments + nonconvex_segments > 0;
+    const double panel_width = std::max(30., 4. * extent.x() + 4.);
     auto display = [&](const Vec2d &point, size_t panel) {
         return scaled_point(Vec2d(4. * (point - minimum) + Vec2d(panel * panel_width, 0.)));
     };
     const BoundingBox canvas(Point(0, 0),
-        scaled_point(Vec2d(4. * panel_width, 4. * extent.y() + 11. + 2.5 * blue_diagnostic.components.size())));
-    SVG svg(filename, canvas, scale_(1.));
-    if (svg.is_opened()) {
+        scaled_point(Vec2d(4. * panel_width, 4. * extent.y() + 11.)));
+    if (output == nullptr) {
+        // Ordinary charts still retain raw measurements and classification comments,
+        // without allocating four empty crease panels.
+        const Vec2d page_size = draw_probes ? Vec2d(unscale(canvas.size())) : Vec2d::Zero();
+        diagnostic.pages.push_back({page_size, [=, &object, &diagnostic](SVG &svg) {
+            export_painted_crease_probes(object, run, chart, patch, source_chart, area,
+                raw_skeleton, blue_paths, creases, selection, cap_spans, blue_diagnostic, diagnostic, &svg);
+        }});
+        return;
+    }
+    SVG &svg = *output;
+    if (svg.is_opened() && draw_probes) {
         svg.add_comment("Diagnostic only; surface-chart XY, display x4, measurements in mm. "
                         "Gray=paint; blue=retained blue paths; purple=convex crease; "
                         "gray crease=non-convex; cyan=sample window; orange=average direction. "
                         "First panel: pink=raw medial axis before skeleton pruning; "
-                        "orange=prepared skeleton before cap trimming (O labels); "
+                        "orange=paired skeleton after cap trimming and both pruning passes (O labels); "
                         "blue=final retained blue paths (P labels); black=standalone blue point output. "
                         "POINT/LINE is the chart's blue classification. "
                         "Fourth panel: teal=selected-point chain; red=discarded point; "
@@ -1168,8 +1148,8 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
                         "A direction pass does not establish paired paint semantics. "
                         "No artificial crease extension or fin geometry is changed.");
         const std::array<const char *, 4> headings{
-            "SOURCE / pink=raw O=orange path R=crease P=blue point", "DIRECTION PASS ONLY (15 deg or less)", "REJECTED / UNAVAILABLE",
-            "SELECTED POINTS / ORDERED ON 3D CREASE"};
+            "CREASE SOURCE / O=orange P=blue", "DIRECTION PASS (15 deg)", "REJECTED / UNAVAILABLE",
+            "SELECTED / CREASE ORDER"};
         for (size_t panel = 0; panel < headings.size(); ++panel) {
             svg.draw_text(scaled_point(Vec2d(panel * panel_width, 4. * extent.y() + 5.)),
                           headings[panel], "#202020", 1);
@@ -1180,14 +1160,6 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
                 svg.draw_text(scaled_point(Vec2d(0., 4. * extent.y() + 2.5)), status, "#202020", 1);
                 svg.draw_text(scaled_point(Vec2d(0., 4. * extent.y() + 7.5)),
                               blue_status.str().c_str(), "#202020", 1);
-                for (size_t component = 0; component < blue_diagnostic.components.size(); ++component) {
-                    const auto &compact = blue_diagnostic.components[component];
-                    std::ostringstream label;
-                    label << "C" << component << " compact=" << (compact.point ? "POINT" : "PASS")
-                          << " L=" << compact.length << " W=" << compact.width << " threshold=" << compact.threshold;
-                    svg.draw_text(scaled_point(Vec2d(0., 4. * extent.y() + 10. + 2.5 * component)),
-                                  label.str().c_str(), "#202020", 1);
-                }
             }
             auto outline = [&](const Polygon &polygon) {
                 Polyline line;
@@ -1204,17 +1176,8 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
                 for (size_t path = 0; path < raw_skeleton.size(); ++path) {
                     const ThickPolyline &raw = raw_skeleton[path];
                     Polyline line;
-                    std::ostringstream detail;
-                    detail.precision(17);
-                    detail << "raw-medial-axis path=" << path << " points_scaled=";
-                    for (const Point &point : raw.points) {
+                    for (const Point &point : raw.points)
                         line.points.push_back(display(unscale(point), panel));
-                        detail << point.x() << ',' << point.y() << ' ';
-                    }
-                    detail << " widths_scaled=";
-                    for (const auto width : raw.width)
-                        detail << width << ' ';
-                    svg.add_comment(detail.str());
                     svg.draw(line, "#cc79a7", scale_(0.08));
                 }
             }
@@ -1234,7 +1197,7 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
             if (panel == 0)
                 for (size_t path = 0; path < blue_diagnostic.paths.size(); ++path) {
                     Polyline line;
-                    for (const auto &sample : blue_diagnostic.paths[path].samples) {
+                    for (const auto &sample : blue_diagnostic.paths[path]) {
                         const Point xy = display(sample.chart, panel);
                         line.points.push_back(xy);
                         svg.draw(xy, "#e69f00", scale_(0.08));
@@ -1266,35 +1229,12 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
             }
         }
     }
-    for (size_t path = 0; path < blue_diagnostic.paths.size(); ++path) {
-        const auto &source = blue_diagnostic.paths[path];
-        std::ostringstream record;
-        record << "stage=painted-blue-cap run=" << run << " chart=" << chart << " path=O" << path
-               << " input_points=" << source.samples.size()
-               << " front_trim_mm=" << source.front_trim << " back_trim_mm=" << source.back_trim
-               << " begin=" << source.begin << " end_exclusive=" << source.end
-               << " result=" << (source.end - source.begin >= 2 ? "retained" : "discarded");
-        BOOST_LOG_TRIVIAL(debug) << "Fin support object=" << object.model_object()->name << " " << record.str();
-        if (svg.is_opened())
-            svg.add_comment(record.str());
-    }
-    for (size_t component = 0; component < blue_diagnostic.components.size(); ++component) {
-        const auto &compact = blue_diagnostic.components[component];
-        std::ostringstream record;
-        record << "stage=painted-compact-component run=" << run << " chart=" << chart
-               << " component=" << component << " result=" << (compact.point ? "point" : "pass")
-               << " fitted_length_mm=" << compact.length << " original_mean_width_mm=" << compact.width
-               << " core_length_mm=" << std::max(0., compact.length - compact.width)
-               << " threshold_mm=" << compact.threshold;
-        BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name << " " << record.str();
-        if (svg.is_opened())
-            svg.add_comment(record.str());
-    }
     std::ostringstream classification;
     classification << "stage=painted-blue-classification run=" << run << " chart=" << chart
                    << " patch_seed=" << patch << " source_chart=" << source_chart
                    << " result=" << (blue_diagnostic.point ? "point" : "line") << " reason=" << blue_reason
-                   << " orange_paths=" << blue_diagnostic.paths.size() << " cap_discarded_paths=" << cap_discarded
+                   << " orange_paths=" << blue_diagnostic.paths.size()
+                   << " cap_discarded_branches=" << blue_diagnostic.cap_discarded_branches
                    << " groups=" << blue_diagnostic.groups << " longest_length_mm=" << blue_diagnostic.longest_length
                    << " group_width_mm=" << blue_diagnostic.group_width << " retained_paths=" << blue_paths.size();
     if (blue_diagnostic.point) {
@@ -1310,6 +1250,8 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
     BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name << " " << classification.str();
     if (svg.is_opened())
         svg.add_comment(classification.str());
+    if (!draw_probes)
+        return;
     size_t probes = 0, passed = 0, unavailable = 0, truncated = 0, both_sides = 0;
     for (size_t path = 0; path < blue_paths.size(); ++path) {
         const auto &samples = blue_paths[path];
@@ -1547,14 +1489,15 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
         << " svg_opened=" << svg.is_opened() << " svg=" << filename;
 }
 
-// Owned diagnostic snapshots outlive each patch's local blue graph. Pairing
-// uses the two source faces of each crease edge, not projected proximity.
+// Pairing inputs and diagnostic snapshots outlive each patch's local blue graph.
+// Pairing uses the two source faces of each crease edge, not projected proximity.
 struct PaintedCreaseComparison {
     PaintedCreaseProbePath crease;
     struct Chain {
         size_t chart;
         size_t patch;
         size_t source_chart;
+        Vec3d macro_normal;
         std::vector<unsigned> sides;
         struct Sample {
             PaintedIntentSample source;
@@ -1570,7 +1513,7 @@ struct PaintedCreaseComparison {
 };
 
 void collect_painted_crease_comparison(
-    size_t chart, size_t patch, size_t source_chart,
+    size_t chart, size_t patch, size_t source_chart, const Vec3d &macro_normal,
     const std::vector<PaintedCreaseProbePath> &creases, const PaintedCreaseSelection &selection,
     const std::vector<std::vector<PaintedCreaseCapSpan>> &cap_spans, bool blue_point_fallback,
     std::map<size_t, PaintedCreaseComparison> &comparisons)
@@ -1580,7 +1523,7 @@ void collect_painted_crease_comparison(
         auto &comparison = it->second;
         if (inserted)
             comparison.crease = creases[i];
-        PaintedCreaseComparison::Chain chain{chart, patch, source_chart, {}, {}, cap_spans[i], blue_point_fallback};
+        PaintedCreaseComparison::Chain chain{chart, patch, source_chart, macro_normal, {}, {}, cap_spans[i], blue_point_fallback};
         for (const auto &segment : creases[i].segments)
             chain.sides.push_back(segment.patch_sides);
         for (const size_t node_id : selection.chains[i]) {
@@ -1668,6 +1611,8 @@ struct PaintedCreasePair {
         std::vector<Vec3d> points;
     };
     std::vector<Intent> intents;
+    std::optional<size_t> ordinary_chain;
+    bool full_expansion = false;
 };
 
 void build_painted_crease_intents(const PaintedCreaseProbePath &crease, PaintedCreasePair &pair)
@@ -1737,6 +1682,19 @@ std::vector<PaintedCreasePair> compare_painted_crease_sides(
                         continue;
                     PaintedCreasePair pair{{a, b}, {ia, ib}, raw_begin, raw_end, raw_begin, raw_end,
                         "no-selected-point", false, {}};
+                    const bool vertical_a = fin_surface_near_vertical(chains[a].macro_normal);
+                    const bool vertical_b = fin_surface_near_vertical(chains[b].macro_normal);
+                    if (vertical_a != vertical_b) {
+                        // Pair ownership is established, but this output uses the
+                        // other side's point or selected line without cap fusion or symmetry voting.
+                        pair.ordinary_chain = vertical_a ? b : a;
+                        const auto &ordinary = chains[*pair.ordinary_chain];
+                        pair.result = ordinary.blue_point_fallback ? "ordinary-side-point" :
+                            ordinary.samples.size() >= 2 ? "ordinary-side" : "ordinary-side-no-line";
+                        pairs.push_back(std::move(pair));
+                        continue;
+                    }
+                    pair.full_expansion = vertical_a && vertical_b;
                     using Kind = PaintedCreaseCapSpan::Kind;
                     if (chains[a].blue_point_fallback || chains[b].blue_point_fallback) {
                         pair.point = true;
@@ -1782,7 +1740,7 @@ std::vector<PaintedCreasePair> compare_painted_crease_sides(
 
 void export_painted_crease_sections(
     const PrintObject &object, size_t run, const PaintedCreaseComparison &comparison,
-    const std::vector<PaintedCreasePair> &pairs)
+    const std::vector<PaintedCreasePair> &pairs, PaintedIslandDiagnostic &diagnostic, SVG *output = nullptr)
 {
     const auto &crease = comparison.crease;
     const auto &chains = comparison.chains;
@@ -1796,20 +1754,28 @@ void export_painted_crease_sections(
     for (const auto &chain : chains)
         for (const auto &sample : chain.samples)
             include(sample.source.surface.point);
-    const double view_size = std::max(60., 4. * (maximum - minimum).maxCoeff() + 8.);
-    const double plots_height = 45. * std::max(size_t(1), pairs.size());
+    const double display_scale = std::min(4., 24. / std::max((maximum - minimum).maxCoeff(), EPSILON));
+    const double view_size = std::max(24., display_scale * (maximum - minimum).maxCoeff() + 8.);
+    double plots_height = pairs.empty() ? 7. : 0.;
+    for (const auto &pair : pairs)
+        plots_height += pair.sections.empty() ? 7. : 45.;
     const double legend_height = 3. * chains.size() + 8.;
-    const std::string filename = debug_out_path(
-        "fin-support/painted-shape-crease-sections-%d-%d.svg", int(run), int(crease.id));
-    SVG svg(filename, BoundingBox(Point(0, 0),
-        scaled_point(Vec2d(3. * view_size, plots_height + view_size + legend_height))), scale_(1.));
+    const std::string &filename = diagnostic.filename;
+    if (output == nullptr) {
+        diagnostic.pages.push_back({Vec2d(3. * view_size, plots_height + view_size + legend_height),
+            [=, &object, &diagnostic](SVG &svg) {
+                export_painted_crease_sections(object, run, comparison, pairs, diagnostic, &svg);
+            }});
+        return;
+    }
+    SVG &svg = *output;
     const std::array<std::array<int, 2>, 3> axes{{{{0, 1}}, {{0, 2}}, {{1, 2}}}};
     const std::array<const char *, 3> headings{{"XY / source 3D", "XZ / source 3D", "YZ / source 3D"}};
     const std::array<const char *, 6> colors{{"#0072b2", "#e69f00", "#cc79a7", "#56b4e9", "#a6761d", "#666666"}};
     auto color = [&](size_t chain) { return colors[chain % colors.size()]; };
     auto display = [&](const Vec3d &p, size_t view) {
-        return scaled_point(Vec2d(view * view_size + 4. + 4. * (p[axes[view][0]] - minimum[axes[view][0]]),
-            plots_height + 4. + 4. * (p[axes[view][1]] - minimum[axes[view][1]])));
+        return scaled_point(Vec2d(view * view_size + 4. + display_scale * (p[axes[view][0]] - minimum[axes[view][0]]),
+            plots_height + 4. + display_scale * (p[axes[view][1]] - minimum[axes[view][1]])));
     };
     auto record = [&](const std::string &text) {
         BOOST_LOG_TRIVIAL(debug) << "Fin support object=" << object.model_object()->name << " " << text;
@@ -1825,6 +1791,8 @@ void export_painted_crease_sections(
         text << "stage=painted-crease-section-chain run=" << run << " crease=" << crease.id
              << " chart=" << chain.chart << " patch_seed=" << chain.patch << " source_chart=" << chain.source_chart
              << " points=" << chain.samples.size() << " both_sides_in_patch=" << both
+             << " macro_normal=" << chain.macro_normal.transpose()
+             << " near_vertical=" << fin_surface_near_vertical(chain.macro_normal)
              << " blue_point_fallback=" << chain.blue_point_fallback << " painted_spans=" << chain.cap_spans.size();
         record(text.str());
         for (size_t span = 0; span < chain.cap_spans.size(); ++span)
@@ -1849,7 +1817,7 @@ void export_painted_crease_sections(
     }
     if (svg.is_opened()) {
         svg.add_comment("Gray=source 3D crease; yellow=common painted coverage; "
-                        "pink=fused cap-trimmed candidate; green=accepted line intent; magenta=point intent. "
+                        "pink=fused cap-trimmed candidate; green=accepted line intent or ORDINARY side chain; magenta=point intent. "
                         "Chart colors identify selected source-surface chains. M labels identify midpoint sections. "
                         "Distance plots use mm; symmetry difference is at most 100% of the mean. "
                         "Failed sections split intents; an isolated passing section produces a point. "
@@ -1876,26 +1844,31 @@ void export_painted_crease_sections(
             }
         }
         if (pairs.empty())
-            svg.draw_text(scaled_point(Vec2d(2., 30.)),
+            svg.draw_text(scaled_point(Vec2d(2., 4.)),
                 "No common painted crease span on distinct opposite patches; no paired candidate.",
                 "#d55e00", 1);
     }
     size_t measured = 0, unique_pairs = 0, missing_sides = 0, ambiguous_sides = 0;
     size_t accepted_sections = 0, line_intents = 0, point_intents = 0;
-    size_t point_candidates = 0, line_candidates = 0, unavailable_candidates = 0;
+    size_t point_candidates = 0, line_candidates = 0, ordinary_candidates = 0, unavailable_candidates = 0;
+    double plot_top = plots_height;
     for (size_t p = 0; p < pairs.size(); ++p) {
         const PaintedCreasePair &pair = pairs[p];
-        const bool line_candidate = !pair.point &&
+        const bool line_candidate = !pair.ordinary_chain && !pair.point &&
             chains[pair.chains[0]].cap_spans[pair.spans[0]].kind == PaintedCreaseCapSpan::Kind::trimmed &&
             chains[pair.chains[1]].cap_spans[pair.spans[1]].kind == PaintedCreaseCapSpan::Kind::trimmed;
         point_candidates += pair.point;
         line_candidates += line_candidate;
-        unavailable_candidates += !pair.point && !line_candidate;
+        ordinary_candidates += pair.ordinary_chain.has_value();
+        unavailable_candidates += !pair.ordinary_chain && !pair.point && !line_candidate;
         std::ostringstream candidate;
         candidate << "stage=painted-crease-candidate run=" << run << " crease=" << crease.id << " pair=" << p
                   << " chart0=" << chains[pair.chains[0]].chart << " chart1=" << chains[pair.chains[1]].chart
                   << " span0=" << pair.spans[0] << " span1=" << pair.spans[1]
-                  << " result=" << pair.result << " raw_begin_mm=" << pair.raw_begin << " raw_end_mm=" << pair.raw_end;
+                  << " result=" << pair.result << " raw_begin_mm=" << pair.raw_begin << " raw_end_mm=" << pair.raw_end
+                  << " full_expansion=" << pair.full_expansion;
+        if (pair.ordinary_chain)
+            candidate << " ordinary_chart=" << chains[*pair.ordinary_chain].chart;
         if (pair.point || line_candidate) {
             const Vec3d begin = painted_crease_surface_point(crease, pair.begin);
             const Vec3d end = painted_crease_surface_point(crease, pair.end);
@@ -1904,7 +1877,8 @@ void export_painted_crease_sections(
                       << " end_x=" << end.x() << " end_y=" << end.y() << " end_z=" << end.z();
         }
         record(candidate.str());
-        const double bottom = 45. * (pairs.size() - p - 1) + 4.;
+        plot_top -= pair.sections.empty() ? 7. : 45.;
+        const double bottom = plot_top + 4.;
         if (svg.is_opened()) {
             auto draw_span = [&](double begin, double end, const char *stroke, double width) {
                 for (size_t segment = 0; segment < crease.segments.size(); ++segment) {
@@ -1920,11 +1894,20 @@ void export_painted_crease_sections(
             draw_span(pair.raw_begin, pair.raw_end, "#e69f00", 0.32);
             if (line_candidate)
                 draw_span(pair.begin, pair.end, "#cc79a7", 0.12);
+            if (pair.ordinary_chain && chains[*pair.ordinary_chain].samples.size() >= 2) {
+                for (size_t view = 0; view < axes.size(); ++view) {
+                    Polyline path;
+                    for (const auto &sample : chains[*pair.ordinary_chain].samples)
+                        path.points.push_back(display(sample.source.surface.point, view));
+                    svg.draw(path, "#009e73", scale_(0.24));
+                    svg.draw_text(path.first_point(), ("ORDINARY " + std::to_string(p)).c_str(), "#009e73", 1);
+                }
+            }
             if (pair.sections.empty()) {
                 const std::string label = "PAIR " + std::to_string(p) + ": C" +
                     std::to_string(chains[pair.chains[0]].chart) + " / C" +
                     std::to_string(chains[pair.chains[1]].chart) + " " + pair.result + "; no section measurement";
-                svg.draw_text(scaled_point(Vec2d(2., bottom + 25.)), label.c_str(), "#202020", 1);
+                svg.draw_text(scaled_point(Vec2d(2., bottom)), label.c_str(), "#202020", 1);
             }
         }
         for (size_t i = 0; i < pair.intents.size(); ++i) {
@@ -2085,6 +2068,7 @@ void export_painted_crease_sections(
         << " charts=" << chains.size() << " unseparated_charts=" << unseparated
         << " pairs=" << pairs.size() << " sections=" << measured << " unique_pairs=" << unique_pairs
         << " line_candidates=" << line_candidates << " point_candidates=" << point_candidates
+        << " ordinary_candidates=" << ordinary_candidates
         << " unavailable_candidates=" << unavailable_candidates
         << " missing_sides=" << missing_sides << " ambiguous_sides=" << ambiguous_sides
         << " accepted_sections=" << accepted_sections << " rejected_sections=" << measured - accepted_sections
@@ -2179,8 +2163,6 @@ struct CoarseIntentPath {
     std::vector<coordf_t> widths;
     Geometry::MedialAxis::WidthMeasurements measurements;
     std::vector<bool> junctions;
-    bool boundary_front = false;
-    bool boundary_back = false;
     bool closed = false;
 };
 
@@ -2191,12 +2173,13 @@ struct CoarseIntentSkeleton {
     size_t junctions = 0;
     size_t paired_junctions = 0;
     size_t pruned_branches = 0;
+    size_t trimmed_samples = 0;
 };
 
 // Geometry::MedialAxis deliberately returns polylines rather than its internal
 // Voronoi graph. Rebuild only the coarse connectivity needed to distinguish one
 // brush stroke from short medial-axis spurs. Protect each connected graph's
-// global diameter before pruning its local leaves, so repeated pruning cannot
+// global diameter during first-pass pruning, so repeated leaf removal cannot
 // consume the intended centerline. Every segment remains in scaled integer
 // coordinates. Exact shared vertices recover explicit junctions; a later
 // local-width join reconnects numerical fragments only when their endpoint
@@ -2205,7 +2188,7 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
                                              const std::vector<Geometry::MedialAxis::WidthMeasurements> &measurements,
                                              const ExPolygon &painted_area,
                                              double feature_scale,
-                                             std::vector<PaintedBlueDiagnostic::Compact> *compact_diagnostics)
+                                             PaintedBlueDiagnostic *diagnostic)
 {
     constexpr size_t no_edge = std::numeric_limits<size_t>::max();
     struct Node {
@@ -2402,8 +2385,6 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
             }
         const double threshold = std::max(feature_scale, axis_width);
         const bool compact = axis_edges.empty() || std::max(0., fitted_length - axis_width) + EPSILON < threshold;
-        if (compact_diagnostics != nullptr)
-            compact_diagnostics->push_back({fitted_length, axis_width, threshold, compact});
         if (compact) {
             for (const size_t node : component_nodes)
                 for (const size_t edge : nodes[node].edges)
@@ -2415,10 +2396,20 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
             edges[edge].protected_axis = true;
     }
 
-    // Repeatedly remove only side branches shorter than their length-weighted
-    // mean width. A single broad junction sample must not erase an otherwise
-    // significant stroke. The protected diameter can become a leaf as
-    // neighboring noise disappears but is never consumed.
+    if (diagnostic != nullptr)
+        for (const Edge &edge : edges)
+            diagnostic->skeleton.push_back({Line(nodes[edge.nodes[0]].point, nodes[edge.nodes[1]].point),
+                !edge.active, edge.protected_axis, false, false, false});
+
+    // Measure a shrinking branch from its original tip, including removed
+    // prefixes. Resetting the length at each new leaf can consume a long arm
+    // one short segment at a time. Keep one longest route and its matching
+    // width integral; unrelated removed twigs must not add their lengths.
+    struct PrunedReach {
+        double length = 0.;
+        double width_moment = 0.;
+    };
+    std::vector<PrunedReach> pruned_reach(nodes.size());
     std::queue<size_t> leaves;
     for (size_t node = 0; node < nodes.size(); ++node)
         if (active_degree(node) == 1)
@@ -2446,6 +2437,12 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
                 stop = current;
                 break;
             }
+            // A former junction may now be inside this degree-two chain.
+            // Its removed prefix matters even when it was never queued as a leaf.
+            if (pruned_reach[current].length > length) {
+                length = pruned_reach[current].length;
+                width_moment = pruned_reach[current].width_moment;
+            }
             branch.push_back(next_edge);
             const double segment_length = edge_length(next_edge);
             length += segment_length;
@@ -2466,9 +2463,111 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
         for (const size_t edge : branch)
             edges[edge].active = false;
         ++result.pruned_branches;
+        if (stop != no_edge && length > pruned_reach[stop].length)
+            pruned_reach[stop] = {length, width_moment};
         if (stop != no_edge && active_degree(stop) == 1)
             leaves.push(stop);
     }
+
+    if (diagnostic != nullptr)
+        for (size_t edge = 0; edge < edges.size(); ++edge)
+            diagnostic->skeleton[edge].first_pass = edges[edge].active;
+
+    struct TerminalBranch {
+        std::vector<size_t> edges;
+        double length = 0., width = 0.;
+        size_t end_degree = 0;
+    };
+    // Snapshot complete leaf-to-junction / leaf-to-leaf chains before any
+    // mutation. Internal connectors and cycles have no starting leaf.
+    auto terminal_branches = [&]() {
+        std::vector<size_t> degree(nodes.size());
+        for (size_t node = 0; node < nodes.size(); ++node)
+            degree[node] = active_degree(node);
+        std::vector<bool> seen(edges.size(), false);
+        std::vector<TerminalBranch> branches;
+        for (size_t leaf = 0; leaf < nodes.size(); ++leaf) {
+            if (degree[leaf] != 1)
+                continue;
+            TerminalBranch branch;
+            size_t current = leaf, incoming = no_edge;
+            double width_moment = 0.;
+            do {
+                size_t next_edge = no_edge;
+                for (const size_t edge : nodes[current].edges)
+                    if (edges[edge].active && edge != incoming) {
+                        next_edge = edge;
+                        break;
+                    }
+                // A standalone chain is measured once, despite its two leaves.
+                if (next_edge == no_edge || seen[next_edge])
+                    break;
+                seen[next_edge] = true;
+                branch.edges.push_back(next_edge);
+                const double length = edge_length(next_edge);
+                branch.length += length;
+                width_moment += 0.5 * length *
+                    (unscale<double>(edges[next_edge].widths[0]) + unscale<double>(edges[next_edge].widths[1]));
+                current = other_node(next_edge, current);
+                incoming = next_edge;
+            } while (degree[current] == 2);
+            if (!branch.edges.empty()) {
+                branch.width = branch.length > EPSILON ? width_moment / branch.length : 0.;
+                branch.end_degree = degree[current];
+                branches.push_back(std::move(branch));
+            }
+        }
+        return branches;
+    };
+
+    // Cap the first-pass free ends once, using each terminal branch's own
+    // pre-trim mean width. Retain original vertices only, as in the downstream
+    // sample representation. A cap cannot cross its branch's first junction.
+    // Both ends of an isolated chain use the same untrimmed length and width.
+    const size_t samples_before_caps = std::count_if(nodes.begin(), nodes.end(), [&](const Node &node) {
+        return std::any_of(node.edges.begin(), node.edges.end(), [&](size_t edge) { return edges[edge].active; });
+    });
+    for (const TerminalBranch &branch : terminal_branches()) {
+        const double front_trim = 0.5 * branch.width;
+        const double back_trim = branch.end_degree == 1 ? front_trim : 0.;
+        const double back_limit = branch.length - back_trim;
+        double arc_length = 0.;
+        bool has_line = false;
+        for (const size_t edge : branch.edges) {
+            const double next_length = arc_length + edge_length(edge);
+            if (arc_length + EPSILON < front_trim || next_length > back_limit + EPSILON)
+                edges[edge].active = false;
+            else
+                has_line = true;
+            arc_length = next_length;
+        }
+        if (diagnostic != nullptr)
+            diagnostic->cap_discarded_branches += !has_line;
+    }
+    const size_t samples_after_caps = std::count_if(nodes.begin(), nodes.end(), [&](const Node &node) {
+        return std::any_of(node.edges.begin(), node.edges.end(), [&](size_t edge) { return edges[edge].active; });
+    });
+    result.trimmed_samples = samples_before_caps - samples_after_caps;
+    if (diagnostic != nullptr)
+        for (size_t edge = 0; edge < edges.size(); ++edge)
+            diagnostic->skeleton[edge].cap_retained = edges[edge].active;
+
+    // Re-measure the capped graph once. Decisions use this frozen snapshot;
+    // newly exposed leaves trigger neither another cap nor another pruning pass.
+    constexpr double residual_width_ratio = 1.25;
+    for (const TerminalBranch &branch : terminal_branches()) {
+        // Measure only the surviving chain, without removed-prefix reach or an
+        // axis exemption. Width is local to this chain, not the component axis.
+        const bool remove = branch.length + EPSILON < residual_width_ratio * branch.width;
+        if (remove) {
+            for (const size_t edge : branch.edges)
+                edges[edge].active = false;
+            ++result.pruned_branches;
+        }
+    }
+    if (diagnostic != nullptr)
+        for (size_t edge = 0; edge < edges.size(); ++edge)
+            diagnostic->skeleton[edge].retained = edges[edge].active;
 
     // Pair the most nearly opposite macro branches at a junction. Direction is
     // measured over one painted-width scale instead of one raw Voronoi edge.
@@ -2585,8 +2684,6 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
         CoarseIntentPath path;
         size_t edge = first_edge;
         size_t node = first_node;
-        size_t last_node = first_node;
-        path.boundary_front = active_degree(first_node) == 1;
         const size_t first_side = side_at(edge, node);
         path.points.push_back(nodes[node].point);
         path.widths.push_back(edges[edge].widths[first_side]);
@@ -2597,7 +2694,6 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
             const size_t enter_side = side_at(edge, node);
             const size_t exit_side = 1 - enter_side;
             const size_t exit_node = edges[edge].nodes[exit_side];
-            last_node = exit_node;
             path.points.push_back(nodes[exit_node].point);
             path.widths.push_back(edges[edge].widths[exit_side]);
             path.measurements.push_back(edges[edge].measurements[exit_side]);
@@ -2613,7 +2709,6 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
             node = exit_node;
             edge = next;
         }
-        path.boundary_back = active_degree(last_node) == 1;
         path.closed = path.points.size() > 2 && path.points.front() == path.points.back();
         return path;
     };
@@ -2719,14 +2814,12 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
             std::reverse(first.widths.begin(), first.widths.end());
             std::reverse(first.measurements.begin(), first.measurements.end());
             std::reverse(first.junctions.begin(), first.junctions.end());
-            std::swap(first.boundary_front, first.boundary_back);
         }
         if (best.second_side == 1) {
             std::reverse(second.points.begin(), second.points.end());
             std::reverse(second.widths.begin(), second.widths.end());
             std::reverse(second.measurements.begin(), second.measurements.end());
             std::reverse(second.junctions.begin(), second.junctions.end());
-            std::swap(second.boundary_front, second.boundary_back);
         }
         const bool shared_endpoint = first.points.back() == second.points.front();
         if (shared_endpoint) {
@@ -2749,7 +2842,6 @@ CoarseIntentSkeleton coarse_intent_skeleton(const ThickPolylines &polylines,
             first.junctions.insert(first.junctions.end(), second.junctions.begin(),
                                    second.junctions.end());
         }
-        first.boundary_back = second.boundary_back;
         result.paths.erase(result.paths.begin() + best.second);
         ++result.joined_paths;
     }
@@ -3583,6 +3675,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
         std::vector<std::vector<PaintedIntentSample>> paths;
         std::optional<PaintedIntentPoint> point;
         std::unordered_set<Point, PointHash> consumed;
+        bool point_consumed = false;
     };
     std::vector<BlueChart> blue_charts;
     for (const ModelVolume *volume : object.model_object()->volumes) {
@@ -4138,12 +4231,13 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                 PaintedBlueDiagnostic blue_diagnostic;
                 CoarseIntentSkeleton coarse = coarse_intent_skeleton(
                     skeleton, measurements, area, feature_scale,
-                    export_crease_svg ? &blue_diagnostic.components : nullptr);
+                    export_crease_svg ? &blue_diagnostic : nullptr);
                 result.compact_intent_components += coarse.compact_components;
                 result.intent_junctions += coarse.junctions;
                 result.paired_intent_junctions += coarse.paired_junctions;
                 result.pruned_intent_branches += coarse.pruned_branches;
                 result.pruned_intent_strokes += coarse.pruned_branches;
+                result.trimmed_intent_samples += coarse.trimmed_samples;
                 result.joined_intent_paths += coarse.joined_paths;
                 result.logical_intent_paths += coarse.paths.size();
                 struct BlueNode {
@@ -4193,48 +4287,10 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                     if (samples.size() < 2)
                         continue;
 
-                    // Trim half of the path's average painted width only from
-                    // degree-one graph ends. Stop at the first junction: an
-                    // exhausted terminal span must not consume the next branch.
-                    std::vector<double> arc_length(samples.size(), 0.);
-                    double width_moment = 0;
-                    for (size_t i = 1; i < samples.size(); ++i) {
-                        const double length =
-                            (samples[i].chart - samples[i - 1].chart).norm();
-                        arc_length[i] = arc_length[i - 1] + length;
-                        width_moment += 0.5 * length *
-                            (samples[i - 1].width + samples[i].width);
-                    }
-                    const double original_length = arc_length.back();
-                    if (original_length <= EPSILON)
-                        continue;
-                    const double original_average_width = width_moment / original_length;
-                    const double front_trim = path.boundary_front ? 0.5 * original_average_width : 0.;
-                    const double back_trim = path.boundary_back ? 0.5 * original_average_width : 0.;
-                    size_t core_begin = 0;
-                    size_t core_end = samples.size(); // Exclusive; both trims use the original path.
-                    while (core_begin < samples.size() && !samples[core_begin].junction &&
-                           arc_length[core_begin] + EPSILON < front_trim)
-                        ++core_begin;
-                    const double back_limit = original_length - back_trim;
-                    while (core_end > 0 && !samples[core_end - 1].junction &&
-                           arc_length[core_end - 1] > back_limit + EPSILON)
-                        --core_end;
+                    // Free-end caps were removed between the two pruning passes.
+                    // Pairing and joining must never cause another cap trim.
                     if (export_crease_svg)
-                        blue_diagnostic.paths.push_back({samples, front_trim, back_trim,
-                            core_begin, std::max(core_begin, core_end)});
-                    // Keep only original samples inside the surviving interval.
-                    // A lone junction stays available through its other paths,
-                    // but neither it nor a lone free sample defines a line here.
-                    if (core_end <= core_begin || core_end - core_begin < 2) {
-                        result.trimmed_intent_samples += samples.size();
-                        continue;
-                    }
-                    if (core_begin > 0 || core_end < samples.size()) {
-                        result.trimmed_intent_samples += core_begin + samples.size() - core_end;
-                        samples = std::vector<IntentSample>(samples.begin() + core_begin,
-                                                            samples.begin() + core_end);
-                    }
+                        blue_diagnostic.paths.push_back(samples);
 
                     double raw_trimmed_length = 0.;
                     double raw_trimmed_width_moment = 0.;
@@ -4363,8 +4419,8 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                         blue_groups[group].length > blue_groups[longest_blue_group].length)
                         longest_blue_group = group;
                 double blue_group_width = 0.;
-                // No surviving line is also an explicit point classification,
-                // including paths exhausted by cap trimming before grouping.
+                // Merely surviving pruning is not a line qualification: this
+                // also checks former internal connectors exposed by pass 2.
                 bool blue_point_fallback = blue_groups.empty();
                 if (longest_blue_group != no_blue_group) {
                     const BlueGroup &longest = blue_groups[longest_blue_group];
@@ -4427,8 +4483,10 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                         retained_blue_paths.emplace_back(samples.begin() + begin, samples.end());
                 }
 
-                // Point placement belongs to the blue output, at the same chart
-                // scope as retained paths. Never reconstruct it from island geometry.
+                // One chart emits qualified lines OR its original painted-area
+                // centroid. Isolated skeleton vertices never become point fins;
+                // empty, point-only and rejected-short-line remnants all reach
+                // the same centroid alternative when no qualified line remains.
                 blue_point_fallback = retained_blue_paths.empty();
                 result.point_blue_intent_charts += blue_point_fallback;
                 if (blue_point_fallback) {
@@ -4456,11 +4514,15 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                     const auto cap_spans = painted_crease_cap_spans(
                         object, area, diagnostic_creases, selection, blue_point_fallback);
                     const size_t diagnostic_chart = blue_charts.size();
-                    if (export_crease_svg)
+                    if (export_crease_svg) {
+                        auto &diagnostic = result.diagnostics.at(result.islands.size());
+                        export_painted_skeleton_stages(diagnostic_chart, area, blue_diagnostic,
+                            blue_paths, retained_blue_paths, diagnostic);
                         export_painted_crease_probes(object, crease_svg_run, diagnostic_chart,
                             faces.front(), chart_id, area, skeleton, retained_blue_paths, diagnostic_creases, selection, cap_spans,
-                            blue_diagnostic);
-                    collect_painted_crease_comparison(diagnostic_chart, faces.front(), chart_id,
+                            blue_diagnostic, diagnostic);
+                    }
+                    collect_painted_crease_comparison(diagnostic_chart, faces.front(), chart_id, intent.macro_normal,
                         diagnostic_creases, selection, cap_spans, blue_point_fallback, crease_comparisons);
                 }
 
@@ -4473,6 +4535,9 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
         auto append_island = [&](const SourceIsland &source) {
             const auto &faces = source.faces;
             const size_t island_id = result.islands.size();
+            if (export_crease_svg)
+                result.diagnostics.try_emplace(island_id, debug_out_path(
+                    "fin-support/painted-shape-island-%d-%d.svg", int(crease_svg_run), int(island_id)));
             PaintedIsland island;
             island.area = source.area;
             for (const size_t face_id : faces) {
@@ -4585,9 +4650,9 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
         for (const SourceIsland &island : source_islands)
             append_island(island);
     }
-    // Pair all source charts before ordinary green fitting. Consumption is
-    // committed when source points enter section comparison, even if no intent
-    // survives. It is never undone by symmetry or later geometry failures.
+    // Pair all source charts before ordinary green fitting. Ordinary-side
+    // routing and crease section comparison both consume their source chains,
+    // even when no intent survives. Later failures never restore those chains.
     for (const auto &entry : crease_comparisons) {
         if (object.print()->canceled())
             throw CanceledException();
@@ -4595,15 +4660,48 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
         const auto pairs = compare_painted_crease_sides(object, comparison);
         for (size_t p = 0; p < pairs.size(); ++p) {
             const auto &pair = pairs[p];
-            if (!pair.point && pair.sections.empty())
+            if (!pair.ordinary_chain && !pair.point && pair.sections.empty())
                 continue;
             for (const size_t side : pair.chains) {
                 const auto &chain = comparison.chains[side];
                 auto &chart = blue_charts[chain.chart];
                 for (const auto &sample : chain.samples)
                     chart.consumed.insert(sample.source.source.point);
+                // Keep the source point available to other independent pairs.
                 if (chain.blue_point_fallback)
-                    chart.point.reset();
+                    chart.point_consumed = true;
+            }
+            if (pair.ordinary_chain) {
+                const auto &chain = comparison.chains[*pair.ordinary_chain];
+                const auto &chart = blue_charts[chain.chart];
+                auto &graph = result.islands[chart.island].intent;
+                if (chain.blue_point_fallback) {
+                    if (chart.point)
+                        graph.points.push_back(*chart.point);
+                    BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
+                        << " stage=painted-crease-ordinary-side crease=" << comparison.crease.id << " pair=" << p
+                        << " chart=" << chain.chart << " kind=point emitted=" << chart.point.has_value();
+                    continue;
+                }
+                PaintedOrdinaryPathIntent intent{comparison.crease.id, p, {}, chain.macro_normal, {}};
+                for (const auto &sample : chain.samples)
+                    intent.points.push_back(sample.source.surface.point);
+                // An incomplete selected line does not create a new point intent.
+                // Only the explicit source-chart point takes the point route above.
+                if (intent.points.size() < 2) {
+                    BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
+                        << " stage=painted-crease-ordinary-side crease=" << intent.crease << " pair=" << intent.pair
+                        << " reject=no-selected-line";
+                    continue;
+                }
+                if (intent.points.back().z() > intent.points.front().z())
+                    std::reverse(intent.points.begin(), intent.points.end());
+                for (const Vec3d &point : intent.points) {
+                    intent.nodes.push_back(graph.nodes.size());
+                    graph.nodes.push_back({point.head<2>(), point.z(), {}, std::nullopt});
+                }
+                graph.ordinary_paths.push_back(std::move(intent));
+                continue;
             }
             const size_t island = blue_charts[comparison.chains[pair.chains[0]].chart].island;
             auto &graph = result.islands[island].intent;
@@ -4613,6 +4711,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                 intent.crease = comparison.crease.id;
                 intent.pair = p;
                 intent.part = i;
+                intent.full_expansion = pair.full_expansion;
                 intent.points = output.points;
                 if (output.points.size() > 1) {
                     intent.contact_source = output.points;
@@ -4655,8 +4754,10 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                 ++result.crease_intent_strokes;
             }
         }
-        if (export_crease_svg)
-            export_painted_crease_sections(object, crease_svg_run, comparison, pairs);
+        if (export_crease_svg && !comparison.chains.empty()) {
+            const size_t island = blue_charts[comparison.chains.front().chart].island;
+            export_painted_crease_sections(object, crease_svg_run, comparison, pairs, result.diagnostics.at(island));
+        }
     }
     for (size_t chart_id = 0; chart_id < blue_charts.size(); ++chart_id) {
         auto &chart = blue_charts[chart_id];
@@ -4697,12 +4798,13 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                 *stroke.attachment_host_edge += edge_offset;
             graph.strokes.push_back(std::move(stroke));
         }
-        if (chart.point)
+        const bool ordinary_point = chart.point.has_value() && !chart.point_consumed;
+        if (ordinary_point)
             graph.points.push_back(std::move(*chart.point));
         BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
             << " stage=painted-crease-consumption run=" << crease_svg_run << " chart=" << chart_id
             << " consumed_points=" << chart.consumed.size() << " remaining_paths=" << remaining.size()
-            << " isolated_samples=" << isolated_samples << " ordinary_point=" << chart.point.has_value();
+            << " isolated_samples=" << isolated_samples << " ordinary_point=" << ordinary_point;
     }
     return result;
 }
@@ -5075,6 +5177,10 @@ std::optional<ContourRayHit> painted_clearance_hit(const Layer &layer, const Vec
             [&](const ExPolygon &area) { return area.contains(scaled, false); });
     };
 
+    // Near tangency to a rounded gap corner, small layer-to-layer contour
+    // changes can move this exit substantially along the ray. The resulting
+    // taper may look torn despite valid intersections; this query does not
+    // smooth their positions between layers.
     std::optional<ContourRayHit> clearance_hit;
     auto visit_clearance = [&](const Polygon &polygon) {
         const double orientation = polygon.area() >= 0 ? 1. : -1.;
@@ -5391,8 +5497,9 @@ bool trace_fin(const PrintObject &object, const Polygon &bed, const FinCandidate
                 &(*geometry_cache)[i].model_gap : nullptr;
             const auto clearance = painted_clearance_hit(layer, candidate.point, candidate.normal,
                 outer_distance, gap, line_width, cached_clearance);
-            // A ray has no finite inner endpoint. With no clearance crossing it
-            // supplies no finite body fragment; do not borrow a previous layer.
+            // Record this layer's model-gap intersection independently of body
+            // construction. Missing point endpoints later inherit the nearest
+            // upper intersection, not a completed cap or printed-wall hit.
             fin.path_present[i] = clearance.has_value();
             if (!clearance)
                 continue;
@@ -5557,7 +5664,6 @@ Polyline fin_path_boundary(const std::vector<FinBodyAxis> &axes, double radius,
     cap_normal.normalize();
     if (cap_normal.dot(tail.direction) < 0.)
         cap_normal = -cap_normal;
-
     const auto clip_at_cap = [](std::vector<Vec2d> &points, const Vec2d &origin, const Vec2d &normal) {
         if (points.empty())
             return false;
@@ -5635,7 +5741,7 @@ Polyline fin_path_boundary(const std::vector<FinBodyAxis> &axes, double radius,
         if (extension < 0.)
             return {};
         points.back() += extension * directions.back();
-        // The previous rear edge may shorten the ordinary cap extension, but
+        // The saved contact-axis cap may shorten the ordinary cap extension, but
         // never extends a side on its own.
         clip_at_previous_cap(points);
         return points;
@@ -5847,12 +5953,12 @@ ExPolygons build_fin_contact_section(const Polygon &bed, const TracedFin &fin,
     return result;
 }
 
-// Preserve the last actual front and the preceding successful attachment.
-// Continued layers add the saved cap to their side cuts and share the resulting
-// endpoints with the contact. They do not create a new actual contact.
+// Preserve the last successful actual contact's front and unclipped axis cap.
+// Continued layers share their clipped endpoints with the contact, but those
+// endpoints never replace the saved perpendicular used by subsequent layers.
 struct FinContactContinuation {
     FinContactSlice contact;
-    Line cap;
+    Line axis_cap;
 };
 
 FinContactSlice make_straight_fin_contact_slice(const Vec2d &wall, const Vec2d &axis, const Vec2d &front_normal,
@@ -5931,14 +6037,11 @@ struct FinCenterExtension {
     FinContactBand band{0, 0};
     FinExtensionState state = FinExtensionState::pending;
     // Geometry and completion state remain tied to this member's body until
-    // every taper layer has been evaluated. Failed layers remain inactive;
-    // successful taper layers are materialized with their completed body.
+    // its taper finishes. Failed layers remain inactive; successful taper
+    // layers, including the terminal absorption layer, are materialized.
     std::vector<ExPolygons> layers;
     // Complete local contours, joined before band/taper publication.
     std::vector<ExPolygons> completed_layers;
-    // Source attachment edge; clipping may retain only part of it. A carried
-    // contact records the rear endpoints actually reached on this layer's body.
-    std::vector<std::optional<Line>> attachments;
     std::vector<FinExtensionLayerState> layer_states;
 };
 
@@ -5954,33 +6057,6 @@ struct FinComponentCenterGeometry {
     // barrier separates support transitions from actual contact sections.
     std::vector<FinCenterExtension> extensions;
 };
-
-void append_fin_component_debug(std::vector<FinGeometryDebugSet> &sets,
-                                const FinComponentCenterGeometry &component, size_t layer_id)
-{
-    const std::string prefix = "source=" + std::to_string(component.source);
-    if (layer_id < component.body_centers.size())
-        sets.push_back({prefix + " body centers", component.body_centers[layer_id], {}, {}});
-    if (layer_id < component.completed_centers.size())
-        sets.push_back({prefix + " completed member centers", component.completed_centers[layer_id], {}, {}});
-    for (size_t e = 0; e < component.extensions.size(); ++e) {
-        const auto &extension = component.extensions[e];
-        if (layer_id >= extension.layers.size())
-            continue;
-        const auto state = layer_id < extension.layer_states.size() ? extension.layer_states[layer_id] :
-            FinExtensionLayerState::inactive;
-        const char *kind = state == FinExtensionLayerState::contact ? "contact" :
-            state == FinExtensionLayerState::materialized ? "taper/carried" : "inactive";
-        sets.push_back({prefix + " extension=" + std::to_string(e) + " " + kind +
-            " band=" + std::to_string(extension.band.begin) + ":" + std::to_string(extension.band.end),
-            extension.layers[layer_id], {}, {}});
-        if (layer_id < extension.attachments.size() && extension.attachments[layer_id]) {
-            const Line &edge = *extension.attachments[layer_id];
-            sets.push_back({prefix + " extension=" + std::to_string(e) + " attachment",
-                {}, {Polyline(Points{edge.a, edge.b})}, {edge.a, edge.b}});
-        }
-    }
-}
 
 struct ContactProjectionRay {
     Vec2d direction;
@@ -6097,122 +6173,103 @@ void build_fin_body_section(const PrintObject &object, TracedFin &fin, size_t la
 }
 
 // A clipping intersection is quantized to the integer lattice. Only points on
-// the explicitly owned attachment are eligible for insertion, within one lattice
+// the explicitly owned attachment qualify as join endpoints, within one lattice
 // unit; this is not an EPSILON search for unrelated nearby body boundaries.
 bool on_fin_attachment(const Point &point, const Line &attachment)
 {
     return line_alg::distance_to_squared(attachment, point) <= 1.;
 }
 
-bool splice_fin_attachment(Polygon &body, Polygon contact, const Line &attachment)
-{
-    if (body.points.size() < 3 || contact.points.size() < 3 || attachment.a == attachment.b)
-        return false;
-    body.make_counter_clockwise();
-    contact.make_counter_clockwise();
-    const size_t count = contact.points.size();
-    // Find the contact's contiguous rear boundary. Plane/bed clipping can
-    // shorten the source attachment without changing its ownership.
-    size_t begin = count;
-    size_t end = count;
-    for (size_t i = 0; i < count; ++i) {
-        if (on_fin_attachment(contact.points[i], attachment) &&
-            !on_fin_attachment(contact.points[(i + count - 1) % count], attachment)) {
-            if (begin != count)
-                return false;
-            begin = i;
-        }
-    }
-    if (begin == count)
-        return false;
-    end = begin;
-    while (on_fin_attachment(contact.points[(end + 1) % count], attachment))
-        end = (end + 1) % count;
-    if (end == begin)
-        return false;
-    const Point first = contact.points[begin];
-    const Point second = contact.points[end];
-    if (first == second)
-        return false;
-    Points outline = body.points;
-    auto insert_endpoint = [&](const Point &point) {
-        if (std::find(outline.begin(), outline.end(), point) != outline.end())
-            return true;
-        for (size_t i = 0; i < outline.size(); ++i) {
-            const Point &a = outline[i];
-            const Point &b = outline[(i + 1) % outline.size()];
-            if (on_fin_attachment(a, attachment) && on_fin_attachment(b, attachment) &&
-                on_fin_attachment(point, Line(a, b))) {
-                outline.insert(outline.begin() + i + 1, point);
-                return true;
-            }
-        }
-        return false;
-    };
-    if (!insert_endpoint(first) || !insert_endpoint(second))
-        return false;
-    const size_t a = std::find(outline.begin(), outline.end(), first) - outline.begin();
-    const size_t b = std::find(outline.begin(), outline.end(), second) - outline.begin();
-    // CCW contours traverse a shared edge in opposite directions. Remove the
-    // body's b->a chain and the contact's a->b chain, retaining their outer arcs.
-    for (size_t i = b; i != a; i = (i + 1) % outline.size())
-        if (!on_fin_attachment(outline[i], attachment))
-            return false;
-    Points joined;
-    for (size_t i = a; i != b; i = (i + 1) % outline.size())
-        joined.push_back(outline[i]);
-    for (size_t i = end; i != begin; i = (i + 1) % count)
-        joined.push_back(contact.points[i]);
-    joined.erase(std::unique(joined.begin(), joined.end()), joined.end());
-    if (joined.size() < 3)
-        return false;
-    body.points = std::move(joined);
-    return true;
-}
-
-bool join_fin_contact_boundary(ExPolygons &body, const ExPolygons &sections,
-                               const std::optional<Line> &attachment)
-{
-    for (const ExPolygon &section : sections) {
-        bool joined = false;
-        if (attachment && section.holes.empty()) {
-            for (ExPolygon &region : body) {
-                if (splice_fin_attachment(region.contour, section.contour, *attachment)) {
-                    joined = true;
-                    break;
-                }
-            }
-        }
-        if (!joined) {
-            // A carried contact or a taper can overlap the body, or an existing
-            // transition can already cover its attachment. Union is for that
-            // positive-area overlap, never a substitute for an edge-only join.
-            const ExPolygons overlap = intersection_ex(body, ExPolygons{section});
-            if (std::none_of(overlap.begin(), overlap.end(), [](const ExPolygon &area) {
-                    return area.area() > 0.;
-                }))
-                return false;
-            body.push_back(section);
-        }
-        // Resolve actual overlaps/bends only after the contact seam is closed.
-        body = union_ex(body);
-    }
-    return true;
-}
-
-// Complete the owned perimeter before region normalization or bed clipping.
-// Query snapshots are deliberately not accepted as construction input.
+// Close only the open perimeter left by all applicable side-chain cuts.
+// Its endpoints and the contact attachment must agree; never restore an older
+// body endpoint or intersect an uncut body into the completed contour.
 ExPolygons complete_fin_contact_boundary(const Polyline &body_boundary, const ExPolygons &sections,
                                         const std::optional<Line> &attachment, const ExPolygons &bed_center)
 {
-    if (body_boundary.points.size() < 3 || sections.empty())
+    if (body_boundary.points.size() < 3 || sections.empty() || !attachment ||
+        attachment->a == attachment->b)
         return {};
-    Polygon contour(body_boundary.points);
-    contour.make_counter_clockwise();
-    ExPolygons completed{ExPolygon(std::move(contour))};
-    if (!join_fin_contact_boundary(completed, sections, attachment))
+    const Point &first = body_boundary.first_point();
+    const Point &last = body_boundary.last_point();
+    if (!((first == attachment->a && last == attachment->b) ||
+          (first == attachment->b && last == attachment->a)))
         return {};
-    return intersection_ex(completed, bed_center);
+    const Vec2d origin = last.cast<double>();
+    const Vec2d direction = first.cast<double>() - origin;
+    const auto position = [&](const Point &point) {
+        return std::clamp((point.cast<double>() - origin).dot(direction) / direction.squaredNorm(), 0., 1.);
+    };
+    struct ContactArc {
+        double begin;
+        double end;
+        Points points;
+    };
+    std::vector<ContactArc> arcs;
+    Polygons holes;
+    for (const ExPolygon &section : sections) {
+        const Points &points = section.contour.points;
+        const size_t count = points.size();
+        if (count < 3)
+            return {};
+        // Locate the one contiguous shared rear chain. Its other arc is the
+        // contact's contribution to the final perimeter, independent of winding.
+        size_t begin = count;
+        for (size_t i = 0; i < count; ++i) {
+            if (on_fin_attachment(points[i], *attachment) &&
+                !on_fin_attachment(points[(i + count - 1) % count], *attachment)) {
+                if (begin != count)
+                    return {};
+                begin = i;
+            }
+        }
+        if (begin == count)
+            return {};
+        size_t end = begin;
+        while (on_fin_attachment(points[(end + 1) % count], *attachment))
+            end = (end + 1) % count;
+        if (end == begin || points[begin] == points[end])
+            return {};
+        Points outer;
+        for (size_t i = end; i != begin; i = (i + 1) % count)
+            outer.push_back(points[i]);
+        outer.push_back(points[begin]);
+        double from = position(outer.front());
+        double to = position(outer.back());
+        if (from > to) {
+            std::reverse(outer.begin(), outer.end());
+            std::swap(from, to);
+        }
+        if (from == to)
+            return {};
+        arcs.push_back({from, to, std::move(outer)});
+        holes.insert(holes.end(), section.holes.begin(), section.holes.end());
+    }
+    std::sort(arcs.begin(), arcs.end(), [](const ContactArc &a, const ContactArc &b) {
+        return a.begin < b.begin;
+    });
+    Points outline = body_boundary.points;
+    double previous_end = 0.;
+    for (const ContactArc &arc : arcs) {
+        if (arc.begin < previous_end)
+            return {};
+        // Straight spans between successive arcs retain uncovered portions of
+        // Q-P. Partial taper/bed cuts therefore do not delete the whole rear edge.
+        outline.insert(outline.end(), arc.points.begin(), arc.points.end());
+        previous_end = arc.end;
+    }
+    outline.erase(std::unique(outline.begin(), outline.end()), outline.end());
+    if (outline.front() == outline.back())
+        outline.pop_back();
+    if (outline.size() < 3)
+        return {};
+    // This is the first closed body/contact contour. No independent body area
+    // or contact area is united to discover the perimeter.
+    ExPolygon completed(std::move(outline));
+    completed.contour.make_counter_clockwise();
+    completed.holes = std::move(holes);
+    for (Polygon &hole : completed.holes)
+        hole.make_clockwise();
+    return intersection_ex(ExPolygons{std::move(completed)}, bed_center);
 }
 
 bool validate_fin_contact_blocker(const Layer &layer, const Polygons *blockers,
@@ -6256,7 +6313,8 @@ bool validate_fin_contact_span(const Layer &layer, size_t layer_id, FinWallGeome
 
 struct PaintedContactLayer {
     FinContactSlice contact;
-    Line attachment;
+    Line axis_cap; // Contact-axis perpendicular before side and clearance cuts.
+    Line attachment; // Final side-chain endpoints, shared with the open body perimeter.
     Polyline body_boundary;
 };
 
@@ -6268,13 +6326,16 @@ class PaintedFinContacts {
     const TracedFin &m_fin;
     FinWallGeometry &m_walls;
     const std::vector<Polygons> &m_blockers;
+    const std::vector<bool> &m_inherited_point_ends;
     const std::vector<PaintedLayerGeometryCache> *m_cache;
     std::array<std::map<size_t, std::optional<PaintedContactLayer>>, 2> m_resolved;
 public:
     PaintedFinContacts(const PrintObject &object, const TracedFin &fin,
                        FinWallGeometry &walls, const std::vector<Polygons> &blockers,
+                       const std::vector<bool> &inherited_point_ends,
                        const std::vector<PaintedLayerGeometryCache> *cache)
-        : m_object(object), m_fin(fin), m_walls(walls), m_blockers(blockers), m_cache(cache) {}
+        : m_object(object), m_fin(fin), m_walls(walls), m_blockers(blockers),
+          m_inherited_point_ends(inherited_point_ends), m_cache(cache) {}
 
     const std::optional<PaintedContactLayer> &resolve(size_t i, bool crease)
     {
@@ -6288,7 +6349,10 @@ public:
 private:
     std::optional<PaintedContactLayer> build_layer(size_t i, bool crease) const
     {
+        // An inherited point endpoint is a natural body end, not permission
+        // to search beyond it for a new contact (including crease periodic bands).
         if ((!m_fin.path_present.empty() && !m_fin.path_present[i]) ||
+            (!m_inherited_point_ends.empty() && m_inherited_point_ends[i]) ||
             (m_fin.seed.path && !m_fin.contact_sources[i]))
             return std::nullopt;
         const Layer &layer = *m_object.get_layer(int(i));
@@ -6311,6 +6375,12 @@ private:
         result.contact = crease ?
             make_crease_fin_contact_slice(*wall, m_fin.seed.dimensions.contact_width, width) :
             make_ordinary_fin_contact_slice(*wall, m_fin.seed.dimensions.contact_width, width);
+        const auto &contact = result.contact;
+        const auto cap = fin_cap_segment(m_fin.body_start[i], fin_body_direction(m_fin, i),
+            contact.axis, 0.5 * (thickness - width), 0.5 * width);
+        if (!cap || m_fin.body_axes[i].empty())
+            return std::nullopt;
+        result.axis_cap = Line(scaled_point(cap->first), scaled_point(cap->second));
         if (default_contact) {
             if (!m_fin.center_caps[i] || m_fin.body_boundaries[i].points.size() < 3)
                 return std::nullopt;
@@ -6318,15 +6388,10 @@ private:
             result.body_boundary = m_fin.body_boundaries[i];
             return result;
         }
-        const auto &contact = result.contact;
-        const auto cap = fin_cap_segment(m_fin.body_start[i], fin_body_direction(m_fin, i),
-            contact.axis, 0.5 * (thickness - width), 0.5 * width);
-        if (!cap || m_fin.body_axes[i].empty())
-            return std::nullopt;
         auto axes = m_fin.body_axes[i];
         axes.back().cap_normal = contact.axis;
         axes.back().inner_junction = false;
-        axes.back().center_cap = Line(scaled_point(cap->first), scaled_point(cap->second));
+        axes.back().center_cap = result.axis_cap;
         const ExPolygons clearance = m_cache == nullptr ?
             offset_ex(layer.lslices, float(scale_(m_object.config().support_object_xy_distance.value + 0.5 * width)),
                       jtRound, DefaultMiterLimit) : ExPolygons{};
@@ -6358,11 +6423,14 @@ public:
                       jtRound, DefaultMiterLimit) : ExPolygons{};
         PaintedContactLayer result;
         result.contact = source.contact;
+        result.axis_cap = source.axis_cap;
         std::optional<Line> attachment;
         result.body_boundary = fin_path_boundary(axes, radius, 0.5 * width,
-            m_cache != nullptr ? (*m_cache)[i].final_model_clearance : clearance, attachment, &source.cap);
+            m_cache != nullptr ? (*m_cache)[i].final_model_clearance : clearance, attachment, &source.axis_cap);
         if (!attachment || result.body_boundary.points.size() < 3)
             return std::nullopt;
+        // The same cut side chains own both P/Q and the final open perimeter.
+        // The original body remains a query snapshot, never a replacement here.
         result.attachment = *attachment;
         return result;
     }
@@ -6552,7 +6620,6 @@ ProjectionResult backfill_painted_contact_projection(
     const double horizontal_factor = std::cos(angle);
     const double vertical_factor = std::sin(angle);
     std::vector<ExPolygons> planned(bottom);
-    std::vector<bool> planned_exposed(bottom, false);
     FinContactContinuation retained_contact = *bottom_continuation;
     for (size_t remaining = bottom; remaining > 0; --remaining) {
         if (object.print()->canceled())
@@ -6584,12 +6651,13 @@ ProjectionResult backfill_painted_contact_projection(
                 local->contact.first, local->contact.second, local->attachment);
             if (trapezoid.points.size() >= 3) {
                 transition = intersection_ex(Polygons{trapezoid}, *printable_bed);
-                if (!complete_fin_contact_boundary(local->body_boundary, transition,
-                        local->attachment, *printable_bed).empty()) {
+                const auto candidate = complete_fin_contact_boundary(local->body_boundary, transition,
+                    local->attachment, *printable_bed);
+                if (!candidate.empty()) {
                     body_boundary = &local->body_boundary;
                     attachment = local->attachment;
                     retained_contact = FinContactContinuation{
-                        local->contact, local->attachment};
+                        local->contact, local->axis_cap};
                     carried = false;
                 } else
                     transition.clear();
@@ -6630,57 +6698,57 @@ ProjectionResult backfill_painted_contact_projection(
         const double drop = bottom_z - layer.slice_z;
         const double cut = vertical_factor * drop;
         ExPolygons projection;
-        if (horizontal_factor * max_s <= cut) {
+        if (horizontal_factor * max_s <= cut)
             continue;
-        }
-        if (horizontal_factor * min_s >= cut) {
+        const double s = cut / horizontal_factor;
+        const Line plane_trace(
+            scaled_point(origin + s * axis + (min_t - EPSILON) * tangent),
+            scaled_point(origin + s * axis + (max_t + EPSILON) * tangent));
+        if (horizontal_factor * min_s > cut) {
             projection = union_ex(transition);
         } else {
-            const double s = cut / horizontal_factor;
             const Polygon retained{
-                scaled_point(origin + s * axis + (min_t - EPSILON) * tangent),
+                plane_trace.a,
                 scaled_point(origin + (max_s + EPSILON) * axis + (min_t - EPSILON) * tangent),
                 scaled_point(origin + (max_s + EPSILON) * axis + (max_t + EPSILON) * tangent),
-                scaled_point(origin + s * axis + (max_t + EPSILON) * tangent)};
+                plane_trace.b};
             projection = intersection_ex(transition, Polygons{retained});
         }
         projection = intersection_ex(projection, *printable_bed);
         if (projection.empty())
             continue;
-        if (fin.seed.crease_intent && get_logging_level() >= 3) {
-            std::vector<FinGeometryDebugSet> sets{
-                {"trapezoid BEFORE fixed-plane cut", transition, {}, {}},
-                {"trapezoid AFTER fixed-plane and bed cuts", projection, {}, {}},
-                {"current member query body", body_centers[layer_id], {}, {}},
-                {"fixed-plane origin and unit axis", {},
-                    {Polyline{scaled_point(origin), scaled_point(origin + axis)}}, {scaled_point(origin)}}};
-            if (attachment)
-                sets.push_back({"source rear attachment", {}, {Polyline{attachment->a, attachment->b}}, {}});
-            BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
-                << " stage=crease-taper-layer crease=" << fin.seed.crease_intent->crease
-                << " pair=" << fin.seed.crease_intent->pair << " part=" << fin.seed.crease_intent->part
-                << " layer=" << layer_id << " slice_z=" << layer.slice_z << " print_z=" << layer.print_z
-                << " band_bottom=" << bottom << " band_bottom_slice_z=" << bottom_z
-                << " source=" << (carried ? "carried" : "current-layer")
-                << " plane_axis=" << axis.transpose() << " plane_origin=" << origin.transpose();
-            export_fin_geometry_failure(object, fin, layer_id, "crease-taper-probe",
-                carried ? "carried-trapezoid" : "current-layer-trapezoid", std::move(sets));
-        }
+        // Test one intersection with the selected contact axis, not the two
+        // trapezoid sides. Continuation preserves the last successful axis;
+        // an accepted local contact supplies this layer's own wall and axis.
+        const FinContactSlice &selected_contact = carried ? continuation->contact : local->contact;
+        const Line contact_axis(scaled_point(selected_contact.wall),
+            scaled_point(selected_contact.wall + selected_contact.axis));
+        Point axis_intersection;
+        const bool has_axis_intersection = plane_trace.intersection_infinite(contact_axis, &axis_intersection);
+        // Match build_fin_body_section's physical envelope, including half a
+        // bead outside the original center area. This is query geometry only.
+        const ExPolygons absorption_body = offset_ex(exposure_body_centers[layer_id],
+            float(scale_(0.5 * width)), jtRound, double(scale_(0.005)));
+        const bool absorbed = has_axis_intersection &&
+            std::any_of(absorption_body.begin(), absorption_body.end(),
+                [&](const ExPolygon &body) { return body.contains(axis_intersection, true); });
+        if (absorbed)
+            result.stop = ProjectionStop::absorbed;
         auto completed = complete_fin_contact_boundary(*body_boundary, projection, attachment, *printable_bed);
         if (completed.empty()) {
             log_skipped_layer("contact-boundary", layer_id);
+            if (absorbed)
+                break;
             continue;
         }
-        if (carried)
-            retained_contact.cap = *attachment;
         if (extension != nullptr)
             extension->completed_layers[layer_id] = std::move(completed);
-        planned_exposed[layer_id] = !diff_ex(projection, exposure_body_centers[layer_id]).empty();
         planned[layer_id] = std::move(projection);
         if (extension != nullptr) {
-            extension->attachments[layer_id] = attachment;
             extension->layer_states[layer_id] = FinExtensionLayerState::materialized;
         }
+        if (absorbed)
+            break;
     }
     // Publish successful taper layers; skipped layers contribute no geometry.
     for (size_t layer_id = 0; layer_id < bottom; ++layer_id) {
@@ -6693,7 +6761,7 @@ ProjectionResult backfill_painted_contact_projection(
         else
             expolygons_append(contacts[layer_id], std::move(planned[layer_id]));
         ++result.layers;
-        result.exposed_layers += planned_exposed[layer_id];
+        ++result.exposed_layers;
     }
     if (extension != nullptr)
         extension->state = FinExtensionState::complete;
@@ -7005,19 +7073,11 @@ bool finalize_legacy_fin_geometry(const PrintObject &object, TracedFin &fin,
             (fin.centers[i].size() == 1 && !fin.centers[i].front().holes.empty() ? 8u : 0u) |
             (fin.centers[i].size() == 1 && !fin.centers[i].front().contour.is_valid() ? 16u : 0u) |
             (!joined_centers ? 32u : 0u);
-        auto dump_finalization = [&](const char *reason) {
-            export_fin_geometry_failure(object, fin, i, "legacy-finalization", reason,
-                {{"body centers", body_centers[i], {}, {}}, {"contacts", contact_sections[i], {}, {}},
-                 {"taper", projections[i], {}, {}}, {"combined centers", fin.centers[i], {}, {}},
-                 {"physical envelope", area, {}, {}}});
-        };
         if (topology != 0) {
-            dump_finalization("topology");
             return fin.diagnostics.reject(
                 FinReject::topology, object.get_layer(int(i))->print_z, topology);
         }
         if (offset_ex(area, -float(scale_(width - EPSILON))).empty()) {
-            dump_finalization("thin-body");
             return fin.diagnostics.reject(FinReject::thin_body, object.get_layer(int(i))->print_z);
         }
         fin.areas[i] = std::move(area);
@@ -7071,22 +7131,12 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
     const size_t count = fin.boundary.size();
     const bool painted_shape = fin.seed.geometry_mode == FinGeometryMode::painted_shape;
     const bool staged_painted = component_geometry != nullptr && painted_shape;
+    const bool point_body = painted_shape && !fin.seed.path;
     std::vector<ExPolygons> bodies(count), body_centers(count);
-    PaintedFinContacts painted_contacts(object, fin, walls, blockers, geometry_cache);
+    std::vector<bool> inherited_point_ends(point_body ? count : 0, false);
+    PaintedFinContacts painted_contacts(object, fin, walls, blockers, inherited_point_ends, geometry_cache);
     ExPolygons painted_bed_foot;
     std::vector<ExPolygons> contact_sections(count), projections(count);
-    auto dump_geometry_failure = [&](size_t layer, const char *reason) {
-        std::vector<FinGeometryDebugSet> sets;
-        if (layer < count) {
-            sets.push_back({"body centers", body_centers[layer], {}, {}});
-            sets.push_back({"body physical", bodies[layer], {}, {}});
-            sets.push_back({"accepted contacts", contact_sections[layer], {}, {}});
-            sets.push_back({"accepted taper", projections[layer], {}, {}});
-        }
-        if (component_geometry)
-            append_fin_component_debug(sets, *component_geometry, layer);
-        export_fin_geometry_failure(object, fin, layer, "member-geometry", reason, std::move(sets));
-    };
     std::vector<ProjectionClip> clips(count);
     if (component_geometry != nullptr) {
         component_geometry->complete = false;
@@ -7107,8 +7157,20 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
     fin.body_axes.assign(count, {});
     fin.body_boundaries.assign(count, {});
     fin.center_caps.assign(count, std::nullopt);
-    bool reported_empty_body = false;
-    for (size_t i = 0; i < count; ++i) {
+    std::optional<Vec2d> last_point_intersection;
+    for (size_t step = 0; step < count; ++step) {
+        // Point bodies carry only the last resolved model-gap intersection.
+        // Finite paths and projected geometry retain their existing layer order.
+        const size_t i = point_body ? count - 1 - step : step;
+        if (point_body) {
+            if (fin.path_present[i])
+                last_point_intersection = fin.body_start[i];
+            else if (last_point_intersection) {
+                fin.body_start[i] = *last_point_intersection;
+                fin.path_present[i] = true;
+                inherited_point_ends[i] = true;
+            }
+        }
         if (!fin.path_present.empty() && !fin.path_present[i])
             continue;
         // Preserve source topology independently of whether printed walls are
@@ -7202,10 +7264,9 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             cached_bed_center, &painted_bed_foot,
             geometry_cache != nullptr && i < geometry_cache->size() ?
                 &(*geometry_cache)[i].final_model_clearance : nullptr);
-        if (fin.seed.geometry_mode == FinGeometryMode::painted_shape && body_centers[i].empty() && !reported_empty_body) {
-            dump_geometry_failure(i, "empty-member-body");
-            reported_empty_body = true;
-        }
+        // Body clipping determines this layer's output, not intersection history.
+        if (point_body && inherited_point_ends[i] && body_centers[i].empty())
+            fin.path_present[i] = false;
     }
     // A band crossing the retained path's stop is clipped there. Its top stays
     // on the original seed/periodic schedule; no lower fragment creates a band.
@@ -7275,7 +7336,6 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                 prepared.sections[index] = build_fin_contact_section(
                     bed, fin, i, prepared.contacts[index], contact_width, thickness, width, &failure_stage);
                 if (prepared.sections[index].empty()) {
-                    dump_geometry_failure(i, "empty-neck");
                     fin.diagnostics.reject(FinReject::empty_neck, layer.print_z, failure_stage);
                     return -1;
                 }
@@ -7318,7 +7378,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                     prepared.attachments[index] = local->attachment;
                     prepared.sections[index] = std::move(section);
                     prepared.completed[index] = std::move(completed);
-                    retained = FinContactContinuation{local->contact, local->attachment};
+                    retained = FinContactContinuation{local->contact, local->axis_cap};
                     continue;
                 }
             }
@@ -7342,12 +7402,8 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                     continuation->body_boundary, section, attachment, bed_center);
             }
             if (!completed.empty()) {
-                retained->cap = *attachment;
                 prepared.sections[index] = std::move(section);
                 prepared.completed[index] = std::move(completed);
-            } else {
-                // A local attachment failure does not reject the member.
-                dump_geometry_failure(i, "contact-continuation");
             }
         }
         prepared.bottom_continuation = retained;
@@ -7363,7 +7419,6 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             extension.band = band;
             extension.layers.resize(count);
             extension.completed_layers.resize(count);
-            extension.attachments.resize(count);
             extension.layer_states.assign(count, FinExtensionLayerState::inactive);
         }
         for (size_t i = band.begin; i < band.end; ++i) {
@@ -7376,7 +7431,6 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                     component_geometry->extensions[*extension_id];
                 extension.layers[i] = prepared.sections[index];
                 extension.completed_layers[i] = std::move(prepared.completed[index]);
-                extension.attachments[i] = prepared.attachments[index];
                 extension.layer_states[i] = prepared.sections[index].empty() ? FinExtensionLayerState::inactive :
                     prepared.actual_contacts[index] ?
                     FinExtensionLayerState::contact : FinExtensionLayerState::materialized;
@@ -7440,7 +7494,6 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
         if (seed_status < 0)
             return false;
         if (seed_status == 0) {
-            dump_geometry_failure(fin.seed.top_layer, "top-band");
             return fin.diagnostics.reject(FinReject::top_band,
                                           object.get_layer(int(fin.seed.top_layer))->print_z);
         }
@@ -7500,7 +7553,6 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             component_geometry->extensions[*extension_id].state = FinExtensionState::complete;
     }
     if (include_seed_contact && !fin.contacts.back()) {
-        dump_geometry_failure(fin.seed.top_layer, "top-band");
         return fin.diagnostics.reject(FinReject::top_band, object.get_layer(int(fin.seed.top_layer))->print_z);
     }
 
@@ -7511,11 +7563,9 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             component_geometry->extensions.begin(), component_geometry->extensions.end(),
             [](const FinCenterExtension &extension) {
                 assert(extension.layers.size() == extension.layer_states.size());
-                assert(extension.layers.size() == extension.attachments.size());
                 return extension.state == FinExtensionState::complete;
             });
         if (!component_geometry->complete) {
-            dump_geometry_failure(std::numeric_limits<size_t>::max(), "incomplete-extensions");
             return false;
         }
         if (fin.seed.geometry_mode == FinGeometryMode::painted_shape) {
@@ -7542,13 +7592,6 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                 const ExPolygons &bed_center = geometry_cache != nullptr && layer < geometry_cache->size() ?
                     (*geometry_cache)[layer].bed_center : computed_bed;
                 completed = intersection_ex(union_ex(completed), bed_center);
-                if (fin.seed.crease_intent && include_seed_contact && get_logging_level() >= 3 &&
-                    layer >= root_band.begin && layer < root_band.end) {
-                    std::vector<FinGeometryDebugSet> sets;
-                    append_fin_component_debug(sets, *component_geometry, layer);
-                    export_fin_geometry_failure(object, fin, layer, "crease-root-probe",
-                        fin.contacts[layer] ? "actual-contact" : "no-actual-contact", std::move(sets));
-                }
             }
             return true;
         }
@@ -7577,9 +7620,6 @@ bool generate_fin_toolpaths(const PrintObject &object, TracedFin &fin)
             fin.outlines[i].push_back(std::move(outline));
         }
         if (fin.outlines[i].empty()) {
-            export_fin_geometry_failure(object, fin, i, "toolpaths", "no-outline",
-                {{"physical envelope", fin.areas[i], {}, {}},
-                 {"center regions", fin.centers[i], {}, {}}});
             return fin.diagnostics.reject(FinReject::no_outline, layer.print_z);
         }
     }
@@ -8547,13 +8587,11 @@ FinEmitStats emit_fin_support(PrintObject &object, const std::vector<TracedFin> 
                 const ExPolygon &area = areas[area_id];
                 const ExPolygons component_centers = intersection_ex(centers, ExPolygons{area});
                 Vec2d normal = Vec2d::UnitX();
-                const TracedFin *representative = nullptr;
                 for (const TracedFin &fin : fins) {
                     // Per-fin centers retain pre-clearance provenance only.
                     if (layer_id < fin.centers.size() && !intersection_ex(
                             ExPolygons{area}, fin.centers[layer_id]).empty()) {
                         normal = fin.seed.normal;
-                        representative = &fin;
                         break;
                     }
                 }
@@ -8578,15 +8616,6 @@ FinEmitStats emit_fin_support(PrintObject &object, const std::vector<TracedFin> 
                                 << " center_regions=" << component_centers.size()
                                 << " line_width=" << flow.width()
                                 << " skipped_scope=layer-region";
-                            if (representative != nullptr)
-                                // Source identity belongs to one contributing fin; these
-                                // panels describe the complete merged output region.
-                                export_fin_geometry_failure(object, *representative, layer_id,
-                                    "merged-toolpaths", "no-outline",
-                                    {{"merged physical envelope", ExPolygons{area}, {}, {}},
-                                     {"merged first-loop centers", component_centers, {}, {}},
-                                     {"first-loop thickness probe", offset_ex(ExPolygons{area},
-                                         -float(scale_(flow.width() - EPSILON))), {}, {}}});
                         }
                         break;
                     }
@@ -9236,7 +9265,7 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
     size_t resolved_line_candidates = 0;
     size_t resolved_point_candidates = 0;
     double max_center_distance = 0.;
-    size_t next_crease_group = painted_sides.islands.size();
+    size_t next_direct_group = painted_sides.islands.size();
     proposals.reserve(painted_sides.islands.size());
     for (size_t island_id = 0; island_id < painted_sides.islands.size(); ++island_id) {
         if (object.print()->canceled())
@@ -9418,9 +9447,7 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
 
         for (PaintedFinSource &source : graph.sources) {
             const PaintedFinTarget *target = &source.point;
-            const double normal_length = source.point.macro_normal.norm();
-            const bool near_vertical = normal_length > EPSILON &&
-                std::abs(source.point.macro_normal.z()) <= max_fin_vertical_point_normal_z * normal_length;
+            const bool near_vertical = fin_surface_near_vertical(source.point.macro_normal);
             vertical_point_targets += near_vertical && source.point.edge.has_value();
             if (!near_vertical && source.line && source.line->usable &&
                 source.line->nodes.size() >= 2 && source.line->edge) {
@@ -9487,6 +9514,52 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
             }
         }
 
+        for (size_t i = 0; i < island.intent.ordinary_paths.size(); ++i) {
+            const auto &intent = island.intent.ordinary_paths[i];
+            const Vec3d &start = intent.points.front();
+            Vec2d direction = Vec2d::Zero();
+            for (size_t v = 1; v < intent.points.size(); ++v) {
+                direction = start.head<2>() - intent.points[v].head<2>();
+                if (direction.norm() > EPSILON)
+                    break;
+            }
+            const double horizontal = intent.macro_normal.head<2>().norm();
+            if (direction.norm() <= EPSILON || horizontal <= EPSILON) {
+                BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
+                    << " stage=painted-crease-ordinary-side crease=" << intent.crease << " pair=" << intent.pair
+                    << " reject=no-xy-direction";
+                continue;
+            }
+            direction.normalize();
+            const Vec2d outward = intent.macro_normal.head<2>() / horizontal;
+            PaintedFinTarget target{start, outward};
+            target.line = true;
+            target.edge = island.intent.strokes.size() + island.intent.creases.size() + i;
+            size_t layer_id = 0;
+            while (layer_id + 1 < object.layer_count() &&
+                   object.get_layer(int(layer_id + 1))->slice_z <= start.z() + EPSILON)
+                ++layer_id;
+            FinCandidate candidate = make_painted_fin_candidate(target,
+                {start.head<2>(), direction, outward, layer_id, fin_support_dimensions(object), 0.},
+                intent.macro_normal.normalized(), config.fin_support_expansion_factor.value, island_id);
+            candidate.intent_island = next_direct_group++;
+            candidate.path = FinCandidate::Path{intent.points, false, false, *candidate.intent_edge};
+            if (!valid_painted_fin_path(object, candidate))
+                continue;
+            std::vector<PaintedFinNode *> refs;
+            for (const size_t node_id : intent.nodes) {
+                auto &node = graph.nodes[node_id];
+                node.z = node.source->surface_z;
+                refs.push_back(&node);
+            }
+            BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
+                << " stage=painted-crease-ordinary-side crease=" << intent.crease << " pair=" << intent.pair
+                << " intent_island=" << *candidate.intent_island << " edge=" << *candidate.intent_edge
+                << " vertices=" << intent.points.size() << " root_z=" << start.z();
+            ++resolved_line_candidates;
+            proposals.push_back({std::move(candidate), std::move(refs)});
+        }
+
         // Direct crease geometry bypasses point-site selection and ordinary
         // normal/angle correction. Ordinary contact construction still validates
         // its actual layer contacts during realization.
@@ -9524,13 +9597,14 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
                 ++layer_id;
             const auto dimensions = fin_support_dimensions(object);
             FinCandidate candidate{start.head<2>(), outward, outward, layer_id, dimensions,
+                intent.full_expansion ? config.fin_support_expansion_factor.value :
                 line ? 0. : painted_fin_expansion_slope(macro_normal, outward, config.fin_support_expansion_factor.value)};
             candidate.surface_normals = FinSurfaceNormalPolicy::painted_region;
             candidate.geometry_mode = FinGeometryMode::painted_shape;
             candidate.requires_painted_contact = false;
             candidate.macro_normal = macro_normal;
             candidate.wall_follow_island = island_id;
-            candidate.intent_island = next_crease_group++;
+            candidate.intent_island = next_direct_group++;
             candidate.intent_edge = island.intent.strokes.size() + i;
             candidate.intent_line = line;
             candidate.crease_intent = island.intent.creases[i];
@@ -9551,6 +9625,7 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
                 << " intent_island=" << *candidate.intent_island << " edge=" << *candidate.intent_edge
                 << " kind=" << (candidate.intent_line ? "line" : "point")
                 << " vertices=" << intent.points.size() << " root_z=" << start.z()
+                << " full_expansion=" << intent.full_expansion
                 << " direction_resolved=" << !line
                 << " outward_x=" << outward.x() << " outward_y=" << outward.y();
             resolved_line_candidates += candidate.intent_line;
@@ -9915,8 +9990,9 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             candidate.nodes.front()->root_direction = *direction;
             seed.normal = seed.contact_normal = *direction;
             seed.macro_normal = *normal;
-            seed.expansion_slope = painted_fin_expansion_slope(
-                seed.macro_normal, *direction, object.config().fin_support_expansion_factor.value);
+            seed.expansion_slope = intent.full_expansion ? object.config().fin_support_expansion_factor.value :
+                painted_fin_expansion_slope(
+                    seed.macro_normal, *direction, object.config().fin_support_expansion_factor.value);
             return false;
         }), work.candidates.end());
     std::deque<PaintedFinGroup> groups;
@@ -10166,12 +10242,101 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
     return result;
 }
 
-void export_painted_crease_fin_paths(const PrintObject &object, const PaintedSides &painted,
+void export_painted_fin_paths(const PrintObject &object, PaintedSides &painted,
                                     const std::vector<FinCandidateProposal> &proposals)
 {
     if (get_logging_level() < 3)
         return;
-    for (const auto &island : painted.islands)
+    const size_t run = painted.crease_run;
+    for (size_t island_id = 0; island_id < painted.islands.size(); ++island_id) {
+        const auto &island = painted.islands[island_id];
+        auto found = painted.diagnostics.find(island_id);
+        if (found == painted.diagnostics.end())
+            continue;
+        auto &diagnostic = found->second;
+        struct ViewPath {
+            std::vector<Vec3d> points;
+            const char *color;
+            std::string label;
+            bool resolved;
+        };
+        std::vector<ViewPath> paths;
+        for (size_t edge = 0; edge < island.intent.strokes.size(); ++edge) {
+            const auto &stroke = island.intent.strokes[edge];
+            paths.push_back({stroke.points, "#0072b2", "B" + std::to_string(edge), false});
+            if (stroke.nodes.size() < 2)
+                continue;
+            const auto &a = island.intent.nodes[stroke.nodes[0]];
+            const auto &b = island.intent.nodes[stroke.nodes[1]];
+            paths.push_back({{Vec3d(a.point.x(), a.point.y(), a.surface_z),
+                             Vec3d(b.point.x(), b.point.y(), b.surface_z)},
+                            "#009e73", "G" + std::to_string(edge), false});
+        }
+        for (const auto &point : island.intent.points)
+            paths.push_back({{point.surface.point}, "#cc0099", "SOURCE POINT", false});
+        for (const auto &path : island.intent.ordinary_paths)
+            paths.push_back({path.points, "#0072b2",
+                "ORDINARY SIDE " + std::to_string(path.crease) + ":" + std::to_string(path.pair), false});
+        for (size_t proposal = 0; proposal < proposals.size(); ++proposal) {
+            const auto &candidate = proposals[proposal].primary;
+            if (candidate.wall_follow_island != island_id)
+                continue;
+            const std::string label = "F" + std::to_string(proposal);
+            if (candidate.path)
+                paths.push_back({candidate.path->points, "#009e73", label, true});
+            else {
+                const double z = candidate.intent_root ? candidate.intent_root->z :
+                    object.get_layer(int(candidate.top_layer))->slice_z;
+                paths.push_back({{Vec3d(candidate.point.x(), candidate.point.y(), z)}, "#cc0099", label + " POINT", true});
+            }
+            if (candidate.intent_root) {
+                const auto &root = *candidate.intent_root;
+                paths.push_back({{Vec3d(root.point.x(), root.point.y(), root.z)}, "#e69f00",
+                    "ROOT " + std::to_string(root.node), true});
+            }
+        }
+        Vec3d minimum = Vec3d::Constant(std::numeric_limits<double>::infinity());
+        Vec3d maximum = -minimum;
+        for (const auto &path : paths)
+            for (const Vec3d &point : path.points) {
+                minimum = minimum.cwiseMin(point);
+                maximum = maximum.cwiseMax(point);
+            }
+        if (!minimum.allFinite())
+            minimum = maximum = Vec3d::Zero();
+        const Vec3d extent = maximum - minimum;
+        const double display_scale = std::min(4., 24. / std::max(extent.maxCoeff(), EPSILON));
+        const double view_width = std::max(24., display_scale * extent.x() + 8.);
+        const double view_height = display_scale * std::max(extent.y(), extent.z()) + 8.;
+        diagnostic.pages.push_back({Vec2d(3. * view_width, view_height + 6.), [=](SVG &svg) {
+            const std::array<const char *, 3> titles{{"GREEN XY / blue=source", "RESOLVED INTENT XY", "RESOLVED INTENT XZ"}};
+            for (size_t view = 0; view < titles.size(); ++view) {
+                const std::string title = "ISLAND " + std::to_string(island_id) + " / " + titles[view];
+                svg.draw_text(scaled_point(Vec2d(view * view_width + 2., view_height + 2.)), title.c_str(), "#202020", 1);
+                for (const auto &path : paths) {
+                    if (path.points.empty() || path.resolved != (view > 0))
+                        continue;
+                    Polyline line;
+                    const size_t y_axis = view == 2 ? 2 : 1;
+                    for (const Vec3d &point : path.points)
+                        line.points.push_back(scaled_point(Vec2d(view * view_width + 4. + display_scale * (point.x() - minimum.x()),
+                            4. + display_scale * (point[y_axis] - minimum[y_axis]))));
+                    if (line.points.size() == 1)
+                        svg.draw(line.first_point(), path.color, scale_(0.3));
+                    else
+                        svg.draw(line, path.color, scale_(0.15));
+                    svg.draw_text(line.first_point(), path.label.c_str(), path.color, 1);
+                }
+            }
+            for (const auto &path : paths) {
+                std::ostringstream record;
+                record.precision(17);
+                record << "island=" << island_id << " path=" << path.label << " resolved=" << path.resolved << " xyz_mm=";
+                for (const Vec3d &point : path.points)
+                    record << point.x() << ',' << point.y() << ',' << point.z() << ' ';
+                svg.add_comment(record.str());
+            }
+        }});
         for (const auto &shared_intent : island.intent.creases) {
             const auto &intent = *shared_intent;
             if (object.print()->canceled())
@@ -10195,83 +10360,85 @@ void export_painted_crease_fin_paths(const PrintObject &object, const PaintedSid
                         include(point);
                 }
             }
-            const double view_size = std::max(60., 4. * (maximum - minimum).maxCoeff() + 8.);
-            const std::string filename = debug_out_path(
-                "fin-support/painted-shape-crease-intent-%d-%d-%d-%d.svg",
-                int(painted.crease_run), int(intent.crease), int(intent.pair), int(intent.part));
-            SVG svg(filename, BoundingBox(Point(0, 0),
-                scaled_point(Vec2d(3. * view_size, view_size + 12.))), scale_(1.));
-            const std::array<std::array<int, 2>, 3> axes{{{{0, 1}}, {{0, 2}}, {{1, 2}}}};
-            const std::array<const char *, 3> headings{{"XY", "XZ", "YZ"}};
-            auto display = [&](const Vec3d &point, size_t view) {
-                return scaled_point(Vec2d(view * view_size + 4. +
-                    4. * (point[axes[view][0]] - minimum[axes[view][0]]),
-                    4. + 4. * (point[axes[view][1]] - minimum[axes[view][1]])));
-            };
-            auto draw_path = [&](const std::vector<Vec3d> &points, const char *color,
-                                 double width, const char *label) {
-                if (!svg.is_opened())
-                    return;
-                for (size_t view = 0; view < axes.size(); ++view) {
-                    Polyline path;
-                    for (const Vec3d &point : points)
-                        path.points.push_back(display(point, view));
-                    if (points.size() == 1)
-                        svg.draw(path.first_point(), color, scale_(width));
-                    else
-                        svg.draw(path, color, scale_(width));
-                    svg.draw_text(path.first_point(), label, color, 1);
-                }
-            };
-            if (svg.is_opened()) {
-                svg.add_comment("Source=accepted original crease geometry; green=unshifted input path before gap clipping; "
-                                "orange=outward root stem; magenta=point input. "
-                                "This is fin intent before physical contact/body generation.");
-                for (size_t view = 0; view < axes.size(); ++view)
-                    svg.draw_text(scaled_point(Vec2d(view * view_size, view_size)), headings[view], "#202020", 1);
-                svg.draw_text(scaled_point(Vec2d(2., view_size + 5.)),
-                    resolved.empty() ? "NO RESOLVED INTENT; gray=source" :
-                    "gray=contact source; green=unshifted input; orange=root stem; magenta=point", "#202020", 1);
-                svg.draw_text(scaled_point(Vec2d(2., view_size + 9.)),
-                    "S# = source vertex; layer geometry uses ordinary path/body gap clipping", "#202020", 1);
-            }
-            draw_path(intent.points, "#888888", 0.45, "SOURCE");
-            for (const FinCandidate *candidate : resolved) {
-                const bool point = !candidate->path;
-                const auto &vertices = point ? intent.points : candidate->path->points;
-                const char *kind = point ? "POINT" : "PATH";
-                draw_path(vertices, point ? "#cc0099" : "#009e73",
-                          point ? 0.28 : 0.18, kind);
-                if (!point && candidate->intent_root && vertices.size() >= 2)
-                    draw_path({vertices[0], vertices[1]}, "#e69f00", 0.22, "ROOT STEM");
-                for (size_t v = 0; v < vertices.size(); ++v) {
-                    const Vec3d &xyz = vertices[v];
-                    std::ostringstream detail;
-                    detail << "stage=painted-crease-resolved-vertex run=" << painted.crease_run
-                           << " crease=" << intent.crease << " pair=" << intent.pair << " part=" << intent.part
-                           << " edge=" << *candidate->intent_edge << " kind=" << kind << " vertex=" << v
-                           << " x=" << xyz.x() << " y=" << xyz.y() << " z=" << xyz.z();
-                    if (!point && v > 0) {
-                        const Vec3d &source = candidate->crease_intent->points[v - 1];
-                        detail << " source_vertex=" << v - 1
-                               << " source_x=" << source.x() << " source_y=" << source.y()
-                               << " source_z=" << source.z();
-                        if (svg.is_opened()) {
-                            svg.draw(display(source, 0), "#0072b2", scale_(0.12));
-                            svg.draw_text(display(source, 0),
-                                ("S" + std::to_string(v - 1)).c_str(), "#0072b2", 1);
-                        }
+            const double display_scale = std::min(4., 24. / std::max((maximum - minimum).maxCoeff(), EPSILON));
+            const double view_size = std::max(24., display_scale * (maximum - minimum).maxCoeff() + 8.);
+            const std::string filename = diagnostic.filename;
+            diagnostic.pages.push_back({Vec2d(3. * view_size, view_size + 12.), [=, &object](SVG &svg) {
+                const std::array<std::array<int, 2>, 3> axes{{{{0, 1}}, {{0, 2}}, {{1, 2}}}};
+                const std::array<const char *, 3> headings{{"XY", "XZ", "YZ"}};
+                auto display = [&](const Vec3d &point, size_t view) {
+                    return scaled_point(Vec2d(view * view_size + 4. +
+                        display_scale * (point[axes[view][0]] - minimum[axes[view][0]]),
+                        4. + display_scale * (point[axes[view][1]] - minimum[axes[view][1]])));
+                };
+                auto draw_path = [&](const std::vector<Vec3d> &points, const char *color,
+                                     double width, const char *label) {
+                    if (!svg.is_opened())
+                        return;
+                    for (size_t view = 0; view < axes.size(); ++view) {
+                        Polyline path;
+                        for (const Vec3d &point : points)
+                            path.points.push_back(display(point, view));
+                        if (points.size() == 1)
+                            svg.draw(path.first_point(), color, scale_(width));
+                        else
+                            svg.draw(path, color, scale_(width));
+                        svg.draw_text(path.first_point(), label, color, 1);
                     }
-                    BOOST_LOG_TRIVIAL(debug) << "Fin support object=" << object.model_object()->name << " " << detail.str();
-                    if (svg.is_opened())
-                        svg.add_comment(detail.str());
+                };
+                if (svg.is_opened()) {
+                    svg.add_comment("Source=accepted original crease geometry; green=unshifted input path before gap clipping; "
+                                    "orange=outward root stem; magenta=point input. "
+                                    "This is fin intent before physical contact/body generation.");
+                    for (size_t view = 0; view < axes.size(); ++view)
+                        svg.draw_text(scaled_point(Vec2d(view * view_size, view_size)), headings[view], "#202020", 1);
+                    svg.draw_text(scaled_point(Vec2d(2., view_size + 5.)),
+                        resolved.empty() ? "NO RESOLVED INTENT; gray=source" :
+                        "gray=contact source; green=unshifted input; orange=root stem; magenta=point", "#202020", 1);
+                    svg.draw_text(scaled_point(Vec2d(2., view_size + 9.)),
+                        "S# = source vertex; layer geometry uses ordinary path/body gap clipping", "#202020", 1);
                 }
-            }
-            BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
-                << " stage=painted-crease-resolved run=" << painted.crease_run
-                << " crease=" << intent.crease << " pair=" << intent.pair << " part=" << intent.part
-                << " resolved_groups=" << resolved.size() << " svg=" << filename << " opened=" << svg.is_opened();
+                draw_path(intent.points, "#888888", 0.45, "SOURCE");
+                for (const FinCandidate *candidate : resolved) {
+                    const bool point = !candidate->path;
+                    const auto &vertices = point ? intent.points : candidate->path->points;
+                    const char *kind = point ? "POINT" : "PATH";
+                    draw_path(vertices, point ? "#cc0099" : "#009e73",
+                              point ? 0.28 : 0.18, kind);
+                    if (!point && candidate->intent_root && vertices.size() >= 2)
+                        draw_path({vertices[0], vertices[1]}, "#e69f00", 0.22, "ROOT STEM");
+                    for (size_t v = 0; v < vertices.size(); ++v) {
+                        const Vec3d &xyz = vertices[v];
+                        std::ostringstream detail;
+                        detail << "stage=painted-crease-resolved-vertex run=" << run
+                               << " crease=" << intent.crease << " pair=" << intent.pair << " part=" << intent.part
+                               << " edge=" << *candidate->intent_edge << " kind=" << kind << " vertex=" << v
+                               << " x=" << xyz.x() << " y=" << xyz.y() << " z=" << xyz.z();
+                        if (!point && v > 0) {
+                            const Vec3d &source = candidate->crease_intent->points[v - 1];
+                            detail << " source_vertex=" << v - 1
+                                   << " source_x=" << source.x() << " source_y=" << source.y()
+                                   << " source_z=" << source.z();
+                            if (svg.is_opened()) {
+                                svg.draw(display(source, 0), "#0072b2", scale_(0.12));
+                                svg.draw_text(display(source, 0),
+                                    ("S" + std::to_string(v - 1)).c_str(), "#0072b2", 1);
+                            }
+                        }
+                        BOOST_LOG_TRIVIAL(debug) << "Fin support object=" << object.model_object()->name << " " << detail.str();
+                        if (svg.is_opened())
+                            svg.add_comment(detail.str());
+                    }
+                }
+                BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
+                    << " stage=painted-crease-resolved run=" << run
+                    << " crease=" << intent.crease << " pair=" << intent.pair << " part=" << intent.part
+                    << " resolved_groups=" << resolved.size() << " svg=" << filename << " opened=" << svg.is_opened();
+            }});
         }
+        diagnostic.write(object);
+        diagnostic.pages.clear();
+    }
 }
 
 void generate_candidate_fin_support(PrintObject &object, const std::vector<PaintedLayer> &painted,
@@ -10451,18 +10618,6 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             << " island=" << island
             << " attachment_host_edge=" << attachment_host_edge
             << " child_edge=" << child_edge;
-        std::vector<FinGeometryDebugSet> sets;
-        append_fin_component_debug(sets, pending[parent].component_geometry, composite_merge_failure_layer);
-        if (parent != child)
-            append_fin_component_debug(sets, pending[child].component_geometry, composite_merge_failure_layer);
-        if (pending[parent].fin.seed.path) {
-            Polyline parent_path;
-            for (const Vec3d &point : pending[parent].fin.seed.path->points)
-                parent_path.points.push_back(scaled_point(point.head<2>()));
-            sets.push_back({"attachment host input XY", {}, {std::move(parent_path)}, {}});
-        }
-        export_fin_geometry_failure(object, pending[child].fin, composite_merge_failure_layer,
-            "composite", composite_merge_failure_stage, std::move(sets));
     };
     struct LineConnection {
         size_t member;
@@ -10963,27 +11118,6 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
         // This common result goes directly to outlining, without per-owner
         // geometry reconstruction or another whole-fin acceptance barrier.
         std::vector<std::vector<PreparedFinLayer>> prepared(pending.size());
-        auto dump_prepared_failure = [&](size_t item_id, size_t layer_id, const char *stage,
-                                         const char *reason) {
-            const auto &item = pending[item_id];
-            std::vector<FinGeometryDebugSet> sets;
-            if (layer_id < item.connection_centers.size())
-                sets.push_back({"shared junction additions", item.connection_centers[layer_id], {}, {}});
-            for (const auto &component : item.assembled_components)
-                append_fin_component_debug(sets, component, layer_id);
-            if (layer_id < prepared[item_id].size()) {
-                const auto &p = prepared[item_id][layer_id];
-                sets.push_back({"combined centers BEFORE final gap", p.centers, {}, {}});
-                sets.push_back({"contact centers", p.contact_centers, {}, {}});
-                sets.push_back({"clearance exemptions", p.clearance_exemptions, {}, {}});
-            }
-            if (painted_geometry_cache && layer_id < painted_geometry_cache->size()) {
-                const auto &cache = (*painted_geometry_cache)[layer_id];
-                sets.push_back({"path gap mask", cache.model_gap, {}, {}});
-                sets.push_back({"final gap mask BEFORE exemptions", cache.final_model_clearance, {}, {}});
-            }
-            export_fin_geometry_failure(object, item.fin, layer_id, stage, reason, std::move(sets));
-        };
         std::vector<ExPolygons> layer_centers(object.layer_count());
         std::vector<ExPolygons> layer_clearance_exemptions(object.layer_count());
         size_t projection_exemption_sections = 0;
@@ -10995,8 +11129,6 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                 assert(item.component_geometry.source == item_id);
                 if (!item.component_geometry.complete ||
                     item.component_geometry.body_centers.empty()) {
-                    export_fin_geometry_failure(object, item.fin, std::numeric_limits<size_t>::max(),
-                        "assembly", "incomplete-member-geometry", {});
                     item.valid = false;
                     ++rejected_geometry;
                     continue;
@@ -11034,7 +11166,6 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                         << " z=" << failure_z
                         << " island=" << failure_island
                         << " edge=" << failure_edge;
-                    dump_prepared_failure(item_id, layer_id, "assembly", failure_stage);
                     item.fin.diagnostics.reject(
                         FinReject::topology,
                         object.get_layer(int(layer_id))->print_z);
@@ -11134,7 +11265,6 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
         size_t nonempty_support_layers = 0;
         size_t model_gap_clip_layers = 0;
         size_t clearance_exemption_layers = 0;
-        std::set<size_t> reported_contact_rear_cuts;
         for (size_t layer_id = 0; layer_id < object.layer_count(); ++layer_id) {
             if (layer_centers[layer_id].empty())
                 continue;
@@ -11155,59 +11285,19 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                                 &object, float(object.get_layer(
                                     int(layer_id))->height)).width())),
                         ClipperLib::jtRound, DefaultMiterLimit);
-            // Slightly enlarge the exemption so clearance does not cut
-            // contact/taper geometry exactly at its shared boundary.
+            // Expand contact/taper exemptions by half the model gap to protect
+            // nearby body material at the shared boundary.
+            // The contact trapezoid exemption can still leave part of the join
+            // with the fin body exposed to final model-gap clipping, especially
+            // at corners. A small hole can remain and produce an extrusion dot
+            // or short path between the trapezoid and body.
             clearance = diff_ex(
-                clearance, layer_clearance_exemptions[layer_id],
-                ApplySafetyOffset::Yes);
+                clearance, offset_ex(layer_clearance_exemptions[layer_id],
+                    float(scale_(0.5 * gap)), jtRound, double(scale_(0.005))));
             // This is the model-gap subtraction of completed center geometry;
             // finite intent paths were clipped separately before contacts.
             painted_layer_centers[layer_id] = diff_ex(
                 layer_centers[layer_id], clearance);
-            // A contact can remain present while final clearance removes body
-            // material immediately behind its shared rear edge. Record that
-            // neighborhood once per source, without changing gap exemptions
-            // or treating this diagnostic as a new rejection rule.
-            const double half_width = 0.5 * support_material_flow(
-                &object, float(object.get_layer(int(layer_id))->height)).width();
-            for (const PendingFin &item : pending) {
-                if (!item.valid)
-                    continue;
-                for (const FinComponentCenterGeometry &component : item.assembled_components) {
-                    if (reported_contact_rear_cuts.count(component.source) ||
-                        layer_id >= component.body_centers.size() ||
-                        component.body_centers[layer_id].empty())
-                        continue;
-                    for (const FinCenterExtension &extension : component.extensions) {
-                        if (layer_id >= extension.layer_states.size() ||
-                            extension.layer_states[layer_id] != FinExtensionLayerState::contact ||
-                            layer_id >= extension.attachments.size() || !extension.attachments[layer_id])
-                            continue;
-                        const Line &cap = *extension.attachments[layer_id];
-                        if (cap.a == cap.b)
-                            continue;
-                        const Polygons neighborhood = offset(Polyline{cap.a, cap.b},
-                            float(scale_(half_width)), jtRound, double(scale_(0.005)),
-                            ClipperLib::etOpenButt);
-                        const ExPolygons rear_before = intersection_ex(
-                            component.body_centers[layer_id], neighborhood);
-                        const ExPolygons removed = diff_ex(rear_before, painted_layer_centers[layer_id]);
-                        if (removed.empty())
-                            continue;
-                        std::vector<FinGeometryDebugSet> sets;
-                        append_fin_component_debug(sets, component, layer_id);
-                        sets.push_back({"body within half bead of contact rear BEFORE gap", rear_before, {}, {}});
-                        sets.push_back({"body removed near contact rear", removed, {}, {}});
-                        sets.push_back({"combined centers BEFORE final gap", layer_centers[layer_id], {}, {}});
-                        sets.push_back({"final gap mask AFTER exemptions", clearance, {}, {}});
-                        sets.push_back({"merged centers AFTER final gap", painted_layer_centers[layer_id], {}, {}});
-                        export_fin_geometry_failure(object, pending[component.source].fin, layer_id,
-                            "layer-clearance", "contact-rear-gap-cut", std::move(sets));
-                        reported_contact_rear_cuts.insert(component.source);
-                        break;
-                    }
-                }
-            }
             if (painted_layer_centers[layer_id].empty()) {
                 const Layer &layer = *object.get_layer(int(layer_id));
                 BOOST_LOG_TRIVIAL(info)
@@ -11216,17 +11306,6 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                     << " layer=" << layer_id
                     << " slice_z=" << layer.slice_z << " print_z=" << layer.print_z
                     << " skipped_scope=layer";
-                for (size_t item_id = 0; item_id < pending.size(); ++item_id) {
-                    if (!pending[item_id].valid || layer_id >= prepared[item_id].size() ||
-                        prepared[item_id][layer_id].centers.empty())
-                        continue;
-                    export_fin_geometry_failure(object, pending[item_id].fin, layer_id,
-                        "layer-clearance", "empty-center-after-gap",
-                        {{"combined centers BEFORE final gap", layer_centers[layer_id], {}, {}},
-                         {"final gap mask AFTER exemptions", clearance, {}, {}},
-                         {"merged centers AFTER final gap", painted_layer_centers[layer_id], {}, {}}});
-                    break;
-                }
             }
             ++model_gap_clip_layers;
         }
@@ -11437,7 +11516,7 @@ void generate_fin_support(PrintObject &object)
         BOOST_LOG_TRIVIAL(info)
             << "Fin support object=" << object.model_object()->name
             << " stage=painted-shape-begin";
-    const PaintedSides painted_data = painted_sides(object, config.fin_support_style.value == fssPaintedShape);
+    PaintedSides painted_data = painted_sides(object, config.fin_support_style.value == fssPaintedShape);
     if (config.fin_support_style.value == fssPaintedShape)
         BOOST_LOG_TRIVIAL(info)
             << "Fin support object=" << object.model_object()->name
@@ -11465,7 +11544,7 @@ void generate_fin_support(PrintObject &object)
             << " stage=painted-shape-analysis-complete";
         const std::vector<FinCandidateProposal> proposals = resolve_painted_fin_paths(
             object, select_painted_shape_fin_candidates(object, painted_data, shape));
-        export_painted_crease_fin_paths(object, painted_data, proposals);
+        export_painted_fin_paths(object, painted_data, proposals);
         generate_candidate_fin_support(object, painted, blockers, bed, line_width, walls, proposals,
                                        "painted-shape", "painted-shape-geometry");
         return;
