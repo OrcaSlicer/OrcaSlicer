@@ -19,7 +19,7 @@ on:
   # Looks at every pending run: one not listed yet when the job above looked, and all of them when
   # pull_request_target is blocked by an Actions event policy.
   schedule:
-  - cron: '17,47 * * * *'
+  - cron: '7,17,27,37,47,57 * * * *'
   workflow_dispatch:
 
 permissions: {}
