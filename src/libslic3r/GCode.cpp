@@ -7033,15 +7033,20 @@ LayerResult GCode::process_layer(
         return next_extruder;
     };
     
-    const bool overhang_fan = overhang_fan_enabled(m_config, m_enable_cooling_markers) || m_config.gcode_overhangs;
+    const bool overhang_fan = overhang_fan_enabled(m_config, m_enable_cooling_markers);
     if (m_config.gcode_overhangs)
         m_infill_overhang_estimator.forget_infill_footprints();
     for (const auto &layer_to_print : layers) {
         if (layer_to_print.object_layer && prepares_overhang_estimator(*layer_to_print.object_layer, overhang_fan))
             m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object, layer_to_print.object_layer);
-        if (m_config.gcode_overhangs && layer_to_print.object_layer != nullptr)
+        if (m_config.gcode_overhangs && layer_to_print.object_layer != nullptr) {
+            const PrecomputedOverhangLayer *precomputed =
+                m_extrusion_quality_estimator.precomputed_layer(layer_to_print.original_object, layer_to_print.object_layer);
+            m_wall_overhang_estimator.prepare_for_lower_layer(layer_to_print.original_object, layer_to_print.object_layer,
+                precomputed != nullptr ? precomputed->lower_boundaries : nullptr);
             m_infill_overhang_estimator.prepare_for_infill_layer(layer_to_print.original_object, layer_to_print.object_layer->lower_layer,
-                m_extrusion_quality_estimator.precomputed_infill_footprint(layer_to_print.original_object, layer_to_print.object_layer));
+                precomputed != nullptr ? precomputed->lower_infill_footprint : nullptr);
+        }
     }
 
     // Group extrusions by an extruder, then by an object, an island and a region.
@@ -7724,8 +7729,10 @@ LayerResult GCode::process_layer(
                 // And no side effect doing this even if `enable_overhang_speed` is off, so don't bother
                 // checking anything here.
                 m_extrusion_quality_estimator.set_current_object(&instance_to_print.print_object);
-                if (m_config.gcode_overhangs)
+                if (m_config.gcode_overhangs) {
+                    m_wall_overhang_estimator.set_current_object(&instance_to_print.print_object);
                     m_infill_overhang_estimator.set_current_object(&instance_to_print.print_object);
+                }
 
                 // When starting a new object, use the external motion planner for the first travel move.
                 const Point &offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
@@ -7953,8 +7960,10 @@ LayerResult GCode::process_layer(
                 }
 
                 m_extrusion_quality_estimator.set_current_object(&instance_to_print.print_object);
-                if (m_config.gcode_overhangs)
+                if (m_config.gcode_overhangs) {
+                    m_wall_overhang_estimator.set_current_object(&instance_to_print.print_object);
                     m_infill_overhang_estimator.set_current_object(&instance_to_print.print_object);
+                }
 
                 const Point &offset = inst.shift;
                 std::pair<const PrintObject*, Point> this_object_copy(&instance_to_print.print_object, offset);
@@ -9930,7 +9939,7 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     const bool can_estimate_metadata = !path_on_first_layer && !object_layer_over_raft() &&
         (is_perimeter(path.role()) || (infill_material_reference && overhang_support_layer != nullptr));
     ExtrusionQualityEstimator &metadata_estimator = infill_material_reference ?
-        m_infill_overhang_estimator : m_extrusion_quality_estimator;
+        m_infill_overhang_estimator : m_wall_overhang_estimator;
     if (emit_overhangs && can_estimate_metadata && infill_material_reference)
         m_infill_overhang_estimator.select_infill_support(overhang_support_layer);
 
