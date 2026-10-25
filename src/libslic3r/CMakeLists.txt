@@ -580,6 +580,8 @@ set(lisbslic3r_sources
     GCode/ToolOrderUtils.cpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp
+    FilamentInventory.hpp
+    FilamentInventory.cpp
 )
 
 # Parametric Design/CAD kernel. Needs the OCCT toolkits TKFillet, TKOffset and TKBool and the

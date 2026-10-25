@@ -96,6 +96,7 @@ add_executable(${_TEST_NAME}_tests
     test_texture_import.cpp
     test_instance_lock.cpp
     test_filament_compaction.cpp
+    test_filament_inventory.cpp
     ../libnest2d/printer_parts.cpp
     )
 
