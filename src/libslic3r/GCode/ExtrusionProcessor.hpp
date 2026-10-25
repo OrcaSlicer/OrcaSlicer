@@ -769,10 +769,13 @@ public:
         std::vector<float> percentages(intervals + 1);
         const Vec2d center = unscaled(arc.center);
         const double radius = arc.radius * SCALING_FACTOR;
+        // The salvage branch of ArcSegment::try_create_arc flips the direction and corrects the length but keeps
+        // angle_radians of the rejected direction, so take the sweep of the emitted G2/G3 from those two.
+        const double sweep = (arc.direction == ArcDirection::Arc_Dir_CW ? -1.0 : 1.0) * arc.length / arc.radius;
         // Orca: The shared current-contour baseline also cancels the apparent protrusion caused by
         // replacing the current layer's polygonal chords with the fitted curve.
         for (size_t i = 0; i <= intervals; ++i) {
-            const double angle = arc.polar_start_theta + arc.angle_radians * (double(i) / intervals);
+            const double angle = arc.polar_start_theta + sweep * (double(i) / intervals);
             const Vec3d position(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle), 0.0);
             const Vec2d tangent(-std::sin(angle), std::cos(angle));
             percentages[i] = overhang_percentage_at(position, width, tangent, associate_current_contour);
