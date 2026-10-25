@@ -352,6 +352,13 @@ inline Vec3f its_face_normal(const indexed_triangle_set &its, const stl_triangle
     { const stl_vertex vertices[3] { its.vertices[face[0]], its.vertices[face[1]], its.vertices[face[2]] }; return face_normal_normalized(vertices); }
 inline Vec3f its_face_normal(const indexed_triangle_set &its, const int face_idx)
     { return its_face_normal(its, its.indices[face_idx]); }
+// Returns 3 normals per face, one per corner, each the area-weighted average of the faces around the corner's
+// vertex that lie within threshold_degrees of the corner's face, as igl::per_corner_normals computes them.
+// Faces at a vertex that point the same way are compared as one group, so a triangle fan costs one comparison per
+// face where igl compares every pair.
+// Degenerate faces, faces with NaN or infinite coordinates, and every face of a mesh with an index outside its
+// vertices get zero normals.
+std::vector<Vec3f> its_smooth_corner_normals(const indexed_triangle_set &its, double threshold_degrees);
 
 indexed_triangle_set    its_make_cube(double x, double y, double z);
 indexed_triangle_set    its_make_prism(float width, float length, float height);
