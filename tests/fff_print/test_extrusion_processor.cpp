@@ -5,7 +5,6 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <catch2/matchers/catch_matchers_vector.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/GCode.hpp"
@@ -34,6 +33,7 @@
 #include "libslic3r/Polygon.hpp"
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include <catch2/interfaces/catch_interfaces_capture.hpp>
 
@@ -938,7 +938,10 @@ TEST_CASE("Walls printed with overhang speed on match a print with it always on 
         REQUIRE_FALSE(expected.empty());
         // The slope is slowed down, so matching speeds are not merely the wall speed.
         REQUIRE(*std::max_element(expected.begin(), expected.end()) < caged_slow_speed * MM_PER_MIN);
-        CHECK_THAT(wedge_wall_feed_rates(toggled, print_z, true), Catch::Matchers::Approx(expected).margin(1.));
+        const std::vector<double> actual = wedge_wall_feed_rates(toggled, print_z, true);
+        REQUIRE(actual.size() == expected.size());
+        for (size_t i = 0; i < actual.size(); ++i)
+            CHECK_THAT(actual[i], Catch::Matchers::WithinAbs(expected[i], 1.));
     }
 }
 
