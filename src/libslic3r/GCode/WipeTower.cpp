@@ -58,7 +58,8 @@ bool wipe_tower_sparse_layers_skipped(const PrintConfig &config)
 
 bool wipe_tower_layer_is_sparse(const std::vector<WipeTower::ToolChangeResult> &layer_tool_changes)
 {
-    return layer_tool_changes.size() == 1 && layer_tool_changes.front().initial_tool == layer_tool_changes.front().new_tool;
+    return layer_tool_changes.size() == 1 && layer_tool_changes.front().initial_tool == layer_tool_changes.front().new_tool &&
+           ! layer_tool_changes.front().has_solid_block;
 }
 
 std::vector<float> compute_compacted_wipe_tower_z(const std::vector<std::vector<WipeTower::ToolChangeResult>> &tool_changes,
@@ -4772,7 +4773,16 @@ bool WipeTower::layer_is_printed(bool toolchanges_on_layer) const
 {
     if (m_layer_info != m_plan.end() && m_layer_info->combined_away)
         return false;
-    return ! m_sparse_layers_skipped || toolchanges_on_layer;
+    return ! m_sparse_layers_skipped || toolchanges_on_layer || layer_has_solid_block();
+}
+
+// Solid and contact layers bond materials that do not stick to each other, so they print on layers
+// that carry no filament change.
+bool WipeTower::layer_has_solid_block() const
+{
+    return std::any_of(m_wipe_tower_blocks.begin(), m_wipe_tower_blocks.end(), [this](const WipeTowerBlock &block) {
+        return m_cur_layer_id < block.layers_type.size() && block.layers_type[m_cur_layer_id] != WipeTowerLayerType::Normal;
+    });
 }
 
 void WipeTower::plan_tower_new()
@@ -5130,6 +5140,9 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
         if (layer.combined_away)
             for (WipeTower::ToolChangeResult &tcr : layer_result)
                 tcr.combined_away = true;
+        if (layer_has_solid_block())
+            for (WipeTower::ToolChangeResult &tcr : layer_result)
+                tcr.has_solid_block = true;
         result.emplace_back(std::move(layer_result));
     }
     assert(m_outer_wall.size() == m_plan.size());

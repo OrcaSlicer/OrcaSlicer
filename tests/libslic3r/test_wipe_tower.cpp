@@ -171,6 +171,12 @@ TEST_CASE("A planned layer is sparse only when its single tool change keeps the 
     CHECK_FALSE(wipe_tower_layer_is_sparse({}));
 }
 
+TEST_CASE("A layer that prints a solid block is not sparse even without a filament change", "[WipeTower][NoSparseLayers]") {
+    WipeTower::ToolChangeResult solid = make_tcr(1, 1, 0.2f);
+    solid.has_solid_block             = true;
+    CHECK_FALSE(wipe_tower_layer_is_sparse({solid}));
+}
+
 TEST_CASE("The compacted tower falls one layer height behind the object per sparse layer", "[WipeTower][NoSparseLayers]") {
     // Five 0.2 mm layers off a 0.1 mm z offset, the middle two sparse. The object reaches
     // 0.1 + 5 * 0.2 = 1.1; the tower only grows on the three printed layers, so it ends at

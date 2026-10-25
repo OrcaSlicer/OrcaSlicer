@@ -3876,6 +3876,10 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
     if (curr_gizmo != nullptr && !m_selection.is_empty())
         curr_gizmo->register_raycasters_for_picking();
 
+    // the tower may have been resized or moved by the reload
+    if (m_canvas_type == ECanvasType::CanvasView3D)
+        refresh_compacted_wipe_tower_clearance();
+
     // and force this canvas to be redrawn.
     m_dirty = true;
 }
@@ -6431,8 +6435,8 @@ bool GLCanvas3D::can_sequential_clearance_show_in_gizmo() {
 }
 
 // Live preview of the compacted prime tower clearance, the by-layer counterpart of
-// update_sequential_clearance(). Called while the user drags a volume / gizmo; idle visibility
-// matches sequential print (hidden when valid, filled when Print::validate reports a collision).
+// update_sequential_clearance(). Called while the user drags a volume / gizmo, and when idle through
+// refresh_compacted_wipe_tower_clearance(); Print::validate reports a collision with a red fill instead.
 // Print::compacted_wipe_tower_clearance_valid() answers the same question authoritatively, but it
 // reads the tower position from the config, which only catches up once do_move() writes it back on
 // mouse release. Recomputing from the volumes here is what makes the keep-out zone follow the tower
@@ -6489,13 +6493,28 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     // body one it is not subject to; without that, a 3 mm object parked beside the tower would be drawn
     // deep inside the keep-out ring while passing the check. Only the instances the validation refuses,
     // next to the nozzle or within the toolhead radius, also get a height limit plane.
+    //
+    // The instance transforms come from the volumes, like the tower footprint above: the model only
+    // catches up on mouse release, so reading it would leave the outlines behind the cursor.
+    std::vector<std::vector<std::optional<Geometry::Transformation>>> instance_transforms;
+    for (const ModelObject *model_object : m_model->objects)
+        instance_transforms.emplace_back(model_object->instances.size());
+    for (const GLVolume *v : m_volumes.volumes) {
+        if (v->is_modifier || v->is_wipe_tower)
+            continue;
+        std::optional<Geometry::Transformation> &transform = instance_transforms[v->object_idx()][v->instance_idx()];
+        if (! transform.has_value())
+            transform = v->get_instance_transformation();
+    }
+
     Polygons                               outlines;
     std::vector<std::pair<Polygon, float>> height_polygons;
     bool                                   body_tier_used = false;
     const BoundingBox                      plate_bb       = plate->get_bounding_box_crd();
-    for (const ModelObject *model_object : m_model->objects) {
+    for (size_t object_idx = 0; object_idx < m_model->objects.size(); ++object_idx) {
+        const ModelObject *model_object = m_model->objects[object_idx];
         for (size_t i = 0; i < model_object->instances.size(); ++i) {
-            Geometry::Transformation trafo(model_object->instances[i]->get_transformation());
+            Geometry::Transformation trafo = instance_transforms[object_idx][i].value_or(Geometry::Transformation(model_object->instances[i]->get_transformation()));
             const Vec3d              offset = trafo.get_offset();
             trafo.set_offset(Vec3d(offset.x(), offset.y(), 0.0));
             const Polygon inst_hull = model_object->convex_hull_2d(trafo.get_matrix());
@@ -6525,6 +6544,16 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     set_sequential_print_clearance_visible(true);
     set_sequential_print_clearance_render_fill(false);
     set_sequential_print_clearance_polygons(polygons, height_polygons);
+}
+
+// Idle counterpart of update_compacted_wipe_tower_clearance(): keeps the keep-out zone on screen
+// while "No sparse layers" is on, so the tower can be placed without having to drag anything first.
+// A collision the validation is already showing, with its red fill, is left alone.
+void GLCanvas3D::refresh_compacted_wipe_tower_clearance()
+{
+    if (m_sequential_print_clearance.m_visible && m_sequential_print_clearance.m_render_fill)
+        return;
+    update_compacted_wipe_tower_clearance();
 }
 
 void GLCanvas3D::update_sequential_clearance()

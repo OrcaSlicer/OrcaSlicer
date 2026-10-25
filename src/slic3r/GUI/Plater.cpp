@@ -11824,6 +11824,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
             process_validation_warnings(warnings);
             if (printer_technology == ptFFF) {
                 view3D->get_canvas3d()->reset_sequential_print_clearance();
+                view3D->get_canvas3d()->refresh_compacted_wipe_tower_clearance();
                 view3D->get_canvas3d()->set_as_dirty();
                 view3D->get_canvas3d()->request_extra_frame();
             }
@@ -23362,6 +23363,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
 
             p->process_validation_warnings(warnings);
             p->view3D->get_canvas3d()->reset_sequential_print_clearance();
+            p->view3D->get_canvas3d()->refresh_compacted_wipe_tower_clearance();
             p->view3D->get_canvas3d()->set_as_dirty();
             p->view3D->get_canvas3d()->request_extra_frame();
         }

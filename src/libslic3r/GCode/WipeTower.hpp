@@ -163,6 +163,10 @@ public:
         // the two cannot disagree about which layers print.
         bool               combined_away = false;
 
+        // Orca: the layer prints a solid or contact block of the block tower. That is real work even
+        // with no filament change, so the layer is not sparse and must not be dropped.
+        bool               has_solid_block = false;
+
 		// Sum the total length of the extrusion.
 		float total_extrusion_length_in_plane() {
 			float e_length = 0.f;
@@ -611,6 +615,7 @@ private:
 	void plan_tower();
 	// Whether the layer reaches the G-code, and so whether its extrusions count as filament used.
 	bool layer_is_printed(bool toolchanges_on_layer) const;
+	bool layer_has_solid_block() const;
 
 	// Goes through m_plan and recalculates depths and width of the WT to make it exactly square - experimental
 	void make_wipe_tower_square();

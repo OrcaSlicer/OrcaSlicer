@@ -115,10 +115,13 @@ near it, tiered by the nozzle cone, the head body, the rod and the lid. The
 precise check applies all four to the real extrusions, measuring an object's
 rise from the tower as printed by then. Before slicing that height is unknown,
 so the pre-slice estimate that feeds the plater, and the outlines the plater
-draws while an object is dragged, measure the rise from the plate and apply only
-the nozzle cone and the head body. An object away from the toolhead, which only
-the rod or the lid can reach, is left to the precise check. The ring the user
-sees touches the object's outline exactly when the pre-slice check trips.
+draws, measure the rise from the plate and apply only the nozzle cone and the
+head body. An object away from the toolhead, which only the rod or the lid can
+reach, is left to the precise check. The ring the user sees touches the object's
+outline exactly when the pre-slice check trips. The plater draws them whenever
+the setting is on, not only during a drag, and takes both the tower and the
+objects from the live volumes, since the model catches up only when the drag
+ends. A collision found by validation replaces them with the red fill.
 
 ## Merging sparse layers
 
@@ -179,12 +182,15 @@ emission forces the processor role to the tower on any layer that carries one.
 
 ## Constraints
 
-A layer that prints nothing prints nothing at all, including any interface work
-the tower planner scheduled there. The Type 1 block planner marks a layer as a
-contact layer when a filament category stops or starts being used relative to the
-layer below, and a sparse layer immediately above a change qualifies. Merging a
-run, like dropping its layers, replaces that interface with the run's single
-layer. Both settings are off by default for this among other reasons.
+A layer that prints nothing prints nothing at all. The Type 1 block planner marks
+a layer as a solid, contact or contact-up layer around the point where a filament
+category stops or starts being used, and those layers print an interface between
+materials that do not bond. They carry no filament change but are real work, so
+the generator flags their results (`has_solid_block`) and `wipe_tower_layer_is_sparse`
+does not treat them as sparse: dropping the layers keeps them, and charges their
+filament. Merging a run of sparse layers does not yet make that exception, and
+replaces the interface with the run's single layer. Both settings are off by
+default for this among other reasons.
 
 Neither setting changes what the tower is for. A plate that needs a tower on
 every layer — smooth timelapse, clumping detection — gets one, and the settings
@@ -208,7 +214,7 @@ read as off rather than compacting or merging in one place and not another.
   mutual exclusion.
 - [GLCanvas3D.cpp](../../src/slic3r/GUI/GLCanvas3D.cpp) and
   [PartPlate.cpp](../../src/slic3r/GUI/PartPlate.cpp) draw the compacted tower's
-  keep-out outlines live while the user drags.
+  keep-out outlines, live while the user drags and at rest otherwise.
 - [Rule tests](../../tests/libslic3r/test_wipe_tower.cpp) cover the gating of
   both settings, the per-layer predicates, the compacted z, the merge rule's run
   flushing, height conservation, the nozzle cap and the first-layer exemption,
