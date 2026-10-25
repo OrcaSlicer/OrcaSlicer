@@ -879,7 +879,7 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     //BBS: take plate offset into consider
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG1Formatter w(config.high_precision_gcode.value);
+    GCodeG1Formatter w(high_precision());
     if (has_axis_remap()) {
         // Axis remap may couple XY with Z; emit full XYZ in machine coordinates.
         Vec3d machine = apply_axis_remap(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z()));
@@ -1313,7 +1313,8 @@ void GCodeWriter::extrude_to_xy(std::string &out, const Vec2d &point, double dE,
     //BBS: take plate offset into consider
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG1Formatter w(config.high_precision_gcode.value);
+    const bool high_precision = this->high_precision();
+    GCodeG1Formatter w(high_precision);
     if (has_axis_remap()) {
         Vec3d machine = apply_axis_remap(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z()));
         w.emit_xyz(machine);
@@ -1321,7 +1322,7 @@ void GCodeWriter::extrude_to_xy(std::string &out, const Vec2d &point, double dE,
         w.emit_xy(point_on_plate);
     }
     if (!force_no_extrusion)
-        w.emit_e(filament()->E_to_emit());
+        w.emit_e(filament()->E_to_emit(high_precision));
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
@@ -1399,11 +1400,12 @@ void GCodeWriter::extrude_arc_to_xy(std::string &out, const Vec2d& point, const 
 
     Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
 
-    GCodeG2G3Formatter w(is_ccw, config.high_precision_gcode.value);
+    const bool high_precision = this->high_precision();
+    GCodeG2G3Formatter w(is_ccw, high_precision);
     w.emit_xy(point_on_plate);
     w.emit_ij(center_offset);
     if (!force_no_extrusion)
-        w.emit_e(filament()->E_to_emit());
+        w.emit_e(filament()->E_to_emit(high_precision));
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
@@ -1421,7 +1423,7 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
     // Check if Z actually changes (at export precision) before emitting it.
     // ZAA sloped extrusions call this for every segment, but many consecutive
     // segments share the same quantized Z — emitting it every time is redundant.
-    const bool high_precision = config.high_precision_gcode.value;
+    const bool high_precision = this->high_precision();
     bool z_changed = (GCodeFormatter::quantize_xyz(point(2), high_precision) != GCodeFormatter::quantize_xyz(m_pos(2), high_precision));
 
     m_pos = point;
@@ -1446,7 +1448,7 @@ void GCodeWriter::extrude_to_xyz(std::string &out, const Vec3d &point, double dE
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
     }
     if (!force_no_extrusion)
-        w.emit_e(filament()->E_to_emit());
+        w.emit_e(filament()->E_to_emit(high_precision));
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     w.append_to(out);
@@ -1489,8 +1491,9 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
         }
         else {
             // BBS
-            GCodeG1Formatter w(config.high_precision_gcode.value);
-            w.emit_e(filament()->E_to_emit());
+            const bool high_precision = this->high_precision();
+            GCodeG1Formatter w(high_precision);
+            w.emit_e(filament()->E_to_emit(high_precision));
             w.emit_f(filament()->retract_speed() * 60.);
             // BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -1519,10 +1522,11 @@ std::string GCodeWriter::unretract(float extra_retract)
         else {
             //BBS
             // use G1 instead of G0 because G0 will blend the restart with the previous travel move
-            GCodeG1Formatter w(config.high_precision_gcode.value);
+            const bool high_precision = this->high_precision();
+            GCodeG1Formatter w(high_precision);
             // extra_retract over-extrudes for the PETG pre-extrusion; 0 by
             // default -> identical to the plain deretract E position.
-            w.emit_e(filament()->E_to_emit(extra_retract));
+            w.emit_e(filament()->E_to_emit(high_precision, extra_retract));
             w.emit_f(filament()->deretract_speed() * 60.);
             //BBS
             w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");

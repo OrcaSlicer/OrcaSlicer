@@ -945,17 +945,19 @@ void PressureEqualizer::push_line_to_output(const size_t line_idx, float new_fee
     } else
         push_to_output(EXTRUDE_END_TAG.data(), EXTRUDE_END_TAG.length(), true);
 
-    GCodeG1Formatter feedrate_formatter(m_high_precision);
+    // Supports keep the standard precision, see GCode::extrude_support().
+    const bool high_precision = m_high_precision && !is_support(line.extrusion_role);
+    GCodeG1Formatter feedrate_formatter(high_precision);
     feedrate_formatter.emit_f(new_feedrate);
     feedrate_formatter.emit_string(std::string(EXTRUDE_SET_SPEED_TAG.data(), EXTRUDE_SET_SPEED_TAG.length()));
     if (line.extrusion_role == ExtrusionRole::erExternalPerimeter)
         feedrate_formatter.emit_string(std::string(EXTERNAL_PERIMETER_TAG.data(), EXTERNAL_PERIMETER_TAG.length()));
     push_to_output(feedrate_formatter);
 
-    GCodeG1Formatter extrusion_formatter(m_high_precision);
+    GCodeG1Formatter extrusion_formatter(high_precision);
     for (size_t axis_idx = 0; axis_idx < 3; ++axis_idx)
         if (line.pos_provided[axis_idx])
-            extrusion_formatter.emit_axis(char('X' + axis_idx), line.pos_end[axis_idx], GCodeFormatter::xyz_digits(m_high_precision));
+            extrusion_formatter.emit_axis(char('X' + axis_idx), line.pos_end[axis_idx], GCodeFormatter::xyz_digits(high_precision));
     extrusion_formatter.emit_e(m_use_relative_e_distances ? (line.pos_end[3] - line.pos_start[3]) : line.pos_end[3]);
 
     if (comment != nullptr)

@@ -189,6 +189,13 @@ public:
     // that couples axes.
     void set_force_normal_lift(bool force) { m_force_normal_lift = force; }
 
+    // Whether extrusions, XY travels and retractions are written now with high precision G-code: high_precision_gcode,
+    // unless force_standard_precision() is in effect. Travels that change Z always follow high_precision_gcode, as the
+    // Z they set also holds for the moves after them, such as the object printed after its support on the same layer.
+    bool high_precision() const { return config.high_precision_gcode.value && !m_force_standard_precision; }
+    // Writes the next extrusions, XY travels and retractions with the standard precision. Returns the previous value.
+    bool force_standard_precision(bool force) { return std::exchange(m_force_standard_precision, force); }
+
     // Returns whether this flavor supports separate print and travel acceleration.
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);
 protected:
@@ -224,6 +231,7 @@ protected:
 
     FirstLayerPointTest    m_first_layer_point_test;
     bool                   m_force_normal_lift = false;
+    bool                   m_force_standard_precision = false;
 
     // The machine frame mapping.  Owns the axis-remap state that used to live
     // here as m_remap_* / m_build_vol_max; the setters above forward to it.

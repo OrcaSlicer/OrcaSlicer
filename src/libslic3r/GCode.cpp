@@ -8992,6 +8992,12 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
         return small_perimeter_speed > 0 ? small_perimeter_speed : default_speed;
     };
 
+    // Supports are removed after printing and gain nothing from high precision G-code but a larger file, so they are
+    // written with the standard precision, as the wipe tower is. Support ironing keeps it, as it smooths the surface
+    // the object is printed on.
+    const bool was_standard_precision = m_writer.force_standard_precision(support_extrusion_role != erIroning);
+    ScopeGuard restore_precision([this, was_standard_precision] { m_writer.force_standard_precision(was_standard_precision); });
+
     std::string gcode;
     if (!support_fills.entities.empty()) {
 
@@ -11497,14 +11503,14 @@ Point GCode::gcode_to_point(const Vec2d &point) const
 Vec2d GCode::point_to_gcode_quantized(const Point& point) const
 {
     Vec2d p = this->point_to_gcode(point);
-    const bool high_precision = m_config.high_precision_gcode.value;
+    const bool high_precision = m_writer.high_precision();
     return { GCodeFormatter::quantize_xyz(p.x(), high_precision), GCodeFormatter::quantize_xyz(p.y(), high_precision) };
 }
 
 Vec3d GCode::point_to_gcode_quantized(const Point3& point) const
 {
     Vec3d p = this->point_to_gcode(point);
-    const bool high_precision = m_config.high_precision_gcode.value;
+    const bool high_precision = m_writer.high_precision();
     return { GCodeFormatter::quantize_xyz(p.x(), high_precision), GCodeFormatter::quantize_xyz(p.y(), high_precision),
              GCodeFormatter::quantize_xyz(p.z(), high_precision) };
 }

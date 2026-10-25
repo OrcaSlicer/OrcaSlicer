@@ -289,6 +289,66 @@ TEST_CASE("High precision G-code carries the rounding of relative extrusion into
     }
 }
 
+TEST_CASE("Forced standard precision writes extrusions and XY travels as without high precision G-code", "[GCodeWriter][Regression]")
+{
+    const bool relative_e = GENERATE(false, true);
+    CAPTURE(relative_e);
+
+    PrintConfig config;
+    config.high_precision_gcode.value           = true;
+    config.gcode_flavor.value                   = gcfKlipper;
+    config.use_relative_e_distances.value       = relative_e;
+    config.single_extruder_multi_material.value = false;
+    config.filament_diameter.values             = {1.75};
+    config.filament_flow_ratio.values           = {1.0};
+    config.filament_map.values                  = {1};
+
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    writer.set_extruders({0});
+    writer.set_extruder(0);
+    writer.set_current_position_clear(true);
+
+    REQUIRE(writer.high_precision());
+    std::string gcode = writer.travel_to_xyz(Vec3d(10.123456, 20.123456, 0.234567));
+    gcode += writer.extrude_to_xy(Vec2d(10.654321, 20.654321), 0.00123456);
+    // As GCode::extrude_support() does for supports.
+    CHECK_FALSE(writer.force_standard_precision(true));
+    CHECK_FALSE(writer.high_precision());
+    gcode += writer.travel_to_xy(Vec2d(10.7654321, 20.7654321));
+    gcode += writer.extrude_arc_to_xy(Vec2d(10.987654, 20.987654), Vec2d(0.123456, 0.654321), 0.00123456, true);
+    gcode += writer.travel_to_z(0.345678);
+    CHECK(writer.force_standard_precision(false));
+    CHECK(writer.high_precision());
+    gcode += writer.extrude_to_xy(Vec2d(11.123456, 21.123456), 0.00123456);
+
+    std::vector<GCodeReader::GCodeLine> moves;
+    GCodeReader reader;
+    reader.apply_config(writer.config);
+    reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1") || line.cmd_is("G3"))
+            moves.push_back(line);
+    });
+    REQUIRE(moves.size() == 6);
+    constexpr double eps = 1e-9;
+    CHECK_THAT(moves[1].precise_value(X), Catch::Matchers::WithinAbs(10.6543, eps));
+    CHECK_THAT(moves[1].precise_value(E), Catch::Matchers::WithinAbs(0.001235, eps));
+    CHECK_THAT(moves[2].precise_value(X), Catch::Matchers::WithinAbs(10.765, eps));
+    CHECK_THAT(moves[2].precise_value(Y), Catch::Matchers::WithinAbs(20.765, eps));
+    CHECK(moves[3].cmd_is("G3"));
+    CHECK_THAT(moves[3].precise_value(X), Catch::Matchers::WithinAbs(10.988, eps));
+    CHECK_THAT(moves[3].precise_value(I), Catch::Matchers::WithinAbs(0.123, eps));
+    CHECK_THAT(moves[3].precise_value(J), Catch::Matchers::WithinAbs(0.654, eps));
+    // Relative E is rounded on its own, without the carry.
+    CHECK_THAT(moves[3].precise_value(E), Catch::Matchers::WithinAbs(relative_e ? 0.00123 : 0.00247, eps));
+    // A travel that changes Z keeps high precision, as that Z also holds for the moves after it.
+    CHECK_THAT(moves[4].precise_value(Z), Catch::Matchers::WithinAbs(0.3457, eps));
+    // The first extrusion was written as 0.001235 and left -0.00000044 to carry. The arc kept it, so the next move
+    // written with high precision writes 0.00123456 - 0.00000044 = 0.00123412 as 0.001234.
+    CHECK_THAT(moves[5].precise_value(X), Catch::Matchers::WithinAbs(11.1235, eps));
+    CHECK_THAT(moves[5].precise_value(E), Catch::Matchers::WithinAbs(relative_e ? 0.001234 : 0.003704, eps));
+}
+
 SCENARIO("z_hop lifts the nozzle when a lift is requested", "[GCodeWriter]") {
     GIVEN("A writer with the nozzle parked at Z = 10") {
         GCodeWriter writer;
