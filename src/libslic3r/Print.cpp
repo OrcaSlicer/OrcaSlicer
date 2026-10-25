@@ -4,6 +4,7 @@
 #include <Windows.h>
 #endif
 
+#include "ConditionalSettings.hpp"
 #include "PrintBase.hpp"
 #include <utility>
 #include <string>
@@ -1980,6 +1981,14 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         add_warning(std::move(w));
     };
 
+    if (const auto error = validate_conditional_settings(m_full_print_config); !error.empty())
+        return {error};
+    if (const auto *rules = m_full_print_config.option<ConfigOptionStrings>("conditional_settings"); rules && !rules->values.empty()) {
+        FullPrintConfig effective_config;
+        effective_config.apply(m_full_print_config, true);
+        if (const auto errors = Slic3r::validate(effective_config, false); !errors.empty())
+            return {errors.begin()->second};
+    }
     std::vector<unsigned int> extruders = this->extruders();
     unsigned int nozzles = m_config.nozzle_diameter.size();
 

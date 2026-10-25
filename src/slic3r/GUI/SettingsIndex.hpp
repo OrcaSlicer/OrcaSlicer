@@ -95,6 +95,7 @@ class SettingsIndex
 
 public:
     void init(std::vector<InputInfo> input_values);
+    void init_options(std::vector<Option> input_options);
     // Rebuild the given type's options; returns false when the index was never initialised.
     bool apply(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode);
 

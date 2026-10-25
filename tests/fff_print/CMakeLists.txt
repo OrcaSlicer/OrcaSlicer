@@ -1,5 +1,6 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests 
+    test_conditional_settings.cpp
 	${_TEST_NAME}_tests.cpp
 	test_helpers.cpp
 	test_helpers.hpp

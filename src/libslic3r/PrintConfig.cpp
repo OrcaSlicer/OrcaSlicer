@@ -1,3 +1,8 @@
+#include <istream>
+#include <nlohmann/json.hpp>
+#include <locale>
+#include "ConditionalSettings.hpp"
+#include "Preset.hpp"
 #include "PrintConfig.hpp"
 #include "CommonDefs.hpp"
 #include "Point.hpp"
@@ -5857,6 +5862,36 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("conditional_settings", coStrings);
+    def->label = L("If / Then settings");
+    def->category = L("Others");
+    def->tooltip = L("Apply settings only when a condition is true. Otherwise keep the normal configured values. Conditions use the original settings; the last matching rule wins.");
+    def->gui_flags = "serialized";
+    def->set_default_value(new ConfigOptionStrings());
+
+    // Derived rule inputs and slice results are transient, never preset options.
+    for (const auto &input : std::vector<std::pair<std::string, std::string>>{
+        {"multi_color", L("Multi color printing")}, {"has_support", L("Supports or raft enabled")},
+        {"color_count", L("Used filament count")}, {"object_count", L("Printable object count")},
+        {"model_height", L("Model height")}, {"toolhead", L("Toolhead number")},
+        {"used_toolhead_count", L("Used toolhead count")}, {"physical_toolhead_count", L("Printer toolhead count")}}) {
+        const auto type = input.first == "multi_color" || input.first == "has_support" ? coBool :
+                          input.first == "model_height" ? coFloat : coInt;
+        def = this->add(input.first, type);
+        def->label = input.second;
+        def->category = L("Print conditions");
+        def->readonly = true;
+        def->cli = ConfigOptionDef::nocli;
+        def->min = 0;
+        if (type == coBool) def->set_default_value(new ConfigOptionBool(false));
+        else if (type == coFloat) { def->sidetext = L("mm"); def->set_default_value(new ConfigOptionFloat(0.)); }
+        else def->set_default_value(new ConfigOptionInt(1));
+    }
+    def = this->add("conditional_settings_matches", coStrings);
+    def->readonly = true;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionStrings());
+
     def = this->add("filename_format", coString);
     def->label = L("Filename format");
     def->tooltip = L("Users can decide project file names when exporting.");
@@ -10286,6 +10321,366 @@ std::set<std::string> filament_dev_options = {
     "filament_dev_drying_cooling_temperature"
 };
 
+std::vector<ConditionalSettingCondition> ConditionalSettingRule::predicates() const
+{
+    return conditions.empty() ? std::vector<ConditionalSettingCondition>{{condition, "eq", "1"}} : conditions;
+}
+
+std::vector<ConditionalSettingEffect> ConditionalSettingRule::actions() const
+{
+    return effects.empty() ? std::vector<ConditionalSettingEffect>{{target, value}} : effects;
+}
+
+std::string ConditionalSettingRule::serialize() const
+{
+    if (effects.empty() && conditions.empty() && name.empty() && enabled && match_all)
+        return "1\t" + condition + "\t" + target + "\t" + value;
+    nlohmann::json predicates = nlohmann::json::array();
+    for (const auto &predicate : this->predicates())
+        predicates.push_back({{"setting", predicate.setting}, {"comparison", predicate.comparison}, {"value", predicate.value}});
+    nlohmann::json json{{"version", 4}, {"enabled", enabled}, {"name", name},
+        {"match_all", match_all}, {"conditions", predicates}, {"effects", nlohmann::json::array()}};
+    for (const auto &effect : actions())
+        json["effects"].push_back({{"target", effect.target}, {"value", effect.value}});
+    return json.dump();
+}
+
+ConditionalSettingRule ConditionalSettingRule::deserialize(const std::string &row)
+{
+    if (!row.empty() && row.front() == '{') {
+        try {
+            const auto json = nlohmann::json::parse(row);
+            if (!json.at("version").is_number_integer() || (json.at("version") != 2 && json.at("version") != 3 && json.at("version") != 4) ||
+                !json.at("conditions").is_array() || json.at("conditions").empty())
+                throw ConfigurationError(_u8L("Invalid or unsupported If / Then rule version."));
+            ConditionalSettingRule rule;
+            rule.enabled = json.at("enabled").get<bool>();
+            // Older scope flags are accepted, but all rules now apply to the plate.
+            if (json.at("version") != 4) json.at("per_filament").get<bool>();
+            else rule.name = json.at("name").get<std::string>();
+            rule.match_all = json.at("match_all").get<bool>();
+            if (json.at("version") != 2) {
+                if (!json.at("effects").is_array() || json.at("effects").empty())
+                    throw ConfigurationError(_u8L("An If / Then rule must contain at least one effect."));
+                for (const auto &effect : json.at("effects"))
+                    rule.effects.push_back({effect.at("target").get<std::string>(), effect.at("value").get<std::string>()});
+                rule.target = rule.effects.front().target;
+                rule.value = rule.effects.front().value;
+            } else {
+                rule.target = json.at("target").get<std::string>();
+                rule.value = json.at("value").get<std::string>();
+            }
+            for (const auto &predicate : json.at("conditions"))
+                rule.conditions.push_back({predicate.at("setting").get<std::string>(),
+                    predicate.at("comparison").get<std::string>(), predicate.at("value").get<std::string>()});
+            rule.condition = rule.conditions.front().setting;
+            return rule;
+        } catch (const nlohmann::json::exception&) {
+            throw ConfigurationError(_u8L("Invalid If / Then rule data."));
+        }
+    }
+    std::vector<std::string> fields;
+    boost::split(fields, row, boost::is_any_of("\t"));
+    if (fields.size() != 4 || fields[0] != "1")
+        throw ConfigurationError(_u8L("Invalid or unsupported If / Then rule version."));
+    return {fields[1], fields[2], fields[3]};
+}
+
+ConfigOptionType conditional_setting_type(const std::string &key)
+{
+    const auto *def = print_config_def.get(key);
+    return !def ? coNone : def->is_scalar() ? def->type : ConfigOptionType(def->type - coVectorType);
+}
+
+static bool conditional_numeric(ConfigOptionType type)
+{
+    return type == coInt || type == coFloat || type == coPercent || type == coFloatOrPercent;
+}
+
+static std::vector<std::string> conditional_printer_targets()
+{
+    auto keys = print_config_def.extruder_retract_keys();
+    keys.insert(keys.end(), {"retract_length_toolchange", "retract_restart_extra_toolchange", "use_firmware_retraction"});
+    const auto &limits = Preset::machine_limits_options();
+    keys.insert(keys.end(), limits.begin(), limits.end());
+    return keys;
+}
+
+std::vector<std::string> conditional_setting_targets()
+{
+    std::vector<std::string> candidates = Preset::print_options();
+    const auto printer = conditional_printer_targets();
+    candidates.insert(candidates.end(), printer.begin(), printer.end());
+    std::vector<std::string> keys;
+    for (const auto &key : candidates) {
+        const auto *def = print_config_def.get(key);
+        const auto type = conditional_setting_type(key);
+        // Nozzle variants allow inherited values, but a rule always supplies an explicit value.
+        if (!def || def->readonly || (def->nullable && !print_options_with_variant.count(key)) || (def->label.empty() && def->full_label.empty()) ||
+            !(conditional_numeric(type) || type == coBool || type == coEnum))
+            continue;
+        if (std::find(keys.begin(), keys.end(), key) == keys.end()) keys.push_back(key);
+    }
+    return keys;
+}
+
+std::vector<std::string> conditional_setting_conditions()
+{
+    auto keys = conditional_setting_targets();
+    keys.insert(keys.begin(), {"multi_color", "color_count", "object_count", "model_height", "has_support",
+        "toolhead", "used_toolhead_count", "physical_toolhead_count", "filament_type", "filament_settings_id",
+        "printer_model", "printer_settings_id", "nozzle_diameter", "nozzle_type", "filament_soluble",
+        "filament_diameter", "filament_max_volumetric_speed", "filament_flow_ratio", "nozzle_temperature",
+        "nozzle_temperature_initial_layer", "curr_bed_type"});
+    return keys;
+}
+
+std::vector<std::string> conditional_setting_comparisons(const std::string &key)
+{
+    const auto type = conditional_setting_type(key);
+    if (conditional_numeric(type)) return {"eq", "ne", "gt", "ge", "lt", "le"};
+    if (type == coString) return {"eq", "ne", "contains", "not_contains"};
+    return {"eq", "ne"};
+}
+
+std::string conditional_setting_default(const std::string &key)
+{
+    const auto *def = print_config_def.get(key);
+    if (!def || !def->default_value) return {};
+    if (def->default_value->is_vector()) {
+        const auto values = static_cast<const ConfigOptionVectorBase*>(def->default_value.get())->vserialize();
+        return values.empty() ? "" : values.front();
+    }
+    if (const auto *text = dynamic_cast<const ConfigOptionString*>(def->default_value.get())) return text->value;
+    return def->default_value->serialize();
+}
+
+static bool conditional_number(std::string text, ConfigOptionType type, double &value, bool &percent)
+{
+    percent = !text.empty() && text.back() == '%';
+    if (percent) {
+        if (type != coPercent && type != coFloatOrPercent) return false;
+        text.pop_back();
+    }
+    std::istringstream stream(text);
+    stream.imbue(std::locale::classic());
+    if (!(stream >> value) || !(stream >> std::ws).eof() || !std::isfinite(value)) return false;
+    if (type == coInt) {
+        int integer;
+        std::istringstream integers(text);
+        integers.imbue(std::locale::classic());
+        if (!(integers >> integer) || !(integers >> std::ws).eof()) return false;
+    }
+    return true;
+}
+
+static std::string conditional_value_error(const std::string &key, const std::string &text, bool target)
+{
+    const auto &def = *print_config_def.get(key);
+    const auto type = conditional_setting_type(key);
+    if (type == coBool) return text == "0" || text == "1" ? "" : _u8L("Choose On or Off.");
+    if (type == coEnum) return def.has_enum_value(text) ? "" : _u8L("Choose a valid setting value.");
+    if (type == coString) return text.empty() ? _u8L("Enter a comparison value.") : "";
+    double value;
+    bool percent;
+    if (!conditional_number(text, type, value, percent) || (target && (value < def.min || value > def.max)))
+        return target ? _u8L("Enter a number within the setting's allowed range.") : _u8L("Enter a valid comparison number.");
+    if (target) {
+        const auto printer = conditional_printer_targets();
+        if (std::find(printer.begin(), printer.end(), key) != printer.end() && value < 0 &&
+            key != "retract_restart_extra" && key != "retract_restart_extra_toolchange")
+            return _u8L("This printer setting must be zero or greater.");
+        if (key == "retract_before_wipe" && value > 100) return _u8L("Enter a percentage from 0 to 100.");
+    }
+    if (target && (key == "layer_height" || key == "initial_layer_print_height" ||
+                   key == "bridge_flow" || key == "internal_bridge_flow") && value <= 0)
+        return _u8L("This setting must be greater than zero.");
+    ConfigOptionDef scalar = def;
+    scalar.type = type;
+    scalar.nullable = false;
+    std::unique_ptr<ConfigOption> option(scalar.create_empty_option());
+    return option->deserialize(text) ? "" : format(_u8L("Invalid value for %1%"), key);
+}
+
+std::string validate_conditional_setting(const ConditionalSettingRule &rule)
+{
+    if (!rule.enabled) return {};
+    const auto conditions = conditional_setting_conditions();
+    for (const auto &predicate : rule.predicates()) {
+        if (predicate.setting.empty()) return _u8L("Choose an If setting.");
+        if (std::find(conditions.begin(), conditions.end(), predicate.setting) == conditions.end())
+            return format(_u8L("Unknown If condition: %1%"), predicate.setting);
+        const auto comparisons = conditional_setting_comparisons(predicate.setting);
+        if (std::find(comparisons.begin(), comparisons.end(), predicate.comparison) == comparisons.end())
+            return format(_u8L("Unsupported comparison for %1%"), predicate.setting);
+        if (const auto error = conditional_value_error(predicate.setting, predicate.value, false); !error.empty())
+            return error;
+    }
+    const auto targets = conditional_setting_targets();
+    const auto effects = rule.actions();
+    for (size_t i = 0; i < effects.size(); ++i) {
+        const auto &effect = effects[i];
+        if (effect.target.empty()) return format(_u8L("Effect %1%: Choose a setting."), i + 1);
+        const auto error = std::find(targets.begin(), targets.end(), effect.target) == targets.end() ?
+            format(_u8L("Unsupported Then setting: %1%"), effect.target) : conditional_value_error(effect.target, effect.value, true);
+        if (!error.empty()) return format(_u8L("Effect %1%: %2%"), i + 1, error);
+    }
+    return {};
+}
+
+std::string validate_conditional_settings(const ConfigBase &config)
+{
+    const auto *rules = config.option<ConfigOptionStrings>("conditional_settings");
+    if (!rules) return {};
+    for (size_t i = 0; i < rules->values.size(); ++i) {
+        std::string error;
+        try {
+            error = validate_conditional_setting(ConditionalSettingRule::deserialize(rules->values[i]));
+        } catch (const ConfigurationError &e) {
+            error = e.what();
+        }
+        if (!error.empty()) return format(_u8L("If / Then rule %1%: %2%"), i + 1, error);
+    }
+    return {};
+}
+
+static unsigned int conditional_toolhead(const DynamicPrintConfig &config, unsigned int filament)
+{
+    const auto *map = config.option<ConfigOptionInts>("filament_map");
+    return map && filament < map->size() && map->values[filament] > 0 ? unsigned(map->values[filament]) : 1;
+}
+
+std::string conditional_setting_value(const DynamicPrintConfig &config, const ConditionalSettingsContext &context,
+                                      const std::string &key, unsigned int filament)
+{
+    if (key == "multi_color") return context.used_filaments.size() > 1 ? "1" : "0";
+    if (key == "color_count") return std::to_string(context.used_filaments.size());
+    if (key == "object_count") return std::to_string(context.object_count);
+    if (key == "model_height") return ConfigOptionFloat(context.model_height).serialize();
+    if (key == "has_support") return context.has_support ? "1" : "0";
+    if (key == "toolhead") return std::to_string(conditional_toolhead(config, filament));
+    if (key == "used_toolhead_count") {
+        std::set<unsigned int> heads;
+        for (auto id : context.used_filaments) heads.insert(conditional_toolhead(config, id));
+        return std::to_string(heads.size());
+    }
+    const auto *nozzles = config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (key == "physical_toolhead_count") return std::to_string(nozzles ? nozzles->size() : 1);
+    const auto *option = config.option(key);
+    if (!option) return conditional_setting_default(key);
+    if (option->is_scalar()) {
+        if (const auto *text = dynamic_cast<const ConfigOptionString*>(option)) return text->value;
+        return option->serialize();
+    }
+    if (std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(),
+                  "filament_" + key) != filament_extruder_override_keys.end()) {
+        const auto *override = dynamic_cast<const ConfigOptionVectorBase*>(config.option("filament_" + key));
+        if (override && filament < override->size() && !override->is_nil(filament))
+            return override->vserialize()[filament];
+    }
+    const auto values = static_cast<const ConfigOptionVectorBase*>(option)->vserialize();
+    size_t index = 0;
+    if (key.compare(0, 9, "filament_") == 0 || key == "nozzle_temperature" || key == "nozzle_temperature_initial_layer") index = filament;
+    else if (key == "nozzle_diameter" || printer_options_with_variant_1.count(key) || print_options_with_variant.count(key))
+        index = conditional_toolhead(config, filament) - 1;
+    else if (printer_options_with_variant_2.count(key)) index = (conditional_toolhead(config, filament) - 1) * 2;
+    return values.empty() ? "" : values[index < values.size() ? index : 0];
+}
+
+static bool conditional_compare(const ConditionalSettingCondition &predicate, const std::string &input)
+{
+    const auto type = conditional_setting_type(predicate.setting);
+    if (conditional_numeric(type)) {
+        double left, right;
+        bool left_percent, right_percent;
+        if (!conditional_number(input, type, left, left_percent) ||
+            !conditional_number(predicate.value, type, right, right_percent) ||
+            (type == coFloatOrPercent && left_percent != right_percent)) return false;
+        if (predicate.comparison == "eq") return left == right;
+        if (predicate.comparison == "ne") return left != right;
+        if (predicate.comparison == "gt") return left > right;
+        if (predicate.comparison == "ge") return left >= right;
+        if (predicate.comparison == "lt") return left < right;
+        return left <= right;
+    }
+    if (predicate.comparison == "contains") return input.find(predicate.value) != std::string::npos;
+    if (predicate.comparison == "not_contains") return input.find(predicate.value) == std::string::npos;
+    return predicate.comparison == "ne" ? input != predicate.value : input == predicate.value;
+}
+
+std::vector<std::string> apply_conditional_settings(DynamicPrintConfig &config, const DynamicPrintConfig &original,
+    const ConditionalSettingsContext &context, ConditionalSettingsStage stage)
+{
+    const auto *rules = original.option<ConfigOptionStrings>("conditional_settings");
+    if (!rules || rules->values.empty()) return {};
+    if (const auto error = validate_conditional_settings(original); !error.empty()) throw ConfigurationError(error);
+    const auto printer_targets = conditional_printer_targets();
+    std::vector<std::string> results;
+    for (const auto &row : rules->values) {
+        const auto rule = ConditionalSettingRule::deserialize(row);
+        std::vector<unsigned int> matches;
+        if (rule.enabled) {
+            bool matched = rule.match_all;
+            for (const auto &predicate : rule.predicates()) {
+                const bool negative = predicate.comparison == "ne" || predicate.comparison == "not_contains";
+                bool present = negative;
+                for (auto filament : context.used_filaments) {
+                    const bool match = conditional_compare(predicate, conditional_setting_value(original, context, predicate.setting, filament));
+                    if (negative) present &= match;
+                    else present |= match;
+                }
+                // A negative whole-plate predicate means no used filament has the excluded value.
+                const bool match = !context.used_filaments.empty() && present;
+                if (rule.match_all) matched &= match;
+                else matched |= match;
+            }
+            if (matched) matches = context.used_filaments;
+        }
+        const auto effects = rule.actions();
+        if (stage != ConditionalSettingsStage::Process) {
+            nlohmann::json actions = nlohmann::json::array();
+            for (const auto &effect : effects)
+                actions.push_back({{"target", effect.target}, {"value", effect.value}});
+            results.push_back(nlohmann::json{{"enabled", rule.enabled}, {"matched", !matches.empty()},
+                {"filaments", matches}, {"per_filament", false}, {"effects", actions},
+                {"target", effects.front().target}, {"value", effects.front().value}}.dump());
+        }
+        if (matches.empty()) continue;
+        for (const auto &effect : effects) {
+            const bool printer = std::find(printer_targets.begin(), printer_targets.end(), effect.target) != printer_targets.end();
+            if ((stage == ConditionalSettingsStage::Process && printer) ||
+                (stage == ConditionalSettingsStage::Printer && !printer)) continue;
+            const auto &def = *print_config_def.get(effect.target);
+            std::unique_ptr<ConfigOption> value(def.create_empty_option());
+            value->deserialize(effect.value);
+            const auto apply_vector = [&](const std::string &key) {
+                auto *old = config.option(key, true);
+                if (!old) return;
+                auto *vector = dynamic_cast<ConfigOptionVectorBase*>(old);
+                if (!vector) { config.set_key_value(key, value->clone()); return; }
+                if (vector->size() == 0) vector->resize(1, value.get());
+                for (size_t id = 0; id < vector->size(); ++id) vector->set_at(value.get(), id, 0);
+            };
+            // Plate-wide printer effects must also supersede explicit filament overrides.
+            apply_vector(effect.target);
+            const auto filament_key = "filament_" + effect.target;
+            if (std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(),
+                          filament_key) != filament_extruder_override_keys.end()) {
+                apply_vector(filament_key);
+            }
+        }
+    }
+    return results;
+}
+
+void apply_conditional_settings(DynamicPrintConfig &config, size_t used_filaments)
+{
+    ConditionalSettingsContext context;
+    for (size_t i = 0; i < used_filaments; ++i) context.used_filaments.push_back(unsigned(i));
+    const auto original = config;
+    apply_conditional_settings(config, original, context, ConditionalSettingsStage::All);
+}
+
 DynamicPrintConfig DynamicPrintConfig::full_print_config()
 {
 	return DynamicPrintConfig((const PrintRegionConfig&)FullPrintConfig::defaults());
@@ -12431,6 +12826,8 @@ void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPr
 std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool under_cli)
 {
     std::map<std::string, std::string> error_message;
+    if (auto error = validate_conditional_settings(cfg); !error.empty())
+        error_message.emplace("conditional_settings", error);
     // --layer-height
     if (cfg.get_abs_value("layer_height") <= 0) {
         error_message.emplace("layer_height", _u8L("invalid value ") + std::to_string(cfg.get_abs_value("layer_height")));

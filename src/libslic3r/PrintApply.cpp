@@ -1,3 +1,4 @@
+#include "ConditionalSettings.hpp"
 #include "ClipperUtils.hpp"
 #include "IMEXHelpers.hpp"
 #include "Geometry.hpp"
@@ -1332,6 +1333,65 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
         set_compensation(extruders.front());
 }
 
+ConditionalSettingsContext conditional_settings_context(const Model &model, const DynamicPrintConfig &config,
+    const std::function<bool(size_t, size_t)> &include_instance)
+{
+    ConditionalSettingsContext context;
+    PrintConfig print_config;
+    print_config.apply(config, true);
+    PrintRegionConfig region_defaults;
+    region_defaults.apply(config, true);
+    std::vector<int> variant_index;
+    std::vector<unsigned int> filaments;
+    const size_t count = print_config.filament_diameter.size();
+    for (size_t object_id = 0; object_id < model.objects.size(); ++object_id) {
+        const auto *object = model.objects[object_id];
+        bool has_printable_instance = false;
+        for (size_t instance_id = 0; instance_id < object->instances.size(); ++instance_id) {
+            const auto *instance = object->instances[instance_id];
+            if (!instance->is_printable() || (include_instance && !include_instance(object_id, instance_id))) continue;
+            has_printable_instance = true;
+            ++context.object_count;
+            context.model_height = std::max(context.model_height, object->instance_bounding_box(*instance).max.z());
+        }
+        if (!has_printable_instance) continue;
+        PrintObjectConfig object_config;
+        object_config.apply(config, true);
+        object_config.apply(object->config.get(), true);
+        const bool has_brim = object_config.raft_layers == 0 &&
+            ((object_config.brim_type != btNoBrim && object_config.brim_width.value > 0.) ||
+             object_config.brim_type == btAutoBrim ||
+             (object_config.brim_type == btPainted && !object->brim_points.empty()));
+        for (const ModelVolume *volume : object->volumes) {
+            for (int id : volume->get_extruders())
+                if (id > 0 && size_t(id) <= count)
+                    filaments.push_back(id - 1);
+            if (!volume->is_model_part())
+                continue;
+            auto collect = [&](const DynamicPrintConfig *range) {
+                const auto region = region_config_from_model_volume(region_defaults, range, *volume, count, variant_index);
+                PrintRegion::collect_object_printing_extruders(print_config, region, has_brim, filaments);
+            };
+            collect(nullptr);
+            for (const auto &range : object->layer_config_ranges)
+                collect(&range.second.get());
+        }
+        if (object_config.enable_support || object_config.enforce_support_layers > 0 || object_config.raft_layers > 0) {
+            context.has_support = true;
+            for (int id : {object_config.support_filament.value, object_config.support_interface_filament.value})
+                if (id > 0)
+                    filaments.push_back(size_t(id) <= count ? id - 1 : 0);
+        }
+    }
+    for (const auto &item : model.get_curr_plate_custom_gcodes().gcodes)
+        if (item.type == CustomGCode::Type::ToolChange && item.extruder > 0 && size_t(item.extruder) <= count)
+            filaments.push_back(item.extruder - 1);
+    filaments = expand_mixed_filaments(filaments, print_config.filament_is_mixed.values, print_config.filament_mixed_components.values);
+    sort_remove_duplicates(filaments);
+    context.used_filaments = std::move(filaments);
+    return context;
+}
+
 Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
@@ -1341,6 +1401,33 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
     // Normalize the config.
+    size_t conditional_used_filaments = 0;
+    DynamicPrintConfig conditional_original;
+    ConditionalSettingsContext conditional_context;
+    if (const auto *rules = new_full_config.option<ConfigOptionStrings>("conditional_settings");
+        rules && !rules->values.empty() && validate_conditional_settings(new_full_config).empty()) {
+        conditional_original = new_full_config;
+        // Compare resolved original variants while applying overrides through the normal normalization path.
+        if (!extruder_applied) {
+            int extruder_count = 1;
+            const bool different_extruders = conditional_original.support_different_extruders(extruder_count);
+            std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+            const int volume_count = conditional_original.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+            if (extruder_count > 1 || different_extruders) {
+                conditional_original.update_values_to_printer_extruders(conditional_original, extruder_count, volume_count, nozzle_volume_types, printer_options_with_variant_2, "printer_extruder_id", "printer_extruder_variant", 2);
+                conditional_original.update_values_to_printer_extruders(conditional_original, extruder_count, volume_count, nozzle_volume_types, printer_options_with_variant_1, "printer_extruder_id", "printer_extruder_variant");
+                conditional_original.update_values_to_printer_extruders(conditional_original, extruder_count, volume_count, nozzle_volume_types, print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+            }
+            if (extruder_count > 1 || different_extruders || conditional_original.has_multi_variant_filament())
+                conditional_original.update_values_to_printer_extruders_for_multiple_filaments(conditional_original, extruder_count, volume_count, filament_options_with_variant, "filament_self_index", "filament_extruder_variant");
+        }
+        conditional_context = conditional_settings_context(model, new_full_config);
+        const auto before_process_rules = new_full_config;
+        apply_conditional_settings(new_full_config, conditional_original, conditional_context, ConditionalSettingsStage::Process);
+        // Inactive rules must keep the existing normalization behavior, including on first apply.
+        if (!new_full_config.diff(before_process_rules).empty())
+            conditional_used_filaments = conditional_context.used_filaments.size();
+    }
 	new_full_config.option("print_settings_id",            true);
 	new_full_config.option("filament_settings_id",         true);
 	new_full_config.option("printer_settings_id",          true);
@@ -1362,7 +1449,13 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //new_full_config.normalize_fdm(used_filaments);
     new_full_config.normalize_fdm_1();
-    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(objects().size(), used_filaments.size());
+    const size_t num_objects_for_normalization = conditional_used_filaments > 0 ?
+        std::count_if(model.objects.begin(), model.objects.end(), [](const ModelObject *object) {
+            return std::any_of(object->instances.begin(), object->instances.end(),
+                               [](const ModelInstance *instance) { return instance->is_printable(); });
+        }) : objects().size();
+    t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(num_objects_for_normalization,
+        conditional_used_filaments > 0 ? conditional_used_filaments : used_filaments.size());
     if (changed_keys.size() > 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got changed_keys, size=%1%")%changed_keys.size();
         for (int i = 0; i < changed_keys.size(); i++)
@@ -1487,6 +1580,16 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             // on physical_extruder_map forever and invalidates all steps on every re-apply.
             if (auto* ori_pem = m_ori_full_print_config.option<ConfigOptionInts>("physical_extruder_map", true))
                 ori_pem->values = pem->values;
+        }
+    }
+
+    if (conditional_original.has("conditional_settings")) {
+        auto matches = apply_conditional_settings(new_full_config, conditional_original, conditional_context, ConditionalSettingsStage::Printer);
+        new_full_config.set_key_value("conditional_settings_matches", new ConfigOptionStrings(matches));
+        if (!extruder_applied) {
+            // Filament mapping rebuilds the effective config from this pre-expansion snapshot.
+            apply_conditional_settings(m_ori_full_print_config, conditional_original, conditional_context, ConditionalSettingsStage::Printer);
+            m_ori_full_print_config.set_key_value("conditional_settings_matches", new ConfigOptionStrings(matches));
         }
     }
 

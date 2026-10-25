@@ -1,3 +1,15 @@
+#include <boost/nowide/convert.hpp>
+#include <wx/textctrl.h>
+#include <wx/containr.h>
+#include <optional>
+#include <cfloat>
+#include <wx/spinctrl.h>
+#include <wx/stattext.h>
+#include "Field.hpp"
+#include "Widgets/StaticBox.hpp"
+#include "Widgets/SpinInput.hpp"
+#include "Widgets/TextInput.hpp"
+#include "libslic3r/ConditionalSettings.hpp"
 //#include "slic3r/Utils/Serial.hpp"
 #include "Tab.hpp"
 #include "PresetHints.hpp"
@@ -140,6 +152,445 @@ int mode_to_selection(ConfigOptionMode mode)
 }
 
 #define DISABLE_UNDO_SYS
+
+namespace {
+wxString conditional_label(const std::string &key)
+{
+    if (key == "filament_settings_id") return _L("Filament preset");
+    if (key == "printer_settings_id") return _L("Printer preset");
+    const auto *def = print_config_def.get(key);
+    if (!def) return wxString::FromUTF8(key);
+    const auto &text = def->full_label.empty() ? def->label : def->full_label;
+    return text.empty() ? wxString::FromUTF8(key) : _(text);
+}
+
+wxString conditional_group(const std::string &key)
+{
+    const auto *def = print_config_def.get(key);
+    if (def && !def->category.empty()) return _(def->category);
+    return key.compare(0, 9, "filament_") == 0 || key == "nozzle_temperature" ||
+           key == "nozzle_temperature_initial_layer" ? _L("Filament") : _L("Printer");
+}
+
+// Use the Process search popup and matcher, restricted to the settings allowed in this picker.
+class ConditionalSettingPicker : public wxPanel
+{
+    TextInput *m_input;
+    Search::OptionsSearcher m_searcher;
+    Search::SearchDialog *m_popup = nullptr;
+    std::string m_selected;
+    std::function<void(const std::string&)> m_changed;
+
+    void restore_label()
+    {
+        m_input->GetTextCtrl()->SetEditable(false);
+        m_input->GetTextCtrl()->ChangeValue(m_selected.empty() ? wxString() : conditional_label(m_selected));
+    }
+
+    void open()
+    {
+        if (!IsEnabled() || (m_popup && m_popup->IsShown())) return;
+        m_input->GetTextCtrl()->SetEditable(true);
+        if (!m_popup) {
+            m_popup = new Search::SearchDialog(&m_searcher, Preset::TYPE_PRINT, this, m_input, m_input);
+            m_popup->on_select = [this](const std::string &key) {
+                CallAfter([this, key] { if (IsEnabled()) { m_selected = key; restore_label(); m_changed(key); } });
+            };
+        }
+        m_popup->Position(m_input->ClientToScreen(wxPoint(0, 0)), m_input->GetSize());
+        m_popup->Popup();
+    }
+
+public:
+    ConditionalSettingPicker(wxWindow *parent, const std::vector<std::string> &keys, const std::string &selected,
+                             std::function<void(const std::string&)> changed)
+        : wxPanel(parent), m_selected(selected), m_changed(std::move(changed))
+    {
+        SetBackgroundColour(*wxWHITE);
+        m_input = new TextInput(this, "", "", "search", wxDefaultPosition, FromDIP(wxSize(150, -1)), wxTE_PROCESS_ENTER);
+        m_input->SetFont(wxGetApp().normal_font());
+        m_input->SetBorderColor(StateColor(std::make_pair(wxColour("#CECECE"), int(StateColor::Disabled)),
+                                          std::make_pair(wxColour("#009688"), int(StateColor::Normal))));
+        m_input->SetBackgroundColor(StateColor(std::make_pair(wxColour(238, 238, 238), int(StateColor::Normal))));
+        m_input->GetTextCtrl()->SetHint(_L("Search settings"));
+        auto *layout = new wxBoxSizer(wxHORIZONTAL);
+        layout->Add(m_input, 1, wxEXPAND);
+        SetSizerAndFit(layout);
+        std::vector<Search::Option> options;
+        for (const auto &key : keys) {
+            const auto label = conditional_label(key).ToStdWstring();
+            const auto group = conditional_group(key).ToStdWstring();
+            options.push_back({boost::nowide::widen(std::to_string(int(Preset::TYPE_PRINT)) + ";" + key),
+                Preset::TYPE_PRINT, label, label, group, group, {}, group, group});
+        }
+        m_searcher.set_printer_technology(ptFFF);
+        m_searcher.init_options(std::move(options));
+        restore_label();
+        auto click = [this](wxMouseEvent &event) { open(); event.Skip(); };
+        m_input->Bind(wxEVT_LEFT_DOWN, click);
+        m_input->GetTextCtrl()->Bind(wxEVT_LEFT_DOWN, click);
+        m_input->Bind(wxCUSTOMEVT_EXIT_SEARCH, [this](wxCommandEvent&) { restore_label(); });
+        m_input->GetTextCtrl()->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent &event) {
+            if (!m_popup || !m_popup->IsShown()) {
+                if (event.GetKeyCode() == WXK_RETURN || event.GetKeyCode() == WXK_DOWN) open();
+                else event.Skip();
+                return;
+            }
+            const int key = event.GetKeyCode();
+            if (key == WXK_ESCAPE) { m_popup->Die(); return; }
+            if (key == WXK_RETURN) { m_popup->select_option(size_t(m_popup->selected_result)); return; }
+            if ((key == WXK_UP || key == WXK_DOWN) && m_searcher.size() > 0) {
+                m_popup->selected_result = std::clamp(m_popup->selected_result + (key == WXK_DOWN ? 1 : -1),
+                                                    0, int(m_searcher.size()) - 1);
+                m_popup->update_list();
+                m_popup->m_scrolledWindow->Scroll(0, std::max(0, m_popup->selected_result - 3) * 3 * m_popup->em);
+                return;
+            }
+            event.Skip();
+        });
+        wxGetApp().UpdateDarkUIWin(this);
+    }
+
+    ~ConditionalSettingPicker() override { delete m_popup; }
+    bool Enable(bool enabled = true) override
+    {
+        if (!enabled && m_popup && m_popup->IsShown()) m_popup->Die();
+        m_input->Enable(enabled);
+        return wxPanel::Enable(enabled);
+    }
+};
+}
+
+class ConditionalSettingsPanel : public wxPanel
+{
+    std::vector<std::string> m_rules;
+    std::function<void(const std::vector<std::string>&)> m_save;
+    std::function<std::string(const std::string&)> m_initial_value;
+    wxBoxSizer *m_rows;
+    bool m_rebuilding = false;
+
+    wxStaticText *label(wxWindow *parent, const wxString &text, bool bold = false)
+    {
+        auto *item = new wxStaticText(parent, wxID_ANY, text);
+        item->SetFont(bold ? wxGetApp().bold_font() : wxGetApp().normal_font());
+        return item;
+    }
+
+    ScalableButton *remove_button(wxWindow *parent, const wxString &description)
+    {
+        auto *button = new ScalableButton(parent, wxID_ANY, "delete", "", FromDIP(wxSize(24, 24)));
+        button->SetToolTip(description);
+        button->SetName(description);
+        return button;
+    }
+
+    void relayout()
+    {
+        InvalidateBestSize();
+        Layout();
+        GetParent()->Layout();
+        GetParent()->FitInside();
+    }
+
+    wxWindow *value_editor(wxWindow *parent, const std::string &key, const std::string &value, bool condition,
+                          std::function<void(const std::string&, bool)> changed)
+    {
+        const auto *def = print_config_def.get(key);
+        const auto type = conditional_setting_type(key);
+        if (type == coBool) {
+            if (condition) {
+                auto *toggle = new ScalableButton(parent, wxID_ANY, "", value == "1" ? _L("On") : _L("Off"), FromDIP(wxSize(48, -1)));
+                toggle->SetName(_L("Condition On or Off"));
+                toggle->Bind(wxEVT_BUTTON, [this, toggle, state = value == "1", changed](wxCommandEvent&) mutable {
+                    if (m_rebuilding) return;
+                    state = !state;
+                    toggle->SetLabel(state ? _L("On") : _L("Off"));
+                    changed(state ? "1" : "0", true);
+                });
+                return toggle;
+            }
+            auto *check = new ::CheckBox(parent);
+            check->SetValue(value == "1");
+            check->Bind(wxEVT_TOGGLEBUTTON, [this, changed](wxCommandEvent &event) {
+                if (!m_rebuilding) changed(event.IsChecked() ? "1" : "0", true);
+                event.Skip(); // Let CheckBox refresh its bitmap after the native value changes.
+            });
+            return check;
+        }
+        if (def && type == coEnum) {
+            auto *choice = new ComboBox(parent, wxID_ANY, "", wxDefaultPosition, FromDIP(wxSize(120, -1)), 0, nullptr, wxCB_READONLY);
+            for (size_t i = 0; i < def->enum_values.size(); ++i)
+                choice->Append(i < def->enum_labels.size() ? _(def->enum_labels[i]) : wxString::FromUTF8(def->enum_values[i]));
+            const auto it = std::find(def->enum_values.begin(), def->enum_values.end(), value);
+            choice->SetSelection(it == def->enum_values.end() ? wxNOT_FOUND : int(it - def->enum_values.begin()));
+            choice->Bind(wxEVT_COMBOBOX, [this, choice, def, changed](wxCommandEvent&) {
+                if (!m_rebuilding && choice->GetSelection() >= 0) changed(def->enum_values[choice->GetSelection()], true);
+            });
+            choice->SetFont(wxGetApp().normal_font());
+            return choice;
+        }
+        wxTextCtrl *text;
+        wxWindow *editor;
+        if (def && type == coInt) {
+            const int minimum = condition ? INT_MIN : def->min <= -FLT_MAX ? 0 : int(std::clamp<double>(def->min, INT_MIN, INT_MAX));
+            const int maximum = condition ? INT_MAX : int(std::clamp<double>(def->max, INT_MIN, INT_MAX));
+            auto *spin = new SpinInput(parent, wxString::FromUTF8(value), _(def->sidetext), wxDefaultPosition,
+                                       FromDIP(wxSize(100, -1)), wxSP_ARROW_KEYS, minimum, maximum);
+            spin->Bind(wxEVT_SPINCTRL, [this, spin, changed](wxCommandEvent&) {
+                if (!m_rebuilding) changed(std::to_string(spin->GetValue()), true);
+            });
+            editor = spin;
+            text = spin->GetTextCtrl();
+            text->ChangeValue(wxString::FromUTF8(value));
+        } else {
+            auto *input = new TextInput(parent, wxString::FromUTF8(value), def ? _(def->sidetext) : wxString(), "",
+                                       wxDefaultPosition, FromDIP(wxSize(100, -1)), wxTE_PROCESS_ENTER);
+            editor = input;
+            text = input->GetTextCtrl();
+        }
+        editor->SetFont(wxGetApp().normal_font());
+        editor->Enable(!key.empty());
+        if (def) editor->SetToolTip(_(def->tooltip));
+        text->Bind(wxEVT_TEXT, [this, text, changed](wxCommandEvent&) {
+            if (!m_rebuilding) changed(into_u8(text->GetValue()), false);
+        });
+        text->Bind(wxEVT_TEXT_ENTER, [this, text, changed](wxCommandEvent &event) {
+            if (!m_rebuilding) changed(into_u8(text->GetValue()), true); event.Skip();
+        });
+        text->Bind(wxEVT_KILL_FOCUS, [this, text, changed](wxFocusEvent &event) {
+            if (!m_rebuilding) changed(into_u8(text->GetValue()), true); event.Skip();
+        });
+        return editor;
+    }
+
+    void rebuild()
+    {
+        m_rebuilding = true;
+        Freeze();
+        m_rows->Clear(true);
+        for (size_t i = 0; i < m_rules.size(); ++i) {
+            auto *row = new wxNavigationEnabled<::StaticBox>();
+            row->Create(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+            row->SetCornerRadius(5);
+            row->SetBackgroundColorNormal(*wxWHITE);
+            auto *frame = new wxBoxSizer(wxVERTICAL);
+            auto *layout = new wxBoxSizer(wxVERTICAL);
+            row->SetSizer(frame);
+            frame->Add(layout, 1, wxEXPAND | wxALL, FromDIP(8));
+            auto *header = new wxBoxSizer(wxHORIZONTAL);
+            layout->Add(header, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
+            auto *remove = remove_button(row, _L("Delete rule"));
+            remove->Bind(wxEVT_BUTTON, [this, i](wxCommandEvent&) {
+                CallAfter([this, i] {
+                    if (i >= m_rules.size()) return;
+                    m_rules.erase(m_rules.begin() + i);
+                    m_save(m_rules);
+                    rebuild();
+                });
+            });
+            auto rule = std::make_shared<ConditionalSettingRule>();
+            try {
+                *rule = ConditionalSettingRule::deserialize(m_rules[i]);
+                rule->conditions = rule->predicates();
+                rule->effects = rule->actions();
+                for (auto &predicate : rule->conditions) {
+                    if (conditional_setting_type(predicate.setting) == coBool && predicate.comparison == "ne") {
+                        predicate.comparison = "eq";
+                        predicate.value = predicate.value == "1" ? "0" : "1";
+                    }
+                }
+            } catch (const ConfigurationError &e) {
+                auto *message = label(row, wxString::FromUTF8(e.what()));
+                message->Wrap(FromDIP(260));
+                header->Add(message, 1);
+                header->Add(remove, 0);
+                m_rows->Add(row, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
+                continue;
+            }
+            auto *enabled = new ::CheckBox(row);
+            enabled->SetValue(rule->enabled);
+            enabled->SetName(_L("Enable rule"));
+            header->Add(enabled, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+            const auto default_name = format_wxstr(_L("Rule %1%"), i + 1);
+            auto *name = new TextInput(row, rule->name.empty() ? default_name : wxString::FromUTF8(rule->name),
+                                       "", "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+            name->SetBorderWidth(0);
+            name->SetFont(wxGetApp().bold_font());
+            name->SetToolTip(_L("Click to rename this rule"));
+            name->GetTextCtrl()->SetName(_L("Rule name"));
+            header->Add(name, 1, wxRIGHT, FromDIP(6));
+            header->Add(remove, 0, wxALIGN_CENTER_VERTICAL);
+            auto *body = new wxPanel(row);
+            body->SetBackgroundColour(*wxWHITE);
+            auto *content = new wxBoxSizer(wxVERTICAL);
+            body->SetSizer(content);
+            layout->Add(body, 0, wxEXPAND);
+            auto *error = label(body, "");
+            error->SetForegroundColour(wxColour(200, 60, 60));
+            auto save = [this, i, rule, error](bool commit = true) {
+                if (m_rebuilding) return;
+                const auto message = wxString::FromUTF8(validate_conditional_setting(*rule));
+                error->SetLabel(message);
+                error->Wrap(FromDIP(280));
+                error->Show(!message.empty());
+                if (commit && i < m_rules.size() && m_rules[i] != rule->serialize()) {
+                    m_rules[i] = rule->serialize();
+                    m_save(m_rules);
+                }
+                relayout();
+            };
+            auto guarded_remove = std::make_shared<std::vector<wxWindow*>>();
+            auto enable_body = [body, name, guarded_remove](bool state) {
+                body->Enable(state);
+                for (auto *child : body->GetChildren()) child->Enable(state);
+                for (auto *button : *guarded_remove) button->Enable(false);
+                name->Enable(state);
+            };
+            enabled->Bind(wxEVT_TOGGLEBUTTON, [enabled, rule, enable_body, save](wxCommandEvent &event) {
+                rule->enabled = event.IsChecked();
+                enabled->SetValue(rule->enabled);
+                enable_body(rule->enabled);
+                save();
+                event.Skip();
+            });
+            auto rename = [this, name, default_name, rule, save] {
+                if (m_rebuilding) return;
+                const auto value = name->GetTextCtrl()->GetValue().Strip(wxString::both);
+                rule->name = value.empty() ? "" : into_u8(value);
+                if (value.empty()) name->GetTextCtrl()->ChangeValue(default_name);
+                save();
+            };
+            name->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [rename](wxCommandEvent&) { rename(); });
+            name->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [rename](wxFocusEvent &event) { rename(); event.Skip(); });
+            auto connectors = std::make_shared<std::vector<ScalableButton*>>();
+            for (size_t j = 0; j < rule->conditions.size(); ++j) {
+                auto *line = new wxBoxSizer(wxHORIZONTAL);
+                if (j == 0) line->Add(label(body, _L("If"), true), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+                else {
+                    auto *join = new ScalableButton(body, wxID_ANY, "", rule->match_all ? _L("AND") : _L("OR"), FromDIP(wxSize(48, -1)));
+                    join->SetToolTip(_L("Toggle whether all conditions or any condition must match"));
+                    connectors->push_back(join);
+                    join->Bind(wxEVT_BUTTON, [rule, connectors, save](wxCommandEvent&) {
+                        rule->match_all = !rule->match_all;
+                        for (auto *button : *connectors) button->SetLabel(rule->match_all ? _L("AND") : _L("OR"));
+                        save();
+                    });
+                    line->Add(join, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+                }
+                auto *condition = new ConditionalSettingPicker(body, conditional_setting_conditions(), rule->conditions[j].setting,
+                    [this, rule, j, save](const std::string &key) {
+                        rule->conditions[j] = {key, "eq", m_initial_value(key)};
+                        save(); CallAfter([this] { rebuild(); });
+                    });
+                line->Add(condition, 1, wxRIGHT, FromDIP(6));
+                if (!rule->conditions[j].setting.empty() && conditional_setting_type(rule->conditions[j].setting) != coBool) {
+                    const auto comparisons = conditional_setting_comparisons(rule->conditions[j].setting);
+                    auto *comparison = new ComboBox(body, wxID_ANY, "", wxDefaultPosition, FromDIP(wxSize(65, -1)), 0, nullptr, wxCB_READONLY);
+                    for (const auto &op : comparisons) {
+                        comparison->Append(op == "eq" ? "=" : op == "ne" ? "!=" : op == "gt" ? ">" :
+                            op == "ge" ? ">=" : op == "lt" ? "<" : op == "le" ? "<=" :
+                            op == "contains" ? _L("contains") : _L("does not contain"));
+                    }
+                    const auto it = std::find(comparisons.begin(), comparisons.end(), rule->conditions[j].comparison);
+                    comparison->SetSelection(it == comparisons.end() ? wxNOT_FOUND : int(it - comparisons.begin()));
+                    comparison->Bind(wxEVT_COMBOBOX, [comparison, comparisons, rule, j, save](wxCommandEvent&) {
+                        if (comparison->GetSelection() >= 0) { rule->conditions[j].comparison = comparisons[comparison->GetSelection()]; save(); }
+                    });
+                    line->Add(comparison, 0, wxRIGHT, FromDIP(6));
+                }
+                if (!rule->conditions[j].setting.empty()) line->Add(value_editor(body, rule->conditions[j].setting, rule->conditions[j].value, true,
+                    [rule, j, save](const std::string &value, bool commit) { rule->conditions[j].value = value; save(commit); }),
+                    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+                auto *remove_condition = remove_button(body, _L("Remove condition"));
+                remove_condition->Enable(rule->conditions.size() > 1);
+                if (rule->conditions.size() == 1) guarded_remove->push_back(remove_condition);
+                line->Add(remove_condition, 0, wxALIGN_CENTER_VERTICAL);
+                content->Add(line, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+                remove_condition->Bind(wxEVT_BUTTON, [this, rule, j, save](wxCommandEvent&) {
+                    CallAfter([this, rule, j, save] { rule->conditions.erase(rule->conditions.begin() + j); save(); rebuild(); });
+                });
+            }
+            auto *add_condition = new ScalableButton(body, wxID_ANY, "add", _L("Add condition"));
+            content->Add(add_condition, 0, wxBOTTOM, FromDIP(6));
+            add_condition->Bind(wxEVT_BUTTON, [this, rule, save](wxCommandEvent&) {
+                rule->conditions.push_back({"", "eq", ""}); save(); CallAfter([this] { rebuild(); });
+            });
+            content->Add(label(body, _L("Then"), true), 0, wxBOTTOM, FromDIP(4));
+            for (size_t j = 0; j < rule->effects.size(); ++j) {
+                auto *line = new wxBoxSizer(wxHORIZONTAL);
+                auto targets = conditional_setting_targets();
+                const auto &effect = rule->effects[j];
+                if (!effect.target.empty() && std::find(targets.begin(), targets.end(), effect.target) == targets.end())
+                    targets.push_back(effect.target);
+                auto *target = new ConditionalSettingPicker(body, targets, effect.target, [this, rule, j, save](const std::string &key) {
+                    rule->effects[j] = {key, m_initial_value(key)};
+                    save(); CallAfter([this] { rebuild(); });
+                });
+                line->Add(target, 1, wxRIGHT, FromDIP(6));
+                if (!effect.target.empty()) line->Add(value_editor(body, effect.target, effect.value, false,
+                    [rule, j, save](const std::string &value, bool commit) { rule->effects[j].value = value; save(commit); }),
+                    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+                auto *remove_effect = remove_button(body, _L("Remove effect"));
+                remove_effect->Enable(rule->effects.size() > 1);
+                if (rule->effects.size() == 1) guarded_remove->push_back(remove_effect);
+                line->Add(remove_effect, 0, wxALIGN_CENTER_VERTICAL);
+                content->Add(line, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+                remove_effect->Bind(wxEVT_BUTTON, [this, rule, j, save](wxCommandEvent&) {
+                    CallAfter([this, rule, j, save] { rule->effects.erase(rule->effects.begin() + j); save(); rebuild(); });
+                });
+            }
+            auto *add_effect = new ScalableButton(body, wxID_ANY, "add", _L("Add effect"));
+            content->Add(add_effect, 0);
+            add_effect->Bind(wxEVT_BUTTON, [this, rule, save](wxCommandEvent&) {
+                rule->effects.push_back({"", ""}); save(); CallAfter([this] { rebuild(); });
+            });
+            content->Add(error, 0, wxEXPAND | wxTOP, FromDIP(4));
+            const auto message = wxString::FromUTF8(validate_conditional_setting(*rule));
+            error->SetLabel(message);
+            error->Wrap(FromDIP(280));
+            error->Show(!message.empty());
+            wxGetApp().UpdateDarkUIWin(row);
+            enable_body(rule->enabled);
+            m_rows->Add(row, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
+        }
+        m_rebuilding = false;
+        Thaw();
+        relayout();
+    }
+
+public:
+    ConditionalSettingsPanel(wxWindow *parent, const DynamicPrintConfig &config,
+                             std::function<void(const std::vector<std::string>&)> save,
+                             std::function<std::string(const std::string&)> initial_value)
+        : wxPanel(parent), m_save(std::move(save)), m_initial_value(std::move(initial_value))
+    {
+        SetBackgroundColour(*wxWHITE);
+        auto *layout = new wxBoxSizer(wxVERTICAL);
+        SetSizer(layout);
+        m_rows = new wxBoxSizer(wxVERTICAL);
+        layout->Add(m_rows, 0, wxEXPAND);
+        auto *add = new ScalableButton(this, wxID_ANY, "add", _L("Add rule"));
+        layout->Add(add, 0);
+        add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            ConditionalSettingRule rule;
+            rule.conditions = {{"", "eq", ""}};
+            rule.effects = {{"", ""}};
+            m_rules.push_back(rule.serialize());
+            m_save(m_rules); rebuild();
+        });
+        wxGetApp().UpdateDarkUIWin(this);
+        reload(config);
+    }
+
+    ~ConditionalSettingsPanel() override { m_rebuilding = true; DestroyChildren(); }
+
+    void reload(const DynamicPrintConfig &config)
+    {
+        const auto *rules = config.option<ConfigOptionStrings>("conditional_settings");
+        const auto values = rules ? rules->values : std::vector<std::string>();
+        if (m_rules != values) { m_rules = values; rebuild(); }
+    }
+};
 
 // Forward declaration for early use; definitions live later in this translation unit.
 static void validate_custom_gcode_cb(Tab* tab, const wxString& title, const t_config_option_key& opt_key, const boost::any& value);
@@ -3462,6 +3913,35 @@ void TabPrint::build()
         // option.opt.height = 5;
         optgroup->append_single_option_line(option, "others_settings_g_code_output#filename-format");
 
+        if (m_type == Preset::TYPE_PRINT) {
+            optgroup = page->new_optgroup(L("If / Then settings"), L"advanced", 0);
+            Line rules_line{"", ""};
+            rules_line.full_width = 1;
+            rules_line.widget = [this](wxWindow *parent) {
+                auto *panel = new ConditionalSettingsPanel(parent, *m_config, [this](const std::vector<std::string> &rules) {
+                    m_config->set_key_value("conditional_settings", new ConfigOptionStrings(rules));
+                    load_key_value("conditional_settings", boost::any(), true);
+                }, [this](const std::string &key) {
+                    auto *plater = wxGetApp().plater();
+                    auto *plate = plater ? plater->get_partplate_list().get_curr_plate() : nullptr;
+                    auto config = m_preset_bundle->full_config(true, plate ?
+                        std::make_optional(plate->get_real_filament_maps(m_preset_bundle->project_config)) : std::nullopt);
+                    if (plate) config.apply(*plate->config());
+                    ConditionalSettingsContext context;
+                    if (plater) context = conditional_settings_context(plater->model(), config,
+                        [plate](size_t object, size_t instance) {
+                            return !plate || plate->contain_instance(int(object), int(instance));
+                        });
+                    const auto filament = context.used_filaments.empty() ? 0 : context.used_filaments.front();
+                    return conditional_setting_value(config, context, key, filament);
+                });
+                m_conditional_settings_panel = panel;
+                auto *sizer = new wxBoxSizer(wxVERTICAL);
+                sizer->Add(panel, 1, wxEXPAND);
+                return sizer;
+            };
+            optgroup->append_line(rules_line);
+        }
         optgroup = page->new_optgroup(L("Change extrusion role G-code"), L"param_gcode", 0);
         optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
             validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
@@ -3512,11 +3992,20 @@ void TabPrint::build()
     //     build_preset_description_line(optgroup.get());
 }
 
+void TabPrint::sys_color_changed()
+{
+    Tab::sys_color_changed();
+    if (m_conditional_settings_panel)
+        wxGetApp().UpdateDarkUIWin(m_conditional_settings_panel.get());
+}
+
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
 void TabPrint::reload_config()
 {
     this->compatible_widget_reload(m_compatible_printers);
     Tab::reload_config();
+    if (m_conditional_settings_panel)
+        static_cast<ConditionalSettingsPanel*>(m_conditional_settings_panel.get())->reload(*m_config);
 }
 
 void TabPrint::update_description_lines()

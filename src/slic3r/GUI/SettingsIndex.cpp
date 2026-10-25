@@ -7,6 +7,7 @@
 #include "libslic3r/Config.hpp"
 #include <string>
 #include <vector>
+#include <utility>
 
 #include <boost/nowide/convert.hpp>
 #include <wx/string.h>
@@ -131,6 +132,13 @@ void SettingsIndex::sort_options()
     };
     sort_and_mark(m_options);
     sort_and_mark(m_all_modes);
+}
+
+void SettingsIndex::init_options(std::vector<Option> input_options)
+{
+    m_options = std::move(input_options);
+    m_all_modes = m_options;
+    sort_options();
 }
 
 void SettingsIndex::init(std::vector<InputInfo> input_values)

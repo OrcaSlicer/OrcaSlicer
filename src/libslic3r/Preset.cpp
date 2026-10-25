@@ -1363,6 +1363,7 @@ static std::vector<std::string> s_Preset_print_options{
     "slicing_pipeline_plugin",
     "plugins",
     "print_plugin_config_overrides",
+    "conditional_settings",
     "process_change_extrusion_role_gcode",
     "min_length_factor",
     "wall_maximum_resolution",

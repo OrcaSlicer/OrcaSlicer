@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <functional>
 
 #include <boost/nowide/convert.hpp>
 
@@ -99,6 +100,7 @@ public:
 
     // Rebuild the catalog and re-run the current query so the cached results track it.
     void init(std::vector<InputInfo> input_values);
+    void init_options(std::vector<Option> input_options);
     void apply(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode);
 
     bool search();
@@ -175,6 +177,9 @@ public:
     ScrolledWindow * m_scrolledWindow{nullptr};
 
     OptionsSearcher *searcher{nullptr};
+    std::function<void(const std::string&)> on_select;
+    int selected_result = 0;
+    void select_option(size_t index);
 
     void OnInputText(wxCommandEvent &event);
     void OnLeftUpInTextCtrl(wxEvent &event);

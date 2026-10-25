@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "Search.hpp"
 
 #include "slic3r/GUI/GUI.hpp"
@@ -256,6 +257,12 @@ void OptionsSearcher::init(std::vector<InputInfo> input_values)
     search(search_line, true, search_type);
 }
 
+void OptionsSearcher::init_options(std::vector<Option> input_options)
+{
+    m_index.init_options(std::move(input_options));
+    search(search_line, true, search_type);
+}
+
 void OptionsSearcher::apply(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode)
 {
     if (m_index.apply(config, type, mode))
@@ -417,6 +424,10 @@ void SearchItem::on_mouse_left_up(wxMouseEvent &evt)
     //if (m_sdialog->prevent_list_events) return;
     // if (wxGetMouseState().LeftIsDown())
     if (m_sdialog) {
+        if (m_sdialog->on_select) {
+            m_sdialog->select_option(size_t(m_index));
+            return;
+        }
         m_sdialog->Die();
         wxCommandEvent event(wxCUSTOMEVT_JUMP_TO_OPTION);
         event.SetInt(m_index);
@@ -484,6 +495,19 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
     search_line->Bind(wxEVT_TEXT, &SearchDialog::OnInputText, this);
     search_line->Bind(wxEVT_LEFT_UP, &SearchDialog::OnLeftUpInTextCtrl, this);
     search_line2 = search_line->GetTextCtrl();
+    search_line2->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent &event) {
+        if (!on_select) { event.Skip(); return; }
+        const int key = event.GetKeyCode();
+        if (key == WXK_ESCAPE) { Die(); return; }
+        if (key == WXK_RETURN) { select_option(size_t(selected_result)); return; }
+        if ((key == WXK_UP || key == WXK_DOWN) && this->searcher->size() > 0) {
+            selected_result = std::clamp(selected_result + (key == WXK_DOWN ? 1 : -1), 0, int(this->searcher->size()) - 1);
+            update_list();
+            m_scrolledWindow->Scroll(0, std::max(0, selected_result - 3) * 3 * em);
+            return;
+        }
+        event.Skip();
+    });
 
     // scroll window
     m_scrolledWindow = new ScrolledWindow(m_client_panel, wxID_ANY, wxDefaultPosition, wxSize(POPUP_WIDTH * em - (em + em /2), POPUP_HEIGHT * em), wxVSCROLL, 6, 6);
@@ -530,6 +554,14 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
 }
 
 SearchDialog::~SearchDialog() {}
+
+void SearchDialog::select_option(size_t index)
+{
+    if (index >= searcher->size()) return;
+    const auto key = searcher->get_option(index).opt_key();
+    Die();
+    on_select(key);
+}
 
 void SearchDialog::Popup(wxWindow *focus /*= nullptr*/)
 {
@@ -599,6 +631,7 @@ void SearchDialog::OnInputText(wxCommandEvent &)
     wxString input_string = search_line2->GetValue();
     if (input_string == wxEmptyString) input_string.Clear();
     searcher->search(into_u8(input_string), true, search_type);
+    selected_result = 0;
     update_list();
 }
 
@@ -630,6 +663,8 @@ void SearchDialog::update_list()
     for (const FoundOption &item : filters) {
         wxString str = from_u8(item.label).Remove(0, 1);
         auto     tmp = new SearchItem(m_listPanel, str, index, this);
+        if (on_select && index == selected_result)
+            tmp->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#BFE1DE")));
         m_listsizer->Add(tmp, 0, wxEXPAND, 0);
         index++;
     }

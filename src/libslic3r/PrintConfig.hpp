@@ -2061,6 +2061,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionStrings,            post_process))
     ((ConfigOptionStrings,            slicing_pipeline_plugin))
     ((ConfigOptionString,             print_plugin_config_overrides))
+    ((ConfigOptionStrings,            conditional_settings))
     ((ConfigOptionString,             printer_model))
     ((ConfigOptionFloat,              resolution))
     ((ConfigOptionFloats,             retraction_minimum_travel))
