@@ -19,6 +19,7 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "../Circle.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -452,17 +453,38 @@ struct PrecomputedOverhangLayer
     std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     lower_boundaries;
     std::shared_ptr<const AABBTreeLines::LinesDistancer<CurledLine>> lower_curled_lines;
     std::unordered_map<Point3, double, Point3Hash>                   distances;
+    // Orca: The printed footprint of the layer below, for the opt-in infill overhang metadata.
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     lower_infill_footprint;
 };
 
+// Orca: Overhang metadata measures infill against the material actually printed below it. Slice outlines include the
+// empty space inside sparse infill, so use the widths of the layer's extrusion paths instead.
+inline std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>> infill_support_footprint(const Layer *layer)
+{
+    Polygons covered;
+    const auto add_path = [&covered](const ExtrusionPath &path) {
+        if (!path.is_force_no_extrusion() && path.mm3_per_mm > 0.0 && path.width > EPSILON)
+            path.polygons_covered_by_width(covered, 0.f);
+    };
+    if (layer != nullptr)
+        for (const LayerRegion *region : layer->regions()) {
+            for_each_extrusion_path(region->perimeters, add_path);
+            for_each_extrusion_path(region->fills, add_path);
+        }
+    return std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(union_ex(covered)));
+}
+
 // `layer` must have a layer below it; leave out `curled_lines` only when no region of `layer` slows down for curled
-// perimeters.
-inline PrecomputedOverhangLayer precompute_overhang_layer(const PrintObject *object, const Layer &layer, bool curled_lines = true)
+// perimeters, and `infill_footprint` unless overhang metadata is exported.
+inline PrecomputedOverhangLayer precompute_overhang_layer(const PrintObject *object, const Layer &layer, bool curled_lines = true,
+                                                          bool infill_footprint = false)
 {
     PrecomputedOverhangLayer out{object, &layer,
                                  std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(layer.lower_layer->lslices)),
                                  curled_lines ? std::make_shared<const AABBTreeLines::LinesDistancer<CurledLine>>(layer.lower_layer->curled_lines) :
                                                 nullptr,
-                                 {}};
+                                 {},
+                                 infill_footprint ? infill_support_footprint(layer.lower_layer) : nullptr};
     const AABBTreeLines::LinesDistancer<Linef3> &lower = *out.lower_boundaries;
     auto add_path = [&out, &lower](const ExtrusionPath &path) {
         if (!is_bridge(path.role()) && !is_perimeter(path.role()))
@@ -486,8 +508,6 @@ struct ProcessedPoint
     Point3 p;
     float speed = 1.0f;
     float overlap = 1.0f;
-    // Orca: Preview geometry must not include the artificial curled-edge distance used for speed and cooling.
-    float overhang_percentage = 0.0f;
 };
 
 class ExtrusionQualityEstimator
@@ -501,6 +521,8 @@ class ExtrusionQualityEstimator
     std::unordered_map<const PrintObject*, const Layer*>                      prev_layer_sources;
     std::unordered_map<const PrintObject*, const Layer*>                      last_prepared_layers;
     std::vector<PrecomputedOverhangLayer>                                     precomputed_layers;
+    // Orca: Infill support footprints by the layer they describe, built at most once per printed layer.
+    std::unordered_map<const Layer*, std::shared_ptr<const Boundaries>>        infill_footprints;
     const PrintObject                                                        *current_object;
 
     const PrecomputedOverhangLayer *precomputed_for(const PrintObject *object) const
@@ -574,9 +596,13 @@ class ExtrusionQualityEstimator
     // Orca: Measure displacement from the current contour instead of assuming every path center is
     // exactly half a width inside it. Arachne width and placement changes otherwise make identical
     // consecutive contours look unsupported; fitted arcs need the same correction for their curves.
+    // A wall reports how far its bead's outer edge reaches past the lower contour, up to the metadata cap: for the
+    // external wall that is the contour offset, which the angle preview converts. Bridges and infill are measured up
+    // to a full bead, which already means bridging.
     float overhang_percentage_at(Vec3d position, float width, const Vec2d &path_direction,
                                  bool associate_current_contour)
     {
+        constexpr double max_widths = 0.01 * GCodeProcessor::MAX_OVERHANG_PERCENTAGE;
         // Slice boundaries lie in XY. Z-contoured paths carry an extrusion-height offset which
         // must not become part of the horizontal unsupported-width measurement.
         position.z() = 0.0;
@@ -602,7 +628,9 @@ class ExtrusionQualityEstimator
                 const double current_distance = current_boundaries().distance_from_lines<true>(position);
                 const double inset_error = std::isfinite(current_distance) ?
                     std::max(0.0, current_distance + 0.5 * width) : 0.0;
-                return float(100.0 * std::clamp((previous_distance + 0.5 * width - inset_error) / width, 0.0, 1.0));
+                // Past a full bead, the distance to the far side of a hole or thin wall is no slope of this wall.
+                const double widths = (previous_distance + 0.5 * width - inset_error) / width;
+                return widths >= 1.0 ? GCodeProcessor::MAX_OVERHANG_PERCENTAGE : float(100.0 * std::max(0.0, widths));
             }
         }
         // Orca: Correct only a path center closer than half a width to its own contour. Deeper inner
@@ -620,26 +648,17 @@ class ExtrusionQualityEstimator
                 or_empty(prev_layer_boundaries[current_object]), current.position, width, path_direction);
             if (std::isfinite(previous.signed_distance))
                 unsupported_width = std::min(unsupported_width, std::max(0.0, previous.signed_distance));
+            // Orca: A fully unsupported wall whose nearest lower material runs across it, such as the side of a
+            // shelf or an island starting next to the body, has no lower contour of its own to slope from.
+            if (unsupported_width >= width && previous.line_id != no_line) {
+                const Vec3d current_direction = current_boundaries().get_line(current.line_id).unit_vector();
+                const Vec3d previous_direction =
+                    or_empty(prev_layer_boundaries[current_object]).get_line(previous.line_id).unit_vector();
+                if (std::abs(current_direction.head<2>().dot(previous_direction.head<2>())) < 0.7)
+                    return GCodeProcessor::MAX_OVERHANG_PERCENTAGE;
+            }
         }
-        return float(100.0 * std::clamp(unsupported_width / width, 0.0, 1.0));
-    }
-
-    float segment_overhang_percentage(const Vec3d &start, const Vec3d &end, float width,
-                                      bool associate_current_contour)
-    {
-        if (width <= EPSILON)
-            return 0.0f;
-        const Vec2d direction = (end - start).head<2>();
-        const double probe_spacing = std::max(0.1, double(width));
-        const size_t intervals = std::max<size_t>(1, size_t(std::ceil(direction.norm() / probe_spacing)));
-        float maximum = 0.0f;
-        // Use cell centres to keep shared endpoints from attributing a neighboring wall's overhang
-        // to this span. Sample the interior even if speed-based splitting retained a long segment.
-        for (size_t sample = 0; sample < intervals && maximum < 100.0f; ++sample)
-            maximum = std::max(maximum, overhang_percentage_at(
-                start + (end - start) * ((double(sample) + 0.5) / intervals), width, direction,
-                associate_current_contour));
-        return maximum;
+        return float(100.0 * std::clamp(unsupported_width / width, 0.0, max_widths));
     }
 
 public:
@@ -671,40 +690,31 @@ public:
         }
     }
 
-    // Preview-only material reference. Slice outlines include the empty spaces inside sparse
-    // infill, so use the widths of actual extrusion paths instead. Keep speed/fan contour trees separate.
-    void prepare_for_infill_layer(const PrintObject *object, const Layer *lower_layer)
+    // The footprint the generator precomputed for the layer below `layer`, if any.
+    std::shared_ptr<const Boundaries> precomputed_infill_footprint(const PrintObject *object, const Layer *layer) const
     {
-        Polygons covered;
-        const auto add_path = [&covered](const ExtrusionPath &path) {
-            if (!path.is_force_no_extrusion() && path.mm3_per_mm > 0.0 && path.width > EPSILON)
-                path.polygons_covered_by_width(covered, 0.f);
-        };
-        if (lower_layer != nullptr)
-            for (const LayerRegion *region : lower_layer->regions()) {
-                for_each_extrusion_path(region->perimeters, add_path);
-                for_each_extrusion_path(region->fills, add_path);
-            }
-        prev_layer_boundaries[object] = std::make_shared<const Boundaries>(to_unscaled_linesf3(union_ex(covered)));
+        const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
+        return precomputed != nullptr && precomputed->layer == layer ? precomputed->lower_infill_footprint : nullptr;
     }
 
-    // Orca: Return the unsupported part of the extrusion width for every original path segment, in percent.
-    // This uses the same signed-distance calculation as the overhang speed estimator. Probe interiors too:
-    // supported endpoints can hide a recessed support contour. Each unchanged segment gets its largest
-    // sampled percentage; collecting metadata must not split printer moves.
-    std::vector<float> estimate_overhang_percentages(const ExtrusionPath &path)
+    // Preview-only material reference, kept apart from the speed/fan contour trees: measures the infill of `object`
+    // against the printed footprint of `support_layer`. Each footprint is built once until forget_infill_footprints().
+    void prepare_for_infill_layer(const PrintObject *object, const Layer *support_layer,
+                                  std::shared_ptr<const Boundaries> footprint = nullptr)
     {
-        const size_t segments_count = path.polyline.points.size() > 1 ? path.polyline.points.size() - 1 : 0;
-        std::vector<float> percentages(segments_count, 0.0f);
-        if (segments_count == 0 || path.width <= EPSILON)
-            return percentages;
-
-        for (size_t i = 0; i < percentages.size(); ++i) {
-            percentages[i] = segment_overhang_percentage(unscaled(path.polyline.points[i]),
-                unscaled(path.polyline.points[i + 1]), path.width, is_perimeter(path.role()));
-        }
-        return percentages;
+        std::shared_ptr<const Boundaries> &cached = infill_footprints[support_layer];
+        if (footprint)
+            cached = std::move(footprint);
+        else if (!cached)
+            cached = infill_support_footprint(support_layer);
+        prev_layer_boundaries[object] = cached;
     }
+
+    // Measures the current object's infill against `support_layer`, as prepare_for_infill_layer() does.
+    void select_infill_support(const Layer *support_layer) { prepare_for_infill_layer(current_object, support_layer); }
+
+    // Drops the footprints of the previous printed layer.
+    void forget_infill_footprints() { infill_footprints.clear(); }
 
     // Sample equal-length cells independently instead of attributing their maximum to the whole G1.
     // These percentages describe preview spans; the original extrusion remains one printer move.
@@ -751,8 +761,7 @@ public:
                                                            bool								   slowdown_for_curled_edges,
                                                            // Overlap at or below which the overhang fan switches on; negative when the fan
                                                            // does not depend on overlap.
-                                                           float                               fan_overlap_threshold = -1.0f,
-                                                           bool                                estimate_overhang_metadata = false)
+                                                           float                               fan_overlap_threshold = -1.0f)
     {
         size_t                               speed_sections_count = std::min(overlaps.values.size(), speeds.values.size());
         std::vector<std::pair<float, float>> speed_sections;
@@ -913,13 +922,7 @@ public:
             
             float overlap = std::min(1 - (curr.distance+artificial_distance_to_curled_lines) * width_inv, 1 - (next.distance+artificial_distance_to_curled_lines) * width_inv);
 
-            // Orca: Keep the existing speed/fan overlap untouched. Only pay for current-contour queries
-            // when opt-in preview metadata is requested, then normalize away Arachne placement and curls.
-            // Speed splitting can omit shallow pockets that do not change feedrate. Apply the same
-            // interior sampling as fixed-speed metadata without adding or moving extrusion points.
-            const float overhang_percentage = estimate_overhang_metadata ?
-                segment_overhang_percentage(curr.position, next.position, path.width, is_perimeter(path.role())) : 0.0f;
-            processed_points.push_back({Point3(scaled(curr.position)), extrusion_speed, overlap, overhang_percentage});
+            processed_points.push_back({Point3(scaled(curr.position)), extrusion_speed, overlap});
         }
         return processed_points;
     }
