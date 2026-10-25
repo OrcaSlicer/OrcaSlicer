@@ -732,7 +732,9 @@ protected:
     std::map<unsigned int, IslandOrderCacheEntry> m_ordering_cache;
 
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
-    // Printed-material references are opt-in preview data, separate from speed/fan contour trees.
+    // Opt-in preview data, kept apart from the speed/fan estimate so that it never changes printer commands: walls are
+    // measured against the layer directly below, infill against the material printed under it.
+    ExtrusionQualityEstimator m_wall_overhang_estimator;
     ExtrusionQualityEstimator m_infill_overhang_estimator;
 
 

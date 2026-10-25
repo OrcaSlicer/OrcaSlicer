@@ -667,21 +667,19 @@ public:
     // Takes the data computed ahead for the layer about to be generated, replacing the previous layer's.
     void set_precomputed_layers(std::vector<PrecomputedOverhangLayer> &&layers) { precomputed_layers = std::move(layers); }
 
-    // Measures the layer against its actual lower layer.
-    void prepare_for_new_layer(const PrintObject *obj, const Layer *layer)
+    // Measures the layer against the layer prepared before it.
+    void prepare_for_new_layer(const PrintObject * obj, const Layer *layer)
     {
         if (layer == nullptr) return;
         const PrintObject *object = obj;
-        // Always measure the actual lower layer, including after skipped preparations.
-        const Layer *prev = layer->lower_layer;
-        last_prepared_layers[object] = layer;
+        const Layer *prev = std::exchange(last_prepared_layers[object], layer);
         next_layer_boundaries[object].reset();
         prev_layer_sources[object] = prev;
         const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
         if (prev == nullptr) {
             prev_layer_boundaries[object]  = nullptr;
             prev_curled_extrusions[object] = nullptr;
-        } else if (precomputed != nullptr && precomputed->layer == layer) {
+        } else if (precomputed != nullptr && precomputed->layer == layer && layer->lower_layer == prev) {
             prev_layer_boundaries[object]  = precomputed->lower_boundaries;
             prev_curled_extrusions[object] = precomputed->lower_curled_lines;
         } else {
@@ -690,11 +688,27 @@ public:
         }
     }
 
-    // The footprint the generator precomputed for the layer below `layer`, if any.
-    std::shared_ptr<const Boundaries> precomputed_infill_footprint(const PrintObject *object, const Layer *layer) const
+    // Orca: Overhang metadata measures a wall against the layer directly below it, whichever layers the speed and fan
+    // estimate prepared before. `lower_boundaries` may hand over that layer's outline computed ahead.
+    void prepare_for_lower_layer(const PrintObject *object, const Layer *layer,
+                                 std::shared_ptr<const Boundaries> lower_boundaries = nullptr)
+    {
+        if (layer == nullptr) return;
+        last_prepared_layers[object] = layer;
+        next_layer_boundaries[object].reset();
+        prev_layer_sources[object] = layer->lower_layer;
+        if (layer->lower_layer == nullptr)
+            prev_layer_boundaries[object] = nullptr;
+        else
+            prev_layer_boundaries[object] = lower_boundaries ? std::move(lower_boundaries) :
+                std::make_shared<const Boundaries>(to_unscaled_linesf3(layer->lower_layer->lslices));
+    }
+
+    // The data the generator computed ahead for `layer` of `object`, if any.
+    const PrecomputedOverhangLayer *precomputed_layer(const PrintObject *object, const Layer *layer) const
     {
         const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
-        return precomputed != nullptr && precomputed->layer == layer ? precomputed->lower_infill_footprint : nullptr;
+        return precomputed != nullptr && precomputed->layer == layer ? precomputed : nullptr;
     }
 
     // Preview-only material reference, kept apart from the speed/fan contour trees: measures the infill of `object`
