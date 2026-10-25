@@ -59,6 +59,7 @@
 #include <wx/panel.h>
 #include <wx/colour.h>
 #include <wx/dataview.h>
+#include <wx/types.h>
 #include <wx/dynarray.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
