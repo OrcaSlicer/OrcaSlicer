@@ -3807,16 +3807,21 @@ int CLI::run(int argc, char **argv)
     //compute the flush volume
     ConfigOptionStrings *selected_filament_colors_option = m_extra_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *project_filament_colors_option = m_print_config.option<ConfigOptionStrings>("filament_colour");
-    if ((!project_filament_colors_option || (project_filament_colors_option->values.size() == 0)) && selected_filament_colors_option)
+    // Filament presets carry no colour, so loading filaments can leave the palette shorter than the
+    // filament count. Tool ordering sizes its per-filament tables from filament_colour, so a short
+    // palette makes every later filament index read out of bounds. Grow it and rebuild the flush matrix.
+    const bool filament_colors_grown = filament_count > 0 &&
+        (!project_filament_colors_option || project_filament_colors_option->values.size() < size_t(filament_count));
+    if (filament_colors_grown)
     {
-        BOOST_LOG_TRIVIAL(info) << boost::format("initial project_filament_colors is null, create it due to filament_colour set in cli");
+        BOOST_LOG_TRIVIAL(info) << boost::format("project filament_colour is shorter than the %1% filaments, padding it") % filament_count;
         project_filament_colors_option = m_print_config.option<ConfigOptionStrings>("filament_colour", true);
         std::vector<std::string>& project_filament_colors = project_filament_colors_option->values;
         project_filament_colors.resize(filament_count, "#FFFFFF");
     }
 
     if (project_filament_colors_option &&
-        (selected_filament_colors_option || !m_print_config.option<ConfigOptionFloats>("flush_volumes_matrix") || (current_extruder_count != new_extruder_count) || (new_nozzle_volume_type != current_nozzle_volume_type)))
+        (filament_colors_grown || selected_filament_colors_option || !m_print_config.option<ConfigOptionFloats>("flush_volumes_matrix") || (current_extruder_count != new_extruder_count) || (new_nozzle_volume_type != current_nozzle_volume_type)))
     {
         std::vector<std::string>  selected_filament_colors;
         if (selected_filament_colors_option) {
