@@ -206,6 +206,11 @@ const std::string& custom_gcodes_dir();
 void set_data_dir(const std::string &path);
 // Return a full path to the GUI resource files.
 const std::string& data_dir();
+#ifndef _WIN32
+// The per-user configuration directory an application gets when no --datadir is given:
+// $XDG_CONFIG_HOME/<app_name>, or ~/.config/<app_name> when XDG_CONFIG_HOME is unset or empty.
+std::string xdg_config_dir(const std::string &app_name);
+#endif
 
 // BBL: true: succeed create or dir exists; false: fail to create
 bool makedir(const std::string path);

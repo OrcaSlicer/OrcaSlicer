@@ -1714,6 +1714,13 @@ void PreferencesDialog::create_items()
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
     g_sizer->Add(item_window_button_pos);
+
+    // TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
+    auto item_discrete_gpu = create_item_checkbox(_L("Render on the discrete GPU"),
+        _L("On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. "
+           "Some Wayland systems cannot show frames rendered on the other GPU; turn this off if the 3D view stays empty."),
+        "prefer_discrete_gpu", _L("(Requires restart)"));
+    g_sizer->Add(item_discrete_gpu);
 #endif
 
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");

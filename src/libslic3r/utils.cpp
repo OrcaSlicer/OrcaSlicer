@@ -39,6 +39,11 @@
 #include <openssl/md5.h>
 #include <set>
 #include <stdio.h>
+#include <cstdlib>
+#ifndef _WIN32
+#include <pwd.h>
+#include <unistd.h>
+#endif
 #include <filesystem>
 #include <sstream>
 #include <cerrno>
@@ -365,6 +370,32 @@ const std::string& data_dir()
 {
     return g_data_dir;
 }
+
+#ifndef _WIN32
+std::string xdg_config_dir(const std::string &app_name)
+{
+    std::string base;
+    if (const char *xdg = ::getenv("XDG_CONFIG_HOME"); xdg != nullptr && *xdg != '\0') {
+        base = xdg;
+    } else {
+        // The same chain as wxGetHomeDir(): $HOME, then the passwd entry of $USER / $LOGNAME,
+        // then the one of the real uid.
+        const char *home = ::getenv("HOME");
+        if (home == nullptr) {
+            const passwd *pw = nullptr;
+            for (const char *var : {"USER", "LOGNAME"})
+                if (const char *user = ::getenv(var); user != nullptr && (pw = ::getpwnam(user)) != nullptr)
+                    break;
+            if (pw == nullptr)
+                pw = ::getpwuid(::getuid());
+            if (pw != nullptr)
+                home = pw->pw_dir;
+        }
+        base = std::string(home != nullptr ? home : "") + "/.config";
+    }
+    return base + "/" + app_name;
+}
+#endif
 
 std::string custom_shapes_dir()
 {

@@ -630,10 +630,7 @@ bool static check_old_linux_datadir(const wxString& app_name) {
 
     std::string new_path = Slic3r::data_dir();
 
-    wxString dir;
-    if (! wxGetEnv(wxS("XDG_CONFIG_HOME"), &dir) || dir.empty() )
-        dir = wxFileName::GetHomeDir() + wxS("/.config");
-    std::string default_path = (dir + "/" + app_name).ToUTF8().data();
+    std::string default_path = xdg_config_dir(app_name.ToUTF8().data());
 
     if (new_path != default_path) {
         // This happens when the user specifies a custom --datadir.
@@ -2754,10 +2751,7 @@ void GUI_App::init_app_config()
             #else
                 // Since version 2.3, config dir on Linux is in ${XDG_CONFIG_HOME}.
                 // https://github.com/prusa3d/PrusaSlicer/issues/2911
-                wxString dir;
-                if (! wxGetEnv(wxS("XDG_CONFIG_HOME"), &dir) || dir.empty() )
-                    dir = wxFileName::GetHomeDir() + wxS("/.config");
-                data_dir_path = boost::filesystem::path((dir + "/" + GetAppName()).ToUTF8().data());
+                data_dir_path = boost::filesystem::path(xdg_config_dir(GetAppName().ToUTF8().data()));
                 migrate_flatpak_legacy_datadir(data_dir_path);
                 set_data_dir(data_dir_path.string());
             #endif

@@ -567,3 +567,17 @@ TEST_CASE("extended_path turns a Windows path into its long-path form", "[Utils]
     }
 #endif
 }
+
+#ifndef _WIN32
+TEST_CASE("xdg_config_dir follows XDG_CONFIG_HOME and falls back to ~/.config", "[utils]") {
+    {
+        ScopedEnvVar xdg("XDG_CONFIG_HOME", "/tmp/xdg-test");
+        CHECK(Slic3r::xdg_config_dir("OrcaSlicer") == "/tmp/xdg-test/OrcaSlicer");
+    }
+    {
+        ScopedEnvVar xdg("XDG_CONFIG_HOME", "");
+        ScopedEnvVar home("HOME", "/tmp/home-test");
+        CHECK(Slic3r::xdg_config_dir("OrcaSlicer") == "/tmp/home-test/.config/OrcaSlicer");
+    }
+}
+#endif
