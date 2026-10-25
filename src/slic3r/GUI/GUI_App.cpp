@@ -4435,6 +4435,11 @@ void GUI_App::select_machine(const std::string& agent_id)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
         machine.printer_type = preset.config.opt_string("printer_model");
+        auto access_code = preset.config.opt_string("printhost_apikey");
+        // Orca expect non empty access code
+        if (access_code.empty()) {
+            access_code = NO_API_KEY_SENTINEL;
+        }
 
         existing = m_device_manager->insert_local_device(
             machine, "lan", "free", "", access_code);

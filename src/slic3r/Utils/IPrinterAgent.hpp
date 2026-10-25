@@ -45,6 +45,17 @@ struct PrinterConnectionParams
     std::string ca_file;
 };
 
+// Sentinel stored as a LAN device's access code when the user has not supplied one, so the device
+// stays registered (has_access_right() is !access_code.empty()). It is not a real credential: every
+// printer agent must translate it back to an empty string before using/sending it on the wire.
+inline constexpr const char* NO_API_KEY_SENTINEL = "*_{NO_API_KEY}_*";
+
+// Returns an empty string when `code` is the "no API key" sentinel, otherwise `code` unchanged.
+inline std::string normalize_access_code(const std::string& code)
+{
+    return code == NO_API_KEY_SENTINEL ? std::string() : code;
+}
+
 /**
  * FilamentSyncMode - Modes for filament data synchronization.
  *
@@ -455,9 +466,16 @@ public:
     virtual CameraStreamMode get_camera_stream_mode() const { return CameraStreamMode::none; }
 
     /**
-     * Refresh filament info from the printer synchronously.
-     * Should only be called when get_filament_sync_mode() returns FilamentSyncMode::pull.
-     * Populates the MachineObject's DevFilaSystem with fetched filament data.
+     * Refresh filament info from the printer.
+     *
+     * When called with FilamentSyncMode::pull (which requires get_filament_sync_mode() to
+     * return pull) this is a blocking, synchronous call: when it returns true the MachineObject's
+     * DevFilaSystem has already been populated and the caller may read it immediately.
+     *
+     * When called with FilamentSyncMode::subscription — by an implementation's own status loop —
+     * the refresh may be performed asynchronously: a true return then means the refresh was
+     * scheduled (or is already in flight), and DevFilaSystem is updated later on the main thread.
+     * Callers must not assume the data is ready on return.
      */
     virtual bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) { return false; }
 
