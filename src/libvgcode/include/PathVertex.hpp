@@ -105,14 +105,17 @@ struct PathVertex
     // Jerk value
     //
     float jerk{ 0.0f };
-    // Orca: Unsupported extrusion width in percent of the line width (0 = fully supported). Walls keep measuring
-    // how far their bead's outer edge reaches past the lower contour, up to MAX_OVERHANG_PERCENTAGE.
+    // Orca: Unsupported extrusion width in percent of the line width (0 = fully supported, negative = not measured).
+    // Walls keep measuring how far their bead's outer edge reaches past the lower contour, up to MAX_OVERHANG_PERCENTAGE.
     float overhang_percentage{ 0.0f };
     // Orca: Actual separation of the compared slice planes; old G-code leaves this at zero.
     float overhang_z_distance{ 0.0f };
 
     // Orca: The G-code caps wall offsets at ten line widths, which already reads as horizontal.
     static constexpr float MAX_OVERHANG_PERCENTAGE{ 1000.0f };
+
+    // Orca: Whether the G-code measured this line; supports and the like have no overhang data.
+    bool has_overhang() const { return overhang_percentage >= 0.0f; }
 
     // Orca: The unsupported share of the bead, which ends at a fully unsupported line.
     float overhang_share() const { return std::clamp(overhang_percentage, 0.0f, 100.0f); }
