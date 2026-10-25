@@ -2583,6 +2583,8 @@ void PerimeterGenerator::process_arachne()
     // topmost and first layers - sees the same answer.
     const bool only_one_wall_top         = this->config->only_one_wall_top && has_top_shell_layers(*this->config);
     const bool only_one_wall_first_layer = this->config->only_one_wall_first_layer && has_bottom_shell_layers(*this->config);
+    // we need to process each island separately because we might have different
+    // extra perimeters for each one
     // Each island is independent up to its outputs, so they are generated in parallel - a layer split into thousands
     // of islands (e.g. by colour painting) otherwise ran on one thread - and the outputs are then committed in the
     // original island order, which is what the extra overhang perimeters (applied to the last island's loops and to

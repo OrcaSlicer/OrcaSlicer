@@ -1903,14 +1903,12 @@ TEST_CASE("Modifier 0-wall boundary handling", "[Print]")
         Model model;
         ModelObject *object = model.add_object();
         object->add_volume(cube(40.));
-        // Center the modifier inside the 40mm cube using the parent volume's offset
-        const Vec3d center = object->volumes.front()->get_offset();
 
         DynamicPrintConfig mod_config;
         mod_config.set_key_value("wall_loops", new ConfigOptionInt(0));
         ModelVolume *modifier = object->add_volume(cube(20.), ModelVolumeType::PARAMETER_MODIFIER, false);
         modifier->config.apply(mod_config);
-        modifier->set_offset(center);
+        modifier->set_offset(Vec3d(10., 10., 10.));
 
         object->add_instance()->set_offset(Vec3d(50., 50., 0.));
         object->ensure_on_bed();
@@ -1945,13 +1943,12 @@ TEST_CASE("Modifier 0-wall boundary handling", "[Print]")
         ModelObject *object = model.add_object();
         object->add_volume(cube(40.));
         object->config.set_key_value("wall_loops", new ConfigOptionInt(0));
-        const Vec3d center = object->volumes.front()->get_offset();
 
         DynamicPrintConfig mod_config;
         mod_config.set_key_value("wall_loops", new ConfigOptionInt(3));
         ModelVolume *modifier = object->add_volume(cube(20.), ModelVolumeType::PARAMETER_MODIFIER, false);
         modifier->config.apply(mod_config);
-        modifier->set_offset(center);
+        modifier->set_offset(Vec3d(10., 10., 10.));
 
         object->add_instance()->set_offset(Vec3d(50., 50., 0.));
         object->ensure_on_bed();

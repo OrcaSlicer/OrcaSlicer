@@ -160,7 +160,7 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
     const PrintRegionConfig& other_config = b.config();
 
         return config.outer_wall_filament_id       == other_config.outer_wall_filament_id
-		&& config.inner_wall_filament_id       == other_config.inner_wall_filament_id 
+		&& config.inner_wall_filament_id       == other_config.inner_wall_filament_id
         && (ignore_wall_loops || config.wall_loops == other_config.wall_loops)
 		&& config.wall_sequence               == other_config.wall_sequence
 		&& config.is_infill_first             == other_config.is_infill_first
@@ -199,20 +199,36 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
         && config.seam_slope_inner_walls  == other_config.seam_slope_inner_walls;
 }
 
-static bool is_zero_wall_inside_hole(const LayerRegion* zero_layerm, const LayerRegion* walled_layerm)
+static bool zero_wall_regions_fill_hole(const std::vector<const LayerRegion*>& zero_layerms, const LayerRegion* walled_layerm)
 {
     Polygons walled_holes;
     for (const Surface& s : walled_layerm->slices.surfaces)
-        for (const Polygon& hole : s.expolygon.holes)
-            walled_holes.push_back(hole);
+        for (Polygon hole : s.expolygon.holes) {
+            hole.make_counter_clockwise();
+            walled_holes.push_back(std::move(hole));
+        }
 
     if (walled_holes.empty())
         return false;
 
-    // The 0-wall region is considered interior if none of its area
-    // falls outside the walled region's holes. Use 50-micron tolerance
-    // to absorb polygon simplification differences along the shared boundary.
-    return diff(to_polygons(zero_layerm->slices.surfaces), expand(walled_holes, float(scale_(0.05)))).empty();
+    Polygons zero_polys;
+    for (const LayerRegion* zlm : zero_layerms)
+        polygons_append(zero_polys, to_polygons(zlm->slices.surfaces));
+
+    if (zero_polys.empty())
+        return false;
+
+    const float tolerance = float(scale_(0.05));
+
+    if (!diff(zero_polys, expand(walled_holes, tolerance)).empty())
+        return false;
+
+    for (const Polygon& hole : walled_holes)
+        if (!intersection({hole}, zero_polys).empty())
+            if (!diff({hole}, expand(zero_polys, tolerance)).empty())
+                return false;
+
+    return true;
 }
 
 // Here the perimeters are created cummulatively for all layer regions sharing the same parameters influencing the perimeters.
@@ -260,12 +276,14 @@ void Layer::make_perimeters()
                     bool compatible = false;
                     if (is_perimeter_compatible(*m_object->print(), this_region, other_region)) {
                         compatible = true;
-                    } else if (is_perimeter_compatible(*m_object->print(), this_region, other_region, /*ignore_wall_loops=*/true)) {
-                        // Merge only if the 0-wall region is completely inside an internal hole of the walled region
-                        if (this_region.config().wall_loops > 0 && other_region.config().wall_loops == 0)
-                            compatible = is_zero_wall_inside_hole(other_layerm, *layerm);
-                        else if (this_region.config().wall_loops == 0 && other_region.config().wall_loops > 0)
-                            compatible = is_zero_wall_inside_hole(*layerm, other_layerm);
+                    } else if (this_region.config().wall_loops != other_region.config().wall_loops && is_perimeter_compatible(*m_object->print(), this_region, other_region, /*ignore_wall_loops=*/true)) {
+                        const LayerRegion* walled = (this_region.config().wall_loops > 0) ? *layerm : other_layerm;
+                        std::vector<const LayerRegion*> zero_candidates;
+                        for (const LayerRegion* lr : m_regions)
+                            if (!lr->slices.empty() && lr->region().config().wall_loops == 0 &&
+                                is_perimeter_compatible(*m_object->print(), this_region, lr->region(), /*ignore_wall_loops=*/true))
+                                zero_candidates.push_back(lr);
+                        compatible = zero_wall_regions_fill_hole(zero_candidates, walled);
                     }
 
                     if (compatible)
@@ -300,10 +318,10 @@ void Layer::make_perimeters()
                         if (cfg.wall_loops > best_cfg.wall_loops || (cfg.wall_loops == best_cfg.wall_loops && cfg.sparse_infill_density > best_cfg.sparse_infill_density))
                             layerm_config = layerm;
                     }
-                     // merge the surfaces assigned to each group
+	                // merge the surfaces assigned to each group
 	                for (std::pair<const unsigned short,Surfaces> &surfaces_with_extra_perimeters : slices)
 	                    new_slices.append(offset_ex(surfaces_with_extra_perimeters.second, ClipperSafetyOffset), surfaces_with_extra_perimeters.second.front());
-                }
+	            }
 
 	            // make perimeters
 	            SurfaceCollection fill_surfaces;
