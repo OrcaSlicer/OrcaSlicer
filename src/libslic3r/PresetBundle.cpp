@@ -4340,8 +4340,9 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     ConfigOptionInts* filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
 
     // Which slots are new is a fact about the arrays below, not about filament_presets:
-    // update_multi_material_filament_presets() tops that list up to the nozzle count on its own,
-    // so it can already sit at the new size while every array below is still at the old one.
+    // on a tool changer, update_multi_material_filament_presets() tops that list up to the tool
+    // count on its own, so it can already sit at the new size while every array below is still at
+    // the old one.
     const size_t old_slot_count = filament_color->values.size();
 
     filament_color->resize(n);
@@ -4475,7 +4476,7 @@ size_t PresetBundle::num_mixed_filaments() const
     return size_t(std::count(opt->values.begin(), opt->values.begin() + std::min(slot_count, opt->values.size()), true));
 }
 
-// Colours describe actual slots; filament_presets can be topped up to the nozzle count alone.
+// Colours describe actual slots; on a tool changer filament_presets can be topped up to the tool count alone.
 // Imported projects may have fewer mixed flags than slots. Missing flags mean physical filaments.
 size_t PresetBundle::num_physical_filaments() const
 {
@@ -5378,14 +5379,21 @@ int PresetBundle::get_printer_extruder_count() const
     return count;
 }
 
+size_t PresetBundle::min_filament_count() const
+{
+    if (printers.get_edited_preset().config.opt_bool("single_extruder_multi_material"))
+        return 1;
+    return static_cast<size_t>(get_printer_extruder_count());
+}
+
 void PresetBundle::update_filament_count()
 {
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
-    const size_t num_extruders = static_cast<size_t>(get_printer_extruder_count());
-    if (filament_presets.size() >= num_extruders)
+    const size_t min_filaments = min_filament_count();
+    if (filament_presets.size() >= min_filaments)
         return;
-    filament_presets.resize(num_extruders, filament_presets.empty()
+    filament_presets.resize(min_filaments, filament_presets.empty()
         ? filaments.first_visible().name
         : filament_presets.back());
 }
@@ -8392,19 +8400,20 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
 
-    // Orca: when the number of existing filament presets is less than the number of extruders, we will append new filament presets with the
-    // same value as the last existing one.
+    // Orca: when there are fewer filament presets than the printer runs with (min_filament_count(): one per tool on a
+    // tool changer, one on a printer sharing its nozzles), append copies of the last one. Padding a shared-nozzle printer
+    // up to its nozzle count would bring back a filament the user deleted, in this list alone, without the colours and
+    // maps of the parallel per-filament arrays.
     //
     // Verify and select the filament presets.
     size_t num_filaments = this->filament_presets.size();
 
-    auto* nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
-    size_t num_extruders  = nozzle_diameter->values.size();
-    if (num_extruders > num_filaments) { // Verify validity of the current filament presets.
-        for (size_t i = 0; i < std::min(this->filament_presets.size(), num_extruders); ++i)
+    const size_t min_filaments = min_filament_count();
+    if (min_filaments > num_filaments) { // Verify validity of the current filament presets.
+        for (size_t i = 0; i < this->filament_presets.size(); ++i)
             this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
         // Append the rest of filament presets.
-        this->filament_presets.resize(num_extruders, this->filament_presets.empty() ? this->filaments.first_visible().name :
+        this->filament_presets.resize(min_filaments, this->filament_presets.empty() ? this->filaments.first_visible().name :
                                                                                       this->filament_presets.back());
         num_filaments = this->filament_presets.size();
     }

@@ -1,6 +1,8 @@
 name: Check locale
 
 on: 
+    # approve_pr_checks.yml approves these runs for first-time contributors and finds this
+    # workflow by its file name.
     pull_request:
       branches: 
        - main 
@@ -12,6 +14,9 @@ jobs:
   check_translation:
     name: Check translation
     runs-on: ubuntu-latest
+    # approve_pr_checks.yml starts first-time contributors' runs without a maintainer looking
+    # at the pull request first. A run takes under a minute; this bounds one that msgfmt stalls on.
+    timeout-minutes: 10
     steps:  
       - name: Checkout repository
         uses: actions/checkout@v7

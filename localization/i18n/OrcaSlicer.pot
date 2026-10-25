@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:39-0300\n"
+"POT-Creation-Date: 2026-10-25 17:19+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6068,7 +6068,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, possible-c-format, possible-boost-format
+#, possible-boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -6529,6 +6529,12 @@ msgid "Reset Window Layout"
 msgstr ""
 
 msgid "Reset to default window layout"
+msgstr ""
+
+msgid "Show 3Dconnexion Settings"
+msgstr ""
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr ""
 
 msgid "Show &Labels"
@@ -13078,6 +13084,11 @@ msgid "If you still want to print, you can enable the option in Preferences / Co
 msgstr ""
 
 msgid "No extrusions under current settings."
+msgstr ""
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1.
+#, possible-boost-format
+msgid "The flow ratio of filament %1% must be greater than 0."
 msgstr ""
 
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -22141,13 +22152,13 @@ msgstr ""
 msgid "Could not connect to CrealityPrint"
 msgstr ""
 
-msgid "Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network."
-msgstr ""
-
 msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
 msgstr ""
 
 msgid "File/data transfer interrupted. Please check the printer and network, then try it again."
+msgstr ""
+
+msgid "Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network."
 msgstr ""
 
 msgid "The provided state is not correct."
@@ -26128,9 +26139,6 @@ msgstr ""
 msgid "Zoom out"
 msgstr ""
 
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr ""
-
 msgid "Show/Hide wireframe"
 msgstr ""
 
@@ -28716,6 +28724,9 @@ msgstr ""
 msgid "Texture layers"
 msgstr ""
 
+msgid "Add layer"
+msgstr ""
+
 msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
 msgstr ""
 
@@ -28987,15 +28998,6 @@ msgstr ""
 msgid "More settings"
 msgstr ""
 
-#, possible-boost-format
-msgid "All %1% layer used"
-msgid_plural "All %1% layers used"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Add layer"
-msgstr ""
-
 msgid "Subdivision"
 msgstr ""
 
@@ -29150,17 +29152,6 @@ msgstr ""
 msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr ""
 
-#. TRN Slider value: %d is the triangle budget in thousands
-msgid "Budget"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "%d k (auto)"
-msgstr ""
-
-msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
-msgstr ""
-
 msgid "Align mesh to texture edges"
 msgstr ""
 
@@ -29171,6 +29162,17 @@ msgid "Clean up slivers"
 msgstr ""
 
 msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr ""
+
+#. TRN Slider value: %d is the triangle budget in thousands
+msgid "Budget"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%d k (auto)"
+msgstr ""
+
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
 msgstr ""
 
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
@@ -30269,9 +30271,6 @@ msgid "Create new project"
 msgstr ""
 
 msgid "Recently opened"
-msgstr ""
-
-msgid "Open Containing Folder"
 msgstr ""
 
 msgid "Forward"
