@@ -1068,18 +1068,14 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        // Compare the slot's actual assigned preset against what the Tab editor currently holds
-        // open - not the combo's own label (every slot's combo reads the same shared
-        // PresetCollection, so "(modified)" doesn't identify which slot is dirty) and not just the
-        // slot index (stale if this slot's preset changed without going through the Tab).
+        // Reload the editor only when it has a different preset open than this slot.
         const std::string& slot_preset_name = wxGetApp().preset_bundle->filament_presets[m_filament_idx];
         if (slot_preset_name != wxGetApp().preset_bundle->filaments.get_selected_preset_name())
         {
             if (!wxGetApp().get_tab(m_type)->select_preset(slot_preset_name))
                 return false;
         }
-        // Bind the editor to this slot regardless: a same-preset slot still needs Save/re-edit to
-        // target the slot that was actually clicked, not whichever slot last called select_preset().
+        // Bind the editor to this slot even when its preset is already open.
         wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
     }
 
