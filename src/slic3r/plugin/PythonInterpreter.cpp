@@ -3,7 +3,9 @@
 #include "libslic3r/Utils.hpp"
 #include "PluginAuditManager.hpp"
 #include "PythonPluginBridge.hpp"
+#include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <cstdlib>
@@ -45,7 +47,7 @@ PythonRuntimeLease::PythonRuntimeLease(PythonInterpreter& interpreter)
         return;
     }
 
-    m_lock = std::shared_lock<std::shared_mutex>(interpreter.m_runtime_mutex);
+    m_lock = std::shared_lock<std::shared_timed_mutex>(interpreter.m_runtime_mutex);
     if (!interpreter.m_initialized.load(std::memory_order_acquire)) {
         m_lock.unlock();
         return;
@@ -477,7 +479,7 @@ std::string PythonInterpreter::bundled_uv_path()
 
 bool PythonInterpreter::initialize()
 {
-    std::unique_lock<std::shared_mutex> runtime_lock(m_runtime_mutex);
+    std::unique_lock<std::shared_timed_mutex> runtime_lock(m_runtime_mutex);
     if (m_initialized.load(std::memory_order_acquire)) {
         return true;
     }
@@ -688,7 +690,22 @@ PythonInterpreter::~PythonInterpreter() { shutdown(); }
 
 void PythonInterpreter::shutdown()
 {
-    std::unique_lock<std::shared_mutex> runtime_lock(m_runtime_mutex);
+    // Checked before waiting for the lock too, so a second call after abandon() returns at once.
+    if (!m_initialized.load(std::memory_order_acquire))
+        return;
+
+    // A plugin call that never returns keeps its runtime lease, and Py_Finalize joins every
+    // non-daemon thread, so either would keep a closing app alive. Both are waited for briefly.
+    constexpr auto wait = std::chrono::seconds(3);
+
+    std::unique_lock<std::shared_timed_mutex> runtime_lock(m_runtime_mutex, std::defer_lock);
+    if (!runtime_lock.try_lock_for(wait)) {
+        // The GIL is not taken back here: the stuck call may be holding it, and nothing on this
+        // thread runs Python after this point.
+        BOOST_LOG_TRIVIAL(warning) << "Python interpreter left unfinalized: a plugin call is still running";
+        abandon();
+        return;
+    }
     if (!m_initialized.load(std::memory_order_acquire))
         return;
 
@@ -699,6 +716,14 @@ void PythonInterpreter::shutdown()
         BOOST_LOG_TRIVIAL(debug) << "Restoring Python main thread state before shutdown";
         PyEval_RestoreThread(m_main_thread_state);
         m_main_thread_state = nullptr;
+    }
+
+    // Before the stdio tee is torn down, so tracebacks from threads still ending reach the log.
+    if (const int running = join_non_daemon_threads(wait); running > 0) {
+        // The GIL stays with this thread, so anything released during process exit still holds it.
+        BOOST_LOG_TRIVIAL(warning) << "Python interpreter left unfinalized: " << running << " non-daemon thread(s) still running";
+        abandon();
+        return;
     }
 
     log_and_restore_python_stdio();
@@ -712,6 +737,69 @@ void PythonInterpreter::shutdown()
     m_plugin_module_users.clear();
     m_plugin_module_owned.clear();
     m_initialized.store(false, std::memory_order_release);
+}
+
+void PythonInterpreter::abandon()
+{
+    // New leases fail from here on. Releasing the scoped_interpreter without destroying it skips
+    // Py_Finalize, here and in the static destructor; the process exit ends the interpreter.
+    m_initialized.store(false, std::memory_order_release);
+    static_cast<void>(m_interpreter.release());
+}
+
+int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout)
+{
+    try {
+        const pybind11::module_ threading   = pybind11::module_::import("threading");
+        const pybind11::object  main_thread = threading.attr("main_thread")();
+        const auto              deadline    = std::chrono::steady_clock::now() + timeout;
+        const auto              seconds_left = [deadline] {
+            return std::chrono::duration<double>(
+                       std::max(deadline - std::chrono::steady_clock::now(), std::chrono::steady_clock::duration::zero()))
+                .count();
+        };
+
+        // An idle concurrent.futures worker only ends once the hooks registered with
+        // threading._register_atexit() tell it to, which Py_Finalize does before it joins the
+        // threads. They run first here, on a daemon thread: a hook joins its workers without a
+        // timeout, so one stuck in a task would block the hook, and Py_Finalize, for good.
+        pybind11::object hooks;
+        if (pybind11::hasattr(threading, "_threading_atexits")) {
+            hooks = threading.attr("Thread")(pybind11::arg("target") = pybind11::cpp_function([threading] {
+                                                 const pybind11::list calls = threading.attr("_threading_atexits");
+                                                 for (pybind11::ssize_t i = calls.size(); i-- > 0;)
+                                                     calls[i]();
+                                             }),
+                                             pybind11::arg("name") = "orca-threading-atexit", pybind11::arg("daemon") = true);
+            hooks.attr("start")();
+            hooks.attr("join")(seconds_left());
+        }
+
+        // Enumerated again after each pass: a thread being joined may start another one.
+        for (;;) {
+            int seen    = 0;
+            int running = 0;
+            for (const pybind11::handle thread : threading.attr("enumerate")()) {
+                // Threads Python did not start (C++ threads that entered Python) are dummy threads,
+                // which are daemon and cannot be joined.
+                if (thread.is(main_thread) || thread.attr("daemon").cast<bool>())
+                    continue;
+                ++seen;
+                thread.attr("join")(seconds_left());
+                if (thread.attr("is_alive")().cast<bool>())
+                    ++running;
+            }
+            if (seen == 0 || std::chrono::steady_clock::now() >= deadline) {
+                // A hook still running would be run again, and waited for, by Py_Finalize.
+                if (hooks && hooks.attr("is_alive")().cast<bool>())
+                    running = std::max(running, 1);
+                return running;
+            }
+        }
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not wait for Python threads: " << ex.what();
+        return 0;
+    }
 }
 
 bool PythonInterpreter::add_plugin_sys_path(const std::string& path, std::string& error)

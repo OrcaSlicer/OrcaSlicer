@@ -64,6 +64,13 @@ using Color = std::array<uint8_t, 3>;
 using Palette = std::vector<Color>;
 
 //
+// ORCA: RGB color and opacity, 255 is opaque. Filament colors can be translucent.
+// [3] -> alpha
+//
+using ColorWithAlpha = std::array<uint8_t, 4>;
+using PaletteWithAlpha = std::vector<ColorWithAlpha>;
+
+//
 // Axis aligned box in 3 dimensions
 // [0] -> { min_x, min_y, min_z }
 // [1] -> { max_x, max_y, max_z }

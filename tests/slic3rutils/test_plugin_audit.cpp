@@ -425,6 +425,117 @@ TEST_CASE("Plugin audit a read-only allowed root blocks writes but not reads", "
     }
 }
 
+TEST_CASE("Plugin audit network permissions match by scheme and host", "[audit]")
+{
+    SECTION("a URL is reduced to its scheme and host")
+    {
+        CHECK(PluginAuditManager::normalize_network_url("https://API.Example.com:8443/v1/items?page=2#top") ==
+              "https://api.example.com");
+        CHECK(PluginAuditManager::normalize_network_url("http://example.com") == "http://example.com");
+        CHECK(PluginAuditManager::normalize_network_url("https://[2001:db8::1]:443/path") == "https://[2001:db8::1]");
+    }
+
+    SECTION("non-http schemes and targets without a scheme are not network URLs")
+    {
+        CHECK(PluginAuditManager::normalize_network_url("ftp://example.com").empty());
+        CHECK(PluginAuditManager::normalize_network_url("api.example.com").empty());
+        CHECK(PluginAuditManager::normalize_network_url("https://").empty());
+    }
+
+    SECTION("a URL target matches the same scheme and host regardless of path and port")
+    {
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "https://api.example.com/v1/items?page=2"));
+        CHECK(PluginAuditManager::network_permission_matches(granted, "https://api.example.com:8443/upload"));
+    }
+
+    SECTION("canonical host grants are broad but persisted full-URL grants stay exact")
+    {
+        const std::vector<std::string> declared_host{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(declared_host, "https://api.example.com/v1"));
+
+        const std::vector<std::string> saved_url{"https://api.example.com/v1"};
+        CHECK(PluginAuditManager::network_permission_matches(saved_url, "https://api.example.com/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "https://api.example.com/v2"));
+    }
+
+    SECTION("a URL target does not match a different host or a different scheme")
+    {
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "https://evil.example.com/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "http://api.example.com/v1"));
+    }
+
+    SECTION("a bare host target matches the host of a grant")
+    {
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "api.example.com"));
+        CHECK(PluginAuditManager::network_permission_matches(granted, "api.example.com:443"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "other.example.com"));
+    }
+
+    SECTION("a saved full URL does not authorize raw socket access to its host")
+    {
+        const std::vector<std::string> saved_url{"https://api.example.com/v1"};
+        CHECK(PluginAuditManager::network_permission_matches(saved_url, "https://api.example.com/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "api.example.com"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "api.example.com:443"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "('api.example.com', 443)"));
+
+        const std::vector<std::string> saved_ipv6{"https://[2001:db8::1]/v1"};
+        CHECK(PluginAuditManager::network_permission_matches(saved_ipv6, "https://[2001:db8::1]/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_ipv6, "2001:db8::1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_ipv6, "[2001:db8::1]:443"));
+
+        // Canonical scheme://host grants still cover raw socket targets, IPv6 brackets aside.
+        const std::vector<std::string> canonical{"https://api.example.com", "https://[2001:db8::1]"};
+        CHECK(PluginAuditManager::network_permission_matches(canonical, "api.example.com"));
+        CHECK(PluginAuditManager::network_permission_matches(canonical, "2001:db8::1"));
+
+        // Normalization lowercases the scheme and host, so case alone keeps a grant canonical.
+        const std::vector<std::string> uppercase{"HTTPS://API.Example.com", "HTTPS://[2001:DB8::1]"};
+        CHECK(PluginAuditManager::network_permission_matches(uppercase, "api.example.com"));
+        CHECK(PluginAuditManager::network_permission_matches(uppercase, "2001:db8::1"));
+    }
+
+    SECTION("legacy persisted address tuples keep matching their host")
+    {
+        const std::vector<std::string> legacy_granted{"('api.example.com', 443)"};
+        CHECK(PluginAuditManager::network_permission_matches(legacy_granted, "api.example.com"));
+
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "('api.example.com', 443)"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "('93.184.216.34', 443)"));
+    }
+
+    SECTION("an IPv6 literal matches across bracketed and bare forms")
+    {
+        const std::vector<std::string> granted{"https://[2001:db8::1]"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "2001:db8::1"));
+        CHECK(PluginAuditManager::network_permission_matches(granted, "[2001:db8::1]:443"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "2001:db8::2"));
+    }
+
+    SECTION("a non-http URL only matches an exact grant")
+    {
+        const std::vector<std::string> granted{"ftp://example.com/file"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "ftp://example.com/file"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "ftp://example.com/other"));
+
+        const std::vector<std::string> https{"https://api.example.com"};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(https, "ftp://api.example.com/file"));
+    }
+
+    SECTION("an empty grant list or an empty target never matches")
+    {
+        const std::vector<std::string> granted{};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "https://api.example.com"));
+
+        const std::vector<std::string> any{"https://api.example.com"};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(any, ""));
+    }
+}
+
 TEST_CASE("Plugin audit a scoped root can also be registered read-only", "[audit]")
 {
     ScopedDataDir data_dir_guard("plugin-audit-scoped-readonly");
@@ -890,8 +1001,8 @@ TEST_CASE("A freshly approved operation covers its nested events", "[audit][Pyth
         {"tempfile.mkdtemp", "tempfile.mkdtemp(dir=OUTSIDE)"},
         {"tempfile.mkstemp", "os.close(tempfile.mkstemp(dir=OUTSIDE)[0])"},
         {"shutil.rmtree", "shutil.rmtree(os.path.join(OUTSIDE, 'copy'))"},
-        // send() runs after connect() has returned, so its own grant is asked once.
-        {"http.client.connect\nhttp.client.send",
+        // The host grant from connect() also authorizes targetless send() events.
+        {"http.client.connect",
          "connection = http.client.HTTPConnection('127.0.0.1', PORT)\n"
          "connection.request('GET', '/a')\n"
          "connection.getresponse().read()\n"
@@ -971,6 +1082,45 @@ right.close()
     CHECK(harness.saved_permissions(PLUGIN).events ==
           std::vector<std::string>{"Socket:socket.__new__", "Socket:socket.gethostname", "Socket:socket.sendmsg"});
 #endif
+}
+
+TEST_CASE("A saved network grant covers a network event that names no target", "[Audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The connection is opened outside the plugin, so only the send itself is judged: it names
+    // no host, just the connection it writes to.
+    python.exec(R"PY(
+connection = http.client.HTTPConnection("127.0.0.1", PORT)
+connection.connect()
+)PY");
+    harness.save_permissions(PLUGIN, http_grants({"http://127.0.0.1"}));
+
+    python.run_as(PLUGIN, R"PY(
+send_outcome = attempt(lambda: connection.send(b"GET /"))
+)PY");
+
+    // The host grant already covers the connection's send: no prompt, and no event grant.
+    CHECK(python.str("send_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK(harness.saved_permissions(PLUGIN).events.empty());
+
+    // With no network grant there is nothing covering the send, so it is asked for by name.
+    harness.save_permissions(PLUGIN, http_grants({}));
+    python.run_as(PLUGIN, R"PY(
+denied_outcome = attempt(lambda: connection.send(b"GET /"))
+)PY");
+    CHECK(python.str("denied_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "http.client.send:\n");
+    CHECK(harness.saved_permissions(PLUGIN).events.empty());
+    CHECK(harness.saved_permissions(PLUGIN).network_http.empty());
+
+    python.exec("connection.close()");
 }
 
 TEST_CASE("An event grant does not stand in for another access or a target of the same name", "[audit][Python]")
@@ -1238,4 +1388,275 @@ site_packages_outcome = attempt(lambda: open(SITE_PACKAGE_FILE).close())
     const std::string write_prompt         = "open: " + python.str("STDLIB_FILE") + "\n";
     const std::string site_packages_prompt = "open: " + python.str("SITE_PACKAGE_FILE") + "\n";
     CHECK(describe(harness.prompts) == write_prompt + site_packages_prompt);
+}
+
+TEST_CASE("A filesystem wildcard grant covers the folder and its descendants at any depth", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+DEEP_FILE = os.path.join(TREE, "one", "deep", "deeper", "f.txt")
+os.makedirs(os.path.dirname(DEEP_FILE))
+with open(DEEP_FILE, "w") as f:
+    f.write("x")
+NESTED_FILE = os.path.join(TREE, "one", "f.txt")
+SIBLING = TREE + "-sibling"
+SIBLING_FILE = os.path.join(SIBLING, "f.txt")
+os.makedirs(SIBLING)
+with open(SIBLING_FILE, "w") as f:
+    f.write("x")
+# Lexically under TREE, but ".." resolves outside the granted folder.
+ESCAPE_FILE = os.path.join(TREE, "..", "private.txt")
+)PY");
+
+    const std::string tree = python.str("TREE");
+    PluginPermissions permissions;
+    permissions.fs_read = {tree + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+deep_outcome = attempt(lambda: open(DEEP_FILE).read())
+root_outcome = attempt(lambda: os.listdir(TREE))
+sibling_outcome = attempt(lambda: open(SIBLING_FILE).read())
+escape_outcome = attempt(lambda: open(ESCAPE_FILE).read())
+)PY");
+
+    // The tree grant covers the folder itself (listing it) and a file two directories below it.
+    CHECK(python.str("deep_outcome") == "ok");
+    CHECK(python.str("root_outcome") == "ok");
+    // A path sharing the folder's prefix is not a descendant, and ".." is resolved before the
+    // comparison, so neither escapes the grant; both are asked about.
+    CHECK(python.str("sibling_outcome") == "denied");
+    CHECK(python.str("escape_outcome") == "denied");
+    const std::string sibling_prompt = "open: " + python.str("SIBLING_FILE") + "\n";
+    const std::string escape_prompt  = "open: " + python.str("ESCAPE_FILE") + "\n";
+    CHECK(describe(harness.prompts) == sibling_prompt + escape_prompt);
+
+    // Only the final component may be a wildcard: a "*" inside it is an ordinary character.
+    permissions.fs_read = {tree + "/*.txt"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "literal_outcome = attempt(lambda: open(NESTED_FILE).read())");
+    CHECK(python.str("literal_outcome") == "denied");
+    const std::string literal_prompt = "open: " + python.str("NESTED_FILE") + "\n";
+    CHECK(describe(harness.prompts) == literal_prompt);
+}
+
+TEST_CASE("A tree grant compares canonical paths on both sides", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // A folder outside TREE, reached through a symlink planted inside it.
+    const fs::path tree        = python.str("TREE");
+    const fs::path outside_dir = harness.outside.path() / "symlink-target";
+    const fs::path link        = tree / "escape";
+    fs::create_directories(outside_dir);
+    std::ofstream((outside_dir / "outside.txt").string(), std::ios::binary) << "x";
+
+    boost::system::error_code ec;
+    fs::create_directory_symlink(outside_dir, link, ec);
+    if (ec)
+        SKIP("Cannot create a directory symlink here: " + ec.message());
+
+    PluginPermissions permissions;
+    permissions.fs_read = {tree.string() + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+
+    const std::string escaped_file = (link / "outside.txt").string();
+    python.globals["ESCAPED_FILE"] = escaped_file;
+    python.run_as(PLUGIN, "escaped_outcome = attempt(lambda: open(ESCAPED_FILE).read())");
+
+    // The target canonicalizes outside the canonical grant root, so the link does not inherit
+    // the tree grant. The read/write wildcard test covers a non-existing write tail.
+    CHECK(python.str("escaped_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "open: " + escaped_file + "\n");
+
+    // A grant rooted at the link applies to what the link points at, not just to its path.
+    permissions.fs_read = {link.string() + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.globals["TARGET_FILE"] = (outside_dir / "outside.txt").string();
+    python.run_as(PLUGIN, "via_target_outcome = attempt(lambda: open(TARGET_FILE).read())");
+
+    CHECK(python.str("via_target_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A write through a dangling symlink inside a granted tree is denied", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // Two links inside TREE whose targets do not exist yet, so both dangle:
+    //  - "dangling" points outside the tree, the reported escape;
+    //  - "dangling-inside" points at a not-yet-created file that would be inside the tree, to pin
+    //    the fail-closed choice: a dangling link is rejected whatever its target.
+    const fs::path tree          = python.str("TREE");
+    const fs::path outside_file  = harness.outside.path() / "written-through-link.txt";
+    const fs::path link          = tree / "dangling";
+    const fs::path inside_target = tree / "not-created.txt";
+    const fs::path inside_link   = tree / "dangling-inside";
+    boost::system::error_code ec;
+    fs::create_symlink(outside_file, link, ec);
+    if (ec)
+        SKIP("Cannot create a file symlink here: " + ec.message());
+    fs::create_symlink(inside_target, inside_link, ec);
+    if (ec)
+        SKIP("Cannot create a file symlink here: " + ec.message());
+
+    PluginPermissions permissions;
+    permissions.fs_readwrite = {tree.string() + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.globals["DANGLING_LINK"]        = link.string();
+    python.globals["DANGLING_INSIDE_LINK"] = inside_link.string();
+    python.run_as(PLUGIN, R"PY(
+inside_outcome = attempt(lambda: open(os.path.join(TREE, "inside.txt"), "w").close())
+outcome = attempt(lambda: open(DANGLING_LINK, "w").close())
+inside_link_outcome = attempt(lambda: open(DANGLING_INSIDE_LINK, "w").close())
+)PY");
+
+    // The wildcard still covers an ordinary new file in the tree. A dangling final symlink is not
+    // covered: the grant describes the path the plugin spelled, while a write through the link
+    // would land at its target, so the prompt is refused and neither destination is created.
+    CHECK(python.str("inside_outcome") == "ok");
+    CHECK(python.str("outcome") == "denied");
+    CHECK(python.str("inside_link_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "open: " + link.string() + "\nopen: " + inside_link.string() + "\n");
+    CHECK_FALSE(fs::exists(outside_file));
+    CHECK_FALSE(fs::exists(inside_target));
+}
+
+TEST_CASE("A relative wildcard permission request is shown and stored as an absolute grant", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    // The plugin declares the grant relative to the working directory of the request, while the
+    // audit hook reports absolute targets. Resolve against the directory the request is made in.
+    const std::string relative_grant = "tree/*";
+    PluginPermissions requested;
+    requested.fs_readwrite = {relative_grant};
+
+    const fs::path original_cwd = fs::current_path();
+    boost::system::error_code ec;
+    fs::current_path(harness.outside.path(), ec);
+    REQUIRE_FALSE(ec);
+    const fs::path request_dir = fs::current_path();
+
+    std::string shown;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&shown](const std::string& message) { shown = message; return true; });
+    const bool granted = mgr.request_permissions(PLUGIN, requested);
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    fs::current_path(original_cwd, ec);
+
+    const std::string absolute_grant = (request_dir / "tree" / "*").string();
+
+    REQUIRE(granted);
+    // The prompt names the resolved scope, not the relative declaration.
+    CHECK(shown.find(absolute_grant) != std::string::npos);
+    CHECK(shown.find("\n" + relative_grant + "\n") == std::string::npos);
+    CHECK(harness.saved_permissions(PLUGIN).fs_readwrite == std::vector<std::string>{absolute_grant});
+
+    // The saved absolute grant is the effective one: an absolute target below the resolved
+    // directory is covered, so the write is not asked about again.
+    python.globals["RESOLVED_FILE"] = (harness.outside.path() / "tree" / "written.txt").string();
+    python.run_as(PLUGIN, "outcome = attempt(lambda: open(RESOLVED_FILE, 'w').close())");
+    CHECK(python.str("outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A filesystem wildcard keeps read and write grants separate", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+NESTED_FILE = os.path.join(TREE, "one", "f.txt")
+NEW_FILE = os.path.join(TREE, "one", "new.txt")
+)PY");
+    const std::string tree = python.str("TREE");
+    PluginPermissions permissions;
+    permissions.fs_read = {tree + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+read_outcome = attempt(lambda: open(NESTED_FILE).read())
+write_outcome = attempt(lambda: open(NEW_FILE, "w").close())
+)PY");
+    CHECK(python.str("read_outcome") == "ok");
+    CHECK(python.str("write_outcome") == "denied");
+    // A read grant does not cover the write-shaped open, so that one is asked about.
+    const std::string write_prompt = "open: " + python.str("NEW_FILE") + "\n";
+    CHECK(describe(harness.prompts) == write_prompt);
+
+    // The reverse direction is separate too: a read/write wildcard leaves plain reads in the
+    // read bucket, which is now empty.
+    permissions.fs_read.clear();
+    permissions.fs_readwrite = {tree + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+write_outcome = attempt(lambda: open(NEW_FILE, "w").close())
+reread_outcome = attempt(lambda: open(NESTED_FILE).read())
+)PY");
+    CHECK(python.str("write_outcome") == "ok");
+    CHECK(python.str("reread_outcome") == "denied");
+    const std::string reread_prompt = "open: " + python.str("NESTED_FILE") + "\n";
+    CHECK(describe(harness.prompts) == reread_prompt);
+}
+
+TEST_CASE("A filesystem wildcard does not override a denied path", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    python.exec(R"PY(
+DENIED_DIR = os.path.join(OUTSIDE, "secrets")
+os.makedirs(DENIED_DIR)
+with open(os.path.join(DENIED_DIR, "token.txt"), "w") as f:
+    f.write("x")
+)PY");
+
+    // A grant wide enough to cover the deny registry's target still loses to the deny.
+    PluginPermissions permissions;
+    permissions.fs_read = {python.str("OUTSIDE") + "/*"};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, "denied_outcome = attempt(lambda: open(os.path.join(DENIED_DIR, 'token.txt')).read())");
+
+    CHECK(python.str("denied_outcome") == "denied");
+    CHECK(describe(harness.prompts).empty());
+    AuditViolation violation;
+    REQUIRE(mgr.last_violation(violation));
+    CHECK(violation.reason == "denied path");
 }

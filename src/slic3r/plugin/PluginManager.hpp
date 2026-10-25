@@ -130,6 +130,7 @@ public:
 
     // Reject new plugin loads. Called early in app teardown, before shutdown() drains.
     void set_shutting_down();
+    bool is_shutting_down() const { return m_shutting_down.load(std::memory_order_acquire); }
 
     void discover_plugins(bool async = false, bool clear = false);
     // Manually trigger a manifest-only rescan. Blocks until discovery is complete.

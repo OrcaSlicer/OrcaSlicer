@@ -117,6 +117,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GLModel.hpp"
+#include <nlohmann/json.hpp>
 
 class wxFont;
 
