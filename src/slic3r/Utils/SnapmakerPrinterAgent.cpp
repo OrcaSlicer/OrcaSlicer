@@ -1,5 +1,5 @@
 #include "SnapmakerPrinterAgent.hpp"
-#include "Http.hpp"
+#include "DeviceJson.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
@@ -15,6 +15,10 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <iomanip>
+#include <sstream>
+#include <ios>
+#include <cstdint>
 
 namespace Slic3r {
 
@@ -257,6 +261,32 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     return base;
 }
 
+std::string SnapmakerProtocol::card_uid_hex(const nlohmann::json& nfc_slot)
+{
+    const auto it = nfc_slot.find("CARD_UID");
+    if (it == nfc_slot.end() || (!it->is_array() && !it->is_number_integer()))
+        return std::string();
+
+    std::ostringstream uid;
+    uid << std::hex << std::uppercase << std::setfill('0');
+    if (it->is_array()) {
+        for (const auto& byte : *it) {
+            if (!byte.is_number_integer())
+                return std::string();
+            uid << std::setw(2) << (byte.get<uint64_t>() & 0xFF);
+        }
+    } else {
+        uid << std::setw(16) << it->get<uint64_t>();
+    }
+
+    // An all-zero id means no tag.
+    std::string text = uid.str();
+    if (text.size() < 16)
+        text.insert(0, 16 - text.size(), '0');
+    return text.find_first_not_of('0') == std::string::npos ? std::string() : text;
+}
+
+// Orca: may throw on unexpected field shapes; NetworkAgent::fetch_filament_info catches.
 bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     if (!ensure_device_info(dev_id))
@@ -265,39 +295,15 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     std::string url = join_url(device_info.base_url, "/printer/objects/query?print_task_config&filament_detect");
 
     std::string response_body;
-    bool        success = false;
     std::string http_error;
-
-    auto http = Http::get(url);
-    if (!device_info.api_key.empty()) {
-        http.header("X-Api-Key", device_info.api_key);
-    }
-    http.timeout_connect(5)
-        .timeout_max(10)
-        .on_complete([&](std::string body, unsigned status) {
-            if (status == 200) {
-                response_body = body;
-                success       = true;
-            } else {
-                http_error = "HTTP error: " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status) {
-            http_error = err;
-            if (status > 0) {
-                http_error += " (HTTP " + std::to_string(status) + ")";
-            }
-        })
-        .perform_sync();
-
-    if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: HTTP request failed: " << http_error;
+    if (!fetch_body(url, device_info.api_key, response_body, http_error)) {
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: HTTP request failed: " << http_error << " url=" << url << " dev_id=" << dev_id << " dev_ip=" << device_info.dev_ip;
         return false;
     }
 
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
     if (json.is_discarded()) {
-        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: Invalid JSON response";
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: Invalid JSON response dev_id=" << dev_id;
         return false;
     }
 
@@ -339,6 +345,9 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     for (int i = 0; i < slot_count; ++i) {
         AmsTrayData tray;
         tray.slot_index   = i;
+        tray.slot         = i;
+        tray.extruder     = i;
+        tray.virtual_tool = i;
         tray.has_filament = filament_exist[i];
 
         if (tray.has_filament) {
@@ -372,19 +381,20 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                 tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
             }
 
-            // Extract NFC temperature data if available
+            // Extract NFC data if available; a tagged slot is authoritative.
             if (nfc_info.is_array() && i < static_cast<int>(nfc_info.size()) && nfc_info[i].is_object()) {
                 auto& nfc_slot = nfc_info[i];
                 tray.bed_temp  = safe_json_int(nfc_slot, "BED_TEMP");
                 // build_ams_payload publishes this as `nozzle_temp_max`, and FIRST_LAYER_TEMP is 0 for external tags.
                 tray.nozzle_temp = safe_json_int(nfc_slot, "HOTEND_MAX_TEMP");
+                tray.tag_uid     = SnapmakerProtocol::card_uid_hex(nfc_slot);
             }
         }
 
         trays.emplace_back(std::move(tray));
     }
 
-    build_ams_payload(1, slot_count - 1, trays);
+    build_ams_payload(slot_count, slot_count - 1, trays, AmsUnitShape::Toolchanger);
     return true;
 }
 

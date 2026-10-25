@@ -557,6 +557,9 @@ public:
     void            load_gcode(wxWindow* parent, wxString& input_file) const;
 
     wxString        transition_tridid(int trid_id) const;
+    // Orca: "T%d" for a toolchanger, else transition_tridid(). Callers handle the virtual
+    // ext-spool tray ids themselves.
+    wxString        tray_display_label(int tray_id, bool is_toolchanger) const;
     void            ShowUserGuide();
     void            ShowDownNetPluginDlg();
     void            ShowUserLogin(bool show = true, const std::string& provider = ORCA_CLOUD_PROVIDER);
