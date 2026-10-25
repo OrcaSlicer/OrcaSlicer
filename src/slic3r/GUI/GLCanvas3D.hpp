@@ -1275,6 +1275,8 @@ public:
     void on_idle(wxIdleEvent& evt);
     void on_char(wxKeyEvent& evt);
     void on_key(wxKeyEvent& evt);
+    // Sends a key-up for each modifier still held, whose own key-up is sent to the window that takes the focus.
+    void release_held_modifiers();
     // Runs the Plater/Preview shortcut bound to chord, swallowing auto-repeats of one-shot
     // shortcuts; false when nothing is bound.
     bool handle_shortcut(const KeyChord& chord);
@@ -1552,10 +1554,16 @@ private:
     void _render_imex_ghost_tooltip();
     void _render_section_view_caps();
     void _render_wireframe_overlay();
+    bool _is_below_plate_view_active() const;
+    void _render_below_plate_volumes();
     bool _is_xray_view_active() const;
     void _render_xray_volumes();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
+    // The translucent toolpaths, after the occlusion pass, which would shade them as the surface behind them.
+    void _render_gcode_translucent(int canvas_width, int canvas_height);
+    // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
+    bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
     //BBS: render a plane for assemble
     void _render_plane() const;

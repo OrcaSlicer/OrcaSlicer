@@ -424,6 +424,40 @@ public:
 	//BBS update plater presets if update_plater_presets = true
 	void			update_tab_ui(bool update_plater_presets = false);
 	void			load_config(const DynamicPrintConfig& config);
+	// Host/plugin API: set one option of this tab's currently edited preset from its serialized
+	// string value, then run the same committed-change path a field edit runs. `opt_key` must be a
+	// setting of this tab's preset type, so a key of another preset type (e.g. a printer setting
+	// passed to the process tab) is rejected instead of written silently. `value` is parsed by the
+	// strict config deserializer, which raises std::invalid_argument for an unknown key or a value
+	// the option cannot parse, and leaves the preset unchanged. The key-specific behaviour runs
+	// through its ConfigOptionsGroup::on_change_OG(): with the option's built field it uses the
+	// field's typed value, otherwise the owning group builds the value and dispatches the same call,
+	// so a not-yet-built field still gets it. A key the GUI edits through a custom widget instead
+	// takes the shared no-field commit path, Tab::load_key_value() in saved mode.
+	void			apply_preset_config_value(const std::string& opt_key, const std::string& value);
+
+	// Host/plugin API: apply a batch of settings to this tab's currently edited preset as one
+	// transaction. Each pair is a setting of this tab's preset type and its serialized string value.
+	// The whole batch is parsed and validated before the edited preset is touched; each setting then
+	// runs the same committed-change path apply_preset_config_value() uses, so setting-specific
+	// validation, correction and on_change callbacks stay authoritative. Duplicate keys are rejected,
+	// because the transaction must not resolve an incidental write order, and the batch order is
+	// preserved. If applying the batch fails, the edited preset's config is restored to its pre-batch
+	// state and the state derived from it (compatibility marks, the preset selector, dependent tabs,
+	// the Plater and the printer agent) is recomputed, so the edited preset never keeps a subset of
+	// the staged settings.
+	//
+	// Only the edited preset is restored. A setting's on_change callback is a GUI method, not a pure
+	// function of the config, so effects outside the edited preset cannot be prepared or undone: the
+	// transaction does not reverse preset/slot selection made while resolving the target, a dialog
+	// decision the user already accepted, an undo snapshot, a dependent preset's rewritten config, or
+	// anything already sent to a device. Exact all-or-nothing across those is not achievable while the
+	// authoritative GUI callbacks run; this method guarantees the edited preset's own settings, not
+	// those external effects.
+	//
+	// Throws std::invalid_argument for an unknown key, a value the option cannot parse, or a duplicate
+	// key; std::runtime_error when the preset or main window is unavailable.
+	void			apply_preset_config_values(const std::vector<std::pair<std::string, std::string>>& values);
 	virtual void	reload_config();
     void            update_mode();
     void            update_visibility();
@@ -507,6 +541,12 @@ protected:
 	wxSizer*		compatible_widget_create(wxWindow* parent, PresetDependencies &deps);
 	void 			compatible_widget_reload(PresetDependencies &deps);
 	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false);
+	// Commit one option whose new value already sits in m_config through the same path a field edit
+	// runs (throwing field, otherwise the owning group's on_change_OG()). Reloads the option's page
+	// so a built field reports the committed value, but performs no tab-wide refresh. Returns true
+	// when a built field or a group owns the option, false when the GUI edits it through a custom
+	// widget with no group entry.
+	bool			commit_preset_config_value(const std::string& opt_key);
 
 	//BBS: GUI refactor
 	// return true if cancelled
@@ -677,9 +717,7 @@ class IMEXModesCtrl;
 class TabPrinter : public Tab
 {
 private:
-	bool		m_use_silent_mode = false;
 	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
-	bool		m_rebuild_kinematics_page = false;
 	void        update_input_shaper_menu(GCodeFlavor flavor);
 
 	// R8: track the belt->non-belt transition so update_fff() only clears the belt-derived

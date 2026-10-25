@@ -187,6 +187,23 @@ TEST_CASE("A part rests on its largest hull face even when parallel inner faces 
     check_on_bed(plate);
 }
 
+TEST_CASE("A box laid on its top face is turned over about X", "[LayOnFace]")
+{
+    // A face pointing straight up leaves the half turn's axis open to every horizontal
+    // direction. It must be the fixed X flip both times, keep the footprint and not follow
+    // rounding noise to an arbitrary angle.
+    Model        model;
+    ModelObject &box = add_box_object(model, { 40, 20, 10 });
+    lay_on_face(box, 0, { 0, 0, 1 });
+
+    check_size(box, { 40, 20, 10 });
+    check_on_bed(box);
+    const Matrix3d rotation = box.instances.front()->get_matrix_no_offset().linear();
+    CHECK_THAT(rotation(0, 0), WithinAbs(1., 1e-9));
+    CHECK_THAT(rotation(1, 1), WithinAbs(-1., 1e-9));
+    CHECK_THAT(rotation(2, 2), WithinAbs(-1., 1e-9));
+}
+
 TEST_CASE("Faces are selected in object coordinates whatever the instance rotation", "[LayOnFace]")
 {
     Model        model;

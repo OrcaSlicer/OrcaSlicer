@@ -98,12 +98,18 @@ inline nlohmann::json py_to_json(const pybind11::handle& o, int depth = 0)
 
 struct PluginPermissions
 {
+    // Filesystem targets. A target ending in "/*" (e.g. "/path/to/folder/*") grants the folder
+    // and its whole subtree, at any depth; "*" is the only wildcard and only as the final path
+    // component. Reads and writes stay separate buckets: a wildcard in one never grants the other.
     std::vector<std::string> fs_read;
     std::vector<std::string> fs_readwrite;
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
     std::vector<std::string> process;
     std::vector<std::string> threading;
+    // Grants for audit events that expose no target, keyed "<category>:<event>" (e.g.
+    // "Socket:socket.__new__"). Matched verbatim; the filesystem wildcard does not apply.
+    std::vector<std::string> events;
 };
 
 struct PluginInstallState {
@@ -184,11 +190,18 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
 
 // Canonical writer: emits the .install_state.json schema for the given state.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state);
+
 // Builds a PluginInstallState from the descriptor and delegates to the canonical writer.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
                          const std::vector<std::pair<std::string, bool>>& capabilities);
 // Convenience overload: write(dir, entry, /*enabled=*/true, /*capabilities=*/{}).
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry);
+
+// Fill the descriptor-derived install metadata into a sidecar state that does not describe an
+// installed plugin yet, and mark it enabled. Leaves permissions and capabilities untouched.
+// Single source for the metadata mapping used by the install writer and by the audit prompt path
+// that creates a sidecar on demand.
+void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry);
 
 // Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
 // sidecar was present and valid.
