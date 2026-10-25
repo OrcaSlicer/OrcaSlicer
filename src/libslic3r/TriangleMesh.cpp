@@ -1653,13 +1653,15 @@ std::vector<Vec3f> its_smooth_corner_normals(const indexed_triangle_set &its, do
     const VertexFaceIndex vertex_faces(its);
 
     // Faces within merge_degrees of a group's first face join it; two groups whose first faces differ by an angle within
-    // twice merge_degrees of the threshold compare face by face, so merging never changes the result.
+    // twice merge_degrees (plus slack_degrees for rounding) of the threshold compare face by face, so merging never
+    // changes the result.
     constexpr double merge_degrees  = 0.25;
+    constexpr double slack_degrees  = 1e-6;
     const auto       cos_of_degrees = [](double degrees) { return std::cos(std::clamp(degrees, 0., 180.) * PI / 180.); };
     const double     cos_threshold  = std::cos(threshold_degrees * PI / 180.);
     const double     cos_merge      = cos_of_degrees(merge_degrees);
-    const double     cos_all_in     = cos_of_degrees(threshold_degrees - 2. * merge_degrees);
-    const double     cos_all_out    = cos_of_degrees(threshold_degrees + 2. * merge_degrees);
+    const double     cos_all_in     = cos_of_degrees(threshold_degrees - 2. * merge_degrees - slack_degrees);
+    const double     cos_all_out    = cos_of_degrees(threshold_degrees + 2. * merge_degrees + slack_degrees);
     const auto       corner_id      = [&its](size_t face_id, size_t vertex_id) {
         const stl_triangle_vertex_indices &face = its.indices[face_id];
         return 3 * face_id + (size_t(face[0]) == vertex_id ? 0 : size_t(face[1]) == vertex_id ? 1 : 2);
