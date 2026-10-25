@@ -18,19 +18,19 @@
 #include "libslic3r/TriangleMesh.hpp"
 // Orca: Exercise the inline preview conversion with metadata produced by the real G-code pipeline.
 #include "libvgcode/include/PathVertex.hpp"
+#include "libvgcode/include/Types.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 
 #include <algorithm>
-#include <array>
-#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <functional>
 #include <iterator>
+#include <memory>
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
 #include <cstddef>
@@ -477,146 +477,24 @@ std::vector<std::string> printer_commands(const std::string &gcode)
     return result;
 }
 
-// Orca: Attach the same standalone inline marker emitted by GCode.cpp without coupling tests to
-// comment spacing. Callers may retain an existing description before the added semicolon-delimited field.
-std::string bind_overhang_profile(std::string arc,
-    GCodeProcessor::ETags marker = GCodeProcessor::ETags::Overhang_Arc_Apply)
+// Orca: The local readings the exporter writes for one move: bead-wide cells on walls, quarter-bead cells on infill.
+std::vector<float> line_overhang_profile(ExtrusionQualityEstimator &estimator, const Vec3d &start, const Vec3d &end,
+                                         float width, bool wall)
 {
-    assert(!arc.empty() && arc.back() == '\n');
-    arc.insert(arc.size() - 1, ";" + GCodeProcessor::reserved_tag(marker));
-    return arc;
+    const double cell_length = wall ? std::max(0.1, double(width)) : std::max(0.05, 0.25 * width);
+    const size_t intervals = std::max<size_t>(1, size_t(std::ceil((end - start).head<2>().norm() / cell_length)));
+    return estimator.estimate_overhang_line_percentages(start, end, width, intervals, wall);
 }
 
-// Orca: Tests that select a tag dialect must restore the process-wide setting so randomized test
-// ordering cannot make another G-code parser test depend on which case ran immediately before it.
-class ScopedBblPrinterFlag
+// Orca: The scalar the exporter writes for one move, the largest of its local readings.
+float line_overhang_maximum(ExtrusionQualityEstimator &estimator, const Vec3d &start, const Vec3d &end, float width,
+                            bool wall)
 {
-public:
-    explicit ScopedBblPrinterFlag(bool value) : m_previous(GCodeProcessor::s_IsBBLPrinter)
-    {
-        GCodeProcessor::s_IsBBLPrinter = value;
-    }
-
-    ~ScopedBblPrinterFlag() { GCodeProcessor::s_IsBBLPrinter = m_previous; }
-
-private:
-    bool m_previous;
-};
+    const std::vector<float> profile = line_overhang_profile(estimator, start, end, width, wall);
+    return profile.empty() ? 0.f : *std::max_element(profile.begin(), profile.end());
+}
 
 } // namespace
-
-TEST_CASE("Line overhang profiles color local spans while preserving processor moves",
-          "[ExtrusionProcessor][GCodeProcessor][Overhang][Regression]")
-{
-    const bool bbl = GENERATE(false, true);
-    const bool reverse = GENERATE(false, true);
-    const bool interior = GENERATE(false, true);
-    ScopedBblPrinterFlag dialect(bbl);
-    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
-        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
-    };
-    const std::string setup = "G90\nM83\nT0\nG1 X0 Y0 Z0.2 F600\n" +
-        tag(GCodeProcessor::ETags::Role, ExtrusionEntity::role_to_string(erSolidInfill)) +
-        tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
-        tag(GCodeProcessor::ETags::Overhang, "100");
-    const std::string line = "G1 X8 Y4 Z0.6 E1 F3600 ; solid infill\n";
-    GCodeProcessor baseline;
-    baseline.apply_config(FullPrintConfig());
-    baseline.initialize_result_moves();
-    baseline.process_buffer(setup + "M106 S128\nG1 F1800\n" + line);
-    baseline.finalize(false);
-    GCodeProcessor profiled;
-    profiled.apply_config(FullPrintConfig());
-    profiled.initialize_result_moves();
-    profiled.process_buffer(setup + tag(GCodeProcessor::ETags::Overhang_Line, interior ? "4,0,0,100" :
-        (reverse ? "4,0,0,0" : "4,0,100,0")));
-    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Line, interior ? "4,2,0,0" :
-        (reverse ? "4,2,0,100" : "4,2,0,0")) + "M106 S128\nG1 F1800\n" +
-        bind_overhang_profile(line, GCodeProcessor::ETags::Overhang_Line_Apply));
-    profiled.finalize(false);
-    const auto &result = profiled.get_result();
-    const auto &original = baseline.get_result().moves;
-    REQUIRE(result.overhang_line_profiles.size() == 1);
-    REQUIRE(result.moves.size() == original.size());
-    for (size_t i = 0; i < original.size(); ++i) {
-        CHECK_THAT((result.moves[i].position - original[i].position).norm(), Catch::Matchers::WithinAbs(0.0, 1e-6));
-        CHECK_THAT(result.moves[i].delta_extruder, Catch::Matchers::WithinAbs(original[i].delta_extruder, 1e-6));
-        CHECK_THAT(result.moves[i].feedrate, Catch::Matchers::WithinAbs(original[i].feedrate, 1e-6));
-        CHECK_THAT(result.moves[i].actual_feedrate, Catch::Matchers::WithinAbs(original[i].actual_feedrate, 1e-6));
-        CHECK_THAT(result.moves[i].fan_speed, Catch::Matchers::WithinAbs(original[i].fan_speed, 1e-6));
-        for (size_t mode = 0; mode < result.moves[i].time.size(); ++mode)
-            CHECK_THAT(result.moves[i].time[mode], Catch::Matchers::WithinAbs(original[i].time[mode], 1e-6));
-    }
-    const auto mode = PrintEstimatedStatistics::ETimeMode::Normal;
-    CHECK_THAT(profiled.get_time(mode), Catch::Matchers::WithinAbs(baseline.get_time(mode), 1e-6));
-    const size_t unsupported_cell = interior ? 1 : (reverse ? 3 : 0);
-    double covered_length = 0.0;
-    double unsupported_length = 0.0;
-    std::array<double, 2> preview_time{};
-    result.for_each_preview_move([&](const auto &prev, const auto &curr, bool) {
-        for (size_t i = 0; i < preview_time.size(); ++i)
-            preview_time[i] += curr.time[i];
-        if (curr.type != EMoveType::Extrude)
-            return;
-        const double middle = 0.5 * (prev.position.x() + curr.position.x());
-        const bool unsupported = middle >= 2.0 * unsupported_cell && middle < 2.0 * (unsupported_cell + 1);
-        CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(unsupported ? 100.0 : 0.0, 1e-6));
-        const double length = (curr.position - prev.position).norm();
-        covered_length += length;
-        if (unsupported)
-            unsupported_length += length;
-    });
-    const double length = Vec3d(8.0, 4.0, 0.4).norm();
-    CHECK_THAT(covered_length, Catch::Matchers::WithinAbs(length, 1e-5));
-    CHECK_THAT(unsupported_length, Catch::Matchers::WithinAbs(length / 4.0, 1e-5));
-    for (size_t i = 0; i < preview_time.size(); ++i) {
-        double total = 0.0;
-        for (const auto &move : original)
-            total += move.time[i];
-        CHECK_THAT(preview_time[i], Catch::Matchers::WithinAbs(total, 1e-5));
-    }
-    GCodeProcessorResult copied;
-    copied = result;
-    REQUIRE(copied.overhang_line_profiles.size() == 1);
-    for (size_t i = 0; i < 4; ++i)
-        CHECK_THAT(copied.overhang_line_profiles.front().percentages[i],
-            Catch::Matchers::WithinAbs(result.overhang_line_profiles.front().percentages[i], 1e-6));
-    copied.reset();
-    CHECK(copied.overhang_line_profiles.empty());
-}
-
-TEST_CASE("Line overhang profiles reject incomplete data and unrelated motions",
-          "[ExtrusionProcessor][GCodeProcessor][Overhang][Regression]")
-{
-    const std::string data = GENERATE("", "4,0", "1,0,100", "65537,0,0", "4,1,0,100,0", "4,0,0,nan,0,0",
-        "4,0,0,inf,0,0", "4,0,0,101,0,0", "4,0,0,-1,0,0", "4,0,0,100junk,0,0", "4,0,0,100,0,0,", "4,0,0,100");
-    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
-        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
-    };
-    GCodeProcessor processor;
-    processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
-        tag(GCodeProcessor::ETags::Overhang_Line, data) +
-        bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
-    CHECK(processor.get_result().overhang_line_profiles.empty());
-    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
-    const std::string complete = tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0,100,0,0");
-    processor.process_buffer(complete + "G1 X9 E0.1 ; mentions OVERHANG_LINE_APPLY here\n" +
-        bind_overhang_profile("G1 X10 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
-    CHECK(processor.get_result().overhang_line_profiles.empty());
-    processor.process_buffer(complete + "G3 X11 Y1 I0 J1 E0.1\n" +
-        bind_overhang_profile("G1 X12 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
-    CHECK(processor.get_result().overhang_line_profiles.empty());
-    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "4,0,0,100,0,0") +
-        bind_overhang_profile("G1 X13 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
-    CHECK(processor.get_result().overhang_line_profiles.empty());
-    processor.process_buffer(complete);
-    processor.reset();
-    processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" +
-        bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
-    CHECK(processor.get_result().overhang_line_profiles.empty());
-}
 
 // Orca: The middle of a quarter-circle is not the middle of its chord. Check both directions
 // against an analytic vertical support edge to catch sampling of the pre-fitting polyline instead.
@@ -645,7 +523,8 @@ TEST_CASE("Overhang arc samples follow fitted geometry in both directions", "[Ex
     REQUIRE(samples.size() == 41);
     for (size_t i = 0; i < samples.size(); ++i) {
         const double angle = (clockwise ? 40 - i : i) * PI / 80.0;
-        const double expected = 100.0 * std::clamp((10.0 * std::cos(angle) - 7.0 + 0.2) / 0.4, 0.0, 1.0);
+        // Orca: Walls keep the contour offset past a full bead, up to ten widths.
+        const double expected = 100.0 * std::clamp((10.0 * std::cos(angle) - 7.0 + 0.2) / 0.4, 0.0, 10.0);
         CHECK_THAT(samples[i], Catch::Matchers::WithinAbs(expected, 1e-3));
     }
     CHECK(samples[20] > 50.0f);
@@ -690,315 +569,13 @@ TEST_CASE("Fitted arc correction preserves small real overhangs and supported in
     const auto samples = estimator.estimate_overhang_arc_percentages(arc, width, 2);
     REQUIRE(samples.size() == 3);
     // Orca: Parallel polygon edges shift by shift*cos(half-angle); at mid-arc this is the exact
-    // unsupported outer-wall width. The deeper inner wall stays supported until the 1 mm shift.
-    const double expected = inner_wall ? (shift >= 1.0 ? 100.0 : 0.0) :
-        100.0 * std::clamp(shift * std::cos(PI / facets) / width, 0.0, 1.0);
+    // unsupported outer-wall width. The deeper inner wall, which needs no placement correction,
+    // stays supported until its bead edge passes the lower facet, which only the 1 mm shift does.
+    const double lower_apothem = (radius - shift) * std::cos(PI / facets);
+    const double expected = inner_wall ?
+        100.0 * std::clamp((arc_radius - lower_apothem + 0.5 * width) / width, 0.0, 10.0) :
+        100.0 * std::clamp(shift * std::cos(PI / facets) / width, 0.0, 10.0);
     CHECK_THAT(samples[1], Catch::Matchers::WithinAbs(expected, 1e-3));
-}
-
-// Orca: Both firmware tessellations retain their original move count and timing inputs. A monotone
-// profile has an exact local maximum at one segment endpoint, independent of its geometric direction.
-TEST_CASE("Overhang arc profiles color local segments without changing motion", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
-{
-    const auto flavor = GENERATE(gcfMarlinFirmware, gcfKlipper);
-    const bool clockwise = GENERATE(false, true);
-    const bool decreasing = GENERATE(false, true);
-    FullPrintConfig config;
-    config.gcode_flavor.value = flavor;
-    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
-        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
-    };
-    const std::string setup = "G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" +
-        tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
-        tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + tag(GCodeProcessor::ETags::Overhang, "100");
-    const std::string arc = std::string(clockwise ? "G2" : "G3") + " X0 Y10 I-10 J0 E1 F600 ; arc description\n";
-    const std::string marked_arc = bind_overhang_profile(arc);
-    // Orca: Arbitrary non-motion commands may appear between chunks and the explicitly marked arc;
-    // they require no whitelist. A lower-case Klipper command also exercises case-insensitive handling.
-    const std::string control = "M106 S128\nM73 P50\nM107\nG4 P1\nM104 S200\nM204 S1000\nM400\n;VM104 S200\n" +
-        std::string(flavor == gcfKlipper ?
-            "set_velocity_limit SQUARE_CORNER_VELOCITY=5\nSET_PRESSURE_ADVANCE ADVANCE=0.04\nRESPOND TYPE=echo MSG=preview\n" : "");
-    GCodeProcessor baseline;
-    baseline.apply_config(config);
-    baseline.process_buffer(setup + control + arc);
-    GCodeProcessor profiled;
-    profiled.apply_config(config);
-    profiled.process_buffer(setup);
-    // Orca: Chunk boundaries may coincide with streaming-buffer boundaries.
-    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,0,100,75,50" : "5,0,0,25,50"));
-    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,3,25,0" : "5,3,75,100") + control + marked_arc);
-    const auto &original = baseline.get_result().moves;
-    const auto &moves = profiled.get_result().moves;
-    REQUIRE(moves.size() == original.size());
-    // Orca: Timing may insert extra speed markers; profile progress follows the original arc segments.
-    const size_t count = std::count_if(moves.begin(), moves.end(), [](const auto &move) {
-        return move.type == EMoveType::Extrude && !move.internal_only;
-    });
-    REQUIRE(count > 2);
-    size_t segment = 0;
-    for (size_t i = 0; i < moves.size(); ++i) {
-        CHECK_THAT((moves[i].position - original[i].position).norm(), Catch::Matchers::WithinAbs(0.0, 1e-6));
-        CHECK_THAT(moves[i].delta_extruder, Catch::Matchers::WithinAbs(original[i].delta_extruder, 1e-6));
-        CHECK_THAT(moves[i].feedrate, Catch::Matchers::WithinAbs(original[i].feedrate, 1e-6));
-        if (moves[i].type == EMoveType::Extrude && !moves[i].internal_only) {
-            const double expected = 100.0 * (decreasing ? count - segment : segment + 1) / count;
-            ++segment;
-            CHECK_THAT(moves[i].overhang_percentage, Catch::Matchers::WithinAbs(expected, 1e-3));
-            CHECK_THAT(moves[i].overhang_z_distance, Catch::Matchers::WithinAbs(0.2, 1e-6));
-        }
-    }
-    // Orca: Neither the next line nor the next untagged arc may inherit the local profile.
-    profiled.process_buffer("G1 X1 Y10 E1\n");
-    CHECK_THAT(profiled.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
-    profiled.process_buffer("G3 X11 Y0 I10 J0 E1\n");
-    CHECK_THAT(profiled.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
-}
-
-// Orca: A tiny arc becomes one preview segment, but an unsupported interior sample must still survive
-// even when both endpoints are fully supported. The following move keeps the independent scalar value.
-TEST_CASE("Overhang arc profiles preserve interior peaks on short arcs", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
-{
-    FullPrintConfig config;
-    config.gcode_flavor.value = gcfMarlinFirmware;
-    GCodeProcessor processor;
-    processor.apply_config(config);
-    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
-        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
-    };
-    processor.process_buffer("G90\nM83\nT0\nG1 X0.05 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
-        tag(GCodeProcessor::ETags::Overhang_Arc, "5,0,0,0,100,0,0") +
-        bind_overhang_profile("G3 X0 Y0.05 I-0.05 J0 E0.01\n"));
-    const auto &moves = processor.get_result().moves;
-    REQUIRE(std::count_if(moves.begin(), moves.end(), [](const auto &move) { return move.type == EMoveType::Extrude; }) == 1);
-    CHECK_THAT(moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
-    processor.process_buffer("G1 X10 E1\n");
-    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
-    // Orca: Complete samples without a standalone marker must not color or leak past an unrelated arc;
-    // merely mentioning the marker inside human-readable text is intentionally insufficient.
-    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "3,0,0,50,100") +
-        "G3 X9.95 Y0 I-0.05 J0 E0.01 ; do not apply OVERHANG_ARC_APPLY here\n");
-    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
-}
-
-// Orca: Corrupt, incomplete or stale chunks must fall back to the scalar tag, never partially color
-// an arc or carry a previous profile across an intervening command or a parser reset.
-TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
-{
-    // Orca: Empty headers and samples must be invalid with both std::from_chars and the legacy
-    // floating-point backend used by older macOS standard libraries, not silently become zero.
-    const std::string data = GENERATE("", "3", "3,0", "1,0,0", "65537,0,0", "3,-1,0", "3,1,50,100", "3,0,0,nan,100", "3,0,0,inf,100",
-        "3,0,0,101,100", "3,0,0,-1,100", "3,0,0,50,100junk", "3,0,0,50,100,", "3,0,0,50", "3,0,0,,100",
-        ",0,0,50,100", "3,,0,50,100", "3,0,,50,100",
-        "3,0,0,50,100,0", "3,0,0,50,100\nG2 X1 Y1 E1");
-    CAPTURE(data);
-    GCodeProcessor processor;
-    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
-        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
-    };
-    const auto setup = [&]() {
-        processor.apply_config(FullPrintConfig());
-        processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33"));
-    };
-    setup();
-    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, data) +
-        bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
-    size_t checked = 0;
-    for (const auto &move : processor.get_result().moves)
-        if (move.type == EMoveType::Extrude) {
-            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
-            ++checked;
-        }
-    REQUIRE(checked > 1);
-    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "3,0,0,50,100"));
-    processor.reset();
-    setup();
-    processor.process_buffer("G3 X0 Y10 I-10 J0 E1\n");
-    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
-}
-
-// Orca: Post-processing may retain an arc's marker after removing or damaging its chunks. Such an
-// arc must keep the preview unavailable unless a complete, valid profile was actually supplied.
-TEST_CASE("Overhang arc markers require complete profiles to enable the preview", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
-{
-    const bool bbl_printer = GENERATE(false, true);
-    const std::string profile = GENERATE("", "3,0,0,50", "3,0,0,,100", "3,0,0,50,100");
-    CAPTURE(bbl_printer, profile);
-    const ScopedBblPrinterFlag scoped_printer_flag(bbl_printer);
-    GCodeProcessor processor;
-    processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n");
-    if (!profile.empty())
-        processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + profile + "\n");
-    CHECK_FALSE(processor.get_result().has_overhang_metadata);
-    processor.process_buffer(bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
-    const bool complete = profile == "3,0,0,50,100";
-    CHECK(processor.get_result().has_overhang_metadata == complete);
-    REQUIRE_FALSE(processor.get_result().moves.empty());
-    REQUIRE(processor.get_result().moves.back().type == EMoveType::Extrude);
-    CHECK_THAT(processor.get_result().moves.back().overhang_percentage,
-        Catch::Matchers::WithinAbs(complete ? 100.0 : 0.0, 1e-5));
-}
-
-TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodeProcessor][Overhang]")
-{
-    const bool bbl_printer = GENERATE(false, true);
-    CAPTURE(bbl_printer);
-    const ScopedBblPrinterFlag scoped_printer_flag(bbl_printer);
-    // Orca: Drive the streaming parser used for freshly generated G-code and verify that only a
-    // valid tag advertises the optional preview mode in both supported tag dialects.
-    GCodeProcessor processor;
-    const std::string tag_prefix = bbl_printer ? "; OVERHANG: " : ";OVERHANG:";
-    CHECK(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) == tag_prefix.substr(1));
-    // Orca: Reference spacing alone is not sufficient to offer the Overhang view.
-    processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Z_Distance) + "0.2\n");
-    CHECK_FALSE(processor.get_result().has_overhang_metadata);
-    processor.process_buffer(tag_prefix + "37.5\n");
-    CHECK(processor.get_result().has_overhang_metadata);
-
-    // Orca: Resetting the processor must hide the mode again until another valid tag is parsed.
-    processor.reset();
-    CHECK_FALSE(processor.get_result().has_overhang_metadata);
-    processor.process_buffer(tag_prefix + "invalid\n");
-    CHECK_FALSE(processor.get_result().has_overhang_metadata);
-
-    // Orca: Complete samples alone remain inert; only the inline marker on their exact arc publishes them.
-    processor.reset();
-    processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n;" +
-        GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + "3,0,0,50,100\n");
-    CHECK_FALSE(processor.get_result().has_overhang_metadata);
-    processor.process_buffer(bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
-    CHECK(processor.get_result().has_overhang_metadata);
-}
-
-// Orca: Malformed or non-finite percentages must neither enable the view nor leak into its color lookup.
-TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCodeProcessor][Overhang][Regression]")
-{
-    // Orca: An empty scalar tag must not advertise metadata, just like an empty arc sample.
-    const std::string value = GENERATE("", "nan", "inf", "-inf", "37.5garbage", "invalid");
-    const bool preceding_valid_tag = GENERATE(false, true);
-    CAPTURE(value, preceding_valid_tag);
-    GCodeProcessor processor;
-    processor.apply_config(FullPrintConfig());
-    const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang);
-    processor.process_buffer("G90\nM83\nT0\n");
-    if (preceding_valid_tag)
-        processor.process_buffer(tag + "50\n");
-    processor.process_buffer(tag + value + "\nG1 X10 Z0.2 E1 F600\n");
-    CHECK(processor.get_result().has_overhang_metadata == preceding_valid_tag);
-    REQUIRE_FALSE(processor.get_result().moves.empty());
-    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
-}
-
-// Orca: Guard values are part of the public preview conversion contract: fully unsupported remains
-// a ceiling even without dimensions, while supported or geometrically incomplete data remains a wall.
-TEST_CASE("Overhang angle conversion handles boundary and incomplete metadata", "[ExtrusionProcessor][Overhang]")
-{
-    struct Case {
-        const char *name;
-        float percentage;
-        float width;
-        float height;
-        float z_distance;
-        float expected_degree;
-    };
-    const std::array<Case, 6> cases{{
-        {"fully unsupported without dimensions", 100.0f, 0.0f, 0.0f, 0.0f, 90.0f},
-        {"percentage above the supported range", 120.0f, 0.4f, 0.2f, 0.2f, 90.0f},
-        {"fully supported", 0.0f, 0.4f, 0.2f, 0.2f, 0.0f},
-        {"percentage below the supported range", -10.0f, 0.4f, 0.2f, 0.2f, 0.0f},
-        {"missing width", 50.0f, 0.0f, 0.2f, 0.2f, 0.0f},
-        {"missing vertical separation", 50.0f, 0.4f, 0.0f, 0.0f, 0.0f},
-    }};
-
-    for (const Case &test : cases) {
-        DYNAMIC_SECTION(test.name) {
-            libvgcode::PathVertex vertex;
-            vertex.overhang_percentage = test.percentage;
-            vertex.width = test.width;
-            vertex.height = test.height;
-            vertex.overhang_z_distance = test.z_distance;
-            CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(test.expected_degree, 1e-6));
-        }
-    }
-}
-
-// Model infill consumes preview metadata; support and auxiliary roles still reset it.
-TEST_CASE("Overhang metadata follows model infill roles and excludes supports", "[GCodeProcessor][Overhang][Regression]")
-{
-    struct Case {
-        ExtrusionRole role;
-        float expected_percentage;
-    };
-    const std::array<Case, 17> cases{{
-        {erExternalPerimeter, 42.0f},
-        {erBridgeInfill, 42.0f},
-        {erInternalBridgeInfill, 42.0f},
-        {erInternalInfill, 42.0f},
-        {erSolidInfill, 42.0f},
-        {erTopSolidInfill, 42.0f},
-        {erBottomSurface, 42.0f},
-        {erGapFill, 42.0f},
-        {erIroning, 0.0f},
-        {erSupportMaterial, 0.0f},
-        {erSupportMaterialInterface, 0.0f},
-        {erSupportTransition, 0.0f},
-        {erSkirt, 0.0f},
-        {erBrim, 0.0f},
-        {erWipeTower, 0.0f},
-        {erCustom, 0.0f},
-        {erNone, 0.0f},
-    }};
-
-    for (const Case &test : cases) {
-        DYNAMIC_SECTION(ExtrusionEntity::role_to_string(test.role)) {
-            GCodeProcessor processor;
-            processor.apply_config(FullPrintConfig());
-            const std::string overhang_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) + "42\n";
-            const std::string role_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) +
-                ExtrusionEntity::role_to_string(test.role) + "\n";
-            processor.process_buffer("G90\nM83\nT0\n" + overhang_tag + role_tag + "G1 X10 Z0.2 E1 F600\n");
-
-            REQUIRE_FALSE(processor.get_result().moves.empty());
-            const auto &move = processor.get_result().moves.back();
-            REQUIRE(move.type == EMoveType::Extrude);
-            CHECK(move.extrusion_role == test.role);
-            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(test.expected_percentage, 1e-6));
-        }
-    }
-}
-
-TEST_CASE("Infill overhang metadata measures lower-layer area without splitting paths",
-          "[ExtrusionProcessor][Overhang][Regression]")
-{
-    const ExtrusionRole role = GENERATE(erInternalInfill, erSolidInfill, erTopSolidInfill,
-        erBottomSurface, erGapFill);
-    const double shift = GENERATE(0.0, 0.2, 0.4);
-    CAPTURE(role, shift);
-    constexpr float width = 0.4f;
-    Print print;
-    Model model;
-    init_print({cube(1.0)}, print, model);
-    PrintObject *object = print.get_object(0);
-    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
-    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
-    upper->lower_layer = lower;
-    lower->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(10, 0),
-        Point::new_scale(10, 10), Point::new_scale(0, 10)})};
-    // The current layer covers the whole extrusion. Its outline must not hide unsupported infill.
-    upper->lslices = {ExPolygon(Polygon{Point::new_scale(0, -1), Point::new_scale(10, -1),
-        Point::new_scale(10, 10), Point::new_scale(0, 10)})};
-    ExtrusionPath path(role, width * 0.2, width, 0.2f);
-    path.polyline.points = {Point3::new_scale(2, 0.2 - shift, 0), Point3::new_scale(8, 0.2 - shift, 0)};
-    const auto original_points = path.polyline.points;
-
-    ExtrusionQualityEstimator estimator;
-    estimator.set_current_object(object);
-    estimator.prepare_for_new_layer(object, upper);
-    const auto percentages = estimator.estimate_overhang_percentages(path);
-    REQUIRE(percentages.size() == 1);
-    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(100.0 * shift / width, 1e-3));
-    CHECK(path.polyline.points == original_points);
 }
 
 TEST_CASE("Printed material distinguishes supported lines from sparse infill gaps inside a solid outline",
@@ -1030,24 +607,28 @@ TEST_CASE("Printed material distinguishes supported lines from sparse infill gap
     ExtrusionQualityEstimator estimator;
     estimator.set_current_object(object);
     estimator.prepare_for_infill_layer(object, lower);
-    const auto percentages = estimator.estimate_overhang_percentages(path);
-    REQUIRE(percentages.size() == 1);
+    const float percentage = line_overhang_maximum(estimator, unscaled(path.polyline.points.front()),
+        unscaled(path.polyline.points.back()), width, false);
     const double expected = std::min(100.0, 100.0 * shift / width);
-    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(expected, 0.1));
+    CHECK_THAT(percentage, Catch::Matchers::WithinAbs(expected, 0.1));
     CHECK(path.polyline.points == original_points);
     libvgcode::PathVertex vertex;
+    vertex.role = libvgcode::EGCodeExtrusionRole::SolidInfill;
     vertex.width = width;
     vertex.height = height;
     vertex.overhang_z_distance = height;
-    vertex.overhang_percentage = percentages.front();
+    vertex.overhang_percentage = percentage;
+    // Infill is measured up to a full bead, so a fully unsupported line is a bridge.
     const double expected_angle = shift == 0.0 ? 0.0 : (shift < width ? 45.0 : 90.0);
     CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(expected_angle, 0.1));
     // A travel-only path must not fill the gap in the next reference.
     ExtrusionPath travel = path;
     travel.set_force_no_extrusion(true);
     lower->get_region(0)->fills.append(travel);
+    estimator.forget_infill_footprints();
     estimator.prepare_for_infill_layer(object, lower);
-    CHECK_THAT(estimator.estimate_overhang_percentages(path).front(), Catch::Matchers::WithinAbs(expected, 0.1));
+    CHECK_THAT(line_overhang_maximum(estimator, unscaled(path.polyline.points.front()),
+        unscaled(path.polyline.points.back()), width, false), Catch::Matchers::WithinAbs(expected, 0.1));
 }
 
 TEST_CASE("Infill arc metadata samples local coverage", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
@@ -1145,7 +726,7 @@ TEST_CASE("Sparse infill exports unsupported gaps inside unchanged model outline
 TEST_CASE("Infill overhang coloring stays local to unsupported ends and interior gaps",
           "[ExtrusionProcessor][Overhang][Regression]")
 {
-    const ExtrusionRole role = GENERATE(erSolidInfill, erInternalInfill, erInternalBridgeInfill);
+    const ExtrusionRole role = GENERATE(erSolidInfill, erInternalInfill, erInternalBridgeInfill, erBridgeInfill);
     const bool interior = GENERATE(false, true);
     const bool reverse = GENERATE(false, true);
     constexpr float width = 0.4f;
@@ -1233,6 +814,222 @@ TEST_CASE("Infill overhang coloring stays local to unsupported ends and interior
         imported.finalize(false);
         check_local_colors(imported.get_result());
     }
+}
+
+// Orca: A straight wall is one G1 when neither speed nor cooling splits it. Its unsupported span over a notch in
+// the layer below must stay local in the preview instead of coloring the whole move with its maximum.
+TEST_CASE("Straight walls export local overhang profiles without changing commands",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float width = 0.4f;
+    std::vector<std::string> baseline;
+    for (bool enabled : {false, true}) {
+        auto config = shallow_overhang_config("classic", false, enabled);
+        config.set_deserialize_strict({{"initial_layer_print_height", "0.2"}, {"layer_height", "0.2"},
+            {"gcode_comments", "0"}, {"nozzle_diameter", "0.4"}, {"line_width", "0.4"}, {"enable_arc_fitting", "0"},
+            {"enable_overhang_bridge_fan", "0"}, {"top_shell_layers", "0"}, {"bottom_shell_layers", "1"}});
+        config.erase("nozzle_type");
+        config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+        Print print;
+        Model model;
+        init_print({make_cube(6.0, 6.0, 0.8)}, print, model, config, nullptr, false);
+        print.apply(model, config); // init_print enables ordinary comments; exercise their disabled state.
+        print.process();
+        PrintObject *object = print.get_object(0);
+        REQUIRE(object->layer_count() >= 3);
+        Layer *lower = object->get_layer(1);
+        Layer *upper = object->get_layer(2);
+        for (Layer *layer : {lower, upper})
+            for (LayerRegion *region : layer->regions()) {
+                region->perimeters.clear();
+                region->fills.clear();
+            }
+        // The layer below recedes by one width behind the middle 2 mm of the front face.
+        lower->lslices = {ExPolygon(Polygon{Point::new_scale(-3, -3), Point::new_scale(-1, -3),
+            Point::new_scale(-1, -3 + width), Point::new_scale(1, -3 + width), Point::new_scale(1, -3),
+            Point::new_scale(3, -3), Point::new_scale(3, 3), Point::new_scale(-3, 3)})};
+        ExtrusionPath wall(erExternalPerimeter, width * 0.2, width, 0.2f);
+        wall.polyline.points = {Point3::new_scale(-2, -3 + 0.5 * width, 0), Point3::new_scale(2, -3 + 0.5 * width, 0)};
+        ExtrusionEntityCollection island;
+        island.append(wall);
+        upper->get_region(0)->perimeters.append(std::move(island));
+        GCodeProcessorResult result;
+        const auto commands = printer_commands(gcode(print, &result));
+        if (!enabled) {
+            baseline = commands;
+            continue;
+        }
+        CHECK(commands == baseline);
+        REQUIRE_FALSE(result.overhang_line_profiles.empty());
+        bool supported = false;
+        bool unsupported = false;
+        result.for_each_preview_move([&](const auto &prev, const auto &curr, bool) {
+            if (curr.type != EMoveType::Extrude || curr.extrusion_role != erExternalPerimeter ||
+                std::abs(curr.position.z() - upper->print_z) > 1e-4)
+                return;
+            const double middle = 0.5 * (prev.position.x() + curr.position.x()) -
+                unscale<double>(object->instances().front().shift.x());
+            if (std::abs(middle) > 1.3) {
+                CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 0.1));
+                supported = true;
+            } else if (std::abs(middle) < 0.5) {
+                CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(100.0, 0.1));
+                unsupported = true;
+            }
+        });
+        CHECK(supported);
+        CHECK(unsupported);
+    }
+}
+
+// Orca: Infill combination prints one bead for a group of layers and leaves the layers under it void. Grid lines
+// repeat at the same place, so each combined bead rests on the one printed for the group below.
+TEST_CASE("Combined infill is measured against the infill it rests on", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    // Over a raft without bottom shells, the lowest bead combines the first two object layers and rests on the raft.
+    const bool raft = GENERATE(false, true);
+    CAPTURE(raft);
+    std::vector<std::string> baseline;
+    for (bool enabled : {false, true}) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        // A 0.4 mm nozzle combines pairs of 0.2 mm layers into 0.4 mm beads.
+        config.set_deserialize_strict({
+            {"nozzle_diameter", "0.4"}, {"layer_height", "0.2"}, {"initial_layer_print_height", "0.2"},
+            {"wall_loops", "1"}, {"sparse_infill_density", "20%"}, {"sparse_infill_pattern", "grid"},
+            {"infill_combination", "1"}, {"top_shell_layers", "0"}, {"bottom_shell_layers", raft ? "0" : "1"},
+            {"raft_layers", raft ? "2" : "0"}, {"enable_arc_fitting", "0"}, {"gcode_overhangs", enabled ? "1" : "0"},
+        });
+        Print print;
+        Model model;
+        init_print({make_cube(10.0, 10.0, 2.0)}, print, model, config);
+        GCodeProcessorResult result;
+        const auto commands = printer_commands(gcode(print, &result));
+        if (!enabled) {
+            baseline = commands;
+            continue;
+        }
+        CHECK(commands == baseline);
+        double combined_length = 0.0;
+        double supported_length = 0.0;
+        result.for_each_preview_move([&](const auto &prev, const auto &curr, bool) {
+            if (curr.type != EMoveType::Extrude || curr.extrusion_role != erInternalInfill || curr.height < 0.3f)
+                return;
+            // A bead on the raft has no object layer under it, so no spacing either.
+            if (!raft || curr.overhang_z_distance > EPSILON)
+                CHECK_THAT(curr.overhang_z_distance, Catch::Matchers::WithinAbs(0.4, 1e-3));
+            const double length = (curr.position - prev.position).norm();
+            combined_length += length;
+            if (curr.overhang_percentage < 50.0f)
+                supported_length += length;
+        });
+        REQUIRE(combined_length > 0.0);
+        // The layer directly below the bead is void; measured against it, nearly all of it would read unsupported.
+        CHECK(supported_length > 0.8 * combined_length);
+    }
+}
+
+// Orca: The generator builds the footprint for the layer below in its parallel stage. It must describe the same
+// material as the footprint built on demand, and only be built while metadata is exported.
+TEST_CASE("Precomputed infill footprints match the footprint built on demand", "[ExtrusionProcessor][Overhang]")
+{
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 1.0)}, print, model, {{"layer_height", 0.2}, {"initial_layer_print_height", 0.2},
+        {"sparse_infill_density", "20%"}, {"gcode_overhangs", 1}});
+    print.process();
+    const PrintObject *object = print.objects().front();
+    REQUIRE(object->layer_count() >= 3);
+    const Layer *layer = object->get_layer(2);
+    CHECK_FALSE(precompute_overhang_layer(object, *layer).lower_infill_footprint);
+    PrecomputedOverhangLayer precomputed = precompute_overhang_layer(object, *layer, false, true);
+    const auto footprint = precomputed.lower_infill_footprint;
+    REQUIRE(footprint);
+
+    ExtrusionQualityEstimator generator;
+    std::vector<PrecomputedOverhangLayer> precomputed_layers;
+    precomputed_layers.push_back(std::move(precomputed));
+    generator.set_precomputed_layers(std::move(precomputed_layers));
+    CHECK(generator.precomputed_infill_footprint(object, layer) == footprint);
+    CHECK_FALSE(generator.precomputed_infill_footprint(object, layer->lower_layer));
+
+    ExtrusionQualityEstimator built;
+    built.set_current_object(object);
+    built.prepare_for_infill_layer(object, layer->lower_layer);
+    generator.set_current_object(object);
+    generator.prepare_for_infill_layer(object, layer->lower_layer, footprint);
+    constexpr float width = 0.4f;
+    for (double y = -3.5; y <= 3.5; y += 0.7) {
+        const Vec3d start(-3.5, y, 0.);
+        const Vec3d end(3.5, y + 0.3, 0.);
+        const auto expected = line_overhang_profile(built, start, end, width, false);
+        const auto reused = line_overhang_profile(generator, start, end, width, false);
+        REQUIRE(reused.size() == expected.size());
+        for (size_t i = 0; i < expected.size(); ++i)
+            CHECK_THAT(reused[i], Catch::Matchers::WithinAbs(expected[i], 1e-6));
+    }
+
+    // A footprint handed over is measured against as given: here only the half of the layer at x < 0 is printed.
+    ExtrusionQualityEstimator handed;
+    handed.set_current_object(object);
+    handed.prepare_for_infill_layer(object, layer->lower_layer, std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(
+        to_unscaled_linesf3(ExPolygons{ExPolygon(Polygon{Point::new_scale(-3, -3), Point::new_scale(0, -3),
+            Point::new_scale(0, 3), Point::new_scale(-3, 3)})})));
+    CHECK_THAT(line_overhang_maximum(handed, Vec3d(-2.5, 0., 0.), Vec3d(-0.5, 0., 0.), width, false),
+        Catch::Matchers::WithinAbs(0.0, 1e-6));
+    CHECK_THAT(line_overhang_maximum(handed, Vec3d(0.5, 0., 0.), Vec3d(2.5, 0., 0.), width, false),
+        Catch::Matchers::WithinAbs(100.0, 1e-6));
+}
+
+// Orca: A wall bead fully over air whose nearest lower material runs across it has no lower contour of its own to
+// slope from, so it reads as horizontal rather than as a slope towards unrelated geometry.
+TEST_CASE("Unsupported walls without a lower contour of their own read as horizontal",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float width = 0.4f;
+    const bool island = GENERATE(false, true);
+    CAPTURE(island);
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    Vec3d start;
+    Vec3d end;
+    if (island) {
+        // An island starting 0.5 mm to the right of the body; its left wall faces the body.
+        lower->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -5), Point::new_scale(-0.5, -5),
+            Point::new_scale(-0.5, 5), Point::new_scale(-10, 5)})};
+        upper->lslices = {lower->lslices.front(), ExPolygon(Polygon{Point::new_scale(0, -5), Point::new_scale(3, -5),
+            Point::new_scale(3, 5), Point::new_scale(0, 5)})};
+        start = Vec3d(0.5 * width, -3., 0.);
+        end   = Vec3d(0.5 * width, 3., 0.);
+    } else {
+        // A shelf 5 mm long sticking out of the body's right face; its side wall runs away from the face.
+        lower->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -5), Point::new_scale(0, -5),
+            Point::new_scale(0, 5), Point::new_scale(-10, 5)})};
+        upper->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -5), Point::new_scale(0, -5), Point::new_scale(0, -1),
+            Point::new_scale(5, -1), Point::new_scale(5, 1), Point::new_scale(0, 1), Point::new_scale(0, 5),
+            Point::new_scale(-10, 5)})};
+        start = Vec3d(1., 1. - 0.5 * width, 0.);
+        end   = Vec3d(4., 1. - 0.5 * width, 0.);
+    }
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    const auto profile = line_overhang_profile(estimator, start, end, width, true);
+    REQUIRE_FALSE(profile.empty());
+    for (float percentage : profile)
+        CHECK_THAT(percentage, Catch::Matchers::WithinAbs(GCodeProcessor::MAX_OVERHANG_PERCENTAGE, 1e-3));
+    libvgcode::PathVertex vertex;
+    vertex.role = libvgcode::EGCodeExtrusionRole::ExternalPerimeter;
+    vertex.width = width;
+    vertex.height = 0.2f;
+    vertex.overhang_z_distance = 0.2f;
+    vertex.overhang_percentage = profile.front();
+    CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(90.0, 1e-6));
 }
 
 TEST_CASE("Infill preview metadata preserves commands and excludes support paths",
@@ -1390,9 +1187,19 @@ TEST_CASE("Overhang metadata detects unsupported interiors without changing the 
     ExtrusionPath path(erExternalPerimeter, 0.08, 0.4f, 0.2f);
     path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
     const auto original_points = path.polyline.points;
-    const auto percentages = estimator.estimate_overhang_percentages(path);
-    REQUIRE(percentages.size() == 1);
-    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(50.0, 1e-3));
+    const Vec3d start = unscaled(path.polyline.points.front());
+    const Vec3d end = unscaled(path.polyline.points.back());
+    const auto profile = line_overhang_profile(estimator, start, end, 0.4f, true);
+    REQUIRE(profile.size() > 1);
+    CHECK_THAT(*std::max_element(profile.begin(), profile.end()), Catch::Matchers::WithinAbs(50.0, 1e-3));
+    // Orca: The reading stays on the cells over the pocket instead of covering the whole move.
+    for (size_t i = 0; i < profile.size(); ++i) {
+        const double x = start.x() + (end.x() - start.x()) * (double(i) + 0.5) / double(profile.size());
+        if (x < pocket_start - 0.5 || x > pocket_start + 4.5)
+            CHECK_THAT(profile[i], Catch::Matchers::WithinAbs(0.0, 1e-3));
+        else if (x > pocket_start + 0.5 && x < pocket_start + 3.5)
+            CHECK_THAT(profile[i], Catch::Matchers::WithinAbs(50.0, 1e-3));
+    }
     CHECK(path.polyline.points == original_points);
 }
 
@@ -1403,7 +1210,8 @@ TEST_CASE("Overhang metadata uses the current contour as its wall placement base
           "[ExtrusionProcessor][Overhang][Regression]")
 {
     constexpr float width = 0.4f;
-    const double outward_shift = GENERATE(0.0, 0.001, 0.1);
+    // Orca: 0.6 mm is one and a half widths: walls report it whole, which the angle preview needs.
+    const double outward_shift = GENERATE(0.0, 0.001, 0.1, 0.6);
     const double z_offset = GENERATE(0.0, -0.1, -0.2);
     // Orca: A uniform sub-quantization shift is still a real shallow slope and must be retained.
     const float expected_percentage = float(100.0 * outward_shift / width);
@@ -1431,16 +1239,29 @@ TEST_CASE("Overhang metadata uses the current contour as its wall placement base
     path.z_contoured = z_offset != 0.0;
     path.polyline.points = {Point3::new_scale(1, path_y, z_offset), Point3::new_scale(39, path_y, z_offset)};
 
-    const auto fixed_speed_percentages = estimator.estimate_overhang_percentages(path);
-    REQUIRE(fixed_speed_percentages.size() == 1);
-    CHECK_THAT(fixed_speed_percentages.front(), Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+    const auto profile = line_overhang_profile(estimator, unscaled(path.polyline.points.front()),
+        unscaled(path.polyline.points.back()), width, true);
+    REQUIRE_FALSE(profile.empty());
+    for (float percentage : profile)
+        CHECK_THAT(percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
 
+    // Orca: Variable-speed output samples each emitted span the same way.
     const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, -1.0f, true);
-    REQUIRE_FALSE(variable_speed_points.empty());
-    for (const ProcessedPoint &point : variable_speed_points)
-        CHECK_THAT(point.overhang_percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+        100.0f, 100.0f, false);
+    REQUIRE(variable_speed_points.size() >= 2);
+    for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
+        CHECK_THAT(line_overhang_maximum(estimator, unscaled(variable_speed_points[i].p),
+            unscaled(variable_speed_points[i + 1].p), width, true), Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+
+    // Orca: The angle follows the whole offset over the 0.2 mm slice spacing, with no jump at a full bead.
+    libvgcode::PathVertex vertex;
+    vertex.role = libvgcode::EGCodeExtrusionRole::ExternalPerimeter;
+    vertex.width = width;
+    vertex.height = 0.2f;
+    vertex.overhang_z_distance = 0.2f;
+    vertex.overhang_percentage = profile.front();
+    CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(std::atan(outward_shift / 0.2) * 180.0 / PI, 1e-2));
 }
 
 TEST_CASE("Variable speed overhang metadata retains shallow pockets between speed changes",
@@ -1471,16 +1292,12 @@ TEST_CASE("Variable speed overhang metadata retains shallow pockets between spee
     path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
     const ConfigOptionPercents overlaps({75, 50, 0});
     const ConfigOptionFloatsOrPercents speeds({FloatOrPercent{100, false}, FloatOrPercent{100, false}, FloatOrPercent{20, false}});
-    const auto baseline = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false);
-    const auto points = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false, -1.0f, true);
-    REQUIRE(points.size() == baseline.size());
+    const auto points = estimator.estimate_extrusion_quality(path, overlaps, speeds, 100.f, 100.f, false);
     REQUIRE(std::any_of(points.begin(), points.end(), [](const auto &point) { return point.speed < 99.f; }));
     bool checked_shallow_pocket = false;
     for (size_t i = 0; i + 1 < points.size(); ++i) {
-        CHECK(points[i].p == baseline[i].p);
-        CHECK_THAT(points[i].speed, Catch::Matchers::WithinAbs(baseline[i].speed, 1e-6));
         if (unscale_(points[i].p.x()) <= 10.0 && unscale_(points[i + 1].p.x()) >= 10.0) {
-            CHECK_THAT(points[i].overhang_percentage,
+            CHECK_THAT(line_overhang_maximum(estimator, unscaled(points[i].p), unscaled(points[i + 1].p), width, true),
                 Catch::Matchers::WithinAbs(100.0 * shallow_depth / width, 1e-3));
             checked_shallow_pocket = true;
         }
@@ -1512,12 +1329,13 @@ TEST_CASE("Overhang geometry is independent of curled edge slowdown", "[Extrusio
     path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
     const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, curled_slowdown, -1.0f, true);
+        100.0f, 100.0f, curled_slowdown);
     REQUIRE(points.size() >= 2);
     CHECK((points.front().speed < 99.0f) == curled_slowdown);
     CHECK((points.front().overlap < 0.99f) == curled_slowdown);
-    for (const auto &point : points)
-        CHECK_THAT(point.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
+    for (size_t i = 0; i + 1 < points.size(); ++i)
+        CHECK_THAT(line_overhang_maximum(estimator, unscaled(points[i].p), unscaled(points[i + 1].p), 0.4f, true),
+            Catch::Matchers::WithinAbs(0.0, 1e-3));
 }
 
 // Orca: A freshly enabled estimator and one resuming after a gap must see the same geometry and
@@ -1553,16 +1371,16 @@ TEST_CASE("Overhang estimation restores the immediate support layer after skippe
     for (int attempt = 0; attempt < 2; ++attempt) {
         CAPTURE(attempt);
         estimator.prepare_for_new_layer(object, upper);
-        const auto percentages = estimator.estimate_overhang_percentages(path);
-        REQUIRE(percentages.size() == 1);
-        CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(0.0, 1e-3));
+        CHECK_THAT(line_overhang_maximum(estimator, unscaled(path.polyline.points.front()),
+            unscaled(path.polyline.points.back()), 0.4f, true), Catch::Matchers::WithinAbs(0.0, 1e-3));
         const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
             ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-            100.0f, 100.0f, true, -1.0f, true);
+            100.0f, 100.0f, true);
         REQUIRE(points.size() >= 2);
         CHECK(points.front().speed < 99.0f);
         CHECK(points.front().overlap < 0.99f);
-        CHECK_THAT(points.front().overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
+        CHECK_THAT(line_overhang_maximum(estimator, unscaled(points[0].p), unscaled(points[1].p), 0.4f, true),
+            Catch::Matchers::WithinAbs(0.0, 1e-3));
     }
 }
 
@@ -2076,7 +1894,9 @@ TEST_CASE("Overhang preview metadata is optional and independent of overhang spe
 
     REQUIRE(disabled_percentages.empty());
     REQUIRE_FALSE(percentages.empty());
-    REQUIRE(std::all_of(percentages.begin(), percentages.end(), [](float percentage) { return percentage >= 0.f && percentage <= 100.f; }));
+    REQUIRE(std::all_of(percentages.begin(), percentages.end(), [](float percentage) {
+        return percentage >= 0.f && percentage <= GCodeProcessor::MAX_OVERHANG_PERCENTAGE;
+    }));
     REQUIRE(std::any_of(percentages.begin(), percentages.end(), [](float percentage) { return std::abs(percentage - 10.f) <= 0.2f; }));
 }
 
@@ -2397,6 +2217,11 @@ TEST_CASE("Precomputed overhang data has the curled-line tree exactly when a reg
     const std::vector<PrecomputedOverhangLayer> precomputed = precompute_overhang_layers({layer}, false);
     REQUIRE(precomputed.size() == 1);
     CHECK((precomputed.front().lower_curled_lines != nullptr) == slowdown);
+    // Orca: The infill footprint is built only for overhang metadata.
+    CHECK_FALSE(precomputed.front().lower_infill_footprint);
+    const std::vector<PrecomputedOverhangLayer> with_metadata = precompute_overhang_layers({layer}, false, true);
+    REQUIRE(with_metadata.size() == 1);
+    CHECK(with_metadata.front().lower_infill_footprint);
 }
 
 TEST_CASE("Curled walls are estimated only when overhang speed and the slowdown for curled perimeters are both on", "[ExtrusionProcessor]")
@@ -2504,16 +2329,17 @@ TEST_CASE("Overhang metadata does not spread a corner overhang along a supported
     path.polyline.points = {Point3::new_scale(-outward_shift, 0.2, 0),
                             Point3::new_scale(40 + outward_shift, 0.2, 0)};
 
-    const auto fixed_speed_percentages = estimator.estimate_overhang_percentages(path);
-    REQUIRE(fixed_speed_percentages.size() == 1);
-    CHECK_THAT(fixed_speed_percentages.front(), Catch::Matchers::WithinAbs(0.0, 1e-3));
+    for (float percentage : line_overhang_profile(estimator, unscaled(path.polyline.points.front()),
+             unscaled(path.polyline.points.back()), width, true))
+        CHECK_THAT(percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
 
     const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, -1.0f, true);
+        100.0f, 100.0f, false);
     REQUIRE_FALSE(variable_speed_points.empty());
     for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
-        CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-3));
+        CHECK_THAT(line_overhang_maximum(estimator, unscaled(variable_speed_points[i].p),
+            unscaled(variable_speed_points[i + 1].p), width, true), Catch::Matchers::WithinAbs(0.0, 1e-3));
 }
 
 // Orca: Closing a hole can put a perimeter over air despite an unchanged outer contour. Test both
@@ -2545,55 +2371,14 @@ TEST_CASE("Perimeter overhang metadata preserves unsupported width above a nearb
     ExtrusionPath path(role, 0.08, width, 0.2f);
     path.polyline.points = {Point3::new_scale(2, 0.5 * width, 0), Point3::new_scale(38, 0.5 * width, 0)};
     const double expected_percentage = 100.0 * (width - supported_width) / width;
-    const auto percentages = estimator.estimate_overhang_percentages(path);
-    REQUIRE(percentages.size() == 1);
-    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+    CHECK_THAT(line_overhang_maximum(estimator, unscaled(path.polyline.points.front()),
+        unscaled(path.polyline.points.back()), width, true), Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
     // Orca: Variable-speed output uses the same geometric estimate for each emitted span.
     const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, -1.0f, true);
+        100.0f, 100.0f, false);
     REQUIRE(points.size() >= 2);
     for (size_t i = 0; i + 1 < points.size(); ++i)
-        CHECK_THAT(points[i].overhang_percentage, Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
-}
-
-// Orca: A bridge may be close to an unchanged outer contour while spanning a hole in the lower layer.
-// Its support must come from the lower-layer area, never from perimeter-oriented contour association.
-TEST_CASE("Overhang metadata keeps area-based support for bridges near an outer contour",
-          "[ExtrusionProcessor][Overhang][Regression]")
-{
-    constexpr float width = 0.4f;
-    Print print;
-    Model model;
-    init_print({cube(1.0)}, print, model);
-    PrintObject *object = print.get_object(0);
-    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
-    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
-    upper->lower_layer = lower;
-    ExPolygon lower_slice(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
-        Point::new_scale(40, 20), Point::new_scale(0, 20)});
-    lower_slice.holes.emplace_back(Polygon{Point::new_scale(1, 0.001), Point::new_scale(1, 10),
-        Point::new_scale(39, 10), Point::new_scale(39, 0.001)});
-    lower_slice.holes.back().make_clockwise();
-    lower->lslices = {std::move(lower_slice)};
-    upper->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
-        Point::new_scale(40, 20), Point::new_scale(0, 20)})};
-
-    ExtrusionQualityEstimator estimator;
-    estimator.set_current_object(object);
-    estimator.prepare_for_new_layer(object, lower);
-    estimator.prepare_for_new_layer(object, upper);
-    ExtrusionPath path(erBridgeInfill, 0.08, width, 0.2f);
-    path.polyline.points = {Point3::new_scale(2, 0.201, 0), Point3::new_scale(38, 0.201, 0)};
-
-    const auto percentages = estimator.estimate_overhang_percentages(path);
-    REQUIRE(percentages.size() == 1);
-    CHECK_THAT(percentages.front(), Catch::Matchers::WithinAbs(100.0, 1e-3));
-
-    const auto variable_speed_points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
-        ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-        100.0f, 100.0f, false, -1.0f, true);
-    REQUIRE_FALSE(variable_speed_points.empty());
-    for (size_t i = 0; i + 1 < variable_speed_points.size(); ++i)
-        CHECK_THAT(variable_speed_points[i].overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-3));
+        CHECK_THAT(line_overhang_maximum(estimator, unscaled(points[i].p), unscaled(points[i + 1].p), width, true),
+            Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
 }

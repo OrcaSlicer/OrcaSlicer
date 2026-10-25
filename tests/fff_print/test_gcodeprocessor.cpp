@@ -24,6 +24,8 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
@@ -751,6 +753,16 @@ void check_path_in_nozzle_area(const Vec2ds &nozzle_1_area, const Vec2ds &path, 
     result = std::move(processor.extract_result());
 }
 
+// Orca: Attach the same standalone inline marker emitted by GCode.cpp without coupling tests to
+// comment spacing. Callers may retain an existing description before the added semicolon-delimited field.
+std::string bind_overhang_profile(std::string arc,
+    GCodeProcessor::ETags marker = GCodeProcessor::ETags::Overhang_Arc_Apply)
+{
+    assert(!arc.empty() && arc.back() == '\n');
+    arc.insert(arc.size() - 1, ";" + GCodeProcessor::reserved_tag(marker));
+    return arc;
+}
+
 } // namespace
 
 TEST_CASE("A path inside its nozzle's printable area passes the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
@@ -885,4 +897,472 @@ TEST_CASE("A cube on the 64th nozzle of a 64-nozzle printer slices, and fails th
     CHECK(result.gcode_check_result.print_area_error_infos.count(nozzles - 1) == size_t(expected));
     REQUIRE(result.limit_filament_maps.size() == 1);
     CHECK(result.limit_filament_maps[0] == uint64_t(expected) << (nozzles - 1));
+}
+
+TEST_CASE("Line overhang profiles color local spans while preserving processor moves",
+          "[GCodeProcessor][Overhang][Regression]")
+{
+    const bool bbl = GENERATE(false, true);
+    const bool reverse = GENERATE(false, true);
+    const bool interior = GENERATE(false, true);
+    // Orca: Restore the process-wide tag dialect so randomized test ordering cannot leak it.
+    const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
+    GCodeProcessor::s_IsBBLPrinter = bbl;
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const std::string setup = "G90\nM83\nT0\nG1 X0 Y0 Z0.2 F600\n" +
+        tag(GCodeProcessor::ETags::Role, ExtrusionEntity::role_to_string(erSolidInfill)) +
+        tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
+        tag(GCodeProcessor::ETags::Overhang, "100");
+    const std::string line = "G1 X8 Y4 Z0.6 E1 F3600 ; solid infill\n";
+    GCodeProcessor baseline;
+    baseline.apply_config(FullPrintConfig());
+    baseline.initialize_result_moves();
+    baseline.process_buffer(setup + "M106 S128\nG1 F1800\n" + line);
+    baseline.finalize(false);
+    GCodeProcessor profiled;
+    profiled.apply_config(FullPrintConfig());
+    profiled.initialize_result_moves();
+    profiled.process_buffer(setup + tag(GCodeProcessor::ETags::Overhang_Line, interior ? "4,0,0,100" :
+        (reverse ? "4,0,0,0" : "4,0,100,0")));
+    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Line, interior ? "4,2,0,0" :
+        (reverse ? "4,2,0,100" : "4,2,0,0")) + "M106 S128\nG1 F1800\n" +
+        bind_overhang_profile(line, GCodeProcessor::ETags::Overhang_Line_Apply));
+    profiled.finalize(false);
+    const auto &result = profiled.get_result();
+    const auto &original = baseline.get_result().moves;
+    REQUIRE(result.overhang_line_profiles.size() == 1);
+    REQUIRE(result.moves.size() == original.size());
+    for (size_t i = 0; i < original.size(); ++i) {
+        CHECK_THAT((result.moves[i].position - original[i].position).norm(), Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK_THAT(result.moves[i].delta_extruder, Catch::Matchers::WithinAbs(original[i].delta_extruder, 1e-6));
+        CHECK_THAT(result.moves[i].feedrate, Catch::Matchers::WithinAbs(original[i].feedrate, 1e-6));
+        CHECK_THAT(result.moves[i].actual_feedrate, Catch::Matchers::WithinAbs(original[i].actual_feedrate, 1e-6));
+        CHECK_THAT(result.moves[i].fan_speed, Catch::Matchers::WithinAbs(original[i].fan_speed, 1e-6));
+        for (size_t mode = 0; mode < result.moves[i].time.size(); ++mode)
+            CHECK_THAT(result.moves[i].time[mode], Catch::Matchers::WithinAbs(original[i].time[mode], 1e-6));
+    }
+    const auto mode = PrintEstimatedStatistics::ETimeMode::Normal;
+    CHECK_THAT(profiled.get_time(mode), Catch::Matchers::WithinAbs(baseline.get_time(mode), 1e-6));
+    const size_t unsupported_cell = interior ? 1 : (reverse ? 3 : 0);
+    double covered_length = 0.0;
+    double unsupported_length = 0.0;
+    std::array<double, 2> preview_time{};
+    result.for_each_preview_move([&](const auto &prev, const auto &curr, bool) {
+        for (size_t i = 0; i < preview_time.size(); ++i)
+            preview_time[i] += curr.time[i];
+        if (curr.type != EMoveType::Extrude)
+            return;
+        const double middle = 0.5 * (prev.position.x() + curr.position.x());
+        const bool unsupported = middle >= 2.0 * unsupported_cell && middle < 2.0 * (unsupported_cell + 1);
+        CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(unsupported ? 100.0 : 0.0, 1e-6));
+        const double length = (curr.position - prev.position).norm();
+        covered_length += length;
+        if (unsupported)
+            unsupported_length += length;
+    });
+    const double length = Vec3d(8.0, 4.0, 0.4).norm();
+    CHECK_THAT(covered_length, Catch::Matchers::WithinAbs(length, 1e-5));
+    CHECK_THAT(unsupported_length, Catch::Matchers::WithinAbs(length / 4.0, 1e-5));
+    for (size_t i = 0; i < preview_time.size(); ++i) {
+        double total = 0.0;
+        for (const auto &move : original)
+            total += move.time[i];
+        CHECK_THAT(preview_time[i], Catch::Matchers::WithinAbs(total, 1e-5));
+    }
+    GCodeProcessorResult copied;
+    copied = result;
+    REQUIRE(copied.overhang_line_profiles.size() == 1);
+    for (size_t i = 0; i < 4; ++i)
+        CHECK_THAT(copied.overhang_line_profiles.front().percentages[i],
+            Catch::Matchers::WithinAbs(result.overhang_line_profiles.front().percentages[i], 1e-6));
+    copied.reset();
+    CHECK(copied.overhang_line_profiles.empty());
+}
+
+TEST_CASE("Line overhang profiles reject incomplete data and unrelated motions",
+          "[GCodeProcessor][Overhang][Regression]")
+{
+    const std::string data = GENERATE("", "4,0", "1,0,100", "65537,0,0", "4,1,0,100,0", "4,0,0,nan,0,0",
+        "4,0,0,inf,0,0", "4,0,0,1001,0,0", "4,0,0,-1,0,0", "4,0,0,100junk,0,0", "4,0,0,100,0,0,", "4,0,0,100");
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
+        tag(GCodeProcessor::ETags::Overhang_Line, data) +
+        bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+    const std::string complete = tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0,100,0,0");
+    processor.process_buffer(complete + "G1 X9 E0.1 ; mentions OVERHANG_LINE_APPLY here\n" +
+        bind_overhang_profile("G1 X10 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    processor.process_buffer(complete + "G3 X11 Y1 I0 J1 E0.1\n" +
+        bind_overhang_profile("G1 X12 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "4,0,0,100,0,0") +
+        bind_overhang_profile("G1 X13 E0.1\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+    processor.process_buffer(complete);
+    processor.reset();
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" +
+        bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+    CHECK(processor.get_result().overhang_line_profiles.empty());
+}
+
+// Orca: Both firmware tessellations retain their original move count and timing inputs. A monotone
+// profile has an exact local maximum at one segment endpoint, independent of its geometric direction.
+TEST_CASE("Overhang arc profiles color local segments without changing motion", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    const auto flavor = GENERATE(gcfMarlinFirmware, gcfKlipper);
+    const bool clockwise = GENERATE(false, true);
+    const bool decreasing = GENERATE(false, true);
+    FullPrintConfig config;
+    config.gcode_flavor.value = flavor;
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const std::string setup = "G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" +
+        tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
+        tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + tag(GCodeProcessor::ETags::Overhang, "100");
+    const std::string arc = std::string(clockwise ? "G2" : "G3") + " X0 Y10 I-10 J0 E1 F600 ; arc description\n";
+    const std::string marked_arc = bind_overhang_profile(arc);
+    // Orca: Arbitrary non-motion commands may appear between chunks and the explicitly marked arc;
+    // they require no whitelist. A lower-case Klipper command also exercises case-insensitive handling.
+    const std::string control = "M106 S128\nM73 P50\nM107\nG4 P1\nM104 S200\nM204 S1000\nM400\n;VM104 S200\n" +
+        std::string(flavor == gcfKlipper ?
+            "set_velocity_limit SQUARE_CORNER_VELOCITY=5\nSET_PRESSURE_ADVANCE ADVANCE=0.04\nRESPOND TYPE=echo MSG=preview\n" : "");
+    GCodeProcessor baseline;
+    baseline.apply_config(config);
+    baseline.process_buffer(setup + control + arc);
+    GCodeProcessor profiled;
+    profiled.apply_config(config);
+    profiled.process_buffer(setup);
+    // Orca: Chunk boundaries may coincide with streaming-buffer boundaries.
+    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,0,100,75,50" : "5,0,0,25,50"));
+    profiled.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, decreasing ? "5,3,25,0" : "5,3,75,100") + control + marked_arc);
+    const auto &original = baseline.get_result().moves;
+    const auto &moves = profiled.get_result().moves;
+    REQUIRE(moves.size() == original.size());
+    // Orca: Timing may insert extra speed markers; profile progress follows the original arc segments.
+    const size_t count = std::count_if(moves.begin(), moves.end(), [](const auto &move) {
+        return move.type == EMoveType::Extrude && !move.internal_only;
+    });
+    REQUIRE(count > 2);
+    size_t segment = 0;
+    for (size_t i = 0; i < moves.size(); ++i) {
+        CHECK_THAT((moves[i].position - original[i].position).norm(), Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK_THAT(moves[i].delta_extruder, Catch::Matchers::WithinAbs(original[i].delta_extruder, 1e-6));
+        CHECK_THAT(moves[i].feedrate, Catch::Matchers::WithinAbs(original[i].feedrate, 1e-6));
+        if (moves[i].type == EMoveType::Extrude && !moves[i].internal_only) {
+            const double expected = 100.0 * (decreasing ? count - segment : segment + 1) / count;
+            ++segment;
+            CHECK_THAT(moves[i].overhang_percentage, Catch::Matchers::WithinAbs(expected, 1e-3));
+            CHECK_THAT(moves[i].overhang_z_distance, Catch::Matchers::WithinAbs(0.2, 1e-6));
+        }
+    }
+    // Orca: Neither the next line nor the next untagged arc may inherit the local profile.
+    profiled.process_buffer("G1 X1 Y10 E1\n");
+    CHECK_THAT(profiled.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
+    profiled.process_buffer("G3 X11 Y0 I10 J0 E1\n");
+    CHECK_THAT(profiled.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
+}
+
+// Orca: A tiny arc becomes one preview segment, but an unsupported interior sample must still survive
+// even when both endpoints are fully supported. The following move keeps the independent scalar value.
+TEST_CASE("Overhang arc profiles preserve interior peaks on short arcs", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    FullPrintConfig config;
+    config.gcode_flavor.value = gcfMarlinFirmware;
+    GCodeProcessor processor;
+    processor.apply_config(config);
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    processor.process_buffer("G90\nM83\nT0\nG1 X0.05 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
+        tag(GCodeProcessor::ETags::Overhang_Arc, "5,0,0,0,100,0,0") +
+        bind_overhang_profile("G3 X0 Y0.05 I-0.05 J0 E0.01\n"));
+    const auto &moves = processor.get_result().moves;
+    REQUIRE(std::count_if(moves.begin(), moves.end(), [](const auto &move) { return move.type == EMoveType::Extrude; }) == 1);
+    CHECK_THAT(moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
+    processor.process_buffer("G1 X10 E1\n");
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+    // Orca: Complete samples without a standalone marker must not color or leak past an unrelated arc;
+    // merely mentioning the marker inside human-readable text is intentionally insufficient.
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "3,0,0,50,100") +
+        "G3 X9.95 Y0 I-0.05 J0 E0.01 ; do not apply OVERHANG_ARC_APPLY here\n");
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+}
+
+// Orca: Corrupt, incomplete or stale chunks must fall back to the scalar tag, never partially color
+// an arc or carry a previous profile across an intervening command or a parser reset.
+TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    // Orca: Empty headers and samples must be invalid with both std::from_chars and the legacy
+    // floating-point backend used by older macOS standard libraries, not silently become zero.
+    const std::string data = GENERATE("", "3", "3,0", "1,0,0", "65537,0,0", "3,-1,0", "3,1,50,100", "3,0,0,nan,100", "3,0,0,inf,100",
+        "3,0,0,1001,100", "3,0,0,-1,100", "3,0,0,50,100junk", "3,0,0,50,100,", "3,0,0,50", "3,0,0,,100",
+        ",0,0,50,100", "3,,0,50,100", "3,0,,50,100",
+        "3,0,0,50,100,0", "3,0,0,50,100\nG2 X1 Y1 E1");
+    CAPTURE(data);
+    GCodeProcessor processor;
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const auto setup = [&]() {
+        processor.apply_config(FullPrintConfig());
+        processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33"));
+    };
+    setup();
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, data) +
+        bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
+    size_t checked = 0;
+    for (const auto &move : processor.get_result().moves)
+        if (move.type == EMoveType::Extrude) {
+            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+            ++checked;
+        }
+    REQUIRE(checked > 1);
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, "3,0,0,50,100"));
+    processor.reset();
+    setup();
+    processor.process_buffer("G3 X0 Y10 I-10 J0 E1\n");
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(33.0, 1e-6));
+}
+
+// Orca: Post-processing may retain an arc's marker after removing or damaging its chunks. Such an
+// arc must keep the preview unavailable unless a complete, valid profile was actually supplied.
+TEST_CASE("Overhang arc markers require complete profiles to enable the preview", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    const bool bbl_printer = GENERATE(false, true);
+    const std::string profile = GENERATE("", "3,0,0,50", "3,0,0,,100", "3,0,0,50,100");
+    CAPTURE(bbl_printer, profile);
+    // Orca: Restore the process-wide tag dialect so randomized test ordering cannot leak it.
+    const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
+    GCodeProcessor::s_IsBBLPrinter = bbl_printer;
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n");
+    if (!profile.empty())
+        processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + profile + "\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+    processor.process_buffer(bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
+    const bool complete = profile == "3,0,0,50,100";
+    CHECK(processor.get_result().has_overhang_metadata == complete);
+    REQUIRE_FALSE(processor.get_result().moves.empty());
+    REQUIRE(processor.get_result().moves.back().type == EMoveType::Extrude);
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage,
+        Catch::Matchers::WithinAbs(complete ? 100.0 : 0.0, 1e-5));
+}
+
+TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodeProcessor][Overhang]")
+{
+    const bool bbl_printer = GENERATE(false, true);
+    CAPTURE(bbl_printer);
+    // Orca: Restore the process-wide tag dialect so randomized test ordering cannot leak it.
+    const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
+    GCodeProcessor::s_IsBBLPrinter = bbl_printer;
+    // Orca: Drive the streaming parser used for freshly generated G-code and verify that only a
+    // valid tag advertises the optional preview mode in both supported tag dialects.
+    GCodeProcessor processor;
+    const std::string tag_prefix = bbl_printer ? "; OVERHANG: " : ";OVERHANG:";
+    CHECK(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) == tag_prefix.substr(1));
+    // Orca: Reference spacing alone is not sufficient to offer the Overhang view.
+    processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Z_Distance) + "0.2\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+    processor.process_buffer(tag_prefix + "37.5\n");
+    CHECK(processor.get_result().has_overhang_metadata);
+
+    // Orca: Resetting the processor must hide the mode again until another valid tag is parsed.
+    processor.reset();
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+    processor.process_buffer(tag_prefix + "invalid\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+
+    // Orca: Complete samples alone remain inert; only the inline marker on their exact arc publishes them.
+    processor.reset();
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n;" +
+        GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + "3,0,0,50,100\n");
+    CHECK_FALSE(processor.get_result().has_overhang_metadata);
+    processor.process_buffer(bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
+    CHECK(processor.get_result().has_overhang_metadata);
+}
+
+// Orca: Malformed or non-finite percentages must neither enable the view nor leak into its color lookup.
+TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCodeProcessor][Overhang][Regression]")
+{
+    // Orca: An empty scalar tag must not advertise metadata, just like an empty arc sample.
+    const std::string value = GENERATE("", "nan", "inf", "-inf", "37.5garbage", "invalid");
+    const bool preceding_valid_tag = GENERATE(false, true);
+    CAPTURE(value, preceding_valid_tag);
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang);
+    processor.process_buffer("G90\nM83\nT0\n");
+    if (preceding_valid_tag)
+        processor.process_buffer(tag + "50\n");
+    processor.process_buffer(tag + value + "\nG1 X10 Z0.2 E1 F600\n");
+    CHECK(processor.get_result().has_overhang_metadata == preceding_valid_tag);
+    REQUIRE_FALSE(processor.get_result().moves.empty());
+    CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
+}
+
+// Model infill consumes preview metadata; support and auxiliary roles still reset it.
+TEST_CASE("Overhang metadata follows model infill roles and excludes supports", "[GCodeProcessor][Overhang][Regression]")
+{
+    struct Case {
+        ExtrusionRole role;
+        float expected_percentage;
+    };
+    const std::array<Case, 17> cases{{
+        {erExternalPerimeter, 42.0f},
+        {erBridgeInfill, 42.0f},
+        {erInternalBridgeInfill, 42.0f},
+        {erInternalInfill, 42.0f},
+        {erSolidInfill, 42.0f},
+        {erTopSolidInfill, 42.0f},
+        {erBottomSurface, 42.0f},
+        {erGapFill, 42.0f},
+        {erIroning, 0.0f},
+        {erSupportMaterial, 0.0f},
+        {erSupportMaterialInterface, 0.0f},
+        {erSupportTransition, 0.0f},
+        {erSkirt, 0.0f},
+        {erBrim, 0.0f},
+        {erWipeTower, 0.0f},
+        {erCustom, 0.0f},
+        {erNone, 0.0f},
+    }};
+
+    for (const Case &test : cases) {
+        DYNAMIC_SECTION(ExtrusionEntity::role_to_string(test.role)) {
+            GCodeProcessor processor;
+            processor.apply_config(FullPrintConfig());
+            const std::string overhang_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) + "42\n";
+            const std::string role_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) +
+                ExtrusionEntity::role_to_string(test.role) + "\n";
+            processor.process_buffer("G90\nM83\nT0\n" + overhang_tag + role_tag + "G1 X10 Z0.2 E1 F600\n");
+
+            REQUIRE_FALSE(processor.get_result().moves.empty());
+            const auto &move = processor.get_result().moves.back();
+            REQUIRE(move.type == EMoveType::Extrude);
+            CHECK(move.extrusion_role == test.role);
+            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(test.expected_percentage, 1e-6));
+        }
+    }
+}
+
+// Orca: A run of equal cells is written once as value*count. It expands to the cells it stands for, chunk offsets
+// count cells, and a run may neither overflow the declared total nor stand for fewer than two cells.
+TEST_CASE("Overhang line profiles expand runs of equal cells", "[GCodeProcessor][Overhang][Regression]")
+{
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const auto profile_of = [&](const std::vector<std::string> &chunks) {
+        GCodeProcessor processor;
+        processor.apply_config(FullPrintConfig());
+        std::string gcode = "G90\nM83\nT0\nG1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33");
+        for (const std::string &chunk : chunks)
+            gcode += tag(GCodeProcessor::ETags::Overhang_Line, chunk);
+        processor.process_buffer(gcode + bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
+        const auto &profiles = processor.get_result().overhang_line_profiles;
+        return profiles.empty() ? std::vector<float>{} : profiles.front().percentages;
+    };
+    const std::vector<float> expected{0.f, 0.f, 250.5f, 100.f, 100.f, 100.f};
+    const auto chunks = GENERATE(as<std::vector<std::string>>{},
+        std::vector<std::string>{"6,0,0*2,250.5,100*3"},
+        std::vector<std::string>{"6,0,0*2,250.5", "6,3,100*3"},
+        std::vector<std::string>{"6,0,0,0", "6,2,250.5,100,100*2"});
+    CAPTURE(chunks);
+    const auto profile = profile_of(chunks);
+    REQUIRE(profile.size() == expected.size());
+    for (size_t i = 0; i < expected.size(); ++i)
+        CHECK_THAT(profile[i], Catch::Matchers::WithinAbs(expected[i], 1e-6));
+
+    for (const char *invalid : {"4,0,0*1,100*3", "4,0,0*5", "4,0,0*", "4,0,*2,0*2", "4,0,0*2.5,0*2", "4,0,0*-2,0*2",
+             "4,0,1001*4"}) {
+        CAPTURE(invalid);
+        CHECK(profile_of({invalid}).empty());
+    }
+}
+
+// Orca: The pressure equalizer and the fan mover split a G1 after its profile was written, keeping the marker on
+// every piece. The preview spreads the profile over all the pieces as it does over the unsplit line.
+TEST_CASE("Line overhang profiles cover every piece of a split G1", "[GCodeProcessor][Overhang][Regression]")
+{
+    const auto mark = [](const std::string &line) {
+        return bind_overhang_profile(line, GCodeProcessor::ETags::Overhang_Line_Apply);
+    };
+    const std::string pieces = GENERATE_COPY(
+        // Unsplit.
+        std::string("G1 X40 E4\n"),
+        // Pressure equalizer: equal pieces, each after its own feedrate, the first with the line's comment.
+        "G1 F1200\n" + mark("G1 X10 E1 ; solid infill\n") + "G1 F1500\n" + mark("G1 X20 E1\n") +
+            "G1 F1800\n" + mark("G1 X30 E1\n") + mark("G1 X40 E1\n"),
+        // Fan mover: two halves around the fan command it moved into the line.
+        mark("G1 X25 E2.5\n") + "M106 S255\n" + mark("G1 X40 E1.5\n"));
+    const bool unsplit = pieces == "G1 X40 E4\n";
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    processor.initialize_result_moves();
+    // The last quarter of the line, x = 30 .. 40, is unsupported.
+    processor.process_buffer("G90\nM83\nT0\nG1 X0 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "100") +
+        tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0*3,100") + (unsplit ? mark(pieces) : pieces));
+    processor.finalize(false);
+    const auto &result = processor.get_result();
+    REQUIRE(result.overhang_line_profiles.size() == 1);
+    CHECK_THAT(result.overhang_line_profiles.front().end.x(), Catch::Matchers::WithinAbs(40.0, 1e-4));
+    double length = 0.0;
+    double unsupported_length = 0.0;
+    result.for_each_preview_move([&](const auto &prev, const auto &curr, bool) {
+        if (curr.type != EMoveType::Extrude)
+            return;
+        const double middle = 0.5 * (prev.position.x() + curr.position.x());
+        CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(middle > 30.0 ? 100.0 : 0.0, 1e-6));
+        length += (curr.position - prev.position).norm();
+        if (middle > 30.0)
+            unsupported_length += (curr.position - prev.position).norm();
+    });
+    CHECK_THAT(length, Catch::Matchers::WithinAbs(40.0, 1e-4));
+    CHECK_THAT(unsupported_length, Catch::Matchers::WithinAbs(10.0, 1e-4));
+}
+
+// Orca: Only marked, collinear pieces continuing the line extend its profile. An unmarked G1, a turn, a travel or
+// new metadata ends it, so a later move keeps its own scalar reading.
+TEST_CASE("Line overhang profiles stop at the first move that does not continue the split line", "[GCodeProcessor][Overhang][Regression]")
+{
+    const auto mark = [](const std::string &line) {
+        return bind_overhang_profile(line, GCodeProcessor::ETags::Overhang_Line_Apply);
+    };
+    // A damaged chunk of the next line's own profile also ends the split line: that line falls back to its scalar.
+    const std::string next = GENERATE_COPY(std::string("G1 X40 E2\n"), mark("G1 X20 Y20 E2\n"),
+        "G1 X30\n" + mark("G1 X40 E1\n"), mark("G1 X10 E1\n"),
+        ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line) + "4,0,0,abc,0,0\n" + mark("G1 X40 E2\n"),
+        ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line) + "4,2,0,0\n" + mark("G1 X40 E2\n"));
+    CAPTURE(next);
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    processor.process_buffer("G90\nM83\nT0\nG1 X0 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "100") +
+        tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0*3,100") + mark("G1 X20 E2\n") + next);
+    const auto &result = processor.get_result();
+    REQUIRE(result.overhang_line_profiles.size() == 1);
+    CHECK_THAT(result.overhang_line_profiles.front().end.x(), Catch::Matchers::WithinAbs(20.0, 1e-4));
+    REQUIRE(result.moves.back().type == EMoveType::Extrude);
+    CHECK(result.moves.back().overhang_profile_id == 0);
+    CHECK_THAT(result.moves.back().overhang_percentage, Catch::Matchers::WithinAbs(100.0, 1e-6));
 }

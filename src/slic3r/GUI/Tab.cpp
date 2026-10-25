@@ -3488,7 +3488,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("exclude_object", "others_settings_g_code_output#exclude-objects");
         optgroup->append_single_option_line("exclude_object_tolerance", "others_settings_g_code_output#outline-tolerance");
         // Orca: Place the metadata size trade-off beside the other G-code output switches.
-        optgroup->append_single_option_line("gcode_overhangs", "others_settings_g_code_output#add-overhangs-info");
+        optgroup->append_single_option_line("gcode_overhangs", "others_settings_g_code_output#overhangs-metadata");
         option = optgroup->get_option("filename_format");
         // option.opt.full_width = true;
         option.opt.is_code = true;

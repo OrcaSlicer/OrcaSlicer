@@ -1779,7 +1779,7 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
             get_color_range(EViewType::Overhang).get_color_at(
-                m_settings.overhang_percentage ? v.overhang_percentage : v.overhang_degree());
+                m_settings.overhang_percentage ? v.overhang_share() : v.overhang_degree());
     }
     case EViewType::Speed:
     {

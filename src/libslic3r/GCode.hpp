@@ -1059,8 +1059,10 @@ protected:
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order = false);
 
 // The overhang data ExtrusionQualityEstimator needs for the object layers in `layers`, computed ahead of the generator;
-// `overhang_fan` says whether the overhang fan can switch on for any filament.
-std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan);
+// `overhang_fan` says whether the overhang fan can switch on for any filament, and `infill_footprints` whether
+// overhang metadata is exported.
+std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan,
+                                                                 bool infill_footprints = false);
 
 }
 

@@ -17,7 +17,6 @@
 #include "libslic3r/GCode/MachineFrameTransform.hpp"
 
 #include <cstddef>
-#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <algorithm>
@@ -265,7 +264,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
-            // Orca: Unsupported extrusion width in percent, copied from the active G-code tag.
+            // Orca: Unsupported extrusion width in percent of the line width, copied from the active G-code tag.
+            // Walls may exceed 100, up to MAX_OVERHANG_PERCENTAGE.
             float overhang_percentage{ 0.0f };
             // Orca: Distance between the contours' slicing planes in mm; zero means unavailable in legacy G-code.
             float overhang_z_distance{ 0.0f };
@@ -750,6 +750,10 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
         // Bound exported profiles and untrusted imported metadata independently of move length.
         static constexpr size_t MAX_OVERHANG_PROFILE_SAMPLES = 65536;
+        // Walls report their contour offset past a full bead, up to ten widths, so the angle preview stays continuous.
+        static constexpr float MAX_OVERHANG_PERCENTAGE = 1000.0f;
+        // Whether one of the semicolon-separated fields of an inline comment (the text after its first ';') is `tag`.
+        static bool has_inline_tag(std::string_view comment, ETags tag);
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
         // checks the given gcode for reserved tags and returns true when finding the 1st (which is returned into found_tag) 
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
@@ -1447,6 +1451,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::vector<float> m_overhang_profile;
         size_t m_overhang_profile_samples{ 0 };
         ETags m_overhang_profile_type{ ETags::Overhang_Arc };
+        // One-based id of the line profile the next pieces of a split G1 may still extend.
+        unsigned int m_open_overhang_line_profile{ 0 };
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;

@@ -2326,13 +2326,20 @@ TEST_CASE("Changing overhang metadata invalidates only G-code export", "[Print][
     print.set_gcode_file_ready();
 
     REQUIRE(print.is_step_done(psGCodeExport));
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
     REQUIRE(print.objects().front()->is_step_done(posSlice));
     REQUIRE(print.objects().front()->is_step_done(posPerimeters));
 
-    config.set_deserialize_strict("gcode_overhangs", "1");
-    print.apply(model, config);
+    // init_print() turns on G-code comments, which also invalidate the export. Toggle nothing else.
+    DynamicPrintConfig toggled = print.full_print_config();
+    toggled.set_deserialize_strict("gcode_overhangs", "1");
+    print.apply(model, toggled);
 
     CHECK_FALSE(print.is_step_done(psGCodeExport));
+    // The fallback for unlisted keys would invalidate every step of the print as well.
+    CHECK(print.is_step_done(psWipeTower));
+    CHECK(print.is_step_done(psSkirtBrim));
     CHECK(print.objects().front()->is_step_done(posSlice));
     CHECK(print.objects().front()->is_step_done(posPerimeters));
 }

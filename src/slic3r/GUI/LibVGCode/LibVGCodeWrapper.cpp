@@ -219,6 +219,9 @@ Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode)
     }
 }
 
+// Orca: Both sides of the overhang metadata agree on the cap of a wall's unsupported width.
+static_assert(libvgcode::PathVertex::MAX_OVERHANG_PERCENTAGE == Slic3r::GCodeProcessor::MAX_OVERHANG_PERCENTAGE);
+
 // libvgcode finds where a path starts from a phantom vertex placed at the previous move's
 // position. Every move that is not an option marker (extrusions, travels, wipes, and Noop or
 // unmapped moves) starts a path when it is the first move, or when it differs from the previous
@@ -297,7 +300,7 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
                 static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                 /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
                 /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-                /* Orca: Add Jerk visualization support */ curr.jerk,
+                /* ORCA: Add Jerk visualization support */ curr.jerk,
                 /* Orca: Preserve percentage and slice spacing on the phantom vertex. */
                 curr.overhang_percentage, curr.overhang_z_distance };
 #else
@@ -307,7 +310,7 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
                 static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                 /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
                 /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-                /* Orca: Add Jerk visualization support */ curr.jerk,
+                /* ORCA: Add Jerk visualization support */ curr.jerk,
                 /* Orca: Preserve percentage and slice spacing on the phantom vertex. */
                 curr.overhang_percentage, curr.overhang_z_distance };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -322,7 +325,7 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-            /* Orca: Add Jerk visualization support */ curr.jerk,
+            /* ORCA: Add Jerk visualization support */ curr.jerk,
             /* Orca: Copy parsed overhang metadata to the rendered path vertex. */
             curr.overhang_percentage, curr.overhang_z_distance };
 #else
@@ -332,7 +335,7 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
-            /* Orca: Add Jerk visualization support */ curr.jerk,
+            /* ORCA: Add Jerk visualization support */ curr.jerk,
             /* Orca: Copy parsed overhang metadata to the rendered path vertex. */
             curr.overhang_percentage, curr.overhang_z_distance };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS

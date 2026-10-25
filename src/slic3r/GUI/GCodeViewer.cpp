@@ -487,7 +487,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             case libvgcode::EViewType::Overhang:
                 if (is_extrusion) {
                     if (viewer->is_overhang_percentage())
-                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), vertex.overhang_percentage);
+                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), vertex.overhang_share());
                     else
                         sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), vertex.overhang_degree());
                 } else
@@ -549,7 +549,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             // Orca: Missing metadata is not evidence of a fully supported wall. Match the selector's
             // availability rule, but retain both representations for files that actually provide them.
             if (has_overhang_metadata) {
-                if (is_extrusion) sprintf(buff, "%.1f %%", vertex.overhang_percentage); else strcpy(buff, NA_CSTR);
+                if (is_extrusion) sprintf(buff, "%.1f %%", vertex.overhang_share()); else strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (%)"), buff);
                 if (is_extrusion) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (°)"), buff);
