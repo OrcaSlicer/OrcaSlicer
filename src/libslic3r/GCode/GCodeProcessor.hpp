@@ -338,12 +338,26 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        // Equal cells of an overhang profile, up to and not including cell `end_cell`. A profile is kept as its runs so
+        // that it costs its changes, not its declared length; neighbouring runs differ.
+        struct OverhangRun
+        {
+            uint32_t end_cell;
+            float    percentage;
+        };
+        using OverhangRuns = std::vector<OverhangRun>;
+        static size_t overhang_cells(const OverhangRuns &runs) { return runs.empty() ? 0 : runs.back().end_cell; }
+        // The run holding `cell`, which must be below overhang_cells(runs).
+        static OverhangRuns::const_iterator overhang_run(const OverhangRuns &runs, size_t cell)
+        {
+            return std::upper_bound(runs.begin(), runs.end(), cell, [](size_t c, const OverhangRun &run) { return c < run.end_cell; });
+        }
         struct OverhangLineProfile
         {
             Vec3f start;
             Vec3f end;
-            // One percentage per equal-length interval, sampled at its centre.
-            std::vector<float> percentages;
+            // The percentages of equal-length intervals, each sampled at its centre.
+            OverhangRuns runs;
         };
         std::vector<OverhangLineProfile> overhang_line_profiles;
 
@@ -368,7 +382,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                     const auto &profile = overhang_line_profiles[source.overhang_profile_id - 1];
                     const Vec3f direction = profile.end - profile.start;
                     const float length_squared = direction.squaredNorm();
-                    if (!profile.percentages.empty() && length_squared > EPSILON * EPSILON) {
+                    if (!profile.runs.empty() && length_squared > EPSILON * EPSILON) {
                         const MoveVertex &start = moves[i - 1];
                         const float begin = std::clamp((start.position - profile.start).dot(direction) / length_squared, 0.0f, 1.0f);
                         const float end = std::clamp((source.position - profile.start).dot(direction) / length_squared, 0.0f, 1.0f);
@@ -390,16 +404,12 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                                 first = false;
                                 last_fraction = fraction;
                             };
-                            const size_t count = profile.percentages.size();
-                            size_t cell = std::min(size_t(begin * count), count - 1);
-                            float percentage = profile.percentages[cell];
-                            for (++cell; cell < count && float(cell) / count < end; ++cell) {
-                                if (profile.percentages[cell] != percentage) {
-                                    emit((float(cell) / count - begin) / (end - begin), percentage);
-                                    percentage = profile.percentages[cell];
-                                }
-                            }
-                            emit(1.0f, percentage);
+                            const size_t count = overhang_cells(profile.runs);
+                            auto run = overhang_run(profile.runs, std::min(size_t(begin * count), count - 1));
+                            // A new span starts at each later run that begins before `end`.
+                            for (auto next = run + 1; next != profile.runs.end() && float(run->end_cell) / count < end; run = next++)
+                                emit((float(run->end_cell) / count - begin) / (end - begin), run->percentage);
+                            emit(1.0f, run->percentage);
                             continue;
                         }
                     }
@@ -1456,7 +1466,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // Orca: Snapshot the active slice-plane spacing alongside each move's percentage.
         float m_overhang_z_distance;
         // Ordered chunks are inert until a matching motion's inline marker consumes them.
-        std::vector<float> m_overhang_profile;
+        GCodeProcessorResult::OverhangRuns m_overhang_profile;
         size_t m_overhang_profile_samples{ 0 };
         ETags m_overhang_profile_type{ ETags::Overhang_Arc };
         // One-based id of the line profile the next pieces of a split G1 may still extend.
@@ -1625,7 +1635,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool detect_producer(const std::string_view comment);
 
         // Move
-        std::vector<float> take_overhang_profile(const GCodeReader::GCodeLine& line, ETags type);
+        GCodeProcessorResult::OverhangRuns take_overhang_profile(const GCodeReader::GCodeLine& line, ETags type);
         void process_G0(const GCodeReader::GCodeLine& line);
         void process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
         enum class G1DiscretizationOrigin {

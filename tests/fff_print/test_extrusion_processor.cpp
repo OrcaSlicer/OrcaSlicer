@@ -2323,6 +2323,91 @@ TEST_CASE("Precomputed overhang data has the curled-line tree exactly when a reg
     CHECK(with_metadata.front().lower_infill_footprint);
 }
 
+// Orca: Overhang metadata adds the outlines it reads to the precomputed data of every layer. The speed and fan
+// estimate's data stays what it is without the metadata, and a layer only the metadata needs gets none of it.
+TEST_CASE("Overhang metadata adds its outlines to precomputed data without changing the speed estimate's", "[ExtrusionProcessor][Overhang]")
+{
+    const bool         overhang_speed = GENERATE(false, true);
+    CAPTURE(overhang_speed);
+    DynamicPrintConfig config = caged_overhang_config("classic");
+    config.set_deserialize_strict({{"enable_overhang_speed", overhang_speed ? "1" : "0"}, {"slowdown_for_curled_perimeters", "1"}});
+    const SlicedCage cage(config);
+
+    GCode::LayerToPrint layer;
+    layer.object_layer    = cage.layer;
+    layer.original_object = cage.object;
+    const std::vector<PrecomputedOverhangLayer> without = precompute_overhang_layers({layer}, false);
+    const std::vector<PrecomputedOverhangLayer> with    = precompute_overhang_layers({layer}, false, true);
+    REQUIRE(without.size() == size_t(overhang_speed ? 1 : 0));
+    REQUIRE(with.size() == 1);
+    CHECK(with.front().lower_boundaries);
+    CHECK(with.front().boundaries);
+    CHECK(with.front().lower_infill_footprint);
+    if (!overhang_speed) {
+        CHECK_FALSE(with.front().lower_curled_lines);
+        CHECK(with.front().distances.empty());
+        return;
+    }
+    CHECK(without.front().lower_curled_lines);
+    CHECK(with.front().lower_curled_lines);
+    REQUIRE_FALSE(without.front().distances.empty());
+    REQUIRE(with.front().distances.size() == without.front().distances.size());
+    for (const auto &[point, distance] : without.front().distances) {
+        const auto it = with.front().distances.find(point);
+        REQUIRE(it != with.front().distances.end());
+        CHECK_THAT(it->second, Catch::Matchers::WithinAbs(distance, 1e-9));
+    }
+}
+
+// Orca: The generator hands the wall metadata the outlines it built in its parallel stage. Measured against them, a
+// wall reads what it reads against the outlines built on demand, and a different outline handed over is the one used.
+TEST_CASE("Walls read the same overhang against precomputed outlines as against outlines built on demand", "[ExtrusionProcessor][Overhang]")
+{
+    const SlicedCage    cage;
+    GCode::LayerToPrint layer;
+    layer.object_layer    = cage.layer;
+    layer.original_object = cage.object;
+    const std::vector<PrecomputedOverhangLayer> precomputed = precompute_overhang_layers({layer}, false, true);
+    REQUIRE(precomputed.size() == 1);
+
+    ExtrusionQualityEstimator built;
+    built.set_current_object(cage.object);
+    built.prepare_for_lower_layer(cage.object, cage.layer);
+    ExtrusionQualityEstimator handed;
+    handed.set_current_object(cage.object);
+    handed.prepare_for_lower_layer(cage.object, cage.layer, precomputed.front().lower_boundaries, precomputed.front().boundaries);
+    // The lower layer's outline handed over as this layer's own: an estimator that ignored it would read as `built`.
+    ExtrusionQualityEstimator swapped;
+    swapped.set_current_object(cage.object);
+    swapped.prepare_for_lower_layer(cage.object, cage.layer, precomputed.front().lower_boundaries, precomputed.front().lower_boundaries);
+    size_t overhanging_segments = 0;
+    size_t swapped_segments     = 0;
+    for (const LayerRegion *region : cage.layer->regions())
+        for_each_extrusion_path(region->perimeters, [&](const ExtrusionPath &path) {
+            for (size_t i = 0; i + 1 < path.polyline.points.size(); ++i) {
+                const Vec3d start = unscaled(path.polyline.points[i]);
+                const Vec3d end   = unscaled(path.polyline.points[i + 1]);
+                const std::vector<float> expected = line_overhang_profile(built, start, end, path.width, true);
+                const std::vector<float> actual   = line_overhang_profile(handed, start, end, path.width, true);
+                const std::vector<float> other    = line_overhang_profile(swapped, start, end, path.width, true);
+                REQUIRE(actual.size() == expected.size());
+                REQUIRE(other.size() == expected.size());
+                for (size_t cell = 0; cell < expected.size(); ++cell)
+                    CHECK_THAT(actual[cell], Catch::Matchers::WithinAbs(expected[cell], 1e-6));
+                if (std::any_of(expected.begin(), expected.end(), [](float percentage) { return percentage > 1.0f; }))
+                    ++overhanging_segments;
+                for (size_t cell = 0; cell < expected.size(); ++cell)
+                    if (std::abs(other[cell] - expected[cell]) > 1.0f) {
+                        ++swapped_segments;
+                        break;
+                    }
+            }
+        });
+    // The cage's slope overhangs on this layer, so the comparison covers walls that read more than zero.
+    CHECK(overhanging_segments > 0);
+    CHECK(swapped_segments > 0);
+}
+
 TEST_CASE("Curled walls are estimated only when overhang speed and the slowdown for curled perimeters are both on", "[ExtrusionProcessor]")
 {
     const auto [overhang_speed, slowdown, estimated] = GENERATE(table<bool, bool, bool>({

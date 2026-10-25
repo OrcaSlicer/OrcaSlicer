@@ -424,7 +424,7 @@ TEST_CASE("Reloaded moves take the overhang metadata of the edited G-code", "[GC
     const std::string    gcode = Test::gcode(print, &result);
     REQUIRE(result.has_overhang_metadata);
     // Stands in for a line profile of the exported file, which the moves of the edited file do not index.
-    result.overhang_line_profiles.push_back({ Vec3f::Zero(), Vec3f::UnitX(), { 0.f, 100.f } });
+    result.overhang_line_profiles.push_back({ Vec3f::Zero(), Vec3f::UnitX(), { { 1, 0.f }, { 2, 100.f } } });
 
     // A script that removes every overhang metadata comment.
     std::string        edited;
@@ -1011,9 +1011,13 @@ TEST_CASE("Line overhang profiles color local spans while preserving processor m
     GCodeProcessorResult copied;
     copied = result;
     REQUIRE(copied.overhang_line_profiles.size() == 1);
-    for (size_t i = 0; i < 4; ++i)
-        CHECK_THAT(copied.overhang_line_profiles.front().percentages[i],
-            Catch::Matchers::WithinAbs(result.overhang_line_profiles.front().percentages[i], 1e-6));
+    const auto &copied_runs = copied.overhang_line_profiles.front().runs;
+    const auto &runs        = result.overhang_line_profiles.front().runs;
+    REQUIRE(copied_runs.size() == runs.size());
+    for (size_t i = 0; i < runs.size(); ++i) {
+        CHECK(copied_runs[i].end_cell == runs[i].end_cell);
+        CHECK_THAT(copied_runs[i].percentage, Catch::Matchers::WithinAbs(runs[i].percentage, 1e-6));
+    }
     copied.reset();
     CHECK(copied.overhang_line_profiles.empty());
 }
@@ -1359,14 +1363,15 @@ TEST_CASE("Overhang metadata follows model infill roles and excludes supports", 
     }
 }
 
-// Orca: A run of equal cells is written once as value*count. It expands to the cells it stands for, chunk offsets
-// count cells, and a run may neither overflow the declared total nor stand for fewer than two cells.
-TEST_CASE("Overhang line profiles expand runs of equal cells", "[GCodeProcessor][Overhang][Regression]")
+// Orca: A run of equal cells is written once as value*count, and equal cells are kept as one run however they were
+// written. Chunk offsets count cells, and a run may neither overflow the declared total nor stand for fewer than two cells.
+TEST_CASE("Overhang line profiles keep runs of equal cells", "[GCodeProcessor][Overhang][Regression]")
 {
+    using Run      = GCodeProcessorResult::OverhangRun;
     const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
         return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
     };
-    const auto profile_of = [&](const std::vector<std::string> &chunks) {
+    const auto runs_of = [&](const std::vector<std::string> &chunks) {
         GCodeProcessor processor;
         processor.apply_config(FullPrintConfig());
         std::string gcode = "G90\nM83\nT0\n" + measured_role_tag() + "G1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33");
@@ -1374,23 +1379,31 @@ TEST_CASE("Overhang line profiles expand runs of equal cells", "[GCodeProcessor]
             gcode += tag(GCodeProcessor::ETags::Overhang_Line, chunk);
         processor.process_buffer(gcode + bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
         const auto &profiles = processor.get_result().overhang_line_profiles;
-        return profiles.empty() ? std::vector<float>{} : profiles.front().percentages;
+        return profiles.empty() ? std::vector<Run>{} : profiles.front().runs;
     };
-    const std::vector<float> expected{0.f, 0.f, 250.5f, 100.f, 100.f, 100.f};
+    // Cells 0 and 1 at 0 %, cell 2 at 250.5 %, cells 3 to 5 at 100 %.
+    const std::vector<Run> expected{{2, 0.f}, {3, 250.5f}, {6, 100.f}};
     const auto chunks = GENERATE(as<std::vector<std::string>>{},
         std::vector<std::string>{"6,0,0*2,250.5,100*3"},
         std::vector<std::string>{"6,0,0*2,250.5", "6,3,100*3"},
         std::vector<std::string>{"6,0,0,0", "6,2,250.5,100,100*2"});
     CAPTURE(chunks);
-    const auto profile = profile_of(chunks);
-    REQUIRE(profile.size() == expected.size());
-    for (size_t i = 0; i < expected.size(); ++i)
-        CHECK_THAT(profile[i], Catch::Matchers::WithinAbs(expected[i], 1e-6));
+    const auto runs = runs_of(chunks);
+    REQUIRE(runs.size() == expected.size());
+    for (size_t i = 0; i < expected.size(); ++i) {
+        CHECK(runs[i].end_cell == expected[i].end_cell);
+        CHECK_THAT(runs[i].percentage, Catch::Matchers::WithinAbs(expected[i].percentage, 1e-6));
+    }
+
+    // A profile costs its changes: a few bytes declaring the largest allowed profile keep two runs, not a cell each.
+    const auto longest = runs_of({"65536,0,0*65535,100"});
+    REQUIRE(longest.size() == 2);
+    CHECK(longest.back().end_cell == 65536u);
 
     for (const char *invalid : {"4,0,0*1,100*3", "4,0,0*5", "4,0,0*", "4,0,*2,0*2", "4,0,0*2.5,0*2", "4,0,0*-2,0*2",
              "4,0,1001*4"}) {
         CAPTURE(invalid);
-        CHECK(profile_of({invalid}).empty());
+        CHECK(runs_of({invalid}).empty());
     }
 }
 

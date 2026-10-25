@@ -4688,18 +4688,22 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
                 m_overhang_profile_type = type;
             }
             valid = valid && type == m_overhang_profile_type &&
-                total == m_overhang_profile_samples && offset == m_overhang_profile.size();
+                total == m_overhang_profile_samples && offset == GCodeProcessorResult::overhang_cells(m_overhang_profile);
             while (valid && !data.empty()) {
                 const std::string_view token = next_token();
                 const size_t star = token.find('*');
                 float percentage = 0.0f;
                 int count = 1;
+                const size_t cells = GCodeProcessorResult::overhang_cells(m_overhang_profile);
                 valid = parse_number(token.substr(0, star), percentage) && std::isfinite(percentage) &&
                     percentage >= 0.0f && percentage <= MAX_OVERHANG_PERCENTAGE &&
                     (star == std::string_view::npos || (parse_number(token.substr(star + 1), count) && count >= 2)) &&
-                    m_overhang_profile.size() + size_t(count) <= size_t(total);
-                if (valid)
-                    m_overhang_profile.insert(m_overhang_profile.end(), size_t(count), percentage);
+                    cells + size_t(count) <= size_t(total);
+                // Keep runs, whether the G-code wrote equal cells as value*count or one by one.
+                if (valid && !m_overhang_profile.empty() && m_overhang_profile.back().percentage == percentage)
+                    m_overhang_profile.back().end_cell = uint32_t(cells + count);
+                else if (valid)
+                    m_overhang_profile.push_back({uint32_t(cells + count), percentage});
             }
             if (!valid) {
                 m_overhang_profile.clear();
@@ -5325,7 +5329,7 @@ void GCodeProcessor::update_position_known_from_move(const GCodeReader::GCodeLin
 void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines)
 {
     const bool new_profile = m_overhang_profile_samples != 0;
-    std::vector<float> profile = take_overhang_profile(line, ETags::Overhang_Line);
+    GCodeProcessorResult::OverhangRuns profile = take_overhang_profile(line, ETags::Overhang_Line);
     Vec3f start = Vec3f::Zero();
     if (!profile.empty() && !m_result.moves.empty())
         start = m_result.moves.back().position;
@@ -6246,7 +6250,7 @@ bool GCodeProcessor::has_inline_tag(std::string_view comment, ETags tag)
     return false;
 }
 
-std::vector<float> GCodeProcessor::take_overhang_profile(const GCodeReader::GCodeLine& line, ETags type)
+GCodeProcessorResult::OverhangRuns GCodeProcessor::take_overhang_profile(const GCodeReader::GCodeLine& line, ETags type)
 {
     if (m_overhang_profile_samples == 0)
         return {};
@@ -6261,7 +6265,7 @@ std::vector<float> GCodeProcessor::take_overhang_profile(const GCodeReader::GCod
 
     // Every motion consumes the candidate, marked or not. Missing chunks or a missing marker leave
     // the scalar fallback untouched, so removed/reordered G-code cannot color an unrelated move.
-    std::vector<float> overhang_profile;
+    GCodeProcessorResult::OverhangRuns overhang_profile;
     if (apply_overhang_profile && m_overhang_profile_type == type)
         overhang_profile.swap(m_overhang_profile);
     else
@@ -6270,7 +6274,7 @@ std::vector<float> GCodeProcessor::take_overhang_profile(const GCodeReader::GCod
     // Require the minimum valid profile length before advertising the Overhang view. A role the metadata
     // does not measure stays N/A, whatever profile a foreign file attaches to it.
     if (!apply_overhang_profile || !measures_overhang(m_extrusion_role) || m_overhang_profile_samples < 2 ||
-        overhang_profile.size() != m_overhang_profile_samples)
+        GCodeProcessorResult::overhang_cells(overhang_profile) != m_overhang_profile_samples)
         overhang_profile.clear();
     else
         m_result.has_overhang_metadata = true;
@@ -6280,7 +6284,7 @@ std::vector<float> GCodeProcessor::take_overhang_profile(const GCodeReader::GCod
 
 void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise)
 {
-    const std::vector<float> overhang_profile = take_overhang_profile(line, ETags::Overhang_Arc);
+    const GCodeProcessorResult::OverhangRuns overhang_profile = take_overhang_profile(line, ETags::Overhang_Arc);
     m_open_overhang_line_profile = 0;
 
     enum class EFitting { None, IJ, R };
@@ -6446,18 +6450,25 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
           // its local maximum, including interior profile samples so narrow unsupported patches survive.
           // Interpolate boundary readings because profile spacing need not match firmware segmentation.
           const float fallback = m_overhang_percentage;
-          if (overhang_profile.size() >= 2) {
-              const double last = double(overhang_profile.size() - 1);
+          if (const size_t samples = GCodeProcessorResult::overhang_cells(overhang_profile); samples >= 2) {
+              const double last = double(samples - 1);
               const double begin = std::clamp(start_fraction, 0.0, 1.0) * last;
               const double end = std::clamp(end_fraction, 0.0, 1.0) * last;
-              const auto interpolate = [&overhang_profile](double position) {
+              const auto at = [&overhang_profile](size_t i) { return GCodeProcessorResult::overhang_run(overhang_profile, i)->percentage; };
+              const auto interpolate = [&at, samples](double position) {
                   const size_t i = size_t(position);
-                  const size_t next = std::min(i + 1, overhang_profile.size() - 1);
-                  return overhang_profile[i] + float(position - i) * (overhang_profile[next] - overhang_profile[i]);
+                  const size_t next = std::min(i + 1, samples - 1);
+                  return at(i) + float(position - i) * (at(next) - at(i));
               };
               m_overhang_percentage = std::max(interpolate(begin), interpolate(end));
-              for (size_t i = size_t(std::ceil(begin)); i <= size_t(end); ++i)
-                  m_overhang_percentage = std::max(m_overhang_percentage, overhang_profile[i]);
+              // The interior samples from..to, a run at a time.
+              const size_t from = size_t(std::ceil(begin));
+              const size_t to   = size_t(end);
+              for (auto run = GCodeProcessorResult::overhang_run(overhang_profile, from); from <= to; ++run) {
+                  m_overhang_percentage = std::max(m_overhang_percentage, run->percentage);
+                  if (run->end_cell > to)
+                      break;
+              }
           }
           process_G1(g1_axes, g1_feedrate, G1DiscretizationOrigin::G2G3, remaining_internal_g1_lines);
           m_overhang_percentage = fallback;

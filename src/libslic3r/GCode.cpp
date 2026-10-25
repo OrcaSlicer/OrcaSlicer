@@ -5128,25 +5128,30 @@ static bool prepares_overhang_estimator(const Layer &layer, bool overhang_fan)
 }
 
 std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan,
-                                                                 bool infill_footprints)
+                                                                 bool metadata)
 {
     std::vector<PrecomputedOverhangLayer> out;
-    for (const GCode::LayerToPrint &layer : layers)
-        if (layer.object_layer != nullptr && layer.object_layer->lower_layer != nullptr &&
-            prepares_overhang_estimator(*layer.object_layer, overhang_fan)) {
-            const LayerRegionPtrs &regions = layer.object_layer->regions();
-            const bool curled_lines = std::any_of(regions.begin(), regions.end(), [](const LayerRegion *region) {
-                return any_enabled(region->region().config().slowdown_for_curled_perimeters);
-            });
-            out.push_back(precompute_overhang_layer(layer.original_object, *layer.object_layer, curled_lines, infill_footprints));
-        }
+    for (const GCode::LayerToPrint &layer : layers) {
+        if (layer.object_layer == nullptr || layer.object_layer->lower_layer == nullptr)
+            continue;
+        // Overhang metadata measures every layer with extrusions, the speed and fan estimate only the layers
+        // process_layer() prepares it for. Only those need its distances and curled edges.
+        const bool speed_data = prepares_overhang_estimator(*layer.object_layer, overhang_fan);
+        if (!speed_data && !(metadata && prepares_overhang_estimator(*layer.object_layer, true)))
+            continue;
+        const LayerRegionPtrs &regions = layer.object_layer->regions();
+        const bool curled_lines = std::any_of(regions.begin(), regions.end(), [](const LayerRegion *region) {
+            return any_enabled(region->region().config().slowdown_for_curled_perimeters);
+        });
+        out.push_back(precompute_overhang_layer(layer.original_object, *layer.object_layer, curled_lines, metadata, speed_data));
+    }
     return out;
 }
 
 // Hands out the index of each layer to process_layers(), then computes the layers' overhang data in parallel.
 template<typename LayersAt>
 static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bool nop_layer, bool overhang_fan,
-                                      bool infill_footprints, LayersAt layers_at)
+                                      bool metadata, LayersAt layers_at)
 {
     return tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
                [&next_index, layer_count, nop_layer](tbb::flow_control &fc) -> PrecomputedLayer {
@@ -5160,9 +5165,9 @@ static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bo
                    return {};
                }) &
            tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
-               [layers_at, overhang_fan, infill_footprints](PrecomputedLayer layer) -> PrecomputedLayer {
+               [layers_at, overhang_fan, metadata](PrecomputedLayer layer) -> PrecomputedLayer {
                    if (layer.index != size_t(-1))
-                       layer.overhang_layers = precompute_overhang_layers(layers_at(layer.index), overhang_fan, infill_footprints);
+                       layer.overhang_layers = precompute_overhang_layers(layers_at(layer.index), overhang_fan, metadata);
                    return layer;
                });
 }
@@ -5186,7 +5191,7 @@ void GCode::process_layers(
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
     const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
-        overhang_fan_enabled(print.config(), m_enable_cooling_markers) || print.config().gcode_overhangs, print.config().gcode_overhangs,
+        overhang_fan_enabled(print.config(), m_enable_cooling_markers), print.config().gcode_overhangs,
         [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print](PrecomputedLayer precomputed) -> LayerResult {
@@ -5286,7 +5291,7 @@ void GCode::process_layers(
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
     const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
-        overhang_fan_enabled(print.config(), m_enable_cooling_markers) || print.config().gcode_overhangs, print.config().gcode_overhangs,
+        overhang_fan_enabled(print.config(), m_enable_cooling_markers), print.config().gcode_overhangs,
         [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [this, &print, &tool_ordering, &layers_to_print, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
@@ -7022,7 +7027,8 @@ LayerResult GCode::process_layer(
             const PrecomputedOverhangLayer *precomputed =
                 m_extrusion_quality_estimator.precomputed_layer(layer_to_print.original_object, layer_to_print.object_layer);
             m_wall_overhang_estimator.prepare_for_lower_layer(layer_to_print.original_object, layer_to_print.object_layer,
-                precomputed != nullptr ? precomputed->lower_boundaries : nullptr);
+                precomputed != nullptr ? precomputed->lower_boundaries : nullptr,
+                precomputed != nullptr ? precomputed->boundaries : nullptr);
             m_infill_overhang_estimator.prepare_for_infill_layer(layer_to_print.original_object, layer_to_print.object_layer->lower_layer,
                 precomputed != nullptr ? precomputed->lower_infill_footprint : nullptr);
         }

@@ -4717,7 +4717,7 @@ void PrintConfigDef::init_fff_params()
 
     // Orca: Make overhang metadata opt-in because its per-segment tags can enlarge G-code files.
     def = this->add("gcode_overhangs", coBool);
-    def->label = L("Overhangs metadata");
+    def->label = L("Overhang metadata");
     def->tooltip = L("Add overhang percentage tags to G-code for visualization in the preview. Enabling this may increase the G-code file size.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
