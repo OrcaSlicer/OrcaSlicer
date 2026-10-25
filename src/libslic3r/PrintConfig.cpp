@@ -7164,9 +7164,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fin_support_contact_width", coFloatOrPercent);
     def->label = L("Fin contact length");
     def->category = L("Support");
-    def->tooltip = L("Contact length along the painted model surface, in millimeters or as a percentage of that region's outer-wall line width. The front centerline segment has this length; only 0 makes a pointed contact. Its endpoints connect to the fin's inner corners. Must not exceed fin thickness. The physical contact depends on extrusion.");
+    def->tooltip = L("Contact length along the painted model surface, in millimeters or as a percentage of the support line width. The front centerline segment has this length; only 0 makes a pointed contact. Its endpoints connect to the fin's inner corners. Must not exceed fin thickness. The physical contact depends on extrusion.");
     def->sidetext = L("mm or %");
-    def->ratio_over = "outer_wall_line_width";
+    def->ratio_over = "support_line_width";
     def->min = 0;
     def->max = 1000;
     def->max_literal = 100;
@@ -7176,9 +7176,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fin_support_thickness", coFloatOrPercent);
     def->label = L("Fin thickness");
     def->category = L("Support");
-    def->tooltip = L("Geometric thickness of the fin body, in millimeters or as a percentage of the painted region's outer-wall line width. Support wall count controls the closed loops generated inside every accepted fin.");
+    def->tooltip = L("Geometric thickness of the fin body, in millimeters or as a percentage of the support line width. Support wall count controls the closed loops generated inside every accepted fin.");
     def->sidetext = L("mm or %");
-    def->ratio_over = "outer_wall_line_width";
+    def->ratio_over = "support_line_width";
     def->min = 0.1;
     def->max = 1000;
     def->max_literal = 100;
@@ -7228,7 +7228,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fin_support_expansion_factor", coFloat);
     def->label = L("Fin expansion factor");
     def->category = L("Support");
-    def->tooltip = L("Multiplier for outward fin expansion toward the build plate. Simple and Painted shape use a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
+    def->tooltip = L("Multiplier for outward fin expansion toward the build plate. Simple and Painted shape use a fixed risk multiplier of 1; Simulated uses the printed-prefix risk. Ordinary Painted shape point fins use the full multiplier. For other fins, outward surface tilt reduces expansion with a squared falloff: full strength on vertical surfaces, 25% at 15 degrees and zero at 30 degrees or more. The top-layer depth stays unchanged. Set to 0 for a vertical outer edge.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.05));

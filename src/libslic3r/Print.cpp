@@ -2058,15 +2058,13 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     if (cfg.support_object_xy_distance <= 0)
                         return { L("Fin supports require a positive support/object XY distance."), object, "support_object_xy_distance" };
                     const double minimum_outline_width = 2 * support_material_flow(object).width();
-                    for (size_t region_id = 0; region_id < object->num_printing_regions(); ++region_id) {
-                        const FinSupportDimensions dimensions = fin_support_dimensions(*object, object->printing_region(region_id));
-                        if (dimensions.thickness < minimum_outline_width)
-                            return { L("Fin thickness must fit two extrusion lines for a closed outline."), object, "fin_support_thickness" };
-                        if (dimensions.contact_width < 0)
-                            return { L("Fin contact length must not be negative."), object, "fin_support_contact_width" };
-                        if (dimensions.contact_width > dimensions.thickness)
-                            return { L("Fin contact length must not exceed fin thickness."), object, "fin_support_contact_width" };
-                    }
+                    const FinSupportDimensions dimensions = fin_support_dimensions(*object);
+                    if (dimensions.thickness < minimum_outline_width)
+                        return { L("Fin thickness must fit two extrusion lines for a closed outline."), object, "fin_support_thickness" };
+                    if (dimensions.contact_width < 0)
+                        return { L("Fin contact length must not be negative."), object, "fin_support_contact_width" };
+                    if (dimensions.contact_width > dimensions.thickness)
+                        return { L("Fin contact length must not exceed fin thickness."), object, "fin_support_contact_width" };
                     if (cfg.fin_support_depth <= cfg.support_object_xy_distance + 2 * support_material_flow(object).width())
                         return { L("Top layer depth is too small for the selected XY distance and line width."), object, "fin_support_depth" };
                 }

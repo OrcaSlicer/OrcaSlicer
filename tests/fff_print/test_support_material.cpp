@@ -342,7 +342,8 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
         const BoundingBox top_bounds = get_extents(model_layers.back()->lslices);
         const Vec2d seed(unscale<double>(top_bounds.max.x()),
                          unscale<double>(top_bounds.center().y()) + result.top_contact_y.front());
-        const double actual_thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness")->get_abs_value(outer_width);
+        const double actual_thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness")->get_abs_value(
+            support_material_flow(object).width());
         const double overlap_end = (0.6 + 0.5 * actual_thickness * std::abs(tangent.x())) / direction.x() +
                                    3 * fin_half_width;
         for (const Points &ring : projection_rings)
@@ -421,7 +422,7 @@ TEST_CASE("Painted shape uses its region normal on a locally upward side", "[Sup
     REQUIRE(result.top_body_paths == 1);
 }
 
-TEST_CASE("Painted shape contracts a narrow painted island into one line intent", "[SupportMaterial]")
+TEST_CASE("Painted shape retains a high seed on a narrow vertical painted island", "[SupportMaterial]")
 {
     const indexed_triangle_set mesh = its_make_cube(6, 4, 30);
     const FinRun result = slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
@@ -430,7 +431,9 @@ TEST_CASE("Painted shape contracts a narrow painted island into one line intent"
                                      std::numeric_limits<double>::infinity(), "painted_shape");
     REQUIRE(result.first_layer_paths > 0);
     REQUIRE(result.top_body_paths == 1);
-    REQUIRE(result.support_top_z > 29.);
+    // The highest retained green node follows source trimming; it must not
+    // fall back to the stroke center when its XY projection degenerates.
+    REQUIRE(result.support_top_z > 0.75 * 30.);
     REQUIRE(std::any_of(result.top_body_directions.begin(), result.top_body_directions.end(),
                         [](const Vec2d &direction) { return std::abs(direction.x()) > 0.95; }));
 }
@@ -449,8 +452,10 @@ TEST_CASE("Painted shape falls one horizontal line intent back to one point", "[
     REQUIRE(result.top_body_paths == 1);
 }
 
-TEST_CASE("Painted shape closes a sub-feature crack before contracting its intent", "[SupportMaterial]")
+TEST_CASE("Painted shape keeps nearby disconnected painted islands independent", "[SupportMaterial]")
 {
+    // The 0.3 mm gap is smaller than the 0.4 mm support line width.
+    // Intent extraction must keep these separate painted components independent.
     indexed_triangle_set mesh = its_make_cube(6, 14, 4);
     indexed_triangle_set continuation = its_make_cube(6, 14, 4);
     its_transform(continuation, identity3f().translate(Vec3f{0.f, 14.3f, 0.f}));
@@ -460,7 +465,46 @@ TEST_CASE("Painted shape closes a sub-feature crack before contracting its inten
                                      false, false, false, false, 0,
                                      std::numeric_limits<double>::infinity(), "painted_shape");
     REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 2);
+}
+
+TEST_CASE("Ordinary painted strokes switch to point fins at an eighty degree face angle", "[SupportMaterial]")
+{
+    const double face_angle = GENERATE(79.9, 80.1, 90.);
+    const double lean = std::tan((90. - face_angle) * M_PI / 180.);
+    const double height = 30.;
+    const indexed_triangle_set mesh = its_make_cube(6, 4, height);
+    const FinRun result = slice_fins(20, true, lean, 1.2, 0.4, 1, 30,
+        false, false, 0.4, 8, 0, height, 6, &mesh, 0,
+        false, false, false, false, 0,
+        std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
     REQUIRE(result.top_body_paths == 1);
+    // End trimming may lower the green high end, but it must not use the
+    // stroke's midpoint. Point fins have no extra relocated line-root stem.
+    REQUIRE(result.support_top_z > 0.75 * height);
+    if (face_angle >= 80.)
+        REQUIRE_THAT(result.top_outer_depth, Catch::Matchers::WithinAbs(8., 0.01));
+    else
+        REQUIRE(result.top_outer_depth > 8.4);
+}
+
+TEST_CASE("Ordinary painted point fins use the full expansion factor on tilted faces", "[SupportMaterial]")
+{
+    const double face_angle = GENERATE(70., 85., 90.);
+    const double lean = std::tan((90. - face_angle) * M_PI / 180.);
+    const double factor = 0.05;
+    // This wide painted face gives a horizontal ordinary intent, so point
+    // expansion is checked on both sides of the near-vertical threshold.
+    const FinRun result = slice_fins(20, true, lean, 1.2, 0.4, 1, 30,
+        false, false, 0.4, 8, factor, 30, 6, nullptr, 0,
+        false, false, false, false, 0,
+        std::numeric_limits<double>::infinity(), "painted_shape");
+    REQUIRE(result.first_layer_paths > 0);
+    REQUIRE(result.top_body_paths == 1);
+    REQUIRE(result.support_top_z > result.first_body_z);
+    REQUIRE_THAT(result.outer_edge_spread, Catch::Matchers::WithinAbs(
+        factor * (result.support_top_z - result.first_body_z), 0.01));
 }
 
 TEST_CASE("Simple fins require painting and emit closed sheets from selected sites", "[SupportMaterial]")
@@ -1180,16 +1224,17 @@ TEST_CASE("Overlapping fin contact projections remain supported on all bands", "
     REQUIRE(result.outer_edge_spread < 0.001);
 }
 
-TEST_CASE("Fin percentages resolve against the outer wall width", "[SupportMaterial]")
+TEST_CASE("Fin percentages resolve against the support line width", "[SupportMaterial]")
 {
-    // 50% of 0.6mm is 0.3mm; 200% is 1.2mm. Support lines remain 0.4mm.
+    // Support lines are 0.4mm: 50% is 0.2mm and 200% is 0.8mm.
+    // Use a different outer wall width to distinguish the percentage reference.
     const FinRun result = slice_fins(20, true, 0, 200, 50, 1, 30, true, true, 0.6);
     REQUIRE(result.contact_layers > 0);
-    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.3, 0.001));
-    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(1.2, 0.02));
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.2, 0.001));
+    REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(0.8, 0.02));
 }
 
-TEST_CASE("Fin defaults use full outer wall contact length and absolute thickness", "[SupportMaterial]")
+TEST_CASE("Fin defaults use full support line contact length and absolute thickness", "[SupportMaterial]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     const auto *contact = config.option<ConfigOptionFloatOrPercent>("fin_support_contact_width");
@@ -1199,7 +1244,7 @@ TEST_CASE("Fin defaults use full outer wall contact length and absolute thicknes
     REQUIRE_THAT(contact->value, Catch::Matchers::WithinAbs(100, 0.001));
     REQUIRE_THAT(thickness->value, Catch::Matchers::WithinAbs(1.2, 0.001));
     const FinRun result = slice_fins(20, true, 0, 1.2, 100, 1, 30, true, false, 0.6);
-    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.6, 0.001));
+    REQUIRE_THAT(result.contact_width, Catch::Matchers::WithinAbs(0.4, 0.001));
     REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(1.2, 0.02));
     // Old project values without a percent suffix remain absolute millimeters.
     config.set_deserialize("fin_support_contact_width", "0.2");
@@ -1208,8 +1253,8 @@ TEST_CASE("Fin defaults use full outer wall contact length and absolute thicknes
     thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness");
     REQUIRE_FALSE(contact->percent);
     REQUIRE_FALSE(thickness->percent);
-    REQUIRE_THAT(contact->get_abs_value(0.6), Catch::Matchers::WithinAbs(0.2, 0.001));
-    REQUIRE_THAT(thickness->get_abs_value(0.6), Catch::Matchers::WithinAbs(1.4, 0.001));
+    REQUIRE_THAT(contact->get_abs_value(0.4), Catch::Matchers::WithinAbs(0.2, 0.001));
+    REQUIRE_THAT(thickness->get_abs_value(0.4), Catch::Matchers::WithinAbs(1.4, 0.001));
 }
 
 TEST_CASE("Painted Shape line angle defaults to forty degrees", "[SupportMaterial]")
