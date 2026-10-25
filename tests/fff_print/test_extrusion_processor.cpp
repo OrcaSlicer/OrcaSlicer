@@ -662,6 +662,10 @@ TEST_CASE("Overhang data computed ahead of the generator gives the same wall spe
 // queried or computed ahead, the walls must come out as if the estimator had been prepared for every layer.
 TEST_CASE("Walls are measured against the layer below them whichever layer was prepared before", "[ExtrusionProcessor][Regression]")
 {
+    // Nothing, the layer two below, or the same layer.
+    const int  prepared_before = GENERATE(0, 1, 2);
+    const bool precomputed     = GENERATE(false, true);
+    CAPTURE(prepared_before, precomputed);
     const SlicedCage cage;
     const Layer     *one_below = cage.layer->lower_layer;
     REQUIRE(one_below != nullptr);
@@ -677,18 +681,14 @@ TEST_CASE("Walls are measured against the layer below them whichever layer was p
     stale.prepare_for_new_layer(cage.object, one_below);
     REQUIRE(any_difference(estimate_walls(stale, cage.object, *cage.layer), expected));
 
-    for (const Layer *prepared_before : {static_cast<const Layer *>(nullptr), two_below, cage.layer})
-        for (const bool precomputed : {false, true}) {
-            INFO((prepared_before == nullptr ? "nothing" : prepared_before == two_below ? "the layer two below" : "the same layer")
-                 << " prepared before, " << (precomputed ? "precomputed" : "queried") << " distances");
-            ExtrusionQualityEstimator estimator;
-            if (prepared_before != nullptr)
-                estimator.prepare_for_new_layer(cage.object, prepared_before);
-            if (precomputed)
-                estimator.set_precomputed_layers({precompute_overhang_layer(cage.object, *cage.layer)});
-            estimator.prepare_for_new_layer(cage.object, cage.layer);
-            check_identical(estimate_walls(estimator, cage.object, *cage.layer), expected);
-        }
+    const Layer *const prepared_layers[] = {nullptr, two_below, cage.layer};
+    ExtrusionQualityEstimator estimator;
+    if (prepared_layers[prepared_before] != nullptr)
+        estimator.prepare_for_new_layer(cage.object, prepared_layers[prepared_before]);
+    if (precomputed)
+        estimator.set_precomputed_layers({precompute_overhang_layer(cage.object, *cage.layer)});
+    estimator.prepare_for_new_layer(cage.object, cage.layer);
+    check_identical(estimate_walls(estimator, cage.object, *cage.layer), expected);
 }
 
 TEST_CASE("Overhang data computed for another layer is not used", "[ExtrusionProcessor]")
