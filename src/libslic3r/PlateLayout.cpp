@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <map>
 #include <numeric>
 #include <utility>
+#include <vector>
 
 namespace Slic3r::PlateLayout {
 

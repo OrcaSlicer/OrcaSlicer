@@ -3,6 +3,7 @@
 
 #include "../GCode/ThumbnailData.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
