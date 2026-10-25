@@ -17,6 +17,7 @@
 #include "../GCode.hpp"
 
 #include "PressureEqualizer.hpp"
+#include "GCodeProcessor.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/Exception.hpp"
 #include "fast_float/fast_float.h"
@@ -494,6 +495,12 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
     while (*comment != ';' && *comment != 0) ++comment;
     if (*comment != ';')
         comment = nullptr;
+    // Orca: The preview spreads a line's overhang profile over every piece the line is split into, so the
+    // pieces after the first keep the profile's marker.
+    std::string piece_marker;
+    if (comment != nullptr && GCodeProcessor::has_inline_tag(comment + 1, GCodeProcessor::ETags::Overhang_Line_Apply))
+        piece_marker = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line_Apply);
+    const char *piece_comment = piece_marker.empty() ? nullptr : piece_marker.c_str();
 
     // get the gcode line length
     float l = line.dist_xyz();
@@ -606,7 +613,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                     }
                     // Interpolate the feed rate at the center of the segment.
                     push_line_to_output(line_idx, pos_start[4] + (target_max_feedrate - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), comment);
-                    comment = nullptr;
+                    comment = piece_comment;
                     memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
                 }
 
@@ -616,7 +623,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                     line.pos_end[i] = pos_start[i] + (pos_end_bak[i] - pos_start[i]) * t;
                 }
                 // emit the steady feed rate segment
-                push_line_to_output(line_idx, target_max_feedrate, nullptr);
+                push_line_to_output(line_idx, target_max_feedrate, piece_comment);
                 memcpy(line.pos_start, line.pos_end, sizeof(float) * 5);
 
                 // calculate the start pos of the decl slope
@@ -632,7 +639,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                         line.pos_end[j] = pos_start[j] + (pos_end_bak[j] - pos_start[j]) * t;
                     } 
                     // Interpolate the feed rate at the center of the segment.
-                    push_line_to_output(line_idx, pos_start[4] + (pos_end_bak[4] - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), nullptr);
+                    push_line_to_output(line_idx, pos_start[4] + (pos_end_bak[4] - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), piece_comment);
                     memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
                 }
 
@@ -640,7 +647,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                 for (int i = 0; i < 4; ++i) {
                     line.pos_end[i] = pos_end_bak[i];
                 }
-                push_line_to_output(line_idx, pos_end_bak[4], nullptr);
+                push_line_to_output(line_idx, pos_end_bak[4], piece_comment);
 
                 return;
             }
@@ -692,7 +699,7 @@ single_slope_fallback:
                     line.pos_provided[i] = true;
                 }
                 push_line_to_output(line_idx, pos_start[4], comment);
-                comment = nullptr;
+                comment = piece_comment;
 
                 float new_pos_start_feedrate = pos_start[4];
 
@@ -712,7 +719,7 @@ single_slope_fallback:
             } 
             // Interpolate the feed rate at the center of the segment.
             push_line_to_output(line_idx, pos_start[4] + (pos_end[4] - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), comment);
-            comment = nullptr;
+            comment = piece_comment;
             memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
         }
 		if (l_steady > 0.f && accelerating) {

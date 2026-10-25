@@ -105,18 +105,29 @@ struct PathVertex
     // Jerk value
     //
     float jerk{ 0.0f };
-    // Orca: Unsupported extrusion width in percent (0 = fully supported, 100 = fully unsupported).
+    // Orca: Unsupported extrusion width in percent of the line width (0 = fully supported). Walls keep measuring
+    // how far their bead's outer edge reaches past the lower contour, up to MAX_OVERHANG_PERCENTAGE.
     float overhang_percentage{ 0.0f };
     // Orca: Actual separation of the compared slice planes; old G-code leaves this at zero.
     float overhang_z_distance{ 0.0f };
 
+    // Orca: The G-code caps wall offsets at ten line widths, which already reads as horizontal.
+    static constexpr float MAX_OVERHANG_PERCENTAGE{ 1000.0f };
+
+    // Orca: The unsupported share of the bead, which ends at a fully unsupported line.
+    float overhang_share() const { return std::clamp(overhang_percentage, 0.0f, 100.0f); }
+
     // Orca: Convert the contour offset using its slice-plane spacing, which differs from extrusion height
     // when adjacent layers have different thicknesses. Legacy G-code falls back to extrusion height.
-    // A fully unsupported line retains the 90-degree convention because its offset has been clamped.
+    // A wall reads 90 degrees only at the cap. Other lines are measured up to a full bead, so a fully
+    // unsupported one is a bridge and reads 90 degrees as well.
     float overhang_degree() const
     {
-        const float percentage = std::clamp(overhang_percentage, 0.0f, 100.0f);
-        if (percentage >= 100.0f)
+        const bool wall = role == EGCodeExtrusionRole::Perimeter || role == EGCodeExtrusionRole::ExternalPerimeter ||
+            role == EGCodeExtrusionRole::OverhangPerimeter;
+        const float saturation = wall ? MAX_OVERHANG_PERCENTAGE : 100.0f;
+        const float percentage = std::clamp(overhang_percentage, 0.0f, saturation);
+        if (percentage >= saturation)
             return 90.0f;
         const float z_distance = overhang_z_distance > 0.0f ? overhang_z_distance : height;
         if (percentage <= 0.0f || width <= 0.0f || z_distance <= 0.0f)
