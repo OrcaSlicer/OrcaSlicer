@@ -274,25 +274,47 @@ void PresetComboBox::update_selection()
 
 void PresetComboBox::update_source_arrow()
 {
-    std::string icon = "drop_down";
-    if (wxGetApp().app_config->get_bool("show_preset_source_indicators") && m_last_selected >= 0 && m_last_selected < int(GetCount())) {
-        const Marker  marker = reinterpret_cast<Marker>(GetClientData(m_last_selected));
-        const Preset* preset = nullptr;
+    // Off: keep the arrow or filament swatch set by ComboBox::SetSelection().
+    if (!wxGetApp().app_config->get_bool("show_preset_source_indicators"))
+        return;
+
+    std::string   icon   = "drop_down";
+    const Preset* preset = nullptr;
+    if (m_last_selected >= 0 && m_last_selected < int(GetCount())) {
+        const Marker marker = reinterpret_cast<Marker>(GetClientData(m_last_selected));
         if (marker == LABEL_ITEM_PHYSICAL_PRINTER) {
-            // A physical printer item stands for the printer preset selected in the collection.
+            // Physical printer items stand for the selected printer preset.
             if (m_collection->get_selected_idx() != size_t(-1))
                 preset = &m_collection->get_selected_preset();
         } else if (marker != LABEL_ITEM_PRINTER_MODELS) {
             const wxString alias = GetItemAlias(m_last_selected);
             preset = m_collection->find_preset(Preset::remove_suffix_modified(into_u8(alias.empty() ? GetString(m_last_selected) : alias)));
         }
-        // Printer model items in the plater combo are listed only for system presets.
+        // Printer model items are system presets.
         if (marker == LABEL_ITEM_PRINTER_MODELS || (preset && (preset->is_system || preset->is_default)))
             icon = "drop_down_indicator_system";
-        else if (preset) // bundle presets are shown as user presets
+        else if (preset) // bundle presets count as user presets
             icon = preset->is_project_embedded ? "drop_down_indicator_project" : "drop_down_indicator_user";
     }
-    SetIcon(icon);
+
+    // Filament swatch (see get_bmp()): draw it next to the indicator; it replaces the vendor logo.
+    const wxBitmap swatch = preset ? GetItemBitmap(m_last_selected) : wxNullBitmap;
+    if (!swatch.IsOk()) {
+        SetIcon(icon);
+        return;
+    }
+    const Preset& shown = &m_collection->get_selected_preset() == preset ? m_collection->get_edited_preset() : *preset;
+    std::string key = "source_arrow," + icon + "," + shown.config.opt_string("default_filament_colour", 0)
+                    + ",em" + std::to_string(m_em_unit) + (wxGetApp().dark_mode() ? ",dark" : "");
+    wxBitmap* bmp = bitmap_cache().find(key);
+    if (bmp == nullptr) {
+        wxImage swatch_img = swatch.ConvertToImage();
+        if (!swatch_img.HasAlpha())
+            swatch_img.InitAlpha(); // a 24-bit bitmap comes out transparent on MSW
+        bmp = bitmap_cache().insert(key, create_scaled_bitmap(icon, this, 16), bitmap_cache().mkclear(space_icon_width, icon_height),wxBitmap(swatch_img));
+    }
+    SetIcon_1(wxNullBitmap);
+    SetIcon(*bmp);
 }
 
 int PresetComboBox::update_ams_color()
