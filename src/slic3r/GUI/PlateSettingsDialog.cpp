@@ -1,4 +1,5 @@
 #include "PlateSettingsDialog.hpp"
+#include "PlateLook.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include <climits>
@@ -420,7 +421,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
             index++;
             bool find = std::find(pm->not_support_bed_types.begin(), pm->not_support_bed_types.end(), item) != pm->not_support_bed_types.end();
             if (!find) {
-                m_bed_type_choice->AppendString(_L(item));
+                m_bed_type_choice->AppendString(plate_label(BedType(index)));
                 m_cur_combox_bed_types.emplace_back(BedType(index));
             }
         }
@@ -646,8 +647,7 @@ wxString PlateSettingsDialog::to_bed_type_name(BedType bed_type) {
     case btDefault:
         return _L("Same as Global Plate Type");
     default: {
-        const ConfigOptionDef *bed_type_def = print_config_def.get("curr_bed_type");
-        return _(bed_type_def->enum_labels[size_t(bed_type) - 1]);
+        return plate_label(bed_type);
         }
     }
     return _L("Same as Global Plate Type");

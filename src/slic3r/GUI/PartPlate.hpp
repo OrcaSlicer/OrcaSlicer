@@ -352,6 +352,8 @@ public:
     void clear(bool clear_sliced_result = true);
 
     BedType get_bed_type(bool load_from_project = false) const;
+    // The plate's own bed type, or the project's when the plate follows it.
+    BedType get_effective_bed_type() const;
     void set_bed_type(BedType bed_type);
     void reset_bed_type();
 
@@ -785,6 +787,16 @@ public:
     }*/
 };
 
+// A picture the user picked, loaded once per path so a missing file is not retried every frame.
+struct UserImageTexture
+{
+    GLTexture   texture;
+    std::string path;
+
+    // True when the picture is ready to draw.
+    bool load(const std::string &file, GLTexture::ECompressionType compression, bool apply_anisotropy);
+};
+
 class PartPlateList : public ObjectBase
 {
     Plater* m_plater; //Plater reference, not own it
@@ -839,6 +851,8 @@ class PartPlateList : public ObjectBase
     GLTexture m_plate_name_edit_texture;
     GLTexture m_plate_name_edit_hovered_texture;
     std::array<GLTexture, btCount> m_bed_type_textures;     // indexed by BedType; btDefault stays empty
+    std::array<UserImageTexture, btCount> m_user_icon_textures; // indexed by BedType; the user's plate icons
+    std::array<UserImageTexture, btCount> m_user_skin_textures; // indexed by BedType; the user's bed skins
     std::array<GLTexture, 4> m_imex_mode_textures;          // indexed by ImexModeKind
     std::array<GLTexture, 4> m_imex_mode_hovered_textures;
     GLTexture m_imex_warn_texture;  // warning badge for IMEX + multi-material conflict

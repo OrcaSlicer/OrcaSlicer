@@ -101,6 +101,7 @@
 #include "IMEXModesCtrl.hpp"
 #include "MultiChoiceDialog.hpp"
 #include "MsgDialog.hpp"
+#include "PlateLookDialog.hpp"
 #include "Notebook.hpp"
 
 #include "Widgets/ComboBox.hpp"
@@ -5520,7 +5521,21 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("bed_exclude_volume_mode", "printer_basic_information_printable_space#toolhead-collision-volumes");
 
         optgroup->append_single_option_line("printable_height", "printer_basic_information_printable_space#printable-height");
-        optgroup->append_single_option_line("support_multi_bed_types", "printer_basic_information_printable_space#support-multi-bed-types");
+        Line multi_bed_line = optgroup->create_single_option_line("support_multi_bed_types", "printer_basic_information_printable_space#support-multi-bed-types");
+        multi_bed_line.append_widget([this](wxWindow* parent) {
+            m_customize_plates_button = new wxButton(parent, wxID_ANY, _L("Customise"));
+            wxGetApp().UpdateDarkUI(m_customize_plates_button);
+            m_customize_plates_button->Show(m_config->opt_bool("support_multi_bed_types"));
+            m_customize_plates_button->Enable(m_config->opt_bool("support_multi_bed_types"));
+            // the options group destroys its widgets when it is rebuilt
+            m_customize_plates_button->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent&) { m_customize_plates_button = nullptr; });
+            m_customize_plates_button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent&) { edit_plate_looks(parent); });
+
+            auto sizer = new wxBoxSizer(wxHORIZONTAL);
+            sizer->Add(m_customize_plates_button);
+            return sizer;
+        });
+        optgroup->append_line(multi_bed_line);
         optgroup->append_single_option_line("best_object_pos", "printer_basic_information_printable_space#best-object-position");
         optgroup->append_single_option_line("z_offset", "printer_basic_information_printable_space#z-offset");
         optgroup->append_single_option_line("preferred_orientation", "printer_basic_information_printable_space#preferred-orientation");
@@ -6756,6 +6771,14 @@ void TabPrinter::toggle_options()
         // SoftFever: hide non-BBL settings
         for (auto el : {"use_firmware_retraction", "use_relative_e_distances", "support_multi_bed_types", "pellet_modded_printer", "bed_mesh_max", "bed_mesh_min", "bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "thumbnails"})
           toggle_line(el, !is_BBL_printer, -1, _L("This setting is unavailable for Bambu Lab printers."));
+
+        if (m_customize_plates_button) {
+            // the custom control re-shows extra widgets with their line, so also grey the button out
+            const bool multi_bed_types = printer_cfg.opt_bool("support_multi_bed_types");
+            m_customize_plates_button->Show(multi_bed_types);
+            m_customize_plates_button->Enable(multi_bed_types);
+            m_customize_plates_button->GetParent()->Layout();
+        }
 
         bool gcf_is_marlin_firmware = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value == GCodeFlavor::gcfMarlinFirmware;
         toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf_is_marlin_firmware, -1,

@@ -518,7 +518,7 @@ void OptionsGroup::activate_line(Line& line)
 
     // add extra sizers if any
     for (auto extra_widget : line.get_extra_widgets()) {
-        if (line.get_extra_widgets().size() == 1 && !staticbox) {
+        if (!custom_ctrl && line.get_extra_widgets().size() == 1 && !staticbox) {
             // extra widget for non-staticbox option group (like for the frequently used parameters on the sidebar) should be wxALIGN_RIGHT
             const auto v_sizer = new wxBoxSizer(wxVERTICAL);
             sizer->Add(v_sizer, option_set.size() == 1 ? 0 : 1, wxEXPAND);

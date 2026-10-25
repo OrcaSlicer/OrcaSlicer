@@ -179,6 +179,8 @@ src/slic3r/GUI/PresetComboBoxes.cpp
 src/slic3r/GUI/PresetHints.cpp
 src/slic3r/GUI/PrimitiveSizeDialog.cpp
 src/slic3r/GUI/ProgressStatusBar.cpp
+src/slic3r/GUI/PlateLook.cpp
+src/slic3r/GUI/PlateLookDialog.cpp
 src/slic3r/GUI/PlateSettingsDialog.cpp
 src/slic3r/GUI/PrivacyUpdateDialog.cpp
 src/slic3r/GUI/PublishSettingsDialog.cpp

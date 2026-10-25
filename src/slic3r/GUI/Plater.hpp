@@ -204,9 +204,10 @@ public:
     const std::vector<BedType>& get_cur_combox_bed_types() { return m_cur_combox_bed_types; }
     void update_presets_from_to(Slic3r::Preset::Type preset_type, std::string from, std::string to);
     BedType get_cur_select_bed_type();
-    std::string get_cur_select_bed_image();
     void set_bed_type_accord_combox(BedType bed_type);
     bool reset_bed_type_combox_choices(bool is_sidebar_init = false);
+    // Re-reads the user's plate labels and icons.
+    void refresh_plate_looks();
     void change_top_border_for_mode_sizer(bool increase_border);
     void update_filaments_area_height();
     void update_filaments_counter(bool force_layout = false);

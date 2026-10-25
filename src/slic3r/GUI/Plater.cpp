@@ -296,6 +296,7 @@
 #include "PhysicalPrinterDialog.hpp"
 #include "PrintHostDialogs.hpp"
 #include "PlateSettingsDialog.hpp"
+#include "PlateLook.hpp"
 #include "DailyTips.hpp"
 #include "CreatePresetsDialog.hpp"
 #include "FileArchiveDialog.hpp"
@@ -3127,8 +3128,7 @@ Sidebar::Sidebar(Plater *parent)
         reset_bed_type_combox_choices(true);
 
         p->combo_printer_bed->Bind(wxEVT_COMBOBOX, [this](auto &e) {
-            auto image_path        = get_cur_select_bed_image();
-            p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+            p->image_printer_bed->SetBitmap(plate_icon_bitmap(get_cur_select_bed_type(), this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
             e.Skip();
         });
 
@@ -3678,8 +3678,7 @@ void Sidebar::on_enter_image_printer_bed(wxMouseEvent &evt) {
     wxPoint temp_pos(pos.x + rect.GetWidth() +  FromDIP(3), pos.y);
     if (p->big_bed_image_popup == nullptr)
         p->big_bed_image_popup = new ImageDPIFrame();
-    auto image_path        = get_cur_select_bed_image();
-    p->big_bed_image_popup->set_bitmap(create_scaled_bitmap("big_" + image_path, p->big_bed_image_popup, p->big_bed_image_popup->get_image_px()));
+    p->big_bed_image_popup->set_bitmap(plate_icon_bitmap(get_cur_select_bed_type(), p->big_bed_image_popup, p->big_bed_image_popup->get_image_px(), true));
     p->big_bed_image_popup->set_title(p->combo_printer_bed->GetString(p->combo_printer_bed->GetSelection()));
     p->big_bed_image_popup->SetCanFocus(false);
     p->big_bed_image_popup->SetPosition(temp_pos);
@@ -3918,6 +3917,7 @@ void Sidebar::update_all_preset_comboboxes(bool update_filament_combos)
             } else {
                 BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":no need reset_bed_type_combox_choices";
             }
+            refresh_plate_looks();
         }
     } else {
         // m_bed_type_list->SelectAndNotify(btPEI - 1);
@@ -4125,7 +4125,6 @@ void Sidebar::update_presets(Preset::Type preset_type)
             extruder.combo_diameter->SetSelection(select);
             extruder.diameter = nozzle_dia;
         };
-        auto image_path = get_cur_select_bed_image();
         const bool multi_extruder_rows = p->single_extruder->NozzleRowCount() > 1;
         if (is_dual_extruder && !multi_extruder_rows) {
             std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
@@ -4139,7 +4138,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
                 update_extruder_diameter(0, *p->left_extruder);
                 update_extruder_diameter(1, *p->right_extruder);
             //}
-            p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+            p->image_printer_bed->SetBitmap(plate_icon_bitmap(get_cur_select_bed_type(), this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
         } else {
             AMSCountPopupWindow::UpdateAMSCount(0, p->single_extruder);
             for (size_t row = 0; row < p->single_extruder->NozzleRowCount(); ++row)
@@ -4182,7 +4181,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
             p->label_nozzle_type->SetLabel(nozzle_type);
             p->label_nozzle_type->SetToolTip(nozzle_type == "-" ? "" : nozzle_type);
 
-            p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+            p->image_printer_bed->SetBitmap(plate_icon_bitmap(get_cur_select_bed_type(), this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
         }
 
         if (GUI::wxGetApp().plater())
@@ -4243,12 +4242,16 @@ BedType Sidebar::get_cur_select_bed_type() {
     return select_bed_type;
 }
 
-std::string Sidebar::get_cur_select_bed_image()
+void Sidebar::refresh_plate_looks()
 {
-    auto select_bed_type   = get_cur_select_bed_type();
-    //auto series_suffix_str = m_cur_image_bed_type.empty() ? "" : ("_" + m_cur_image_bed_type);
-    auto image_path        = bed_type_thumbnails[select_bed_type];// + series_suffix_str;
-    return image_path;
+    if (m_cur_combox_bed_types.empty())
+        return;
+
+    for (size_t i = 0; i < m_cur_combox_bed_types.size(); ++i)
+        p->combo_printer_bed->SetString(i, plate_label(m_cur_combox_bed_types[i]));
+    p->image_printer_bed->SetBitmap(plate_icon_bitmap(get_cur_select_bed_type(), this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+    if (GLCanvas3D *canvas = p->plater->get_current_canvas3D())
+        canvas->set_as_dirty();
 }
 
 void Sidebar::set_bed_type_accord_combox(BedType bed_type) {
@@ -4291,7 +4294,7 @@ bool Sidebar::reset_bed_type_combox_choices(bool is_sidebar_init)
                 continue;
             }
             m_cur_combox_bed_types.emplace_back(BedType(index));//BedType //btPC =1
-            p->combo_printer_bed->AppendString(_L(item));
+            p->combo_printer_bed->AppendString(plate_label(BedType(index)));
         }
     }
     else {
@@ -4300,7 +4303,7 @@ bool Sidebar::reset_bed_type_combox_choices(bool is_sidebar_init)
         for (auto item : bed_type_def->enum_labels) {
             index++;
             m_cur_combox_bed_types.emplace_back(BedType(index)); // BedType //btPC =1
-            p->combo_printer_bed->AppendString(_L(item));
+            p->combo_printer_bed->AppendString(plate_label(BedType(index)));
         }
     }
     m_last_combo_bedtype_count = p->combo_printer_bed->GetCount();
@@ -5549,8 +5552,7 @@ void Sidebar::msw_rescale()
     p->combo_printer_bed->SetMinSize(FromDIP(wxSize(18,-1))); // ORCA show only arrow
     p->combo_printer_bed->SetMaxSize(FromDIP(wxSize(18,-1))); // ORCA show only arrow
     bool isDual     = static_cast<wxBoxSizer *>(p->panel_printer_preset->GetSizer())->GetOrientation() == wxVERTICAL;
-    auto image_path = get_cur_select_bed_image();
-    p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
+    p->image_printer_bed->SetBitmap(plate_icon_bitmap(get_cur_select_bed_type(), this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
     if (p->big_bed_image_popup){ // ORCA force rebuild frame. current wxwidget version not supports wxBITMAP_SCALE_FILL flag on wxStaticBitmap
                                  // also     wxImage scaledImage = bit_map.ConvertToImage(); scaledImage.Rescale(FromDIP(m_image_px), FromDIP(m_image_px), wxIMAGE_QUALITY_HIGH);
                                  // didnt worked as expected and it requires use on set_bitmap. so that will try to scale everytime

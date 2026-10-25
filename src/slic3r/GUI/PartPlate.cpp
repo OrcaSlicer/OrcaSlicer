@@ -46,6 +46,7 @@
 #include <utility>
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/GLTexture.hpp"
+#include "slic3r/GUI/PlateLook.hpp"
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
@@ -280,6 +281,16 @@ BedType PartPlate::get_bed_type(bool load_from_project) const
 	if (proj_cfg.has(bed_type_key))
 		return proj_cfg.opt_enum<BedType>(bed_type_key);
 	return btDefault;
+}
+
+BedType PartPlate::get_effective_bed_type() const
+{
+	const BedType bed_type = get_bed_type();
+	if (bed_type != btDefault || !wxGetApp().preset_bundle)
+		return bed_type;
+
+	const DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+	return proj_cfg.has("curr_bed_type") ? proj_cfg.opt_enum<BedType>("curr_bed_type") : btDefault;
 }
 
 void PartPlate::set_bed_type(BedType bed_type)
@@ -1892,6 +1903,17 @@ void PartPlate::render_logo_texture(GLTexture &logo_texture, GLModel& logo_buffe
 
 void PartPlate::render_logo(bool bottom, bool render_cali)
 {
+	const BedType effective_bed_type = get_effective_bed_type();
+	const PlateLook look = get_plate_look(effective_bed_type);
+	if (!look.skin_path.empty()) {
+		// the user's skin covers the whole bed and replaces the built-in one
+		UserImageTexture& skin = m_partplate_list->m_user_skin_textures[effective_bed_type];
+		if (skin.load(look.skin_path, GLTexture::MultiThreaded, true) && m_logo_triangles.is_initialized()) {
+			render_logo_texture(skin.texture, m_logo_triangles, bottom);
+			return;
+		}
+	}
+
 	if (!m_partplate_list->render_bedtype_logo) {
 		// render third-party printer texture logo
 		if (!m_partplate_list->load_logo_texture())
@@ -1905,14 +1927,7 @@ void PartPlate::render_logo(bool bottom, bool render_cali)
 	m_partplate_list->load_bedtype_textures();
 	m_partplate_list->load_cali_textures();
     m_partplate_list->load_extruder_only_area_textures();
-	// btDefault should be skipped
-	auto curr_bed_type = get_bed_type();
-	if (curr_bed_type == btDefault) {
-        DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
-        if (proj_cfg.has(std::string("curr_bed_type")))
-            curr_bed_type = proj_cfg.opt_enum<BedType>(std::string("curr_bed_type"));
-	}
-	int bed_type_idx = (int)curr_bed_type;
+	int bed_type_idx = (int)effective_bed_type;
     auto is_single_extruder = wxGetApp().preset_bundle->get_printer_extruder_count() == 1;
     if (!is_single_extruder) {
         if (m_partplate_list->m_allow_bed_type_in_double_nozzle.find(bed_type_idx) == m_partplate_list->m_allow_bed_type_in_double_nozzle.end()) {
@@ -2716,7 +2731,11 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             }
 
             if (is_bed_type_icon_shown()) {
-                render_icon_texture(m_plate_bed_type_icon.model, m_partplate_list->m_bed_type_textures[get_bed_type(true)]);
+                const BedType bed_type = get_bed_type(true);
+                const PlateLook look = get_plate_look(bed_type);
+                UserImageTexture& user_icon = m_partplate_list->m_user_icon_textures[bed_type];
+                const bool use_user_icon = !look.icon_path.empty() && user_icon.load(look.icon_path, GLTexture::None, false);
+                render_icon_texture(m_plate_bed_type_icon.model, use_user_icon ? user_icon.texture : m_partplate_list->m_bed_type_textures[bed_type]);
                 if (hover_id == (int)PLATE_BED_TYPE_ID)
                     set_hover_tooltip(_u8L("Bed type of current plate"));
             }
@@ -9073,6 +9092,15 @@ bool PartPlateList::load_next_bedtype_texture()
 		return true;
 	PartPlateList::is_load_bedtype_textures = true;
 	return false;
+}
+
+bool UserImageTexture::load(const std::string &file, GLTexture::ECompressionType compression, bool apply_anisotropy)
+{
+	if (file != path) {
+		path = file;
+		texture.load_from_file(file, true, compression, apply_anisotropy);
+	}
+	return texture.get_id() != 0;
 }
 
 bool PartPlateList::load_logo_texture()

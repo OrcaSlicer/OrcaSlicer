@@ -744,6 +744,7 @@ private:
     std::vector<PageShp>			m_pages_sla;
 
     IMEXModesCtrl*      m_imex_modes_ctrl               {nullptr};
+    wxButton*           m_customize_plates_button       {nullptr};
 public:
 	ScalableButton*	m_reset_to_filament_color = nullptr;
 
