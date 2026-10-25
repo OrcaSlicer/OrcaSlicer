@@ -3,6 +3,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCodeWriter.hpp"
 #include "GCodeReader.hpp"
 
 #include <cstddef>
