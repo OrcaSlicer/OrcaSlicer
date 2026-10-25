@@ -2040,3 +2040,108 @@ TEST_CASE("Height ranges and modifiers count for the filament shrinkage compensa
     });
     CHECK(mismatch_warning == ! object_on_filament_2);
 }
+
+// A 20 mm cube on the bed with a height range override.
+static ModelObject* cube_with_height_range(Model &model, const t_layer_height_range &range, DynamicPrintConfig &&range_config)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(cube(20.));
+    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+    object->layer_config_ranges[range].assign_config(std::move(range_config));
+    object->add_instance()->set_offset(Vec3d(90., 90., 0.));
+    object->ensure_on_bed();
+    return object;
+}
+
+static DynamicPrintConfig height_range_test_config(double shrinkage_z)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "filament_shrinkage_compensation_z", shrinkage_z },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "precise_z_height", false },
+        { "sparse_infill_density", "15%" },
+    });
+    return config;
+}
+
+// The 0.1 mm / 50 % height range [10, 15] has to print both its layer height and its infill from 10 * 100 / z
+// up to 15 * 100 / z of the object.
+static void check_thin_dense_height_range(const PrintObject &print_object, double shrinkage_z)
+{
+    size_t mismatched = 0;
+    double first_dense_z = -1.;
+    for (const Layer *layer : print_object.layers()) {
+        const bool thin  = layer->height < 0.15;
+        const bool dense = std::any_of(layer->regions().begin(), layer->regions().end(), [](const LayerRegion *region) {
+            return ! region->slices.empty() && region->region().config().sparse_infill_density.value > 40.;
+        });
+        if (thin != dense)
+            ++ mismatched;
+        if (dense && first_dense_z < 0.)
+            first_dense_z = layer->slice_z;
+    }
+    CHECK(mismatched == 0);
+    CHECK_THAT(first_dense_z, Catch::Matchers::WithinAbs(10. * 100. / shrinkage_z, 0.2));
+}
+
+static DynamicPrintConfig thin_dense_height_range()
+{
+    DynamicPrintConfig range;
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+    range.set_key_value("sparse_infill_density", new ConfigOptionPercent(50));
+    return range;
+}
+
+TEST_CASE("A height range above the object keeps its layer height up to the compensated top", "[Print][Regression]")
+{
+    // The range [10, 100] covers the top of the 20 mm cube, which the Z shrinkage compensation moves to 20 * 100 / z.
+    const double z = GENERATE(95., 105.);
+    DynamicPrintConfig range;
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+    Model model;
+    cube_with_height_range(model, { 10., 100. }, std::move(range));
+    Print print;
+    print.apply(model, height_range_test_config(z));
+    print.process();
+
+    const PrintObject &print_object = *print.objects().front();
+    CHECK_THAT(print_object.layers().back()->print_z, Catch::Matchers::WithinAbs(20. * 100. / z, 0.1));
+    const size_t thick_layers_in_range = std::count_if(print_object.layers().begin(), print_object.layers().end(),
+        [z](const Layer *layer) { return layer->slice_z > 11. * 100. / z && layer->height > 0.15; });
+    CHECK(thick_layers_in_range == 0);
+}
+
+TEST_CASE("Height range settings apply where the height range prints", "[Print][Regression]")
+{
+    // The range [10, 15] prints with 0.1 mm layers and 50 % infill. The Z shrinkage compensation moves both
+    // to 10 * 100 / z ... 15 * 100 / z.
+    const double z = GENERATE(100., 95., 105.);
+    Model model;
+    cube_with_height_range(model, { 10., 15. }, thin_dense_height_range());
+    Print print;
+    print.apply(model, height_range_test_config(z));
+    print.process();
+
+    check_thin_dense_height_range(*print.objects().front(), z);
+}
+
+TEST_CASE("Height range settings follow a Z shrinkage change that comes with a modifier change", "[Print][Regression]")
+{
+    // Adding a modifier lets Print::apply() reuse the cached regions; the cached height ranges were
+    // compensated for the old Z shrinkage.
+    Model model;
+    ModelObject *object = cube_with_height_range(model, { 10., 15. }, thin_dense_height_range());
+    Print print;
+    print.apply(model, height_range_test_config(100.));
+    print.process();
+
+    DynamicPrintConfig modifier_config;
+    modifier_config.set_key_value("wall_loops", new ConfigOptionInt(3));
+    object->add_volume(cube(5.), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(modifier_config);
+    print.apply(model, height_range_test_config(95.));
+    print.process();
+
+    check_thin_dense_height_range(*print.objects().front(), 95.);
+}
