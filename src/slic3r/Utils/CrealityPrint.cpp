@@ -317,6 +317,17 @@ std::string CrealityPrint::model_display_name(const std::string& model)
     return it != names.end() ? it->second : std::string{};
 }
 
+bool CrealityPrint::model_supports_cfs_write(const std::string& model)
+{
+    return model == "F008" || model == "F012" || model == "F021";
+}
+
+bool CrealityPrint::supports_cfs_write() const
+{
+    query_model();
+    return model_supports_cfs_write(m_model);
+}
+
 bool CrealityPrint::supports_multi_color_print() const
 {
     query_model();
@@ -332,16 +343,18 @@ std::string CrealityPrint::model_name() const
     return !name.empty() ? name : "unknown (" + m_model + ")";
 }
 
-std::string CrealityPrint::query_boxes_info() const
+// One "get" request over the port-9999 WebSocket. Returns the first message that
+// carries expected_key, or an empty string.
+static std::string ws_query(const std::string& host, const json& params, const std::string& expected_key)
 {
     try {
         net::io_context ioc;
         websocket::stream<beast::tcp_stream> ws{ioc};
-        ws_connect(ioc, ws, m_host, "9999");
+        ws_connect(ioc, ws, host, "9999");
 
         beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(10));
-        json boxs_query = {{"method", "get"}, {"params", {{"boxsInfo", 1}}}};
-        std::string result = ws_send_and_read(ws, boxs_query, "boxsInfo");
+        json query = {{"method", "get"}, {"params", params}};
+        std::string result = ws_send_and_read(ws, query, expected_key);
 
         // K1 SE closes its side after responding; use the error_code overload so
         // the resulting EOF does not throw and discard the already-received result.
@@ -350,9 +363,48 @@ std::string CrealityPrint::query_boxes_info() const
         ws.close(websocket::close_code::normal, close_ec);
         return result;
     } catch (std::exception const& e) {
-        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query boxsInfo: " << e.what();
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query " << expected_key << ": " << e.what();
         return {};
     }
+}
+
+std::string CrealityPrint::query_boxes_info() const
+{
+    return ws_query(m_host, {{"boxsInfo", 1}}, "boxsInfo");
+}
+
+std::string CrealityPrint::query_material_library() const
+{
+    return ws_query(m_host, {{"reqMaterials", 1}}, "retMaterials");
+}
+
+bool CrealityPrint::modify_material(const json& material) const
+{
+    net::io_context ioc;
+    websocket::stream<beast::tcp_stream> ws{ioc};
+    try {
+        ws_connect(ioc, ws, m_host, "9999");
+    } catch (std::exception const& e) {
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: modifyMaterial: cannot connect: " << e.what();
+        return false;
+    }
+
+    // Not every firmware acknowledges the write, and some close the socket after it,
+    // so neither is treated as a failure here: the caller reads boxsInfo back instead.
+    try {
+        beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(3));
+        json cmd = {{"method", "set"}, {"params", {{"modifyMaterial", material}}}};
+        const std::string ack = ws_send_and_read(ws, cmd, "modifyMaterial", 5);
+        BOOST_LOG_TRIVIAL(info) << "CrealityPrint: modifyMaterial " << material.dump()
+                                << (ack.empty() ? std::string(" sent, no acknowledgement") : " acknowledged: " + ack);
+    } catch (std::exception const& e) {
+        BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: modifyMaterial: " << e.what();
+    }
+
+    beast::error_code close_ec;
+    beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(3));
+    ws.close(websocket::close_code::normal, close_ec);
+    return true;
 }
 
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
