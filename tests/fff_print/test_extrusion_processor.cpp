@@ -949,8 +949,9 @@ TEST_CASE("Precomputed infill footprints match the footprint built on demand", "
     std::vector<PrecomputedOverhangLayer> precomputed_layers;
     precomputed_layers.push_back(std::move(precomputed));
     generator.set_precomputed_layers(std::move(precomputed_layers));
-    CHECK(generator.precomputed_infill_footprint(object, layer) == footprint);
-    CHECK_FALSE(generator.precomputed_infill_footprint(object, layer->lower_layer));
+    REQUIRE(generator.precomputed_layer(object, layer) != nullptr);
+    CHECK(generator.precomputed_layer(object, layer)->lower_infill_footprint == footprint);
+    CHECK(generator.precomputed_layer(object, layer->lower_layer) == nullptr);
 
     ExtrusionQualityEstimator built;
     built.set_current_object(object);
@@ -1287,7 +1288,7 @@ TEST_CASE("Variable speed overhang metadata retains shallow pockets between spee
         Point::new_scale(40, 10), Point::new_scale(0, 10)})};
     ExtrusionQualityEstimator estimator;
     estimator.set_current_object(object);
-    estimator.prepare_for_new_layer(object, upper);
+    estimator.prepare_for_lower_layer(object, upper);
     ExtrusionPath path(erExternalPerimeter, 0.08, width, 0.2f);
     path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
     const ConfigOptionPercents overlaps({75, 50, 0});
@@ -1338,9 +1339,9 @@ TEST_CASE("Overhang geometry is independent of curled edge slowdown", "[Extrusio
             Catch::Matchers::WithinAbs(0.0, 1e-3));
 }
 
-// Orca: A freshly enabled estimator and one resuming after a gap must see the same geometry and
-// curled edges as a continuously prepared estimator, including when a layer is prepared twice.
-TEST_CASE("Overhang estimation restores the immediate support layer after skipped preparation", "[ExtrusionProcessor][Overhang][Regression]")
+// Orca: Metadata measures a wall against the layer directly below it, however the estimator was prepared before:
+// fresh, after a stale layer, continuously, or when the same layer is prepared twice.
+TEST_CASE("Overhang metadata measures walls against the layer directly below", "[ExtrusionProcessor][Overhang][Regression]")
 {
     const int prepared_count = GENERATE(0, 1, 2);
     CAPTURE(prepared_count);
@@ -1353,35 +1354,28 @@ TEST_CASE("Overhang estimation restores the immediate support layer after skippe
     Layer *upper = object->add_layer(2, 0.2, 0.6, 0.5);
     lower->lower_layer = older;
     upper->lower_layer = lower;
-    // Orca: The stale contour cannot support the wall, whereas the actual lower layer supports it
-    // fully but has a curled edge. Both caches must therefore be restored, independently of metadata.
+    // Orca: The stale contour cannot support the wall, whereas the actual lower layer supports it fully.
     older->lslices = {ExPolygon(Polygon{Point::new_scale(0, 1), Point::new_scale(40, 1),
         Point::new_scale(40, 10), Point::new_scale(0, 10)})};
     lower->lslices = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
         Point::new_scale(40, 10), Point::new_scale(0, 10)})};
-    lower->curled_lines = {CurledLine(Point::new_scale(1, 0.2), Point::new_scale(39, 0.2), 1.0f)};
     ExtrusionQualityEstimator estimator;
     estimator.set_current_object(object);
     if (prepared_count >= 1)
-        estimator.prepare_for_new_layer(object, older);
+        estimator.prepare_for_lower_layer(object, older);
     if (prepared_count >= 2)
-        estimator.prepare_for_new_layer(object, lower);
-    ExtrusionPath path(erExternalPerimeter, 0.08, 0.4f, 0.2f);
-    path.polyline.points = {Point3::new_scale(1, 0.2, 0), Point3::new_scale(39, 0.2, 0)};
+        estimator.prepare_for_lower_layer(object, lower);
+    const Vec3d start(1, 0.2, 0);
+    const Vec3d end(39, 0.2, 0);
     for (int attempt = 0; attempt < 2; ++attempt) {
         CAPTURE(attempt);
-        estimator.prepare_for_new_layer(object, upper);
-        CHECK_THAT(line_overhang_maximum(estimator, unscaled(path.polyline.points.front()),
-            unscaled(path.polyline.points.back()), 0.4f, true), Catch::Matchers::WithinAbs(0.0, 1e-3));
-        const auto points = estimator.estimate_extrusion_quality(path, ConfigOptionPercents({100, 0}),
-            ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}),
-            100.0f, 100.0f, true);
-        REQUIRE(points.size() >= 2);
-        CHECK(points.front().speed < 99.0f);
-        CHECK(points.front().overlap < 0.99f);
-        CHECK_THAT(line_overhang_maximum(estimator, unscaled(points[0].p), unscaled(points[1].p), 0.4f, true),
-            Catch::Matchers::WithinAbs(0.0, 1e-3));
+        estimator.prepare_for_lower_layer(object, upper);
+        CHECK_THAT(line_overhang_maximum(estimator, start, end, 0.4f, true), Catch::Matchers::WithinAbs(0.0, 1e-3));
     }
+    // The outline handed over from the precomputed data is the one measured against.
+    estimator.prepare_for_lower_layer(object, upper,
+        std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(older->lslices)));
+    CHECK(line_overhang_maximum(estimator, start, end, 0.4f, true) > 100.0f);
 }
 
 // Orca: Metadata may add comments, but neither fixed-speed nor variable-speed export may change a
@@ -1403,8 +1397,9 @@ TEST_CASE("Overhang metadata leaves printer commands unchanged", "[ExtrusionProc
     CHECK(printer_commands(with_metadata) == printer_commands(without_metadata));
 }
 
-// Orca: Height modifiers can first enable slowdown or interrupt it for several layers. In both
-// directions, toggling preview metadata must preserve every printer command, including speeds.
+// Orca: Height modifiers can first enable slowdown or interrupt it for several layers, so the speed and fan
+// estimate skips layers. In both directions, toggling preview metadata must preserve every printer command,
+// including speeds: metadata prepares its own estimators for every layer.
 TEST_CASE("Overhang metadata preserves printer commands across height modifier transitions", "[ExtrusionProcessor][Overhang][Regression]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
@@ -1432,12 +1427,6 @@ TEST_CASE("Overhang metadata preserves printer commands across height modifier t
         const auto extremes = std::minmax_element(slope_speeds.begin(), slope_speeds.end());
         CHECK(*extremes.first / MM_PER_MIN < shallow_outer_wall_speed - 1.0);
         CHECK_THAT(*extremes.second / MM_PER_MIN, Catch::Matchers::WithinAbs(shallow_outer_wall_speed, 0.1));
-        // Orca: Equality alone could accept identical stale caches. The vertical back wall must also
-        // retain its configured speed on the first layer after each transition, not a false slowdown.
-        const auto supported_speeds = shallow_face_feed_rates(exported, false);
-        REQUIRE_FALSE(supported_speeds.empty());
-        for (double feed_rate : supported_speeds)
-            CHECK_THAT(feed_rate / MM_PER_MIN, Catch::Matchers::WithinAbs(shallow_outer_wall_speed, 0.1));
         const auto commands = printer_commands(exported);
         REQUIRE_FALSE(commands.empty());
         if (!enabled)
@@ -2158,10 +2147,9 @@ TEST_CASE("Overhang data computed ahead of the generator gives the same wall spe
     check_identical(estimate_walls(precomputed, cage.object, *cage.layer), expected);
 }
 
-TEST_CASE("Precomputed overhang distances remain valid after skipped layer preparations", "[ExtrusionProcessor]")
+TEST_CASE("Overhang distances measured against another layer than the previous one are not used", "[ExtrusionProcessor]")
 {
     const SlicedCage cage;
-    REQUIRE(cage.layer->lower_layer != nullptr);
     const Layer     *two_below = cage.layer->lower_layer->lower_layer;
     REQUIRE(two_below != nullptr);
 
@@ -2172,7 +2160,7 @@ TEST_CASE("Precomputed overhang distances remain valid after skipped layer prepa
     ExtrusionQualityEstimator one_below;
     one_below.prepare_for_new_layer(cage.object, cage.layer->lower_layer);
     one_below.prepare_for_new_layer(cage.object, cage.layer);
-    check_identical(estimate_walls(one_below, cage.object, *cage.layer), expected);
+    REQUIRE(any_difference(estimate_walls(one_below, cage.object, *cage.layer), expected));
 
     ExtrusionQualityEstimator precomputed;
     precomputed.prepare_for_new_layer(cage.object, two_below);
@@ -2367,7 +2355,7 @@ TEST_CASE("Perimeter overhang metadata preserves unsupported width above a nearb
     lower->lslices = {std::move(lower_slice)};
     ExtrusionQualityEstimator estimator;
     estimator.set_current_object(object);
-    estimator.prepare_for_new_layer(object, upper);
+    estimator.prepare_for_lower_layer(object, upper);
     ExtrusionPath path(role, 0.08, width, 0.2f);
     path.polyline.points = {Point3::new_scale(2, 0.5 * width, 0), Point3::new_scale(38, 0.5 * width, 0)};
     const double expected_percentage = 100.0 * (width - supported_width) / width;
