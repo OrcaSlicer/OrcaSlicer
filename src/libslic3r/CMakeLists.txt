@@ -441,8 +441,6 @@ set(lisbslic3r_sources
     QuadricEdgeCollapse.cpp
     QuadricEdgeCollapse.hpp
     Semver.cpp
-    Shape/TextShape.cpp
-    Shape/TextShape.hpp
     ShortEdgeCollapse.cpp
     ShortEdgeCollapse.hpp
     ShortestPath.cpp
@@ -788,20 +786,6 @@ target_link_libraries(libslic3r
         ZLIB::ZLIB
         OpenSSL::Crypto
     )
-
-if(NOT WIN32)
-    # OCCT's static targets name FreeType as a bare "freetype", which the macOS linker cannot
-    # find; this target maps that name to FREETYPE_LIBRARIES.
-    if (NOT TARGET freetype)
-        add_library(freetype INTERFACE IMPORTED GLOBAL)
-        target_link_libraries(freetype INTERFACE ${FREETYPE_LIBRARIES})
-    endif ()
-    # Link freetype for OCCT dependency (CAD operations need font rendering)
-    target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
-    if (NOT APPLE)
-        target_link_libraries(libslic3r PRIVATE fontconfig)
-    endif()
-endif()
 
 if (APPLE)
     find_library(FOUNDATION Foundation REQUIRED)
