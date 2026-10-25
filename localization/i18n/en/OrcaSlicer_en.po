@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:39-0300\n"
+"POT-Creation-Date: 2026-10-25 17:19+0800\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -6064,7 +6064,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -6525,6 +6525,12 @@ msgid "Reset Window Layout"
 msgstr ""
 
 msgid "Reset to default window layout"
+msgstr ""
+
+msgid "Show 3Dconnexion Settings"
+msgstr ""
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
 msgstr ""
 
 msgid "Show &Labels"
@@ -13074,6 +13080,11 @@ msgid "If you still want to print, you can enable the option in Preferences / Co
 msgstr ""
 
 msgid "No extrusions under current settings."
+msgstr ""
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1.
+#, boost-format
+msgid "The flow ratio of filament %1% must be greater than 0."
 msgstr ""
 
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -22137,13 +22148,13 @@ msgstr ""
 msgid "Could not connect to CrealityPrint"
 msgstr ""
 
-msgid "Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network."
-msgstr ""
-
 msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
 msgstr ""
 
 msgid "File/data transfer interrupted. Please check the printer and network, then try it again."
+msgstr ""
+
+msgid "Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network."
 msgstr ""
 
 msgid "The provided state is not correct."
@@ -26124,9 +26135,6 @@ msgstr ""
 msgid "Zoom out"
 msgstr ""
 
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr ""
-
 msgid "Show/Hide wireframe"
 msgstr ""
 
@@ -28712,6 +28720,9 @@ msgstr ""
 msgid "Texture layers"
 msgstr ""
 
+msgid "Add layer"
+msgstr ""
+
 msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
 msgstr ""
 
@@ -28983,15 +28994,6 @@ msgstr ""
 msgid "More settings"
 msgstr ""
 
-#, boost-format
-msgid "All %1% layer used"
-msgid_plural "All %1% layers used"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Add layer"
-msgstr ""
-
 msgid "Subdivision"
 msgstr ""
 
@@ -29146,17 +29148,6 @@ msgstr ""
 msgid "Bake by moving the vertices the mesh already has, after preparing it (remesh, adaptive subdivision, and a cut along sharp steps in the texture). Keeps the topology, which is what colors need. The default pipeline instead refines, cleans up sliver triangles, displaces and simplifies in one run; nothing needs preparing first, but it does not produce colors yet."
 msgstr ""
 
-#. TRN Slider value: %d is the triangle budget in thousands
-msgid "Budget"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d k (auto)"
-msgstr ""
-
-msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
-msgstr ""
-
 msgid "Align mesh to texture edges"
 msgstr ""
 
@@ -29167,6 +29158,17 @@ msgid "Clean up slivers"
 msgstr ""
 
 msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
+msgstr ""
+
+#. TRN Slider value: %d is the triangle budget in thousands
+msgid "Budget"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%d k (auto)"
+msgstr ""
+
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
 msgstr ""
 
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
@@ -30267,9 +30269,6 @@ msgstr ""
 msgid "Recently opened"
 msgstr ""
 
-msgid "Open Containing Folder"
-msgstr ""
-
 msgid "Forward"
 msgstr ""
 
@@ -31351,433 +31350,3 @@ msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgstr ""
-
-#~ msgid ""
-#~ "The Wipe option is not available when using the Firmware Retraction mode.\n"
-#~ "\n"
-#~ "Shall I disable it in order to enable Firmware Retraction?"
-#~ msgstr ""
-#~ "The Wipe option is not available when using the Firmware Retraction mode.\n"
-#~ "\n"
-#~ "Disable it in order to enable Firmware Retraction?"
-
-#, no-c-format, no-boost-format
-#~ msgid "Bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for external bridges. Use 180° for zero angle."
-#~ msgstr "Bridging angle override. 0 means the bridging angle will be calculated automatically. Otherwise the provided angle will be used for external bridges. Use 180° for zero angle."
-
-#~ msgid "If enabled, bridges are more reliable, can bridge longer distances, but may look worse. If disabled, bridges look better but are reliable just for shorter bridged distances."
-#~ msgstr "If enabled, bridges are more reliable and can bridge longer distances but may look worse. If disabled, bridges look better but are reliable only for shorter distances."
-
-#~ msgid "Filament to print internal sparse infill."
-#~ msgstr "This is the filament for printing internal sparse infill."
-
-#~ msgid "Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used."
-#~ msgstr "Filament to print support bases and rafts. \"Default\" means no specific filament for support, and current filament is used"
-
-#~ msgid "Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used."
-#~ msgstr "Filament to print support interfaces. \"Default\" means no specific filament for support interface, and current filament is used"
-
-#~ msgid "Object/Part Setting"
-#~ msgstr "Object/part settings"
-
-#~ msgid ""
-#~ "Do you want to synchronize your personal data from Bambu Cloud?\n"
-#~ "It contains the following information:\n"
-#~ "1. The Process presets\n"
-#~ "2. The Filament presets\n"
-#~ "3. The Printer presets"
-#~ msgstr ""
-#~ "Do you want to synchronize your personal data from Bambu Cloud?\n"
-#~ "It contains the following information:\n"
-#~ "1. Process presets\n"
-#~ "2. Filament presets\n"
-#~ "3. Printer presets"
-
-#~ msgid "Repaired 3MF file does not contain any object"
-#~ msgstr "The repaired 3MF file does not contain any objects."
-
-#~ msgid "Repaired 3MF file contains more than one object"
-#~ msgstr "The repaired 3MF file contains more than one object."
-
-#~ msgid "Repaired 3MF file does not contain any volume"
-#~ msgstr "The repaired 3MF file does not contain any volume."
-
-#~ msgid "Repaired 3MF file contains more than one volume"
-#~ msgstr "The repaired 3MF file contains more than one volume."
-
-#~ msgid ""
-#~ "Zero first layer height is invalid.\n"
-#~ "\n"
-#~ "The first layer height will be reset to 0.2."
-#~ msgstr ""
-#~ "Zero first layer height is invalid.\n"
-#~ "\n"
-#~ "The first layer height will be reset to 0.2."
-
-#~ msgid "Check for Update"
-#~ msgstr "Check for Updates"
-
-#~ msgid "Rotate of view"
-#~ msgstr "Rotate view"
-
-#~ msgid "Move of view"
-#~ msgstr "Pan view"
-
-#~ msgid "Zoom of view"
-#~ msgstr "Zoom view"
-
-#~ msgid "Extruders count"
-#~ msgstr "Extruder count"
-
-#~ msgid "Line pattern of support."
-#~ msgstr "This is the line pattern for support."
-
-#~ msgid "Failed to install the plug-in. Please check whether it is blocked or deleted by anti-virus software."
-#~ msgstr "Failed to install the plug-in. Please check whether it is blocked or has been deleted by anti-virus software."
-
-#~ msgid "The application cannot run normally because OpenGL version is lower than 2.0.\n"
-#~ msgstr "The application cannot run normally because your OpenGL version is lower than 2.0.\n"
-
-#~ msgid "Advance"
-#~ msgstr "Advanced"
-
-#~ msgid "An SD card needs to be inserted before printing via LAN."
-#~ msgstr "A SD card needs to be inserted before printing via LAN."
-
-#~ msgid "An SD card needs to be inserted before sending to printer."
-#~ msgstr "A SD card needs to be inserted before sending to printer."
-
-#~ msgid ""
-#~ "If there are two identical filaments in AMS, AMS filament backup will be enabled.\n"
-#~ "(Currently supporting automatic supply of consumables with the same brand, material type, and color)"
-#~ msgstr ""
-#~ "If there are two identical filaments in an AMS, AMS filament backup will be enabled.\n"
-#~ "(This currently supports automatic supply of consumables with the same brand, material type, and color)"
-
-#~ msgid ""
-#~ "You can find it in \"Settings > Network > Connection code\"\n"
-#~ "on the printer, as shown in the figure:"
-#~ msgstr ""
-#~ "You can find it in \"Settings > Network > Access code\"\n"
-#~ "on the printer, as shown in the figure:"
-
-#~ msgid ""
-#~ "Please check if the SD card is inserted into the printer.\n"
-#~ "If it still cannot be read, you can try formatting the SD card."
-#~ msgstr ""
-#~ "Please check if the Micro SD card is inserted into the printer.\n"
-#~ "If it still cannot be read, you can try formatting the card."
-
-#~ msgid "Storage unavailable, insert SD card."
-#~ msgstr "Storage unavailable, insert Micro SD card."
-
-#~ msgid "Can't start this without SD card."
-#~ msgstr "Can't start without SD card."
-
-#~ msgid "Already did a synchronization, do you want to sync only changes or resync all?"
-#~ msgstr "Already did a synchronization; do you want to sync only changes or resync all?"
-
-#~ msgid "If enabled, auto-calculate every time the color changed."
-#~ msgstr "If enabled, auto-calculate every time the color changes."
-
-#~ msgid "Flushing volumes: Auto-calculate every time when the filament is changed."
-#~ msgstr "Flushing volumes: Auto-calculate every time the filament is changed."
-
-#~ msgid "If enabled, auto-calculate every time when filament is changed"
-#~ msgstr "If enabled, auto-calculate every time filament is changed"
-
-#~ msgid "An SD card needs to be inserted before printing."
-#~ msgstr "A SD card needs to be inserted before printing."
-
-#~ msgid "An SD card needs to be inserted to record timelapse."
-#~ msgstr "A SD card needs to be inserted to record a timelapse."
-
-#~ msgid "Your nozzle diameter in sliced file is not consistent with memorized nozzle. If you changed your nozzle lately, please go to Device > Printer Parts to change settings."
-#~ msgstr "Your nozzle diameter in sliced file is not consistent with the saved nozzle. If you changed your nozzle lately, please go to Device > Printer Parts to change settings."
-
-#~ msgid "Send to Printer SD card"
-#~ msgstr "Send to Printer SD card"
-
-#~ msgid "An SD card needs to be inserted before send to printer SD card."
-#~ msgstr "A SD card needs to be inserted before sending to the printer SD card."
-
-#~ msgid "The printer does not support sending to printer SD card."
-#~ msgstr "The printer does not support sending to printer SD card."
-
-#~ msgid " is too close to others, there may be collisions when printing."
-#~ msgstr " is too close to others; there may be collisions when printing."
-
-#~ msgid "Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing."
-#~ msgstr "Unable to print multiple filaments which have large temperature differences together. Otherwise, the extruder and nozzle may be blocked or damaged during printing."
-
-#~ msgid "Only one of the results with the same name will be saved. Are you sure you want to overwrite the other results?"
-#~ msgstr "Only one of the results with the same name will be saved. Are you sure you want to replace the other results?"
-
-#~ msgid "The custom printer or model is not entered, please enter it."
-#~ msgstr "The custom printer or model missing; please input."
-
-#~ msgid "Your nozzle diameter in preset is not consistent with memorized nozzle diameter. Did you change your nozzle lately?"
-#~ msgstr "Your nozzle diameter in preset is not consistent with the saved nozzle diameter. Have you changed your nozzle?"
-
-#~ msgid "Recent projects"
-#~ msgstr "Recent Projects"
-
-#~ msgid "Set Position"
-#~ msgstr "Set position"
-
-#~ msgid "Color Scheme"
-#~ msgstr "Color scheme"
-
-#~ msgid "SD Card"
-#~ msgstr "SD Card"
-
-#~ msgid "No SD Card"
-#~ msgstr "No SD Card"
-
-#~ msgid "SD Card Abnormal"
-#~ msgstr "SD Card Abnormal"
-
-#~ msgid "Bed temperature when the Cool Plate Supertack is installed. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
-#~ msgstr "This is the bed temperature when the Cool Plate Supertack is installed. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
-
-#~ msgid "the Configuration package is incompatible with the current APP."
-#~ msgstr "The configuration package is incompatible with the current version of Bambu Studio."
-
-#~ msgid "The highest printable layer height for the extruder. Used to limit the maximum layer height when adaptive layer height is enabled."
-#~ msgstr "The highest printable layer height for the extruder. This is used to limit the maximum layer height when adaptive layer height is enabled."
-
-#~ msgid "The lowest printable layer height for the extruder. Used to limit the minimum layer height when adaptive layer height is enabled."
-#~ msgstr "The lowest printable layer height for the extruder. This is used to limit the minimum layer height when adaptive layer height is enabled."
-
-#~ msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction"
-#~ msgstr "This is the amount of filament in the extruder that is pulled back to avoid oozing during long travel distances. Set to 0 to disable retraction."
-
-#~ msgid "Speed of retractions."
-#~ msgstr "This is the speed for retraction."
-
-#~ msgid "Speed for reloading filament into extruder. Zero means same speed of retraction."
-#~ msgstr "The speed for reloading filament into the extruder after a retraction; setting this to 0 means that it will be the same speed as the retraction."
-
-#~ msgid "Spacing of interface lines. Zero means solid interface."
-#~ msgstr "This is the spacing of interface lines. 0 means solid interface."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but shorter print time."
-#~ msgstr "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but shorter print time."
-#~ msgstr "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-
-#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and general print time."
-#~ msgstr "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-
-#, c-format, boost-format
-#~ msgid "Connect failed [%d]!"
-#~ msgstr "Connection failed [%d]!"
-
-#~ msgid "Initialize failed (Device connection not ready)!"
-#~ msgstr "Initialization failed (Device connection not ready)!"
-
-#, c-format, boost-format
-#~ msgid "Initialize failed (%s)!"
-#~ msgstr "Initialization failed (%s)!"
-
-#~ msgid "Step 1, please confirm Orca Slicer and your printer are in the same LAN."
-#~ msgstr "Step 1, please confirm that Orca Slicer and your printer are on the same LAN."
-
-#~ msgid "Force cooling for overhang and bridge"
-#~ msgstr "Force cooling for overhangs and bridges"
-
-#~ msgid "Enable this option to optimize part cooling fan speed for overhang and bridge to get better cooling"
-#~ msgstr "Enable this option to optimize the part cooling fan speed for overhangs and bridges to get better cooling"
-
-#~ msgid "Fan speed for overhang"
-#~ msgstr "Fan speed for overhangs"
-
-#~ msgid "Force part cooling fan to be this speed when printing bridge or overhang wall which has large overhang degree. Forcing cooling for overhang and bridge can get better quality for these part"
-#~ msgstr "Force part cooling fan to be this speed when printing bridges or overhang walls which have a large overhang degree. Forcing cooling for overhangs and bridges can achieve better quality for these parts."
-
-#, c-format
-#~ msgid "Force cooling fan to be specific speed when overhang degree of printed part exceeds this value. Expressed as percentage which indicates how much width of the line without support from lower layer. 0% means forcing cooling for all outer wall no matter how much overhang degree"
-#~ msgstr "Force cooling fan to be a specific speed when overhang degree of printed part exceeds this value. This is expressed as a percentage which indicates how much width of the line without support from lower layer. 0% means forcing cooling for all outer wall no matter the overhang degree."
-
-#~ msgid ""
-#~ "While printing by Object, the extruder may collide skirt.\n"
-#~ "Thus, reset the skirt layer to 1 to avoid that."
-#~ msgstr ""
-#~ "While printing by object, the extruder may collide with a skirt.\n"
-#~ "Thus, reset the skirt layer to 1 to avoid collisions."
-
-#~ msgid "Decrease this value slightly (for example 0.9) to reduce the amount of material for bridge, to improve sag"
-#~ msgstr "Decrease this value slightly (for example 0.9) to reduce the amount of material extruded for bridges to avoid sagging."
-
-#~ msgid "Speed of bridge and completely overhang wall"
-#~ msgstr "This is the speed for bridges and 100% overhang walls."
-
-#~ msgid "Higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength for high temperature materials like ABS, ASA, PC, PA and so on. At the same time, the air filtration of ABS and ASA will get worse. While for PLA, PETG, TPU, PVA and other low temperature materials, the actual chamber temperature should not be high to avoid cloggings, so 0 which stands for turning off is highly recommended"
-#~ msgstr "Higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength for high temperature materials like ABS, ASA, PC, PA and so on. At the same time, the air filtration of ABS and ASA will get worse. While for PLA, PETG, TPU, PVA and other low temperature materials, the actual chamber temperature should not be high to avoid clogs, so 0 (turned off) is highly recommended."
-
-#~ msgid "Printer local connection failed, please try again."
-#~ msgstr "Printer local connection failed; please try again."
-
-#~ msgid ""
-#~ "Please find the details of Flow Dynamics Calibration from our wiki.\n"
-#~ "\n"
-#~ "Usually the calibration is unnecessary. When you start a single color/material print, with the \"flow dynamics calibration\" option checked in the print start menu, the printer will follow the old way, calibrate the filament before the print; When you start a multi color/material print, the printer will use the default compensation parameter for the filament during every filament switch which will have a good result in most cases.\n"
-#~ "\n"
-#~ "Please note there are a few cases that will make the calibration result not reliable: using a texture plate to do the calibration; the build plate does not have good adhesion (please wash the build plate or apply gluestick!) ...You can find more from our wiki.\n"
-#~ "\n"
-#~ "The calibration results have about 10 percent jitter in our test, which may cause the result not exactly the same in each calibration. We are still investigating the root cause to do improvements with new updates."
-#~ msgstr ""
-#~ "Please find the details of Flow Dynamics Calibration from our wiki.\n"
-#~ "\n"
-#~ "Usually the calibration is unnecessary. When you start a single color/material print, with the \"flow dynamics calibration\" option checked in the print start menu, the printer will follow the old way, calibrate the filament before the print; When you start a multi color/material print, the printer will use the default compensation parameter for the filament during every filament switch which will have a good result in most cases.\n"
-#~ "\n"
-#~ "Please note there are a few cases that will make the calibration result not reliable: using a texture plate to do the calibration; the build plate does not have good adhesion (please wash the build plate or apply gluestick!) ...You can find more from our wiki.\n"
-#~ "\n"
-#~ "The calibration results have about 10 percent jitter in our test, which may cause the result not exactly the same in each calibration. We are still investigating the root cause to do improvements with new updates."
-
-#~ msgid "Please find the cornor with perfect degree of extrusion"
-#~ msgstr "Please find the corner with the perfect degree of extrusion"
-
-#~ msgid "Enable this to get a G-code file which has G2 and G3 moves. And the fitting tolerance is same with resolution"
-#~ msgstr "Enable this to get a G-code file with G2 and G3 moves. The fitting tolerance is the same as the resolution."
-
-#~ msgid "Unload Filament"
-#~ msgstr "Unload"
-
-#~ msgid "Green means that AMS humidity is normal, orange represent humidity is high, red represent humidity is too high.(Hygrometer: lower the better.)"
-#~ msgstr "Green means that AMS humidity is normal, orange means that humidity is high, and red means that humidity is too high. (Hygrometer: the lower, the better.)"
-
-#~ msgid "A desiccant status lower than two bars indicates that desiccant may be inactive. Please change the desiccant.(The bars: higher the better.)"
-#~ msgstr "A desiccant status lower than two bars indicates that desiccant may be inactive. Please change the desiccant. (The higher, the better.)"
-
-#, boost-format
-#~ msgid "Succeed to export G-code to %1%"
-#~ msgstr "Success! G-code exported to %1%"
-
-#~ msgid "Initialize failed (No Device)!"
-#~ msgstr "Initialization failed (No Device)!"
-
-#~ msgid "Initialize failed (No Camera Device)!"
-#~ msgstr "Initialization failed (No Camera Device)!"
-
-#~ msgid "Printer is busy downloading, please wait for the download to finish."
-#~ msgstr "Printer is busy downloading; please wait for the download to finish."
-
-#~ msgid "Initialize failed (Not accessible in LAN-only mode)!"
-#~ msgstr "Initialization failed (Not accessible in LAN-only mode)!"
-
-#~ msgid "Initialize failed (Missing LAN ip of printer)!"
-#~ msgstr "Initialization failed (Missing LAN IP of printer)!"
-
-#, c-format, boost-format
-#~ msgid "Load failed [%d]!"
-#~ msgstr "Loading failed [%d]!"
-
-#~ msgid "Failed to fetching model informations from printer."
-#~ msgstr "Failed to fetch model information from printer."
-
-#~ msgid "Failed to parse model informations."
-#~ msgstr "Failed to parse model information"
-
-#, boost-format
-#~ msgid ""
-#~ "You have changed some settings of preset \"%1%\".\n"
-#~ "Would you like to keep these changed settings (new value) after switching preset?"
-#~ msgstr ""
-#~ "You have changed some settings of preset \"%1%\".\n"
-#~ "Would you like to keep these changed settings (new value) after switching presets?"
-
-#~ msgid ""
-#~ "You have changed some preset settings.\n"
-#~ "Would you like to keep these changed settings (new value) after switching preset?"
-#~ msgstr ""
-#~ "You have changed some preset settings.\n"
-#~ "Would you like to keep these changed settings (new value) after switching presets?"
-
-#~ msgid "connectors is out of object"
-#~ msgstr "Connectors must be on object surface."
-
-#~ msgid ""
-#~ "Invalid state.\n"
-#~ "No one part is selected for keep after cut"
-#~ msgstr ""
-#~ "Invalid state.\n"
-#~ "No one part is selected to keep after cut"
-
-#~ msgid "Error! Unable to create thread!"
-#~ msgstr "Error. Unable to create thread."
-
-#~ msgid "Discribe how long the nozzle will move along the last path when retracting"
-#~ msgstr "This describes how long the nozzle will move along the last path while retracting."
-
-#~ msgid ""
-#~ "Switch to rectilinear pattern?\n"
-#~ "Yes - switch to rectilinear pattern automaticlly\n"
-#~ "No  - reset density to default non 100% value automaticlly"
-#~ msgstr ""
-#~ "Switch to rectilinear pattern?\n"
-#~ "Yes - Switch to rectilinear pattern automatically\n"
-#~ "No  - Reset density to default non 100% value automatically"
-
-#, c-format
-#~ msgid "Density of internal sparse infill, 100% means solid throughout"
-#~ msgstr "This is the density of internal sparse infill. 100% means that the object will be solid throughout."
-
-#~ msgid "This setting specify the count of walls around tree support"
-#~ msgstr "This setting specifies the wall count around tree support."
-
-#~ msgid "Export all objects as STL"
-#~ msgstr "Export All Objects as STL"
-
-#~ msgid "The 3MF is not compatible, load geometry data only!"
-#~ msgstr "The 3MF is not compatible, loading geometry data only!"
-
-#, c-format, boost-format
-#~ msgid "%s is not supported by AMS."
-#~ msgstr "%s is not supported by the AMS."
-
-#~ msgid "Don't remind me of this version again"
-#~ msgstr "Don't remind me about this version again."
-
-#~ msgid "Print sequence of inner wall, outer wall and infill. "
-#~ msgstr "This is the print sequence of inner walls, outer walls, and infill."
-
-#~ msgid "The minimum printing speed when slow down for cooling"
-#~ msgstr "The minimum printing speed when slowing down for cooling."
-
-#~ msgid "Material becomes soft at this temperature. Thus the heatbed cannot be hotter than this tempature"
-#~ msgstr "Material becomes soft at this temperature. Thus, the heat bed cannot be hotter than this temperature."
-
-#~ msgid "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers"
-#~ msgstr "This is the speed of auxiliary part cooling fan. The auxiliary fan will run at this speed during printing except for during the first several layers which may be set to have no part cooling."
-
-#, c-format, boost-format
-#~ msgid ""
-#~ "Bed temperature of other layer is lower than bed temperature of initial layer for more than %d degrees Celsius.\n"
-#~ "This may cause model broken free from build plate during printing."
-#~ msgstr ""
-#~ "The bed temperature of other layers is lower than the bed temperature of the first layer by more than %d degrees Celsius.\n"
-#~ "This may cause models to break free from the build plate during printing."
-
-#~ msgid ""
-#~ "Bed temperature is higher than vitrification temperature of this filament.\n"
-#~ "This may cause nozzle blocked and printing failure\n"
-#~ "Please keep the printer open during the printing process to ensure air circulation or reduce the temperature of the hot bed"
-#~ msgstr ""
-#~ "Bed temperature is higher than vitrification temperature of this filament.\n"
-#~ "This may cause nozzle blockage and print failure.\n"
-#~ "Please keep the printer open during the printing process to ensure air circulation or reduce the temperature of the hot bed."
-
-#~ msgid "Bed temperature when high temperature plate is installed. A value of 0 means the filament does not support printing on the High Temp Plate"
-#~ msgstr "This is the bed temperature when the high temperature plate is installed. A value of 0 means the filament does not support printing on the High Temp Plate."
-
-#~ msgid ""
-#~ "Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
-#~ "For tree support, slim style will merge branches more aggressively and save a lot of material (default), while hybrid style will create similar structure to normal support under large flat overhangs."
-#~ msgstr ""
-#~ "Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
-#~ "For tree support, slim style will merge branches more aggressively and save a lot of material (default), while hybrid style will create similar structure to normal support under large flat overhangs."
-
-#~ msgid "Do not recommend bed temperature of other layer to be lower than initial layer for more than this threshold. Too low bed temperature of other layer may cause the model broken free from build plate"
-#~ msgstr "It is not recommend for bed temperature of other layers to be lower than the first layer by more than this threshold. Too low bed temperature of other layer may cause the model to break free from the build plate."
