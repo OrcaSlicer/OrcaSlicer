@@ -535,6 +535,40 @@ TEST_CASE("Overhang arc samples follow fitted geometry in both directions", "[Ex
     CHECK(samples[20] > 50.0f);
 }
 
+// The salvage branch of ArcSegment::try_create_arc flips a fitted arc's direction and corrects its length, but keeps
+// angle_radians of the direction it rejected. The samples still follow the G2/G3 that is written.
+TEST_CASE("Overhang arc samples follow the direction and length of a salvaged arc", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
+{
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    lower->lslices = {ExPolygon(Polygon{Point::new_scale(-20, -20), Point::new_scale(7, -20),
+        Point::new_scale(7, 20), Point::new_scale(-20, 20)})};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_new_layer(object, lower);
+    estimator.prepare_for_new_layer(object, upper);
+    // Three quarters of a turn counterclockwise from (10, 0) to (0, -10), with the quarter turn of the rejected
+    // clockwise reading left in angle_radians.
+    ArcSegment arc(Point::new_scale(0, 0), scale_(10.0), Point::new_scale(10, 0), Point::new_scale(0, -10),
+        ArcDirection::Arc_Dir_CCW);
+    REQUIRE_THAT(arc.angle_radians, Catch::Matchers::WithinAbs(1.5 * PI, 1e-6));
+    arc.angle_radians = 0.5 * PI;
+    constexpr size_t intervals = 30;
+    const auto samples = estimator.estimate_overhang_arc_percentages(arc, 0.4f, intervals);
+    REQUIRE(samples.size() == intervals + 1);
+    for (size_t i = 0; i < samples.size(); ++i) {
+        const double angle = 1.5 * PI * i / intervals;
+        // The edge of the layer below is at x = 7; walls keep their contour offset up to ten widths.
+        const double expected = 100.0 * std::clamp((10.0 * std::cos(angle) - 7.0 + 0.2) / 0.4, 0.0, 10.0);
+        CHECK_THAT(samples[i], Catch::Matchers::WithinAbs(expected, 1e-3));
+    }
+}
+
 // Orca: The mid-chord sagitta of a faceted cylinder is approximation error, not overhang. A genuine
 // radial contour shift of only 0.001 mm must survive even though it is much smaller than resolution.
 TEST_CASE("Fitted arc correction preserves small real overhangs and supported inner walls", "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")

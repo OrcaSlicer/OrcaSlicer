@@ -5350,8 +5350,9 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
     // Feedrate-only G1 commands may sit between the pieces of a split line.
     if (!new_profile && !line.has_x() && !line.has_y() && !line.has_z() && !line.has_e())
         return;
+    // A piece in a role the metadata does not measure ends the split line instead of extending it.
     GCodeProcessorResult::MoveVertex *move = !m_result.moves.empty() && line.cmd() == "G1" && m_result.moves.back().gcode_id == m_line_id &&
-        m_result.moves.back().type == EMoveType::Extrude ? &m_result.moves.back() : nullptr;
+        m_result.moves.back().type == EMoveType::Extrude && measures_overhang(m_extrusion_role) ? &m_result.moves.back() : nullptr;
     const unsigned int open_profile = std::exchange(m_open_overhang_line_profile, 0);
     if (move == nullptr)
         return;
@@ -6266,8 +6267,10 @@ std::vector<float> GCodeProcessor::take_overhang_profile(const GCodeReader::GCod
     else
         m_overhang_profile.clear();
     // Orca: An inline marker alone is not metadata: two empty containers also have matching sizes.
-    // Require the minimum valid profile length before advertising the Overhang view.
-    if (!apply_overhang_profile || m_overhang_profile_samples < 2 || overhang_profile.size() != m_overhang_profile_samples)
+    // Require the minimum valid profile length before advertising the Overhang view. A role the metadata
+    // does not measure stays N/A, whatever profile a foreign file attaches to it.
+    if (!apply_overhang_profile || !measures_overhang(m_extrusion_role) || m_overhang_profile_samples < 2 ||
+        overhang_profile.size() != m_overhang_profile_samples)
         overhang_profile.clear();
     else
         m_result.has_overhang_metadata = true;

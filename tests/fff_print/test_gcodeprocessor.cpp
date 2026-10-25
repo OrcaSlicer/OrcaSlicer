@@ -415,6 +415,32 @@ TEST_CASE("Reloaded moves name their lines in G-code a script rewrote in place",
     CHECK(difference.first == exported_moves.end());
 }
 
+TEST_CASE("Reloaded moves take the overhang metadata of the edited G-code", "[GCodeProcessor][Overhang]")
+{
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20) }, print, model, { { "gcode_overhangs", 1 } });
+    GCodeProcessorResult result;
+    const std::string    gcode = Test::gcode(print, &result);
+    REQUIRE(result.has_overhang_metadata);
+    // Stands in for a line profile of the exported file, which the moves of the edited file do not index.
+    result.overhang_line_profiles.push_back({ Vec3f::Zero(), Vec3f::UnitX(), { 0.f, 100.f } });
+
+    // A script that removes every overhang metadata comment.
+    std::string        edited;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);)
+        if (line.rfind(';', 0) != 0 || line.find("OVERHANG") == std::string::npos)
+            edited += line + "\n";
+    ScopedTemporaryFile temp(".gcode");
+    save_string_file(temp.path(), edited);
+    result.filename = temp.string();
+    print.reload_gcode_moves(&result);
+
+    CHECK_FALSE(result.has_overhang_metadata);
+    CHECK(result.overhang_line_profiles.empty());
+}
+
 TEST_CASE("Rewritten G-code that cannot be re-read keeps the moves and hides the G-code window", "[GCodeProcessor]")
 {
     Print print;
@@ -766,6 +792,13 @@ std::string bind_overhang_profile(std::string arc,
     return arc;
 }
 
+// Orca: The processor keeps overhang readings only for the roles GCode.cpp measures, so moves without
+// a role tag read N/A. Call it after selecting the tag dialect.
+std::string measured_role_tag()
+{
+    return ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) + ExtrusionEntity::role_to_string(erPerimeter) + "\n";
+}
+
 } // namespace
 
 TEST_CASE("A path inside its nozzle's printable area passes the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
@@ -995,7 +1028,7 @@ TEST_CASE("Line overhang profiles reject incomplete data and unrelated motions",
     };
     GCodeProcessor processor;
     processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
         tag(GCodeProcessor::ETags::Overhang_Line, data) +
         bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
     CHECK(processor.get_result().overhang_line_profiles.empty());
@@ -1013,7 +1046,7 @@ TEST_CASE("Line overhang profiles reject incomplete data and unrelated motions",
     processor.process_buffer(complete);
     processor.reset();
     processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 Z0.2\n" +
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 Z0.2\n" +
         bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
     CHECK(processor.get_result().overhang_line_profiles.empty());
 }
@@ -1030,7 +1063,7 @@ TEST_CASE("Overhang arc profiles color local segments without changing motion", 
     const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
         return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
     };
-    const std::string setup = "G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" +
+    const std::string setup = "G90\nM83\nT0\n" + measured_role_tag() + "G1 X10 Y0 Z0.2 F600\n" +
         tag(GCodeProcessor::ETags::Height, "0.2") + tag(GCodeProcessor::ETags::Width, "0.4") +
         tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + tag(GCodeProcessor::ETags::Overhang, "100");
     const std::string arc = std::string(clockwise ? "G2" : "G3") + " X0 Y10 I-10 J0 E1 F600 ; arc description\n";
@@ -1087,7 +1120,7 @@ TEST_CASE("Overhang arc profiles preserve interior peaks on short arcs", "[GCode
     const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
         return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
     };
-    processor.process_buffer("G90\nM83\nT0\nG1 X0.05 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X0.05 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33") +
         tag(GCodeProcessor::ETags::Overhang_Arc, "5,0,0,0,100,0,0") +
         bind_overhang_profile("G3 X0 Y0.05 I-0.05 J0 E0.01\n"));
     const auto &moves = processor.get_result().moves;
@@ -1119,7 +1152,7 @@ TEST_CASE("Overhang arc profiles reject invalid chunks and stale associations", 
     };
     const auto setup = [&]() {
         processor.apply_config(FullPrintConfig());
-        processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33"));
+        processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X10 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "33"));
     };
     setup();
     processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Arc, data) +
@@ -1151,7 +1184,7 @@ TEST_CASE("Overhang arc markers require complete profiles to enable the preview"
     GCodeProcessor::s_IsBBLPrinter = bbl_printer;
     GCodeProcessor processor;
     processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n");
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X10 Y0 Z0.2 F600\n");
     if (!profile.empty())
         processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + profile + "\n");
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
@@ -1192,7 +1225,7 @@ TEST_CASE("Overhang metadata availability follows valid G-code tags", "[GCodePro
     // Orca: Complete samples alone remain inert; only the inline marker on their exact arc publishes them.
     processor.reset();
     processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 X10 Y0 Z0.2 F600\n;" +
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X10 Y0 Z0.2 F600\n;" +
         GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + "3,0,0,50,100\n");
     CHECK_FALSE(processor.get_result().has_overhang_metadata);
     processor.process_buffer(bind_overhang_profile("G3 X0 Y10 I-10 J0 E1\n"));
@@ -1209,7 +1242,7 @@ TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCo
     GCodeProcessor processor;
     processor.apply_config(FullPrintConfig());
     const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang);
-    processor.process_buffer("G90\nM83\nT0\n");
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag());
     if (preceding_valid_tag)
         processor.process_buffer(tag + "50\n");
     processor.process_buffer(tag + value + "\nG1 X10 Z0.2 E1 F600\n");
@@ -1229,7 +1262,7 @@ TEST_CASE("Overhang angles use slice spacing rather than extrusion height", "[GC
     };
     const auto setup = [&]() {
         processor.apply_config(FullPrintConfig());
-        processor.process_buffer("G90\nM83\nT0\n" + tag(GCodeProcessor::ETags::Height, std::to_string(height)) +
+        processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + tag(GCodeProcessor::ETags::Height, std::to_string(height)) +
             tag(GCodeProcessor::ETags::Width, "0.4") + tag(GCodeProcessor::ETags::Overhang, "50"));
     };
     setup();
@@ -1298,19 +1331,30 @@ TEST_CASE("Overhang metadata follows model infill roles and excludes supports", 
             const std::string overhang_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang) + "42\n";
             const std::string role_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) +
                 ExtrusionEntity::role_to_string(test.role) + "\n";
-            processor.process_buffer("G90\nM83\nT0\n" + overhang_tag + role_tag + "G1 X10 Z0.2 E1 F600\n");
+            const std::string profile_tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line) + "4,0,0*3,100\n";
+            const auto marked = [](const std::string &line) {
+                return bind_overhang_profile(line, GCodeProcessor::ETags::Overhang_Line_Apply);
+            };
+            const bool measured = test.expected_percentage >= 0.0f;
+            processor.process_buffer("G90\nM83\nT0\n" + overhang_tag + role_tag + profile_tag + marked("G1 X10 Z0.2 E1 F600\n"));
 
             REQUIRE_FALSE(processor.get_result().moves.empty());
             const auto &move = processor.get_result().moves.back();
             REQUIRE(move.type == EMoveType::Extrude);
             CHECK(move.extrusion_role == test.role);
-            CHECK(GCodeProcessor::measures_overhang(test.role) == (test.expected_percentage >= 0.0f));
+            CHECK(GCodeProcessor::measures_overhang(test.role) == measured);
             CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(test.expected_percentage, 1e-6));
+            // A line profile on an unmeasured role would color it in the preview.
+            CHECK(processor.get_result().overhang_line_profiles.size() == size_t(measured ? 1 : 0));
             // A measured role entered after an unmeasured one does not inherit the reading before it.
             processor.process_buffer(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) +
                 ExtrusionEntity::role_to_string(erExternalPerimeter) + "\nG1 X20 E1\n");
             CHECK_THAT(processor.get_result().moves.back().overhang_percentage,
-                Catch::Matchers::WithinAbs(GCodeProcessor::measures_overhang(test.role) ? 42.0 : 0.0, 1e-6));
+                Catch::Matchers::WithinAbs(measured ? 42.0 : 0.0, 1e-6));
+            // A marked piece in an unmeasured role does not extend the split line before it.
+            processor.process_buffer(profile_tag + marked("G1 X30 E1\n") + role_tag + marked("G1 X40 E1\n"));
+            const auto &result = processor.get_result();
+            CHECK(result.moves.back().overhang_profile_id == (measured ? result.overhang_line_profiles.size() : size_t(0)));
         }
     }
 }
@@ -1325,7 +1369,7 @@ TEST_CASE("Overhang line profiles expand runs of equal cells", "[GCodeProcessor]
     const auto profile_of = [&](const std::vector<std::string> &chunks) {
         GCodeProcessor processor;
         processor.apply_config(FullPrintConfig());
-        std::string gcode = "G90\nM83\nT0\nG1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33");
+        std::string gcode = "G90\nM83\nT0\n" + measured_role_tag() + "G1 Z0.2\n" + tag(GCodeProcessor::ETags::Overhang, "33");
         for (const std::string &chunk : chunks)
             gcode += tag(GCodeProcessor::ETags::Overhang_Line, chunk);
         processor.process_buffer(gcode + bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply));
@@ -1373,7 +1417,7 @@ TEST_CASE("Line overhang profiles cover every piece of a split G1", "[GCodeProce
     processor.apply_config(FullPrintConfig());
     processor.initialize_result_moves();
     // The last quarter of the line, x = 30 .. 40, is unsupported.
-    processor.process_buffer("G90\nM83\nT0\nG1 X0 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "100") +
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X0 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "100") +
         tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0*3,100") + (unsplit ? mark(pieces) : pieces));
     processor.finalize(false);
     const auto &result = processor.get_result();
@@ -1412,7 +1456,7 @@ TEST_CASE("Line overhang profiles stop at the first move that does not continue 
     };
     GCodeProcessor processor;
     processor.apply_config(FullPrintConfig());
-    processor.process_buffer("G90\nM83\nT0\nG1 X0 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "100") +
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X0 Y0 Z0.2 F600\n" + tag(GCodeProcessor::ETags::Overhang, "100") +
         tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0*3,100") + mark("G1 X20 E2\n") + next);
     const auto &result = processor.get_result();
     REQUIRE(result.overhang_line_profiles.size() == 1);
