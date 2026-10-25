@@ -20,12 +20,15 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Utils.hpp"
 
+#include "libvgcode/include/PathVertex.hpp"
+
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
@@ -1213,6 +1216,52 @@ TEST_CASE("Overhang percentages reject malformed and non-finite metadata", "[GCo
     CHECK(processor.get_result().has_overhang_metadata == preceding_valid_tag);
     REQUIRE_FALSE(processor.get_result().moves.empty());
     CHECK_THAT(processor.get_result().moves.back().overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
+}
+
+// Orca: A 0.2 mm contour offset over a 0.2 mm slice-plane gap remains 45 degrees even when
+// the current extrusion is 0.1 or 0.3 mm tall. Missing metadata retains the old height-based estimate.
+TEST_CASE("Overhang angles use slice spacing rather than extrusion height", "[GCodeProcessor][Overhang][Regression]")
+{
+    const float height = GENERATE(0.1f, 0.3f);
+    GCodeProcessor processor;
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const auto setup = [&]() {
+        processor.apply_config(FullPrintConfig());
+        processor.process_buffer("G90\nM83\nT0\n" + tag(GCodeProcessor::ETags::Height, std::to_string(height)) +
+            tag(GCodeProcessor::ETags::Width, "0.4") + tag(GCodeProcessor::ETags::Overhang, "50"));
+    };
+    setup();
+    const auto check_angle = [&](float expected_distance, double expected_angle) {
+        const auto &move = processor.get_result().moves.back();
+        REQUIRE(move.type == EMoveType::Extrude);
+        CHECK_THAT(move.overhang_z_distance, Catch::Matchers::WithinAbs(expected_distance, 1e-6));
+        libvgcode::PathVertex vertex;
+        vertex.height = move.height;
+        vertex.width = move.width;
+        vertex.overhang_percentage = move.overhang_percentage;
+        vertex.overhang_z_distance = move.overhang_z_distance;
+        CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(expected_angle, 1e-4));
+    };
+    const double legacy_angle = std::atan(0.2 / height) * 180.0 / PI;
+    processor.process_buffer("G1 X10 Z0.3 E1 F600\n");
+    check_angle(0.0f, legacy_angle);
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + "G1 X20 E1\n");
+    check_angle(0.2f, 45.0);
+
+    // Orca: Explicit zero, malformed values and non-finite values must not retain a preceding override.
+    for (const std::string &value : {"0", "-0.1", "nan", "inf", "invalid"}) {
+        processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2"));
+        processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, value) + "G91\nG1 X10 E1\n");
+        check_angle(0.0f, legacy_angle);
+    }
+    // Orca: Reusing a parser for legacy G-code must clear a valid override from its previous input.
+    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2"));
+    processor.reset();
+    setup();
+    processor.process_buffer("G1 X10 Z0.3 E1 F600\n");
+    check_angle(0.0f, legacy_angle);
 }
 
 // Model infill consumes preview metadata; support and auxiliary roles have none and reset it.

@@ -17,6 +17,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Utils.hpp"
 // Orca: Exercise the inline preview conversion with metadata produced by the real G-code pipeline.
 #include "libvgcode/include/PathVertex.hpp"
 #include "libvgcode/include/Types.hpp"
@@ -472,8 +473,11 @@ std::vector<std::string> printer_commands(const std::string &gcode)
     std::vector<std::string> result;
     GCodeReader reader;
     reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
-        if (!line.cmd().empty())
-            result.push_back(line.raw().substr(0, line.raw().find(';')));
+        if (!line.cmd().empty()) {
+            std::string command = line.raw().substr(0, line.raw().find(';'));
+            command.erase(command.find_last_not_of(" \t") + 1);
+            result.push_back(std::move(command));
+        }
     });
     return result;
 }
@@ -982,14 +986,15 @@ TEST_CASE("Precomputed infill footprints match the footprint built on demand", "
         Catch::Matchers::WithinAbs(100.0, 1e-6));
 }
 
-// Orca: A wall bead fully over air whose nearest lower material runs across it has no lower contour of its own to
-// slope from, so it reads as horizontal rather than as a slope towards unrelated geometry.
+// Orca: A wall bead fully over air slopes only from a lower edge of its own, met along its inward normal inside the
+// current layer's material. Without one it reads as horizontal rather than as a slope towards unrelated geometry.
 TEST_CASE("Unsupported walls without a lower contour of their own read as horizontal",
           "[ExtrusionProcessor][Overhang][Regression]")
 {
     constexpr float width = 0.4f;
-    const bool island = GENERATE(false, true);
-    CAPTURE(island);
+    enum class Case { IslandNearWall, IslandFarWall, Shelf, FlangeRight, FlangeLeft };
+    const Case wall = GENERATE(Case::IslandNearWall, Case::IslandFarWall, Case::Shelf, Case::FlangeRight, Case::FlangeLeft);
+    CAPTURE(int(wall));
     Print print;
     Model model;
     init_print({cube(1.0)}, print, model);
@@ -997,25 +1002,42 @@ TEST_CASE("Unsupported walls without a lower contour of their own read as horizo
     Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
     Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
     upper->lower_layer = lower;
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return ExPolygon(Polygon{Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+            Point::new_scale(x0, y1)});
+    };
     Vec3d start;
     Vec3d end;
-    if (island) {
-        // An island starting 0.5 mm to the right of the body; its left wall faces the body.
-        lower->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -5), Point::new_scale(-0.5, -5),
-            Point::new_scale(-0.5, 5), Point::new_scale(-10, 5)})};
-        upper->lslices = {lower->lslices.front(), ExPolygon(Polygon{Point::new_scale(0, -5), Point::new_scale(3, -5),
-            Point::new_scale(3, 5), Point::new_scale(0, 5)})};
-        start = Vec3d(0.5 * width, -3., 0.);
-        end   = Vec3d(0.5 * width, 3., 0.);
-    } else {
+    switch (wall) {
+    case Case::IslandNearWall:
+    case Case::IslandFarWall:
+        // An island starting 0.5 mm to the right of the body: its left wall faces the body, its right wall faces
+        // away across the island and the gap.
+        lower->lslices = {rectangle(-10, -5, -0.5, 5)};
+        upper->lslices = {lower->lslices.front(), rectangle(0, -5, 3, 5)};
+        start = Vec3d(wall == Case::IslandNearWall ? 0.5 * width : 3. - 0.5 * width, -3., 0.);
+        end   = Vec3d(start.x(), 3., 0.);
+        break;
+    case Case::Shelf:
         // A shelf 5 mm long sticking out of the body's right face; its side wall runs away from the face.
-        lower->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -5), Point::new_scale(0, -5),
-            Point::new_scale(0, 5), Point::new_scale(-10, 5)})};
+        lower->lslices = {rectangle(-10, -5, 0, 5)};
         upper->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -5), Point::new_scale(0, -5), Point::new_scale(0, -1),
             Point::new_scale(5, -1), Point::new_scale(5, 1), Point::new_scale(0, 1), Point::new_scale(0, 5),
             Point::new_scale(-10, 5)})};
         start = Vec3d(1., 1. - 0.5 * width, 0.);
         end   = Vec3d(4., 1. - 0.5 * width, 0.);
+        break;
+    case Case::FlangeRight:
+    case Case::FlangeLeft: {
+        // A flange flush with the body's top and bottom faces, on either side of it: its top wall meets the body
+        // at the body's corner, where the aligned and the crosswise body face are equally near.
+        const double side = wall == Case::FlangeRight ? 1. : -1.;
+        lower->lslices = {wall == Case::FlangeRight ? rectangle(-10, -5, 0, 5) : rectangle(0, -5, 10, 5)};
+        upper->lslices = {wall == Case::FlangeRight ? rectangle(-10, -5, 3, 5) : rectangle(-3, -5, 10, 5)};
+        start = Vec3d(side * 0.5, 5. - 0.5 * width, 0.);
+        end   = Vec3d(side * 2.5, 5. - 0.5 * width, 0.);
+        break;
+    }
     }
     ExtrusionQualityEstimator estimator;
     estimator.set_current_object(object);
@@ -1032,6 +1054,35 @@ TEST_CASE("Unsupported walls without a lower contour of their own read as horizo
     vertex.overhang_z_distance = 0.2f;
     vertex.overhang_percentage = profile.front();
     CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(90.0, 1e-6));
+}
+
+// Orca: At a concave corner of a steep face, the lower copy of the face it meets is nearer than the face's own lower
+// edge. The face's own edge decides, so no cell reads horizontal or steeper than the face.
+TEST_CASE("Steep faces keep their angle into a concave corner", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    constexpr float  width = 0.45f;
+    constexpr double depth = 0.8; // The face leans 0.8 mm out per 0.2 mm layer: about 76 degrees.
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    Layer *upper = object->add_layer(1, 0.2, 0.4, 0.3);
+    upper->lower_layer = lower;
+    // The material fills x < 0 or y < 0 above and x < 0 or y < -depth below: face y = 0 overhangs, face x = 0 stands.
+    lower->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -10), Point::new_scale(10, -10), Point::new_scale(10, -depth),
+        Point::new_scale(0, -depth), Point::new_scale(0, 10), Point::new_scale(-10, 10)})};
+    upper->lslices = {ExPolygon(Polygon{Point::new_scale(-10, -10), Point::new_scale(10, -10), Point::new_scale(10, 0),
+        Point::new_scale(0, 0), Point::new_scale(0, 10), Point::new_scale(-10, 10)})};
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_lower_layer(object, upper);
+    const auto profile = line_overhang_profile(estimator, Vec3d(-0.5 * width, -0.5 * width, 0.),
+        Vec3d(2. - 0.5 * width, -0.5 * width, 0.), width, true);
+    REQUIRE(profile.size() > 2);
+    for (float percentage : profile)
+        CHECK(percentage <= float(100. * depth / width) + 0.5f);
+    CHECK_THAT(profile.back(), Catch::Matchers::WithinAbs(100. * depth / width, 0.5));
 }
 
 TEST_CASE("Infill preview metadata preserves commands and excludes support paths",
@@ -1535,7 +1586,12 @@ TEST_CASE("Fitted arc overhang profiles round trip without changing printer comm
 TEST_CASE("Overhang metadata follows spiral and scarf linear extrusions", "[ExtrusionProcessor][Overhang][Regression]")
 {
     const bool spiral_mode = GENERATE(false, true);
-    CAPTURE(spiral_mode);
+    // Bambu printers use tags starting with a space, which the spiral vase must not split from their ';' when it
+    // rewrites a move's parameters.
+    const bool bbl_printer = GENERATE(false, true);
+    CAPTURE(spiral_mode, bbl_printer);
+    const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
 
     // Orca: Shearing a cylinder makes support vary around every wall while retaining geometry that
     // arc fitting would normally convert to G2/G3, so each mode must be the reason G1 is retained.
@@ -1554,6 +1610,9 @@ TEST_CASE("Overhang metadata follows spiral and scarf linear extrusions", "[Extr
         {"bottom_shell_layers", "1"},
         {"gcode_comments", "0"},
         {"spiral_mode", spiral_mode ? "1" : "0"},
+        // Smoothing and relative extrusion make the spiral vase rewrite X, Y and E of every move.
+        {"spiral_mode_smooth", spiral_mode ? "1" : "0"},
+        {"use_relative_e_distances", "1"},
         {"seam_slope_type", spiral_mode ? "none" : "external"},
         {"seam_slope_conditional", "0"},
         {"seam_slope_entire_loop", spiral_mode ? "0" : "1"},
@@ -1569,12 +1628,14 @@ TEST_CASE("Overhang metadata follows spiral and scarf linear extrusions", "[Extr
     Print baseline_print;
     Model baseline_model;
     init_print({mesh}, baseline_print, baseline_model, config, nullptr, false);
+    baseline_print.is_BBL_printer() = bbl_printer;
     const std::string baseline = gcode(baseline_print);
 
     config.set_deserialize_strict("gcode_overhangs", "1");
     Print print;
     Model model;
     init_print({mesh}, print, model, config, nullptr, false);
+    print.is_BBL_printer() = bbl_printer;
     print.set_status_silent();
     print.process();
     ScopedTemporaryFile file(".gcode");
@@ -1584,7 +1645,10 @@ TEST_CASE("Overhang metadata follows spiral and scarf linear extrusions", "[Extr
     const std::string exported((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 
     REQUIRE(generated.has_overhang_metadata);
-    CHECK(printer_commands(exported) == printer_commands(baseline));
+    const auto commands = printer_commands(exported);
+    CHECK(commands == printer_commands(baseline));
+    for (const std::string &command : commands)
+        CHECK(command.find("OVERHANG") == std::string::npos);
     if (!spiral_mode)
         REQUIRE(generated.print_statistics.total_seam_scarf_distance > 0.0f);
 
@@ -1665,52 +1729,6 @@ TEST_CASE("Fitted cylindrical walls keep zero overhang on identical layers", "[E
     REQUIRE(checked > 0);
     CAPTURE(maximum_percentage, maximum_angle);
     CHECK_THAT(maximum_percentage, Catch::Matchers::WithinAbs(0.0, 0.05));
-}
-
-// Orca: A 0.2 mm contour offset over a 0.2 mm slice-plane gap remains 45 degrees even when
-// the current extrusion is 0.1 or 0.3 mm tall. Missing metadata retains the old height-based estimate.
-TEST_CASE("Overhang angles use slice spacing rather than extrusion height", "[ExtrusionProcessor][Overhang][Regression]")
-{
-    const float height = GENERATE(0.1f, 0.3f);
-    GCodeProcessor processor;
-    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
-        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
-    };
-    const auto setup = [&]() {
-        processor.apply_config(FullPrintConfig());
-        processor.process_buffer("G90\nM83\nT0\n" + tag(GCodeProcessor::ETags::Height, std::to_string(height)) +
-            tag(GCodeProcessor::ETags::Width, "0.4") + tag(GCodeProcessor::ETags::Overhang, "50"));
-    };
-    setup();
-    const auto check_angle = [&](float expected_distance, double expected_angle) {
-        const auto &move = processor.get_result().moves.back();
-        REQUIRE(move.type == EMoveType::Extrude);
-        CHECK_THAT(move.overhang_z_distance, Catch::Matchers::WithinAbs(expected_distance, 1e-6));
-        libvgcode::PathVertex vertex;
-        vertex.height = move.height;
-        vertex.width = move.width;
-        vertex.overhang_percentage = move.overhang_percentage;
-        vertex.overhang_z_distance = move.overhang_z_distance;
-        CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(expected_angle, 1e-4));
-    };
-    const double legacy_angle = std::atan(0.2 / height) * 180.0 / PI;
-    processor.process_buffer("G1 X10 Z0.3 E1 F600\n");
-    check_angle(0.0f, legacy_angle);
-    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2") + "G1 X20 E1\n");
-    check_angle(0.2f, 45.0);
-
-    // Orca: Explicit zero, malformed values and non-finite values must not retain a preceding override.
-    for (const std::string &value : {"0", "-0.1", "nan", "inf", "invalid"}) {
-        processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2"));
-        processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, value) + "G91\nG1 X10 E1\n");
-        check_angle(0.0f, legacy_angle);
-    }
-    // Orca: Reusing a parser for legacy G-code must clear a valid override from its previous input.
-    processor.process_buffer(tag(GCodeProcessor::ETags::Overhang_Z_Distance, "0.2"));
-    processor.reset();
-    setup();
-    processor.process_buffer("G1 X10 Z0.3 E1 F600\n");
-    check_angle(0.0f, legacy_angle);
 }
 
 // Orca: Check exported and parsed metadata against the actual sliced object, including both directions

@@ -9888,10 +9888,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             is_perimeter(path.role()));
         return append_overhang_profile(profile, GCodeProcessor::ETags::Overhang_Line);
     };
+    // The space before the marker ends the last parameter for tools that rewrite one, such as the spiral vase.
     auto bind_overhang_profile = [&](bool has_profile, GCodeProcessor::ETags marker) {
         if (has_profile) {
             assert(!gcode.empty() && gcode.back() == '\n');
-            gcode.insert(gcode.size() - 1, ";" + GCodeProcessor::reserved_tag(marker));
+            gcode.insert(gcode.size() - 1, " ;" + GCodeProcessor::reserved_tag(marker));
         }
     };
     

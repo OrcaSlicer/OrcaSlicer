@@ -593,6 +593,22 @@ class ExtrusionQualityEstimator
         return {signed_distance, line_id, boundary_position};
     }
 
+    // Orca: Whether the layer below has an edge under the wall whose contour point is `position` on current line
+    // `line_id`: the wall's inward normal must meet the lower contour before leaving the current layer's material,
+    // within the metadata cap. Contours run counterclockwise and holes clockwise, so the material is on the left.
+    bool has_own_lower_edge(size_t line_id, const Vec3d &position, float width)
+    {
+        const Vec3d direction = current_boundaries().get_line(line_id).unit_vector();
+        const Vec3d inward(-direction.y(), direction.x(), 0.);
+        const Linef3 reach(position + inward * (1e-3 * width),
+                           position + inward * (0.01 * GCodeProcessor::MAX_OVERHANG_PERCENTAGE * width));
+        const auto lower = or_empty(prev_layer_boundaries[current_object]).intersections_with_line<true>(reach);
+        if (lower.empty())
+            return false;
+        const auto current = current_boundaries().intersections_with_line<true>(reach);
+        return current.empty() || (current.front().first - reach.a).squaredNorm() >= (lower.front().first - reach.a).squaredNorm();
+    }
+
     // Orca: Measure displacement from the current contour instead of assuming every path center is
     // exactly half a width inside it. Arachne width and placement changes otherwise make identical
     // consecutive contours look unsupported; fitted arcs need the same correction for their curves.
@@ -648,15 +664,10 @@ class ExtrusionQualityEstimator
                 or_empty(prev_layer_boundaries[current_object]), current.position, width, path_direction);
             if (std::isfinite(previous.signed_distance))
                 unsupported_width = std::min(unsupported_width, std::max(0.0, previous.signed_distance));
-            // Orca: A fully unsupported wall whose nearest lower material runs across it, such as the side of a
-            // shelf or an island starting next to the body, has no lower contour of its own to slope from.
-            if (unsupported_width >= width && previous.line_id != no_line) {
-                const Vec3d current_direction = current_boundaries().get_line(current.line_id).unit_vector();
-                const Vec3d previous_direction =
-                    or_empty(prev_layer_boundaries[current_object]).get_line(previous.line_id).unit_vector();
-                if (std::abs(current_direction.head<2>().dot(previous_direction.head<2>())) < 0.7)
-                    return GCodeProcessor::MAX_OVERHANG_PERCENTAGE;
-            }
+            // Orca: A fully unsupported wall slopes only from a lower edge of its own. Without one, as at the side of
+            // a shelf or on an island across a gap from the body, it reads horizontal.
+            if (unsupported_width >= width && !has_own_lower_edge(current.line_id, current.position, width))
+                return GCodeProcessor::MAX_OVERHANG_PERCENTAGE;
         }
         return float(100.0 * std::clamp(unsupported_width / width, 0.0, max_widths));
     }
