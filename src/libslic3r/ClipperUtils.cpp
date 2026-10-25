@@ -415,14 +415,15 @@ Polylines c2_clip_open(C2::ClipType type, const C2::Paths64 &subject, const C2::
 }
 
 // Clipper1 semantics: miter limit at least 2, arc tolerance (also for round caps) at most a quarter of the offset.
-void c2_offset_setup(C2::ClipperOffset &co, float delta, JoinType joinType, double miterLimit)
+// Without a round join, a positive capTolerance replaces Clipper1's 0.25 for the round caps.
+void c2_offset_setup(C2::ClipperOffset &co, float delta, JoinType joinType, double miterLimit, double capTolerance = 0.)
 {
     const double max_arc_tolerance = std::abs(delta) * 0.25;
     if (joinType == jtRound)
         co.ArcTolerance(miterLimit > 0. ? std::min(miterLimit, max_arc_tolerance) : 0.25);
     else {
         co.MiterLimit(std::max(miterLimit, 2.));
-        co.ArcTolerance(std::min(0.25, max_arc_tolerance));
+        co.ArcTolerance(std::min(capTolerance > 0. ? capTolerance : 0.25, max_arc_tolerance));
     }
 }
 
@@ -546,7 +547,7 @@ ExPolygons c2_expolygons_offset_ex(const ExPolygonRange &src, float delta, JoinT
 }
 
 template<class PathsProvider>
-Polygons c2_offset_lines(PathsProvider &&src, float delta, JoinType joinType, double miterLimit, EndType endType)
+Polygons c2_offset_lines(PathsProvider &&src, float delta, JoinType joinType, double miterLimit, EndType endType, double capTolerance = 0.)
 {
     C2::Paths64 out;
     if (endType == etClosedPolygon) {
@@ -560,7 +561,7 @@ Polygons c2_offset_lines(PathsProvider &&src, float delta, JoinType joinType, do
     for (const Points &path : src)
         append_offset_path(paths, path, shortest, end);
     C2::ClipperOffset co;
-    c2_offset_setup(co, delta, joinType, miterLimit);
+    c2_offset_setup(co, delta, joinType, miterLimit, capTolerance);
     co.AddPaths(paths, to_c2(joinType), end);
     co.Execute(delta, out);
     return c2_to_polygons(out);
@@ -616,8 +617,8 @@ Slic3r::Polygons offset(const Slic3r::Polyline3 &polyline, const float delta, Jo
     assert(delta > 0);
     return c2_offset_lines(ClipperUtils::SinglePathProvider(polyline.to_polyline().points), delta, joinType, miterLimit, end_type);
 }
-Slic3r::Polygons offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType, double miterLimit, EndType end_type)
-    { assert(delta > 0); return c2_offset_lines(ClipperUtils::PolylinesProvider(polylines), delta, joinType, miterLimit, end_type); }
+Slic3r::Polygons offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType, double miterLimit, EndType end_type, double cap_tolerance)
+    { assert(delta > 0); return c2_offset_lines(ClipperUtils::PolylinesProvider(polylines), delta, joinType, miterLimit, end_type, cap_tolerance); }
 
 Polygons contour_to_polygons(const Polygon &polygon, const float line_width, JoinType join_type, double miter_limit)
     { assert(line_width > 1.f); return c2_offset_lines(ClipperUtils::SinglePathProvider(polygon.points), line_width / 2, join_type, miter_limit, etClosedLine); }
@@ -747,6 +748,24 @@ Slic3r::Polygons diff(const Slic3r::ExPolygons &subject, const Slic3r::ExPolygon
     { return _clipper(ctDifference, ClipperUtils::ExPolygonsProvider(subject), ClipperUtils::ExPolygonsProvider(clip), do_safety_offset); }
 Slic3r::Polygons diff(const Slic3r::Surfaces &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper(ctDifference, ClipperUtils::SurfacesProvider(subject), ClipperUtils::PolygonsProvider(clip), do_safety_offset); }
+Slic3r::Polygons diff_expanded(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, float delta)
+{
+    if (subject.empty())
+        return {};
+    // Each path simplified on its own, and kept as it is where simplifying would turn a contour into a hole or back.
+    Polygons coarse;
+    for (const Polygon &path : clip) {
+        Polygons simplified = polygons_simplify({ path }, delta / 8.);
+        if (!simplified.empty() && (area(simplified) > 0.) != path.is_counter_clockwise())
+            coarse.emplace_back(path);
+        else
+            append(coarse, std::move(simplified));
+    }
+    // The miter limit argument of a round join is its arc tolerance.
+    if (diff(subject, expand(coarse, 0.7f * delta, jtRound, 0.01 * delta)).empty())
+        return {};
+    return diff(subject, expand(clip, delta));
+}
 Slic3r::Polygons intersection(const Slic3r::Polygon &subject, const Slic3r::Polygon &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper(ctIntersection, ClipperUtils::SinglePathProvider(subject.points), ClipperUtils::SinglePathProvider(clip.points), do_safety_offset); }
 Slic3r::Polygons intersection_clipped(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset) 

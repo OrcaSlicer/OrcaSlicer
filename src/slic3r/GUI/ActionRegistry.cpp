@@ -3,9 +3,11 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "ImGuiWrapper.hpp"
 #include "MainFrame.hpp"
 #include "NativeCommands.hpp"
 #include "Notebook.hpp"
+#include "NotificationManager.hpp"
 #include "OptionsGroup.hpp"
 #include "Plater.hpp"
 #include "SettingsIndex.hpp"
@@ -99,6 +101,45 @@ std::string find_loaded_source_name(PluginManager& manager, const std::string& p
     return plugin_key;
 }
 
+// Translates a Script capability outcome into the action layer's result vocabulary. Shared by
+// the synchronous run path and the async completion notification.
+AppActionRunResult script_outcome_to_action_result(const ScriptCompletion& completion)
+{
+    // Cancelled by PluginManager (unload/shutdown): expected termination, nothing to show.
+    if (completion.cancelled)
+        return {};
+
+    if (!completion.error.empty())
+        return {AppActionRunResult::Level::Error, from_u8(completion.error)};
+
+    const ExecutionResult& result   = completion.result;
+    const bool             skipped  = result.status == PluginResult::Skipped;
+    const wxString         fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
+    return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Success,
+            result.message.empty() ? fallback : from_u8(result.message)};
+}
+
+// Surfaces the eventual outcome of an async script launched from the speed dial. That launch
+// already returned (the UI was not blocked), so the finish is reported as a notification. A
+// cancellation is silent.
+void notify_script_outcome(const ScriptCompletion& completion)
+{
+    if (completion.cancelled)
+        return;
+    if (wxTheApp == nullptr || wxGetApp().is_closing())
+        return;
+
+    Plater* plater = wxGetApp().plater();
+    if (plater == nullptr || wxGetApp().imgui() == nullptr || !wxGetApp().imgui()->display_initialized())
+        return;
+
+    const AppActionRunResult action_result = script_outcome_to_action_result(completion);
+    const auto               level         = action_result.level == AppActionRunResult::Level::Error
+                                                 ? NotificationManager::NotificationLevel::ErrorNotificationLevel
+                                                 : NotificationManager::NotificationLevel::RegularNotificationLevel;
+    plater->get_notification_manager()->push_notification(NotificationType::CustomNotification, level, into_u8(action_result.message));
+}
+
 // A runnable script capability exposed as a speed-dial action. source_key = plugin_key
 // (identity), so a plugin display-name change does not re-key the action.
 struct PluginScriptAction : AppAction
@@ -124,15 +165,36 @@ struct PluginScriptAction : AppAction
 
     AppActionRunResult run(const std::string& /*param*/) const override
     {
-        std::string error;
-        const ExecutionResult result = PluginManager::instance().run_script_capability(plugin_key, capability, error);
-        if (!error.empty())
-            return {AppActionRunResult::Level::Error, from_u8(error)};
+        struct Outcome
+        {
+            bool               async     = false;
+            bool               completed = false;
+            AppActionRunResult result;
+        };
+        auto outcome = std::make_shared<Outcome>();
 
-        const bool skipped      = result.status == PluginResult::Skipped;
-        const wxString fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
-        return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Success,
-                result.message.empty() ? fallback : from_u8(result.message)};
+        auto on_done = [outcome](const ScriptCompletion& completion) {
+            outcome->result    = script_outcome_to_action_result(completion);
+            outcome->completed = true;
+            if (outcome->async)
+                notify_script_outcome(completion);
+        };
+
+        const PluginManager::ScriptLaunchResult launch = PluginManager::instance().launch_script_capability(plugin_key, capability, on_done);
+        if (launch.launched_async) {
+            // The completion is delivered on this (GUI) thread once the (sync or async) invocation
+            // finishes, so marking `async` here cannot race with on_done. The speed dial has already
+            // shown a result by then; the final outcome arrives as a notification (a cancellation is
+            // silent).
+            outcome->async = true;
+            if (outcome->completed)
+                return outcome->result;
+            return {AppActionRunResult::Level::Info, _L("Script plugin started.")};
+        }
+
+        // The launch failed inline; on_done produced the (error) result.
+        on_done(launch.outcome);
+        return outcome->result;
     }
 };
 

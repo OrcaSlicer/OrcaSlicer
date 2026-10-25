@@ -8,6 +8,17 @@
 
 using namespace Slic3r;
 
+TEST_CASE("Full collision-volume previews are opt-in and retain the user's preference", "[AppConfig][ExclusionVolume]")
+{
+    AppConfig config;
+    config.set_defaults();
+    CHECK_FALSE(config.get_bool("show_collision_volumes"));
+
+    config.set_bool("show_collision_volumes", true);
+    config.set_defaults();
+    CHECK(config.get_bool("show_collision_volumes"));
+}
+
 TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
     AppConfig config;
 

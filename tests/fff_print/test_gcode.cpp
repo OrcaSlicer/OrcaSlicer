@@ -2,8 +2,11 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include <catch2/catch_message.hpp>
+#include <catch2/catch_tostring.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Print.hpp"
@@ -16,15 +19,63 @@
 
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <cctype>
 #include <cstddef>
 #include <fstream>
 #include <ios>
+#include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace Slic3r;
+
+TEST_CASE("Kobra 2 layer-change templates do not emit numeric commands", "[GCode][Kobra2][Regression]")
+{
+    const char *template_key = GENERATE("before_layer_change_gcode", "layer_change_gcode");
+    const std::string profile_path = std::string(PROFILES_DIR) + "/Anycubic/machine/Anycubic Kobra 2 0.4 nozzle.json";
+    // CI test artifacts may omit the shipped profiles.
+    if (!boost::filesystem::exists(profile_path))
+        SKIP("shipped profile not present: " << profile_path);
+
+    DynamicPrintConfig machine;
+    ConfigSubstitutionContext substitutions{ForwardCompatibilitySubstitutionRule::Enable};
+    std::map<std::string, std::string> metadata;
+    std::string reason;
+    machine.load_from_json(profile_path, substitutions, false, metadata, reason);
+    INFO("profile: " << profile_path << "\nload reason: " << reason);
+    REQUIRE(machine.has(template_key));
+    REQUIRE_FALSE(machine.opt_string(template_key).empty());
+
+    auto config = Test::multifilament_config(1, {
+        {"gcode_flavor", "marlin"},
+        {"layer_height", "0.2"},
+        {"first_layer_height", "0.2"},
+        {"use_relative_e_distances", "0"},
+        {"machine_start_gcode", ""},
+        {"machine_end_gcode", ""},
+        {"before_layer_change_gcode", ""},
+        {"layer_change_gcode", ""},
+    });
+    // Exercise each shipped template separately through a real G-code export.
+    config.set_key_value(template_key, machine.option(template_key)->clone());
+    const std::string gcode = Test::slice({Test::cube(1.)}, config);
+    INFO("template: " << template_key);
+    REQUIRE(gcode.find(";LAYER_CHANGE") != std::string::npos);
+
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        const auto command = line.cmd();
+        if (!command.empty()) {
+            INFO("executable line: " << line.raw());
+            CHECK_FALSE(std::isdigit(static_cast<unsigned char>(command.front())));
+        }
+    });
+}
 
 TEST_CASE("Klipper object labels name each copy without the characters Klipper cannot parse", "[GCode]")
 {
@@ -87,6 +138,28 @@ TEST_CASE("The exclude object tolerance defaults to the former fixed 0.1 mm", "[
 {
     CHECK_THAT(DynamicPrintConfig::full_print_config().opt_float("exclude_object_tolerance"),
                Catch::Matchers::WithinAbs(0.1, 1e-9));
+}
+
+TEST_CASE("The filament flow ratio scales the extruded length once", "[GCode]")
+{
+    // Retraction off, so every positive relative E move is extrusion and scales with the ratio.
+    auto extruded_length = [](double flow_ratio) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({ { "use_relative_e_distances", "1" }, { "retraction_length", "0" }, { "wipe", "0" } });
+        config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ flow_ratio });
+        double total = 0.;
+        GCodeReader reader;
+        reader.parse_buffer(Test::slice({ Test::cube(20) }, config),
+                            [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+                                if ((line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3")) && line.has_e() && line.e() > 0.f)
+                                    total += line.e();
+                            });
+        return total;
+    };
+
+    const double full = extruded_length(1.);
+    REQUIRE(full > 0.);
+    CHECK_THAT(extruded_length(0.9) / full, Catch::Matchers::WithinRel(0.9, 1e-3));
 }
 
 // Firmwares read the compatibility header lines (Anycubic's GoKlipper heats the bed with
@@ -176,6 +249,54 @@ TEST_CASE("The G-code header names the first object's filament when printing by 
     CHECK(header_value("first_layer_temperature") == 250);
 }
 
+// A filament that starts above the first layer, such as a support interface, never touches the bed. Heating the
+// bed to its temperature would soften the filament the part stands on, so only first layer filaments count.
+TEST_CASE("The highest temperature bed formula ignores filaments that start above the first layer", "[GCode]")
+{
+    // Filament 1: bed 65 on the first layer, 60 after it. Filament 2: bed 100. A 30 mm cap on a 10 mm tall stem prints
+    // with filament 1 and is supported from the bed, the support with filament 1 and its interface under the cap
+    // with filament 2.
+    TriangleMesh mesh = make_cube(10, 10, 10);
+    mesh.translate(10, 10, 0);
+    TriangleMesh cap = make_cube(30, 30, 2);
+    cap.translate(0, 0, 10);
+    mesh.merge(cap);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        {"bed_temperature_formula", "by_highest_temp"},
+        {"enable_prime_tower", 0},
+        {"enable_support", 1},
+        {"support_filament", 1},
+        {"support_interface_filament", 2},
+        {"supertack_plate_temp_initial_layer", "65,100"},
+        {"cool_plate_temp_initial_layer", "65,100"},
+        {"textured_cool_plate_temp_initial_layer", "65,100"},
+        {"eng_plate_temp_initial_layer", "65,100"},
+        {"hot_plate_temp_initial_layer", "65,100"},
+        {"textured_plate_temp_initial_layer", "65,100"},
+        {"supertack_plate_temp", "60,100"},
+        {"cool_plate_temp", "60,100"},
+        {"textured_cool_plate_temp", "60,100"},
+        {"eng_plate_temp", "60,100"},
+        {"hot_plate_temp", "60,100"},
+        {"textured_plate_temp", "60,100"},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+    });
+    const std::string gcode = Test::slice({mesh}, config);
+    REQUIRE(gcode.find("\nT1") != std::string::npos);
+
+    std::vector<int> bed_temps;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);)
+        if (line.rfind("M140 S", 0) == 0 || line.rfind("M190 S", 0) == 0)
+            bed_temps.push_back(std::stoi(line.substr(6)));
+    INFO("bed temperatures: " << Catch::Detail::stringify(bed_temps));
+    REQUIRE_FALSE(bed_temps.empty());
+    CHECK(bed_temps.front() == 65);
+    CHECK(std::find(bed_temps.begin(), bed_temps.end(), 60) != bed_temps.end());
+    CHECK(std::find(bed_temps.begin(), bed_temps.end(), 100) == bed_temps.end());
+}
+
 TEST_CASE("Object label comments number each object and copy with or without exclude object", "[GCode]")
 {
     // repetier has no exclude-object commands, so set_object_info() writes nothing for it.
@@ -211,6 +332,40 @@ TEST_CASE("Object label comments number each object and copy with or without exc
                 CHECK(gcode.find("; start printing object, unique label id: " + label_id + "\nM624 ") != std::string::npos);
                 CHECK(gcode.find("; stop printing object, unique label id: " + label_id + "\nM625\n") != std::string::npos);
             }
+}
+
+TEST_CASE("Sparse infill only arc fitting emits arcs in the sparse infill alone", "[GCode]")
+{
+    const auto arcs_per_type = [](const char *arc_fitting) {
+        // 360 facets keep the walls and the concentric infill within the resolution of a circle, so both fit arcs.
+        const std::string gcode = Test::slice({ make_cylinder(25.0, 10.0, 2.0 * PI / 360.0) }, {
+            { "enable_arc_fitting",    arc_fitting },
+            { "sparse_infill_pattern", "concentric" },
+            { "sparse_infill_density", "20%" },
+            { "z_hop",                 "0" },
+        });
+        std::map<std::string, size_t> arcs;
+        std::istringstream input(gcode);
+        std::string line, type;
+        while (std::getline(input, line)) {
+            if (line.rfind(";TYPE:", 0) == 0)
+                type = line.substr(6);
+            else if (line.rfind("G2 ", 0) == 0 || line.rfind("G3 ", 0) == 0)
+                ++arcs[type];
+        }
+        return arcs;
+    };
+
+    CHECK(arcs_per_type("enabled").count("Outer wall") == 1);
+
+    const std::map<std::string, size_t> sparse_only = arcs_per_type("sparse_infill");
+    CHECK(sparse_only.count("Sparse infill") == 1);
+    for (const auto &[type, count] : sparse_only) {
+        INFO(type << ": " << count << " arcs");
+        CHECK(type == "Sparse infill");
+    }
+
+    CHECK(arcs_per_type("disabled").empty());
 }
 
 TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")

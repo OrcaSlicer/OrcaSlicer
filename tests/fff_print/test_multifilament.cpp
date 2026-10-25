@@ -3,6 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 
@@ -315,6 +317,152 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // infill not overridden: stays on F1
 }
 
+// 0-based tool indices extruding under the ";TYPE:" marker of `feature`.
+static std::set<int> tools_for_feature(const std::string& gcode, std::string_view feature)
+{
+    std::set<int> tools;
+    int  current_tool = 0;
+    bool in_feature   = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char)cmd[1]))
+            current_tool = std::stoi(cmd.substr(1));
+        else if (cmd.empty() && line.comment().substr(0, 5) == "TYPE:")
+            in_feature = line.comment().substr(5) == feature;
+        // Toolchange purges extrude in place under the previous feature's marker.
+        else if (in_feature && line.extruding(self) && line.dist_XY(self) > 0)
+            tools.insert(current_tool);
+    });
+    return tools;
+}
+
+// A 20x20mm slab on a 4x4mm pillar: on the slab's first layer both walls are overhangs from end to end, so
+// only their wall index tells the inner wall from the outer one.
+TEST_CASE("Overhanging inner walls print with the inner wall filament", "[MultiFilament]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    TriangleMesh mesh = make_cube(4., 4., 5.);
+    mesh.translate(8.f, 8.f, 0.f);
+    TriangleMesh slab = make_cube(20., 20., 2.);
+    slab.translate(0.f, 0.f, 5.f);
+    mesh.merge(slab);
+
+    const std::string gcode = slice({ mesh },
+        multifilament_config(2, {
+            { "wall_generator",                wall_generator },
+            { "wall_loops",                    2 },
+            { "outer_wall_filament_id",        1 },
+            { "inner_wall_filament_id",        2 },
+            { "sparse_infill_filament_id",     1 },
+            { "internal_solid_filament_id",    1 },
+            { "top_surface_filament_id",       1 },
+            { "bottom_surface_filament_id",    1 },
+            { "detect_overhang_wall",          true },
+            { "extra_perimeters_on_overhangs", false },
+            { "enable_support",                false },
+            { "skirt_loops",                   0 },
+            { "brim_type",                     "no_brim" },
+        }));
+    CHECK(tools_for_feature(gcode, "Outer wall")    == std::set<int>{ 0 });
+    CHECK(tools_for_feature(gcode, "Inner wall")    == std::set<int>{ 1 });
+    CHECK(tools_for_feature(gcode, "Overhang wall") == std::set<int>{ 0, 1 });
+}
+
+// Tool changes on a layer after which that tool extrudes nothing before the next tool or layer change.
+static int idle_tool_changes(const std::string& gcode)
+{
+    int  idle = 0;
+    bool in_layers = false, changed = false, extruded = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        const bool tool_change = cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char)cmd[1]);
+        if (tool_change || line.comment() == "LAYER_CHANGE") {
+            if (changed && !extruded)
+                ++idle;
+            in_layers |= !tool_change;
+            changed  = tool_change && in_layers;
+            extruded = false;
+        } else if (line.extruding(self) && line.dist_XY(self) > 0)
+            extruded = true;
+    });
+    return idle + (changed && !extruded ? 1 : 0);
+}
+
+// The fill of a top or bottom surface carries the gap fill around it, which must not move the surface to the
+// internal solid filament, nor leave the surface's own filament scheduled with nothing to print. The round top and
+// bottom of a cylinder leave gaps along their edge.
+TEST_CASE("Top and bottom surfaces with gap fill print with their filaments", "[MultiFilament]")
+{
+    const std::string gcode = slice({ make_cylinder(10., 10.) },
+        multifilament_config(4, {
+            { "wall_generator",             "arachne" },
+            { "gap_fill_target",            "topbottom" },
+            { "outer_wall_filament_id",     1 },
+            { "inner_wall_filament_id",     1 },
+            { "sparse_infill_filament_id",  1 },
+            { "internal_solid_filament_id", 2 },
+            { "top_surface_filament_id",    3 },
+            { "bottom_surface_filament_id", 4 },
+            { "skirt_loops",                0 },
+            { "brim_type",                  "no_brim" },
+        }));
+    REQUIRE_FALSE(tools_for_feature(gcode, "Gap infill").empty());
+    CHECK(tools_for_feature(gcode, "Top surface")    == std::set<int>{ 2 });
+    CHECK(tools_for_feature(gcode, "Bottom surface") == std::set<int>{ 3 });
+    CHECK(idle_tool_changes(gcode) == 0);
+}
+
+// A 1.9mm plate leaves no room for sparse infill between its classic walls, only gap fill, which prints with the walls.
+TEST_CASE("Gap fill between walls does not schedule the sparse infill filament", "[MultiFilament]")
+{
+    const std::string gcode = slice({ make_cube(20., 1.9, 5.) },
+        multifilament_config(2, {
+            { "wall_generator",             "classic" },
+            { "wall_loops",                 2 },
+            { "outer_wall_filament_id",     1 },
+            { "inner_wall_filament_id",     1 },
+            { "sparse_infill_filament_id",  2 },
+            { "internal_solid_filament_id", 1 },
+            { "top_surface_filament_id",    1 },
+            { "bottom_surface_filament_id", 1 },
+            { "skirt_loops",                0 },
+            { "brim_type",                  "no_brim" },
+        }));
+    REQUIRE(tools_for_feature(gcode, "Gap infill") == std::set<int>{ 0 });
+    CHECK(tools_for_feature(gcode, "Sparse infill").empty());
+    CHECK(idle_tool_changes(gcode) == 0);
+}
+
+// A 20x20x2mm base carrying a 0.5mm fin: the fin's layers fit a single wall, so they must not switch to the inner
+// wall filament the base uses.
+TEST_CASE("A layer without inner walls does not switch to the inner wall filament", "[MultiFilament]")
+{
+    TriangleMesh mesh = make_cube(20., 20., 2.);
+    TriangleMesh fin  = make_cube(20., 0.5, 5.);
+    fin.translate(0.f, 9.75f, 2.f);
+    mesh.merge(fin);
+
+    const std::string gcode = slice({ mesh },
+        multifilament_config(2, {
+            { "wall_generator",             "arachne" },
+            { "wall_loops",                 2 },
+            { "outer_wall_filament_id",     1 },
+            { "inner_wall_filament_id",     2 },
+            { "sparse_infill_filament_id",  1 },
+            { "internal_solid_filament_id", 1 },
+            { "top_surface_filament_id",    1 },
+            { "bottom_surface_filament_id", 1 },
+            { "skirt_loops",                0 },
+            { "brim_type",                  "no_brim" },
+        }));
+    CHECK(tools_for_feature(gcode, "Inner wall") == std::set<int>{ 1 });
+    CHECK(idle_tool_changes(gcode) == 0);
+}
+
 // FanMover's guard against splitting a G1 inside custom gcode keys off the ";_FAN_MOVER_SKIP_START/END"
 // markers GCode::set_extruder() must emit around change_filament_gcode's output. Direct
 // toolchanges and Type2's wipe-tower toolchange (append_tcr2() calls set_extruder()) both go
@@ -386,6 +534,50 @@ TEST_CASE("Toolchange gcode is bracketed against FanMover splitting its moves", 
     CHECK(bracketed == total_waypoints);
     // FanMover drops its own markers; only the start-of-print toolchange, which it never processes, keeps them.
     CHECK(count_occurrences(gcode_str, ";_FAN_MOVER_SKIP_START") <= 1);
+}
+
+TEST_CASE("Filament start and end G-code get the same placeholders on every toolchange path", "[MultiFilament]")
+{
+    const std::string path = GENERATE(as<std::string>{}, "direct", "type1");
+    CAPTURE(path);
+
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "skirt_loops", 0 },
+        { "brim_type",   "no_brim" },
+    });
+    std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> per_object_overrides;
+    if (path == "direct") {
+        config.set_deserialize_strict({ { "print_sequence", "by object" } });
+        per_object_overrides = { {}, { { "outer_wall_filament_id", "2" }, { "inner_wall_filament_id", "2" } } };
+    } else {
+        config.set_deserialize_strict({
+            { "enable_prime_tower", true },
+            { "wipe_tower_type",    "type1" },
+            { "prime_tower_width",  35 },
+            { "wipe_tower_x",       120 },
+            { "wipe_tower_y",       120 },
+            { "printable_area",     "0x0,200x0,200x200,0x200" },
+        });
+        per_object_overrides = { { { "extruder", "1" } }, { { "extruder", "2" } } };
+    }
+    const std::string start = "; filament start [filament_extruder_id] [layer_num] [layer_z] [max_layer_z]";
+    const std::string end   = "; filament end [filament_extruder_id] [layer_num] [layer_z] [max_layer_z]";
+    config.set_key_value("filament_start_gcode", new ConfigOptionStrings({ start, start }));
+    config.set_key_value("filament_end_gcode", new ConfigOptionStrings({ end, end }));
+
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = slice_with_object_overrides({ cube(20), cube(20) }, config, per_object_overrides));
+    CHECK(gcode.find("\n; filament start 1 ") != std::string::npos);
+    if (path == "direct") {
+        CHECK(gcode.find("\n; filament end 0 ") != std::string::npos);
+    } else {
+        // Most layers unload filament 1, which the extruder index (always 0 on this single nozzle) can't show,
+        // and the end of the print adds at most one such line.
+        size_t unloads_of_1 = 0;
+        for (size_t pos = gcode.find("\n; filament end 1 "); pos != std::string::npos; pos = gcode.find("\n; filament end 1 ", pos + 1))
+            ++unloads_of_1;
+        CHECK(unloads_of_1 > 1);
+    }
 }
 
 // With wait_for_temp_on_wipe_tower the blocking M109 moves from right after the Tn command to
@@ -1850,4 +2042,81 @@ TEST_CASE("Unused extruder turns off on non-IMEX three-tool print", "[MultiFilam
     // T1 and T2 print up to 10mm — neither should get S0 before that.
     CHECK_FALSE(premature_s0_t1);
     CHECK_FALSE(premature_s0_t2);
+}
+
+static DynamicPrintConfig short_change_length_config() {
+    DynamicPrintConfig config = multifilament_config(2, {
+        // One value for two filaments: the tower must not read past it.
+        { "filament_change_length",         "10" },
+        { "filament_change_length_nc",      "10" },
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height",      "0,0" },
+        { "single_extruder_multi_material", 0 },
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "1,2" },
+        { "enable_prime_tower",             1 },
+        { "prime_tower_width",              35 },
+        { "wipe_tower_x",                   "50" },
+        { "wipe_tower_y",                   "50" },
+        { "layer_height",                   "0.3" },
+        { "wipe_tower_type",                "type1" },
+    });
+    size_flush_to_nozzles(config);
+    return config;
+}
+
+// Sum of positive extrusion per NOZZLE_CHANGE block, keyed by the block's direction tag.
+static std::map<std::string, std::vector<double>> nozzle_change_e_sums(const std::string& gcode)
+{
+    std::map<std::string, std::vector<double>> sums;
+    std::istringstream in(gcode);
+    std::string dir;
+    double esum = 0.;
+    for (std::string line; std::getline(in, line);) {
+        if (const size_t at = line.find("NOZZLE_CHANGE_START"); at != std::string::npos) {
+            dir  = line.substr(at + std::string("NOZZLE_CHANGE_START").size() + 1);
+            esum = 0.;
+        } else if (line.find("NOZZLE_CHANGE_END") != std::string::npos) {
+            sums[dir].push_back(esum);
+            dir.clear();
+        } else if (!dir.empty() && line.rfind("G1 ", 0) == 0) {
+            const size_t e = line.find(" E");
+            if (e != std::string::npos && line[e + 2] != '-')
+                esum += std::stod(line.substr(e + 2));
+        }
+    }
+    return sums;
+}
+
+// Identical filaments ram the same length in both directions. Medians skip the first layer's
+// flow-ratio outlier.
+TEST_CASE("Nozzle change ramming is symmetric for identical filaments", "[MultiFilament]")
+{
+    TriangleMesh a = cube(20);
+    a.translate(80, 80, 0);
+    TriangleMesh b = cube(20);
+    b.translate(110, 80, 0);
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(std::move(a));
+    meshes.push_back(std::move(b));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides =
+        { { { "extruder", 1 } }, { { "extruder", 2 } } };
+    Print print;
+    Model model;
+    init_print(std::move(meshes), print, model, short_change_length_config(), &overrides, /*arrange=*/false);
+    const std::string gcode = Slic3r::Test::gcode(print);
+    REQUIRE(gcode.find("; WIPE_TOWER_START") != std::string::npos);
+    auto sums = nozzle_change_e_sums(gcode);
+    REQUIRE(sums.size() == 2);
+    std::vector<double> medians;
+    for (auto& [dir, e] : sums) {
+        INFO("direction " << dir);
+        REQUIRE_FALSE(e.empty());
+        std::sort(e.begin(), e.end());
+        medians.push_back(e[e.size() / 2]);
+        CHECK(medians.back() > 0.);
+    }
+    CHECK_THAT(medians[0], Catch::Matchers::WithinRel(medians[1], 0.01));
 }

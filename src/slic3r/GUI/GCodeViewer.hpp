@@ -402,6 +402,8 @@ public:
     //BBS: GUI refactor: add canvas width and height
     // Shells, toolpaths, the sequential markers and the IDEX/IQEX toolhead boxes, drawn in 3D.
     void render_scene(int canvas_width, int canvas_height);
+    // ORCA: the toolpaths of translucent filaments, blended over the scene, then the markers. render_scene() leaves both out.
+    void render_translucent_toolpaths(int canvas_width, int canvas_height);
     // Legend, sliders, the marker's position window and the G-code window, all ImGui.
     void render_overlay(int canvas_width, int canvas_height, int right_margin);
     // ORCA: realistic view. Depth-only pass drawing the toolpaths as the light sees them, into
@@ -414,6 +416,8 @@ public:
     // ORCA: section view
     void set_clipping_plane(const ClippingPlane& plane);
     void set_light_top_dir(const Vec3d& direction);
+    // ORCA: the untinted highlight of the filaments, which the canvas gives them in realistic view only
+    void set_gloss(bool gloss) { m_viewer.set_gloss(gloss); }
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
@@ -502,6 +506,8 @@ public:
     // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
+    // ORCA: draw the toolpaths of translucent filament colors translucent
+    void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
@@ -534,7 +540,11 @@ private:
     // Canvas height minus the room the horizontal slider takes.
     int sequential_view_height(int canvas_height) const;
     void render_toolpaths();
+    // The sequential markers and the IDEX/IQEX toolhead boxes.
+    void render_markers(int canvas_width, int canvas_height);
     void render_shells(int canvas_width, int canvas_height);
+    // ORCA: a filament color as the toolpaths show it, opaque unless translucent filaments are shown
+    ColorRGBA shown_filament_color(ColorRGBA color) const;
 
     //BBS: GUI refactor: add canvas size
     void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);
