@@ -455,6 +455,8 @@ struct PrecomputedOverhangLayer
     std::unordered_map<Point3, double, Point3Hash>                   distances;
     // Orca: The printed footprint of the layer below, for the opt-in infill overhang metadata.
     std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     lower_infill_footprint;
+    // Orca: The outline of the layer itself, for the opt-in wall overhang metadata.
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     boundaries;
 };
 
 // Orca: Overhang metadata measures infill against the material actually printed below it. Slice outlines include the
@@ -474,18 +476,24 @@ inline std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>> infill_suppo
     return std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(union_ex(covered)));
 }
 
-// `layer` must have a layer below it; leave out `curled_lines` only when no region of `layer` slows down for curled
-// perimeters, and `infill_footprint` unless overhang metadata is exported.
+// `layer` must have a layer below it. `speed_data` computes what the speed and fan estimate needs: the distances, and
+// the curled-edge tree unless `curled_lines` says no region of `layer` slows down for curled perimeters. `metadata`
+// computes what overhang metadata needs: the layer's own outline and the printed footprint below it.
 inline PrecomputedOverhangLayer precompute_overhang_layer(const PrintObject *object, const Layer &layer, bool curled_lines = true,
-                                                          bool infill_footprint = false)
+                                                          bool metadata = false, bool speed_data = true)
 {
+    using Boundaries = AABBTreeLines::LinesDistancer<Linef3>;
     PrecomputedOverhangLayer out{object, &layer,
-                                 std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(layer.lower_layer->lslices)),
-                                 curled_lines ? std::make_shared<const AABBTreeLines::LinesDistancer<CurledLine>>(layer.lower_layer->curled_lines) :
-                                                nullptr,
+                                 std::make_shared<const Boundaries>(to_unscaled_linesf3(layer.lower_layer->lslices)),
+                                 speed_data && curled_lines ?
+                                     std::make_shared<const AABBTreeLines::LinesDistancer<CurledLine>>(layer.lower_layer->curled_lines) :
+                                     nullptr,
                                  {},
-                                 infill_footprint ? infill_support_footprint(layer.lower_layer) : nullptr};
-    const AABBTreeLines::LinesDistancer<Linef3> &lower = *out.lower_boundaries;
+                                 metadata ? infill_support_footprint(layer.lower_layer) : nullptr,
+                                 metadata ? std::make_shared<const Boundaries>(to_unscaled_linesf3(layer.lslices)) : nullptr};
+    if (!speed_data)
+        return out;
+    const Boundaries &lower = *out.lower_boundaries;
     auto add_path = [&out, &lower](const ExtrusionPath &path) {
         if (!is_bridge(path.role()) && !is_perimeter(path.role()))
             return;
@@ -702,13 +710,15 @@ public:
     }
 
     // Orca: Overhang metadata measures a wall against the layer directly below it like prepare_for_new_layer(), but for
-    // every layer and without the curled-edge trees. `lower_boundaries` may hand over that layer's outline computed ahead.
+    // every layer and without the curled-edge trees. `lower_boundaries` and `boundaries` may hand over the outlines of
+    // that layer and of `layer` computed ahead.
     void prepare_for_lower_layer(const PrintObject *object, const Layer *layer,
-                                 std::shared_ptr<const Boundaries> lower_boundaries = nullptr)
+                                 std::shared_ptr<const Boundaries> lower_boundaries = nullptr,
+                                 std::shared_ptr<const Boundaries> boundaries = nullptr)
     {
         if (layer == nullptr) return;
         last_prepared_layers[object] = layer;
-        next_layer_boundaries[object].reset();
+        next_layer_boundaries[object] = std::move(boundaries);
         prev_layer_sources[object] = layer->lower_layer;
         if (layer->lower_layer == nullptr)
             prev_layer_boundaries[object] = nullptr;
