@@ -7,6 +7,12 @@
 
 namespace Slic3r {
 
+namespace SnapmakerProtocol {
+// CARD_UID as a 16-hex-digit tag id. The U1 sends an array of tag bytes for a tagged spool and the
+// number 0 otherwise; returns "" when there is no tag or the shape is unknown.
+std::string card_uid_hex(const nlohmann::json& nfc_slot);
+} // namespace SnapmakerProtocol
+
 class SnapmakerPrinterAgent final : public MoonrakerPrinterAgent
 {
 public:

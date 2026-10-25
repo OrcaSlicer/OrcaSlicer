@@ -1222,6 +1222,16 @@ void SyncAmsInfoDialog::finish_mode()
 
 void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &result)
 {
+    // Orca: toolchangers get "T%d" labels instead of transition_tridid()'s AMS lettering.
+    DeviceManager *dev            = Slic3r::GUI::wxGetApp().getDeviceManager();
+    MachineObject *obj_           = dev ? dev->get_selected_machine() : nullptr;
+    const bool     is_toolchanger = obj_ && obj_->GetFilaSystem()->IsAllToolchanger();
+
+    // Includes rows the result loop below never visits.
+    for (auto &kv : m_materialList)
+        if (kv.second->item)
+            kv.second->item->set_toolchanger(is_toolchanger);
+
     m_back_ams_mapping_result = result;
     if (result.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
@@ -1250,7 +1260,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    ams_id = wxGetApp().tray_display_label(f->tray_id, is_toolchanger);
                     // ams_id = wxString::Format("%02d", f->tray_id + 1);
                 } else {
                     ams_id = "-";
@@ -1363,20 +1373,22 @@ void SyncAmsInfoDialog::deal_only_exist_ext_spool(MachineObject *obj_) {
         return;
     if (!m_append_color_text) { return; }
     bool only_exist_ext_spool_flag = m_only_exist_ext_spool_flag = !obj_->GetFilaSystem()->HasAms();
-    SetTitle(only_exist_ext_spool_flag ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
-    m_append_color_text->SetLabel(only_exist_ext_spool_flag ? _L("Add unused filaments to filaments list.") :
+    // Orca: toolchangers report per-tool AMS units, so only_exist_ext_spool_flag is false for them.
+    bool is_toolchanger = obj_->GetFilaSystem()->IsAllToolchanger();
+    SetTitle((only_exist_ext_spool_flag || is_toolchanger) ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
+    m_append_color_text->SetLabel((only_exist_ext_spool_flag || is_toolchanger) ? _L("Add unused filaments to filaments list.") :
                                                               _L("Add unused AMS filaments to filaments list."));
     if (m_map_mode == MapModeEnum::ColorMap) {
-        m_tip_attention_color_map = only_exist_ext_spool_flag ? _L("Only synchronize filament type and color, not including slot information.") :
+        m_tip_attention_color_map = (only_exist_ext_spool_flag || is_toolchanger) ? _L("Only synchronize filament type and color, not including slot information.") :
                                                                 _L("Only synchronize filament type and color, not including AMS slot information.");
         m_tip_text->SetLabel(m_tip_attention_color_map);
 
     }
     if (m_ams_or_ext_text_in_colormap) {
-        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_colormap->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
     if (m_ams_or_ext_text_in_override) {
-        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":");
+        m_ams_or_ext_text_in_override->SetLabel((only_exist_ext_spool_flag ? _L("Ext spool") : is_toolchanger ? _L("Tool") : _L("AMS")) + ":");
     }
 }
 

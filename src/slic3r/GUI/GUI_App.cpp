@@ -5351,6 +5351,11 @@ wxString GUI_App::transition_tridid(int trid_id) const
     }
 }
 
+wxString GUI_App::tray_display_label(int tray_id, bool is_toolchanger) const
+{
+    return is_toolchanger ? wxString::Format("T%d", tray_id + 1) : transition_tridid(tray_id);
+}
+
 //BBS
 void GUI_App::request_login(bool show_user_info, const std::string& provider/* = ORCA_CLOUD_PROVIDER*/)
 {
