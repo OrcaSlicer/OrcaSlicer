@@ -2726,6 +2726,14 @@ void GUI_App::init_app_config()
 	// Mac : "~/Library/Application Support/Slic3r"
 
     if (data_dir().empty()) {
+#ifdef __linux__
+        // The same lookup the start-up code performs before GUI_App exists, so both read one file.
+        const boost::filesystem::path data_dir_path(default_data_dir());
+        migrate_flatpak_legacy_datadir(data_dir_path);
+        set_data_dir(data_dir_path.string());
+        if (!boost::filesystem::exists(data_dir_path))
+            boost::filesystem::create_directory(data_dir_path);
+#else
         // Orca: check if data_dir folder exists in application folder use it if it exists
         // Note:wxStandardPaths::Get().GetExecutablePath() return following paths
         // Unix: /usr/local/bin/exename
@@ -2742,23 +2750,15 @@ void GUI_App::init_app_config()
             set_data_dir(app_data_dir_path.string());
         }
         else{
-            boost::filesystem::path data_dir_path;
-            #ifndef __linux__
-                std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
-                //BBS create folder if not exists
-                data_dir_path = boost::filesystem::path(data_dir);
-                set_data_dir(data_dir);
-            #else
-                // Since version 2.3, config dir on Linux is in ${XDG_CONFIG_HOME}.
-                // https://github.com/prusa3d/PrusaSlicer/issues/2911
-                data_dir_path = boost::filesystem::path(xdg_config_dir(GetAppName().ToUTF8().data()));
-                migrate_flatpak_legacy_datadir(data_dir_path);
-                set_data_dir(data_dir_path.string());
-            #endif
+            std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
+            //BBS create folder if not exists
+            boost::filesystem::path data_dir_path(data_dir);
+            set_data_dir(data_dir);
             if (!boost::filesystem::exists(data_dir_path)){
                 boost::filesystem::create_directory(data_dir_path);
             }
         }
+#endif
 
         // Change current dirtory of application
 
