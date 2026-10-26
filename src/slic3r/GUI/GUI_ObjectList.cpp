@@ -6955,7 +6955,7 @@ void ObjectList::reload_all_plates(bool notify_partplate)
     wxGetApp().plater()->get_view3D_canvas3D()->update_instance_printable_state_for_objects(obj_idxs);
 }
 
-void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order)
+void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending)
 {
     struct Entry { wxString name; double value; ModelObject* object; };
     std::vector<Entry> entries;
@@ -6970,8 +6970,10 @@ void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order)
         }
         entries.push_back({order == ObjectOrder::Name ? from_u8(object->name) : wxString(), value, object});
     }
-    std::stable_sort(entries.begin(), entries.end(), [order](const Entry& l, const Entry& r) {
-        return order == ObjectOrder::Name ? wxCmpNatural(l.name, r.name) < 0 : l.value < r.value;
+    std::stable_sort(entries.begin(), entries.end(), [order, descending](const Entry& l, const Entry& r) {
+        const Entry& a = descending ? r : l;
+        const Entry& b = descending ? l : r;
+        return order == ObjectOrder::Name ? wxCmpNatural(a.name, b.name) < 0 : a.value < b.value;
     });
     for (size_t i = 0; i < objects.size(); ++i)
         objects[i] = entries[i].object;
@@ -6985,22 +6987,29 @@ void ObjectList::order_objects(ObjectOrder order, bool all_plates)
 
     PartPlateList& plates     = plater->get_partplate_list();
     const int      curr_plate = plates.get_curr_plate_index();
-    std::vector<ModelObject*> objects = *m_objects;
-    for (int plate_idx = 0; plate_idx < plates.get_plate_count(); ++plate_idx) {
-        if (!all_plates && plate_idx != curr_plate)
-            continue;
-        // Sort within the list positions the plate already holds, so other plates keep their order.
-        std::vector<size_t>       slots;
-        std::vector<ModelObject*> plate_objects;
-        for (size_t obj_idx = 0; obj_idx < objects.size(); ++obj_idx)
-            if (plates.find_instance(int(obj_idx), 0) == plate_idx) {
-                slots.push_back(obj_idx);
-                plate_objects.push_back(objects[obj_idx]);
-            }
-        sort_objects(plate_objects, order);
-        for (size_t i = 0; i < slots.size(); ++i)
-            objects[slots[i]] = plate_objects[i];
-    }
+    auto sorted = [&](bool descending) {
+        std::vector<ModelObject*> objects = *m_objects;
+        for (int plate_idx = 0; plate_idx < plates.get_plate_count(); ++plate_idx) {
+            if (!all_plates && plate_idx != curr_plate)
+                continue;
+            // Sort within the list positions the plate already holds, so other plates keep their order.
+            std::vector<size_t>       slots;
+            std::vector<ModelObject*> plate_objects;
+            for (size_t obj_idx = 0; obj_idx < objects.size(); ++obj_idx)
+                if (plates.find_instance(int(obj_idx), 0) == plate_idx) {
+                    slots.push_back(obj_idx);
+                    plate_objects.push_back(objects[obj_idx]);
+                }
+            sort_objects(plate_objects, order, descending);
+            for (size_t i = 0; i < slots.size(); ++i)
+                objects[slots[i]] = plate_objects[i];
+        }
+        return objects;
+    };
+    // Choosing the order the objects already have reverses it.
+    std::vector<ModelObject*> objects = sorted(false);
+    if (objects == *m_objects)
+        objects = sorted(true);
 
     if (objects != *m_objects) {
         take_snapshot(_u8L("Object order changed"));

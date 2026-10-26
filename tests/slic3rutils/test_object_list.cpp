@@ -24,10 +24,10 @@ ModelObject* add_box(Model& model, const std::string& name, const Vec3d& size, i
     return object;
 }
 
-std::vector<std::string> sorted_names(const Model& model, ObjectOrder order)
+std::vector<std::string> sorted_names(const Model& model, ObjectOrder order, bool descending = false)
 {
     std::vector<ModelObject*> objects = model.objects;
-    sort_objects(objects, order);
+    sort_objects(objects, order, descending);
     std::vector<std::string> names;
     for (const ModelObject* object : objects)
         names.push_back(object->name);
@@ -55,6 +55,17 @@ TEST_CASE("Objects sort by filament and keep their order within a filament", "[O
     add_box(model, "d", {10., 10., 10.}, 1);
 
     CHECK(sorted_names(model, ObjectOrder::Filament) == std::vector<std::string>{"b", "d", "a", "c"});
+}
+
+TEST_CASE("A descending sort keeps the order of objects with equal values", "[ObjectList]")
+{
+    Model model;
+    add_box(model, "a", {10., 10., 10.}, 2);
+    add_box(model, "b", {10., 10., 10.}, 1);
+    add_box(model, "c", {10., 10., 10.}, 2);
+    add_box(model, "d", {10., 10., 10.}, 1);
+
+    CHECK(sorted_names(model, ObjectOrder::Filament, true) == std::vector<std::string>{"a", "c", "b", "d"});
 }
 
 TEST_CASE("Objects sort by the height of their scaled instance", "[ObjectList]")

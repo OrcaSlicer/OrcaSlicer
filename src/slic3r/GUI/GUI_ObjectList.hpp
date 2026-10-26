@@ -60,8 +60,8 @@ typedef Event<ObjectVolumeID> ObjectSettingEvent;
 
 enum class ObjectOrder { Name, Filament, Height, Size };
 
-// Stable ascending sort: natural name order, filament, top Z, or bounding box volume of the first instance.
-void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order);
+// Stable sort by natural name order, filament, top Z, or bounding box volume of the first instance.
+void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending = false);
 
 class PartPlate;
 
@@ -500,7 +500,7 @@ public:
     void on_plate_added(PartPlate* part_plate);
     void on_plate_deleted(int plate_index);
     void reload_all_plates(bool notify_partplate = false);
-    // Sorts the objects of the selected plate, or of every plate, which also sets their print order.
+    // Sorts the selected plate or every plate, which sets the print order; repeating a sort reverses it.
     void order_objects(ObjectOrder order, bool all_plates);
     void on_plate_selected(int plate_index);
     void notify_instance_updated(int obj_idx);
