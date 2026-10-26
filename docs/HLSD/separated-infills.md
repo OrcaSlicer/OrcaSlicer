@@ -18,8 +18,8 @@ each body on its own (see Octree infill).
 ## Bodies
 
 `PrintObject::prepare_infill()` groups the islands of every layer (`lslices`)
-into 3D connected bodies before bridges are detected, so bridge anchors and
-printed infill share one origin. Islands on adjacent layers belong to one body
+into 3D connected bodies with `connected_bodies()` before bridges are detected,
+so bridge anchors and printed infill share one origin. Islands on adjacent layers belong to one body
 when their slices overlap. Parts that touch or overlap form one body. Separate
 parts, disconnected islands of one mesh, and interleaved parts that never touch,
 such as chain links, each form their own. Every island stores the index of its

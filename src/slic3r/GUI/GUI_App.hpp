@@ -30,6 +30,7 @@
 #include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <vector>
 #include <utility>
@@ -350,16 +351,29 @@ private:
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };
 
     boost::thread    m_sync_update_thread;
+    // Startup cloud plugin sync; joined on logout, in OnExit(), CleanUp() and on macOS end session.
+    boost::thread    m_startup_cloud_plugin_fetch_thread;
+    std::function<void()> m_startup_cloud_report; // run by post_init() if the results came earlier
     std::shared_ptr<int> m_user_sync_token;
     std::atomic<bool>    m_restart_sync_pending {false};
     std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
+    bool                 m_user_preset_pull_pending {false}; // set when a sync thread starts, cleared once its pull is applied; a failed pull or a stopped sync leaves it set
+    bool                 m_legacy_filament_check_due {false}; // the startup check waits for that pull
+    bool                 m_legacy_filament_check_running {false}; // a check is in progress, its dialog may be open
     std::atomic<bool>    m_migration_retry_pending {false};
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
     bool             m_show_http_error_msgdlg{false};
     std::chrono::steady_clock::time_point m_last_401_error_time;
+    // OrcaCloud webview session handoff: the newest request_web_session state from the cloud pane
+    // and a generation counter so a superseded mint/login result is dropped (guide §5, "only the
+    // newest request counts").
+    std::string      m_cloud_handoff_state;
+    // The OrcaCloud path the open requests target, remembered so a login re-seed keeps the same page.
+    std::string      m_cloud_open_path;
+    uint64_t         m_cloud_handoff_gen { 0 };
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     HttpServer       m_http_server;
@@ -372,6 +386,7 @@ public:
     std::string     get_local_models_path();
     bool            OnInit() override;
     int             OnExit() override;
+    void            CleanUp() override;
     bool            initialized() const { return m_initialized; }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
 #ifdef SLIC3R_CAD
@@ -395,9 +410,15 @@ public:
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }
+    // Version that wrote the app config before this run; empty when there was no app config.
+    const boost::optional<Semver>& last_config_version() const { return m_last_config_version; }
 
     // Reconcile the live printer agent with the stored preset selection.
+    // No-op until the main window exists; the startup preset load installs the agent then.
     void switch_printer_agent();
+    // Install the selected preset's agent if it is registered but not live, e.g. when its plugin
+    // finishes loading after the startup preset was applied. Otherwise leave the live agent alone.
+    void switch_printer_agent_if_pending();
 
     std::string resolve_printer_agent_id(const std::string& stored_id) const;
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
@@ -417,6 +438,8 @@ public:
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
     void set_closing(bool closing) { m_is_closing.store(closing, std::memory_order_release); }
+    // Called once closing can no longer be vetoed: ends the process if closing does not finish in time.
+    void start_exit_watchdog();
     
     // SoftFever
     bool show_gcode_window() const { return m_show_gcode_window; }
@@ -427,12 +450,17 @@ public:
 
     bool show_plate_gridlines() const { return app_config->get_bool("show_plate_gridlines"); }
     void toggle_show_plate_gridlines() const { app_config->set_bool("show_plate_gridlines", !show_plate_gridlines()); }
+    bool focus_mode() const { return app_config->get_bool("focus_mode"); }
+    void toggle_focus_mode() const { app_config->set_bool("focus_mode", !focus_mode()); }
 
     bool show_canvas_zoom_button() const { return app_config->get_bool("show_canvas_zoom_button"); }
     void toggle_canvas_zoom_button() const { app_config->set_bool("show_canvas_zoom_button", !show_canvas_zoom_button()); }
 
     bool show_outline() const { return app_config->get_bool("show_outline"); }
     void toggle_show_outline() const { app_config->set_bool("show_outline", !show_outline()); }
+
+    bool show_center_of_mass() const { return app_config->get_bool("show_center_of_mass"); }
+    void toggle_show_center_of_mass() const { app_config->set_bool("show_center_of_mass", !show_center_of_mass()); }
 
     wxString get_inf_dialog_contect () {return m_info_dialog_content;};
 
@@ -452,6 +480,9 @@ public:
 #if wxUSE_WEBVIEW_EDGE
     void            init_webview_runtime();
 #endif
+    // Switches to the Home tab and opens the OrcaCloud pane beside the homepage on `next`, a
+    // same-site OrcaCloud path (empty = the page's default). Work is deferred internally.
+    void            open_orca_cloud(const std::string& next = std::string());
     static unsigned get_colour_approx_luma(const wxColour& colour);
     static bool     dark_mode();
     const wxColour  get_label_default_clr_system();
@@ -512,7 +543,6 @@ public:
     void            check_printer_presets();
 
     void            recreate_GUI(const wxString& message);
-    void            system_info();
     void            keyboard_shortcuts(ShortcutContext page, wxWindow* parent = nullptr);   // the main frame when null
     void            troubleshoot();
     void            load_project(wxWindow *parent, wxString& input_file) const;
@@ -534,7 +564,11 @@ public:
 
     void            request_user_login(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            request_user_handle(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
-    void            request_user_logout(const std::string& provider = ORCA_CLOUD_PROVIDER);
+    // `user_initiated` distinguishes a user sign-out from the desktop losing its session on its
+    // own (refresh failed, 401). Only an explicit sign-out also ends the cloud webview's own
+    // session; an involuntary one leaves the webview alone (guide §8). Defaults to the safe
+    // direction: a new caller that forgets the flag will not silently sign the webview out.
+    void            request_user_logout(const std::string& provider = ORCA_CLOUD_PROVIDER, bool user_initiated = false);
     void            post_logout_to_webview(const std::string& provider);
     int             request_user_unbind(std::string dev_id, const std::string& provider = ORCA_CLOUD_PROVIDER);
     std::string     handle_web_request(std::string cmd);
@@ -550,6 +584,15 @@ public:
     void            on_update_machine_list(wxCommandEvent& evt);
     void            on_user_login(wxCommandEvent &evt);
     void            on_user_login_handle(wxCommandEvent& evt);
+    // OrcaCloud webview session handoff (guide §5/§7). cloud_webview_handoff builds the cloud
+    // pane's Start URL (with the desktop user_id while signed in). request_cloud_web_session is
+    // called from the pane when the page asks for a session; it opens the desktop login dialog if
+    // signed out, otherwise mints a one-time token on a worker thread and loads the Complete URL
+    // in the same webview.
+    wxString        cloud_webview_handoff(const std::string& next = std::string());
+    void            request_cloud_web_session(const std::string& state);
+    void            mint_cloud_web_session(const std::string& state, uint64_t gen);
+    void            on_cloud_web_session_minted(const std::string& state, uint64_t gen, const std::string& token_hash);
     void            enable_user_preset_folder(bool enable);
 
     // BBS
@@ -561,6 +604,11 @@ public:
     void            check_update(bool show_tips, int by_user);
     void            check_new_version(bool show_tips = false, int by_user = 0);
     void            check_new_version_sf(bool show_tips = false, int by_user = 0);
+    // Offers to migrate user filament presets made against an older release that lost printers their parent
+    // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
+    // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also
+    // reports when there is nothing to migrate.
+    void            check_legacy_user_filament_presets(bool by_user);
     bool            process_network_msg(std::string dev_id, std::string msg);
     void            request_new_version(int by_user);
     void            enter_force_upgrade();
@@ -570,7 +618,8 @@ public:
     std::string     format_IP(const std::string& ip);
     void            show_dialog(wxString msg);
     void            push_notification(const MachineObject* obj, wxString msg, wxString title = wxEmptyString, UserNotificationStyle style = UserNotificationStyle::UNS_NORMAL);
-    void            reload_settings();
+    // Returns false when the cloud presets could not be fetched, so nothing was reloaded.
+    bool            reload_settings();
     void            remove_user_presets();
 
     bool            maybe_migrate_user_presets_on_login();
@@ -878,6 +927,8 @@ bool is_support_filament(int extruder_id, bool strict_check = true);
 bool is_soluble_filament(int extruder_id);
 // check if the filament for model is in the list
 bool has_filaments(const std::vector<std::string>& model_filaments);
+// Up direction of the edited printer's tilted build plate (+Z when untilted).
+Vec3d build_plate_tilt_up_direction();
 } // namespace GUI
 } // Slic3r
 

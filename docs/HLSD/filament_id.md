@@ -350,8 +350,11 @@ identity default and translates nothing. `NetworkAgent` forwards both to the liv
 comparison sites below reach them through `wxGetApp().getAgent()` and leave an id untranslated
 while no agent is live. Whole documents are Bambu's business alone:
 `BBLPrinterAgent::to_orca_payload` and `from_orca_payload` rewrite every string under
-`tray_info_idx`, `filament_id` or `filamentId` at any depth; text that does not parse, or carries
-none of those keys, comes back unchanged. The map is loaded once, lazily; a missing or malformed
+`tray_info_idx`, `filament_id`, `filamentId`, `cate` or `fila_id` at any depth; text that does not
+parse, or carries none of those keys, comes back unchanged. The last two are the H2C nozzle rack's:
+`cate` in the auto nozzle mapping request, `fila_id` in the rack status. A new Bambu message that
+carries a filament id under another key needs that key added to `filament_id_keys`, or the id
+crosses the boundary untranslated. The map is loaded once, lazily; a missing or malformed
 file degrades to identity with a log line rather than failing.
 
 | Boundary | Where it translates |

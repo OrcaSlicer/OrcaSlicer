@@ -201,6 +201,30 @@ public:
         IC_CANVAS_SECTION_ACTIVE_HOVER,
         IC_CANVAS_SECTION_ACTIVE_DARK,
         IC_CANVAS_SECTION_ACTIVE_DARK_HOVER,
+        IC_ALIGN_X_MIN,
+        IC_ALIGN_X_CENTER,
+        IC_ALIGN_X_MAX,
+        IC_ALIGN_Y_MIN,
+        IC_ALIGN_Y_CENTER,
+        IC_ALIGN_Y_MAX,
+        IC_ALIGN_Z_MIN,
+        IC_ALIGN_Z_CENTER,
+        IC_ALIGN_Z_MAX,
+        IC_DISTRIBUTE_X,
+        IC_DISTRIBUTE_Y,
+        IC_DISTRIBUTE_Z,
+        IC_ALIGN_X_MIN_DARK,
+        IC_ALIGN_X_CENTER_DARK,
+        IC_ALIGN_X_MAX_DARK,
+        IC_ALIGN_Y_MIN_DARK,
+        IC_ALIGN_Y_CENTER_DARK,
+        IC_ALIGN_Y_MAX_DARK,
+        IC_ALIGN_Z_MIN_DARK,
+        IC_ALIGN_Z_CENTER_DARK,
+        IC_ALIGN_Z_MAX_DARK,
+        IC_DISTRIBUTE_X_DARK,
+        IC_DISTRIBUTE_Y_DARK,
+        IC_DISTRIBUTE_Z_DARK,
     };
 
     explicit GLGizmosManager(GLCanvas3D& parent);
@@ -301,6 +325,7 @@ public:
 
     bool is_paint_gizmo();
     bool is_allow_select_all();
+    bool is_allow_multi_select_parts_or_objects() const;
     // Empty when the open gizmo has no object clipper.
     std::optional<ClippingPlane> get_clipping_plane() const;
     bool wants_reslice_supports_on_undo() const;

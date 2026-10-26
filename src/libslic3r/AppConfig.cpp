@@ -242,6 +242,14 @@ void AppConfig::set_defaults()
         set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
+    // ORCA: whether the G-code preview keeps the opacity of the filament colors
+    if (get("preview_translucent_filaments").empty())
+        set_bool("preview_translucent_filaments", true);
+
+    // ORCA: whether realistic view gives the opaque toolpaths a glossy highlight
+    if (get(SETTING_OPENGL_REALISTIC_GLOSS).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_GLOSS, true);
+
     // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
     // multi material prints, Line Type for single material ones), "last" restores the view type the user
     // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
@@ -399,6 +407,9 @@ void AppConfig::set_defaults()
     if (get("show_plate_gridlines").empty())
         set_bool("show_plate_gridlines", true);
 
+    if (get("focus_mode").empty())
+        set_bool("focus_mode", false);
+
     if (get("show_outline").empty())
         set_bool("show_outline", false);
     
@@ -407,9 +418,14 @@ void AppConfig::set_defaults()
 
     if (get("show_labels").empty())
         set_bool("show_labels", false);
+    if (get("show_collision_volumes").empty())
+        set_bool("show_collision_volumes", false);
 
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);
+
+    if (get("show_center_of_mass").empty())
+        set_bool("show_center_of_mass", false);
 
 #ifdef _WIN32
 
@@ -921,7 +937,10 @@ std::string AppConfig::load(bool read_only)
                 }
             } else if (it.key() == "orca_presets") {
                 for (auto& j_model : it.value()) {
-                    m_printer_settings[j_model["machine"].get<std::string>()] = j_model;
+                    auto& settings = m_printer_settings[j_model["machine"].get<std::string>()];
+                    settings.clear();
+                    for (auto item = j_model.begin(); item != j_model.end(); ++item)
+                        settings[item.key()] = item.value().is_string() ? item.value().get<std::string>() : item.value().dump();
                 }
             } else if (it.key() == "local_machines") {
                 for (auto m = it.value().begin(); m != it.value().end(); ++m) {
@@ -1369,6 +1388,26 @@ bool AppConfig::write_config_file(const std::string &path, std::string body, con
         BOOST_LOG_TRIVIAL(error) << "Failed to write the backup configuration " << backup_path << ": " << ec.message();
 #endif
     return true;
+}
+
+void AppConfig::clear_local_machine_access_code(const std::string& dev_id, const std::string& agent_id)
+{
+    // Unscoped credentials predate printer agents and belong to the legacy BBL agent.
+    const bool is_bbl_agent = agent_id.empty() || agent_id == "bbl";
+    auto it = m_local_machines.find(dev_id);
+    if (it != m_local_machines.end()) {
+        const std::string& stored_agent = it->second.printer_agent_id;
+        if (stored_agent == agent_id || (is_bbl_agent && (stored_agent.empty() || stored_agent == "bbl"))) {
+            if (!it->second.access_code.empty()) {
+                it->second.access_code.clear();
+                m_dirty = true;
+            }
+        }
+    }
+    if (is_bbl_agent) {
+        erase("access_code", dev_id);
+        erase("user_access_code", dev_id);
+    }
 }
 
 bool AppConfig::get_variant(const std::string &vendor, const std::string &model, const std::string &variant) const

@@ -355,7 +355,7 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
 
     ImGui::NewLine();
     ImGui::SameLine(bottom_left_width + space_size);
-    ImGui::Text(_u8L("%d triangles").c_str(), m_configuration.wanted_count);
+    ImGui::TextUnformatted(GUI::format(_L_PLURAL("%1% triangle", "%1% triangles", m_configuration.wanted_count), m_configuration.wanted_count).c_str());
     m_imgui->disabled_end(); // use_count
 
     m_imgui->bbl_checkbox(_L("Show wireframe").c_str(), m_show_wireframe);

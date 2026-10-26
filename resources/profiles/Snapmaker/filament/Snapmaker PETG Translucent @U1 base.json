@@ -4,5 +4,8 @@
 	"inherits": "fdm_filament_petg",
 	"from": "system",
 	"filament_id": "OFW8lqnb",
-	"instantiation": "false"
+	"instantiation": "false",
+	"temperature_vitrification": [
+		"70"
+	]
 }

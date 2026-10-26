@@ -94,6 +94,7 @@ struct SyncPullResponse {
 struct SyncPushResult {
     bool success;
     int http_code;
+    int conflict_code;
     long long new_updated_time;
     ProfileUpsert server_version;
     bool server_deleted;
@@ -202,9 +203,35 @@ public:
     // ========================================================================
     std::string get_cloud_service_host() override;
     std::string get_cloud_login_url(const std::string& language = "") override;
+
+    // ========================================================================
+    // OrcaCloud webview session handoff (OrcaCloud "Webview Session Handoff" guide)
+    // ========================================================================
+    // The cloud pane never receives the desktop's access/refresh tokens. Instead the page posts
+    // request_web_session, the desktop mints a single-use token through the gateway and loads the
+    // Complete URL; the site then signs itself in. These builders return "" when no cloud URL is
+    // configured.
+    //
+    // Start URL: {web}/auth/handoff?next=<path>[&user_id=<desktop user id>]. `next` defaults to
+    // /app/profiles; user_id is included only while signed in.
+    std::string build_web_session_start_url(const std::string& next = std::string()) const;
+    // Complete URL: {web}/auth/handoff#token_hash=<hash>&state=<state>. Both values URL-encoded.
+    std::string build_web_session_complete_url(const std::string& token_hash, const std::string& state) const;
+    // Clears only the webview's own session; loaded on an explicit desktop sign-out.
+    std::string build_web_session_signout_url() const;
+    // POST {api}/api/v1/account/web-session-handoff with the desktop access token (no body),
+    // refreshing once on 401 through the shared policy. On 200 writes the single-use `token_hash`;
+    // otherwise writes the server's error code (e.g. WEB_SESSION_HANDOFF_UNAVAILABLE) into
+    // `error_code`. Blocking: call from a worker thread. Never logs the token.
+    int request_web_session_handoff(std::string& token_hash, std::string& error_code, unsigned int& http_code);
+
     int connect_server() override;
     bool is_server_connected() override;
     int refresh_connection() override;
+    // Cancels a health check started by refresh_connection() and waits for it; later
+    // refresh_connection() calls do nothing. Call it before tearing down what the server-connected
+    // and HTTP-error callbacks reach.
+    void stop_health_check();
     bool is_refresh_running() const { return refresh_running.load(); }
     int start_subscribe(std::string module) override;
     int stop_subscribe(std::string module) override;
@@ -391,6 +418,10 @@ private:
     bool decode_jwt_expiry(const std::string& token, std::chrono::system_clock::time_point& out_tp);
     bool should_refresh_locked(std::chrono::seconds skew) const;
 
+    // Server reachability probe shared by connect_server() and refresh_connection(); returns
+    // false without reporting anything once `cancel` is set.
+    bool run_health_check(const std::atomic_bool* cancel);
+
     // Callback invocation
     void invoke_server_connected_callback(int return_code, int reason_code);
     void invoke_http_error_callback(unsigned http_code, const std::string& http_body);
@@ -453,6 +484,9 @@ private:
     mutable std::recursive_mutex state_mutex;
     std::thread refresh_thread;
     std::atomic_bool refresh_running{false};
+    std::thread health_check_thread;
+    std::atomic_bool health_check_running{false};
+    std::atomic_bool health_check_stopped{false};
 };
 
 } // namespace Slic3r

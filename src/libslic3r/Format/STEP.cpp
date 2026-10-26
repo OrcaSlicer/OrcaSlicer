@@ -4,6 +4,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/I18N.hpp"
 
 #include "STEP.hpp"
 
@@ -68,7 +69,7 @@ bool StepPreProcessor::preprocess(const char* path, std::string &output_path)
 {
     boost::nowide::ifstream infile(path);
     if (!infile.good()) {
-        throw Slic3r::RuntimeError(std::string("Load step file failed.\nCannot open file for reading.\n"));
+        throw Slic3r::RuntimeError(_u8L("Load step file failed.\nCannot open file for reading.\n"));
         return false;
     }
 
@@ -116,7 +117,7 @@ bool StepPreProcessor::isUtf8File(const char* path)
 {
     boost::nowide::ifstream infile(path);
     if (!infile.good()) {
-        throw Slic3r::RuntimeError(std::string("Load step file failed.\nCannot open file for reading.\n"));
+        throw Slic3r::RuntimeError(_u8L("Load step file failed.\nCannot open file for reading.\n"));
         return false;
     }
 
@@ -236,19 +237,29 @@ static void getNamedSolids(const TopLoc_Location& location,
         int                      i = 0;
         switch (shape_type) {
         case TopAbs_COMPOUND:
-            if (!isSplitCompound) {
-                namedSolids.emplace_back(TopoDS::Compound(transform.Shape()), fullName);
-                break;
-            }
         case TopAbs_COMPSOLID:
             if (!isSplitCompound) {
-                namedSolids.emplace_back(TopoDS::CompSolid(transform.Shape()), fullName);
+                namedSolids.emplace_back(transform.Shape(), fullName);
             } else {
                 for (explorer.Init(transform.Shape(), TopAbs_SOLID); explorer.More(); explorer.Next()) {
                     i++;
                     const TopoDS_Shape& currentShape = explorer.Current();
                     namedSolids.emplace_back(TopoDS::Solid(currentShape), fullName + "-SOLID-" + std::to_string(i));
                 }
+                // Surface models have no solids: each shell outside a solid is a part, and loose faces stay together.
+                i = 0;
+                for (explorer.Init(transform.Shape(), TopAbs_SHELL, TopAbs_SOLID); explorer.More(); explorer.Next())
+                    namedSolids.emplace_back(explorer.Current(), fullName + "-SHELL-" + std::to_string(++i));
+                TopoDS_Compound loose_faces;
+                TopoDS_Builder  builder;
+                builder.MakeCompound(loose_faces);
+                bool has_loose_faces = false;
+                for (explorer.Init(transform.Shape(), TopAbs_FACE, TopAbs_SHELL); explorer.More(); explorer.Next()) {
+                    builder.Add(loose_faces, explorer.Current());
+                    has_loose_faces = true;
+                }
+                if (has_loose_faces)
+                    namedSolids.emplace_back(loose_faces, fullName);
             }
             break;
         case TopAbs_SOLID:

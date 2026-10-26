@@ -36,6 +36,7 @@
 
 #include "3DScene.hpp"
 #include "BitmapCache.hpp"
+#include "GLCanvas3D.hpp"
 #include "GLShader.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
@@ -381,16 +382,22 @@ void UVEditorCanvas::update_status()
                                            _L("Pick Unwrap as a texture layer's mapping to edit its UVs here");
         else if (m_select_mode == SelectMode::Vertex)
             msg = m_sel_vertices.size() > 1 ?
-                      wxString::Format(_L("%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"),
+                      wxString::Format(_L_PLURAL("%d vertex selected  |  drag = move together, Shift/Ctrl click = add/remove",
+                                                 "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove",
+                                                 m_sel_vertices.size()),
                                        int(m_sel_vertices.size())) :
                       _L("Vertex mode: drag a vertex to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame");
         else if (m_select_mode == SelectMode::Edge)
             msg = m_sel_edges.size() > 1 ?
-                      wxString::Format(_L("%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"),
+                      wxString::Format(_L_PLURAL("%d edge selected  |  drag = move together, Shift/Ctrl click = add/remove",
+                                                 "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove",
+                                                 m_sel_edges.size()),
                                        int(m_sel_edges.size())) :
                       _L("Edge mode: drag an island edge to reshape  |  Shift/Ctrl click = multi-select, wheel = zoom, Home = frame");
         else if (m_selection.size() > 1)
-            msg = wxString::Format(_L("%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"),
+            msg = wxString::Format(_L_PLURAL("%d island selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary",
+                                             "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary",
+                                             m_selection.size()),
                                     int(m_selection.size()));
         else if (m_selected_island >= 0)
             msg = wxString::Format(_L("Island %d selected  |  drag = move, R = rotate, S = scale, Shift/Ctrl click = multi-select, Home = frame"),
@@ -939,7 +946,8 @@ void UVEditorCanvas::on_mouse(wxMouseEvent &evt)
             m_active_edge = (hit.first >= 0 && is_edge_selected(hit)) ? hit : std::pair<int, int>{ -1, -1 };
             m_gesture     = (m_active_edge.first >= 0) ? Gesture::MoveEdge : Gesture::Pan;
         } else {
-            const int hit = island_at(uv);
+            const std::vector<int> selection_before = m_selection;
+            const int              hit              = island_at(uv);
             if (hit >= 0) {
                 if (evt.ShiftDown()) {
                     // Shift adds to the selection (and makes the clicked one the new primary).
@@ -969,6 +977,10 @@ void UVEditorCanvas::on_mouse(wxMouseEvent &evt)
                 m_selected_island = -1;
             }
             m_gesture = (m_selected_island >= 0) ? Gesture::MoveIsland : Gesture::Pan;
+            // The owner shows the selection on the model and would not hear of this click otherwise in time: a
+            // click that clears the selection starts no gesture, and one that sets it reports only on release.
+            if (m_selection != selection_before)
+                run_command(Command::SelectionChanged);
         }
         grab_mouse();
         Refresh();
@@ -1319,8 +1331,13 @@ void UVEditorCanvas::on_size(wxSizeEvent &evt)
     // Update() flushes it immediately - still through the normal paint path (unlike calling
     // render() directly), which matters because this canvas shares the app's one GL context with
     // the 3D view and must not hijack it outside its own paint.
+    // Not while a 3D canvas frame is in progress, though: wxGTK delivers this size event synchronously
+    // when the texture displacement gizmo relays out the pane from its ImGui panel, i.e. from inside
+    // that frame, and flushing the paint there would take the shared context away from it. The Refresh()
+    // then runs the paint once the frame is over.
     Refresh();
-    Update();
+    if (!GLCanvas3D::is_frame_in_progress())
+        Update();
 }
 
 void UVEditorCanvas::on_leave(wxMouseEvent &evt)
@@ -1341,6 +1358,16 @@ void UVEditorCanvas::render()
 {
     if (m_context == nullptr || !IsShownOnScreen())
         return;
+    // Painted from inside a 3D canvas frame - a modal dialog the gizmo opened from its ImGui panel runs
+    // this paint, as does any other synchronous event raised there. Making this surface current now
+    // would take the shared context away from that canvas mid-frame: its remaining draws would land
+    // here and, on Mesa/X11, its SwapBuffers() would be a fatal BadMatch. Skip, but ask for another
+    // paint so the skipped one is not simply lost. The pane stays stale for as long as a nested modal
+    // loop keeps a frame on the stack, which is behind the dialog anyway.
+    if (GLCanvas3D::is_frame_in_progress()) {
+        Refresh();
+        return;
+    }
 
     // wxGLCanvas::SetCurrent() genuinely fails (returns false) on a canvas that isn't shown on
     // screen, and can also fail on a pixel-format mismatch with the context - and every GL call
@@ -1989,8 +2016,8 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
     m_layer_name->SetMinSize(wxSize(FromDIP(30), -1));
     m_tile = text(wxEmptyString, c.dim);
     m_tile->SetToolTip(_L("The active layer's tile size: how much of the model one repeat of the texture covers. The "
-                          "canvas is measured in tiles, so one grid cell is one repeat. Change it with Tiling in the "
-                          "layer's settings."));
+                          "canvas is measured in tiles, so one grid cell is one repeat. Change it with Tile size in "
+                          "the layer's settings."));
     header->Add(m_thumb, 0, wxALIGN_CENTER_VERTICAL);
     header->Add(m_layer_name, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
     header->Add(m_tile, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
@@ -2208,8 +2235,9 @@ void UVEditorPanel::apply_state(const UVEditorCanvas::PaneState &s)
                                                      _L("No islands have been reshaped by hand, so there is nothing to "
                                                         "discard."));
 
-    m_stats->SetLabel(s.unwrapped ? wxString::Format(_L("%d islands, %s faces"), s.island_count,
-                                                     wxString(std::to_string(s.face_count))) :
+    m_stats->SetLabel(s.unwrapped ? wxString::Format(_L_PLURAL("%d island", "%d islands", s.island_count), s.island_count) + ", " +
+                                        wxString::Format(_L_PLURAL("%s face", "%s faces", s.face_count),
+                                                         wxString(std::to_string(s.face_count))) :
                                     wxString());
     m_stats->SetToolTip(s.unwrapped ? _L("How the painted area came out of the unwrap: the number of separate pieces it "
                                          "was cut into (at the seams and at edges sharper than the seam angle), and how "

@@ -50,6 +50,7 @@
 #include "ParamsPanel.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/CheckBox.hpp" // ORCA
+#include "Widgets/ComboBox.hpp"
 
 class TabCtrl;
 class ModeSwitchButton;
@@ -404,7 +405,11 @@ public:
 	void		on_roll_back_value(const bool to_sys = false);
 
 	PageShp		add_options_page(const wxString& title, const std::string& icon, bool is_extruder_pages = false);
-	static wxString translate_category(const wxString& title, Preset::Type preset_type);
+	// The name a category is displayed under. A few printer pages are renamed for display (BBL
+	// "Extruder 1/2" -> "Left/Right Extruder", the shared "Extruder" page -> "Extruders" when there are
+	// several). With `translate` false the same name is returned untranslated, i.e. as an English UI
+	// displays it.
+	static wxString translate_category(const wxString& title, Preset::Type preset_type, bool translate = true);
 
 	virtual void	OnActivate();
 	virtual void	on_preset_loaded() {}
@@ -419,6 +424,40 @@ public:
 	//BBS update plater presets if update_plater_presets = true
 	void			update_tab_ui(bool update_plater_presets = false);
 	void			load_config(const DynamicPrintConfig& config);
+	// Host/plugin API: set one option of this tab's currently edited preset from its serialized
+	// string value, then run the same committed-change path a field edit runs. `opt_key` must be a
+	// setting of this tab's preset type, so a key of another preset type (e.g. a printer setting
+	// passed to the process tab) is rejected instead of written silently. `value` is parsed by the
+	// strict config deserializer, which raises std::invalid_argument for an unknown key or a value
+	// the option cannot parse, and leaves the preset unchanged. The key-specific behaviour runs
+	// through its ConfigOptionsGroup::on_change_OG(): with the option's built field it uses the
+	// field's typed value, otherwise the owning group builds the value and dispatches the same call,
+	// so a not-yet-built field still gets it. A key the GUI edits through a custom widget instead
+	// takes the shared no-field commit path, Tab::load_key_value() in saved mode.
+	void			apply_preset_config_value(const std::string& opt_key, const std::string& value);
+
+	// Host/plugin API: apply a batch of settings to this tab's currently edited preset as one
+	// transaction. Each pair is a setting of this tab's preset type and its serialized string value.
+	// The whole batch is parsed and validated before the edited preset is touched; each setting then
+	// runs the same committed-change path apply_preset_config_value() uses, so setting-specific
+	// validation, correction and on_change callbacks stay authoritative. Duplicate keys are rejected,
+	// because the transaction must not resolve an incidental write order, and the batch order is
+	// preserved. If applying the batch fails, the edited preset's config is restored to its pre-batch
+	// state and the state derived from it (compatibility marks, the preset selector, dependent tabs,
+	// the Plater and the printer agent) is recomputed, so the edited preset never keeps a subset of
+	// the staged settings.
+	//
+	// Only the edited preset is restored. A setting's on_change callback is a GUI method, not a pure
+	// function of the config, so effects outside the edited preset cannot be prepared or undone: the
+	// transaction does not reverse preset/slot selection made while resolving the target, a dialog
+	// decision the user already accepted, an undo snapshot, a dependent preset's rewritten config, or
+	// anything already sent to a device. Exact all-or-nothing across those is not achievable while the
+	// authoritative GUI callbacks run; this method guarantees the edited preset's own settings, not
+	// those external effects.
+	//
+	// Throws std::invalid_argument for an unknown key, a value the option cannot parse, or a duplicate
+	// key; std::runtime_error when the preset or main window is unavailable.
+	void			apply_preset_config_values(const std::vector<std::pair<std::string, std::string>>& values);
 	virtual void	reload_config();
     void            update_mode();
     void            update_visibility();
@@ -431,6 +470,8 @@ public:
     Field*          get_field(const t_config_option_key &opt_key, Page** selected_page, int opt_index = -1);
     void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
     void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
+    // Renames the row that owns the option. `label` is the untranslated English msgid (an L("...")
+    // string); it is translated for display and kept as the row's English search alias.
     void            set_option_label(const std::string &opt_key, const wxString &label, int opt_index = -1);
 
     // Live state of the settings row that owns an option, read from the built pages.
@@ -438,6 +479,7 @@ public:
     {
         bool     visible{true}; // false when ConfigManipulation hides the row
         wxString label;         // Line::label the row draws (may change at runtime)
+        wxString label_en;      // Line::label_en, the untranslated English of label
         bool     multi{false};  // row packs several options, so label is precomposed
     };
     SettingRowState setting_row_state(const std::string &opt_id) const;
@@ -499,6 +541,12 @@ protected:
 	wxSizer*		compatible_widget_create(wxWindow* parent, PresetDependencies &deps);
 	void 			compatible_widget_reload(PresetDependencies &deps);
 	void			load_key_value(const std::string& opt_key, const boost::any& value, bool saved_value = false);
+	// Commit one option whose new value already sits in m_config through the same path a field edit
+	// runs (throwing field, otherwise the owning group's on_change_OG()). Reloads the option's page
+	// so a built field reports the committed value, but performs no tab-wide refresh. Returns true
+	// when a built field or a group owns the option, false when the GUI edits it through a custom
+	// widget with no group entry.
+	bool			commit_preset_config_value(const std::string& opt_key);
 
 	//BBS: GUI refactor
 	// return true if cancelled
@@ -664,18 +712,25 @@ public:
     void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value) override;
 };
 
+class IMEXModesCtrl;
+
 class TabPrinter : public Tab
 {
 private:
-	bool		m_use_silent_mode = false;
 	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
-	bool		m_rebuild_kinematics_page = false;
 	void        update_input_shaper_menu(GCodeFlavor flavor);
 
+	// R8: track the belt->non-belt transition so update_fff() only clears the belt-derived
+	// build_plate_tilt on a genuine in-place belt-off toggle, never on a manual tilt or a
+	// preset switch. m_belt_synced_tilt_{x,y} hold the exact values belt-sync last wrote.
+	bool		m_was_belt_printer = false;
+	double		m_belt_synced_tilt_x = 0.;
+	double		m_belt_synced_tilt_y = 0.;
 
     std::vector<PageShp>			m_pages_fff;
     std::vector<PageShp>			m_pages_sla;
 
+    IMEXModesCtrl*      m_imex_modes_ctrl               {nullptr};
 public:
 	ScalableButton*	m_reset_to_filament_color = nullptr;
 

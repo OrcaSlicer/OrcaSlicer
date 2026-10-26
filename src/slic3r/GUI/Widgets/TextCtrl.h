@@ -1,3 +1,5 @@
+#pragma once
+
 #include <wx/textctrl.h>
 #include <wx/colour.h>
 

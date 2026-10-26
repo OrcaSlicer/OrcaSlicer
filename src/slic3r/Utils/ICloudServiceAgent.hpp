@@ -200,6 +200,9 @@ public:
 
     /**
      * Force a server state recheck, clearing any cached state.
+     * The result arrives through is_server_connected() and OnServerConnectedFn. Implementations may
+     * return before the check finishes, fold the call into a check already in flight, and ignore
+     * calls while the agent is shutting down.
      */
     virtual int refresh_connection() = 0;
 

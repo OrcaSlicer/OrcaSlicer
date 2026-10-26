@@ -344,7 +344,7 @@ TARGET_BIN="\$1"
 
 if target_missing_runtime_library "\$TARGET_BIN" "libOpenGL.so.0" || ! has_host_runtime_library "libOpenGL.so.0"; then
     echo "Error: missing host OpenGL runtime library libOpenGL.so.0." >&2
-    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0 and libglu1-mesa" >&2
+    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0" >&2
     echo "On Arch/CachyOS, install: libglvnd" >&2
     exit 1
 fi
@@ -429,7 +429,8 @@ if [ "\$XDG_SESSION_TYPE" = "wayland" ] && [ "\$ZINK_DISABLE_OVERRIDE" != "1" ];
                 export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
                 export MESA_LOADER_DRIVER_OVERRIDE=zink
                 export GALLIUM_DRIVER=zink
-                export WEBKIT_DISABLE_DMABUF_RENDERER=1
+                # WebKit's NVIDIA DMABUF workaround is applied by the binary itself,
+                # gated on the runtime WebKitGTK version (src/OrcaSlicer.cpp).
             fi
         fi
     fi

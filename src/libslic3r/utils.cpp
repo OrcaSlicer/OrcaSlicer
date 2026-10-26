@@ -50,6 +50,7 @@
 #include <system_error>
 #include <string_view>
 #include <vector>
+#include <regex>
 
 #include "Semver.hpp"
 #include "format.hpp"
@@ -1744,9 +1745,7 @@ std::string format_diameter_to_str(double diameter, int precision)
     return oss.str();
 }
 
-// Returns platform-specific string to be used as log output or parsed in SysInfoDialog.
-// The latter parses the string with (semi)colons as separators, it should look about as
-// "desc1: value1; desc2: value2" or similar (spaces should not matter).
+// Returns platform-specific string to be used as log output.
 std::string log_memory_info(bool ignore_loglevel)
 {
     std::string out;
@@ -1950,7 +1949,7 @@ void copy_directory_recursively(const boost::filesystem::path& source,
             if (cfr != CopyFileResult::SUCCESS) {
                 BOOST_LOG_TRIVIAL(error) << "Copying failed(" << cfr << "): " << error_message;
                 throw Slic3r::CriticalException(Slic3r::format(
-                    ("Copying directory %1% to %2% failed: %3%"),
+                    _u8L("Copying directory %1% to %2% failed: %3%"),
                     source, target, error_message));
             }
         }
@@ -2026,7 +2025,9 @@ static Semver installable_cache_version(const boost::filesystem::path& dir, cons
     const auto cache_ver = Semver::parse(VendorCacheFile::peek_version((dir / (vendor + ".opc")).string(), vendor));
     if (! cache_ver)
         return Semver::invalid();
-    const Semver profile_ver = get_version_from_json((dir / (vendor + ".json")).string());
+    // Packaging prunes the profile of every vendor that ships a cache.
+    const boost::filesystem::path json = dir / (vendor + ".json");
+    const Semver profile_ver = boost::filesystem::exists(json) ? get_version_from_json(json.string()) : Semver();
     return cache_covers(*cache_ver, profile_ver) ? *cache_ver : Semver::invalid();
 }
 
@@ -2256,5 +2257,69 @@ bool check_layer_id_pattern(const std::string& pattern, int layer_id){
     return mod >= 0 && mod < count;
 }
 
+boost::filesystem::path extended_path(const boost::filesystem::path& path) {
+#ifdef WIN32
+    namespace fs = boost::filesystem;
+
+    // Already extended, or an explicit device path (which is not subject to MAX_PATH and must not
+    // be absolutized or normalized): leave it alone.
+    {
+        fs::path prefix_candidate = path;
+        const std::wstring native = prefix_candidate.make_preferred().wstring();
+        if (native.rfind(L"\\\\?\\", 0) == 0 || native.rfind(L"\\\\.\\", 0) == 0)
+            return fs::path(native);
+    }
+
+    fs::path absolute = path;
+    if (!absolute.is_absolute()) {
+        boost::system::error_code ec;
+        absolute = fs::absolute(absolute, ec);
+        if (ec)
+            return path; // can't form a valid prefixed path from a relative one
+    }
+
+    // A trailing separator is redundant to the Win32 APIs, but lexically_normal() would rewrite it
+    // as a "." element, which the "\\?\" prefix (normalisation off) takes literally. Drop it first.
+    while (absolute.has_relative_path() && absolute.filename() == ".")
+        absolute = absolute.parent_path();
+
+    // The "\\?\" prefix turns off Win32 normalisation, so do it here first.
+    absolute = absolute.lexically_normal();
+
+    // Extended paths only recognize backslash separators.
+    const std::wstring native = absolute.make_preferred().wstring();
+    if (native.empty())
+        return path;
+    if (native.rfind(L"\\\\", 0) == 0)
+        return fs::path(L"\\\\?\\UNC\\" + native.substr(2)); // \\server\share\... -> \\?\UNC\server\share\...
+    return fs::path(L"\\\\?\\" + native);                    // C:\dir\... -> \\?\C:\dir\...
+#else
+    return path;
+#endif
+}
+
+bool is_printables_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://printables.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_makerworld_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://makerworld.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_thingiverse_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://www.thingiverse.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+std::string sanitize_filename(const std::string &filename)
+{
+    const std::regex special_chars("[/\\\\:*?\"<>|]");
+    return std::regex_replace(filename, special_chars, "_");
+}
 
 }; // namespace Slic3r

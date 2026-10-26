@@ -35,7 +35,7 @@ CrealityDiscoveryDialog::CrealityDiscoveryDialog(wxWindow* parent)
     m_list = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                             wxLC_REPORT | wxSIMPLE_BORDER | wxLC_SINGLE_SEL);
     m_list->SetMinSize(wxSize(50 * em, 18 * em));
-    m_list->AppendColumn(_L("Model"),    wxLIST_FORMAT_LEFT,  8 * em);
+    m_list->AppendColumn(_L_CONTEXT("Model", "Printer model"),    wxLIST_FORMAT_LEFT,  8 * em);
     m_list->AppendColumn(_L("Hostname"), wxLIST_FORMAT_LEFT, 14 * em);
     m_list->AppendColumn(_L("IP"),       wxLIST_FORMAT_LEFT, 14 * em);
 
@@ -109,7 +109,8 @@ void CrealityDiscoveryDialog::run_discovery()
             "network and not blocked by Wi-Fi client isolation, then click Scan again."));
     } else {
         m_status->SetLabel(wxString::Format(
-            _L("Found %zu Creality printer(s). Select one and click Use Selected."),
+            _L_PLURAL("Found %zu Creality printer. Select it and click Use Selected.",
+                      "Found %zu Creality printers. Select one and click Use Selected.", m_rows.size()),
             m_rows.size()));
         m_list->Select(0);
     }

@@ -11,6 +11,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <string>
 #include <thread>
@@ -237,6 +238,7 @@ private:
     void open_plugin_on_cloud(const std::string& sharing_token);
     void open_plugin_hub();
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
     // Runs one web command on a clean main-loop stack; see on_script_message.
     void handle_web_command(const nlohmann::json& payload);
     // Re-raises this dialog after a transient modal it opened (file dialog, message box,

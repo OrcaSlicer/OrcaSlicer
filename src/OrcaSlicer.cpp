@@ -99,10 +99,12 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
+#include "libslic3r/MeshRepair.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Format/AMF.hpp"
@@ -143,6 +145,7 @@
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCode/GCodeStatistics.hpp"
 #include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -161,6 +164,7 @@ using json = nlohmann::json;
 #include <X11/Xlib.h>
 #endif
 #include <unistd.h>
+#include "slic3r/GUI/Widgets/WebView.hpp"
 #endif
 
 #ifdef SLIC3R_GUI
@@ -179,6 +183,12 @@ using namespace Slic3r;
 }error_message;*/
 
 #define MAX_CLONEABLE_SIZE 512
+
+static Pointfs legacy_bed_exclude_area_points(const DynamicPrintConfig &config)
+{
+    const ConfigOptionPoints *option = config.option<ConfigOptionPoints>("bed_exclude_area");
+    return option != nullptr ? option->values : Pointfs{};
+}
 
 std::map<int, std::string> cli_errors = {
     {CLI_SUCCESS, "Success."},
@@ -206,7 +216,8 @@ std::map<int, std::string> cli_errors = {
     {CLI_OBJECT_ORIENT_FAILED, "An error occurred when auto-orienting object(s)."},
     {CLI_MODIFIED_PARAMS_TO_PRINTER, "Found modified parameter in printer preset in the 3mf file, which should not be changed."},
         {CLI_FILE_VERSION_NOT_SUPPORTED, "Unsupported 3MF version. Please make sure the 3MF file was created with the official version of Bambu Studio, not a beta version."},
-    {CLI_NO_SUITABLE_OBJECTS, "One of the plate is empty or has no object fully inside it. Please check that the 3mf contains no empty plate in Orca Slicer before uploading."},
+    {CLI_EXPORT_STATISTICS_ERROR, "Failed exporting the G-code statistics."},
+    {CLI_NO_SUITABLE_OBJECTS, "The plate has nothing to slice: it is empty, or no object on it is both printable and fully inside the print volume."},
     {CLI_VALIDATE_ERROR, "There are some incorrect slicing parameters in the 3mf. Please verify the slicing of all plates in Orca Slicer before uploading."},
     {CLI_OBJECTS_PARTLY_INSIDE, "Some objects are located over the boundary of the heated bed."},
     {CLI_EXPORT_CACHE_DIRECTORY_CREATE_FAILED, "Failed creating directory when exporting cache data."},
@@ -1122,6 +1133,19 @@ static void load_downward_settings_list_from_config(std::string config_file, std
     }
 }
 
+#ifdef __WXGTK__
+// Virtual GPUs (VirtualBox, VMware, QEMU) cannot back WebKit's hardware DMABUF renderer.
+static bool is_hypervisor_guest()
+{
+    std::ifstream cpuinfo("/proc/cpuinfo");
+    std::string line;
+    while (std::getline(cpuinfo, line))
+        if (boost::starts_with(line, "flags"))
+            return line.find(" hypervisor") != std::string::npos;
+    return false;
+}
+#endif
+
 int CLI::run(int argc, char **argv)
 {
     // Mark the main thread for the debugger and for runtime checks.
@@ -1153,14 +1177,27 @@ int CLI::run(int argc, char **argv)
     // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
     // worked around appears fixed in WebKit2GTK >= 2.42; leaving it
     // unset preserves WebKit hardware acceleration on Device / Setup
-    // Wizard / login / store. The default path still applies it on
-    // XWayland sessions as a conservative fallback for older WebKit.
+    // Wizard / login / store. The default path applies it only where it
+    // forces GDK_BACKEND=x11 below (a build without EGL, so the app really
+    // runs through XWayland), and only when the linked WebKitGTK predates
+    // the fix (< 2.42), as a conservative fallback for older WebKit.
     // ------------------------------------------------------------------
     {
         const char* gdk_backend = ::getenv("GDK_BACKEND");
         // Match "x11" and comma-prefixed forms like "x11,wayland" (GTK
         // honours the first backend in the comma-separated list).
         const bool x11_opt_in = gdk_backend && boost::starts_with(gdk_backend, "x11");
+
+        // NVIDIA's proprietary driver cannot back WebKitGTK's DMABUF renderer.
+        // Force the shared-memory transport, which keeps compositing and threaded
+        // scrolling; the second variable clears Debian/Ubuntu/openSUSE's isNVIDIA().
+        if (::access("/proc/driver/nvidia/version", F_OK) == 0 && WebView::SupportsForceSharedMemory()) {
+            ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
+            ::setenv("WEBKIT_FORCE_DMABUF_RENDERER", "1", /* replace */ false);
+        }
+
+        if (is_hypervisor_guest() && WebView::SupportsForceSharedMemory())
+            ::setenv("WEBKIT_DMABUF_RENDERER_FORCE_SHM", "1", /* replace */ false);
 
         if (x11_opt_in) {
             // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
@@ -1201,22 +1238,17 @@ int CLI::run(int argc, char **argv)
                 if (wayland_env && *wayland_env) {
                     BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
                     ::setenv("GDK_BACKEND", "x11", true);
+
+                    // GTK will use X11 in a Wayland session here, which is the
+                    // one default-path case that really runs through XWayland.
+                    // WebKit2GTK accelerated compositing could fail silently
+                    // there on releases before 2.42, so force it off. Disabling
+                    // it also turns off threaded scrolling, hence the gate.
+                    if (WebView::NeedsCompositingWorkaround())
+                        ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
                 }
             }
             #endif
-
-            // WebKit2GTK compositing can fail under XWayland on older
-            // WebKit releases. Disable it only when both DISPLAY and
-            // WAYLAND_DISPLAY are set (i.e. an XWayland session is in
-            // use). On pure X11 or native Wayland, compositing is left
-            // enabled so WebKit retains HW acceleration.
-            {
-                const char* display_env_wk = ::getenv("DISPLAY");
-                const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-                if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
-                    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
-                }
-            }
 
             // XInitThreads is needed before GStreamer may use Xlib. On
             // native Wayland without DISPLAY, GStreamer uses waylandsink
@@ -1463,7 +1495,7 @@ int CLI::run(int argc, char **argv)
     //int arrange_option;
     int plate_to_slice = 0, filament_count = 0, duplicate_count = 0, real_duplicate_count = 0, current_extruder_count = 1, new_extruder_count = 1, current_printer_variant_count = 1, current_print_variant_count = 1, new_printer_variant_count = 1;
     bool first_file = true, is_bbl_3mf = false, need_arrange = true, has_thumbnails = false, up_config_to_date = false, normative_check = true, duplicate_single_object = false, use_first_fila_as_default = false, minimum_save = false, enable_timelapse = false;
-    bool allow_rotations = true, skip_modified_gcodes = false, avoid_extrusion_cali_region = false, skip_useless_pick = false, allow_newer_file = false, current_is_multi_extruder = false, new_is_multi_extruder = false, allow_mix_temp = false, enable_wrapping_detect = false;
+    bool allow_rotations = false, skip_modified_gcodes = false, avoid_extrusion_cali_region = false, skip_useless_pick = false, allow_newer_file = false, current_is_multi_extruder = false, new_is_multi_extruder = false, allow_mix_temp = false, enable_wrapping_detect = false;
     Semver file_version;
     std::map<size_t, bool> orients_requirement;
     std::vector<Preset*> project_presets;
@@ -1537,6 +1569,9 @@ int CLI::run(int argc, char **argv)
     ConfigOptionBool* allow_mix_temp_option = m_config.option<ConfigOptionBool>("allow_mix_temp");
     if (allow_mix_temp_option)
         allow_mix_temp = allow_mix_temp_option->value;
+
+    const ConfigOptionBool* export_statistics_option = m_config.option<ConfigOptionBool>("export_statistics");
+    const bool              export_statistics        = export_statistics_option != nullptr && export_statistics_option->value;
 
     ConfigOptionBool* avoid_extrusion_cali_region_option = m_config.option<ConfigOptionBool>("avoid_extrusion_cali_region");
     if (avoid_extrusion_cali_region_option)
@@ -1814,7 +1849,7 @@ int CLI::run(int argc, char **argv)
 
                     //use Pointfs insteadof Points
                     old_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
-                    old_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area", true)->values;
+                    old_exclude_area = legacy_bed_exclude_area_points(config);
                     if (old_printable_area.size() >= 4) {
                         BoundingBoxf old_printable_bbox(old_printable_area);
                         old_printable_width = static_cast<int>(old_printable_bbox.size().x());
@@ -2695,10 +2730,24 @@ int CLI::run(int argc, char **argv)
         fetch_compatible_values = true;
     }
 
+    // A project whose different_settings_to_system is missing or empty in every entry does not say which of its
+    // values were changed: the GUI saves it that way when its presets match their parents, but also when it cannot
+    // find those parents. Only --uptodate then replaces the stored values with system ones.
+    const bool refresh_unlisted = up_config_to_date || std::any_of(current_different_settings.begin(), current_different_settings.end(),
+                                                                   [](const std::string &keys) { return !keys.empty(); });
+
     // Refresh every project filament no loaded filament replaces from its current system preset, as the GUI
     // does when it loads the project; the filament merge below keeps the keys the project lists as changed.
+    // Without refresh_unlisted it keeps every key the project has except filament_extruder_variant, whose
+    // system layout the kept values are mapped onto.
     // Entries stay in slot order, which the merge's variant bookkeeping relies on.
     std::vector<bool> load_filaments_refresh(load_filaments_config.size(), false);
+    std::set<std::string> project_keys;
+    if (!refresh_unlisted) {
+        for (const std::string &key : m_print_config.keys())
+            project_keys.insert(key);
+        project_keys.erase("filament_extruder_variant");
+    }
     if (is_bbl_3mf && new_printer_name.empty()) {
         const ConfigOptionStrings *project_filament_ids = m_print_config.option<ConfigOptionStrings>("filament_ids");
         for (size_t index = 0; index < current_filaments_system_name.size(); index++) {
@@ -3072,8 +3121,8 @@ int CLI::run(int argc, char **argv)
 
     // Load the project's printer and process settings as the GUI loads its presets: over the default preset,
     // with every key the project does not list as changed, including keys saved before an option existed,
-    // taken from its current system preset.
-    auto load_project_preset = [this, &ensure_system_preset_resolver, &current_different_settings, filament_count](const std::string &system_name, Preset::Type type) {
+    // taken from its current system preset. Without refresh_unlisted the project only gets the keys it lacks.
+    auto load_project_preset = [this, &ensure_system_preset_resolver, &current_different_settings, refresh_unlisted, filament_count](const std::string &system_name, Preset::Type type) {
         if (system_name.empty())
             return;
         // Preset bookkeeping the CLI keeps in its own groups, e.g. inherits_group and print_compatible_printers.
@@ -3096,7 +3145,7 @@ int CLI::run(int argc, char **argv)
         for (const std::string &key : keys) {
             const ConfigOption *opt = config.option(key);
             const ConfigOption *old = m_print_config.option(key);
-            if (bookkeeping_keys.count(key) != 0 || opt == nullptr || (old != nullptr && *old == *opt))
+            if (bookkeeping_keys.count(key) != 0 || opt == nullptr || (old != nullptr && (!refresh_unlisted || *old == *opt)))
                 continue;
             BOOST_LOG_TRIVIAL(info) << boost::format("CLI: %1% from '%2%': %3% -> %4%") % key % system_name % (old ? old->serialize() : std::string("(missing)")) % opt->serialize();
             m_print_config.set_key_value(key, opt->clone());
@@ -3435,9 +3484,14 @@ int CLI::run(int argc, char **argv)
                 max_self_index = std::max(max_self_index, v);
                 min_self_index = std::min(min_self_index, v);
             }
-            if (max_self_index > filament_count || min_self_index < 1) {
-                BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] is invalid for filament_count %3%, regenerating")
-                        % min_self_index % max_self_index % filament_count;
+            // And a project saved with FEWER filaments than are now loaded (a
+            // one-filament project sliced with two --load-filaments) leaves the tables half filled:
+            // the variant matching below then reads past filament_extruder_variant and
+            // set_with_restore_2 throws an uncaught size error. Regenerate in that case too.
+            if (max_self_index > filament_count || min_self_index < 1 || max_self_index < filament_count
+                || (int) filament_self_index_opt->values.size() < filament_count) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] (size %4%) is invalid for filament_count %3%, regenerating")
+                        % min_self_index % max_self_index % filament_count % filament_self_index_opt->values.size();
                 need_regenerate_self_index = true;
             }
         }
@@ -3477,6 +3531,8 @@ int CLI::run(int argc, char **argv)
             int filament_index = load_filaments_index[index];
             // A filament given with --load-filaments replaces the slot; a refreshed one keeps the project's changed keys.
             const bool loaded = load_filament_count > 0 && !load_filaments_refresh[index];
+            // A refreshed filament of a project that lists no changed settings keeps every key it has.
+            const bool keep_project = load_filaments_refresh[index] && !refresh_unlisted;
             std::vector<std::string> different_keys;
 
             //ORCA: diff before load_default_gcodes_to_config, the way the process and machine
@@ -3504,6 +3560,8 @@ int CLI::run(int argc, char **argv)
                 different_settings[filament_index] = filament_different_settings;
                 inherits_group[filament_index] = load_filaments_inherit[index];
             }
+            else if (keep_project)
+                different_keys.assign(project_keys.begin(), project_keys.end());
             else {
                 std::string diff_settings;
 
@@ -3528,6 +3586,10 @@ int CLI::run(int argc, char **argv)
                 std::vector<std::string>& filament_variants = curr_variant_opt->values;
                 filament_variants.resize(filament_count, get_extruder_variant_string(etDirectDrive, nvtStandard));
             }
+            // See the filament_self_index note above: one variant per filament for
+            // the filaments the project did not know about.
+            if ((int) curr_variant_opt->values.size() < filament_count)
+                curr_variant_opt->values.resize(filament_count, get_extruder_variant_string(etDirectDrive, nvtStandard));
             const ConfigOptionStrings *new_variant_opt = dynamic_cast<const ConfigOptionStrings*>(config.option("filament_extruder_variant", true));
 
             std::vector<int> new_variant_indice;
@@ -3536,7 +3598,7 @@ int CLI::run(int argc, char **argv)
 
             for (int i = 0; i < new_variant_count; i++)
             {
-                for (int j = old_start_indice[filament_index - 1]; j < old_start_indice[filament_index - 1] + old_variant_count; j++)
+                for (int j = old_start_indice[filament_index - 1]; j < old_start_indice[filament_index - 1] + old_variant_count && j < (int) curr_variant_opt->values.size(); j++)
                 {
                     if (curr_variant_opt->values[j] == new_variant_opt->values[i]) {
                         new_variant_indice[i] = j;
@@ -3588,7 +3650,19 @@ int CLI::run(int argc, char **argv)
                                 ConfigOptionVectorBase* opt_vec_dst = static_cast<ConfigOptionVectorBase*>(opt);
                                 const ConfigOptionVectorBase* opt_vec_src = static_cast<const ConfigOptionVectorBase*>(source_opt);
                                 //set with index
-                                opt_vec_dst->set_with_restore_2(opt_vec_src, new_variant_indice, old_start_indice[filament_index - 1], old_variant_count);
+                                try {
+                                    // A project with fewer filaments than are loaded: grow the
+                                    // destination to the filament's slot first (set_with_restore_2 only restores).
+                                    if (opt_vec_src->size() > 0 && opt_vec_dst->size() < size_t(old_start_indice[filament_index - 1] + old_variant_count))
+                                        opt_vec_dst->resize(size_t(old_start_indice[filament_index - 1] + old_variant_count), opt_vec_src);
+                                    // A kept key is padded like a refreshed one below rather than failing the run.
+                                    opt_vec_dst->set_with_restore_2(opt_vec_src, new_variant_indice, old_start_indice[filament_index - 1], old_variant_count, keep_project);
+                                } catch (const std::exception &ex) {   // Was an uncaught abort
+                                    BOOST_LOG_TRIVIAL(error) << boost::format("filament %1%: option %2% could not be applied: %3%") % filament_index % opt_key % ex.what();
+                                    boost::nowide::cerr << "filament " << filament_index << ": option " << opt_key << " could not be applied: " << ex.what() << std::endl;
+                                    record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0, cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                                    flush_and_exit(CLI_CONFIG_FILE_ERROR);
+                                }
                             }
 
                             continue;
@@ -3637,7 +3711,16 @@ int CLI::run(int argc, char **argv)
                     if (filament_options_with_variant.find(opt_key) != filament_options_with_variant.end()) {
                         std::vector<int> temp_variant_indice;
                         temp_variant_indice.resize(new_variant_count, -1);
-                        opt_vec_dst->set_with_restore_2(opt_vec_src, temp_variant_indice, old_start_indice[filament_index - 1], old_variant_count, true);
+                        try {
+                            if (opt_vec_src->size() > 0 && opt_vec_dst->size() < size_t(old_start_indice[filament_index - 1] + old_variant_count))   // See above
+                                opt_vec_dst->resize(size_t(old_start_indice[filament_index - 1] + old_variant_count), opt_vec_src);
+                            opt_vec_dst->set_with_restore_2(opt_vec_src, temp_variant_indice, old_start_indice[filament_index - 1], old_variant_count, true);
+                        } catch (const std::exception &ex) {   // Was an uncaught abort
+                            BOOST_LOG_TRIVIAL(error) << boost::format("filament %1%: option %2% could not be applied: %3%") % filament_index % opt_key % ex.what();
+                            boost::nowide::cerr << "filament " << filament_index << ": option " << opt_key << " could not be applied: " << ex.what() << std::endl;
+                            record_exit_reson(outfile_dir, CLI_CONFIG_FILE_ERROR, 0, cli_errors[CLI_CONFIG_FILE_ERROR], sliced_info);
+                            flush_and_exit(CLI_CONFIG_FILE_ERROR);
+                        }
 
                         if (opt_key == "filament_extruder_variant")
                             new_variant_counts[filament_index - 1] = opt_vec_src->size();
@@ -3676,7 +3759,7 @@ int CLI::run(int argc, char **argv)
                 }
             }
 
-            if (diff_keys_size != different_keys_set.size()) {
+            if (!keep_project && diff_keys_size != different_keys_set.size()) {
                 //changed
                 different_keys.clear();
 
@@ -3692,8 +3775,21 @@ int CLI::run(int argc, char **argv)
         for (size_t index = 0; index < load_filaments_config.size(); index++)
             if (load_filaments_index[index] >= 1 && load_filaments_index[index] <= filament_count)
                 filament_configs[load_filaments_index[index] - 1] = &load_filaments_config[index];
-        if (std::find(filament_configs.begin(), filament_configs.end(), nullptr) == filament_configs.end())
-            set_filament_dev_options(m_print_config, filament_configs);
+        // Without refresh_unlisted and with no filament loaded from a file, only the keys the project lacks are
+        // filled, with the option defaults for a filament that has no system preset. A loaded filament still
+        // replaces them all.
+        if (refresh_unlisted || std::find(load_filaments_refresh.begin(), load_filaments_refresh.end(), false) != load_filaments_refresh.end()) {
+            if (std::find(filament_configs.begin(), filament_configs.end(), nullptr) == filament_configs.end())
+                set_filament_dev_options(m_print_config, filament_configs);
+        } else {
+            const DynamicPrintConfig no_preset;
+            std::replace(filament_configs.begin(), filament_configs.end(), static_cast<const DynamicPrintConfig *>(nullptr), &no_preset);
+            DynamicPrintConfig dev_config;
+            set_filament_dev_options(dev_config, filament_configs);
+            for (const std::string &key : dev_config.keys())
+                if (project_keys.count(key) == 0)
+                    m_print_config.set_key_value(key, dev_config.option(key)->clone());
+        }
 
         if (m_print_config.option<ConfigOptionStrings>("filament_extruder_variant")) {
             std::vector<int>& filament_self_indice = m_print_config.option<ConfigOptionInts>("filament_self_index", true)->values;
@@ -4153,6 +4249,10 @@ int CLI::run(int argc, char **argv)
         BOOST_LOG_TRIVIAL(info) << boost::format("%1%, set disable_wipe_tower_after_mapping back to false due to wrapping detect")%__LINE__;
     }
 
+    // Belt printers never get the classic wipe tower (see Print::has_wipe_tower()), so reserve no space for it.
+    const ConfigOptionBool* belt_printer_opt = m_print_config.option<ConfigOptionBool>("belt_printer");
+    const bool is_belt_printer = belt_printer_opt && belt_printer_opt->value;
+
     auto timelapse_type_opt = m_print_config.option("timelapse_type");
     bool is_smooth_timelapse = false;
     if (enable_timelapse && timelapse_type_opt && (timelapse_type_opt->getInt() == TimelapseType::tlSmooth))
@@ -4201,7 +4301,7 @@ int CLI::run(int argc, char **argv)
     Slic3r::GUI::PartPlateList partplate_list(NULL, m_models.data(), printer_technology);
     //use Pointfs insteadof Points
     Pointfs current_printable_area = m_print_config.opt<ConfigOptionPoints>("printable_area")->values;
-    Pointfs current_exclude_area = m_print_config.opt<ConfigOptionPoints>("bed_exclude_area")->values;
+    Pointfs current_exclude_area = legacy_bed_exclude_area_points(m_print_config);
     std::vector<Pointfs> current_extruder_areas;
     //update part plate's size
     double print_height = m_print_config.opt_float("printable_height");
@@ -4390,11 +4490,11 @@ int CLI::run(int argc, char **argv)
         }
     };
 
-    auto check_plate_wipe_tower = [get_print_sequence, is_smooth_timelapse](Slic3r::GUI::PartPlate* plate, int plate_index, DynamicPrintConfig& print_config, plate_obj_size_info_t &plate_obj_size_info) {
+    auto check_plate_wipe_tower = [get_print_sequence, is_smooth_timelapse, is_belt_printer](Slic3r::GUI::PartPlate* plate, int plate_index, DynamicPrintConfig& print_config, plate_obj_size_info_t &plate_obj_size_info) {
         plate_obj_size_info.obj_bbox= plate->get_objects_bounding_box();
         BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, object bbox: min {%2%, %3%, %4%} - max {%5%, %6%, %7%}")
                     %(plate_index+1) %plate_obj_size_info.obj_bbox.min.x() % plate_obj_size_info.obj_bbox.min.y() % plate_obj_size_info.obj_bbox.min.z() %plate_obj_size_info.obj_bbox.max.x() % plate_obj_size_info.obj_bbox.max.y() % plate_obj_size_info.obj_bbox.max.z();
-        if (!print_config.has("wipe_tower_x")) {
+        if (is_belt_printer || !print_config.has("wipe_tower_x")) {
             plate_obj_size_info.has_wipe_tower = false;
             BOOST_LOG_TRIVIAL(info) << boost::format("can not found wipe_tower_x in config, set to no wipe tower");
             return;
@@ -4611,7 +4711,7 @@ int CLI::run(int argc, char **argv)
             printer_plate.printer_name = config_name;
 
             temp_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
-            temp_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area", true)->values;
+            temp_exclude_area = legacy_bed_exclude_area_points(config);
             temp_wrapping_area = config.option<ConfigOptionPoints>("wrapping_exclude_area", true)->values;
             temp_extruder_areas = config.option<ConfigOptionPointsGroups>("extruder_printable_area", true)->values;
             temp_extruder_print_heights = config.option<ConfigOptionFloatsNullable>("extruder_printable_height", true)->values;
@@ -5097,9 +5197,19 @@ int CLI::run(int argc, char **argv)
                 }
             }
         } else if (opt_key == "repair") {
-            // Models are repaired by default.
-            //for (auto &model : m_models)
-            //    model.repair();
+            if (m_config.opt_bool(opt_key))
+                for (Model &model : m_models)
+                    for (ModelObject *object : model.objects) {
+                        for (ModelVolume *volume : object->volumes) {
+                            MeshRepairStats stats;
+                            std::string     error;
+                            if (!volume->repair(true, &stats, &error))
+                                BOOST_LOG_TRIVIAL(warning) << "repair of " << object->name << " / " << volume->name << " failed: " << error;
+                            else if (stats.modified)
+                                BOOST_LOG_TRIVIAL(info) << "repaired " << object->name << " / " << volume->name;
+                        }
+                        object->invalidate_bounding_box();
+                    }
         } else {
             boost::nowide::cerr << "error: option not implemented yet: " << opt_key << std::endl;
             record_exit_reson(outfile_dir, CLI_UNSUPPORTED_OPERATION, 0, cli_errors[CLI_UNSUPPORTED_OPERATION], sliced_info);
@@ -5109,6 +5219,7 @@ int CLI::run(int argc, char **argv)
 
     BOOST_LOG_TRIVIAL(info) << "finished model pre-process commands\n";
     bool oriented_or_arranged = false;
+    bool arranged_without_rotations = false;
     //BBS: add orient and arrange logic here
     for (auto& model : m_models)
     {
@@ -5265,7 +5376,7 @@ int CLI::run(int argc, char **argv)
                     }
                 }
 
-                if ((!arrange_cfg.is_seq_print && (assemble_plate.filaments_count > 1))||(enable_wrapping_detect && !current_wrapping_exclude_area.empty()))
+                if (!is_belt_printer && ((!arrange_cfg.is_seq_print && (assemble_plate.filaments_count > 1)) || (enable_wrapping_detect && !current_wrapping_exclude_area.empty())))
                 {
                     //prepare the wipe tower
                     int plate_count = partplate_list.get_plate_count();
@@ -5323,7 +5434,7 @@ int CLI::run(int argc, char **argv)
                 }
 
                 // add the virtual object into unselect list if has
-                partplate_list.preprocess_exclude_areas(unselected, enable_wrapping_detect, i + 1);
+                partplate_list.preprocess_exclude_areas(unselected, m_print_config, enable_wrapping_detect, i + 1);
                 if (avoid_extrusion_cali_region)
                     partplate_list.preprocess_nonprefered_areas(unselected, i + 1);
 
@@ -5355,7 +5466,8 @@ int CLI::run(int argc, char **argv)
 
                 beds = get_shrink_bedpts(&m_print_config, arrange_cfg);
 
-                partplate_list.preprocess_exclude_areas(arrange_cfg.excluded_regions, enable_wrapping_detect, 1, scale_(1));
+                partplate_list.preprocess_exclude_areas(
+                    arrange_cfg.excluded_regions, m_print_config, enable_wrapping_detect, 1, scale_(1));
 
                 {
                     BOOST_LOG_TRIVIAL(debug) << "arrange bedpts:" << beds[0].transpose() << ", " << beds[1].transpose() << ", " << beds[2].transpose() << ", " << beds[3].transpose();
@@ -5376,6 +5488,7 @@ int CLI::run(int argc, char **argv)
                 BOOST_LOG_TRIVIAL(info) << boost::format("start plate %1%'s arranging...") % (i + 1);
                 arrangement::arrange(selected, unselected, beds, arrange_cfg);
                 //arrangement::arrange(unprintable, {}, beds, arrange_cfg);
+                arranged_without_rotations |= !arrange_cfg.allow_rotations;
                 BOOST_LOG_TRIVIAL(info) << boost::format("finished plate %1%'s arranging") % (i + 1);
 
                 //step-4: postprocess the bed index and result
@@ -5417,7 +5530,7 @@ int CLI::run(int argc, char **argv)
                 bool is_seq_print = false;
                 get_print_sequence(cur_plate, m_print_config, is_seq_print);
 
-                if (!is_seq_print && (assemble_plate.filaments_count > 1) && !has_wipe_tower_position)
+                if (!is_belt_printer && !is_seq_print && (assemble_plate.filaments_count > 1) && !has_wipe_tower_position)
                 {
                     //prepare the wipe tower
                     auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
@@ -5564,7 +5677,7 @@ int CLI::run(int argc, char **argv)
                     }
 
                     //add the virtual object into unselect list if has
-                    partplate_list.preprocess_exclude_areas(unselected, enable_wrapping_detect);
+                    partplate_list.preprocess_exclude_areas(unselected, m_print_config, enable_wrapping_detect);
 
                     // Filament ids given on the command line size the tower for STL input. A project
                     // records its filament use per plate, so count there and keep its tower positions.
@@ -5585,7 +5698,7 @@ int CLI::run(int argc, char **argv)
                     };
                     const int max_filament_count = plate_count > 0 ? *std::max_element(plate_filament_counts.begin(), plate_filament_counts.end()) : 0;
 
-                    if (plate_needs_wipe_tower(max_filament_count))
+                    if (!is_belt_printer && plate_needs_wipe_tower(max_filament_count))
                     {
                         //prepare the wipe tower
                         auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
@@ -5692,7 +5805,7 @@ int CLI::run(int argc, char **argv)
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": found single object mode");
                     }
 
-                    if (m_print_config.has("wipe_tower_x") && (is_smooth_timelapse || !arrange_cfg.is_seq_print || (selected.size() <= 1))) {
+                    if (!is_belt_printer && m_print_config.has("wipe_tower_x") && (is_smooth_timelapse || !arrange_cfg.is_seq_print || (selected.size() <= 1))) {
                         float x;
                         float y;
                         if (duplicate_count > 0) {
@@ -5795,7 +5908,8 @@ int CLI::run(int argc, char **argv)
                     }
 
                     // add the virtual object into unselect list if has
-                    partplate_list.preprocess_exclude_areas(unselected, enable_wrapping_detect, plate_to_slice);
+                    partplate_list.preprocess_exclude_areas(
+                        unselected, m_print_config, enable_wrapping_detect, plate_to_slice);
                 }
 
 
@@ -5827,7 +5941,8 @@ int CLI::run(int argc, char **argv)
 
                 beds=get_shrink_bedpts(&m_print_config, arrange_cfg);
 
-                partplate_list.preprocess_exclude_areas(arrange_cfg.excluded_regions, enable_wrapping_detect, 1, scale_(1));
+                partplate_list.preprocess_exclude_areas(
+                    arrange_cfg.excluded_regions, m_print_config, enable_wrapping_detect, 1, scale_(1));
 
                 {
                     BOOST_LOG_TRIVIAL(debug) << "arrange bedpts:" << beds[0].transpose() << ", " << beds[1].transpose() << ", " << beds[2].transpose() << ", " << beds[3].transpose();
@@ -5848,6 +5963,7 @@ int CLI::run(int argc, char **argv)
                 BOOST_LOG_TRIVIAL(info) << boost::format("start %1% th arranging...")%arrange_count;
                 arrangement::arrange(selected, unselected, beds, arrange_cfg);
                 arrangement::arrange(unprintable, {}, beds, arrange_cfg);
+                arranged_without_rotations |= !arrange_cfg.allow_rotations;
                 BOOST_LOG_TRIVIAL(info) << boost::format("finished %1% th arranging...")%arrange_count;
 
                 //Step-4:postprocess by partplate list&&apply the result
@@ -6317,7 +6433,7 @@ int CLI::run(int argc, char **argv)
                 // The stored (or default) tower position may not fit the tower these plates
                 // need, and no CLI placement site runs on a plain slice - mirror the GUI's
                 // reload clamp and fit every plate's tower into the printable area first.
-                if (m_print_config.option<ConfigOptionBool>("enable_prime_tower", true)->value) {
+                if (!is_belt_printer && m_print_config.option<ConfigOptionBool>("enable_prime_tower", true)->value) {
                     for (int index = 0; index < partplate_list.get_plate_count(); index++) {
                         if ((plate_to_slice != 0) && (plate_to_slice != (index + 1)))
                             continue;
@@ -6329,10 +6445,16 @@ int CLI::run(int argc, char **argv)
                             continue;
                         // An empty estimate is a plate that prints no tower (one filament and
                         // neither smooth timelapse, wrapping detection nor a raft).
-                        Vec3d wt_pos, wt_size;
-                        plate->estimate_wipe_tower_polygon(m_print_config, index, wt_pos, wt_size);
+                        Vec3d                            wt_pos, wt_size;
+                        Slic3r::GUI::WipeTowerRelocation relocation;
+                        plate->estimate_wipe_tower_polygon(m_print_config, index, wt_pos, wt_size, 0, false, &relocation);
                         if (wt_size(0) < EPSILON || wt_size(1) < EPSILON)
                             continue;
+                        if (relocation.moved)
+                            BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%: the wipe tower no longer fits at its saved position {%2%, %3%} and was moved %4%")
+                                % (index + 1) % m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true)->get_at(index)
+                                % m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true)->get_at(index)
+                                % (relocation.overlaps_objects ? "onto an object, as no free space is left" : "to free space");
                         ConfigOptionFloat wt_x_opt((float) wt_pos(0));
                         ConfigOptionFloat wt_y_opt((float) wt_pos(1));
                         m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true)->set_at(&wt_x_opt, index, 0);
@@ -6392,7 +6514,15 @@ int CLI::run(int argc, char **argv)
 
                         if (count == 0) {
                             BOOST_LOG_TRIVIAL(error) << "plate "<< index+1<< ": Nothing to be sliced, Either the print is empty or no object is fully inside the print volume before apply." << std::endl;
-                            record_exit_reson(outfile_dir, CLI_NO_SUITABLE_OBJECTS, index+1, cli_errors[CLI_NO_SUITABLE_OBJECTS], sliced_info);
+                            std::string no_objects_reason = cli_errors[CLI_NO_SUITABLE_OBJECTS];
+                            if (arranged_without_rotations) {
+                                //ORCA: result.json is only written on Linux, so also print the reason to stderr.
+                                no_objects_reason = "No object is fully inside the print volume. Arrange ran without rotations."
+                                                    " If an object only fits the bed when rotated, pass --allow-rotations."
+                                                    " Otherwise the plate is empty or an object is larger than the printable area or height.";
+                                boost::nowide::cerr << "plate " << index+1 << ": " << no_objects_reason << std::endl;
+                            }
+                            record_exit_reson(outfile_dir, CLI_NO_SUITABLE_OBJECTS, index+1, no_objects_reason, sliced_info);
                             flush_and_exit(CLI_NO_SUITABLE_OBJECTS);
                         }
                         else if ((plate_to_slice != 0) || pre_check) {
@@ -7026,6 +7156,16 @@ int CLI::run(int argc, char **argv)
                                         record_exit_reson(outfile_dir, CLI_GCODE_PATH_IN_UNPRINTABLE_AREA, index + 1, cli_errors[CLI_GCODE_PATH_IN_UNPRINTABLE_AREA], sliced_info);
                                         flush_and_exit(CLI_GCODE_PATH_IN_UNPRINTABLE_AREA);
                                     }
+                                    // Without an output directory the G-code is a temporary file, kept only in an exported 3MF.
+                                    if (export_statistics && !outfile_dir.empty()) {
+                                        try {
+                                            export_gcode_statistics(*gcode_result, gcode_statistics_path(outfile));
+                                        } catch (const std::exception &ex) {
+                                            BOOST_LOG_TRIVIAL(error) << "plate " << index + 1 << ": " << ex.what();
+                                            record_exit_reson(outfile_dir, CLI_EXPORT_STATISTICS_ERROR, index + 1, cli_errors[CLI_EXPORT_STATISTICS_ERROR], sliced_info);
+                                            flush_and_exit(CLI_EXPORT_STATISTICS_ERROR);
+                                        }
+                                    }
 
 
                                     //outfile_final = (dynamic_cast<Print*>(print))->print_statistics().finalize_output_path(outfile);
@@ -7154,7 +7294,7 @@ int CLI::run(int argc, char **argv)
         std::vector<ThumbnailData *> thumbnails, no_light_thumbnails, top_thumbnails, pick_thumbnails;
         std::vector<PlateBBoxData*> plate_bboxes;
         PlateDataPtrs plate_data_list;
-        partplate_list.store_to_3mf_structure(plate_data_list);
+        partplate_list.store_to_3mf_structure(plate_data_list, true, -1, export_statistics);
 
         if (sliced_plate == -1) {
             for (int i = 0; i < plate_data_list.size(); i++) {

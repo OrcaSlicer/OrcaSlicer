@@ -44,6 +44,7 @@
 #ifdef __APPLE__
 #include "../Utils/MacDarkMode.hpp"
 #endif
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 

@@ -1530,8 +1530,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                         vendor_list += ", ";
                     vendor_list += candidate.vendor_id;
                 }
-                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                    _u8L("Downloading new vendor profile(s): ") + vendor_list + _u8L("..."));
+                GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                    // TRN %1% is a comma-separated list of vendor names.
+                    _L_PLURAL("Downloading new vendor profile: %1%...", "Downloading new vendor profiles: %1%...", candidates.size()),
+                    vendor_list));
             }
 
             vendor_check_threads.emplace_back([this, candidates, callback]() {
@@ -1678,8 +1680,10 @@ void PresetUpdater::priv::check_new_vendors(const std::set<std::string>& system_
                                 vendor_list += ", ";
                             vendor_list += vendor_id;
                         }
-                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(
-                            _u8L("Failed to download vendor profile(s): ") + vendor_list);
+                        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::format(
+                            // TRN %1% is a comma-separated list of vendor names.
+                            _L_PLURAL("Failed to download vendor profile: %1%", "Failed to download vendor profiles: %1%", failed_vendor_ids.size()),
+                            vendor_list));
                     });
                 }
 

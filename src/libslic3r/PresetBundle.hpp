@@ -302,6 +302,9 @@ public:
     // BBS Load user presets
     PresetsConfigSubstitutions load_user_presets(std::string user, ForwardCompatibilitySubstitutionRule rule, bool read_only = false);
     PresetsConfigSubstitutions load_user_presets(AppConfig &config, std::map<std::string, std::map<std::string, std::string>>& my_presets, ForwardCompatibilitySubstitutionRule rule);
+
+    bool reload_local_bundle(const std::string& preset_folder, const std::string& bundle_id, std::string* error = nullptr);
+    std::vector<std::string> list_local_bundle_ids(const std::string& preset_folder);
     // Orca: Import subscribed bundle presets (load and save to disk in one operation), handles one bundle at a time
     PresetsConfigSubstitutions update_subscribed_presets(AppConfig& config,
                                                          const std::map<std::string, std::map<std::string, std::string>>& bundle_presets,
@@ -319,7 +322,9 @@ public:
                              ForwardCompatibilitySubstitutionRule rule,
                              int& overwrite,
                              std::vector<std::string>& result,
-                             const std::string& bundle_dir = "");
+                             const std::string& bundle_dir = "",
+                             const std::map<std::string, std::string> &bed_asset_paths = {},
+                             bool *bed_paths_loaded = nullptr);
                              
     void save_user_presets(AppConfig& config, std::map<std::string, std::string>& need_to_delete_list);
     void check_and_fix_user_presets_syncinfo(const std::string& user_id);
@@ -374,11 +379,48 @@ public:
     bool use_bbl_device_tab();
 
     bool backup_user_folder() const;
+    // Writes the user preset folder into a zip archive at zip_path, its entries under "user/".
+    bool backup_user_folder_to_zip(const std::string &zip_path) const;
+
+    // User filament presets made against an older release that no longer show on printers their parent
+    // listed then (resources/info/legacy_compatible_printers.json).
+    std::vector<LegacyUserFilamentPreset> legacy_user_filament_presets();
+    // Backs up the user preset folder into a zip in data_dir(), then writes each preset's printers into its file
+    // under one hold of the user presets lock. Nothing is written when the backup failed (backup empty) or the
+    // lock could not be taken (locked false); otherwise failed names the presets whose files could not be written.
+    struct LegacyUserFilamentPresetMigration {
+        bool                     locked{false};
+        std::string              backup;
+        std::vector<std::string> failed;
+    };
+    LegacyUserFilamentPresetMigration migrate_legacy_user_filament_presets(const std::vector<LegacyUserFilamentPreset> &legacy_presets);
 
     //BBS: project embedded preset logic
     PresetsConfigSubstitutions load_project_embedded_presets(std::vector<Preset*> project_presets, ForwardCompatibilitySubstitutionRule substitution_rule);
     std::vector<Preset*> get_current_project_embedded_presets();
     void reset_project_embedded_presets();
+
+    // What importing a file's settings replaces, so that an import which fails part-way, or whose
+    // file is then rejected, can be undone without copying every preset.
+    struct Selection
+    {
+        struct Collection
+        {
+            std::string       selected;
+            DynamicPrintConfig edited;
+            // The baseline saved_is_dirty() compares against, which feeds the project dirty state.
+            DynamicPrintConfig saved;
+            // By index: an import only inserts project-embedded presets, which a restore drops first.
+            std::vector<bool> visible;
+        };
+        Collection                      prints, filaments, printers;
+        std::vector<std::string>        filament_presets;
+        DynamicPrintConfig              project_config;
+        std::vector<std::map<int, int>> extruder_ams_counts;
+    };
+    // Nothing while project-embedded presets exist: a restore drops them, which would lose a loaded project's presets.
+    std::optional<Selection> selection() const;
+    void                     restore_selection(const Selection &selection);
 
     //BBS: find printer model
     std::string get_texture_for_printer_model(std::string model_name);
@@ -387,6 +429,21 @@ public:
 
     // Export selections (current print, current filaments, current printer) into config.ini
     void            export_selections(AppConfig &config);
+
+    // While one lives, export_selections() writes nothing, so a selection only shown for a while (the
+    // settings of a G-code being previewed) is not remembered as the user's. It also covers the
+    // exports the GUI makes on its own while refreshing.
+    class SelectionExportBlocker
+    {
+    public:
+        explicit SelectionExportBlocker(PresetBundle &bundle) : m_bundle(bundle) { ++m_bundle.m_selection_export_blockers; }
+        ~SelectionExportBlocker() { --m_bundle.m_selection_export_blockers; }
+        SelectionExportBlocker(const SelectionExportBlocker &) = delete;
+        SelectionExportBlocker &operator=(const SelectionExportBlocker &) = delete;
+
+    private:
+        PresetBundle &m_bundle;
+    };
 
     // n is the total slot count, and growth appends at the raw tail - which is where the mixed
     // slots live. A caller adding physical filaments has to add num_mixed_filaments() on top and
@@ -507,7 +564,7 @@ public:
     int get_printer_extruder_count() const;
     bool support_different_extruders() const;
 
-    // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
+    // Orca: Ensure filament_presets has at least min_filament_count() slots on FFF printers.
     // Called from (load|update)_selections before the parallel project_config arrays
     // (filament_colour/colour_type/map) are sized off filament_presets.size(), so a
     // short saved filament list doesn't truncate the loaded colors.
@@ -528,6 +585,11 @@ public:
     // In the future the configuration will likely be read from an AMF file as well.
     // If the file is loaded successfully, its print / filament / printer profiles will be activated.
     ConfigSubstitutions         load_config_file(const std::string &path, ForwardCompatibilitySubstitutionRule compatibility_rule);
+
+    // The settings an OrcaSlicer G-code was sliced with, from its config block, ready for load_config_model().
+    // Throws when the file carries no such block (another slicer, or the block was left out).
+    DynamicPrintConfig          config_from_gcode(const std::string &path, ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                                  ConfigSubstitutions &substitutions) const;
 
     // Load a config bundle file, into presets and store the loaded presets into separate files
     // of the local configuration directory.
@@ -669,6 +731,12 @@ public:
         const std::atomic<bool>* cancel = nullptr, std::vector<std::string>* failed = nullptr);
 
 private:
+    // Orca: The fewest filaments the selected FFF printer runs with. A tool changer carries one
+    // filament per tool, so it needs one per nozzle. A printer feeding filaments through shared
+    // nozzles (single_extruder_multi_material, e.g. a Bambu Lab H2D) maps any number of them onto
+    // its nozzles, so one is enough, and the user may delete down to it.
+    size_t min_filament_count() const;
+
     // Move the presets and vendor profiles of `others` into this bundle, in one pass
     // over each collection. A preset whose name this bundle or an earlier one of
     // `others` already has is left out and listed under the bundle that repeats it.
@@ -878,6 +946,9 @@ private:
     bool validation_mode = false;
     std::string vendor_to_validate = "";
     int m_errors = 0;
+
+    // The live SelectionExportBlockers.
+    int m_selection_export_blockers = 0;
 
     // Helper function: save preset to bundle directory with common logic
     bool save_preset_to_bundle_dir(Preset& preset, PresetCollection* collection,

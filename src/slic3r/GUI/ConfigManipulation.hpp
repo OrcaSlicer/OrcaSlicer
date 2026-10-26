@@ -80,6 +80,8 @@ public:
     t_config_option_keys const &applying_keys() const;
     void    toggle_field(const std::string& field_key, const bool toggle, int opt_index = -1);
     void    toggle_line(const std::string& field_key, const bool toggle, int opt_index = -1);
+    // Renames an option's row. `label` is the untranslated English msgid (an L("...") string); the
+    // row translates it for display.
     void    set_option_label(const std::string& field_key, const wxString& label, int opt_index = -1);
 
     // FFF print

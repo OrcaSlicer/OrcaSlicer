@@ -7,12 +7,14 @@
 #include "Print.hpp"
 #include "libslic3r.h"
 #include "GCodeWriter.hpp"
+#include "GCode/BeltKinematics.hpp"
 #include "Layer.hpp"
 #include "Point.hpp"
 #include "PlaceholderParser.hpp"
 #include "PrintConfig.hpp"
 #include "GCode/AvoidCrossingPerimeters.hpp"
 #include "GCode/CoolingBuffer.hpp"
+#include "GCode/ExclusionVolumeTravelAvoidance.hpp"
 #include "GCode/FanMover.hpp"
 #include "GCode/RetractWhenCrossingPerimeters.hpp"
 #include "GCode/SpiralVase.hpp"
@@ -40,13 +42,16 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
+#include <optional>
 #include <set>
 #include <string>
 #include <cfloat>
 #include <vector>
 #include <utility>
+#include <cmath>
 #include "BoundingBox.hpp"
 #include "Polyline.hpp"
+#include "BeltBrim.hpp"
 
 namespace Slic3r { class ExtrusionEntityCollection; }
 
@@ -243,20 +248,29 @@ public:
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
         m_brim_done(false),
         m_second_layer_things_done(false),
-        m_silent_time_estimator_enabled(false),
         m_last_obj_copy(nullptr, Point(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max())),
         // BBS
         m_toolchange_count(0),
         m_nominal_z(0.)
         {}
-    ~GCode() = default;
+    virtual ~GCode() = default;
 
+public:
     // throws std::runtime_exception on error,
     // throws CanceledException through print->throw_if_canceled().
     void            do_export(Print* print, const char* path, GCodeProcessorResult* result = nullptr, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     void            export_layer_filaments(GCodeProcessorResult* result);
     //BBS: set offset for gcode writer
     void set_gcode_offset(double x, double y) { m_writer.set_xy_offset(x, y); m_processor.set_xy_offset(x, y);}
+    // IMEX firmware-managed slice: writer offset is augmented by the IMEX shift so the
+    // emitted gcode is centered at bed origin (firmware fans copies/mirrors out from there).
+    // Processor offset stays at plate_origin only so the gcode-preview visualizer renders
+    // the centered toolpath at bed center, not at the prepare-view zone placement. When
+    // imex_x/imex_y are zero this is byte-identical to set_gcode_offset(x, y).
+    void set_gcode_offset_with_imex_shift(double x, double y, double imex_x, double imex_y) {
+        m_writer.set_xy_offset(x + imex_x, y + imex_y);
+        m_processor.set_xy_offset(x, y);
+    }
 
     // Exported for the helper classes (OozePrevention, Wipe) and for the Perl binding for unit tests.
     const Vec2d&    origin() const { return m_origin; }
@@ -297,10 +311,15 @@ public:
     std::string     unretract(float extra_retract = 0.f) { return m_writer.unlift() + m_writer.unretract(extra_retract); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
     // Sets the pressure advance of the filament's extruder variant, if enabled for it.
-    std::string     set_filament_pressure_advance(unsigned int filament_id);
+    // tool addresses one IMEX carriage explicitly. -1 means no carriage: it omits the tool
+    // qualifier on Klipper, Marlin and BBL, and keeps RepRapFirmware's historical `D0`, since a
+    // bare M572 there applies to whatever tool is selected and errors when none is. That is
+    // what every non-IMEX caller wants, and what imex_pem_tool_for() returns off IMEX.
+    std::string     set_filament_pressure_advance(unsigned int filament_id, int tool = -1);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();
 
+    void assign_object_label_ids(Print &print);
     // SoftFever
     std::string set_object_info(Print* print);
 
@@ -342,6 +361,13 @@ public:
         const Layer* 		object_layer;
         const SupportLayer* support_layer;
         const PrintObject*  original_object; //BBS: used for shared object logic
+        // Belt printers only: an apron band that prints BELOW the object's first
+        // layer, so it has no object or support layer of its own.  Deliberately
+        // not a Layer, so it cannot leak Layer::id() semantics into initial-layer
+        // temperature, spiral vase, cooling or interpolation logic.  When this is
+        // the only thing set, layer() is null and process_layer() takes its
+        // dedicated brim-only branch.
+        const BeltBrimBand* belt_brim_band { nullptr };
         const Layer* 		layer()   const
         {
             if (object_layer != nullptr)
@@ -371,11 +397,17 @@ public:
                 count++;
             }
 
+            // A brim-only apron band contributes no object/support layer, and
+            // averaging zero terms would yield NaN.  Never folded into the
+            // average, so the non-belt result is bit-identical.
+            if (count == 0 && belt_brim_band != nullptr)
+                return belt_brim_band->print_z;
+
             return sum_z / count;
         }
     };
 
-private:
+protected:
     class GCodeOutputStream {
     public:
         GCodeOutputStream(FILE *f, GCodeProcessor &processor) : f(f), m_processor(processor) {}
@@ -403,9 +435,21 @@ private:
         FILE *f = nullptr;
         GCodeProcessor &m_processor;
     };
+
+    // Virtual hooks for belt printer subclass (BeltGCode).
+    // No-ops in base GCode; overridden in BeltGCode.
+    virtual void init_belt_writer(Print &print) {}
+    virtual void write_belt_header(GCodeOutputStream &file, const Print &print) {}
+    virtual void on_set_origin(const PrintObject *obj, const Point &inst_shift) {}
+    // Arc fitting is suppressed whenever the writer's machine mapping cannot
+    // represent a G2/G3 arc. Belt printers get this through BeltKinematics
+    // rather than through an override of their own.
+    virtual bool should_disable_arc_fitting() const
+        { return ! m_writer.kinematics().supports_arc_moves(); }
+
     void            _do_export(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
 
-    static std::vector<LayerToPrint>        		                   collect_layers_to_print(const PrintObject &object);
+    static std::vector<LayerToPrint>        		                   collect_layers_to_print(const PrintObject &object, bool skip_empty_first_layer = false);
     static std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> collect_layers_to_print(const Print &print);
 
     std::string generate_skirt(const Print &print,
@@ -425,7 +469,35 @@ private:
     std::string generate_object_brim(const Print &print,
         const PrintObject &object,
         size_t instance_id,
-        bool first_layer);
+        bool first_layer,
+        unsigned int extruder_id,
+        const Layer *object_layer);
+
+    // Belt printers: emit one brim-only apron layer.  These print below the
+    // object's first layer, so there is no object or support layer for the normal
+    // process_layer() machinery to work from.  Kept to the minimum a layer needs -
+    // tool, Z move, extrusions - so that nothing here can perturb the
+    // Layer::id()-based logic the ordinary path relies on.  Its layer change G-code
+    // uses process_layer_change_gcode(), so an apron band counts in the running
+    // printed mass like an object layer.
+    LayerResult process_belt_brim_layer(
+        const Print                     &print,
+        const std::vector<LayerToPrint> &layers,
+        const LayerTools                &layer_tools,
+        const bool                       last_layer,
+        const size_t                     single_object_instance_idx,
+        const int                        most_used_extruder);
+
+    std::string process_layer_change_gcode(const Print &print, coordf_t print_z, int most_used_extruder, bool has_wipe_tower);
+
+    // Emit the apron bands carried by these layers whose brim filament is extruder_id
+    // (0-based).  Called from both the brim-only branch and the ordinary path, since a
+    // band's print_z can coincide with another object's layer on a multi-object belt.
+    std::string emit_belt_brim_bands(
+        const Print                     &print,
+        const std::vector<LayerToPrint> &layers,
+        const size_t                     single_object_instance_idx,
+        const unsigned int               extruder_id);
 
     LayerResult process_layer(
         const Print                     &print,
@@ -469,8 +541,16 @@ private:
     size_t get_extruder_id(unsigned int filament_id) const;
     void   update_placeholder_parser_with_variant_params();
 
-    void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
-    void            set_last_pos(const Point3 &pos) { m_last_pos = pos; m_last_pos_defined = true; }
+    void            set_last_pos(const Point &pos) {
+        m_last_pos = Point3(pos, 0);
+        m_last_pos_defined = true;
+        m_pending_start_gcode_position.reset();
+    }
+    void            set_last_pos(const Point3 &pos) {
+        m_last_pos = pos;
+        m_last_pos_defined = true;
+        m_pending_start_gcode_position.reset();
+    }
     bool            last_pos_defined() const { return m_last_pos_defined; }
     void            set_extruders(const std::vector<unsigned int> &extruder_ids);
     std::string     preamble();
@@ -583,6 +663,10 @@ private:
     // Farthest-point timelapse: find the extrusion point farthest from camera (0,0)
     void compute_farthest_point(const std::vector<LayerToPrint> &layers, int most_used_extruder,
                                 const std::map<std::pair<const SupportLayer *, ExtrusionRole>, unsigned int> &support_filaments);
+    // Requires an active filament.
+    DynamicConfig   timelapse_gcode_config(const Print &print, coordf_t print_z, int most_used_extruder,
+                                           const std::vector<const PrintObject*> *printed_objects,
+                                           bool skip_pos_pick);
     // Build the per-layer timelapse snapshot g-code (safe-position or, when skip_pos_pick,
     // an inline photo at the current head position). Extracted from the former process_layer lambda so the
     // per-extrusion farthest-point hook (_extrude) can call it too. Identical to the old lambda when the
@@ -629,9 +713,21 @@ private:
     };
 
     // Cache the per-filament island tour to avoid recomputing while the layer's island layout is
-    // unchanged. Key: filament_id. Value: {nodes the tour was computed from, resulting visits}.
-    std::map<unsigned int, std::pair<std::vector<IslandOrderNode>, std::vector<InstanceVisit>>>
-                                        m_ordering_cache;
+    // unchanged. Key: filament_id. Value: the nodes the tour was computed from, the per-instance
+    // island layout (count and whether the trailing catch-all island has anything to print), and
+    // the resulting visits.
+    // The layout is part of the key. Nodes only cover the chainable islands, so two
+    // layers with the same centroids but a different number of islands (thin walls, negative
+    // volumes come and go) matched the cache and the visit's catch-all index -- islands.size() - 1
+    // of the OLD layer -- ran past the new layer's islands (found by fuzzing: segfault in
+    // extrude_perimeters on multi-part objects).
+    struct IslandOrderCacheEntry
+    {
+        std::vector<IslandOrderNode>         nodes;
+        std::vector<std::pair<size_t, bool>> layout;
+        std::vector<InstanceVisit>           visits;
+    };
+    std::map<unsigned int, IslandOrderCacheEntry> m_ordering_cache;
 
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
 
@@ -679,8 +775,11 @@ private:
     OozePrevention                      m_ooze_prevention;
     Wipe                                m_wipe;
     AvoidCrossingPerimeters             m_avoid_crossing_perimeters;
+    ExclusionVolumeTravelAvoidance      m_exclusion_volume_travel_avoidance;
     RetractWhenCrossingPerimeters       m_retract_when_crossing_perimeters;
     TimelapsePosPicker                  m_timelapse_pos_picker;
+    bool                                m_timelapse_uses_pos{ false };
+    bool                                m_timelapse_uses_clear_to_x0{ false };
 
     // Farthest-point timelapse context. Corexy-only refinement layered on top of the existing
     // timelapse_type. All fields default to the inert state; `enabled` is (re)computed each layer in
@@ -717,7 +816,7 @@ private:
     
     bool m_enable_exclude_object;
     std::vector<size_t> m_label_objects_ids;
-    // Object label names by instance, built on first use from the ids set_object_info() assigns.
+    // Object label names by instance, built on first use from the ids assign_object_label_ids() assigns.
     std::unordered_map<const PrintInstance*, std::string> m_instance_names;
     const std::string& instance_name(const PrintInstance &instance);
     std::string _encode_label_ids_to_base64(std::vector<size_t> ids);
@@ -749,8 +848,8 @@ private:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
-    // Bedslinger mass model: cumulative printed mass at the previous layer, used to derive
-    // the current layer mass for the per-layer Y acceleration limit (curr_y_acceleration_limit).
+    // Bedslinger mass model: cumulative printed mass at the previous layer change, used to derive
+    // previous_layer_mass, the mass of the layer printed since then.
     double                              m_last_layer_accumulated_mass{ 0.0 };
 
     // Always check gcode placeholders when building in debug mode.
@@ -766,12 +865,31 @@ private:
     Point3                              m_last_pos;
     bool                                m_last_pos_defined;
 
+    struct ToolchangePositionState
+    {
+        Vec2d emitted_xy{Vec2d::Zero()};
+    };
+
+    // Capture and restore the actual command-space position around a physical
+    // nozzle change. Model-space m_last_pos is tied to the active nozzle offset,
+    // while the machine position itself does not change when Tx is emitted.
+    std::optional<ToolchangePositionState> capture_toolchange_position();
+    void synchronize_toolchange_position(const ToolchangePositionState &before,
+                                         const std::string             &emitted_gcode);
+
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
-
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
     
     std::unique_ptr<AdaptivePAProcessor>      m_pa_processor;
+
+    // IMEX: active parallel mode name ("primary", "copy", "iq-copy", etc.).
+    // Set at the start of export. Empty string means non-IMEX or not yet set.
+    // PA and temperature tool-qualification is only applied when this is not "primary".
+    std::string m_imex_parallel_mode;
+    // IMEX: parsed per-plate head→filament overrides (physical T-index → 1-based filament slot).
+    // Cached from imex_head_filament_map at print start. Empty map means "fall back to pem".
+    std::map<int,int> m_imex_head_filament_map;
 
     std::unique_ptr<WipeTowerIntegration> m_wipe_tower;
 
@@ -792,7 +910,6 @@ private:
     int m_timelapse_warning_code = 0;
     bool m_support_traditional_timelapse = true;
 
-    bool m_silent_time_estimator_enabled;
 
     Print *m_print{nullptr};
 
@@ -800,6 +917,10 @@ private:
 
     // Processor
     GCodeProcessor m_processor;
+    // Command-space endpoint after startup G-code. The processor sees direct
+    // file writes synchronously, while the generator has not established its
+    // first model-space point yet.
+    std::optional<GCodeProcessor::PositionState> m_pending_start_gcode_position;
 
     //some post-processing on the file, with their data class
     std::unique_ptr<FanMover> m_fan_mover;
@@ -823,6 +944,25 @@ private:
     mutable ConfigIndexCache m_filament_index_cache;
     mutable ConfigIndexCache m_nozzle_index_cache;
 
+    // Belt brim apron layers only.  They have no Layer, so the print_z that
+    // _extrude() needs for the first-layer-plane probe is published here instead.
+    // Scoped by BeltBrimZGuard in process_belt_brim_layer(), never left set.
+    std::optional<coordf_t> m_belt_brim_z;
+    // Belt brim only.  Brim and coincident apron bands are emitted before m_layer
+    // is switched to their object, so belt_height_above_floor() would otherwise
+    // read the previously visited object's belt description -- making a brim's
+    // classification depend on plate visiting order.  Those paths publish the
+    // owner here for the duration of the emission.  Never left set.
+    const PrintObject *m_belt_floor_object{nullptr};
+    struct BeltFloorObjectGuard {
+        const PrintObject *&slot;
+        BeltFloorObjectGuard(const PrintObject *&s, const PrintObject *o) : slot(s) { slot = o; }
+        ~BeltFloorObjectGuard() { slot = nullptr; }
+    };
+
+    // The last extrusion segment was inside the belt's first-layer fan band (see _extrude()).
+    bool m_belt_in_band{false};
+
     std::set<unsigned int>                  m_initial_layer_extruders;
     std::vector<std::vector<unsigned int>>  m_sorted_layer_filaments;
     // BBS
@@ -840,6 +980,46 @@ private:
     // On the first printing layer. This flag triggers first layer speeds.
     //BBS
     bool    on_first_layer() const { return m_layer != nullptr && m_layer->id() == 0 && abs(m_layer->bottom_z()) < EPSILON; }
+    // Per-point first-layer test.  On a belt printer the result depends on the
+    // supplied slicing-frame point (its height above the belt); otherwise we
+    // delegate to the legacy per-layer test.  This is the entry point used by
+    // per-path call sites in _extrude.
+    bool on_first_layer(const Vec3d &point_slicing_mm) const {
+        double h;
+        if (this->belt_height_above_floor(point_slicing_mm, h))
+            return h <= m_config.initial_layer_print_height.value + EPSILON;
+        return on_first_layer();
+    }
+    // "Effective layer index" used to drive layer-count thresholds like
+    // slow_down_layers.  On a belt printer this is the height above the belt in
+    // first_layer_band_mm() units; otherwise it is the legacy slicing layer index.
+    int effective_layer_index_for_point(const Vec3d &point_slicing_mm) const {
+        double h;
+        if (this->belt_height_above_floor(point_slicing_mm, h)) {
+            const double lh = this->first_layer_band_mm();
+            return h <= 0. ? 0 : int(std::floor(h / lh));
+        }
+        return on_first_layer() ? 0 : layer_id();
+    }
+
+    // Band thickness for the *effective layer index*: one first layer height, so
+    // "the first N layers" means the same height above the belt as on a flat bed.
+    double first_layer_band_mm() const {
+        const double band = m_config.initial_layer_print_height.value;
+        return band > 0. ? band : 0.2;
+    }
+
+    // Height of a slicing-frame point above the belt surface, or false when this
+    // is not a belt print.
+    //
+    // The belt surface is known exactly in the slicing frame from the slicing
+    // parameters (belt_floor_shear_factor / _from_axis / _z_shift) -- the same
+    // description the support generator uses, independent of every remap and
+    // back-transform.
+    bool belt_height_above_floor(const Vec3d &point_slicing_mm, double &height_mm) const;
+    // 1 / 0 / -1: the object layer is entirely past the first-layer band above the
+    // belt / reaches into it / the belt surface is not known for it.
+    int  belt_layer_past_first_layer_band(const Layer *object_layer) const;
     int layer_id() const {
         if (m_layer == nullptr)
             return -1;
@@ -860,6 +1040,7 @@ private:
         size_t                                                  num_objects,
         size_t                                                  num_islands);
 
+    friend class OozePrevention;
     friend class Wipe;
     friend class WipeTowerIntegration;
     friend class PressureEqualizer;

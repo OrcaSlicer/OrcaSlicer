@@ -513,7 +513,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_time_input->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_time_input->SetForegroundColour(StateColor::darkModeColorFor(*wxBLACK));
 
-    Label* time_unit_label = new Label(parent, "H");
+    Label* time_unit_label = new Label(parent, _L_CONTEXT("H", "Hours unit"));
     time_unit_label->SetForegroundColour(*wxBLACK);
     time_sizer->Add(m_time_input, 1, wxRIGHT, FromDIP(1));
     time_sizer->Add(time_unit_label, 0, wxALIGN_CENTER_VERTICAL);

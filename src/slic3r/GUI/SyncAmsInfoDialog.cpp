@@ -2212,7 +2212,7 @@ void SyncAmsInfoDialog::update_user_printer()
             {
                 m_list.push_back(it->second);
                 wxString dev_name_text = from_u8(it->second->get_dev_name());
-                if (it->second->is_lan_mode_printer()) { dev_name_text += "(LAN)"; }
+                if (it->second->is_lan_mode_printer()) { dev_name_text += _L("(LAN)"); }
                 machine_list_name.Add(dev_name_text);
                 break;
             }

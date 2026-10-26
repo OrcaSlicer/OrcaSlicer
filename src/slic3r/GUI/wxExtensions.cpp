@@ -19,7 +19,7 @@
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
 #include <wx/colour.h>
-#include <wx/colourdata.h>
+#include <wx/dialog.h>
 #include <wx/anybutton.h>
 #include <wx/object.h>
 #include <wx/popupwin.h>
@@ -628,43 +628,6 @@ std::vector<std::vector<std::string>> read_color_pack(std::vector<std::string> c
         color_info.push_back(colors);
     }
     return color_info;
-}
-
-wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_data)
-{
-    wxColourData data = clr_data;
-    data.SetChooseFull(true);
-
-    // Load custom colors from config (support both "r,g,b,a" and "#RRGGBB" formats)
-    std::vector<std::string> colors = Slic3r::GUI::wxGetApp().app_config->get_custom_color_from_config();
-    for (int i = 0; i < (int)colors.size(); i++) {
-        wxColour c;
-        if (colors[i].find(',') != std::string::npos)
-            c = string_to_wxColor(colors[i]);
-        else
-            c = wxColour(colors[i]);
-        if (c.IsOk())
-            data.SetCustomColour(i, c);
-    }
-
-    wxColourDialog dialog(parent, &data);
-    dialog.SetTitle(_L("Please choose the filament color"));
-
-    if (dialog.ShowModal() == wxID_OK) {
-        data = dialog.GetColourData();
-
-        // Save custom colors to config (use RGBA string format for consistency)
-        std::vector<std::string> colors;
-        colors.resize(CUSTOM_COLOR_COUNT);
-        for (int i = 0; i < CUSTOM_COLOR_COUNT; i++) {
-            wxColour custom_clr = data.GetCustomColour(i);
-            if (custom_clr.IsOk())
-                colors[i] = color_to_string(custom_clr);
-        }
-        Slic3r::GUI::wxGetApp().app_config->save_custom_color_to_config(colors);
-    }
-
-    return data;
 }
 
 wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,

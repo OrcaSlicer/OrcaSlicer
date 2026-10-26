@@ -27,6 +27,7 @@ class FilamentGroupPopup : public PopupWindow
 {
 public:
     FilamentGroupPopup(wxWindow *parent);
+    ~FilamentGroupPopup() override;
     void tryPopup(Plater* plater,PartPlate* plate, bool slice_all);
     void tryClose();
     void Dismiss() override;
