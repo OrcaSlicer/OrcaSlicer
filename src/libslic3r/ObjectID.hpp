@@ -4,6 +4,7 @@
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cstddef>
+#include <cstdint>
 
 namespace Slic3r {
 

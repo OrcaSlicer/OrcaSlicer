@@ -3,6 +3,9 @@
 #include <cstdio>
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/convert.hpp>
+#include <algorithm>
+#include <string>
+#include <vector>
 
 #ifdef  WIN32
 #include <psapi.h>

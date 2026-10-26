@@ -1,12 +1,17 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "MoonrakerPrinterAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/log/trivial.hpp>
-
-using json = nlohmann::json;
+#include <vector>
+#include <string>
+#include "libslic3r/Preset.hpp"
+#include <cstddef>
+#include <utility>
 
 namespace Slic3r {
 
@@ -104,7 +109,7 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     return base;
 }
 
-bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
+bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
     std::string url = join_url(device_info.base_url, "/printer/objects/query?print_task_config&filament_detect");
 

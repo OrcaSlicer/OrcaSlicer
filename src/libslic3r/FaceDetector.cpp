@@ -1,8 +1,12 @@
 #include "FaceDetector.hpp"
+#include "BoundingBox.hpp"
 #include "TriangleMesh.hpp"
 #include "SLA/IndexedMesh.hpp"
-#include "Model.hpp"
+#include <cstdint>
+#include <cstddef>
 #include <unordered_set>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 static const double BBOX_OFFSET = 2.0;

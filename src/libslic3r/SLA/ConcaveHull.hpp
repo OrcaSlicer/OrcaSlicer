@@ -1,6 +1,10 @@
 #ifndef SLA_CONCAVEHULL_HPP
 #define SLA_CONCAVEHULL_HPP
 
+#include "libslic3r/Polygon.hpp"
+#include <functional>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 #include <libslic3r/ExPolygon.hpp>
 
 namespace Slic3r {

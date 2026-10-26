@@ -6,6 +6,13 @@
 #include "DragDropPanel.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <vector>
+#include <string>
+#include <wx/timer.h>
+#include <wx/string.h>
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r { namespace GUI {
 

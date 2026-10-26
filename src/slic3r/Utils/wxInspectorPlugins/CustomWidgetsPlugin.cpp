@@ -8,8 +8,17 @@
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/LabeledStaticBox.hpp"
 
+#include <wx/string.h>
+#include <wx/rtti.h>
+#include <wx/object.h>
+#include <wx/vector.h>
+#include <wx/inspector/plugin.h>
+#include <wx/inspector/object.h>
+#include <wx/colour.h>
 #include <wx/window.h>
 #include <wx/tglbtn.h>
+#include <wx/wxcrtvararg.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 wxString CustomWidgetsPlugin::GetName() const
 {

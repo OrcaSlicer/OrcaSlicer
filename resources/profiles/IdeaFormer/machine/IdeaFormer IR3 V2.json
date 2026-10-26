@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "IdeaFormer IR3 V2",
+	"model_id": "IdeaFormer_IR3_V2",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "IdeaFormer",
+	"bed_model": "",
+	"bed_texture": "",
+	"hotend_model": "",
+	"default_materials": "Generic PLA @IdeaFormer IR3 V2;Generic PETG @IdeaFormer IR3 V2"
+}

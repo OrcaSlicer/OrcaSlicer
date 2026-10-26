@@ -1,13 +1,36 @@
 #include "SavePresetDialog.hpp"
 
+#include <cassert>
+#include <boost/algorithm/string/predicate.hpp>
 #include <cstddef>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/RadioGroup.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <cstring>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/OptionsGroup.hpp"
 #include <vector>
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
+#include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
 #include "libslic3r/PresetBundle.hpp"
@@ -18,8 +41,6 @@
 #include "Tab.hpp"
 
 #include "Widgets/DialogButtons.hpp"
-
-using Slic3r::GUI::format_wxstr;
 
 namespace Slic3r { namespace GUI {
 
@@ -36,7 +57,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_presets = tab->get_presets();
 
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
+    std::string   preset_name = sel_preset.is_default ? _u8L("Untitled") : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
 
     // if name contains extension
     if (boost::iends_with(preset_name, ".ini")) {

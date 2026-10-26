@@ -3,10 +3,13 @@
 
 #include "libslic3r/Point.hpp"   // Vec2d
 
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace Slic3r {
+
+namespace Emboss { struct FontFile; }
 
 // A rigid imported region: contour[0] = outer loop, contour[1..] = holes;
 // points in plane (u,v) millimetres. The nested vector type matches
@@ -19,6 +22,11 @@ using ImportRegions = std::vector<ImportRegion>;
 // font (resources/fonts). Returns an empty vector on any failure.
 ImportRegions text_to_regions(const std::string& utf8, double size_mm,
                               const std::string& font_path = std::string());
+// Same, from an already loaded font — the GUI resolves a system font (face, bold, italic)
+// to one and keeps it while the user types. Returns an empty vector when the font is null or
+// yields no shape.
+ImportRegions text_to_regions(const std::string& utf8, double size_mm,
+                              const std::shared_ptr<const Emboss::FontFile>& font);
 
 // Parse an SVG file's filled paths into regions (mm), centred on the origin.
 // `scale` multiplies the authored size (1.0 = as authored). Returns an empty

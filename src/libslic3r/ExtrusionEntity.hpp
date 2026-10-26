@@ -1,13 +1,19 @@
 #ifndef slic3r_ExtrusionEntity_hpp_
 #define slic3r_ExtrusionEntity_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 
 #include <assert.h>
+#include <cstdint>
+#include <string>
+#include <cstddef>
 #include <string_view>
 #include <numeric>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
@@ -150,12 +156,18 @@ public:
     virtual double length() const = 0;
     virtual double total_volume() const = 0;
     
-    // Orca: Used for inner/outer/inner mode - classic perimeter generator
+    // Orca: Wall index set by the perimeter generators, 0 for the outer wall, -1 if unset
     int inset_idx = -1;
 
     static std::string role_to_string(ExtrusionRole role);
     static ExtrusionRole string_to_role(const std::string_view role);
 };
+
+// Orca: Overhang paths share one role on every wall, so the inset index tells inner walls apart where set.
+inline bool is_inner_wall(const ExtrusionEntity &entity)
+{
+    return entity.inset_idx >= 0 ? entity.inset_idx > 0 : entity.role() == erPerimeter;
+}
 
 typedef std::vector<ExtrusionEntity*> ExtrusionEntitiesPtr;
 
@@ -389,21 +401,23 @@ public:
     ExtrusionPaths paths;
 
     ExtrusionMultiPath() {}
-    ExtrusionMultiPath(const ExtrusionMultiPath &rhs) : paths(rhs.paths), m_can_reverse(rhs.m_can_reverse) {}
-    ExtrusionMultiPath(ExtrusionMultiPath &&rhs) : paths(std::move(rhs.paths)), m_can_reverse(rhs.m_can_reverse) {}
+    ExtrusionMultiPath(const ExtrusionMultiPath &rhs) : ExtrusionEntity(rhs), paths(rhs.paths), m_can_reverse(rhs.m_can_reverse) {}
+    ExtrusionMultiPath(ExtrusionMultiPath &&rhs) : ExtrusionEntity(rhs), paths(std::move(rhs.paths)), m_can_reverse(rhs.m_can_reverse) {}
     ExtrusionMultiPath(const ExtrusionPaths &paths) : paths(paths) {}
     ExtrusionMultiPath(const ExtrusionPath &path) {this->paths.push_back(path); m_can_reverse = path.can_reverse(); }
 
     ExtrusionMultiPath &operator=(const ExtrusionMultiPath &rhs)
     {
-        this->paths   = rhs.paths;
-        m_can_reverse = rhs.m_can_reverse;
+        this->paths     = rhs.paths;
+        m_can_reverse   = rhs.m_can_reverse;
+        this->inset_idx = rhs.inset_idx;
         return *this;
     }
     ExtrusionMultiPath &operator=(ExtrusionMultiPath &&rhs)
     {
-        this->paths   = std::move(rhs.paths);
-        m_can_reverse = rhs.m_can_reverse;
+        this->paths     = std::move(rhs.paths);
+        m_can_reverse   = rhs.m_can_reverse;
+        this->inset_idx = rhs.inset_idx;
         return *this;
     }
 

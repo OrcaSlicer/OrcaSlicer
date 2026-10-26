@@ -1,8 +1,10 @@
 #pragma once
 #include "SlicingPipelinePluginCapability.hpp"
+#include <pybind11/pybind11.h>
 #include "slic3r/plugin/PyPluginTrampoline.hpp"
 #include "slic3r/plugin/PluginAuditManager.hpp"
 #include <boost/filesystem.hpp>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 
 namespace Slic3r {
 class PySlicingPipelinePluginCapabilityTrampoline : public PyPluginCommonTrampoline<SlicingPipelinePluginCapability> {

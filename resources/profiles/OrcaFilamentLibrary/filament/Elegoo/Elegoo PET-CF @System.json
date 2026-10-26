@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Elegoo PET-CF @System",
+	"renamed_from": "Elegoo PET-CF",
 	"inherits": "Elegoo PET-CF @base",
 	"from": "system",
 	"setting_id": "oloKoC4Bs8dXatMU",
 	"instantiation": "true",
-	"renamed_from": "Elegoo PET-CF",
 	"pressure_advance": [
 		"0.05"
 	],

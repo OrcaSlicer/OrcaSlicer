@@ -1,0 +1,199 @@
+name: Daily OFL OTA Update
+
+run-name: Daily OFL OTA Update [OFL barrier]
+
+# This workflow is intended for creating and publishing the OrcaFilamentLibrary (OFL) OPC package to
+# https://github.com/OrcaSlicer/orcaslicer-profiles, which generates an OTA update.
+# This cronjob runs daily at 00:00 UTC every day and scans main plus every release/vX.Y.Z branch for
+# changes to resources/profiles/OrcaFilamentLibrary since that branch's own last successful run. Any
+# branch with no changes is skipped; each changed branch gets its own post_merge_profiles.yml dispatch.
+#
+# OFL has no dedicated FOLDER_MERGERS grant (it isn't merged through the PR merge-bot delegation
+# scheme), so post_merge_profiles.yml is dispatched with an explicit `vendor` input, which that
+# workflow trusts and uses to bypass the FOLDER_MERGERS check for this trigger. That same explicit-
+# vendor-dispatch path is also what makes post_merge_profiles.yml call the OTA auto-publish API after
+# uploading - see post_merge_profiles.yml for both sides of that contract.
+#
+# Each run captures a timestamp, dispatches the needed OFL publishers, waits for
+# all of them to finish, then clears the pending-publish table once. Changes merged
+# after that timestamp remain pending for the next run.
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+  workflow_dispatch:
+
+permissions:
+  actions: write # list this workflow's past runs and dispatch post_merge_profiles.yml
+  contents: read
+
+env:
+  VENDOR: OrcaFilamentLibrary
+
+jobs:
+  daily-job:
+    if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Capture start timestamp
+        id: start
+        shell: bash
+        run: |
+          set -euo pipefail
+          timestamp="$(date -u +%s)"
+          echo "timestamp=$timestamp" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # Full history: the per-branch "since last successful run" check below
+          # needs to look arbitrarily far back if a prior run failed or was skipped.
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        shell: bash
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Scan branches and publish changed OFL profiles
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SCAN_UNTIL: ${{ steps.start.outputs.timestamp }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t branches < <(
+            gh api "repos/${{ github.repository }}/branches" --paginate --jq '.[].name' \
+              | grep -E '^(main|release/v[0-9]+\.[0-9]+\.[0-9]+)$' | sort -u
+          )
+
+          # The cron run is the checkpoint: a successful run means every
+          # dispatched branch publisher completed and the pending queue was
+          # cleared. Manual or push-triggered post_merge_profiles runs are not
+          # checkpoints for this scan.
+          successful_cron_runs="$(gh api --method GET \
+            "repos/${{ github.repository }}/actions/workflows/ofl-ota-cronjob.yml/runs" \
+            -f status=success -f branch=main -f per_page=100 --paginate \
+            --jq '.workflow_runs[] | select((.display_title // "") | contains("[OFL barrier]"))')"
+          since="$(jq -rs 'sort_by(.run_started_at) | last.run_started_at // empty' <<< "$successful_cron_runs")"
+
+          for branch in "${branches[@]}"; do
+            echo "::group::$branch"
+
+            if [ -z "$since" ]; then
+              echo "No prior successful OFL cron run; checking $branch through $SCAN_UNTIL."
+              changed_files="$(git log --until="$SCAN_UNTIL" --name-only --pretty=format: "origin/$branch" -- \
+                resources/profiles/OrcaFilamentLibrary resources/profiles/OrcaFilamentLibrary.json \
+                | sed '/^$/d')"
+            else
+              changed_files="$(git log --since="$since" --until="$SCAN_UNTIL" --name-only --pretty=format: "origin/$branch" -- \
+                resources/profiles/OrcaFilamentLibrary resources/profiles/OrcaFilamentLibrary.json \
+                | sed '/^$/d')"
+            fi
+
+            if [ -n "$changed_files" ]; then
+              echo "OFL changed on $branch from ${since:-the beginning} through $SCAN_UNTIL:"
+              echo "$changed_files"
+              changed=true
+            else
+              echo "No OFL changes on $branch through $SCAN_UNTIL."
+              changed=false
+            fi
+
+            if [ "$changed" = true ]; then
+              dispatch_id="${GITHUB_RUN_ID}-${branch//\//-}"
+              # Record successful dispatches for the barrier step below.
+              # Branches whose workflow predates workflow_dispatch are skipped
+              # with a warning, as they were before the barrier was added.
+              if gh workflow run post_merge_profiles.yml \
+                --repo "${{ github.repository }}" \
+                --ref "$branch" \
+                -f vendor="$VENDOR" -f auto_publish=true \
+                -f ofl_cron_dispatch_id="$dispatch_id"; then
+                printf '%s\t%s\n' "$branch" "$dispatch_id" >> "$RUNNER_TEMP/ofl-dispatches.tsv"
+              else
+                echo "::warning::skipping $branch because post_merge_profiles.yml could not be dispatched at that ref"
+              fi
+            fi
+
+            echo "::endgroup::"
+          done
+
+      - name: Wait for OFL publishers
+        id: wait
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISPATCHES_FILE: ${{ runner.temp }}/ofl-dispatches.tsv
+        run: |
+          set -euo pipefail
+
+          if [ ! -s "$DISPATCHES_FILE" ]; then
+            echo "No OFL publisher workflows were dispatched; pending queue will not be cleared."
+            echo "publishers_dispatched=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          : > "$RUNNER_TEMP/ofl-run-ids.tsv"
+          while IFS=$'\t' read -r branch dispatch_id; do
+            [ -n "$branch" ] || continue
+            echo "Waiting for OFL publisher on $branch ($dispatch_id)"
+
+            run_id=""
+            for _ in {1..120}; do
+              runs_json="$(gh api --method GET \
+                "repos/${{ github.repository }}/actions/workflows/post_merge_profiles.yml/runs" \
+                -f branch="$branch" -f event=workflow_dispatch -f per_page=100)"
+              run_id="$(jq -r --arg marker "[OFL cron $dispatch_id]" \
+                '[.workflow_runs[] | select((.display_title // "") | contains($marker))]
+                | sort_by(.created_at) | last | .id // empty' <<< "$runs_json")"
+              [ -n "$run_id" ] && break
+              sleep 5
+            done
+
+            if [ -z "$run_id" ]; then
+              echo "::error::could not find dispatched post_merge_profiles run for $branch ($dispatch_id)"
+              exit 1
+            fi
+            printf '%s\t%s\n' "$branch" "$run_id" >> "$RUNNER_TEMP/ofl-run-ids.tsv"
+          done < "$DISPATCHES_FILE"
+
+          all_success=true
+          while IFS=$'\t' read -r branch run_id; do
+            [ -n "$run_id" ] || continue
+            echo "Watching OFL publisher run $run_id for $branch"
+            if ! gh run watch "$run_id" --repo "${{ github.repository }}" --exit-status; then
+              all_success=false
+            fi
+          done < "$RUNNER_TEMP/ofl-run-ids.tsv"
+
+          if [ "$all_success" != true ]; then
+            echo "::error::one or more OFL publisher workflows failed; pending queue will not be cleared"
+            exit 1
+          fi
+          echo "publishers_dispatched=true" >> "$GITHUB_OUTPUT"
+
+      - name: Clear OFL pending queue
+        if: steps.wait.outputs.publishers_dispatched == 'true'
+        shell: bash
+        env:
+          OTA_API_BASE_URL: ${{ vars.OTA_API_BASE_URL }}
+          OTA_API_KEY: ${{ secrets.OFL_OTA_PUBLISH_KEY }}
+          TIMESTAMP: ${{ steps.start.outputs.timestamp }}
+        run: |
+          set -euo pipefail
+          [ -n "$OTA_API_BASE_URL" ] || { echo "::error::vars.OTA_API_BASE_URL is not set"; exit 1; }
+          [ -n "$OTA_API_KEY" ] || { echo "::error::secrets.OFL_OTA_PUBLISH_KEY is not set"; exit 1; }
+
+          resp_file="$RUNNER_TEMP/ota-pending-clear-response.json"
+          status="$(curl -sS -o "$resp_file" -w '%{http_code}' -X POST \
+            "${OTA_API_BASE_URL%/}/api/v1/ota/ofl/pending/clear?timestamp=$TIMESTAMP" \
+            -H "Authorization: Bearer $OTA_API_KEY")"
+          body="$(cat "$resp_file")"
+          echo "$body"
+
+          if [ "$status" != "200" ]; then
+            echo "::error::OTA pending-clear call failed with HTTP $status"
+            exit 1
+          fi

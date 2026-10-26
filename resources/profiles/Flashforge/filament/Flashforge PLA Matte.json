@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "ipMevDMORKqZYdvD",
 	"filament_id": "OF6qAuyi",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"22"
 	],

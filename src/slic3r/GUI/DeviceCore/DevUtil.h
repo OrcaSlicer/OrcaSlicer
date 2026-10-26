@@ -7,6 +7,9 @@
  */
 
 #pragma once
+#include <cstdint>
+#include <cassert>
+#include <ctime>
 #include <string>
 #include <sstream>
 #include <stdexcept>

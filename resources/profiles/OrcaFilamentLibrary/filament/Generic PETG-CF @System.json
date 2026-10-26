@@ -9,15 +9,35 @@
 		"30"
 	],
 	"fan_max_speed": [
+		"40",
+		"40",
+		"40",
+		"40",
+		"40",
 		"40"
 	],
 	"fan_min_speed": [
+		"5",
+		"5",
+		"5",
+		"5",
+		"5",
 		"5"
 	],
 	"filament_max_volumetric_speed": [
+		"11.5",
+		"11.5",
+		"11.5",
+		"11.5",
+		"11.5",
 		"11.5"
 	],
 	"filament_multitool_ramming_flow": [
+		"13",
+		"13",
+		"13",
+		"13",
+		"13",
 		"13"
 	],
 	"overhang_fan_speed": [

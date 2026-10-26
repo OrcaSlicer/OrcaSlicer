@@ -6,6 +6,7 @@
 #define VGCODE_VIEWRANGE_HPP
 
 #include "Range.hpp"
+#include "../include/Types.hpp"
 
 namespace libvgcode {
 

@@ -9,6 +9,11 @@
 
 #include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 
+#include <wx/event.h>
+#include <vector>
+#include <optional>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <unordered_map>
 #include <wx/panel.h>
 
 #include <memory>

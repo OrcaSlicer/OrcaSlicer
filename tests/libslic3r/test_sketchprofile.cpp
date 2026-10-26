@@ -9,11 +9,19 @@
 // So these cases assert the loop, not the coordinates. That is the invariant every sketch
 // operation has to preserve and the only one that predicts whether the GUI can build a solid
 // out of the result.
+#include <TopoDS_Face.hxx>
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <cmath>
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include <math.h>
+#include <cstddef>
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;

@@ -54,10 +54,9 @@ run_in_rig() {                      # copy the script in fresh, then run it ther
 # says. The header calls itself GENERATED and had been hand-edited anyway — which cost four rows
 # that existed only in the header, one row wired to the wrong action, and a count of 91 for a
 # 92-row array, so the last verb was unreachable (z8rs, ziam).
-# docs/CAD/, not docs/: SoftFever moved the design docs into the CAD subfolder
-# (bbd1989e1e) and this line kept the old path, so the rung failed on a missing file
-# rather than on anything about the table. The other fork still has docs/ux/.
-step "offer table matches the atlas" python3 docs/CAD/ux/mockups/gen_offer_table.py --check
+# The atlas and its generator live beside this script, in scripts/CAD/: they are build inputs
+# for a checked-in header, not documentation, so they do not belong under docs/.
+step "offer table matches the atlas" python3 scripts/CAD/gen_offer_table.py --check
 
 step "kernel suite" scripts/CAD/run-kernel-tests.sh --vol "${KVOL:-orcacad_kerneltest}"
 

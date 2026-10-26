@@ -2,23 +2,69 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
-#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/MeasureUtils.hpp"
 
+#include <cstdio>
+#include <cassert>
+#include <array>
+#include <cstdlib>
+#include <cstddef>
+#include <functional>
+#include <cfloat>
+#include <Eigen/Geometry>
+#include <cmath>
+#include <imgui.h>
+#include <algorithm>
 #include <imgui/imgui_internal.h>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Measure.hpp"
+#include <memory>
+#include "libslic3r/TriangleMesh.hpp"
+#include <map>
+#include "libslic3r/Model.hpp"
+#include <limits>
+#include "libslic3r/Geometry.hpp"
+#include <math.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
 #include <numeric>
 
 #include <glad/gl.h>
 
+#include <string>
+#include <optional>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
 #include <tbb/parallel_for.h>
 
+#include <utility>
+#include <wx/busycursor.h>
+#include <vector>
 #include <wx/clipbrd.h>
+#include <wx/utils.h>
+#include <wx/dataobj.h>
+#include <wx/strconv.h>
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -449,7 +495,7 @@ bool GLGizmoMeasure::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_po
 
 bool GLGizmoMeasure::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_U;
+    m_shortcut = Shortcut::GizmoMeasure;
 
     const wxString shift = GUI::shortkey_shift_prefix();
 
@@ -1866,13 +1912,13 @@ void GLGizmoMeasure::show_selection_ui()
         float selection_cap_length = 0;
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = std::max(ImGui::CalcTextSize(_u8L("Face 1 (Fixed)").c_str()).x, ImGui::CalcTextSize(_u8L("Face 2 (Moving)").c_str()).x) * 1.2;
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = std::max(ImGui::CalcTextSize(_u8L("Point 1 (Fixed)").c_str()).x, ImGui::CalcTextSize(_u8L("Point 2 (Moving)").c_str()).x) * 1.2;
             }
         }
         else {
-            selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1").c_str()).x * 1.2;
+            selection_cap_length = ImGui::CalcTextSize(_u8L("Selection 1").c_str()).x * 1.2;
         }
         auto        feature_first_text        = format_item_text(m_selected_features.first);
         const float feature_first_text_length = ImGui::CalcTextSize((_u8L(feature_first_text)).c_str()).x;
@@ -1888,13 +1934,13 @@ void GLGizmoMeasure::show_selection_ui()
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_1ST_COLOR));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->text(_u8L("Face 1 (Fixed)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->text(_u8L("Point 1 (Fixed)"));
             }
         }
         else {
-            m_imgui->text(_u8L("Selection") + " 1");
+            m_imgui->text(_u8L("Selection 1"));
         }
         ImGui::SameLine(selection_cap_length + space_size);
         ImGui::PushItemWidth(feature_first_text_length);
@@ -1914,12 +1960,12 @@ void GLGizmoMeasure::show_selection_ui()
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_2ND_COLOR));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->text(_u8L("Face 2 (Moving)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->text(_u8L("Point 2 (Moving)"));
             }
         } else {
-            m_imgui->text(_u8L("Selection") + " 2");
+            m_imgui->text(_u8L("Selection 2"));
         }
         ImGui::SameLine(selection_cap_length + space_size);
         ImGui::PushItemWidth(feature_second_text_length);

@@ -1,6 +1,7 @@
 #include "GLGizmoSimplify.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
@@ -11,9 +12,32 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 
+#include <functional>
+#include <cstddef>
+#include <cstdint>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <glad/gl.h>
 
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <iterator>
+#include <mutex>
+#include <imgui.h>
+#include <memory>
+#include <limits>
+#include <optional>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include <thread>
+#include <vector>
+#include <wx/event.h>
+#include <utility>
 
 namespace Slic3r::GUI {
 
@@ -332,7 +356,7 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
 
     ImGui::NewLine();
     ImGui::SameLine(bottom_left_width + space_size);
-    ImGui::Text(_u8L("%d triangles").c_str(), m_configuration.wanted_count);
+    ImGui::TextUnformatted(GUI::format(_L_PLURAL("%1% triangle", "%1% triangles", m_configuration.wanted_count), m_configuration.wanted_count).c_str());
     m_imgui->disabled_end(); // use_count
 
     m_imgui->bbl_checkbox(_L("Show wireframe").c_str(), m_show_wireframe);

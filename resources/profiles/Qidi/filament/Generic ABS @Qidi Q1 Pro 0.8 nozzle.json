@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Qidi Q1 Pro 0.8 nozzle",
-	"inherits": "Generic ABS @Qidi",
 	"renamed_from": "Qidi Generic ABS @Qidi Q1 Pro 0.8 nozzle;Qidi Generic ABS Qidi Q1 Pro 0.8 nozzle",
+	"inherits": "Generic ABS @Qidi",
 	"from": "system",
 	"setting_id": "ZWOlrWQQwvsDV8xa",
 	"filament_id": "OFY9muEs",

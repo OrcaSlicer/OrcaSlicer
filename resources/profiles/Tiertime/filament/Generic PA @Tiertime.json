@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Tiertime",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "Tiertime Generic PA",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OFg8ndtj",
 	"setting_id": "u37BwUzY2vt6zqjd",
+	"filament_id": "OFg8ndtj",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"60"

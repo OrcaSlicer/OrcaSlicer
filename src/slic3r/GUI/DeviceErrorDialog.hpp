@@ -1,15 +1,30 @@
 #pragma once
 
+#include <string>
+#include <map>
 #include <unordered_set>
 #include <atomic>
 #include <memory>
+#include <wx/gdicmn.h>
+#include <vector>
+#include <wx/sizer.h>
+#include <wx/dialog.h>
 #include <wx/statbmp.h>
+#include <wx/string.h>
 #include <wx/timer.h>
+#include <wx/toplevel.h>
 #include <wx/webrequest.h>
 
 #include "GUI_Utils.hpp"
 #include "Widgets/StateColor.hpp"
 #include <nlohmann/json.hpp>
+
+class wxBoxSizer;
+class wxScrolledWindow;
+class wxStaticBitmap;
+class wxTimer;
+class wxTimerEvent;
+class wxWindow;
 
 class Label;
 class Button;

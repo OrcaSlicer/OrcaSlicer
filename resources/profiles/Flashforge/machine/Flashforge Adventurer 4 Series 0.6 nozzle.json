@@ -22,9 +22,11 @@
 	],
 	"host_type": "flashforge",
 	"machine_max_acceleration_extruding": [
+		"5000",
 		"5000"
 	],
 	"machine_max_speed_z": [
+		"30",
 		"30"
 	]
 }

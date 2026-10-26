@@ -8,5 +8,6 @@
 	"bed_model": "RF50 HotBed model.stl",
 	"bed_texture": "RF50 HotBed texture.svg",
 	"hotend_model": "BLOCKS PrintCore.stl",
-	"default_materials": "Generic PLA @Blocks;Generic PETG @Blocks;Generic TPU @Blocks"
+	"default_materials": "Blocks PLA @Blocks_RF50;Blocks PETG @Blocks_RF50;Blocks TPU @Blocks_RF50",
+	"not_support_bed_type": "Smooth Cool Plate;Engineering Plate;Textured Cool Plate;Cool Plate (SuperTack)"
 }

@@ -7,7 +7,11 @@
 
 #include "Types.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace libvgcode {
 
@@ -60,6 +64,44 @@ public:
     // using the given camera matrices.
     //
     void render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    //
+    // ORCA: render() leaves out the toolpaths of translucent filaments, which this draws over
+    // the scene afterwards, so that the caller can shade the opaque scene in between.
+    //
+    void render_translucent(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
+    //
+    // ORCA: whether the last render() left out any toolpaths for render_translucent() to draw.
+    //
+    bool has_translucent_toolpaths() const;
+    //
+    // ORCA: realistic view. Render the toolpaths as seen from the light, to fill the caller's
+    // shadow map. Depth only - the caller masks colour writes and owns the framebuffer.
+    //
+    void render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position);
+    //
+    // ORCA: realistic view. The shadow map the toolpaths sample, in the given texture unit.
+    // intensity == 0, the default, turns the lookup off and restores the plain shading.
+    //
+    void set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size);
+    //
+    // ORCA: tone applied to the shaded toolpaths, to pay back the light the lighting term,
+    // the shadow and the SSAO pass each take off. 1.0/1.0, the default, is a no-op; the
+    // caller decides which of the two it varies with the realistic view setting.
+    //
+    void set_tone(float exposure, float saturation);
+    //
+    // ORCA: section view. Cuts away where dot(plane, (x, y, z, 1)) < 0; { 0, 0, 0, 1 } keeps all.
+    //
+    void set_clipping_plane(const std::array<float, 4>& plane);
+    //
+    // ORCA: direction to the top light in eye space, shading the toolpaths and biasing their shadow lookup.
+    //
+    void set_light_top_dir(const Vec3& direction);
+    //
+    // ORCA: whether the filaments catch an untinted highlight, on by default; the caller ties it to the realistic
+    // view and its glossy toolpaths setting.
+    //
+    void set_gloss(bool gloss);
 
     //
     // ************************************************************************
@@ -100,6 +142,12 @@ public:
     void set_dim_previous_layers(bool value);
     float get_dim_previous_layers_brightness() const;
     void set_dim_previous_layers_brightness(float value);
+    //
+    // Translucent filaments (ORCA)
+    // Whether the filament colors keep their opacity, or are all drawn opaque.
+    //
+    bool is_translucent_filaments() const;
+    void set_translucent_filaments(bool value);
     //
     // Returns true if the given option is visible.
     //
@@ -149,12 +197,12 @@ public:
     // Return the palette used to render the toolpaths when
     // the view type is EViewType::Tool.
     //
-    const Palette& get_tool_colors() const;
+    const PaletteWithAlpha& get_tool_colors() const;
     //
     // Set the palette used to render the toolpaths when
     // the view type is EViewType::Tool with the given one.
     //
-    void set_tool_colors(const Palette& colors);
+    void set_tool_colors(const PaletteWithAlpha& colors);
     //
     // Return the count of colors in the palette used to render
     // the toolpaths when the view type is EViewType::ColorPrint.
@@ -164,12 +212,12 @@ public:
     // Return the palette used to render the toolpaths when
     // the view type is EViewType::ColorPrint.
     //
-    const Palette& get_color_print_colors() const;
+    const PaletteWithAlpha& get_color_print_colors() const;
     //
     // Set the palette used to render the toolpaths when
     // the view type is EViewType::ColorPrint with the given one.
     //
-    void set_color_print_colors(const Palette& colors);
+    void set_color_print_colors(const PaletteWithAlpha& colors);
     //
     // Get the color range for the given view type.
     // Valid view types are:

@@ -1,13 +1,25 @@
 
 #include "CutUtils.hpp"
 #include "Geometry.hpp"
+#include "Point.hpp"
+#include "TriangleMesh.hpp"
 #include "libslic3r.h"
 #include "Model.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "TriangleSelector.hpp"
 #include "ObjectID.hpp"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <cassert>
+#include <string>
+#include <vector>
+#include <utility>
+#include <cstddef>
+#include <optional>
+#include <math.h>
+#include <cmath>
+#include "BoundingBox.hpp"
 
 namespace Slic3r {
 
@@ -21,28 +33,27 @@ static void apply_tolerance(ModelVolume* vol)
     if (!cut_info.is_processed)
         return;
 
+    // The connector mesh is a unit shape, so the scaling factor is its size.
     Vec3d sf = vol->get_scaling_factor();
 
     // make a "hole" wider
     sf[X] += double(cut_info.radius_tolerance);
     sf[Y] += double(cut_info.radius_tolerance);
 
-    // make a "hole" dipper
+    // make a "hole" deeper
     sf[Z] += double(cut_info.height_tolerance);
 
+    // A dowel is centered on the cut plane and stays there, so each of its holes gets half the extra depth.
+    // A plug or snap sits on one side of the plane: its hole grows by the tolerance away from the cut face
+    // and by the overlap through it, so its center moves by half the difference.
+    if (cut_info.connector_type == CutConnectorType::Plug ||
+        cut_info.connector_type == CutConnectorType::Snap) {
+        sf[Z] += CONNECTOR_HOLE_OVERLAP;
+        const double z_offset = 0.5 * (static_cast<double>(cut_info.height_tolerance) - CONNECTOR_HOLE_OVERLAP);
+        vol->set_offset(vol->get_offset() + rotation_transform(vol->get_rotation()) * (z_offset * Vec3d::UnitZ()));
+    }
+
     vol->set_scaling_factor(sf);
-
-    // correct offset in respect to the new depth
-    Vec3d rot_norm = rotation_transform(vol->get_rotation()) * Vec3d::UnitZ();
-    if (rot_norm.norm() != 0.0)
-        rot_norm.normalize();
-
-    double z_offset = 0.5 * static_cast<double>(cut_info.height_tolerance);
-    if (cut_info.connector_type == CutConnectorType::Plug || 
-        cut_info.connector_type == CutConnectorType::Snap)
-        z_offset -= 0.05; // add small Z offset to better preview
-
-    vol->set_offset(vol->get_offset() + rot_norm * z_offset);
 }
 
 static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelVolume* src_volume, const Transform3d& cut_matrix, const std::string& suffix = {}, ModelVolumeType type = ModelVolumeType::MODEL_PART)
@@ -63,8 +74,10 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     vol->cut_info = src_volume->cut_info;
 }
 
+// Cuts the volume at cut_z above the cut plane; the result stays in the cut plane's coordinates.
 static void process_volume_cut( const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
-                                ModelObjectCutAttributes attributes, TriangleMesh& upper_mesh, TriangleMesh& lower_mesh)
+                                ModelObjectCutAttributes attributes, TriangleMesh& upper_mesh, TriangleMesh& lower_mesh,
+                                float cut_z = 0.f)
 {
     const auto volume_matrix = volume->get_matrix();
 
@@ -77,7 +90,7 @@ static void process_volume_cut( const ModelVolume* volume, const Transform3d& in
     mesh.transform(invert_cut_matrix * instance_matrix * volume_matrix, true);
 
     indexed_triangle_set upper_its, lower_its;
-    cut_mesh(mesh.its, 0.0f, &upper_its, &lower_its);
+    cut_mesh(mesh.its, cut_z, &upper_its, &lower_its);
     if (attributes.has(ModelObjectCutAttribute::KeepUpper))
         upper_mesh = TriangleMesh(upper_its);
     if (attributes.has(ModelObjectCutAttribute::KeepLower))
@@ -141,13 +154,11 @@ static void process_connector_cut(  ModelVolume* volume, const Transform3d& inst
         // Cut the dowel
         apply_tolerance(volume);
 
-        // Perform cut
-        TriangleMesh upper_mesh, lower_mesh;
-        process_volume_cut(volume, Transform3d::Identity(), cut_matrix, attributes, upper_mesh, lower_mesh);
-
-        // add small Z offset to better preview
-        upper_mesh.translate((-0.05 * Vec3d::UnitZ()).cast<float>());
-        lower_mesh.translate((0.05 * Vec3d::UnitZ()).cast<float>());
+        // Cut each hole just past the plane, so it breaks through its cut face without getting shorter.
+        const float  overlap = static_cast<float>(CONNECTOR_HOLE_OVERLAP);
+        TriangleMesh upper_mesh, lower_mesh, discarded;
+        process_volume_cut(volume, Transform3d::Identity(), cut_matrix, attributes, upper_mesh, discarded, -overlap);
+        process_volume_cut(volume, Transform3d::Identity(), cut_matrix, attributes, discarded, lower_mesh, overlap);
 
         // Add cut parts to the related objects
         add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A", volume->type());

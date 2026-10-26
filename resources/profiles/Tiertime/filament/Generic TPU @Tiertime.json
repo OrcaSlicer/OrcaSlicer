@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Tiertime",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "Tiertime Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "OFgbpcy9",
 	"setting_id": "UCowa7X5TZwXBJWe",
+	"filament_id": "OFgbpcy9",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"

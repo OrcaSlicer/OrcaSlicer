@@ -2,14 +2,21 @@
 #define FILAMENT_GROUP_HPP
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <set>
 #include <map>
+#include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <queue>
 #include "GCode/ToolOrderUtils.hpp"
 #include "FilamentGroupUtils.hpp"
+#include "PrintConfig.hpp"
+#include "MultiNozzleUtils.hpp"
 
 const static int DEFAULT_CLUSTER_SIZE = 16;
 

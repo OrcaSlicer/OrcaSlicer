@@ -4,14 +4,22 @@
 #include "OrderingStrategies.hpp"
 #include "../Geometry.hpp"
 #include "../ShortestPath.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "libslic3r/Print.hpp"
 
 namespace Slic3r {
 
@@ -134,17 +142,124 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
         return {std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()};
     };
 
+    // For many islands, the same scan with the edges binned in a uniform grid over their boxes, so each edge is only tested against the edges sharing a
+    // cell with it - two edges whose boxes overlap always do. It returns the same crossing as the all-pairs scan
+    // (smallest i, then smallest j), so the result is unchanged. The all-pairs scan is quadratic in the edge count and
+    // runs again after every reversal; rebuilding the grid costs more than it saves below the threshold.
+    constexpr size_t grid_min_size = 500;
+    BoundingBox extent;
+    for (size_t idx : path)
+        extent.merge(centers[idx]);
+    const int     grid_n = std::clamp(int(std::sqrt(double(pn))), 1, 256);
+    const coord_t cell_w = std::max<coord_t>(1, (extent.max.x() - extent.min.x()) / grid_n + 1);
+    const coord_t cell_h = std::max<coord_t>(1, (extent.max.y() - extent.min.y()) / grid_n + 1);
+    const auto    for_cells = [&](const Point& a, const Point& b, auto&& fn) {
+        const int x0 = int((std::min(a.x(), b.x()) - extent.min.x()) / cell_w), x1 = int((std::max(a.x(), b.x()) - extent.min.x()) / cell_w);
+        const int y0 = int((std::min(a.y(), b.y()) - extent.min.y()) / cell_h), y1 = int((std::max(a.y(), b.y()) - extent.min.y()) / cell_h);
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x)
+                fn(y * grid_n + x);
+    };
+    std::vector<std::vector<size_t>> edge_cells(size_t(grid_n) * grid_n);
+
+    auto find_crossing_grid = [&]() -> std::pair<size_t, size_t> {
+        for (std::vector<size_t>& cell : edge_cells)
+            cell.clear();
+        for (size_t j = 0; j < n_edges; ++j)
+            for_cells(centers[path[j]], centers[path[(j + 1) % pn]], [&](int cell) { edge_cells[cell].emplace_back(j); });
+
+        for (size_t i = 0; i < n_edges; ++i) {
+            const Point& ai = centers[path[i]];
+            const Point& bi = centers[path[(i + 1) % pn]];
+
+            size_t first_j = std::numeric_limits<size_t>::max();
+            for_cells(ai, bi, [&](int cell) {
+                for (size_t j : edge_cells[cell]) {
+                    if (j < i + 2 || j >= first_j) continue;
+                    // Skip the (0, pn-1) pair: edges (0,1) and (pn-1,0) share node 0.
+                    if (i == 0 && j == pn - 1) continue;
+
+                    const Point& aj = centers[path[j]];
+                    const Point& bj = centers[path[(j + 1) % pn]];
+
+                    if (!bboxes_overlap(ai, bi, aj, bj)) continue;
+                    if (Geometry::segments_intersect(ai, bi, aj, bj))
+                        first_j = j;
+                }
+            });
+            if (first_j != std::numeric_limits<size_t>::max())
+                return {i, first_j};
+        }
+        return {std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()};
+    };
+
     // Process crossings one at a time: find first, reverse it, restart scan.
     // Cap iterations to prevent infinite loops on collinear/overlapping segments.
-    int max_iters = static_cast<int>(pn * pn);
+    const int max_iters = static_cast<int>(pn * pn);
     bool improved = false;
-    while (max_iters-- > 0) {
-        auto [ci, cj] = find_crossing();
-        if (ci == std::numeric_limits<size_t>::max()) break;
-        improved = true;
+    // Reversing between two segments that only touch or overlap along a line need not remove the intersection, so on
+    // islands laid out on a regular grid (a tiled texture, an array of parts) the loop can cycle through the same
+    // orderings until the pn * pn cap. Once an ordering repeats the rest of the loop is periodic, so only the steps
+    // to the ordering the capped loop would have stopped on are taken.
+    std::unordered_map<uint64_t, int> seen_paths; // path hash -> reversals done when it was reached
+    const auto path_hash = [&path]() {
+        uint64_t h = 1469598103934665603ull; // FNV-1a
+        for (size_t idx : path)
+            h = (h ^ uint64_t(idx)) * 1099511628211ull;
+        return h;
+    };
+    const auto reverse_first_crossing = [&]() {
+        auto [ci, cj] = pn >= grid_min_size ? find_crossing_grid() : find_crossing();
+        if (ci == std::numeric_limits<size_t>::max())
+            return false;
         std::reverse(path.begin() + ci + 1, path.begin() + cj + 1);
+        return true;
+    };
+    seen_paths.emplace(path_hash(), 0);
+    for (int iter = 1; iter <= max_iters && reverse_first_crossing(); ++iter) {
+        improved = true;
+        if (auto [it, inserted] = seen_paths.emplace(path_hash(), iter); !inserted) {
+            for (int steps = (max_iters - iter) % (iter - it->second); steps > 0; --steps)
+                reverse_first_crossing();
+            break;
+        }
     }
     return improved;
+}
+
+std::vector<size_t> tsp_exact_cycle(const Points& centers)
+{
+    const size_t n = centers.size();
+    std::vector<size_t> path(n);
+    std::iota(path.begin(), path.end(), 0);
+    if (n <= 3) return path;
+    // State mask * m + j: the points 1..m of mask visited after point 0, the last one j + 1.
+    const size_t m = n - 1;
+    assert(m <= 16);
+    std::vector<double> cost((size_t(1) << m) * m, std::numeric_limits<double>::max());
+    std::vector<size_t> from(cost.size(), size_t(-1));
+    auto dist = [&centers](size_t a, size_t b) { return (centers[a].cast<double>() - centers[b].cast<double>()).norm(); };
+    for (size_t j = 0; j < m; ++j)
+        cost[(size_t(1) << j) * m + j] = dist(0, j + 1);
+    for (size_t mask = 1; mask < (size_t(1) << m); ++mask)
+        for (size_t j = 0; j < m; ++j)
+            if (const double c = cost[mask * m + j]; c < std::numeric_limits<double>::max())
+                for (size_t k = 0; k < m; ++k)
+                    if (!(mask >> k & 1)) {
+                        const size_t next = (mask | size_t(1) << k) * m + k;
+                        if (const double nc = c + dist(j + 1, k + 1); nc < cost[next]) {
+                            cost[next] = nc;
+                            from[next] = mask * m + j;
+                        }
+                    }
+    const size_t full = (size_t(1) << m) - 1;
+    size_t best = full * m;
+    for (size_t j = 1; j < m; ++j)
+        if (cost[full * m + j] + dist(j + 1, 0) < cost[best] + dist(best % m + 1, 0))
+            best = full * m + j;
+    for (size_t s = best, k = n; k-- > 1; s = from[s])
+        path[k] = s % m + 1;
+    return path;
 }
 
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers)

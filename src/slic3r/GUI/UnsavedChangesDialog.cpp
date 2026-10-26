@@ -1,13 +1,53 @@
 #include "UnsavedChangesDialog.hpp"
 
+#include <cmath>
+#include <boost/algorithm/string/replace.hpp>
+#include <cassert>
+#include <algorithm>
+#include <array>
 #include <cstddef>
+#include "slic3r/GUI/Event.hpp"
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <memory>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include <set>
+#include <iterator>
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 
+#include <wx/colour.h>
+#include <wx/dataview.h>
+#include <wx/log.h>
+#include <wx/gdicmn.h>
+#include <wx/dvrenderers.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/stattext.h>
+#include <wx/dialog.h>
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+#include <wx/settings.h>
 #include <wx/tokenzr.h>
+#include <wx/utils.h>
+#include <wx/variant.h>
+#include <wx/window.h>
+#include <wx/toplevel.h>
+#include <wx/statline.h>
 
+#include "CalibUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
@@ -25,9 +65,6 @@
 #include "PresetComboBoxes.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/HyperLink.hpp"
-
-using boost::optional;
 
 #ifdef __linux__
 #define wxLinux true
@@ -583,6 +620,7 @@ DiffViewCtrl::DiffViewCtrl(wxWindow* parent, wxSize size)
     ),
     m_em_unit(em_unit(parent))
 {
+    SetBackgroundColour(wxColour("#FFFFFF"));
     wxGetApp().UpdateDVCDarkUI(this);
 
     model = new DiffModel(parent);
@@ -857,7 +895,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 
     m_action_line = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE, 0);
     m_action_line->SetFont(::Label::Body_13);
-    m_action_line->SetForegroundColour(GREY900);
+    m_action_line->SetForegroundColour(wxColour("#363636"));
     m_action_line->Wrap(-1);
     m_sizer_main->Add(m_action_line, 0, wxLEFT | wxRIGHT, 20);
 
@@ -870,11 +908,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     }
 
     m_panel_tab = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.x, -1), wxTAB_TRAVERSAL);
-    m_panel_tab->SetBackgroundColour(GREY200);
+    m_panel_tab->SetBackgroundColour(wxColour("#D9D9D9"));
     wxBoxSizer *m_sizer_tab = new wxBoxSizer(wxVERTICAL);
 
     m_table_top = new wxPanel(m_panel_tab, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    m_table_top->SetBackgroundColour(wxColour(107, 107, 107));
+    m_table_top->SetBackgroundColour(wxColour("#D9D9D9"));
 
     wxBoxSizer *m_sizer_top = new wxBoxSizer(wxHORIZONTAL);
 
@@ -886,7 +924,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     static_temp_title            = new wxStaticText(m_panel_temp, wxID_ANY, _L("Settings"), wxDefaultPosition, wxDefaultSize, 0);
     static_temp_title->SetFont(::Label::Body_13);
     static_temp_title->Wrap(-1);
-    static_temp_title->SetForegroundColour(*wxWHITE);
+    static_temp_title->SetForegroundColour(wxColour("#363636"));
     top_title_temp_h->Add(static_temp_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
     top_title_temp_v->Add(top_title_temp_h, 1, wxALIGN_CENTER, 0);
     m_panel_temp->SetSizer(top_title_temp_v);
@@ -905,7 +943,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, params ? _L(DevPrinterConfigUtil::get_toolhead_display_name(ucd_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase)) + ": " + get_nozzle_volume_type_name(params->nozzle) : _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
     static_oldv_title->SetFont(::Label::Body_13);
     static_oldv_title->Wrap(-1);
-    static_oldv_title->SetForegroundColour(params && params->left_to_right ? wxGetApp().get_label_clr_modified() : *wxWHITE);
+    static_oldv_title->SetForegroundColour(params && params->left_to_right ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
     top_title_oldv_h->Add(static_oldv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
     top_title_oldv->Add(top_title_oldv_h, 1, wxALIGN_CENTER, 0);
     m_panel_oldv->SetSizer(top_title_oldv);
@@ -925,7 +963,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
                                          wxDefaultPosition, wxDefaultSize, 0);
     static_newv_title->SetFont(::Label::Body_13);
     static_newv_title->Wrap(-1);
-    static_newv_title->SetForegroundColour(params && !params->left_to_right ? wxGetApp().get_label_clr_modified() : *wxWHITE);
+    static_newv_title->SetForegroundColour(params && !params->left_to_right ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
 
     top_title_newv_h->Add(static_newv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
 
@@ -942,7 +980,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_tab->Add(m_table_top, 1, 0, 0);
 
     m_scrolledWindow = new wxScrolledWindow(m_panel_tab, wxID_ANY, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE,  wxNO_BORDER|wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(0, 5);
+    m_scrolledWindow->SetScrollRate(0, FromDIP(20));
     m_scrolledWindow->SetBackgroundColour(GREY200);
     m_sizer_bottom = new wxBoxSizer(wxVERTICAL);
     m_sizer_bottom->Add(m_scrolledWindow, 1, wxEXPAND, 0);
@@ -975,8 +1013,14 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {
-        auto wiki = new HyperLink(this, _L("Help"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
-        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+        auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+        auto wiki_url = "https://www.orcaslicer.com/wiki/transfer_discard_changes";
+        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+        wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+        wiki_btn->SetCanFocus(false);
+        wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+        m_sizer_button->Add(wiki_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
     }
 
     m_sizer_button->Add(0, 0, 1, 0, 0);
@@ -1580,10 +1624,6 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
             wxString label = option.label_local;
             if (type == Preset::TYPE_PRINTER && variant_index >= 0 &&
                 printer_options_with_variant_2.count(get_pure_opt_key(opt_key)) > 0) {
-                // Orca: silent_mode is obsolete on import, but its option and two-column UI still exist.
-                // Keep mode labels for configs that explicitly enable it; omit them in the default single-mode UI.
-                if (new_config.opt_bool("silent_mode"))
-                    label += " (" + (variant_index % 2 == 0 ? _L("Normal") : _L("Silent")) + ")";
                 variant_index /= 2;
             }
             if (variant_index >= 0 && extruder_variant && variant_index < extruder_variant->size()) {
@@ -1962,8 +2002,9 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     assert(wxGetApp().preset_bundle);
 
-    m_preset_bundle_left  = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
-    m_preset_bundle_right = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
+    // show() copies the app's bundle into both before anything is displayed.
+    m_preset_bundle_left  = std::make_unique<PresetBundle>();
+    m_preset_bundle_right = std::make_unique<PresetBundle>();
 
     // Create UI items
 
@@ -2122,7 +2163,8 @@ void DiffPresetDialog::update_tree()
 
         preset_combos.equal_bmp->SetToolTip(wxEmptyString);
 
-        m_tree->model->AddPreset(type, "\"" + from_u8(left_preset->name) + "\" vs \"" + from_u8(right_preset->name) + "\"", left_pt);
+        // TRN Header of a preset comparison: the two preset names.
+        m_tree->model->AddPreset(type, format_wxstr(_L("\"%1%\" vs \"%2%\""), left_preset->name, right_preset->name), left_pt);
 
         const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(type)->get_category_icon_map();
         auto get_category_icon = [&category_icon_map](const wxString& key) {

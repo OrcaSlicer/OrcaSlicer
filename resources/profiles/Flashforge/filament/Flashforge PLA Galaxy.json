@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "NJrc0UZ54Fq8MaqF",
 	"filament_id": "OFJJ0Ar3",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Galaxy"
 	],

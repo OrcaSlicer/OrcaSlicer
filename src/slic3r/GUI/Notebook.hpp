@@ -3,14 +3,26 @@
 
 //#ifdef _WIN32
 
+#include <cstddef>
 #include <initializer_list>
 #include <string>
 #include <vector>
 #include <wx/bookctrl.h>
 #include <wx/bitmap.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/debug.h>
+#include <wx/chartype.h>
+#include <wx/object.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/withimages.h>
+#include <wx/window.h>
+#include <wx/defs.h>
+#include <wx/notebook.h>
 
-class ScalableButton;
+class wxObject;
+
 class Button;
 
 // custom message the ButtonsListCtrl sends to its parent (Notebook) to notify a selection change:
@@ -45,6 +57,7 @@ public:
     // ORCA: a companion widget shown right after the tab buttons (before any side_tools), e.g.
     // an overflow indicator. Pass nullptr to remove it; ownership stays with the caller.
     void SetOverflowButton(wxWindow* button);
+    wxWindow* GetOverflowButton() const { return m_overflow_button; }
 
 private:
     wxFlexGridSizer*                m_buttons_sizer;

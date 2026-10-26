@@ -17,6 +17,9 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Arachne/WallToolPaths.hpp"
 #include "libslic3r/Arachne/SkeletalTrapezoidation.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
@@ -31,6 +34,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <utility>
+#include <math.h>
+#include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
+#include "libslic3r/PerimeterGenerator.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Layer.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Arachne;
@@ -229,7 +241,6 @@ TEST_CASE("Arachne wall generation - 60% min_bead_width", "[Arachne]") {
 // getTransitionThickness(1) = (1 + 0.619) * 0.42 = 0.68mm. A 0.5mm-thick wall therefore sits
 // in the transition band: alpha produced 2 beads here, beta collapses it to 1 fat bead.
 TEST_CASE("Arachne widening keeps two beads in transition band (#14376)", "[Arachne]") {
-    using namespace Slic3r::Arachne;
 
     // Widths in mm; the scaled coord_t values and the thresholds below are both derived from
     // these so a width change cannot silently desync the transition-band math.

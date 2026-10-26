@@ -12,6 +12,16 @@
 #include "Widgets/CheckBox.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <string>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <memory>
+#include <unordered_map>
 
 #define AMS_SETTING_DEF_COLOUR wxColour(255, 255, 255)
 #define AMS_SETTING_GREY800 wxColour(50, 58, 61)

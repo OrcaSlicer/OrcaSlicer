@@ -1,9 +1,9 @@
 {
 	"type": "machine_model",
 	"name": "re3D TerabotX 2",
+	"instantiation": "false",
 	"model_id": "re3D TerabotX 2",
 	"nozzle_diameter": "0.8;1.75",
-	"instantiation": "false",
 	"machine_tech": "FGF",
 	"family": "re3D",
 	"bed_model": "",

@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script type="text/javascript" src="../include/i18n.js"></script>
     <style>
       * {
         user-select: none;
@@ -525,7 +526,7 @@
         for (let j = 0; j < m_number_of_filaments; j++) {
           if (j == 0) {
             var tag = document.createElement("th")
-            tag.innerHTML = "<div style='font-size:12px'>from/to</div>"
+            tag.innerHTML = "<div style='font-size:12px'>" + T("from_to", "from/to") + "</div>"
             thead.appendChild(tag)
           }
           let th = document.createElement("th");

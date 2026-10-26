@@ -3,7 +3,6 @@
 
 #include <utility>
 
-#include "libslic3r/libslic3r.h"
 #include "FillBase.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Polyline.hpp"
@@ -32,6 +31,7 @@ public:
                               Polylines&                     polylines_out) override;
 
     bool is_self_crossing() override { return false; }
+    bool aligned_to_origin() const override { return true; }
 
 };
 

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Qidi",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Qidi Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "iO5utPsBKAo7cHop",
 	"filament_id": "OFY9muEs",

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG-CF @Flashforge G3U 0.6 Nozzle",
-	"inherits": "Generic PETG @Flashforge",
 	"renamed_from": "Flashforge Generic PETG-CF @G3U 0.6 Nozzle;Flashforge Generic PETG-CF G3U 0.6 Nozzle",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "xYtwo7Ddkfh5PLIz",
 	"filament_id": "OFoYSJKi",

@@ -1,0 +1,14 @@
+{
+	"type": "process",
+	"name": "fdm_process_meltingplot_mbl_04_nozzle",
+	"inherits": "fdm_process_meltingplot_mbl_common",
+	"from": "system",
+	"instantiation": "false",
+	"bridge_flow": "0.85",
+	"initial_layer_print_height": "0.3",
+	"line_width": "115%",
+	"inner_wall_line_width": "115%",
+	"outer_wall_line_width": "115%",
+	"sparse_infill_line_width": "115%",
+	"internal_solid_infill_line_width": "115%"
+}

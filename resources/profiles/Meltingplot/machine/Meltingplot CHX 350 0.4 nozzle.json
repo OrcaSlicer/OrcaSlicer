@@ -1,0 +1,30 @@
+{
+	"type": "machine",
+	"name": "Meltingplot CHX 350 0.4 nozzle",
+	"inherits": "fdm_machine_meltingplot_chx",
+	"from": "system",
+	"setting_id": "gyTKYZ8qKgen4dOM",
+	"instantiation": "true",
+	"printer_model": "Meltingplot CHX 350",
+	"printer_variant": "0.4",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"min_layer_height": [
+		"0.16"
+	],
+	"max_layer_height": [
+		"0.24"
+	],
+	"printable_area": [
+		"0x0",
+		"880x0",
+		"880x422",
+		"0x422"
+	],
+	"printable_height": "943",
+	"default_print_profile": "0.18mm Fine 0.4 nozzle @Meltingplot CHX 350",
+	"default_filament_profile": [
+		"Meltingplot PLA @0.4 nozzle"
+	]
+}

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Anycubic",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Anycubic Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "qoYfeBQCSt15O9ye",
 	"filament_id": "OFDSrzZ8",

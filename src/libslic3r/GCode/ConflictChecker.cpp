@@ -1,11 +1,29 @@
 #include "ConflictChecker.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 
+#include <cstdint>
+#include <cstdlib>
+#include <cfloat>
+#include <cassert>
+#include <optional>
+#include <cstddef>
+#include <algorithm>
 #include <tbb/parallel_for.h>
 #include <tbb/concurrent_vector.h>
 
 #include <map>
 #include <functional>
 #include <atomic>
+#include <utility>
+#include <vector>
+#include "libslic3r/Model.hpp"
 
 namespace Slic3r {
 

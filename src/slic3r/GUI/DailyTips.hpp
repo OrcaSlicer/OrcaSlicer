@@ -4,6 +4,8 @@
 #include "HintNotification.hpp"
 
 //#include <wx/time.h>
+#include <imgui.h>
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <memory>

@@ -3,6 +3,8 @@
 
 // FIXME: Deprecated
 
+#include "libslic3r/Execution/Execution.hpp"
+#include <cstddef>
 #include <libslic3r/Execution/ExecutionSeq.hpp>
 #include <libslic3r/Execution/ExecutionTBB.hpp>
 

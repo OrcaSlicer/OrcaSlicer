@@ -2,8 +2,10 @@
 #define slic3r_Events_hpp_
 
 #include <array>
+#include <cstddef>
 #include <wx/debug.h>
 #include <wx/event.h>
+#include <wx/object.h>
 
 
 namespace Slic3r {

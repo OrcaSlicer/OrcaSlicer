@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Sovol SV06 ACE",
-	"inherits": "Generic TPU @System",
 	"renamed_from": "Sovol SV06 ACE TPU",
+	"inherits": "Generic TPU @System",
 	"from": "system",
 	"setting_id": "jBAo7stLaaQxKFsp",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Vzbot",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Vzbot Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "0gr3MwdhoGW44mbr",
 	"filament_id": "OFY9muEs",

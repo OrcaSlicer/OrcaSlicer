@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "OFjiXpyf",
 	"name": "Generic TPU 95A@X-Plus 5-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x5_common",
+	"from": "system",
+	"filament_id": "OFjiXpyf",
+	"instantiation": "false",
 	"cool_plate_temp_initial_layer": [
 		"30"
 	],

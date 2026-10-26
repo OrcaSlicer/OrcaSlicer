@@ -1,0 +1,58 @@
+{
+	"type": "process",
+	"name": "0.10mm Fine @Prusa CORE One INDX HF 0.4",
+	"inherits": "fdm_process_coreone_indx",
+	"from": "system",
+	"setting_id": "RdgytV1O76vWmrQ8",
+	"instantiation": "true",
+	"bridge_speed": [
+		"40"
+	],
+	"compatible_printers": [
+		"Prusa CORE One INDX 4T HF 0.4 nozzle",
+		"Prusa CORE One INDX 8T HF 0.4 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"inner_wall_acceleration": [
+		"4000"
+	],
+	"outer_wall_acceleration": [
+		"3000"
+	],
+	"overhang_1_4_speed": [
+		"60"
+	],
+	"overhang_2_4_speed": [
+		"35"
+	],
+	"overhang_3_4_speed": [
+		"20"
+	],
+	"support_top_z_distance": "0.17",
+	"support_interface_speed": [
+		"80"
+	],
+	"support_base_pattern_spacing": "2",
+	"support_threshold_angle": "35",
+	"layer_height": "0.1",
+	"bottom_shell_layers": "7",
+	"top_shell_layers": "9",
+	"inner_wall_speed": [
+		"200"
+	],
+	"sparse_infill_speed": [
+		"200"
+	],
+	"internal_solid_infill_speed": [
+		"200"
+	],
+	"top_surface_speed": [
+		"100"
+	],
+	"small_perimeter_speed": [
+		"150"
+	],
+	"internal_solid_infill_acceleration": [
+		"6000"
+	]
+}

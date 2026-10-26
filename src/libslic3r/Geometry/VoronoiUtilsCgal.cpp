@@ -1,9 +1,18 @@
 // Needed since the CGAL headers are not self-contained.
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Interval_nt.h>
+#include <CGAL/Cartesian_converter.h>
+#include <CGAL/Filtered_kernel.h>
+#include <CGAL/Kernel/Type_equality_wrapper.h>
+#include <CGAL/Filtered_predicate.h>
+#include <CGAL/enum.h>
+#include <CGAL/Kernel/global_functions_2.h>
 #include <boost/next_prior.hpp>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Arr_segment_traits_2.h>
 #include <CGAL/Surface_sweep_2_algorithms.h>
 #include <boost/variant/get.hpp>
+#include <iterator>
 #include <vector>
 #include <cassert>
 

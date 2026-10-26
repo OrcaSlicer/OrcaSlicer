@@ -4,8 +4,22 @@
 #include "DistanceField.hpp" //Class we're implementing.
 #include "../FillRectilinear.hpp"
 #include "../../ClipperUtils.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
 
+#include <cstdint>
+#include <cstddef>
+#include <limits>
+#include <algorithm>
+#include <cmath>
+#include <cassert>
+#include <cstdlib>
 #include <tbb/parallel_for.h>
+#include <utility>
 
 #ifdef LIGHTNING_DISTANCE_FIELD_DEBUG_OUTPUT
 #include "../../SVG.hpp"

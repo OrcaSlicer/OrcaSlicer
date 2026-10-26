@@ -5,11 +5,15 @@
 #include "Point.hpp"
 #include "Model.hpp"
 
+#include <optional>
 #include <vector>
 
 namespace Slic3r {
 
 using ModelObjectPtrs = std::vector<ModelObject*>;
+
+// A connector hole reaches this far out of the cut face, so the face is open instead of covered by a coplanar skin.
+inline constexpr double CONNECTOR_HOLE_OVERLAP = 0.05;
 
 enum class ModelObjectCutAttribute : int { KeepUpper, KeepLower, KeepAsParts, FlipUpper, FlipLower, PlaceOnCutUpper, PlaceOnCutLower, CreateDowels, InvalidateCutInfo, KeepPaint };
 using ModelObjectCutAttributes = enum_bitmask<ModelObjectCutAttribute>;

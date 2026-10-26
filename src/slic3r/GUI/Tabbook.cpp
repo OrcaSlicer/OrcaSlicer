@@ -9,8 +9,17 @@
 //BBS set font size
 #include "Widgets/Label.hpp"
 
+#include <wx/bookctrl.h>
+#include <cmath>
+#include <cstddef>
+#include <algorithm>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 
 wxDEFINE_EVENT(wxCUSTOMEVT_TABBOOK_SEL_CHANGED, wxCommandEvent);
 

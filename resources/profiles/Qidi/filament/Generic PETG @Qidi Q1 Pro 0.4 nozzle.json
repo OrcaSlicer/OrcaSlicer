@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Qidi Q1 Pro 0.4 nozzle",
-	"inherits": "Generic PETG @Qidi",
 	"renamed_from": "Qidi Generic PETG @Qidi Q1 Pro 0.4 nozzle;Qidi Generic PETG Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "Generic PETG @Qidi",
 	"from": "system",
 	"setting_id": "GeV4szn47hD1UedT",
 	"filament_id": "OFYPdQJh",

@@ -1,6 +1,14 @@
 #include "AVVideoDecoder.hpp"
 
+#include <algorithm>
 #include <assert.h>
+#include "slic3r/GUI/Printer/BambuTunnel.h"
+#include <cstdio>
+#include <cstring>
+#include <cstddef>
+#include <wx/image.h>
+#include <wx/gdicmn.h>
+#include <cstdint>
 
 extern "C"
 {
@@ -45,6 +53,25 @@ int AVVideoDecoder::open(Bambu_StreamInfo const &info)
     return 0;
 }
 
+int AVVideoDecoder::open(AVCodecParameters const &parameters)
+{
+    if (avcodec_parameters_to_context(codec_ctx_, &parameters) < 0)
+        return -1;
+
+    auto codec = avcodec_find_decoder(codec_ctx_->codec_id);
+    if (codec == nullptr) {
+        fprintf(stderr, "AVVideoDecoder: unsupported codec!\n");
+        return -1;
+    }
+    if (avcodec_open2(codec_ctx_, codec, nullptr) < 0) {
+        fprintf(stderr, "AVVideoDecoder: could not open codec\n");
+        return -1;
+    }
+
+    frame_ = av_frame_alloc();
+    return frame_ == nullptr ? -1 : 0;
+}
+
 int AVVideoDecoder::decode(const Bambu_Sample &sample)
 {
     int ret = -1;
@@ -68,6 +95,14 @@ int AVVideoDecoder::decode(const Bambu_Sample &sample)
 
     av_packet_unref(pkt);
     av_packet_free(&pkt);
+    return ret;
+}
+
+int AVVideoDecoder::decode(const AVPacket &packet)
+{
+    int ret = avcodec_send_packet(codec_ctx_, &packet);
+    if (ret == 0)
+        got_frame_ = avcodec_receive_frame(codec_ctx_, frame_) == 0;
     return ret;
 }
 

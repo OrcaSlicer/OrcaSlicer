@@ -1,10 +1,36 @@
 #include "SimplyPrint.hpp"
 
+#include <boost/asio/ip/basic_endpoint.hpp>
+#include <cstdint>
+#include <ios>
+#include <iomanip>
+#include <cstdlib>
+#include <algorithm>
+#include <iterator>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <boost/nowide/cstdio.hpp>
+#include <functional>
+#include <cstddef>
+#include <cmath>
+#include <cassert>
+#include <boost/filesystem/fstream.hpp>
 #include <openssl/sha.h>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/filesystem.hpp>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/Jobs/OAuthJob.hpp"
+#include <ostream>
+#include <wx/string.h>
+#include <wx/utils.h>
 
+#include "PrintHost.hpp"
 #include "nlohmann/json.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -89,7 +115,7 @@ static void set_auth(Http& http, const std::string& access_token) { http.header(
 
 static bool should_open_in_external_browser()
 {
-    const auto& app = wxGetApp();
+    const auto& app = GUI::wxGetApp();
 
     if (app.preset_bundle->use_bbl_device_tab()) {
         // When using bbl device tab, we always need to open external browser
@@ -324,9 +350,13 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
             if (should_open_in_external_browser()) {
                 wxLaunchDefaultBrowser(url);
             } else {
-                const auto mainframe = GUI::wxGetApp().mainframe;
-                mainframe->request_select_tab(TAB_ID_MONITOR);
-                mainframe->load_printer_url(url);
+                // The tab switch queues a reload of the printer's home page, so switch synchronously
+                // first and queue the import page after it.
+                GUI::wxGetApp().CallAfter([url = wxString::FromUTF8(url)] {
+                    const auto mainframe = GUI::wxGetApp().mainframe;
+                    mainframe->select_tab(TAB_ID_MONITOR);
+                    mainframe->load_printer_url(url);
+                });
             }
 
             return true;

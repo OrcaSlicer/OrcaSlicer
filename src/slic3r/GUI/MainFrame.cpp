@@ -1,7 +1,60 @@
 #include "MainFrame.hpp"
 
+#include <wx/event.h>
+#include "slic3r/GUI/Event.hpp"
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/filehistory.h>
+#include "slic3r/GUI/BBLTopbar.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include <boost/lexical_cast.hpp>
+#include <optional>
+#include "slic3r/GUI/GLToolbar.hpp"
+#include "libslic3r/Preset.hpp"
+#include <functional>
+#include <memory>
+#include <wx/busycursor.h>
+#include <cstddef>
+#include "slic3r/GUI/Project.hpp"
+#include <wx/bookctrl.h>
+#include "slic3r/GUI/LazyPage.hpp"
+#include "slic3r/GUI/Monitor.hpp"
+#include "slic3r/GUI/PrinterWebView.hpp"
+#include "slic3r/GUI/MultiMachinePage.hpp"
+#include "slic3r/GUI/CalibrationPanel.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include <vector>
+#include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/FilamentGroupPopup.hpp"
+#include "slic3r/GUI/Widgets/SideMenuPopup.hpp"
+#include <utility>
+#include "libslic3r/libslic3r.h"
+#include <nlohmann/json.hpp>
+#include <algorithm>
+#include <wx/dirdlg.h>
+#include <exception>
+#include <wx/filedlg.h>
+#include "slic3r/GUI/Lazy.hpp"
+#include <wx/filefn.h>
+#include <string>
+#include <sstream>
+#include <wx/base64.h>
+#include <ctime>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/calib_dlg.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
 #include <wx/panel.h>
+#include <wx/settings.h>
 #include <wx/textentry.h>
+#include <wx/spinctrl.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
 #include <wx/simplebook.h>
@@ -13,11 +66,13 @@
 //#include <wx/glcanvas.h>
 #include <wx/filename.h>
 #include <wx/debug.h>
+#include <wx/toplevel.h>
 #include <wx/utils.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <wx/webview.h>
 
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -30,6 +85,7 @@
 #include "3DScene.hpp"
 #include "ParamsDialog.hpp"
 #include "PrintHostDialogs.hpp"
+#include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 #include "GUI_ObjectList.hpp"
 #include "Mouse3DController.hpp"
@@ -56,15 +112,18 @@
 #include "../Utils/PrintHost.hpp"
 
 #include "GUI_App.hpp"
+#include "ImGuiWrapper.hpp"
+#include "OpenGLManager.hpp"
+#include "Shortcuts.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "PublishSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
 #include "GUI_Factories.hpp"
-#include "GUI_ObjectList.hpp"
 #include "NotificationManager.hpp"
 #include "MarkdownTip.hpp"
 #include "NetworkTestDialog.hpp"
+#include "SceneBenchmark.hpp"
 #include "ConfigWizard.hpp"
 #include "Widgets/WebView.hpp"
 #include "DailyTips.hpp"
@@ -80,9 +139,29 @@
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
+#include <wx/glcanvas.h>
 #endif // __WXGTK__
 #include <slic3r/GUI/CreatePresetsDialog.hpp>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Model.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/IdleScheduler.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/KeyChord.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/Tabbook.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include <wx/defs.h>
+#include <cassert>
+#include <wx/display.h>
+#include <wx/window.h>
 
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -112,18 +191,31 @@ enum class ERescaleTarget
 
 namespace {
 
+bool focus_is_text_field(wxWindow* focus)
+{
+    if (dynamic_cast<wxTextEntryBase*>(focus) || dynamic_cast<wxWebView*>(focus))
+        return true; // a web page can have its own text fields
+    if (dynamic_cast<wxSpinCtrl*>(focus) || dynamic_cast<wxSpinCtrlDouble*>(focus))
+        return true; // the native Windows spin control is not a wxTextEntry
+    return false;
+}
+
+// Only a scene canvas draws ImGui, and a hidden one can keep the wx focus after a tab switch.
+const ImGuiWrapper* focused_canvas_imgui(wxWindow* focus)
+{
+    if (!OpenGLManager::is_scene_canvas(focus) || !focus->IsShownOnScreen())
+        return nullptr;
+    return wxGetApp().imgui();
+}
+
 // Space opens the speed dial, but it is the activation key for buttons, checkboxes and other
-// controls. CHAR_HOOK runs before the focused child, so only take Space when the focused window has
-// no keyboard-activation meaning of its own. Canvases (GLCanvas3D) and panels are not controls and
-// fall through to "open"; the Notebook itself does too, so Space still opens the dial on any page.
+// controls, so only take Space when the focused window has no keyboard-activation meaning of its
+// own. Canvases (GLCanvas3D) and panels are not controls and fall through to "open"; the Notebook
+// itself does too, so Space still opens the dial on any page.
 bool focus_keeps_space(wxWindow* focus)
 {
     if (!focus)
         return false;
-    if (dynamic_cast<wxTextEntryBase*>(focus))
-        return true; // typing a space into a text field
-    if (dynamic_cast<wxWebView*>(focus))
-        return true; // web content scrolls and hosts its own text fields
     if (dynamic_cast<::Button*>(focus))
         return true; // custom button: Space clicks it (it is a wxWindow, not a wxControl)
     if (dynamic_cast<StaticBox*>(focus))
@@ -310,16 +402,7 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
 
-#ifdef __APPLE__
-static const wxString ctrl = ("Ctrl+");
-// FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-static const std::string ctrl_t = u8"\u2318+"; // "⌘" (Mac Command)
-#else
-static const wxString ctrl = _L("Ctrl+");
-// FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-static const wxString ctrl_t = ctrl;
-#endif
-static const wxString shift = _L("Shift+");
+MainFrame::~MainFrame() = default;
 
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
@@ -327,7 +410,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     // BBS
     , m_recent_projects(18)
     , m_settings_dialog(this)
-    , diff_dialog(this)
+    , m_idle([] { return wxGetApp().input_idle_ms(); })
+    , m_diff_dialog(std::make_unique<Lazy<DiffPresetDialog>>("compare_presets", 100, [this] { return make_diff_dialog(); }))
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -519,6 +603,9 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         wxQueueEvent(wxGetApp().plater(), new SimpleEvent(EVT_NOTICE_CHILDE_SIZE_CHANGED));
 
         fit_tab_labels(); // ORCA on resize
+        // Restarts the idle build so a hidden Prepare page is laid out at the new size.
+        if (m_prebuild_started)
+            m_idle.start();
     });
 
     //BBS
@@ -651,6 +738,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         MarkdownTip::ExitTip();
         // Prevent queued selection/UI refresh work from running as normal during reset.
         wxGetApp().set_closing(true);
+        wxGetApp().start_exit_watchdog();
 
         m_plater->reset();
         this->shutdown();
@@ -720,7 +808,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             this->Iconize();
             return;
         }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'Q') { wxPostEvent(this, wxCloseEvent(wxEVT_CLOSE_WINDOW)); return;}
         if (evt.CmdDown() && evt.RawControlDown() && evt.GetKeyCode() == 'F') {
             EnableFullScreenView(true);
             if (IsFullScreen()) {
@@ -730,69 +817,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             }
             return;}
 #endif
-        // Orca: open the speed dial from any page with a bare Space. Only when no modifier is held (so
-        // editing shortcuts like Ctrl+Shift+Space in the canvas still reach it) and the focused window
-        // doesn't use Space to activate itself (buttons, checkboxes, list/choice controls, text fields),
-        // so a bare Space there still clicks/toggles instead of being hijacked. Gated by a preference
-        // (default on) so users can hand Space back to the focused control entirely.
-        if (wxGetApp().app_config->get_bool("enable_speed_dial") && !evt.CmdDown() && !evt.ShiftDown() &&
-            !evt.AltDown() && evt.GetKeyCode() == WXK_SPACE) {
-            if (focus_keeps_space(wxWindow::FindFocus())) {
-                evt.Skip(); // let the focused control keep Space
-                return;
-            }
-            // Defer out of the native key-event stack: open_speed_dial() may create a WebView and
-            // run script, the same window work the codebase avoids doing on native callbacks.
-            this->CallAfter([] { wxGetApp().open_speed_dial(); });
-            return;
-        }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'R') { if (m_slice_enable) { wxGetApp().plater()->update(true, true); wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE)); this->m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); } return; }
-        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'G') {
-            m_plater->apply_background_progress();
-            m_print_enable = get_enable_print_status();
-            m_print_btn->Enable(m_print_enable);
-            if (m_print_enable) {
-                if (wxGetApp().preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
-                    wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_PLATE));
-                else
-                    wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_GCODE));
-            }
+        if (!handle_global_shortcut(KeyChord::from_event(evt)))
             evt.Skip();
-            return;
-        }
-        else if (evt.CmdDown() && evt.GetKeyCode() == 'G') { if (can_export_gcode()) { wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE)); } evt.Skip(); return; }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'J') { m_printhost_queue_dlg->Show(); return; }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'N') { m_plater->new_project(); return;}
-        if (evt.CmdDown() && evt.GetKeyCode() == 'O') { m_plater->load_project(); return;}
-        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'S') { if (can_save_as()) m_plater->save_project(true); return;}
-        else if (evt.CmdDown() && evt.GetKeyCode() == 'S') { if (can_save()) m_plater->save_project(); return;}
-        if (evt.CmdDown() && evt.GetKeyCode() == 'F') {
-            if (m_plater && is_prepare_or_preview_tab()) {
-                m_plater->sidebar().can_search();
-            }
-        }
-#ifdef __APPLE__
-        if (evt.CmdDown() && evt.GetKeyCode() == ',')
-#else
-        if (evt.CmdDown() && evt.GetKeyCode() == 'P')
-#endif
-        {
-            // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
-            wxGetApp().open_preferences();
-            plater()->get_current_canvas3D()->force_set_focus();
-            return;
-        }
-
-        if (evt.CmdDown() && evt.GetKeyCode() == 'I' && !evt.ShiftDown()) {
-            if (!can_add_models()) return;
-            if (m_plater) { m_plater->add_file(); }
-            return;
-        }
-        if (evt.CmdDown() && evt.ShiftDown() && evt.GetKeyCode() == 'E') {
-            if (can_export_model()) publish_project();
-            return;
-        }
-        evt.Skip();
     });
 
     Bind(wxEVT_SHOW, [](wxShowEvent &evt) {
@@ -808,13 +834,117 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
     wxGetApp().persist_window_geometry(this, true);
     wxGetApp().persist_window_geometry(&m_settings_dialog, true);
-    // bind events from DiffDlg
-
-    bind_diff_dialog();
 }
 
-void MainFrame::bind_diff_dialog()
+bool MainFrame::handle_global_shortcut(const KeyChord& chord)
 {
+    // CHAR_HOOK runs before the focused window, so leave text-editing keys to a focused text field and
+    // the keys ImGui owns to the focused canvas.
+    wxWindow* const focus = wxWindow::FindFocus();
+    if (chord.edits_text() && focus_is_text_field(focus))
+        return false;
+    if (const ImGuiWrapper* imgui = focused_canvas_imgui(focus); imgui != nullptr && imgui->owns_key(chord))
+        return false;
+
+    const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::Global, chord);
+    if (!shortcut.has_value())
+        return false;
+
+    switch (*shortcut) {
+    case Shortcut::SlicePlate:
+        if (m_slice_enable) {
+            wxGetApp().plater()->update(true, true);
+            wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
+            m_tabpanel->SelectPageByName(TAB_ID_PREVIEW);
+        }
+        break;
+    case Shortcut::PrintPlate:
+        m_plater->apply_background_progress();
+        m_print_enable = get_enable_print_status();
+        m_print_btn->Enable(m_print_enable);
+        if (m_print_enable) {
+            if (wxGetApp().preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_PLATE));
+            else
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_GCODE));
+        }
+        return false;
+    case Shortcut::ExportSlicedFile:
+        if (can_export_gcode())
+            wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE));
+        return false;
+    case Shortcut::PrintHostQueue: m_printhost_queue_dlg->Show(); break;
+    case Shortcut::SpeedDial:
+        if (!wxGetApp().app_config->get_bool("enable_speed_dial") || (chord == KeyChord{ WXK_SPACE } && focus_keeps_space(wxWindow::FindFocus())))
+            return false;
+        // Deferred out of the native key-event stack: open_speed_dial() may create a WebView and run script.
+        CallAfter([] { wxGetApp().open_speed_dial(); });
+        break;
+    case Shortcut::NewProject: m_plater->new_project(); break;
+    case Shortcut::OpenProject: m_plater->load_project(); break;
+    case Shortcut::SaveProjectAs:
+        if (can_save_as())
+            m_plater->save_project(true);
+        break;
+    case Shortcut::SaveProject:
+        if (can_save())
+            m_plater->save_project();
+        break;
+    case Shortcut::Search:
+        if (m_plater && is_prepare_or_preview_tab())
+            m_plater->sidebar().can_search();
+        return false;
+    case Shortcut::Preferences:
+        // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
+        wxGetApp().open_preferences();
+        plater()->get_current_canvas3D()->force_set_focus();
+        break;
+    case Shortcut::ImportModel:
+        if (can_add_models() && m_plater)
+            m_plater->add_file();
+        break;
+    case Shortcut::Publish3mf:
+        if (can_export_model())
+            publish_project();
+        break;
+    case Shortcut::Quit:
+        Close(false);
+        break;
+    case Shortcut::ShowLabels:
+        if (m_plater && m_plater->is_view3D_shown()) {
+            m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown());
+            m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+        }
+        break;
+    case Shortcut::ShowCollisionVolumes:
+        if (m_plater && m_plater->is_view3D_shown() && m_plater->printer_technology() == ptFFF)
+            m_plater->show_collision_volumes(!m_plater->are_collision_volumes_shown());
+        break;
+    case Shortcut::ViewDefault:
+        if (m_plater) {
+            select_view("plate");
+            m_plater->get_current_canvas3D()->zoom_to_bed();
+        }
+        break;
+    case Shortcut::ViewTop:    select_view("top"); break;
+    case Shortcut::ViewBottom: select_view("bottom"); break;
+    case Shortcut::ViewFront:  select_view("front"); break;
+    case Shortcut::ViewRear:   select_view("rear"); break;
+    case Shortcut::ViewLeft:   select_view("left"); break;
+    case Shortcut::ViewRight:  select_view("right"); break;
+    case Shortcut::ViewPlate:
+        if (m_plater)
+            m_plater->get_current_canvas3D()->select_plate();
+        break;
+    default: return false;
+    }
+    return true;
+}
+
+DiffPresetDialog* MainFrame::make_diff_dialog()
+{
+    auto* dialog = new DiffPresetDialog(this);
+
     auto get_tab = [](Preset::Type type) {
         Tab* null_tab = nullptr;
         for (Tab* tab : wxGetApp().tabs_list)
@@ -823,23 +953,24 @@ void MainFrame::bind_diff_dialog()
         return null_tab;
     };
 
-    auto transfer = [this, get_tab](Preset::Type type) {
-        get_tab(type)->transfer_options(diff_dialog.get_left_preset_name(type),
-                                        diff_dialog.get_right_preset_name(type),
-                                        diff_dialog.get_selected_options(type));
+    auto transfer = [dialog, get_tab](Preset::Type type) {
+        get_tab(type)->transfer_options(dialog->get_left_preset_name(type),
+                                        dialog->get_right_preset_name(type),
+                                        dialog->get_selected_options(type));
     };
 
-    auto process_options = [this](std::function<void(Preset::Type)> process) {
-        const Preset::Type diff_dlg_type = diff_dialog.view_type();
+    auto process_options = [dialog](std::function<void(Preset::Type)> process) {
+        const Preset::Type diff_dlg_type = dialog->view_type();
         if (diff_dlg_type == Preset::TYPE_INVALID) {
-            for (const Preset::Type& type : diff_dialog.types_list() )
+            for (const Preset::Type& type : dialog->types_list() )
                 process(type);
         }
         else
             process(diff_dlg_type);
     };
 
-    diff_dialog.Bind(EVT_DIFF_DIALOG_TRANSFER,      [process_options, transfer](SimpleEvent&)         { process_options(transfer); });
+    dialog->Bind(EVT_DIFF_DIALOG_TRANSFER, [process_options, transfer](SimpleEvent&) { process_options(transfer); });
+    return dialog;
 }
 
 
@@ -1167,9 +1298,16 @@ void MainFrame::update_edge_panels()
 void MainFrame::shutdown()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "MainFrame::shutdown enter";
-    if (m_project != nullptr)
-        m_project->shutdown();
+    m_idle.stop();
+    if (ProjectPanel* project = ProjectPanel::if_built())
+        project->shutdown();
     m_plugin_pages.shutdown();
+    if (m_plater != nullptr)
+        m_plater->remove_dock_panes();
+#ifdef SLIC3R_CAD
+    if (DesignPanel* design = DesignPanel::if_built())
+        design->shutdown();
+#endif
 #ifdef __WXGTK__
     // Edge panels are child windows — wxWidgets destroys them automatically.
     m_edge_bottom = nullptr;
@@ -1293,16 +1431,20 @@ void MainFrame::show_option(bool show)
     }
 }
 
-#ifdef SLIC3R_CAD
-DesignPanel* MainFrame::ensure_design_panel()
+void MainFrame::set_undo_redo_enabled(bool undo, bool redo)
 {
-    if (m_design_panel == nullptr && m_design_page != nullptr) {
-        wxBusyCursor busy;
-        m_design_panel = new DesignPanel(m_design_page);
-        m_design_page->GetSizer()->Add(m_design_panel, 1, wxEXPAND);
-        m_design_page->Layout();
-    }
-    return m_design_panel;
+#ifndef __APPLE__
+    m_topbar->EnableUndoRedo(undo, redo);
+#else
+    (void) undo; (void) redo;   // macOS has no top bar; Edit asks the tab when it opens
+#endif
+}
+
+#ifdef SLIC3R_CAD
+DesignPanel* MainFrame::shown_design_panel() const
+{
+    DesignPanel* design = DesignPanel::if_built();
+    return (design != nullptr && m_design_page != nullptr && m_design_page->IsShownOnScreen()) ? design : nullptr;
 }
 #endif
 
@@ -1348,23 +1490,20 @@ void MainFrame::init_tabpanel() {
         //    m_param_panel->OnActivate();
 #ifdef SLIC3R_CAD
         else if (m_design_page != nullptr && panel == m_design_page) {
-            // Built on first activation, never at startup: the panel creates several hundred
-            // controls and its own GL canvas, which a user who does not open the tab should
-            // not pay for.
-            ensure_design_panel();
             // Re-sync the Design bed to the active printer: the panel is built before the
             // printer profile is fully applied, so its bed must refresh on activation or the
             // grid (true bed) spills past the stale default bed quad.
-            m_design_panel->on_tab_shown();
+            DesignPanel::ensure()->on_tab_shown();
         }
 #endif
-        else if (panel == m_monitor) {
+        else if (panel == m_monitor_page) {
             //monitor
         }
 #ifdef SLIC3R_CAD
         // Any page that is not Design takes the Design status line down with it — see
         // DesignPanel::on_tab_hidden for why the popup does not follow the page on its own.
-        if (m_design_panel != nullptr && panel != m_design_page) m_design_panel->on_tab_hidden();
+        if (DesignPanel* design = DesignPanel::if_built(); design != nullptr && panel != m_design_page)
+            design->on_tab_hidden();
 #endif
 #ifndef __APPLE__
         if (m_last_selected_tab == TAB_ID_PREPARE) {
@@ -1374,19 +1513,25 @@ void MainFrame::init_tabpanel() {
             m_topbar->DisableUndoRedoItems();
         }
 #endif
+#ifdef SLIC3R_CAD
+        // Design keeps its own history, and the top bar's Undo/Redo drive it while it is shown.
+        if (m_design_page != nullptr && panel == m_design_page)
+            DesignPanel::ensure()->update_undo_redo_buttons();
+#endif
 
         if (panel)
             panel->SetFocus();
     });
 
     if (wxGetApp().is_editor()) {
-        m_webview         = new WebViewPanel(m_tabpanel);
+        m_home_page = new LazyPage<WebViewPanel>(m_tabpanel, TAB_ID_HOME, 10);
+        m_lazy_pages.push_back(m_home_page);
         Bind(EVT_LOAD_URL, [this](wxCommandEvent &evt) {
             wxString url = evt.GetString();
             select_tab(TAB_ID_HOME);
-            m_webview->load_url(url);
+            WebViewPanel::ensure()->load_url(url);
         });
-        m_tabpanel->AddPage(TAB_ID_HOME, m_webview, "", "tab_home_active");
+        m_tabpanel->AddPage(TAB_ID_HOME, m_home_page, "", "tab_home_active");
         m_param_panel = new ParamsPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBK_LEFT | wxTAB_TRAVERSAL);
     }
 
@@ -1397,15 +1542,14 @@ void MainFrame::init_tabpanel() {
     wxGetApp().plater_ = m_plater;
 
 #ifdef SLIC3R_CAD
-    // Stand-in page for the Design tab. The real DesignPanel is built into it the first time
-    // the tab is selected (see the page-changed handler above), so nothing it constructs sits
-    // on the startup path. The experimental feature is off by default, and when it is off the
-    // page is never created, so the tab does not appear at all (the preference takes effect on
-    // the next start, like the other feature toggles).
-    if (wxGetApp().is_enable_cad_feature()) {
-        m_design_page = new wxPanel(this);
-        m_design_page->SetSizer(new wxBoxSizer(wxVERTICAL));
-        m_design_page->Hide();
+    // The experimental feature is off by default, and when it is off the page is never
+    // created, so the tab does not appear at all (the preference takes effect on the next
+    // start, like the other feature toggles). Nor in the G-code viewer, which has no Design tab to put
+    // it in — and no business opening a control socket onto one.
+    if (wxGetApp().is_enable_cad_feature() && wxGetApp().is_editor()) {
+        // Experimental and heavy enough that building it unasked would cost more than it saves.
+        m_design_page = new LazyPage<DesignPanel>(this, TAB_ID_DESIGN, -1);
+        m_lazy_pages.push_back(m_design_page);
         start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
     }
 #endif
@@ -1413,33 +1557,41 @@ void MainFrame::init_tabpanel() {
     create_preset_tabs();
 
         //BBS add pages
-    m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_monitor->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_MONITOR, m_monitor, _L("Device"), "tab_monitor_active");
+    m_monitor_page = new LazyPage<MonitorPanel>(m_tabpanel, TAB_ID_MONITOR, 20);
+    m_lazy_pages.push_back(m_monitor_page);
+    m_tabpanel->AddPage(TAB_ID_MONITOR, m_monitor_page, _L("Device"), "tab_monitor_active");
 
-    m_printer_view = new PrinterWebView(m_tabpanel);
-    Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
-        wxString url = evt.GetString();
-        wxString key = evt.GetAPIkey();
-        //select_tab(MainFrame::tpMonitor);
-        m_printer_view->load_url(url, key);
+    m_printer_view_page = new LazyPage<PrinterWebView>(m_tabpanel, TAB_ID_MONITOR_WEB, 50, [this](wxWindow* parent) {
+        auto* view = new PrinterWebView(parent);
+        if (!m_printer_url.empty())
+            view->load_url(m_printer_url, m_printer_api_key);
+        return view;
     });
-    m_printer_view->Hide();
+    m_lazy_pages.push_back(m_printer_view_page);
+    Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent &evt) {
+        //select_tab(MainFrame::tpMonitor);
+        m_printer_url     = evt.GetString();
+        m_printer_api_key = evt.GetAPIkey();
+        if (PrinterWebView* view = PrinterWebView::if_built())
+            view->load_url(m_printer_url, m_printer_api_key);
+    });
 
+    m_multi_machine_page = new LazyPage<MultiMachinePage>(m_tabpanel, TAB_ID_MULTI_DEVICE, 40);
+    m_lazy_pages.push_back(m_multi_machine_page);
     if (wxGetApp().is_enable_multi_machine()) {
-        m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-        m_multi_machine->SetBackgroundColour(*wxWHITE);
         // TODO: change the bitmap
-        m_tabpanel->AddPage(TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
+        m_tabpanel->AddPage(TAB_ID_MULTI_DEVICE, m_multi_machine_page, _L("Multi-device"), "tab_multi_active");
     }
 
-    m_project = new ProjectPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_project->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_PROJECT, m_project, _L("Project"), "tab_auxiliary_active");
+    m_project_page = new LazyPage<ProjectPanel>(m_tabpanel, TAB_ID_PROJECT, 60);
+    m_lazy_pages.push_back(m_project_page);
+    m_tabpanel->AddPage(TAB_ID_PROJECT, m_project_page, _L("Project"), "tab_auxiliary_active");
 
-    m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_calibration->SetBackgroundColour(*wxWHITE);
-    m_tabpanel->AddPage(TAB_ID_CALIBRATION, m_calibration, _L("Calibration"), "tab_calibration_active");
+    // show_device() removes this tab for printers without the Bambu device tab, and the page
+    // then never builds its panel.
+    m_calibration_page = new LazyPage<CalibrationPanel>(m_tabpanel, TAB_ID_CALIBRATION, 30);
+    m_lazy_pages.push_back(m_calibration_page);
+    m_tabpanel->AddPage(TAB_ID_CALIBRATION, m_calibration_page, _L("Calibration"), "tab_calibration_active");
 
     // Plugin pages are appended after the built-in tabs; their ids are namespaced
     // (plugin.<plugin_key>.<name>) so they can't collide with the built-in TAB_ID_* constants.
@@ -1474,67 +1626,44 @@ void MainFrame::show_device(bool should_use_native) {
     // Remove the extra page before switching to any layout that shouldn't have it.
     if (!want_web_device_tab) {
         if ((idx = m_tabpanel->FindPageByName(TAB_ID_MONITOR_WEB)) != wxNOT_FOUND) {
-            m_printer_view->Show(false);
+            m_printer_view_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
     }
 
     if (use_printer_agents) {
-        if (!m_monitor) {
-            m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_monitor->SetBackgroundColour(*wxWHITE);
-        }
-
-        if (m_tabpanel->FindPage(m_monitor) == wxNOT_FOUND) {
-            if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
-                m_printer_view->Show(false);
+        if (!m_monitor_page->in_book()) {
+            if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
+                m_printer_view_page->Show(false);
                 m_tabpanel->RemovePage(idx);
             }
-            m_monitor->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor,
+            m_monitor_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor_page,
                                    _L("Device"), "tab_monitor_active");
         }
 
-        if (m_printer_view == nullptr) {
-            m_printer_view = new PrinterWebView(m_tabpanel);
-            Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {
-                wxString url = evt.GetString();
-                wxString key = evt.GetAPIkey();
-                // select_tab(MainFrame::tpMonitor);
-                m_printer_view->load_url(url, key);
-            });
-        }
-
         if (wxGetApp().is_enable_multi_machine()) {
-            if (!m_multi_machine) {
-                m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-                m_multi_machine->SetBackgroundColour(*wxWHITE);
-            }
             // TODO: change the bitmap
-            if (m_tabpanel->FindPage(m_multi_machine) == wxNOT_FOUND) {
-                m_multi_machine->Show(false);
+            if (!m_multi_machine_page->in_book()) {
+                m_multi_machine_page->Show(false);
                 // Past the web Device tab when it is already there, so enabling multi-machine
                 // later can't wedge this page between the two Device tabs.
                 m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR_WEB, TAB_ID_MONITOR}),
-                                       TAB_ID_MULTI_DEVICE, m_multi_machine, _L("Multi-device"), "tab_multi_active");
+                                       TAB_ID_MULTI_DEVICE, m_multi_machine_page, _L("Multi-device"), "tab_multi_active");
             }
         }
-        if (!m_calibration) {
-            m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_calibration->SetBackgroundColour(*wxWHITE);
-        }
-        if (m_tabpanel->FindPage(m_calibration) == wxNOT_FOUND) {
-            m_calibration->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration,
+        if (!m_calibration_page->in_book()) {
+            m_calibration_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration_page,
                                    _L("Calibration"), "tab_calibration_active");
         }
 
         if (want_web_device_tab) {
-            if ((idx = m_tabpanel->FindPage(m_printer_view)) == wxNOT_FOUND) {
-                m_printer_view->Show(false);
+            if ((idx = m_tabpanel->FindPage(m_printer_view_page)) == wxNOT_FOUND) {
+                m_printer_view_page->Show(false);
                 // Immediately right of the native Device tab, not at the end of the tab bar.
                 m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MONITOR_WEB,
-                                       m_printer_view, _L("Device (Web)"), "tab_monitor_active");
+                                       m_printer_view_page, _L("Device (Web)"), "tab_monitor_active");
             } else {
                 m_tabpanel->SetPageText(idx, _L("Device (Web)"));
             }
@@ -1546,48 +1675,37 @@ void MainFrame::show_device(bool should_use_native) {
 
         fit_tab_labels(); // ORCA on printer change
         m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
-
+        if (m_prebuild_started)
+            m_idle.start();
         return;
     }
 
     if (should_use_native) {
-        if (m_tabpanel->FindPage(m_monitor) != wxNOT_FOUND) {
+        if (m_monitor_page->in_book()) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
         // Remove printer view
-        if ((idx = m_tabpanel->FindPage(m_printer_view)) != wxNOT_FOUND) {
-            m_printer_view->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_printer_view_page)) != wxNOT_FOUND) {
+            m_printer_view_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
 
-        // Create/insert monitor page
-        if (!m_monitor) {
-            m_monitor = new MonitorPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_monitor->SetBackgroundColour(*wxWHITE);
-        }
-        m_monitor->Show(false);
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor,
+        // Insert monitor page
+        m_monitor_page->Show(false);
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_monitor_page,
                                _L("Device"), "tab_monitor_active");
 
         if (wxGetApp().is_enable_multi_machine()) {
-            if (!m_multi_machine) {
-                m_multi_machine = new MultiMachinePage(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-                m_multi_machine->SetBackgroundColour(*wxWHITE);
-            }
             // TODO: change the bitmap
-            m_multi_machine->Show(false);
-            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MULTI_DEVICE, m_multi_machine,
+            m_multi_machine_page->Show(false);
+            m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_MONITOR}), TAB_ID_MULTI_DEVICE, m_multi_machine_page,
                                    _L("Multi-device"), "tab_multi_active");
         }
-        if (!m_calibration) {
-            m_calibration = new CalibrationPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-            m_calibration->SetBackgroundColour(*wxWHITE);
-        }
-        m_calibration->Show(false);
+        m_calibration_page->Show(false);
         // Last of the built-in tabs, but plugin tabs already sit past it — anchor rather than
         // append, so its position doesn't depend on the relayout() below running afterwards.
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration,
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PROJECT}), TAB_ID_CALIBRATION, m_calibration_page,
                                _L("Calibration"), "tab_calibration_active");
 
 #ifdef _MSW_DARK_MODE
@@ -1595,37 +1713,30 @@ void MainFrame::show_device(bool should_use_native) {
 #endif // _MSW_DARK_MODE
 
     } else {
-        if (m_tabpanel->FindPage(m_printer_view) != wxNOT_FOUND) {
+        if (m_printer_view_page->in_book()) {
             fit_tab_labels(); // ORCA on printer change - same button layout
             return;
         }
-        if ((idx = m_tabpanel->FindPage(m_calibration)) != wxNOT_FOUND) {
-            m_calibration->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_calibration_page)) != wxNOT_FOUND) {
+            m_calibration_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if ((idx = m_tabpanel->FindPage(m_multi_machine)) != wxNOT_FOUND) {
-            m_multi_machine->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_multi_machine_page)) != wxNOT_FOUND) {
+            m_multi_machine_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if ((idx = m_tabpanel->FindPage(m_monitor)) != wxNOT_FOUND) {
-            m_monitor->Show(false);
+        if ((idx = m_tabpanel->FindPage(m_monitor_page)) != wxNOT_FOUND) {
+            m_monitor_page->Show(false);
             m_tabpanel->RemovePage(idx);
         }
-        if (m_printer_view == nullptr) {
-            m_printer_view = new PrinterWebView(m_tabpanel);
-            Bind(EVT_LOAD_PRINTER_URL, [this](LoadPrinterViewEvent& evt) {
-                wxString url = evt.GetString();
-                wxString key = evt.GetAPIkey();
-                // select_tab(MainFrame::tpMonitor);
-                m_printer_view->load_url(url, key);
-            });
-        }
-        m_printer_view->Show(false);
-        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view,
+        m_printer_view_page->Show(false);
+        m_tabpanel->InsertPage(m_tabpanel->PositionAfter({TAB_ID_PREVIEW}), TAB_ID_MONITOR, m_printer_view_page,
                                _L("Device"), "tab_monitor_active");
     }
     fit_tab_labels(); // ORCA on printer change
     m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
+    if (m_prebuild_started)
+        m_idle.start();
 }
 
 bool MainFrame::is_prepare_or_preview_tab() const
@@ -1653,6 +1764,9 @@ void MainFrame::fit_tab_labels()
     for (size_t i = count - 1; i >= 1; --i) {
         int right = ScreenToClient(m_slice_option_btn->ClientToScreen({})).x;
         int left  = sizer->GetSize().GetWidth();
+        // The overflow button sits between the tab buttons and the side tools, so it is not free space.
+        if (const wxWindow* overflow = ctrl->GetOverflowButton())
+            left += overflow->GetSize().GetWidth();
         if (right - left - FromDIP(15) > 0) return;
         ctrl->SetCompact(i, true);
         m_tabpanel->Refresh();
@@ -1672,7 +1786,8 @@ bool MainFrame::preview_only_hint()
         confirm_dlg.update_btn_label(_L("Yes"), _L("No"));
         auto filename = m_plater->get_preview_only_filename();
 
-        confirm_dlg.update_text(filename + " " + _L("will be closed before creating a new model. Do you want to continue?"));
+        // TRN %s is a file name.
+        confirm_dlg.update_text(wxString::Format(_L("%s will be closed before creating a new model. Do you want to continue?"), from_u8(filename)));
         confirm_dlg.on_show();
         if (preview_only_to_editor) {
             m_plater->new_project();
@@ -2020,6 +2135,126 @@ bool MainFrame::can_reslice() const
     return (m_plater != nullptr) && !m_plater->model().objects.empty();
 }
 
+namespace {
+// Orca: stable key persisted by the "remember last print action" preference. Reordering PrintSelectType
+// must not silently remap a saved preference, so the key never derives from the enum value.
+const char* print_select_type_key(MainFrame::PrintSelectType type)
+{
+    switch (type) {
+    case MainFrame::ePrintAll:            return "print_all";
+    case MainFrame::ePrintPlate:          return "print_plate";
+    case MainFrame::eExportSlicedFile:    return "export_sliced_file";
+    case MainFrame::eExportAllSlicedFile: return "export_all_sliced_file";
+    case MainFrame::eExportGcode:         return "export_gcode";
+    case MainFrame::eSendGcode:           return "send_gcode";
+    case MainFrame::eSendToPrinter:       return "send_to_printer";
+    case MainFrame::eSendToPrinterAll:    return "send_to_printer_all";
+    case MainFrame::ePrintMultiMachine:   return "print_multi_machine";
+    case MainFrame::eUploadGcode:         break; // Orca: no dropdown entry, never selectable
+    }
+    return "";
+}
+
+// Orca: single source for the print button and print dropdown labels
+wxString print_select_type_label(MainFrame::PrintSelectType type)
+{
+    switch (type) {
+    case MainFrame::ePrintAll:            return _L("Print all");
+    case MainFrame::ePrintPlate:          return _L("Print plate");
+    case MainFrame::eExportSlicedFile:    return _L("Export plate sliced file");
+    case MainFrame::eExportAllSlicedFile: return _L("Export all sliced file");
+    case MainFrame::eExportGcode:         return _L("Export G-code file");
+    case MainFrame::eSendGcode:           return _L_CONTEXT("Print", "Verb");
+    case MainFrame::eSendToPrinter:       return _L("Send");
+    case MainFrame::eSendToPrinterAll:    return _L("Send all");
+    case MainFrame::ePrintMultiMachine:   return _L("Send to Multi-device");
+    case MainFrame::eUploadGcode:         break; // Orca: no dropdown entry, never selectable
+    }
+    return _L("Print plate");
+}
+} // namespace
+
+std::vector<MainFrame::PrintSelectType> MainFrame::available_print_actions() const
+{
+    std::vector<PrintSelectType> actions;
+    const auto preset_bundle      = wxGetApp().preset_bundle;
+    const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
+
+    if (preset_bundle && !preset_bundle->is_bbl_vendor() && !use_printer_agents) {
+        // ThirdParty actions
+        actions.push_back(eSendGcode);
+        // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
+        // also offer exporting the sliced .gcode.3mf bundle
+        const auto* use_3mf_opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("use_3mf");
+        if (use_3mf_opt != nullptr && use_3mf_opt->value)
+            actions.push_back(eExportSlicedFile);
+        actions.push_back(eExportGcode);
+        return actions;
+    }
+
+    // Orca Slicer actions
+    bool support_send      = true;
+    bool support_print_all = true;
+    if (preset_bundle && !preset_bundle->use_bbl_network() && !use_printer_agents) {
+        support_send = false; // All 3rd print hosts do not have the send options
+
+        const auto& cfg           = preset_bundle->printers.get_edited_preset().config;
+        const auto* host_type_opt = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type");
+        // Only simply print support uploading all plates
+        support_print_all = host_type_opt != nullptr && host_type_opt->value == PrintHostType::htSimplyPrint;
+    }
+
+    actions.push_back(ePrintPlate);
+    if (support_print_all)
+        actions.push_back(ePrintAll);
+    if (support_send) {
+        actions.push_back(eSendToPrinter);
+        actions.push_back(eSendToPrinterAll);
+    }
+    if (enable_multi_machine)
+        actions.push_back(ePrintMultiMachine);
+    actions.push_back(eExportSlicedFile);
+    actions.push_back(eExportAllSlicedFile);
+    actions.push_back(eExportGcode);
+    return actions;
+}
+
+void MainFrame::select_print_action(PrintSelectType select_type)
+{
+    m_print_btn->SetLabel(print_select_type_label(select_type));
+    m_print_select = select_type;
+    remember_print_select(select_type);
+    m_print_enable = get_enable_print_status();
+    m_print_btn->Enable(m_print_enable);
+    this->Layout();
+    fit_tab_labels(); // ORCA on label change
+}
+
+void MainFrame::remember_print_select(PrintSelectType select_type)
+{
+    if (!wxGetApp().app_config->get_bool("remember_print_action"))
+        return;
+    // AppConfig is marked dirty here and flushed by the regular autosave
+    wxGetApp().app_config->set("last_print_action", print_select_type_key(select_type));
+}
+
+bool MainFrame::get_remembered_print_select(PrintSelectType& out) const
+{
+    if (!wxGetApp().app_config->get_bool("remember_print_action"))
+        return false;
+    const std::string saved = wxGetApp().app_config->get("last_print_action");
+    if (saved.empty())
+        return false;
+    // Orca: only restore an action the current printer actually offers in the dropdown
+    for (PrintSelectType type : available_print_actions()) {
+        if (saved == print_select_type_key(type)) {
+            out = type;
+            return true;
+        }
+    }
+    return false;
+}
+
 wxBoxSizer* MainFrame::create_side_tools()
 {
     enable_multi_machine = wxGetApp().is_enable_multi_machine();
@@ -2038,6 +2273,14 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_slice_option_btn = new SideButton(slice_panel, "", "sidebutton_dropdown", 0, 14);
     m_print_btn = new SideButton(print_panel, _L("Print plate"), "");
     m_print_option_btn = new SideButton(print_panel, "", "sidebutton_dropdown", 0, 14);
+
+    // Orca: restore the last used print/export action if the user opted to remember it
+    PrintSelectType remembered_print_select;
+    if (get_remembered_print_select(remembered_print_select)) {
+        m_print_select = remembered_print_select;
+        m_print_btn->SetLabel(print_select_type_label(remembered_print_select));
+        fit_tab_labels(); // ORCA on label change
+    }
 
     auto slice_sizer = new wxBoxSizer(wxHORIZONTAL);
     slice_sizer->Add(m_slice_option_btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(1));
@@ -2201,193 +2444,15 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_print_option_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& event)
         {
             SidePopup* p = new SidePopup(this);
-
-            if (wxGetApp().preset_bundle
-                && !wxGetApp().preset_bundle->is_bbl_vendor()
-                && !wxGetApp().app_config->get_bool("use_printer_agents")) {
-                // ThirdParty Buttons
-                SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
-                export_gcode_btn->SetCornerRadius(0);
-                export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export G-code file"));
-                    m_print_select = eExportGcode;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
+            for (PrintSelectType type : available_print_actions()) {
+                SideButton* btn = new SideButton(p, print_select_type_label(type), "");
+                btn->SetCornerRadius(0);
+                btn->Bind(wxEVT_BUTTON, [this, p, type](wxCommandEvent&) {
+                    select_print_action(type);
                     p->Dismiss();
                     });
-
-                // upload and print
-                SideButton* send_gcode_btn = new SideButton(p, _L_CONTEXT("Print", "Verb"), "");
-                send_gcode_btn->SetCornerRadius(0);
-                send_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L_CONTEXT("Print", "Verb"));
-                    m_print_select = eSendGcode;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                p->append_button(send_gcode_btn);
-
-                // Orca: when the printer accepts a .gcode.3mf (the "Support 3MF as gcode" option),
-                // also offer exporting the sliced .gcode.3mf bundle
-                const auto& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-                const auto* use_3mf_opt    = printer_config.option<ConfigOptionBool>("use_3mf");
-                if (use_3mf_opt != nullptr && use_3mf_opt->value) {
-                    SideButton* export_sliced_file_btn = new SideButton(p, _L("Export plate sliced file"), "");
-                    export_sliced_file_btn->SetCornerRadius(0);
-                    export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                        m_print_btn->SetLabel(_L("Export plate sliced file"));
-                        m_print_select = eExportSlicedFile;
-                        m_print_enable = get_enable_print_status();
-                        m_print_btn->Enable(m_print_enable);
-                        this->Layout();
-                        fit_tab_labels(); // ORCA on label change
-                        p->Dismiss();
-                        });
-                    p->append_button(export_sliced_file_btn);
-                }
-
-                p->append_button(export_gcode_btn);
+                p->append_button(btn);
             }
-            else {
-                //Orca Slicer Buttons
-                SideButton* print_plate_btn = new SideButton(p, _L("Print plate"), "");
-                print_plate_btn->SetCornerRadius(0);
-
-                SideButton* send_to_printer_btn = new SideButton(p, _L("Send"), "");
-                send_to_printer_btn->SetCornerRadius(0);
-
-                SideButton* export_sliced_file_btn = new SideButton(p, _L("Export plate sliced file"), "");
-                export_sliced_file_btn->SetCornerRadius(0);
-
-                SideButton* export_all_sliced_file_btn = new SideButton(p, _L("Export all sliced file"), "");
-                export_all_sliced_file_btn->SetCornerRadius(0);
-
-                print_plate_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Print plate"));
-                    m_print_select = ePrintPlate;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                SideButton* print_all_btn = new SideButton(p, _L("Print all"), "");
-                print_all_btn->SetCornerRadius(0);
-                print_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Print all"));
-                    m_print_select = ePrintAll;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                send_to_printer_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Send"));
-                    m_print_select = eSendToPrinter;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                SideButton* send_to_printer_all_btn = new SideButton(p, _L("Send all"), "");
-                send_to_printer_all_btn->SetCornerRadius(0);
-                send_to_printer_all_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Send all"));
-                    m_print_select = eSendToPrinterAll;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                export_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export plate sliced file"));
-                    m_print_select = eExportSlicedFile;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                export_all_sliced_file_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export all sliced file"));
-                    m_print_select = eExportAllSlicedFile;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                    });
-
-                bool support_send = true;
-                bool support_print_all = true;
-
-                const auto preset_bundle = wxGetApp().preset_bundle;
-                if (preset_bundle) {
-                    if (preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
-                        // BBL network support everything
-                    } else {
-                        support_send = false; // All 3rd print hosts do not have the send options
-
-                        auto cfg = preset_bundle->printers.get_edited_preset().config;
-                        const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
-
-                        // Only simply print support uploading all plates
-                        support_print_all = host_type == PrintHostType::htSimplyPrint;
-                    }
-                }
-
-                p->append_button(print_plate_btn);
-                if (support_print_all) {
-                    p->append_button(print_all_btn);
-                }
-                if (support_send) {
-                    p->append_button(send_to_printer_btn);
-                    p->append_button(send_to_printer_all_btn);
-                }
-                if (enable_multi_machine) {
-                    SideButton* print_multi_machine_btn = new SideButton(p, _L("Send to Multi-device"), "");
-                    print_multi_machine_btn->SetCornerRadius(0);
-                    print_multi_machine_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                        m_print_btn->SetLabel(_L("Send to Multi-device"));
-                        m_print_select = ePrintMultiMachine;
-                        m_print_enable = get_enable_print_status();
-                        m_print_btn->Enable(m_print_enable);
-                        this->Layout();
-                        fit_tab_labels(); // ORCA on label change
-                        p->Dismiss();
-                    });
-                    p->append_button(print_multi_machine_btn);
-                }
-                p->append_button(export_sliced_file_btn);
-                p->append_button(export_all_sliced_file_btn);
-                SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
-                export_gcode_btn->SetCornerRadius(0);
-                export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Export G-code file"));
-                    m_print_select = eExportGcode;
-                    m_print_enable = get_enable_print_status();
-                    m_print_btn->Enable(m_print_enable);
-                    this->Layout();
-                    fit_tab_labels(); // ORCA on label change
-                    p->Dismiss();
-                });
-                p->append_button(export_gcode_btn);
-            }
-
             p->Popup(m_print_btn);
         }
     );
@@ -2671,13 +2736,14 @@ void MainFrame::on_dpi_changed(const wxRect& suggested_rect)
     //BBS GUI refactor: remove unused layout new/dlg
     //if (m_layout != ESettingsLayout::Dlg) // Do not update tabs if the Settings are in the separated dialog
     m_param_panel->msw_rescale();
-    m_project->msw_rescale();
-    if(m_monitor)
-        m_monitor->msw_rescale();
-    if(m_multi_machine)
-        m_multi_machine->msw_rescale();
-    if(m_calibration)
-        m_calibration->msw_rescale();
+    // A panel mid-build gets the pass once it is complete.
+    ProjectPanel::when_built([](ProjectPanel& project) { project.msw_rescale(); });
+    MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.msw_rescale(); });
+    MultiMachinePage::when_built([](MultiMachinePage& multi_machine) { multi_machine.msw_rescale(); });
+    CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.msw_rescale(); });
+#ifdef SLIC3R_CAD
+    DesignPanel::when_built([](DesignPanel& design) { design.msw_rescale(); });
+#endif
 
     // BBS
 #if 0
@@ -2731,7 +2797,8 @@ void MainFrame::on_sys_color_changed()
 #endif
 #endif
 
-    diff_dialog.on_sys_color_changed();
+    if (DiffPresetDialog* dialog = DiffPresetDialog::if_built())
+        dialog->on_sys_color_changed();
 
     // BBS
     m_tabpanel->Rescale();
@@ -2739,10 +2806,11 @@ void MainFrame::on_sys_color_changed()
 
     // update Plater
     wxGetApp().plater()->sys_color_changed();
-    if(m_monitor)
-        m_monitor->on_sys_color_changed();
-    if(m_calibration)
-        m_calibration->on_sys_color_changed();
+    MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.on_sys_color_changed(); });
+    CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.on_sys_color_changed(); });
+#ifdef SLIC3R_CAD
+    DesignPanel::when_built([](DesignPanel& design) { design.on_sys_color_changed(); });
+#endif
     // update Tabs
     for (auto tab : wxGetApp().tabs_list)
         tab->sys_color_changed();
@@ -2766,13 +2834,31 @@ static const wxString sep = " - ";
 static const wxString sep = "\t";
 #endif
 
-static wxMenu* generate_help_menu()
+wxString MainFrame::shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator)
+{
+    const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
+    if (accelerator) {
+        const std::string accel = shortcuts.accelerator(shortcut);
+        if (!accel.empty())
+            return label + "	" + from_u8(accel);
+    }
+    const std::string text = shortcuts.display(shortcut);
+    return text.empty() ? label : label + sep + from_u8(text);
+}
+
+void MainFrame::update_shortcut_labels()
+{
+    for (const ShortcutMenuItem& entry : m_shortcut_menu_items)
+        entry.item->SetItemLabel(shortcut_label(entry.label, entry.shortcut, entry.accelerator));
+}
+
+wxMenu* MainFrame::generate_help_menu()
 {
     wxMenu* helpMenu = new wxMenu();
 
     // shortcut key
-    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of keyboard shortcuts"),
-        [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(); });
+    append_shortcut_item(helpMenu, Shortcut::KeyboardShortcuts, false, _L("Keyboard Shortcuts"), _L("Show the list of keyboard shortcuts"),
+        [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(ShortcutContext::Global); });
     // Show Beginner's Tutorial
     append_menu_item(helpMenu, wxID_ANY, _L("Setup Wizard"), _L("Setup Wizard"), [](wxCommandEvent &) {wxGetApp().ShowUserGuide();});
 
@@ -2781,6 +2867,10 @@ static wxMenu* generate_help_menu()
     // Open Config Folder
     append_menu_item(helpMenu, wxID_ANY, _L("Show Configuration Folder"), _L("Show Configuration Folder"),
         [](wxCommandEvent&) { Slic3r::GUI::desktop_open_datadir_folder(); });
+
+    append_menu_item(helpMenu, wxID_ANY, _L("Migrate Filament Presets"),
+        _L("Bring back filament presets that a profile update removed from printers they were made for"),
+        [](wxCommandEvent&) { wxGetApp().check_legacy_user_filament_presets(true); });
 
     helpMenu->AppendSeparator();
 
@@ -2792,6 +2882,10 @@ static wxMenu* generate_help_menu()
             NetworkTestDialog dlg(wxGetApp().mainframe);
             dlg.ShowModal();
         });
+
+    if (wxGetApp().is_editor())
+        append_menu_item(helpMenu, wxID_ANY, _L("Benchmark 3D Scene"), _L("Measure how fast the 3D scene renders in Prepare and Preview"),
+            [](wxCommandEvent&) { run_scene_benchmark(); });
 
     helpMenu->AppendSeparator();
 
@@ -2854,29 +2948,28 @@ static void add_common_publish_menu_items(wxMenu* publish_menu, MainFrame* mainF
 #endif
 }
 
-static void add_common_view_menu_items(wxMenu* view_menu, MainFrame* mainFrame, std::function<bool(void)> can_change_view)
+void MainFrame::add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view)
 {
-    // The camera control accelerators are captured by GLCanvas3D::on_char().
-    append_menu_item(view_menu, wxID_ANY, _L("Default View") + "\t" + ctrl + "0", _L("Default View"), [mainFrame](wxCommandEvent&) {
-        mainFrame->select_view("plate");
-        mainFrame->plater()->get_current_canvas3D()->zoom_to_bed();
+    append_shortcut_item(view_menu, Shortcut::ViewDefault, true, _L("Default View"), _L("Default View"), [this](wxCommandEvent&) {
+        select_view("plate");
+        plater()->get_current_canvas3D()->zoom_to_bed();
         },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
     //view_menu->AppendSeparator();
     //TRN To be shown in the main menu View->Top
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Top", "Camera View") + "\t" + ctrl + "1", _L("Top View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("top"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
+    append_shortcut_item(view_menu, Shortcut::ViewTop, true, _L_CONTEXT("Top", "Camera View"), _L("Top View"), [this](wxCommandEvent&) { select_view("top"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
     //TRN To be shown in the main menu View->Bottom
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Bottom", "Camera View") + "\t" + ctrl + "2", _L("Bottom View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("bottom"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Front", "Camera View") + "\t" + ctrl + "3", _L("Front View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("front"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Rear", "Camera View") + "\t" + ctrl + "4", _L("Rear View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("rear"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Left", "Camera View") + "\t" + ctrl + "5", _L("Left View"),[mainFrame](wxCommandEvent &) {mainFrame->select_view("left"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _L_CONTEXT("Right", "Camera View") + "\t" + ctrl + "6", _L("Right View"),[mainFrame](wxCommandEvent &) { mainFrame->select_view("right"); },
-        "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
+    append_shortcut_item(view_menu, Shortcut::ViewBottom, true, _L_CONTEXT("Bottom", "Camera View"), _L("Bottom View"), [this](wxCommandEvent&) { select_view("bottom"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewFront, true, _L_CONTEXT("Front", "Camera View"), _L("Front View"), [this](wxCommandEvent&) { select_view("front"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewRear, true, _L_CONTEXT("Rear", "Camera View"), _L("Rear View"), [this](wxCommandEvent&) { select_view("rear"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewLeft, true, _L_CONTEXT("Left", "Camera View"), _L("Left View"), [this](wxCommandEvent &) { select_view("left"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
+    append_shortcut_item(view_menu, Shortcut::ViewRight, true, _L_CONTEXT("Right", "Camera View"), _L("Right View"), [this](wxCommandEvent &) { select_view("right"); },
+        "", nullptr, [can_change_view]() { return can_change_view(); }, this);
 }
 
 void MainFrame::init_menubar_as_editor()
@@ -2895,17 +2988,17 @@ void MainFrame::init_menubar_as_editor()
                          [this] { return m_plater != nullptr && wxGetApp().app_config->get("app", "single_instance") == "false"; }, this);
 #endif
         // New Project
-        append_menu_item(fileMenu, wxID_ANY, _L("New Project") + "\t" + ctrl + "N", _L("Start a new project"),
+        append_shortcut_item(fileMenu, Shortcut::NewProject, true, _L("New Project"), _L("Start a new project"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->new_project(); }, "", nullptr,
             [this](){return can_start_new_project(); }, this);
         // Open Project
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Open Project") + dots + "\t" + ctrl + "O", _L("Open a project file"),
+        append_shortcut_item(fileMenu, Shortcut::OpenProject, true, _L("Open Project") + dots, _L("Open a project file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->load_project(); }, "menu_open", nullptr,
             [this](){return can_open_project(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Open Project") + dots + "\t" + ctrl + "O", _L("Open a project file"),
+        append_shortcut_item(fileMenu, Shortcut::OpenProject, true, _L("Open Project") + dots, _L("Open a project file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->load_project(); }, "", nullptr,
             [this](){return can_open_project(); }, this);
 #endif
@@ -2932,21 +3025,21 @@ void MainFrame::init_menubar_as_editor()
 
         // BBS: close save project
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project") + "\t" + ctrl + "S", _L("Save current project to file"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProject, true, _L("Save Project"), _L("Save current project to file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(); }, "menu_save", nullptr,
             [this](){return m_plater != nullptr && can_save(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project") + "\t" + ctrl + "S", _L("Save current project to file"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProject, true, _L("Save Project"), _L("Save current project to file"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(); }, "", nullptr,
             [this](){return m_plater != nullptr && can_save(); }, this);
 #endif
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project as") + dots + "\t" + ctrl + shift + "S", _L("Save current project as"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProjectAs, true, _L("Save Project as") + dots, _L("Save current project as"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "menu_save", nullptr,
             [this](){return m_plater != nullptr && can_save_as(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Save Project as") + dots + "\t" + ctrl + shift + "S", _L("Save current project as"),
+        append_shortcut_item(fileMenu, Shortcut::SaveProjectAs, true, _L("Save Project as") + dots, _L("Save current project as"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->save_project(true); }, "", nullptr,
             [this](){return m_plater != nullptr && can_save_as(); }, this);
 #endif
@@ -2956,11 +3049,11 @@ void MainFrame::init_menubar_as_editor()
         auto publish_handler = [this](wxCommandEvent&) { publish_project(); };
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+        append_shortcut_item(fileMenu, Shortcut::Publish3mf, true, _L("Publish 3MF") + dots, _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "menu_publish", nullptr,
             [this](){return can_export_model(); }, this);
 #else
-        append_menu_item(fileMenu, wxID_ANY, _L("Publish 3MF") + dots + "\t" + ctrl + shift + "E", _L("Export a 3MF file with the selected settings embedded"),
+        append_shortcut_item(fileMenu, Shortcut::Publish3mf, true, _L("Publish 3MF") + dots, _L("Export a 3MF file with the selected settings embedded"),
             publish_handler, "", nullptr,
             [this](){return can_export_model(); }, this);
 #endif
@@ -2971,13 +3064,13 @@ void MainFrame::init_menubar_as_editor()
         // BBS
         wxMenu *import_menu = new wxMenu();
 #ifndef __APPLE__
-        append_menu_item(import_menu, wxID_ANY, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots + "\t" + ctrl + "I", _L("Load a model"),
+        append_shortcut_item(import_menu, Shortcut::ImportModel, true, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots, _L("Load a model"),
             [this](wxCommandEvent&) { if (m_plater) {
             m_plater->add_file();
         } }, "menu_import", nullptr,
             [this](){return can_add_models(); }, this);
 #else
-        append_menu_item(import_menu, wxID_ANY, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots + "\t" + ctrl + "I", _L("Load a model"),
+        append_shortcut_item(import_menu, Shortcut::ImportModel, true, _L("Import 3MF/STL/STEP/SVG/OBJ/AMF") + dots, _L("Load a model"),
             [this](wxCommandEvent&) { if (m_plater) { m_plater->add_model(); } }, "", nullptr,
             [this](){return can_add_models(); }, this);
 #endif
@@ -3009,7 +3102,7 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) m_plater->export_core_3mf(); }, "menu_export_sliced_file", nullptr,
             [this](){return can_export_model(); }, this);
         // BBS export .gcode.3mf
-        append_menu_item(export_menu, wxID_ANY, _L("Export plate sliced file") + dots + "\t" + ctrl + "G", _L("Export current sliced file"),
+        append_shortcut_item(export_menu, Shortcut::ExportSlicedFile, true, _L("Export plate sliced file") + dots, _L("Export current sliced file"),
             [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE)); }, "menu_export_sliced_file", nullptr,
             [this](){return can_export_gcode(); }, this);
 
@@ -3036,7 +3129,7 @@ void MainFrame::init_menubar_as_editor()
         fileMenu->AppendSeparator();
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_EXIT, _L("Quit"), wxString::Format(_L("Quit")),
+        append_shortcut_item(fileMenu, Shortcut::Quit, false, _L("Quit"), wxString::Format(_L("Quit")),
             [this](wxCommandEvent&) { Close(false); }, "menu_exit", nullptr);
 #else
         append_menu_item(fileMenu, wxID_EXIT, _L("Quit"), wxString::Format(_L("Quit")),
@@ -3050,46 +3143,65 @@ void MainFrame::init_menubar_as_editor()
     {
         editMenu = new wxMenu();
 
+    // Feeds the key to ImGui instead when ImGui has the focused canvas's keyboard, since the menu
+    // handles its key equivalents before the canvas receives the key.
     auto handle_key_event = [](wxKeyEvent& evt) {
-        if (wxGetApp().imgui()->update_key_data(evt)) {
-            wxGetApp().plater()->get_current_canvas3D()->render();
-            return true;
-        }
-        return false;
+        const ImGuiWrapper* imgui = focused_canvas_imgui(wxWindow::FindFocus());
+        if (imgui == nullptr || !imgui->owns_keyboard())
+            return false;
+        wxGetApp().imgui()->update_key_data(evt);
+        wxGetApp().plater()->get_current_canvas3D()->render();
+        return true;
     };
 #ifndef __APPLE__
         // BBS undo
-        append_menu_item(editMenu, wxID_ANY, _L("Undo") + "\t" + ctrl + "Z",
-            _L("Undo"), [this](wxCommandEvent&) { m_plater->undo(); },
-            "menu_undo", nullptr, [this](){return m_plater->can_undo(); }, this);
+        append_shortcut_item(editMenu, Shortcut::Undo, true, _L("Undo"),
+            _L("Undo"), [this](wxCommandEvent&) {
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(false); return; }
+#endif
+                m_plater->undo(); },
+            "menu_undo", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(false);
+#endif
+                return m_plater->can_undo(); }, this);
         // BBS redo
-        append_menu_item(editMenu, wxID_ANY, _L("Redo") + "\t" + ctrl + "Y",
-            _L("Redo"), [this](wxCommandEvent&) { m_plater->redo(); },
-            "menu_redo", nullptr, [this](){return m_plater->can_redo(); }, this);
+        append_shortcut_item(editMenu, Shortcut::Redo, true, _L("Redo"),
+            _L("Redo"), [this](wxCommandEvent&) {
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(true); return; }
+#endif
+                m_plater->redo(); },
+            "menu_redo", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(true);
+#endif
+                return m_plater->can_redo(); }, this);
         editMenu->AppendSeparator();
         // BBS Cut TODO
-        append_menu_item(editMenu, wxID_ANY, _L("Cut") + "\t" + ctrl + "X",
+        append_shortcut_item(editMenu, Shortcut::Cut, true, _L("Cut"),
             _L("Cut selection to clipboard"), [this](wxCommandEvent&) {m_plater->cut_selection_to_clipboard(); },
             "menu_cut", nullptr, [this]() {return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Copy
-        append_menu_item(editMenu, wxID_ANY, _L("Copy") + "\t" + ctrl + "C",
+        append_shortcut_item(editMenu, Shortcut::Copy, true, _L("Copy"),
             _L("Copy selection to clipboard"), [this](wxCommandEvent&) { m_plater->copy_selection_to_clipboard(); },
             "menu_copy", nullptr, [this](){return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Paste
-        append_menu_item(editMenu, wxID_ANY, _L("Paste") + "\t" + ctrl + "V",
+        append_shortcut_item(editMenu, Shortcut::Paste, true, _L("Paste"),
             _L("Paste clipboard"), [this](wxCommandEvent&) { m_plater->paste_from_clipboard(); },
             "menu_paste", nullptr, [this](){return m_plater->can_paste_from_clipboard(); }, this);
         // BBS Delete selected
-        append_menu_item(editMenu, wxID_ANY, _L("Delete Selected") + "\t" + _L_CONTEXT("Del", "Keyboard Shortcut"),
+        append_shortcut_item(editMenu, Shortcut::DeleteSelected, true, _L("Delete Selected"),
             _L("Deletes the current selection"),[this](wxCommandEvent&) { m_plater->remove_selected(); },
             "menu_remove", nullptr, [this](){return can_delete(); }, this);
         //BBS: delete all
-        append_menu_item(editMenu, wxID_ANY, _L("Delete All") + "\t" + ctrl + "D",
+        append_shortcut_item(editMenu, Shortcut::DeleteAll, true, _L("Delete All"),
             _L("Deletes all objects"),[this](wxCommandEvent&) { m_plater->delete_all_objects_from_model(); },
             "menu_remove", nullptr, [this](){return can_delete_all(); }, this);
         editMenu->AppendSeparator();
         // BBS Clone Selected
-        append_menu_item(editMenu, wxID_ANY, _L("Clone Selected") /*+ "\t" + ctrl + "M"*/,
+        append_shortcut_item(editMenu, Shortcut::CloneSelected, true, _L("Clone Selected"),
             _L("Clone copies of selections"),[this](wxCommandEvent&) {
                 m_plater->clone_selection();
             },
@@ -3103,7 +3215,7 @@ void MainFrame::init_menubar_as_editor()
         editMenu->AppendSeparator();
 #else
         // BBS undo
-        append_menu_item(editMenu, wxID_ANY, _L("Undo") + sep + ctrl_t + "Z",
+        append_shortcut_item(editMenu, Shortcut::Undo, false, _L("Undo"),
             _L("Undo"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3112,10 +3224,17 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(false); return; }
+#endif
                 m_plater->undo(); },
-            "", nullptr, [this](){return m_plater->can_undo(); }, this);
+            "", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(false);
+#endif
+                return m_plater->can_undo(); }, this);
         // BBS redo
-        append_menu_item(editMenu, wxID_ANY, _L("Redo") + sep + ctrl_t + "Y",
+        append_shortcut_item(editMenu, Shortcut::Redo, false, _L("Redo"),
             _L("Redo"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3124,11 +3243,18 @@ void MainFrame::init_menubar_as_editor()
                 if (handle_key_event(e)) {
                     return;
                 }
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) { dp->menu_undo_redo(true); return; }
+#endif
                 m_plater->redo(); },
-            "", nullptr, [this](){return m_plater->can_redo(); }, this);
+            "", nullptr, [this](){
+#ifdef SLIC3R_CAD
+                if (DesignPanel* dp = shown_design_panel()) return dp->menu_can_undo_redo(true);
+#endif
+                return m_plater->can_redo(); }, this);
         editMenu->AppendSeparator();
         // BBS Cut TODO
-        append_menu_item(editMenu, wxID_ANY, _L("Cut") + sep + ctrl_t + "X",
+        append_shortcut_item(editMenu, Shortcut::Cut, false, _L("Cut"),
             _L("Cut selection to clipboard"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3140,7 +3266,7 @@ void MainFrame::init_menubar_as_editor()
                 m_plater->cut_selection_to_clipboard(); },
             "", nullptr, [this]() {return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Copy
-        append_menu_item(editMenu, wxID_ANY, _L("Copy") + sep + ctrl_t + "C",
+        append_shortcut_item(editMenu, Shortcut::Copy, false, _L("Copy"),
             _L("Copy selection to clipboard"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3152,7 +3278,7 @@ void MainFrame::init_menubar_as_editor()
                 m_plater->copy_selection_to_clipboard(); },
             "", nullptr, [this](){return m_plater->can_copy_to_clipboard(); }, this);
         // BBS Paste
-        append_menu_item(editMenu, wxID_ANY, _L("Paste") + sep + ctrl_t + "V",
+        append_shortcut_item(editMenu, Shortcut::Paste, false, _L("Paste"),
             _L("Paste clipboard"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3165,14 +3291,14 @@ void MainFrame::init_menubar_as_editor()
             "", nullptr, [this](){return m_plater->can_paste_from_clipboard(); }, this);
 #if 0
         // BBS Delete selected
-        append_menu_item(editMenu, wxID_ANY, _L("Delete Selected") + "\t" + _L_CONTEXT("Backspace", "Keyboard Shortcut"),
+        append_shortcut_item(editMenu, Shortcut::DeleteSelected, true, _L("Delete Selected"),
             _L("Deletes the current selection"),[this](wxCommandEvent&) {
                 m_plater->remove_selected();
             },
             "", nullptr, [this](){return can_delete(); }, this);
 #endif
         //BBS: delete all
-        append_menu_item(editMenu, wxID_ANY, _L("Delete All") + "\t" + ctrl + "D",
+        append_shortcut_item(editMenu, Shortcut::DeleteAll, true, _L("Delete All"),
             _L("Deletes all objects"),[this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3185,7 +3311,7 @@ void MainFrame::init_menubar_as_editor()
             "", nullptr, [this](){return can_delete_all(); }, this);
         editMenu->AppendSeparator();
         // BBS Clone Selected
-        append_menu_item(editMenu, wxID_ANY, _L("Clone Selected") + "\t" + ctrl + "K",
+        append_shortcut_item(editMenu, Shortcut::CloneSelected, true, _L("Clone Selected"),
             _L("Clone copies of selections"),[this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3208,7 +3334,7 @@ void MainFrame::init_menubar_as_editor()
 #endif
 
         // BBS Select All
-        append_menu_item(editMenu, wxID_ANY, _L("Select All") + sep + ctrl_t + "A",
+        append_shortcut_item(editMenu, Shortcut::SelectAll, false, _L("Select All"),
             _L("Selects all objects"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3260,7 +3386,7 @@ void MainFrame::init_menubar_as_editor()
     wxMenu* viewMenu = nullptr;
     if (m_plater) {
         viewMenu = new wxMenu();
-        add_common_view_menu_items(viewMenu, this, std::bind(&MainFrame::can_change_view, this));
+        add_common_view_menu_items(viewMenu, std::bind(&MainFrame::can_change_view, this));
         viewMenu->AppendSeparator();
 
         //BBS perspective view
@@ -3291,13 +3417,14 @@ void MainFrame::init_menubar_as_editor()
             []() { return wxGetApp().app_config->get_bool("auto_perspective"); }, this);
 
         viewMenu->AppendSeparator();
-        append_menu_check_item(viewMenu, wxID_ANY, _L("Show &G-code Window") + sep + "C", _L("Show G-code window in Preview scene."),
+        wxMenuItem* gcode_window = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show &G-code Window"), Shortcut::ToggleGcodeWindow, true), _L("Show G-code window in Preview scene."),
             [this](wxCommandEvent &) {
                 wxGetApp().toggle_show_gcode_window();
                 m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
             },
             this, [this]() { return m_tabpanel->GetSelectedPageName() == TAB_ID_PREVIEW; },
             []() { return wxGetApp().show_gcode_window(); }, this);
+        m_shortcut_menu_items.push_back({ gcode_window, Shortcut::ToggleGcodeWindow, _L("Show &G-code Window"), true });
 
         append_menu_check_item(
             viewMenu, wxID_ANY, _L("Show 3D Navigator"), _L("Show 3D navigator in Prepare and Preview scene."),
@@ -3316,18 +3443,67 @@ void MainFrame::init_menubar_as_editor()
             [this]() { return is_prepare_or_preview_tab(); },
             []() { return wxGetApp().show_plate_gridlines(); }, this);
 
+        // IDEX/IQEX: toggle the per-carriage toolhead representation that appears during
+        // G-code preview playback. Today this is the symbolic footprint box; if a future
+        // change adds true toolhead model support (cf. printer bed models) this same toggle
+        // governs that. Only relevant on Preview, and only meaningful when the active
+        // printer is IDEX/IQEX — gated to keep the menu uncluttered for everyone else.
+        append_menu_check_item(viewMenu, wxID_ANY, _L("Show IDEX/IQEX Toolhead"),
+            _L("Show the IDEX/IQEX toolhead representation around each active nozzle in the G-code preview."),
+            [this](wxCommandEvent&) {
+                const bool current = wxGetApp().app_config->get("show_imex_toolhead_boxes") != "false";
+                wxGetApp().app_config->set("show_imex_toolhead_boxes", current ? "false" : "true");
+                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+            },
+            this,
+            [this]() {
+                if (m_tabpanel->GetSelectedPageName() != TAB_ID_PREVIEW) return false;
+                if (auto* pb = wxGetApp().preset_bundle) {
+                    auto* o = pb->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
+                    return o && o->value;
+                }
+                return false;
+            },
+            []() { return wxGetApp().app_config->get("show_imex_toolhead_boxes") != "false"; },
+            this);
+
         append_menu_item(
             viewMenu, wxID_ANY, _L("Reset Window Layout"), _L("Reset to default window layout"),
             [this](wxCommandEvent&) { m_plater->reset_window_layout(); }, "", this,
             [this]() {
+#ifdef SLIC3R_CAD
+                if (shown_design_panel() != nullptr)
+                    return true;
+#endif
                 return is_prepare_or_preview_tab() && m_plater->is_sidebar_enabled();
             },
             this);
 
         viewMenu->AppendSeparator();
-        append_menu_check_item(viewMenu, wxID_ANY, _L("Show &Labels") + "\t" + ctrl + "E", _L("Show object labels in 3D scene."),
+        wxMenuItem* mouse3d_settings = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show 3Dconnexion Settings"), Shortcut::Mouse3DSettings, true),
+            _L("Show/Hide 3Dconnexion devices settings dialog"),
+            [this](wxCommandEvent&) {
+                Mouse3DController& controller = m_plater->get_mouse3d_controller();
+                controller.show_settings_dialog(!controller.is_settings_dialog_shown());
+                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+            },
+            this, [this]() { return is_prepare_or_preview_tab() && m_plater->get_mouse3d_controller().can_show_settings_dialog(); },
+            [this]() { return m_plater->get_mouse3d_controller().is_settings_dialog_shown(); }, this);
+        m_shortcut_menu_items.push_back({ mouse3d_settings, Shortcut::Mouse3DSettings, _L("Show 3Dconnexion Settings"), true });
+
+        viewMenu->AppendSeparator();
+        wxMenuItem* show_labels = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show &Labels"), Shortcut::ShowLabels, true), _L("Show object labels in 3D scene."),
             [this](wxCommandEvent&) { m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown()); m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT)); }, this,
             [this]() { return m_plater->is_view3D_shown(); }, [this]() { return m_plater->are_view3D_labels_shown(); }, this);
+        m_shortcut_menu_items.push_back({ show_labels, Shortcut::ShowLabels, _L("Show &Labels"), true });
+
+        wxMenuItem* show_collision_volumes = append_menu_check_item(
+            viewMenu, wxID_ANY, shortcut_label(_L("Show all collision volumes"), Shortcut::ShowCollisionVolumes, true),
+            _L("Show the full height of every configured collision volume, including on an empty bed."),
+            [this](wxCommandEvent&) { m_plater->show_collision_volumes(!m_plater->are_collision_volumes_shown()); }, this,
+            [this]() { return m_plater->is_view3D_shown() && m_plater->printer_technology() == ptFFF; },
+            [this]() { return m_plater->are_collision_volumes_shown(); }, this);
+        m_shortcut_menu_items.push_back({ show_collision_volumes, Shortcut::ShowCollisionVolumes, _L("Show all collision volumes"), true });
 
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show &Overhang"), _L("Show object overhang highlight in 3D scene."),
             [this](wxCommandEvent &) {
@@ -3372,8 +3548,6 @@ void MainFrame::init_menubar_as_editor()
     //auto preference_item = new wxMenuItem(parent_menu, OrcaSlicerMenuPreferences + bambu_studio_id_base, _L("Preferences") + "\t" + ctrl + ",", "");
 #else
     wxMenu* parent_menu = m_topbar->GetTopMenu();
-    auto preference_item = new wxMenuItem(parent_menu, ConfigMenuPreferences + config_id_base, _L("Preferences") + "\t" + ctrl + "P", "");
-
 #endif
 
 #ifdef __APPLE__
@@ -3382,17 +3556,12 @@ void MainFrame::init_menubar_as_editor()
         parent_menu, wxID_ANY, _L(about_title), "",
         [](wxCommandEvent &) { Slic3r::GUI::about();},
         "", nullptr, []() { return true; }, this, 0);
-    append_menu_item(
-        parent_menu, wxID_ANY, _L("Preferences") + "\t" + ctrl + ",", "",
+    append_shortcut_item(
+        parent_menu, Shortcut::Preferences, true, _L("Preferences"), "",
         [](wxCommandEvent &) {
             wxGetApp().open_preferences();
         },
         "", nullptr, []() { return true; }, this, 1);
-    parent_menu->AppendSeparator();
-    append_menu_item(
-        parent_menu, wxID_ANY, _L("Open speed dial...") + sep + "Space", "",
-        [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
-        "", nullptr, []() { return true; }, this);
     //parent_menu->Insert(1, preference_item);
 #endif
     // Help menu
@@ -3406,8 +3575,8 @@ void MainFrame::init_menubar_as_editor()
         m_topbar->AddDropDownSubMenu(viewMenu, _L("View"));
     //BBS add Preference
 
-    append_menu_item(
-        m_topbar->GetTopMenu(), wxID_ANY, _L("Preferences") + "\t" + ctrl + "P", "",
+    append_shortcut_item(
+        m_topbar->GetTopMenu(), Shortcut::Preferences, true, _L("Preferences"), "",
         [](wxCommandEvent &) {
             // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
             wxGetApp().open_preferences();
@@ -3417,8 +3586,8 @@ void MainFrame::init_menubar_as_editor()
     auto top_menu = m_topbar->GetTopMenu();
     top_menu->AppendSeparator();
 
-    append_menu_item(
-        top_menu, wxID_ANY, _L("Open speed dial...") + "\t" + "Space", "",
+    append_shortcut_item(
+        top_menu, Shortcut::SpeedDial, false, _L("Open Speed Dial"), "",
         [](wxCommandEvent &) { wxGetApp().open_speed_dial(); },
         "", nullptr, []() { return true; }, this);
     top_menu->AppendSeparator();
@@ -3524,8 +3693,8 @@ void MainFrame::init_menubar_as_editor()
 #else
     // On Mac, the Apple menu ignores non-standard custom items, so add Preset Bundle to the File menu
     fileMenu->AppendSeparator();
-    append_menu_item(
-        fileMenu, wxID_ANY, _L("Open speed dial...") + sep + "Space", "",
+    append_shortcut_item(
+        fileMenu, Shortcut::SpeedDial, false, _L("Open Speed Dial"), "",
         [](wxCommandEvent&) { wxGetApp().open_speed_dial(); },
         "", nullptr, []() { return true; }, this);
     append_menu_item(
@@ -3663,7 +3832,8 @@ void MainFrame::set_max_recent_count(int max)
         }
         wxGetApp().app_config->set_recent_projects(recent_projects);
         wxGetApp().app_config->save();
-        m_webview->SendRecentList(-1);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SendRecentList(-1);
     }
 }
 
@@ -3728,7 +3898,7 @@ void MainFrame::init_menubar_as_gcodeviewer()
     wxMenu* viewMenu = nullptr;
     if (m_plater != nullptr) {
         viewMenu = new wxMenu();
-        add_common_view_menu_items(viewMenu, this, std::bind(&MainFrame::can_change_view, this));
+        add_common_view_menu_items(viewMenu, std::bind(&MainFrame::can_change_view, this));
     }
 
     // helpmenu
@@ -3877,6 +4047,8 @@ bool MainFrame::load_config_file(const std::string &path)
         return false;
     }
     wxGetApp().load_current_presets();
+    if (Plater *plater = wxGetApp().plater())
+        plater->normalize_bed_types(false);
     return true;
 }
 
@@ -4007,23 +4179,124 @@ void MainFrame::select_tab(wxPanel* panel)
     select_tab(page_name);
 }
 
+// Selects the Prepare page without the page-changed event, so the GL canvas is on screen
+// and nothing else is built for the pass.
+void MainFrame::select_prepare_for_gl_init()
+{
+    m_tabpanel->ChangeSelection(m_tabpanel->FindPageByName(TAB_ID_PREPARE));
+}
+
+// The book shows its first page as it is inserted, while the frame is hidden and nothing
+// may build; the first show completes that page.
+bool MainFrame::Show(bool show)
+{
+    const bool changed = DPIFrame::Show(show);
+    if (show && changed && m_tabpanel != nullptr)
+        if (wxWindow* page = m_tabpanel->GetCurrentPage())
+            page->Show(true);
+    return changed;
+}
+
+bool MainFrame::GLResourcesPrebuild::built() const
+{
+    return m_frame.m_plater != nullptr && m_frame.m_plater->canvas3D()->is_initialized() &&
+           m_frame.m_plater->get_partplate_list().icon_textures_loaded();
+}
+
+bool MainFrame::GLResourcesPrebuild::build_step()
+{
+    GLCanvas3D* canvas = m_frame.m_plater->canvas3D();
+#ifdef __WXGTK__
+    // wx creates a GTK canvas's GL surface when the widget is realized, so the context can be
+    // made current on it while hidden.
+    gtk_widget_realize(canvas->get_wxglcanvas()->GetHandle());
+#endif
+    if (!canvas->make_current_for_postinit()) {
+        // The first render of the canvas loads everything instead.
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": cannot make the GL context current on the hidden canvas";
+        m_failed = true;
+        return false;
+    }
+    switch (m_step) {
+    case 0:
+        m_failed = !wxGetApp().init_opengl();
+        break;
+    case 1: {
+        const Size size = canvas->get_canvas_size();
+        wxGetApp().imgui()->set_display_size(float(std::max(1, size.get_width())), float(std::max(1, size.get_height())));
+        canvas->set_imgui_scaling();
+        // Builds the font atlas without leaving a frame open at the hidden canvas's size.
+        wxGetApp().imgui()->new_frame();
+        wxGetApp().imgui()->end_frame();
+        break;
+    }
+    case 2:
+        // One texture per unit until none remain.
+        if (m_frame.m_plater->get_partplate_list().load_next_plate_texture())
+            return true;
+        break;
+    case 3:
+        m_failed = !canvas->init();
+        break;
+    default:
+        // Runs after init(), which sets the color mode the icons are drawn for.
+        m_frame.m_plater->get_partplate_list().load_icon_textures();
+        return false;
+    }
+    ++m_step;
+    return !m_failed;
+}
+
+bool MainFrame::PrepareLayoutPrebuild::built() const
+{
+    // The book lays out the page it shows.
+    const wxWindow* page = m_frame.m_tabpanel != nullptr ? m_frame.m_tabpanel->GetCurrentPage() : nullptr;
+    return page == nullptr || page == m_frame.m_plater || page->GetSize() == m_laid_out_size;
+}
+
+bool MainFrame::PrepareLayoutPrebuild::build_step()
+{
+    // Sized as the book sizes the page it selects, so the selection finds nothing to lay out.
+    const wxWindow* page = m_frame.m_tabpanel->GetCurrentPage();
+    m_laid_out_size      = page->GetSize();
+    m_frame.m_plater->SetSize(page->GetRect());
+    return false;
+}
+
+// A page out of the book stays registered and is passed over; a negative order is never
+// registered.
+void MainFrame::prebuild_pages_when_idle()
+{
+    m_idle.clear();
+    m_idle.add(m_gl_prebuild);
+    if (m_param_panel)
+        m_idle.add(m_param_panel->settings_page_prebuild());
+    m_idle.add(m_prepare_layout_prebuild);
+    for (LazyBase* page : m_lazy_pages)
+        if (page->prebuild_order() >= 0)
+            m_idle.add(*page);
+    m_idle.add(*m_diff_dialog);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
+    m_idle.start();
+    m_prebuild_started = true;
+}
+
 //BBS
 void MainFrame::jump_to_monitor(std::string dev_id)
 {
-    if(!m_monitor)
-        return;
     m_tabpanel->SelectPageByName(TAB_ID_MONITOR);
     if (!dev_id.empty()) {
-        ((MonitorPanel*)m_monitor)->select_machine(dev_id);
+        MonitorPanel::ensure()->select_machine(dev_id);
     }
 }
 
 void MainFrame::jump_to_multipage()
 {
-    if(!m_multi_machine)
+    if (!m_multi_machine_page->in_book())
         return;
     m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE);
-    ((MultiMachinePage*)m_multi_machine)->jump_to_send_page();
+    if (MultiMachinePage* page = m_multi_machine_page->ensure())
+        page->jump_to_send_page();
 }
 
 
@@ -4072,8 +4345,8 @@ void MainFrame::request_select_tab(const wxString& id)
 }
 
 int MainFrame::get_calibration_curr_tab() {
-    if (m_calibration)
-        return m_calibration->get_tabpanel()->GetSelection();
+    if (CalibrationPanel* calibration = CalibrationPanel::if_built())
+        return calibration->get_tabpanel()->GetSelection();
     return -1;
 }
 
@@ -4136,38 +4409,22 @@ void MainFrame::on_config_changed(DynamicPrintConfig* config) const
 
 void MainFrame::set_print_button_to_default(PrintSelectType select_type)
 {
-    if (select_type == PrintSelectType::ePrintPlate) {
-        m_print_btn->SetLabel(_L("Print plate"));
-        m_print_select = ePrintPlate;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eSendGcode) {
-        m_print_btn->SetLabel(_L_CONTEXT("Print", "Verb"));
-        m_print_select = eSendGcode;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status() && can_send_gcode();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eExportGcode) {
-        m_print_btn->SetLabel(_L("Export G-code file"));
-        m_print_select = eExportGcode;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status() && can_send_gcode();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else if (select_type == PrintSelectType::eExportSlicedFile) {
-        m_print_btn->SetLabel(_L("Export plate sliced file"));
-        m_print_select = eExportSlicedFile;
-        if (m_print_enable)
-            m_print_enable = get_enable_print_status();
-        m_print_btn->Enable(m_print_enable);
-        this->Layout();
-    } else {
-        // unsupport
-        return;
-    }
+    // Orca: keep the user's remembered print/export action instead of resetting it to the computed
+    // default. get_remembered_print_select() already rejects anything this printer does not offer.
+    PrintSelectType remembered;
+    if (get_remembered_print_select(remembered))
+        select_type = remembered;
+
+    if (select_type == eUploadGcode)
+        return; // unsupported: no dropdown entry exists for this action
+
+    m_print_btn->SetLabel(print_select_type_label(select_type));
+    m_print_select = select_type;
+    // get_enable_print_status() already applies can_send_gcode() to the actions that need it
+    if (m_print_enable)
+        m_print_enable = get_enable_print_status();
+    m_print_btn->Enable(m_print_enable);
+    this->Layout();
 }
 
 void MainFrame::add_to_recent_projects(const wxString& filename)
@@ -4182,7 +4439,8 @@ void MainFrame::add_to_recent_projects(const wxString& filename)
             recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
         }
         wxGetApp().app_config->set_recent_projects(recent_projects);
-        m_webview->SendRecentList(0);
+        if (WebViewPanel* home = WebViewPanel::if_built())
+            home->SendRecentList(0);
     }
 }
 
@@ -4298,7 +4556,8 @@ void MainFrame::open_recent_project(size_t file_id, wxString const & filename)
                 recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
             }
             wxGetApp().app_config->set_recent_projects(recent_projects);
-            m_webview->SendRecentList(-1);
+            if (WebViewPanel* home = WebViewPanel::if_built())
+                home->SendRecentList(-1);
         }
     }
 }
@@ -4321,7 +4580,8 @@ void MainFrame::remove_recent_project(size_t file_id, wxString const &filename)
         recent_projects.push_back(into_u8(m_recent_projects.GetHistoryFile(i)));
     }
     wxGetApp().app_config->set_recent_projects(recent_projects);
-    m_webview->SendRecentList(-1);
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->SendRecentList(-1);
 }
 
 void MainFrame::load_url(wxString url)
@@ -4352,7 +4612,7 @@ void MainFrame::load_printer_url()
         if (auto *device_manager = wxGetApp().getDeviceManager()) {
             auto *machine = device_manager->get_selected_machine();
             if (!machine) {
-                auto machines = device_manager->get_my_machine_list();
+                auto machines = device_manager->get_my_machine_list(device_manager->get_current_printer_agent_id());
                 if (machines.size() == 1)
                     machine = machines.begin()->second;
             }
@@ -4375,14 +4635,14 @@ bool MainFrame::is_printer_view() const { return m_tabpanel->GetSelectedPageName
 
 void MainFrame::refresh_plugin_tips()
 {
-    if (m_webview != nullptr)
-        m_webview->ShowNetpluginTip();
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->ShowNetpluginTip();
 }
 
 void MainFrame::RunScript(wxString js)
 {
-    if (m_webview != nullptr)
-        m_webview->RunScript(js);
+    if (WebViewPanel* home = WebViewPanel::if_built())
+        home->RunScript(js);
 }
 
 void MainFrame::technology_changed()
@@ -4491,7 +4751,8 @@ void MainFrame::update_side_preset_ui()
 
 
     //take off multi machine
-    if(m_multi_machine){m_multi_machine->clear_page();}
+    if (MultiMachinePage* multi_machine = MultiMachinePage::if_built())
+        multi_machine->clear_page();
 }
 
 void MainFrame::on_select_default_preset(SimpleEvent& evt)

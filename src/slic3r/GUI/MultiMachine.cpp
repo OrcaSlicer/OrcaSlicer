@@ -3,6 +3,10 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {
@@ -51,7 +55,7 @@ void DeviceItem::sync_state()
             state_printable = 6;
         }
 
-        if (is_blocking_printing(obj_)) {
+        if (wxGetApp().is_blocking_printing(obj_)) {
             state_printable = 5;
         }
 
@@ -104,27 +108,6 @@ void DeviceItem::unselected()
     }
 }
 
-bool DeviceItem::is_blocking_printing(MachineObject* obj_)
-{
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (!dev) return true;
-    auto target_model = obj_->printer_type;
-    std::string source_model = "";
-
-    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-
-    if (source_model != target_model) {
-        std::vector<std::string> compatible_machine = obj_->get_compatible_machine();
-        vector<std::string>::iterator it = find(compatible_machine.begin(), compatible_machine.end(), source_model);
-        if (it == compatible_machine.end()) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void DeviceItem::update_item(const DeviceItem* item)
 {
     // Except for the selected status, everything else is updated
@@ -161,7 +144,7 @@ wxString DeviceItem::get_state_device()
     str_state_device.push_back(_L("Printing Failed"));
     str_state_device.push_back(_L("Printing"));
     str_state_device.push_back(_L("Printing Pause"));
-    str_state_device.push_back(_L("Prepare"));
+    str_state_device.push_back(_L_CONTEXT("Prepare", "Device status"));
     str_state_device.push_back(_L("Slicing"));
     str_state_device.push_back(_L("Syncing"));
 

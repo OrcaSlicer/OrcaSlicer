@@ -8,5 +8,5 @@
 	"bed_model": "PRO S100 HotBed model.stl",
 	"bed_texture": "PRO S100 HotBed texture.svg",
 	"hotend_model": "BLOCKS PrintCore.stl",
-	"default_materials": "Generic PLA @Blocks;Generic PETG @Blocks;Generic TPU @Blocks"
+	"default_materials": "Blocks PLA @Blocks_Pro_S100;Blocks PETG @Blocks_Pro_S100;Blocks TPU @Blocks_Pro_S100"
 }

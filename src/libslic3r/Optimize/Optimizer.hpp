@@ -1,6 +1,7 @@
 #ifndef OPTIMIZER_HPP
 #define OPTIMIZER_HPP
 
+#include <cstddef>
 #include <utility>
 #include <tuple>
 #include <array>

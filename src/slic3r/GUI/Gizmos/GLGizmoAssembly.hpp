@@ -2,6 +2,8 @@
 #define slic3r_GLGizmoAssembly_hpp_
 
 #include "GLGizmoMeasure.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
 
 namespace Slic3r {
 

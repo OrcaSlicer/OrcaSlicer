@@ -3,7 +3,9 @@
 
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
+#include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 
 class wxStaticBitmap;

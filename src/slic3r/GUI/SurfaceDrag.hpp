@@ -1,6 +1,7 @@
 #ifndef slic3r_SurfaceDrag_hpp_
 #define slic3r_SurfaceDrag_hpp_
 
+#include "libslic3r/Model.hpp"
 #include <optional>
 #include "libslic3r/Point.hpp" // Vec2d, Transform3d
 #include "slic3r/Utils/RaycastManager.hpp"

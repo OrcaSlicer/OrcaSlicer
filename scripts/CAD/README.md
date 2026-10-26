@@ -33,6 +33,21 @@ part of `libslic3r_tests` and run under `ctest` on every platform like any other
 unit test. This script exists for the local loop, where it is a two-minute round
 trip instead of a full application build.
 
+## Generated sources
+
+Two checked-in files are emitted from data that lives here, so the source and the thing
+compiled against it cannot drift apart:
+
+| Generator | Source | Output |
+|---|---|---|
+| `gen_offer_table.py` | `tool_atlas.json` — every offer verb with its row, key, icon, accepted selections and refusal string | `src/slic3r/GUI/CAD/DesignOffer.hpp` |
+| `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` (needs FreeCAD) | the `kBear…` tables in `DesignSketchTool.cpp` |
+
+`python3 scripts/CAD/gen_offer_table.py` rewrites the header and `--check` proves the
+checked-in one matches the atlas — `run-all-checks.sh` runs the check as its first rung,
+which is what makes the header's "GENERATED — DO NOT EDIT" enforceable. Edit the atlas,
+never the header.
+
 ## Build and run
 
 | Script | Purpose |
@@ -48,6 +63,6 @@ Two constraints that are not obvious and have each cost a session:
 - **A window manager is required.** Without one, windows are never focused, and an
   unfocused GTK app ignores synthetic keys — which looks exactly like a code bug.
 
-`docs/rig_build_traps.md` documents these and three more, with symptoms and exact
+`scripts/CAD/rig_build_traps.md` documents these and three more, with symptoms and exact
 recovery commands. Read it before debugging a configure or link failure one of
 these scripts reports.

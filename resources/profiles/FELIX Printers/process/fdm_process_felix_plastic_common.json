@@ -1,0 +1,15 @@
+{
+  "type": "process",
+  "name": "fdm_process_felix_plastic_common",
+  "inherits": "fdm_process_common",
+  "from": "system",
+  "instantiation": "false",
+  "ooze_prevention": "1",
+  "wall_loops": "3",
+  "sparse_infill_density": "20%",
+  "is_infill_first": "0",
+  "travel_speed": "140",
+  "skirt_loops": "1",
+  "skirt_distance": "5",
+  "skirt_height": "1"
+}

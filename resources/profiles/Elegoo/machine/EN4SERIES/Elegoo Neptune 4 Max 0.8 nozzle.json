@@ -1,6 +1,7 @@
 {
 	"type": "machine",
 	"name": "Elegoo Neptune 4 Max 0.8 nozzle",
+	"renamed_from": "Elegoo Neptune 4 Max (0.8 nozzle)",
 	"inherits": "Elegoo Neptune 4 Max 0.4 nozzle",
 	"from": "system",
 	"setting_id": "licXMWyXGDavpuvu",
@@ -31,6 +32,5 @@
 	],
 	"retract_length_toolchange": [
 		"3"
-	],
-	"renamed_from": "Elegoo Neptune 4 Max (0.8 nozzle)"
+	]
 }

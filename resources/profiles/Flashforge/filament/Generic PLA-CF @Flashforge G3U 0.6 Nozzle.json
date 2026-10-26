@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA-CF @Flashforge G3U 0.6 Nozzle",
-	"inherits": "Generic PLA @Flashforge",
 	"renamed_from": "Flashforge Generic PLA-CF @G3U 0.6 Nozzle;Flashforge Generic PLA-CF G3U 0.6 Nozzle",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "3vXm1hn43igE1xww",
 	"filament_id": "OFWbdGsC",

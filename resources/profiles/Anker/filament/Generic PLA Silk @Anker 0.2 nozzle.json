@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Silk @Anker 0.2 nozzle",
-	"inherits": "Generic PLA Silk @Anker base",
 	"renamed_from": "Anker Generic PLA Silk 0.2 nozzle",
+	"inherits": "Generic PLA Silk @Anker base",
 	"from": "system",
 	"setting_id": "NWGiPWYmLVktDMJt",
 	"instantiation": "true",

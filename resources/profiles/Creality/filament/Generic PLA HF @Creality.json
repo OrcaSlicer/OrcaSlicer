@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA HF @Creality",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Creality HF Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "YXqIFmq63jGbN8aZ",
 	"filament_id": "OFZr862X",

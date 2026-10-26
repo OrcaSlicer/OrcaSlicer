@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
 #include <map>
 #include <string>
 #include <vector>
@@ -27,12 +28,14 @@ struct GroupAndCategory
     wxString group;
     wxString category;
     wxString icon;       // icon of the group's own header, or empty
-    wxString line_label; // label the settings row actually draws (Line::label), or empty
-    std::string path;    // wiki path (Line::label_path) of the option's line, or empty
+    wxString line_label;    // label the settings row actually draws (Line::label), or empty
+    wxString line_label_en; // untranslated English of line_label, or empty
+    std::string path;       // wiki path (Line::label_path) of the option's line, or empty
 };
 
 // Title for a setting: the row label, qualified with the field leaf when the row packs several
-// options (e.g. "Cool Plate \u2013 First layer"). Pure; inputs are already localized.
+// options (e.g. "Cool Plate \u2013 First layer"). Pure; both inputs are in the same language (the
+// localized title, or its English counterpart).
 inline wxString compose_display_label(const wxString& line_label, const wxString& leaf_label, bool multi)
 {
     if (line_label.empty())
@@ -72,6 +75,7 @@ struct Option
     std::string  tooltip;             // localized ConfigOptionDef::tooltip, or empty
     std::string  wiki_path;           // Line::label_path for the option's row, or empty
     std::string  display_label;       // label the settings row draws (localized); empty falls back to label
+    std::string  display_label_en;    // untranslated English of display_label, or empty
 
     std::string opt_key() const;
 };
@@ -97,9 +101,9 @@ public:
     void add_key(const std::string &opt_key, Preset::Type type, const wxString &group, const wxString &category,
                  const wxString &icon = wxEmptyString);
     void set_path(const std::string &opt_key, Preset::Type type, const std::string &path);
-    // Record the label the option's row draws, so the Speed Dial names a setting like the page
-    // (ConfigOptionDef::label/full_label is a search name, not the row text).
-    void set_line_label(const std::string &opt_key, Preset::Type type, const wxString &label);
+    // Record the label the option's row draws and its untranslated English, so the Speed Dial names a
+    // setting like the page (ConfigOptionDef::label/full_label is a search name, not the row text).
+    void set_line_label(const std::string &opt_key, Preset::Type type, const wxString &label, const wxString &label_en);
 
     const std::vector<Option> &options() const { return m_options; }
     const std::vector<Option> &all_options() const { return m_all_modes; }

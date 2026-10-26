@@ -28,12 +28,25 @@
 		"10"
 	],
 	"filament_cost": [
-		"84.99"
+		"81.99"
 	],
 	"filament_density": [
 		"1.29"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_max_volumetric_speed": [
+		"8",
+		"8",
+		"8",
+		"8",
+		"8",
 		"8"
 	],
 	"filament_multitool_ramming_flow": [
@@ -52,9 +65,19 @@
 		"100"
 	],
 	"nozzle_temperature": [
+		"270",
+		"270",
+		"270",
+		"270",
+		"270",
 		"270"
 	],
 	"nozzle_temperature_initial_layer": [
+		"270",
+		"270",
+		"270",
+		"270",
+		"270",
 		"270"
 	],
 	"nozzle_temperature_range_high": [

@@ -1,12 +1,24 @@
 #ifndef slic3r_EdgeGrid_hpp_
 #define slic3r_EdgeGrid_hpp_
 
+#include <cstddef>
+#include <cassert>
+#include <limits>
+#include <cstdlib>
+#include <algorithm>
 #include <stdint.h>
 #include <math.h>
+#include <vector>
+#include <utility>
+#include <string>
 
+#include "Line.hpp"
 #include "Point.hpp"
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
+#include "libslic3r.h"
+#include "Polygon.hpp"
+#include "Polyline.hpp"
 
 namespace Slic3r {
 namespace EdgeGrid {

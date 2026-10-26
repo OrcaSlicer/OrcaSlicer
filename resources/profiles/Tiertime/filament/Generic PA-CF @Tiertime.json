@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic PA-CF @Tiertime",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "Tiertime Generic PA-CF",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OFQLcbps",
 	"setting_id": "1oq9XQtCUcV9wGYV",
+	"filament_id": "OFQLcbps",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"5"

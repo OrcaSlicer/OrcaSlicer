@@ -4,6 +4,25 @@
 #include "StaticBox.hpp"
 
 #include "../wxExtensions.hpp"
+
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/anybutton.h>
+#include <utility>
+#include <wx/colour.h>
+#include <wx/image.h>
+#include <cstring>
+#include <wx/dc.h>
+#include <cmath>
+#include <vector>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/scrolwin.h>
+#include <wx/settings.h>
+#include <wx/tglbtn.h>
+#include <wx/string.h>
+#include <wx/types.h>
+#include <wx/sizer.h>
 #include "../GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "../Utils/MacDarkMode.hpp"
@@ -140,17 +159,16 @@ void SwitchButton::Rescale()
 		}
 		for (int i = 0; i < 2; ++i) {
 			wxMemoryDC memdc(&dc);
-#ifdef __WXMSW__
-			wxBitmap bmp(trackSize.x, trackSize.y);
-			memdc.SelectObject(bmp);
-			memdc.SetBackground(wxBrush(GetBackgroundColour()));
-			memdc.Clear();
-#else
             wxImage image(trackSize);
+#ifndef __WXMSW__ // DrawText doesn't work properly on Windows with Alpha channel
             image.InitAlpha();
             memset(image.GetAlpha(), 0, trackSize.GetWidth() * trackSize.GetHeight());
+#endif
             wxBitmap bmp(std::move(image));
             memdc.SelectObject(bmp);
+#ifdef __WXMSW__
+            memdc.SetBackground(wxBrush(GetBackgroundColour()));
+            memdc.Clear();
 #endif
             memdc.SetFont(dc.GetFont());
 #ifdef __WXMSW__
@@ -258,6 +276,7 @@ ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
     StaticBox::Create(parent, id, wxDefaultPosition, wxDefaultSize, 0);
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
     SetCursor(wxCursor(wxCURSOR_HAND));
+    SetFont(Label::Body_12);
 
     m_tooltips[0] = _L("Simple settings");
     m_tooltips[1] = _L("Advanced settings");
@@ -356,6 +375,14 @@ void ModeSwitchButton::doRender(wxDC& dc)
         }
     }
     else { // Developer mode
+        double scale = 1.00;
+#ifdef __WXOSX__
+        scale = Slic3r::GUI::mac_max_scaling_factor();
+        dc.SetFont(dc.GetFont().Scaled(scale));
+#elif defined(__WXMSW__)
+        scale = m_parent->GetDPIScaleFactor();
+        dc.SetFont(dc.GetFont().Scaled(scale));
+#endif
         wxString str = "DEV";
         int kerning = 3; // pixels between chars
         dc.SetTextForeground(text_color.colorForStates(states));
@@ -365,8 +392,17 @@ void ModeSwitchButton::doRender(wxDC& dc)
             totalWidth += dc.GetTextExtent(wxString(c)).x + kerning;
         totalWidth -= kerning;
 
-        wxCoord x = bounds.x + (bounds.width - totalWidth) / 2;
-        wxCoord y = bounds.y + (bounds.height - dc.GetTextExtent(str).y) / 2 - 1;
+        wxCoord x = bounds.x + (bounds.width  - totalWidth) * 0.50;
+
+        wxFontMetrics fm = dc.GetFontMetrics();
+        int lineHeight   = fm.ascent + fm.descent + fm.internalLeading;
+
+        double y_offset = scale;
+#if   defined(__WXGTK__)
+        y_offset = 0;
+#endif
+
+        wxCoord y = std::floor(v_center - lineHeight * 0.50 - y_offset);
 
         for (char c : str) {
             wxString ch(c);
@@ -614,25 +650,47 @@ bool SwitchBoard::Enable(bool enable /* = true */)
 MultiSwitchButton::MultiSwitchButton(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style)
     : StaticBox(parent, id, pos, size, style)
     , m_bg_color(StateColor(
-          std::make_pair(0xE8E8E8, (int) StateColor::NotChecked),
+          std::make_pair(0xD9D9D9, (int) StateColor::NotChecked),
           std::make_pair(0x009688, (int) StateColor::Normal)))
     , m_text_color(StateColor(
           std::make_pair(0x6B6B6B, (int) StateColor::NotChecked),
           std::make_pair(0xFFFFFE, (int) StateColor::Normal)))
+    , m_br_color_modified(StateColor(
+          std::make_pair(0xD9D9D9, (int) StateColor::NotChecked),
+          std::make_pair(0xF1754F, (int) StateColor::Normal)))
+    , m_fg_color_modified(StateColor(
+          std::make_pair(0xF1754E, (int) StateColor::NotChecked),
+          std::make_pair(0xFFFFFE, (int) StateColor::Normal)))
     , m_button_radius(10.0)
-    , m_button_padding(10, 6)
+    , m_button_padding(11, 3)
 {
     SetCornerRadius(m_button_radius);
     SetBorderWidth(0);
 
-    sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto *hsizer = new wxBoxSizer(wxVERTICAL);
-    hsizer->Add(sizer, 1, wxEXPAND);
-    SetSizer(hsizer);
-    SetMinSize(wxSize(-1, 20));
+    // Orca: a switch can hold more buttons than the layout has room for (a toolchanger lists one per
+    // tool), so they live in a scrolled area: the caller caps the switch at its natural width and
+    // this scrolls horizontally instead of clipping the last buttons.
+    m_scroll = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxBORDER_NONE);
+    //m_scroll->SetBackgroundColour(wxColour("#D9D9D9"));
+    m_scroll->SetBackgroundColour(GetBackgroundColour());
+    // The buttons are a single row, so only the horizontal bar may ever appear: a vertical one would
+    // eat into the row's height.
+    m_scroll->ShowScrollbars(wxSHOW_SB_DEFAULT, wxSHOW_SB_NEVER);
+    m_scroll->EnableScrolling(true, false);
+    m_scroll->SetScrollRate(FromDIP(10), 0);
 
+    sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_scroll->SetSizer(sizer);
+
+    auto *hsizer = new wxBoxSizer(wxVERTICAL);
+    hsizer->Add(m_scroll, 1, wxEXPAND);
+    SetSizer(hsizer);
+    SetMinSize(wxSize(-1, options_height()));
+
+    Bind(wxEVT_SIZE, &MultiSwitchButton::on_size, this);
     Bind(wxEVT_COMMAND_BUTTON_CLICKED, &MultiSwitchButton::button_clicked, this);
-    SetFont(Label::Body_12);
+    // The tags name a tool and its volume type only, so they stay compact.
+    SetFont(Label::Body_10);
 }
 
 MultiSwitchButton::~MultiSwitchButton()
@@ -640,22 +698,99 @@ MultiSwitchButton::~MultiSwitchButton()
     DeleteAllOptions();
 }
 
+int MultiSwitchButton::options_height() const
+{
+    // With no button to measure yet, keep the placeholder height the switch starts with.
+    return btns.empty() ? FromDIP(20) : btns.front()->GetMinSize().y;
+}
+
+void MultiSwitchButton::update_scroll_range()
+{
+    // The scrollbar range is measured against the virtual size, so it has to follow the buttons
+    // whenever their labels or count change.
+    m_scroll->InvalidateBestSize();
+    m_scroll->FitInside();
+
+    // A scrolled window reports its min size plus a scrollbar as its best size, never the width of
+    // the buttons it holds, so the layout has to be given that width explicitly. It is also the
+    // widest this switch wants to be: a row with less room squeezes it below this and it scrolls.
+    const wxSize content = sizer->CalcMin();
+    SetMinSize(wxSize(content.x, options_height() + scrollbar_height(content.x)));
+    SetMaxSize(m_fit_to_options ? wxSize(content.x, -1) : wxDefaultSize);
+    InvalidateBestSize();
+}
+
+int MultiSwitchButton::scrollbar_height(int options_width) const
+{
+    // The bar is drawn inside the switch, so while the buttons need more width than the row gave us
+    // the switch has to be taller by the bar's height, or the bar sits on top of the buttons.
+    const int width = GetClientSize().x;
+    if (width <= 0 || options_width <= width)
+        return 0;
+
+    const int bar = wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, this);
+    return bar > 0 ? bar : 0;
+}
+
+void MultiSwitchButton::on_size(wxSizeEvent &evt)
+{
+    evt.Skip();
+
+    // The row resized, so the buttons may now overflow it (or no longer fit in it) and the room the
+    // bar needs changed with that. Width does not depend on height, so this settles in one pass.
+    const int height = options_height() + scrollbar_height(sizer->CalcMin().x);
+    if (GetMinSize().y != height) {
+        SetMinSize(wxSize(GetMinSize().x, height));
+        // The switch sits in a row of this tab, and the tab in a panel that shares its height
+        // with the page view, so both have to lay out again for the taller row to get its room.
+        if (wxWindow *tab = GetParent()) {
+            tab->Layout();
+            if (wxWindow *panel = tab->GetParent())
+                panel->Layout();
+        }
+    }
+}
+
+void MultiSwitchButton::scroll_option_into_view(Button *btn)
+{
+    const int width  = m_scroll->GetClientSize().x;
+    const int view_x = m_scroll->GetViewStartPixels().x;
+    if (width <= 0)     // not laid out yet: there is no view to scroll
+        return;
+
+    const wxRect rect   = btn->GetRect();
+    const int    right  = rect.GetRight() + 1;
+    int          target = view_x;
+    if (rect.x < view_x)
+        target = rect.x;
+    else if (right > view_x + width)
+        target = right - width;
+
+    if (target == view_x)
+        return;
+
+    // Scroll() counts scroll units; round up so the whole button ends up inside the view rather
+    // than a few pixels short of it.
+    int step = 1;
+    m_scroll->GetScrollPixelsPerUnit(&step, nullptr);
+    m_scroll->Scroll((target + step - 1) / step, -1);
+}
+
 int MultiSwitchButton::AppendOption(const wxString &option, void *clientData)
 {
     Button *btn = new Button();
-    btn->Create(this, option, "", wxBORDER_NONE);
+    btn->Create(m_scroll, option);
     btn->SetFont(GetFont());
     btn->SetBackgroundColor(m_bg_color);
+    btn->SetBorderColor(m_bg_color);
     btn->SetTextColor(m_text_color);
     btn->SetCornerRadius(m_button_radius);
-    btn->SetPaddingSize(m_button_padding);
+    btn->SetPaddingSize(FromDIP(m_button_padding));
     btn->SetClientData(clientData);
 
     btns.push_back(btn);
+    btns_modified.push_back(false);
     sizer->Add(btn, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
-
-    wxSize text_size = btn->GetTextExtent(option);
-    btn->SetMinSize(wxSize(text_size.x + m_button_padding.x * 2 + 6, -1));
 
     return int(btns.size()) - 1;
 }
@@ -666,6 +801,7 @@ void MultiSwitchButton::SetOptions(const std::vector<wxString> &options)
     for (const auto &option : options)
         AppendOption(option);
 
+    update_scroll_range();
     Layout();
     Refresh();
 }
@@ -678,6 +814,7 @@ void MultiSwitchButton::DeleteAllOptions()
             btn->Destroy();
     }
     btns.clear();
+    btns_modified.clear();
     if (sizer)
         sizer->Clear();
 }
@@ -700,6 +837,8 @@ void MultiSwitchButton::SetSelection(int index)
     sel = index;
     update_button_styles();
     send_selection_event();
+    // The selected button may be scrolled out of sight, e.g. when the tab restores the active tool.
+    scroll_option_into_view(btns[sel]);
     Refresh();
 }
 
@@ -718,6 +857,7 @@ void MultiSwitchButton::SetOptionText(unsigned int index, const wxString &text)
     if (index >= btns.size())
         return;
     btns[index]->SetLabel(text);
+    update_scroll_range();
 }
 
 void *MultiSwitchButton::GetOptionData(unsigned int index) const
@@ -736,8 +876,8 @@ void MultiSwitchButton::update_button_styles()
 {
     for (int i = 0; i < (int) btns.size(); ++i) {
         btns[i]->SetValue(i == sel);
-        btns[i]->SetBackgroundColor(m_bg_color);
-        btns[i]->SetTextColor(m_text_color);
+        btns[i]->SetBorderColor(btns_modified[i] ? m_br_color_modified : m_bg_color  );
+        btns[i]->SetTextColor(  btns_modified[i] ? m_fg_color_modified : m_text_color); 
         btns[i]->Refresh();
     }
 }
@@ -768,15 +908,27 @@ void MultiSwitchButton::SetButtonPadding(const wxSize &padding)
 {
     m_button_padding = padding;
     for (auto *btn : btns)
-        btn->SetPaddingSize(padding);
+        btn->SetPaddingSize(FromDIP(padding));
+    update_scroll_range();
     Layout();
     Refresh();
 }
 
+void MultiSwitchButton::SetModified(int index, bool modified){
+    if(index < 0 || index >= btns_modified.size())
+        return;
+    btns_modified[index] = modified;
+    update_button_styles();
+}
+
 void MultiSwitchButton::Rescale()
 {
-    for (auto *btn : btns)
+    for (auto *btn : btns) {
+        btn->SetPaddingSize(FromDIP(m_button_padding));
         btn->Rescale();
+    }
+    // Rescaling can change how the labels measure, and the scrollbar range follows the buttons.
+    update_scroll_range();
 }
 
 void MultiSwitchButton::button_clicked(wxCommandEvent &event)
