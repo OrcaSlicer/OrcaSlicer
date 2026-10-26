@@ -3136,6 +3136,22 @@ void GUI_App::init_plugin_gui_wiring()
             refresh_plugins_dialog();
             switch_printer_agent_after_unload(capability.plugin_key);
         });
+    // A plugin that finished loading, or went away, can resolve or raise a missing-plugin notice. A fresh
+    // load fires no capability-load callback, and nothing above re-checks on unload or disable.
+    const auto refresh_missing_plugin_notifications = []() {
+        if (wxTheApp == nullptr || wxGetApp().is_closing())
+            return;
+        wxGetApp().CallAfter([]() {
+            if (wxGetApp().is_closing())
+                return;
+            if (Plater* plater = wxGetApp().plater())
+                plater->refresh_missing_plugin_notifications();
+        });
+    };
+    plugin_mgr.subscribe_on_load_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
+    plugin_mgr.subscribe_on_unload_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
+    plugin_mgr.subscribe_on_capability_unload_callback(
+        [refresh_missing_plugin_notifications](const PluginCapabilityId&) { refresh_missing_plugin_notifications(); });
     plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;

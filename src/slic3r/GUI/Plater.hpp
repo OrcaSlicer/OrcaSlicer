@@ -845,6 +845,9 @@ public:
     // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
     // notification is active, so it clears automatically once the required plugin is available.
     void revalidate_current_plate_if_plugins_missing();
+    // Rebuilds the missing-plugin notices for the active presets without validating the plate, e.g.
+    // after a plugin loads or unloads, and refreshes the Slice button when the block toggles.
+    void refresh_missing_plugin_notifications();
     // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
     // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
     // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.
