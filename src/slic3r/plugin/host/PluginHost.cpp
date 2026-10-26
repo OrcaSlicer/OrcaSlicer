@@ -1,5 +1,6 @@
 #include "PluginHost.hpp"
 #include "PluginHostBindings.hpp"
+#include "PluginHostPrinterAgent.hpp"
 #include "PluginHostUi.hpp"
 #include <pybind11/pybind11.h>
 #include <slic3r/plugin/PluginAuditManager.hpp>
@@ -44,6 +45,9 @@ void PluginHost::RegisterBindings(pybind11::module_& module)
 
     // UI: native dialogs and interactive HTML windows for plugins.
     PluginHostUi::RegisterBindings(host);
+
+    // Completion API for a plugin-owned Print/Send pre-operation UI.
+    register_printer_agent_host_api(host);
 
     // Slicing print-graph data model (Print, Layer, Surface, ...).
     host_bindings::register_slicing(host);

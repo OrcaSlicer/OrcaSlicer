@@ -1,6 +1,8 @@
 #include "Plater.hpp"
 #include "../Utils/NetworkAgent.hpp"
+#include "../Utils/PrinterAgentOperationConfig.hpp"
 #include "IPrinterAgent.hpp"
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include "CalibUtils.hpp"
 #include "Flashforge.hpp"
 #include "libslic3r/Config.hpp"
@@ -226,6 +228,7 @@
 #include "Jobs/SLAImportJob.hpp"
 #include "Jobs/SLAImportDialog.hpp"
 #include "Jobs/PrintJob.hpp"
+#include "Jobs/SendJob.hpp"
 #include "Jobs/NotificationProgressIndicator.hpp"
 #include "Jobs/PlaterWorker.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
@@ -7278,6 +7281,10 @@ struct Plater::priv
     PlaterWorker<BoostThreadWorker> m_worker;
     SLAImportDialog *               m_sla_import_dlg;
 
+    // Queued printer-agent callbacks must not touch this object after the Plater is torn down.
+    // They capture this token and check it inside CallAfter before using `this`.
+    std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
+
     int                         m_job_prepare_state;
 
     bool                        delayed_scene_refresh;
@@ -7418,7 +7425,13 @@ struct Plater::priv
             m_select_machine_dlg->prepare_mode();
     }
 
-    void hide_send_to_printer_dlg() { m_send_to_sdcard_dlg->EndModal(wxID_OK); }
+    void hide_send_to_printer_dlg()
+    {
+        // A plugin-owned or no-UI Send start never creates the dialog; its completion event still
+        // arrives through the same handler.
+        if (m_send_to_sdcard_dlg)
+            m_send_to_sdcard_dlg->EndModal(wxID_OK);
+    }
 
     void update_preview_bottom_toolbar();
 
@@ -7647,6 +7660,12 @@ struct Plater::priv
     void on_action_slice_all(SimpleEvent&);
     void on_action_print_plate(SimpleEvent&);
     void open_machine_select_dialog(int plate_idx, PrintFromType print_type = PrintFromType::FROM_NORMAL);
+    void show_send_to_printer_dialog(bool all_plates);
+    // Ask the active printer agent how a Print/Send is configured and confirmed (Orca dialog,
+    // plugin-owned UI, or no UI) before starting it.
+    void request_print_operation(int plate_idx, bool all_plates, PrintFromType print_type);
+    void request_send_operation(bool all_plates);
+    void start_operation_without_dialog(const PrinterAgentOperationCompletion& completion);
     void on_action_print_all(SimpleEvent&);
     void on_action_export_gcode(SimpleEvent&);
     void on_action_send_gcode(SimpleEvent&);
@@ -8395,6 +8414,8 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
 
 Plater::priv::~priv()
 {
+    if (m_alive)
+        m_alive->store(false, std::memory_order_release);
     if (config != nullptr)
         delete config;
     // Saves the database of visited (already shown) hints into hints.ini.
@@ -13837,7 +13858,7 @@ void Plater::priv::on_action_print_plate(SimpleEvent&)
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
     if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
-        open_machine_select_dialog(partplate_list.get_curr_plate_index());
+        request_print_operation(partplate_list.get_curr_plate_index(), false, PrintFromType::FROM_NORMAL);
     } else {
         q->send_gcode_legacy(PLATE_CURRENT_IDX, nullptr);
     }
@@ -13851,6 +13872,443 @@ void Plater::priv::open_machine_select_dialog(int plate_idx, PrintFromType print
     m_select_machine_dlg->set_print_type(print_type);
     m_select_machine_dlg->prepare(plate_idx);
     m_select_machine_dlg->ShowModal();
+}
+
+void Plater::priv::show_send_to_printer_dialog(bool all_plates)
+{
+    if (!m_send_to_sdcard_dlg)
+        m_send_to_sdcard_dlg = new SendToPrinterDialog(q);
+    m_send_to_sdcard_dlg->prepare(all_plates ? PLATE_ALL_IDX : partplate_list.get_curr_plate_index());
+    m_send_to_sdcard_dlg->ShowModal();
+}
+
+namespace {
+
+// The owning plugin of a printer agent, empty for a built-in agent. Only a plugin can complete an
+// asynchronous UI, so this doubles as "may this agent answer PrinterAgentUiMode::Plugin?".
+std::string printer_agent_plugin_key(const std::shared_ptr<IPrinterAgent>& agent)
+{
+    if (auto* capability = dynamic_cast<PluginCapabilityInterface*>(agent.get()))
+        return capability->audit_plugin_key();
+    return {};
+}
+
+std::string agent_info_id(const std::shared_ptr<IPrinterAgent>& agent)
+{
+    if (!agent)
+        return {};
+    try {
+        return agent->get_agent_info().id;
+    } catch (...) {
+        return {};
+    }
+}
+
+std::string agent_selected_target(const std::shared_ptr<IPrinterAgent>& agent)
+{
+    if (!agent)
+        return {};
+    try {
+        return agent->get_user_selected_machine();
+    } catch (...) {
+        return {};
+    }
+}
+
+// Resolve the target the operation was started for. A target supplied by the hook wins; otherwise
+// use the Orca-selected machine, then the target the agent reports. A plugin-owned UI may leave it
+// empty and supply target_id when it submits.
+std::string resolve_operation_target(const PrinterAgentOperationConfig& config,
+                                     const std::shared_ptr<IPrinterAgent>& agent,
+                                     const std::string& host_dev_id,
+                                     PrinterAgentOperationTargetSource& source)
+{
+    if (!config.target_id.empty()) {
+        source = PrinterAgentOperationTargetSource::Plugin;
+        return config.target_id;
+    }
+    if (config.options.is_object()) {
+        for (const char* key : {"target_id", "dev_id"}) {
+            auto it = config.options.find(key);
+            if (it != config.options.end() && it->is_string() && !it->get<std::string>().empty()) {
+                source = PrinterAgentOperationTargetSource::Plugin;
+                return it->get<std::string>();
+            }
+        }
+    }
+    if (!host_dev_id.empty()) {
+        source = PrinterAgentOperationTargetSource::HostSelected;
+        return host_dev_id;
+    }
+    if (config.ui != PrinterAgentUiMode::DefaultDialog) {
+        std::string selected = agent_selected_target(agent);
+        if (!selected.empty()) {
+            source = PrinterAgentOperationTargetSource::AgentSelected;
+            return selected;
+        }
+    }
+    source = PrinterAgentOperationTargetSource::None;
+    return {};
+}
+
+std::shared_ptr<IPrinterAgent> active_printer_agent()
+{
+    NetworkAgent* network_agent = wxGetApp().getAgent();
+    return network_agent ? network_agent->get_printer_agent() : nullptr;
+}
+
+// True while the operation's initiating agent is still the active one and its plugin, if any, is
+// still loaded. Used both before exporting and immediately before starting the job, so a plugin
+// unload between a submitted UI and the queued start cannot start it.
+bool initiating_agent_is_current(const PrinterAgentOperationCompletion& completion,
+                                 const std::shared_ptr<IPrinterAgent>& active)
+{
+    if (!active || active != completion.agent.lock())
+        return false;
+    if (!completion.plugin_key.empty()) {
+        if (printer_agent_plugin_key(active) != completion.plugin_key)
+            return false;
+        if (!PluginManager::instance().is_plugin_loaded(completion.plugin_key))
+            return false;
+    }
+    if (!completion.agent_id.empty() && agent_info_id(active) != completion.agent_id)
+        return false;
+    return true;
+}
+
+} // namespace
+
+void Plater::priv::request_print_operation(int plate_idx, bool all_plates, PrintFromType print_type)
+{
+    std::shared_ptr<IPrinterAgent> agent = active_printer_agent();
+    if (!agent) {
+        open_machine_select_dialog(plate_idx, print_type);
+        return;
+    }
+
+    DeviceManager* dev     = wxGetApp().getDeviceManager();
+    MachineObject* machine = dev ? dev->get_selected_machine() : nullptr;
+    const std::string host_dev_id = machine ? machine->get_dev_id() : std::string();
+    const std::string plugin_key  = printer_agent_plugin_key(agent);
+    const std::string agent_id    = agent_info_id(agent);
+
+    std::weak_ptr<std::atomic<bool>> alive = m_alive;
+    const std::string token = PrinterAgentOperationConfigStore::instance().begin(
+        PrinterAgentOperationKind::Print, agent, agent_id, host_dev_id, plate_idx, all_plates, plugin_key,
+        [this, alive](const PrinterAgentOperationCompletion& completion) {
+            // The store may complete from a plugin callback on any thread.
+            if (!completion.accepted || wxTheApp == nullptr || wxGetApp().is_closing())
+                return;
+            wxGetApp().CallAfter([this, alive, completion] {
+                std::shared_ptr<std::atomic<bool>> live = alive.lock();
+                if (!live || !live->load(std::memory_order_acquire))
+                    return;
+                if (!PrinterAgentOperationConfigStore::instance().consume_submitted(completion.token)) {
+                    BOOST_LOG_TRIVIAL(info)
+                        << "printer_agent: completed print operation ignored; it was cancelled or its plugin unloaded";
+                    return;
+                }
+                start_operation_without_dialog(completion);
+            });
+        });
+
+    PrinterAgentOperationRequest request;
+    request.kind         = PrinterAgentOperationKind::Print;
+    request.dev_id       = host_dev_id;
+    request.plate_index  = plate_idx;
+    request.all_plates   = all_plates;
+    request.project_name = q->get_project_name().utf8_string();
+    request.token        = token;
+
+    PrinterAgentOperationConfig config;
+    try {
+        config = agent->configure_operation(request);
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "printer_agent: configure_operation (print) failed, using the Orca dialog: "
+                                 << e.what();
+        config = {};
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "printer_agent: configure_operation (print) failed, using the Orca dialog";
+        config = {};
+    }
+
+    PrinterAgentOperationTargetSource target_source = PrinterAgentOperationTargetSource::None;
+    const std::string target_id = resolve_operation_target(config, agent, host_dev_id, target_source);
+    PrinterAgentOperationConfigStore::instance().set_target(token, target_id, target_source);
+
+    switch (config.ui) {
+    case PrinterAgentUiMode::None_: {
+        PrinterAgentOperationConfigStore::instance().discard(token);
+        PrinterAgentOperationCompletion completion;
+        completion.accepted      = true;
+        completion.kind          = PrinterAgentOperationKind::Print;
+        completion.plate_index   = plate_idx;
+        completion.all_plates    = all_plates;
+        completion.agent_id      = agent_id;
+        completion.agent         = agent;
+        completion.plugin_key    = plugin_key;
+        completion.target_id     = target_id;
+        completion.target_source = target_source;
+        completion.options       = config.options.is_object() ? config.options : nlohmann::json::object();
+        start_operation_without_dialog(completion);
+        break;
+    }
+    case PrinterAgentUiMode::Plugin:
+        if (plugin_key.empty()) {
+            // A built-in agent has no plugin callback that could complete the token. Fall back to
+            // the dialog rather than leaving the action pending forever.
+            BOOST_LOG_TRIVIAL(warning)
+                << "printer_agent: configure_operation (print) asked for a plugin UI without a plugin owner";
+            PrinterAgentOperationConfigStore::instance().discard(token);
+            open_machine_select_dialog(plate_idx, print_type);
+        }
+        break;
+    case PrinterAgentUiMode::DefaultDialog:
+    default:
+        PrinterAgentOperationConfigStore::instance().discard(token);
+        open_machine_select_dialog(plate_idx, print_type);
+        break;
+    }
+}
+
+void Plater::priv::request_send_operation(bool all_plates)
+{
+    std::shared_ptr<IPrinterAgent> agent = active_printer_agent();
+    if (!agent) {
+        show_send_to_printer_dialog(all_plates);
+        return;
+    }
+
+    DeviceManager* dev     = wxGetApp().getDeviceManager();
+    MachineObject* machine = dev ? dev->get_selected_machine() : nullptr;
+    const std::string host_dev_id = machine ? machine->get_dev_id() : std::string();
+    const std::string plugin_key  = printer_agent_plugin_key(agent);
+    const std::string agent_id    = agent_info_id(agent);
+    const int         plate_idx   = all_plates ? PLATE_ALL_IDX : partplate_list.get_curr_plate_index();
+
+    std::weak_ptr<std::atomic<bool>> alive = m_alive;
+    const std::string token = PrinterAgentOperationConfigStore::instance().begin(
+        PrinterAgentOperationKind::Send, agent, agent_id, host_dev_id, plate_idx, all_plates, plugin_key,
+        [this, alive](const PrinterAgentOperationCompletion& completion) {
+            if (!completion.accepted || wxTheApp == nullptr || wxGetApp().is_closing())
+                return;
+            wxGetApp().CallAfter([this, alive, completion] {
+                std::shared_ptr<std::atomic<bool>> live = alive.lock();
+                if (!live || !live->load(std::memory_order_acquire))
+                    return;
+                if (!PrinterAgentOperationConfigStore::instance().consume_submitted(completion.token)) {
+                    BOOST_LOG_TRIVIAL(info)
+                        << "printer_agent: completed send operation ignored; it was cancelled or its plugin unloaded";
+                    return;
+                }
+                start_operation_without_dialog(completion);
+            });
+        });
+
+    PrinterAgentOperationRequest request;
+    request.kind         = PrinterAgentOperationKind::Send;
+    request.dev_id       = host_dev_id;
+    request.plate_index  = plate_idx;
+    request.all_plates   = all_plates;
+    request.project_name = q->get_project_name().utf8_string();
+    request.token        = token;
+
+    PrinterAgentOperationConfig config;
+    try {
+        config = agent->configure_operation(request);
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "printer_agent: configure_operation (send) failed, using the Orca dialog: "
+                                 << e.what();
+        config = {};
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "printer_agent: configure_operation (send) failed, using the Orca dialog";
+        config = {};
+    }
+
+    PrinterAgentOperationTargetSource target_source = PrinterAgentOperationTargetSource::None;
+    const std::string target_id = resolve_operation_target(config, agent, host_dev_id, target_source);
+    PrinterAgentOperationConfigStore::instance().set_target(token, target_id, target_source);
+
+    switch (config.ui) {
+    case PrinterAgentUiMode::None_: {
+        PrinterAgentOperationConfigStore::instance().discard(token);
+        PrinterAgentOperationCompletion completion;
+        completion.accepted      = true;
+        completion.kind          = PrinterAgentOperationKind::Send;
+        completion.plate_index   = plate_idx;
+        completion.all_plates    = all_plates;
+        completion.agent_id      = agent_id;
+        completion.agent         = agent;
+        completion.plugin_key    = plugin_key;
+        completion.target_id     = target_id;
+        completion.target_source = target_source;
+        completion.options       = config.options.is_object() ? config.options : nlohmann::json::object();
+        start_operation_without_dialog(completion);
+        break;
+    }
+    case PrinterAgentUiMode::Plugin:
+        if (plugin_key.empty()) {
+            BOOST_LOG_TRIVIAL(warning)
+                << "printer_agent: configure_operation (send) asked for a plugin UI without a plugin owner";
+            PrinterAgentOperationConfigStore::instance().discard(token);
+            show_send_to_printer_dialog(all_plates);
+        }
+        break;
+    case PrinterAgentUiMode::DefaultDialog:
+    default:
+        PrinterAgentOperationConfigStore::instance().discard(token);
+        show_send_to_printer_dialog(all_plates);
+        break;
+    }
+}
+
+void Plater::priv::start_operation_without_dialog(const PrinterAgentOperationCompletion& completion)
+{
+    if (!m_alive || !m_alive->load(std::memory_order_acquire))
+        return;
+    if (wxTheApp == nullptr || wxGetApp().is_closing())
+        return;
+
+    if (!m_worker.is_idle()) {
+        show_error(q, _L("Another operation is still running. Please wait for it to finish."), false);
+        return;
+    }
+
+    const bool print = completion.kind == PrinterAgentOperationKind::Print;
+
+    std::shared_ptr<IPrinterAgent> active = active_printer_agent();
+    if (!initiating_agent_is_current(completion, active)) {
+        BOOST_LOG_TRIVIAL(info)
+            << "printer_agent: operation ignored because the printer agent changed or its plugin unloaded";
+        return;
+    }
+
+    const std::string target_id = completion.target_id;
+    if (target_id.empty()) {
+        // The plugin / no-UI contract needs an explicit target. Do not bounce to Orca's dialog:
+        // a missing target is an error in this path, where the user expected the agent to run it.
+        show_error(q, _L("No printer target was selected for this operation."), false);
+        return;
+    }
+
+    DeviceManager* dev     = wxGetApp().getDeviceManager();
+    MachineObject* selected = dev ? dev->get_selected_machine() : nullptr;
+
+    // A host- or agent-selected target must still be the same target. A plugin-supplied target is
+    // authoritative and does not depend on the Orca selection.
+    if (completion.target_source == PrinterAgentOperationTargetSource::HostSelected) {
+        if (!selected || selected->get_dev_id() != target_id) {
+            BOOST_LOG_TRIVIAL(info) << "printer_agent: operation ignored; the selected printer changed";
+            return;
+        }
+    } else if (completion.target_source == PrinterAgentOperationTargetSource::AgentSelected) {
+        if (agent_selected_target(active) != target_id) {
+            BOOST_LOG_TRIVIAL(info) << "printer_agent: operation ignored; the agent's selected printer changed";
+            return;
+        }
+    }
+
+    // Only use Orca's MachineObject credentials when it is the same printer the operation targets.
+    MachineObject* machine = (selected && selected->get_dev_id() == target_id) ? selected : nullptr;
+    const bool     lan_mode = machine && machine->is_lan_mode_printer();
+
+    // Export exactly what the matching dialog would have exported. `send_gcode` also fills the
+    // plate and path fields PrintJob/SendJob read in prepare().
+    if (!print && wxGetApp().plater()->using_exported_file()) {
+        q->set_print_job_plate_idx(completion.plate_index);
+    } else {
+        const int export_result = q->send_gcode(completion.plate_index, nullptr);
+        if (export_result < 0) {
+            show_error(q, _L("Abnormal print file data. Please slice again"), false);
+            return;
+        }
+        if (!lan_mode) {
+            const int config_result = q->export_config_3mf(completion.plate_index);
+            if (config_result < 0) {
+                show_error(q, _L("Abnormal print file data. Please slice again"), false);
+                return;
+            }
+        }
+    }
+
+    // The export can pump events. Re-check the initiating agent before starting the job, so an
+    // unload or agent switch during export still wins.
+    active = active_printer_agent();
+    if (!initiating_agent_is_current(completion, active)) {
+        BOOST_LOG_TRIVIAL(info)
+            << "printer_agent: operation ignored because the printer agent changed during export";
+        return;
+    }
+
+    nlohmann::json options = completion.options.is_object() ? completion.options : nlohmann::json::object();
+    options["target_id"] = target_id;
+
+    const std::string project_name = default_plate_project_name(q, completion.plate_index, print);
+
+    if (print) {
+        auto job = std::make_shared<PrintJob>(target_id);
+        if (machine) {
+            job->m_dev_ip      = machine->get_dev_ip();
+            job->m_ftp_folder  = machine->get_ftp_folder();
+            job->m_access_code = machine->get_access_code();
+#if !BBL_RELEASE_TO_PUBLIC
+            job->m_local_use_ssl_for_ftp = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true";
+            job->m_local_use_ssl         = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true";
+#else
+            job->m_local_use_ssl_for_ftp = machine->local_use_ssl_for_ftp;
+            job->m_local_use_ssl         = machine->local_use_ssl;
+#endif
+            job->cloud_print_only = machine->is_support_cloud_print_only;
+            job->sdcard_state     = machine->GetStorage()->get_sdcard_state();
+            job->has_sdcard       = wxGetApp().app_config->get("allow_abnormal_storage") == "true"
+                                        ? (job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL ||
+                                           job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
+                                        : job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
+            job->could_emmc_print = machine->can_use_emmc_print();
+        }
+        job->connection_type = machine ? machine->connection_type() : std::string("lan");
+        job->m_print_type    = "from_normal";
+        job->set_project_name(project_name);
+        job->task_use_ams = machine ? machine->HasAms() : true;
+
+        PartPlate* plate = partplate_list.get_plate(
+            completion.plate_index >= 0 ? completion.plate_index : partplate_list.get_curr_plate_index());
+        const PrintTaskOptionDefaults defaults = default_print_task_options(machine, q);
+        job->set_print_config(plate ? bed_type_to_gcode_string(plate->get_bed_type(true)) : std::string(),
+                              defaults.bed_leveling, defaults.flow_cali, false,
+                              defaults.record_timelapse, true, false,
+                              defaults.auto_bed_leveling, defaults.auto_flow_cali,
+                              defaults.auto_offset_cali, defaults.extruder_cali_manual_mode);
+
+        job->apply_operation_config(options);
+        job->set_agent_routed(true);
+        job->set_bound_agent(active);
+
+        BOOST_LOG_TRIVIAL(info) << "print_job: starting without the Orca dialog at the printer agent's request";
+        replace_job(m_worker, job);
+    } else {
+        auto job = std::make_unique<SendJob>(target_id);
+        if (machine) {
+            job->m_dev_ip      = machine->get_dev_ip();
+            job->m_access_code = machine->get_access_code();
+#if !BBL_RELEASE_TO_PUBLIC
+            job->m_local_use_ssl_for_ftp = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true";
+            job->m_local_use_ssl         = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true";
+#else
+            job->m_local_use_ssl_for_ftp = machine->local_use_ssl_for_ftp;
+            job->m_local_use_ssl         = machine->local_use_ssl;
+#endif
+        }
+        job->connection_type  = machine ? machine->connection_type() : std::string("lan");
+        job->cloud_print_only = false;
+        job->set_project_name(project_name);
+        job->apply_operation_config(options);
+        job->set_agent_routed(true);
+        job->set_bound_agent(active);
+
+        BOOST_LOG_TRIVIAL(info) << "send_job: starting without the Orca dialog at the printer agent's request";
+        replace_job(m_worker, std::move(job));
+    }
 }
 
 void Plater::priv::on_action_send_to_multi_machine(SimpleEvent&)
@@ -13931,15 +14389,7 @@ int Plater::priv::update_print_required_data(Slic3r::DynamicPrintConfig config, 
 
 void Plater::priv::on_action_send_to_printer(bool isall)
 {
-	if (!m_send_to_sdcard_dlg) m_send_to_sdcard_dlg = new SendToPrinterDialog(q);
-    if (isall) {
-        m_send_to_sdcard_dlg->prepare(PLATE_ALL_IDX);
-    }
-    else {
-        m_send_to_sdcard_dlg->prepare(partplate_list.get_curr_plate_index());
-    }
-
-	m_send_to_sdcard_dlg->ShowModal();
+    request_send_operation(isall);
 }
 
 
@@ -13960,7 +14410,7 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
     if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
-        open_machine_select_dialog(PLATE_ALL_IDX);
+        request_print_operation(PLATE_ALL_IDX, true, PrintFromType::FROM_NORMAL);
     } else {
         q->send_gcode_legacy(PLATE_ALL_IDX, nullptr);
     }

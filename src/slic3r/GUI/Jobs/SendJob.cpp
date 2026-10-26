@@ -3,7 +3,9 @@
 #include "bambu_networking.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PrinterAgentOperationConfig.hpp"
 #include "libslic3r/MTUtils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -122,6 +124,7 @@ void SendJob::process(Ctl &ctl)
     std::string msg;
     int curr_percent = 10;
     NetworkAgent* agent = wxGetApp().getAgent();
+    std::shared_ptr<IPrinterAgent> bound_agent = m_bound_agent;
     AppConfig* config = wxGetApp().app_config;
     int result = -1;
     std::string http_body;
@@ -139,7 +142,7 @@ void SendJob::process(Ctl &ctl)
     // In check mode (InputIpAddressDialog / lan-mode send) verify the connection with a dummy
     // "verify_job" upload and fire the caller's success/fail callback; when not continuing, stop
     // here. Cloud sends skip this.
-    if (m_is_check_mode) {
+    if (!m_agent_routed && m_is_check_mode) {
         PrintParams verify_params;
         verify_params.dev_ip           = m_dev_ip;
         verify_params.username         = agent->default_lan_username();
@@ -234,10 +237,21 @@ void SendJob::process(Ctl &ctl)
 
     // local print access
     params.dev_ip = m_dev_ip;
-    params.username = agent->default_lan_username();
+    params.username = bound_agent ? bound_agent->default_lan_username() : agent->default_lan_username();
     params.password = m_access_code;
     params.use_ssl_for_ftp = m_local_use_ssl_for_ftp;
     params.use_ssl_for_mqtt = m_local_use_ssl;
+
+    // Pre-operation overrides from the active printer agent, applied at the single point every
+    // Send path builds its PrintParams.
+    apply_printer_agent_operation_options(m_operation_options, params);
+    static const std::string send_name_suffix = ".gcode.3mf";
+    if (!params.project_name.empty() &&
+        (params.project_name.size() < send_name_suffix.size() ||
+         params.project_name.compare(params.project_name.size() - send_name_suffix.size(),
+                                    send_name_suffix.size(), send_name_suffix) != 0))
+        params.project_name += send_name_suffix;
+
     std::string msg_text;
 
     const int StagePercentPoint[(int)PrintingStageFinished + 1] = {
@@ -318,7 +332,17 @@ void SendJob::process(Ctl &ctl)
         };
 
 
-    if (params.connection_type != "lan") {
+    if (m_agent_routed) {
+        // The agent owns target selection, checks, and transport routing. Orca still owns the job,
+        // lifecycle and error reporting, but does not choose a storage/BRTC/LAN/cloud route.
+        if (!bound_agent) {
+            ctl.update_status(curr_percent, _u8L("The printer agent is no longer available."));
+            return;
+        }
+        BOOST_LOG_TRIVIAL(info) << "send_job: agent-routed send, calling start_send_gcode_to_sdcard directly";
+        ctl.update_status(curr_percent, _u8L("Sending G-code file to the printer agent"));
+        result = bound_agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
+    } else if (params.connection_type != "lan") {
         if (params.dev_ip.empty())
             params.comments = "no_ip";
         else if (this->cloud_print_only)
@@ -467,6 +491,14 @@ void SendJob::finalize(bool canceled, std::exception_ptr &eptr)
 void SendJob::set_project_name(std::string name)
 {
     m_project_name = name;
+}
+
+void SendJob::apply_operation_config(const nlohmann::json& options)
+{
+    m_operation_options = options.is_object() ? options : nlohmann::json::object();
+    auto it = m_operation_options.find("project_name");
+    if (it != m_operation_options.end() && it->is_string() && !it->get<std::string>().empty())
+        m_project_name = it->get<std::string>();
 }
 
 }} // namespace Slic3r::GUI

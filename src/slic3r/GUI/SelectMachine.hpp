@@ -308,6 +308,31 @@ private:
 };
 
 class PrinterInfoBox;
+
+// The default print-task options the SelectMachineDialog would load for a printer. The
+// printer-agent no-UI/plugin path uses this same helper so its defaults match the dialog.
+struct PrintTaskOptionDefaults
+{
+    bool bed_leveling{false};
+    int  auto_bed_leveling{2};
+    bool flow_cali{false};
+    int  auto_flow_cali{2};
+    int  auto_offset_cali{2};
+    bool record_timelapse{false};
+    int  extruder_cali_manual_mode{-1};
+};
+
+PrintTaskOptionDefaults default_print_task_options(MachineObject* obj, Plater* plater);
+
+// True when the current plate's slice result carries a warning that prevents timelapse. Shared by
+// the dialog's option loading and the printer-agent no-UI/plugin defaults.
+bool plate_has_timelapse_warning(Plater* plater, wxString* msg_text = nullptr);
+
+// Default project/task name for a plate, from the same export filename the dialogs use.
+// object_name_fallback is the Print dialog's behavior of naming an "Untitled" plate after its
+// objects; the Send dialog and the Send operation pass false.
+std::string default_plate_project_name(Plater* plater, int plate_idx, bool object_name_fallback);
+
 class SelectMachineDialog : public DPIDialog
 {
 private:

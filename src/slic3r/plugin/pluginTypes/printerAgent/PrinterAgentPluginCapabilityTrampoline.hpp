@@ -237,6 +237,11 @@ public:
         ORCA_PY_AGENT_OVERRIDE(int, start_sdcard_print, params, update_fn, cancel_fn);
     }
 
+    PrinterAgentOperationConfig configure_operation(const PrinterAgentOperationRequest& request) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(PrinterAgentOperationConfig, configure_operation, request);
+    }
+
     int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback) override
     {
         ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, get_hms_snapshot, dev_id, file_name, callback);

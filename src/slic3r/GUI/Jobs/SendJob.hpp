@@ -7,6 +7,7 @@
 #include <string>
 #include <wx/string.h>
 #include <exception>
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceCore/DevStorage.h" 
 #include "Job.hpp"
 #include "PrintJob.hpp"
@@ -26,12 +27,19 @@ class SendJob : public Job
     bool                m_job_finished{ false };
     bool                m_lifecycle_started{ false };
     bool                m_lifecycle_finished{ false };
+    // True when the printer agent owns routing and preflight (plugin-owned or no-UI path). The
+    // job then calls start_send_gcode_to_sdcard() directly, without Orca's storage/LAN/cloud route
+    // selection or the BRTC upload dialog.
+    bool                m_agent_routed{ false };
+    // Agent-routed sends call this agent directly rather than the façade's current agent.
+    std::shared_ptr<IPrinterAgent> m_bound_agent;
     int                 m_print_job_completed_id = 0;
     bool                m_is_check_mode{false};
     bool                m_check_and_continue{false};
     std::function<void()> m_success_fun{nullptr};
     std::function<void(int)> m_enter_ip_address_fun_fail{nullptr};
     std::function<void()> m_enter_ip_address_fun_success{nullptr};
+    nlohmann::json        m_operation_options = nlohmann::json::object();
     Plater *m_plater;
 
 public:
@@ -70,6 +78,11 @@ public:
     void on_check_ip_address_success(std::function<void()> func);
     void finalize(bool canceled, std::exception_ptr &) override;
     void set_project_name(std::string name);
+    // Pre-operation overrides supplied by the active printer agent (see
+    // IPrinterAgent::configure_operation). Empty options change nothing.
+    void apply_operation_config(const nlohmann::json& options);
+    void set_agent_routed(bool routed) { m_agent_routed = routed; }
+    void set_bound_agent(const std::shared_ptr<IPrinterAgent>& agent) { m_bound_agent = agent; }
 };
 
 }}

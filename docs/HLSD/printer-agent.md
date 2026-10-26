@@ -199,6 +199,62 @@ The Python camera binding exposes HTTP, HTTPS, RTSP, and HTTP-snapshot modes. We
 built-in C++ camera mode, but is not exposed as a Python mode because the current Python capability
 does not provide the corresponding cloud signaling-channel contract.
 
+## Pre-operation configuration
+
+Before the Plater starts a Print or Send, it gives the active printer agent one chance to
+configure and confirm the operation. `IPrinterAgent::configure_operation()` receives the
+operation kind, the host-selected target and plate, and a host-issued token, and answers with a
+`PrinterAgentOperationConfig`:
+
+- `DefaultDialog` shows Orca's existing `SelectMachineDialog` or `SendToPrinterDialog`. This is
+  the default answer, so built-in agents and plugins that do not override the hook keep the
+  current workflow, target requirements, preflight and route selection.
+- `None_` starts the operation without a UI, using the operation target and the same task
+  defaults the dialogs load, unless `options` overrides them.
+- `Plugin` means the agent owns the UI. The hook runs on the UI thread, so a plugin can open an
+  HTML window with `orca.host.ui.create_window()` and complete the operation later through
+  `orca.host.printer_agent.submit_operation_config(token, options)` or
+  `cancel_operation_config(token)`. Completion must be called from a plugin callback (for
+  example the window's `on_submit`), where the host knows which plugin is calling.
+
+The operation target is explicit. The config may set `target_id` (or `target_id`/`dev_id` inside
+its `options`); a plugin-owned UI may instead put `target_id` in the submit options. If neither is set, the Plater uses the Orca-selected
+machine, then `IPrinterAgent::get_user_selected_machine()`. `None_` and `Plugin` therefore do not
+need an Orca `MachineObject`: a plugin can operate on a printer Orca has not selected or does not
+model. Only a genuinely missing target is an error; that path reports it and does not silently
+open Orca's dialog. A plugin-owned UI may replace a target that came from the host selection or
+`get_user_selected_machine()` by submitting `target_id`; a target explicitly fixed by the config
+cannot be changed by the later submit.
+
+The hook is a configuration boundary, not a hand-off. Every accepted path converges on the
+existing `PrintJob` and `SendJob`: the Plater builds the same export and job state, the job
+applies the target and returned `options`, and the job calls the agent's start method. For
+`None_` and `Plugin`, the jobs are marked agent-routed: `PrintJob` dispatches the resolved
+transport itself, calling `start_local_print()` for `connection_type == "lan"` and
+`start_print()` otherwise, while `SendJob` calls `start_send_gcode_to_sdcard()` directly.
+Orca's printer-specific LAN access-code preflight, storage checks, eMMC/cloud/LAN route selection
+and the BRTC upload dialog belong to the `DefaultDialog` path only; the agent owns those checks
+and choices in the agent-routed path. Artifact export and the common job safety and lifecycle
+reporting remain in the job.
+
+The completion token is hosted by `PrinterAgentOperationConfigStore` and scoped to the plugin
+that owns the active printer agent, and to the agent that initiated it. An unrelated plugin
+cannot submit or cancel it. A submit is rejected if the agent has changed, it would switch a
+fixed target, or no target was selected. Plugin unload cancels pending tokens and also
+invalidates a submit whose queued start has not run yet, so a late HTML callback cannot start a
+job for a plugin that is gone. If a plugin answers `Plugin` without being a plugin capability, or
+the hook raises or returns a value the host cannot use, the Plater falls back to the Orca dialog
+rather than leaving the action pending.
+
+`options` is a JSON object. The host maps a documented set of keys onto `PrintParams` (target and
+connection fields, project and preset names, AMS/nozzle mappings, `task_*` flags, automatic
+calibration values, and `extra_options`). Keys the host does not recognize are forwarded to the
+agent in `PrintParams::extra_options`, which lets a printer agent define its own options without
+the GUI knowing the printer protocol. For the no-UI/plugin path, the task defaults and project
+name come from the same helpers the Print and Send dialogs use; `options` can override them.
+Options returned together with `DefaultDialog` are ignored: the dialog collects the configuration
+in that mode.
+
 ## Camera playback boundary
 
 The camera stream mode describes how a stream is obtained; it does not by itself define ownership of
@@ -237,4 +293,8 @@ inside the Bambu agent and the Orca agent's v1 sink adapter can be removed as a 
   stale-response checks
 - [`PrinterAgentPluginCapability`](../../src/slic3r/plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.cpp)
   — Python bindings
+- [`PrinterAgentOperationConfig`](../../src/slic3r/Utils/PrinterAgentOperationConfig.hpp)
+  — asynchronous pre-operation token registry and `PrintParams` option mapping
+- [`PluginHostPrinterAgent`](../../src/slic3r/plugin/host/PluginHostPrinterAgent.cpp)
+  — `orca.host.printer_agent` completion API for plugin-owned UI
 - [`MediaPlayCtrl`](../../src/slic3r/GUI/MediaPlayCtrl.cpp) — camera backend selection and playback lifecycle

@@ -4,15 +4,20 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <functional>
+#include <memory>
 #include <string>
 #include <wx/string.h>
 #include <exception>
 #include <cstddef>
+#include <nlohmann/json.hpp>
 #include "libslic3r/PrintConfig.hpp"
 #include "Job.hpp"
 #include "slic3r/GUI/DeviceCore/DevStorage.h" 
 
 namespace Slic3r {
+
+class IPrinterAgent;
+
 namespace GUI {
 
 class Plater;
@@ -49,10 +54,18 @@ class PrintJob : public Job
     bool                m_lifecycle_started{ false };
     bool                m_lifecycle_finished{ false };
     bool                m_lifecycle_success{ false };
+    // True when the printer agent owns routing and preflight (plugin-owned or no-UI path). The
+    // job then chooses the agent entry point from the resolved transport instead of Orca's
+    // LAN/storage/cloud route selection: LAN -> start_local_print(), else start_print().
+    bool                m_agent_routed{ false };
+    // Agent-routed jobs call this agent directly instead of the façade's current agent, so a
+    // preset switch after the job was queued cannot redirect the operation.
+    std::shared_ptr<IPrinterAgent> m_bound_agent;
     int                 m_print_job_completed_id = 0;
     wxString            m_completed_evt_data;
     std::function<void()> m_enter_ip_address_fun_fail{ nullptr };
     std::function<void()> m_enter_ip_address_fun_success{ nullptr };
+    nlohmann::json        m_operation_options = nlohmann::json::object();
     Plater *m_plater;
 
 public:
@@ -136,6 +149,19 @@ public:
     void process(Ctl &ctl) override;
     void finalize(bool canceled, std::exception_ptr &e) override;
     void set_project_name(std::string name);
+    // Pre-operation overrides supplied by the active printer agent (see
+    // IPrinterAgent::configure_operation). Empty options change nothing.
+    void apply_operation_config(const nlohmann::json& options);
+    // Skip Orca's printer-specific preflight/storage/route selection and let the agent route the
+    // operation itself (still invoked from this job's start_* call).
+    void set_agent_routed(bool routed) { m_agent_routed = routed; }
+    void set_bound_agent(const std::shared_ptr<IPrinterAgent>& agent) { m_bound_agent = agent; }
+    // The agent API an agent-routed print uses for its resolved transport. Pure and static so the
+    // routing contract is testable without starting a print.
+    static bool agent_routed_uses_local_start(const std::string& connection_type)
+    {
+        return connection_type == "lan";
+    }
     void set_dst_name(std::string path);
     void on_check_ip_address_fail(std::function<void()> func);
     void on_check_ip_address_success(std::function<void()> func);

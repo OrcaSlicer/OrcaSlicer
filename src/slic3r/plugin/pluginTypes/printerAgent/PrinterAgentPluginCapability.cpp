@@ -11,6 +11,7 @@
 #include <pybind11/stl.h>
 
 #include <string>
+#include "slic3r/plugin/PluginJsonPy.hpp"
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <utility>
 
@@ -35,6 +36,50 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .value("HTTP_SNAPSHOT", CameraStreamMode::http_snapshot)
         .value("RTSP", CameraStreamMode::rtsp)
         .export_values();
+
+    py::enum_<PrinterAgentOperationKind>(printer_agent_module, "OperationKind")
+        .value("Print", PrinterAgentOperationKind::Print)
+        .value("Send", PrinterAgentOperationKind::Send)
+        .export_values();
+
+    py::enum_<PrinterAgentUiMode>(printer_agent_module, "UiMode")
+        .value("DefaultDialog", PrinterAgentUiMode::DefaultDialog)
+        .value("Plugin", PrinterAgentUiMode::Plugin)
+        .value("None_", PrinterAgentUiMode::None_)
+        .export_values();
+
+    py::class_<PrinterAgentOperationRequest>(printer_agent_module, "OperationRequest",
+                                             "Pre-operation context passed to configure_operation(). token "
+                                             "completes a plugin-owned UI through orca.host.printer_agent.")
+        .def(py::init<>())
+        .def_readwrite("kind", &PrinterAgentOperationRequest::kind)
+        .def_readwrite("dev_id", &PrinterAgentOperationRequest::dev_id)
+        .def_readwrite("plate_index", &PrinterAgentOperationRequest::plate_index)
+        .def_readwrite("all_plates", &PrinterAgentOperationRequest::all_plates)
+        .def_readwrite("project_name", &PrinterAgentOperationRequest::project_name)
+        .def_readwrite("token", &PrinterAgentOperationRequest::token);
+
+    py::class_<PrinterAgentOperationConfig>(printer_agent_module, "OperationConfig",
+                                            "Result of configure_operation(): who owns the UI, plus optional "
+                                            "PrintParams overrides.")
+        .def(py::init<>())
+        .def(py::init([](PrinterAgentUiMode ui) {
+                 PrinterAgentOperationConfig config;
+                 config.ui = ui;
+                 return config;
+             }),
+             py::arg("ui"))
+        .def_property(
+            "ui", [](const PrinterAgentOperationConfig& config) { return config.ui; },
+            [](PrinterAgentOperationConfig& config, PrinterAgentUiMode ui) { config.ui = ui; })
+        // Explicit target printer id. Empty means the host- or agent-selected target; a
+        // plugin-owned UI may instead put target_id in the submit options.
+        .def_readwrite("target_id", &PrinterAgentOperationConfig::target_id)
+        .def_property(
+            "options", [](const PrinterAgentOperationConfig& config) { return json_to_py(config.options); },
+            [](PrinterAgentOperationConfig& config, py::object options) {
+                config.options = options.is_none() ? nlohmann::json::object() : py_to_json(options);
+            });
 
     py::class_<AgentInfo>(printer_agent_module, "AgentInfo")
         .def(py::init<>())
@@ -148,7 +193,14 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .def("unbind", &PrinterAgentPluginCapability::unbind)
         .def("start_print", &PrinterAgentPluginCapability::start_print)
         .def("start_local_print_with_record", &PrinterAgentPluginCapability::start_local_print_with_record)
-        .def("start_sdcard_print", &PrinterAgentPluginCapability::start_sdcard_print);
+        .def("start_sdcard_print", &PrinterAgentPluginCapability::start_sdcard_print)
+        .def("configure_operation", &PrinterAgentPluginCapability::configure_operation, py::arg("request"),
+             "Optional pre-operation configuration hook. Return OperationConfig(UiMode.DefaultDialog) "
+             "(the inherited default) to keep Orca's Print/Send dialog, UiMode.None_ to start without "
+             "UI, or UiMode.Plugin to own the UI and later call "
+             "orca.host.printer_agent.submit_operation_config(request.token, options) or "
+             "cancel_operation_config(request.token). Set target_id to operate on a printer Orca has "
+             "not selected; a plugin UI may instead supply target_id in submit options.");
 }
 
 } // namespace Slic3r

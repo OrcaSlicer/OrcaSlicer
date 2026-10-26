@@ -3189,6 +3189,127 @@ bool SelectMachineDialog::is_enable_external_change_assist(std::vector<FilamentI
     return (v_ams_map[VIRTUAL_AMS_MAIN_ID_STR] > 1) || (v_ams_map[VIRTUAL_AMS_DEPUTY_ID_STR] > 1);
 }
 
+namespace {
+
+// The saved per-printer-type option value the dialog would load, or the option's conventional
+// default when nothing usable was saved ("auto" when the option offers it, otherwise "on").
+std::string default_print_option_value(MachineObject* obj, const std::string& key, bool allow_auto)
+{
+    if (obj != nullptr) {
+        if (AppConfig* config = wxGetApp().app_config) {
+            const std::string saved = config->get(obj->printer_type, key);
+            if (saved == "on" || saved == "off" || (allow_auto && saved == "auto"))
+                return saved;
+        }
+    }
+    return allow_auto ? "auto" : "on";
+}
+
+int print_option_value_int(const std::string& value)
+{
+    return value == "off" ? 0 : (value == "on" ? 1 : 2);
+}
+
+} // namespace
+
+bool plate_has_timelapse_warning(Plater* plater, wxString* msg_text)
+{
+    if (plater == nullptr)
+        return false;
+    PartPlate* plate = plater->get_partplate_list().get_curr_plate();
+    if (plate == nullptr)
+        return false;
+    auto* result = plate->get_slice_result();
+    if (result == nullptr)
+        return false;
+    for (const auto& warning : result->warnings) {
+        if (warning.msg != NOT_GENERATE_TIMELAPSE)
+            continue;
+        if (msg_text != nullptr) {
+            if (warning.error_code == "10014001")
+                *msg_text = _L("When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos.");
+            else if (warning.error_code == "10014002")
+                *msg_text = _L("The current printer does not support timelapse in Traditional Mode when printing By-Object.");
+        }
+        return true;
+    }
+    return false;
+}
+
+PrintTaskOptionDefaults default_print_task_options(MachineObject* obj, Plater* plater)
+{
+    PrintTaskOptionDefaults defaults;
+
+    // Mirror which options the dialog shows for this printer. A printer the host does not model
+    // keeps the conventional defaults; options on the operation can always override them.
+    const bool bed_supported  = obj == nullptr || obj->is_support_bed_leveling != 0;
+    const bool bed_auto        = obj == nullptr || obj->is_support_bed_leveling == 2;
+    const std::string bed_leveling = bed_supported ? default_print_option_value(obj, "bed_leveling", bed_auto) : "off";
+    defaults.bed_leveling         = bed_leveling == "on";
+    defaults.auto_bed_leveling    = print_option_value_int(bed_leveling);
+
+    const bool flow_supported = obj == nullptr || obj->is_support_pa_calibration;
+    const bool flow_auto      = obj == nullptr || (obj->GetConfig() != nullptr && obj->GetConfig()->SupportCalibrationPA_FlowAuto());
+    const std::string flow_cali = flow_supported ? default_print_option_value(obj, "flow_cali", flow_auto) : "off";
+    defaults.flow_cali          = flow_cali == "on";
+    defaults.auto_flow_cali     = print_option_value_int(flow_cali);
+
+    const bool nozzle_offset_supported =
+        obj == nullptr || (obj->GetConfig() != nullptr && obj->GetConfig()->SupportCalibrationNozzleOffset());
+    defaults.auto_offset_cali = nozzle_offset_supported
+        ? print_option_value_int(default_print_option_value(obj, "nozzle_offset_cali", true))
+        : 0;
+
+    defaults.record_timelapse = default_print_option_value(obj, "timelapse", false) == "on";
+    if (defaults.record_timelapse && plate_has_timelapse_warning(plater))
+        defaults.record_timelapse = false;
+    if (obj != nullptr) {
+        if (obj->get_printer_arch() == PrinterArch::ARCH_I3)
+            defaults.record_timelapse = false;
+        wxString timelapse_error;
+        if (defaults.record_timelapse && !obj->canEnableTimelapse(timelapse_error))
+            defaults.record_timelapse = false;
+        if (obj->is_support_pa_mode)
+            defaults.extruder_cali_manual_mode =
+                default_print_option_value(obj, "pa_value", false) == "on" ? 0 : 1;
+    }
+    return defaults;
+}
+
+std::string default_plate_project_name(Plater* plater, int plate_idx, bool object_name_fallback)
+{
+    if (plater == nullptr)
+        return {};
+
+    wxString filename = plater->get_export_gcode_filename("", true, plate_idx == PLATE_ALL_IDX);
+    if (plate_idx == PLATE_ALL_IDX && filename.empty())
+        filename = _L("Untitled");
+    if (filename.empty()) {
+        filename = plater->get_export_gcode_filename("", true);
+        if (filename.empty())
+            filename = _L("Untitled");
+    }
+
+    fs::path filename_path(filename.c_str());
+    wxString result = from_path(filename_path.filename());
+    if (object_name_fallback && result.find(_L("Untitled")) != wxString::npos) {
+        PartPlate* part_plate = plater->get_partplate_list().get_plate(plate_idx);
+        if (part_plate != nullptr) {
+            if (std::vector<ModelObject*> objects = part_plate->get_objects_on_this_plate(); !objects.empty()) {
+                std::string file_name = objects[0]->name;
+                for (size_t i = 1; i < objects.size(); ++i)
+                    file_name += " + " + objects[i]->name;
+                if (file_name.size() > 100)
+                    file_name = file_name.substr(0, 97) + "...";
+                result = wxString::FromUTF8(file_name);
+            }
+        }
+    }
+
+    result = from_u8(filter_characters(result.ToUTF8().data(), "<>[]:/\\|?*\""));
+    return result.utf8_string();
+}
+
 void SelectMachineDialog::load_option_vals(MachineObject *obj)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " start"
@@ -3202,15 +3323,8 @@ void SelectMachineDialog::load_option_vals(MachineObject *obj)
     if (!obj) return;
 
     for (auto item : m_checkbox_list) {
-        PrintOption       *opt = item.second;
-        const std::string &val = config->get(obj->printer_type, item.first);
-        if (opt->contain_opt(val)) {
-            opt->setValue(val);
-        } else if (opt->contain_opt("auto")) {
-            opt->setValue("auto");
-        } else if (opt->contain_opt("on")) {
-            opt->setValue("on");
-        }
+        PrintOption* opt = item.second;
+        opt->setValue(default_print_option_value(obj, item.first, opt->contain_opt("auto")));
     }
 
     /*STUDIO-9197*/
@@ -5319,20 +5433,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
 
 bool SelectMachineDialog::has_timelapse_warning(wxString &msg_text)
 {
-    PartPlate *plate = m_plater->get_partplate_list().get_curr_plate();
-    for (auto warning : plate->get_slice_result()->warnings) {
-        if (warning.msg == NOT_GENERATE_TIMELAPSE) {
-            if (warning.error_code == "10014001") {
-                msg_text = _L("When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos.");
-            } else if (warning.error_code == "10014002") {
-                msg_text = _L("The current printer does not support timelapse in Traditional Mode when printing By-Object.");
-            }
-
-            return true;
-        }
-    }
-
-    return false;
+    return plate_has_timelapse_warning(m_plater, &msg_text);
 }
 
 bool SelectMachineDialog::can_support_pa_auto_cali()
@@ -5439,37 +5540,7 @@ void SelectMachineDialog::set_default()
     //project name
     m_rename_switch_panel->SetSelection(0);
 
-    wxString filename = m_plater->get_export_gcode_filename("", true, m_print_plate_idx == PLATE_ALL_IDX ? true : false);
-    if (m_print_plate_idx == PLATE_ALL_IDX && filename.empty()) {
-        filename = _L("Untitled");
-    }
-
-    if (filename.empty()) {
-        filename = m_plater->get_export_gcode_filename("", true);
-        if (filename.empty()) filename = _L("Untitled");
-    }
-
-    fs::path filename_path(filename.c_str());
-    std::string file_name  = filename_path.filename().string();
-    if (from_u8(file_name).find(_L("Untitled")) != wxString::npos) {
-        PartPlate *part_plate = m_plater->get_partplate_list().get_plate(m_print_plate_idx);
-        if (part_plate) {
-            if (std::vector<ModelObject *> objects = part_plate->get_objects_on_this_plate(); objects.size() > 0) {
-                file_name = objects[0]->name;
-                for (int i = 1; i < objects.size(); i++) {
-                    file_name += (" + " + objects[i]->name);
-                }
-            }
-            if (file_name.size() > 100) {
-                file_name = file_name.substr(0, 97) + "...";
-            }
-        }
-    }
-    m_current_project_name = wxString::FromUTF8(file_name);
-
-
-    //unsupported character filter
-    m_current_project_name = from_u8(filter_characters(m_current_project_name.ToUTF8().data(), "<>[]:/\\|?*\""));
+    m_current_project_name = from_u8(default_plate_project_name(m_plater, m_print_plate_idx, true));
 
     m_rename_text->SetLabelText(m_current_project_name);
     m_rename_normal_panel->Layout();

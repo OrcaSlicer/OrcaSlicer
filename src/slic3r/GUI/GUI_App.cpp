@@ -17,6 +17,7 @@
 #include "WebViewDialog.hpp"
 #include "slic3r/Utils/BBLCloudServiceAgent.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PrinterAgentOperationConfig.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/GUI/UserManager.hpp"
@@ -3090,6 +3091,11 @@ void GUI_App::init_plugin_gui_wiring()
     };
 
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
+    // A plugin-owned pre-operation UI must not outlive its plugin: cancel any pending Print/Send
+    // configuration so a late submit cannot start a job for a plugin that is gone.
+    plugin_mgr.subscribe_on_unload_callback([](const std::string& plugin_key) {
+        PrinterAgentOperationConfigStore::instance().cancel_for_plugin(plugin_key);
+    });
     plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);

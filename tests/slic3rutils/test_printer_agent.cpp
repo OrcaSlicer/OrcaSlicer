@@ -109,6 +109,39 @@ TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Pyth
     CHECK(py::hasattr(camera_mode, "HTTPS"));
     CHECK_FALSE(py::hasattr(camera_mode, "WebRTC"));
 
+    // Pre-operation configuration hook: the request/config value types, the UI modes and the
+    // optional override on the base class.
+    for (const char* method : {"configure_operation", "start_send_gcode_to_sdcard", "start_sdcard_print"}) {
+        CAPTURE(method);
+        CHECK(py::hasattr(base, method));
+    }
+    for (const char* type : {"OperationRequest", "OperationConfig", "OperationKind", "UiMode"}) {
+        CAPTURE(type);
+        CHECK(py::hasattr(pa, type));
+    }
+    py::object ui_mode = pa.attr("UiMode");
+    for (const char* value : {"DefaultDialog", "Plugin", "None_"}) {
+        CAPTURE(value);
+        CHECK(py::hasattr(ui_mode, value));
+    }
+
+    // The hook answer carries an explicit target and options; a plugin may own target selection.
+    py::object operation_config = pa.attr("OperationConfig")();
+    CHECK(py::hasattr(operation_config, "target_id"));
+    CHECK(py::hasattr(operation_config, "options"));
+    py::object operation_request = pa.attr("OperationRequest")();
+    CHECK(py::hasattr(operation_request, "token"));
+
+    // The asynchronous completion API for a plugin-owned HTML UI.
+    REQUIRE(py::hasattr(orca, "host"));
+    py::object host = orca.attr("host");
+    REQUIRE(py::hasattr(host, "printer_agent"));
+    py::object host_agent = host.attr("printer_agent");
+    for (const char* fn : {"submit_operation_config", "cancel_operation_config", "is_operation_config_pending"}) {
+        CAPTURE(fn);
+        CHECK(py::hasattr(host_agent, fn));
+    }
+
     // Plugin-type enum exposed at module root (host reads it without the GIL).
     CHECK(py::hasattr(orca, "PluginType"));
 }

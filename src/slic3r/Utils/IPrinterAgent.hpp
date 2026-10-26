@@ -46,6 +46,75 @@ struct PrinterConnectionParams
 };
 
 /**
+ * The Plater operation a pre-operation configuration applies to.
+ */
+enum class PrinterAgentOperationKind {
+    Print = 0,
+    Send
+};
+
+/**
+ * Who confirms/collects the configuration for an operation before its job starts.
+ *
+ * - DefaultDialog: show Orca's existing dialog (SelectMachineDialog / SendToPrinterDialog).
+ *   This is the default, so built-in agents and agents that do not implement the hook keep the
+ *   current behavior.
+ * - Plugin: the agent owns the UI. It must complete request.token through the host API
+ *   (orca.host.printer_agent.submit_operation_config / cancel_operation_config). This is the
+ *   asynchronous path used by plugin-owned HTML UI.
+ * - None_: no UI; start the operation with the current selection and defaults.
+ */
+enum class PrinterAgentUiMode {
+    DefaultDialog = 0,
+    Plugin,
+    None_
+};
+
+/**
+ * Context handed to IPrinterAgent::configure_operation() at the Plater action funnel.
+ *
+ * token is issued by the host for every invocation so a plugin can complete an asynchronous UI
+ * later. It is only meaningful when the hook answers PrinterAgentUiMode::Plugin.
+ */
+struct PrinterAgentOperationRequest
+{
+    PrinterAgentOperationKind kind = PrinterAgentOperationKind::Print;
+    std::string               dev_id;
+    int                       plate_index = -1;
+    bool                      all_plates  = false;
+    std::string               project_name;
+    std::string               token;
+};
+
+/**
+ * Result of the pre-operation configuration hook.
+ *
+ * options is an optional JSON object. Recognized keys are applied to PrintParams (project and
+ * preset names, AMS/nozzle mappings, task_* flags, extra_options); every other key is forwarded to
+ * the agent in PrintParams::extra_options. The job still runs through PrintJob/SendJob and calls
+ * start_print()/start_send_gcode_to_sdcard() there; this hook never starts an operation.
+ */
+struct PrinterAgentOperationConfig
+{
+    PrinterAgentUiMode ui = PrinterAgentUiMode::DefaultDialog;
+    // Optional explicit target printer. An empty value means "use the host-selected machine, or
+    // the target the agent reports as selected". A plugin-owned UI may leave it empty here and
+    // supply "target_id" when it submits, so the UI can own target selection.
+    std::string        target_id;
+    nlohmann::json     options = nlohmann::json::object();
+};
+
+/**
+ * Map the host-owned subset of a pre-operation options object onto PrintParams.
+ *
+ * Keys the host does not own are collected into PrintParams::extra_options as JSON, so an agent
+ * can interpret printer-specific options without the GUI knowing about them. An object
+ * extra_options is merged with the unknown keys. A string extra_options is kept as the agent's
+ * opaque payload, unless it parses as a JSON object.
+ */
+void apply_printer_agent_operation_options(const nlohmann::json& options, PrintParams& params);
+
+/**
  * FilamentSyncMode - Modes for filament data synchronization.
  *
  * Defines how filament information is obtained from the printer:
@@ -476,6 +545,27 @@ public:
      * Only meaningful when get_camera_stream_mode() returns an HTTP, HTTPS, or RTSP mode.
      */
     virtual std::string get_camera_url() const { return {}; }
+
+    // ========================================================================
+    // Pre-operation configuration
+    // ========================================================================
+    /**
+     * Optional hook, called at the Plater action funnel before a Print or Send operation starts.
+     * It chooses who collects/confirms the operation configuration (the default Orca dialog,
+     * plugin-owned UI, or no UI) and may supply PrintParams overrides.
+     *
+     * The hook is a configuration boundary, not a hand-off: the operation always proceeds through
+     * PrintJob/SendJob, which call start_print()/start_send_gcode_to_sdcard(). An agent must not
+     * start the job here. The default answer preserves the existing dialog, including Orca's
+     * printer-specific preflight, storage checks and transport route, for every built-in agent.
+     * None_ and Plugin mark the job agent-routed: the agent's explicit target is used even when no
+     * Orca MachineObject is selected, and the agent owns those checks and route choices.
+     */
+    virtual PrinterAgentOperationConfig configure_operation(const PrinterAgentOperationRequest& request)
+    {
+        (void) request;
+        return {};
+    }
 };
 
 } // namespace Slic3r

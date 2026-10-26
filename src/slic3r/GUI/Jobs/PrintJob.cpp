@@ -13,6 +13,8 @@
 
 #include "slic3r/Utils/FileTransferUtils.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "slic3r/Utils/IPrinterAgent.hpp"
+#include "slic3r/Utils/PrinterAgentOperationConfig.hpp"
 #include "NetworkAgent.hpp"
 #include <string>
 #include "libslic3r/Utils.hpp"
@@ -163,6 +165,7 @@ void PrintJob::process(Ctl &ctl)
     std::string msg;
     int curr_percent = 10;
     NetworkAgent* m_agent = wxGetApp().getAgent();
+    std::shared_ptr<IPrinterAgent> bound_agent = m_bound_agent;
     AppConfig* config = wxGetApp().app_config;
 
     if (this->connection_type == "lan") {
@@ -241,11 +244,12 @@ void PrintJob::process(Ctl &ctl)
     params.dev_ip = m_dev_ip;
     params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
     params.use_ssl_for_mqtt  = m_local_use_ssl;
-    params.username = m_agent->default_lan_username();
+    params.username = bound_agent ? bound_agent->default_lan_username() : m_agent->default_lan_username();
     params.password = m_access_code;
 
-    // check access code and ip address
-    if (this->connection_type == "lan" && m_print_type == "from_normal") {
+    // check access code and ip address. An agent-routed operation skips Orca's printer-specific
+    // preflight; the agent performs its own checks.
+    if (!m_agent_routed && this->connection_type == "lan" && m_print_type == "from_normal") {
         bool emmc_ok = false;
         bool ftp_ok = false;
         if (could_emmc_print) {
@@ -324,7 +328,7 @@ void PrintJob::process(Ctl &ctl)
         if (v == "0" || v == "false")
             disable_emmc = false;
     }
-    params.try_emmc_print         = this->could_emmc_print && !disable_emmc;
+    params.try_emmc_print         = !m_agent_routed && this->could_emmc_print && !disable_emmc;
 
     if (m_print_type == "from_sdcard_view") {
         params.dst_file = m_dst_path;
@@ -417,6 +421,11 @@ void PrintJob::process(Ctl &ctl)
         params.project_name = transport_project_name;
         params.origin_model_id = "";
     }
+
+    // The printer-agent pre-operation hook may override the operation's options. It runs before
+    // the job starts and its answer is applied here, at the one point every Print path builds its
+    // PrintParams, so all accepted UI modes converge on the same start_* call below.
+    apply_printer_agent_operation_options(m_operation_options, params);
 
     wxString error_text;
     std::string msg_text;
@@ -524,10 +533,15 @@ void PrintJob::process(Ctl &ctl)
 
 
     DeviceManager* dev = wxGetApp().getDeviceManager();
-    MachineObject* obj = dev->get_selected_machine();
+    MachineObject* obj = dev ? dev->get_selected_machine() : nullptr;
 
-    auto wait_fn = [&ctl, &obj](int state, std::string job_info) {
+    auto wait_fn = [this, &ctl, &obj](int state, std::string job_info) {
             BOOST_LOG_TRIVIAL(info) << "print_job: get_job_info = " << job_info;
+
+            // An agent-routed print may target a printer Orca has not selected (or does not
+            // model); only wait on Orca's MQTT state when it is the same machine.
+            if (!obj || (m_agent_routed && obj->get_dev_id() != m_dev_id))
+                return true;
 
             if (!obj->is_support_wait_sending_finish) {
                 return true;
@@ -578,7 +592,23 @@ void PrintJob::process(Ctl &ctl)
             return true;
     };
 
-    if (m_print_type == "from_sdcard_view") {
+    if (m_agent_routed) {
+        // The agent owns target selection, checks, and transport routing. Orca still owns the job,
+        // lifecycle and error reporting, but must not choose a LAN/cloud/storage route for it.
+        // The agent API itself is selected from the resolved transport, not from Orca's checks.
+        if (!bound_agent) {
+            ctl.update_status(curr_percent, _u8L("The printer agent is no longer available."));
+            return;
+        }
+        const bool local_transport = agent_routed_uses_local_start(params.connection_type);
+        BOOST_LOG_TRIVIAL(info) << "print_job: agent-routed print over "
+                                << (local_transport ? "LAN (start_local_print)" : "cloud (start_print)");
+        ctl.update_status(curr_percent, local_transport ? _u8L("Sending print job over LAN")
+                                                        : _u8L("Sending print job through cloud service"));
+        mark_lifecycle_started();
+        result = local_transport ? bound_agent->start_local_print(params, update_fn, cancel_fn)
+                                 : bound_agent->start_print(params, update_fn, cancel_fn, wait_fn);
+    } else if (m_print_type == "from_sdcard_view") {
         BOOST_LOG_TRIVIAL(info) << "print_job: try to send with cloud, model is sdcard view";
         ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
         mark_lifecycle_started();
@@ -763,6 +793,14 @@ void PrintJob::finalize(bool canceled, std::exception_ptr &eptr) {
 void PrintJob::set_project_name(std::string name)
 {
     m_project_name = name;
+}
+
+void PrintJob::apply_operation_config(const nlohmann::json& options)
+{
+    m_operation_options = options.is_object() ? options : nlohmann::json::object();
+    auto it = m_operation_options.find("project_name");
+    if (it != m_operation_options.end() && it->is_string() && !it->get<std::string>().empty())
+        m_project_name = it->get<std::string>();
 }
 
 void PrintJob::set_dst_name(std::string path)

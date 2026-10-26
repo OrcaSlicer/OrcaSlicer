@@ -1,11 +1,13 @@
 #include <catch2/catch_all.hpp>
 
 #include "slic3r/Utils/bambu_networking.hpp"
+#include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/Utils/IPrinterAgent.hpp>
+#include <slic3r/Utils/PrinterAgentOperationConfig.hpp>
 
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
@@ -185,6 +187,145 @@ TEST_CASE("A working printer agent's answers reach the host unchanged", "[Plugin
     CHECK(ticket == "ticket");
     CHECK(agent->bind_detect("192.168.0.2", "secure", detect) == 0);
     CHECK(detect.dev_id == "192.168.0.2");
+}
+
+TEST_CASE("A printer agent without a configuration hook keeps Orca's dialog", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    auto agent = make_agent("");
+    REQUIRE(agent.agent);
+
+    PrinterAgentOperationRequest request;
+    request.kind  = PrinterAgentOperationKind::Print;
+    request.token = "token-1";
+
+    const PrinterAgentOperationConfig config = agent->configure_operation(request);
+    CHECK(config.ui == PrinterAgentUiMode::DefaultDialog);
+    CHECK(config.options.empty());
+
+    // Send uses the same hook, not a separate hand-off.
+    request.kind = PrinterAgentOperationKind::Send;
+    CHECK(agent->configure_operation(request).ui == PrinterAgentUiMode::DefaultDialog);
+}
+
+TEST_CASE("A printer agent's configuration hook can choose no UI and pass options", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    auto agent = make_agent(
+        "    def configure_operation(self, request):\n"
+        "        config = orca.printer_agent.OperationConfig(orca.printer_agent.UiMode.None_)\n"
+        "        config.target_id = 'plugin-target'\n"
+        "        config.options = {'task_use_ams': False, 'printer_specific': 'value'}\n"
+        "        return config\n");
+    REQUIRE(agent.agent);
+
+    PrinterAgentOperationRequest request;
+    const PrinterAgentOperationConfig config = agent->configure_operation(request);
+    CHECK(config.ui == PrinterAgentUiMode::None_);
+    CHECK(config.target_id == "plugin-target");
+    CHECK(config.options.at("printer_specific") == "value");
+    CHECK_FALSE(config.options.at("task_use_ams").get<bool>());
+}
+
+TEST_CASE("A printer agent's plugin UI answer carries the host token", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    auto agent = make_agent(
+        "    def configure_operation(self, request):\n"
+        "        type(self).seen_token = request.token\n"
+        "        return orca.printer_agent.OperationConfig(orca.printer_agent.UiMode.Plugin)\n");
+    REQUIRE(agent.agent);
+
+    PrinterAgentOperationRequest request;
+    request.token = "token-async-1";
+    const PrinterAgentOperationConfig config = agent->configure_operation(request);
+    CHECK(config.ui == PrinterAgentUiMode::Plugin);
+    CHECK(agent.instance.attr("seen_token").cast<std::string>() == "token-async-1");
+}
+
+TEST_CASE("A printer agent configuration hook that raises falls back to Orca's dialog", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    auto agent = make_agent(
+        "    def configure_operation(self, request):\n"
+        "        raise RuntimeError('boom')\n");
+    REQUIRE(agent.agent);
+
+    const PrinterAgentOperationConfig config = agent->configure_operation(PrinterAgentOperationRequest{});
+    CHECK(config.ui == PrinterAgentUiMode::DefaultDialog);
+    CHECK(config.options.empty());
+
+    // The interpreter stays usable and the trampoline did not leak the exception.
+    CHECK(py::eval("1 + 1").cast<int>() == 2);
+}
+
+TEST_CASE("A plugin completes its printer-agent pre-operation config through the host API", "[PluginPrinterAgent][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    py::gil_scoped_acquire gil;
+
+    (void) PythonPluginBridge::instance(); // force the embedded orca module registration
+    py::module_ orca = py::module_::import("orca");
+    py::object  api  = orca.attr("host").attr("printer_agent");
+
+    auto& store = PrinterAgentOperationConfigStore::instance();
+    store.reset_for_testing();
+
+    int             calls = 0;
+    bool            accepted = false;
+    std::string     received_target;
+    nlohmann::json  received;
+    const std::string token = store.begin(
+        PrinterAgentOperationKind::Send, std::weak_ptr<IPrinterAgent>{}, "agent-id", "dev", 1, false,
+        "agent_plugin", [&](const PrinterAgentOperationCompletion& completion) {
+            ++calls;
+            accepted        = completion.accepted;
+            received_target = completion.target_id;
+            received        = completion.options;
+        });
+
+    // Only the owning plugin can complete the token. A different plugin's callback is rejected.
+    try {
+        ScopedPluginAuditContext other("other_plugin");
+        api.attr("submit_operation_config")(token, py::dict());
+        FAIL("a token owned by another plugin must not be completable");
+    } catch (const py::error_already_set&) {
+    }
+    CHECK(calls == 0);
+    CHECK(store.is_pending(token));
+
+    {
+        ScopedPluginAuditContext owner("agent_plugin");
+        py::dict                  options;
+        options["task_use_ams"] = py::bool_(false);
+        api.attr("submit_operation_config")(token, options);
+    }
+
+    CHECK(calls == 1);
+    CHECK(accepted);
+    CHECK(received_target == "dev");
+    CHECK_FALSE(received.at("task_use_ams").get<bool>());
+    CHECK_FALSE(store.is_pending(token));
+
+    store.reset_for_testing();
 }
 
 TEST_CASE("A printer agent's disconnect_printer is not waited for past its deadline while the app closes", "[PluginPrinterAgent][Python]")

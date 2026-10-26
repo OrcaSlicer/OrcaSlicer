@@ -49,6 +49,12 @@ public:
                                       OnWaitFn wait_fn) override                                                         = 0;
     int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override            = 0;
 
+    // Optional: an agent that does not override it keeps Orca's default Print/Send dialogs.
+    PrinterAgentOperationConfig configure_operation(const PrinterAgentOperationRequest& request) override
+    {
+        return IPrinterAgent::configure_operation(request);
+    }
+
     int set_on_ssdp_msg_fn(OnMsgArrivedFn fn) override                 = 0;
     int set_on_printer_connected_fn(OnPrinterConnectedFn fn) override  = 0;
     int set_on_subscribe_failure_fn(GetSubscribeFailureFn fn) override = 0;
