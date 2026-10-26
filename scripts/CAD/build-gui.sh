@@ -5,7 +5,7 @@
 # NEVER build inside the GUI container (snapmaker-gui / orcacad-gui). Its baked /OrcaSlicer tree
 # is the Jun-13 Snapmaker-derived source, so a `cmake .` in there silently reconfigures the
 # shared build dir as project(Snapmaker_Orca) and this fork's targets vanish. That is Trap 1 of
-# five; all of them, with symptoms and exact recovery commands, are in docs/rig_build_traps.md.
+# five; all of them, with symptoms and exact recovery commands, are in scripts/CAD/rig_build_traps.md.
 # Read that file before debugging a configure or link failure this script reports.
 #
 # Usage:
@@ -92,7 +92,7 @@ docker run --rm \
 
 # A target-only build writes src/Release/, but this fork's start-headless-gui.sh may default BIN to the
 # PACKAGED path that only build_linux.sh refreshes — launching with the default would then run a
-# stale binary. Pass BIN explicitly. See docs/rig_build_traps.md.
+# stale binary. Pass BIN explicitly. See scripts/CAD/rig_build_traps.md.
 echo "=== launch the rig on the binary just built ==="
 echo "  docker exec -e BIN=/OrcaSlicer/build/src/Release/$BIN ${PREFIX}-gui /OrcaSlicer/scripts/CAD/start-headless-gui.sh"
 exit "$rc"

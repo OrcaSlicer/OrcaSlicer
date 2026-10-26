@@ -1,8 +1,23 @@
 #include "Button.hpp"
 #include "Label.hpp"
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <vector>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <algorithm>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/tipwin.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
 #ifdef __APPLE__
 #include "libslic3r/MacUtils.hpp"
 #endif
@@ -208,6 +223,12 @@ void Button::SetStyle(const ButtonStyle style, const ButtonType type)
         this->SetMinSize(FromDIP(wxSize(26, 26)));
         this->SetSize(FromDIP(wxSize(26, 26)));
         this->SetCornerRadius(this->FromDIP(4));
+    } else if (type == ButtonType::Circle) {
+        this->SetPaddingSize(FromDIP(wxSize(6, 6)));
+        this->SetMinSize(FromDIP(wxSize(25, 25)));
+        this->SetMaxSize(FromDIP(wxSize(25, 25)));
+        this->SetSize(FromDIP(wxSize(25, 25)));
+        this->SetCornerRadius(this->FromDIP(12));
     } else if (type == ButtonType::Expanded) {
         this->SetMinSize(FromDIP(wxSize(-1, 32)));
         this->SetPaddingSize(FromDIP(wxSize(12, 8)));
@@ -300,7 +321,7 @@ void Button::render(wxDC& dc)
     auto szContent = textSize;
     // Whether the measured content reserved the text/icon gap. macOS measures an empty label
     // as 0-high, so the gap is skipped there; the dot must not advance past it in that case.
-    const bool gap_reserved = szContent.y > 0;
+    const bool gap_reserved = !text.IsEmpty(); // ORCA check empty string instead text size. fixes icon centering on linux
     if (icon.bmp().IsOk()) {
         if (gap_reserved) {
             // BBS norrow size between text and icon
@@ -394,10 +415,11 @@ void Button::messureSize()
     if (this->active_icon.bmp().IsOk()) {
         if (szContent.y > 0) {
             // BBS narrow size between text and icon
+            int spacing_after_icon = !GetLabel().IsEmpty() ? 0 : m_icon_spacing; // ORCA check empty string instead text size. fixes icon centering on linux
             if (vertical)
-                szContent.y += m_icon_spacing;
+                szContent.y += spacing_after_icon;
             else
-                szContent.x += m_icon_spacing;
+                szContent.x += spacing_after_icon;
         }
         wxSize szIcon = this->active_icon.GetBmpSize();
         if (vertical) {

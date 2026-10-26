@@ -40,6 +40,7 @@ private:
     //
     unsigned int m_vao_id{ 0 };
     unsigned int m_vbo_id{ 0 };
+    unsigned int m_ibo_id{ 0 };
     //
     // Size of the data sent to gpu, in bytes.
     //

@@ -16,10 +16,14 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include "libslic3r/Config.hpp"
 #include <set>
+#include <string>
 
 using namespace Slic3r;
 

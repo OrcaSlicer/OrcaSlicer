@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Marble @Elegoo Giga",
+	"renamed_from": "Elegoo PLA Marble @EOS Giga",
 	"inherits": "Elegoo PLA Marble @base",
 	"from": "system",
 	"setting_id": "6mfjc7t9ntuG1ZKW",
@@ -31,6 +32,5 @@
 		"Elegoo OrangeStorm Giga 0.6 nozzle",
 		"Elegoo OrangeStorm Giga 0.8 nozzle",
 		"Elegoo OrangeStorm Giga 1.0 nozzle"
-	],
-	"renamed_from": "Elegoo PLA Marble @EOS Giga"
+	]
 }

@@ -1,4 +1,16 @@
 #include "VariableWidth.hpp"
+#include "ExtrusionEntity.hpp"
+#include "Polyline.hpp"
+#include "Flow.hpp"
+#include "Line.hpp"
+#include <cassert>
+#include "libslic3r.h"
+#include "Point.hpp"
+#include <cmath>
+#include <vector>
+#include <cstddef>
+#include <utility>
+#include <algorithm>
 
 namespace Slic3r {
 

@@ -2,7 +2,11 @@
 #define slic3r_MutablePriorityQueue_hpp_
 
 #include <assert.h>
+#include <cstddef>
+#include <limits>
 #include <type_traits>
+#include <utility>
+#include <vector>
 constexpr auto InvalidQueueID = std::numeric_limits<size_t>::max();
 template<typename T, typename IndexSetter, typename LessPredicate, const bool ResetIndexWhenRemoved = false>
 class MutablePriorityQueue

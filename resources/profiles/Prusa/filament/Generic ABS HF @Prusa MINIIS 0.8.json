@@ -1,10 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic ABS HF @Prusa MINIIS 0.8",
-	"inherits": "Generic ABS HF @Prusa base",
 	"renamed_from": "Prusa Generic ABS HF @MINIIS 0.8;Prusa Generic ABS HF MINIIS 0.8",
+	"inherits": "Generic ABS @Prusa base",
 	"from": "system",
 	"setting_id": "oxiwspATW960u3eZ",
+	"filament_id": "OF55jHAJ",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1"

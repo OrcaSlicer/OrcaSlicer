@@ -1,5 +1,18 @@
 #include "DailyTips.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include <functional>
+#include <imgui.h>
+#include "slic3r/GUI/GLTexture.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <cstdint>
+#include <cstddef>
+#include <memory>
+#include "slic3r/GUI/HintNotification.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -148,7 +161,7 @@ void DailyTipsDataRenderer::render_img(const ImVec2& start_pos, const ImVec2& si
 
 bool has_cjk(const std::string &text)
 {
-    for (size_t i = 0; i < text.size() - 2; ++i) {
+    for (size_t i = 0; i + 2 < text.size(); ++i) {
         unsigned char c1 = text[i];
         unsigned char c2 = text[i + 1];
         unsigned char c3 = text[i + 2];
@@ -263,8 +276,9 @@ void DailyTipsPanel::set_position(const ImVec2& pos)
 void DailyTipsPanel::set_size(const ImVec2& size)
 {
     m_width = size.x;
-    m_height = size.y;
-    m_content_height = m_height - m_footer_height;
+    //Orca: Keep the requested content height so expanding a collapsed panel restores its full size.
+    m_content_height = size.y - m_footer_height;
+    m_height = m_can_expand && !m_is_expanded ? m_footer_height : size.y;
 }
 
 void DailyTipsPanel::set_can_expand(bool can_expand)

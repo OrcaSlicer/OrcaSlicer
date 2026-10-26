@@ -1,0 +1,28 @@
+{
+	"type": "process",
+	"name": "0.04mm Ultra Fine @Xplorer 0.4",
+	"inherits": "fdm_process_xplorer_common",
+	"from": "system",
+	"setting_id": "7SZOHFM1nfZsGYHe",
+	"instantiation": "true",
+	"bottom_shell_layers": "7",
+	"initial_layer_print_height": "0.3",
+	"inner_wall_speed": "190",
+	"internal_solid_infill_acceleration": "100%",
+	"min_skirt_length": "0",
+	"outer_wall_speed": "130",
+	"skirt_distance": "3",
+	"skirt_loops": "1",
+	"slowdown_for_curled_perimeters": "1",
+	"small_perimeter_speed": "50%",
+	"sparse_infill_acceleration": "100%",
+	"top_shell_layers": "9",
+	"top_solid_infill_flow_ratio": "1",
+	"layer_height": "0.04",
+	"compatible_printers": [
+		"Xplorer Single 0.4 nozzle",
+		"Xplorer IDEX 0.4 nozzle",
+		"Xplorer Dual Gantry 0.4 nozzle",
+		"Xplorer IQEX 0.4 nozzle"
+	]
+}

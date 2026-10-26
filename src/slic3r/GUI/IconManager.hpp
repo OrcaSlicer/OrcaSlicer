@@ -1,6 +1,7 @@
 #ifndef slic3r_IconManager_hpp_
 #define slic3r_IconManager_hpp_
 
+#include <string>
 #include <vector>
 #include <memory>
 #include "imgui/imgui.h" // ImVec2

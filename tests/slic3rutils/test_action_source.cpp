@@ -1,15 +1,26 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <catch2/catch_message.hpp>
 #include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/GUI_Factories.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/OptionsGroup.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
 
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
+#include <wx/string.h>
 
+#include "libslic3r/Config.hpp"
+#include <algorithm>
 #include <memory>
 #include <set>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 using Slic3r::GUI::AppAction;
@@ -23,7 +34,9 @@ namespace {
 class TestAppAction final : public AppAction
 {
 public:
-    TestAppAction() : AppAction("test", "Action title", "src-key", "Action source") {}
+    explicit TestAppAction(std::string title = "Action title", std::string source_name = "Action source")
+        : AppAction("test", std::move(title), "src-key", std::move(source_name))
+    {}
 
     AppActionRunResult run(const std::string& param = {}) const override { return {}; }
 };
@@ -89,7 +102,9 @@ TEST_CASE("Command actions are keyed by catalog key, not display title", "[Actio
 }
 
 // The real catalog -> action mapping keys by the stable catalog key and copies presentation from the
-// catalog, so a rename or a UI-language switch never re-keys the action.
+// catalog, so a rename or a UI-language switch never re-keys the action. The catalog's English title
+// and group become the action's English search aliases; no translation catalog is loaded in the tests,
+// so the displayed title and group equal them.
 TEST_CASE("Command action construction keys by catalog key", "[ActionSource][SpeedDial]")
 {
     const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::catalog();
@@ -102,6 +117,8 @@ TEST_CASE("Command action construction keys by catalog key", "[ActionSource][Spe
     CHECK(action->id() != AppAction::compose_id("orca_command", c.title, "orca"));
     CHECK(action->title() == c.title);
     CHECK(action->group == c.group);
+    CHECK(action->title_en == c.title);
+    CHECK(action->group_en == c.group);
     CHECK(action->input == c.input);
     CHECK(action->icon == c.icon);
 }
@@ -167,6 +184,7 @@ TEST_CASE("Native command catalog has unique keys and present titles", "[ActionS
     for (const auto& c : commands) {
         CHECK_FALSE(c.key.empty());
         CHECK_FALSE(c.title.empty());
+        CHECK_FALSE(c.group.empty());
         // A duplicated key would silently shadow the earlier command in the palette.
         CHECK(seen.insert(c.key).second);
     }
@@ -237,8 +255,9 @@ TEST_CASE("Native command catalog includes the Help and developer-mode commands"
 
     const Slic3r::GUI::NativeCommand* first = find("help_keyboard_shortcuts");
     REQUIRE(first != nullptr);
-    for (const char* key : {"help_setup_wizard", "help_open_config_folder", "help_troubleshoot", "help_network_test",
-                            "help_tip_of_the_day", "help_check_updates", "help_about", "open_wiki", "open_youtube"}) {
+    for (const char* key : {"help_setup_wizard", "help_open_config_folder", "help_migrate_filament_presets", "help_troubleshoot", "help_network_test",
+                            "help_benchmark_3d_scene", "help_tip_of_the_day", "help_check_updates", "help_about", "open_wiki",
+                            "open_youtube"}) {
         const Slic3r::GUI::NativeCommand* c = find(key);
         REQUIRE(c != nullptr);
         CHECK(c->group == first->group);
@@ -283,6 +302,16 @@ TEST_CASE("Native command catalog covers the Add menus", "[ActionSource][SpeedDi
         REQUIRE(group != nullptr);
         CHECK(*group == *handy_group);
     }
+
+    // A handy model's command is titled by the English label its Add-menu entry is built from, so it is
+    // searchable in English in any UI language.
+    for (const auto& model : Slic3r::GUI::MenuFactory::handy_models()) {
+        const std::string key = "add_handy_" + std::string(model.key);
+        INFO(key);
+        const auto it = std::find_if(commands.begin(), commands.end(), [&key](const auto& c) { return c.key == key; });
+        REQUIRE(it != commands.end());
+        CHECK(it->title == model.label);
+    }
 }
 
 // A setting action is named like its settings row, not the ConfigOptionDef label: the row's
@@ -312,6 +341,61 @@ TEST_CASE("Setting display labels mirror the settings row", "[ActionSource][Spee
     CHECK(resolve_setting_title(L"Reverse on even", L"", false) == L"Reverse on even");
     // Neither present: empty, so the caller falls back to the descriptive label.
     CHECK(resolve_setting_title(L"", L"", false).IsEmpty());
+}
+
+// The page receives an English alias only where it differs from the displayed text, so an English UI
+// (where every alias equals its text) receives none and searches exactly the displayed text.
+TEST_CASE("Action JSON sends English aliases only when they differ from the displayed text", "[ActionSource][SpeedDial]")
+{
+    const char* aliases[] = {"title_en", "group_en", "source_en", "full_label_en"};
+
+    TestAppAction english("Reverse on even", "Process : Quality : Overhangs");
+    english.full_label    = "Overhang reversal";
+    english.title_en      = english.title();
+    english.source_en     = english.source_name();
+    english.full_label_en = english.full_label;
+    const nlohmann::json same = Slic3r::GUI::action_json(english);
+    for (const char* key : aliases) {
+        INFO(key);
+        CHECK_FALSE(same.contains(key));
+    }
+    CHECK(same.at("title") == "Reverse on even");
+
+    // A translated action (German stands in for any UI language) carries each differing English name.
+    TestAppAction localized("Bei geraden Schichten umkehren", "Prozess : Qualitaet : Ueberhaenge");
+    localized.group         = "Befehle";
+    localized.full_label    = "Ueberhangumkehr";
+    localized.title_en      = "Reverse on even";
+    localized.group_en      = "Commands";
+    localized.source_en     = "Process : Quality : Overhangs";
+    localized.full_label_en = "Overhang reversal";
+    const nlohmann::json differs = Slic3r::GUI::action_json(localized);
+    CHECK(differs.at("title_en") == "Reverse on even");
+    CHECK(differs.at("group_en") == "Commands");
+    CHECK(differs.at("source_en") == "Process : Quality : Overhangs");
+    CHECK(differs.at("full_label_en") == "Overhang reversal");
+    CHECK(differs.at("title") == "Bei geraden Schichten umkehren");
+
+    // No English counterpart (a plugin, a file name) sends nothing.
+    const nlohmann::json none = Slic3r::GUI::action_json(TestAppAction("Optimize", "Gcode Optimizer"));
+    for (const char* key : aliases) {
+        INFO(key);
+        CHECK_FALSE(none.contains(key));
+    }
+}
+
+// A settings row keeps the untranslated English of its label, from the ctor and from a runtime
+// rename, so the Speed Dial can offer the row's English name in any UI language. No catalog is loaded
+// in the tests, so the displayed label equals the English.
+TEST_CASE("Settings rows keep the English of their label", "[ActionSource][SpeedDial]")
+{
+    Slic3r::GUI::Line line{L("Cool Plate"), ""};
+    CHECK(line.label_en == "Cool Plate");
+    CHECK(line.label == "Cool Plate");
+
+    line.set_label(L("Brim ear radius"));
+    CHECK(line.label_en == "Brim ear radius");
+    CHECK(line.label == "Brim ear radius");
 }
 
 // A setting whose mode is above the user's current mode must be prompted before it can be edited.

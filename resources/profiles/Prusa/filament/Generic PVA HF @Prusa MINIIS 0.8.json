@@ -1,10 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic PVA HF @Prusa MINIIS 0.8",
-	"inherits": "Generic PVA HF @Prusa base",
 	"renamed_from": "Prusa Generic PVA HF @MINIIS 0.8;Prusa Generic PVA HF MINIIS 0.8",
+	"inherits": "Generic PVA @Prusa base",
 	"from": "system",
 	"setting_id": "h0RQ3XME0UFEeZVA",
+	"filament_id": "OFDwBwO5",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1"

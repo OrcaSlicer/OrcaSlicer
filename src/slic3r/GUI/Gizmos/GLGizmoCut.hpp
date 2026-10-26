@@ -9,6 +9,19 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "imgui/imgui.h"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <map>
+#include <vector>
+#include <memory>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <cstddef>
+#include <utility>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
+#include <functional>
+#include "libslic3r/Color.hpp"
 
 namespace Slic3r {
 

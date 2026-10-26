@@ -4,8 +4,12 @@
 #ifndef LIGHTNING_GENERATOR_H
 #define LIGHTNING_GENERATOR_H
 
+#include "libslic3r/BoundingBox.hpp"
 #include "Layer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/libslic3r.h"
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <vector>

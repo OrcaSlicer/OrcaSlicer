@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA @RatRig",
-	"inherits": "fdm_filament_pva",
 	"renamed_from": "RatRig Generic PVA",
+	"inherits": "fdm_filament_pva",
 	"from": "system",
 	"setting_id": "y6DJYhqAmxMng8Kf",
 	"filament_id": "OFDvXujf",

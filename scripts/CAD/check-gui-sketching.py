@@ -229,7 +229,20 @@ CHROME_DY = int(os.environ.get("ORCA_CAD_CHROME_DY", "26"))
 
 DESIGN_TAB = (128, 29 + CHROME_DY)
 
-# Feature-tree rows, measured on the rig at 1920x1080: first row centre, then 23 px apart.
+# The ribbon's document group lost its Bed checkbox and label when the bed toggle moved to the
+# Feature tree, and every group to its right moved left by their width: wxLEFT 6 + the 18 px
+# CheckBox + wxLEFT 4 + the "Bed" label (~24 px) + wxRIGHT 4, about 56 px. The x of
+# CONSTRUCTION_CHECKBOX, CON_BTN and CON_BTN_SKETCH below is the one measured before that, plus
+# this. DERIVED, NOT MEASURED: re-measure on the rig and fold it in. CONFIRM_BTN sits after the
+# ribbon's stretch spacer and did not move.
+RIBBON_DX = -56
+
+# Feature-tree rows, measured on the rig at 1920x1080: the list's first row is centred at y=215,
+# then 23 px apart. The first two rows are the Origin and the Bed, unframed on the card above the
+# features' own framed list, so the first FEATURE row sits two rows and TREE_GAP further down;
+# reset_document and the reopening double-click both need a feature. TREE_GAP is the list's
+# 12 px top margin plus its 1 px frame, derived rather than measured -- re-measure on the rig, like
+# RIBBON_DX.
 # x=300, not the label: a second click ON the label opens the inline rename, and Delete then
 # edits the text instead of removing the feature.
 #
@@ -237,7 +250,8 @@ DESIGN_TAB = (128, 29 + CHROME_DY)
 # unshifted click lands 26 px BELOW the first row -- just past its 23 px height -- so the row is
 # never selected, Delete does nothing, and reset_document spends 40 rounds on it before dying
 # with "could not empty the feature tree". That names the feature tree, which is not the fault.
-TREE_ROW0 = (300, 215 + CHROME_DY)
+TREE_GAP = 12 + 1
+TREE_ROW0 = (300, 215 + 2 * 23 + TREE_GAP + CHROME_DY)
 
 
 def go_design():
@@ -266,18 +280,21 @@ def reset_document():
 def enter_sketch(tool_key, plane_px=(913, 359)):
     """Enter a sketch the way the design law says: pick the plane in the viewport, then the tool.
 
-    Shift+S enters sketch MODE and pops the offer; Escape dismisses it; the tool letter then
-    starts the session on the plane the click selected. All four steps are real input — nothing
-    here goes through the socket.
+    leave_sketch()'s Escapes let go of every pick, so Shift+S finds nothing to sketch on and only
+    brings the reference planes up; the click on one opens the session on it and pops the tool
+    offer. A click outside a popup menu only closes it, so the same spot is clicked again, apart:
+    inside the session it is empty canvas, so it selects nothing if the offer is slow to appear.
+    No Escape: with no offer up, Escape in an empty sketch leaves it. The tool letter then arms
+    the tool. All of it is real input — nothing here goes through the socket.
     """
     leave_sketch()
-    click(*plane_px)
     key("shift+s", 0.8)
-    key("Escape", 0.4)          # entering sketch mode pops the offer; dismiss it
+    click(*plane_px, pause=0.8)   # picks the plane: the session opens and the offer pops...
+    click(*plane_px)              # ...and this closes the offer
     key("p", 0.6)
     if try_call("sketch_describe") is None:
         shot("/shots/gl-enter-failed.png")
-        die("no sketch opened after plane click + Shift+S (see /shots/gl-enter-failed.png)")
+        die("no sketch opened after Shift+S + plane click (see /shots/gl-enter-failed.png)")
     calibrate_here()            # THIS sketch's own camera map, on THIS sketch's own plane
     key(tool_key, 0.6)
 
@@ -737,7 +754,7 @@ def corner_pair(ents):
     die("no adjacent pair in what should be a rectangle")
 
 
-CONSTRUCTION_CHECKBOX = (419, 75 + CHROME_DY)
+CONSTRUCTION_CHECKBOX = (419 + RIBBON_DX, 75 + CHROME_DY)
 
 
 def draw_line(x0, y0, x1, y1, length, angle):
@@ -866,7 +883,7 @@ def rung_extend():
 # because the ladder only ever clicks "perpendicular" (3) and "equal" (5), both of which sit
 # before the first insertion. The next rung to use "tangent" would have clicked "collinear".
 CON_BTN_Y = 76 + CHROME_DY
-CON_BTN = {n: (449 + 42 * i, CON_BTN_Y) for i, n in enumerate(
+CON_BTN = {n: (449 + RIBBON_DX + 42 * i, CON_BTN_Y) for i, n in enumerate(
     ["horizontal", "vertical", "parallel", "perpendicular", "coincident", "equal",
      "equal_radius", "collinear", "concentric", "tangent", "midpoint", "symmetric",
      "sym_v", "sym_h", "angle", "radius", "diameter", "fix", "dist_x", "dist_y"])}
@@ -880,7 +897,7 @@ CON_BTN = {n: (449 + 42 * i, CON_BTN_Y) for i, n in enumerate(
 # which already carries CHROME_DY), but the X start depends on how wide the sketch toolbar to the
 # left of this group renders, and this fork keeps mainline's top row. Re-measure before trusting
 # D11 here: screenshot in sketch mode and detect the icon columns, do not derive it by offset.
-CON_BTN_SKETCH = {n: (677 + 42 * i, CON_BTN_Y) for i, n in enumerate(
+CON_BTN_SKETCH = {n: (677 + RIBBON_DX + 42 * i, CON_BTN_Y) for i, n in enumerate(
     ["horizontal", "vertical", "parallel", "perpendicular", "coincident", "equal",
      "equal_radius", "collinear", "concentric", "tangent", "midpoint", "symmetric",
      "sym_v", "sym_h", "angle", "radius", "diameter", "fix", "dist_x", "dist_y"])}

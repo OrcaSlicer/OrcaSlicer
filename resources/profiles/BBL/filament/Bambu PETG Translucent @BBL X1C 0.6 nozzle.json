@@ -1,0 +1,63 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Translucent @BBL X1C 0.6 nozzle",
+    "inherits": "Bambu PETG Translucent @base",
+    "from": "system",
+    "setting_id": "GFSG01_30",
+    "instantiation": "true",
+    "filament_long_retractions_when_cut": [
+        "1",
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "6",
+        "12"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18",
+        "18"
+    ],
+    "filament_retraction_length": [
+        "0.3",
+        "0.4"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_z_hop": [
+        "nil",
+        "0.5"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "nil"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "245",
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250",
+        "250"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.6 nozzle",
+        "Bambu Lab P1P 0.6 nozzle",
+        "Bambu Lab P1S 0.6 nozzle"
+    ]
+}

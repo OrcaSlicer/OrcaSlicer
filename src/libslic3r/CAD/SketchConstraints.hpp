@@ -2,6 +2,7 @@
 #define slic3r_SketchConstraints_hpp_
 
 #include "libslic3r/Point.hpp"
+#include <Eigen/Core>
 #include <vector>
 #include <Eigen/Dense>
 

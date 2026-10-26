@@ -13,6 +13,12 @@
     #include <Windows.h>
 #endif
 
+#include <catch2/catch_test_macros.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/ProjectTask.hpp"
+#include <vector>
+#include <catch2/catch_message.hpp>
+
 #include <catch2/catch_all.hpp>
 
 #include <wx/timer.h>
@@ -22,9 +28,42 @@
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 
 #include <nlohmann/json.hpp>
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
 
 using json = nlohmann::json;
 using namespace Slic3r;
+
+TEST_CASE("AMS tray placeholder state follows the latest status", "[DevFilaSystem]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+
+    const json empty_slot = json::parse(R"({
+        "ams": {
+            "tray_exist_bits": "0",
+            "ams": [ { "id": "0", "info": "00000001", "tray": [
+                { "id": "0", "tray_slot_placeholder": "1", "tray_color": "00000000" }
+            ] } ]
+        }
+    })");
+    DevFilaSystemParser::ParseV1_0(empty_slot, &obj, obj.GetFilaSystem().get(), false);
+
+    DevAmsTray* tray = obj.GetFilaSystem()->GetAmsTray("0", "0");
+    REQUIRE(tray != nullptr);
+    REQUIRE(tray->is_slot_placeholder);
+
+    const json loaded_slot = json::parse(R"({
+        "ams": {
+            "tray_exist_bits": "1",
+            "ams": [ { "id": "0", "info": "00000001", "tray": [
+                { "id": "0", "tray_color": "FF0000FF" }
+            ] } ]
+        }
+    })");
+    DevFilaSystemParser::ParseV1_0(loaded_slot, &obj, obj.GetFilaSystem().get(), false);
+
+    CHECK_FALSE(tray->is_slot_placeholder);
+}
 
 TEST_CASE("Switch-bound AMS trays map to the left extruder", "[DevMapping]")
 {

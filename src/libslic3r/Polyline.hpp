@@ -1,10 +1,16 @@
 #ifndef slic3r_Polyline_hpp_
 #define slic3r_Polyline_hpp_
 
+#include "Point.hpp"
 #include "libslic3r.h"
 #include "Line.hpp"
 #include "MultiPoint.hpp"
+#include <initializer_list>
+#include <cstddef>
+#include <algorithm>
+#include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 //BBS: new necessary header file
 #include "ArcFitter.hpp"
@@ -20,7 +26,7 @@ class Polyline : public MultiPoint {
 public:
     Polyline() {};
     Polyline(const Polyline& other) : MultiPoint(other.points), fitting_result(other.fitting_result) {}
-    Polyline(Polyline &&other) : MultiPoint(std::move(other.points)), fitting_result(std::move(other.fitting_result))  {}
+    Polyline(Polyline &&other) noexcept : MultiPoint(std::move(other.points)), fitting_result(std::move(other.fitting_result))  {}
     Polyline(std::initializer_list<Point> list) : MultiPoint(list) { 
         fitting_result.clear();
     }
@@ -41,7 +47,7 @@ public:
         fitting_result = other.fitting_result;
         return *this;
     }
-    Polyline& operator=(Polyline&& other) {
+    Polyline& operator=(Polyline&& other) noexcept {
         points = std::move(other.points);
         fitting_result = std::move(other.fitting_result);
         return *this;

@@ -5,9 +5,13 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <cstddef>
 #include <nlohmann/json.hpp>
 
 #include <cmath>
+#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>

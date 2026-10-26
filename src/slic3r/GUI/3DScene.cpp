@@ -1,3 +1,7 @@
+#include <array>
+#include <algorithm>
+#include <functional>
+#include <cmath>
 #include <glad/gl.h>
 
 #include "3DScene.hpp"
@@ -5,6 +9,7 @@
 #include "GUI_App.hpp"
 #include "GUI_Colors.hpp"
 #include "Plater.hpp"
+#include "PartPlate.hpp"
 #include "BitmapCache.hpp"
 #include "Camera.hpp"
 
@@ -25,10 +30,36 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <optional>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <math.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
+#include <set>
+#include <iterator>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Exception.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include <algorithm>
 
 #include <boost/log/trivial.hpp>
 
@@ -36,6 +67,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <Eigen/Dense>
+#include <vector>
+#include <utility>
+#include <string>
 
 #ifdef HAS_GLSAFE
 void glAssertRecentCallImpl(const char* file_name, unsigned int line, const char* function_name)
@@ -78,14 +112,15 @@ static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
-    if (colors.a() < FullyTransparentMaterialThreshold) { // completely transparent
-        return {1, 1, 1, FullTransparentModdifiedToFixAlpha};
+    // a clear color keeps its hue, at the least opacity that still shows it
+    const float alpha = std::max(colors.a(), FullyTransparentMaterialThreshold);
+    if (colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) {
+        // black, lifted so that the shading shows, the more the more translucent: a dark translucent
+        // surface shows nothing through itself
+        const float grey = FULL_BLACK_THRESHOLD + 0.3f * (1.0f - alpha);
+        return {grey, grey, grey, alpha};
     }
-    else if(colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) { // black
-        return {FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, colors.a()};
-    }
-    else
-        return colors;
+    return {colors.r(), colors.g(), colors.b(), alpha};
 }
 
 namespace Slic3r {
@@ -161,6 +196,16 @@ ColorRGBA GLVolume::SUPPORT_ENFORCER_COL = {0.3f, 0.3f, 1.0f, 0.4f};
 ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = {1.0f, 0.3f, 0.3f, 0.4f};
 
 ColorRGBA GLVolume::MODEL_HIDDEN_COL  = {0.f, 0.f, 0.f, 0.3f};
+
+// Precise Seam modifier colors. Center, Left and Right are deliberately close shades of one orange:
+// all three are strong modifiers, and distinct hues per mode would turn the scene into a rainbow.
+// The object list icons tell the modes apart.
+ColorRGBA GLVolume::PRECISE_SEAM_CENTER_COL   = {1.0f,   0.627f, 0.082f, 0.6f};  // FFA015 - orange
+ColorRGBA GLVolume::PRECISE_SEAM_LEFT_COL     = {1.0f,   0.753f, 0.0f,   0.6f};  // FFC000 - golden
+ColorRGBA GLVolume::PRECISE_SEAM_RIGHT_COL    = {1.0f,   0.514f, 0.0f,   0.6f};  // FF8300 - dark orange
+ColorRGBA GLVolume::PRECISE_SEAM_ENFORCED_COL = {0.412f, 0.820f, 0.412f, 0.6f};  // 69D169 - green
+ColorRGBA GLVolume::PRECISE_SEAM_NEUTRAL_COL  = {0.655f, 0.655f, 0.655f, 0.6f};  // A7A7A7 - gray
+ColorRGBA GLVolume::PRECISE_SEAM_BLOCKED_COL  = {0.820f, 0.412f, 0.412f, 0.6f};  // D16969 - red
 
 std::array<ColorRGBA, 5> GLVolume::MODEL_COLOR = { {
     { 1.0f, 1.0f, 0.0f, 1.f },
@@ -256,6 +301,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     , printable(true)
     , visible(true)
     , is_active(true)
+    , on_hidden_plate(false)
     , zoom_to_volumes(true)
     , shader_outside_printer_detection_enabled(false)
     , is_outside(false)
@@ -269,6 +315,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     , force_native_color(false)
     , force_neutral_color(false)
     , force_sinking_contours(false)
+    , depth_bias(false)
     , picking(false)
     , tverts_range(0, size_t(-1))
 {
@@ -363,6 +410,28 @@ ColorRGBA color_from_model_volume(const ModelVolume& model_volume)
     ColorRGBA color;
     if (model_volume.is_negative_volume())
         return GLVolume::MODEL_NEGTIVE_COL;
+    else if (model_volume.is_precise_seam()) {
+        // Return color based on Precise Seam subtype.
+        // Exhaustive switch (no default) so -Wswitch flags any future PRECISE_SEAM_* additions.
+        switch (model_volume.type()) {
+            case ModelVolumeType::PRECISE_SEAM_CENTER:   return GLVolume::PRECISE_SEAM_CENTER_COL;
+            case ModelVolumeType::PRECISE_SEAM_LEFT:     return GLVolume::PRECISE_SEAM_LEFT_COL;
+            case ModelVolumeType::PRECISE_SEAM_RIGHT:    return GLVolume::PRECISE_SEAM_RIGHT_COL;
+            case ModelVolumeType::PRECISE_SEAM_ENFORCED: return GLVolume::PRECISE_SEAM_ENFORCED_COL;
+            case ModelVolumeType::PRECISE_SEAM_NEUTRAL:  return GLVolume::PRECISE_SEAM_NEUTRAL_COL;
+            case ModelVolumeType::PRECISE_SEAM_BLOCKED:  return GLVolume::PRECISE_SEAM_BLOCKED_COL;
+            // Non-seam types are unreachable due to the outer is_precise_seam() guard;
+            // listed explicitly so this switch stays exhaustive over ModelVolumeType.
+            case ModelVolumeType::INVALID:
+            case ModelVolumeType::MODEL_PART:
+            case ModelVolumeType::NEGATIVE_VOLUME:
+            case ModelVolumeType::PARAMETER_MODIFIER:
+            case ModelVolumeType::SUPPORT_BLOCKER:
+            case ModelVolumeType::SUPPORT_ENFORCER:
+                break;
+        }
+        return GLVolume::MODEL_MIDIFIER_COL; // unreachable fallback
+    }
     else if (model_volume.is_modifier())
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
         return GLVolume::MODEL_MIDIFIER_COL;
@@ -635,7 +704,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
 }
 
 //BBS add render for simple case
-void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light)
+void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light, bool ban_color_volume)
 {
     if (this->is_left_handed())
         glFrontFace(GL_CW);
@@ -669,7 +738,7 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
         }
     } while (0);
 
-    if (color_volume && !picking) {
+    if (color_volume && !picking && !ban_color_volume) {
         const bool brighten_selected = selected && !disabled && !force_native_color && !force_neutral_color;
 
         // when force_transparent, we need to keep the alpha
@@ -760,6 +829,8 @@ bool GLVolume::is_below_printbed() const
 
 void GLVolume::render_sinking_contours()
 {
+    if (!is_active)
+        return;
     m_sinking_contours.render();
 }
 
@@ -1066,8 +1137,17 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
         );
     }
     else if (type == GLVolumeCollection::ERenderType::Opaque && list.size() > 1) {
+        // Orca: nearest first after the selected ones, so the depth test skips shading hidden surfaces.
+        for (GLVolumeWithIdAndZ& volume : list) {
+            volume.second.second = volume.first->transformed_bounding_box().transformed(view_matrix).max(2);
+        }
+
         std::sort(list.begin(), list.end(),
-            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool { return v1.first->selected && !v2.first->selected; }
+            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool {
+                if (v1.first->selected != v2.first->selected)
+                    return v1.first->selected;
+                return v1.second.second > v2.second.second;
+            }
         );
     }
 
@@ -1160,10 +1240,17 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     // The outline passes below are driven by is_outline, which only the object shaders have; with an
     // overlay one (wireframe, x-ray) bound they would just draw the volume again.
     const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
+    // ORCA: the object shaders that know how draw a part of a translucent filament as its print would
+    // show, in premultiplied color, see translucent_filament_color() in gouraud.fs
+    const bool shade_translucent_filaments = type == ERenderType::Transparent && shader->get_uniform_location("translucent_filament") >= 0;
 
     // Prime depth_tex on every frame so non-outline draws do not keep the
     // default sampler unit 0, which can conflict with other sampler types.
     shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
+
+    // Compute up direction accounting for build plate tilt. This is frame-invariant
+    // (config cannot change mid-render), so compute it once before the volume loop.
+    const Vec3f up_direction = GUI::build_plate_tilt_up_direction().cast<float>();
 
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
@@ -1243,6 +1330,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));
         shader->set_uniform("slope.normal_z", support_normal_z);
+        shader->set_uniform("slope.up_direction", up_direction);
 
 #if ENABLE_ENVIRONMENT_MAP
         unsigned int environment_texture_id = GUI::wxGetApp().plater()->get_environment_texture_id();
@@ -1260,11 +1348,22 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("projection_matrix", projection_matrix);
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        if (shade_translucent_filaments) {
+            const bool translucent_filament = volume.first->visible && !volume.first->is_modifier && volume.first->color.is_transparent();
+            shader->set_uniform("translucent_filament", translucent_filament);
+            glsafe(::glBlendFunc(translucent_filament ? GL_ONE : GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        }
+        if (volume.first->depth_bias) {
+            glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+            glsafe(::glPolygonOffset(1.0f, 1.0f));
+        }
 		//BBS: add outline related logic
         if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();
+        if (volume.first->depth_bias)
+            glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
 
 #if ENABLE_ENVIRONMENT_MAP
         if (use_environment_texture)
@@ -1296,6 +1395,11 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     if (disable_cullface)
         glsafe(::glEnable(GL_CULL_FACE));
 
+    if (shade_translucent_filaments) {
+        // the program is shared, so leave it as the other users expect
+        shader->set_uniform("translucent_filament", false);
+        glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    }
     if (type == ERenderType::Transparent)
         glsafe(::glDisable(GL_BLEND));
 }
@@ -1367,10 +1471,31 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     BuildVolume plate_build_volume(pp_bed_shape, build_volume.printable_height(), build_volume.extruder_areas(), build_volume.extruder_heights());
     const std::vector<BoundingBoxf3>& exclude_areas = curr_plate->get_exclude_areas();
 
+    const DynamicPrintConfig *plater_config = GUI::wxGetApp().plater()->config();
+    std::vector<std::vector<BedExcludeRegion>> exclusion_regions;
+    // Legacy bed-exclude areas retain Orca's existing 2D presentation. The
+    // per-extruder 3D state is needed only after collision volumes are enabled.
+    if (has_bed_exclude_volumes(*plater_config)) {
+        exclusion_regions = get_bed_excluded_regions_by_extruder(*plater_config);
+        // The native BuildVolume path below already presents the shared legacy
+        // area. Merge only opt-in collision volumes into nozzle-specific state.
+        for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+            regions.erase(std::remove_if(regions.begin(), regions.end(),
+                [](const BedExcludeRegion &region) { return !region.is_collision_volume(); }), regions.end());
+    }
+    const Vec3d plate_origin = curr_plate->get_origin();
+    const Point exclusion_offset(scale_(plate_origin.x()), scale_(plate_origin.y()));
+    for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(exclusion_offset);
+
     std::map<ModelObject*, std::map<int, std::set<int>>> objects_unprintable_filaments;
-    int extruder_count = build_volume.get_extruder_area_count();
+    const DynamicPrintConfig &plate_project_config = GUI::wxGetApp().preset_bundle->project_config;
+    const int build_volume_extruder_count = build_volume.get_extruder_area_count();
+    const int extruder_count = std::max<int>(build_volume_extruder_count, int(exclusion_regions.size()));
     std::vector<std::set<int>> unprintable_filament_ids(extruder_count, std::set<int>());
     std::set<ModelObject*> partly_objects_set;
+    std::map<std::pair<int, int>, std::vector<bool>> instance_inside_exclusion_regions;
     const ModelObjectPtrs &model_objects = model.objects;
     for (GLVolume* volume : this->volumes)
     {
@@ -1385,7 +1510,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     //FIXME this test does not evaluate collision of a build volume bounding box with non-convex objects.
                     const BoundingBoxf3& bb = volume_bbox(*volume);
                     state = plate_build_volume.volume_state_bbox(bb);
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_volume_bbox_state_with_extruder_areas(bb, inside_extruders);
                     }
@@ -1399,7 +1524,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     const indexed_triangle_set& convex_mesh_it = volume_convex_mesh(*volume).its;
                     const Transform3f trafo = volume->world_matrix().cast<float>();
                     state = plate_build_volume.object_state(convex_mesh_it, trafo, volume_sinking(*volume));
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_object_state_with_extruder_areas(convex_mesh_it, trafo, inside_extruders);
                     }
@@ -1412,12 +1537,52 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 }
                 assert(state != BuildVolume::ObjectState::Below);
 
+                // Preserve Orca's native printable-area result separately.
+                // Exclusion collisions have current-map semantics and must not
+                // leak into the later "unprintable on every possible nozzle"
+                // aggregation used by automatic printable-area assignment.
+                const std::vector<bool> printable_area_inside_extruders = inside_extruders;
+
+                // Newer Orca resolves live multi-nozzle placement through this
+                // per-extruder state vector. Merge exclusion-volume collisions
+                // into the same source of truth instead of relying only on the
+                // legacy PartPlate::check_outside() path.
+                if ((state == BuildVolume::ObjectState::Inside || state == BuildVolume::ObjectState::Limited) &&
+                    volume->object_idx() >= 0 && volume->object_idx() < int(model_objects.size()) &&
+                    volume->instance_idx() >= 0 &&
+                    volume->instance_idx() < int(model_objects[volume->object_idx()]->instances.size())) {
+                    inside_extruders.resize(extruder_count, true);
+
+                    const std::pair<int, int> instance_key{ volume->object_idx(), volume->instance_idx() };
+                    auto [cache_it, inserted] = instance_inside_exclusion_regions.emplace(
+                        instance_key, std::vector<bool>(extruder_count, true));
+                    if (inserted) {
+                        const ModelInstance *instance = model_objects[volume->object_idx()]->instances[volume->instance_idx()];
+                        for (size_t extruder_id = 0; extruder_id < exclusion_regions.size(); ++extruder_id) {
+                            if (instance->intersects_bed_exclude_regions(exclusion_regions[extruder_id]))
+                                cache_it->second[extruder_id] = false;
+                        }
+                    }
+
+                    bool exclusion_limited = false;
+                    for (size_t extruder_id = 0; extruder_id < cache_it->second.size(); ++extruder_id) {
+                        if (!cache_it->second[extruder_id]) {
+                            inside_extruders[extruder_id] = false;
+                            exclusion_limited = true;
+                        }
+                    }
+
+                    if (exclusion_limited && state == BuildVolume::ObjectState::Inside)
+                        state = extruder_count > 1 ? BuildVolume::ObjectState::Limited : BuildVolume::ObjectState::Colliding;
+
+                }
+
                 if (state == BuildVolume::ObjectState::Limited) {
                     //unprintable_filament_ids.resize(inside_extruders.size());
                     ModelObject *model_object = model_objects[volume->object_idx()];
                     ModelVolume *model_volume = model_object->volumes[volume->volume_idx()];
-                    for (size_t i = 0; i < inside_extruders.size(); ++i) {
-                        if (!inside_extruders[i]) {
+                    for (size_t i = 0; i < printable_area_inside_extruders.size(); ++i) {
+                        if (!printable_area_inside_extruders[i]) {
                             std::vector<int> filaments = model_volume->get_extruders();
                             unprintable_filament_ids[i].insert(filaments.begin(), filaments.end());
                             if (object_results) {
@@ -1492,8 +1657,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     //check per-object error for extruder areas
     if (object_results && (extruder_count > 1))
     {
-        const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-        object_results->mode = curr_plate->get_real_filament_map_mode(project_config);
+        object_results->mode = curr_plate->get_real_filament_map_mode(plate_project_config);
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1508,7 +1672,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     {
                         std::vector<int> result_filaments;
                         //result_filaments.reserve(conflict_filaments.size());
-                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), insert_iterator<vector<int>>(result_filaments, result_filaments.begin()));
+                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), std::insert_iterator<std::vector<int>>(result_filaments, result_filaments.begin()));
                         conflict_filament_vector = result_filaments;
                     }
                 }
@@ -1555,8 +1719,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         else
         {
             std::set<int> conflict_filaments_set;
-            const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(project_config);
+            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(plate_project_config);
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;
@@ -1571,7 +1734,8 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
 
                     for (int filament: filaments_set)
                     {
-                        if (filament_maps[filament - 1] == extruder_id)
+                        if (filament > 0 && size_t(filament) <= filament_maps.size() &&
+                            filament_maps[filament - 1] == extruder_id)
                         {
                             object_filament_info.manual_filaments.emplace(filament, extruder_id);
                             object_results->filament_maps[filament] = extruder_id;
@@ -1588,6 +1752,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 object_results->filaments = std::vector<int>(conflict_filaments_set.begin(), conflict_filaments_set.end());
             }
         }
+
     }
 
     /*for (GLVolume* volume : this->volumes)

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PE-CF @Tiertime 300HS",
-	"inherits": "fdm_filament_pe",
 	"renamed_from": "Tiertime Generic PE-CF@300HS;Tiertime Generic PE-CF300HS",
+	"inherits": "fdm_filament_pe",
 	"from": "system",
 	"setting_id": "512vfRIxs8uwOBpP",
 	"filament_id": "OFd0Fv0k",

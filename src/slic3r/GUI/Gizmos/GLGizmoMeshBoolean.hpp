@@ -4,6 +4,12 @@
 #include "GLGizmoBase.hpp"
 #include "GLGizmosCommon.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
+#include <optional>
+#include <string>
+#include <wx/event.h>
+#include "libslic3r/TriangleMesh.hpp"
+#include <vector>
 
 namespace Slic3r {
 

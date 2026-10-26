@@ -6,7 +6,20 @@
 	"setting_id": "yJCAFLt5wstMgMAY",
 	"filament_id": "OF8Tlg47",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_max_volumetric_speed": [
+		"6",
+		"6",
+		"6",
+		"6",
+		"6",
 		"6"
 	],
 	"filament_type": [

@@ -10,15 +10,33 @@
 		"30"
 	],
 	"filament_cost": [
-		"29.98"
+		"23.98"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
 	],
 	"filament_flow_ratio": [
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
 		"0.95"
 	],
 	"filament_is_support": [
 		"1"
 	],
 	"filament_max_volumetric_speed": [
+		"6",
+		"6",
+		"6",
+		"6",
+		"6",
 		"6"
 	],
 	"filament_multitool_ramming_flow": [

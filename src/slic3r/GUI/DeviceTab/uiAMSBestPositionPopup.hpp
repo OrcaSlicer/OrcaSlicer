@@ -14,7 +14,20 @@
 #include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 #include <algorithm>
 
+#include <map>
+#include "libslic3r/ProjectTask.hpp"
+#include <string>
 #include <tuple>
+#include <wx/anybutton.h>
+#include <wx/panel.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/sizer.h>
+#include <vector>
+#include <wx/dcclient.h>
 
 namespace Slic3r { namespace GUI {
 

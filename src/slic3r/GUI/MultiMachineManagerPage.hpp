@@ -6,6 +6,15 @@
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/TextInput.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/string.h>
+#include <wx/panel.h>
+#include <vector>
+#include <wx/timer.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
 
 namespace Slic3r { 
 namespace GUI {

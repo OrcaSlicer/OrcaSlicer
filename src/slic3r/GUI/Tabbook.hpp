@@ -3,12 +3,27 @@
 
 //#ifdef _WIN32
 
+#include <cstddef>
+#include <string>
+#include <vector>
 #include <wx/bookctrl.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/debug.h>
+#include <wx/chartype.h>
+#include <wx/object.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/window.h>
+#include <wx/withimages.h>
 #include "wxExtensions.hpp"
+#include <wx/defs.h>
+#include <wx/notebook.h>
+
+class wxObject;
+class wxStaticText;
 
 
-class ScalableButton;
 class TabButton;
 
 // custom message the ButtonsListCtrl sends to its parent (Notebook) to notify a selection change:

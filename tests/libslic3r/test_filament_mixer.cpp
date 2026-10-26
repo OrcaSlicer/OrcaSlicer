@@ -1,5 +1,13 @@
 #include <catch2/catch_all.hpp>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <cstdlib>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -54,6 +62,50 @@ TEST_CASE("expand_mixed_filaments replaces mixed slots with their components", "
 
     SECTION("Non-mixed entries pass through, result is sorted and deduplicated") {
         REQUIRE(expand_mixed_filaments({2, 0}, is_mixed, comp_strs) == std::vector<unsigned int>{0, 1});
+    }
+}
+
+TEST_CASE("belt purge tower island count ignores virtual mixed slots", "[FilamentMixer][belt]")
+{
+    // Regression for the "extra purge tower" on a belt printer with a mixed
+    // filament (MCTEST5). The belt purge prism is sized as
+    //   n_islands = used_filaments.size() - 1
+    // and GUI::ensure_belt_purge_tower() collected those filaments straight off
+    // the model objects' extruder assignments. A mixed slot is VIRTUAL -- no
+    // nozzle carries it, and ToolOrdering::resolve_mixed_filaments() replaces it
+    // with its components before any G-code is emitted -- so counting it as a
+    // filament of its own provisions one island that can never be reached.
+    //
+    // MCTEST5: five cubes on extruders 1..5, where filament 5 is a 50/50 blend of
+    // filaments 2 and 4. The G-code uses only T0..T3 and reports
+    // "filament used [g] = 53.35, 141.11, 40.84, 107.23, 0.00" -- filament 5
+    // consumes nothing, exactly as a virtual slot should.
+    const std::vector<unsigned char> is_mixed  = {0, 0, 0, 0, 1};
+    const std::vector<std::string>   comp_strs = {"", "", "", "", "2,4"};
+
+    // The set the sizer used to see: slots 0..4 (filaments 1..5).
+    const std::vector<unsigned int> assigned = {0, 1, 2, 3, 4};
+    const auto physical = expand_mixed_filaments(assigned, is_mixed, comp_strs);
+
+    // Slot 4 dissolves into 1 and 3, which are already present.
+    REQUIRE(physical == std::vector<unsigned int>({0, 1, 2, 3}));
+
+    // Four physical filaments => three transitions => three islands, not four.
+    REQUIRE(int(physical.size()) - 1 == 3);
+    REQUIRE(int(assigned.size()) - 1 == 4);   // what it produced before the fix
+
+    SECTION("A mixed slot whose components are otherwise unused still counts them") {
+        // Only the mixed slot is assigned: it must still yield its two components,
+        // i.e. one island, rather than collapsing to zero.
+        const auto only_mixed = expand_mixed_filaments({4}, is_mixed, comp_strs);
+        REQUIRE(only_mixed == std::vector<unsigned int>({1, 3}));
+        REQUIRE(int(only_mixed.size()) - 1 == 1);
+    }
+
+    SECTION("No mixed filaments anywhere leaves the set untouched") {
+        const std::vector<unsigned char> none_mixed = {0, 0, 0, 0, 0};
+        REQUIRE_FALSE(has_any_mixed_filament(none_mixed));
+        REQUIRE(expand_mixed_filaments(assigned, none_mixed, {"", "", "", "", ""}) == assigned);
     }
 }
 
@@ -201,5 +253,41 @@ TEST_CASE("blend_color_multi weights components", "[FilamentMixer]")
         };
         for (int i = 0; i < 3; ++i)
             REQUIRE(std::abs(comp(mixed, i) - comp("#123456", i)) <= 8);
+    }
+}
+
+TEST_CASE("format_mixed_ratios normalises weights to four decimals", "[FilamentMixer]")
+{
+    REQUIRE(format_mixed_components({1, 3}) == "1,3");
+    REQUIRE(format_mixed_ratios({50, 50}) == "0.5000,0.5000");
+    REQUIRE(format_mixed_ratios({1, 2}) == "0.3333,0.6667");
+    REQUIRE(format_mixed_ratios({1, 1}) == format_mixed_ratios({50, 50}));
+}
+
+TEST_CASE("find_fixed_mixed_filament reuses only a fixed slot of the same blend", "[FilamentMixer]")
+{
+    // Physical slots 0 and 1; slot 2 blends them 50:50 as a gradient, slot 3 at a fixed 50:50.
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("filament_is_mixed", new ConfigOptionBools({false, false, true, true}));
+    cfg.set_key_value("filament_mixed_components", new ConfigOptionStrings({"", "", "1,2", "1,2"}));
+    cfg.set_key_value("filament_mixed_sublayer_ratios",
+                      new ConfigOptionStrings({"", "", format_mixed_ratios({50, 50}), format_mixed_ratios({50, 50})}));
+    cfg.set_key_value("filament_mixed_gradient", new ConfigOptionBools({false, false, true, false}));
+
+    SECTION("The fixed slot is found, whatever scale the weights are given at") {
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {50, 50}) == 3);
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {1, 1}) == 3);
+    }
+    SECTION("A gradient slot with the same components and ratios is not a match") {
+        cfg.option<ConfigOptionBools>("filament_is_mixed")->values[3] = false;
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {50, 50}) == -1);
+    }
+    SECTION("A project without the gradient key still matches its fixed slots") {
+        cfg.erase("filament_mixed_gradient");
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {50, 50}) == 2);
+    }
+    SECTION("Another ratio or another component order is a different blend") {
+        REQUIRE(find_fixed_mixed_filament(cfg, {1, 2}, {1, 2}) == -1);
+        REQUIRE(find_fixed_mixed_filament(cfg, {2, 1}, {50, 50}) == -1);
     }
 }

@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "vngsrxKvEIsmr8tQ",
 	"name": "Afinia H+1(HS) 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Afinia H+1(HS) 0.4 nozzle",
+	"from": "system",
+	"setting_id": "vngsrxKvEIsmr8tQ",
+	"instantiation": "true",
 	"printer_model": "Afinia H+1(HS)",
 	"default_print_profile": "0.30mm Strength @Afinia H+1(HS) 0.6 nozzle",
 	"nozzle_diameter": [

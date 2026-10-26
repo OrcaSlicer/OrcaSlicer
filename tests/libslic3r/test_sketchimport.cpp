@@ -1,10 +1,16 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/CAD/SketchImport.hpp"
 #include "libslic3r/Utils.hpp"   // resources_dir
 #include "test_utils.hpp"        // ScopedTemporaryFile
 
+#include <cstdlib>
 #include <fstream>
+#include "libslic3r/Point.hpp"
 #include <string>
 
 using namespace Slic3r;

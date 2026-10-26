@@ -1,10 +1,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <catch2/catch_message.hpp>
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 
+#include <wx/accel.h>
+#include <string>
+#include <vector>
+#include <cstddef>
+#include <optional>
 #include <wx/event.h>
 
 using namespace Slic3r;
@@ -120,6 +126,69 @@ TEST_CASE("Only modified or non-printable chords qualify as menu accelerators", 
     CHECK(registry.accelerator(Shortcut::KeyboardShortcuts).empty());
 }
 
+TEST_CASE("Typing, caret, deletion and clipboard chords edit text", "[Shortcuts]")
+{
+    CHECK(KeyChord{ 'A' }.edits_text());
+    CHECK(KeyChord{ 'A', wxMOD_SHIFT }.edits_text());
+    CHECK(KeyChord{ WXK_SPACE }.edits_text());
+    CHECK(KeyChord{ WXK_BACK }.edits_text());
+    CHECK(KeyChord{ WXK_DELETE }.edits_text());
+    CHECK(KeyChord{ WXK_BACK, wxMOD_CONTROL }.edits_text());
+    CHECK(KeyChord{ WXK_LEFT, wxMOD_SHIFT }.edits_text());
+    CHECK(KeyChord{ WXK_RIGHT, wxMOD_CONTROL | wxMOD_SHIFT }.edits_text());
+    CHECK(KeyChord{ WXK_HOME }.edits_text());
+    CHECK(KeyChord{ WXK_END, wxMOD_CONTROL }.edits_text());
+    CHECK(KeyChord{ WXK_DELETE, wxMOD_SHIFT }.edits_text());
+    CHECK(KeyChord{ WXK_INSERT }.edits_text());
+    CHECK(KeyChord{ WXK_INSERT, wxMOD_SHIFT }.edits_text());
+    CHECK(KeyChord{ WXK_INSERT, wxMOD_CONTROL }.edits_text());
+    CHECK(KeyChord{ WXK_PAGEUP, wxMOD_SHIFT }.edits_text());
+    CHECK(KeyChord{ WXK_RETURN }.edits_text());
+    CHECK(KeyChord{ WXK_TAB, wxMOD_SHIFT }.edits_text());
+    CHECK(KeyChord{ WXK_ESCAPE }.edits_text());
+    CHECK(KeyChord{ WXK_PAGEDOWN }.edits_text());
+    for (int key : { 'A', 'C', 'V', 'X', 'Y', 'Z' })
+        CHECK(KeyChord{ key, wxMOD_CONTROL }.edits_text());
+    CHECK(KeyChord{ 'Z', wxMOD_CONTROL | wxMOD_SHIFT }.edits_text());
+
+    CHECK_FALSE(KeyChord{ WXK_TAB, wxMOD_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ WXK_RETURN, wxMOD_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ WXK_PAGEDOWN, wxMOD_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ WXK_ESCAPE, wxMOD_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ 'S', wxMOD_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ 'S', wxMOD_CONTROL | wxMOD_SHIFT }.edits_text());
+    CHECK_FALSE(KeyChord{ '0', wxMOD_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ WXK_F5 }.edits_text());
+    CHECK_FALSE(KeyChord{}.edits_text());
+#ifdef __APPLE__
+    CHECK(KeyChord{ 'E', wxMOD_ALT }.edits_text());
+    CHECK(KeyChord{ 'K', wxMOD_RAW_CONTROL }.edits_text());
+    CHECK(KeyChord{ WXK_LEFT, wxMOD_ALT }.edits_text());
+    CHECK(KeyChord{ WXK_LEFT, wxMOD_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ WXK_LEFT, wxMOD_RAW_CONTROL }.edits_text());
+    CHECK_FALSE(KeyChord{ 'E', wxMOD_CONTROL | wxMOD_ALT }.edits_text());
+#else
+    CHECK(KeyChord{ 'Q', wxMOD_CONTROL | wxMOD_ALT }.edits_text());
+    CHECK_FALSE(KeyChord{ 'E', wxMOD_ALT }.edits_text());
+    CHECK_FALSE(KeyChord{ WXK_LEFT, wxMOD_ALT }.edits_text());
+    CHECK_FALSE(KeyChord{ WXK_LEFT, wxMOD_CONTROL | wxMOD_ALT }.edits_text());
+#endif
+}
+
+TEST_CASE("Chords the desktop keeps for itself are recognized", "[Shortcuts]")
+{
+#ifdef _WIN32
+    CHECK(KeyChord{ WXK_F4, wxMOD_ALT }.is_system_shortcut());
+    CHECK(KeyChord{ WXK_SPACE, wxMOD_ALT }.is_system_shortcut());
+#else
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_ALT }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_SPACE, wxMOD_ALT }.is_system_shortcut());
+#endif
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_ALT | wxMOD_SHIFT }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_F4, wxMOD_CONTROL }.is_system_shortcut());
+    CHECK_FALSE(KeyChord{ WXK_SPACE }.is_system_shortcut());
+}
+
 TEST_CASE("Chords convert to wx accelerator entries", "[Shortcuts]")
 {
     const wxAcceleratorEntry entry = KeyChord{ 'S', wxMOD_CONTROL | wxMOD_SHIFT }.to_accelerator_entry(42);
@@ -152,7 +221,9 @@ TEST_CASE("Every shortcut is listed under the section of its table row", "[Short
     CHECK(shortcut_section(Shortcut::GizmoBrimEars) == ShortcutSection::Gizmos);
     CHECK(shortcut_section(Shortcut::MovesSliderEnd) == ShortcutSection::Sliders);
     CHECK(shortcut_section(Shortcut::ViewDefault) == ShortcutSection::Camera);
+    CHECK(shortcut_section(Shortcut::ShowCollisionVolumes) == ShortcutSection::Display);
     CHECK(shortcut_section(Shortcut::KeyboardShortcuts) == ShortcutSection::Application);
+    CHECK(shortcut_section(Shortcut::Quit) == ShortcutSection::Application);
     CHECK(std::string(section_name(ShortcutSection::SlicingAndPrinting)) == "Slicing and printing");
 }
 
@@ -164,6 +235,21 @@ TEST_CASE("Default bindings never collide inside a context", "[Shortcuts]")
         CAPTURE(shortcut_info(shortcut).key);
         CHECK(registry.conflicts(shortcut, registry.binding(shortcut)).empty());
     }
+}
+
+TEST_CASE("No default Global binding except the Speed Dial's Space edits text", "[Shortcuts]")
+{
+    ShortcutRegistry registry;
+    size_t           checked = 0;
+    for (size_t i = 0; i < size_t(Shortcut::Count); ++i) {
+        const ShortcutInfo& info = shortcut_info(Shortcut(i));
+        if ((info.contexts & context_bit(ShortcutContext::Global)) == 0 || info.id == Shortcut::SpeedDial)
+            continue;
+        CAPTURE(info.key);
+        CHECK_FALSE(registry.binding(info.id).edits_text());
+        ++checked;
+    }
+    CHECK(checked > 0);
 }
 
 TEST_CASE("Shift and Ctrl variants of stepping shortcuts are left unbound", "[Shortcuts]")
@@ -307,7 +393,6 @@ TEST_CASE("Custom bindings replace the default and survive a config round trip",
 TEST_CASE("A Global shortcut refuses a config binding that would swallow typing", "[Shortcuts]")
 {
     AppConfig config;
-    // A string literal would pick AppConfig::set's bool overload.
     config.set("shortcuts", "save_project", std::string("S"));
     config.set("shortcuts", "new_project", std::string("F9"));
     ShortcutRegistry registry;

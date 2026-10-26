@@ -35,6 +35,7 @@ jobs:
               // kind of change
               'crash',
               'bug-fix',
+              'SECURITY',
               'enhancement',
               'QoL',
               'optimization',
@@ -49,6 +50,12 @@ jobs:
               'documentation'
             ];
             const pr = context.payload.pull_request;
+            // First-time contributors also get a link to the contributing guide
+            const greeting = ['FIRST_TIME_CONTRIBUTOR', 'FIRST_TIMER'].includes(pr.author_association)
+              ? `Hi @${pr.user.login}, thanks for contributing to OrcaSlicer! ` +
+                `[How to Contribute](https://www.orcaslicer.com/wiki/developer_reference/how_to_contribute) explains what reviewers need from a PR.\n\n` +
+                `You can`
+              : `Hi @${pr.user.login}, you can`;
             const labelsList = `${allowedLabels
               .slice(0, -1)
               .map((label) => `\`${label}\``)
@@ -71,7 +78,7 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: pr.number,
                 body:
-                  `Hi @${pr.user.login}, you can manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`\n\n` +
+                  `${greeting} manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`.\n\n` +
                   `Allowed labels are:\n${labelsList}\n\n` +
                   `Examples:\n${examplesText}`
               });
@@ -95,7 +102,7 @@ jobs:
       issues: write
     runs-on: ubuntu-latest
     steps:
-      - name: Auto-label and remind about the localization glossary
+      - name: Auto-label localization changes and remind contributors about the glossary
         uses: actions/github-script@v9
         with:
           script: |
@@ -105,37 +112,37 @@ jobs:
 
             const pr = context.payload.pull_request;
 
-            // List changed files once (mirrors the `localization/**` paths filter in check_locale.yml)
+            // Mirrors the `localization/**` paths filter in check_locale.yml
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pr.number,
               per_page: 100
             });
-            const touchesLocalization = files.some((file) => file.filename.startsWith('localization/'));
-            const onlyPoFiles = files.length > 0 && files.every((file) => file.filename.endsWith('.po'));
+            if (!files.some((file) => file.filename.startsWith('localization/'))) {
+              core.info('No localization changes detected; skipping Localization label.');
+              return;
+            }
 
-            // If the PR changes only .po files, automatically apply the Localization label
-            if (onlyPoFiles) {
-              try {
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  labels: ['Localization']
-                });
-                core.info('Applied Localization label (PR changes only .po files).');
-              } catch (error) {
-                if (isPermissionDenied(error)) {
-                  core.warning('Cannot add Localization label because token cannot write.');
-                } else {
-                  throw error;
-                }
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['Localization']
+              });
+              core.info('Applied Localization label.');
+            } catch (error) {
+              if (isPermissionDenied(error)) {
+                core.warning('Cannot add Localization label because token cannot write.');
+              } else {
+                throw error;
               }
             }
 
-            if (!touchesLocalization) {
-              core.info('No localization changes detected; skipping glossary reminder.');
+            // Collaborators know the glossary; only remind outside contributors
+            if (['COLLABORATOR', 'OWNER', 'MEMBER'].includes(pr.author_association)) {
+              core.info('Author is a collaborator; skipping glossary reminder.');
               return;
             }
 
@@ -193,6 +200,7 @@ jobs:
               // kind of change
               'crash',
               'bug-fix',
+              'SECURITY',
               'enhancement',
               'QoL',
               'optimization',

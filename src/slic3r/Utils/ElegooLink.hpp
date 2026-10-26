@@ -1,15 +1,19 @@
 #ifndef slic3r_ElegooLink_hpp_
 #define slic3r_ElegooLink_hpp_
 
+#include <boost/optional/optional.hpp>
+#include <cstddef>
+#include <boost/filesystem/path.hpp>
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/asio/ip/address.hpp>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
 #include "OctoPrint.hpp"
-#include "WebSocketClient.hpp"
+
+class WebSocketClient;
+namespace boost { template <class T> class optional; }
 namespace Slic3r {
 
 class DynamicPrintConfig;

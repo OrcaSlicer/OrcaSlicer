@@ -7,8 +7,13 @@
 #include "Utils.hpp"
 
 #include <algorithm>
+#include <array>
 #include <assert.h>
+#include <cfloat>
 #include <cmath>
+#include "../include/Types.hpp"
+#include <cstddef>
+#include <vector>
 
 namespace libvgcode {
 

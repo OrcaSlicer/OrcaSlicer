@@ -1,15 +1,34 @@
+#include <array>
+#include <cstddef>
+#include <cassert>
+#include <exception>
+#include <boost/log/trivial.hpp>
+#include <map>
+#include <ctime>
+#include <cstdlib>
+#include <chrono>
 #include <nlohmann/json.hpp>
+#include <wx/colour.h>
+#include <string>
+#include <wx/string.h>
+#include <optional>
+#include <unordered_map>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <set>
+#include <utility>
 #include "DevFilaSystem.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
-#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "DevUtil.h"
 #include "DevUtilBackend.h"
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 using namespace nlohmann;
 
@@ -141,7 +160,7 @@ DevAms::~DevAms()
     m_trays.clear();
 }
 
-static unordered_map<int, wxString> s_ams_display_formats = {
+static std::unordered_map<int, wxString> s_ams_display_formats = {
     {DevAms::AMS,      "AMS-%d"},
     {DevAms::AMS_LITE, "AMS Lite-%d"},
     {DevAms::N3F,      "AMS 2 PRO-%d"},
@@ -762,9 +781,9 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             {
                                 curr_tray->remain = -1;
                             }
-                            if (tray_it->contains("tray_slot_placeholder")) {
-                                curr_tray->is_slot_placeholder = true;
-                            }
+                            // The tray objects are reused across status updates. Reset this
+                            // state when a previously empty slot receives a filament again.
+                            curr_tray->is_slot_placeholder = tray_it->contains("tray_slot_placeholder");
                             int ams_id_int = 0;
                             int tray_id_int = 0;
                             try

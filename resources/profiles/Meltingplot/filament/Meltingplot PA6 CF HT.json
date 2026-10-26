@@ -6,6 +6,9 @@
 	"setting_id": "kzlYLTM6H5CgpQ8y",
 	"filament_id": "OFdPevOo",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"Meltingplot"
 	],

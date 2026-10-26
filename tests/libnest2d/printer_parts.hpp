@@ -1,6 +1,7 @@
 #ifndef PRINTER_PARTS_H
 #define PRINTER_PARTS_H
 
+#include "libnest2d/backends/libslic3r/geometries.hpp"
 #include <vector>
 #include <libnest2d/libnest2d.hpp>
 

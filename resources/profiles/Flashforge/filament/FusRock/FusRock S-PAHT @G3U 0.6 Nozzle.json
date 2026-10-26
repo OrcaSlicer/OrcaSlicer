@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "FusRock S-PAHT @G3U 0.6 Nozzle",
-	"inherits": "Generic PETG @Flashforge",
 	"renamed_from": "FusRock Generic S-PAHT @G3U 0.6 Nozzle;FusRock Generic S-PAHT G3U 0.6 Nozzle",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "JUiz70mbp7RRSPia",
 	"filament_id": "OFCn83wF",

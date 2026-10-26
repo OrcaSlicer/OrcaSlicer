@@ -1,6 +1,15 @@
 #include "WxFontUtils.hpp"
 #include <boost/assign.hpp>
+#include <boost/assign/list_of.hpp>
 #include <boost/log/trivial.hpp>
+#include <memory>
+#include "libslic3r/Emboss.hpp"
+#include <string>
+#include "libslic3r/TextConfiguration.hpp"
+#include <wx/font.h>
+#include <string_view>
+#include <wx/dc.h>
+#include <vector>
 #include "libslic3r/Utils.hpp"
 
 #if defined(__APPLE__)

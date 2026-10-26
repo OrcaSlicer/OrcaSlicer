@@ -1,12 +1,40 @@
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
+#include <array>
+#include <algorithm>
+#include <cstddef>
+#include <cassert>
+#include <cstdlib>
 #include <glad/gl.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Point.hpp"
+#include <memory>
+#include <utility>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Geometry.hpp"
+#include <string>
+#include <vector>
+#include <imgui.h>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_Colors.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 // TODO: Display tooltips quicker on Linux
 

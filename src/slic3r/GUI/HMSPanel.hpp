@@ -1,7 +1,13 @@
 #ifndef slic3r_HMSPanel_hpp_
 #define slic3r_HMSPanel_hpp_
 
+#include <string>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <map>
 #include <wx/panel.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
 #include <wx/textctrl.h>
 #include <slic3r/GUI/Widgets/Button.hpp>
 #include <slic3r/GUI/DeviceManager.hpp>

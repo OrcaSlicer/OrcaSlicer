@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Qidi X-Plus 4 0.4 nozzle",
-	"inherits": "Generic TPU @Qidi",
 	"renamed_from": "Qidi Generic TPU @Qidi X-Plus 4 0.4 nozzle;Qidi Generic TPU Qidi X-Plus 4 0.4 nozzle",
+	"inherits": "Generic TPU @Qidi",
 	"from": "system",
 	"setting_id": "AACIHxmLhuNAGo6d",
 	"filament_id": "OFgbpcy9",

@@ -3,11 +3,17 @@
 #include "libslic3r/LayOnFace.hpp"
 #include "libslic3r/Model.hpp"
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <cstddef>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <ostream>
+#include <vector>
+#include <string>
+#include <utility>
 
 namespace Slic3r {
 namespace MeshInspect {

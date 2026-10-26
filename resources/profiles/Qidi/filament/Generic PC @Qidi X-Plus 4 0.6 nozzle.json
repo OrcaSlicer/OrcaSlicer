@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Qidi X-Plus 4 0.6 nozzle",
-	"inherits": "Generic PC @Qidi",
 	"renamed_from": "Qidi Generic PC @Qidi X-Plus 4 0.6 nozzle;Qidi Generic PC Qidi X-Plus 4 0.6 nozzle",
+	"inherits": "Generic PC @Qidi",
 	"from": "system",
 	"setting_id": "HzAwEYvedOi3GRMY",
 	"filament_id": "OFLakOUI",

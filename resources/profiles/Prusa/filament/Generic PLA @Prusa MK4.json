@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Prusa MK4",
-	"inherits": "Generic PLA @Prusa base",
 	"renamed_from": "Prusa Generic PLA @MK4;Prusa Generic PLA MK4",
+	"inherits": "Generic PLA @Prusa base",
 	"from": "system",
 	"setting_id": "cBqjSJcxcXvS8sY0",
 	"instantiation": "true",

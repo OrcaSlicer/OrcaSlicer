@@ -1,0 +1,29 @@
+name: 'Deploy Nightly'
+description: 'Upload a file to a release, replacing the asset of the same name'
+inputs:
+  asset_path:
+    description: 'Path of the file to upload'
+    required: true
+  asset_name:
+    description: 'Asset name on the release'
+    required: true
+  content_type:
+    description: 'Content type of the uploaded file'
+    required: false
+    default: 'application/octet-stream'
+  tag:
+    description: 'Tag of the release to upload to'
+    required: false
+    default: 'nightly-builds'
+runs:
+  using: 'composite'
+  steps:
+    - name: Replace release asset
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ASSET_PATH: ${{ inputs.asset_path }}
+        ASSET_NAME: ${{ inputs.asset_name }}
+        CONTENT_TYPE: ${{ inputs.content_type }}
+        RELEASE_TAG: ${{ inputs.tag }}
+      run: bash "$GITHUB_ACTION_PATH/deploy.sh"

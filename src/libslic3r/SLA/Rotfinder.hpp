@@ -5,6 +5,7 @@
 #include <array>
 
 #include <libslic3r/Point.hpp>
+#include <utility>
 
 namespace Slic3r {
 

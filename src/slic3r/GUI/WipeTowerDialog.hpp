@@ -1,8 +1,16 @@
 #ifndef _WIPE_TOWER_DIALOG_H_
 #define _WIPE_TOWER_DIALOG_H_
 
+#include <string>
+#include <vector>
+#include <wx/colour.h>
+#include <cstddef>
 #include <wx/dialog.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/string.h>
 #include <wx/webview.h>
+#include "libslic3r/FlushVolCalc.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "Widgets/SpinInput.hpp"
 

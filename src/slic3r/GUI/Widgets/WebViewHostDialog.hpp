@@ -7,8 +7,17 @@
 #include <exception>
 #include <string>
 
+#include <wx/event.h>
+#include <wx/chartype.h>
+#include <wx/gdicmn.h>
 #include <wx/string.h>
+#include <wx/toplevel.h>
 #include <wx/webview.h>
+
+class wxCommandEvent;
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -54,6 +63,13 @@ public:
     static std::string element_defaults_user_script();
     // Re-themes an already-loaded page in place, for web views hosted outside a dialog.
     static std::string theme_apply_script();
+    // Document-start user script that hands a bundled page its translated strings as
+    // window.ORCA_UI_STRINGS, keyed by the ids its T() lookups and data-i18n attributes use
+    // (resources/web/include/i18n.js). The strings come from _u8L, so they go through the same .po
+    // pipeline as the rest of the UI. They are in place before any page script runs; the page's
+    // static markup shows its English until the page's init calls TranslatePage(). A host builds them
+    // when it creates its web view; a language switch rebuilds the GUI and with it the host.
+    static std::string localized_strings_script(const nlohmann::json& strings);
 
 protected:
     wxWebView* browser() const { return m_browser; }
@@ -77,6 +93,10 @@ protected:
     // plugin bridge / unstyled-content defaults). Called AFTER the theme contract is
     // added, by register_theme_user_scripts(). Default: none.
     virtual void add_user_scripts() {}
+
+    // The page's translated strings, injected through localized_strings_script() when the
+    // dialog is created. Default: none.
+    virtual nlohmann::json localized_strings() const { return nullptr; }
 
     // Pushes the current app theme into the already-loaded document without a reload
     // (updates the injected :root variables and the data-orca-theme attribute).

@@ -1,10 +1,17 @@
 #ifndef Slic3r_Measure_hpp_
 #define Slic3r_Measure_hpp_
 
+#include <cassert>
+#include <cstdlib>
+#include <cstddef>
 #include <optional>
 #include <memory>
+#include <utility>
+#include <tuple>
+#include <vector>
 
 #include "Point.hpp"
+#include "libslic3r.h"
 
 struct indexed_triangle_set;
 

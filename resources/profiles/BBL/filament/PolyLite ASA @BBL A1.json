@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "PolyLite ASA @BBL A1",
+    "inherits": "PolyLite ASA @base",
+    "from": "system",
+    "setting_id": "GFSB61_07",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

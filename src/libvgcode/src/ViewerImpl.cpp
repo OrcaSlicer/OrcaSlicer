@@ -9,14 +9,26 @@
 #include "OpenGLUtils.hpp"
 #include "Utils.hpp"
 
+#include <cstdint>
+#include "../include/Types.hpp"
+#include <array>
+#include "../include/PathVertex.hpp"
+#include "Bitset.hpp"
+#include "../include/ColorPrint.hpp"
+#include <cfloat>
+#include <iterator>
 #include <map>
 #include <assert.h>
+#include <optional>
 #include <stdexcept>
 #include <cstdio>
 #include <string>
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <type_traits>
+#include <vector>
+#include <utility>
 
 namespace libvgcode {
 
@@ -219,7 +231,9 @@ std::string check_program(GLuint handle)
     return ret;
 }
 
-unsigned int init_shader(const std::string& shader_name, const char* vertex_shader, const char* fragment_shader)
+// ORCA: fragment_outputs lists the outputs of a fragment shader that writes more than one, in location order
+unsigned int init_shader(const std::string& shader_name, const char* vertex_shader, const char* fragment_shader,
+                         const std::vector<const char*>& fragment_outputs = {})
 {
     const GLuint vs_id = glCreateShader(GL_VERTEX_SHADER);
     glcheck();
@@ -246,6 +260,10 @@ unsigned int init_shader(const std::string& shader_name, const char* vertex_shad
     glcheck();
     glsafe(glAttachShader(shader_id, vs_id));
     glsafe(glAttachShader(shader_id, fs_id));
+#ifndef ENABLE_OPENGL_ES
+    for (size_t i = 0; i < fragment_outputs.size(); ++i)
+        glsafe(glBindFragDataLocation(shader_id, static_cast<GLuint>(i), fragment_outputs[i]));
+#endif // ENABLE_OPENGL_ES
     glsafe(glLinkProgram(shader_id));
     res = check_program(shader_id);
     if (!res.empty()) {
@@ -279,6 +297,20 @@ static void delete_buffers(unsigned int& id)
         id = 0;
     }
 }
+
+#ifndef ENABLE_OPENGL_ES
+// ORCA: the opaque depth, then the accumulated colors of the translucent segments, see render_translucent().
+// Past the units render_segments() and the shadow map take.
+static constexpr int TRANSLUCENT_TEXTURE_UNIT = 5;
+
+// ORCA: the source with a #define after its #version line
+static std::string with_define(const char* source, const char* define)
+{
+    const std::string src(source);
+    const size_t body = src.find('\n') + 1;
+    return src.substr(0, body) + "#define " + define + "\n" + src.substr(body);
+}
+#endif // ENABLE_OPENGL_ES
 
 static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRUSION_ROLES_COLORS = { {
     { 230, 179, 179 }, // None
@@ -349,7 +381,7 @@ void ViewerImpl::TextureData::init(size_t vertices_count)
     m_tex_ids = std::vector<TexIds>(m_count);
 }
 
-void ViewerImpl::TextureData::set_positions(const std::vector<Vec3>& positions)
+void ViewerImpl::TextureData::set_positions(const std::vector<Vec4>& positions)
 {
     if (m_count == 0)
         return;
@@ -383,17 +415,17 @@ void ViewerImpl::TextureData::set_positions(const std::vector<Vec3>& positions)
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
         if (remaining >= tex_capacity) {
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, &positions[offset]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, &positions[offset]));
             m_tex_ids[i].positions.second = w * h;
         }
         else {
             // the last row is only partially fitted with data, send it separately
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, nullptr));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGB, GL_FLOAT, &positions[offset]));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGB, GL_FLOAT, &positions[offset + w * (h - 1)]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, nullptr));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGBA, GL_FLOAT, &positions[offset]));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGBA, GL_FLOAT, &positions[offset + w * (h - 1)]));
             m_tex_ids[i].positions.second = w * (h - 1) + remaining % w;
         }
-        m_positions_size += m_tex_ids[i].positions.second * sizeof(Vec3);
+        m_positions_size += m_tex_ids[i].positions.second * sizeof(Vec4);
 
         remaining = (remaining > tex_capacity) ? remaining - tex_capacity: 0;
     }
@@ -402,7 +434,7 @@ void ViewerImpl::TextureData::set_positions(const std::vector<Vec3>& positions)
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
-void ViewerImpl::TextureData::set_heights_widths_angles(const std::vector<Vec3>& heights_widths_angles)
+void ViewerImpl::TextureData::set_heights_widths_angles(const std::vector<Vec4>& heights_widths_angles)
 {
     if (m_count == 0)
         return;
@@ -436,17 +468,17 @@ void ViewerImpl::TextureData::set_heights_widths_angles(const std::vector<Vec3>&
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
         if (remaining >= tex_capacity) {
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, &heights_widths_angles[offset]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, &heights_widths_angles[offset]));
             m_tex_ids[i].heights_widths_angles.second = w * h;
         }
         else {
             // the last row is only partially fitted with data, send it separately
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGB, GL_FLOAT, nullptr));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGB, GL_FLOAT, &heights_widths_angles[offset]));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGB, GL_FLOAT, &heights_widths_angles[offset + w * (h - 1)]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_FLOAT, nullptr));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGBA, GL_FLOAT, &heights_widths_angles[offset]));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGBA, GL_FLOAT, &heights_widths_angles[offset + w * (h - 1)]));
             m_tex_ids[i].heights_widths_angles.second = w * (h - 1) + remaining % w;
         }
-        m_height_width_angle_size += m_tex_ids[i].heights_widths_angles.second * sizeof(Vec3);
+        m_height_width_angle_size += m_tex_ids[i].heights_widths_angles.second * sizeof(Vec4);
 
         remaining = (remaining > tex_capacity) ? remaining - tex_capacity : 0;
     }
@@ -455,7 +487,7 @@ void ViewerImpl::TextureData::set_heights_widths_angles(const std::vector<Vec3>&
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
-void ViewerImpl::TextureData::set_colors(const std::vector<float>& colors)
+void ViewerImpl::TextureData::set_colors(const std::vector<ColorWithAlpha>& colors)
 {
     if (m_count == 0)
         return;
@@ -489,17 +521,17 @@ void ViewerImpl::TextureData::set_colors(const std::vector<float>& colors)
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
         glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
         if (remaining >= tex_capacity) {
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RED, GL_FLOAT, &colors[offset]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_UNSIGNED_BYTE, &colors[offset]));
             m_tex_ids[i].colors.second = w * h;
         }
         else {
             // the last row is only partially fitted with data, send it separately
-            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RED, GL_FLOAT, nullptr));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RED, GL_FLOAT, &colors[offset]));
-            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RED, GL_FLOAT, &colors[offset + w * (h - 1)]));
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RGBA, GL_UNSIGNED_BYTE, &colors[offset]));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RGBA, GL_UNSIGNED_BYTE, &colors[offset + w * (h - 1)]));
             m_tex_ids[i].colors.second = w * (h - 1) + remaining % w;
         }
-        m_colors_size += m_tex_ids[i].colors.second * sizeof(float);
+        m_colors_size += m_tex_ids[i].colors.second * sizeof(ColorWithAlpha);
 
         remaining = (remaining > tex_capacity) ? remaining - tex_capacity : 0;
     }
@@ -508,7 +540,7 @@ void ViewerImpl::TextureData::set_colors(const std::vector<float>& colors)
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
-void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& enabled_segments)
+void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& enabled_segments, const std::vector<ColorWithAlpha>& colors, bool sort_by_opacity)
 {
     if (m_count == 0)
         return;
@@ -516,6 +548,7 @@ void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& 
     for (TexIds& ids : m_tex_ids) {
         delete_textures(ids.enabled_segments.first);
         ids.enabled_segments.second = 0;
+        ids.enabled_translucent_segments = 0;
     }
 
     m_enabled_segments_size = 0;
@@ -539,6 +572,12 @@ void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& 
         if (!new_tex)
             curr_segments.push_back(seg - static_cast<uint32_t>(curr_tex_id * tex_capacity));
         if (i + 1 == enabled_segments.size() || new_tex) {
+            if (sort_by_opacity) {
+                const size_t offset = curr_tex_id * tex_capacity;
+                const auto translucent_begin = std::stable_partition(curr_segments.begin(), curr_segments.end(),
+                    [&colors, offset](uint32_t s) { return colors[offset + s][3] == 255; });
+                m_tex_ids[curr_tex_id].enabled_translucent_segments = static_cast<size_t>(std::distance(translucent_begin, curr_segments.end()));
+            }
             const auto [w, h] = width_height(curr_segments.size());
 
             glsafe(glGenTextures(1, &m_tex_ids[curr_tex_id].enabled_segments.first));
@@ -732,6 +771,22 @@ ViewerImpl::ViewerImpl()
     reset_default_options_colors();
 }
 
+void ViewerImpl::SegmentsUniforms::init(unsigned int shader_id)
+{
+    view_matrix            = glGetUniformLocation(shader_id, "view_matrix");
+    projection_matrix      = glGetUniformLocation(shader_id, "projection_matrix");
+    camera_position        = glGetUniformLocation(shader_id, "camera_position");
+    positions_tex          = glGetUniformLocation(shader_id, "position_tex");
+    height_width_angle_tex = glGetUniformLocation(shader_id, "height_width_angle_tex");
+    colors_tex             = glGetUniformLocation(shader_id, "color_tex");
+    segment_index_tex      = glGetUniformLocation(shader_id, "segment_index_tex");
+    reverse_order          = glGetUniformLocation(shader_id, "reverse_order");
+    instances_count        = glGetUniformLocation(shader_id, "instances_count");
+    first_instance         = glGetUniformLocation(shader_id, "first_instance");
+    // ORCA: section view
+    clipping_plane         = glGetUniformLocation(shader_id, "clipping_plane");
+}
+
 void ViewerImpl::init(const std::string& opengl_context_version)
 {
     if (m_initialized)
@@ -753,24 +808,55 @@ void ViewerImpl::init(const std::string& opengl_context_version)
 #ifdef ENABLE_OPENGL_ES
     m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader_ES, Segments_Fragment_Shader_ES);
 #else
-    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader, Segments_Fragment_Shader);
+    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader, Segments_Fragment_Shader, { "fragment_color", "oit_reveal", "oit_front" });
+    m_uni_segments_oit_pass_id        = glGetUniformLocation(m_segments_shader_id, "oit_pass");
+    m_uni_segments_opaque_depth_id    = glGetUniformLocation(m_segments_shader_id, "opaque_depth");
+    m_uni_segments_front_depth_id     = glGetUniformLocation(m_segments_shader_id, "front_depth");
+    m_uni_segments_oit_depth_range_id = glGetUniformLocation(m_segments_shader_id, "oit_depth_range");
+    m_translucent_composite_shader_id = init_shader("translucent_composite", Translucent_Composite_Vertex_Shader, Translucent_Composite_Fragment_Shader);
+    m_uni_translucent_composite_accum_tex_id  = glGetUniformLocation(m_translucent_composite_shader_id, "accum_tex");
+    m_uni_translucent_composite_reveal_tex_id = glGetUniformLocation(m_translucent_composite_shader_id, "reveal_tex");
+    m_uni_translucent_composite_front_tex_id  = glGetUniformLocation(m_translucent_composite_shader_id, "front_tex");
+    m_uni_translucent_composite_origin_id     = glGetUniformLocation(m_translucent_composite_shader_id, "origin");
+    const std::string depth_vs = with_define(Segments_Vertex_Shader, "DEPTH_ONLY");
+    const std::string depth_fs = with_define(Segments_Fragment_Shader, "DEPTH_ONLY");
+    m_segments_depth_shader_id = init_shader("segments_depth", depth_vs.c_str(), depth_fs.c_str(), { "fragment_color", "oit_reveal", "oit_front" });
+    m_uni_segments_depth.init(m_segments_depth_shader_id);
+    m_uni_segments_depth_opaque_depth_id = glGetUniformLocation(m_segments_depth_shader_id, "opaque_depth");
 #endif // ENABLE_OPENGL_ES
 
-    m_uni_segments_view_matrix_id            = glGetUniformLocation(m_segments_shader_id, "view_matrix");
-    m_uni_segments_projection_matrix_id      = glGetUniformLocation(m_segments_shader_id, "projection_matrix");
-    m_uni_segments_camera_position_id        = glGetUniformLocation(m_segments_shader_id, "camera_position");
-    m_uni_segments_positions_tex_id          = glGetUniformLocation(m_segments_shader_id, "position_tex");
-    m_uni_segments_height_width_angle_tex_id = glGetUniformLocation(m_segments_shader_id, "height_width_angle_tex");
-    m_uni_segments_colors_tex_id             = glGetUniformLocation(m_segments_shader_id, "color_tex");
-    m_uni_segments_segment_index_tex_id      = glGetUniformLocation(m_segments_shader_id, "segment_index_tex");
+    m_uni_segments.init(m_segments_shader_id);
+    // ORCA: realistic view
+    m_uni_segments_shadow_map_id             = glGetUniformLocation(m_segments_shader_id, "shadow_map");
+    m_uni_segments_shadow_light_vp_id        = glGetUniformLocation(m_segments_shader_id, "shadow_light_vp");
+    m_uni_segments_shadow_intensity_id       = glGetUniformLocation(m_segments_shader_id, "shadow_intensity");
+    m_uni_segments_shadow_map_texel_id       = glGetUniformLocation(m_segments_shader_id, "shadow_map_texel");
+    m_uni_segments_exposure_id               = glGetUniformLocation(m_segments_shader_id, "exposure");
+    m_uni_segments_saturation_id             = glGetUniformLocation(m_segments_shader_id, "saturation");
+    m_uni_segments_light_top_dir_id          = glGetUniformLocation(m_segments_shader_id, "light_top_dir");
+    m_uni_segments_gloss_id                  = glGetUniformLocation(m_segments_shader_id, "gloss_strength");
+    m_uni_segments_layer_colors.init(m_segments_shader_id);
     glcheck();
-    assert(m_uni_segments_view_matrix_id != -1 &&
-           m_uni_segments_projection_matrix_id != -1 &&
-           m_uni_segments_camera_position_id != -1 &&
-           m_uni_segments_positions_tex_id != -1 &&
-           m_uni_segments_height_width_angle_tex_id != -1 &&
-           m_uni_segments_colors_tex_id != -1 &&
-           m_uni_segments_segment_index_tex_id != -1);
+    assert(m_uni_segments.view_matrix != -1 &&
+           m_uni_segments.projection_matrix != -1 &&
+           m_uni_segments.camera_position != -1 &&
+           m_uni_segments.positions_tex != -1 &&
+           m_uni_segments.height_width_angle_tex != -1 &&
+           m_uni_segments.colors_tex != -1 &&
+           m_uni_segments.segment_index_tex != -1 &&
+           m_uni_segments.reverse_order != -1 &&
+           m_uni_segments.instances_count != -1);
+
+    // ORCA: realistic view
+#ifdef ENABLE_OPENGL_ES
+    m_segments_caster_shader_id = init_shader("segments_shadow_caster", Segments_Shadow_Caster_Vertex_Shader_ES, Segments_Shadow_Caster_Fragment_Shader_ES);
+#else
+    m_segments_caster_shader_id = init_shader("segments_shadow_caster", Segments_Shadow_Caster_Vertex_Shader, Segments_Shadow_Caster_Fragment_Shader);
+#endif // ENABLE_OPENGL_ES
+    m_uni_segments_caster.init(m_segments_caster_shader_id);
+    // The caster pulls its vertices from gl_VertexID, but a core profile needs a vertex array bound to draw.
+    glsafe(glGenVertexArrays(1, &m_segments_caster_vao_id));
+    glcheck();
 
     m_segment_template.init();
 
@@ -787,6 +873,9 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_options_height_width_angle_tex_id = glGetUniformLocation(m_options_shader_id, "height_width_angle_tex");
     m_uni_options_colors_tex_id             = glGetUniformLocation(m_options_shader_id, "color_tex");
     m_uni_options_segment_index_tex_id      = glGetUniformLocation(m_options_shader_id, "segment_index_tex");
+    // ORCA: section view
+    m_uni_options_clipping_plane_id         = glGetUniformLocation(m_options_shader_id, "clipping_plane");
+    m_uni_options_layer_colors.init(m_options_shader_id);
     glcheck();
     assert(m_uni_options_view_matrix_id != -1 &&
            m_uni_options_projection_matrix_id != -1 &&
@@ -860,6 +949,24 @@ void ViewerImpl::shutdown()
         glsafe(glDeleteProgram(m_segments_shader_id));
         m_segments_shader_id = 0;
     }
+    if (m_segments_caster_shader_id != 0) {
+        glsafe(glDeleteProgram(m_segments_caster_shader_id));
+        m_segments_caster_shader_id = 0;
+    }
+    if (m_segments_caster_vao_id != 0) {
+        glsafe(glDeleteVertexArrays(1, &m_segments_caster_vao_id));
+        m_segments_caster_vao_id = 0;
+    }
+#ifndef ENABLE_OPENGL_ES
+    if (m_translucent_composite_shader_id != 0) {
+        glsafe(glDeleteProgram(m_translucent_composite_shader_id));
+        m_translucent_composite_shader_id = 0;
+    }
+    if (m_segments_depth_shader_id != 0) {
+        glsafe(glDeleteProgram(m_segments_depth_shader_id));
+        m_segments_depth_shader_id = 0;
+    }
+#endif // ENABLE_OPENGL_ES
     m_initialized = false;
     OpenGLWrapper::unload_opengl();
 }
@@ -873,9 +980,20 @@ void ViewerImpl::reset()
     m_used_extruders.clear();
     m_total_time = { 0.0f, 0.0f };
     m_travels_time = { 0.0f, 0.0f };
-    m_vertices.clear();
-    m_vertices_colors.clear();
-    m_valid_lines_bitset.clear();
+    // swap rather than clear: these are sized by the print, and a reset means the memory
+    // should go back, not sit reserved until the next load
+    std::vector<PathVertex>().swap(m_vertices);
+    std::vector<ColorWithAlpha>().swap(m_vertices_colors);
+    m_has_translucent_colors = false;
+    m_enabled_translucent_segments_count = 0;
+    m_extrusions_box = { Vec3{ 0.0f, 0.0f, 0.0f }, Vec3{ 0.0f, 0.0f, 0.0f } };
+    for (std::vector<float>& times : m_layer_start_times)
+        std::vector<float>().swap(times);
+    std::vector<uint32_t>().swap(m_layer_first_vertex);
+    m_layers_in_vertex_order = false;
+    // BitSet::clear() only zeroes the bits, it keeps the blocks allocated; load() builds a new
+    // bitset anyway and it is never read while m_vertices is empty
+    m_valid_lines_bitset = BitSet<>();
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_cog_marker.reset();
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -898,15 +1016,34 @@ void ViewerImpl::reset()
     delete_buffers(m_heights_widths_angles_buf_id);
     delete_textures(m_positions_tex_id);
     delete_buffers(m_positions_buf_id);
+    m_translucent_targets.release();
 #endif // ENABLE_OPENGL_ES
 }
 
 // On some graphic cards texture buffers using GL_RGB32F format do not work, see:
 // https://dev.prusa3d.com/browse/SPE-2411
 // https://github.com/prusa3d/PrusaSlicer/issues/12908
-// To let all drivers be happy, we use GL_RGBA32F format, so we need to add an extra (currently unused) float
+// To let all drivers be happy, we use GL_RGBA32F format, so we need to add an extra float
 // to position and heights_widths_angles vectors
-using Vec4 = std::array<float, 4>;
+
+// whether a line is drawn from vertex i to vertex i + 1
+static bool is_line(const std::vector<PathVertex>& vertices, size_t i)
+{
+    return i + 1 < vertices.size() && vertices[i + 1].position != vertices[i].position &&
+           vertices[i + 1].type == vertices[i].type && vertices[i].type != EMoveType::Seam;
+}
+
+// ORCA: whether two lines meet at vertex i, also across the vertex repeated in place that starts a path split
+// where a value the preview colors by changes, see starts_path() in LibVGCodeWrapper.cpp
+static bool is_joint(const std::vector<PathVertex>& vertices, size_t i)
+{
+    auto repeated = [&vertices](size_t j) {
+        return j + 1 < vertices.size() && vertices[j + 1].position == vertices[j].position && vertices[j + 1].type == vertices[j].type;
+    };
+    const bool before = i > 0 && (is_line(vertices, i - 1) || (i > 1 && repeated(i - 1) && is_line(vertices, i - 2)));
+    const bool after = is_line(vertices, i) || (repeated(i) && is_line(vertices, i + 1));
+    return before && after;
+}
 
 static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, float travels_radius, float wipes_radius, BitSet<>& valid_lines_bitset,
     std::vector<Vec4>* positions = nullptr, std::vector<Vec4>* heights_widths_angles = nullptr, bool update_bitset = false) {
@@ -927,10 +1064,7 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
         const EMoveType move_type = v.type;
         const bool prev_line_valid = i > 0 && valid_lines_bitset[i - 1];
         const Vec3 prev_line = prev_line_valid ? v.position - vertices[i - 1].position : ZERO;
-        const bool this_line_valid = i + 1 < vertices.size() &&
-                                     vertices[i + 1].position != v.position &&
-                                     vertices[i + 1].type == move_type &&
-                                     move_type != EMoveType::Seam;
+        const bool this_line_valid = is_line(vertices, i);
         const Vec3 this_line = this_line_valid ? vertices[i + 1].position - v.position : ZERO;
 
         if (this_line_valid) {
@@ -943,8 +1077,10 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
         }
         
         if (positions != nullptr) {
-            // the last component is a dummy float to comply with GL_RGBA32F format
-            Vec4 position = { v.position[0], v.position[1], v.position[2], 0.0f };
+            // ORCA: the last component, there to comply with GL_RGBA32F format, carries the layer the shaders grey and dim by,
+            // plus 0.5 at the joint of two segments, which the shaders read as an int, see joint_a in Segments_Vertex_Shader
+            Vec4 position = { v.position[0], v.position[1], v.position[2],
+                              static_cast<float>(v.layer_id) + (is_joint(vertices, i) ? 0.5f : 0.0f) };
             if (move_type == EMoveType::Extrude)
                 // push down extrusion vertices by half height to render them at the right z
                 position[2] -= 0.5f * v.height;
@@ -999,6 +1135,7 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 
     m_settings.spiral_vase_mode = gcode_data.spiral_vase_mode;
 
+    m_extrusions_box = get_bounding_box({ EMoveType::Extrude });
     for (size_t i = 0; i < m_vertices.size(); ++i) {
         const PathVertex& v = m_vertices[i];
 
@@ -1046,6 +1183,39 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     // Populate layer_duration for each vertex from the accumulated layer times
     for (PathVertex& v : m_vertices) {
         v.layer_duration = m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id));
+    }
+
+    // Index of the first vertex of each layer, walked back to front so that a layer with no
+    // vertex of its own inherits the next layer's index and the array stays non-decreasing.
+    if (!m_layers.empty()) {
+        const uint32_t vertices_count = static_cast<uint32_t>(m_vertices.size());
+        m_layer_first_vertex.assign(m_layers.count(), vertices_count);
+        for (uint32_t i = vertices_count; i > 0; --i) {
+            const uint32_t layer_id = m_vertices[i - 1].layer_id;
+            if (layer_id < m_layer_first_vertex.size())
+                m_layer_first_vertex[layer_id] = i - 1;
+        }
+        for (size_t i = m_layer_first_vertex.size() - 1; i > 0; --i)
+            m_layer_first_vertex[i - 1] = std::min(m_layer_first_vertex[i - 1], m_layer_first_vertex[i]);
+        m_layers_in_vertex_order = std::is_sorted(m_vertices.begin(), m_vertices.end(),
+            [](const PathVertex& a, const PathVertex& b) { return a.layer_id < b.layer_id; });
+
+        // the running time at each layer's first vertex, summed in vertex order so that
+        // get_estimated_time_at() matches a full accumulation exactly
+        std::array<float, TIME_MODES_COUNT> running{};
+        for (std::vector<float>& times : m_layer_start_times)
+            times.assign(m_layer_first_vertex.size(), 0.0f);
+        size_t layer = 0;
+        for (size_t i = 0; i <= m_vertices.size(); ++i) {
+            for (; layer < m_layer_first_vertex.size() && m_layer_first_vertex[layer] == i; ++layer) {
+                for (size_t j = 0; j < TIME_MODES_COUNT; ++j)
+                    m_layer_start_times[j][layer] = running[j];
+            }
+            if (i < m_vertices.size()) {
+                for (size_t j = 0; j < TIME_MODES_COUNT; ++j)
+                    running[j] += m_vertices[i].times[j];
+            }
+        }
     }
 
     if (!m_layers.empty())
@@ -1123,8 +1293,8 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
 
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
-    update_enabled_entities();
     update_colors();
+    update_enabled_entities();
 }
 
 void ViewerImpl::update_enabled_entities()
@@ -1183,10 +1353,20 @@ void ViewerImpl::update_enabled_entities()
             enabled_segments.push_back(static_cast<uint32_t>(i));
     }
 
+    // ORCA: so that each pass of render() draws only its own segments, in print order
+    m_enabled_translucent_segments_count = 0;
 #ifdef ENABLE_OPENGL_ES
-    m_texture_data.set_enabled_segments(enabled_segments);
+    m_texture_data.set_enabled_segments(enabled_segments, m_vertices_colors, m_has_translucent_colors);
+    for (size_t i = 0; i < m_texture_data.get_count(); ++i)
+        m_enabled_translucent_segments_count += m_texture_data.get_enabled_translucent_segments_count(i);
     m_texture_data.set_enabled_options(enabled_options);
 #else
+    if (m_has_translucent_colors) {
+        const auto is_opaque = [this](uint32_t id) { return m_vertices_colors[id][3] == 255; };
+        const auto translucent_begin = std::stable_partition(enabled_segments.begin(), enabled_segments.end(), is_opaque);
+        m_enabled_translucent_segments_count = static_cast<size_t>(std::distance(translucent_begin, enabled_segments.end()));
+    }
+
     m_enabled_segments_count = enabled_segments.size();
     m_enabled_options_count = enabled_options.size();
 
@@ -1215,25 +1395,6 @@ void ViewerImpl::update_enabled_entities()
     m_settings.update_enabled_entities = false;
 }
 
-static float encode_color(const Color& color) {
-    const int r = static_cast<int>(color[0]);
-    const int g = static_cast<int>(color[1]);
-    const int b = static_cast<int>(color[2]);
-    const int i_color = r << 16 | g << 8 | b;
-    return static_cast<float>(i_color);
-}
-
-// ORCA: returns the encoded color scaled towards black by 'brightness', preserving its hue.
-// 1.0 = no change, 0.0 = black.
-static float encode_color_dimmed(const Color& color, float brightness) {
-    const int r = static_cast<int>(color[0] * brightness);
-    const int g = static_cast<int>(color[1] * brightness);
-    const int b = static_cast<int>(color[2] * brightness);
-    const int i_color = r << 16 | g << 8 | b;
-    return static_cast<float>(i_color);
-}
-
-
 void ViewerImpl::update_colors_texture()
 {
 #if !defined(ENABLE_OPENGL_ES)
@@ -1241,6 +1402,32 @@ void ViewerImpl::update_colors_texture()
         return;
 #endif // ENABLE_OPENGL_ES
 
+    // ORCA: the colors of the vertices alone; the layers greyed or dimmed around the one the sliders
+    // show are left to the shaders, see set_layer_colors(), so that a slider step uploads nothing.
+    #ifdef ENABLE_OPENGL_ES
+        if (!m_vertices_colors.empty())
+            // update gpu buffer for colors
+            m_texture_data.set_colors(m_vertices_colors);
+    #else
+        m_colors_tex_size = m_vertices_colors.size() * sizeof(ColorWithAlpha);
+
+        // update gpu buffer for colors
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
+        glsafe(glBufferData(GL_TEXTURE_BUFFER, m_colors_tex_size, m_vertices_colors.data(), GL_STATIC_DRAW));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
+    #endif // ENABLE_OPENGL_ES
+}
+
+void ViewerImpl::LayerColorsUniforms::init(unsigned int shader_id)
+{
+    lit_layers       = glGetUniformLocation(shader_id, "lit_layers");
+    grey_below_layer = glGetUniformLocation(shader_id, "grey_below_layer");
+    dim_brightness   = glGetUniformLocation(shader_id, "dim_brightness");
+    kept_vertex      = glGetUniformLocation(shader_id, "kept_vertex");
+}
+
+void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
+{
     const size_t top_layer_id = m_settings.top_layer_only_view_range ? m_layers.get_view_range()[1] : 0;
     const bool color_top_layer_only = m_view_range.get_full()[1] != m_view_range.get_visible()[1];
 
@@ -1259,39 +1446,14 @@ void ViewerImpl::update_colors_texture()
     const bool dim_previous_layers = m_settings.dim_previous_layers && m_settings.top_layer_only_view_range &&
                                      !m_layers.empty() && (inspecting_top_layer || inspecting_bottom_layer);
 
-    // Based on current settings and slider position, we might want to render some
-    // vertices as dark grey (or darkened, see above). Use either that or the normal color (from the cache).
-    std::vector<float> colors(m_vertices_colors.size());
-    assert(colors.size() == m_vertices.size() && m_vertices_colors.size() == m_vertices.size());
-    for (size_t i=0; i<m_vertices.size(); ++i) {
-        const PathVertex& v = m_vertices[i];
-        const bool keep_spiral_seam = m_settings.spiral_vase_mode && i == m_view_range.get_enabled()[0];
-        // ORCA: layers kept at full brightness by the dimming above are excluded from the greying below too
-        const bool inspected_layer = dim_previous_layers &&
-                                     ((inspecting_top_layer && v.layer_id == layers_range[1]) ||
-                                      (inspecting_bottom_layer && v.layer_id == layers_range[0]));
-        if (dim_previous_layers && !inspected_layer && !keep_spiral_seam)
-            colors[i] = encode_color_dimmed(get_vertex_color(v), m_settings.dim_previous_layers_brightness);
-        else if (!inspected_layer && color_top_layer_only && v.layer_id < top_layer_id && !keep_spiral_seam)
-            colors[i] = encode_color(DUMMY_COLOR);
-        else
-            colors[i] = m_vertices_colors[i];
-    }
-
-    #ifdef ENABLE_OPENGL_ES
-        if (!colors.empty())
-            // update gpu buffer for colors
-            m_texture_data.set_colors(colors);
-    #else
-        m_colors_tex_size = colors.size() * sizeof(float);
-
-        // update gpu buffer for colors
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW));
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
-    #endif // ENABLE_OPENGL_ES
+    // Without dimming, the layers below the top one go dark grey while the moves slider is short of
+    // the end. Neither touches the inspected layers, nor the first vertex of a spiral vase layer.
+    glsafe(glUniform2i(uni.lit_layers, dim_previous_layers && inspecting_bottom_layer ? static_cast<int>(layers_range[0]) : -1,
+                                       dim_previous_layers && inspecting_top_layer ? static_cast<int>(layers_range[1]) : -1));
+    glsafe(glUniform1i(uni.grey_below_layer, color_top_layer_only ? static_cast<int>(top_layer_id) : 0));
+    glsafe(glUniform1f(uni.dim_brightness, dim_previous_layers ? m_settings.dim_previous_layers_brightness : -1.0f));
+    glsafe(glUniform1i(uni.kept_vertex, m_settings.spiral_vase_mode ? static_cast<int>(m_view_range.get_enabled()[0]) : -1));
 }
-
 
 void ViewerImpl::update_colors()
 {
@@ -1303,7 +1465,7 @@ void ViewerImpl::update_colors()
         const size_t tool_colors_size = m_tool_colors.size();
         if (m_tool_colors.size() < max_used_extruder_id) {
             for (size_t i = 0; i < max_used_extruder_id - tool_colors_size; ++i) {
-                m_tool_colors.emplace_back(DUMMY_COLOR);
+                m_tool_colors.push_back({ DUMMY_COLOR[0], DUMMY_COLOR[1], DUMMY_COLOR[2], 255 });
             }
         }
     }
@@ -1312,25 +1474,41 @@ void ViewerImpl::update_colors()
     
     // Recalculate "normal" colors of all the vertices for current view settings.
     // If some part of the preview should be rendered in dark grey, it is taken
-    // care of in update_colors_texture. That is to avoid the need to recalculate
+    // care of in the shaders, see set_layer_colors(). That is to avoid the need to recalculate
     // the "normal" color on every slider move.
-    for (size_t i = 0; i < m_vertices.size(); ++i)
-        m_vertices_colors[i] = encode_color(get_vertex_color(m_vertices[i]));
-    
+    const bool had_translucent_colors = m_has_translucent_colors;
+    m_has_translucent_colors = false;
+    for (size_t i = 0; i < m_vertices.size(); ++i) {
+        const Color color = get_vertex_color(m_vertices[i]);
+        const uint8_t alpha = get_vertex_alpha(m_vertices[i]);
+        m_vertices_colors[i] = { color[0], color[1], color[2], alpha };
+        m_has_translucent_colors |= alpha < 255;
+    }
+
     update_colors_texture();
     m_settings.update_colors = false;
+
+    // ORCA: the enabled segments are sorted by opacity
+    if (had_translucent_colors || m_has_translucent_colors)
+        m_settings.update_enabled_entities = true;
 }
 
-void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+void ViewerImpl::apply_pending_updates()
 {
     if (m_settings.update_view_full_range)
         update_view_full_range();
 
-    if (m_settings.update_enabled_entities)
-        update_enabled_entities();
-
+    // ORCA: the colors first, which decide the order of the enabled segments
     if (m_settings.update_colors)
         update_colors();
+
+    if (m_settings.update_enabled_entities)
+        update_enabled_entities();
+}
+
+void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+{
+    apply_pending_updates();
 
     const Mat4x4 inv_view_matrix = inverse(view_matrix);
     const Vec3 camera_position = { inv_view_matrix[12], inv_view_matrix[13], inv_view_matrix[14] };
@@ -1343,6 +1521,30 @@ void ViewerImpl::render(const Mat4x4& view_matrix, const Mat4x4& projection_matr
     if (m_settings.options_visibility[size_t(EOptionType::CenterOfGravity)])
         render_cog_marker(view_matrix, projection_matrix);
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+}
+
+void ViewerImpl::render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position)
+{
+    apply_pending_updates();
+
+    // Only the extrusions and travels cast: the option markers are indicators, not material.
+    m_rendering_shadow_casters = true;
+    render_segments(view_matrix, projection_matrix, light_position);
+    m_rendering_shadow_casters = false;
+}
+
+void ViewerImpl::set_shadow_map(int texture_unit, const Mat4x4& light_view_projection, float intensity, float texel_size)
+{
+    m_shadow_map_texture_unit = texture_unit;
+    m_shadow_light_vp = light_view_projection;
+    m_shadow_intensity = intensity;
+    m_shadow_map_texel = texel_size;
+}
+
+void ViewerImpl::set_tone(float exposure, float saturation)
+{
+    m_exposure = exposure;
+    m_saturation = saturation;
 }
 
 void ViewerImpl::set_view_type(EViewType type)
@@ -1370,8 +1572,6 @@ void ViewerImpl::set_layers_view_range(Interval::value_type min, Interval::value
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     m_settings.update_enabled_entities = true;
-    //m_settings.update_colors = true;
-    update_colors_texture();
 }
 
 void ViewerImpl::toggle_top_layer_only_view_range()
@@ -1380,8 +1580,6 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     m_settings.update_enabled_entities = true;
-    //m_settings.update_colors = true;
-    update_colors_texture();
 }
 
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
@@ -1390,8 +1588,13 @@ void ViewerImpl::set_dim_previous_layers(bool value)
     if (m_settings.dim_previous_layers == value)
         return;
     m_settings.dim_previous_layers = value;
-    // defer the actual color/texture rebuild to the next render(), when the GL context is current
-    // (this may be toggled from the Preferences dialog, outside the canvas context)
+}
+
+void ViewerImpl::set_translucent_filaments(bool value)
+{
+    if (m_settings.translucent_filaments == value)
+        return;
+    m_settings.translucent_filaments = value;
     m_settings.update_colors = true;
 }
 
@@ -1402,7 +1605,6 @@ void ViewerImpl::set_dim_previous_layers_brightness(float value)
     if (m_settings.dim_previous_layers_brightness == value)
         return;
     m_settings.dim_previous_layers_brightness = value;
-    m_settings.update_colors = true;
 }
 
 std::vector<ETimeMode> ViewerImpl::get_time_modes() const
@@ -1510,14 +1712,23 @@ void ViewerImpl::set_view_visible_range(Interval::value_type min, Interval::valu
     update_view_full_range();
     m_view_range.set_visible(min, max);
     update_enabled_entities();
-    //m_settings.update_colors = true;
-    update_colors_texture();
 }
 
 float ViewerImpl::get_estimated_time_at(size_t id) const
 {
-    return std::accumulate(m_vertices.begin(), m_vertices.begin() + id + 1, 0.0f, 
-        [this](float a, const PathVertex& v) { return a + v.times[static_cast<size_t>(m_settings.time_mode)]; });
+    const size_t mode = static_cast<size_t>(m_settings.time_mode);
+    if (mode >= TIME_MODES_COUNT || id >= m_vertices.size())
+        return 0.0f;
+    size_t first = 0;
+    float time = 0.0f;
+    const size_t layer = static_cast<size_t>(m_vertices[id].layer_id);
+    if (layer < m_layer_first_vertex.size() && m_layer_first_vertex[layer] <= id) {
+        first = m_layer_first_vertex[layer];
+        time = m_layer_start_times[mode][layer];
+    }
+    for (size_t i = first; i <= id; ++i)
+        time += m_vertices[i].times[mode];
+    return time;
 }
 
 Color ViewerImpl::get_vertex_color(const PathVertex& v) const
@@ -1594,13 +1805,16 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     case EViewType::Tool:
     {
         assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
-        return m_tool_colors[v.extruder_id];
+        const ColorWithAlpha& color = m_tool_colors[v.extruder_id];
+        return { color[0], color[1], color[2] };
     }
     case EViewType::Summary: // ORCA
     case EViewType::ColorPrint:
     {
-        return m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id)) ? DUMMY_COLOR :
-            m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()];
+        if (m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id)))
+            return DUMMY_COLOR;
+        const ColorWithAlpha& color = m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()];
+        return { color[0], color[1], color[2] };
     }
     default: { break; }
     }
@@ -1608,13 +1822,32 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     return DUMMY_COLOR;
 }
 
-void ViewerImpl::set_tool_colors(const Palette& colors)
+// ORCA: only the extrusions colored by filament can be translucent.
+uint8_t ViewerImpl::get_vertex_alpha(const PathVertex& v) const
+{
+    if (!m_settings.translucent_filaments || !v.is_extrusion())
+        return 255;
+
+    switch (m_settings.view_type)
+    {
+    case EViewType::Tool:
+        return m_tool_colors[v.extruder_id][3];
+    case EViewType::Summary:
+    case EViewType::ColorPrint:
+        return m_layers.layer_contains_colorprint_options(static_cast<size_t>(v.layer_id)) ? 255 :
+            m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()][3];
+    default:
+        return 255;
+    }
+}
+
+void ViewerImpl::set_tool_colors(const PaletteWithAlpha& colors)
 {
     m_tool_colors = colors;
     m_settings.update_colors = true;
 }
 
-void ViewerImpl::set_color_print_colors(const Palette& colors)
+void ViewerImpl::set_color_print_colors(const PaletteWithAlpha& colors)
 {
     m_color_print_colors = colors;
     m_settings.update_colors = true;
@@ -1722,6 +1955,10 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += sizeof(m_extrusion_roles_colors);
     ret += sizeof(m_options_colors);
     ret += STDVEC_MEMSIZE(m_vertices, PathVertex);
+    ret += STDVEC_MEMSIZE(m_vertices_colors, ColorWithAlpha);
+    for (const std::vector<float>& times : m_layer_start_times)
+        ret += STDVEC_MEMSIZE(times, float);
+    ret += STDVEC_MEMSIZE(m_layer_first_vertex, uint32_t);
     ret += m_valid_lines_bitset.size_in_bytes_cpu();
     ret += m_height_range.size_in_bytes_cpu();
     ret += m_width_range.size_in_bytes_cpu();
@@ -1740,8 +1977,8 @@ size_t ViewerImpl::get_used_cpu_memory() const
     for (size_t i = 0; i < COLOR_RANGE_TYPES_COUNT; ++i) {
         ret += m_layer_time_range[i].size_in_bytes_cpu();
     }
-    ret += STDVEC_MEMSIZE(m_tool_colors, Color);
-    ret += STDVEC_MEMSIZE(m_color_print_colors, Color);
+    ret += STDVEC_MEMSIZE(m_tool_colors, ColorWithAlpha);
+    ret += STDVEC_MEMSIZE(m_color_print_colors, ColorWithAlpha);
     return ret;
 }
 
@@ -1762,6 +1999,7 @@ size_t ViewerImpl::get_used_gpu_memory() const
     ret += m_colors_tex_size;
     ret += m_enabled_segments_tex_size;
     ret += m_enabled_options_tex_size;
+    ret += m_translucent_targets.size_in_bytes();
 #endif // ENABLE_OPENGL_ES
     return ret;
 }
@@ -1787,7 +2025,11 @@ void ViewerImpl::update_view_full_range()
     const bool travels_visible = m_settings.options_visibility[size_t(EOptionType::Travels)];
     const bool wipes_visible   = m_settings.options_visibility[size_t(EOptionType::Wipes)];
 
+    // every vertex before m_layer_first_vertex[layers_range[0]] has a smaller layer_id, so the loop
+    // below would skip all of them anyway
     auto first_it = m_vertices.begin();
+    if (layers_range[0] < m_layer_first_vertex.size())
+        first_it += m_layer_first_vertex[layers_range[0]];
     while (first_it != m_vertices.end() &&
            (first_it->layer_id < layers_range[0] || !is_visible(*first_it, m_settings))) {
         ++first_it;
@@ -1810,6 +2052,11 @@ void ViewerImpl::update_view_full_range()
         }
 
         auto last_it = first_it;
+        // ORCA: skip straight to the layer above the range rather than walking there
+        if (m_layers_in_vertex_order && layers_range[1] + 1 < m_layer_first_vertex.size())
+            last_it = std::max(first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1] + 1]);
+        else if (m_layers_in_vertex_order)
+            last_it = m_vertices.end();
         while (last_it != m_vertices.end() && last_it->layer_id <= layers_range[1]) {
             ++last_it;
         }
@@ -1849,12 +2096,14 @@ void ViewerImpl::update_view_full_range()
 
         if (m_settings.top_layer_only_view_range) {
             const Interval& full_range = m_view_range.get_full();
-            auto top_first_it = m_vertices.begin() + full_range[0];
-            bool shortened = false;
-            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings))) {
+            const auto range_first_it = m_vertices.begin() + full_range[0];
+            auto top_first_it = range_first_it;
+            // ORCA: skip straight to the top layer rather than walking there
+            if (m_layers_in_vertex_order)
+                top_first_it = std::max(top_first_it, m_vertices.begin() + m_layer_first_vertex[layers_range[1]]);
+            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings)))
                 ++top_first_it;
-                shortened = true;
-            }
+            const bool shortened = top_first_it != range_first_it;
             if (shortened)
                 --top_first_it;
 
@@ -1936,7 +2185,7 @@ void ViewerImpl::update_color_ranges()
 void ViewerImpl::update_heights_widths()
 {
 #ifdef ENABLE_OPENGL_ES
-    std::vector<Vec3> heights_widths_angles;
+    std::vector<Vec4> heights_widths_angles;
     heights_widths_angles.reserve(m_vertices.size());
     extract_pos_and_or_hwa(m_vertices, m_travels_radius, m_wipes_radius, m_valid_lines_bitset, nullptr, &heights_widths_angles);
     m_texture_data.set_heights_widths_angles(heights_widths_angles);
@@ -1966,9 +2215,19 @@ void ViewerImpl::update_heights_widths()
 #endif // ENABLE_OPENGL_ES
 }
 
-void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position)
+void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position, bool translucent)
 {
-    if (m_segments_shader_id == 0)
+    // ORCA: realistic view. The shadow caster pass draws depth only, as does the first order independent pass.
+#ifndef ENABLE_OPENGL_ES
+    const bool depth_only = m_translucent_pass == 1;
+    const unsigned int shader_id = m_rendering_shadow_casters ? m_segments_caster_shader_id : depth_only ? m_segments_depth_shader_id : m_segments_shader_id;
+    const SegmentsUniforms& uni = m_rendering_shadow_casters ? m_uni_segments_caster : depth_only ? m_uni_segments_depth : m_uni_segments;
+#else
+    const bool depth_only = false;
+    const unsigned int shader_id = m_rendering_shadow_casters ? m_segments_caster_shader_id : m_segments_shader_id;
+    const SegmentsUniforms& uni = m_rendering_shadow_casters ? m_uni_segments_caster : m_uni_segments;
+#endif // ENABLE_OPENGL_ES
+    if (shader_id == 0)
         return;
 
 #ifdef ENABLE_OPENGL_ES
@@ -1985,23 +2244,97 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     const bool curr_cull_face = glIsEnabled(GL_CULL_FACE);
     glcheck();
 
-    glsafe(glUseProgram(m_segments_shader_id));
+    glsafe(glUseProgram(shader_id));
 
-    glsafe(glUniform1i(m_uni_segments_positions_tex_id, 0));
-    glsafe(glUniform1i(m_uni_segments_height_width_angle_tex_id, 1));
-    glsafe(glUniform1i(m_uni_segments_colors_tex_id, 2));
-    glsafe(glUniform1i(m_uni_segments_segment_index_tex_id, 3));
-    glsafe(glUniformMatrix4fv(m_uni_segments_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
-    glsafe(glUniformMatrix4fv(m_uni_segments_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
-    glsafe(glUniform3fv(m_uni_segments_camera_position_id, 1, camera_position.data()));
+    glsafe(glUniform1i(uni.positions_tex, 0));
+    glsafe(glUniform1i(uni.height_width_angle_tex, 1));
+    glsafe(glUniform1i(uni.colors_tex, 2));
+    glsafe(glUniform1i(uni.segment_index_tex, 3));
+    glsafe(glUniformMatrix4fv(uni.view_matrix, 1, GL_FALSE, view_matrix.data()));
+    glsafe(glUniformMatrix4fv(uni.projection_matrix, 1, GL_FALSE, projection_matrix.data()));
+    glsafe(glUniform3fv(uni.camera_position, 1, camera_position.data()));
+    // ORCA: view_matrix(2,2) > 0 is looking down, where the last segments printed are the nearest.
+    // Blending goes the other way, from the farthest.
+    const bool reverse_order = (view_matrix[10] > 0.0f) != translucent;
+    glsafe(glUniform1i(uni.reverse_order, reverse_order ? 1 : 0));
+    glsafe(glUniform4fv(uni.clipping_plane, 1, m_clipping_plane.data()));
+#ifndef ENABLE_OPENGL_ES
+    if (depth_only)
+        glsafe(glUniform1i(m_uni_segments_depth_opaque_depth_id, TRANSLUCENT_TEXTURE_UNIT));
+#endif // ENABLE_OPENGL_ES
+    if (!m_rendering_shadow_casters && !depth_only) {
+        // ORCA: realistic view
+        glsafe(glUniform1i(m_uni_segments_shadow_map_id, m_shadow_map_texture_unit));
+        glsafe(glUniformMatrix4fv(m_uni_segments_shadow_light_vp_id, 1, GL_FALSE, m_shadow_light_vp.data()));
+        glsafe(glUniform1f(m_uni_segments_shadow_intensity_id, m_shadow_intensity));
+        glsafe(glUniform1f(m_uni_segments_shadow_map_texel_id, m_shadow_map_texel));
+        glsafe(glUniform1f(m_uni_segments_exposure_id, m_exposure));
+        glsafe(glUniform1f(m_uni_segments_saturation_id, m_saturation));
+        glsafe(glUniform3fv(m_uni_segments_light_top_dir_id, 1, m_light_top_dir.data()));
+        glsafe(glUniform1f(m_uni_segments_gloss_id, m_gloss ? 0.6f : 0.0f));
+        set_layer_colors(m_uni_segments_layer_colors);
+#ifndef ENABLE_OPENGL_ES
+        glsafe(glUniform1i(m_uni_segments_oit_pass_id, m_translucent_pass));
+        glsafe(glUniform1i(m_uni_segments_opaque_depth_id, TRANSLUCENT_TEXTURE_UNIT));
+        glsafe(glUniform1i(m_uni_segments_front_depth_id, TRANSLUCENT_TEXTURE_UNIT + 1));
+        glsafe(glUniform2fv(m_uni_segments_oit_depth_range_id, 1, m_oit_depth_range.data()));
+#endif // ENABLE_OPENGL_ES
+    }
+
+    // ORCA: the translucent segments neither hide each other nor what is drawn after them. Drawn late in the
+    // frame, they cannot count on the depth test the toolpaths left on, which hides them behind opaque ones.
+    const bool curr_blend = glIsEnabled(GL_BLEND);
+    const bool curr_depth_test = glIsEnabled(GL_DEPTH_TEST);
+    std::array<int, 4> curr_blend_func = { 0, 0, 0, 0 };
+    std::array<int, 2> curr_blend_equation = { 0, 0 };
+    GLboolean curr_depth_mask = GL_TRUE;
+    if (translucent) {
+        glsafe(glEnable(GL_DEPTH_TEST));
+        glsafe(glGetIntegerv(GL_BLEND_SRC_RGB, &curr_blend_func[0]));
+        glsafe(glGetIntegerv(GL_BLEND_DST_RGB, &curr_blend_func[1]));
+        glsafe(glGetIntegerv(GL_BLEND_SRC_ALPHA, &curr_blend_func[2]));
+        glsafe(glGetIntegerv(GL_BLEND_DST_ALPHA, &curr_blend_func[3]));
+        glsafe(glGetIntegerv(GL_BLEND_EQUATION_RGB, &curr_blend_equation[0]));
+        glsafe(glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &curr_blend_equation[1]));
+        glsafe(glGetBooleanv(GL_DEPTH_WRITEMASK, &curr_depth_mask));
+        glsafe(glEnable(GL_BLEND));
+        // premultiplied, the highlights are not scaled by the opacity; the nearest depth, then sums,
+        // in the passes of render_translucent_segments()
+        glsafe(glBlendEquation(m_translucent_pass == 1 ? GL_MIN : GL_FUNC_ADD));
+        glsafe(glBlendFunc(GL_ONE, m_translucent_pass != 0 ? GL_ONE : GL_ONE_MINUS_SRC_ALPHA));
+        glsafe(glDepthMask(GL_FALSE));
+    }
 
     glsafe(glDisable(GL_CULL_FACE));
+
+    // ORCA: of the count enabled segments, the last translucent_count are the translucent ones
+    auto draw = [this, &uni, translucent](size_t count, size_t translucent_count) {
+        const size_t first = translucent ? count - translucent_count : 0;
+        if (!m_rendering_shadow_casters)
+            count = translucent ? translucent_count : count - translucent_count;
+        if (count == 0)
+            return;
+        glsafe(glUniform1i(uni.instances_count, static_cast<int>(count)));
+        glsafe(glUniform1i(uni.first_instance, static_cast<int>(first)));
+        if (!m_rendering_shadow_casters) {
+            m_segment_template.render(count);
+            return;
+        }
+        // ORCA: realistic view. 6 vertices per caster ribbon.
+        int curr_vertex_array = 0;
+        glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
+        glsafe(glBindVertexArray(m_segments_caster_vao_id));
+        glsafe(glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(6 * count)));
+        glsafe(glBindVertexArray(curr_vertex_array));
+    };
 
 #ifdef ENABLE_OPENGL_ES
     int curr_bound_texture = 0;
     glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
 
-    for (size_t i = 0; i < m_texture_data.get_count(); ++i) {
+    const size_t tex_count = m_texture_data.get_count();
+    for (size_t n = 0; n < tex_count; ++n) {
+        const size_t i = reverse_order ? tex_count - 1 - n : n;
         const auto [id, count] = m_texture_data.get_enabled_segments_tex_id(i);
         if (count == 0)
             continue;
@@ -2013,7 +2346,7 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
-        m_segment_template.render(count);
+        draw(count, m_texture_data.get_enabled_translucent_segments_count(i));
     }
 #else
     std::array<int, 4> curr_bound_texture = { 0, 0, 0, 0 };
@@ -2031,16 +2364,25 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_heights_widths_angles_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE2));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
-    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_colors_buf_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_segments_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_segments_buf_id));
 
-    m_segment_template.render(m_enabled_segments_count);
+    draw(m_enabled_segments_count, m_enabled_translucent_segments_count);
 #endif // ENABLE_OPENGL_ES
 
     if (curr_cull_face)
         glsafe(glEnable(GL_CULL_FACE));
+    if (translucent) {
+        if (!curr_depth_test)
+            glsafe(glDisable(GL_DEPTH_TEST));
+        glsafe(glDepthMask(curr_depth_mask));
+        glsafe(glBlendEquationSeparate(curr_blend_equation[0], curr_blend_equation[1]));
+        glsafe(glBlendFuncSeparate(curr_blend_func[0], curr_blend_func[1], curr_blend_func[2], curr_blend_func[3]));
+        if (!curr_blend)
+            glsafe(glDisable(GL_BLEND));
+    }
 
     glsafe(glUseProgram(curr_shader));
 #ifdef ENABLE_OPENGL_ES
@@ -2081,6 +2423,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glUniform1i(m_uni_options_segment_index_tex_id, 3));
     glsafe(glUniformMatrix4fv(m_uni_options_view_matrix_id, 1, GL_FALSE, view_matrix.data()));
     glsafe(glUniformMatrix4fv(m_uni_options_projection_matrix_id, 1, GL_FALSE, projection_matrix.data()));
+    glsafe(glUniform4fv(m_uni_options_clipping_plane_id, 1, m_clipping_plane.data()));
+    set_layer_colors(m_uni_options_layer_colors);
 
     glsafe(glEnable(GL_CULL_FACE));
 
@@ -2118,7 +2462,7 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_heights_widths_angles_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE2));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
-    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, m_colors_buf_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_enabled_options_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_enabled_options_buf_id));
@@ -2139,6 +2483,217 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     }
 #endif // ENABLE_OPENGL_ES
     glsafe(glActiveTexture(curr_active_texture));
+}
+
+#ifndef ENABLE_OPENGL_ES
+bool ViewerImpl::TranslucentTargets::update(int width, int height)
+{
+    if (unsupported || width <= 0 || height <= 0)
+        return false;
+    if (fbo != 0 && size[0] == width && size[1] == height)
+        return true;
+
+    release();
+    size = { width, height };
+
+    int curr_texture = 0;
+    int curr_draw_fbo = 0;
+    int curr_read_fbo = 0;
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_texture));
+    glsafe(glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &curr_draw_fbo));
+    glsafe(glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &curr_read_fbo));
+
+    auto make_texture = [width, height](unsigned int& id, GLenum internal_format, GLenum format, GLenum type) {
+        glsafe(glGenTextures(1, &id));
+        glsafe(glBindTexture(GL_TEXTURE_2D, id));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+        glsafe(glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, nullptr));
+    };
+    const GLenum buffers[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+
+    make_texture(depth_tex, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
+    make_texture(accum_tex, GL_RGBA16F, GL_RGBA, GL_FLOAT);
+    make_texture(reveal_tex, GL_R16F, GL_RED, GL_FLOAT);
+    make_texture(front_tex, GL_RGBA16F, GL_RGBA, GL_FLOAT);
+    make_texture(front_depth_tex, GL_R32F, GL_RED, GL_FLOAT);
+    glsafe(glGenFramebuffers(1, &front_depth_fbo));
+    glsafe(glBindFramebuffer(GL_FRAMEBUFFER, front_depth_fbo));
+    glsafe(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, front_depth_tex, 0));
+    glsafe(glDrawBuffers(1, buffers));
+    bool complete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    glsafe(glGenFramebuffers(1, &fbo));
+    glsafe(glBindFramebuffer(GL_FRAMEBUFFER, fbo));
+    glsafe(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accum_tex, 0));
+    glsafe(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, reveal_tex, 0));
+    glsafe(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, front_tex, 0));
+    glsafe(glDrawBuffers(3, buffers));
+    complete = complete && glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+
+    glsafe(glBindTexture(GL_TEXTURE_2D, curr_texture));
+    glsafe(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, curr_draw_fbo));
+    glsafe(glBindFramebuffer(GL_READ_FRAMEBUFFER, curr_read_fbo));
+
+    if (!complete) {
+        release();
+        unsupported = true;
+    }
+    return complete;
+}
+
+void ViewerImpl::TranslucentTargets::release()
+{
+    for (unsigned int* id : { &fbo, &front_depth_fbo }) {
+        if (*id != 0) {
+            glsafe(glDeleteFramebuffers(1, id));
+            *id = 0;
+        }
+    }
+    delete_textures(accum_tex);
+    delete_textures(reveal_tex);
+    delete_textures(front_tex);
+    delete_textures(depth_tex);
+    delete_textures(front_depth_tex);
+    size = { 0, 0 };
+}
+
+size_t ViewerImpl::TranslucentTargets::size_in_bytes() const
+{
+    // RGBA16F, R16F, RGBA16F, a 24 bit depth and R32F
+    return static_cast<size_t>(size[0]) * static_cast<size_t>(size[1]) * (8 + 2 + 8 + 4 + 4);
+}
+#endif // ENABLE_OPENGL_ES
+
+void ViewerImpl::render_translucent(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+{
+    apply_pending_updates();
+    if (m_enabled_translucent_segments_count == 0)
+        return;
+
+    const Mat4x4 inv_view_matrix = inverse(view_matrix);
+    render_translucent_segments(view_matrix, projection_matrix, { inv_view_matrix[12], inv_view_matrix[13], inv_view_matrix[14] });
+}
+
+void ViewerImpl::render_translucent_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position)
+{
+#ifndef ENABLE_OPENGL_ES
+    // ORCA: the order independent path, whose targets are as large as the canvas: the nearest translucent surface
+    // over the weighted blended order independent transparency (McGuire and Bavoil, 2013) of the others. Blended in
+    // print order, even one color shows the order, its surfaces being shaded apart.
+    std::array<int, 4> viewport = { 0, 0, 0, 0 };
+    int draw_fbo = 0;
+    int read_fbo = 0;
+    int samples = 0;
+    glsafe(glGetIntegerv(GL_VIEWPORT, viewport.data()));
+    glsafe(glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbo));
+    glsafe(glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fbo));
+    glsafe(glGetIntegerv(GL_SAMPLES, &samples));
+    // the depth of a multisampled framebuffer object cannot be copied into a texture
+    if ((read_fbo != 0 && samples > 0) || !m_translucent_targets.update(viewport[2], viewport[3])) {
+        render_segments(view_matrix, projection_matrix, camera_position, true);
+        return;
+    }
+    const TranslucentTargets& targets = m_translucent_targets;
+    const int width = viewport[2];
+    const int height = viewport[3];
+
+    int curr_active_texture = 0;
+    std::array<int, 3> curr_textures = { 0, 0, 0 };
+    glsafe(glGetIntegerv(GL_ACTIVE_TEXTURE, &curr_active_texture));
+    for (int i = 0; i < 3; ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + TRANSLUCENT_TEXTURE_UNIT + i));
+        glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_textures[i]));
+    }
+
+    // the opaque scene, to hide the translucent segments behind it
+    glsafe(glActiveTexture(GL_TEXTURE0 + TRANSLUCENT_TEXTURE_UNIT));
+    glsafe(glBindTexture(GL_TEXTURE_2D, targets.depth_tex));
+    glsafe(glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, viewport[0], viewport[1], width, height));
+
+    // the weights fall with the depth across the extrusions
+    float near_z = FLT_MAX;
+    float far_z = -FLT_MAX;
+    for (int i = 0; i < 8; ++i) {
+        const Vec3 p = { m_extrusions_box[i & 1][0], m_extrusions_box[(i >> 1) & 1][1], m_extrusions_box[(i >> 2) & 1][2] };
+        const float z = -(view_matrix[2] * p[0] + view_matrix[6] * p[1] + view_matrix[10] * p[2] + view_matrix[14]);
+        near_z = std::min(near_z, z);
+        far_z = std::max(far_z, z);
+    }
+    m_oit_depth_range = { near_z, std::max(far_z, near_z + 1.0f) };
+
+    // the depth of the nearest translucent surface, as the fragments see it, kept by GL_MIN
+    const std::array<float, 4> zero = { 0.0f, 0.0f, 0.0f, 0.0f };
+    const std::array<float, 4> one = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glsafe(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, targets.front_depth_fbo));
+    glsafe(glViewport(0, 0, width, height));
+    glsafe(glClearBufferfv(GL_COLOR, 0, one.data()));
+    m_translucent_pass = 1;
+    render_segments(view_matrix, projection_matrix, camera_position, true);
+    glsafe(glActiveTexture(GL_TEXTURE0 + TRANSLUCENT_TEXTURE_UNIT + 1));
+    glsafe(glBindTexture(GL_TEXTURE_2D, targets.front_depth_tex));
+
+    // that surface apart, the others summed
+    glsafe(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, targets.fbo));
+    for (int i = 0; i < 3; ++i)
+        glsafe(glClearBufferfv(GL_COLOR, i, zero.data()));
+    m_translucent_pass = 2;
+    render_segments(view_matrix, projection_matrix, camera_position, true);
+    m_translucent_pass = 0;
+
+    glsafe(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_fbo));
+    glsafe(glBindFramebuffer(GL_READ_FRAMEBUFFER, read_fbo));
+    glsafe(glViewport(viewport[0], viewport[1], width, height));
+
+    // composite over the scene
+    int curr_shader = 0;
+    int curr_vertex_array = 0;
+    std::array<int, 4> curr_blend_func = { 0, 0, 0, 0 };
+    GLboolean curr_depth_mask = GL_TRUE;
+    const bool curr_blend = glIsEnabled(GL_BLEND);
+    const bool curr_depth_test = glIsEnabled(GL_DEPTH_TEST);
+    glsafe(glGetIntegerv(GL_CURRENT_PROGRAM, &curr_shader));
+    glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
+    glsafe(glGetIntegerv(GL_BLEND_SRC_RGB, &curr_blend_func[0]));
+    glsafe(glGetIntegerv(GL_BLEND_DST_RGB, &curr_blend_func[1]));
+    glsafe(glGetIntegerv(GL_BLEND_SRC_ALPHA, &curr_blend_func[2]));
+    glsafe(glGetIntegerv(GL_BLEND_DST_ALPHA, &curr_blend_func[3]));
+    glsafe(glGetBooleanv(GL_DEPTH_WRITEMASK, &curr_depth_mask));
+
+    glsafe(glUseProgram(m_translucent_composite_shader_id));
+    glsafe(glUniform1i(m_uni_translucent_composite_accum_tex_id, TRANSLUCENT_TEXTURE_UNIT));
+    glsafe(glUniform1i(m_uni_translucent_composite_reveal_tex_id, TRANSLUCENT_TEXTURE_UNIT + 1));
+    glsafe(glUniform1i(m_uni_translucent_composite_front_tex_id, TRANSLUCENT_TEXTURE_UNIT + 2));
+    glsafe(glUniform2i(m_uni_translucent_composite_origin_id, viewport[0], viewport[1]));
+    glsafe(glActiveTexture(GL_TEXTURE0 + TRANSLUCENT_TEXTURE_UNIT));
+    glsafe(glBindTexture(GL_TEXTURE_2D, targets.accum_tex));
+    glsafe(glActiveTexture(GL_TEXTURE0 + TRANSLUCENT_TEXTURE_UNIT + 1));
+    glsafe(glBindTexture(GL_TEXTURE_2D, targets.reveal_tex));
+    glsafe(glActiveTexture(GL_TEXTURE0 + TRANSLUCENT_TEXTURE_UNIT + 2));
+    glsafe(glBindTexture(GL_TEXTURE_2D, targets.front_tex));
+    glsafe(glEnable(GL_BLEND));
+    glsafe(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+    glsafe(glDisable(GL_DEPTH_TEST));
+    glsafe(glDepthMask(GL_FALSE));
+    glsafe(glBindVertexArray(m_segments_caster_vao_id));
+    glsafe(glDrawArrays(GL_TRIANGLES, 0, 3));
+
+    glsafe(glBindVertexArray(curr_vertex_array));
+    glsafe(glDepthMask(curr_depth_mask));
+    if (curr_depth_test)
+        glsafe(glEnable(GL_DEPTH_TEST));
+    glsafe(glBlendFuncSeparate(curr_blend_func[0], curr_blend_func[1], curr_blend_func[2], curr_blend_func[3]));
+    if (!curr_blend)
+        glsafe(glDisable(GL_BLEND));
+    glsafe(glUseProgram(curr_shader));
+    for (int i = 0; i < 3; ++i) {
+        glsafe(glActiveTexture(GL_TEXTURE0 + TRANSLUCENT_TEXTURE_UNIT + i));
+        glsafe(glBindTexture(GL_TEXTURE_2D, curr_textures[i]));
+    }
+    glsafe(glActiveTexture(curr_active_texture));
+#else
+    render_segments(view_matrix, projection_matrix, camera_position, true);
+#endif // ENABLE_OPENGL_ES
 }
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS

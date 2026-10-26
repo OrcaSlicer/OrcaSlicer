@@ -4,6 +4,8 @@
 #ifndef LIGHTNING_TREE_NODE_H
 #define LIGHTNING_TREE_NODE_H
 
+#include <cstdint>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -12,7 +14,12 @@
 
 #include "../../EdgeGrid.hpp"
 #include "../../Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "SVG.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Line.hpp"
 
 //#define LIGHTNING_TREE_NODE_DEBUG_OUTPUT
 

@@ -21,7 +21,7 @@
 	"top_solid_infill_flow_ratio": "0.97",
 	"bottom_solid_infill_flow_ratio": "1.08",
 	"seam_position": "aligned",
-	"sparse_infill_patter": "grid",
+	"sparse_infill_pattern": "grid",
 	"initial_layer_speed": "60",
 	"initial_layer_infill_speed": "80",
 	"initial_travel_speed": "100%",
@@ -57,5 +57,7 @@
 	"accel_to_decel_enable": "1",
 	"accel_to_decel_factor": "50%",
 	"elefant_foot_compensation": "0.25",
-	"elefant_foot_compensation_layers": "1"
+	"elefant_foot_compensation_layers": "1",
+	"skirt_loops": "2",
+	"skirt_type": "perobject"
 }

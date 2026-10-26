@@ -1,12 +1,20 @@
 #include "WipePathHelpers.hpp"
 
 #include "../AABBTreeLines.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <optional>
 #include <tuple>
+#include <utility>
+#include "libslic3r/Polyline.hpp"
 
 namespace Slic3r {
 

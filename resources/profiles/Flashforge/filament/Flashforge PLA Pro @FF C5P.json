@@ -1,15 +1,18 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Pro @FF C5P",
-	"inherits": "Generic PLA @System",
 	"renamed_from": "Flashforge PLA  Pro @FF C5P;Flashforge PLA  Pro FF C5P",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "xOvxorpWP37CQCfi",
 	"filament_id": "OFm4SivL",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],

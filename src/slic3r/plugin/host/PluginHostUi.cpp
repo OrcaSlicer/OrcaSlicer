@@ -1,9 +1,14 @@
 #include "PluginHostUi.hpp"
 
+#include <pybind11/pytypes.h>
+#include <pybind11/gil.h>
+#include <pybind11/cast.h>
 #include "slic3r/plugin/PluginAuditManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp" // PythonGILState
-#include "slic3r/plugin/PluginFsUtils.hpp"   // json_to_py / py_to_json
+#include "slic3r/plugin/PluginJsonPy.hpp"
 
+#include <functional>
+#include <exception>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MainFrame.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
@@ -18,12 +23,20 @@
 
 #include <boost/log/trivial.hpp>
 
+#include <utility>
+#include <string>
 #include <wx/app.h>
 #include <wx/defs.h>
+#include <wx/thread.h>
+#include <wx/timer.h>
+#include <wx/toplevel.h>
+#include <wx/event.h>
+#include <wx/progdlg.h>
 #include <wx/window.h>
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <future>
 #include <memory>
@@ -225,10 +238,22 @@ private:
     int                                  m_next_id{1};
 };
 
+// wxTheApp is rechecked because it goes null while a worker may still be waiting on the UI thread.
+bool app_closing() { return wxTheApp == nullptr || GUI::wxGetApp().is_closing(); }
+
+// State of a call queued by run_on_ui_blocking(). It is at namespace scope because MSVC does not
+// find a function-local enumerator from the default member initializer of a local class in a template.
+enum : int { UiCallPending, UiCallClaimed, UiCallAbandoned };
+
 // --------------------------------------------------------------------------
 // Run a (pure C++/wx) callable on the main/UI thread, blocking the caller until
 // it completes, with the GIL released across the wait. If already on the main
 // thread, run inline (also with the GIL released so other Python threads run).
+//
+// A worker thread gives up with a RuntimeError once the app is closing and the
+// UI thread has not picked the call up yet: the UI thread may be waiting for
+// that worker (a printer agent joining it in disconnect_printer()), or its event
+// loop may never run again.
 // --------------------------------------------------------------------------
 template<typename Fn>
 auto run_on_ui_blocking(Fn&& fn) -> std::invoke_result_t<Fn&>
@@ -242,22 +267,40 @@ auto run_on_ui_blocking(Fn&& fn) -> std::invoke_result_t<Fn&>
         return fn();
     }
 
-    std::promise<R> prom;
-    std::future<R>  fut = prom.get_future();
+    if (app_closing())
+        throw std::runtime_error("OrcaSlicer is closing");
+
+    // Shared with the queued task, which can outlive an abandoned wait. The task only touches fn
+    // after claiming the call, and a claimed call is always waited for, so fn is still alive then.
+    struct Call
+    {
+        std::promise<R>  prom;
+        std::atomic<int> state{UiCallPending};
+    };
+    auto           call = std::make_shared<Call>();
+    std::future<R> fut  = call->prom.get_future();
 
     py::gil_scoped_release nogil;
-    GUI::wxGetApp().CallAfter([&prom, &fn]() {
+    GUI::wxGetApp().CallAfter([call, &fn]() {
+        int expected = UiCallPending;
+        if (!call->state.compare_exchange_strong(expected, UiCallClaimed))
+            return;
         try {
             if constexpr (std::is_void_v<R>) {
                 fn();
-                prom.set_value();
+                call->prom.set_value();
             } else {
-                prom.set_value(fn());
+                call->prom.set_value(fn());
             }
         } catch (...) {
-            prom.set_exception(std::current_exception());
+            call->prom.set_exception(std::current_exception());
         }
     });
+    while (fut.wait_for(std::chrono::milliseconds(50)) != std::future_status::ready) {
+        int expected = UiCallPending;
+        if (app_closing() && call->state.compare_exchange_strong(expected, UiCallAbandoned))
+            throw std::runtime_error("OrcaSlicer is closing");
+    }
     return fut.get();
 }
 
@@ -387,6 +430,7 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
             if (UiRegistry::instance().is_open(new_id))
                 dlg->Destroy();
         } else {
+            dlg->use_normal_window_type();
             dlg->Show();
         }
     });
@@ -403,6 +447,44 @@ struct UiDockPanelHandle
 {
     int id{0};
 };
+
+// Polls until the plater is shown on screen, then runs the callback with it (null when the app
+// is closing instead) and deletes itself. A plugin loaded at startup opens its panes from
+// on_load, before the main window exists, and a pane added before that window is laid out is
+// sized against the unsized frame and keeps that width (AuiMgr::track_docked_size).
+class PlaterShownWaiter : public wxTimer
+{
+public:
+    explicit PlaterShownWaiter(std::function<void(GUI::Plater*)> fn) : m_fn(std::move(fn)) {}
+
+    // True once the callback ran.
+    bool try_run()
+    {
+        const bool   closing = GUI::wxGetApp().is_closing();
+        GUI::Plater* plater  = closing ? nullptr : GUI::wxGetApp().plater();
+        if (!closing && (plater == nullptr || !plater->IsShownOnScreen()))
+            return false;
+        Stop();
+        m_fn(plater);
+        // Off the timer callback's stack: wxGTK's timeout callback still reads the timer after Notify().
+        GUI::wxGetApp().CallAfter([this]() { delete this; });
+        return true;
+    }
+
+    void Notify() override { try_run(); }
+
+private:
+    std::function<void(GUI::Plater*)> m_fn;
+};
+
+void run_when_plater_shown(std::function<void(GUI::Plater*)> fn)
+{
+    GUI::wxGetApp().CallAfter([fn = std::move(fn)]() mutable {
+        auto* waiter = new PlaterShownWaiter(std::move(fn));
+        if (!waiter->try_run())
+            waiter->Start(100);
+    });
+}
 
 py::object ui_create_dock_panel(const std::string& html, const std::string& title, int width, int height,
                                 py::object on_message, py::object on_close, const std::string& dock)
@@ -423,14 +505,13 @@ py::object ui_create_dock_panel(const std::string& html, const std::string& titl
     const int new_id = UiRegistry::instance().reserve_id();
     UiRegistry::instance().bind(new_id, nullptr, plugin_key);
 
-    GUI::wxGetApp().CallAfter([new_id, plugin_key, html, title, dock, w, h,
-                               msg_adapter = std::move(msg_adapter),
-                               close_holder = std::move(close_holder)]() mutable {
+    run_when_plater_shown([new_id, plugin_key, html, title, dock, w, h,
+                           msg_adapter = std::move(msg_adapter),
+                           close_holder = std::move(close_holder)](GUI::Plater* plater) mutable {
         if (!UiRegistry::instance().is_open(new_id))
             return;
 
-        GUI::Plater* plater = GUI::wxGetApp().plater();
-        if (plater == nullptr || GUI::wxGetApp().is_closing()) {
+        if (plater == nullptr) {
             UiRegistry::instance().remove(new_id);
             return;
         }
@@ -554,7 +635,7 @@ void progress_close(int id)
     });
 }
 
-void plater_notification(NotificationManager::NotificationLevel notification_level, const std::string& text,
+void plater_notification(GUI::NotificationManager::NotificationLevel notification_level, const std::string& text,
                          const std::string& hypertext, py::object on_click)
 {
     const std::string plugin_key = PluginAuditManager::instance().current_plugin();
@@ -589,12 +670,17 @@ void plater_notification(NotificationManager::NotificationLevel notification_lev
     }
 
     run_on_ui_blocking([notification_level, text, hypertext, callback = std::move(callback)]() mutable {
-        wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification, notification_level, text,
+        GUI::wxGetApp().plater()->get_notification_manager()->push_notification(GUI::NotificationType::CustomNotification, notification_level, text,
                                                                            hypertext, std::move(callback));
     });
 }
 
 } // namespace
+
+void PluginHostUi::run_on_ui_thread(std::function<void()> fn)
+{
+    run_on_ui_blocking(std::move(fn));
+}
 
 void PluginHostUi::RegisterBindings(pybind11::module_& host)
 {
@@ -604,7 +690,8 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
         "thread (marshaled from the plugin thread). See the plugin docs for the window.orca bridge. "
         "Do not call these from a slicing pipeline hook (SlicingPipeline capability): that hook runs "
         "on the slicing worker thread, which the UI thread can itself be blocked waiting on, so a "
-        "marshaled UI call from there can deadlock the application.");
+        "marshaled UI call from there can deadlock the application. Once the application is closing, a "
+        "call from a background thread raises RuntimeError instead of waiting for the UI thread.");
 
     ui.def("message", &ui_message, py::arg("text"), py::arg("title") = "OrcaSlicer", py::arg("buttons") = "ok",
            py::arg("icon") = "info",
@@ -702,16 +789,16 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
            py::arg("maximum") = 100, py::arg("style") = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
            "Create a native progress dialog and return a ProgressDialog handle.");
 
-    py::enum_<NotificationManager::NotificationLevel>(ui, "NotificationLevel")
-        .value("ProgressBarNotificationLevel", NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
-        .value("HintNotificationLevel", NotificationManager::NotificationLevel::HintNotificationLevel)
-        .value("RegularNotificationLevel", NotificationManager::NotificationLevel::RegularNotificationLevel)
-        .value("PrintInfoNotificationLevel", NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
-        .value("PrintInfoShortNotificationLevel", NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
-        .value("ImportantNotificationLevel", NotificationManager::NotificationLevel::ImportantNotificationLevel)
-        .value("WarningNotificationLevel", NotificationManager::NotificationLevel::WarningNotificationLevel)
-        .value("SeriousWarningNotificationLevel", NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
-        .value("ErrorNotificationLevel", NotificationManager::NotificationLevel::ErrorNotificationLevel)
+    py::enum_<GUI::NotificationManager::NotificationLevel>(ui, "NotificationLevel")
+        .value("ProgressBarNotificationLevel", GUI::NotificationManager::NotificationLevel::ProgressBarNotificationLevel)
+        .value("HintNotificationLevel", GUI::NotificationManager::NotificationLevel::HintNotificationLevel)
+        .value("RegularNotificationLevel", GUI::NotificationManager::NotificationLevel::RegularNotificationLevel)
+        .value("PrintInfoNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoNotificationLevel)
+        .value("PrintInfoShortNotificationLevel", GUI::NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel)
+        .value("ImportantNotificationLevel", GUI::NotificationManager::NotificationLevel::ImportantNotificationLevel)
+        .value("WarningNotificationLevel", GUI::NotificationManager::NotificationLevel::WarningNotificationLevel)
+        .value("SeriousWarningNotificationLevel", GUI::NotificationManager::NotificationLevel::SeriousWarningNotificationLevel)
+        .value("ErrorNotificationLevel", GUI::NotificationManager::NotificationLevel::ErrorNotificationLevel)
         .export_values();
 
     ui.def("push_notification", &plater_notification, py::arg("notification_level"), py::arg("text"),

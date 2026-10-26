@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Sovol SV08 0.2 nozzle",
-	"inherits": "Generic PLA @System",
 	"renamed_from": "Sovol SV08 PLA @SV08 0.2 nozzle;Sovol SV08 PLA SV08 0.2 nozzle",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "W7oQNGWqiPMUlzhw",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

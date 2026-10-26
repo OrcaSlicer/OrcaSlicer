@@ -4,9 +4,36 @@
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <cstddef>
+#include <array>
+#include <cstdlib>
+#include <cmath>
 #include <glad/gl.h>
 
+#include "libslic3r/Point.hpp"
+#include <string>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <wx/intl.h>
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include <utility>
+#include "libslic3r/Geometry.hpp"
+#include <wx/string.h>
 #include <wx/utils.h>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Line.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/I18N.hpp"
+
+namespace Slic3r { class ModelVolume; }
 
 namespace Slic3r {
 namespace GUI {
@@ -158,8 +185,8 @@ bool GLGizmoScale3D::on_is_activable() const
 
 void GLGizmoScale3D::on_set_state() {
     if (get_state() == On) {
-        m_last_selected_obejct_idx = -1;
-        m_last_selected_volume_idx = -1;
+        m_last_selected_obejct_idx = -2;
+        m_last_selected_volume_idx = -2;
         change_cs_by_selection();
     }
 }
@@ -275,7 +302,7 @@ void GLGizmoScale3D::update_grabbers_data()
 
 
 void GLGizmoScale3D::change_cs_by_selection() {
-    int          obejct_idx, volume_idx;
+    int          obejct_idx = -1, volume_idx = -1;
     ModelVolume *model_volume = m_parent.get_selection().get_selected_single_volume(obejct_idx, volume_idx);
     if (m_last_selected_obejct_idx == obejct_idx && m_last_selected_volume_idx == volume_idx) { return; }
     m_last_selected_obejct_idx = obejct_idx;

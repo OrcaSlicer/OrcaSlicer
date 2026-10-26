@@ -8,7 +8,6 @@
 	],
 	"printer_variant": "0.4",
 	"auxiliary_fan": "1",
-	"apply_top_surface_compensation": "0",
 	"best_object_pos": "0.5x0.5",
 	"default_filament_profile": [],
 	"default_print_profile": "0.16mm Optimal @BBL X1C",
@@ -24,19 +23,24 @@
 	],
 	"enable_long_retraction_when_cut": "0",
 	"enable_pre_heating": "0",
-	"bed_temperature_formula": "by_first_filament",
+	"extruder_height_gap": "0",
+	"extruder_offset": [
+		"0x0"
+	],
+	"fan_direction": "undefine",
+	"gcode_flavor": "marlin",
+	"grab_length": [
+		"0"
+	],
+	"group_algo_with_time": "0",
+	"extruder_max_nozzle_count": [
+		"1"
+	],
 	"hotend_cooling_rate": [
 		"2"
 	],
 	"hotend_heating_rate": [
 		"2"
-	],
-	"extruder_offset": [
-		"0x0"
-	],
-	"gcode_flavor": "marlin",
-	"grab_length": [
-		"0"
 	],
 	"long_retractions_when_cut": [
 		"0"
@@ -60,6 +64,9 @@
 	"machine_max_acceleration_z": [
 		"100"
 	],
+	"machine_max_force_Y": "0",
+	"machine_bed_mass_Y": "0",
+	"machine_max_printed_mass": "0",
 	"machine_max_jerk_e": [
 		"5"
 	],
@@ -93,6 +100,7 @@
 	"machine_prepare_compensation_time": "260",
 	"machine_switch_extruder_time": "0",
 	"machine_unload_filament_time": "29",
+	"machine_hotend_change_time": "0",
 	"master_extruder_id": "1",
 	"max_layer_height": [
 		"0.28"
@@ -104,6 +112,7 @@
 	"nozzle_flush_dataset": [
 		"0"
 	],
+	"print_in_clockwise": "0",
 	"printable_height": "250",
 	"printer_settings_id": "",
 	"printer_structure": "corexy",
@@ -136,13 +145,12 @@
 		"60"
 	],
 	"scan_first_layer": "0",
-	"enable_power_loss_recovery": "printer_configuration",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_cooling_filter": "0",
+	"support_fast_purge_mode": "0",
 	"cooling_filter_enabled": "0",
 	"support_chamber_temp_control": "0",
-	"support_fast_purge_mode": "0",
 	"support_object_skip_flush": "0",
 	"wipe": [
 		"1"
@@ -156,7 +164,5 @@
 	"machine_end_gcode": "M400 ; wait for buffer to clear\nG92 E0 ; zero the extruder\nG1 E-4.0 F3600; retract \nG91\nG1 Z3;\nM104 S0 ; turn off hotend\nM140 S0 ; turn off bed\nM106 S0 ; turn off fan\nG90 \nG0 X110 Y200 F3600 \nprint_end",
 	"time_lapse_gcode": "",
 	"wrapping_detection_gcode": "",
-	"change_filament_gcode": "",
-	"purge_in_prime_tower": "0",
-	"enable_filament_ramming": "0"
+	"change_filament_gcode": ""
 }

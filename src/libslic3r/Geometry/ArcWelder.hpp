@@ -1,7 +1,9 @@
 #ifndef slic3r_Geometry_ArcWelder_hpp_
 #define slic3r_Geometry_ArcWelder_hpp_
 
+#include <Eigen/Core>
 #include <assert.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <Eigen/Geometry>

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "FILL3D PETG @base",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"filament_id": "OFQbjX3s",
 	"instantiation": "false",
-	"inherits": "fdm_filament_pet",
 	"filament_vendor": [
 		"FILL3D"
 	],

@@ -1,4 +1,5 @@
 #include <nlohmann/json.hpp>
+#include <string>
 #include "DevLamp.h"
 
 // TODO: remove this include

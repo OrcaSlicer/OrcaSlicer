@@ -1,28 +1,28 @@
 {
-	"type": "filament",
-	"name": "Bambu Support G @base",
-	"inherits": "fdm_filament_pa",
-	"from": "system",
-	"filament_id": "OFQHiNJs",
-	"instantiation": "false",
-	"description": "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function.",
-	"fan_cooling_layer_time": [
-		"10"
-	],
-	"filament_cost": [
-		"34.99"
-	],
-	"filament_density": [
-		"1.22"
-	],
-	"filament_is_support": [
-		"1"
-	],
-	"filament_vendor": [
-		"Bambu Lab"
-	],
-	"filament_adhesiveness_category": [
-		"701"
+    "type": "filament",
+    "name": "Bambu Support G @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "OFQHiNJs",
+    "instantiation": "false",
+    "description": "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function.",
+    "fan_cooling_layer_time": [
+        "10"
+    ],
+    "filament_cost": [
+        "34.99"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_is_support": [
+        "1"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "filament_adhesiveness_category": [
+        "701"
     ],
     "filament_dev_chamber_drying_time": [
         "16"
@@ -41,17 +41,17 @@
     ],
     "filament_dev_drying_softening_temperature": [
         "85"
-	],
-	"nozzle_temperature": [
-		"280"
-	],
-	"nozzle_temperature_initial_layer": [
-		"280"
-	],
-	"required_nozzle_HRC": [
-		"3"
-	],
-	"slow_down_layer_time": [
-		"6"
-	]
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "required_nozzle_HRC": [
+        "3"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ]
 }

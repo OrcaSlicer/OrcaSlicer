@@ -1,11 +1,22 @@
 #pragma once
+#include <wx/control.h>
+#include <wx/scrolwin.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <wx/panel.h>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
 #endif
 
 #include <wx/splitter.h>
-#include "Scrollbar.hpp"
+
+class wxMouseEvent;
+class wxPanel;
+class wxScrollWinEvent;
+class wxSizeEvent;
+class wxSplitterWindow;
 
 class MyScrollbar;
 

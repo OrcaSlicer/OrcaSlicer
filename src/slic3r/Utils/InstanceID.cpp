@@ -1,7 +1,10 @@
 #include "InstanceID.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <cctype>
+#include <ios>
 #include <mutex>
 #include <optional>
 #include <string>

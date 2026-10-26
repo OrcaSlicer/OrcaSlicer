@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic PLA High Speed @FLSun T1",
-	"inherits": "Generic PLA High Speed @System",
 	"renamed_from": "FLSun T1 PLA High Speed",
+	"inherits": "Generic PLA High Speed @System",
 	"from": "system",
 	"setting_id": "en1l0jgFX97t6qUi",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_multitool_ramming_flow": [
 		"10"
 	],

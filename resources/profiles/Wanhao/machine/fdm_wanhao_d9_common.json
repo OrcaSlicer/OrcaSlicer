@@ -1,0 +1,108 @@
+{
+	"type": "machine",
+	"name": "fdm_wanhao_d9_common",
+	"inherits": "fdm_wanhao_common",
+	"from": "system",
+	"instantiation": "false",
+	"gcode_flavor": "marlin2",
+	"use_relative_e_distances": "1",
+	"emit_machine_limits_to_gcode": "0",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printer_variant": "0.4",
+	"max_layer_height": [
+		"0.32"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_z": [
+		"5",
+		"5"
+	],
+	"machine_max_speed_e": [
+		"25",
+		"25"
+	],
+	"machine_max_acceleration_x": [
+		"3000",
+		"3000"
+	],
+	"machine_max_acceleration_y": [
+		"3000",
+		"3000"
+	],
+	"machine_max_acceleration_z": [
+		"100",
+		"100"
+	],
+	"machine_max_acceleration_e": [
+		"3000",
+		"3000"
+	],
+	"machine_max_acceleration_extruding": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_travel": [
+		"1000",
+		"1000"
+	],
+	"machine_max_acceleration_retracting": [
+		"800",
+		"800"
+	],
+	"machine_max_jerk_x": [
+		"10",
+		"10"
+	],
+	"machine_max_jerk_y": [
+		"10",
+		"10"
+	],
+	"machine_max_jerk_z": [
+		"0.4",
+		"0.4"
+	],
+	"machine_max_jerk_e": [
+		"1",
+		"1"
+	],
+	"retraction_length": [
+		"2.0"
+	],
+	"retraction_speed": [
+		"25"
+	],
+	"deretraction_speed": [
+		"25"
+	],
+	"retraction_minimum_travel": [
+		"1"
+	],
+	"z_hop": [
+		"0"
+	],
+	"wipe": [
+		"0"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"machine_start_gcode": "; Wanhao Duplicator 9 start G-code, for the Marlin 2.1 firmwares at github.com/Le-Syl21/WANHAO-Duplicator-9\nG21 ; millimetres\nG90 ; absolute coordinates\nM83 ; relative extrusion\nM140 S[bed_temperature_initial_layer_single] ; heat the bed\nM104 S150 ; warm the nozzle without letting it ooze\nG91 ; a print stopped by hand can leave the nozzle down on the bed\nG1 Z10 F300 ; so raise it before homing: a BLTouch needs 10 mm to deploy\nG90\nM280 P0 S160 ; BLTouch: clear an alarm and stow the pin\nG28 ; home all axes (this turns bed levelling off)\nM420 S1 ; turn the bed mesh saved from the screen back on\nG1 Z10 F300\nM104 S[nozzle_temperature_initial_layer] ; start the nozzle now, the bed is still heating\nM190 S[bed_temperature_initial_layer_single] ; wait for the bed\nM109 S[nozzle_temperature_initial_layer] ; and confirm the nozzle\nG92 E0\nG1 X15 Y20 Z0.3 F3000 ; start of the priming line\nG1 Y140 E9.0 F1200 ; draw a line of filament\nG1 X15.5 F3000\nG1 Y20 E9.0 F1200 ; and back, next to it\nG92 E0\nG1 X22 F6000 ; wipe sideways to snap the string\nG1 Z2 F300 ; lift, so the line does not stick to the nozzle",
+	"machine_end_gcode": "; Wanhao Duplicator 9 end G-code\nM104 S0 ; nozzle heater off\nM140 S0 ; bed heater off\nM107 ; fan off\nG91 ; relative moves\nG1 E-2 F1500 ; release the pressure in the nozzle\nG1 Z10 F300 ; lift the nozzle\nG90 ; absolute moves\nG1 X5 Y{print_bed_max[1] - 10} F3000 ; bring the bed to the front\nM84 X Y E ; motors off, Z keeps its position",
+	"layer_change_gcode": "G92 E0",
+	"machine_pause_gcode": "M600",
+	"default_filament_profile": [
+		"Generic PLA @System"
+	]
+}

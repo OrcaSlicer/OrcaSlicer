@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC HF @Prusa MINIIS 0.6",
-	"inherits": "Generic PC HF @Prusa base",
 	"renamed_from": "Prusa Generic PC HF @MINIIS 0.6;Prusa Generic PC HF MINIIS 0.6",
+	"inherits": "Generic PC HF @Prusa base",
 	"from": "system",
 	"setting_id": "W3G94E0IQo6Kaq8G",
 	"instantiation": "true",

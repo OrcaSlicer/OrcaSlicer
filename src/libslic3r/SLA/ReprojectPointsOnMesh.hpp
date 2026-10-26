@@ -7,7 +7,9 @@
 #include "IndexedMesh.hpp"
 #include "libslic3r/Model.hpp"
 
+#include <cstddef>
 #include <tbb/parallel_for.h>
+#include <vector>
 
 namespace Slic3r { namespace sla {
 

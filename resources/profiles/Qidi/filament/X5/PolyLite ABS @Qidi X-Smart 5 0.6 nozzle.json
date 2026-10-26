@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "PolyLite ABS @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "PolyLite ABS@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "zZQMgaX4LRSlfnd2",
+	"instantiation": "true",
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"pressure_advance": [
+		"0.018"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

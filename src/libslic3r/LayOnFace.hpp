@@ -2,6 +2,7 @@
 
 #include "Point.hpp"
 
+#include <cstddef>
 #include <vector>
 
 namespace Slic3r {
@@ -44,5 +45,11 @@ int find_plane_at_point(const std::vector<LayOnFacePlane> &planes, const Transfo
 // Rotates the instance so that `normal` (object coordinates) points down, the same rotation as
 // the gizmo applies, then drops the instance so its lowest point is at z = 0.
 void lay_on_face(ModelObject &object, size_t instance_idx, const Vec3d &normal);
+
+// The rotation that turns `normal` (object coordinates) to point down, given the instance's
+// rotation, scale and mirror. A face that already points straight up is turned over about X:
+// the axis setFromTwoVectors() picks there is arbitrary, and it lands the object at a random
+// angle in the plate plane.
+Transform3d lay_on_face_rotation(const Vec3d &normal, const Transform3d &instance_matrix_no_offset);
 
 } // namespace Slic3r

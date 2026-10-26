@@ -39,19 +39,23 @@
 		"20000"
 	],
 	"machine_max_speed_e": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_x": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
+		"12",
 		"12"
 	],
 	"retraction_length": [
-		"1"
+		"1.2"
 	],
 	"retraction_speed": [
 		"60"
@@ -80,5 +84,10 @@
 	],
 	"retract_before_wipe": [
 		"0"
-	]
+	],
+	"default_filament_profile": [
+		"Blocks PLA @Blocks_RF50"
+	],
+	"support_multi_bed_types": "1",
+	"default_bed_type": "Textured PEI Plate"
 }

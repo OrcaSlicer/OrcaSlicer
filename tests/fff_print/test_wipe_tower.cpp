@@ -1,15 +1,36 @@
+#include <algorithm>
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/Config.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <cstddef>
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
+#include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "test_helpers.hpp"
+#include "test_utils.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -185,6 +206,78 @@ TEST_CASE("The wipe tower's toolchange planner flush follows the gcode flavor", 
     }
 }
 
+TEST_CASE("The wipe tower sets Klipper's acceleration and accel_to_decel on one line", "[WipeTower]")
+{
+    // On separate lines, current Klipper finds nothing it reads on the ACCEL_TO_DECEL one and 0.13
+    // derives the cruise ratio from the acceleration before the change.
+    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+    // Type 2 towers leave the acceleration to the main G-code writer.
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" },
+                                    { "accel_to_decel_enable", "1" }, { "accel_to_decel_factor", "50%" },
+                                    { "default_acceleration", "1000" }, { "travel_acceleration", "2000" },
+                                    { "machine_max_acceleration_extruding", "5000" } });
+    const std::string tower = wipe_tower_regions(slice_with_prime_tower(config));
+    REQUIRE_THAT(tower, Catch::Matchers::ContainsSubstring("SET_VELOCITY_LIMIT ACCEL="));
+    CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(" MINIMUM_CRUISE_RATIO=0.5\n"));
+    CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("SET_VELOCITY_LIMIT ACCEL_TO_DECEL") &&
+                      !Catch::Matchers::ContainsSubstring("M204"));
+}
+
+TEST_CASE("The wipe tower's G-code moves keep a decimal point in a comma-decimal locale", "[WipeTower]")
+{
+    // The GUI slices on a thread that keeps the user's numeric locale.
+    CommaNumericLocale comma;
+    CNumericLocalesSetter restore;
+    if (! comma.apply())
+        SKIP("no locale with a comma decimal separator is installed");
+    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+    // Type 1 towers join their toolchange blocks with a travel move of their own.
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" } });
+    const std::string gcode = slice_with_prime_tower(config);
+    REQUIRE_FALSE(wipe_tower_regions(gcode).empty());
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);)
+        if (! line.empty() && line.front() == 'G' && line.find(',') != std::string::npos)
+            FAIL_CHECK(line);
+}
+
+TEST_CASE("The wipe tower's flow tags keep a decimal point in a comma-decimal locale", "[WipeTower]")
+{
+    // GCodeProcessor parses these values with the C locale: a comma makes it log an error and
+    // ignore the tag, leaving the extrusion width and height it assumes to its own defaults.
+    CommaNumericLocale comma;
+    CNumericLocalesSetter restore;
+    if (! comma.apply())
+        SKIP("no locale with a comma decimal separator is installed");
+    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" } });
+    const std::string gcode = slice_with_prime_tower(config);
+    // WipeTowerWriter forces the BBL flag, so the tower writes these spellings on every printer.
+    // By the time the test asks, export has reset the flag for this Klipper config and
+    // reserved_tag() would hand back the main G-code's ";HEIGHT:" / ";WIDTH:" instead.
+    // The width and height tags are both written by the writer's constructor, before the
+    // tower's start tag, so scan the whole slice.
+    const std::string height_tag = "; LAYER_HEIGHT: ";
+    const std::string width_tag  = "; LINE_WIDTH: ";
+    size_t heights = 0;
+    size_t widths  = 0;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);) {
+        const bool is_height = line.compare(0, height_tag.size(), height_tag) == 0;
+        const bool is_width  = line.compare(0, width_tag.size(), width_tag) == 0;
+        if (! is_height && ! is_width)
+            continue;
+        if (is_height)
+            ++heights;
+        else
+            ++widths;
+        if (line.find(',') != std::string::npos)
+            FAIL_CHECK(line);
+    }
+    CHECK(heights > 0);
+    CHECK(widths > 0);
+}
+
 // What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
 // they call the estimator directly. The estimate counts the filaments the print really uses,
 // so the two-filament shape gives the outer wall the second one.
@@ -308,6 +401,119 @@ TEST_CASE("A single-filament plate reserves a tower only when one is actually pr
     }
 }
 
+// Filament 2 on the top surface only, so every layer below it is a toolchange-free tower layer: the
+// run "Combine sparse layers" folds. The two heights decide whether anything folds, so they are the
+// caller's business.
+static DynamicPrintConfig sparse_run_config(double layer_height, const char *max_layer_height, bool combine)
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "top_surface_filament_id",        2     },
+        { "enable_prime_tower",             true  },
+        { "wipe_tower_x",                   50    }, // inside the 200x200 test bed
+        { "wipe_tower_y",                   50    },
+        { "prime_tower_width",              35    },
+        { "min_layer_height",               "0.08"},
+        { "single_extruder_multi_material", true  },
+        { "timelapse_type",                 "0"   },
+        { "enable_wrapping_detection",      false },
+        { "raft_layers",                    "0"   } });
+    // A taller first layer would top the plan and hide what the run does, so slice at one height.
+    config.set_deserialize_strict({ { "layer_height",               std::to_string(layer_height) },
+                                    { "initial_layer_print_height", std::to_string(layer_height) },
+                                    { "max_layer_height", max_layer_height },
+                                    { "wipe_tower_sparse_layers_combination", combine ? "1" : "0" } });
+    return config;
+}
+
+// What a sliced tower did with its sparse run.
+struct SparseRunResult { size_t planned, sparse, folded; float tallest_printed, printed_height; std::string gcode; };
+
+static SparseRunResult slice_sparse_run(const DynamicPrintConfig &config)
+{
+    Print print;
+    Model model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+
+    SparseRunResult r{};
+    for (const std::vector<WipeTower::ToolChangeResult> &layer : print.wipe_tower_data().tool_changes) {
+        if (layer.empty())
+            continue;
+        ++r.planned;
+        if (wipe_tower_layer_is_sparse(layer))
+            ++r.sparse;
+        if (wipe_tower_layer_is_combined_away(layer)) {
+            ++r.folded;
+        } else {
+            r.tallest_printed = std::max(r.tallest_printed, layer.front().layer_height);
+            r.printed_height += layer.front().layer_height;
+        }
+    }
+    r.gcode = Slic3r::Test::gcode(print);
+    return r;
+}
+
+// How often the G-code declares `height` in the tag this printer's processor reads. The dialect is a
+// global the exporter sets from the printer, so this is only correct after a slice - the point below.
+static size_t count_height_tags(const std::string &gcode, const char *height)
+{
+    const std::string tag = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) + height + "\n";
+    size_t n = 0;
+    for (size_t p = gcode.find(tag); p != std::string::npos; p = gcode.find(tag, p + 1))
+        ++n;
+    return n;
+}
+
+TEST_CASE("Combining sparse layers folds a run into whole layers the nozzle can lay down", "[WipeTower]")
+{
+    // 0.1 mm layers under a 0.32 mm cap: three fit (0.3), a fourth does not, so a run prints once
+    // every three layers at 0.3 mm.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.1, "0.32", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.1, "0.32", true));
+
+    REQUIRE(plain.planned == combined.planned); // the plan still has one layer per object layer
+    REQUIRE(plain.sparse > 10);
+    CHECK(plain.folded == 0);
+    CHECK_THAT(plain.tallest_printed, Catch::Matchers::WithinAbs(0.1f, 1e-4f));
+
+    CHECK(combined.folded > 0);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.3f, 1e-4f));
+    // Two of every three sparse layers fold away, leaving the toolchange layers untouched.
+    CHECK(combined.folded <= plain.sparse);
+    CHECK(combined.folded >= plain.sparse / 2);
+    // What folds away comes back as height on the layer that prints the run: no gap, nothing twice.
+    CHECK_THAT(combined.printed_height, Catch::Matchers::WithinAbs(plain.printed_height, 1e-3f));
+}
+
+TEST_CASE("A run too thin to reach the nozzle's layer height is left alone", "[WipeTower]")
+{
+    // Only whole layers merge, so two 0.2 mm layers (0.4) do not fit a 0.32 mm maximum and the tower
+    // prints as if the option were off. This is the common 0.4 nozzle case; the tooltip says so.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.2, "0.32", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.2, "0.32", true));
+
+    REQUIRE(plain.sparse > 10);
+    CHECK(combined.folded == 0);
+    CHECK(combined.planned == plain.planned);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.2f, 1e-4f));
+}
+
+TEST_CASE("A merged tower layer declares its own height to the G-code processor", "[WipeTower]")
+{
+    // Each writer declares a height in a hardcoded tag dialect while the processor reads only its
+    // printer's, so one of them is always dropped. A merged layer is the first time that shows, as a
+    // thick layer drawn and costed as a thin one. 0.2 mm layers under a 0.42 mm maximum merge in pairs.
+    const SparseRunResult plain    = slice_sparse_run(sparse_run_config(0.2, "0.42", false));
+    const SparseRunResult combined = slice_sparse_run(sparse_run_config(0.2, "0.42", true));
+
+    REQUIRE(combined.folded > 0);
+    CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.4f, 1e-4f));
+    // Every layer that prints a merged run has to say so, and nothing may say so without the option.
+    CHECK(count_height_tags(combined.gcode, "0.4") - count_height_tags(plain.gcode, "0.4") == combined.folded);
+}
+
 TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")
 {
     // Wrapping detection prints a tower on a plate that purges one filament. Neither the old
@@ -328,4 +534,42 @@ TEST_CASE("A tower printed without a tool change is still validated against the 
     REQUIRE(print.has_wipe_tower());
     CHECK(print.wipe_tower_data(1).depth > 0.f);
     CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
+}
+
+TEST_CASE("Only a cone wall gives the tower a stabilization cone", "[WipeTower]")
+{
+    // The cone angle stays in the config for every wall type, but only a cone wall prints the
+    // cone. A 120 mm object makes the tower tall enough that a 30 degree cone would reach the
+    // thin plate in front of the tower, which the real rectangle or rib tower stays clear of.
+    const std::string wall_type = GENERATE("rectangle", "rib", "cone");
+    DynamicPrintConfig config = tower_estimate_config(wall_type.c_str());
+    config.set_deserialize_strict({ { "wipe_tower_type",       "type2" },
+                                    { "wipe_tower_cone_angle", "30" },
+                                    { "wipe_tower_x",          "30" },
+                                    { "wipe_tower_y",          "80" },
+                                    { "layer_height",          "0.3" } });
+
+    TriangleMesh tall = make_cube(20., 20., 120.);
+    tall.translate(150.f, 150.f, 0.f);
+    TriangleMesh plate = make_cube(30., 32., 2.);
+    plate.translate(40.f, 30.f, 0.f);
+    const double plate_max_y = 30. + 32.;
+
+    Print print;
+    Model model;
+    init_print({ std::move(tall), std::move(plate) }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.has_wipe_tower());
+
+    const BoundingBox footprint(print.first_layer_wipe_tower_corners());
+    INFO("wall type " << wall_type << ", tower depth " << print.wipe_tower_data().depth << ", footprint min y "
+                      << unscaled(footprint.min.y()));
+    if (wall_type == "cone") {
+        CHECK(unscaled(footprint.min.y()) < plate_max_y);
+        CHECK(print.get_conflict_result().has_value());
+    } else {
+        CHECK(unscaled(footprint.min.y()) > plate_max_y);
+        CHECK_FALSE(print.get_conflict_result().has_value());
+    }
 }

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Tiertime",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Tiertime Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "mDRlI9biZBn9sNlS",
 	"filament_id": "OFY9muEs",

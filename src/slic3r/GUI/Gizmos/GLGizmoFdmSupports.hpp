@@ -9,6 +9,14 @@
 #include "slic3r/GUI/I18N.hpp"
 
 #include <boost/thread.hpp>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include <wx/string.h>
+#include <cstddef>
+#include <vector>
+#include <mutex>
+#include <map>
+#include <utility>
 
 namespace Slic3r::GUI {
 

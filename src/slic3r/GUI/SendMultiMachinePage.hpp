@@ -13,6 +13,23 @@
 #include "Widgets/TextInput.hpp"
 #include "AmsMappingPopup.hpp"
 #include "SelectMachine.hpp"
+#include <wx/string.h>
+#include <wx/list.h>
+#include <wx/dc.h>
+#include <wx/event.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <map>
+#include <string>
+#include <wx/timer.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include "libslic3r/AppConfig.hpp"
+#include <wx/panel.h>
+#include <vector>
+#include "libslic3r/ProjectTask.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/simplebook.h>
+#include "libslic3r/GCode/ThumbnailData.hpp"
 
 namespace Slic3r {
 

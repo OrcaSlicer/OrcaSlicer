@@ -6,7 +6,13 @@
 
 #include <cassert>
 #include <algorithm>
+#include <string>
+#include <initializer_list>
+#include <memory>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Technologies.hpp"
 #include <string_view>
+#include <utility>
 using namespace std::literals;
 
 #include <glad/gl.h>
@@ -106,6 +112,11 @@ std::pair<bool, std::string> GLShadersManager::init()
         valid &= append_shader("mm_gouraud", { prefix + "mm_gouraud.vs", prefix + "mm_gouraud.fs" }, { "FLIP_TRIANGLE_NORMALS"sv });
     else
         valid &= append_shader("mm_gouraud", { prefix + "mm_gouraud.vs", prefix + "mm_gouraud.fs" });
+    // Fast shaded preview for the texture displacement gizmo (see libslic3r/TextureDisplacement.hpp).
+    valid &= append_shader("texture_displacement_shaded", { prefix + "texture_displacement_shaded.vs", prefix + "texture_displacement_shaded.fs" });
+    // UV-check overlay for the same gizmo: a procedural checker or a distortion heatmap over the
+    // painted patch, to sanity-check the unwrap.
+    valid &= append_shader("texture_displacement_uvcheck", { prefix + "texture_displacement_uvcheck.vs", prefix + "texture_displacement_uvcheck.fs" });
 
     return { valid, error };
 }

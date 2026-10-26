@@ -1,10 +1,13 @@
 #include "ASCIIFolding.hpp"
 
+#include <iterator>
+#include <cstddef>
 #include <stdio.h>
 #include <string.h>
 #include <locale>
 #include <boost/locale/encoding_utf.hpp>
 #include <regex>
+#include <string>
 
 namespace Slic3r {
 

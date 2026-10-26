@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_FilamentBitmapUtils_hpp_
 #define slic3r_GUI_FilamentBitmapUtils_hpp_
 
+#include <cstddef>
 #include <wx/bitmap.h>
 #include <wx/colour.h>
 #include <wx/dc.h>
@@ -30,6 +31,13 @@ TriPoint tri_clamp(TriPoint p, TriPoint v0, TriPoint v1, TriPoint v2);
 // Use instead of wxDC::GradientFillLinear, whose CoreGraphics (CGShading) backend
 // fails to render on some macOS builds; solid fills are unaffected.
 void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const wxColour& from, const wxColour& to);
+// Ordered, evenly spaced RGBA stops, including when the rect is narrower than the stop count.
+void fill_gradient_rect_east(wxDC& dc, const wxRect& rect, const std::vector<wxColour>& colors);
+
+// Draw ordered RGBA colors through the graphics backend, with a checkerboard beneath alpha.
+// The DC must support graphics-context rendering.
+void draw_rounded_filament_swatch(wxDC& dc, const wxRect& rect, const std::vector<wxColour>& colors,
+                                  bool gradient, double radius);
 
 enum class FilamentRenderMode {
     Single,
@@ -41,6 +49,7 @@ enum class FilamentRenderMode {
 
 // Create a colour swatch bitmap. The render mode is chosen automatically from the
 // number of colours unless force_gradient is true.
+// Composites RGBA over a checkerboard and returns an opaque RGB bitmap.
 wxBitmap create_filament_bitmap(const std::vector<wxColour>& colors,
                               const wxSize& size,
                               bool force_gradient = false);
@@ -73,7 +82,7 @@ Slic3r::GradientCurve mixed_gradient_curve(const Slic3r::DynamicPrintConfig& cfg
 // Fill rect with a ramp, ramp.front() along the bottom edge.
 void fill_gradient_ramp_rect(wxDC& dc, const wxRect& rect, const std::vector<wxColour>& ramp);
 
-// Swatch bitmap for a gradient mixed filament, drawn bottom to top from the ramp.
+// Opaque RGB swatch for a gradient mixed filament, drawn bottom to top over a checkerboard.
 wxBitmap create_gradient_ramp_bitmap(const std::vector<wxColour>& ramp, const wxSize& size);
 
 // Recompute blended representative colors for mixed (virtual) filament slots.
