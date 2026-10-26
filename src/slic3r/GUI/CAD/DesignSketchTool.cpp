@@ -2924,6 +2924,25 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
     }
     try_add_constraints(coincs);   // co-located points: consistent by construction
 
+    // 1b) A point drawn onto the sketch origin is hooked to it. snap_vertex already put it there (the magenta marker); this
+    //     records it, so the shape keeps its place when the sketch is dimensioned or re-solved. Only for a drawn gesture: a
+    //     scripted add (weld_tol 0) says exactly what it means and gets no constraint it did not ask for.
+    if (weld_tol > 0.0) {
+        for (int i = base; i < n; ++i) {
+            const SketchEntity& e = m_entities[i];
+            SketchPointRole roles[3]; int nr = sketch_endpoint_roles(e, roles);
+            if (e.type == SketchEntity::Type::Circle || e.type == SketchEntity::Type::Arc) roles[nr++] = SketchPointRole::Center;
+            for (int k = 0; k < nr; ++k) {
+                Vec2d pa; if (!point_at(i, roles[k], pa) || pa.norm() > weld_tol) continue;
+                if (has_coincident(i, roles[k], kSketchRefOrigin, SketchPointRole::P0)) continue;
+                SketchEntityConstraintDef c;
+                c.type = SketchConstraintType::Coincident;
+                c.ea = i; c.ra = roles[k]; c.eb = kSketchRefOrigin; c.rb = SketchPointRole::P0;
+                try_add_constraints({ c });   // one at a time: a refused one (already fixed another way) must not cost the others
+            }
+        }
+    }
+
     // 2) Horizontal / Vertical on axis-aligned new line segments. Tried as ONE batch first and
     //    only then one at a time, which is the same outcome — a single conflict never drops the
     //    others — for one solve instead of n. That matters now that large sketches actually
@@ -10810,6 +10829,10 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     case Mode::Constrain:
         break;
     }
+
+    // The sketch origin, always visible: it is a point a tool can hook onto (the snap marker below lights it up).
+    if (m_active)
+        draw_vertices(m_highlight_model, { Vec2d(0, 0) }, ColorRGBA(0.85f, 0.30f, 0.75f, 0.8f));
 
     // Inference hint: highlight the snapped target under the cursor (C1.3). Colour
     // encodes what the placed point will be Coincident/PointOnObject/Fixed onto.
