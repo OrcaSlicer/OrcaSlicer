@@ -664,13 +664,14 @@ void ParamsPanel::set_active_tab(wxPanel* tab)
         dialog->SetTitle(title);
     }
 
+    const wxString process_flow_ratio_reason = _L("The process flow ratio cannot be edited in this panel.");
     auto tab_print = dynamic_cast<Tab *>(m_tab_print);
     if (cur_tab == m_tab_print) {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     } else {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     }
 }
 

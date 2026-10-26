@@ -713,6 +713,9 @@ void AppConfig::set_defaults()
 #ifdef __linux__
     if (get("window_buttons_on_left").empty())
         set_bool("window_buttons_on_left", false);
+
+    if (get("prefer_discrete_gpu").empty())
+        set_bool("prefer_discrete_gpu", false);
 #endif
 
     if (get("use_printer_agents").empty())
@@ -1903,19 +1906,43 @@ std::string AppConfig::lock_path()
     return Slic3r::data_dir().empty() ? std::string() : config_path() + ".lock";
 }
 
-std::string AppConfig::config_path()
+std::string AppConfig::config_path(const std::string &data_dir, EAppMode mode)
 {
 #ifdef USE_JSON_CONFIG
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".conf")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".conf")).make_preferred().string();
+    const char *extension = ".conf";
 #else
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".ini")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".ini")).make_preferred().string();
+    const char *extension = ".ini";
 #endif
+    const char *name = (mode == EAppMode::Editor) ? SLIC3R_APP_KEY : GCODEVIEWER_APP_KEY;
+    return (boost::filesystem::path(data_dir) / (std::string(name) + extension)).make_preferred().string();
+}
 
-    return path;
+std::string AppConfig::config_path()
+{
+    return config_path(Slic3r::data_dir(), m_mode);
+}
+
+bool AppConfig::peek_bool(const std::string &data_dir, const std::string &key)
+{
+    try {
+        boost::nowide::ifstream ifs(config_path(data_dir, EAppMode::Editor));
+        if (!ifs.is_open())
+            return false;
+        // Parses the leading JSON value only, so the checksum line Windows appends is ignored.
+        json j;
+        ifs >> j;
+        const auto app = j.find("app");
+        if (app == j.end() || !app->is_object())
+            return false;
+        const auto it = app->find(key);
+        if (it == app->end())
+            return false;
+        if (it->is_boolean())
+            return it->get<bool>();
+        return it->is_string() && is_true(it->get<std::string>());
+    } catch (const std::exception &) {
+        return false;
+    }
 }
 
 std::string AppConfig::version_check_url() const

@@ -1146,6 +1146,38 @@ static bool is_hypervisor_guest()
 }
 #endif
 
+#if defined(__WXGTK__) && defined(__linux__)
+// Moves rendering to the discrete GPU of a dual-GPU system when the user asked for it in
+// Preferences. The PRIME variables have to be in the environment before GTK opens the display,
+// long before GUI_App loads the configuration, so the preference is read straight from the
+// saved editor configuration (the G-code viewer follows the editor's choice), in the data dir
+// GUI_App::init_app_config will pick: --datadir, else default_data_dir().
+static void apply_discrete_gpu_preference()
+{
+    const std::string dir = data_dir().empty() ? default_data_dir() : data_dir();
+    if (!AppConfig::peek_bool(dir, "prefer_discrete_gpu"))
+        return;
+    // A DRI_PRIME already in the environment wins over the preference, whatever its value: one
+    // start with DRI_PRIME=0 gets back to Preferences when the discrete GPU cannot open the window.
+    if (::getenv("DRI_PRIME") != nullptr) {
+        BOOST_LOG_TRIVIAL(info) << "Discrete GPU preference ignored: DRI_PRIME is already set.";
+        return;
+    }
+    BOOST_LOG_TRIVIAL(info) << "Rendering on the discrete GPU by preference; exporting the PRIME variables.";
+    // DRI_PRIME=1 selects the non-default GPU for the Mesa drivers (AMD, Intel, nouveau).
+    ::setenv("DRI_PRIME", "1", /* replace */ false);
+    // The NVIDIA proprietary driver has its own render-offload variables. Only when its kernel
+    // module is loaded, so systems without NVIDIA are untouched. This is the set switcheroo-control
+    // hands a launcher for the NVIDIA GPU; the Vulkan layer variable keeps Vulkan consumers such as
+    // zink on the same GPU as GL.
+    if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+        ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        ::setenv("__VK_LAYER_NV_optimus", "NVIDIA_only", /* replace */ false);
+    }
+}
+#endif
+
 int CLI::run(int argc, char **argv)
 {
     // Mark the main thread for the debugger and for runtime checks.
@@ -1167,11 +1199,12 @@ int CLI::run(int argc, char **argv)
     //
     //   GDK_BACKEND=x11   (OPT-IN)     X11/XWayland mode. Applies the
     //                                  v2.3.2 workarounds that the X11
-    //                                  path benefits from: DRI_PRIME for
-    //                                  AMD/nouveau PRIME, NVIDIA PRIME
-    //                                  render offload (when nvidia.ko is
-    //                                  loaded), XInitThreads. 
+    //                                  path benefits from (XInitThreads).
     //                                  Multi monitor is compromised
+    //
+    // Which GPU renders on a dual-GPU system is independent of the backend:
+    // the "Render on the discrete GPU" preference exports the PRIME
+    // variables in apply_discrete_gpu_preference(), on both paths.
     //
     // WEBKIT_DISABLE_COMPOSITING_MODE is deliberately NOT set on the X11
     // opt-in path. The ~2020-era WebKit2GTK XWayland compositor bug it
@@ -1202,19 +1235,6 @@ int CLI::run(int argc, char **argv)
         if (x11_opt_in) {
             // ===== X11 / XWayland (opted in via GDK_BACKEND=x11) =====
             BOOST_LOG_TRIVIAL(info) << "GDK_BACKEND=x11 detected; applying v2.3.2 X11/XWayland workarounds.";
-
-            // On Linux dual-GPU systems, request the high-performance
-            // discrete GPU. DRI_PRIME=1 handles AMD and nouveau PRIME
-            // setups; harmless on single-GPU systems (Mesa ignores it).
-            ::setenv("DRI_PRIME", "1", /* replace */ false);
-
-            // For NVIDIA proprietary driver PRIME render offload, set
-            // additional variables. Only set if the NVIDIA kernel module
-            // is loaded to avoid breaking systems without NVIDIA.
-            if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
-                ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
-                ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
-            }
 
             // Tell Xlib we will be using threads, lest we crash when
             // GStreamer fires up. Safe to call here since the user has
@@ -1436,6 +1456,9 @@ int CLI::run(int argc, char **argv)
             return 1;
         }
     #endif // some linux / unix system
+    #if defined(__WXGTK__) && defined(__linux__)
+        apply_discrete_gpu_preference();
+    #endif
         Slic3r::GUI::GUI_InitParams params;
         params.argc = argc;
         params.argv = argv;
