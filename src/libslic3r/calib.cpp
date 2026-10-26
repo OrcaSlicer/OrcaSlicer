@@ -268,12 +268,13 @@ double CalibPressureAdvance::get_distance(Vec2d from, Vec2d to) const
 }
 
 std::string CalibPressureAdvance::draw_line(
-    GCodeWriter &writer, Vec2d to_pt, double line_width, double layer_height, double speed, const std::string &comment)
+    GCodeWriter &writer, Vec2d to_pt, double line_width, double layer_height, double speed, const std::string &comment, double e_per_mm)
 {
-    const double e_per_mm = CalibPressureAdvance::e_per_mm(line_width, layer_height,
-                                                           m_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0),
-                                                           m_config.option<ConfigOptionFloats>("filament_diameter")->get_at(0),
-                                                           m_config.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->get_at(0));
+    if (e_per_mm <= 0.)
+        e_per_mm = CalibPressureAdvance::e_per_mm(line_width, layer_height,
+                                                  m_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0),
+                                                  m_config.option<ConfigOptionFloats>("filament_diameter")->get_at(0),
+                                                  m_config.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->get_at(0));
 
     const double length = get_distance(Vec2d(m_last_pos.x(), m_last_pos.y()), to_pt);
     auto         dE     = e_per_mm * length;
@@ -324,19 +325,19 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
 
         y += size_y - i * spacing * 2;
         comment = "Draw perimeter (up)";
-        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
 
         x += size_x - i * spacing * 2;
         comment = "Draw perimeter (right)";
-        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
 
         y -= size_y - i * spacing * 2;
         comment = "Draw perimeter (down)";
-        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
 
         x -= size_x - i * spacing * 2;
         comment = "Draw perimeter (left)";
-        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+        gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
     }
 
     if (!opt_args.is_filled) {
@@ -373,7 +374,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 y += x - x_min_bound;
                 x                     = x_min_bound;
                 comment = "Fill: Print up/left";
-                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
             } else {
                 y += spacing_45;
                 x = x_min_bound;
@@ -382,7 +383,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 x += y - y_min_bound;
                 y                     = y_min_bound;
                 comment = "Fill: Print down/right";
-                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
             }
         } else if (i < std::max(x_count, y_count)) {
             if (x_count > y_count) {
@@ -395,7 +396,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     x -= y_max_bound - y_min_bound;
                     y                     = y_max_bound;
                     comment = "Fill: Print up/left";
-                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
                 } else {
                     if (i == y_count) {
                         x += spacing_45 - y_remainder;
@@ -409,7 +410,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     x += y_max_bound - y_min_bound;
                     y                     = y_min_bound;
                     comment = "Fill: Print down/right";
-                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
                 }
             } else {
                 // box is taller than wide
@@ -426,7 +427,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     x = x_min_bound;
                     y += x_max_bound - x_min_bound;
                     comment = "Fill: Print up/left";
-                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
                 } else {
                     x = x_min_bound;
                     y += spacing_45;
@@ -435,7 +436,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     x = x_max_bound;
                     y -= x_max_bound - x_min_bound;
                     comment = "Fill: Print down/right";
-                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                    gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
                 }
             }
         } else {
@@ -451,7 +452,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 x -= y_max_bound - y;
                 y                     = y_max_bound;
                 comment = "Fill: Print up/left";
-                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
             } else {
                 if (i == y_count) {
                     x += spacing_45 - y_remainder;
@@ -464,7 +465,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                 y -= x_max_bound - x;
                 x                     = x_max_bound;
                 comment = "Fill: Print down/right";
-                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
+                gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment, opt_args.e_per_mm);
             }
         }
     }
@@ -597,6 +598,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
         DrawBoxOptArgs default_box_opt_args(2, m_height_layer, m_line_width, fast);
         //Draw box
         default_box_opt_args.is_filled = true;
+        default_box_opt_args.e_per_mm  = e_per_mm; // same line width and height as the PA lines
         gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n";
         gcode << draw_box(writer, box_start_x, start_y - m_space_y,
                           number_spacing() * 8, (num + 1) * m_space_y, default_box_opt_args);
