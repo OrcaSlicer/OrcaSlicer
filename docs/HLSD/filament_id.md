@@ -73,7 +73,8 @@ device-reported tray material id flowing through the shared matcher.
 | Bambu AMS | the device itself (RFID / user tray setting), in Bambu's own `GF*` catalog; `BBLPrinterAgent` rewrites it into our id before the matcher sees it (see [The Bambu catalog map](#the-bambu-catalog-map)) |
 | Qidi box | composed at runtime as `QD_<series>_<vendor>_<typeidx>` — vendor and type indices from the device's per-slot saved variables, the series digit inferred client-side from the printer model/name. No preset carries a `QD_*` value, so the slot currently resolves by filament type; mapping the composed id onto the filament's minted id belongs in the agent |
 | Creality CFS | runtime brand/type scoring returns the winning preset's id |
-| Klipper (AFC / Happy Hare) | runtime lookup by filament type |
+| Klipper (Moonraker `lane_data`, e.g. AFC) | the lane's optional `filament_id` when present (an id the sender took from a filament preset); otherwise runtime lookup by filament type |
+| Klipper (Happy Hare) | runtime lookup by filament type |
 | Snapmaker | runtime color/vendor/type match |
 
 Tray-to-preset matching is printer-scoped, but **several consumers match globally by id alone,
