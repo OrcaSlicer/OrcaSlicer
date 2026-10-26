@@ -86,7 +86,8 @@ protected:
         bool        use_ssl = false;
     } device_info;
 
-    // Copied when the stream starts, so changes apply to the next start_status_stream()
+    // Copied when the stream starts, so changes apply to the next start_status_stream(). A connection's retries read
+    // reconnect_delay directly.
     struct StatusStreamTimings
     {
         std::chrono::milliseconds handshake{std::chrono::seconds(10)};      // Opening and closing handshakes

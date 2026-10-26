@@ -2305,14 +2305,25 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
     }
 
     try {
+        // Nothing else retries the connection, so retry with the status stream's backoff until superseded: the printer
+        // may still be starting, and on macOS the first attempt has been seen refused while the app's Local Network
+        // access is checked
         MoonrakerDeviceInfo fetched_info;
-        if (!fetch_device_info(base_url, api_key, fetched_info, error_msg, is_stale)) {
-            if (!is_stale()) {
-                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg;
+        for (int attempt = 0; !fetch_device_info(base_url, api_key, fetched_info, error_msg, is_stale); ++attempt) {
+            if (is_stale()) {
+                return;
             }
-            // Orca todo: revist here, for now don't send error, this is set current MachineObject to null
-            // dispatch_local_connect(ConnectStatusFailed, dev_id, "server_info_failed");
-            return;
+            const auto delay = ws_timings.reconnect_delay * (1 << std::min(attempt, 5));
+            BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: Failed to fetch server info: " << error_msg << ", retrying in "
+                                       << delay.count() << "ms";
+            // Short steps, so a disconnect or the destructor does not wait out the delay
+            const auto step = std::chrono::milliseconds(50);
+            for (auto waited = std::chrono::milliseconds(0); waited < delay && !is_stale(); waited += step) {
+                std::this_thread::sleep_for(step);
+            }
+            if (is_stale()) {
+                return;
+            }
         }
 
         // Commit fetched info back to device_info under lock, only if still current
