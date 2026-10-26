@@ -2583,6 +2583,29 @@ void DesignSketchTool::keep_segment_as_drawn()
     m_awaiting_length = false;
 }
 
+void DesignSketchTool::add_origin_reference()
+{
+    if (!m_active || !m_entities.empty()) return;
+    SketchEntity p;
+    p.type = SketchEntity::Type::Point;
+    p.p0 = Vec2d(0, 0);
+    p.construction = true;
+    m_entities.push_back(p);
+    SketchEntityConstraintDef c;
+    c.type = SketchConstraintType::Coincident;
+    c.ea = 0; c.ra = SketchPointRole::P0; c.eb = kSketchRefOrigin; c.rb = SketchPointRole::P0;
+    m_constraints.push_back(c);
+    m_autoedit_seen = int(m_entities.size());   // not a drawn gesture: no draw-then-edit on it
+    resolve_live();
+    if (on_constraints_changed) on_constraints_changed();
+}
+
+bool DesignSketchTool::is_only_origin_reference(const std::vector<SketchEntity>& ents, const std::vector<SketchEntityConstraintDef>& cons)
+{
+    return ents.size() == 1 && ents[0].type == SketchEntity::Type::Point && ents[0].construction
+        && ents[0].p0.norm() < 1e-12 && cons.size() <= 1;
+}
+
 void DesignSketchTool::finish()
 {
     // A value field still open at commit time outlives the session — the editor is a top-level

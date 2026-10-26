@@ -227,6 +227,10 @@ public:
     // Grid snap: draw tools land on multiples of `step` (mm) in sketch (u,v). Inference snaps and
     // Shift (the existing "no snapping" modifier) take priority over it.
     void set_grid_snap(bool on, double step) { m_grid_on = on; m_grid_step = step; }   // show the grid, and its step
+    // A new sketch's first entity: a construction point on the sketch origin, held there, for Fix / Coincident / dimensions to pick.
+    void add_origin_reference();
+    // Is this sketch nothing but that point? Then there is nothing to commit.
+    static bool is_only_origin_reference(const std::vector<SketchEntity>& ents, const std::vector<SketchEntityConstraintDef>& cons);
     void set_grid_magnet(bool on) { m_grid_magnet = on; }                              // points snap to the grid, shown or not
     void set_polygon_sides(int n) { m_polygon_sides = (n < 3 ? 3 : n); }
     void set_polygon_circumscribed(bool c) { m_polygon_circumscribed = c; }

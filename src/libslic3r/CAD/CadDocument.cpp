@@ -5295,6 +5295,31 @@ bool CadDocument::recompute()
     // type the way a per-mutator bump would be.
     ++topo_generation;
 
+    // A sketch on a datum plane built from a face was seated, in the loop above, on the plane the PREVIOUS bodies gave: a plane
+    // from a face is only known once the bodies are. They are final now, and the datum ids have followed them: if a sketch's plane
+    // is not where its datum is, seat it there and rebuild once more (the second pass finds it in place, so it ends).
+    if (!m_datum_redo) {
+        const auto datums = resolve_datum_planes();
+        bool moved = false;
+        for (int fi = 0; fi < int(features.size()) && !moved; ++fi) {
+            const CadFeature& f = features[fi];
+            const int pi = f.attach_datum;
+            if (!f.enabled || f.type != CadFeatureType::Sketch || pi < 0 || pi >= int(features.size())
+                || features[pi].type != CadFeatureType::Plane || !features[pi].enabled)
+                continue;
+            size_t k = 0;
+            for (int j = 0; j < pi; ++j)
+                if (features[j].type == CadFeatureType::Plane && features[j].enabled) ++k;
+            if (k >= datums.size()) continue;
+            const SketchPlane& np = datums[k].second;
+            moved = (np.origin - f.plane.origin).norm() > 1e-9 || (np.normal - f.plane.normal).norm() > 1e-9 || (np.x_axis - f.plane.x_axis).norm() > 1e-9;
+        }
+        if (moved) {
+            struct Pass { bool& b; explicit Pass(bool& x) : b(x) { b = true; } ~Pass() { b = false; } } pass(m_datum_redo);
+            return recompute();
+        }
+    }
+
     // Face-drift fingerprint for FaceAndDirection CoordSys connectors. This runs AFTER the
     // bodies are final and APPENDS to mate_conflicts (detect_mate_conflicts() cleared it at
     // the top of recompute() and must not run again here). A mismatch is a WARNING, not an

@@ -921,6 +921,7 @@ public:
     // The bodies as each feature last SAW them, keyed by the feature's own bytes: what its face/edge ids were written
     // against. When an upstream edit rebuilds those bodies the ids are carried to where their entities went (TopoRemap).
     std::map<uint64_t, std::vector<CadBody>> m_seen_by_feature;
+    bool m_datum_redo{false};   // recompute() is running its second pass, for sketches on a datum plane that moved with the new bodies
     bool remap_refs{true};
     // A sketch, hole or thread drawn on a face goes with that face when the face only MOVED (its body was moved or turned),
     // not just along the face's normal. False keeps the old rule: it stays at its place in the face's plane.

@@ -10620,6 +10620,41 @@ TEST_CASE("a sketch on an object's face is shown where the object was moved to",
     }
 }
 
+TEST_CASE("a sketch on a datum plane built from a face is seated on the rebuilt bodies at once", "[CadDocument][datum]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    const int base = doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+    REQUIRE(doc.recompute());
+    int top = -1;
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i)
+        if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+    REQUIRE(top >= 0);
+    const int pl = doc.add_plane(0, 0, 0, 0, "Top plane");
+    doc.features[pl].plane_type = PlaneType::Coincident;
+    doc.features[pl].plane_face_body = 0;
+    doc.features[pl].plane_face = top;
+    REQUIRE(doc.recompute());
+    const auto datums = doc.resolve_datum_planes();
+    REQUIRE(datums.size() == 1);
+    REQUIRE(datums[0].second.origin.z() == Approx(10.0).margin(1e-6));
+    const int sk = doc.add_sketch(SketchShape::Rectangle, datums[0].second, 10, 10, 0, "On the plane");
+    doc.features[sk].attach_datum = pl;
+    doc.add_extrude(sk, 5, false, BooleanMode::New, "Pad");
+    REQUIRE(doc.recompute());
+
+    doc.features[base].distance = 15.0;
+    REQUIRE(doc.recompute());                                     // ONE rebuild, not two
+    CHECK(doc.resolve_datum_planes()[0].second.origin.z() == Approx(15.0).margin(1e-6));
+    CHECK(doc.features[sk].plane.origin.z() == Approx(15.0).margin(1e-6));
+    REQUIRE(doc.bodies.size() == 2);
+    CHECK(doc.body_mass_properties(1).volume == Approx(10.0 * 10.0 * 5.0).epsilon(1e-6));
+    Bnd_Box bb; BRepBndLib::Add(doc.bodies[1].shape, bb);
+    double x0, y0, z0, x1, y1, z1; bb.Get(x0, y0, z0, x1, y1, z1);
+    CHECK(z0 == Approx(15.0).margin(1e-6));                       // the pad stands on the new top
+}
+
 // Acceptance: on a 30-feature model a tail edit replays one feature and costs a fraction of a full rebuild.
 TEST_CASE("a tail edit on a 30-feature model is much cheaper than a full rebuild", "[CadDocument][incremental]")
 {

@@ -3307,7 +3307,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         [this](const std::vector<SketchEntity>& ents,
                const std::vector<SketchEntityConstraintDef>& cons,
                const SketchPlane& plane) {
-            if (ents.empty()) {
+            if (ents.empty() || (m_edit_index < 0 && DesignSketchTool::is_only_origin_reference(ents, cons))) {
                 set_status(StatusKind::Error, _L("Sketch empty — nothing committed"));
                 return;
             }
@@ -12400,6 +12400,7 @@ void DesignPanel::start_sketch_on_target(bool offer_tools)
         m_attach_face = from_face ? fi : -1;
     }
     m_viewport->begin_sketch(plane, DesignSketchTool::Mode::Select);
+    m_viewport->mcp_sketch_tool().add_origin_reference();   // the sketch's own origin, there to pick for Fix / Coincident
     // The face or plane has been CONSUMED as the sketch plane, so drop the pick. A face left live
     // meant the next Extrude saw a selected face and push/pulled it instead of extruding the
     // sketch just drawn — the same trap the imported-art path already guards against — and a
