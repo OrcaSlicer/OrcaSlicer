@@ -281,6 +281,12 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			config.option<ConfigOptionPoints>(opt_key)->set_at(vec_new.get(), opt_index, 0);
 			}
 			break;
+        case coPointsGroups: {
+            Vec2ds group = boost::any_cast<Vec2ds>(value);
+            auto vec_new = std::make_unique<ConfigOptionPointsGroups>(std::vector<Vec2ds>{group});
+            config.option<ConfigOptionPointsGroups>(opt_key)->set_at(vec_new.get(), opt_index, 0);
+			}
+			break;
 		case coNone:
 			break;
 		default:
