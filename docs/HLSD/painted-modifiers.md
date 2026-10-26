@@ -84,7 +84,8 @@ with `painted_modifier_segmentation()` (`MultiMaterialSegmentation.cpp`):
 2. **Top and bottom.** Painted facets facing up or down are projected down or up
    through the cross-sections, as long as they stay inside the part and within
    the depth. A depth of 0 reaches through as many layers as the top and bottom
-   shells, like color painting does.
+   shells; the color penetration layer options belong to color painting and do
+   not apply.
 
 A depth of 0 therefore means: across the whole part up to the nearest unpainted
 surface, and as deep as the shells below and above painted faces.

@@ -2540,7 +2540,7 @@ std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const P
 }
 
 // Projects the painted top / bottom surfaces of a painted modifier down / up through its slices.
-// A depth of 0 reaches as deep as the top / bottom shells, like color painting does.
+// A depth of 0 reaches as deep as the top / bottom shells. The color penetration layers apply to color painting only.
 static std::vector<ExPolygons> painted_modifier_top_and_bottom(const PrintObject             &print_object,
                                                                const ModelVolume             &painted_modifier,
                                                                const std::vector<ExPolygons> &input_expolygons,
