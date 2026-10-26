@@ -5,6 +5,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <atomic>
 #include <boost/optional/optional.hpp>
+#include <boost/thread/thread.hpp>
 #include <chrono>
 #include <cstdint>
 #include <cstddef>
@@ -16,20 +17,13 @@
 #include "libslic3r/Semver.hpp"
 #include <memory>
 #include <set>
-#include "slic3r/GUI/GLShader.hpp"
 #include <string>
-#include "ActionRegistry.hpp"
-#include "ImGuiWrapper.hpp"
-#include "ConfigWizard.hpp"
-#include "OpenGLManager.hpp"
+#include "ConfigWizardTypes.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
-#include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
-#include "slic3r/GUI/HttpServer.hpp"
-#include "../Utils/PrintHost.hpp"
 #include "libslic3r/Point.hpp"
 
 #include <vector>
@@ -63,6 +57,8 @@ class wxMenuBar;
 class wxTopLevelWindow;
 class wxDataViewCtrl;
 class wxBookCtrlBase;
+class wxGLCanvas;
+class wxGLContext;
 // BBS
 class Notebook;
 struct wxLanguageInfo;
@@ -82,6 +78,8 @@ class MachineObject;
 class NetworkAgent;
 class IPrinterAgent;
 class TaskManager;
+class GLShaderProgram;
+class PrintHostJobQueue;
 
 // Same typedef as in bambu_networking.hpp, so this header need not include it.
 typedef std::function<bool()> WasCancelledFn;
@@ -113,6 +111,13 @@ class NetworkErrorDialog;
 class PluginsDialog;
 class SpeedDialWebDialog;
 class TerminalDialog;
+class ActionRegistry;
+class HttpServer;
+class ImGuiWrapper;
+class OpenGLManager;
+class UpgradeNetworkJob;
+
+typedef std::function<void(int status, int percent, bool& cancel)> InstallProgressFn;
 
 
 enum FileType
@@ -306,7 +311,7 @@ private:
     const wxLanguageInfo		 *m_language_info_best   = nullptr;
     wxString                    m_active_language_code;
 
-    OpenGLManager m_opengl_mgr;
+    std::unique_ptr<OpenGLManager> m_opengl_mgr;
     std::unique_ptr<RemovableDriveManager> m_removable_drive_manager;
 
     std::unique_ptr<ImGuiWrapper> m_imgui;
@@ -351,6 +356,9 @@ private:
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };
 
     boost::thread    m_sync_update_thread;
+    // Startup cloud plugin sync; joined on logout, in OnExit(), CleanUp() and on macOS end session.
+    boost::thread    m_startup_cloud_plugin_fetch_thread;
+    std::function<void()> m_startup_cloud_report; // run by post_init() if the results came earlier
     std::shared_ptr<int> m_user_sync_token;
     std::atomic<bool>    m_restart_sync_pending {false};
     std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
@@ -373,7 +381,7 @@ private:
     uint64_t         m_cloud_handoff_gen { 0 };
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
-    HttpServer       m_http_server;
+    std::unique_ptr<HttpServer> m_http_server;
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:
@@ -645,7 +653,7 @@ public:
     PluginsDialog* m_plugins_dlg{nullptr};
     SpeedDialWebDialog* m_speed_dial_dialog{nullptr};
     TerminalDialog* m_terminal_dlg{nullptr};
-    ActionRegistry  m_action_registry;
+    std::unique_ptr<ActionRegistry> m_action_registry;
 
 
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -724,7 +732,7 @@ public:
     void            install_local_plugin();
     void            open_terminal_dialog();
     void            open_speed_dial();
-    ActionRegistry& action_registry() { return m_action_registry; }
+    ActionRegistry& action_registry() { return *m_action_registry; }
     void            open_exportpresetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     virtual bool OnExceptionInMainLoop() override;
     // Calls wxLaunchDefaultBrowser if user confirms in dialog.
@@ -822,7 +830,7 @@ public:
 
     void            open_web_page_localized(const std::string &http_address);
     bool            may_switch_to_SLA_preset(const wxString& caption);
-    bool            run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage start_page = ConfigWizard::SP_WELCOME);
+    bool            run_wizard(RunReason reason, StartPage start_page = StartPage::SP_WELCOME);
     void            show_desktop_integration_dialog();
 
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG
@@ -830,12 +838,12 @@ public:
     void            gcode_thumbnails_debug();
 #endif // ENABLE_THUMBNAIL_GENERATOR_DEBUG
 
-    OpenGLManager& get_opengl_manager() { return m_opengl_mgr; }
-    GLShaderProgram* get_shader(const std::string& shader_name) { return m_opengl_mgr.get_shader(shader_name); }
-    GLShaderProgram* get_current_shader() { return m_opengl_mgr.get_current_shader(); }
+    OpenGLManager& get_opengl_manager() { return *m_opengl_mgr; }
+    GLShaderProgram* get_shader(const std::string& shader_name);
+    GLShaderProgram* get_current_shader();
 
-    bool is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr.get_gl_info().is_version_greater_or_equal_to(major, minor); }
-    bool is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr.get_gl_info().is_glsl_version_greater_or_equal_to(major, minor); }
+    bool is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const;
+    bool is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const;
     int  GetSingleChoiceIndex(const wxString& message, const wxString& caption, const wxArrayString& choices, int initialSelection);
 
     // extend is stl/3mf/gcode/step etc 

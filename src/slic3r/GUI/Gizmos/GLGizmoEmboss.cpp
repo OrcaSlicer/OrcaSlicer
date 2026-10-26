@@ -2,6 +2,7 @@
 #include "EmbossStyleManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
@@ -1625,7 +1626,6 @@ void GLGizmoEmboss::draw_window(float x, float y)
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoRotate.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
-#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/Utils/RaycastManager.hpp"
 
 namespace Slic3r::GUI { struct Camera; }
