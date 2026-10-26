@@ -13,6 +13,7 @@ add_executable(${_TEST_NAME}_tests
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
     test_filament_color_picker.cpp
+    test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
@@ -25,6 +26,7 @@ add_executable(${_TEST_NAME}_tests
     test_network_versions.cpp
     test_orca_cloud_agent.cpp
     test_action_source.cpp
+    test_option_state_registry.cpp
     test_plugin_host_api.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
     test_precise_seam_plugin.cpp
@@ -52,6 +54,7 @@ add_executable(${_TEST_NAME}_tests
     test_imgui_wrapper.cpp
     test_user_manager.cpp
     test_sequential_clearance.cpp
+    test_object_list.cpp
     ../fff_print/test_helpers.cpp
     )
 

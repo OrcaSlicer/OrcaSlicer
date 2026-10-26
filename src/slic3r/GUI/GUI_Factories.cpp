@@ -2014,6 +2014,27 @@ void MenuFactory::create_plate_menu()
             return !plater()->get_partplate_list().get_selected_plate()->get_objects().empty();
         }, m_parent);
 
+    // order objects on current plate, or on all plates
+    wxMenu* order_menu     = new wxMenu();
+    wxMenu* order_all_menu = new wxMenu();
+    const std::vector<std::pair<ObjectOrder, wxString>> orders = {
+        {ObjectOrder::Name, _L("Name")}, {ObjectOrder::Filament, _L("Filament")},
+        {ObjectOrder::Height, _L("Height")}, {ObjectOrder::Size, _L("Size")}};
+    for (const auto& entry : orders) {
+        const ObjectOrder order = entry.first;
+        append_menu_item(order_menu, wxID_ANY, entry.second, "",
+            [order](wxCommandEvent&) { obj_list()->order_objects(order, false); }, "", nullptr,
+            []() { return !plater()->get_partplate_list().get_selected_plate()->empty(); }, m_parent);
+        append_menu_item(order_all_menu, wxID_ANY, entry.second, "",
+            [order](wxCommandEvent&) { obj_list()->order_objects(order, true); }, "", nullptr,
+            []() { return true; }, m_parent);
+    }
+    order_menu->AppendSeparator();
+    append_submenu(order_menu, order_all_menu, wxID_ANY, _L("All Plates"), "", "",
+        []() { return plater()->get_partplate_list().get_plate_count() > 1; }, m_parent);
+    append_submenu(menu, order_menu, wxID_ANY, _L("Order By"), "", "",
+        []() { return !plater()->model().objects.empty(); }, m_parent);
+
     wxMenu* modify_menu = new wxMenu();
 
     // fix objects on current plate

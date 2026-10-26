@@ -117,6 +117,8 @@
 #include "SafetyOptionsDialog.hpp"
 
 #include "ThermalPreconditioningDialog.hpp"
+#include "Monitor.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <wx/dcgraph.h>
 
 

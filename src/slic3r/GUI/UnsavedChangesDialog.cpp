@@ -45,6 +45,7 @@
 #include <wx/variant.h>
 #include <wx/window.h>
 #include <wx/toplevel.h>
+#include <wx/statline.h>
 
 #include "CalibUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"

@@ -21,6 +21,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/system/error_code.hpp>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
@@ -456,8 +457,10 @@ std::string PythonInterpreter::bundled_uv_path()
 {
     namespace fs = boost::filesystem;
 
+    // The error_code overloads treat an uninspectable path (e.g. an unrecognized Windows volume) as absent.
+    boost::system::error_code ec;
     const fs::path configured_uv = ORCA_BUNDLED_UV_EXECUTABLE;
-    if (!configured_uv.empty() && fs::exists(configured_uv) && fs::is_regular_file(configured_uv))
+    if (!configured_uv.empty() && fs::is_regular_file(configured_uv, ec))
         return configured_uv.string();
 
     // <binary dir>/tools/uv covers the macOS bundle (Contents/MacOS/tools/uv)
@@ -470,7 +473,7 @@ std::string PythonInterpreter::bundled_uv_path()
     };
 
     for (const fs::path& candidate : candidates) {
-        if (fs::exists(candidate) && fs::is_regular_file(candidate))
+        if (fs::is_regular_file(candidate, ec))
             return candidate.string();
     }
 
@@ -600,6 +603,14 @@ bool PythonInterpreter::initialize()
             BOOST_LOG_TRIVIAL(warning) << "Failed to set the Python bytecode cache to " << pycache_prefix << ": "
                                        << (status.err_msg ? status.err_msg : "unknown error");
 
+        // Looked up before the interpreter exists: a throw after scoped_interpreter is created would
+        // leave it running and make the next initialize() attempt fail with "already running".
+        const std::string uv_path = bundled_uv_path();
+        if (!uv_path.empty())
+            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable found at: " << uv_path;
+        else
+            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable not found";
+
         // Use pybind11's scoped_interpreter which properly initializes
         // pybind11 internals for multi-threaded use — raw Py_InitializeFromConfig
         // does not set up thread state tracking that pybind11 requires.
@@ -654,12 +665,6 @@ bool PythonInterpreter::initialize()
             else
                 BOOST_LOG_TRIVIAL(warning) << path_error;
         }
-
-        const std::string uv_path = bundled_uv_path();
-        if (!uv_path.empty())
-            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable found at: " << uv_path;
-        else
-            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable not found";
 
         PluginAuditManager::instance().install_hook();
 
