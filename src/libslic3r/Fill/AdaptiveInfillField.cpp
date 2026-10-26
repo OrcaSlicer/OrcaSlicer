@@ -16,6 +16,7 @@
 
 #include "../BoundingBox.hpp"
 #include "../ClipperUtils.hpp"
+#include "../DistanceTransform.hpp"
 #include "../ExPolygon.hpp"
 #include "FillBase.hpp"
 #include "../Execution/ExecutionTBB.hpp"
@@ -51,99 +52,6 @@ constexpr int Samples = 32;
 
 constexpr float  InfF = std::numeric_limits<float>::infinity();
 constexpr double InfD = std::numeric_limits<double>::infinity();
-
-// Squared distance transform of a line (Felzenszwalb & Huttenlocher); infinite samples are no sites.
-void distance_transform_line(const float *f, float *d, int n, int *v, double *s)
-{
-    int k = -1;
-    for (int q = 0; q < n; ++q) {
-        if (f[q] == InfF)
-            continue;
-        double x = -InfD;
-        while (k >= 0) {
-            x = (f[q] + double(q) * q - f[v[k]] - double(v[k]) * v[k]) / (2. * (q - v[k]));
-            if (x > s[k])
-                break;
-            --k;
-        }
-        if (k < 0)
-            x = -InfD;
-        v[++k]   = q;
-        s[k]     = x;
-        s[k + 1] = InfD;
-    }
-    if (k < 0) {
-        std::fill(d, d + n, InfF);
-        return;
-    }
-    for (int q = 0, j = 0; q < n; ++q) {
-        while (s[j + 1] < q)
-            ++j;
-        d[q] = float(sqr(double(q - v[j])) + f[v[j]]);
-    }
-}
-
-void distance_transform_axis(std::vector<float> &grid, const Vec3i32 &size, int axis, const std::function<void()> &throw_if_canceled)
-{
-    const int    n      = size[axis];
-    const int    a1     = (axis + 1) % 3;
-    const int    a2     = (axis + 2) % 3;
-    const size_t stride = axis == 0 ? 1 : axis == 1 ? size_t(size.x()) : size_t(size.x()) * size.y();
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, size_t(size[a1]) * size[a2]), [&](const tbb::blocked_range<size_t> &range) {
-        std::vector<float>  f(n), d(n);
-        std::vector<int>    v(n);
-        std::vector<double> s(n + 1);
-        for (size_t line = range.begin(); line < range.end(); ++line) {
-            Vec3i32 idx;
-            idx[axis]          = 0;
-            idx[a1]            = int(line % size[a1]);
-            idx[a2]            = int(line / size[a1]);
-            const size_t first = (size_t(idx.z()) * size.y() + idx.y()) * size.x() + idx.x();
-            for (int i = 0; i < n; ++i)
-                f[i] = grid[first + i * stride];
-            distance_transform_line(f.data(), d.data(), n, v.data(), s.data());
-            for (int i = 0; i < n; ++i)
-                grid[first + i * stride] = d[i];
-        }
-        throw_if_canceled();
-    });
-}
-
-// Marks the nodes inside the expolygons with infinity, by even-odd scanlines.
-void rasterize(const ExPolygons &expolygons, const Vec2d &origin, double cell, int nx, int ny, float *nodes)
-{
-    std::vector<std::vector<double>> crossings(ny);
-    auto add_crossings = [&](const Polygon &polygon) {
-        const Points &pts = polygon.points;
-        for (size_t i = 0; i < pts.size(); ++i) {
-            const Vec2d a = unscaled(pts[i]);
-            const Vec2d b = unscaled(pts[i + 1 == pts.size() ? 0 : i + 1]);
-            if (a.y() == b.y())
-                continue;
-            const auto [lo, hi] = std::minmax(a.y(), b.y());
-            const int j0        = std::max(0, int(std::ceil((lo - origin.y()) / cell)));
-            const int j1        = std::min(ny, int(std::ceil((hi - origin.y()) / cell)));
-            for (int j = j0; j < j1; ++j) {
-                const double y = origin.y() + j * cell;
-                crossings[j].push_back(a.x() + (b.x() - a.x()) * (y - a.y()) / (b.y() - a.y()));
-            }
-        }
-    };
-    for (const ExPolygon &expolygon : expolygons) {
-        add_crossings(expolygon.contour);
-        for (const Polygon &hole : expolygon.holes)
-            add_crossings(hole);
-    }
-    for (int j = 0; j < ny; ++j) {
-        std::vector<double> &xs = crossings[j];
-        std::sort(xs.begin(), xs.end());
-        for (size_t k = 0; k + 1 < xs.size(); k += 2) {
-            const int i0 = std::max(0, int(std::ceil((xs[k] - origin.x()) / cell)));
-            const int i1 = std::min(nx, int(std::ceil((xs[k + 1] - origin.x()) / cell)));
-            std::fill(nodes + size_t(j) * nx + std::min(i0, i1), nodes + size_t(j) * nx + i1, InfF);
-        }
-    }
-}
 
 // Scale of the pattern relative to the surface at a depth from 0 at the surface to 1 at the deepest point.
 double target_scale(double ratio, AdaptiveInfillGradient gradient, double depth)
@@ -237,13 +145,13 @@ AdaptiveInfillField::AdaptiveInfillField(const std::vector<Slice> &slices, const
             const double z  = m_origin.z() + k * m_cell;
             auto         it = std::lower_bound(slices.begin(), slices.end(), z, [](const Slice &s, double z) { return s.top_z < z; });
             if (it != slices.end() && z > it->bottom_z)
-                rasterize(*it->expolygons, m_origin.head<2>(), m_cell, m_size.x(), m_size.y(), depth.data() + k * sz);
+                rasterize_expolygons(*it->expolygons, m_origin.head<2>(), m_cell, m_size.x(), m_size.y(), InfF, depth.data() + k * sz);
         }
         throw_if_canceled();
     });
     for (int axis = 0; axis < 3; ++axis)
         if (axis != m_axis)
-            distance_transform_axis(depth, m_size, axis, throw_if_canceled);
+            squared_distance_transform_axis(depth, m_size, axis, throw_if_canceled);
 
     auto position = [this, sy, sz](size_t i) {
         return Vec3d(m_origin + m_cell * Vec3d(double(i % sy), double(i / sy % m_size.y()), double(i / sz)));

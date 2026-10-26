@@ -34,6 +34,7 @@
 #include "FillAdaptive.hpp"
 #include "FillRectilinear.hpp"
 #include "FillLightning.hpp"
+#include "FillBone.hpp"
 #include "FillConcentricInternal.hpp"
 #include "FillTpmsD.hpp"
 #include "FillTpmsFK.hpp"
@@ -1399,6 +1400,8 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
             fill_concentric->print_object_config = &this->object()->config();
         } else if (surface_fill.params.pattern == ipLightning)
             dynamic_cast<FillLightning::Filler*>(f.get())->generator = lightning_generator;
+        else if (surface_fill.params.pattern == ipBone)
+            dynamic_cast<FillBone*>(f.get())->bone_infill = this->object()->bone_infill();
         // calculate flow spacing for infill pattern generation
         bool using_internal_flow = ! surface_fill.surface.is_solid() && ! surface_fill.params.bridge;
         double link_max_length = 0.;
@@ -1577,6 +1580,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipSupportBase: continue; break;
         case ipConcentricInternal: continue; break;
         case ipLightning:
+        case ipBone:
 		case ipAdaptiveCubic:
         case ipSupportCubic:
         case ipRectilinear:
@@ -1623,6 +1627,8 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 
         if (surface_fill.params.pattern == ipLightning)
             dynamic_cast<FillLightning::Filler *>(f.get())->generator = lightning_generator;
+        else if (surface_fill.params.pattern == ipBone)
+            dynamic_cast<FillBone *>(f.get())->bone_infill = this->object()->bone_infill();
 
         // calculate flow spacing for infill pattern generation
         double link_max_length = 0.;

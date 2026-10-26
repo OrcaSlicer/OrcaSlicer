@@ -44,6 +44,7 @@
 #include "FillRectilinear.hpp"
 #include "FillAdaptive.hpp"
 #include "FillLightning.hpp"
+#include "FillBone.hpp"
 // BBS: new infill pattern header
 #include "FillConcentricInternal.hpp"
 #include "FillCrossHatch.hpp"
@@ -91,6 +92,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipSupportCubic:        return new FillAdaptive::Filler();
     case ipSupportBase:         return new FillSupportBase();  // simply line fill
     case ipLightning:           return new FillLightning::Filler();
+    case ipBone:                return new FillBone();
     // BBS: for internal solid infill only
     case ipConcentricInternal:  return new FillConcentricInternal();
     // BBS: for bottom and top surface only

@@ -122,7 +122,11 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"support_object_first_layer_gap","",35}
                     }},
     { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13}
-                  }}
+                  }},
+    // Orca: the bone infill is generated once per object, so its settings apply to whole objects only.
+    { L("Strength"), {{"bone_falloff", "",1}, {"bone_falloff_curve", "",1}, {"bone_falloff_custom", "",1}, {"bone_hollow_depth", "",1},
+                      {"bone_irregularity", "",1}, {"bone_isotropy", "",1}, {"bone_max_bridge", "",1}
+                     }}
 };
 
 std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATEGORY_SETTINGS =

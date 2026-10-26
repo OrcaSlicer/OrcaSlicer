@@ -119,6 +119,8 @@ set(lisbslic3r_sources
     CustomGCode.hpp
     CutUtils.cpp
     CutUtils.hpp
+    DistanceTransform.cpp
+    DistanceTransform.hpp
     EdgeGrid.cpp
     EdgeGrid.hpp
     ElephantFootCompensation.cpp
@@ -169,6 +171,8 @@ set(lisbslic3r_sources
     Fill/FillCornerSmoothing.cpp
     Fill/FillCornerSmoothing.hpp
     Fill/Fill.cpp
+    Fill/FillBone.cpp
+    Fill/FillBone.hpp
     Fill/FillCrossHatch.cpp
     Fill/FillCrossHatch.hpp
     Fill/FillGyroid.cpp

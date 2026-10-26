@@ -3157,6 +3157,13 @@ void TabPrint::build()
         optgroup->append_single_option_line("adaptive_infill_interior_density", "strength_settings_patterns#interior-density");
         optgroup->append_single_option_line("adaptive_infill_gradient", "strength_settings_patterns#adaptive-gradient");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
+        optgroup->append_single_option_line("bone_falloff", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_falloff_curve", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_falloff_custom", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_hollow_depth", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_irregularity", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_isotropy", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_max_bridge", "strength_settings_patterns#bone");
         optgroup->append_single_option_line("sparse_infill_smooth_factor", "strength_settings_infill#sparse-infill-smooth-factor");
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");
         optgroup->append_single_option_line("sparse_infill_rotate_template", "strength_settings_infill_rotation_template_metalanguage");
