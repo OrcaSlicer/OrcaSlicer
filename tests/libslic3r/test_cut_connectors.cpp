@@ -10,6 +10,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -73,18 +74,21 @@ const ModelVolume* find_connector_volume(const ModelObject* obj,
     return nullptr;
 }
 
+// A cut part's mesh is centred when it is added, so its side of the plane shows in the volume's
+// bounding box in object coordinates, not in its raw vertices.
+BoundingBoxf3 volume_bbox(const ModelVolume* vol)
+{
+    return vol->mesh().transformed_bounding_box(vol->get_matrix());
+}
+
 const ModelObject* find_part_by_side(const ModelObjectPtrs& parts, bool upper)
 {
     for (const ModelObject* obj : parts) {
         for (const ModelVolume* vol : obj->volumes) {
-            if (vol->type() != ModelVolumeType::MODEL_PART)
+            if (vol->type() != ModelVolumeType::MODEL_PART || vol->cut_info.is_connector)
                 continue;
-            bool has_correct_side = false;
-            for (const Vec3f& v : vol->mesh().its.vertices) {
-                if (upper  && v.z() > 1e-3f)  { has_correct_side = true; break; }
-                if (!upper && v.z() < -1e-3f) { has_correct_side = true; break; }
-            }
-            if (has_correct_side)
+            const BoundingBoxf3 bb = volume_bbox(vol);
+            if (upper ? bb.max.z() > 1e-3 : bb.min.z() < -1e-3)
                 return obj;
         }
     }
@@ -93,7 +97,7 @@ const ModelObject* find_part_by_side(const ModelObjectPtrs& parts, bool upper)
 
 double volume_depth_z(const ModelVolume* vol)
 {
-    return vol->mesh().transformed_bounding_box(vol->get_matrix()).size().z();
+    return volume_bbox(vol).size().z();
 }
 
 } // namespace
@@ -237,10 +241,9 @@ TEST_CASE("Cut with no connectors produces valid upper and lower parts", "[CutCo
     bool has_lower = false;
     for (const ModelObject* part : result) {
         for (const ModelVolume* vol : part->volumes) {
-            for (const Vec3f& v : vol->mesh().its.vertices) {
-                if (v.z() > 1e-3f)  has_upper = true;
-                if (v.z() < -1e-3f) has_lower = true;
-            }
+            const BoundingBoxf3 bb = volume_bbox(vol);
+            if (bb.max.z() > 1e-3)  has_upper = true;
+            if (bb.min.z() < -1e-3) has_lower = true;
         }
     }
     CHECK(has_upper);
