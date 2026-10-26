@@ -578,6 +578,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         static const std::string VFlush_End_Tag;
         static const std::string External_Purge_Tag;
     public:
+        // Wrap the tool change prime block emitted by GCode::set_extruder.
+        static const std::string Toolchange_Prime_Start_Tag;
+        static const std::string Toolchange_Prime_End_Tag;
         // Size of the blocks the post-processing passes write the G-code in
         static constexpr size_t Output_Block_Size = 65536;
 
@@ -1350,6 +1353,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool m_single_extruder_multi_material;
         float m_preheat_time;
         int m_preheat_steps;
+        float m_toolchange_prime_length_min;
+        float m_toolchange_prime_idle_time;
+        float m_toolchange_prime_skip_time;
         bool m_disable_m73;
         std::string m_printer_model;
 

@@ -34,6 +34,7 @@ add_executable(${_TEST_NAME}_tests
 	test_spiral_vase.cpp
 	test_support_material.cpp
 	test_texture_displacement.cpp
+	test_toolchange_prime.cpp
 	test_tree_support.cpp
 	test_trianglemesh.cpp
 	test_wipe.cpp

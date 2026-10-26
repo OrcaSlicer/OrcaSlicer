@@ -6979,6 +6979,47 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInt(1));
 
+    def = this->add("toolchange_prime_length_min", coFloat);
+    def->label = L("Minimum prime length");
+    def->category = L("Tool change priming");
+    def->tooltip = L("Filament length primed by the tool change prime G-code when the new tool was parked only briefly. "
+                     "The prime length grows from this value to the maximum prime length as the tool's idle time grows. "
+                     "Only used when the printer has tool change prime G-code and the prime tower is disabled.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.));
+
+    def = this->add("toolchange_prime_length_max", coFloat);
+    def->label = L("Maximum prime length");
+    def->category = L("Tool change priming");
+    def->tooltip = L("Filament length primed after the new tool has been idle for the full idle time, or the first time it is used. "
+                     "Longer idle times let more filament ooze out and degrade in the hot nozzle, so more is purged.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(10.));
+
+    def = this->add("toolchange_prime_idle_time", coFloat);
+    def->label = L("Idle time for maximum prime");
+    def->category = L("Tool change priming");
+    def->tooltip = L("Estimated time a tool has to be parked to get the maximum prime length. "
+                     "Shorter idle times are primed proportionally between the minimum and maximum lengths.");
+    def->sidetext = "s"; // seconds, don't need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(300.));
+
+    def = this->add("toolchange_prime_skip_time", coFloat);
+    def->label = L("Skip prime below idle time");
+    def->category = L("Tool change priming");
+    def->tooltip = L("Skip the tool change prime G-code entirely when the new tool was parked for less than this estimated time. "
+                     "Set to zero to always prime.");
+    def->sidetext = "s"; // seconds, don't need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
 
     def = this->add("file_start_gcode", coString);
     def->label = L("File header G-code");
@@ -8098,6 +8139,19 @@ void PrintConfigDef::init_fff_params()
     def = this->add("change_filament_gcode", coString);
     def->label = L("Change filament G-code");
     def->tooltip = L("This G-code is inserted when filament is changed, including T commands to trigger tool change.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("toolchange_prime_gcode", coString);
+    def->label = L("Tool change prime G-code");
+    def->tooltip = L("This G-code primes the new tool after a tool change, for example by extruding into a purge bucket or chute and "
+                     "wiping the nozzle, so no prime tower is needed. It is used only when the prime tower is disabled. "
+                     "Use relative extrusion (M83) and the prime_length and prime_speed placeholders. "
+                     "Extrusions in this G-code are scaled by the estimated time the tool was parked, between the minimum and maximum "
+                     "prime lengths, and the whole block is skipped below the skip time.");
     def->multiline = true;
     def->full_width = true;
     def->height = 5;
@@ -13628,6 +13682,8 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
                                       "farthest_point_timelapse_enabled", "clear_to_x0"}},
     {"wrapping_detection_gcode",    {"layer_num", "layer_z", "max_layer_z", "most_used_physical_extruder_id",
                                       "curr_physical_extruder_id"}},
+    {"toolchange_prime_gcode",      {"layer_num", "layer_z", "max_layer_z", "next_extruder", "previous_extruder", "new_filament_temp",
+                               "prime_length", "prime_speed", "prime_first_use"}},
     {"change_filament_gcode",       {"layer_num", "layer_z", "max_layer_z", "next_extruder", "previous_extruder",
                                "current_hotend", "next_hotend", "current_nozzle_id", "next_nozzle_id",
                                "current_filament_id", "next_filament_id", "old_extruder_variant", "new_extruder_variant",
@@ -13752,6 +13808,9 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("x_after_toolchange", coFloat, L("X after toolchange"), L("The X pos after toolchange."));
     new_def("y_after_toolchange", coFloat, L("Y after toolchange"), L("The Y pos after toolchange."));
     new_def("z_after_toolchange", coFloat, L("Z after toolchange"), L("The Z pos after toolchange."));
+    new_def("prime_length", coFloat, L("Prime length"), L("Maximum filament length to prime the new tool, in mm. Extrusions in the tool change prime G-code are scaled down by the estimated time the tool was parked."));
+    new_def("prime_speed", coFloat, L("Prime speed"), L("Extrusion feed rate for priming the new tool, in mm/min, limited by the filament's maximum volumetric speed."));
+    new_def("prime_first_use", coBool, L("First use of the tool"), L("True when the new tool is used for the first time in this print."));
     new_def("first_flush_volume", coFloat, L("First flush volume"), L("First half of the planned purge length, in mm of filament."));
     new_def("second_flush_volume", coFloat, L("Second flush volume"), L("Second half of the planned purge length, in mm of filament."));
     new_def("old_filament_e_feedrate", coInt, L("Old filament e feedrate"), L("The old filament extruder feedrate."));

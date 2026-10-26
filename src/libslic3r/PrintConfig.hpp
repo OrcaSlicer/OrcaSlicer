@@ -1834,6 +1834,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
     ((ConfigOptionBool,                wipe_tower_sparse_layers_combination))
     ((ConfigOptionString,              change_filament_gcode))
+    ((ConfigOptionString,              toolchange_prime_gcode))
     ((ConfigOptionString,              change_extrusion_role_gcode))
     ((ConfigOptionString,              process_change_extrusion_role_gcode))
     ((ConfigOptionStrings,             filament_change_extrusion_role_gcode))
@@ -2082,6 +2083,10 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInt,                standby_temperature_delta))
     ((ConfigOptionFloat,                preheat_time))
     ((ConfigOptionInt,                preheat_steps))
+    ((ConfigOptionFloat,              toolchange_prime_length_min))
+    ((ConfigOptionFloat,              toolchange_prime_length_max))
+    ((ConfigOptionFloat,              toolchange_prime_idle_time))
+    ((ConfigOptionFloat,              toolchange_prime_skip_time))
     ((ConfigOptionInts,               nozzle_temperature))
     ((ConfigOptionBools,              wipe))
     // BBS

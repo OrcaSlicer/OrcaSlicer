@@ -1188,6 +1188,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     const bool have_belt_purge_tower = is_belt_printer
         && preset_bundle->printers.get_edited_preset().config.has("enable_belt_purge_tower")
         && preset_bundle->printers.get_edited_preset().config.opt_bool("enable_belt_purge_tower");
+    for (auto el : {"toolchange_prime_length_min", "toolchange_prime_length_max", "toolchange_prime_idle_time", "toolchange_prime_skip_time"})
+        toggle_line(el, !have_prime_tower, -1, _L("Disable the prime tower to prime tools with the printer's tool change prime G-code instead."));
     toggle_line("belt_purge_tower_width", have_belt_purge_tower, -1, _L("Enable the belt purge tower in the belt printer settings to use this setting."));
     const wxString prime_tower_reason = _L("Enable the prime tower on a non-belt printer to use this setting.");
     for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
