@@ -7,6 +7,7 @@
 #include "test_utils.hpp"
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Format/ProjectStrategy.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
