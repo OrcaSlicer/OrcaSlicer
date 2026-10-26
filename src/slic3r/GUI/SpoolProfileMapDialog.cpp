@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <charconv>
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -33,6 +34,7 @@
 #include "MsgDialog.hpp"
 #include "Plater.hpp"
 #include "PresetComboBoxes.hpp"
+#include "SpoolTile.hpp"
 #include "Tab.hpp"
 #include "format.hpp"
 #include "wxExtensions.hpp"
@@ -62,52 +64,19 @@ constexpr int COMBO_WIDTH    = 260;
 constexpr int NAME_WIDTH     = 220;
 constexpr int ROW_HEIGHT     = 40;
 constexpr int VISIBLE_ROWS   = 8;
-constexpr int DIALOG_WIDTH   = 620;
-// The links panel carries a color strip the picker does not, so it gets the room for it.
-constexpr int LINKS_WIDTH = 740;
+// The detail panel carries a color strip the tile panels do not, so it gets the room for it.
+constexpr int DETAIL_WIDTH = 740;
+// Three tiles and the gaps between them, plus the margins and the scroll bar.
+constexpr int TILES_PER_LINE   = 3;
+constexpr int TILE_GAP         = 12;
+constexpr int TILES_WIDTH      = 680;
+constexpr int SHELF_TILE_HEIGHT = 100; // a tile with its profile name under it
+constexpr int PICK_TILE_HEIGHT  = 120; // a tile with the menu that picks its profile under it
+constexpr int VISIBLE_TILE_LINES = 3;
 // As MoonrakerPrinterAgent::build_ams_payload lays them out.
 constexpr int SLOTS_PER_AMS = 4;
 
-const wxColour LINE_COLOR(0x8C, 0x8C, 0x8C);
-const wxColour EMPTY_CHIP_COLOR(206, 206, 206);
 const wxColour TOP_LINE_COLOR(166, 169, 170);
-
-// A color chip that is still visible when the filament is white: the fill is the filament
-// color, the outline is always drawn. A chip given more height than width keeps the chip square
-// and spends the rest on the underline that marks a color with a profile of its own.
-class ColorSwatch : public wxWindow
-{
-public:
-    ColorSwatch(wxWindow* parent, const wxColour& color, const wxSize& size)
-        : wxWindow(parent, wxID_ANY, wxDefaultPosition, size)
-        , m_color(color)
-    {
-        SetBackgroundStyle(wxBG_STYLE_PAINT);
-        Bind(wxEVT_PAINT, &ColorSwatch::on_paint, this);
-    }
-
-    void set_marked(bool marked) { m_marked = marked; }
-
-private:
-    void on_paint(wxPaintEvent& /*event*/)
-    {
-        wxAutoBufferedPaintDC dc(this);
-        dc.SetBackground(wxBrush(GetParent()->GetBackgroundColour()));
-        dc.Clear();
-        const wxSize size = GetSize();
-        const int    box  = std::min(size.x, size.y);
-        dc.SetPen(wxPen(LINE_COLOR));
-        dc.SetBrush(wxBrush(m_color));
-        dc.DrawRoundedRectangle(0, 0, size.x, box, box / 4);
-        if (m_marked) {
-            dc.SetPen(wxPen(LINE_COLOR, 2));
-            dc.DrawLine(0, size.y - 1, size.x, size.y - 1);
-        }
-    }
-
-    wxColour m_color;
-    bool     m_marked = false;
-};
 
 // The elbow that hangs a color off the filament it belongs to: a line down the left, turning
 // right at the middle of the row. The last color of a filament stops the line there.
@@ -131,7 +100,7 @@ private:
         const wxSize size   = GetSize();
         const int    line_x = size.x / 3;
         const int    mid_y  = size.y / 2;
-        dc.SetPen(wxPen(LINE_COLOR));
+        dc.SetPen(wxPen(SPOOL_LINE_COLOR));
         dc.DrawLine(line_x, 0, line_x, m_last ? mid_y : size.y);
         dc.DrawLine(line_x, mid_y, size.x, mid_y);
     }
@@ -173,8 +142,8 @@ private:
             arrow[1] = wxPoint(center_x - side / 2, center_y + side);
             arrow[2] = wxPoint(center_x + side, center_y);
         }
-        dc.SetPen(wxPen(LINE_COLOR));
-        dc.SetBrush(wxBrush(LINE_COLOR));
+        dc.SetPen(wxPen(SPOOL_LINE_COLOR));
+        dc.SetBrush(wxBrush(SPOOL_LINE_COLOR));
         dc.DrawPolygon(3, arrow);
     }
 
@@ -231,13 +200,23 @@ void add_heading(wxWindow* parent, wxBoxSizer* sizer, const wxString& text, int 
     sizer->Add(intro, 0, wxLEFT | wxRIGHT | wxTOP, parent->FromDIP(24));
 }
 
-wxScrolledWindow* add_list_area(wxWindow* parent, wxBoxSizer* sizer, int width, size_t rows)
+// How tall a list showing `lines` lines of `line_height` should be: all of them, up to `max_lines`.
+int list_height(size_t lines, int line_height, int max_lines)
+{
+    return std::clamp(static_cast<int>(lines), 1, max_lines) * line_height;
+}
+
+size_t tile_lines(size_t tiles)
+{
+    return (tiles + TILES_PER_LINE - 1) / TILES_PER_LINE;
+}
+
+wxScrolledWindow* add_list_area(wxWindow* parent, wxBoxSizer* sizer, int width, int height)
 {
     wxScrolledWindow* scroll = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
     scroll->SetScrollRate(0, parent->FromDIP(20));
     scroll->SetBackgroundColour(parent->GetBackgroundColour());
-    const int shown = std::clamp(static_cast<int>(rows), 1, VISIBLE_ROWS);
-    scroll->SetMinSize(wxSize(parent->FromDIP(width - 48), parent->FromDIP(shown * ROW_HEIGHT)));
+    scroll->SetMinSize(wxSize(parent->FromDIP(width - 48), parent->FromDIP(height)));
     sizer->Add(scroll, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, parent->FromDIP(24));
     return scroll;
 }
@@ -249,6 +228,11 @@ wxFlexGridSizer* make_list_grid(wxWindow* parent, int columns)
     grid->AddGrowableCol(2, 1);
     grid->SetFlexibleDirection(wxHORIZONTAL);
     return grid;
+}
+
+wxFlexGridSizer* make_tile_grid(wxWindow* parent)
+{
+    return new wxFlexGridSizer(0, TILES_PER_LINE, parent->FromDIP(TILE_GAP), parent->FromDIP(TILE_GAP));
 }
 
 void add_title(wxWindow* parent, wxFlexGridSizer* grid, const wxFont& font, const wxString& text)
@@ -289,11 +273,12 @@ std::vector<SpoolPresetCandidate> collect_candidates(const PresetCollection& fil
         if (!preset.is_visible || !preset.is_compatible || preset.is_default)
             continue;
         SpoolPresetCandidate candidate;
-        candidate.name      = preset.name;
-        candidate.material  = preset_string(preset, "filament_type");
-        candidate.vendor    = preset_string(preset, "filament_vendor");
-        candidate.color     = preset_string(preset, "default_filament_colour");
-        candidate.is_system = preset.is_system;
+        candidate.name        = preset.name;
+        candidate.material    = preset_string(preset, "filament_type");
+        candidate.vendor      = preset_string(preset, "filament_vendor");
+        candidate.color       = preset_string(preset, "default_filament_colour");
+        candidate.filament_id = preset.filament_id;
+        candidate.is_system   = preset.is_system;
         out.push_back(std::move(candidate));
     }
     return out;
@@ -356,10 +341,18 @@ Chosen make_chosen(const PresetCollection& filaments, int slot_index, const std:
     return Chosen{slot_index, preset_name, preset != nullptr ? preset->filament_id : std::string()};
 }
 
+// Whether a link may be kept for this spool, and read back for it.
+bool is_linkable(const SpoolIdentity& spool)
+{
+    return !spool_is_generic(spool) || SpoolProfileMap::get().settings().remember_generic;
+}
+
 bool any_new_spool(const std::vector<SpoolIdentity>& spools)
 {
     return std::any_of(spools.begin(), spools.end(), [](const SpoolIdentity& spool) {
-        return spool.has_filament && SpoolProfileMap::get().is_new_spool(spool_mapping_key(spool), spool.color);
+        if (!spool.has_filament)
+            return false;
+        return !is_linkable(spool) || SpoolProfileMap::get().is_new_spool(spool_mapping_key(spool), spool_variant_color(spool));
     });
 }
 
@@ -369,7 +362,7 @@ std::vector<Chosen> remembered_choices(const PresetCollection& filaments, const 
     for (const SpoolIdentity& spool : spools) {
         if (!spool.has_filament)
             continue;
-        const std::string name = SpoolProfileMap::get().remembered(spool_mapping_key(spool), spool.color);
+        const std::string name = SpoolProfileMap::get().remembered(spool_mapping_key(spool), spool_variant_color(spool));
         if (!name.empty())
             choices.push_back(make_chosen(filaments, spool.slot_index, name));
     }
@@ -424,15 +417,30 @@ std::vector<std::string> seen_colors(const SpoolLink& link)
     return colors;
 }
 
-// A profile that is no longer installed cannot be selected, so that row is left alone.
-std::string repointed_name(const std::string&                                      name,
-                           const std::vector<std::pair<std::string, std::string>>& repointed,
-                           const PresetCollection&                                 filaments)
+// The material a link is filed under: what the printer reported, else what its profile prints.
+std::string link_material(const SpoolLink& link)
 {
-    for (const auto& move : repointed)
-        if (name == move.first)
-            return filaments.find_preset(move.second) != nullptr ? move.second : name;
-    return name;
+    const std::string reported = spool_identity_from_key(link.key).material;
+    if (!reported.empty())
+        return reported;
+    const Preset* preset = wxGetApp().preset_bundle->filaments.find_preset(link.preset_name);
+    return preset != nullptr ? preset_string(*preset, "filament_type") : std::string();
+}
+
+std::map<std::string, std::vector<SpoolLink>> links_by_material(const std::vector<SpoolLink>& links)
+{
+    std::map<std::string, std::vector<SpoolLink>> groups;
+    for (const SpoolLink& link : links)
+        groups[link_material(link)].push_back(link);
+    return groups;
+}
+
+std::vector<std::string> tile_variants(const SpoolLink& link)
+{
+    std::vector<std::string> variants = seen_colors(link);
+    if (variants.empty())
+        variants.emplace_back();
+    return variants;
 }
 
 wxWindow* make_color_head(wxWindow* parent, const std::string& color, bool last)
@@ -442,7 +450,7 @@ wxWindow* make_color_head(wxWindow* parent, const std::string& color, bool last)
     head->SetBackgroundColour(parent->GetBackgroundColour());
     head_sizer->AddSpacer(parent->FromDIP(TOGGLE_WIDTH + 4));
     head_sizer->Add(new TreeElbow(head, wxSize(parent->FromDIP(ELBOW_WIDTH), parent->FromDIP(SWATCH_SIZE + MARK_HEIGHT)), last), 0);
-    ColorSwatch* chip = new ColorSwatch(head, wxColour(from_u8(color)), wxSize(parent->FromDIP(SWATCH_SIZE), parent->FromDIP(SWATCH_SIZE)));
+    ColorSwatch* chip = new ColorSwatch(head, color, wxSize(parent->FromDIP(SWATCH_SIZE), parent->FromDIP(SWATCH_SIZE)));
     chip->SetToolTip(from_u8(color));
     head_sizer->Add(chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, parent->FromDIP(4));
     head->SetSizerAndFit(head_sizer);
@@ -613,10 +621,11 @@ SpoolProfileMapDialog::SpoolProfileMapDialog(wxWindow* parent, std::vector<Spool
 void SpoolProfileMapDialog::build(wxWindow* parent)
 {
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
-    add_heading(parent, main_sizer, _L("Choose the filament profile for each spool the printer reports."), DIALOG_WIDTH);
+    add_heading(parent, main_sizer, _L("Choose the filament profile for each spool the printer reports."), TILES_WIDTH);
 
-    m_scroll              = add_list_area(parent, main_sizer, DIALOG_WIDTH, m_rows.size());
-    wxFlexGridSizer* grid = make_list_grid(parent, 3);
+    m_scroll = add_list_area(parent, main_sizer, TILES_WIDTH,
+                             list_height(tile_lines(m_rows.size()), PICK_TILE_HEIGHT, VISIBLE_TILE_LINES));
+    wxFlexGridSizer* grid = make_tile_grid(m_scroll);
     for (Row& row : m_rows)
         add_row(m_scroll, grid, row);
     m_scroll->SetSizer(grid);
@@ -637,15 +646,15 @@ void SpoolProfileMapDialog::build(wxWindow* parent)
 
 void SpoolProfileMapDialog::add_row(wxWindow* parent, wxFlexGridSizer* grid, Row& row)
 {
-    const std::string color  = spool_normalize_color(row.spool.color);
-    ColorSwatch*      swatch = new ColorSwatch(parent, color.empty() ? EMPTY_CHIP_COLOR : wxColour(from_u8(color)),
-                                               wxSize(FromDIP(SWATCH_SIZE), FromDIP(SWATCH_SIZE)));
-    grid->Add(swatch, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
-    add_title(parent, grid, Label::Body_14, spool_title(row.spool));
+    wxBoxSizer* cell = new wxBoxSizer(wxVERTICAL);
+    cell->Add(new SpoolTile(parent, {spool_variant_color(row.spool)}, spool_title(row.spool), from_u8(row.spool.material)), 0,
+              wxBOTTOM, FromDIP(4));
 
-    row.combo = new SpoolPresetComboBox(parent, wxSize(FromDIP(COMBO_WIDTH), -1));
-    grid->Add(row.combo, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND | wxRIGHT, FromDIP(4));
-    row.combo->fill_for(m_candidates, row.spool, m_show_all, SpoolProfileMap::get().remembered(row.key, row.spool.color));
+    row.combo = new SpoolPresetComboBox(parent, wxSize(FromDIP(SPOOL_TILE_WIDTH), -1));
+    cell->Add(row.combo, 0);
+    grid->Add(cell, 0);
+    const std::string remembered = is_linkable(row.spool) ? SpoolProfileMap::get().remembered(row.key, spool_variant_color(row.spool)) : std::string();
+    row.combo->fill_for(m_candidates, row.spool, m_show_all, remembered);
 }
 
 void SpoolProfileMapDialog::refill_combos()
@@ -657,11 +666,13 @@ void SpoolProfileMapDialog::refill_combos()
 
 void SpoolProfileMapDialog::remember_row(const Row& row, const std::string& preset_name) const
 {
+    if (!is_linkable(row.spool))
+        return;
     // Unticked means forget: the link on disk goes away with the box the user just cleared.
     if (!m_remember)
         SpoolProfileMap::get().remember(row.key, std::string());
     else
-        SpoolProfileMap::get().remember_spool(row.key, preset_name, spool_display_name(row.spool), row.spool.color);
+        SpoolProfileMap::get().remember_spool(row.key, preset_name, spool_display_name(row.spool), spool_variant_color(row.spool));
 }
 
 void SpoolProfileMapDialog::on_confirm()
@@ -690,26 +701,148 @@ void SpoolProfileMapDialog::on_dpi_changed(const wxRect& /*suggested_rect*/)
     Refresh();
 }
 
-void SpoolProfileLinksDialog::run_manage(wxWindow* parent)
+void SpoolProfileLinksDialog::run_manage(wxWindow* parent, SpoolLook look)
 {
     if (parent == nullptr || wxGetApp().preset_bundle == nullptr)
         return;
-    SpoolProfileLinksDialog dialog(parent);
+    SpoolProfileLinksDialog dialog(parent, look);
     dialog.ShowModal();
 }
 
-SpoolProfileLinksDialog::SpoolProfileLinksDialog(wxWindow* parent)
+SpoolProfileLinksDialog::SpoolProfileLinksDialog(wxWindow* parent, SpoolLook look)
     : DPIDialog(parent, wxID_ANY, _L("Saved filament links"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
+    , m_look(look)
 {
     SetBackgroundColour(*wxWHITE);
-    m_candidates = collect_candidates(wxGetApp().preset_bundle->filaments);
-    m_settings   = SpoolProfileMap::get().settings();
-    for (SpoolLink& link : SpoolProfileMap::get().all_remembered())
-        m_rows.push_back(make_row(std::move(link)));
+    m_settings = SpoolProfileMap::get().settings();
     build(this);
 }
 
-SpoolProfileLinksDialog::Row SpoolProfileLinksDialog::make_row(SpoolLink link)
+void SpoolProfileLinksDialog::build(wxWindow* parent)
+{
+    wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
+    add_heading(parent, main_sizer,
+                _L("The profile each spool is linked to. Click a spool to see its colors and change its profile."), TILES_WIDTH);
+
+    const size_t links = SpoolProfileMap::get().all_remembered().size();
+    m_scroll = add_list_area(parent, main_sizer, TILES_WIDTH, list_height(tile_lines(links), SHELF_TILE_HEIGHT, VISIBLE_TILE_LINES));
+    fill_shelf();
+
+    add_check_row(parent, main_sizer, _L("Link filaments to profiles when synchronizing with a printer"), m_settings.enabled,
+                  [this](bool value) {
+                      m_settings.enabled = value;
+                      // Nothing is being linked, so there is nothing left to choose about when to ask.
+                      m_only_new_check->Enable(value);
+                      m_only_new_label->Enable(value);
+                  });
+    const CheckRow only_new = add_check_row(parent, main_sizer, _L("Only ask about a filament or a color not seen before"),
+                                            m_settings.ask_only_new, [this](bool value) { m_settings.ask_only_new = value; });
+    m_only_new_check        = only_new.check;
+    m_only_new_label        = only_new.text;
+    m_only_new_check->Enable(m_settings.enabled);
+    m_only_new_label->Enable(m_settings.enabled);
+
+    add_check_row(parent, main_sizer, _L("Also link spools the printer describes by material only"), m_settings.remember_generic,
+                  [this](bool value) { m_settings.remember_generic = value; });
+    Label* generic_note = new Label(parent, _L("Some printers only say \"PLA\" for every PLA spool, whatever its brand. Linking those puts all your "
+                                               "PLA on one profile, which is wrong if you use whites from several brands. Off, you are asked "
+                                               "about them on every sync."));
+    generic_note->Wrap(parent->FromDIP(TILES_WIDTH - 48 - 32));
+    main_sizer->Add(generic_note, 0, wxLEFT | wxRIGHT | wxTOP, parent->FromDIP(24 + 32));
+
+    add_ok_cancel(this, main_sizer, [this]() { on_confirm(); });
+    SetSizerAndFit(main_sizer);
+    CenterOnParent();
+    wxGetApp().UpdateDlgDarkUI(this);
+}
+
+// Drawn again after a spool was edited or forgotten in its detail panel, from what is on disk.
+void SpoolProfileLinksDialog::fill_shelf()
+{
+    m_scroll->DestroyChildren();
+    const std::vector<SpoolLink> links = SpoolProfileMap::get().all_remembered();
+
+    wxBoxSizer* shelf = new wxBoxSizer(wxVERTICAL);
+    for (const auto& [material, group] : links_by_material(links))
+        add_material_group(m_scroll, shelf, material, group);
+    if (links.empty())
+        add_empty_note(m_scroll, shelf);
+
+    m_scroll->SetSizer(shelf);
+    // The tiles are built after the dialog was themed, so they are themed here too: without this a
+    // redrawn shelf comes back with black text on the dark background.
+    wxGetApp().UpdateDarkUIWin(m_scroll);
+    m_scroll->FitInside();
+    m_scroll->Layout();
+}
+
+void SpoolProfileLinksDialog::add_material_group(wxWindow*                     parent,
+                                                 wxSizer*                      shelf,
+                                                 const std::string&            material,
+                                                 const std::vector<SpoolLink>& links)
+{
+    const wxString name = material.empty() ? _L("Unknown material") : from_u8(material);
+    shelf->Add(new Label(parent, Label::Head_14, name), 0, wxBOTTOM, parent->FromDIP(TILE_GAP / 2));
+
+    wxFlexGridSizer* grid = make_tile_grid(parent);
+    for (const SpoolLink& link : links)
+        add_tile(parent, grid, link, from_u8(material));
+    shelf->Add(grid, 0, wxBOTTOM, parent->FromDIP(TILE_GAP * 2));
+}
+
+void SpoolProfileLinksDialog::add_tile(wxWindow* parent, wxFlexGridSizer* grid, const SpoolLink& link, const wxString& material)
+{
+    // A link to a profile that is not installed any more is shown as it is: the profile may well
+    // come back with its vendor.
+    const bool     installed = wxGetApp().preset_bundle->filaments.find_preset(link.preset_name) != nullptr;
+    const wxString profile   = from_u8(link.preset_name);
+    // TRN: %1% is the name of a filament profile the printer's spool was linked to.
+    const wxString subtitle = installed ? profile : format_wxstr(_L("%1% (profile not installed)"), profile);
+
+    SpoolTile* tile = new SpoolTile(parent, tile_variants(link), link_title(link), subtitle, m_look, material);
+    // Opened after the click is handled: the shelf is redrawn when the detail closes, and the tile
+    // that was clicked is gone by then.
+    tile->on_click([this, link]() { CallAfter(&SpoolProfileLinksDialog::open_detail, link); });
+    grid->Add(tile, 0);
+}
+
+void SpoolProfileLinksDialog::add_empty_note(wxWindow* parent, wxSizer* shelf)
+{
+    Label* note = new Label(parent, _L("No filament has been linked to a profile yet. Synchronize with a printer and the choices you make "
+                                       "there are listed here."));
+    note->Wrap(parent->FromDIP(TILES_WIDTH - 72));
+    shelf->Add(note, 0);
+}
+
+void SpoolProfileLinksDialog::open_detail(SpoolLink link)
+{
+    SpoolDetailDialog dialog(this, std::move(link));
+    dialog.ShowModal();
+    fill_shelf();
+}
+
+void SpoolProfileLinksDialog::on_confirm()
+{
+    SpoolProfileMap::get().set_settings(m_settings);
+    EndModal(wxID_OK);
+}
+
+void SpoolProfileLinksDialog::on_dpi_changed(const wxRect& /*suggested_rect*/)
+{
+    Fit();
+    Refresh();
+}
+
+SpoolDetailDialog::SpoolDetailDialog(wxWindow* parent, SpoolLink link)
+    : DPIDialog(parent, wxID_ANY, _L("Spool details"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
+{
+    SetBackgroundColour(*wxWHITE);
+    m_candidates = collect_candidates(wxGetApp().preset_bundle->filaments);
+    m_row        = make_row(std::move(link));
+    build(this);
+}
+
+SpoolDetailDialog::Row SpoolDetailDialog::make_row(SpoolLink link)
 {
     Row row;
     row.link   = std::move(link);
@@ -744,33 +877,16 @@ SpoolProfileLinksDialog::Row SpoolProfileLinksDialog::make_row(SpoolLink link)
     return row;
 }
 
-void SpoolProfileLinksDialog::build(wxWindow* parent)
+void SpoolDetailDialog::build(wxWindow* parent)
 {
-    wxBoxSizer*    main_sizer = new wxBoxSizer(wxVERTICAL);
-    const wxString text       = m_rows.empty() ? _L("No filament has been linked to a profile yet. Synchronize with a printer and the "
-                                                    "choices you make there are listed here.") :
-                                                 _L("The profile each filament is linked to. Click a color to put it on a profile of "
-                                                    "its own, or forget a link with the button on its right.");
-    add_heading(parent, main_sizer, text, LINKS_WIDTH);
+    wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
+    add_heading(parent, main_sizer,
+                _L("Every color this spool was seen in. Click a color to put it on a profile of its own, or forget the link with the "
+                   "button on the right of the spool's profile."),
+                DETAIL_WIDTH);
 
-    if (!m_rows.empty()) {
-        m_scroll = add_list_area(parent, main_sizer, LINKS_WIDTH, m_rows.size());
-        rebuild_rows();
-    }
-
-    add_check_row(parent, main_sizer, _L("Link filaments to profiles when synchronizing with a printer"), m_settings.enabled,
-                  [this](bool value) {
-                      m_settings.enabled = value;
-                      // Nothing is being linked, so there is nothing left to choose about when to ask.
-                      m_only_new_check->Enable(value);
-                      m_only_new_label->Enable(value);
-                  });
-    const CheckRow only_new = add_check_row(parent, main_sizer, _L("Only ask about a filament or a color not seen before"),
-                                            m_settings.ask_only_new, [this](bool value) { m_settings.ask_only_new = value; });
-    m_only_new_check        = only_new.check;
-    m_only_new_label        = only_new.text;
-    m_only_new_check->Enable(m_settings.enabled);
-    m_only_new_label->Enable(m_settings.enabled);
+    m_scroll = add_list_area(parent, main_sizer, DETAIL_WIDTH, list_height(1 + m_row.colors.size(), ROW_HEIGHT, VISIBLE_ROWS));
+    rebuild_rows();
 
     add_ok_cancel(this, main_sizer, [this]() { on_confirm(); });
     SetSizerAndFit(main_sizer);
@@ -780,56 +896,46 @@ void SpoolProfileLinksDialog::build(wxWindow* parent)
 
 // What every menu is showing right now, so the redrawn list carries the user's edits instead of
 // what happens to be on disk.
-void SpoolProfileLinksDialog::take_menu_choices()
+void SpoolDetailDialog::take_menu_choices()
 {
-    for (Row& row : m_rows) {
-        if (row.combo != nullptr)
-            row.preset = row.combo->selected_preset_name();
-        row.combo = nullptr;
-        for (ColorRow& color : row.colors) {
-            if (color.combo != nullptr)
-                color.preset = color.combo->selected_preset_name();
-            color.combo = nullptr;
-        }
+    if (m_row.combo != nullptr)
+        m_row.preset = m_row.combo->selected_preset_name();
+    m_row.combo = nullptr;
+    for (ColorRow& color : m_row.colors) {
+        if (color.combo != nullptr)
+            color.preset = color.combo->selected_preset_name();
+        color.combo = nullptr;
     }
 }
 
 // A color keeps a row of its own only while it prints on a different profile. Put back on the
 // filament's own, it goes back in the line of chips. A color just clicked keeps its row until
 // the user has had the chance to change it.
-void SpoolProfileLinksDialog::settle_color_rows(Row& row)
+void SpoolDetailDialog::settle_color_rows()
 {
-    for (ColorRow& color : row.colors) {
+    for (ColorRow& color : m_row.colors) {
         if (!color.split)
             continue;
         // Only a filament seen in several colors has one color to tell from the others.
-        if (row.colors.size() < 2)
+        if (m_row.colors.size() < 2)
             color.split = false;
         else if (color.pending)
             color.pending = false;
-        else if (color.filled && color.preset == row.preset)
+        else if (color.filled && color.preset == m_row.preset)
             color.split = false;
     }
 }
 
-void SpoolProfileLinksDialog::rebuild_rows()
+void SpoolDetailDialog::rebuild_rows()
 {
-    if (m_scroll == nullptr)
-        return;
-
     take_menu_choices();
-    for (Row& row : m_rows)
-        settle_color_rows(row);
+    settle_color_rows();
 
     m_scroll->DestroyChildren();
     wxFlexGridSizer* grid = make_list_grid(this, 4);
-    for (Row& row : m_rows) {
-        if (row.removed)
-            continue;
-        add_row(m_scroll, grid, row);
-        if (!row.collapsed)
-            add_color_rows(m_scroll, grid, row);
-    }
+    add_row(m_scroll, grid);
+    if (!m_row.collapsed)
+        add_color_rows(m_scroll, grid);
 
     m_scroll->SetSizer(grid);
     // The rows are built after the dialog was themed, so they are themed here too: without this a
@@ -840,9 +946,9 @@ void SpoolProfileLinksDialog::rebuild_rows()
     Layout();
 }
 
-wxWindow* SpoolProfileLinksDialog::make_row_head(wxWindow* parent, Row& row)
+wxWindow* SpoolDetailDialog::make_row_head(wxWindow* parent)
 {
-    const bool has_split = std::any_of(row.colors.begin(), row.colors.end(),
+    const bool has_split = std::any_of(m_row.colors.begin(), m_row.colors.end(),
                                        [](const ColorRow& color) { return color.split && !color.removed; });
 
     wxPanel*    head       = new wxPanel(parent, wxID_ANY);
@@ -852,94 +958,86 @@ wxWindow* SpoolProfileLinksDialog::make_row_head(wxWindow* parent, Row& row)
     // The fold handle, and the same room kept empty for a filament with nothing folded under it, so
     // every name in the list still starts at the same place.
     if (has_split) {
-        TreeToggle* toggle = new TreeToggle(head, wxSize(FromDIP(TOGGLE_WIDTH), FromDIP(SWATCH_SIZE)), !row.collapsed);
-        toggle->SetToolTip(row.collapsed ? _L("Show the colors on their own profile") : _L("Hide the colors"));
-        toggle->Bind(wxEVT_LEFT_DOWN, [this, &row](wxMouseEvent&) {
-            row.collapsed = !row.collapsed;
-            CallAfter(&SpoolProfileLinksDialog::rebuild_rows);
+        TreeToggle* toggle = new TreeToggle(head, wxSize(FromDIP(TOGGLE_WIDTH), FromDIP(SWATCH_SIZE)), !m_row.collapsed);
+        toggle->SetToolTip(m_row.collapsed ? _L("Show the colors on their own profile") : _L("Hide the colors"));
+        toggle->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent&) {
+            m_row.collapsed = !m_row.collapsed;
+            CallAfter(&SpoolDetailDialog::rebuild_rows);
         });
         head_sizer->Add(toggle, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
     } else {
         head_sizer->AddSpacer(FromDIP(TOGGLE_WIDTH + 4));
     }
 
-    add_chips(head, head_sizer, row);
+    add_chips(head, head_sizer);
     head->SetSizerAndFit(head_sizer);
     return head;
 }
 
 // Every color this filament has been seen in. A link saved before colors were kept shows the
 // empty chip until the next sync fills it in.
-void SpoolProfileLinksDialog::add_chips(wxWindow* head, wxBoxSizer* head_sizer, Row& row)
+void SpoolDetailDialog::add_chips(wxWindow* head, wxBoxSizer* head_sizer)
 {
     const wxSize chip_size(FromDIP(SWATCH_SIZE), FromDIP(SWATCH_SIZE + MARK_HEIGHT));
     wxGridSizer* chips = new wxGridSizer(0, CHIPS_PER_LINE, FromDIP(4), FromDIP(4));
-    if (row.colors.empty())
-        chips->Add(new ColorSwatch(head, EMPTY_CHIP_COLOR, chip_size), 0);
+    if (m_row.colors.empty())
+        chips->Add(new ColorSwatch(head, std::string(), chip_size), 0);
 
-    for (ColorRow& color : row.colors) {
-        ColorSwatch* chip = new ColorSwatch(head, wxColour(from_u8(color.color)), chip_size);
+    for (ColorRow& color : m_row.colors) {
+        ColorSwatch* chip = new ColorSwatch(head, color.color, chip_size);
         // Folded away, the mark under a chip is what says this color is not on the filament's
         // own profile.
-        chip->set_marked(color.split && !color.removed && color.preset != row.preset);
+        chip->set_marked(color.split && !color.removed && color.preset != m_row.preset);
         chips->Add(chip, 0);
         // One color is the whole filament, so there is nothing to give a profile of its own to
         // and the chip is there to look at, not to click.
-        if (row.colors.size() < 2) {
+        if (m_row.colors.size() < 2) {
             chip->SetToolTip(from_u8(color.color));
             continue;
         }
-        // TRN: %1% is a color as #RRGGBB.
+        // TRN: %1% is a color as #RRGGBB, or several of them for a multicolor filament.
         chip->SetToolTip(format_wxstr(_L("%1%\nClick to put this color on a profile of its own"), color.color));
         chip->SetCursor(wxCursor(wxCURSOR_HAND));
-        chip->Bind(wxEVT_LEFT_DOWN, [this, &row, &color](wxMouseEvent&) { split_color(row, color); });
+        chip->Bind(wxEVT_LEFT_DOWN, [this, &color](wxMouseEvent&) { split_color(color); });
     }
     head_sizer->Add(chips, 0, wxALIGN_CENTER_VERTICAL);
 }
 
-void SpoolProfileLinksDialog::add_row(wxWindow* parent, wxFlexGridSizer* grid, Row& row)
+void SpoolDetailDialog::add_row(wxWindow* parent, wxFlexGridSizer* grid)
 {
-    grid->Add(make_row_head(parent, row), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+    grid->Add(make_row_head(parent), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
 
-    // A link to a profile that is not installed any more is shown as it is and left alone unless
-    // the user picks something else: the profile may well come back with its vendor.
-    const bool installed = wxGetApp().preset_bundle->filaments.find_preset(row.link.preset_name) != nullptr;
-    const wxString title = link_title(row.link);
-    // TRN: %1% is the name of a filament spool.
-    add_title(parent, grid, Label::Body_14, installed ? title : format_wxstr(_L("%1% (profile not installed)"), title));
+    add_title(parent, grid, Label::Body_14, link_title(m_row.link));
 
-    row.combo = new SpoolPresetComboBox(parent, wxSize(FromDIP(COMBO_WIDTH), -1));
-    grid->Add(row.combo, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND);
-    row.combo->fill_for(m_candidates, spool_identity_from_key(row.link.key), true, row.filled ? row.preset : row.link.preset_name);
-    row.preset = row.combo->selected_preset_name();
-    if (!row.filled) {
-        row.initial = row.preset;
-        row.filled  = true;
+    m_row.combo = new SpoolPresetComboBox(parent, wxSize(FromDIP(COMBO_WIDTH), -1));
+    grid->Add(m_row.combo, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND);
+    m_row.combo->fill_for(m_candidates, spool_identity_from_key(m_row.link.key), true, m_row.filled ? m_row.preset : m_row.link.preset_name);
+    m_row.preset = m_row.combo->selected_preset_name();
+    if (!m_row.filled) {
+        m_row.initial = m_row.preset;
+        m_row.filled  = true;
     }
     // Which colors count as variations, and the marks under the chips, both hang off this profile.
-    row.combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& evt) {
+    m_row.combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& evt) {
         evt.Skip();
-        CallAfter(&SpoolProfileLinksDialog::rebuild_rows);
+        CallAfter(&SpoolDetailDialog::rebuild_rows);
     });
 
-    add_delete_button(parent, grid, _L("Forget this link"))->Bind(wxEVT_BUTTON, [this, &row](wxCommandEvent&) {
-        row.removed = true;
-        CallAfter(&SpoolProfileLinksDialog::rebuild_rows);
-    });
+    add_delete_button(parent, grid, _L("Forget this link"))->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { forget_link(); });
 }
 
-void SpoolProfileLinksDialog::add_color_rows(wxWindow* parent, wxFlexGridSizer* grid, Row& row)
+void SpoolDetailDialog::add_color_rows(wxWindow* parent, wxFlexGridSizer* grid)
 {
-    size_t last = row.colors.size();
-    for (size_t index = 0; index < row.colors.size(); ++index)
-        if (row.colors[index].split && !row.colors[index].removed)
+    size_t last = m_row.colors.size();
+    for (size_t index = 0; index < m_row.colors.size(); ++index)
+        if (m_row.colors[index].split && !m_row.colors[index].removed)
             last = index;
-    for (size_t index = 0; index < row.colors.size(); ++index)
-        if (row.colors[index].split && !row.colors[index].removed)
-            add_color_row(parent, grid, row, row.colors[index], index == last);
+    for (size_t index = 0; index < m_row.colors.size(); ++index)
+        if (m_row.colors[index].split && !m_row.colors[index].removed)
+            add_color_row(parent, grid, m_row.colors[index], index == last);
 }
 
-void SpoolProfileLinksDialog::add_color_row(wxWindow* parent, wxFlexGridSizer* grid, Row& row, ColorRow& color, bool last)
+void SpoolDetailDialog::add_color_row(wxWindow* parent, wxFlexGridSizer* grid, ColorRow& color, bool last)
 {
     grid->Add(make_color_head(parent, color.color, last), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
     add_title(parent, grid, Label::Body_13, from_u8(color.color));
@@ -948,89 +1046,84 @@ void SpoolProfileLinksDialog::add_color_row(wxWindow* parent, wxFlexGridSizer* g
     grid->Add(color.combo, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND);
     // A color with no profile of its own yet starts on the filament's, so the menu opens on what
     // this color prints with today.
-    color.combo->fill_for(m_candidates, spool_identity_from_key(row.link.key), true, color.preset.empty() ? row.preset : color.preset);
+    color.combo->fill_for(m_candidates, spool_identity_from_key(m_row.link.key), true, color.preset.empty() ? m_row.preset : color.preset);
     color.preset = color.combo->selected_preset_name();
     color.filled = true;
     // Picking the filament's own profile here is the user saying this color is no longer a
     // variation of it, so the row goes away and the color goes back in the line of chips.
     color.combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& evt) {
         evt.Skip();
-        CallAfter(&SpoolProfileLinksDialog::rebuild_rows);
+        CallAfter(&SpoolDetailDialog::rebuild_rows);
     });
 
     add_delete_button(parent, grid, _L("Put this color back on the filament's own profile"))
         ->Bind(wxEVT_BUTTON, [this, &color](wxCommandEvent&) {
             color.removed = true;
-            CallAfter(&SpoolProfileLinksDialog::rebuild_rows);
+            CallAfter(&SpoolDetailDialog::rebuild_rows);
         });
 }
 
-void SpoolProfileLinksDialog::split_color(Row& row, ColorRow& color)
+void SpoolDetailDialog::split_color(ColorRow& color)
 {
     // A filament that has only ever been seen in one color has nothing to split off.
-    if (row.colors.size() < 2)
+    if (m_row.colors.size() < 2)
         return;
     // Clicking a color that already has a row of its own just brings that row back into view.
-    color.split   = true;
-    color.pending = true;
-    color.removed = false;
-    row.collapsed = false;
-    CallAfter(&SpoolProfileLinksDialog::rebuild_rows);
+    color.split     = true;
+    color.pending   = true;
+    color.removed   = false;
+    m_row.collapsed = false;
+    CallAfter(&SpoolDetailDialog::rebuild_rows);
 }
 
-void SpoolProfileLinksDialog::remember_colors(const Row& row, const std::string& picked)
+void SpoolDetailDialog::forget_link()
 {
-    for (const ColorRow& color : row.colors) {
+    SpoolProfileMap::get().remember(m_row.link.key, std::string());
+    EndModal(wxID_OK);
+}
+
+void SpoolDetailDialog::remember_colors(const std::string& picked) const
+{
+    for (const ColorRow& color : m_row.colors) {
         if (!color.filled)
             continue;
         const std::string own = color.combo != nullptr ? color.combo->selected_preset_name() : color.preset;
         // Removed, folded back onto the filament's own profile, or never moved off it: this
         // color is not a variation and is stored as none.
         const bool variation = !color.removed && color.split && !own.empty() && own != picked;
-        SpoolProfileMap::get().remember_color(row.link.key, color.color, variation ? own : std::string());
+        SpoolProfileMap::get().remember_color(m_row.link.key, color.color, variation ? own : std::string());
     }
 }
 
-void SpoolProfileLinksDialog::on_confirm()
+void SpoolDetailDialog::on_confirm()
 {
-    // A link the user just pointed somewhere else, as old profile -> new profile.
-    std::vector<std::pair<std::string, std::string>> repointed;
-    for (const Row& row : m_rows) {
-        if (row.removed) {
-            SpoolProfileMap::get().remember(row.link.key, std::string());
-            continue;
-        }
-        const std::string picked = row.combo != nullptr ? row.combo->selected_preset_name() : row.preset;
-        // Only what the user actually changed is written back, so a row they never touched keeps
-        // exactly the profile name it had on disk.
-        if (!picked.empty() && picked != row.initial) {
-            SpoolProfileMap::get().remember(row.link.key, picked, row.link.label);
-            if (!row.initial.empty())
-                repointed.emplace_back(row.initial, picked);
-        }
-        remember_colors(row, picked);
+    const std::string picked = m_row.combo != nullptr ? m_row.combo->selected_preset_name() : m_row.preset;
+    // Only what the user actually changed is written back, so a spool they never touched keeps
+    // exactly the profile name it had on disk.
+    if (!picked.empty() && picked != m_row.initial) {
+        SpoolProfileMap::get().remember(m_row.link.key, picked, m_row.link.label);
+        follow_link_in_project(m_row.initial, picked);
     }
-    SpoolProfileMap::get().set_settings(m_settings);
-    follow_links_in_project(repointed);
+    remember_colors(picked);
     EndModal(wxID_OK);
 }
 
 // The link and the project have to say the same thing: a filament sitting in the project on the
 // profile the user has just moved away from is moved with it, so nobody has to redo the change by
 // hand in the sidebar.
-void SpoolProfileLinksDialog::follow_links_in_project(const std::vector<std::pair<std::string, std::string>>& repointed)
+void SpoolDetailDialog::follow_link_in_project(const std::string& old_name, const std::string& new_name)
 {
     PresetBundle* bundle = wxGetApp().preset_bundle;
-    if (repointed.empty() || bundle == nullptr)
+    // A profile that is no longer installed cannot be selected, so the project is left alone.
+    if (old_name.empty() || bundle == nullptr || bundle->filaments.find_preset(new_name) == nullptr)
         return;
 
     bool changed = false;
     for (const size_t index : bundle->physical_filament_config_indices()) {
-        std::string& name  = bundle->filament_presets[index];
-        std::string  moved = repointed_name(name, repointed, bundle->filaments);
-        if (moved == name)
+        std::string& name = bundle->filament_presets[index];
+        if (name != old_name)
             continue;
-        name    = std::move(moved);
+        name    = new_name;
         changed = true;
     }
     if (!changed)
@@ -1045,7 +1138,7 @@ void SpoolProfileLinksDialog::follow_links_in_project(const std::vector<std::pai
         plater->sidebar().update_presets(Preset::TYPE_FILAMENT);
 }
 
-void SpoolProfileLinksDialog::on_dpi_changed(const wxRect& /*suggested_rect*/)
+void SpoolDetailDialog::on_dpi_changed(const wxRect& /*suggested_rect*/)
 {
     Fit();
     Refresh();

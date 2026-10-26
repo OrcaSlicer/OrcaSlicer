@@ -114,6 +114,8 @@ protected:
                                               // Used when it holds two or more; otherwise tray_color is the only one.
         bool        colors_gradient = false;  // With tray_colors: blend them as a gradient instead of drawing segments
         std::string tray_info_idx;       // Filament ID (optional)
+        // Anything else the printer says about the spool (vendor, name, spool id ...), as it says it
+        std::vector<std::pair<std::string, std::string>> fields;
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
     };
@@ -122,6 +124,11 @@ protected:
     void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
     // Name shown for a filament unit, or empty for the AMS Lite name
     virtual std::string ams_unit_name(int /*ams_id*/) const { return {}; }
+
+    // The scalar entries of a JSON object as text, in order, minus the keys the caller already read.
+    // Objects and arrays are skipped: this is material to recognise a spool by, not to parse.
+    static std::vector<std::pair<std::string, std::string>> scalar_fields(const nlohmann::json&            object,
+                                                                         const std::vector<std::string>& skipped_keys);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);

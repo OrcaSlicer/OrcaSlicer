@@ -61,18 +61,25 @@ std::string material_family(const std::string& normalized_material)
     return cut == std::string::npos ? normalized_material : normalized_material.substr(0, cut);
 }
 
-// Accepts "#RRGGBB", "RRGGBB", "0xRRGGBB" and "RRGGBBAA". Alpha is ignored.
-std::optional<Rgb> parse_rgb(const std::string& color)
+// The hex digits of "#RRGGBB", "RRGGBB", "0xRRGGBB" or "RRGGBBAA", empty when anything else is in there.
+std::string color_hex_digits(const std::string& color)
 {
     std::string hex;
     for (char c : color) {
         if (std::isxdigit(static_cast<unsigned char>(c)))
-            hex.push_back(c);
+            hex.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
         else if (c != '#' && c != 'x' && c != 'X')
-            return std::nullopt;
+            return std::string();
     }
     if (color.size() > 1 && color[0] == '0' && (color[1] == 'x' || color[1] == 'X'))
         hex.erase(0, 1);
+    return hex;
+}
+
+// Accepts "#RRGGBB", "RRGGBB", "0xRRGGBB" and "RRGGBBAA". Alpha is ignored.
+std::optional<Rgb> parse_rgb(const std::string& color)
+{
+    const std::string hex = color_hex_digits(color);
     if (hex.size() < 6)
         return std::nullopt;
     const unsigned long value = std::strtoul(hex.substr(0, 6).c_str(), nullptr, 16);
@@ -168,8 +175,9 @@ SpoolMapSettings settings_from_json(const nlohmann::json& json)
     const auto       saved = json.find("settings");
     if (saved == json.end() || !saved->is_object())
         return settings;
-    settings.enabled      = bool_field(*saved, "enabled", settings.enabled);
-    settings.ask_only_new = bool_field(*saved, "ask_only_new", settings.ask_only_new);
+    settings.enabled          = bool_field(*saved, "enabled", settings.enabled);
+    settings.ask_only_new     = bool_field(*saved, "ask_only_new", settings.ask_only_new);
+    settings.remember_generic = bool_field(*saved, "remember_generic", settings.remember_generic);
     return settings;
 }
 
@@ -308,6 +316,11 @@ std::string spool_mapping_key(const SpoolIdentity& spool)
     return "slot:" + std::to_string(spool.slot_index);
 }
 
+bool spool_is_generic(const SpoolIdentity& spool)
+{
+    return spool.name.empty() && spool.vendor.empty() && spool.uid.empty();
+}
+
 std::string spool_display_name(const SpoolIdentity& spool)
 {
     const bool has_vendor = !spool.vendor.empty() && normalize(spool.vendor) != normalize(spool.name);
@@ -356,6 +369,126 @@ std::string spool_normalize_color(const std::string& color)
     char buffer[8];
     std::snprintf(buffer, sizeof(buffer), "#%02X%02X%02X", rgb->red, rgb->green, rgb->blue);
     return std::string(buffer);
+}
+
+std::string spool_normalize_color_alpha(const std::string& color)
+{
+    const std::string opaque = spool_normalize_color(color);
+    const std::string hex    = color_hex_digits(color);
+    if (opaque.empty() || hex.size() != 8 || hex.compare(6, 2, "FF") == 0)
+        return opaque;
+    return opaque + hex.substr(6, 2);
+}
+
+namespace {
+
+std::string join_colors(const std::vector<std::string>& colors)
+{
+    std::string joined;
+    for (const std::string& color : colors)
+        joined += (joined.empty() ? "" : ",") + color;
+    return joined;
+}
+
+} // namespace
+
+std::string spool_variant_color(const SpoolIdentity& spool)
+{
+    return spool.colors.size() < 2 ? spool.color : join_colors(spool.colors);
+}
+
+std::vector<std::string> spool_variant_colors(const std::string& variant)
+{
+    std::vector<std::string> colors;
+    size_t                   start = 0;
+    while (start <= variant.size()) {
+        const size_t      end   = std::min(variant.find(',', start), variant.size());
+        const std::string color = spool_normalize_color_alpha(variant.substr(start, end - start));
+        if (!color.empty())
+            colors.push_back(color);
+        start = end + 1;
+    }
+    return colors;
+}
+
+namespace {
+
+std::string normalized_variant(const std::string& variant)
+{
+    return join_colors(spool_variant_colors(variant));
+}
+
+enum class SpoolField { Unknown, Material, Name, Uid, Vendor, FilamentId, Color };
+
+SpoolField spool_field_of(const std::string& key)
+{
+    static const std::vector<std::pair<SpoolField, std::vector<std::string>>> aliases = {
+        {SpoolField::Material, {"MATERIAL", "FILAMENT TYPE"}},
+        {SpoolField::Name, {"FILAMENT NAME", "NAME", "PRODUCT", "MODEL"}},
+        {SpoolField::Uid, {"SPOOL ID", "SPOOL UID", "UID", "TAG UID", "SN", "SERIAL", "ID"}},
+        {SpoolField::Vendor, {"VENDOR", "BRAND", "MANUFACTURER"}},
+        {SpoolField::FilamentId, {"FILAMENT ID"}},
+        {SpoolField::Color, {"COLOR", "COLOUR", "COLORS", "COLOURS", "COLS"}},
+    };
+    const std::string normalized = normalize(key);
+    for (const auto& [field, names] : aliases)
+        if (contains(names, normalized))
+            return field;
+    return SpoolField::Unknown;
+}
+
+// Printers say "NONE", "0000000000000000" or nothing when they have nothing to say.
+bool is_reported(const std::string& value)
+{
+    const std::string normalized = normalize(value);
+    return !normalized.empty() && normalized != "NONE" && normalized.find_first_not_of('0') != std::string::npos;
+}
+
+std::vector<std::string> colors_from_field(const std::string& value)
+{
+    std::vector<std::string> colors;
+    size_t                   start = 0;
+    while (start <= value.size()) {
+        const size_t end   = std::min(value.find_first_of(",;| ", start), value.size());
+        const std::string color = spool_normalize_color_alpha(value.substr(start, end - start));
+        if (!color.empty())
+            colors.push_back(color);
+        start = end + 1;
+    }
+    return colors;
+}
+
+void fill_unset(std::string& target, const std::string& value)
+{
+    if (target.empty() && is_reported(value))
+        target = value;
+}
+
+} // namespace
+
+SpoolIdentity spool_identity_from_fields(int slot_index, bool has_filament, const SpoolFields& fields)
+{
+    SpoolIdentity spool;
+    spool.slot_index   = slot_index;
+    spool.has_filament = has_filament;
+
+    for (const auto& [key, value] : fields) {
+        switch (spool_field_of(key)) {
+        case SpoolField::Material:   fill_unset(spool.material, value); break;
+        case SpoolField::Name:       fill_unset(spool.name, value); break;
+        case SpoolField::Uid:        fill_unset(spool.uid, value); break;
+        case SpoolField::Vendor:     fill_unset(spool.vendor, value); break;
+        case SpoolField::FilamentId: fill_unset(spool.filament_id, value); break;
+        case SpoolField::Color:
+            if (spool.colors.empty())
+                spool.colors = colors_from_field(value);
+            break;
+        case SpoolField::Unknown:    spool.extra.emplace_back(key, value); break;
+        }
+    }
+    if (!spool.colors.empty())
+        spool.color = spool_normalize_color(spool.colors.front());
+    return spool;
 }
 
 int spool_material_rank(const std::string& candidate_material, const std::string& reported_material)
@@ -442,6 +575,16 @@ std::string spool_choose_preset(const std::vector<SpoolPresetCandidate>& candida
             return it->name;
     }
 
+    // The id is the printer's own statement of which profile fits. Generic profiles share ids with
+    // everything of their material, so they only count when nothing more specific says the same.
+    if (!spool.filament_id.empty()) {
+        const auto it = std::find_if(candidates.begin(), candidates.end(), [&spool](const SpoolPresetCandidate& c) {
+            return c.filament_id == spool.filament_id && !is_generic(c);
+        });
+        if (it != candidates.end())
+            return it->name;
+    }
+
     const std::string spool_name     = normalize(spool.name);
     const std::string spool_vendor   = normalize(spool.vendor);
     const std::string spool_material = normalize(spool.material);
@@ -495,7 +638,7 @@ std::string spool_remembered_preset(const std::map<std::string, SpoolLink>& link
         return std::string();
 
     // This one colour was put on a profile of its own; every other colour uses the filament's.
-    const std::string wanted = spool_normalize_color(color);
+    const std::string wanted = normalized_variant(color);
     if (wanted.empty())
         return link->preset_name;
     const auto own = link->color_presets.find(wanted);
@@ -510,7 +653,7 @@ bool spool_is_new(const std::map<std::string, SpoolLink>& links, const std::stri
 
     // The printer did not say what colour it is, so there is nothing here the user has not
     // already answered for.
-    const std::string wanted = spool_normalize_color(color);
+    const std::string wanted = normalized_variant(color);
     return !wanted.empty() && !contains(link->colors, wanted);
 }
 
@@ -550,7 +693,7 @@ void spool_remember(std::map<std::string, SpoolLink>& links,
     // A printer that says nothing this time must not wipe the name it gave last time.
     if (!label.empty())
         link.label = label;
-    const std::string seen = spool_normalize_color(color);
+    const std::string seen = normalized_variant(color);
     if (!seen.empty() && !contains(link.colors, seen))
         link.colors.push_back(seen);
     // A colour that now wants the very profile the whole filament uses is not a variation of it.
@@ -564,7 +707,7 @@ void spool_remember_color(std::map<std::string, SpoolLink>& links,
                           const std::string&                color,
                           const std::string&                preset_name)
 {
-    const std::string wanted = spool_normalize_color(color);
+    const std::string wanted = normalized_variant(color);
     const auto        entry  = links.find(filed_key(links, key));
     // A colour belongs to a filament: with no link for the filament there is nothing to hang it on.
     if (entry == links.end() || wanted.empty())
@@ -628,8 +771,9 @@ std::string spool_store_to_json(const SpoolStore& store)
 {
     nlohmann::json json;
     json["version"]                  = 2;
-    json["settings"]["enabled"]      = store.settings.enabled;
-    json["settings"]["ask_only_new"] = store.settings.ask_only_new;
+    json["settings"]["enabled"]          = store.settings.enabled;
+    json["settings"]["ask_only_new"]     = store.settings.ask_only_new;
+    json["settings"]["remember_generic"] = store.settings.remember_generic;
     json["links"]                    = nlohmann::json::object();
     for (const auto& entry : store.links)
         json["links"][entry.first] = link_to_json(entry.second);

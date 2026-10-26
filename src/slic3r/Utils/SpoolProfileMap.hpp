@@ -27,12 +27,26 @@ struct SpoolIdentity
     std::string vendor;     // "Elegoo"
     std::string material;   // "PLA", "PLA-CF", "PETG HF" ...
     std::string name;       // commercial name, when the printer knows it
-    std::string color;      // "#RRGGBB", empty when unknown
+    std::string color;      // "#RRGGBB" of the first colour, empty when unknown
+    // Every colour the spool has, "#RRGGBB" or "#RRGGBBAA" when the printer sent an alpha. More
+    // than one means a multicolour spool.
+    std::vector<std::string> colors;
     std::string uid;        // spool/tag id, when the printer has one
+    std::string filament_id; // the profile id the printer says this spool matches, when it says one
     // Anything else the printer sent for this lane, in the order it arrived. Displayed as is,
     // never parsed, so a printer can add fields without a slicer change.
     std::vector<std::pair<std::string, std::string>> extra;
 };
+
+// What a printer says about one lane, as it said it: key and value, in the order they arrived.
+// Keys are matched without regard to case, spaces or underscores, and unknown keys are kept.
+using SpoolFields = std::vector<std::pair<std::string, std::string>>;
+
+// The one place a printer's report becomes a SpoolIdentity. Permissive on the way in: any key, any
+// spelling, a lane the printer says nothing about is simply an identity with little in it. Strict
+// on the way out: the fields the slicer understands are filled in, everything else lands in extra.
+// A colour field may hold several colours separated by comma, semicolon, bar or space.
+SpoolIdentity spool_identity_from_fields(int slot_index, bool has_filament, const SpoolFields& fields);
 
 // A filament profile the user may pick, flattened out of the preset collection so the
 // selection rules below can be tested without a PresetBundle.
@@ -41,6 +55,7 @@ struct SpoolPresetCandidate
     std::string name;       // preset name, as it goes into PresetBundle::filament_presets
     std::string material;   // filament_type
     std::string vendor;     // filament_vendor
+    std::string filament_id; // the id printers use to name this filament, may be empty
     std::string color;      // default_filament_colour, "#RRGGBB", may be empty
     bool        is_system = false;
 };
@@ -59,11 +74,14 @@ struct SpoolLink
     std::map<std::string, std::string> color_presets;
 };
 
-// The two answers the user gives on the saved-links panel, kept next to the links themselves.
+// The answers the user gives on the saved-links panel, kept next to the links themselves.
 struct SpoolMapSettings
 {
-    bool enabled      = true; // off means the picker never opens and synchronizing behaves as it always did
-    bool ask_only_new = true; // ask only about a filament, or a colour of it, that has no link yet
+    bool enabled      = true;  // off means the picker never opens and synchronizing behaves as it always did
+    bool ask_only_new = true;  // ask only about a filament, or a colour of it, that has no link yet
+    // Off asks about a generic spool on every sync: a printer that only says "PLA" says it for every
+    // PLA, so one link would put all of them on one profile.
+    bool remember_generic = false;
 };
 
 // Everything spool_profile_map.json holds.
@@ -82,6 +100,9 @@ std::string spool_mapping_key(const SpoolIdentity& spool);
 // after the printer that reported it went away. An unreadable key gives an empty identity.
 SpoolIdentity spool_identity_from_key(const std::string& key);
 
+// A spool the printer described by its material alone: no name, no vendor, no tag.
+bool spool_is_generic(const SpoolIdentity& spool);
+
 // What to call a spool in a list: the name the printer reported, else its vendor and material.
 // Empty only when the printer reported nothing at all.
 std::string spool_display_name(const SpoolIdentity& spool);
@@ -89,6 +110,17 @@ std::string spool_display_name(const SpoolIdentity& spool);
 // "#RRGGBB" out of whatever the printer sent ("RRGGBBAA", "0xRRGGBB"...), empty when it cannot be
 // read at all.
 std::string spool_normalize_color(const std::string& color);
+
+// As spool_normalize_color, but an alpha channel the printer sent is kept ("#RRGGBBAA"), unless it
+// is fully opaque.
+std::string spool_normalize_color_alpha(const std::string& color);
+
+// The colours of one look of a filament, as they are kept on a link: "#RRGGBB" for a plain spool,
+// "#RRGGBB,#RRGGBBAA,..." for a multicolour one. Empty when the printer sent no colour.
+std::string spool_variant_color(const SpoolIdentity& spool);
+
+// The colours inside a variant, each as spool_normalize_color_alpha gives it.
+std::vector<std::string> spool_variant_colors(const std::string& variant);
 
 // 0 = same material, 1 = same material family (PLA-CF vs PLA), 2 = unrelated.
 int spool_material_rank(const std::string& candidate_material, const std::string& reported_material);

@@ -66,6 +66,7 @@ add_executable(${_TEST_NAME}_tests
     test_sequential_clearance.cpp
     test_object_list.cpp
     test_geometry_import.cpp
+    test_spool_profile_map.cpp
     ../fff_print/test_helpers.cpp
     )
 

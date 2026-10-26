@@ -1901,20 +1901,29 @@ void PartPlate::render_logo_texture(GLTexture &logo_texture, GLModel& logo_buffe
 	}
 }
 
+// The user's skin covers the whole bed and replaces the built-in one. False when there is none to draw.
+bool PartPlate::render_user_skin(BedType bed_type, bool bottom)
+{
+	const PlateLook look = get_plate_look(bed_type);
+	if (look.skin_path.empty() || !m_logo_triangles.is_initialized())
+		return false;
+
+	UserImageTexture& skin = m_partplate_list->m_user_skin_textures[bed_type];
+	if (!skin.load(look.skin_path, GLTexture::MultiThreaded, true))
+		return false;
+
+	render_logo_texture(skin.texture, m_logo_triangles, bottom);
+	return true;
+}
+
 void PartPlate::render_logo(bool bottom, bool render_cali)
 {
 	const BedType effective_bed_type = get_effective_bed_type();
-	const PlateLook look = get_plate_look(effective_bed_type);
-	if (!look.skin_path.empty()) {
-		// the user's skin covers the whole bed and replaces the built-in one
-		UserImageTexture& skin = m_partplate_list->m_user_skin_textures[effective_bed_type];
-		if (skin.load(look.skin_path, GLTexture::MultiThreaded, true) && m_logo_triangles.is_initialized()) {
-			render_logo_texture(skin.texture, m_logo_triangles, bottom);
-			return;
-		}
-	}
+	const bool    skin_rendered      = render_user_skin(effective_bed_type, bottom);
 
 	if (!m_partplate_list->render_bedtype_logo) {
+		if (skin_rendered)
+			return;
 		// render third-party printer texture logo
 		if (!m_partplate_list->load_logo_texture())
 			return;
@@ -1934,19 +1943,21 @@ void PartPlate::render_logo(bool bottom, bool render_cali)
             bed_type_idx = 0;
         }
     }
-	// render bed textures
-	for (auto &part : m_partplate_list->bed_texture_info[bed_type_idx].parts) {
-		if (part.texture) {
-			if (part.buffer && part.buffer->is_initialized()
-				//&& part.vbo_id != 0
-				) {
-				if (part.offset.x() != m_origin.x() || part.offset.y() != m_origin.y()) {
-					part.offset = Vec2d(m_origin.x(), m_origin.y());
-					part.update_buffer();
+	// render bed textures; the calibration and extruder-only-area ones below still go over a skin
+	if (!skin_rendered) {
+		for (auto &part : m_partplate_list->bed_texture_info[bed_type_idx].parts) {
+			if (part.texture) {
+				if (part.buffer && part.buffer->is_initialized()
+					//&& part.vbo_id != 0
+					) {
+					if (part.offset.x() != m_origin.x() || part.offset.y() != m_origin.y()) {
+						part.offset = Vec2d(m_origin.x(), m_origin.y());
+						part.update_buffer();
+					}
+					render_logo_texture(*(part.texture),
+										*(part.buffer),
+										bottom);
 				}
-				render_logo_texture(*(part.texture),
-									*(part.buffer),
-									bottom);
 			}
 		}
 	}

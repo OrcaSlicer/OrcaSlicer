@@ -73,37 +73,6 @@ PlateLookDialog::PlateLookDialog(wxWindow *parent, const std::vector<BedType> &b
     label_row->Add(m_label_input, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
     label_row->Add(clear_label_button, 0, wxALIGN_CENTER_VERTICAL);
 
-    // Icon and skin: a preview on the left, the file and what to upload on the right
-    const auto add_image_section = [&](wxBoxSizer *parent_sizer, const wxString &title, const wxString &requirement, const wxSize &preview_size,
-                                       wxStaticBitmap *&preview, wxStaticText *&path_text, std::string PlateLook::*image_path) {
-        preview   = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, FromDIP(preview_size));
-        path_text = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(240), -1), wxST_ELLIPSIZE_MIDDLE);
-
-        wxButton *choose_button = new wxButton(this, wxID_ANY, _L("Choose..."));
-        wxButton *clear_button  = new wxButton(this, wxID_ANY, _L("Clear"));
-        choose_button->Bind(wxEVT_BUTTON, [this, image_path](wxCommandEvent &) { choose_image(m_looks[m_selected].*image_path); });
-        clear_button->Bind(wxEVT_BUTTON, [this, image_path](wxCommandEvent &) {
-            (m_looks[m_selected].*image_path).clear();
-            show_look();
-        });
-
-        wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
-        buttons->Add(choose_button, 0, wxRIGHT, FromDIP(4));
-        buttons->Add(clear_button);
-
-        wxBoxSizer *details = new wxBoxSizer(wxVERTICAL);
-        details->Add(path_text, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
-        details->Add(new wxStaticText(this, wxID_ANY, requirement), 0, wxBOTTOM, FromDIP(6));
-        details->Add(buttons);
-
-        wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
-        row->Add(preview, 0, wxRIGHT, FromDIP(12));
-        row->Add(details, 1, wxALIGN_CENTER_VERTICAL);
-
-        parent_sizer->Add(new_title(this, title), 0, wxTOP | wxBOTTOM, FromDIP(6));
-        parent_sizer->Add(row, 0, wxEXPAND);
-    };
-
     wxBoxSizer *main = new wxBoxSizer(wxVERTICAL);
     main->Add(plate_row, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
     main->Add(label_row, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
@@ -129,6 +98,38 @@ PlateLookDialog::PlateLookDialog(wxWindow *parent, const std::vector<BedType> &b
     show_look();
     CenterOnParent();
     wxGetApp().UpdateDlgDarkUI(this);
+}
+
+// A preview on the left, the file and what to upload on the right.
+void PlateLookDialog::add_image_section(wxBoxSizer *parent_sizer, const wxString &title, const wxString &requirement, const wxSize &preview_size,
+                                        wxStaticBitmap *&preview, wxStaticText *&path_text, std::string PlateLook::*image_path)
+{
+    preview   = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, FromDIP(preview_size));
+    path_text = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(240), -1), wxST_ELLIPSIZE_MIDDLE);
+
+    wxButton *choose_button = new wxButton(this, wxID_ANY, _L("Choose..."));
+    wxButton *clear_button  = new wxButton(this, wxID_ANY, _L("Clear"));
+    choose_button->Bind(wxEVT_BUTTON, [this, image_path](wxCommandEvent &) { choose_image(m_looks[m_selected].*image_path); });
+    clear_button->Bind(wxEVT_BUTTON, [this, image_path](wxCommandEvent &) {
+        (m_looks[m_selected].*image_path).clear();
+        show_look();
+    });
+
+    wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
+    buttons->Add(choose_button, 0, wxRIGHT, FromDIP(4));
+    buttons->Add(clear_button);
+
+    wxBoxSizer *details = new wxBoxSizer(wxVERTICAL);
+    details->Add(path_text, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
+    details->Add(new wxStaticText(this, wxID_ANY, requirement), 0, wxBOTTOM, FromDIP(6));
+    details->Add(buttons);
+
+    wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+    row->Add(preview, 0, wxRIGHT, FromDIP(12));
+    row->Add(details, 1, wxALIGN_CENTER_VERTICAL);
+
+    parent_sizer->Add(new_title(this, title), 0, wxTOP | wxBOTTOM, FromDIP(6));
+    parent_sizer->Add(row, 0, wxEXPAND);
 }
 
 void PlateLookDialog::select_plate(size_t index)

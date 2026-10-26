@@ -273,6 +273,9 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
             auto color_it = dict.colors.find(color_index);
             if (color_value.is_array() && !color_value.empty() && color_value[0].is_string()) {
                 tray.tray_color = color_value[0].get<std::string>();
+                for (const auto& color : color_value)
+                    if (color.is_string())
+                        tray.tray_colors.push_back(color.get<std::string>());
             } else if (color_it != dict.colors.end()) {
                 tray.tray_color = color_it->second;
             } else {

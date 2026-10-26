@@ -1,7 +1,9 @@
 #pragma once
 
+#include <string>
 #include <vector>
 #include <wx/button.h>
+#include <wx/sizer.h>
 #include <wx/statbmp.h>
 #include <wx/stattext.h>
 
@@ -25,6 +27,8 @@ protected:
 
 private:
     BedType selected_bed_type() const { return m_bed_types[m_selected]; }
+    void    add_image_section(wxBoxSizer *parent_sizer, const wxString &title, const wxString &requirement, const wxSize &preview_size,
+                              wxStaticBitmap *&preview, wxStaticText *&path_text, std::string PlateLook::*image_path);
     void    select_plate(size_t index);
     void    show_look();
     void    choose_image(std::string &image_path);

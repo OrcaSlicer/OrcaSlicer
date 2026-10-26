@@ -71,7 +71,8 @@ std::string plate_look_printer_key()
     if (bundle == nullptr)
         return {};
 
-    const Preset &printer = bundle->printers.get_edited_preset();
+    // The saved preset, so that editing the bed size doesn't switch to other looks before it is saved.
+    const Preset &printer = bundle->printers.get_selected_preset();
     const VendorProfile::PrinterModel *model = wxGetApp().plater()->get_curr_printer_model();
     if (model == nullptr || printer.vendor == nullptr)
         return "preset:" + bundle->printers.get_selected_preset_name();

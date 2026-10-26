@@ -6502,6 +6502,10 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     for (const GLVolume *v : m_volumes.volumes) {
         if (v->is_modifier || v->is_wipe_tower)
             continue;
+        // Plater::priv::update() validates before it reloads the scene, so after a removal the
+        // volumes can still point at objects or instances that are gone
+        if (v->object_idx() >= int(instance_transforms.size()) || v->instance_idx() >= int(instance_transforms[v->object_idx()].size()))
+            continue;
         std::optional<Geometry::Transformation> &transform = instance_transforms[v->object_idx()][v->instance_idx()];
         if (! transform.has_value())
             transform = v->get_instance_transformation();

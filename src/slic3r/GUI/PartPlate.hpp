@@ -268,6 +268,7 @@ private:
     void calc_vertex_for_imex_warn_badge(int imex_icon_index, GLModel &model);
     // void calc_vertex_for_icons_background(int icon_count, GLModel &buffer);
     void render_background(bool force_default_color = false);
+    bool render_user_skin(BedType bed_type, bool bottom);
     void render_logo(bool bottom, bool render_cali = true);
     void render_logo_texture(GLTexture &logo_texture, GLModel &logo_buffer, bool bottom);
     void render_exclude_area(bool force_default_color);

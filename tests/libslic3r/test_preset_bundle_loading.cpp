@@ -2879,9 +2879,9 @@ TEST_CASE("Deleting a filament on a shared-nozzle printer keeps it deleted", "[P
     CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
 }
 
-// Each tool of a tool changer carries its own filament, so the filament list never drops below the
-// tool count.
-TEST_CASE("A tool changer keeps a filament for every tool", "[Preset][Bundle]")
+// A project holds the filaments it needs, whatever printer it is opened on: a filament change must
+// not pad a tool changer's list up to its tool count.
+TEST_CASE("A tool changer keeps the filaments the project has", "[Preset][Bundle]")
 {
     PresetBundle bundle;
     select_multi_nozzle_printer(bundle, 4, false);
@@ -2889,7 +2889,7 @@ TEST_CASE("A tool changer keeps a filament for every tool", "[Preset][Bundle]")
 
     bundle.update_multi_material_filament_presets();
 
-    CHECK(bundle.filament_presets.size() == 4);
+    CHECK(bundle.filament_presets.size() == 1);
 }
 
 // The app config keeps each printer's filament list. The next start (load_selections) and a switch
@@ -6023,10 +6023,10 @@ TEST_CASE("Adding a filament preserves slots with incomplete mixed metadata", "[
     }
 }
 
-// On a tool changer the nozzle-count top-up in update_multi_material_filament_presets() grows
-// filament_presets on its own, so a physical count derived from that list reports a slot no
-// per-filament array has yet. That is what made the extruder-count handler conclude there was
-// nothing to add and leave the new sidebar combo with no colour to draw.
+// On a tool changer the top-up in update_filament_count() grows filament_presets on its own, so a
+// physical count derived from that list reports a slot no per-filament array has yet. That is what
+// made the extruder-count handler conclude there was nothing to add and leave the new sidebar combo
+// with no colour to draw.
 TEST_CASE("The physical filament count is not fooled by a lone filament_presets top-up", "[Preset][Bundle][FilamentMixer]")
 {
     PresetBundle bundle;
@@ -6037,7 +6037,7 @@ TEST_CASE("The physical filament count is not fooled by a lone filament_presets 
         bundle.set_num_filaments(4u, std::string("#FF0000"));
         bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
             { 0.4, 0.4, 0.4, 0.4, 0.4 };
-        bundle.update_multi_material_filament_presets();
+        bundle.update_filament_count();
 
         REQUIRE(bundle.filament_presets.size() == 5);   // the top-up moved this list on its own
         REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 4);
@@ -6050,7 +6050,7 @@ TEST_CASE("The physical filament count is not fooled by a lone filament_presets 
             { false, false, false, false, true };
         bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
             { 0.4, 0.4, 0.4, 0.4, 0.4, 0.4 };
-        bundle.update_multi_material_filament_presets();
+        bundle.update_filament_count();
 
         REQUIRE(bundle.filament_presets.size() == 6);
         REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 5);
@@ -6068,7 +6068,7 @@ TEST_CASE("New filament colours are placed by array position", "[Preset][Bundle]
     bundle.set_num_filaments(4u, std::string("#FF0000"));
     bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
         { 0.4, 0.4, 0.4, 0.4, 0.4 };
-    bundle.update_multi_material_filament_presets();
+    bundle.update_filament_count();
     REQUIRE(bundle.filament_presets.size() == 5);
     REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 4);
 

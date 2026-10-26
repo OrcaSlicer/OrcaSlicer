@@ -312,6 +312,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SyncAmsInfoDialog.hpp
     GUI/SpoolProfileMapDialog.cpp
     GUI/SpoolProfileMapDialog.hpp
+    GUI/SpoolTile.cpp
+    GUI/SpoolTile.hpp
     GUI/ImGuiWrapper.hpp
     GUI/IMSlider.cpp
     GUI/IMSlider.hpp

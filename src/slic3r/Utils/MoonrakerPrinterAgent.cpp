@@ -671,6 +671,12 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 }
                 tray_json["cols"]  = cols;
                 tray_json["ctype"] = multi && tray->colors_gradient ? 0 : 1;
+                tray_json["orca_fields"] = nlohmann::json::object();
+                for (const auto& [key, value] : tray->fields)
+                    tray_json["orca_fields"][key] = value;
+                // tray_type is replaced on parse by the type of the profile picked for it, a fallback
+                // one when no system profile has the type, so the spool keeps what the printer said.
+                tray_json["orca_fields"]["MATERIAL"] = tray->tray_type;
 
                 // Add temperature data if provided
                 if (tray->bed_temp > 0) {
@@ -906,6 +912,46 @@ std::string MoonrakerPrinterAgent::safe_json_string(const nlohmann::json& obj, c
     return "";
 }
 
+namespace {
+
+std::string json_scalar_to_string(const nlohmann::json& value)
+{
+    if (value.is_string())
+        return value.get<std::string>();
+    if (value.is_boolean())
+        return value.get<bool>() ? "yes" : "no";
+    if (value.is_number_integer())
+        return std::to_string(value.get<long long>());
+    if (value.is_number_float()) {
+        std::string text = std::to_string(value.get<double>());
+        while (text.size() > 1 && text.back() == '0')
+            text.pop_back();
+        if (!text.empty() && text.back() == '.')
+            text.pop_back();
+        return text;
+    }
+    return std::string();
+}
+
+} // namespace
+
+std::vector<std::pair<std::string, std::string>> MoonrakerPrinterAgent::scalar_fields(const nlohmann::json&            object,
+                                                                                      const std::vector<std::string>& skipped_keys)
+{
+    std::vector<std::pair<std::string, std::string>> fields;
+    if (!object.is_object())
+        return fields;
+
+    for (const auto& entry : object.items()) {
+        if (std::find(skipped_keys.begin(), skipped_keys.end(), entry.key()) != skipped_keys.end())
+            continue;
+        const std::string value = json_scalar_to_string(entry.value());
+        if (!value.empty())
+            fields.emplace_back(entry.key(), value);
+    }
+    return fields;
+}
+
 int MoonrakerPrinterAgent::safe_json_int(const nlohmann::json& obj, const char* key)
 {
     auto it = obj.find(key);
@@ -1044,6 +1090,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
+        tray.fields = scalar_fields(lane_obj, {"lane", "color", "material", "filament_id", "bed_temp", "nozzle_temp"});
         // A lane's filament_id goes to AMS sync as the tray id, which matches it like a Bambu tray's
         // and falls back to the material type when no compatible preset carries it. Only a string
         // counts: Happy Hare writes Spoolman's numeric filament record id under the same key.

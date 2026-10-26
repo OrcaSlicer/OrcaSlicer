@@ -1,6 +1,5 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
-#include "SpoolProfileMap.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
@@ -74,90 +73,15 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
     return best_match_id;
 }
 
-std::string upper_trim(const std::string& value)
+// Everything the printer said about one lane, including keys this build has never heard of, so
+// the user can recognise the spool and pick a profile for it.
+std::vector<std::pair<std::string, std::string>> lane_fields(const std::string&                                       vendor,
+                                                            const std::vector<std::pair<std::string, std::string>>& nfc_fields)
 {
-    std::string out;
-    out.reserve(value.size());
-    for (unsigned char c : value) {
-        if (!std::isspace(c))
-            out.push_back(static_cast<char>(std::toupper(c)));
-    }
-    return out;
+    std::vector<std::pair<std::string, std::string>> fields = {{"VENDOR", vendor}};
+    fields.insert(fields.end(), nfc_fields.begin(), nfc_fields.end());
+    return fields;
 }
-
-// A scalar JSON value as text. Objects and arrays are skipped: this is display material, not
-// something the slicer parses.
-std::string json_scalar_to_string(const nlohmann::json& value)
-{
-    if (value.is_string())
-        return value.get<std::string>();
-    if (value.is_boolean())
-        return value.get<bool>() ? "yes" : "no";
-    if (value.is_number_integer())
-        return std::to_string(value.get<long long>());
-    if (value.is_number_float()) {
-        std::string text = std::to_string(value.get<double>());
-        while (text.size() > 1 && text.back() == '0')
-            text.pop_back();
-        if (!text.empty() && text.back() == '.')
-            text.pop_back();
-        return text;
-    }
-    return std::string();
-}
-
-// The printer's "NONE" is its way of saying nothing is known.
-bool is_reported(const std::string& value) { return !value.empty() && upper_trim(value) != "NONE"; }
-
-bool is_one_of(const std::vector<std::string>& keys, const std::string& key)
-{
-    return std::find(keys.begin(), keys.end(), key) != keys.end();
-}
-
-// SpoolProfileMap: everything the printer said about one lane, including keys this build has never
-// heard of, so the user can recognise the spool and pick a profile for it.
-SpoolIdentity make_spool_identity(int                   slot_index,
-                                  bool                  has_filament,
-                                  const std::string&    vendor,
-                                  const std::string&    material,
-                                  const std::string&    color,
-                                  const nlohmann::json& nfc_info)
-{
-    // Whichever key the printer happens to use for the same thing.
-    static const std::vector<std::string> name_keys   = {"FILAMENT_NAME", "NAME", "PRODUCT", "MODEL"};
-    static const std::vector<std::string> uid_keys    = {"SPOOL_ID", "SPOOL_UID", "UID", "TAG_UID", "SN", "SERIAL", "ID"};
-    static const std::vector<std::string> vendor_keys = {"VENDOR", "BRAND", "MANUFACTURER"};
-
-    SpoolIdentity spool;
-    spool.slot_index   = slot_index;
-    spool.has_filament = has_filament;
-    spool.material     = material;
-    spool.color        = spool_normalize_color(color);
-    if (is_reported(vendor))
-        spool.vendor = vendor;
-
-    if (!nfc_info.is_array() || slot_index < 0 || slot_index >= static_cast<int>(nfc_info.size()) ||
-        !nfc_info[slot_index].is_object())
-        return spool;
-
-    for (const auto& entry : nfc_info[slot_index].items()) {
-        const std::string key   = upper_trim(entry.key());
-        const std::string value = json_scalar_to_string(entry.value());
-        if (!is_reported(value))
-            continue;
-        if (spool.name.empty() && is_one_of(name_keys, key))
-            spool.name = value;
-        else if (spool.uid.empty() && is_one_of(uid_keys, key))
-            spool.uid = value;
-        else if (spool.vendor.empty() && is_one_of(vendor_keys, key))
-            spool.vendor = value;
-        else
-            spool.extra.emplace_back(entry.key(), value);
-    }
-
-    return spool;
-}
-
 
 } // anonymous namespace
 
@@ -271,10 +195,8 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     static const std::string empty_str;
     static const std::string default_color = "FFFFFFFF";
 
-    std::vector<AmsTrayData>   trays;
-    std::vector<SpoolIdentity> spools;
+    std::vector<AmsTrayData> trays;
     trays.reserve(slot_count);
-    spools.reserve(slot_count);
 
     for (int i = 0; i < slot_count; ++i) {
         AmsTrayData tray;
@@ -316,12 +238,11 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
             }
         }
 
-        spools.push_back(make_spool_identity(i, tray.has_filament, safe_at(filament_vendor, i, empty_str), tray.tray_type,
-                                            tray.tray_color, nfc_info));
+        const bool has_nfc_slot = nfc_info.is_array() && i < static_cast<int>(nfc_info.size());
+        tray.fields             = lane_fields(safe_at(filament_vendor, i, empty_str),
+                                              scalar_fields(has_nfc_slot ? nfc_info[i] : nlohmann::json(), {}));
         trays.emplace_back(std::move(tray));
     }
-
-    SpoolProfileMap::get().publish(dev_id, std::move(spools));
 
     build_ams_payload(1, slot_count - 1, trays);
     return true;

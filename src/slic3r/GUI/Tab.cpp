@@ -5523,7 +5523,7 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("printable_height", "printer_basic_information_printable_space#printable-height");
         Line multi_bed_line = optgroup->create_single_option_line("support_multi_bed_types", "printer_basic_information_printable_space#support-multi-bed-types");
         multi_bed_line.append_widget([this](wxWindow* parent) {
-            m_customize_plates_button = new wxButton(parent, wxID_ANY, _L("Customise"));
+            m_customize_plates_button = new wxButton(parent, wxID_ANY, _L("Customize"));
             wxGetApp().UpdateDarkUI(m_customize_plates_button);
             m_customize_plates_button->Show(m_config->opt_bool("support_multi_bed_types"));
             m_customize_plates_button->Enable(m_config->opt_bool("support_multi_bed_types"));

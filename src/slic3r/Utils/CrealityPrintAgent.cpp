@@ -384,6 +384,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id, FilamentSyncMod
             tray.has_filament = true;
             tray.tray_type    = normalize_filament_type(s.filament_type);
             tray.tray_color   = s.color_hex;
+            tray.fields       = {{"VENDOR", s.vendor}, {"NAME", s.brand_name}};
 
             if (bundle) {
                 tray.tray_info_idx = match_filament_preset(

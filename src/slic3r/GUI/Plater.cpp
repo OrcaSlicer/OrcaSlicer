@@ -242,6 +242,8 @@
 #include "ConfigWizardTypes.hpp"
 #include "SyncAmsInfoDialog.hpp"
 #include "SpoolProfileMapDialog.hpp"
+#include "SpoolTile.hpp"
+#include "slic3r/Utils/SpoolProfileMap.hpp"
 #include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/UndoRedo.hpp"
 #include "../Utils/PresetUpdater.hpp"
@@ -3382,7 +3384,7 @@ Sidebar::Sidebar(Plater *parent)
     ScalableButton* spool_links_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "spool_profile_link", wxEmptyString, wxDefaultSize,
                                                          wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 16);
     spool_links_btn->SetToolTip(_L("Filaments linked to profiles"));
-    spool_links_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { SpoolProfileLinksDialog::run_manage(this); });
+    spool_links_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { SpoolProfileLinksDialog::run_manage(this, SpoolLook::MappingChip); });
     bSizer39->Add(spool_links_btn, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
 
     ams_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
@@ -6098,6 +6100,41 @@ void Sidebar::on_bed_type_change(BedType bed_type)
         p->combo_printer_bed->SetSelection(0);
 }
 
+namespace {
+
+// What the printer reported comes first so it wins over the fields Orca derived from the profile it
+// picked for the tray.
+SpoolFields tray_spool_fields(const DevAmsTray& tray)
+{
+    SpoolFields fields = tray.extra;
+    fields.insert(fields.end(), {
+        {"MATERIAL", tray.m_fila_type},
+        {"NAME", tray.sub_brands},
+        {"COLOR", tray.cols.size() > 1 ? boost::algorithm::join(tray.cols, ",") : tray.color},
+        {"UID", tray.tag_uid},
+    });
+    if (tray.setting_id != UNKNOWN_FILAMENT_ID)
+        fields.emplace_back("FILAMENT_ID", tray.setting_id);
+    return fields;
+}
+
+// Whatever the printer family, this is where its report becomes the spools the link dialog works with.
+void publish_spools(const std::string& dev_id, DevFilaSystem& fila_system)
+{
+    std::vector<SpoolIdentity> spools;
+    for (const auto& [ams_key, ams] : fila_system.GetAmsList()) {
+        const int ams_id = std::stoi(ams_key);
+        for (const auto& [slot_key, tray] : ams->GetTrays()) {
+            const int  slot_index   = ams_id * 4 + std::stoi(slot_key);
+            const bool has_filament = tray->is_exists && !tray->is_slot_placeholder;
+            spools.push_back(spool_identity_from_fields(slot_index, has_filament, tray_spool_fields(*tray)));
+        }
+    }
+    SpoolProfileMap::get().publish(dev_id, std::move(spools));
+}
+
+} // namespace
+
 /**
  * Build a map of filament configurations from the connected printer's AMS (Automatic Material System).
  *
@@ -6199,6 +6236,7 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
                                       build_tray_config(*tray.second, get_ams_name(ams_id, slot_id), std::to_string(ams_id), std::to_string(slot_id)));
         }
     }
+    publish_spools(obj->get_dev_id(), *obj->GetFilaSystem());
     return filament_ams_list;
 }
 

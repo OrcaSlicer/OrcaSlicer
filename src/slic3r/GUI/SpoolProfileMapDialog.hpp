@@ -18,6 +18,7 @@
 #include <wx/window.h>
 
 #include "GUI_Utils.hpp"
+#include "SpoolTile.hpp"
 #include "slic3r/Utils/SpoolProfileMap.hpp"
 
 class CheckBox;
@@ -81,16 +82,43 @@ private:
     wxScrolledWindow*                 m_scroll   = nullptr;
 };
 
-// Everything the user has ever told the picker to remember, in one list they can edit. Opened from
-// the filament title bar; independent of any printer being connected, since the links are read
-// from disk.
+// The spools the user has linked to a profile, one tile each with its profile as the label. Opened
+// from the filament title bar; independent of any printer being connected, since the links are read
+// from disk. The spools are filed by material. Clicking a tile opens that spool's details.
 class SpoolProfileLinksDialog : public DPIDialog
 {
 public:
-    static void run_manage(wxWindow* parent);
+    static void run_manage(wxWindow* parent, SpoolLook look);
 
-    explicit SpoolProfileLinksDialog(wxWindow* parent);
+    SpoolProfileLinksDialog(wxWindow* parent, SpoolLook look);
     ~SpoolProfileLinksDialog() override = default;
+
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+
+private:
+    void build(wxWindow* parent);
+    // Drawn again after a spool was edited or forgotten, from what is on disk.
+    void fill_shelf();
+    void add_material_group(wxWindow* parent, wxSizer* shelf, const std::string& material, const std::vector<SpoolLink>& links);
+    void add_tile(wxWindow* parent, wxFlexGridSizer* grid, const SpoolLink& link, const wxString& material);
+    void add_empty_note(wxWindow* parent, wxSizer* shelf);
+    void open_detail(SpoolLink link);
+    void on_confirm();
+
+    SpoolLook         m_look;
+    SpoolMapSettings  m_settings;
+    ::CheckBox*       m_only_new_check = nullptr;
+    Label*            m_only_new_label = nullptr;
+    wxScrolledWindow* m_scroll         = nullptr;
+};
+
+// One linked spool: every color it was seen in, its profile, and the colors that print on a
+// profile of their own.
+class SpoolDetailDialog : public DPIDialog
+{
+public:
+    SpoolDetailDialog(wxWindow* parent, SpoolLink link);
+    ~SpoolDetailDialog() override = default;
 
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
@@ -99,7 +127,7 @@ private:
     // user asks for it, and keeps its own profile from then on.
     struct ColorRow
     {
-        std::string          color;            // "#RRGGBB"
+        std::string          color;            // "#RRGGBB", or several for a multicolor spool
         std::string          initial;          // the profile saved for this color, empty when none
         std::string          preset;           // what its menu says now, kept across a redraw
         bool                 split   = false;  // shown as a row of its own
@@ -114,40 +142,37 @@ private:
         SpoolLink             link;    // the spool, its profile and its name, as they are on disk
         std::string           initial; // what the menu showed when the panel opened
         std::string           preset;  // what the menu says now, kept across a redraw
-        bool                  removed   = false;
-        bool                  collapsed = true;
+        bool                  collapsed = false;
         bool                  filled    = false;
         std::vector<ColorRow> colors;
         SpoolPresetComboBox*  combo = nullptr;
     };
 
-    static Row  make_row(SpoolLink link);
-    static void settle_color_rows(Row& row);
+    static Row make_row(SpoolLink link);
 
     void build(wxWindow* parent);
-    // Draws the list again after the tree changed shape: a color split out, a row folded, a link
-    // forgotten. The menus are rebuilt on what they were showing, never on what is on disk.
+    // Draws the list again after it changed shape: a color split out, a row folded. The menus are
+    // rebuilt on what they were showing, never on what is on disk.
     void      rebuild_rows();
     void      take_menu_choices();
-    wxWindow* make_row_head(wxWindow* parent, Row& row);
-    void      add_chips(wxWindow* head, wxBoxSizer* head_sizer, Row& row);
-    void      add_row(wxWindow* parent, wxFlexGridSizer* grid, Row& row);
-    void      add_color_rows(wxWindow* parent, wxFlexGridSizer* grid, Row& row);
-    void      add_color_row(wxWindow* parent, wxFlexGridSizer* grid, Row& row, ColorRow& color, bool last);
-    void      split_color(Row& row, ColorRow& color);
+    void      settle_color_rows();
+    wxWindow* make_row_head(wxWindow* parent);
+    void      add_chips(wxWindow* head, wxBoxSizer* head_sizer);
+    void      add_row(wxWindow* parent, wxFlexGridSizer* grid);
+    void      add_color_rows(wxWindow* parent, wxFlexGridSizer* grid);
+    void      add_color_row(wxWindow* parent, wxFlexGridSizer* grid, ColorRow& color, bool last);
+    void      split_color(ColorRow& color);
+    void      forget_link();
     void      on_confirm();
-    // Writes back each color of a filament, given the profile the filament itself ends up on.
-    static void remember_colors(const Row& row, const std::string& picked);
-    // Moves the project's own filament selection onto the profile a link now points at, given the
-    // links the user changed as old profile -> new profile.
-    void follow_links_in_project(const std::vector<std::pair<std::string, std::string>>& repointed);
+    // Writes back each color of the filament, given the profile the filament itself ends up on.
+    void remember_colors(const std::string& picked) const;
+    // Moves the project's own filament selection from the profile the link left to the one it now
+    // points at.
+    static void follow_link_in_project(const std::string& old_name, const std::string& new_name);
 
-    std::vector<Row>                  m_rows;
+    Row                               m_row;
     std::vector<SpoolPresetCandidate> m_candidates;
-    SpoolMapSettings                  m_settings;
-    ::CheckBox*                       m_only_new_check = nullptr;
-    Label*                            m_only_new_label = nullptr;
-    wxScrolledWindow*                 m_scroll         = nullptr;
+    wxScrolledWindow*                 m_scroll = nullptr;
 };
 
 }} // namespace Slic3r::GUI
