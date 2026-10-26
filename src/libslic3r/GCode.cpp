@@ -11318,8 +11318,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     const std::string& toolchange_prime_gcode = m_config.toolchange_prime_gcode.value;
     if (m_config.toolchange_prime_enable && !toolchange_prime_gcode.empty() && !m_config.enable_prime_tower && !m_config.single_extruder_multi_material &&
         old_filament_id >= 0 && old_filament_id != int(new_filament_id)) {
-        if (m_toolchange_primed_extruders.size() <= new_filament_id)
-            m_toolchange_primed_extruders.resize(new_filament_id + 1, false);
+        if (m_toolchange_primed_extruders.size() <= std::max<size_t>(new_filament_id, old_filament_id))
+            m_toolchange_primed_extruders.resize(std::max<size_t>(new_filament_id, old_filament_id) + 1, false);
+        // The tool being parked has been printing (the start G-code primed the first one), so it is no longer a first use.
+        m_toolchange_primed_extruders[old_filament_id] = true;
         const bool  first_use    = !m_toolchange_primed_extruders[new_filament_id];
         const float prime_length = float(std::max(m_config.toolchange_prime_length_min.value, m_config.toolchange_prime_length_max.value));
         m_toolchange_primed_extruders[new_filament_id] = true;

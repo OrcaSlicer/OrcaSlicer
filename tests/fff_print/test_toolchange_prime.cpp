@@ -49,6 +49,8 @@ DynamicPrintConfig two_tool_config()
     DynamicPrintConfig config = default_print_config();
     config.set_num_extruders(2);
     config.set_deserialize_strict({
+        { "filament_diameter",            "1.75,1.75" }, // the filament count comes from this, as in a loaded preset
+        { "single_extruder_multi_material", false }, // a toolchanger, like the U1
         { "enable_prime_tower",           false },
         { "use_relative_e_distances",     true },
         { "wall_filament",                1 },
@@ -72,7 +74,8 @@ TEST_CASE("Tool change prime is sized by idle time", "[ToolchangePrime]")
     std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
 
     REQUIRE(blocks.size() > 2);
-    // Each tool's first prime gets the full length; later primes after a short park are scaled toward the minimum.
+    // Only the second tool's first use gets the full length (the start G-code primes the first tool);
+    // later primes after a short park are scaled toward the minimum.
     size_t first_uses = 0;
     for (const PrimeBlock& block : blocks) {
         REQUIRE_FALSE(block.skipped);
@@ -98,10 +101,10 @@ TEST_CASE("Tool change prime is skipped below the skip time", "[ToolchangePrime]
         REQUIRE(block.skipped == !block.first_use);
 }
 
-TEST_CASE("Tool change prime is not emitted with a prime tower", "[ToolchangePrime]")
+TEST_CASE("Tool change prime is not emitted for a single extruder multi material printer", "[ToolchangePrime]")
 {
     DynamicPrintConfig config = two_tool_config();
-    config.set_deserialize_strict({{ "enable_prime_tower", true }});
+    config.set_deserialize_strict({{ "single_extruder_multi_material", true }});
     REQUIRE(prime_blocks(slice({TestMesh::cube_20x20x20}, config)).empty());
 }
 
