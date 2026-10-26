@@ -7,7 +7,7 @@ This is the entry point for the implemented Fin support design. Mode-specific in
 | [Simple](fin-support/simple.md) | Contour-based placement and candidate selection |
 | [Simulated](fin-support/simulated.md) | Directional demand, upward planning and generation feedback |
 | [Painted Shape](fin-support/painted-shape.md) | Painted geometry interpretation, correction, source anchoring and finite generation groups |
-| [Physical generation](fin-support/generation.md) | Contact rules, body construction, continuation, taper, assembly and toolpaths, with mode differences stated explicitly |
+| [Physical generation](fin-support/generation.md) | A1 and contact signals, body construction, continuation, taper, assembly and toolpaths, with mode differences stated explicitly |
 | [Intent input](fin-support/intent-input.md) | Producer-independent point/line records, source evidence and correction boundary |
 | [Diagnostics](fin-support/diagnostics.md) | Logging, SVG snapshots and result interpretation |
 

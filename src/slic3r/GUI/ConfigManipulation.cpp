@@ -945,9 +945,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         toggle_field(el, have_support_material);
     for (auto el : { "support_base_pattern", "support_base_pattern_spacing", "support_expansion",
                      "support_angle", "support_interface_pattern", "support_interface_top_layers",
-                     "support_interface_bottom_layers", "support_top_z_distance", "support_bottom_z_distance",
+                     "support_interface_bottom_layers", "support_bottom_z_distance",
                      "support_on_build_plate_only", "support_critical_regions_only" })
         toggle_field(el, have_support_material && !support_is_fin);
+    toggle_field("support_top_z_distance", have_support_material &&
+        (!support_is_fin || config->opt_enum<FinSupportStyle>("fin_support_style") == fssPaintedShape));
     toggle_field("support_threshold_angle", have_support_material && is_auto(support_type) && !support_is_fin);
     toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type) && !support_is_fin);
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
