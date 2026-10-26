@@ -5,7 +5,6 @@
 
 #include "slic3r/GUI/PrinterWebView.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>

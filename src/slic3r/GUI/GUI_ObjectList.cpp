@@ -9,7 +9,6 @@
 #include "I18N.hpp"
 #include "Plater.hpp"
 #include "BitmapComboBox.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/plugin/PluginManager.hpp"

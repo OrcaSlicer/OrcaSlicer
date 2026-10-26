@@ -2,7 +2,6 @@
 #include "GUI_App.hpp"
 #include "NotificationManager.hpp"
 #include "format.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
 #include <boost/algorithm/string.hpp>

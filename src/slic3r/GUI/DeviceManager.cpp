@@ -11,7 +11,6 @@
 
 #include "GUI_App.hpp"
 #include "DeviceErrorDialog.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "ReleaseNote.hpp"

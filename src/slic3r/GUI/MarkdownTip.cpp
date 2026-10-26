@@ -1,7 +1,6 @@
 #include "MarkdownTip.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/WebView.hpp"
 

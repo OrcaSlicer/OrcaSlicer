@@ -61,7 +61,6 @@
 #include "wxExtensions.hpp"
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Label.hpp"
 #include "slic3r/GUI/I18N.hpp"

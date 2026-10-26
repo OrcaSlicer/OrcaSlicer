@@ -1,7 +1,6 @@
 #include "SingleChoiceDialog.hpp"
 
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
 #include "Widgets/DialogButtons.hpp"

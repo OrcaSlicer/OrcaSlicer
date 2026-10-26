@@ -7,7 +7,6 @@
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_Preview.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/WebView.hpp"
 #include "Jobs/BoostThreadWorker.hpp"

@@ -1,5 +1,4 @@
 #include "PluginHostUi.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 
 #include <pybind11/pytypes.h>
 #include <pybind11/gil.h>

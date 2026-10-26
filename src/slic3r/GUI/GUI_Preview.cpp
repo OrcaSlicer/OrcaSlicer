@@ -29,7 +29,6 @@
 #include "OpenGLManager.hpp"
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
 #include <wx/listbook.h>

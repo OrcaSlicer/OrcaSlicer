@@ -46,7 +46,6 @@
 #include <boost/lexical_cast.hpp>
 
 #include <nlohmann/json.hpp>
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include <boost/dll.hpp>
 

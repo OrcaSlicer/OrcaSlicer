@@ -1,6 +1,5 @@
 #include "MultiMachinePage.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"

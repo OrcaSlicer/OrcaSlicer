@@ -3,7 +3,6 @@
 #include "CloudProvider.hpp"
 #include "I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "libslic3r_version.h"
 

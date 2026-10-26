@@ -53,7 +53,6 @@
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"

@@ -9,7 +9,6 @@
 #include "GUI_Factories.hpp"
 #include "I18N.hpp"
 #include "IMSlider.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NotificationManager.hpp"

@@ -2,7 +2,6 @@
 #include "Plater.hpp"
 #include "SettingsIndex.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "OG_CustomCtrl.hpp"
 #include "MsgDialog.hpp"

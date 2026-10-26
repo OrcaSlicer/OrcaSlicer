@@ -26,7 +26,6 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/GuiColor.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // wxGetApp().mainframe, as the projector window's parent
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"

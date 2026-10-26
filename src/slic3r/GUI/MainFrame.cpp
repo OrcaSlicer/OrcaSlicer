@@ -410,7 +410,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     , m_recent_projects(18)
     , m_settings_dialog(this)
     , m_idle([] { return wxGetApp().input_idle_ms(); })
-    , m_diff_dialog("compare_presets", 100, [this] { return make_diff_dialog(); })
+    , m_diff_dialog(std::make_unique<Lazy<DiffPresetDialog>>("compare_presets", 100, [this] { return make_diff_dialog(); }))
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -4274,7 +4274,7 @@ void MainFrame::prebuild_pages_when_idle()
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);
-    m_idle.add(m_diff_dialog);
+    m_idle.add(*m_diff_dialog);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
     m_idle.start();
     m_prebuild_started = true;

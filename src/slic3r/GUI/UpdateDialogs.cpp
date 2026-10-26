@@ -32,7 +32,6 @@
 #include "I18N.hpp"
 #include "ConfigWizard.hpp"
 #include "wxExtensions.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
 namespace Slic3r {

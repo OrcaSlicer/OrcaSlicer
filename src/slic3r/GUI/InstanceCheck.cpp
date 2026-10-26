@@ -1,5 +1,4 @@
 #include "GUI_App.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "InstanceCheck.hpp"
 #include "Plater.hpp"
 #include <boost/bind/bind.hpp>

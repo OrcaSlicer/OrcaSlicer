@@ -23,7 +23,6 @@
 #endif
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #ifdef SLIC3R_CAD
 #include "CAD/DesignPanel.hpp"

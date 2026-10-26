@@ -1,7 +1,6 @@
 #include "MultiChoiceDialog.hpp"
 
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include <wx/anybutton.h>
 #include <wx/string.h>

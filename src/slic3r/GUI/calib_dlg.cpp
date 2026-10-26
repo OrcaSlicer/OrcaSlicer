@@ -24,7 +24,6 @@
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <wx/dcgraph.h>
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include <string>

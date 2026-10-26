@@ -34,7 +34,6 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
 

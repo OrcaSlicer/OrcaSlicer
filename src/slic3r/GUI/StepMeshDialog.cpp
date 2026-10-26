@@ -17,7 +17,6 @@
 #include <wx/dcmemory.h>
 #include "GUI_App.hpp"
 #include "I18N.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/TextInput.hpp"

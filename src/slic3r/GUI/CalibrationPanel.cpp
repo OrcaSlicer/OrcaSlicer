@@ -30,7 +30,6 @@
 #include <wx/notebook.h>
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "CalibrationPanel.hpp"
 #include "I18N.hpp"

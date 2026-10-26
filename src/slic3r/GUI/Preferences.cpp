@@ -2,7 +2,6 @@
 #include "CloudProvider.hpp"
 #include "OptionsGroup.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "WebViewDialog.hpp"
 #include "Plater.hpp"

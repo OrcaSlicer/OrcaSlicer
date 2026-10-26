@@ -3,7 +3,6 @@
 #include "ProjectDirtyStateManager.hpp"
 #include "ImGuiWrapper.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "I18N.hpp"
 #include "Plater.hpp"

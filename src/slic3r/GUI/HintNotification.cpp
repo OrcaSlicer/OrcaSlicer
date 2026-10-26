@@ -3,7 +3,6 @@
 #include "format.hpp"
 #include "I18N.hpp"
 #include "GLCanvas3D.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Preferences.hpp"
 #include "Tab.hpp"

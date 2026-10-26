@@ -20,7 +20,6 @@
 #include <wx/statbox.h>
 #include "wx/evtloop.h"
 
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 

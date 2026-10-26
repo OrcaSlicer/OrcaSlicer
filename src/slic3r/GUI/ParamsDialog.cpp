@@ -1,7 +1,6 @@
 #include "ParamsDialog.hpp"
 #include "ParamsPanel.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"

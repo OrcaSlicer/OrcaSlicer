@@ -27,7 +27,6 @@
 
 #include "I18N.hpp"
 //#include "ConfigWizard.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "GUI_App.hpp"

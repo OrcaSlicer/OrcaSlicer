@@ -49,7 +49,6 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Tab.hpp"
 #include "libslic3r_version.h"

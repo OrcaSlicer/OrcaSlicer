@@ -21,7 +21,6 @@
 #include <wx/dialog.h>
 #include "slic3r/GUI/FilamentMapPanel.hpp"
 #include "slic3r/GUI/FilamentGroupPopup.hpp"
-#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 
 namespace Slic3r { namespace GUI {

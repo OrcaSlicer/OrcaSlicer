@@ -4,7 +4,6 @@
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "nlohmann/json.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"

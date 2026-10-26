@@ -4,7 +4,6 @@
 #include "BuildCommit.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
-#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
 #include "slic3r/GUI/Widgets/Label.hpp"
