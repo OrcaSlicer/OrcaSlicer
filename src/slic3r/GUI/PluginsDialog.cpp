@@ -1319,9 +1319,6 @@ void PluginsDialog::delete_local_plugin(const PluginDescriptor& plugin)
             }
 
             send_plugins();
-            // The package is gone only now; the unload callback rechecked the notices too early.
-            if (Plater* plater = wxGetApp().plater())
-                plater->refresh_missing_plugin_notifications();
             show_status(wxString::Format(_L("Deleted \"%s\"."), plugin_name), "success");
         },
         _L("Deleting plugin"), _L("Deleting plugin..."));
@@ -1353,9 +1350,6 @@ void PluginsDialog::unsubscribe_cloud_plugin(const PluginDescriptor& plugin)
             }
 
             send_plugins();
-            // The package is gone only now; the unload callback rechecked the notices too early.
-            if (Plater* plater = wxGetApp().plater())
-                plater->refresh_missing_plugin_notifications();
             show_status(wxString::Format(_L("Unsubscribed \"%s\"."), plugin_name), "success");
         },
         _L("Unsubscribing plugin"), _L("Deleting local files and unsubscribing plugin..."));
