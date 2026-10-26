@@ -3,13 +3,14 @@
 	"name": "0.30 Strength @Snapmaker J1 (0.6 nozzle)",
 	"inherits": "fdm_process_idex",
 	"from": "system",
-	"setting_id": "2196759212",
+	"setting_id": "VEugI1UKcKds8E1A",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.6 nozzle)"
 	],
 	"layer_height": "0.3",
 	"top_shell_layers": "3",
+	"top_color_penetration_layers": "3",
 	"bridge_speed": "30",
 	"line_width": "0.62",
 	"outer_wall_line_width": "0.62",
@@ -22,5 +23,6 @@
 	"wall_loops": "5",
 	"sparse_infill_density": "25%",
 	"initial_layer_infill_speed": "55",
-	"initial_layer_speed": "40"
+	"initial_layer_speed": "40",
+	"bottom_color_penetration_layers": "3"
 }

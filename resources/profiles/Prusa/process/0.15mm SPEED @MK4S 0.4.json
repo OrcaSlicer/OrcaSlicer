@@ -3,6 +3,7 @@
 	"name": "0.15mm SPEED @MK4S 0.4",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "M60DxnrVmUqbwINv",
 	"instantiation": "true",
 	"bridge_speed": "45",
 	"compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",

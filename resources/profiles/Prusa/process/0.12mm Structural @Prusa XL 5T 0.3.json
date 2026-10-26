@@ -3,7 +3,7 @@
 	"name": "0.12mm Structural @Prusa XL 5T 0.3",
 	"inherits": "process_common_xl_5t",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "r7sSm3jhvnCkjUD7",
 	"instantiation": "true",
 	"inital_layer_height": "0.2",
 	"layer_height": "0.12",

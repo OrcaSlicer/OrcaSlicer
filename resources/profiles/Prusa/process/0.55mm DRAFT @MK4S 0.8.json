@@ -3,6 +3,7 @@
 	"name": "0.55mm DRAFT @MK4S 0.8",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "B6Kv7TTd6ucR62bY",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"bottom_shell_thickness": "0.8",

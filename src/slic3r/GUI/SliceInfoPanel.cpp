@@ -1,10 +1,30 @@
 #include "SliceInfoPanel.hpp"
 
+#include <array>
 #include <boost/log/trivial.hpp>
-#include "I18N.hpp"
-#include "Widgets/Label.hpp"
+#include <wx/object.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/colour.h>
+#include <string>
+#include <cstddef>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "libslic3r/ProjectTask.hpp"
+#include <wx/string.h>
+#include <wx/popupwin.h>
+#include <wx/scrolwin.h>
+#include <wx/event.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/gdicmn.h>
+#include <wx/stattext.h>
+#include "slic3r/GUI/Widgets/StaticLine.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/panel.h>
+#include <wx/anybutton.h>
+#include <wx/webrequest.h>
 #include "libslic3r/Utils.hpp"
-#include "GUI_App.hpp"//for  ICON_SIZE (wxSize(FromDIP(16), FromDIP(16)))
+
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {
@@ -115,7 +135,7 @@ SliceInfoPopup::SliceInfoPopup(wxWindow *parent, wxBitmap bmp, BBLSliceInfo *inf
             f_sizer->Add(f_type, 0, wxEXPAND | wxALL, FromDIP(5));
             f_sizer->Add(f_used_g, 0, wxEXPAND | wxALL, FromDIP(5));
             grid_sizer->Add(f_sizer, 0, wxEXPAND, 0);
-            f_type->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {});
+            f_type->Bind(wxEVT_LEFT_DOWN, [](auto &e) {});
         }
     }
     topSizer->Add(grid_sizer, 0, wxALL, FromDIP(5));

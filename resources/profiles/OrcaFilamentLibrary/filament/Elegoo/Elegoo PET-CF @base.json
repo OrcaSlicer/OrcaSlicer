@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Elegoo PET-CF @base",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"filament_id": "OFe98A1y",
+	"instantiation": "false",
+	"filament_type": [
+		"PET-CF"
+	]
+}

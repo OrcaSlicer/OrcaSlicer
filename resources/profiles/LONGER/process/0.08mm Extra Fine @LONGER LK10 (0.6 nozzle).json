@@ -3,6 +3,7 @@
 	"name": "0.08mm Extra Fine @LONGER LK10 (0.6 nozzle)",
 	"inherits": "fdm_process_common",
 	"from": "system",
+	"setting_id": "NyfHJWm3vAvBSATt",
 	"instantiation": "true",
 	"layer_height": "0.08",
 	"bottom_shell_layers": "9",

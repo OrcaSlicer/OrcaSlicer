@@ -3,7 +3,7 @@
 	"name": "COEX TPE 30D @System",
 	"inherits": "COEX TPE 30D @base",
 	"from": "system",
-	"setting_id": "C0X30D20",
+	"setting_id": "8J6j9sU1tkqpTVas",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.5"

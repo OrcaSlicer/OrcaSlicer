@@ -5,6 +5,7 @@
 #include "Point.hpp"
 #include "Model.hpp"
 
+#include <optional>
 #include <vector>
 
 namespace Slic3r {

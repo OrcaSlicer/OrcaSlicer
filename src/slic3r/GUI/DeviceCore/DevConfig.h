@@ -1,10 +1,11 @@
 #pragma once
 #include "libslic3r/CommonDefs.hpp"
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include <wx/string.h>
-#include <limits>
 
+#include <limits>
+#include <optional>
 
 namespace Slic3r
 {
@@ -22,6 +23,7 @@ public:
 public:
     // chamber
     bool HasChamber() const { return m_has_chamber; }
+    bool SupportChamberTempDisplay() const;
     bool SupportChamberEdit() const { return m_support_chamber_edit; }
     int  GetChamberTempEditMin() const { return m_chamber_temp_edit_min; }
     int  GetChamberTempEditMax() const { return m_chamber_temp_edit_max; }
@@ -45,18 +47,19 @@ public:
 
 public:
     /*Setters*/
-    void ParseConfig(const json& print_json);
+    void ParseConfig(const nlohmann::json& print_json);
 
-    void ParseChamberConfig(const json& print_json); // chamber
-    void ParsePrintOptionsConfig(const json& print_json); // print options
-    void ParseCalibrationConfig(const json& print_json); //cali
+    void ParseChamberConfig(const nlohmann::json& print_json); // chamber
+    void ParsePrintOptionsConfig(const nlohmann::json& print_json); // print options
+    void ParseCalibrationConfig(const nlohmann::json& print_json); //cali
 
 private:
-    MachineObject* m_obj;
+    [[maybe_unused]] MachineObject* m_obj;
 
     /*configure vals*/
     // chamber
     bool m_has_chamber = false; // whether the machine has a chamber
+    std::optional<bool> m_support_chamber_temp_display;
     bool m_support_chamber_edit = false;
     int  m_chamber_temp_edit_min = 0;
     int  m_chamber_temp_edit_max = 60;

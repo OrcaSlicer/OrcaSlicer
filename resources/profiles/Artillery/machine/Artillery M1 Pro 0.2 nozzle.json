@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "Artillery M1 Pro 0.2 nozzle",
 	"from": "system",
+	"setting_id": "o6k3pZtOPuDdgiBX",
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "1",
@@ -438,7 +439,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "1",

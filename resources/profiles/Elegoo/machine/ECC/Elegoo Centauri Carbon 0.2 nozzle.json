@@ -3,7 +3,7 @@
 	"name": "Elegoo Centauri Carbon 0.2 nozzle",
 	"inherits": "Elegoo Centauri Carbon 0.4 nozzle",
 	"from": "system",
-	"setting_id": "ECC02",
+	"setting_id": "snOU0RMJW8uNmbap",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.2"

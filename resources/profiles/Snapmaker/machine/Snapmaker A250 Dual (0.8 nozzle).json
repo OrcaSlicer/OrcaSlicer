@@ -3,7 +3,7 @@
 	"name": "Snapmaker A250 Dual (0.8 nozzle)",
 	"inherits": "fdm_a250_dual",
 	"from": "system",
-	"setting_id": "1513914531",
+	"setting_id": "sxLHo9IXqwRJgtHO",
 	"instantiation": "true",
 	"printer_model": "Snapmaker A250 Dual",
 	"default_print_profile": "0.24 Standard @Snapmaker (0.8 nozzle)",

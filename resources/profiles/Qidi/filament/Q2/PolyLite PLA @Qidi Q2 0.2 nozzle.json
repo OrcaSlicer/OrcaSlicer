@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @Qidi Q2 0.2 nozzle",
 	"inherits": "PolyLite PLA@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "M4HFfDaIMjb6xzKJ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

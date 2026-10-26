@@ -1,0 +1,36 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Prusa CORE One 0.6",
+	"renamed_from": "Prusa Generic PLA Silk @CORE One 0.6;Prusa Generic PLA Silk CORE One 0.6",
+	"inherits": "Generic PLA Silk @Prusa CORE One",
+	"from": "system",
+	"setting_id": "nBWqKjSKw2UEAmkv",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One 0.6 nozzle",
+		"Prusa CORE One HF 0.6 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
+		"9"
+	],
+	"nozzle_temperature": [
+		"215",
+		"215",
+		"215",
+		"215",
+		"215",
+		"215"
+	],
+	"slow_down_layer_time": [
+		"15"
+	],
+	"filament_cooling_final_speed": [
+		"1.5"
+	]
+}

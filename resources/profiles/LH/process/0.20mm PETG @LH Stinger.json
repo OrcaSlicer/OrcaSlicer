@@ -3,7 +3,7 @@
 	"name": "0.20mm PETG @LH Stinger",
 	"inherits": "fdm_process_lh_common",
 	"from": "system",
-	"setting_id": "LHS_P_petg",
+	"setting_id": "K3dY4BJPW9HL0NQ2",
 	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",

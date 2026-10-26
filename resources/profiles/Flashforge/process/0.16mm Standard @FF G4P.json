@@ -3,6 +3,7 @@
 	"name": "0.16mm Standard @FF G4P",
 	"inherits": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
 	"from": "system",
+	"setting_id": "elwhC4evpm8JnC77",
 	"instantiation": "true",
 	"bottom_solid_infill_flow_ratio": "0.98",
 	"bridge_flow": "0.98",

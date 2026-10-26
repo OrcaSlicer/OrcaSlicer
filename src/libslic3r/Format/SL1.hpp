@@ -1,8 +1,17 @@
 #ifndef ARCHIVETRAITS_HPP
 #define ARCHIVETRAITS_HPP
 
+#include <memory>
+#include <functional>
+#include <stdexcept>
 #include <string>
+#include <utility>
 
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/SLA/RasterBase.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Exception.hpp"
 #include "libslic3r/Zipper.hpp"
 #include "libslic3r/SLAPrint.hpp"
 

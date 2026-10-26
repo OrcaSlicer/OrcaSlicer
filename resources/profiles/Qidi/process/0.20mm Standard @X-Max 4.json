@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
 	"name": "0.20mm Standard @X-Max 4",
-	"from": "system",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "2TsaNedKJlTmULOi",
 	"instantiation": "true",
 	"bridge_flow": "1",
 	"default_acceleration": [
@@ -32,7 +32,6 @@
 	"small_perimeter_threshold": [
 		"4"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_speed": [
 		"270"
 	],

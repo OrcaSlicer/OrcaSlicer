@@ -3,6 +3,7 @@
 	"name": "0.05mm UltraDetail @MK3S 0.25",
 	"inherits": "process_common_mk3",
 	"from": "system",
+	"setting_id": "MilRHlhPBDeMRa0R",
 	"instantiation": "true",
 	"print_settings_id": "0.05mm UltraDetail @MK3S 0.25",
 	"bottom_shell_layers": "10",

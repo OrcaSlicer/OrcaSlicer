@@ -3,6 +3,7 @@
 	"name": "0.20mm STRUCTURAL @MK4S 0.4",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "L3DAq2SccG962vEW",
 	"instantiation": "true",
 	"compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4",
 	"default_acceleration": "2500",

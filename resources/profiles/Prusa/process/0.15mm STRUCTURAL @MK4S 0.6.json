@@ -3,6 +3,7 @@
 	"name": "0.15mm STRUCTURAL @MK4S 0.6",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "Edy382rlyi3ziqs6",
 	"instantiation": "true",
 	"bottom_shell_layers": "5",
 	"bottom_shell_thickness": "0.6",

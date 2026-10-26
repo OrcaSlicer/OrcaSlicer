@@ -3,8 +3,8 @@
 	"name": "QIDI PET-GF @Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "QIDI PET-GF",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "QD_0_1_38",
+	"setting_id": "qKGOeBEUrafs1H1C",
+	"filament_id": "OFhx4uOG",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"10"

@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Chuanying X1 0.4 Nozzle",
 	"inherits": "fdm_process_chuanying_0.20",
 	"from": "system",
-	"setting_id": "GP001",
+	"setting_id": "Cs23wwLYd7a1xJlN",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Chuanying X1 0.4 Nozzle"

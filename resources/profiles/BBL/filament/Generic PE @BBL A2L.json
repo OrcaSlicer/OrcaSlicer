@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Generic PE @BBL A2L",
+    "inherits": "Generic PE @base",
+    "from": "system",
+    "setting_id": "GFSP99_10",
+    "instantiation": "true",
+    "description": "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances.",
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A2L 0.4 nozzle",
+        "Bambu Lab A2L 0.6 nozzle",
+        "Bambu Lab A2L 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        ""
+    ]
+}

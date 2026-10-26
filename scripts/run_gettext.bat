@@ -23,7 +23,7 @@ if %FULL_MODE%==1 (
     call :prepareGettextList "%list_file%" "%filtered_list%" "%missing_list%"
     if "!has_sources!"=="1" (
         if not exist "%generated_i18n%" mkdir "%generated_i18n%"
-        .\tools\xgettext.exe --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost --no-wrap -f "%filtered_list%" -o "%generated_pot%"
+        .\tools\xgettext.exe --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_CONTEXT:1,2c --keyword=_u8L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost --no-wrap -f "%filtered_list%" -o "%generated_pot%"
         if errorlevel 1 (
             set "script_exit_code=1"
         ) else (
@@ -132,7 +132,7 @@ exit /b %errorlevel%
         if errorlevel 1 exit /b 1
     )
     if not exist "./resources/i18n/!lang!" mkdir "./resources/i18n/!lang!"
-    .\tools\msgfmt.exe --check-format -o "./resources/i18n/!lang!/OrcaSlicer.mo" "%file%"
+    .\tools\msgfmt.exe --check-format --check-header -o "./resources/i18n/!lang!/OrcaSlicer.mo" "%file%"
     if errorlevel 1 (
         echo Error encountered with msgfmt command for language !lang!.
         exit /b 1

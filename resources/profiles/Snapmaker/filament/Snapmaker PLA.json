@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Snapmaker PLA",
+	"renamed_from": "PolyLite PLA",
 	"inherits": "Snapmaker PLA @base",
 	"from": "system",
-	"setting_id": "1865051461",
+	"setting_id": "cW1b4nGxE9yXIXJP",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.2 nozzle)",

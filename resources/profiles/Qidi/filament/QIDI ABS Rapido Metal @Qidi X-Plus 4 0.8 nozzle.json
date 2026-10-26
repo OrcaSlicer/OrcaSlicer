@@ -3,8 +3,8 @@
 	"name": "QIDI ABS Rapido Metal @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "QIDI ABS Rapido Metal",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "sV1XN1EnDMTMC6eZ",
+	"filament_id": "OFeCJqxx",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

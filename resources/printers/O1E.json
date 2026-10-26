@@ -75,7 +75,8 @@
 			"support_extrusion_cali": false,
 			"support_user_preset": false,
 			"support_refresh_nozzle": true,
-			"support_ams_ext_mix_print": true
+			"support_ams_ext_mix_print": true,
+			"support_print_check_firmware_for_tpu_left": true
 		},
 		"model_id": "O1E",
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_multi_extruders",

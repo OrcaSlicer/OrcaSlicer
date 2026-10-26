@@ -3,7 +3,7 @@
 	"name": "Voron Trident 300 0.6 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "Ux02b7O2cluT1g2x",
 	"instantiation": "true",
 	"printer_model": "Voron Trident 300",
 	"default_print_profile": "0.30mm Standard 0.6 nozzle @Voron",

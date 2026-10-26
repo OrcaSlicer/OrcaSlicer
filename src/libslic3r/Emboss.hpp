@@ -1,11 +1,19 @@
 #ifndef slic3r_Emboss_hpp_
 #define slic3r_Emboss_hpp_
 
+#include <string>
+#include <map>
+#include <utility>
+#include <cassert>
+#include <cstddef>
+#include <functional>
+#include <cstdint>
 #include <vector>
 #include <set>
 #include <optional>
 #include <memory>
 #include <admesh/stl.h> // indexed_triangle_set
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "ExPolygon.hpp"
 #include "EmbossShape.hpp" // ExPolygonsWithIds
@@ -165,7 +173,7 @@ namespace Emboss
     /// Fix duplicit points and self intersections in polygons.
     /// Also try to reduce amount of points and remove useless polygon parts
     /// </summary>
-    /// <param name="is_non_zero">Fill type ClipperLib::pftNonZero for overlapping otherwise </param>
+    /// <param name="is_non_zero">Fill type pftNonZero for overlapping otherwise </param>
     /// <param name="max_iteration">Look at heal_expolygon()::max_iteration</param>
     /// <returns>Healed shapes with flag is fully healed</returns>
     HealedExPolygons heal_polygons(const Polygons &shape, bool is_non_zero = true, unsigned max_iteration = 10);

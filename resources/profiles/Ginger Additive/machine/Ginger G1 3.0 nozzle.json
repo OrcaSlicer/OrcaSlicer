@@ -3,6 +3,7 @@
 	"name": "Ginger G1 3.0 nozzle",
 	"renamed_from": "ginger G1 3.0 nozzle",
 	"inherits": "Ginger_G1_common",
+	"setting_id": "dhUNr6odQIkoPSr5",
 	"instantiation": "true",
 	"printer_settings_id": "Ginger G1 3.0 nozzle",
 	"max_layer_height": [

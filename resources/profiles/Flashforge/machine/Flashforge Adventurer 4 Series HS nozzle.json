@@ -3,7 +3,7 @@
 	"name": "Flashforge Adventurer 4 Series HS Nozzle",
 	"inherits": "fdm_adventurer4_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "bO7OA2EOVlYEA4aS",
 	"instantiation": "true",
 	"printer_variant": "0.4HS",
 	"printer_model": "Flashforge Adventurer 4 Series",

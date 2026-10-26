@@ -1,6 +1,7 @@
 #ifndef __NETWORK_AGENT_FACTORY_HPP__
 #define __NETWORK_AGENT_FACTORY_HPP__
 
+#include "CloudProvider.hpp"
 #include "ICloudServiceAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgent.hpp"
@@ -11,11 +12,13 @@
 #include <memory>
 #include <string>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
 static constexpr char ORCA_PRINTER_AGENT_ID[] = "orca";
 static constexpr char BBL_PRINTER_AGENT_ID[] = "bbl";
+static constexpr char MOONRAKER_PRINTER_AGENT_ID[] = "moonraker";
 
 // Factory function type for creating printer agents
 using PrinterAgentFactory =
@@ -24,12 +27,18 @@ using PrinterAgentFactory =
 // Information about a registered printer agent
 struct PrinterAgentInfo
 {
-    std::string         id;           // e.g., "orca", "bbl"
+    std::string         id;           // Registry/config key, e.g. "orca" or a plugin AgentInfo::id
     std::string         display_name; // e.g., "Orca Native", "Bambu Lab"
+    std::string         plugin_identifier;     // Empty for built-ins, otherwise <plugin_key>;<uuid>;<capability_name>
     PrinterAgentFactory factory;      // Function to create the agent
 
+    bool is_plugin() const { return !plugin_identifier.empty(); }
     PrinterAgentInfo(const std::string& id_, const std::string& display_name_, PrinterAgentFactory factory_)
         : id(id_), display_name(display_name_), factory(std::move(factory_))
+    {}
+
+    PrinterAgentInfo(const std::string& id_, const std::string& display_name_, const std::string& plugin_identifier, PrinterAgentFactory factory_)
+        : id(id_), display_name(display_name_), plugin_identifier(plugin_identifier), factory(std::move(factory_))
     {}
 };
 
@@ -80,14 +89,19 @@ public:
     static bool register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory);
 
     /**
-     * Check if an agent ID is registered
+     * Check if an agent registry/config key is registered
      */
     static bool is_printer_agent_registered(const std::string& id);
 
     /**
-     * Get info about a registered agent
+     * Get info about a registered agent by registry/config key
      */
     static const PrinterAgentInfo* get_printer_agent_info(const std::string& id);
+
+    /**
+     * Return the full plugin reference for a plugin-backed printer agent ID, or empty for built-ins.
+     */
+    static std::string get_printer_agent_plugin_identifier(const std::string& id);
 
     /**
      * Get all registered printer agents (for UI population)
@@ -95,12 +109,12 @@ public:
     static std::vector<PrinterAgentInfo> get_registered_printer_agents();
 
     /**
-     * Create a printer agent by ID (using registry)
+     * Create a printer agent by registry/config key
      *
-     * Returns a cached instance if one exists for the given ID, otherwise
+     * Returns a cached instance if one exists for the given key, otherwise
      * creates a new agent via the registered factory and caches it.
      *
-     * @param id Agent ID to create
+     * @param id Agent registry/config key to create
      * @param cloud_agent Cloud agent for token access
      * @param log_dir Directory for log files
      * @return Shared pointer to IPrinterAgent, or nullptr if ID not found
@@ -147,6 +161,13 @@ public:
         }
         return nullptr;
     }
+
+    // Plugin printer agents
+    static void register_python_plugin(const std::string& plugin_key);
+    static void deregister_python_plugin(const std::string& plugin_key);
+
+    static void register_python_printer_agent(const std::string& plugin_key, const std::string& capability_name);
+    static void deregister_python_printer_agent(const std::string& plugin_key, const std::string& capability_name);
 
 private:
     // Factory is not instantiable

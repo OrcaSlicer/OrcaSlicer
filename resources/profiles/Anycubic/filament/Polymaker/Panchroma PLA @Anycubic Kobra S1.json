@@ -3,8 +3,8 @@
 	"name": "Panchroma PLA @Anycubic Kobra S1",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSPM001_AC",
-	"filament_id": "GFPM001",
+	"setting_id": "gsXcm0Q6TdKW0GBx",
+	"filament_id": "OFsRDvTM",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anycubic Kobra S1 0.4 nozzle"

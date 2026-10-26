@@ -14,7 +14,6 @@
 		"0x0"
 	],
 	"gcode_flavor": "marlin",
-	"silent_mode": "0",
 	"support_chamber_temp_control": "0",
 	"support_air_filtration": "0",
 	"machine_max_acceleration_e": [

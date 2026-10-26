@@ -7,7 +7,9 @@
 
 #include "Types.hpp"
 
+#include <array>
 #include <cfloat>
+#include <cstdint>
 
 namespace libvgcode {
 

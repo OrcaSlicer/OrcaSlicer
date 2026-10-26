@@ -3,6 +3,7 @@
 	"name": "0.25mm SPEED @CORE One L HF 0.4",
 	"inherits": "0.25mm SPEED @MK4S HF0.4",
 	"from": "system",
+	"setting_id": "MOYF1incx6aCPT3i",
 	"instantiation": "true",
 	"overhang_2_4_speed": "50",
 	"overhang_3_4_speed": "60%",

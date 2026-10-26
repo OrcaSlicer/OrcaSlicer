@@ -5,6 +5,16 @@
 #include "libslic3r/miniz_extension.hpp"
 
 #include <boost/filesystem/path.hpp>
+#include <wx/string.h>
+#include <vector>
+#include <memory>
+#include <cstddef>
+#include <wx/variant.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <miniz.h>
+#include <utility>
+#include <wx/sizer.h>
 #include <wx/wx.h>
 #include <wx/dataview.h>
 #include <slic3r/GUI/Widgets/Button.hpp>

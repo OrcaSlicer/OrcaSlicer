@@ -3,7 +3,7 @@
 	"name": "Bambu TPU 95A HF @System",
 	"inherits": "Bambu TPU 95A HF @base",
 	"from": "system",
-	"setting_id": "OGFSU00_00",
+	"setting_id": "WGZWLSIr7CI2UMB5",
 	"instantiation": "true",
 	"compatible_printers": []
 }

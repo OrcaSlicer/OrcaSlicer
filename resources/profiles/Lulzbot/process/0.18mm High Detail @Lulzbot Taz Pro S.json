@@ -3,7 +3,7 @@
 	"name": "0.18mm High Detail @Lulzbot Taz Pro S",
 	"inherits": "0.25mm Standard @Lulzbot Taz Pro S",
 	"from": "system",
-	"setting_id": "LZHPS01",
+	"setting_id": "nfwNBrhULXlS9fQ1",
 	"instantiation": "true",
 	"layer_height": "0.18",
 	"compatible_printers": [

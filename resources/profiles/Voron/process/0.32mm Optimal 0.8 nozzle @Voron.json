@@ -1,0 +1,11 @@
+{
+	"type": "process",
+	"name": "0.32mm Optimal 0.8 nozzle @Voron",
+	"inherits": "fdm_process_voron_common_0_8",
+	"from": "system",
+	"setting_id": "ivS6U4AuIoj1cJhZ",
+	"instantiation": "true",
+	"bottom_shell_layers": "3",
+	"top_shell_layers": "3",
+	"layer_height": "0.32"
+}

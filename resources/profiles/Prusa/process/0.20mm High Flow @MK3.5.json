@@ -3,7 +3,7 @@
 	"name": "0.20mm High Flow @MK3.5",
 	"inherits": "process_highflow_MK3.5",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "JknR1ZhRLLryHEgS",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa MK3.5 0.4 nozzle"

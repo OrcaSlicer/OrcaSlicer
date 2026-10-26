@@ -1,9 +1,27 @@
 #include "calib.hpp"
+#include "GCode/BeltKinematics.hpp"
 #include "BoundingBox.hpp"
 #include "Config.hpp"
+#include "Flow.hpp"
+#include "GCodeWriter.hpp"
+#include "GCode/GCodeProcessor.hpp"
+#include "CustomGCode.hpp"
 #include "Model.hpp"
 #include "GCode.hpp"
+#include "PrintConfig.hpp"
+#include <algorithm>
+#include "Point.hpp"
+#include "libslic3r.h"
 #include <cmath>
+#include <string>
+#include <sstream>
+#include <math.h>
+#include <iomanip>
+#include <vector>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include "clonable_ptr.hpp"
 
 namespace Slic3r {
 
@@ -11,12 +29,23 @@ namespace Slic3r {
 float CalibPressureAdvance::find_optimal_PA_speed(const DynamicPrintConfig &config, double line_width, double layer_height, int extruder_id, int filament_idx)
 {
     const double general_suggested_min_speed   = 100.0;
-    double       filament_max_volumetric_speed = config.option<ConfigOptionFloats>("filament_max_volumetric_speed")->get_at(filament_idx);
+    // Read defensively — CLI callers may hand us a config missing optional keys.
+    auto vector_at = [&config](const char *key, int idx) -> double {
+        if (const auto *o = config.option<ConfigOptionFloats>(key)) return o->get_at(idx);
+        const ConfigOptionDef *d = config.def() ? config.def()->get(key) : nullptr;
+        return (d && d->default_value) ? d->get_default_value<ConfigOptionFloats>()->get_at(idx) : 0.0;
+    };
+    auto nullable_at = [&config](const char *key, int idx) -> double {
+        if (const auto *o = config.option<ConfigOptionFloatsNullable>(key)) return o->get_at(idx);
+        const ConfigOptionDef *d = config.def() ? config.def()->get(key) : nullptr;
+        return (d && d->default_value) ? d->get_default_value<ConfigOptionFloatsNullable>()->get_at(idx) : 0.0;
+    };
+    double       filament_max_volumetric_speed = vector_at("filament_max_volumetric_speed", filament_idx);
     // todo multi_extruders:
-    const float  nozzle_diameter               = config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(extruder_id);
+    const float  nozzle_diameter               = vector_at("nozzle_diameter", extruder_id);
     if (line_width <= 0.) line_width = Flow::auto_extrusion_width(frPerimeter, nozzle_diameter);
     Flow         pattern_line = Flow(line_width, layer_height, nozzle_diameter);
-    auto         pa_speed     = std::min(std::max(general_suggested_min_speed, config.option<ConfigOptionFloat>("outer_wall_speed")->value),
+    auto         pa_speed     = std::min(std::max(general_suggested_min_speed, nullable_at("outer_wall_speed", extruder_id)),
                                          filament_max_volumetric_speed / pattern_line.mm3_per_mm());
 
     return std::floor(pa_speed);
@@ -28,9 +57,9 @@ std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::st
 
     gcode << writer.retract(); // retract before z move or move
     if(z > EPSILON && layer_height >= 0){
-        gcode << writer.travel_to_z(z, "z-hop"); // Perform z hop
+        gcode << writer.travel_to_z(z, "Z-hop"); // Perform z hop
         gcode << writer.travel_to_xy(pt, comment); // Travel with z move
-        gcode << writer.travel_to_z(layer_height, "undo z-hop"); // Undo z hop
+        gcode << writer.travel_to_z(layer_height, "undo Z-hop"); // Undo z hop
     }else {
         gcode << writer.travel_to_xy(pt, comment);
     }
@@ -469,6 +498,31 @@ std::string CalibPressureAdvanceLine::generate_test(double start_pa /*= 0*/, dou
     return print_pa_lines(startx, starty, start_pa, step_pa, count);
 }
 
+BoundingBoxf CalibPressureAdvanceLine::print_extents(const BoundingBoxf &bed_ext) const
+{
+    BoundingBoxf adjusted_bed = bed_ext;
+    if (is_delta()) {
+        CalibPressureAdvanceLine::delta_scale_bed_ext(adjusted_bed);
+    }
+    
+    double bed_width     = adjusted_bed.size().x();
+    // m_length_long adjusts for narrow beds – exactly as in generate_test()
+    double line_long     = 40.0 + std::min(bed_width - 120.0, 0.0);
+    double total_line_len = m_length_short * 2 + line_long;
+    double start_x       = adjusted_bed.min.x() + (bed_width - 2 * m_length_short - line_long - 20.0) / 2.0;
+    double box_width     = m_draw_numbers ? (number_spacing() * 8) : 0.0;   // 3.0 * 8 = 24 mm
+
+    BoundingBoxf extent;
+    extent.min.x() = start_x;
+    extent.max.x() = start_x + total_line_len + m_line_width + box_width;
+
+    // Y bounds are the full bed (the caller will inset them by -25)
+    extent.min.y() = adjusted_bed.min.y();
+    extent.max.y() = adjusted_bed.max.y();
+
+    return extent;
+}
+
 bool CalibPressureAdvanceLine::is_delta() const { return mp_gcodegen->config().printable_area.values.size() > 4; }
 
 std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double start_y, double start_pa, double step_pa, int num)
@@ -491,9 +545,10 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     const double      slow = CalibPressureAdvance::speed_adjust(m_slow_speed);
     std::stringstream gcode;
     gcode << mp_gcodegen->writer().travel_to_z(m_height_layer + z_offset);
+    gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << (m_height_layer + z_offset) << "\n";
     double y_pos = start_y;
-
-    // prime line
+    // Purge/first perimeter - acts as an anchor to the rest of the model
+    gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Custom\n";
     gcode << writer.set_pressure_advance(0.0);
     auto prime_x = start_x;
     gcode << move_to(Vec2d(prime_x, y_pos + (num) * m_space_y), writer);
@@ -503,10 +558,13 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     for (int i = 0; i < num; ++i) {
         gcode << writer.set_pressure_advance(start_pa + i * step_pa);
         gcode << move_to(Vec2d(start_x, y_pos + i * m_space_y), writer);
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Custom\n";
         gcode << writer.set_speed(slow);
         gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short, y_pos + i * m_space_y), e_per_mm * m_length_short);
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Outer wall\n";
         gcode << writer.set_speed(fast);
         gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long, y_pos + i * m_space_y), e_per_mm * m_length_long);
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Custom\n";
         gcode << writer.set_speed(slow);
         gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long + m_length_short, y_pos + i * m_space_y),
                                       e_per_mm * m_length_short);
@@ -530,9 +588,15 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
 
         const auto     box_start_x = start_x + m_length_short + m_length_long + m_length_short + m_line_width;
         DrawBoxOptArgs default_box_opt_args(2, m_height_layer, m_line_width, fast);
+        //Draw box
         default_box_opt_args.is_filled = true;
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n";
         gcode << draw_box(writer, box_start_x, start_y - m_space_y,
                           number_spacing() * 8, (num + 1) * m_space_y, default_box_opt_args);
+        //Ensure numbers are shown on the next layer in gcode processor, as in reality
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) << "\n";
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << (m_height_layer*2 + z_offset) << "\n";
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Top surface\n";
         gcode << writer.travel_to_z(m_height_layer*2 + z_offset);
         for (int i = 0; i < num; i += 2) {
             gcode << draw_number(box_start_x + 3 + m_line_width, y_pos + i * m_space_y + m_space_y / 2, start_pa + i * step_pa, m_draw_digit_mode,
@@ -587,21 +651,25 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
 
         refresh_setup(config, is_bbl_machine, object, origin);
 
-    gcode << move_to(Vec2d(m_starting_point.x(), m_starting_point.y()), m_writer, "Move to start XY position");
-    gcode << m_writer.travel_to_z(height_first_layer() + height_z_offset(), "Move to start Z position");
-    gcode << m_writer.set_pressure_advance(m_params.start);
+    gcode << move_to(Vec2d(m_starting_point.x(), m_starting_point.y()), *m_writer, "Move to start XY position");
+    gcode << m_writer->travel_to_z(height_first_layer() + height_z_offset(), "Move to start Z position");
+    gcode << m_writer->set_pressure_advance(m_params.start);
 
     const DrawBoxOptArgs default_box_opt_args(wall_count(), height_first_layer(), line_width_first_layer(),
                                               speed_adjust(speed_first_layer()));
 
     // create anchoring frame
-    gcode << draw_box(m_writer, m_starting_point.x(), m_starting_point.y(), print_size_x(), frame_size_y(), default_box_opt_args);
+    //pattern uses outer wall speed/width
+    gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Outer wall\n";
+    gcode << draw_box(*m_writer, m_starting_point.x(), m_starting_point.y(), print_size_x(), frame_size_y(), default_box_opt_args);
 
     // create tab for numbers
     DrawBoxOptArgs draw_box_opt_args = default_box_opt_args;
     draw_box_opt_args.is_filled      = true;
     draw_box_opt_args.num_perimeters = wall_count();
-    gcode << draw_box(m_writer, m_starting_point.x(), m_starting_point.y() + frame_size_y() + line_spacing_first_layer(),
+    //draw box as bottom surface, so numbers are clearly visible on top
+    gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n";
+    gcode << draw_box(*m_writer, m_starting_point.x(), m_starting_point.y() + frame_size_y() + line_spacing_first_layer(),
                       print_size_x(),
                       max_numbering_height() + line_spacing_first_layer() + m_glyph_padding_vertical * 2, draw_box_opt_args);
 
@@ -611,7 +679,9 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     const double zhop_config_value = m_config.option<ConfigOptionFloats>("z_hop")->get_at(0);
     const auto accel = accel_perimeter();
 
-    // draw pressure advance pattern
+    // Draw pressure advance pattern
+    // pattern uses outer wall speed, label it as such
+    gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Outer wall\n";
     for (int i = 0; i < m_num_layers; ++i) {
         const double layer_height = height_first_layer() + height_z_offset() + (i * height_layer());
         const double zhop_height = layer_height + zhop_config_value;
@@ -627,15 +697,15 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
             gcode = std::stringstream(); // reset for next layer contents
             gcode << "; start pressure advance pattern for layer\n";
 
-            gcode << m_writer.travel_to_z(layer_height, "Move to layer height");
-            gcode << m_writer.reset_e();
+            gcode << m_writer->travel_to_z(layer_height, "Move to layer height");
+            gcode << m_writer->reset_e();
         }
 
         // line numbering
         if (i == 1) {
             m_number_len = max_numbering_length();
 
-            gcode << m_writer.set_pressure_advance(m_params.start);
+            gcode << m_writer->set_pressure_advance(m_params.start);
 
             double number_e_per_mm = e_per_mm(line_width(), height_layer(),
                                               m_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0),
@@ -643,23 +713,24 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                                               m_config.option<ConfigOptionFloats>("filament_flow_ratio")->get_at(0));
 
             // glyph on every other line
+            gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Outer wall\n";
             for (int j = 0; j < num_patterns; j += 2) {
                 gcode << draw_number(glyph_start_x(j), m_starting_point.y() + frame_size_y() + m_glyph_padding_vertical + line_width(),
                                      m_params.start + (j * m_params.step), m_draw_digit_mode, line_width(), number_e_per_mm,
-                                     speed_first_layer(), m_writer);
+                                     speed_first_layer(), *m_writer);
             }
 
             // flow value
             int line_num = num_patterns + 2;
             gcode << draw_number(glyph_start_x(line_num), m_starting_point.y() + frame_size_y() + m_glyph_padding_vertical + line_width(),
                                  flow_val(), m_draw_digit_mode, line_width(), number_e_per_mm,
-                                 speed_first_layer(), m_writer);
+                                 speed_first_layer(), *m_writer);
 
             // acceleration
             line_num = num_patterns + 4;
             gcode << draw_number(glyph_start_x(line_num), m_starting_point.y() + frame_size_y() + m_glyph_padding_vertical + line_width(),
                                  accel, m_draw_digit_mode, line_width(), number_e_per_mm,
-                                 speed_first_layer(), m_writer);
+                                 speed_first_layer(), *m_writer);
         }
 
 
@@ -678,21 +749,21 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
             /* Draw a line at slightly slower accel and speed in order to trick gcode writer to force update acceleration and speed.
              * We do this since several tests may be generated by their own gcode writers which are
              * not aware about their neighbours updating acceleration/speed */
-            gcode << m_writer.set_print_acceleration(std::max<int>(1, accel - 1));
-            gcode << move_to(Vec2d(m_starting_point.x(), m_starting_point.y()), m_writer, "Move to starting point", zhop_height, layer_height);
-            gcode << draw_line(m_writer, Vec2d(m_starting_point.x(), m_starting_point.y() + frame_size_y()), line_width(), height_layer(), speed_adjust(std::max<int>(1, speed_perimeter() - 1)), "Accel/flow trick line");
-            gcode << m_writer.set_print_acceleration(accel);
+            gcode << m_writer->set_print_acceleration(std::max<int>(1, accel - 1));
+            gcode << move_to(Vec2d(m_starting_point.x(), m_starting_point.y()), *m_writer, "Move to starting point", zhop_height, layer_height);
+            gcode << draw_line(*m_writer, Vec2d(m_starting_point.x(), m_starting_point.y() + frame_size_y()), line_width(), height_layer(), speed_adjust(std::max<int>(1, speed_perimeter() - 1)), "Accel/flow trick line");
+            gcode << m_writer->set_print_acceleration(accel);
         }
 
         double initial_x = to_x;
         double initial_y = to_y;
 
-        gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move to pattern start",zhop_height,layer_height);
+        gcode << move_to(Vec2d(to_x, to_y), *m_writer, "Move to pattern start",zhop_height,layer_height);
 
         for (int j = 0; j < num_patterns; ++j) {
             // increment pressure advance
-            gcode << m_writer.set_pressure_advance(m_params.start + (j * m_params.step));
-
+            gcode << m_writer->set_pressure_advance(m_params.start + (j * m_params.step));
+            gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Outer wall\n";
             for (int k = 0; k < wall_count(); ++k) {
                 to_x += std::cos(to_radians(m_corner_angle) / 2) * side_length;
                 to_y += std::sin(to_radians(m_corner_angle) / 2) * side_length;
@@ -701,27 +772,27 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                 auto draw_line_arg_line_width = line_width(); // don't use line_width_first_layer so results are consistent across all layers
                 auto draw_line_arg_speed   = i == 0 ? speed_adjust(speed_first_layer()) : speed_adjust(speed_perimeter());
                 auto draw_line_arg_comment = "Print pattern wall";
-                gcode << draw_line(m_writer, Vec2d(to_x, to_y), draw_line_arg_line_width, draw_line_arg_height, draw_line_arg_speed, draw_line_arg_comment);
+                gcode << draw_line(*m_writer, Vec2d(to_x, to_y), draw_line_arg_line_width, draw_line_arg_height, draw_line_arg_speed, draw_line_arg_comment);
 
                 to_x -= std::cos(to_radians(m_corner_angle) / 2) * side_length;
                 to_y += std::sin(to_radians(m_corner_angle) / 2) * side_length;
 
-                gcode << draw_line(m_writer, Vec2d(to_x, to_y), draw_line_arg_line_width, draw_line_arg_height, draw_line_arg_speed, draw_line_arg_comment);
+                gcode << draw_line(*m_writer, Vec2d(to_x, to_y), draw_line_arg_line_width, draw_line_arg_height, draw_line_arg_speed, draw_line_arg_comment);
 
                 to_y = initial_y;
                 if (k != wall_count() - 1) {
                     // perimeters not done yet. move to next perimeter
                     to_x += line_spacing_angle();
-                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move to start next pattern wall", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
+                    gcode << move_to(Vec2d(to_x, to_y), *m_writer, "Move to start next pattern wall", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
                 } else if (j != num_patterns - 1) {
                     // patterns not done yet. move to next pattern
                     to_x += m_pattern_spacing + line_width();
-                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move to next pattern", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
+                    gcode << move_to(Vec2d(to_x, to_y), *m_writer, "Move to next pattern", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
                 } else if (i != m_num_layers - 1) {
                     // layers not done yet. move back to start
                     to_x = initial_x;
-                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move back to start position", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
-                    gcode << m_writer.reset_e(); // reset extruder before printing placeholder cube to avoid over extrusion
+                    gcode << move_to(Vec2d(to_x, to_y), *m_writer, "Move back to start position", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
+                    gcode << m_writer->reset_e(); // reset extruder before printing placeholder cube to avoid over extrusion
                 } else {
                     // everything done
                 }
@@ -729,7 +800,8 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
         }
     }
 
-    gcode << m_writer.set_pressure_advance(m_params.start);
+    gcode << m_writer->reset_e();
+    gcode << m_writer->set_pressure_advance(m_params.start);
     gcode << "; end pressure advance pattern for layer\n";
 
     CustomGCode::Item item;
@@ -755,6 +827,16 @@ Vec3d CalibPressureAdvancePattern::get_start_offset()
 {
     return m_starting_point;
 }
+
+double CalibPressureAdvancePattern::line_width_first_layer() const
+{
+    // TODO: FIXME: find out current filament/extruder?
+    const double nozzle_diameter = m_config.opt_float("nozzle_diameter", m_params.extruder_id);
+    const double width           = m_config.get_abs_value("initial_layer_line_width", nozzle_diameter);
+    if (width <= 0.)
+        return Flow::auto_extrusion_width(frExternalPerimeter, nozzle_diameter);
+    return width;
+};
 
 double CalibPressureAdvancePattern::line_width() const
 {
@@ -796,13 +878,35 @@ void CalibPressureAdvancePattern::_refresh_writer(bool is_bbl_machine, const Mod
     PrintConfig print_config;
     print_config.apply(m_config, true);
 
-    m_writer.apply_print_config(print_config);
-    m_writer.set_xy_offset(origin(0), origin(1));
-    m_writer.set_is_bbl_machine(is_bbl_machine);
+    // ORCA-Belt: the pattern is drawn in logical bed coordinates directly on
+    // the build surface — on a belt printer that means the belt plane, which
+    // needs the machine kinematics (axis remap + frame shear/scale) with the
+    // coordinates interpreted as world points (see set_world_coordinates).
+    if (print_config.belt_printer.value) {
+        auto belt_writer = std::make_shared<GCodeWriter>();
+        install_belt_kinematics(*belt_writer, print_config, /*world_coordinates=*/true);
+        const int rx = int(print_config.gcode_remap_x.value);
+        const int ry = int(print_config.gcode_remap_y.value);
+        const int rz = int(print_config.gcode_remap_z.value);
+        if (rx != 0 || ry != 1 || rz != 2) {
+            belt_writer->set_axis_remap(rx, ry, rz);
+            BoundingBoxf bbox_bed(print_config.printable_area.values);
+            belt_writer->set_build_volume_max(Vec3d(bbox_bed.max.x(), bbox_bed.max.y(),
+                                                    print_config.printable_height.value));
+        }
+        m_writer = std::move(belt_writer);
+    } else if (m_writer && dynamic_cast<const BeltKinematics *>(&m_writer->kinematics()) != nullptr) {
+        // Previously configured for a belt printer; drop back to a plain writer.
+        m_writer = std::make_shared<GCodeWriter>();
+    }
+
+    m_writer->apply_print_config(print_config);
+    m_writer->set_xy_offset(origin(0), origin(1));
+    m_writer->set_is_bbl_machine(is_bbl_machine);
 
     const unsigned int extruder_id = object.volumes.front()->extruder_id();
-    m_writer.set_extruders({extruder_id});
-    m_writer.set_extruder(extruder_id);
+    m_writer->set_extruders({extruder_id});
+    m_writer->set_extruder(extruder_id);
 }
 
 double CalibPressureAdvancePattern::object_size_x() const

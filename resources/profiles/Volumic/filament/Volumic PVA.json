@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFS99",
-	"setting_id": "GFSS99",
 	"name": "Volumic PVA",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pva",
+	"from": "system",
+	"setting_id": "rw4bB5gYM6YF8v9e",
+	"filament_id": "OFGdP6Na",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

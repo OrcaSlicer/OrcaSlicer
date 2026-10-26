@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "Kingroon KP3S PRO S1 0.4 nozzle",
 	"inherits": "fdm_machine_common",
-	"setting_id": "GM003",
+	"setting_id": "A4kpyp116R9be7ks",
 	"instantiation": "true",
 	"printer_model": "Kingroon KP3S PRO S1",
 	"default_print_profile": "0.20mm Standard @Kingroon KP3S PRO S1",

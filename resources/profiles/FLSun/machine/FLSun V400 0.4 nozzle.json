@@ -3,7 +3,7 @@
 	"name": "FLSun V400 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "4P1vcj47NO5IMNPe",
 	"instantiation": "true",
 	"printer_model": "FLSun V400",
 	"default_print_profile": "0.20mm Standard @FLSun V400",

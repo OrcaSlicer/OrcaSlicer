@@ -4,6 +4,12 @@
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <memory>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <string>
+#include <wx/event.h>
 
 namespace Slic3r {
 

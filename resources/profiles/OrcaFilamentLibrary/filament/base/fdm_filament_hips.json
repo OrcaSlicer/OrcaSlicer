@@ -3,7 +3,6 @@
 	"name": "fdm_filament_hips",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFS98",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"0"
@@ -39,6 +38,9 @@
 		"10"
 	],
 	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_multitool_ramming_flow": [
 		"8"
 	],
 	"filament_type": [

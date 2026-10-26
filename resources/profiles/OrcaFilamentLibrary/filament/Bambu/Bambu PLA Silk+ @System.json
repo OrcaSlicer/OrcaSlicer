@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Silk+ @System",
 	"inherits": "Bambu PLA Silk+ @base",
 	"from": "system",
-	"setting_id": "OGFSA06_00",
+	"setting_id": "zsVhjbZLne5ejStD",
 	"instantiation": "true",
 	"supertack_plate_temp": [
 		"35"
@@ -11,5 +11,13 @@
 	"supertack_plate_temp_initial_layer": [
 		"35"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_max_volumetric_speed": [
+		"7.5",
+		"7.5",
+		"7.5",
+		"7.5",
+		"7.5",
+		"7.5"
+	]
 }

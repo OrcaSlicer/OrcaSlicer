@@ -3,7 +3,7 @@
 	"name": "Generic PC @Elegoo",
 	"inherits": "Generic PC @base",
 	"from": "system",
-	"setting_id": "GPC00",
+	"setting_id": "fByRyAZlMcqYvbOD",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"35"

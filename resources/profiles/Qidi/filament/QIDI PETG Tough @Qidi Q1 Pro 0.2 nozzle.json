@@ -3,8 +3,8 @@
 	"name": "QIDI PETG Tough @Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "QIDI PETG Tough",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "KHeb2TVAxtw6fbRm",
+	"filament_id": "OFQ40XeN",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

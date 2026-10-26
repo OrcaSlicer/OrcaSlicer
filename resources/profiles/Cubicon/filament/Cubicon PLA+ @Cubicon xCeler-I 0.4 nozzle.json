@@ -1,8 +1,11 @@
 {
 	"type": "filament",
 	"name": "Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle",
+	"renamed_from": "Cubicon PLA+ @base",
 	"inherits": "Cubicon PLA+ @base",
 	"from": "system",
+	"setting_id": "fNR2Bw3e4TGcWhq0",
+	"filament_id": "OF7tt7DO",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle"

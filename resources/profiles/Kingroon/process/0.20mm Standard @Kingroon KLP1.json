@@ -2,6 +2,7 @@
 	"type": "process",
 	"name": "0.20mm Standard @Kingroon KLP1",
 	"inherits": "fdm_process_common",
+	"setting_id": "EVVIDKEABDis5XnL",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Kingroon KLP1 0.4 nozzle"

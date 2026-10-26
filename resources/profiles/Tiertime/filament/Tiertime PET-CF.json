@@ -3,7 +3,8 @@
 	"name": "Tiertime PET-CF",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "GFT01",
+	"setting_id": "WjpnXYqwyoeHdaC9",
+	"filament_id": "OFCnywiC",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"

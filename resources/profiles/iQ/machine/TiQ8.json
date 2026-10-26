@@ -7,5 +7,5 @@
 	"family": "TiQ",
 	"bed_model": "TiQ8.stl",
 	"bed_texture": "TiQ8_texture.svg",
-	"default_materials": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle"
+	"default_materials": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle;Generic PLA @System"
 }

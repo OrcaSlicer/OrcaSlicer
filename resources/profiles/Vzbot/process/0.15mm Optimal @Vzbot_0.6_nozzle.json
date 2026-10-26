@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @Vzbot 0.6nozzle",
 	"inherits": "fdm_process_Vzbot_common_0.6_nozzle",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "JQKOfoNtaaLXMDfL",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

@@ -3,7 +3,7 @@
 	"name": "Overture Super PLA+ @System",
 	"inherits": "Overture Super PLA+ @base",
 	"from": "system",
-	"setting_id": "OGFOT005",
+	"setting_id": "rFuAYJDK1dZ19PaZ",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

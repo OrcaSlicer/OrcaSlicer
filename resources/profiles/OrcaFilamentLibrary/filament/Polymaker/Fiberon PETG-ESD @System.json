@@ -3,7 +3,7 @@
 	"name": "Fiberon PETG-ESD @System",
 	"inherits": "Fiberon PETG-ESD @base",
 	"from": "system",
-	"setting_id": "OGFSL06_00",
+	"setting_id": "YAXl9K9A7DKsU1yU",
 	"instantiation": "true",
 	"filament_cost": [
 		"29.99"

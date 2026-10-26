@@ -3,6 +3,7 @@
 	"name": "0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7",
 	"inherits": "SeeMeCNC process base 0.7mm",
 	"from": "System",
+	"setting_id": "FkyXJNtuOfbwGdnR",
 	"instantiation": "true",
 	"print_settings_id": "0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7",
 	"compatible_printers": [

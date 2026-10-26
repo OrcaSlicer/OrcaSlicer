@@ -3,10 +3,12 @@
 	"name": "iQ TiQ8 0.25 Nozzle",
 	"inherits": "fdm_tiq_common",
 	"from": "system",
+	"setting_id": "5fSAp50K3cdzj1VS",
 	"instantiation": "true",
 	"printer_settings_id": "iQ TiQ8 0.25 Nozzle",
 	"printer_model": "TiQ8",
 	"printer_variant": "0.25",
+	"default_print_profile": "0.15mm Standard @iQ TiQ8 (0.25 Nozzle)",
 	"change_filament_gcode": "G1 Z{layer_z+2} F900 ; safe distance while tool change\n{if next_extruder==0}G1 X30 Y-12 F9000{endif}\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing",
 	"deretraction_speed": [
 		"30",
@@ -31,6 +33,8 @@
 	],
 	"machine_end_gcode": "G1 X10 F3000 ; home X axis\nG1 Y10 F3000 ; home Y axis\nM104 S0 T0 ; turn off extruder\nM104 S0 T1 ; turn off extruder\nM104 S0 T2 ; turn off extruder\nM140 S0 ; turn off bed\n{if nozzle_temperature_initial_layer[current_extruder]>350}M140 S80{endif} ; Keep bed hot for easy part removal from PEI sheet\nM106 S0 ; turn off fan\nM806 S0 ; turn of housing fan\nM84 ; disable motor\n",
 	"machine_max_speed_z": [
+		"15",
+		"12",
 		"15",
 		"12"
 	],
@@ -131,9 +135,13 @@
 	],
 	"machine_max_acceleration_x": [
 		"1500",
+		"1500",
+		"1500",
 		"1500"
 	],
 	"machine_max_acceleration_y": [
+		"1500",
+		"1500",
 		"1500",
 		"1500"
 	],

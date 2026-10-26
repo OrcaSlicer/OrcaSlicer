@@ -3,6 +3,7 @@
 	"name": "Generic BVOH @FF C5",
 	"inherits": "Generic BVOH @System",
 	"from": "system",
+	"setting_id": "fTnS5cbxHv8cctBa",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"
@@ -32,6 +33,9 @@
 	],
 	"fan_min_speed": [
 		"70"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
 	],
 	"filament_max_volumetric_speed": [
 		"3.5"

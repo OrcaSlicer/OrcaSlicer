@@ -5,6 +5,11 @@
 
 #include "Slicing.hpp"
 #include "admesh/stl.h"
+#include <cstddef>
+#include <utility>
+#include <vector>
+
+namespace Slic3r { class ModelObject; }
 
 namespace Slic3r
 {

@@ -3,8 +3,8 @@
 	"name": "LHS PC CF",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "LHF_S_pccf",
-	"filament_id": "LHF_pccf",
+	"setting_id": "FOQLD0UX6hUhJBQ0",
+	"filament_id": "OFu0fjPJ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",

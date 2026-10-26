@@ -3,7 +3,7 @@
 	"name": "Overture Silk PLA @System",
 	"inherits": "Overture Silk PLA @base",
 	"from": "system",
-	"setting_id": "OGFOT002",
+	"setting_id": "n2SqDdp5PE48ucOS",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

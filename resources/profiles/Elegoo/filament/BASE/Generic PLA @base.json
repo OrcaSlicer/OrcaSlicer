@@ -3,7 +3,7 @@
 	"name": "Generic PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GPLAB00",
+	"filament_id": "OFDSrzZ8",
 	"instantiation": "false",
 	"filament_density": [
 		"1.25"

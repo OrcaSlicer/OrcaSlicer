@@ -1,3 +1,7 @@
+#include <array>
+#include <algorithm>
+#include <functional>
+#include <cmath>
 #include <glad/gl.h>
 
 #include "3DScene.hpp"
@@ -5,6 +9,7 @@
 #include "GUI_App.hpp"
 #include "GUI_Colors.hpp"
 #include "Plater.hpp"
+#include "PartPlate.hpp"
 #include "BitmapCache.hpp"
 #include "Camera.hpp"
 
@@ -20,13 +25,41 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMeshSlicer.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Technologies.hpp"
+#include <optional>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <math.h>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
+#include <set>
+#include <iterator>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Exception.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include <algorithm>
 
 #include <boost/log/trivial.hpp>
 
@@ -34,6 +67,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <Eigen/Dense>
+#include <vector>
+#include <utility>
+#include <string>
 
 #ifdef HAS_GLSAFE
 void glAssertRecentCallImpl(const char* file_name, unsigned int line, const char* function_name)
@@ -70,17 +106,21 @@ float FullTransparentModdifiedToFixAlpha = 0.3f;
 // value like 0.18f could not because in C++ (int)(0.18f * 255) == 45 however in OpenGL it renders this as 46
 // which breaks the `SelectMachineDialog::record_edge_pixels_data()` function!
 float FULL_BLACK_THRESHOLD = 0.2f;
+// Keep depth_tex away from texture unit 0 to avoid sampler-type aliasing with
+// shadow/environment samplers when realistic view is disabled.
+static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
-    if (colors.a() < FullyTransparentMaterialThreshold) { // completely transparent
-        return {1, 1, 1, FullTransparentModdifiedToFixAlpha};
+    // a clear color keeps its hue, at the least opacity that still shows it
+    const float alpha = std::max(colors.a(), FullyTransparentMaterialThreshold);
+    if (colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) {
+        // black, lifted so that the shading shows, the more the more translucent: a dark translucent
+        // surface shows nothing through itself
+        const float grey = FULL_BLACK_THRESHOLD + 0.3f * (1.0f - alpha);
+        return {grey, grey, grey, alpha};
     }
-    else if(colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) { // black
-        return {FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, colors.a()};
-    }
-    else
-        return colors;
+    return {colors.r(), colors.g(), colors.b(), alpha};
 }
 
 namespace Slic3r {
@@ -156,6 +196,16 @@ ColorRGBA GLVolume::SUPPORT_ENFORCER_COL = {0.3f, 0.3f, 1.0f, 0.4f};
 ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = {1.0f, 0.3f, 0.3f, 0.4f};
 
 ColorRGBA GLVolume::MODEL_HIDDEN_COL  = {0.f, 0.f, 0.f, 0.3f};
+
+// Precise Seam modifier colors. Center, Left and Right are deliberately close shades of one orange:
+// all three are strong modifiers, and distinct hues per mode would turn the scene into a rainbow.
+// The object list icons tell the modes apart.
+ColorRGBA GLVolume::PRECISE_SEAM_CENTER_COL   = {1.0f,   0.627f, 0.082f, 0.6f};  // FFA015 - orange
+ColorRGBA GLVolume::PRECISE_SEAM_LEFT_COL     = {1.0f,   0.753f, 0.0f,   0.6f};  // FFC000 - golden
+ColorRGBA GLVolume::PRECISE_SEAM_RIGHT_COL    = {1.0f,   0.514f, 0.0f,   0.6f};  // FF8300 - dark orange
+ColorRGBA GLVolume::PRECISE_SEAM_ENFORCED_COL = {0.412f, 0.820f, 0.412f, 0.6f};  // 69D169 - green
+ColorRGBA GLVolume::PRECISE_SEAM_NEUTRAL_COL  = {0.655f, 0.655f, 0.655f, 0.6f};  // A7A7A7 - gray
+ColorRGBA GLVolume::PRECISE_SEAM_BLOCKED_COL  = {0.820f, 0.412f, 0.412f, 0.6f};  // D16969 - red
 
 std::array<ColorRGBA, 5> GLVolume::MODEL_COLOR = { {
     { 1.0f, 1.0f, 0.0f, 1.f },
@@ -251,6 +301,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     , printable(true)
     , visible(true)
     , is_active(true)
+    , on_hidden_plate(false)
     , zoom_to_volumes(true)
     , shader_outside_printer_detection_enabled(false)
     , is_outside(false)
@@ -264,6 +315,7 @@ GLVolume::GLVolume(float r, float g, float b, float a)
     , force_native_color(false)
     , force_neutral_color(false)
     , force_sinking_contours(false)
+    , depth_bias(false)
     , picking(false)
     , tverts_range(0, size_t(-1))
 {
@@ -358,6 +410,28 @@ ColorRGBA color_from_model_volume(const ModelVolume& model_volume)
     ColorRGBA color;
     if (model_volume.is_negative_volume())
         return GLVolume::MODEL_NEGTIVE_COL;
+    else if (model_volume.is_precise_seam()) {
+        // Return color based on Precise Seam subtype.
+        // Exhaustive switch (no default) so -Wswitch flags any future PRECISE_SEAM_* additions.
+        switch (model_volume.type()) {
+            case ModelVolumeType::PRECISE_SEAM_CENTER:   return GLVolume::PRECISE_SEAM_CENTER_COL;
+            case ModelVolumeType::PRECISE_SEAM_LEFT:     return GLVolume::PRECISE_SEAM_LEFT_COL;
+            case ModelVolumeType::PRECISE_SEAM_RIGHT:    return GLVolume::PRECISE_SEAM_RIGHT_COL;
+            case ModelVolumeType::PRECISE_SEAM_ENFORCED: return GLVolume::PRECISE_SEAM_ENFORCED_COL;
+            case ModelVolumeType::PRECISE_SEAM_NEUTRAL:  return GLVolume::PRECISE_SEAM_NEUTRAL_COL;
+            case ModelVolumeType::PRECISE_SEAM_BLOCKED:  return GLVolume::PRECISE_SEAM_BLOCKED_COL;
+            // Non-seam types are unreachable due to the outer is_precise_seam() guard;
+            // listed explicitly so this switch stays exhaustive over ModelVolumeType.
+            case ModelVolumeType::INVALID:
+            case ModelVolumeType::MODEL_PART:
+            case ModelVolumeType::NEGATIVE_VOLUME:
+            case ModelVolumeType::PARAMETER_MODIFIER:
+            case ModelVolumeType::SUPPORT_BLOCKER:
+            case ModelVolumeType::SUPPORT_ENFORCER:
+                break;
+        }
+        return GLVolume::MODEL_MIDIFIER_COL; // unreachable fallback
+    }
     else if (model_volume.is_modifier())
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
         return GLVolume::MODEL_MIDIFIER_COL;
@@ -495,7 +569,60 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         simple_render(shader, model_objects, colors);
         return;
     }
-
+    // 0th. render pass, render the model using stencil buffer
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE));
+    glsafe(::glClearStencil(0));
+    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+    glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
+    // This pass paints the visible surface, so it must go through simple_render() to keep
+    // per-triangle MMU paint colors; the later is_outline passes only draw the flat silhouette
+    // highlight and are fine using the single-color model.
+    simple_render(shader, model_objects, colors);
+    glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
+    glsafe(::glStencilMask(0x00));
+    shader->set_uniform("is_outline", true);
+    shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
+    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
+        model.render(shader);
+    else
+        model.render(this->tverts_range, shader);
+    shader->set_uniform("is_outline", false);
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glDisable(GL_STENCIL_TEST));
+    // render the outline using depth buffer and discard the pixels that are not on the outline
+    // The silhouette is resolved per sample in the shader (see DetectSilho in gouraud.fs/phong.fs).
+    // That needs the GL 3.2 entry points and a shader that declares depth_tex as sampler2DMS, which
+    // only the 140 ones do and only under GL_ARB_texture_multisample - so ask the compiled program
+    // rather than the GL version, or a sampler2D ends up bound to a multisample texture.
+    // Only the Arb branch below allocates a multisample texture, so keep the target consistent with it.
+    const bool  use_msaa_outline = framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb &&
+                                   GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2) &&
+                                   shader->get_uniform_location("msaa_samples") >= 0;
+    const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    // Keep the depth texture off image unit 0. The object shaders leave shadow_map (and
+    // environment_tex) at the default sampler value 0 whenever the shadow pass is skipped - which is
+    // the case with realistic view off - and GL forbids two sampler types referring to the same image
+    // unit. A sampler2DMS on unit 0 then makes every draw fail with INVALID_OPERATION on drivers that
+    // enforce it (Mesa), i.e. the model disappears entirely. Unit 5 is unused (shadow_map takes 4).
+    const int depth_tex_unit = OUTLINE_DEPTH_TEX_UNIT;
+    int aa_samples = 1;
+    if (use_msaa_outline) {
+        if (const AppConfig* app_config = GUI::wxGetApp().app_config; app_config != nullptr) {
+            const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
+            if (value == "2" || value == "4" || value == "8" || value == "16")
+                aa_samples = ::atoi(value.c_str());
+        }
+        // Never request more samples than the driver supports for depth textures (a 1-sample texture
+        // is used when MSAA is disabled, keeping a single code path for the sampler2DMS shader).
+        GLint max_samples = 1;
+        glsafe(::glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &max_samples));
+        if (aa_samples > max_samples)
+            aa_samples = max_samples < 1 ? 1 : max_samples;
+        if (aa_samples < 1)
+            aa_samples = 1;
+    }
     // 1st. render pass, render the model into a separate render target that has only depth buffer
     GLuint depth_fbo   = 0;
     GLuint depth_tex = 0;
@@ -503,21 +630,26 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         glsafe(::glGenFramebuffers(1, &depth_fbo));
         glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo));
 
-        glActiveTexture(GL_TEXTURE0);
+        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
         glsafe(::glGenTextures(1, &depth_tex));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        glsafe(::glBindTexture(depth_tex_target, depth_tex));
+        if (use_msaa_outline) {
+            // Multisample textures do not take filter/wrap parameters.
+            glsafe(::glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, aa_samples, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), GL_TRUE));
+        } else {
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        }
 
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_tex, 0));
+        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_tex_target, depth_tex, 0));
     } else {
         glsafe(::glGenFramebuffersEXT(1, &depth_fbo));
         glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, depth_fbo));
 
-        glActiveTexture(GL_TEXTURE0);
+        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
         glsafe(::glGenTextures(1, &depth_tex));
         glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
@@ -526,14 +658,17 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
 
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
+        glsafe(::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
     }
+    // Unbind before drawing: the texture is this framebuffer's depth attachment, so leaving it bound
+    // to a sampled unit would be a feedback loop.
+    glsafe(::glBindTexture(depth_tex_target, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
         model.render(shader);
     else
         model.render(this->tverts_range, shader);
-    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
 
     // 2nd. render pass, just a normal render with the depth buffer passed as a texture
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
@@ -543,13 +678,17 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     }
     shader->set_uniform("is_outline", true);
     shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
-    glActiveTexture(GL_TEXTURE0);
-    glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
-    shader->set_uniform("depth_tex", 0);
+    shader->set_uniform("msaa_samples", aa_samples);
+    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
+    glsafe(::glBindTexture(depth_tex_target, depth_tex));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    shader->set_uniform("depth_tex", depth_tex_unit);
     simple_render(shader, model_objects, colors);
 
     // Some clean up to do
-    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
+    glsafe(::glBindTexture(depth_tex_target, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     shader->set_uniform("is_outline", false);
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
         glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
@@ -565,7 +704,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
 }
 
 //BBS add render for simple case
-void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light)
+void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light, bool ban_color_volume)
 {
     if (this->is_left_handed())
         glFrontFace(GL_CW);
@@ -599,7 +738,9 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
         }
     } while (0);
 
-    if (color_volume && !picking) {
+    if (color_volume && !picking && !ban_color_volume) {
+        const bool brighten_selected = selected && !disabled && !force_native_color && !force_neutral_color;
+
         // when force_transparent, we need to keep the alpha
         if (force_native_color && render_color.is_transparent()) {
             for (auto &extruder_color : extruder_colors)
@@ -614,18 +755,28 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
             if (shader) {
                 if (idx == 0) {
                     int extruder_id = model_volume->extruder_id();
-                    //to make black not too hard too see
-                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
-                    if (ban_light) {
-                        new_color[3] = (255 - (extruder_id - 1))/255.0f;
+                    // ORCA: extruder_id may be 0 (unset) or point past the colour list after a
+                    // filament is deleted/remapped, so clamp the index instead of reading out of
+                    // bounds.
+                    if (!extruder_colors.empty()) {
+                        int color_idx = std::clamp(extruder_id - 1, 0, int(extruder_colors.size()) - 1);
+                        //to make black not too hard too see
+                        ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[color_idx]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
+                        if (ban_light) {
+                            new_color[3] = (255 - color_idx)/255.0f;
+                        }
+                        m.set_color(new_color);
+                        // shader->set_uniform("uniform_color", new_color);
                     }
-                    m.set_color(new_color);
-                    // shader->set_uniform("uniform_color", new_color);
                 }
                 else {
                     if (idx <= extruder_colors.size()) {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[idx - 1]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - (idx - 1))/255.0f;
                         }
@@ -635,6 +786,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                     else {
                         //to make black not too hard too see
                         ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[0]);
+                        if (brighten_selected)
+                            new_color = brighten_color(new_color, 1.25f);
                         if (ban_light) {
                             new_color[3] = (255 - 0) / 255.0f;
                         }
@@ -676,6 +829,8 @@ bool GLVolume::is_below_printbed() const
 
 void GLVolume::render_sinking_contours()
 {
+    if (!is_active)
+        return;
     m_sinking_contours.render();
 }
 
@@ -845,6 +1000,21 @@ int GLVolumeCollection::load_wipe_tower_preview(
     GUI::PartPlateList& ppl = GUI::wxGetApp().plater()->get_partplate_list();
     std::vector<int> plate_extruders = ppl.get_plate(plate_idx)->get_extruders(true);
     TriangleMesh wipe_tower_shell = make_cube(width, depth, height);
+    // The brim is part of the printed footprint: draw it and fold it into the shell so the
+    // outside-bed shader and the drag clamp react to the true first-layer extent.
+    const bool   show_brim   = brim_width > 0.f;
+    const float  brim_height = 0.2f; // one first layer, visual only
+    TriangleMesh brim_slab;
+    if (show_brim) {
+        // The brim follows the real first-layer outline: a Type2 cone-wall tower's base bulges
+        // past the body box. The wall type and angle are print settings, the planner a printer one.
+        const DynamicPrintConfig &print_cfg   = GUI::wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        const DynamicPrintConfig &printer_cfg = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const Polygon  outline      = estimate_wipe_tower_first_layer_outline(print_cfg, resolve_wipe_tower_type(printer_cfg), width, depth, height);
+        const Polygons brim_outline = offset(outline, scaled(brim_width));
+        brim_slab                   = WipeTower::its_make_rib_brim(brim_outline.empty() ? outline : brim_outline.front(), brim_height);
+        wipe_tower_shell.merge(brim_slab);
+    }
     for (int extruder_id : plate_extruders) {
         if (extruder_id <= extruder_colors.size())
             colors.push_back(extruder_colors[extruder_id - 1]);
@@ -855,14 +1025,19 @@ int GLVolumeCollection::load_wipe_tower_preview(
     // Orca: make it transparent
     for(auto& color : colors)
         color.a(0.66f);
+    const size_t slab_count = colors.size(); // per-filament body slabs; the brim part comes after
+    if (show_brim && !colors.empty())
+        colors.push_back(colors.front());
     volumes.emplace_back(new GLWipeTowerVolume(colors));
     GLWipeTowerVolume& v = *dynamic_cast<GLWipeTowerVolume*>(volumes.back());
     v.model_per_colors.resize(colors.size());
-    for (int i = 0; i < colors.size(); i++) {
-        TriangleMesh color_part = make_cube(width, depth / colors.size(), height);
-        color_part.translate({ 0.f, depth * i / colors.size(), 0. });
+    for (size_t i = 0; i < slab_count; i++) {
+        TriangleMesh color_part = make_cube(width, depth / slab_count, height);
+        color_part.translate({ 0.f, depth * i / slab_count, 0. });
         v.model_per_colors[i].init_from(color_part);
     }
+    if (show_brim && !colors.empty())
+        v.model_per_colors[slab_count].init_from(brim_slab);
     v.model.init_from(wipe_tower_shell);
     v.mesh_raycaster = std::make_unique<GUI::MeshRaycaster>(std::make_shared<const TriangleMesh>(wipe_tower_shell));
     v.set_convex_hull(wipe_tower_shell);
@@ -962,8 +1137,17 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
         );
     }
     else if (type == GLVolumeCollection::ERenderType::Opaque && list.size() > 1) {
+        // Orca: nearest first after the selected ones, so the depth test skips shading hidden surfaces.
+        for (GLVolumeWithIdAndZ& volume : list) {
+            volume.second.second = volume.first->transformed_bounding_box().transformed(view_matrix).max(2);
+        }
+
         std::sort(list.begin(), list.end(),
-            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool { return v1.first->selected && !v2.first->selected; }
+            [](const GLVolumeWithIdAndZ& v1, const GLVolumeWithIdAndZ& v2) -> bool {
+                if (v1.first->selected != v2.first->selected)
+                    return v1.first->selected;
+                return v1.second.second > v2.second.second;
+            }
         );
     }
 
@@ -1024,7 +1208,8 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
                                 const Transform3d&                    projection_matrix,
                                 const GUI::Size&                      cnv_size,
                                 std::function<bool(const GLVolume &)> filter_func,
-                                bool                                  partly_inside_enable) const
+                                bool                                  partly_inside_enable,
+                                std::vector<double> *                 printable_heights) const
 {
     GLVolumeWithIdAndZList to_render = volumes_to_render(volumes, type, view_matrix, filter_func);
     if (to_render.empty())
@@ -1051,6 +1236,21 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         glsafe(::glDisable(GL_CULL_FACE));
 
     const float support_normal_z = get_selection_support_normal_z();
+
+    // The outline passes below are driven by is_outline, which only the object shaders have; with an
+    // overlay one (wireframe, x-ray) bound they would just draw the volume again.
+    const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
+    // ORCA: the object shaders that know how draw a part of a translucent filament as its print would
+    // show, in premultiplied color, see translucent_filament_color() in gouraud.fs
+    const bool shade_translucent_filaments = type == ERenderType::Transparent && shader->get_uniform_location("translucent_filament") >= 0;
+
+    // Prime depth_tex on every frame so non-outline draws do not keep the
+    // default sampler unit 0, which can conflict with other sampler types.
+    shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
+
+    // Compute up direction accounting for build plate tilt. This is frame-invariant
+    // (config cannot change mid-render), so compute it once before the volume loop.
+    const Vec3f up_direction = GUI::build_plate_tilt_up_direction().cast<float>();
 
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
@@ -1108,11 +1308,29 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
             //use -1 ad a invalid type
             shader->set_uniform("print_volume.type", -1);
         }
-  
+
+        // Per-extruder printable-height shading. The flag is set to
+        // 2.0 only for multi-extruder printers (two per-extruder heights); otherwise it is forced to 0.0
+        // on every render so no stale flag survives a multi->single-extruder plate switch, keeping the
+        // shared gouraud shader pixel-identical for single-extruder printers. When active the height
+        // branch reads print_volume.xy_data (the bed rect), so set it explicitly here.
+        std::array<float, 3> extruder_printable_heights = {0.0f, 0.0f, 0.0f};
+        if (printable_heights != nullptr && printable_heights->size() > 1) {
+            extruder_printable_heights[0] = 2.0f;
+            extruder_printable_heights[1] = static_cast<float>((*printable_heights)[0]);
+            extruder_printable_heights[2] = static_cast<float>((*printable_heights)[1]);
+            shader->set_uniform("extruder_printable_heights", extruder_printable_heights);
+            shader->set_uniform("print_volume.xy_data", m_print_volume.data);
+        }
+        else {
+            shader->set_uniform("extruder_printable_heights", extruder_printable_heights);
+        }
+
         shader->set_uniform("volume_world_matrix", volume.first->world_matrix());
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));
         shader->set_uniform("slope.normal_z", support_normal_z);
+        shader->set_uniform("slope.up_direction", up_direction);
 
 #if ENABLE_ENVIRONMENT_MAP
         unsigned int environment_texture_id = GUI::wxGetApp().plater()->get_environment_texture_id();
@@ -1130,11 +1348,22 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("projection_matrix", projection_matrix);
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        if (shade_translucent_filaments) {
+            const bool translucent_filament = volume.first->visible && !volume.first->is_modifier && volume.first->color.is_transparent();
+            shader->set_uniform("translucent_filament", translucent_filament);
+            glsafe(::glBlendFunc(translucent_filament ? GL_ONE : GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        }
+        if (volume.first->depth_bias) {
+            glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+            glsafe(::glPolygonOffset(1.0f, 1.0f));
+        }
 		//BBS: add outline related logic
-        if (volume.first->selected && GUI::wxGetApp().show_outline())
+        if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
             volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();
+        if (volume.first->depth_bias)
+            glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
 
 #if ENABLE_ENVIRONMENT_MAP
         if (use_environment_texture)
@@ -1166,6 +1395,11 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     if (disable_cullface)
         glsafe(::glEnable(GL_CULL_FACE));
 
+    if (shade_translucent_filaments) {
+        // the program is shared, so leave it as the other users expect
+        shader->set_uniform("translucent_filament", false);
+        glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    }
     if (type == ERenderType::Transparent)
         glsafe(::glDisable(GL_BLEND));
 }
@@ -1237,10 +1471,31 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     BuildVolume plate_build_volume(pp_bed_shape, build_volume.printable_height(), build_volume.extruder_areas(), build_volume.extruder_heights());
     const std::vector<BoundingBoxf3>& exclude_areas = curr_plate->get_exclude_areas();
 
+    const DynamicPrintConfig *plater_config = GUI::wxGetApp().plater()->config();
+    std::vector<std::vector<BedExcludeRegion>> exclusion_regions;
+    // Legacy bed-exclude areas retain Orca's existing 2D presentation. The
+    // per-extruder 3D state is needed only after collision volumes are enabled.
+    if (has_bed_exclude_volumes(*plater_config)) {
+        exclusion_regions = get_bed_excluded_regions_by_extruder(*plater_config);
+        // The native BuildVolume path below already presents the shared legacy
+        // area. Merge only opt-in collision volumes into nozzle-specific state.
+        for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+            regions.erase(std::remove_if(regions.begin(), regions.end(),
+                [](const BedExcludeRegion &region) { return !region.is_collision_volume(); }), regions.end());
+    }
+    const Vec3d plate_origin = curr_plate->get_origin();
+    const Point exclusion_offset(scale_(plate_origin.x()), scale_(plate_origin.y()));
+    for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(exclusion_offset);
+
     std::map<ModelObject*, std::map<int, std::set<int>>> objects_unprintable_filaments;
-    int extruder_count = build_volume.get_extruder_area_count();
+    const DynamicPrintConfig &plate_project_config = GUI::wxGetApp().preset_bundle->project_config;
+    const int build_volume_extruder_count = build_volume.get_extruder_area_count();
+    const int extruder_count = std::max<int>(build_volume_extruder_count, int(exclusion_regions.size()));
     std::vector<std::set<int>> unprintable_filament_ids(extruder_count, std::set<int>());
     std::set<ModelObject*> partly_objects_set;
+    std::map<std::pair<int, int>, std::vector<bool>> instance_inside_exclusion_regions;
     const ModelObjectPtrs &model_objects = model.objects;
     for (GLVolume* volume : this->volumes)
     {
@@ -1255,7 +1510,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     //FIXME this test does not evaluate collision of a build volume bounding box with non-convex objects.
                     const BoundingBoxf3& bb = volume_bbox(*volume);
                     state = plate_build_volume.volume_state_bbox(bb);
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_volume_bbox_state_with_extruder_areas(bb, inside_extruders);
                     }
@@ -1269,7 +1524,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     const indexed_triangle_set& convex_mesh_it = volume_convex_mesh(*volume).its;
                     const Transform3f trafo = volume->world_matrix().cast<float>();
                     state = plate_build_volume.object_state(convex_mesh_it, trafo, volume_sinking(*volume));
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_object_state_with_extruder_areas(convex_mesh_it, trafo, inside_extruders);
                     }
@@ -1282,12 +1537,52 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 }
                 assert(state != BuildVolume::ObjectState::Below);
 
+                // Preserve Orca's native printable-area result separately.
+                // Exclusion collisions have current-map semantics and must not
+                // leak into the later "unprintable on every possible nozzle"
+                // aggregation used by automatic printable-area assignment.
+                const std::vector<bool> printable_area_inside_extruders = inside_extruders;
+
+                // Newer Orca resolves live multi-nozzle placement through this
+                // per-extruder state vector. Merge exclusion-volume collisions
+                // into the same source of truth instead of relying only on the
+                // legacy PartPlate::check_outside() path.
+                if ((state == BuildVolume::ObjectState::Inside || state == BuildVolume::ObjectState::Limited) &&
+                    volume->object_idx() >= 0 && volume->object_idx() < int(model_objects.size()) &&
+                    volume->instance_idx() >= 0 &&
+                    volume->instance_idx() < int(model_objects[volume->object_idx()]->instances.size())) {
+                    inside_extruders.resize(extruder_count, true);
+
+                    const std::pair<int, int> instance_key{ volume->object_idx(), volume->instance_idx() };
+                    auto [cache_it, inserted] = instance_inside_exclusion_regions.emplace(
+                        instance_key, std::vector<bool>(extruder_count, true));
+                    if (inserted) {
+                        const ModelInstance *instance = model_objects[volume->object_idx()]->instances[volume->instance_idx()];
+                        for (size_t extruder_id = 0; extruder_id < exclusion_regions.size(); ++extruder_id) {
+                            if (instance->intersects_bed_exclude_regions(exclusion_regions[extruder_id]))
+                                cache_it->second[extruder_id] = false;
+                        }
+                    }
+
+                    bool exclusion_limited = false;
+                    for (size_t extruder_id = 0; extruder_id < cache_it->second.size(); ++extruder_id) {
+                        if (!cache_it->second[extruder_id]) {
+                            inside_extruders[extruder_id] = false;
+                            exclusion_limited = true;
+                        }
+                    }
+
+                    if (exclusion_limited && state == BuildVolume::ObjectState::Inside)
+                        state = extruder_count > 1 ? BuildVolume::ObjectState::Limited : BuildVolume::ObjectState::Colliding;
+
+                }
+
                 if (state == BuildVolume::ObjectState::Limited) {
                     //unprintable_filament_ids.resize(inside_extruders.size());
                     ModelObject *model_object = model_objects[volume->object_idx()];
                     ModelVolume *model_volume = model_object->volumes[volume->volume_idx()];
-                    for (size_t i = 0; i < inside_extruders.size(); ++i) {
-                        if (!inside_extruders[i]) {
+                    for (size_t i = 0; i < printable_area_inside_extruders.size(); ++i) {
+                        if (!printable_area_inside_extruders[i]) {
                             std::vector<int> filaments = model_volume->get_extruders();
                             unprintable_filament_ids[i].insert(filaments.begin(), filaments.end());
                             if (object_results) {
@@ -1362,8 +1657,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     //check per-object error for extruder areas
     if (object_results && (extruder_count > 1))
     {
-        const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-        object_results->mode = curr_plate->get_real_filament_map_mode(project_config);
+        object_results->mode = curr_plate->get_real_filament_map_mode(plate_project_config);
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1378,7 +1672,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     {
                         std::vector<int> result_filaments;
                         //result_filaments.reserve(conflict_filaments.size());
-                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), insert_iterator<vector<int>>(result_filaments, result_filaments.begin()));
+                        std::set_intersection (conflict_filament_vector.begin(), conflict_filament_vector.end(), unprintable_filament_vec[index].begin(), unprintable_filament_vec[index].end(), std::insert_iterator<std::vector<int>>(result_filaments, result_filaments.begin()));
                         conflict_filament_vector = result_filaments;
                     }
                 }
@@ -1425,8 +1719,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         else
         {
             std::set<int> conflict_filaments_set;
-            const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(project_config);
+            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(plate_project_config);
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;
@@ -1441,7 +1734,8 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
 
                     for (int filament: filaments_set)
                     {
-                        if (filament_maps[filament - 1] == extruder_id)
+                        if (filament > 0 && size_t(filament) <= filament_maps.size() &&
+                            filament_maps[filament - 1] == extruder_id)
                         {
                             object_filament_info.manual_filaments.emplace(filament, extruder_id);
                             object_results->filament_maps[filament] = extruder_id;
@@ -1458,6 +1752,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 object_results->filaments = std::vector<int>(conflict_filaments_set.begin(), conflict_filaments_set.end());
             }
         }
+
     }
 
     /*for (GLVolume* volume : this->volumes)

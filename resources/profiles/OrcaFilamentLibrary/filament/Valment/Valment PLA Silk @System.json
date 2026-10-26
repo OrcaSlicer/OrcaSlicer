@@ -3,7 +3,7 @@
 	"name": "Valment PLA Silk @System",
 	"inherits": "Valment PLA Silk @base",
 	"from": "system",
-	"setting_id": "VLMNT_02",
+	"setting_id": "12lhhFnk6kqFu9dI",
 	"instantiation": "true",
 	"compatible_printers": []
 }

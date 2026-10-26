@@ -3,7 +3,7 @@
 	"name": "WonderMaker PET-CF @WonderMaker ZR Ultra S",
 	"inherits": "WonderMaker PET-CF",
 	"from": "system",
-	"setting_id": "GFST01_00",
+	"setting_id": "StweV7VENDenJpre",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"60"

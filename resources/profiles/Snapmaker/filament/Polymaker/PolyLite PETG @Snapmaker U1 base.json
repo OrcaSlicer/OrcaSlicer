@@ -3,7 +3,7 @@
 	"name": "PolyLite PETG @Snapmaker U1 base",
 	"inherits": "fdm_filament_petg",
 	"from": "system",
-	"filament_id": "GFG60",
+	"filament_id": "OF0UJcb6",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

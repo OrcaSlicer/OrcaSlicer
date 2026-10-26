@@ -1,13 +1,25 @@
 #ifndef slic3r_GUI_SendToSDcard_hpp_
 #define slic3r_GUI_SendToSDcard_hpp_
 
+#include <string>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/PrePrintChecker.hpp"
+#include <vector>
+#include <map>
+#include <memory>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <wx/datetime.h>
+#include <wx/event.h>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <cstddef>
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -20,7 +32,6 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 #include <wx/srchctrl.h>
 
@@ -55,14 +66,12 @@ private:
     void init_timer();
 
     int                                 m_print_plate_idx;
-    int                                 m_current_filament_id;
     int                                 m_print_error_code = 0;
     int                                 timeout_count = 0;
     int                                 m_connect_try_times = 0;
     bool                                m_is_in_sending_mode{ false };
     bool                                m_is_rename_mode{ false };
     bool                                enable_prepare_mode{ true };
-    bool                                m_need_adaptation_screen{ false };
     bool                                m_export_3mf_cancel{ false };
     bool                                m_is_canceled{ false };
     bool                                m_tcp_try_connect{true};
@@ -78,10 +87,8 @@ private:
     TextInput*                          m_rename_input{ nullptr };
     wxSimplebook*                       m_rename_switch_panel{ nullptr };
     Plater*                             m_plater{ nullptr };
-    wxStaticBitmap*                     m_staticbitmap{ nullptr };
     ThumbnailPanel*                     m_thumbnailPanel{ nullptr };
     ComboBox*                           m_comboBox_printer{ nullptr };
-    ComboBox*                           m_comboBox_bed{ nullptr };
     Button*                             m_rename_button{ nullptr };
     Button*                             m_button_refresh{ nullptr };
     Button*                             m_button_ensure{ nullptr };
@@ -99,8 +106,6 @@ private:
     wxPanel *                           m_connecting_panel{nullptr};
     wxSimplebook*                       m_simplebook{ nullptr };
     wxStaticText*                       m_statictext_finish{ nullptr };
-    wxStaticText*                       m_stext_sending{ nullptr };
-    wxStaticText*                       m_staticText_bed_title{ nullptr };
     wxStaticText*                       m_statictext_printer_msg{ nullptr };
     wxStaticText *                      m_connecting_printer_msg{nullptr};
     wxStaticText*                       m_stext_printer_title{ nullptr };
@@ -117,7 +122,6 @@ private:
     wxBoxSizer*                         sizer_thumbnail;
     wxBoxSizer*                         m_sizer_scrollable_region;
     wxBoxSizer*                         m_sizer_main;
-    wxStaticText*                       m_file_name;
     PrintDialogStatus                   m_print_status{ PrintStatusInit };
     AnimaIcon *                         m_animaicon{nullptr};
 
@@ -136,8 +140,6 @@ private:
     std::vector<RadioBox *>             m_storage_radioBox;
     std::string                         m_selected_storage;
     bool                                m_if_has_sdcard;
-    bool                                m_waiting_support{ false };
-    bool                                m_waiting_enable{ false };
     std::vector<std::string>            m_ability_list;
 
 public:
@@ -180,7 +182,7 @@ public:
     SendToPrinterDialog(Plater *plater = nullptr);
     ~SendToPrinterDialog();
 
-    bool Show(bool show);
+    bool Show(bool show) override;
     bool is_timeout();
     void on_rename_click(wxCommandEvent& event);
     void on_rename_enter();
@@ -190,7 +192,6 @@ public:
     void reset_timeout();
     void update_user_printer();
     void update_show_status();
-    bool is_blocking_printing(MachineObject* obj_);
     void prepare(int print_plate_idx);
     void check_focus(wxWindow* window);
     void check_fcous_state(wxWindow* window);

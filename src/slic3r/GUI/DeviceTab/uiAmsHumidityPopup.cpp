@@ -1,21 +1,29 @@
-//**********************************************************/
-/* File: uiAmsHumidityPopup.cpp
+/**********************************************************
+* File: uiAmsHumidityPopup.cpp
 *  Description: The popup with DevAms Humidity
 *
 * \n class uiAmsHumidityPopup
-//**********************************************************/
+**********************************************************/
 
 #include "uiAmsHumidityPopup.h"
 
-#include "slic3r/Utils/WxFontUtils.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <string>
+#include <cmath>
 #include <wx/dcgraph.h>
+#include <wx/gdicmn.h>
 #include <wx/grid.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -23,16 +31,16 @@ uiAmsPercentHumidityDryPopup::uiAmsPercentHumidityDryPopup(wxWindow *parent)
     : wxDialog(parent, wxID_ANY, "")
 {
     Create();
-    wxGetApp().UpdateDlgDarkUI(this);
+    wxGetApp().UpdateDlgDarkUI(this); // Orca: apply dark-mode theming to the popup
 }
 
 void uiAmsPercentHumidityDryPopup::Create()
 {
     // create images
     idle_img = ScalableBitmap(this, "ams_drying", 16);
-    drying_img = ScalableBitmap(this, "ams_is_drying", 16);
+    drying_img = ScalableBitmap(this, "ams_is_drying", 16); // Orca: use the drying-state icon
 
-    // background 
+    // background
     SetBackgroundColour(*wxWHITE);
 
     // create title sizer
@@ -98,7 +106,7 @@ void uiAmsPercentHumidityDryPopup::Create()
     Refresh();
 }
 
-void uiAmsPercentHumidityDryPopup::Update(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature)
+void uiAmsPercentHumidityDryPopup::UpdateInfo(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature)
 {
     if (m_humidity_level != humidiy_level || m_humidity_percent != humidity_percent ||
         m_left_dry_time != left_dry_time || m_current_temperature != current_temperature)
@@ -147,7 +155,8 @@ void uiAmsPercentHumidityDryPopup::UpdateContents()
     // table grid
     const wxString& humidity_str = wxString::Format("%d%%", m_humidity_percent);
     m_humidity_label->SetLabel(humidity_str);
-    const wxString& temp_str = wxString::Format(wxString::FromUTF8(u8"%d\u2103" /* °C */), (int)std::round(m_current_temperature));
+    // Orca: format the temperature with an explicit UTF-8 \u2103 (no translation of a units-only format)
+    const wxString& temp_str = wxString::Format(wxString::FromUTF8(u8"%d\u2103" /* \u00b0C */), (int)std::round(m_current_temperature));
     m_temperature_label->SetLabel(temp_str);
 
     if (m_left_dry_time > 0)

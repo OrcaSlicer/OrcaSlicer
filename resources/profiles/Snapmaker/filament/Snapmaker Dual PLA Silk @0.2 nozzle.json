@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA Silk @0.2 nozzle",
 	"inherits": "Snapmaker Dual PLA Silk @base",
 	"from": "system",
-	"setting_id": "965040007",
+	"setting_id": "tHZclIHbTPFyIxhL",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.2 nozzle)",

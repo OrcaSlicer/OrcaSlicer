@@ -11,10 +11,28 @@
 
 #include "../libslic3r.h"
 #include "../Polygon.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Slicing.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Support/SupportParameters.hpp"
+#include "libslic3r/Support/SupportLayer.hpp"
 #include "SupportCommon.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <math.h>
+#include <cmath>
+#include <limits>
+#include <cassert>
+#include <cstdio>
+#include <iterator>
+#include <mutex>
 #include <string_view>
+#include <vector>
+#include <utility>
 
 namespace Slic3r
 {
@@ -62,7 +80,7 @@ struct TreeSupportMeshGroupSettings {
         this->support_line_width        = support_material_flow(&print_object, config.layer_height).scaled_width();
         this->support_roof_line_width   = support_material_interface_flow(&print_object, config.layer_height).scaled_width();
         const int bottom_interface_layers = number_of_support_interface_bottom_layers(config);
-        this->support_bottom_enable     = config.support_interface_top_layers.value > 0 && bottom_interface_layers > 0;
+        this->support_bottom_enable     = bottom_interface_layers > 0;
         this->support_bottom_height     = this->support_bottom_enable ?
             bottom_interface_layers * this->layer_height :
             0;
@@ -588,8 +606,6 @@ private:
 //    std::vector<coord_t> known_z;
 };
 
-static constexpr const bool polygons_strictly_simple = false;
-
 inline double tiny_area_threshold() { return sqr(scaled<double>(0.001)); }
 
 inline void tree_supports_show_error(std::string_view message, bool critical)
@@ -651,7 +667,22 @@ inline SupportGeneratorLayer& layer_initialize(
     const size_t               layer_idx)
 {
     layer_new.print_z  = layer_z(slicing_params, config, layer_idx);
-    layer_new.bottom_z = layer_idx > 0 ? layer_z(slicing_params, config, layer_idx - 1) : 0;
+    // Layer 0 has no layer below it, so its bottom is the build plate at z = 0 --
+    // true for a flat bed, false for a belt, whose virtual support layers extend
+    // below zero. Taking 0 there made the bottom-most belt layer's height come out
+    // as its own (negative) print_z, which reached Flow::with_height() and threw
+    // FlowErrorNegativeFlow, so tree support could not slice any belt model whose
+    // branches reached down that far.
+    //
+    // Only the negative case is corrected. An earlier version used
+    // min(0, print_z - layer_height), which also fires whenever the initial layer
+    // is THINNER than the regular layer height -- e.g. 0.2 over 0.3, both
+    // independently configurable -- and silently changed flat-bed support layer
+    // heights. Keying on the sign leaves every non-negative print_z on exactly
+    // the previous value of 0.
+    layer_new.bottom_z = layer_idx > 0 ? layer_z(slicing_params, config, layer_idx - 1) : 0.;
+    if (layer_idx == 0 && layer_new.print_z < 0.)
+        layer_new.bottom_z = layer_new.print_z - slicing_params.layer_height;
     layer_new.height   = layer_new.print_z - layer_new.bottom_z;
     return layer_new;
 }
@@ -705,7 +736,7 @@ public:
     SupportGeneratorLayersPtr&  top_contacts_mutable() { return this->top_contacts; }
 
 public:
-    // Insert the contact layer and some of the inteface and base interface layers below.
+    // Insert the contact layer and some of the interface and base interface layers below.
     void add_roofs(std::vector<Polygons> &&new_roofs, const size_t insert_layer_idx)
     {
         if (! new_roofs.empty()) {

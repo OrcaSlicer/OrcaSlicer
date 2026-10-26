@@ -3,7 +3,7 @@
 	"name": "M1 0.2 nozzle",
 	"inherits": "fdm_common_M1",
 	"from": "system",
-	"setting_id": "m1_m002",
+	"setting_id": "PJ1AEctT0fuqipaq",
 	"instantiation": "true",
 	"printer_model": "M1",
 	"nozzle_diameter": [

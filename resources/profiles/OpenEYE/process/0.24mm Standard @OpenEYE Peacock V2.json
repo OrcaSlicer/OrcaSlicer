@@ -3,7 +3,7 @@
 	"name": "0.24mm Standard @OpenEYE Peacock V2",
 	"inherits": "fdm_process_openeye_0.24_nozzle_0.4",
 	"from": "system",
-	"setting_id": "GP144",
+	"setting_id": "G27ubepZXkYPQ0IW",
 	"instantiation": "true",
 	"default_acceleration": "8000",
 	"initial_layer_speed": "50",

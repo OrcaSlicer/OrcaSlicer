@@ -3,7 +3,7 @@
 	"name": "CoLiDo DIY 4.0 V2 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "Z3Zb6RB7jbRNhGO0",
 	"instantiation": "true",
 	"printer_model": "CoLiDo DIY 4.0 V2",
 	"default_filament_profile": [

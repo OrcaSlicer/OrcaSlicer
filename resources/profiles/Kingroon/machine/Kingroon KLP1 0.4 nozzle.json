@@ -3,7 +3,7 @@
 	"name": "Kingroon KLP1 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM003",
+	"setting_id": "V7Nb0x13KMPKlEKB",
 	"instantiation": "true",
 	"printer_model": "Kingroon KLP1",
 	"default_filament_profile": "Generic PLA @System",

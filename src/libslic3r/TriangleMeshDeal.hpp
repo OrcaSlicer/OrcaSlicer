@@ -1,5 +1,4 @@
-#ifndef libslic3r_Timer_hpp_
-#define libslic3r_Timer_hpp_
+#pragma once
 
 #include "TriangleMesh.hpp"
 
@@ -10,5 +9,3 @@ public:
     static TriangleMesh smooth_triangle_mesh(const TriangleMesh &mesh,bool& ok);
 };
 } // namespace Slic3r
-
-#endif // libslic3r_Timer_hpp_

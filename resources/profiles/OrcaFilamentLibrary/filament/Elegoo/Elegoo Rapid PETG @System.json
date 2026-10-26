@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Elegoo Rapid PETG @System",
-	"inherits": "Elegoo PETG @base",
+	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+;Elegoo RAPID PETG;Elegoo RAPID PETG+",
+	"inherits": "Elegoo Rapid PETG @base",
 	"from": "system",
-	"setting_id": "OERPETGS00",
+	"setting_id": "uUQSVOvP8tAaDqvB",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.052"
@@ -32,6 +33,5 @@
 	"nozzle_temperature_initial_layer": [
 		"250"
 	],
-	"compatible_printers": [],
-	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+"
+	"compatible_printers": []
 }

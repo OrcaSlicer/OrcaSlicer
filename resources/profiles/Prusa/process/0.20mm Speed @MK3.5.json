@@ -3,7 +3,7 @@
 	"name": "0.20mm Speed @MK3.5",
 	"inherits": "process_speed_MK3.5",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "pF9Ew8BX7HRNERlA",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa MK3.5 0.4 nozzle"

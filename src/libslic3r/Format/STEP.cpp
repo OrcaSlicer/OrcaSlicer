@@ -1,10 +1,30 @@
-#include "../libslic3r.h"
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/I18N.hpp"
 
 #include "STEP.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <ostream>
+#include <cstddef>
+#include <Standard_Handle.hxx>
+#include <Standard_TypeDef.hxx>
+#include <TopAbs_ShapeEnum.hxx>
+#include <atomic>
+#include <IFSelect_ReturnStatus.hxx>
+#include <boost/chrono/duration.hpp>
+#include <cstring>
+#include <Poly_Triangulation.hxx>
+#include <cstdint>
+#include <gp_Trsf.hxx>
+#include <gp_Pnt.hxx>
+#include <TopAbs_Orientation.hxx>
+#include <Poly_Triangle.hxx>
 #include <string>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/iostream.hpp>
@@ -12,6 +32,8 @@
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
+#include <vector>
+#include <utility>
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'
@@ -25,6 +47,8 @@
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
 #include "XCAFApp_Application.hxx"
+#include "NCollection_Sequence.hxx"
+#include "TDF_Label.hxx"
 #include "TopoDS_Solid.hxx"
 #include "TopoDS_Compound.hxx"
 #include "TopoDS_Builder.hxx"
@@ -32,10 +56,11 @@
 #include "TDataStd_Name.hxx"
 #include "BRepBuilderAPI_Transform.hxx"
 #include "TopExp_Explorer.hxx"
-#include "TopExp_Explorer.hxx"
 #include "BRep_Tool.hxx"
 #include "BRepTools.hxx"
 #include <IMeshTools_Parameters.hxx>
+
+namespace fs = boost::filesystem;
 
 
 namespace Slic3r {
@@ -44,7 +69,7 @@ bool StepPreProcessor::preprocess(const char* path, std::string &output_path)
 {
     boost::nowide::ifstream infile(path);
     if (!infile.good()) {
-        throw Slic3r::RuntimeError(std::string("Load step file failed.\nCannot open file for reading.\n"));
+        throw Slic3r::RuntimeError(_u8L("Load step file failed.\nCannot open file for reading.\n"));
         return false;
     }
 
@@ -92,7 +117,7 @@ bool StepPreProcessor::isUtf8File(const char* path)
 {
     boost::nowide::ifstream infile(path);
     if (!infile.good()) {
-        throw Slic3r::RuntimeError(std::string("Load step file failed.\nCannot open file for reading.\n"));
+        throw Slic3r::RuntimeError(_u8L("Load step file failed.\nCannot open file for reading.\n"));
         return false;
     }
 
@@ -111,14 +136,19 @@ bool StepPreProcessor::isUtf8File(const char* path)
 bool StepPreProcessor::isUtf8(const std::string str)
 {
     size_t num = 0;
-    int i = 0;
+    size_t i = 0;
     while (i < str.length()) {
-        if ((str[i] & 0x80) == 0x00) {
+        const unsigned char lead = static_cast<unsigned char>(str[i]);
+        if ((lead & 0x80) == 0x00) {
             i++;
-        } else if ((num = preNum(str[i])) > 2) {
+        // preNum() counts the leading 1 bits, and a multi-byte sequence is 2 to 4
+        // bytes long, so anything outside that range is not a lead byte.
+        } else if ((num = preNum(lead)) >= 2 && num <= 4) {
+            if (i + num > str.length())
+                return false;
             i++;
-            for (int j = 0; j < num - 1; j++) {
-                if ((str[i] & 0xc0) != 0x80)
+            for (size_t j = 0; j < num - 1; j++) {
+                if ((static_cast<unsigned char>(str[i]) & 0xc0) != 0x80)
                     return false;
                 i++;
             }
@@ -132,15 +162,20 @@ bool StepPreProcessor::isUtf8(const std::string str)
 bool StepPreProcessor::isGBK(const std::string str) {
     size_t i = 0;
     while (i < str.length()) {
-        if (str[i] <= 0x7f) {
+        // char is signed here, so every byte compares <= 0x7f unless widened first.
+        const unsigned char lead = static_cast<unsigned char>(str[i]);
+        if (lead <= 0x7f) {
             i++;
             continue;
         } else {
-            if (str[i] >= 0x81 &&
-                str[i] <= 0xfe &&
-                str[i + 1] >= 0x40 &&
-                str[i + 1] <= 0xfe &&
-                str[i + 1] != 0xf7) {
+            if (i + 1 >= str.length())
+                return false;
+            const unsigned char trail = static_cast<unsigned char>(str[i + 1]);
+            if (lead >= 0x81 &&
+                lead <= 0xfe &&
+                trail >= 0x40 &&
+                trail <= 0xfe &&
+                trail != 0xf7) {
                 i += 2;
                 continue;
             }
@@ -188,9 +223,9 @@ static void getNamedSolids(const TopLoc_Location& location,
     std::string fullName{name};
 
     TopLoc_Location localLocation = location * shapeTool->GetLocation(label);
-    TDF_LabelSequence components;
+    NCollection_Sequence<TDF_Label> components;
     if (shapeTool->GetComponents(referredLabel, components)) {
-        for (Standard_Integer compIndex = 1; compIndex <= components.Length(); ++compIndex) {
+        for (int compIndex = 1; compIndex <= components.Length(); ++compIndex) {
             getNamedSolids(localLocation, fullName, id, shapeTool, components.Value(compIndex), namedSolids, isSplitCompound);
         }
     } else {
@@ -198,23 +233,33 @@ static void getNamedSolids(const TopLoc_Location& location,
         TopExp_Explorer explorer;
         shapeTool->GetShape(referredLabel, shape);
         TopAbs_ShapeEnum shape_type = shape.ShapeType();
-        BRepBuilderAPI_Transform transform(shape, localLocation, Standard_True);
+        BRepBuilderAPI_Transform transform(shape, localLocation, true);
         int                      i = 0;
         switch (shape_type) {
         case TopAbs_COMPOUND:
-            if (!isSplitCompound) {
-                namedSolids.emplace_back(TopoDS::Compound(transform.Shape()), fullName);
-                break;
-            }
         case TopAbs_COMPSOLID:
             if (!isSplitCompound) {
-                namedSolids.emplace_back(TopoDS::CompSolid(transform.Shape()), fullName);
+                namedSolids.emplace_back(transform.Shape(), fullName);
             } else {
                 for (explorer.Init(transform.Shape(), TopAbs_SOLID); explorer.More(); explorer.Next()) {
                     i++;
                     const TopoDS_Shape& currentShape = explorer.Current();
                     namedSolids.emplace_back(TopoDS::Solid(currentShape), fullName + "-SOLID-" + std::to_string(i));
                 }
+                // Surface models have no solids: each shell outside a solid is a part, and loose faces stay together.
+                i = 0;
+                for (explorer.Init(transform.Shape(), TopAbs_SHELL, TopAbs_SOLID); explorer.More(); explorer.Next())
+                    namedSolids.emplace_back(explorer.Current(), fullName + "-SHELL-" + std::to_string(++i));
+                TopoDS_Compound loose_faces;
+                TopoDS_Builder  builder;
+                builder.MakeCompound(loose_faces);
+                bool has_loose_faces = false;
+                for (explorer.Init(transform.Shape(), TopAbs_FACE, TopAbs_SHELL); explorer.More(); explorer.Next()) {
+                    builder.Add(loose_faces, explorer.Current());
+                    has_loose_faces = true;
+                }
+                if (has_loose_faces)
+                    namedSolids.emplace_back(loose_faces, fullName);
             }
             break;
         case TopAbs_SOLID:
@@ -230,8 +275,8 @@ static void getNamedSolids(const TopLoc_Location& location,
 }
 
 //bool load_step(const char *path, Model *model, bool& is_cancel,
-//               double linear_defletion/*=0.003*/,
-//               double angle_defletion/*= 0.5*/,
+//               double linear_deflection/*=0.003*/,
+//               double angle_deflection/*= 0.5*/,
 //               bool isSplitCompound,
 //               ImportStepProgressFn stepFn, StepIsUtf8Fn isUtf8Fn, long& mesh_face_num)
 //{
@@ -288,7 +333,7 @@ static void getNamedSolids(const TopLoc_Location& location,
 //    stl.resize(namedSolids.size());
 //    tbb::parallel_for(tbb::blocked_range<size_t>(0, namedSolids.size()), [&](const tbb::blocked_range<size_t> &range) {
 //        for (size_t i = range.begin(); i < range.end(); i++) {
-//            BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_defletion, false, angle_defletion, true);
+//            BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_deflection, false, angle_deflection, true);
 //            // BBS: calculate total number of the nodes and triangles
 //            int aNbNodes     = 0;
 //            int aNbTriangles = 0;
@@ -468,11 +513,11 @@ Step::Step_Status Step::load()
         if (cb_cancel) return;
         progress = 6;
         m_shape_tool = XCAFDoc_DocumentTool::ShapeTool(m_doc->Main());
-        TDF_LabelSequence topLevelShapes;
+        NCollection_Sequence<TDF_Label> topLevelShapes;
         m_shape_tool->GetFreeShapes(topLevelShapes);
         unsigned int id{ 1 };
-        Standard_Integer topShapeLength = topLevelShapes.Length() + 1;
-        for (Standard_Integer iLabel = 1; iLabel < topShapeLength; ++iLabel) {
+        int topShapeLength = topLevelShapes.Length() + 1;
+        for (int iLabel = 1; iLabel < topShapeLength; ++iLabel) {
             if (cb_cancel) return;
             getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), m_name_solids);
         }
@@ -511,8 +556,8 @@ Step::Step_Status Step::load()
 Step::Step_Status Step::mesh(Model* model,
                              bool& is_cancel,
                              bool isSplitCompound,
-                             double linear_defletion/*=0.003*/,
-                             double angle_defletion/*= 0.5*/)
+                             double linear_deflection/*=0.003*/,
+                             double angle_deflection/*= 0.5*/)
 
 {
     bool task_result = false;
@@ -527,12 +572,12 @@ Step::Step_Status Step::mesh(Model* model,
     new_object->input_file = m_path.c_str();
 
     auto task = new boost::thread(Slic3r::create_thread([&]() -> void {
-        TDF_LabelSequence topLevelShapes;
+        NCollection_Sequence<TDF_Label> topLevelShapes;
         m_shape_tool->GetFreeShapes(topLevelShapes);
         unsigned int id{ 1 };
-        Standard_Integer topShapeLength = topLevelShapes.Length() + 1;
+        int topShapeLength = topLevelShapes.Length() + 1;
         
-        for (Standard_Integer iLabel = 1; iLabel < topShapeLength; ++iLabel) {
+        for (int iLabel = 1; iLabel < topShapeLength; ++iLabel) {
             progress = static_cast<double>(iLabel) / (topShapeLength-1);
             if (cb_cancel) {
                 return;
@@ -544,7 +589,7 @@ Step::Step_Status Step::mesh(Model* model,
         stl.resize(namedSolids.size());
         tbb::parallel_for(tbb::blocked_range<size_t>(0, namedSolids.size()), [&](const tbb::blocked_range<size_t>& range) {
             for (size_t i = range.begin(); i < range.end(); i++) {
-                BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_defletion, false, angle_defletion, true);
+                BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_deflection, false, angle_deflection, true);
                 // BBS: calculate total number of the nodes and triangles
                 int aNbNodes = 0;
                 int aNbTriangles = 0;
@@ -569,10 +614,10 @@ Step::Step_Status Step::mesh(Model* model,
                 std::vector<Vec3f> points;
                 points.reserve(aNbNodes);
                 // BBS: count faces missing triangulation
-                Standard_Integer aNbFacesNoTri = 0;
+                int aNbFacesNoTri = 0;
                 // BBS: fill temporary triangulation
-                Standard_Integer aNodeOffset = 0;
-                Standard_Integer aTriangleOffet = 0;
+                int aNodeOffset = 0;
+                int aTriangleOffet = 0;
                 for (TopExp_Explorer anExpSF(namedSolids[i].solid, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
                     const TopoDS_Shape& aFace = anExpSF.Current();
                     TopLoc_Location     aLoc;
@@ -583,15 +628,15 @@ Step::Step_Status Step::mesh(Model* model,
                     }
                     // BBS: copy nodes
                     gp_Trsf aTrsf = aLoc.Transformation();
-                    for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
+                    for (int aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                         gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                         aPnt.Transform(aTrsf);
-                        points.emplace_back(std::move(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z())));
+                        points.emplace_back(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z()));
                     }
                     // BBS: copy triangles
                     const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();
-                    Standard_Integer anId[3] = {};
-                    for (Standard_Integer aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
+                    int anId[3] = {};
+                    for (int aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
                         Poly_Triangle aTri = aTriangulation->Triangle(aTriIter);
 
                         aTri.Get(anId[0], anId[1], anId[2]);
@@ -689,15 +734,15 @@ void Step::clean_mesh_data()
     }
 }
 
-unsigned int Step::get_triangle_num(double linear_defletion, double angle_defletion)
+unsigned int Step::get_triangle_num(double linear_deflection, double angle_deflection)
 {
     unsigned int tri_num = 0;
     try {
         Handle(StepProgressIncdicator) progress = new StepProgressIncdicator(m_stop_mesh);
         clean_mesh_data();
         IMeshTools_Parameters param;
-        param.Deflection = linear_defletion;
-        param.Angle = angle_defletion;
+        param.Deflection = linear_deflection;
+        param.Angle = angle_deflection;
         param.InParallel = true;
         for (int i = 0; i < m_name_solids.size(); ++i) {
             BRepMesh_IncrementalMesh mesh(m_name_solids[i].solid, param, progress->Start());
@@ -712,14 +757,14 @@ unsigned int Step::get_triangle_num(double linear_defletion, double angle_deflet
                 return 0;
             }
         }
-    } catch(Exception e) {
+    } catch(const Exception &) {
         return 0;
     }
     
     return tri_num;
 }
 
-unsigned int Step::get_triangle_num_tbb(double linear_defletion, double angle_defletion)
+unsigned int Step::get_triangle_num_tbb(double linear_deflection, double angle_deflection)
 {
     unsigned int tri_num = 0;
     clean_mesh_data();
@@ -727,7 +772,7 @@ unsigned int Step::get_triangle_num_tbb(double linear_defletion, double angle_de
     [&](const tbb::blocked_range<size_t>& range) {
         for (size_t i = range.begin(); i < range.end(); i++) {
             unsigned int solids_tri_num = 0;
-            BRepMesh_IncrementalMesh mesh(m_name_solids[i].solid, linear_defletion, false, angle_defletion, true);
+            BRepMesh_IncrementalMesh mesh(m_name_solids[i].solid, linear_deflection, false, angle_deflection, true);
             for (TopExp_Explorer anExpSF(m_name_solids[i].solid, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
                 TopLoc_Location aLoc;
                 Handle(Poly_Triangulation) aTriangulation = BRep_Tool::Triangulation(TopoDS::Face(anExpSF.Current()), aLoc);

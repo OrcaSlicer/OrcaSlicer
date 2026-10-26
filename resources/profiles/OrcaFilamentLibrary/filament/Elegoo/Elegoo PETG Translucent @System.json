@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG Translucent @System",
-	"inherits": "Elegoo PETG @base",
-	"from": "system",
-	"setting_id": "OEPETGTRANSS00",
-	"instantiation": "true",
 	"renamed_from": "Elegoo PETG Translucent",
+	"inherits": "Elegoo PETG Translucent @base",
+	"from": "system",
+	"setting_id": "80Auuv3K7l8IptF3",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.052"
 	],

@@ -3,12 +3,12 @@
 	"name": "Prusa MK4 0.25 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "mDpNu9NqPH9iPcU2",
 	"instantiation": "true",
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa MK4",
 	"default_filament_profile": [
-		"Prusa Generic PLA @MK4"
+		"Generic PLA @Prusa MK4"
 	],
 	"default_print_profile": "0.08mm Standard @MK4",
 	"nozzle_diameter": [

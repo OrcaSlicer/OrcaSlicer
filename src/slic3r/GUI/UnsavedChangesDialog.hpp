@@ -1,17 +1,33 @@
 #ifndef slic3r_UnsavedChangesDialog_hpp_
 #define slic3r_UnsavedChangesDialog_hpp_
 
+#include "slic3r/GUI/Event.hpp"
+#include <memory>
+#include "libslic3r/Preset.hpp"
+#include <string>
+#include <utility>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <array>
 #include <wx/dataview.h>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/ScrolledWindow.hpp"
+#include "Lazy.hpp"
 
 class ScalableButton;
 class wxStaticText;
@@ -333,19 +349,30 @@ private:
 
 public:
 
+    struct SyncExtruderParams
+    {
+        DynamicConfig   *config;
+        int              from;
+        int              to;
+        bool             left_to_right;
+        NozzleVolumeType nozzle;
+    };
+
     // show unsaved changes when preset is switching
     UnsavedChangesDialog(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, bool no_transfer = false);
     // show unsaved changes for all another cases
     UnsavedChangesDialog(const wxString& caption, const wxString& header, const std::string& app_config_key, int act_buttons);
+    UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle);
     ~UnsavedChangesDialog() override = default;
 
-    int ShowModal();
+    int ShowModal() override;
 
     void        build(Preset::Type type, PresetCollection *dependent_presets, const std::string &new_selected_preset, const wxString &header = "");
     void update(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, const wxString& header);
-    void update_list();
+    void update_list(SyncExtruderParams *params = nullptr);
     std::string subreplace(std::string resource_str, std::string sub_str, std::string new_str);
     void        update_tree(Preset::Type type, PresetCollection *presets);
+    void        update_tree(Preset::Type type, DynamicConfig *config, int from, int to);
     void show_info_line(Action action, std::string preset_name = "");
     void update_config(Action action);
     void close(Action action);
@@ -411,7 +438,7 @@ public:
 //------------------------------------------
 //          DiffPresetDialog
 //------------------------------------------
-class DiffPresetDialog : public DPIDialog
+class DiffPresetDialog : public DPIDialog, public LazyInstance<DiffPresetDialog>
 {
     DiffViewCtrl*           m_tree              { nullptr };
     wxBoxSizer*             m_presets_sizer     { nullptr };

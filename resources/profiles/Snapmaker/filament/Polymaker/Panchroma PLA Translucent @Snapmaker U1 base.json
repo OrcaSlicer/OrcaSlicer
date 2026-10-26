@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Translucent @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM006",
+	"filament_id": "OFCIUsWh",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

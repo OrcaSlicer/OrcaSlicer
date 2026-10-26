@@ -3,12 +3,13 @@
 	"name": "Polymaker PETG Galaxy @Snapmaker U1",
 	"inherits": "Polymaker PETG Galaxy @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL77_00",
+	"setting_id": "a5yZ1QlqIGEAW1sU",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"supertack_plate_temp": [
@@ -16,5 +17,17 @@
 	],
 	"supertack_plate_temp_initial_layer": [
 		"70"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"50",
+		"50"
+	],
+	"fan_max_speed": [
+		"10",
+		"10"
 	]
 }

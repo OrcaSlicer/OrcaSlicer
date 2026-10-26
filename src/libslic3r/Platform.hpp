@@ -36,6 +36,8 @@ void 			detect_platform();
 Platform 		platform();
 PlatformFlavor 	platform_flavor();
 
+std::string     platform_os_type();
+std::string     platform_architecture();
 std::string platform_to_string(Platform platform);
 std::string platform_flavor_to_string(PlatformFlavor pf);
 

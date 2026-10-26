@@ -3,7 +3,7 @@
 	"name": "QIDI TPU-Aero @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI TPU-Aero@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSR98",
+	"setting_id": "0KNVBgGBbpSQVsAy",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.4 nozzle"

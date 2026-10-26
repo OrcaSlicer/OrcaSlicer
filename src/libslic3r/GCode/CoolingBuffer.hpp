@@ -1,15 +1,18 @@
 #ifndef slic3r_CoolingBuffer_hpp_
 #define slic3r_CoolingBuffer_hpp_
 
-#include "../libslic3r.h"
+#include "../Point.hpp"
+#include <cstddef>
 #include <map>
 #include <string>
 #include <cfloat>
+#include <vector>
 
 namespace Slic3r {
 
 class GCode;
 class Layer;
+class PrintConfig;
 struct PerExtruderAdjustments;
 
 // A standalone G-code filter, to control cooling of the print.
@@ -18,14 +21,14 @@ struct PerExtruderAdjustments;
 //
 // The simple it sounds, the actual implementation is significantly more complex.
 // Namely, for a multi-extruder print, each material may require a different cooling logic.
-// For example, some materials may not like to print too slowly, while with some materials 
+// For example, some materials may not like to print too slowly, while with some materials
 // we may slow down significantly.
 //
 class CoolingBuffer {
 public:
     CoolingBuffer(GCode &gcodegen);
     void        reset(const Vec3d &position);
-    void        set_current_extruder(unsigned int extruder_id) { m_current_extruder = extruder_id; }
+    void        set_current_extruder(unsigned int extruder_id, unsigned int nozzle_id) { m_current_extruder = extruder_id; m_current_nozzle = nozzle_id; }
     std::string process_layer(std::string &&gcode, size_t layer_id, bool flush);
 
 private:
@@ -54,9 +57,15 @@ private:
     // Referencs GCode::m_config, which is FullPrintConfig. While the PrintObjectConfig slice of FullPrintConfig is being modified,
     // the PrintConfig slice of FullPrintConfig is constant, thus no thread synchronization is required.
     const PrintConfig          &m_config;
+    // Resolves the filament config index of the per-variant options.
+    const GCode                &m_gcodegen;
     unsigned int                m_current_extruder;
+    unsigned int                m_current_nozzle;
     //BBS: current fan speed
     int                         m_current_fan_speed;
+    // Belt printers: the extrusion being processed lies in the first-layer band above the
+    // belt (between a ";_BELT_BAND_START" and a ";_BELT_BAND_END"). Kept across layers.
+    bool                        m_belt_band_active = false;
 };
 
 }

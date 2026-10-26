@@ -3,6 +3,7 @@
 	"name": "0.12mm SPEED @CORE One L 0.25",
 	"inherits": "0.12mm SPEED @MK4S 0.25",
 	"from": "system",
+	"setting_id": "jgMpXjl7hn3nEN0s",
 	"instantiation": "true",
 	"travel_acceleration": "4000",
 	"travel_speed": "500",

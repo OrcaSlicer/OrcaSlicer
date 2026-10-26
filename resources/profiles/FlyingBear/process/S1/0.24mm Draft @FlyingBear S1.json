@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @FlyingBear S1",
 	"inherits": "fdm_process_common_S1",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "uB9e5NrlS2hkiGTQ",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"overhang_1_4_speed": "50",

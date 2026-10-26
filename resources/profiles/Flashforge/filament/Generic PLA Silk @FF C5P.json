@@ -3,6 +3,7 @@
 	"name": "Generic PLA Silk @FF C5P",
 	"inherits": "Generic PLA Silk @System",
 	"from": "system",
+	"setting_id": "RnoS9bqY1TvNPtg2",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
@@ -42,6 +43,9 @@
 	"fan_min_speed": [
 		"70"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_max_volumetric_speed": [
 		"12"
 	],
@@ -55,7 +59,7 @@
 		"; filament start gcode"
 	],
 	"filament_type": [
-		"SILK"
+		"PLA"
 	],
 	"nozzle_temperature": [
 		"230"

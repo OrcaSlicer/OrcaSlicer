@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @Arena X1C",
 	"inherits": "PolyLite PLA @base",
 	"from": "system",
-	"setting_id": "GFSL19",
+	"setting_id": "5MUcuvGZJvFIbeIf",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"15"

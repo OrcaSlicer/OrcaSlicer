@@ -3,8 +3,8 @@
 	"name": "Generic PETG @LONGER LK10",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFLLK10G",
-	"filament_id": "GFLLK10PETG",
+	"setting_id": "hWuf5kvAA5dXSd8f",
+	"filament_id": "OFYPdQJh",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"

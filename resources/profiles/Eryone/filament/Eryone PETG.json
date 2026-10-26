@@ -3,8 +3,8 @@
 	"name": "Eryone PETG",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA03",
-	"filament_id": "EFL93",
+	"setting_id": "rJCPgQiIXRsfQwWY",
+	"filament_id": "OF8kJys9",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.4 nozzle"

@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @Geeetech Thunder",
 	"inherits": "fdm_process_Geeetech_HS_0.08",
 	"from": "system",
-	"setting_id": "GP_Geeetech_003",
+	"setting_id": "gp1Uol5H2NNxsPFX",
 	"instantiation": "true",
 	"default_acceleration": "5000",
 	"top_surface_acceleration": "3000",

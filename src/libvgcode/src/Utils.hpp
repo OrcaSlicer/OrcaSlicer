@@ -6,6 +6,8 @@
 #define VGCODE_UTILS_HPP
 
 #include "../include/Types.hpp"
+#include <vector>
+#include <cstdint>
 
 #ifdef _WIN32
 #define STDVEC_MEMSIZE(NAME, TYPE) NAME.capacity() * ((sizeof(TYPE) + __alignof(TYPE) - 1) / __alignof(TYPE)) * __alignof(TYPE)

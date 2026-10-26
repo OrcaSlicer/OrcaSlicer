@@ -3,7 +3,7 @@
 	"name": "Generic ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "GABSB00",
+	"filament_id": "OFY9muEs",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [
 		"12"

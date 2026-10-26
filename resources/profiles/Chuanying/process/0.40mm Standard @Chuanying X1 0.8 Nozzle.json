@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Chuanying X1 0.8 Nozzle",
 	"inherits": "0.30mm Standard @Chuanying X1 0.6 Nozzle",
 	"from": "system",
-	"setting_id": "GP002",
+	"setting_id": "5jFsal1GjrKej065",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Chuanying X1 0.8 Nozzle"

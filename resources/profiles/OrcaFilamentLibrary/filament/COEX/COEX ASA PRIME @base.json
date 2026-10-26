@@ -3,7 +3,7 @@
 	"name": "COEX ASA PRIME @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "CXASAB04",
+	"filament_id": "OFtpXCCv",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"
@@ -23,12 +23,6 @@
 	],
 	"nozzle_temperature_initial_layer": [
 		"265"
-	],
-	"bed_temperature": [
-		"100"
-	],
-	"bed_temperature_initial_layer": [
-		"100"
 	],
 	"temperature_vitrification": [
 		"95"

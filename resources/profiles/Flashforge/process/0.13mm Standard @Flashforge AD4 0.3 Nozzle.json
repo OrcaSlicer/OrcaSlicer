@@ -3,7 +3,7 @@
 	"name": "0.13mm Standard @Flashforge AD4 0.3 Nozzle",
 	"inherits": "fdm_process_flashforge_0.30",
 	"from": "System",
-	"setting_id": "GP006",
+	"setting_id": "iRI5NfTnNLyyGcaa",
 	"instantiation": "true",
 	"initial_layer_acceleration": "1000",
 	"initial_layer_infill_speed": "10",

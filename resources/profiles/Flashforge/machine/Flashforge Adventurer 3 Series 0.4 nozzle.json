@@ -3,7 +3,7 @@
 	"name": "Flashforge Adventurer 3 Series 0.4 Nozzle",
 	"inherits": "fdm_adventurer3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "t5JKEUBlsjdEeRNe",
 	"instantiation": "true",
 	"printer_model": "Flashforge Adventurer 3 Series",
 	"default_print_profile": "0.20mm Standard @Flashforge AD3 0.4 Nozzle",

@@ -8,12 +8,17 @@
 #ifndef MediaFilePanel_h
 #define MediaFilePanel_h
 
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <cstddef>
 #include <set>
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 
+#include <wx/event.h>
+#include <string>
 #include <wx/frame.h>
+#include <wx/panel.h>
 
 class Button;
 class SwitchButton;
@@ -61,7 +66,6 @@ private:
     ::Button    *m_button_year = nullptr;
     ::Button    *m_button_month = nullptr;
     ::Button    *m_button_all = nullptr;
-    ::Label     *m_switch_label = nullptr;
 
     ::StaticBox *   m_type_panel    = nullptr;
     ::Button *      m_button_video   = nullptr;

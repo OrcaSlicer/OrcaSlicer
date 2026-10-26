@@ -3,7 +3,6 @@
 	"name": "Lulzbot Taz Pro Common",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "LZPC001",
 	"instantiation": "false",
 	"printer_model": "Lulzbot Taz Pro Common",
 	"printable_area": [

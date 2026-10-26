@@ -3,7 +3,7 @@
 	"name": "Raise3D Pro3 Plus 0.4 nozzle (Right)",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "jYxNL8Vdara9s74e",
 	"instantiation": "true",
 	"printer_model": "Raise3D Pro3 Plus",
 	"default_print_profile": "0.20mm Standard @Raise3D Pro3Plus",
@@ -21,70 +21,103 @@
 	],
 	"printable_area": [
 		"0x0",
-		"340x0",
-		"340x300",
+		"300x0",
+		"300x300",
 		"0x300"
 	],
 	"printable_height": "605",
-	"nozzle_type": "hardened_steel",
+	"nozzle_type": [
+		"hardened_steel",
+		"hardened_steel"
+	],
 	"auxiliary_fan": "0",
 	"machine_max_acceleration_e": [
+		"3000",
+		"3000",
 		"3000",
 		"3000"
 	],
 	"machine_max_acceleration_extruding": [
 		"1000",
+		"300",
+		"1000",
 		"300"
 	],
 	"machine_max_acceleration_retracting": [
+		"3000",
+		"1500",
 		"3000",
 		"1500"
 	],
 	"machine_max_acceleration_travel": [
 		"1500",
+		"500",
+		"1500",
 		"500"
 	],
 	"machine_max_acceleration_x": [
+		"1000",
+		"1000",
 		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_y": [
 		"1000",
+		"1000",
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_z": [
+		"100",
+		"100",
 		"100",
 		"100"
 	],
 	"machine_max_speed_e": [
 		"120",
+		"120",
+		"120",
 		"120"
 	],
 	"machine_max_speed_x": [
+		"500",
+		"200",
 		"500",
 		"200"
 	],
 	"machine_max_speed_y": [
 		"500",
+		"200",
+		"500",
 		"200"
 	],
 	"machine_max_speed_z": [
+		"12",
+		"12",
 		"12",
 		"12"
 	],
 	"machine_max_jerk_e": [
 		"5",
+		"5",
+		"5",
 		"5"
 	],
 	"machine_max_jerk_x": [
+		"5",
+		"5",
 		"5",
 		"5"
 	],
 	"machine_max_jerk_y": [
 		"5",
+		"5",
+		"5",
 		"5"
 	],
 	"machine_max_jerk_z": [
+		"0.4",
+		"0.4",
 		"0.4",
 		"0.4"
 	],

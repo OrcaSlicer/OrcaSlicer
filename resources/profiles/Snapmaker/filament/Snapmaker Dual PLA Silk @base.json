@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA Silk @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "1181363872",
+	"filament_id": "OFyj3m13",
 	"instantiation": "false",
 	"hot_plate_temp_initial_layer": [
 		"65"
@@ -31,12 +31,6 @@
 	],
 	"filament_unloading_speed": [
 		"35"
-	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
 	],
 	"filament_cooling_moves": [
 		"2"

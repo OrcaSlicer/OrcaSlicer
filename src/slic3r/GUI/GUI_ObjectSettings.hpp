@@ -2,8 +2,10 @@
 #define slic3r_GUI_ObjectSettings_hpp_
 
 #include <memory>
+#include <string>
 #include <vector>
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include "wxExtensions.hpp"
 
 #define NEW_OBJECT_SETTING 1
@@ -66,7 +68,7 @@ public:
      * we should add sparse_infill_pattern to avoid endless loop in update
      */
     bool        add_missed_options(ModelConfig *config_to, const DynamicPrintConfig &config_from);
-    void        update_config_values(ModelConfig *config);
+    void        update_config_values(ModelConfig *config, const std::string& changed_opt_key = "");
     void        UpdateAndShow(const bool show);
     void        msw_rescale();
     void        sys_color_changed();

@@ -6,6 +6,8 @@
 #define VGCODE_GCODEINPUTDATA_HPP
 
 #include "PathVertex.hpp"
+#include <vector>
+#include "Types.hpp"
 
 namespace libvgcode {
 
@@ -24,11 +26,11 @@ struct GCodeInputData
     //
     // Palette for extruders colors
     //
-    Palette tools_colors;
+    PaletteWithAlpha tools_colors;
     //
     // Palette for color print colors
     //
-    Palette color_print_colors;
+    PaletteWithAlpha color_print_colors;
 };
 
 } // namespace libvgcode

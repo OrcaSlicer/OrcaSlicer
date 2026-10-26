@@ -2,6 +2,7 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 
+#include "libslic3r_version.h"
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
@@ -11,6 +12,19 @@
 #include "slic3r/GUI/Widgets/AnimaController.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/string.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <wx/event.h>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
 
@@ -272,7 +286,7 @@ void AMSSetting::create()
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_sizer_main->Add(m_static_ams_settings, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(24));
     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
-    m_sizer_main->Add(m_panel_body, 1, wxBottom | wxLEFT | wxRIGHT | wxEXPAND, FromDIP(24));
+    m_sizer_main->Add(m_panel_body, 1, wxBOTTOM | wxLEFT | wxRIGHT | wxEXPAND, FromDIP(24)); // Orca: wxBOTTOM (REF uses the wxEdge enum by mistake)
 
     this->SetSizer(m_sizer_main);
     this->Layout();
@@ -292,7 +306,7 @@ void AMSSetting::UpdateByObj(MachineObject* obj)
 
     update_ams_img(obj);
 
-    m_ams_type->Update(obj);
+    m_ams_type->UpdateInfo(obj);
     //m_ams_arrange_order->Update(obj);
     update_insert_material_read_mode(obj);
     m_sizer_remain_block->Show(obj->is_support_update_remain);
@@ -624,7 +638,7 @@ void AMSSettingTypePanel::CreateGui()
     Fit();
 }
 
-void AMSSettingTypePanel::Update(const MachineObject* obj)
+void AMSSettingTypePanel::UpdateInfo(const MachineObject* obj)
 {
     if (!obj) {
         Show(false);
@@ -644,7 +658,7 @@ void AMSSettingTypePanel::Update(const MachineObject* obj)
     }
 
     if (ptr->IsSwitching())  {
-        int display_percent = obj->get_upgrade_percent();
+        int display_percent = obj->get_upgrade_percent(); // Orca: read upgrade progress via the kept MachineObject accessor
         if (display_percent == 100 || display_percent == 0) {
             display_percent = 1;// special case, sometimes it's switching but percent is 0 or 100
         }
@@ -735,6 +749,7 @@ void AMSSettingTypePanel::OnAmsTypeChanged(wxCommandEvent& event)
     event.Skip();
 }
 
+// Orca: AMSSettingArrangeAMSOrder impl kept compiled-out (feature intentionally not shipped).
 #if 0 /*used option*/
 AMSSettingArrangeAMSOrder::AMSSettingArrangeAMSOrder(wxWindow* parent)
     : wxPanel(parent)

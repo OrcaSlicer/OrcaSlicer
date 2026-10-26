@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "JAYO PLA @System",
+	"inherits": "JAYO PLA @base",
+	"from": "system",
+	"setting_id": "Q1VCAQ9NyhyPpzT3",
+	"instantiation": "true",
+	"compatible_printers": []
+}

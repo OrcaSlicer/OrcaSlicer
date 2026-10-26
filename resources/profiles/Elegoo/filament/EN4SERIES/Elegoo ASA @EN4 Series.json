@@ -3,7 +3,7 @@
 	"name": "Elegoo ASA @EN4 Series",
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"setting_id": "EASAEN4",
+	"setting_id": "a1NS4HIOx4RdcEcd",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"270"

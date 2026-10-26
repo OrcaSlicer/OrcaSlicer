@@ -85,7 +85,7 @@ if $FULL_MODE; then
         generated_pot_file="${generated_i18n_dir}/OrcaSlicer.pot"
 
         mkdir -p "$generated_i18n_dir"
-        xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost --no-wrap -f "$filtered_list" -o "$generated_pot_file"
+        xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_CONTEXT:1,2c --keyword=_u8L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost --no-wrap -f "$filtered_list" -o "$generated_pot_file"
         python3 scripts/HintsToPot.py ./resources "$generated_i18n_dir"
 
         if [ -f "$pot_file" ] && files_equal_ignoring_pot_date "$pot_file" "$generated_pot_file"; then
@@ -121,7 +121,7 @@ do
             fi
         fi
         mkdir -p "resources/i18n/${lang}"
-        if ! msgfmt --check-format -o "resources/i18n/${lang}/OrcaSlicer.mo" "$dir/OrcaSlicer_${lang}.po"; then
+        if ! msgfmt --check-format --check-header -o "resources/i18n/${lang}/OrcaSlicer.mo" "$dir/OrcaSlicer_${lang}.po"; then
             echo "Error encountered with msgfmt command for language ${lang}."
             exit 1  # Exit the script with an error status
         fi

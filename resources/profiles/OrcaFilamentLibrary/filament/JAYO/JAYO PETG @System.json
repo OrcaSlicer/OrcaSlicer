@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "JAYO PETG @System",
+	"inherits": "JAYO PETG @base",
+	"from": "system",
+	"setting_id": "tkxNRVsdQV1k2uXR",
+	"instantiation": "true",
+	"compatible_printers": []
+}

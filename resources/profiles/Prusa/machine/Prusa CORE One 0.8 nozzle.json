@@ -3,6 +3,7 @@
 	"name": "Prusa CORE One 0.8 nozzle",
 	"inherits": "Prusa CORE One HF 0.8 nozzle",
 	"from": "system",
+	"setting_id": "huJt1GsW0ImZDBbU",
 	"instantiation": "true",
 	"default_filament_profile": "Prusament PLA @CORE One 0.8",
 	"default_print_profile": "0.40mm QUALITY @CORE One 0.8",

@@ -1,7 +1,23 @@
 #include "GUI_App.hpp"
 #include "InstanceCheck.hpp"
 #include "Plater.hpp"
+#include <boost/bind/bind.hpp>
 #include <boost/regex.hpp>
+#include <string>
+#include <vector>
+#include <cstdio>
+#include <stdio.h>
+#include <wx/string.h>
+#include <cstddef>
+#include <cstdlib>
+#include <functional>
+#include <exception>
+#include <wx/event.h>
+#include <cassert>
+#include <mutex>
+#include <utility>
+#include <cstring>
+#include <chrono>
 
 #ifdef _WIN32
   #include "MainFrame.hpp"
@@ -19,6 +35,8 @@
 #include <errno.h>
 #include <optional>
 #include <cstdint>
+#include <cwchar>
+#include <memory>
 
 #ifdef _WIN32
 #include <strsafe.h>
@@ -114,7 +132,10 @@ namespace instance_check_internal
 		if (my_instance_hash == other_instance_hash) {
 			BOOST_LOG_TRIVIAL(debug) << "win enum - found correct instance";
 			orca_slicer_hwnd = hwnd;
-			ShowWindow(hwnd, SW_SHOWMAXIMIZED);
+			// Do not alter the window state when opening a file in the existing instance.
+			// A minimized window still needs restoring before it can receive focus.
+			if (IsIconic(hwnd))
+				ShowWindow(hwnd, SW_RESTORE);
 			SetForegroundWindow(hwnd);
 			return false;
 		}

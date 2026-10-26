@@ -7,6 +7,8 @@
 
 #include "../include/Types.hpp"
 
+#include <array>
+#include <cstddef>
 #include <map>
 
 namespace libvgcode {
@@ -19,6 +21,13 @@ struct Settings
 		EViewType view_type{ EViewType::FeatureType };
 		ETimeMode time_mode{ ETimeMode::Normal };
 		bool top_layer_only_view_range{ false };
+		// ORCA: when enabled, every layer the layer slider is not scrubbed to is rendered
+		// darkened (keeping its color) while showing less than the full print
+		bool dim_previous_layers{ false };
+		// ORCA: how bright those darkened layers are rendered, 1.0 = unchanged, 0.0 = black
+		float dim_previous_layers_brightness{ 0.4f };
+		// ORCA: when disabled, the filaments are drawn opaque whatever their color's opacity
+		bool translucent_filaments{ true };
 		bool spiral_vase_mode{ false };
 		//
 		// Required update flags

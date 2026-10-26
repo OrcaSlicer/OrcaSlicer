@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Elegoo ASA-CF @System",
-	"inherits": "Elegoo ASA @base",
-	"from": "system",
-	"setting_id": "OEASACFS00",
-	"instantiation": "true",
 	"renamed_from": "Elegoo ASA-CF",
+	"inherits": "Elegoo ASA-CF @base",
+	"from": "system",
+	"setting_id": "XT1aUl4pe9t0Ijwg",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

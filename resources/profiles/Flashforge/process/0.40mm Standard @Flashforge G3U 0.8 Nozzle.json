@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Flashforge G3U 0.8 Nozzle",
 	"inherits": "fdm_process_flashforge_0.40",
 	"from": "system",
-	"setting_id": "GP003",
+	"setting_id": "gTCiZUTED9NajbsZ",
 	"instantiation": "true",
 	"layer_height": "0.4",
 	"compatible_printers": [

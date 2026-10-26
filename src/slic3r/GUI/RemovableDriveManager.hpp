@@ -1,15 +1,18 @@
 #ifndef slic3r_GUI_RemovableDriveManager_hpp_
 #define slic3r_GUI_RemovableDriveManager_hpp_
 
+#include <utility>
 #include <vector>
 #include <string>
 
 #include <boost/thread.hpp>
 #include <mutex>
 #include <condition_variable>
+#include <wx/event.h>
 
 // Custom wxWidget events
 #include "Event.hpp"
+#include <atomic>
 
 namespace Slic3r {
 namespace GUI {

@@ -2856,6 +2856,7 @@ const ImWchar*   ImFontAtlas::GetGlyphRangesDefault()
     {
         0x0020, 0x00FF, // Basic Latin + Latin Supplement
         0x2000, 0x206F, // General Punctuation
+        0x2103, 0x2103, // ℃ Celsius symbol
         0x3000, 0x30FF, // CJK Symbols and Punctuations, Hiragana, Katakana
         0x31F0, 0x31FF, // Katakana Phonetic Extensions
         0xFF00, 0xFFEF, // Half-width characters

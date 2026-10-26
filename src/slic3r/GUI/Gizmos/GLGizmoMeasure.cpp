@@ -1,23 +1,70 @@
 #include "GLGizmoMeasure.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
 
-#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/MeasureUtils.hpp"
 
+#include <cstdio>
+#include <cassert>
+#include <array>
+#include <cstdlib>
+#include <cstddef>
+#include <functional>
+#include <cfloat>
+#include <Eigen/Geometry>
+#include <cmath>
+#include <imgui.h>
+#include <algorithm>
 #include <imgui/imgui_internal.h>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Measure.hpp"
+#include <memory>
+#include "libslic3r/TriangleMesh.hpp"
+#include <map>
+#include "libslic3r/Model.hpp"
+#include <limits>
+#include "libslic3r/Geometry.hpp"
+#include <math.h>
+#include "libslic3r/Color.hpp"
+#include "libslic3r/libslic3r.h"
 #include <numeric>
 
 #include <glad/gl.h>
 
+#include <string>
+#include <optional>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
 #include <tbb/parallel_for.h>
 
+#include <utility>
+#include <wx/busycursor.h>
+#include <vector>
 #include <wx/clipbrd.h>
+#include <wx/utils.h>
+#include <wx/dataobj.h>
+#include <wx/strconv.h>
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "slic3r/GUI/Selection.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -91,9 +138,14 @@ Vec3d GLGizmoMeasure::get_feature_offset(const Measure::SurfaceFeature &feature)
     }
     case Measure::SurfaceFeatureType::Edge:
     {
-        std::optional<Vec3d> p = feature.get_extra_point();
-        assert(p.has_value());
-        ret = *p;
+        // Only polygon edges store an extra point (the polygon centre); plain edges have none.
+        const std::optional<Vec3d> extra = feature.get_extra_point();
+        if (extra.has_value())
+            ret = *extra;
+        else {
+            const auto [pt1, pt2] = feature.get_edge();
+            ret = 0.5 * (pt1 + pt2);
+        }
         break;
     }
     case Measure::SurfaceFeatureType::Point:
@@ -443,15 +495,15 @@ bool GLGizmoMeasure::gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_po
 
 bool GLGizmoMeasure::on_init()
 {
-    m_shortcut_key = WXK_CONTROL_U;
+    m_shortcut = Shortcut::GizmoMeasure;
 
     const wxString shift = GUI::shortkey_shift_prefix();
 
     m_shortcuts = {
         {_L("Left mouse button"),           _L("Select")},
         {shift + _L("Left mouse button"),   _L("Select point")},
-        {_L("Delete"),                      _L("Restart selection")},
-        {_L("Esc"),                         _L("Cancel a feature until exit")},
+        {_L_CONTEXT("Delete", "Keyboard Shortcut"),                      _L("Restart selection")},
+        {_L_CONTEXT("Esc", "Keyboard Shortcut"),                         _L("Cancel a feature until exit")},
     };
 
     return true;
@@ -557,8 +609,30 @@ void GLGizmoMeasure::init_plane_glmodel(GripperType gripper_type, const Measure:
     }
 }
 
+bool GLGizmoMeasure::render_follows_cursor() const
+{
+    // The two raycasts on_render() starts with, without their side effects.
+    if (m_editing_distance)
+        return false;
+
+    const Vec2d mouse_position = m_parent.get_local_mouse_position();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    Vec3f hit = Vec3f::Zero();
+    Vec3f normal = Vec3f::Zero();
+    for (const auto& item : m_gripper_id_raycast_map) {
+        if (item.second->get_id() > 0 && item.second->get_raycaster()->closest_hit(mouse_position, item.second->get_transform(), camera, hit, normal))
+            return true;
+    }
+    for (const auto& item : m_mesh_raycaster_map) {
+        if (item.second->get_raycaster()->unproject_on_mesh(mouse_position, item.second->get_transform(), camera, hit, normal))
+            return true;
+    }
+    return false;
+}
+
 void GLGizmoMeasure::on_render()
 {
+    m_rendered_this_frame = true;
 #if ENABLE_MEASURE_GIZMO_DEBUG
     render_debug_dialog();
 #endif // ENABLE_MEASURE_GIZMO_DEBUG
@@ -592,7 +666,6 @@ void GLGizmoMeasure::on_render()
         }
     }
     Vec3d  position_on_model;
-    Vec3d  direction_on_model;
     size_t model_facet_idx = -1;
     double closest_hit_distance = std::numeric_limits<double>::max();
     {
@@ -696,35 +769,36 @@ void GLGizmoMeasure::on_render()
                 reset_gripper_pick(GripperType::UNDEFINE, true);
 
                 m_curr_feature = curr_feature;
-                if (!m_curr_feature.has_value())
-                    return;
-                m_curr_feature->volume     = m_last_hit_volume;
-                m_curr_feature->world_tran = m_mesh_raycaster_map[m_last_hit_volume]->get_transform();
+                // The selected features are drawn below whether or not one is hovered.
+                if (m_curr_feature.has_value()) {
+                    m_curr_feature->volume     = m_last_hit_volume;
+                    m_curr_feature->world_tran = m_mesh_raycaster_map[m_last_hit_volume]->get_transform();
 
-                switch (m_curr_feature->get_type()) {
-                default: { assert(false); break; }
-                case Measure::SurfaceFeatureType::Point:
-                {
-                    m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
-                    break;
-                }
-                case Measure::SurfaceFeatureType::Edge:
-                {
-                    m_gripper_id_raycast_map[GripperType::EDGE] = std::make_shared<PickRaycaster>(EDGE_ID, *m_cylinder.mesh_raycaster);
-                    break;
-                }
-                case Measure::SurfaceFeatureType::Circle: {
-                    m_curr_circle.last_circle_feature = nullptr;
-                    m_curr_circle.inv_zoom            = 0;
-                    init_circle_glmodel(GripperType::CIRCLE, *m_curr_feature, m_curr_circle,inv_zoom);
-                    break;
-                }
-                case Measure::SurfaceFeatureType::Plane: {
-                    update_world_plane_features(m_curr_measuring.get(), *m_curr_feature);
-                    m_curr_plane.plane_idx = -1;
-                    init_plane_glmodel(GripperType::PLANE, *m_curr_feature, m_curr_plane);
-                    break;
-                }
+                    switch (m_curr_feature->get_type()) {
+                    default: { assert(false); break; }
+                    case Measure::SurfaceFeatureType::Point:
+                    {
+                        m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
+                        break;
+                    }
+                    case Measure::SurfaceFeatureType::Edge:
+                    {
+                        m_gripper_id_raycast_map[GripperType::EDGE] = std::make_shared<PickRaycaster>(EDGE_ID, *m_cylinder.mesh_raycaster);
+                        break;
+                    }
+                    case Measure::SurfaceFeatureType::Circle: {
+                        m_curr_circle.last_circle_feature = nullptr;
+                        m_curr_circle.inv_zoom            = 0;
+                        init_circle_glmodel(GripperType::CIRCLE, *m_curr_feature, m_curr_circle,inv_zoom);
+                        break;
+                    }
+                    case Measure::SurfaceFeatureType::Plane: {
+                        update_world_plane_features(m_curr_measuring.get(), *m_curr_feature);
+                        m_curr_plane.plane_idx = -1;
+                        init_plane_glmodel(GripperType::PLANE, *m_curr_feature, m_curr_plane);
+                        break;
+                    }
+                    }
                 }
             }
         }
@@ -1065,7 +1139,7 @@ void GLGizmoMeasure::on_render()
 
         if (requires_raycaster_update) {
             if (m_gripper_id_raycast_map.find(GripperType::SPHERE_2) != m_gripper_id_raycast_map.end()) {
-                m_gripper_id_raycast_map[GripperType::SPHERE_2]->set_transform(Geometry::translation_transform(get_feature_offset(*m_selected_features.first.feature)) *
+                m_gripper_id_raycast_map[GripperType::SPHERE_2]->set_transform(Geometry::translation_transform(get_feature_offset(*m_selected_features.second.feature)) *
                                                                                Geometry::scale_transform(inv_zoom));
             }
         }
@@ -1247,7 +1321,7 @@ void GLGizmoMeasure::render_dimensioning()
         const bool use_inches = wxGetApp().app_config->get_bool("use_inches");
         const double curr_value = use_inches ? GizmoObjectManipulation::mm_to_in * distance : distance;
         const std::string curr_value_str = format_double(curr_value);
-        const std::string units = use_inches ? _u8L("in") : _u8L("mm");
+        const std::string units = use_inches ? _u8L_CONTEXT("in", "inches") : _u8L("mm");
         const float value_str_width = 20.0f + ImGui::CalcTextSize(curr_value_str.c_str()).x;
         static double edit_value = 0.0;
 
@@ -1298,7 +1372,7 @@ void GLGizmoMeasure::render_dimensioning()
                     return;
 
                 const double ratio = new_value / old_value;
-                wxGetApp().plater()->take_snapshot(_u8L("Scale"), UndoRedo::SnapshotType::GizmoAction);
+                wxGetApp().plater()->take_snapshot(_u8L_CONTEXT("Scale", "Verb"), UndoRedo::SnapshotType::GizmoAction);
                 // apply scale
                 TransformationType type;
                 type.set_world();
@@ -1354,10 +1428,10 @@ void GLGizmoMeasure::render_dimensioning()
 
             ImGui::SameLine();
             ImGuiWrapper::push_confirm_button_style();
-            //if (m_imgui->button(_CTX(L_CONTEXT("Scale part", "Verb"), "Verb")))
+            //if (m_imgui->button(_L_CONTEXT(L_CONTEXT("Scale part", "Verb"), "Verb")))
                 //action_scale(edit_value, curr_value, true);
             //ImGui::SameLine();
-            if (m_imgui->button(_CTX(L_CONTEXT("Scale all", "Verb"), "Verb")))
+            if (m_imgui->button(_L_CONTEXT(L_CONTEXT("Scale all", "Verb"), "Verb")))
                 action_scale(edit_value, curr_value, false);
             ImGuiWrapper::pop_confirm_button_style();
             ImGui::SameLine();
@@ -1838,13 +1912,13 @@ void GLGizmoMeasure::show_selection_ui()
         float selection_cap_length = 0;
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = std::max(ImGui::CalcTextSize(_u8L("Face 1 (Fixed)").c_str()).x, ImGui::CalcTextSize(_u8L("Face 2 (Moving)").c_str()).x) * 1.2;
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = std::max(ImGui::CalcTextSize(_u8L("Point 1 (Fixed)").c_str()).x, ImGui::CalcTextSize(_u8L("Point 2 (Moving)").c_str()).x) * 1.2;
             }
         }
         else {
-            selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1").c_str()).x * 1.2;
+            selection_cap_length = ImGui::CalcTextSize(_u8L("Selection 1").c_str()).x * 1.2;
         }
         auto        feature_first_text        = format_item_text(m_selected_features.first);
         const float feature_first_text_length = ImGui::CalcTextSize((_u8L(feature_first_text)).c_str()).x;
@@ -1860,13 +1934,13 @@ void GLGizmoMeasure::show_selection_ui()
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_1ST_COLOR));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->text(_u8L("Face 1 (Fixed)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->text(_u8L("Point 1 (Fixed)"));
             }
         }
         else {
-            m_imgui->text(_u8L("Selection") + " 1");
+            m_imgui->text(_u8L("Selection 1"));
         }
         ImGui::SameLine(selection_cap_length + space_size);
         ImGui::PushItemWidth(feature_first_text_length);
@@ -1886,12 +1960,12 @@ void GLGizmoMeasure::show_selection_ui()
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_2ND_COLOR));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->text(_u8L("Face 2 (Moving)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->text(_u8L("Point 2 (Moving)"));
             }
         } else {
-            m_imgui->text(_u8L("Selection") + " 2");
+            m_imgui->text(_u8L("Selection 2"));
         }
         ImGui::SameLine(selection_cap_length + space_size);
         ImGui::PushItemWidth(feature_second_text_length);
@@ -2125,14 +2199,24 @@ void GLGizmoMeasure::show_face_face_assembly_senior()
 void GLGizmoMeasure::init_render_input_window()
 {
     m_use_inches        = wxGetApp().app_config->get_bool("use_inches");
-    m_units             = m_use_inches ? " " + _u8L("in") : " " + _u8L("mm");
+    m_units             = " " + (m_use_inches ? _u8L_CONTEXT("in", "inches") : _u8L("mm"));
     m_space_size        = ImGui::CalcTextSize("  ").x * 2;
     m_input_size_max    = ImGui::CalcTextSize("-100.00").x * 1.2;
     m_same_model_object = is_two_volume_in_same_model_object();
 }
 
+void GLGizmoMeasure::render_dimensioning_if_scene_reused()
+{
+    // The labels are ImGui and live one frame; the lines drawn with them land under the cached
+    // scene, which is drawn after the overlay is built.
+    if (!m_rendered_this_frame)
+        render_dimensioning();
+    m_rendered_this_frame = false;
+}
+
 void GLGizmoMeasure::on_render_input_window(float x, float y, float bottom_limit)
 {
+    render_dimensioning_if_scene_reused();
     static std::optional<Measure::SurfaceFeature> last_feature;
     static EMode last_mode = EMode::FeatureSelection;
     static SelectedFeatures last_selected_features;

@@ -1,7 +1,6 @@
 #include "MeshUtils.hpp"
 
 #include "libslic3r/Tesselate.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Model.hpp"
@@ -14,11 +13,34 @@
 #include "slic3r/GUI/CameraUtils.hpp"
 
 
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <Eigen/Geometry>
+#include <Eigen/Core>
+#include <cstdlib>
+#include <cmath>
 #include <glad/gl.h>
 
 #include <igl/unproject.h>
 
 #include <cstdint>
+#include "libslic3r/AnyPtr.hpp"
+#include <utility>
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Color.hpp"
+#include <vector>
+#include "slic3r/GUI/GLShader.hpp"
+#include "libslic3r/Point.hpp"
+#include <optional>
+#include <math.h>
+#include <limits>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/AABBMesh.hpp"
+#include "libslic3r/CSGMesh/CSGMesh.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+#include "slic3r/GUI/GLModel.hpp"
 
 
 namespace Slic3r {
@@ -297,7 +319,7 @@ void MeshClipper::recalculate_triangles()
             // it so it lies on our line. This will be the figure to subtract
             // from the cut. The coordinates must not overflow after the transform,
             // make the rectangle a bit smaller.
-            const coord_t size = (std::numeric_limits<coord_t>::max()/2 - scale_(std::max(std::abs(e * a), std::abs(e * b)))) / 4;
+            const coord_t size = (double(std::numeric_limits<coord_t>::max()/2) - scale_(std::max(std::abs(e * a), std::abs(e * b)))) / 4;
             Polygons ep {Polygon({Point(-size, 0), Point(size, 0), Point(size, 2*size), Point(-size, 2*size)})};
             ep.front().rotate(angle);
             ep.front().translate(scale_(-e * a), scale_(-e * b));
@@ -352,7 +374,7 @@ void MeshClipper::recalculate_triangles()
 
             // To prevent overflow after scaling, downscale the input if needed:
             double extra_scale = 1.;
-            coord_t limit = coord_t(std::min(std::numeric_limits<coord_t>::max() / (2. * std::max(1., scale_x)), std::numeric_limits<coord_t>::max() / (2. * std::max(1., scale_y))));
+            coord_t limit = coord_t(std::min(double(std::numeric_limits<coord_t>::max()) / (2. * std::max(1., scale_x)), double(std::numeric_limits<coord_t>::max()) / (2. * std::max(1., scale_y))));
             coord_t max_coord = 0;
             for (const Point& pt : exp.contour)
                 max_coord = std::max(max_coord, std::max(std::abs(pt.x()), std::abs(pt.y())));

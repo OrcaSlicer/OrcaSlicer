@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFG99",
-	"setting_id": "GFSG99",
 	"name": "Volumic PETG Ultra",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "CuBXW7SqUeJOcxPP",
+	"filament_id": "OFG0kOKX",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

@@ -3,7 +3,7 @@
 	"name": "COEX TPU 60A @base",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"filament_id": "CX60AB17",
+	"filament_id": "OFE0NFRh",
 	"instantiation": "false",
 	"filament_vendor": [
 		"COEX 3D"
@@ -24,16 +24,13 @@
 	"nozzle_temperature_initial_layer": [
 		"225"
 	],
-	"bed_temperature": [
-		"0"
-	],
-	"bed_temperature_initial_layer": [
-		"0"
-	],
 	"temperature_vitrification": [
 		"60"
 	],
 	"filament_max_volumetric_speed": [
+		"1"
+	],
+	"filament_multitool_ramming_flow": [
 		"1"
 	],
 	"filament_retraction_minimum_travel": [

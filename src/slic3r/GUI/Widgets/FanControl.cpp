@@ -1,12 +1,34 @@
 #include "FanControl.hpp"
 #include "Label.hpp"
-#include "../BitmapCache.hpp"
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 #include "../MsgDialog.hpp"
+#include <nlohmann/json.hpp>
 
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/chartype.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/DeviceCore/DevFan.h"
+#include <boost/log/trivial.hpp>
+#include <cmath>
+#include <algorithm>
+#include <wx/panel.h>
+#include "slic3r/GUI/SelectMachine.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <map>
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/stattext.h>
+#include <wx/sizer.h>
+
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -780,7 +802,7 @@ void FanControlPopupNew::UpdatePartSubMode()
     // Submode for cooling filter
     if (AIR_DUCT(m_data.curren_mode) == AIR_DUCT::AIR_DUCT_COOLING_FILT && m_data.IsSupportCoolingFilter()) {
         if (!m_cooling_filter_switch_panel) {
-            m_cooling_filter_switch_panel = new FanControlNewSwitchPanel(m_sub_mode_panel, _L("Filter"), _L("Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."));
+            m_cooling_filter_switch_panel = new FanControlNewSwitchPanel(m_sub_mode_panel, _L_CONTEXT("Filter", "air_duct"), _L("Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."));
             m_cooling_filter_switch_panel->Bind(EVT_FANCTRL_SWITCH, [this] (wxCommandEvent& evt) 
                 {
                   if (m_obj && m_obj->is_in_printing()) {
@@ -995,7 +1017,7 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
     radio_btn_name[AIR_DUCT::AIR_DUCT_HEATING_INTERNAL_FILT] = _L("Heating");
     radio_btn_name[AIR_DUCT::AIR_DUCT_EXHAUST] = _L("Exhaust");
     radio_btn_name[AIR_DUCT::AIR_DUCT_FULL_COOLING] = _L("Full Cooling");
-    radio_btn_name[AIR_DUCT::AIR_DUCT_INIT] = L("Init");
+    radio_btn_name[AIR_DUCT::AIR_DUCT_INIT] = _L("Init");
 
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_CHAMBER] = _L("Chamber");
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_INNERLOOP] = _L("Innerloop");
@@ -1014,8 +1036,12 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
     if (obj) {
         const std::string& special_cooling_text = DevPrinterConfigUtil::get_fan_text(obj->printer_type, "special_cooling_text");
         if (!special_cooling_text.empty()) {
-            L("Cooling mode is suitable for printing PLA/PETG/TPU materials."); //some potential text, add i18n flags
-            L("Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air.");
+            // Possible runtime values of special_cooling_text, marked for extraction.
+            static const char *const markers[] = {
+                L("Cooling mode is suitable for printing PLA/PETG/TPU materials."),
+                L("Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air."),
+            };
+            (void) markers;
             label_text[AIR_DUCT::AIR_DUCT_COOLING_FILT] = _L(special_cooling_text);
         }
     }
@@ -1028,16 +1054,20 @@ wxString FanControlPopupNew::get_fan_func_name(int mode, int submode, AIR_FUN fu
         const std::string& func_text = DevPrinterConfigUtil::get_fan_text(m_obj->printer_type, mode, (int)func, submode);
         if (!func_text.empty())
         {
-            L_CONTEXT("Right(Aux)", "air_duct");
-            L_CONTEXT("Right(Filter)", "air_duct");
-            L_CONTEXT("Left(Aux)", "air_duct");
-            return _CTX(func_text, "air_duct");
+            // Possible runtime values of func_text, marked for extraction.
+            static const char *const markers[] = {
+                L_CONTEXT("Right(Aux)", "air_duct"),
+                L_CONTEXT("Right(Filter)", "air_duct"),
+                L_CONTEXT("Left(Aux)", "air_duct"),
+            };
+            (void) markers;
+            return _L_CONTEXT(func_text, "air_duct");
         }
     }
 
     static std::map<AIR_FUN, wxString> s_fan_func_name
     {
-        { AIR_FUN::FAN_HEAT_BREAK_0_IDX,     _L("Hotend") },
+        { AIR_FUN::FAN_HEAT_BREAK_0_IDX,     _L_CONTEXT("Hotend", "Hotend Heat Breaker Fan") },
         { AIR_FUN::FAN_COOLING_0_AIRDOOR,     _L("Parts") },
         { AIR_FUN::FAN_REMOTE_COOLING_0_IDX,  _L("Aux") },
         { AIR_FUN::FAN_CHAMBER_0_IDX,         _L("Exhaust") },

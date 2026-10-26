@@ -1,6 +1,19 @@
 #include <catch2/catch_all.hpp>
+#include "libnest2d/libnest2d.hpp"
+#include <vector>
+#include <cstddef>
+#include "libnest2d/geometry_traits.hpp"
+#include "libnest2d/common.hpp"
 
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libnest2d_test_utils.hpp"
+#include "libnest2d/backends/libslic3r/geometries.hpp"
+#include "libnest2d/nester.hpp"
+#include "libnest2d/placers/nfpplacer.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
 
 using namespace libnest2d;
 
@@ -56,8 +69,10 @@ struct NfpPlacerFixture {
 } // namespace
 
 TEST_CASE_METHOD(NfpPlacerFixture, "NfpPlacer places a single item inside the bin", "[Nesting][Placer]") {
-    NfpPlacer placer = placer_with();
+    // The placer only keeps references to the items it packs and re-reads them
+    // from finalAlign() in its destructor, so the item must outlive the placer.
     RectangleItem item{100000000, 100000000};
+    NfpPlacer placer = placer_with();
 
     REQUIRE(place(placer, item));
     REQUIRE(placer.getItems().size() == 1u);
@@ -103,12 +118,15 @@ TEST_CASE_METHOD(NfpPlacerFixture, "NfpPlacer packs many items without overlap",
 }
 
 TEST_CASE_METHOD(NfpPlacerFixture, "NfpPlacer evaluates the rotation candidates", "[Nesting][Placer]") {
+    // The placer re-reads its packed items from finalAlign() in its destructor,
+    // so the items must outlive the placer — declare them first.
+    std::vector<RectangleItem> rects = {
+        {180000000, 40000000}, {180000000, 40000000}, {180000000, 40000000}};
+
     Cfg cfg;
     cfg.rotations = {0.0, Pi / 2.0};        // exercise the rotation search loop
     NfpPlacer placer = placer_with(cfg);
 
-    std::vector<RectangleItem> rects = {
-        {180000000, 40000000}, {180000000, 40000000}, {180000000, 40000000}};
     place_all(placer, rects);
     require_disjoint_in_bin(rects);
 }

@@ -3,7 +3,7 @@
 	"name": "0.14 Standard @Snapmaker J1 (0.2 nozzle)",
 	"inherits": "fdm_process_idex",
 	"from": "system",
-	"setting_id": "2689370057",
+	"setting_id": "r3eh6MCwv9tWC2yd",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.2 nozzle)"
@@ -11,7 +11,9 @@
 	"layer_height": "0.14",
 	"wall_loops": "4",
 	"bottom_shell_layers": "4",
+	"bottom_color_penetration_layers": "3",
 	"top_shell_layers": "5",
+	"top_color_penetration_layers": "5",
 	"bridge_flow": "1",
 	"line_width": "0.22",
 	"outer_wall_line_width": "0.22",

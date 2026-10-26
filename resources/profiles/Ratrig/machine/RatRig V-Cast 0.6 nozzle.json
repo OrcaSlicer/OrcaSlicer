@@ -3,7 +3,7 @@
 	"name": "RatRig V-Cast 0.6 nozzle",
 	"inherits": "RatRig V-Cast 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM007",
+	"setting_id": "fl0b82S0kojy84FO",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Cast",
 	"nozzle_diameter": [

@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PA-CF",
 	"inherits": "Snapmaker J1 PA-CF @base",
 	"from": "system",
-	"setting_id": "2221614608",
+	"setting_id": "l5iTXM2sfxkvgC7I",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

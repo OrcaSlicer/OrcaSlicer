@@ -3,8 +3,8 @@
 	"name": "Anycubic PC @Anycubic Kobra S1 Max 0.6 nozzle",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFPC",
+	"setting_id": "wF10XxL2tNXh8C1p",
+	"filament_id": "OFZtkHRq",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PC @Anycubic Kobra S1 Max 0.6 nozzle"

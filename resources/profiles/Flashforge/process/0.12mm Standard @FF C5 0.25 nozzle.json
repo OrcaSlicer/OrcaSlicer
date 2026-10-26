@@ -1,0 +1,28 @@
+{
+	"type": "process",
+	"name": "0.12mm Standard @FF C5 0.25 nozzle",
+	"inherits": "0.10mm Standard @FF AD5X 0.25 nozzle",
+	"from": "system",
+	"setting_id": "rcKQBKZJvCfrfzqV",
+	"instantiation": "true",
+	"bottom_solid_infill_flow_ratio": "1",
+	"compatible_printers": [
+		"Flashforge Creator 5 0.25 nozzle",
+		"Flashforge Creator 5 Pro 0.25 nozzle"
+	],
+	"initial_layer_print_height": "0.1",
+	"internal_bridge_flow": "1",
+	"layer_height": "0.12",
+	"ooze_prevention": "1",
+	"preheat_time": "20",
+	"print_extruder_id": [
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"print_settings_id": "0.12mm Standard @FF C5 0.25 nozzle",
+	"small_perimeter_speed": "30",
+	"standby_temperature_delta": "-100",
+	"top_solid_infill_flow_ratio": "1"
+}

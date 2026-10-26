@@ -32,15 +32,30 @@ jobs:
             }
 
             const allowedLabels = [
+              // kind of change
+              'crash',
               'bug-fix',
+              'SECURITY',
               'enhancement',
-              'Localization',
-              'profile',
               'QoL',
+              'optimization',
+              // area
               'UI/UX',
-              'dependencies'
+              'profile',
+              'Localization',
+              // infrastructure
+              'build',
+              'test',
+              'dependencies',
+              'documentation'
             ];
             const pr = context.payload.pull_request;
+            // First-time contributors also get a link to the contributing guide
+            const greeting = ['FIRST_TIME_CONTRIBUTOR', 'FIRST_TIMER'].includes(pr.author_association)
+              ? `Hi @${pr.user.login}, thanks for contributing to OrcaSlicer! ` +
+                `[How to Contribute](https://www.orcaslicer.com/wiki/developer_reference/how_to_contribute) explains what reviewers need from a PR.\n\n` +
+                `You can`
+              : `Hi @${pr.user.login}, you can`;
             const labelsList = `${allowedLabels
               .slice(0, -1)
               .map((label) => `\`${label}\``)
@@ -63,7 +78,7 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: pr.number,
                 body:
-                  `Hi @${pr.user.login}, you can manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`\n\n` +
+                  `${greeting} manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`.\n\n` +
                   `Allowed labels are:\n${labelsList}\n\n` +
                   `Examples:\n${examplesText}`
               });
@@ -73,6 +88,92 @@ jobs:
                   'Skipping PR comment because token cannot write. Enable Actions write permissions, ' +
                   'or run with a token that has issues:write and pull_requests:write.'
                 );
+                return;
+              }
+
+              throw error;
+            }
+
+  localization-pr:
+    if: github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label localization changes and remind contributors about the glossary
+        uses: actions/github-script@v9
+        with:
+          script: |
+            function isPermissionDenied(error) {
+              return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
+            }
+
+            const pr = context.payload.pull_request;
+
+            // Mirrors the `localization/**` paths filter in check_locale.yml
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100
+            });
+            if (!files.some((file) => file.filename.startsWith('localization/'))) {
+              core.info('No localization changes detected; skipping Localization label.');
+              return;
+            }
+
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['Localization']
+              });
+              core.info('Applied Localization label.');
+            } catch (error) {
+              if (isPermissionDenied(error)) {
+                core.warning('Cannot add Localization label because token cannot write.');
+              } else {
+                throw error;
+              }
+            }
+
+            // Collaborators know the glossary; only remind outside contributors
+            if (['COLLABORATOR', 'OWNER', 'MEMBER'].includes(pr.author_association)) {
+              core.info('Author is a collaborator; skipping glossary reminder.');
+              return;
+            }
+
+            // Avoid posting the reminder twice (e.g. on reopen)
+            const marker = '<!-- localization-glossary-reminder -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              per_page: 100
+            });
+            if (comments.some((comment) => (comment.body || '').includes(marker))) {
+              core.info('Glossary reminder already present; skipping.');
+              return;
+            }
+
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body:
+                  `${marker}\n` +
+                  `Hi @${pr.user.login}, this PR changes translations (\`localization/**\`).\n\n` +
+                  `Please make sure recurring terms follow the [Localization glossary](https://www.orcaslicer.com/wiki/localization_glossary), ` +
+                  `so the same English term is always rendered the same way within a language and terms that must stay in English ` +
+                  `(brand/product names, acronyms, file formats, G-code, macros/variables) are not translated.`
+              });
+            } catch (error) {
+              if (isPermissionDenied(error)) {
+                core.warning('Skipping glossary reminder because token cannot write comments.');
                 return;
               }
 
@@ -96,13 +197,22 @@ jobs:
             }
 
             const allowedLabels = [
+              // kind of change
+              'crash',
               'bug-fix',
+              'SECURITY',
               'enhancement',
-              'Localization',
-              'profile',
               'QoL',
+              'optimization',
+              // area
               'UI/UX',
-              'dependencies'
+              'profile',
+              'Localization',
+              // infrastructure
+              'build',
+              'test',
+              'dependencies',
+              'documentation'
             ];
 
             const issue = context.payload.issue;

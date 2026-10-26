@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "Bambu ABS @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Bambu ABS@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "3AQsEBmdQQWNiIO4",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"
 	],

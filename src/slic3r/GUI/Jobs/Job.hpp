@@ -3,8 +3,10 @@
 
 #include <atomic>
 #include <exception>
+#include <functional>
 #include <future>
 
+#include <string>
 #include <wx/window.h>
 
 #include "libslic3r/libslic3r.h"

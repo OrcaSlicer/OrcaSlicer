@@ -3,7 +3,7 @@
 	"name": "0.42mm Extra Draft 0.6 nozzle @Voron",
 	"inherits": "fdm_process_voron_common_0_6",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "LTgJgK9n8kXOO0yt",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"top_shell_layers": "4",

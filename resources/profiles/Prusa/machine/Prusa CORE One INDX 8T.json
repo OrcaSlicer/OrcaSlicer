@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Prusa CORE One INDX 8T",
+	"model_id": "prusa_coreone_indx_8t",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "Prusa",
+	"bed_model": "coreone_indx.stl",
+	"bed_texture": "coreone_indx.svg",
+	"hotend_model": "",
+	"default_materials": "Generic PLA @Prusa CORE One INDX;Generic PETG @Prusa CORE One INDX;Generic ABS @Prusa CORE One INDX;Generic PLA Silk @Prusa CORE One INDX;Prusament PLA @Prusa CORE One INDX;Prusament PETG @Prusa CORE One INDX"
+}

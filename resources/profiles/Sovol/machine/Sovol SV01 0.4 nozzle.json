@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
 	"name": "Sovol SV01 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_machine_common",
+	"from": "system",
+	"setting_id": "OrYBz2bwPIXQ0QZa",
+	"instantiation": "true",
 	"printer_model": "Sovol SV01",
 	"default_print_profile": "0.20mm Standard @Sovol SV01",
 	"nozzle_diameter": [

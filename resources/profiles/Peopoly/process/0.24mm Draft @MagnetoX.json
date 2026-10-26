@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @Magneto X",
 	"inherits": "fdm_process_pply_0.24",
 	"from": "system",
-	"setting_id": "GP005",
+	"setting_id": "sznjgFRvZeFVhOcH",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Peopoly Magneto X 0.4 nozzle"

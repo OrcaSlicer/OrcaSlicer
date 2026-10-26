@@ -1,0 +1,118 @@
+{
+    "type": "machine",
+    "name": "Bambu Lab A2L 0.4 nozzle",
+    "inherits": "fdm_bbl_3dp_001_common",
+    "from": "system",
+    "setting_id": "GM056",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_model": "Bambu Lab A2L",
+    "printer_variant": "0.4",
+    "auxiliary_fan": "0",
+    "bed_exclude_area": [],
+    "bed_heat_soak_area": [
+        "102x93.4",
+        "228x93.4",
+        "228x226.6",
+        "102x226.6",
+        "60x49",
+        "270x49",
+        "270x271",
+        "60x271"
+    ],
+    "default_filament_profile": [
+        "Bambu PLA Basic @BBL A2L 0.4 nozzle"
+    ],
+    "default_print_profile": "0.20mm Standard @BBL A2L",
+    "default_wipe_tower_pos": "0.0x1.0",
+    "deretract_speed_extruder_change": [
+        "30"
+    ],
+    "enable_long_retraction_when_cut": "2",
+    "extruder_clearance_dist_to_rod": "56.5",
+    "extruder_clearance_height_to_lid": "325",
+    "extruder_clearance_height_to_rod": "25",
+    "extruder_clearance_max_radius": "73",
+    "grab_length": [
+        "17.4"
+    ],
+    "head_wrap_detect_zone": [
+        "226x224",
+        "256x224",
+        "256x256",
+        "226x256"
+    ],
+    "include": [
+        "Bambu Lab A2L 0.4 nozzle template machine_start_gcode",
+        "Bambu Lab A2L 0.4 nozzle template machine_end_gcode",
+        "Bambu Lab A2L 0.4 nozzle template layer_change_gcode",
+        "Bambu Lab A2L 0.4 nozzle template time_lapse_gcode",
+        "Bambu Lab A2L 0.4 nozzle template change_filament_gcode"
+    ],
+    "machine_bed_mass_Y": "2700",
+    "machine_load_filament_time": "11",
+    "machine_max_acceleration_extruding": [
+        "12000",
+        "12000"
+    ],
+    "machine_max_acceleration_x": [
+        "12000",
+        "12000"
+    ],
+    "machine_max_acceleration_y": [
+        "8000",
+        "8000"
+    ],
+    "machine_max_acceleration_z": [
+        "1500",
+        "1500"
+    ],
+    "machine_max_force_Y": "29",
+    "machine_max_jerk_e": [
+        "3",
+        "3"
+    ],
+    "machine_max_printed_mass": "2000",
+    "machine_max_speed_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "30",
+        "30"
+    ],
+    "machine_unload_filament_time": "12",
+    "nozzle_height": "4.76",
+    "nozzle_volume": [
+        "92"
+    ],
+    "printable_area": [
+        "0x0",
+        "330x0",
+        "330x320",
+        "0x320"
+    ],
+    "printable_height": "325",
+    "printer_structure": "i3",
+    "retract_lift_below": [
+        "326"
+    ],
+    "support_fast_purge_mode": "1",
+    "support_object_skip_flush": "1",
+    "upward_compatible_machine": [
+        "Bambu Lab H2S 0.4 nozzle"
+    ],
+    "default_ams_type": "2",
+    "ams_filament_load_time_ams": "23",
+    "ams_filament_load_time_ams_lite": "11",
+    "ams_filament_load_time_n3f_s": "18",
+    "ams_filament_unload_time_ams": "21",
+    "ams_filament_unload_time_ams_lite": "12",
+    "ams_filament_unload_time_n3f_s": "19"
+}

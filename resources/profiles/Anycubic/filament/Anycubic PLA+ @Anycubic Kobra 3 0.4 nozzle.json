@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Anycubic PLA+ @Anycubic Kobra 3 0.4 nozzle",
-	"inherits": "Anycubic Generic PLA",
+	"inherits": "Generic PLA @Anycubic",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFL93",
+	"setting_id": "1va1bLu3J0b5GQt3",
+	"filament_id": "OFnmp6rt",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Anycubic"
@@ -111,9 +111,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"42"
-	],
 	"filament_loading_speed": [
 		"28"
 	],
@@ -181,9 +178,6 @@
 		"; filament start gcode\n"
 	],
 	"filament_toolchange_delay": [
-		"0"
-	],
-	"filament_unload_time": [
 		"0"
 	],
 	"filament_unloading_speed": [

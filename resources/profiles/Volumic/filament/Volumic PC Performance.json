@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFC99",
-	"setting_id": "GFSC99",
 	"name": "Volumic PC (Performance)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"setting_id": "ht6Ar3ilCkPT7geN",
+	"filament_id": "OFgSbX7E",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

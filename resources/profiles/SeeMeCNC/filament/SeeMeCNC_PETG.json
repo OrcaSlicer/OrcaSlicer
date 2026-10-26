@@ -3,7 +3,8 @@
 	"name": "SeeMeCNC PETG",
 	"inherits": "SeeMeCNC filament base",
 	"from": "System",
-	"filament_id": "SMCFG001",
+	"setting_id": "wf9uGLhJeqRDZVR7",
+	"filament_id": "OFxDHUX8",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"SeeMeCNC PETG"

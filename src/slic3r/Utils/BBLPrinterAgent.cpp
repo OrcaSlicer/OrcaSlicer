@@ -1,10 +1,158 @@
 #include "BBLPrinterAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include "bambu_networking.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 
+#include <algorithm>
+#include <array>
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/nowide/fstream.hpp>
+#include <exception>
+#include <functional>
+#include <nlohmann/json.hpp>
+#include <cmath>
+#include <slic3r/GUI/DeviceManager.hpp>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+using json = nlohmann::json;
+
+#include <type_traits>
+#include <unordered_map>
+#include <memory>
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
+
+namespace {
+
+// Bambu's own catalog ids for every filament this app ships, Bambu's own included, since Orca
+// content-addresses those too. Keyed both ways so each of the four translation entry points
+// below is a single lookup. Loaded once per process, on first use. A missing or malformed file
+// logs once and leaves both maps empty, so every translation degrades to identity. Same shape
+// as DevFilaBlacklist::load_filaments_blacklist_config.
+struct BambuFilamentIdMap { std::unordered_map<std::string, std::string> to_bambu, to_orca; };
+
+const BambuFilamentIdMap& bambu_filament_id_map()
+{
+    static const BambuFilamentIdMap map = [] {
+        BambuFilamentIdMap m;
+        const std::string path = resources_dir() + "/printers/bambu_filament_ids.json";
+        try {
+            boost::nowide::ifstream file(path);
+            if (!file.is_open()) {
+                BOOST_LOG_TRIVIAL(warning) << "Bambu filament id map not found, ids pass through untranslated: " << path;
+                return m;
+            }
+            json doc;
+            file >> doc;
+            for (const auto& [orca_filament_id, row] : doc.at("filaments").items()) {
+                const std::string bambu_id = row.at("bambu_id").get<std::string>();
+                m.to_bambu.emplace(orca_filament_id, bambu_id);
+                m.to_orca.emplace(bambu_id, orca_filament_id);
+            }
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "Bambu filament id map unreadable, ids pass through untranslated: " << e.what();
+            m = {};
+        }
+        return m;
+    }();
+    return map;
+}
+
+// Keys whose string value is a filament id. "cate" and "fila_id" are the H2C nozzle rack's: the
+// auto nozzle mapping request and the rack status in the push message.
+constexpr std::array<std::string_view, 5> filament_id_keys{"tray_info_idx", "filament_id", "filamentId", "cate", "fila_id"};
+
+// Rewrites every string under a filament id key, at any depth, in place.
+void rewrite_filament_ids(json& j, const std::unordered_map<std::string, std::string>& map)
+{
+    if (j.is_object()) {
+        for (auto& [key, value] : j.items()) {
+            if (value.is_string() && std::find(filament_id_keys.begin(), filament_id_keys.end(), key) != filament_id_keys.end()) {
+                auto it = map.find(value.get_ref<const std::string&>());
+                if (it != map.end())
+                    value = it->second;
+            } else
+                rewrite_filament_ids(value, map);
+        }
+    } else if (j.is_array())
+        for (auto& element : j)
+            rewrite_filament_ids(element, map);
+}
+
+// Text that does not parse as JSON, or that mentions none of the id keys, comes back byte-identical.
+std::string rewrite_filament_ids(std::string text, const std::unordered_map<std::string, std::string>& map)
+{
+    if (map.empty() || std::none_of(filament_id_keys.begin(), filament_id_keys.end(),
+                                    [&text](std::string_view key) { return text.find(key) != std::string::npos; }))
+        return text;                                        // nothing to map, skip the parse (moved, not copied)
+    try {
+        json j = json::parse(text);
+        rewrite_filament_ids(j, map);
+        return j.dump();
+    } catch (const std::exception&) {
+        return text;                                        // not JSON: forward as received
+    }
+}
+
+// Wraps an inbound message callback so every Bambu id it delivers arrives already translated.
+// A null fn is a deregistration (see GUI_App.cpp's shutdown phase 1 and NetworkAgent::apply_printer_callbacks
+// clearing callbacks with {}), and must stay null rather than become a live wrapper around an empty target.
+OnMessageFn to_orca_messages(OnMessageFn fn)
+{
+    if (!fn)
+        return fn;
+    return [fn = std::move(fn)](std::string dev_id, std::string msg) { fn(std::move(dev_id), BBLPrinterAgent::to_orca_payload(std::move(msg))); };
+}
+
+// Retypes a plug-in entry point for an older plug-in generation. The detour through the
+// generic function pointer marks the signature change as deliberate, which a direct cast
+// between two signatures does not.
+template <typename To, typename From>
+To as_abi(From fn)
+{
+    static_assert(std::is_function_v<std::remove_pointer_t<From>>, "as_abi retypes a function pointer");
+    return reinterpret_cast<To>(reinterpret_cast<void (*)()>(fn));
+}
+
+} // namespace
+
+std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_filament_id) const
+{
+    const auto& map = bambu_filament_id_map().to_orca;
+    auto it = map.find(printer_filament_id);
+    return it != map.end() ? it->second : printer_filament_id;
+}
+
+std::string BBLPrinterAgent::from_orca_filament_id(const std::string& orca_filament_id) const
+{
+    return bambu_filament_id(orca_filament_id);
+}
+
+std::string BBLPrinterAgent::bambu_filament_id(const std::string& orca_filament_id)
+{
+    const auto& map = bambu_filament_id_map().to_bambu;
+    auto it = map.find(orca_filament_id);
+    return it != map.end() ? it->second : orca_filament_id;
+}
+
+std::string BBLPrinterAgent::to_orca_payload(std::string json_text)
+{
+    return rewrite_filament_ids(std::move(json_text), bambu_filament_id_map().to_orca);
+}
+
+std::string BBLPrinterAgent::from_orca_payload(std::string json_text)
+{
+    return rewrite_filament_ids(std::move(json_text), bambu_filament_id_map().to_bambu);
+}
 
 BBLPrinterAgent::BBLPrinterAgent() = default;
 
@@ -12,7 +160,7 @@ BBLPrinterAgent::~BBLPrinterAgent() = default;
 
 void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 {
-    m_cloud_agent = cloud;
+    (void) cloud;
     // BBL DLL manages tokens internally, so this is just for interface compliance
 }
 
@@ -20,28 +168,135 @@ void BBLPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
 // Communication
 // ============================================================================
 
+int BBLPrinterAgent::command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    if (ams_id == -1) {
+        const std::string gcode   = (boost::format("M620 R%1% \n") % slot_id).str();
+        j["print"]["command"]     = "gcode_line";
+        j["print"]["param"]       = gcode;
+        j["print"]["sequence_id"] = std::to_string(sequence_id);
+        return publish(dev_id, j, lan_mode);
+    }
+
+    j["print"]["command"]     = "ams_get_rfid";
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["ams_id"]      = ams_id;
+    j["print"]["slot_id"]     = slot_id;
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = (boost::format("M620 C%1% \n") % ams_id).str();
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode)
+{
+    const std::string gcode = (boost::format("M620 P%1% \n") % tray_id).str();
+    nlohmann::json j;
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                                           bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode)
+{
+    nlohmann::json j;
+    j["print"]["sequence_id"] = std::to_string(sequence_id);
+
+    if (supports_mqtt_axis_control) {
+        int dir = input_val > 0 ? 1 : -1;
+        // i3-arch printers move the bed for Y/Z, so the on-screen direction is
+        // reversed -- same negation the g-code fallback below applies.
+        if (!is_core_xy && (axis == "Y" || axis == "Z"))
+            dir = -dir;
+
+        j["print"]["command"] = "xyz_ctrl";
+        j["print"]["axis"] = axis;
+        j["print"]["dir"] = dir;
+        j["print"]["mode"] = (std::abs(input_val) >= 10) ? 1 : 0;
+        return publish(dev_id, j, lan_mode);
+    }
+
+    double value = input_val;
+    if (!is_core_xy && (axis == "Y" || axis == "Z"))
+        value = -input_val;
+
+    std::string value_str = (boost::format("%.1f") % (value * unit)).str();
+    std::string gcode;
+    if (axis == "X" || axis == "Y" || axis == "Z") {
+        gcode = (boost::format("M211 S \nM211 X1 Y1 Z1\nM1002 push_ref_mode\nG91 \nG1 %1%%2% F%3%\nM1002 pop_ref_mode\nM211 R\n")
+                 % axis % value_str % speed).str();
+    } else if (axis == "E") {
+        gcode = (boost::format("M83 \nG0 %1%%2% F%3%\n") % axis % value_str % speed).str();
+    } else {
+        return -1;
+    }
+
+    j["print"]["command"] = "gcode_line";
+    j["print"]["param"] = gcode;
+    return publish(dev_id, j, lan_mode);
+}
+
+int BBLPrinterAgent::publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode)
+{
+    const int rtn = lan_mode ? send_message_to_printer(dev_id, j.dump(), 0, 0) : send_message(dev_id, j.dump(), 0, 0);
+    if (rtn == 0)
+        BOOST_LOG_TRIVIAL(info) << "publish_json: " << j.dump() << " code: " << rtn;
+    else
+        BOOST_LOG_TRIVIAL(error) << "publish_json: " << j.dump() << " code: " << rtn;
+    return rtn;
+}
+
 int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int qos, int flag)
 {
+    json_str = from_orca_payload(std::move(json_str));
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_send_message();
     if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_send_message_legacy>(func);
-            return legacy_func(agent, dev_id, json_str, qos);
+        // Only the legacy plug-in lacks `flag`; 02.03.00 already takes it, and routing that
+        // series through the legacy form would silently drop MessageFlag sign/encrypt.
+        switch (plugin.network_abi()) {
+        case NetworkAbi::Legacy: {
+            auto legacy_func = as_abi<func_send_message_legacy>(func);
+            return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
         }
-        return func(agent, dev_id, json_str, qos, flag);
+        case NetworkAbi::V0203:
+        case NetworkAbi::Current:
+            return func(agent, std::move(dev_id), std::move(json_str), qos, flag);
+        default:
+            return -1;
+        }
     }
     return -1;
 }
 
-int BBLPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_connect_printer();
+#if !BBL_RELEASE_TO_PUBLIC
+    const bool use_ssl_for_mqtt = GUI::wxGetApp().app_config &&
+                                  GUI::wxGetApp().app_config->get_bool("enable_ssl_for_mqtt");
+#else
+    bool use_ssl_for_mqtt = true;
+    if (auto* dev_manager = GUI::wxGetApp().getDeviceManager()) {
+        if (auto* machine = dev_manager->get_my_machine(params.dev_id))
+            use_ssl_for_mqtt = machine->local_use_ssl;
+    }
+#endif
     if (func && agent) {
-        return func(agent, dev_id, dev_ip, username, password, use_ssl);
+        return func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt);
     }
     return -1;
 }
@@ -59,15 +314,22 @@ int BBLPrinterAgent::disconnect_printer()
 
 int BBLPrinterAgent::send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag)
 {
+    json_str = from_orca_payload(std::move(json_str));
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_send_message_to_printer();
     if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_send_message_to_printer_legacy>(func);
-            return legacy_func(agent, dev_id, json_str, qos);
+        switch (plugin.network_abi()) {
+        case NetworkAbi::Legacy: {
+            auto legacy_func = as_abi<func_send_message_to_printer_legacy>(func);
+            return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
         }
-        return func(agent, dev_id, json_str, qos, flag);
+        case NetworkAbi::V0203:
+        case NetworkAbi::Current:
+            return func(agent, std::move(dev_id), std::move(json_str), qos, flag);
+        default:
+            return -1;
+        }
     }
     return -1;
 }
@@ -138,13 +400,25 @@ int BBLPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link, detec
     return -1;
 }
 
-int BBLPrinterAgent::bind(std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
+int BBLPrinterAgent::bind(std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_bind();
     if (func && agent) {
-        return func(agent, dev_ip, dev_id, sec_link, timezone, improved, update_fn);
+        // dev_model was added in 02.08.01. Passing it to a plug-in that takes the 7-argument
+        // form shifts every following argument, so the older generations get the older call.
+        switch (plugin.network_abi()) {
+        case NetworkAbi::Legacy:
+        case NetworkAbi::V0203: {
+            auto older_func = as_abi<func_bind_pre0208>(func);
+            return older_func(agent, dev_ip, dev_id, sec_link, timezone, improved, update_fn);
+        }
+        case NetworkAbi::Current:
+            return func(agent, dev_ip, dev_id, dev_model, sec_link, timezone, improved, update_fn);
+        default:
+            return -1;
+        }
     }
     return -1;
 }
@@ -167,6 +441,19 @@ int BBLPrinterAgent::request_bind_ticket(std::string* ticket)
     auto func = plugin.get_request_bind_ticket();
     if (func && agent) {
         return func(agent, ticket);
+    }
+    return -1;
+}
+
+int BBLPrinterAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_get_hms_snapshot();
+    // dev_id/file_name are passed as lvalues to bind the plugin's std::string& params.
+    // A null func (older plugin without this symbol) falls through to -1 so callers degrade gracefully.
+    if (func && agent) {
+        return func(agent, dev_id, file_name, callback);
     }
     return -1;
 }
@@ -268,84 +555,63 @@ AgentInfo BBLPrinterAgent::get_agent_info_static()
 // Print Job Operations
 // ============================================================================
 
-int BBLPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+namespace {
+
+// Shared dispatcher for the start_* operations, whose params layout differs per generation.
+// The per-generation typedefs are template arguments so a swapped pair fails to compile
+// (each arm's converted params must match the casted signature). Each arm converts and calls
+// in one step: as_legacy()/as_0203() move out of `params` and their prvalue result lands in
+// the by-value ABI argument without another copy; the Current arm moves `params` outright.
+template <typename LegacyFn, typename Fn0203, typename CurrentFn, typename... CallbackFns>
+int dispatch_start(CurrentFn func, PrintParams& params, const CallbackFns&... callbacks)
 {
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
-    auto func = plugin.get_start_print();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_print_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn, wait_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn, wait_fn);
+    if (!func || !agent)
+        return -1;
+    params.ams_mapping_info = BBLPrinterAgent::from_orca_payload(std::move(params.ams_mapping_info));
+    switch (plugin.network_abi()) {
+    case NetworkAbi::Legacy:
+        return as_abi<LegacyFn>(func)(agent, BBLNetworkPlugin::as_legacy(params), callbacks...);
+    case NetworkAbi::V0203:
+        return as_abi<Fn0203>(func)(agent, BBLNetworkPlugin::as_0203(params), callbacks...);
+    case NetworkAbi::Current:
+        return func(agent, std::move(params), callbacks...);
+    default:
+        return -1;
     }
-    return -1;
+}
+
+} // namespace
+
+int BBLPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+{
+    return dispatch_start<func_start_print_legacy, func_start_print_0203>(
+        BBLNetworkPlugin::instance().get_start_print(), params, update_fn, cancel_fn, wait_fn);
 }
 
 int BBLPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_local_print_with_record();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_local_print_with_record_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn, wait_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn, wait_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_local_print_with_record_legacy, func_start_local_print_with_record_0203>(
+        BBLNetworkPlugin::instance().get_start_local_print_with_record(), params, update_fn, cancel_fn, wait_fn);
 }
 
 int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_send_gcode_to_sdcard();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_send_gcode_to_sdcard_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn, wait_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn, wait_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
+        BBLNetworkPlugin::instance().get_start_send_gcode_to_sdcard(), params, update_fn, cancel_fn, wait_fn);
 }
 
 int BBLPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_local_print();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_local_print_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_local_print_legacy, func_start_local_print_0203>(
+        BBLNetworkPlugin::instance().get_start_local_print(), params, update_fn, cancel_fn);
 }
 
 int BBLPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_start_sdcard_print();
-    if (func && agent) {
-        if (plugin.use_legacy_network()) {
-            auto legacy_func = reinterpret_cast<func_start_sdcard_print_legacy>(func);
-            auto legacy_params = BBLNetworkPlugin::as_legacy(params);
-            return legacy_func(agent, legacy_params, update_fn, cancel_fn);
-        }
-        return func(agent, params, update_fn, cancel_fn);
-    }
-    return -1;
+    return dispatch_start<func_start_sdcard_print_legacy, func_start_sdcard_print_0203>(
+        BBLNetworkPlugin::instance().get_start_sdcard_print(), params, update_fn, cancel_fn);
 }
 
 // ============================================================================
@@ -391,7 +657,7 @@ int BBLPrinterAgent::set_on_message_fn(OnMessageFn fn)
     auto agent = plugin.get_agent();
     auto func = plugin.get_set_on_message_fn();
     if (func && agent) {
-        return func(agent, fn);
+        return func(agent, to_orca_messages(std::move(fn)));
     }
     return -1;
 }
@@ -424,7 +690,7 @@ int BBLPrinterAgent::set_on_local_message_fn(OnMessageFn fn)
     auto agent = plugin.get_agent();
     auto func = plugin.get_set_on_local_message_fn();
     if (func && agent) {
-        return func(agent, fn);
+        return func(agent, to_orca_messages(std::move(fn)));
     }
     return -1;
 }

@@ -3,7 +3,7 @@
 	"name": "Vzbot 235 AWD 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "EZf1lYKG9h7c8gKn",
 	"instantiation": "true",
 	"printer_model": "Vzbot 235 AWD",
 	"nozzle_diameter": [

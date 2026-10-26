@@ -1,9 +1,21 @@
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
 #include "../ShortestPath.hpp"
-#include "../Surface.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <cassert>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Line.hpp"
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
 
 #include "FillLine.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 

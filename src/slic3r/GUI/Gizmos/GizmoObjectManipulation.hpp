@@ -1,19 +1,26 @@
 #ifndef slic3r_GizmoObjectManipulation_hpp_
 #define slic3r_GizmoObjectManipulation_hpp_
 
+#include <cstddef>
 #include <memory>
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Geometry.hpp"
 #include <float.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <wx/string.h>
 
 #include "slic3r/GUI/GUI_Geometry.hpp"
+#include "GLGizmoAlignment.hpp"
 
 //#include "slic3r/GUI/GLCanvas3D.hpp"
 
 namespace Slic3r {
 namespace GUI {
 
+class ImGuiWrapper;
 class Selection;
 class GLCanvas3D;
 
@@ -96,7 +103,7 @@ public:
     bool            m_show_reset_0_rotation{false};
     bool            m_show_clear_rotation { false };
     bool            m_show_clear_scale { false };
-    bool            m_show_drop_to_bed { false };
+    bool            m_enable_drop_to_bed { false };
     enum class RotateType { None, Relative, Absolute
     };
     RotateType m_last_rotate_type{RotateType::None}; // 0:no input 1:relative 2:absolute
@@ -139,11 +146,18 @@ public:
     void do_render_rotate_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit);
     void do_render_scale_input_window(ImGuiWrapper* imgui_wrapper, std::string window_name, float x, float y, float bottom_limit);
     float max_unit_size(int number, Vec3d &vec1, Vec3d &vec2,std::string str);
-    bool reset_button(ImGuiWrapper *imgui_wrapper, float caption_max, float unit_size, float space_size, float end_text_size);
-    bool reset_zero_button(ImGuiWrapper *imgui_wrapper, float caption_max, float unit_size, float space_size, float end_text_size);
+    bool reset_button(ImGuiWrapper *imgui_wrapper, bool enabled);
+    bool reset_zero_button(ImGuiWrapper *imgui_wrapper, bool enabled);
     bool bbl_checkbox(const wxString &label, bool &value);
 
     void set_init_rotation(const Geometry::Transformation &value);
+
+    // Align/distribute state of the Move panel, which the Move gizmo previews.
+    const GLGizmoAlignment     &get_alignment_helper() const { return m_alignment_helper; }
+    GLGizmoAlignment::AlignType get_hovered_align_type() const { return m_hovered_align_type; }
+    bool                        get_align_to_parent() const { return m_align_to_parent; }
+    // When the Move gizmo opens or closes: no preview, and "Align selected" whenever the selection allows it.
+    void                        reset_align_state();
 
 private:
     void reset_settings_value();
@@ -168,6 +182,14 @@ private:
 
     GLCanvas3D& m_glcanvas;
     unsigned int m_last_active_item { 0 };
+
+    GLGizmoAlignment            m_alignment_helper;
+    // Operation of the enabled align icon under the mouse.
+    GLGizmoAlignment::AlignType m_hovered_align_type{GLGizmoAlignment::AlignType::NONE};
+    // Align to the object or plate holding the selection rather than within the selection.
+    bool                        m_align_to_parent{false};
+    // Whether the selection can align within itself, tracked to detect when the selection crosses that threshold.
+    bool                        m_can_align_within{false};
 
     // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
     std::vector<std::pair<wxString, wxString>> m_shortcuts_move;

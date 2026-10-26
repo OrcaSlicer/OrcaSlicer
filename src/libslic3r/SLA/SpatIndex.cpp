@@ -1,7 +1,15 @@
 #include "SpatIndex.hpp"
+#include "libslic3r/BoundingBox.hpp"
 
 // for concave hull merging decisions
+#include <boost/geometry/index/parameters.hpp>
+#include <functional>
+#include <boost/geometry/index/predicates.hpp>
+#include <iterator>
+#include <cstddef>
 #include <libslic3r/SLA/BoostAdapter.hpp>
+#include <utility>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push)

@@ -7,7 +7,10 @@
 
 #include "../include/Types.hpp"
 
+#include <array>
+#include <cstddef>
 #include <map>
+#include <vector>
 
 namespace libvgcode {
 

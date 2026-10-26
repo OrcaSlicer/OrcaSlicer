@@ -3,8 +3,8 @@
 	"name": "Anycubic PA @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFPA",
+	"setting_id": "hcL5OHthGzApICTk",
+	"filament_id": "OFzS7zt4",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PA @Anycubic Kobra S1 Max 0.4 nozzle"

@@ -8,5 +8,5 @@
 	"bed_model": "flashforge_g2s_buildplate_model.stl",
 	"bed_texture": "flashforge_g2s_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Flashforge Generic PVA;Flashforge Generic HIPS;Flashforge Generic PETG-CF @G3U;Flashforge Generic PETG @G3U;Flashforge Generic PLA-CF @G3U;Flashforge Generic PLA @G3U;Flashforge Generic ASA @G3U;Flashforge Generic ABS @G3U;FusRock Generic PET-CF;FusRock Generic PAHT-CF;FusRock Generic NexPA-CF25;FusRock Generic S-Multi;FusRock Generic S-PAHT;Polymaker Generic CoPA;Polymaker Generic S1"
+	"default_materials": "Generic PVA @Flashforge;Generic HIPS @Flashforge;Generic PETG-CF @Flashforge G3U;Generic PETG @Flashforge G3U;Generic PLA-CF @Flashforge G3U;Generic PLA @Flashforge G3U;Generic ASA @Flashforge G3U;Generic ABS @Flashforge G3U;FusRock PET-CF;FusRock PAHT-CF;FusRock NexPA-CF25;FusRock S-Multi;FusRock S-PAHT;Polymaker CoPA;Polymaker S1"
 }

@@ -3,7 +3,7 @@
 	"name": "Geeetech Mizar S 0.8 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_012",
+	"setting_id": "zGPSdq8x3D5DQqhB",
 	"instantiation": "true",
 	"printer_model": "Geeetech Mizar S",
 	"default_filament_profile": [

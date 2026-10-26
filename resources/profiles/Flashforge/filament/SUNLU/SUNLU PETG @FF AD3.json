@@ -3,7 +3,7 @@
 	"name": "SUNLU PETG @FF AD3",
 	"inherits": "SUNLU PETG @base",
 	"from": "system",
-	"setting_id": "GFSNLS08_03",
+	"setting_id": "BENcJjUDhHoKoKr4",
 	"instantiation": "true",
 	"slow_down_layer_time": [
 		"8"

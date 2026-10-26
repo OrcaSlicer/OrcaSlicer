@@ -3,7 +3,7 @@
 	"name": "MM hqs hj 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "2MC7ljWsyIfNcoCS",
 	"instantiation": "true",
 	"printer_model": "MM hqs hj",
 	"default_print_profile": "0.10mm Fine @MM hqs hj",
@@ -60,6 +60,7 @@
 	"extruder_clearance_height_to_rod": "32",
 	"extruder_clearance_radius": "50",
 	"machine_max_acceleration_e": [
+		"6000",
 		"6000"
 	],
 	"machine_max_speed_e": [

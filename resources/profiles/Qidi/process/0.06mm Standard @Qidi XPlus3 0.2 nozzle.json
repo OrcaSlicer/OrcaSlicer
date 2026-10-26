@@ -3,7 +3,7 @@
 	"name": "0.06mm Standard @Qidi XPlus3 0.2 nozzle",
 	"inherits": "fdm_process_QIDI_0.06_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP024",
+	"setting_id": "3ZkSsl3zkwcYHQ3z",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Plus 3 0.2 nozzle"

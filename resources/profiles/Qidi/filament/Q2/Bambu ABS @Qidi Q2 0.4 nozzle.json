@@ -3,7 +3,7 @@
 	"name": "Bambu ABS @Qidi Q2 0.4 nozzle",
 	"inherits": "Bambu ABS@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "rT8ustbzQbtECttr",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"

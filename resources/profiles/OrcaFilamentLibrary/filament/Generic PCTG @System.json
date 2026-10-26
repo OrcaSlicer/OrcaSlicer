@@ -3,7 +3,24 @@
 	"name": "Generic PCTG @System",
 	"inherits": "fdm_filament_pctg",
 	"from": "system",
-	"setting_id": "OGFSG97_00",
+	"setting_id": "21dhMVBuVwR2lzIX",
+	"filament_id": "OFu1evlr",
 	"instantiation": "true",
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"12",
+		"18",
+		"18",
+		"12",
+		"15",
+		"15"
+	]
 }

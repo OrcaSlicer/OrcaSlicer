@@ -3,7 +3,7 @@
 	"name": "Overture ABS @Qidi Q2 0.2 nozzle",
 	"inherits": "Overture ABS@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "tO957T39JVesXJ8y",
 	"instantiation": "true",
 	"chamber_temperatures": [
 		"0"

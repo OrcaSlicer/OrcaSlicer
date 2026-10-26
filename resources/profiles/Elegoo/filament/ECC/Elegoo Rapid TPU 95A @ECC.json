@@ -2,9 +2,9 @@
 	"type": "filament",
 	"name": "Elegoo Rapid TPU 95A @ECC",
 	"renamed_from": "Elegoo RAPID TPU 95A @ECC",
-	"inherits": "Elegoo TPU @base",
+	"inherits": "Elegoo Rapid TPU 95A @base",
 	"from": "system",
-	"setting_id": "ERTPU95AECC",
+	"setting_id": "uVpRY8TCq9S6kr8M",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

@@ -3,8 +3,18 @@
 	"name": "0.16mm Optimal @MyKlipper",
 	"inherits": "fdm_process_klipper_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "qMjBH8WRooCfhtTP",
 	"instantiation": "true",
+	"print_extruder_id": [
+		"1",
+		"1",
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",
 	"support_top_z_distance": "0.16",

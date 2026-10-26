@@ -3,7 +3,7 @@
 	"name": "0.30mm Strength @Geeetech common 0.6 nozzle",
 	"inherits": "fdm_process_geeetech_0.30_nozzle_0.6",
 	"from": "system",
-	"setting_id": "GP_Geeetech_028",
+	"setting_id": "pq6q54Droc2vlNCq",
 	"instantiation": "true",
 	"wall_loops": "4",
 	"sparse_infill_density": "25%",

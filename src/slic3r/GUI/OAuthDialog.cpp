@@ -5,6 +5,16 @@
 #include "Jobs/PlaterWorker.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "slic3r/GUI/Jobs/OAuthJob.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <memory>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <utility>
+#include <wx/utils.h>
 
 namespace Slic3r {
 namespace GUI {

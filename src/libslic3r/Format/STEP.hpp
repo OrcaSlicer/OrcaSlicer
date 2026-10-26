@@ -3,16 +3,25 @@
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFApp_Application.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
+#include <Standard_TypeDef.hxx>
+#include <Standard_Handle.hxx>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
 #include <Message_ProgressIndicator.hxx>
 #include <atomic>
+#include <functional>
+#include <string>
+#include <iostream>
+#include <ios>
+#include <iomanip>
+#include <ostream>
+#include <vector>
 
-namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
 class TriangleMesh;
+class Model;
 class ModelObject;
 
 // load step stage
@@ -38,8 +47,8 @@ struct NamedSolid
 //BBS: Load an step file into a provided model.
 extern bool load_step(const char *path, Model *model,
                       bool& is_cancel,
-                      double linear_defletion = 0.003,
-                      double angle_defletion = 0.5,
+                      double linear_deflection = 0.003,
+                      double angle_deflection = 0.5,
                       bool isSplitCompound = false,
                       ImportStepProgressFn proFn = nullptr,
                       StepIsUtf8Fn isUtf8Fn = nullptr,
@@ -75,10 +84,10 @@ class StepProgressIncdicator : public Message_ProgressIndicator
 public:
     StepProgressIncdicator(std::atomic<bool>& stop_flag) : should_stop(stop_flag){}
 
-    Standard_Boolean UserBreak() override { return should_stop.load(); }
+    bool UserBreak() override { return should_stop.load(); }
 
-    void Show(const Message_ProgressScope&, const Standard_Boolean) override {
-        std::cout << "Progress: " << GetPosition() << "%" << std::endl;
+    void Show(const Message_ProgressScope&, const bool) override {
+        std::cout << "Progress: " << std::fixed << std::setprecision(2) << 100.0 * GetPosition() << "%" << std::endl;
     }
 private:
     std::atomic<bool>& should_stop;
@@ -94,18 +103,18 @@ public:
         MESH_SUCCESS,
         MESH_ERROR
     };
-    Step(fs::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
+    Step(boost::filesystem::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     Step(std::string path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     ~Step();
     Step_Status load();
-    unsigned int get_triangle_num(double linear_defletion, double angle_defletion);
-    unsigned int get_triangle_num_tbb(double linear_defletion, double angle_defletion);
+    unsigned int get_triangle_num(double linear_deflection, double angle_deflection);
+    unsigned int get_triangle_num_tbb(double linear_deflection, double angle_deflection);
     void clean_mesh_data();
     Step_Status mesh(Model* model,
                      bool& is_cancel,
                      bool isSplitCompound,
-                     double linear_defletion = 0.003,
-                     double angle_defletion = 0.5);
+                     double linear_deflection = 0.003,
+                     double angle_deflection = 0.5);
 
     std::atomic<bool> m_stop_mesh{false};
     void update_process(int load_stage, int current, int total, bool& cancel);

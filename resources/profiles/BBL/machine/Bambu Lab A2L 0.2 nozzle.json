@@ -1,0 +1,37 @@
+{
+    "type": "machine",
+    "name": "Bambu Lab A2L 0.2 nozzle",
+    "inherits": "Bambu Lab A2L 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM055",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.2"
+    ],
+    "printer_model": "Bambu Lab A2L",
+    "printer_variant": "0.2",
+    "default_filament_profile": [
+        "Bambu PLA Basic @BBL A2L 0.2 nozzle"
+    ],
+    "default_print_profile": "0.10mm Standard @BBL A2L 0.2 nozzle",
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "max_layer_height": [
+        "0.14"
+    ],
+    "min_layer_height": [
+        "0.04"
+    ],
+    "retract_lift_below": [
+        "326"
+    ],
+    "upward_compatible_machine": [
+        "Bambu Lab H2S 0.2 nozzle"
+    ]
+}

@@ -1,5 +1,13 @@
 #include "OrcaPrinterAgent.hpp"
+#include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include <string>
+#include <utility>
+#include <memory>
+#include <mutex>
+#include "bambu_networking.hpp"
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 
@@ -26,7 +34,7 @@ int OrcaPrinterAgent::send_message(std::string dev_id, std::string json_str, int
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
+int OrcaPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
     return BAMBU_NETWORK_SUCCESS;
 }
@@ -42,19 +50,6 @@ int OrcaPrinterAgent::send_message_to_printer(std::string dev_id, std::string js
 }
 
 // ============================================================================
-// Certificates - All Stubs
-// ============================================================================
-
-int OrcaPrinterAgent::check_cert()
-{
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-void OrcaPrinterAgent::install_device_cert(std::string dev_id, bool lan_only)
-{
-}
-
-// ============================================================================
 // Discovery - Stub
 // ============================================================================
 
@@ -63,35 +58,8 @@ bool OrcaPrinterAgent::start_discovery(bool start, bool sending)
     return true;
 }
 
-// ============================================================================
-// Binding - All Stubs
-// ============================================================================
-
-int OrcaPrinterAgent::ping_bind(std::string ping_code)
-{
-    return BAMBU_NETWORK_SUCCESS;
-}
-
 int OrcaPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link, detectResult& detect)
 {
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int OrcaPrinterAgent::bind(
-    std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
-{
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int OrcaPrinterAgent::unbind(std::string dev_id)
-{
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int OrcaPrinterAgent::request_bind_ticket(std::string* ticket)
-{
-    if (ticket)
-        *ticket = "";
     return BAMBU_NETWORK_SUCCESS;
 }
 

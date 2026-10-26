@@ -3,8 +3,8 @@
 	"name": "BLOCKS RF50 0.6 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
+	"setting_id": "RIbar6niHpubv5IC",
 	"instantiation": "true",
-	"settings_id": "GM010",
 	"printer_model": "BLOCKS RF50",
 	"default_print_profile": "0.26mm Standard 0.6 nozzle @Blocks_RF50",
 	"max_layer_height": [
@@ -39,19 +39,23 @@
 		"20000"
 	],
 	"machine_max_speed_e": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_x": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
+		"12",
 		"12"
 	],
 	"retraction_length": [
-		"1"
+		"1.2"
 	],
 	"retraction_speed": [
 		"60"
@@ -75,8 +79,8 @@
 		"BLOCKS RF50"
 	],
 	"machine_start_gcode": [
-		"PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer]",
-		"SET_PRESSURE_ADVANCE ADVANCE=0.046"
+		"PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer]\n",
+		"SET_PRESSURE_ADVANCE ADVANCE=0.046\n"
 	],
 	"printer_variant": "0.6",
 	"wipe_distance": [
@@ -84,5 +88,10 @@
 	],
 	"retract_before_wipe": [
 		"0"
-	]
+	],
+	"default_filament_profile": [
+		"Blocks PLA @Blocks_RF50"
+	],
+	"support_multi_bed_types": "1",
+	"default_bed_type": "Textured PEI Plate"
 }

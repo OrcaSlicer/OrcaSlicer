@@ -2,15 +2,40 @@
 #include "ImageGrid.h"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
+#include "DeviceManager.hpp"
+#include "libslic3r_version.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "Plater.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/SwitchButton.hpp"
 #include "Widgets/Label.hpp"
 #include "Printer/PrinterFileSystem.h"
 #include "MsgDialog.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include <cstddef>
+#include <algorithm>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/weak_ptr.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/lexical_cast.hpp>
+#include <functional>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Format/bbs_3mf.hpp>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/gdicmn.h>
+#include <utility>
+#include <wx/colour.h>
+#include <vector>
+#include <wx/progdlg.h>
+#include "libslic3r/Semver.hpp"
+#include <sstream>
+#include "slic3r/GUI/Event.hpp"
+#include <wx/string.h>
+#include <wx/utils.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include "DeviceCore/DevStorage.h"
 
 #ifdef __WXMSW__
@@ -19,6 +44,9 @@
 #ifdef __APPLE__
 #include "../Utils/MacDarkMode.hpp"
 #endif
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -520,7 +548,7 @@ void MediaFilePanel::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
                     fs->SetUrl(res);
                 }
             });
-        });
+        }, wxGetApp().get_printer_cloud_provider());
     }
 }
 
@@ -556,7 +584,7 @@ void MediaFilePanel::doAction(size_t index, int action)
     } else if (action == 1) {
         if (fs->GetFileType() == PrinterFileSystem::F_MODEL) {
             if (index != -1) {
-                auto dlg = new MediaProgressDialog(_L("Print"), this, [fs] { fs->FetchModelCancel(); });
+                auto dlg = new MediaProgressDialog(_L_CONTEXT("Print", "Verb"), this, [fs] { fs->FetchModelCancel(); });
                 dlg->Update(0, _L("Fetching model information..."));
                 fs->FetchModel(index, [this, fs, dlg, index](int result, std::string const &data) {
                     dlg->Destroy();
@@ -566,7 +594,7 @@ void MediaFilePanel::doAction(size_t index, int action)
                         wxString msg = data.empty() ? _L("Failed to fetch model information from printer.") :
                                                       from_u8(data);
                         CallAfter([this, msg] {
-                            MessageDialog(this, msg, _L("Print"), wxOK).ShowModal();
+                            MessageDialog(this, msg, _L_CONTEXT("Print", "Verb"), wxOK).ShowModal();
                         });
                         return;
                     }
@@ -579,7 +607,7 @@ void MediaFilePanel::doAction(size_t index, int action)
                             || plate_data_list.empty()) {
                         MessageDialog(this,
                             _L("Failed to parse model information."),
-                            _L("Print"), wxOK).ShowModal();
+                            _L_CONTEXT("Print", "Verb"), wxOK).ShowModal();
                         return;
                     }
 

@@ -1,4 +1,7 @@
 #version 140
+// Multisample depth texture for the anti-aliased outline (see 3DScene.cpp render_with_outline).
+// Optional on the GLSL 140 path: if unavailable, fallback to a non-multisample depth texture.
+#extension GL_ARB_texture_multisample : enable
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 const vec3 LightRed = vec3(0.78, 0.0, 0.0);
@@ -41,6 +44,7 @@ struct SlopeDetection
     bool actived;
     float normal_z;
     mat3 volume_world_normal_matrix;
+    vec3 up_direction;
 };
 
 uniform vec4 uniform_color;
@@ -51,7 +55,18 @@ uniform SlopeDetection slope;
 
 //BBS: add outline_color
 uniform bool is_outline;
+// ORCA: a part of a translucent filament, drawn as its print would show in premultiplied color, see
+// GLVolumeCollection::render(). It catches a highlight only with translucent_gloss, in realistic view.
+uniform bool translucent_filament;
+uniform bool translucent_gloss;
+// The outline is a per-fragment discard mask, which the framebuffer MSAA cannot smooth, so the
+// silhouette is resolved per sample from a multisample copy of the outlined model's depth buffer.
+#ifdef GL_ARB_texture_multisample
+uniform sampler2DMS depth_tex;
+uniform int msaa_samples; // samples in depth_tex, 1 when MSAA is off
+#else
 uniform sampler2D depth_tex;
+#endif
 uniform vec2 screen_size;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
@@ -64,6 +79,20 @@ uniform PrintVolumeDetection print_volume;
 uniform float z_far;
 uniform float z_near;
 uniform bool enable_ssao;
+// 1 = the Design tab's studio lighting (studio_shade below); 0 = the two-light model above, which
+// every other canvas keeps. world_up_eye is world +Z in eye space, for the hemisphere ambient.
+uniform int lighting_model;
+uniform vec3 world_up_eye;
+
+// Depth-based shadow map (object-on-object and self shadows). shadow_intensity == 0 disables it.
+uniform sampler2D shadow_map;
+uniform mat4 shadow_light_vp;
+uniform float shadow_intensity;
+uniform float shadow_map_texel;
+// ORCA: realistic view - static shadows also light the scene from their fixed light.
+uniform bool use_static_light;
+uniform vec3 static_light_dir;
+vec3 top_light_dir() { return use_static_light ? static_light_dir : LIGHT_TOP_DIR; }
 
 in vec3 clipping_planes_dots;
 in float color_clip_plane_dot;
@@ -72,6 +101,14 @@ in vec4 world_pos;
 in float world_normal_z;
 in vec3 eye_normal;
 in vec3 eye_position;
+
+// ORCA: the view ray crosses two shells of the part, the front and the back one, of two 0.45 mm walls each,
+// longer at grazing angles, and the opacity of the filament is that of 0.4 mm of it, as in the G-code preview.
+vec4 translucent_filament_color(vec3 diffuse, float alpha, vec3 highlight, float cos_view)
+{
+    float a = 1.0 - pow(1.0 - alpha, 2.0 * 0.9 / 0.4 / max(cos_view, 0.25));
+    return vec4(diffuse * a + highlight, a);
+}
 
 out vec4 out_color;
 
@@ -94,12 +131,27 @@ float GetTolerance(float d, float k)
     return -k*(d+A)*(d+A)/B;
 }
 
-float DetectSilho(vec2 fragCoord, vec2 dir)
+// Depth of sample s at integer pixel coord.
+#ifdef GL_ARB_texture_multisample
+float FetchDepth(ivec2 coord, int s)
 {
-    float x0 = abs(texture(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
-    float x1 = abs(texture(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
-    float x2 = abs(texture(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
-    float x3 = abs(texture(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
+    // texelFetch has no wrap mode, so clamp to the edge texel (sampler2D used CLAMP_TO_EDGE).
+    ivec2 sz = textureSize(depth_tex);
+    return abs(texelFetch(depth_tex, clamp(coord, ivec2(0), sz - 1), s).r);
+}
+#else
+float FetchDepth(ivec2 coord, int s)
+{
+    return abs(texture(depth_tex, (vec2(coord) + 0.5) / screen_size).r);
+}
+#endif
+
+float DetectSilho(ivec2 coord, ivec2 dir, int s)
+{
+    float x0 = FetchDepth(coord + dir*-2, s);
+    float x1 = FetchDepth(coord + dir*-1, s);
+    float x2 = FetchDepth(coord,          s);
+    float x3 = FetchDepth(coord + dir* 1, s);
 
     float d0 = (x1-x0);
     float d1 = (x2-x3);
@@ -110,15 +162,43 @@ float DetectSilho(vec2 fragCoord, vec2 dir)
     float tol = GetTolerance(x2, 0.04);
 
     return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
-
 }
 
-float DetectSilho(vec2 fragCoord)
+float DetectSilho(ivec2 coord, int s)
 {
     return max(
-        DetectSilho(fragCoord, vec2(1,0)),
-        DetectSilho(fragCoord, vec2(0,1))
+        DetectSilho(coord, ivec2(1,0), s),
+        DetectSilho(coord, ivec2(0,1), s)
         );
+}
+
+// Full response of one sample. Reduce the max() per sample and average only afterwards:
+// max(mean) <= mean(max), and averaging first hollows out diagonal and curved lines.
+float DetectSilhoSample(ivec2 coord, int s)
+{
+    float v = DetectSilho(coord, s);
+    // Makes silhouettes thicker.
+    for (int i = 1; i <= INFLATE; ++i)
+    {
+        v = max(v, DetectSilho(coord + ivec2(i, 0), s));
+        v = max(v, DetectSilho(coord + ivec2(0, i), s));
+    }
+    return v;
+}
+
+// Average the per-sample coverage into the sub-pixel anti-aliasing of the line.
+float DetectSilho(vec2 fragCoord)
+{
+    ivec2 coord = ivec2(fragCoord);
+#ifdef GL_ARB_texture_multisample
+    int n = max(msaa_samples, 1);
+#else
+    const int n = 1;
+#endif
+    float acc = 0.0;
+    for (int s = 0; s < n; ++s)
+        acc += DetectSilhoSample(coord, s);
+    return acc / float(n);
 }
 
 float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
@@ -170,9 +250,59 @@ vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
     
 
     float intensity = window_light * bars * (0.15 + 0.15 * fresnel) * facing;
-    intensity = clamp(intensity, 0.0, 0.25);  
-    
+    intensity = clamp(intensity, 0.0, 0.25);
+
     return vec3(intensity);
+}
+
+// Returns a lighting multiplier in [1 - shadow_intensity, 1]: < 1 where the fragment is
+// occluded from the light in the shadow map. 3x3 PCF softens the edges.
+float shadow_shade()
+{
+    if (shadow_intensity <= 0.0)
+        return 1.0;
+
+    vec4 lp = shadow_light_vp * world_pos;
+    vec3 proj = lp.xyz / lp.w;
+    proj = proj * 0.5 + 0.5;
+    if (proj.z > 1.0)
+        return 1.0;
+
+    // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
+    // suppresses self-shadow acne without discarding real shadows cast by other objects onto
+    // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
+    float NdotL = dot(normalize(eye_normal), top_light_dir());
+    float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
+    // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
+    float sum = 0.0;
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            float closest = texture(shadow_map, proj.xy + vec2(float(x), float(y)) * shadow_map_texel).r;
+            sum += (proj.z - bias > closest) ? 1.0 : 0.0;
+        }
+    }
+    return 1.0 - shadow_intensity * (sum / 25.0);
+}
+
+// Studio lighting for the Design tab. The default model lights every face from near the camera,
+// so the sides of a part come out in nearly the same tone and its form is hard to read. This one
+// separates faces by their orientation in the WORLD (a sky/ground hemisphere: up-facing faces
+// cool and bright, down-facing ones warm and dark), keeps a strong key light from the upper left
+// and a weak fill from the right, gives a plastic-like highlight, and darkens the base colour
+// toward the silhouette while adding a faint sheen there, so curved faces read as round.
+vec3 studio_shade(vec3 base, vec3 n, vec3 v)
+{
+    vec3 key  = normalize(vec3(-0.45, 0.60, 0.66));
+    vec3 fill = normalize(vec3(0.70, -0.15, 0.70));
+    float hemi = 0.5 + 0.5 * dot(n, normalize(world_up_eye));
+    vec3 ambient = mix(vec3(0.16, 0.15, 0.14), vec3(0.40, 0.42, 0.46), hemi);
+    float kd = max(dot(n, key), 0.0);
+    float fd = max(dot(n, fill), 0.0);
+    vec3 diffuse = ambient + vec3(0.60) * kd + vec3(0.20) * fd;
+    float spec = 0.28 * pow(max(dot(n, normalize(key + v)), 0.0), 48.0)
+               + 0.06 * pow(max(dot(n, normalize(fill + v)), 0.0), 24.0);
+    float rim = pow(1.0 - clamp(dot(n, v), 0.0, 1.0), 3.0);
+    return base * diffuse * (1.0 - 0.30 * rim) + vec3(spec + 0.08 * rim);
 }
 
 void main()
@@ -217,9 +347,9 @@ void main()
     vec3 normal = normalize(eye_normal);
     vec3 view_dir = normalize(-eye_position);
 
-    float NdotL_top = max(dot(normal, LIGHT_TOP_DIR), 0.0);
+    float NdotL_top = max(dot(normal, top_light_dir()), 0.0);
     float diffuse = INTENSITY_AMBIENT + NdotL_top * LIGHT_TOP_DIFFUSE;
-    vec3 half_top = normalize(LIGHT_TOP_DIR + view_dir);
+    vec3 half_top = normalize(top_light_dir() + view_dir);
     float specular = LIGHT_TOP_SPECULAR * pow(max(dot(normal, half_top), 0.0), LIGHT_TOP_SHININESS);
 
     float NdotL_front = max(dot(normal, LIGHT_FRONT_DIR), 0.0);
@@ -230,22 +360,28 @@ void main()
 
     // SSAO is applied in post-process pass. Keep base lighting unchanged here.
 
+    float shade = shadow_shade();
+    vec3 lit = (lighting_model == 1) ? studio_shade(color.rgb, normal, view_dir)
+                                     : (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
+
     if (is_outline) {
-        vec3 shaded_rgb = (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
+        vec3 shaded_rgb = lit * shade;
         vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
-        vec2 fragCoord = gl_FragCoord.xy;
-        float s = DetectSilho(fragCoord);
-        for(int i=1;i<=INFLATE; i++)
-        {
-           s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
-           s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
-        }
+        float s = DetectSilho(gl_FragCoord.xy);
+        if (s < 0.01)
+            discard;
         out_color = vec4(mix(shaded_color.rgb, getBackfaceColor(shaded_color.rgb), s), shaded_color.a);
+        if (translucent_filament)
+            out_color.rgb *= out_color.a;
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
-        out_color = vec4(clamp((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        out_color = vec4(clamp((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
 #endif
+    else if (translucent_filament)
+        out_color = translucent_filament_color(clamp(color.rgb * diffuse * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a,
+                                               translucent_gloss ? (vec3(specular) + window_reflection) * PHONG_BRIGHTNESS * shade : ZERO,
+                                               abs(dot(normal, view_dir)));
     else
-        out_color = vec4(clamp((vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        out_color = vec4(clamp(lit * shade, vec3(0.0), vec3(1.0)), color.a);
 }

@@ -3,6 +3,7 @@
 	"name": "0.16mm Optimal @Delta Flyer Refit",
 	"inherits": "fdm_process_Rook MK1 LDO_common",
 	"from": "system",
+	"setting_id": "STHJGWZhEnlKlUDJ",
 	"instantiation": "true",
 	"initial_layer_infill_speed": "100",
 	"initial_layer_speed": "80",

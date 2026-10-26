@@ -1,0 +1,71 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Galaxy @BBL A2L 0.2 nozzle",
+    "inherits": "Bambu PLA Galaxy @base",
+    "from": "system",
+    "setting_id": "GFSA15_26",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "filament_flush_temp": [
+        "0"
+    ],
+    "filament_flush_temp_fast": [
+        "220"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "filament_overhang_4_4_speed": [
+        "35"
+    ],
+    "filament_overhang_totally_speed": [
+        "25"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "1"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "slow_down_layer_time": [
+        "25"
+    ],
+    "slow_down_min_speed": [
+        "40"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A2L 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        ""
+    ]
+}

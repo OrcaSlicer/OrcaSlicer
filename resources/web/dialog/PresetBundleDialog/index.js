@@ -2,9 +2,15 @@
 const bundlesById = new Map();        // bundleId -> bundle object
 const printersByBundle = new Map();   // bundleId -> Map(index -> printerName)
 const filamentsByBundle = new Map();  // bundleId -> Map(index -> filamentName)
-const presetsByBundle = new Map();    // bundleId -> Map(index -> presetName)
-const UPDATE_TOOLTIP = "Update available";
-const UNAUTHORIZED_TOOLTIP = "Unauthorized bundle";
+const processesByBundle = new Map();    // bundleId -> Map(index -> presetName)
+const UPDATE_TOOLTIP = T("update_available", "Update available");
+const UNAUTHORIZED_TOOLTIP = T("unauthorized_bundle", "Unauthorized bundle");
+// Display names for the bundle types the native side sends (also kept raw in data-bundle-type).
+const BUNDLE_TYPE_LABELS = {
+  Subscribed: T("type_subscribed", "Subscribed"),
+  Local: T("type_local", "Local"),
+  Default: T("type_default", "Default")
+};
 
 // ========= DOM =========
 let topList = null;
@@ -193,7 +199,7 @@ function unpackPayload(payload) {
   bundlesById.clear();
   printersByBundle.clear();
   filamentsByBundle.clear();
-  presetsByBundle.clear();
+  processesByBundle.clear();
 
   const list = payload?.data || [];
   for (const bundle of list) {
@@ -212,7 +218,7 @@ function unpackPayload(payload) {
 
     printersByBundle.set(id, new Map((bundle.printers || []).map((name, i) => [i, name])));
     filamentsByBundle.set(id, new Map((bundle.filaments || []).map((name, i) => [i, name])));
-    presetsByBundle.set(id, new Map((bundle.presets || []).map((name, i) => [i, name])));
+    processesByBundle.set(id, new Map((bundle.processes || []).map((name, i) => [i, name])));
   }
 }
 
@@ -230,11 +236,11 @@ function renderTop() {
               : `<span class="bundle-status-icon-spacer" aria-hidden="true"></span>`}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
           ${
             b.type === "Subscribed" ?
-            `<a href="#" class="bundle-name-text bundle-cloud-link" title="Open this bundle in your browser">${escapeHtml(b.name)}</a>`
+            `<a href="#" class="bundle-name-text bundle-cloud-link" title="${escapeAttr(T("open_in_browser", "Open this bundle in your browser"))}">${escapeHtml(b.name)}</a>`
             : `<span class="bundle-name-text">${escapeHtml(b.name)}</span>`
           }                                                                                                                                                                                                                                                                                
         </div>                                                                                                                                                                                                                                                                                                                                                   
-        <span title="${escapeAttr(b.type)}">${escapeHtml(b.type)}</span>                                                                                                                                                                                                                                                                                         
+        <span title="${escapeAttr(BundleTypeLabel(b.type))}">${escapeHtml(BundleTypeLabel(b.type))}</span>                                                                                                                                                                                                                                                                                         
         <span title="${escapeAttr(b.version)}">${escapeHtml(b.version)}</span>                                                                                                                                                                                                                                                                                   
         <div class="cell bundle-update-cell">                                                                                                                                                                                                                                                                                                                    
             <button                                                                                                                                                                                                                                                               
@@ -242,7 +248,7 @@ function renderTop() {
             class="bundle-update-btn ${(!b.unauthorized && b.update_available) ? "is-enabled" : "is-disabled"}"                                                                                                                                                                 
             ${(!b.unauthorized && b.update_available) ? "" : "disabled"}                                                                                                                                                                                                        
             data-id="${escapeAttr(b.id)}"                                                                                                                                                                                                                                       
-          >Update</button>                                                                                                                                                                                                                                                                                                                                       
+          >${escapeHtml(T("update", "Update"))}</button>                                                                                                                                                                                                                                                                                                                                       
         </div>                                                                                                                                                                                                                                                                                                                                                   
       </div>                                                                                                                                                                                                                                                                                                                                                     
     `).join("");                                                                                                                                                                                                                                                                                                                                                 
@@ -277,14 +283,14 @@ function renderBottomForBundle(bundleId) {
   const key = String(bundleId || "");
   const printers = printersByBundle.get(key) || new Map();
   const filaments = filamentsByBundle.get(key) || new Map();
-  const presets = presetsByBundle.get(key) || new Map();
+  const processes = processesByBundle.get(key) || new Map();
 
   // Convert to a flat list of rows { typeLabel, name }
   const rows = [];
 
-  for (const [, name] of printers) rows.push({ type: "Printer", name });
-  for (const [, name] of filaments) rows.push({ type: "Filament", name });
-  for (const [, name] of presets) rows.push({ type: "Preset", name });
+  for (const [, name] of printers) rows.push({ type: T("printer", "Printer"), name });
+  for (const [, name] of filaments) rows.push({ type: T("filament", "Filament"), name });
+  for (const [, name] of processes) rows.push({ type: T("process", "Process"), name });
 
   bottomList.innerHTML = rows.map((r, idx) => `
     <div class="row" data-id="${escapeAttr(bundleId)}" data-idx="${idx}">
@@ -351,6 +357,10 @@ function hideMenu() {
   contextRow = null;
 }
 // ========= Utilities =========
+function BundleTypeLabel(type) {
+  return BUNDLE_TYPE_LABELS[type] || type;
+}
+
 function safeJsonParse(s) {
   try { return JSON.parse(s); } catch { return null; }
 }

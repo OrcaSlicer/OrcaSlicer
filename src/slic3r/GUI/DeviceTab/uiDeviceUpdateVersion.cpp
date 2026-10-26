@@ -1,16 +1,23 @@
-//**********************************************************/
-/* File: uiDeviceUpdateVersion.cpp
+/**********************************************************
+* File: uiDeviceUpdateVersion.cpp
 *  Description: The panel with firmware info
 *
 * \n class uiDeviceUpdateVersion
-//**********************************************************/
+**********************************************************/
 
 #include "uiDeviceUpdateVersion.h"
 
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
-#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp" // Orca: explicit Label include
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include <wx/font.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 
 #define MODEL_STR   L("Model:")
@@ -27,6 +34,7 @@ uiDeviceUpdateVersion::uiDeviceUpdateVersion(wxWindow* parent,
                                              long style /*= wxTAB_TRAVERSAL*/)
      : wxPanel(parent, id, pos, size, style)
 {
+    SetBackgroundColour(*wxWHITE);
     CreateWidgets();
 }
 
@@ -81,7 +89,6 @@ void uiDeviceUpdateVersion::CreateWidgets()
     serial_text->SetFont(font);
     version_text->SetFont(font);
     model_text->SetFont(font);
-
     // The grid sizer
     wxFlexGridSizer* grid_sizer = new wxFlexGridSizer(0, 2, 0, 0);
     //grid_sizer->AddGrowableCol(1);
@@ -103,12 +110,14 @@ void uiDeviceUpdateVersion::CreateWidgets()
 
     grid_sizer->Add(version_hsizer, 0, wxEXPAND, 0);
     grid_sizer->Add(m_dev_version, 0, wxEXPAND | wxALL, FromDIP(5));
-   
+
     // Updating
     wxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
-    main_sizer->AddSpacer(FromDIP(40));
+    main_sizer->AddSpacer(FromDIP(40)); // Orca: top spacing above the firmware-info grid
     main_sizer->Add(grid_sizer, 0, wxALIGN_LEFT, FromDIP(5));
 
     SetSizer(main_sizer);
     Layout();
+
+    wxGetApp().UpdateDarkUIWin(this);
 }

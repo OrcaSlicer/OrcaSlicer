@@ -3,8 +3,8 @@
 	"name": "QIDI WOOD Rapido @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI WOOD Rapido",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "QD_0_1_6",
+	"setting_id": "gfnllytSwMCbiB6b",
+	"filament_id": "OFvdZ2bx",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

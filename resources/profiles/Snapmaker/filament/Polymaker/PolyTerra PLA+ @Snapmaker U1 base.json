@@ -3,7 +3,7 @@
 	"name": "PolyTerra PLA+ @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL70",
+	"filament_id": "OFEjbwqG",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

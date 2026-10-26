@@ -3,6 +3,8 @@
 
 #include "../wxExtensions.hpp"
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
 #include <wx/tglbtn.h>
 
 class CheckBox : public wxBitmapToggleButton
@@ -14,6 +16,9 @@ public:
 	void SetValue(bool value) override;
 
 	void SetHalfChecked(bool value = true);
+
+	// Only meant to be used by inspector, not public API
+	bool IsHalfChecked() const { return m_half_checked; }
 
 	void Rescale();
 

@@ -1,0 +1,54 @@
+{
+	"type": "filament",
+	"name": "Eryone ABS-GF @Thinker X400 0.4 nozzle",
+	"inherits": "Eryone Standard PLA",
+	"from": "system",
+	"setting_id": "WnsZC7HYi5Z1MOcn",
+	"filament_id": "OFenMm2Y",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Thinker X400 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Eryone ABS-GF @Thinker X400 0.4 nozzle"
+	],
+	"fan_max_speed": [
+		"20"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=1"
+	],
+	"filament_type": [
+		"ABS"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"nozzle_temperature": [
+		"265"
+	],
+	"nozzle_temperature_initial_layer": [
+		"265"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"slow_down_min_speed": [
+		"15"
+	]
+}

@@ -3,7 +3,7 @@
 	"name": "Arena PA-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFN03",
+	"filament_id": "OFA026vt",
 	"instantiation": "false",
 	"required_nozzle_HRC": [
 		"40"

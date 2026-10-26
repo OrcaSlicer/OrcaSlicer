@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
-	"setting_id": "GFSA04",
 	"name": "Volumic ABS Ultra",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"setting_id": "omHiTINFPThooUqk",
+	"filament_id": "OFyUJI3q",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFG98",
-	"setting_id": "GFSG50",
 	"name": "Volumic PETG Ultra carbone",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "nOKT0adoQi3O7Tge",
+	"filament_id": "OFu08yGN",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

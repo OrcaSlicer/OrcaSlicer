@@ -1,23 +1,22 @@
 #include <catch2/catch_all.hpp>
 
+#include <cmath>
 #include <numeric>
 #include <sstream>
 
-#include "test_data.hpp" // get access to init_print, etc
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include "test_helpers.hpp" // get access to init_print, etc
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/Model.hpp"
-#include "libslic3r/Config.hpp"
-#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/libslic3r.h"
 
-using namespace Slic3r::Test;
 using namespace Slic3r;
 
 /// Test the expected behavior for auto-width,
 /// spacing, etc
-SCENARIO("Flow: Flow math for non-bridges", "[Flow]") {
+SCENARIO("Flow math for non-bridges", "[Flow]") {
     GIVEN("Nozzle Diameter of 0.4, a desired width of 1mm and layer height of 0.5") {
         ConfigOptionFloatOrPercent	width(1.0, false);
         float nozzle_diameter	= 0.4f;
@@ -79,7 +78,7 @@ SCENARIO("Flow: Flow math for non-bridges", "[Flow]") {
 }
 
 /// Spacing, width calculation for bridge extrusions
-SCENARIO("Flow: Flow math for bridges", "[Flow]") {
+SCENARIO("Flow math for bridges", "[Flow]") {
     GIVEN("Nozzle Diameter of 0.4, a desired width of 1mm and layer height of 0.5") {
 		float nozzle_diameter	= 0.4f;
 		float bridge_flow		= 1.0f;

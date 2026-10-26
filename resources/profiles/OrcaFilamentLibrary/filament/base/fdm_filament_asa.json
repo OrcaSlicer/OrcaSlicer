@@ -43,6 +43,12 @@
 	"filament_max_volumetric_speed": [
 		"12"
 	],
+	"filament_multitool_ramming_flow": [
+		"12"
+	],
+	"filament_multitool_ramming_volume": [
+		"10"
+	],
 	"filament_type": [
 		"ASA"
 	],

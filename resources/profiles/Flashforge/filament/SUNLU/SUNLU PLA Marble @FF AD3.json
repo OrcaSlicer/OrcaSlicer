@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA Marble @FF AD3",
 	"inherits": "SUNLU PLA Marble @base",
 	"from": "system",
-	"setting_id": "GFSNLS06_03",
+	"setting_id": "6IQtR139p9QmD9xy",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"215"

@@ -2,7 +2,16 @@
 #define slic3r_PresetComboBoxes_hpp_
 
 //#include <wx/bmpcbox.h>
-#include <wx/colourdata.h>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <functional>
+#include <string>
+#include <wx/colour.h>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <utility>
+#include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/clrpicker.h>
 
@@ -39,7 +48,7 @@ public:
     PresetComboBox(wxWindow* parent, Preset::Type preset_type, const wxSize& size = wxDefaultSize, PresetBundle* preset_bundle = nullptr);
     ~PresetComboBox();
 
-	enum LabelItemType {
+	enum LabelItemType : std::size_t {
 		LABEL_ITEM_PHYSICAL_PRINTER = 0xffffff01,
         LABEL_ITEM_PRINTER_MODELS,
 		LABEL_ITEM_DISABLED,
@@ -191,7 +200,6 @@ public:
 
     // BBS
     wxButton* clr_picker { nullptr };
-    wxColourData m_clrData;
 
     wxColor get_color() { return m_color; }
 
@@ -205,6 +213,7 @@ public:
     void msw_rescale() override;
     void OnSelect(wxCommandEvent& evt) override;
     void update_badge_according_flag();
+    void set_sync_badge(bool show);
 
     FilamentColor get_cur_color_info();
     void show_default_color_picker();
@@ -214,6 +223,7 @@ public:
 private:
     // BBS
     wxColor m_color;
+    bool    m_sync_badge{false};
 };
 
 

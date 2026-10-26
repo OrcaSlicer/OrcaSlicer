@@ -3,7 +3,7 @@
 	"name": "Qidi Q2C 0.2 nozzle",
 	"inherits": "Qidi Q2C 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "2uuRLbBZvLKjlVli",
 	"instantiation": "true",
 	"printer_model": "Qidi Q2C",
 	"printer_variant": "0.2",

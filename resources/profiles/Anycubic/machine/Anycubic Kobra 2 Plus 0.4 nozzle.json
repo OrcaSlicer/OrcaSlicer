@@ -3,7 +3,7 @@
 	"name": "Anycubic Kobra 2 Plus 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "9nAwSZ5vXCWD9qnT",
 	"instantiation": "true",
 	"printer_technology": "FFF",
 	"printer_settings_id": "Anycubic Kobra 2 Plus 0.4 nozzle",
@@ -204,7 +204,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",

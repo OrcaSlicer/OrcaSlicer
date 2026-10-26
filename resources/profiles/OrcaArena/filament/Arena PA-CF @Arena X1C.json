@@ -3,7 +3,7 @@
 	"name": "Arena PA-CF @Arena X1C",
 	"inherits": "Arena PA-CF @base",
 	"from": "system",
-	"setting_id": "GFSN00",
+	"setting_id": "HNAQ7QxxEkFzVR8R",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"8"

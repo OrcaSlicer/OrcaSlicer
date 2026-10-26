@@ -3,6 +3,7 @@
 	"name": "0.16mm SPEED @MK4S 0.3",
 	"inherits": "0.16mm STRUCTURAL @MK4S 0.3",
 	"from": "system",
+	"setting_id": "l0Xjr7r8ifFYFfS2",
 	"instantiation": "true",
 	"inner_wall_acceleration": "2500",
 	"inner_wall_speed": "140",
