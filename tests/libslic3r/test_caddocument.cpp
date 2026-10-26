@@ -10436,6 +10436,154 @@ TEST_CASE("a split by a face follows the face when a hole renumbers the faces be
     CHECK(doc.feature_warnings.empty());
 }
 
+// Editing ANY parameter of ANY feature in the history has to rebuild everything after it: the incrementally rebuilt document
+// must be the document a from-scratch build of the same recipe gives. Every number and switch a feature actually uses is
+// nudged in turn (found through the recipe's field groups, so a field added later is covered the day it is added).
+namespace {
+struct ScalarFields {   // the doubles and bools of a feature, in recipe order
+    struct One { int k; bool is_bool; double value; };
+    std::vector<One> out; int n{0};
+    template<class T> void operator()(T&) {}
+    void operator()(double& x) { out.push_back({n++, false, x}); }
+    void operator()(bool& x)   { out.push_back({n++, true, x ? 1.0 : 0.0}); }
+    void operator()(Vec3d& v)  { for (int i = 0; i < 3; ++i) out.push_back({n++, false, v[i]}); }
+    template<class T> void ref(T&) {}
+    void brep(TopoDS_Shape&) {}
+};
+struct NudgeField {     // the k-th of them, moved
+    int k, n{0}; bool done{false};
+    template<class T> void operator()(T&) {}
+    void operator()(double& x) { if (n++ == k) { x += (std::abs(x) > 1e-9 ? 0.25 * std::abs(x) : 1.0); done = true; } }
+    void operator()(bool& x)   { if (n++ == k) { x = !x; done = true; } }
+    void operator()(Vec3d& v)  { for (int i = 0; i < 3; ++i) if (n++ == k) { v[i] += (std::abs(v[i]) > 1e-9 ? 0.25 * std::abs(v[i]) : 1.0); done = true; } }
+    template<class T> void ref(T&) {}
+    void brep(TopoDS_Shape&) {}
+};
+}
+
+TEST_CASE("editing any parameter of any feature rebuilds the features after it exactly as a fresh build would", "[CadDocument][incremental]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    const int base_sk = doc.add_sketch_profile(sp, SketchPlane::XY(), "Base");
+    doc.add_extrude(base_sk, 10.0, false, BooleanMode::New, "Base");
+    REQUIRE(doc.recompute());
+    auto top_face = [](const CadDocument& d) {
+        int top = -1;
+        const auto faces = GeometryEngine::faces_of(d.bodies[0].shape);
+        for (size_t i = 0; i < faces.size(); ++i)
+            if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+        return top;
+    };
+    int top = top_face(doc), corner = -1;
+    const auto edges = GeometryEngine::edges_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < edges.size(); ++i) {
+        const auto pts = GeometryEngine::sample_edge_world(edges[i]);
+        if (pts.size() >= 2 && std::abs(pts.front().x() - 40) < 1e-6 && std::abs(pts.front().y() - 40) < 1e-6 && std::abs(pts.back().x() - 40) < 1e-6 && std::abs(pts.back().y() - 40) < 1e-6) corner = int(i);
+    }
+    REQUIRE(top >= 0); REQUIRE(corner >= 0);
+    doc.add_fillet(3.0, corner, "Corner");
+    REQUIRE(doc.recompute());
+    top = top_face(doc);   // the fillet renumbered the faces
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(20, 20); c.p0 = c.center; c.radius = 5.0;
+    SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+    const int boss_sk = doc.add_sketch_entities({c}, on_top, "Boss");
+    doc.features[boss_sk].attach_body = 0; doc.features[boss_sk].attach_face = top;
+    doc.add_extrude(boss_sk, 5.0, false, BooleanMode::Add, "Boss");
+    REQUIRE(doc.recompute());
+    top = top_face(doc);   // and so did the boss
+    SketchPlane into = SketchPlane::XY(); into.origin = Vec3d(0, 0, 10); into.normal = Vec3d(0, 0, -1); into.y_axis = Vec3d(0, -1, 0);
+    const int hole = doc.add_hole(4.0, 3.0, false, 8.0, -8.0, into, "Hole");
+    doc.features[hole].attach_body = 0; doc.features[hole].attach_face = top;
+    doc.add_transform(-1, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "Move");
+    const bool built = doc.recompute();
+    INFO("error: " << doc.error << " (feature " << doc.error_feature << ")");
+    REQUIRE(built);
+
+    auto signature = [](const CadDocument& d) {   // body count + total volume
+        double v = 0;
+        for (const CadBody& b : d.bodies) { GProp_GProps g; BRepGProp::VolumeProperties(b.shape, g); v += g.Mass(); }
+        return std::make_pair(d.bodies.size(), v);
+    };
+    int edits = 0;
+    for (size_t fi = 0; fi < doc.features.size(); ++fi) {
+        ScalarFields now, def; { CadFeature f = doc.features[fi]; cad_fields_of_all_groups(now, f); const CadFeature d; CadFeature dd = d; cad_fields_of_all_groups(def, dd); }
+        for (size_t j = 0; j < now.out.size(); ++j) {
+            if (now.out[j].value == def.out[j].value) continue;   // a field this feature does not use
+            const CadFeature before = doc.features[fi];
+            NudgeField nudge{now.out[j].k};
+            cad_fields_of_all_groups(nudge, doc.features[fi]);
+            const bool ok = doc.recompute();
+            CadDocument fresh;
+            const bool fresh_ok = fresh.deserialize_recipe(doc.serialize_recipe());
+            INFO("feature " << fi << " (" << doc.features[fi].name << "), scalar field #" << now.out[j].k);
+            REQUIRE(ok == fresh_ok);
+            if (ok) {
+                const auto a = signature(doc), b = signature(fresh);
+                CHECK(a.first == b.first);
+                CHECK(a.second == Approx(b.second).epsilon(1e-6));
+            }
+            ++edits;
+            doc.features[fi] = before;
+            REQUIRE(doc.recompute());
+        }
+    }
+    CHECK(edits >= 8);   // the numbers and switches in use: distances, radii, sizes, positions, the move
+}
+
+// What is drawn on a face goes with the face when an earlier step MOVES the object, not only when it grows.
+TEST_CASE("a sketch and a hole drawn on a moved object move with it", "[CadDocument][naming]")
+{
+    auto build = [](CadDocument& doc, int& move, int& boss_sk, int& hole) {
+        SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+        doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+        move = doc.add_transform(-1, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "Move");
+        REQUIRE(doc.recompute());
+        int top = -1;
+        const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+        for (size_t i = 0; i < faces.size(); ++i)
+            if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+        REQUIRE(top >= 0);
+        SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(25, 20); c.p0 = c.center; c.radius = 4.0;   // on the moved top: x 5..45
+        SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+        boss_sk = doc.add_sketch_entities({c}, on_top, "Boss");
+        doc.features[boss_sk].attach_body = 0; doc.features[boss_sk].attach_face = top;
+        SketchPlane into = on_top; into.normal = Vec3d(0, 0, -1); into.y_axis = Vec3d(0, -1, 0);
+        hole = doc.add_hole(3.0, 2.0, false, 10.0, -10.0, into, "Hole");
+        doc.features[hole].attach_body = 0; doc.features[hole].attach_face = top;
+        REQUIRE(doc.recompute());
+    };
+    SECTION("moved further") {
+        CadDocument doc; int move, sk, hole;
+        build(doc, move, sk, hole);
+        const double x0 = doc.features[sk].plane.origin.x(), hx0 = doc.features[hole].plane.origin.x();
+        doc.features[move].xf_translate = Vec3d(12, 0, 0);
+        REQUIRE(doc.recompute());
+        CHECK(doc.features[sk].plane.origin.x() == Approx(x0 + 7.0).margin(1e-6));
+        CHECK(doc.features[hole].plane.origin.x() == Approx(hx0 + 7.0).margin(1e-6));
+        CHECK(doc.feature_warnings.empty());
+    }
+    SECTION("the option off keeps the old rule") {
+        CadDocument doc; int move, sk, hole;
+        build(doc, move, sk, hole);
+        const double x0 = doc.features[sk].plane.origin.x();
+        doc.features[hole].enabled = false;   // left behind, it would miss the moved body altogether
+        doc.attached_follow_moves = false;
+        doc.features[move].xf_translate = Vec3d(12, 0, 0);
+        REQUIRE(doc.recompute());
+        CHECK(doc.features[sk].plane.origin.x() == Approx(x0).margin(1e-6));   // stayed in the face's plane, in place
+    }
+    SECTION("a stretch is not a move") {
+        CadDocument doc; int move, sk, hole;
+        build(doc, move, sk, hole);
+        const double x0 = doc.features[sk].plane.origin.x();
+        doc.features[0].width = doc.features[0].width;   // (the base sketch is a profile: widen it through its points)
+        for (Vec2d& q : doc.features[0].profile.points) if (q.x() > 20) q.x() += 10;   // the base gets 10 wider, the face's centre moves 5
+        REQUIRE(doc.recompute());
+        CHECK(doc.features[sk].plane.origin.x() == Approx(x0).margin(1e-6));
+    }
+}
+
 // Acceptance: on a 30-feature model a tail edit replays one feature and costs a fraction of a full rebuild.
 TEST_CASE("a tail edit on a 30-feature model is much cheaper than a full rebuild", "[CadDocument][incremental]")
 {

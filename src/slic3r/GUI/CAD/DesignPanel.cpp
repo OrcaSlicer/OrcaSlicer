@@ -4771,6 +4771,7 @@ void DesignPanel::sync_recipe_to_model()
 bool DesignPanel::recompute_guarded(const wxString& message)
 {
     bool ok = false;
+    m_doc.attached_follow_moves = wxGetApp().app_config->get_bool("design_attached_follow_move");
     run_off_ui_thread(this, message, [this, &ok]() {
         try {
             ok = m_doc.recompute();

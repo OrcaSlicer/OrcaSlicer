@@ -5075,19 +5075,39 @@ bool CadDocument::recompute()
             Vec3d n = GeometryEngine::face_normal_world(fc);
             if (n.norm() < 1e-9) return;
             n.normalize();
-            if (n.dot(f.plane.normal) < 0) n = -n;                                   // the side the sketch was on
             const Vec3d p = GeometryEngine::face_centroid_world(fc);
-            SketchPlane np = f.plane;
+            // The face may only have MOVED (its body was moved or turned): same size, same outline. What is on it then goes with
+            // it, whole, as one rigid motion; a face that changed shape (a stretch) keeps the plane's place in its own plane.
+            SketchPlane base = f.plane;
+            if (attached_follow_moves && was != m_seen_by_feature.end() && tb < int(was->second.size()) && !was->second[tb].shape.IsSame(built[tb].shape)) {
+                const TopoDS_Face old_fc = GeometryEngine::face_by_index(was->second[tb].shape, f.attach_face);
+                if (!old_fc.IsNull() && BRepAdaptor_Surface(old_fc).GetType() == GeomAbs_Plane) {
+                    GProp_GProps g0, g1; BRepGProp::SurfaceProperties(old_fc, g0); BRepGProp::SurfaceProperties(fc, g1);
+                    Vec3d n0 = GeometryEngine::face_normal_world(old_fc);
+                    if (n0.norm() > 1e-9 && std::abs(g0.Mass() - g1.Mass()) <= 1e-6 * std::max(g0.Mass(), 1.0)
+                        && GeometryEngine::edges_of_face(old_fc).size() == GeometryEngine::edges_of_face(fc).size()) {
+                        n0.normalize();
+                        const Eigen::Quaterniond rot = Eigen::Quaterniond::FromTwoVectors(n0, n);
+                        const Vec3d shift = p - rot * GeometryEngine::face_centroid_world(old_fc);
+                        base.origin = rot * f.plane.origin + shift;
+                        base.normal = rot * f.plane.normal;
+                        base.x_axis = rot * f.plane.x_axis;
+                        base.y_axis = rot * f.plane.y_axis;
+                    }
+                }
+            }
+            if (n.dot(base.normal) < 0) n = -n;                                      // the side the sketch was on
+            SketchPlane np = base;
             np.normal = n;
-            np.origin = f.plane.origin - n * ((f.plane.origin - p).dot(n));          // slide along the normal onto the face
-            Vec3d x = f.plane.x_axis - n * f.plane.x_axis.dot(n);
+            np.origin = base.origin - n * ((base.origin - p).dot(n));                // slide along the normal onto the face
+            Vec3d x = base.x_axis - n * base.x_axis.dot(n);
             if (x.norm() < 1e-9) {
                 x = std::abs(n.x()) < 0.9 ? Vec3d(1, 0, 0) : Vec3d(0, 1, 0);
                 x -= n * x.dot(n);
             }
             x.normalize();
             np.x_axis = x;
-            const bool right = f.plane.x_axis.cross(f.plane.y_axis).dot(f.plane.normal) > 0;   // keep the frame's handedness
+            const bool right = base.x_axis.cross(base.y_axis).dot(base.normal) > 0;   // keep the frame's handedness
             np.y_axis = right ? Vec3d(n.cross(x)) : Vec3d(x.cross(n));
             const bool same = (np.origin - f.plane.origin).norm() < 1e-9 && (np.normal - f.plane.normal).norm() < 1e-9 && (np.x_axis - f.plane.x_axis).norm() < 1e-9;
             if (!same) f.plane = np;

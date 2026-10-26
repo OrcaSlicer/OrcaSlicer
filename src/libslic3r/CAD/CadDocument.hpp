@@ -918,6 +918,9 @@ public:
     // against. When an upstream edit rebuilds those bodies the ids are carried to where their entities went (TopoRemap).
     std::map<uint64_t, std::vector<CadBody>> m_seen_by_feature;
     bool remap_refs{true};
+    // A sketch, hole or thread drawn on a face goes with that face when the face only MOVED (its body was moved or turned),
+    // not just along the face's normal. False keeps the old rule: it stays at its place in the face's plane.
+    bool attached_follow_moves{true};
     struct ReplayCache;
     std::shared_ptr<ReplayCache> m_replay_cache;
 

@@ -395,6 +395,9 @@ void AppConfig::set_defaults()
     if (get("navigator_corner").empty())
         set("navigator_corner", "top_right");
 
+    if (get("design_attached_follow_move").empty())
+        set_bool("design_attached_follow_move", true);
+
     // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
     if (get("show_fila_switch_tips").empty())
         set_bool("show_fila_switch_tips", true);
