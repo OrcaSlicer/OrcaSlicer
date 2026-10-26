@@ -71,6 +71,7 @@
 #include "slic3r/GUI/GUI_ObjectSettings.hpp"
 #include "slic3r/GUI/ColorDecomposeDialog.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "slic3r/GUI/Jobs/Job.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
@@ -181,6 +182,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/PublishSettings.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 // For stl export
@@ -234,6 +236,7 @@
 #include "SendMultiMachinePage.hpp"
 #include "SendToPrinter.hpp"
 #include "ConfigWizard.hpp"
+#include "ConfigWizardTypes.hpp"
 #include "SyncAmsInfoDialog.hpp"
 #include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/UndoRedo.hpp"
@@ -270,6 +273,7 @@
 #endif // __APPLE__
 
 #include <libslic3r/CutUtils.hpp>
+#include <wx/statline.h>
 #include <wx/glcanvas.h>    // Needs to be last because reasons :-/
 #include <libslic3r/miniz_extension.hpp>
 #include <math.h>
@@ -302,6 +306,7 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevDefs.h"
+#include "BBLTopbar.hpp"
 
 namespace fs = boost::filesystem;
 using namespace nlohmann;
@@ -1119,11 +1124,15 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
         // ORCA: a non-Bambu printer with several extruders lists one nozzle row per tool; Bambu's own
         // multi-extruder printers keep the left/right pair above.
         const bool multi_extruder_rows = !preset_bundle.is_bbl_vendor() && extruder_count > 1;
+        const auto &diameters = cfg.option<ConfigOptionFloats>("nozzle_diameter")->values;
+        const bool mixed_diameters = std::any_of(diameters.begin(), diameters.end(), [&diameters](double value) {
+            return get_diameter_string(value) != get_diameter_string(diameters.front());
+        });
 
         // The variant box switches the machine variant. The card below lists the nozzles when there
-        // are flow variants to choose or several extruders to show; otherwise the box says it all.
+        // are flow variants to choose or extruders of different diameters; otherwise the box says it all.
         panel_nozzle_dia->Show(true);
-        extruder_single_sizer->Show(has_flow_variant || multi_extruder_rows);
+        extruder_single_sizer->Show(has_flow_variant || (multi_extruder_rows && mixed_diameters));
         single_extruder->SetNozzleRowCount(multi_extruder_rows ? size_t(extruder_count) : 1);
     } else {
         panel_nozzle_dia->Show(false);
@@ -2822,7 +2831,7 @@ Sidebar::Sidebar(Plater *parent)
 
         p->m_printer_icon->Bind(wxEVT_BUTTON, [](wxCommandEvent& e) {
             //auto wizard_t = new ConfigWizard(wxGetApp().mainframe);
-            //wizard_t->run(ConfigWizard::RR_USER, ConfigWizard::SP_CUSTOM);
+            //wizard_t->run(RunReason::RR_USER, StartPage::SP_CUSTOM);
             });
 
         // ORCA use connect button on titlebar
@@ -2845,7 +2854,7 @@ Sidebar::Sidebar(Plater *parent)
             // p->editing_filament = -1;
             // wxGetApp().params_dialog()->Popup();
             // wxGetApp().get_tab(Preset::TYPE_FILAMENT)->restore_last_select_item();
-            wxGetApp().run_wizard(ConfigWizard::RR_USER, ConfigWizard::SP_PRINTERS);
+            wxGetApp().run_wizard(RunReason::RR_USER, StartPage::SP_PRINTERS);
             });
 
         wxBoxSizer* h_sizer_title = new wxBoxSizer(wxHORIZONTAL);
@@ -3375,7 +3384,7 @@ Sidebar::Sidebar(Plater *parent)
         p->editing_filament = -1;
         // wxGetApp().params_dialog()->Popup();
         // wxGetApp().get_tab(Preset::TYPE_FILAMENT)->restore_last_select_item();
-        wxGetApp().run_wizard(ConfigWizard::RR_USER, ConfigWizard::SP_FILAMENTS);
+        wxGetApp().run_wizard(RunReason::RR_USER, StartPage::SP_FILAMENTS);
         });
     p->m_bpButton_set_filament = set_btn;
 
@@ -4019,7 +4028,8 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto extruder_max_nozzle_count = printer_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
-        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count](ExtruderGroup & extruder, size_t row, int index) {
+        const bool has_flow_variant = preset_bundle.support_different_extruders();
+        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant](ExtruderGroup & extruder, size_t row, int index) {
             ComboBox *combo_flow = extruder.rows[row].flow;
             combo_flow->Clear();
             // A profile may leave the per-extruder lists shorter than the nozzle count (they are
@@ -4055,8 +4065,8 @@ void Sidebar::update_presets(Preset::Type preset_type)
             if (select == -1)
                 select = combo_flow->GetCount() - 1;
             combo_flow->SetSelection(select);
-            // No flow variant for this extruder: the diameter keeps the whole row.
-            combo_flow->Show(combo_flow->GetCount() > 0);
+            // No flow variant for this printer or extruder: the diameter keeps the whole row.
+            combo_flow->Show(has_flow_variant && combo_flow->GetCount() > 0);
         };
 
         auto update_extruder_diameter = [&diameters, &nozzle_diameter, &diameter](int extruder_index,ExtruderGroup & extruder) {
@@ -5676,16 +5686,12 @@ void Sidebar::search()
 
 void Sidebar::jump_to_option(const std::string& opt_key, Preset::Type type, const std::wstring& category)
 {
-    //const Search::Option& opt = p->searcher.get_option(opt_key, type);
-    if (type == Preset::TYPE_PRINT) {
-        auto tab = dynamic_cast<TabPrintModel*>(wxGetApp().params_panel()->get_current_tab());
-        if (tab && tab->has_key(opt_key)) {
-            tab->activate_option(opt_key, category);
-            return;
-        }
+    Tab* tab = get_tab_for_option(opt_key, type);
+    if (!tab)
+        return;
+    if (type == Preset::TYPE_PRINT && tab == wxGetApp().get_tab(type))
         wxGetApp().params_panel()->switch_to_global();
-    }
-    wxGetApp().get_tab(type)->activate_option(opt_key, category);
+    tab->activate_option(opt_key, category);
 }
 
 void Sidebar::jump_to_option(size_t selected)
@@ -14344,9 +14350,8 @@ PlateBBoxData Plater::priv::generate_first_layer_bbox()
     for (auto obj : objects)
     {
         auto bb_scaled = obj->get_first_layer_bbox(data.area, data.layer_height, data.name);
+        // get_first_layer_bbox() is already plate-local, unlike the wipe tower corners below.
         auto bb = unscaled(bb_scaled);
-        bb.min -= orig2d;
-        bb.max -= orig2d;
         bbox_all.merge(bb);
         data.area *= (SCALING_FACTOR * SCALING_FACTOR); // unscale area
         data.id = obj->id().id;
@@ -21662,9 +21667,9 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 
     config_change_notification(config, std::string("print_sequence"));
 
-    // A preset switch can reference plugins this machine lacks, e.g. a printer preset synced from
-    // another computer whose bed comes from a printer asset pack. Offer them now instead of at the
-    // next plate validation. When the slicing block toggles, update() re-evaluates the Slice button.
+    // A preset switch can reference plugins this machine lacks, e.g. a process or filament preset synced
+    // from another computer. Offer them now instead of at the next plate validation. When the slicing block
+    // toggles, update() re-evaluates the Slice button.
     if (p->main_frame->is_loaded()) {
         bool plugins_block_changed = false;
         refresh_missing_plugin_block(&plugins_block_changed);

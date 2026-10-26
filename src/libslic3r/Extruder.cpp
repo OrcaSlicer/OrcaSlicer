@@ -1,5 +1,6 @@
 #include "Extruder.hpp"
 #include "Exception.hpp"
+#include "GCodeWriter.hpp"
 #include "PrintConfig.hpp"
 #include <vector>
 #include "libslic3r.h"
@@ -64,6 +65,22 @@ double Extruder::extrude(double dE)
             m_retracted -= dE;
     }
     return dE;
+}
+
+double Extruder::E_to_emit(bool high_precision, double extra)
+{
+    const double e = this->E() + extra;
+    if (! m_config->use_relative_e_distances.value || ! high_precision)
+        return e;
+    // Rounding each relative move on its own biases the flow when short moves of about the same length all round
+    // the same way. Carrying the rounding error into the next move keeps the written E within half of the last
+    // decimal of the extruded length, as with absolute E distances. Moves written with the standard precision
+    // (supports) are rounded on their own, as without high precision G-code, and keep the carry for the next move
+    // written with high precision.
+    const double carried = e + m_E_rounding_carry;
+    const double emitted = GCodeFormatter::quantize_e(carried, true);
+    m_E_rounding_carry   = carried - emitted;
+    return emitted;
 }
 
 /* This method makes sure the extruder is retracted by the specified amount

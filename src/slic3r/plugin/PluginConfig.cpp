@@ -34,6 +34,7 @@
 #include <wx/app.h>
 #include <wx/busycursor.h>
 #include <wx/utils.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 

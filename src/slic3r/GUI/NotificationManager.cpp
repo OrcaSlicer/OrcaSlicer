@@ -46,11 +46,13 @@
 #include "libslic3r/Model.hpp"
 #include <wx/dataview.h>
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <wx/time.h>
 
 #include "GUI_App.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
 #include "FilamentMapDialog.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS

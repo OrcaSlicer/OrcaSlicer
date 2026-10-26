@@ -77,6 +77,10 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
     it maps. `PopupWindow::Show` does it for every Orca popup; a popup outside `PopupWindow` opened from a
     widget with a GTK tooltip must do it itself. Only a popup that cannot map while a GTK tooltip is visible,
     such as one opened from the GL canvas (whose tooltips are ImGui), needs nothing. (§9)
+30. On Wayland, a hook that dismisses a popup when its toplevel deactivates ignores the deactivation while a GTK
+    tooltip of a widget in that popup, or in a popup opened from it, is on screen: the tooltip has taken the
+    keyboard while the user is still on the popup. `PopupWindow::topWindowActiavate` does it for every Orca popup;
+    a popup outside `PopupWindow` with such a hook must do it itself. (§9)
 
 ## 1. Choosing the window kind
 
@@ -394,6 +398,10 @@ compensates for (§6).
   on older GTK and GTK2. On hide: `gdk_seat_ungrab` + `gtk_grab_remove` (`popupcmn.cpp:335-403`).
   `gdk_seat_ungrab` releases the *seat's* grab, whichever popup took it, so hiding a sub-popup also drops the
   parent popup's pointer grab.
+- The window is mapped before the grab is taken (`wxPopupWindow::Show` at `popupcmn.cpp:370`, the grab from
+  375). Under Wayland the popup itself therefore maps as an `xdg_popup` without an explicit grab, while GDK
+  records the grab seat on its window, and a popup mapped later as its transient child (a sub-dropdown, a GTK
+  tooltip of a widget inside it) inherits that seat and maps with `xdg_popup.grab` (§9).
 - An outside press arrives at the grab widget. `gtk_popup_button_press` sends `wxEVT_KILL_FOCUS` to the popup
   and **consumes the click** (`return TRUE`, `src/gtk/popupwin.cpp:28-58`). Presses older than the popup's
   creation time are ignored (33-34).
@@ -458,7 +466,7 @@ What it adds per platform:
 
 | Port | Behaviour |
 |---|---|
-| GTK | `Create` binds `wxEVT_ACTIVATE` on `GetTopParent(parent)`. `topWindowActiavate` calls `event.Skip()`, then `DismissAndNotify()` if the toplevel deactivated, the popup is shown and `ShouldDismissOnTopWindowDeactivate()` returns true. This supplies the app/toplevel deactivation dismissal that stock wxGTK lacks. Under Wayland, `Show(true)` on a hidden popup first hides every visible GTK tooltip window (§9). |
+| GTK | `Create` binds `wxEVT_ACTIVATE` on `GetTopParent(parent)`. `topWindowActiavate` calls `event.Skip()`, then `DismissAndNotify()` if the toplevel deactivated, the popup is shown, `ShouldDismissOnTopWindowDeactivate()` returns true and, under Wayland, no GTK tooltip of the popup's own is on screen (§9). This supplies the app/toplevel deactivation dismissal that stock wxGTK lacks. Under Wayland, `Show(true)` on a hidden popup first hides every visible GTK tooltip window (§9). |
 | MSW | Nothing automatic. `BindUnfocusEvent()` binds the toplevel's `wxEVT_ACTIVATE`/`wxEVT_ICONIZE`/`wxEVT_SHOW` to `Dismiss()` (no `OnDismiss`). It is for default-style popups: they are desktop children that Windows does not hide with the frame, and stock wx closes them on deactivation or minimizing only if a focus message reaches a wx window (§4, §5). `topWindowActivate` does **not** `Skip()`, so while the popup lives it swallows the frame's `wxEVT_ACTIVATE`, and with it `wxTopLevelWindowMSW::OnActivate`'s focus save and restore (`src/msw/toplevel.cpp:1326-1360`). |
 | macOS | Only with `wxPU_CONTAINS_CONTROLS`: `OnMouseEvent2`, bound on the popup for `LEFT_DOWN/UP/DCLICK`, `MOTION` and `MOUSEWHEEL`, hit-tests the children (static `HitTest`) and re-dispatches the event to the deepest child under the cursor with `ProcessEventLocally`. On `MOTION` it synthesizes `ENTER`/`LEAVE` for the hovered target. This compensates for the capture rerouting in §5. |
 
@@ -760,6 +768,53 @@ fights the grab and focus model (§10). Two more [source] facts:
   g_list_free(toplevels);
   ```
   Cite: `PopupWindow::Show` (#16595).
+
+- **Rule:** On Wayland, don't dismiss a shown popup on a toplevel deactivation while a GTK tooltip of one of its
+  widgets is on screen.
+  **Why:** GTK makes a tooltip transient for the toplevel of the widget it describes (`gtktooltip.c:974`), which
+  for a widget inside a popup, or the popup itself (`DropDown` sets its item tooltips on itself), is the popup's
+  own `GtkWindow`. The popup's window holds the seat grab (§5), and `find_grab_input_seat` walks the transient
+  parents to it (`gdkwindow-wayland.c:3142-3147`), so GDK maps the tooltip with an explicit `xdg_popup.grab`
+  (3100); the walk passes through every popup in a chain, so a tooltip in a popup opened from inside another
+  popup grabs too. The compositor gives the keyboard to the topmost grabbing popup: KWin sends `wl_keyboard.leave`
+  for the main window and `enter` for the tooltip (observed with `WAYLAND_DEBUG=client`). wxGTK turns the
+  toplevel's focus-out into `wxEVT_ACTIVATE(false)` (`src/gtk/toplevel.cpp:192-205`), so a deactivation hook closes
+  the popup as the tooltip appears, and GDK warns "Tried to unmap the parent of a popup"
+  (`gdkwindow-wayland.c:3429`) because the tooltip is still mapped as its child. The focus returns to the toplevel
+  when the tooltip hides. Ask GDK whether the tooltip is mapped (`gdk_window_is_visible`): when the compositor
+  dismisses a tooltip, `xdg_popup_done` hides only its `GdkWindow` (`gdkwindow-wayland.c:2289`,
+  `gdkwindow.c:5684-5690`), and `gtk_widget_get_visible` stays TRUE until GTK hides the tooltip itself. Alt+Tab with
+  a tooltip showing still closes the popup (observed): the Alt press reaches the app, which hides the tooltip after
+  handling the key (`gtkmain.c:1949-1961`). X11 tooltips never take the focus, so the check is gated on
+  `is_running_on_wayland()`. (Line numbers are GTK 3.24.52.)
+  **Limit:** wxGTK sends `wxEVT_ACTIVATE(false)` only while it holds an active frame and then clears it
+  (`g_activeFrame`, `src/gtk/toplevel.cpp:196-202`), so a deactivation ignored this way is never repeated. If the
+  app loses the focus while the tooltip holds it, without Orca seeing a key or the pointer leave first (another
+  app's window taking the focus, a gesture), the popup stays open until the user returns, and the first click
+  closes it (observed with a dialog from another app). Closing that gap means waiting for the compositor to
+  reactivate the toplevel, which takes a timer or a blocking round trip.
+  ```cpp
+  // Wrong: every toplevel deactivation dismisses, including the one the popup's own tooltip causes
+  if (!event.GetActive() && IsShown() && ShouldDismissOnTopWindowDeactivate())
+      DismissAndNotify();
+  // Right (wxGTK): Wayland only, skip it while a tooltip of this popup or of a popup opened from it is mapped
+  static bool own_tooltip_mapped(GtkWindow *popup)
+  {
+      bool mapped = false;
+      for_each_tooltip_window([popup, &mapped](GtkWindow *win) {   // GDK_WINDOW_TYPE_HINT_TOOLTIP toplevels
+          GdkWindow *gdk_win = gtk_widget_get_window(GTK_WIDGET(win));
+          if (!gdk_win || !gdk_window_is_visible(gdk_win))
+              return;
+          for (GtkWindow *w = gtk_window_get_transient_for(win); w && !mapped; w = gtk_window_get_transient_for(w))
+              mapped = w == popup;
+      });
+      return mapped;
+  }
+  if (!event.GetActive() && IsShown() && ShouldDismissOnTopWindowDeactivate() &&
+      !(Slic3r::GUI::is_running_on_wayland() && own_tooltip_mapped(GTK_WINDOW(m_widget))))
+      DismissAndNotify();
+  ```
+  Cite: `PopupWindow::topWindowActiavate` (#16800).
 
 ## 10. Frameless dialog instead of a popup
 

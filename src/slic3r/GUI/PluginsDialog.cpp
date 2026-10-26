@@ -48,6 +48,7 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 namespace {

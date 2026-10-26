@@ -286,10 +286,10 @@ modules:
         sha256: 7c033d917ee8f040c0512d289dcc5f02c148889d5bac17c3e25639accb44f0da
         dest: external-packages/OCCT
 
-      # OpenCV 4.6.0
+      # OpenCV 4.14.0
       - type: file
-        url: https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
-        sha256: 1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
+        url: https://github.com/opencv/opencv/archive/refs/tags/4.14.0.tar.gz
+        sha256: ee8fb9b30eb60850431b4656447080e3737b56e45719c92b67f245950609f86e
         dest: external-packages/OpenCV
 
       # CPython 3.12.13
@@ -330,10 +330,10 @@ modules:
         sha256: c2856951bbf30e30861ace3765595d86ba13f2cf01279d901f6c62258c57f4ff
         dest: external-packages/ZLIB
 
-      # libpng 1.6.35
+      # libpng 1.6.59
       - type: file
-        url: https://github.com/glennrp/libpng/archive/refs/tags/v1.6.35.zip
-        sha256: 3d22d46c566b1761a0e15ea397589b3a5f36ac09b7c785382e6470156c04247f
+        url: https://github.com/glennrp/libpng/archive/refs/tags/v1.6.59.zip
+        sha256: 6fd97a1e5e2ac55cec0a538a9800a351eb3844086736291844ebd12db72ba433
         dest: external-packages/PNG
 
       # libjpeg-turbo 3.2.0
@@ -341,12 +341,6 @@ modules:
         url: https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.2.0.zip
         sha256: 1b4c2cb6cba1ca5e53b9e85eeeab02154cab4b70894c96e97a9c747a26d19d63
         dest: external-packages/JPEG
-
-      # Freetype 2.12.1
-      - type: file
-        url: https://github.com/SoftFever/orca_deps/releases/download/freetype-2.12.1.tar.gz/freetype-2.12.1.tar.gz
-        sha256: efe71fd4b8246f1b0b1b9bfca13cfff1c9ad85930340c27df469733bbb620938
-        dest: external-packages/FREETYPE
 
   - name: OrcaSlicer
     buildsystem: simple
