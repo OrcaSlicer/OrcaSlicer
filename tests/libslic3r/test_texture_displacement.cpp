@@ -1596,13 +1596,19 @@ TEST_CASE("background removal keys out corner or chosen colours into alpha witho
           "[TextureDisplacement]")
 {
     DecodedHeightTexture src = make_rgb_flat(255, 255, 255, 4, 4);
-    // Red centre pixel at (1, 1), and one stray black corner at (0, 0) to verify the median of the four
-    // corners still picks white.
-    src.rgb[0] = src.rgb[1] = src.rgb[2] = 0;
-    const size_t centre                  = (1 * 4 + 1) * 3;
-    src.rgb[centre]                      = 220;
-    src.rgb[centre + 1]                  = 20;
-    src.rgb[centre + 2]                  = 20;
+    auto set_rgb = [&](int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+        const size_t i     = size_t(y) * 4 + size_t(x);
+        src.rgb[i * 3]     = r;
+        src.rgb[i * 3 + 1] = g;
+        src.rgb[i * 3 + 2] = b;
+        src.pixels[i]      = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+    };
+    // Red 2x2 centre block at (1..2, 1..2), and one stray black corner at (0, 0) to verify the median
+    // of the four corners still picks white.
+    set_rgb(0, 0, 0, 0, 0);
+    for (int y = 1; y <= 2; ++y)
+        for (int x = 1; x <= 2; ++x)
+            set_rgb(x, y, 220, 20, 20);
 
     TextureAdjustments adj;
     adj.bg_remove       = true;
