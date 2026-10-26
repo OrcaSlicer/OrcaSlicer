@@ -54,6 +54,7 @@ add_executable(${_TEST_NAME}_tests
     test_imgui_wrapper.cpp
     test_user_manager.cpp
     test_sequential_clearance.cpp
+    test_object_list.cpp
     ../fff_print/test_helpers.cpp
     )
 
