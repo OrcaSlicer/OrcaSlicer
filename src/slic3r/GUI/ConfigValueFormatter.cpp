@@ -253,6 +253,13 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
         Vec2d val = config.opt<ConfigOptionPoints>(pure_key)->get_at(opt_idx);
         return from_u8((boost::format("[%1%]") % ConfigOptionPoint(val).serialize()).str());
     }
+    case coPointsGroups: {
+        const auto *groups = config.opt<ConfigOptionPointsGroups>(pure_key);
+        if (groups == nullptr || opt_idx < 0 || static_cast<size_t>(opt_idx) >= groups->values.size() ||
+            groups->values[static_cast<size_t>(opt_idx)].empty())
+            return wxString();
+        return get_thumbnails_string(groups->values[static_cast<size_t>(opt_idx)]);
+    }
     default:
         break;
     }

@@ -3398,6 +3398,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
     // init as filament map
     update_layer_related_config(0);
+    make_gcode_position_limits(&print);
 
     DoExport::init_gcode_processor(print.config(), m_processor, print.get_layered_nozzle_group_result());
     set_mass_locator(m_processor, print);
@@ -5061,6 +5062,23 @@ size_t GCode::get_nozzle_config_index(int filament_id) const
     return get_extruder_id(filament_id);
 }
 
+void GCode::make_gcode_position_limits(const Print* print)
+{
+    GCodePositionLimits limits;
+
+    for (const auto& poly : effective_extruder_move_areas(print->config())) {
+        Slic3r::Polygon extruder_area = Slic3r::Polygon::new_scale(poly);
+        limits.m_extruder_movable_areas.emplace_back(std::move(extruder_area));
+    }
+
+    auto& extruder_offsets = print->config().extruder_offset.values;
+    for (const auto& offset : extruder_offsets) {
+        limits.m_extruder_offsets.emplace_back(Slic3r::Vec2d(offset.x(), offset.y()));
+    }
+
+    m_position_limits = limits;
+}
+
 namespace {
 struct PrecomputedLayer
 {
@@ -5383,6 +5401,9 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
             }
         }
 
+        // check if the generated G-code is within the movable range of the extruder
+        check_gcode_pos_valid(name, output, current_filament_id, config_override);
+
         return output;
     } 
     catch (std::runtime_error &err) 
@@ -5399,6 +5420,45 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
             err.what() +
             "!!!!! End of an error report for the custom G-code template " + name + "\n\n";
     }
+}
+
+void GCode::check_gcode_pos_valid(const std::string& name,
+                                  const std::string& gcode,
+                                  unsigned int current_filament_id,
+                                  const DynamicConfig* config_override)
+{
+    if (!m_position_limits)
+        return;
+    if (this->m_processor.get_result().moves.empty())
+        return;
+
+    GCodePositionLimits& limits = *m_position_limits;
+    auto extruder_id      = m_print->get_extruder_id(current_filament_id);
+    auto& curr_pos    = limits.m_curr_pos;
+
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader& parser, const GCodeReader::GCodeLine& gline) {
+        float x = gline.has_x() ? gline.x() : parser.x();
+        float y = gline.has_y() ? gline.y() : parser.y();
+
+        const bool is_motion = gline.cmd_is("G0") || gline.cmd_is("G1") || gline.cmd_is("G2") || gline.cmd_is("G3");
+        if (!is_motion || !(gline.has_x() || gline.has_y()))
+            return;
+
+        curr_pos = Vec2d{x + limits.m_extruder_offsets[extruder_id].x(), y + limits.m_extruder_offsets[extruder_id].y()};
+        const bool outside_extruder_area = extruder_id >= limits.m_extruder_movable_areas.size() ||
+                                           !limits.m_extruder_movable_areas[extruder_id].contains(Point::new_scale(curr_pos));
+        if (outside_extruder_area) {
+            const std::string error_message = "Position : " + Slic3r::float_to_string_decimal_point(curr_pos.x(), 2) + " " +
+                                                Slic3r::float_to_string_decimal_point(curr_pos.y(), 2)
+                                                + " exceeds the movable range of the extruder in the G-code command : " + gline.raw() +
+                                              " due to the preset G-code setting : " + name;
+
+            m_print->active_step_add_warning(PrintStateBase::WarningLevel::CRITICAL, error_message,
+                                          PrintStateBase::SlicingNotificationType::SlicingGcodePositionError);
+            parser.quit_parsing();
+        }
+    });
 }
 
 

@@ -340,7 +340,8 @@ void Field::PostInitialize()
 	case coBools:
 	case coInts:
     // BBS
-    case coEnums: {
+    case coEnums:
+    case coPointsGroups: {
 		auto tag_pos = m_opt_id.find("#");
 		if (tag_pos != std::string::npos)
 			m_opt_idx = stoi(m_opt_id.substr(tag_pos + 1, m_opt_id.size()));
@@ -790,7 +791,8 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
         m_value = out_value;
         break; }
 
-    case coPoints: {
+    case coPoints:
+    case coPointsGroups: {
         std::vector<Vec2d> out_values;
         str.Replace(" ", wxEmptyString, true);
         const bool bed_exclusion_volume_syntax = m_opt_id == "bed_exclude_area" &&
@@ -955,7 +957,7 @@ void free_window(wxWindow *win)
 template<class T>
 bool is_defined_input_value(wxWindow* win, const ConfigOptionType& type)
 {
-    if (!win || (static_cast<T*>(win)->GetValue().empty() && type != coString && type != coStrings && type != coPoints && type != coPoint))
+    if (!win || (static_cast<T*>(win)->GetValue().empty() && type != coString && type != coStrings && type != coPoints && type != coPointsGroups && type != coPoint))
         return false;
     return true;
 }
@@ -1017,6 +1019,12 @@ void TextCtrl::BUILD() {
     case coPoints:
         text_value = get_thumbnails_string(m_opt.get_default_value<ConfigOptionPoints>()->values);
         break;
+    case coPointsGroups: {
+        const auto *groups = m_opt.get_default_value<ConfigOptionPointsGroups>();
+        if (groups != nullptr && !groups->values.empty())
+            text_value = get_thumbnails_string(groups->get_at(m_opt_idx));
+        break;
+    }
 	default:
 		break;
 	}
@@ -1154,6 +1162,8 @@ bool TextCtrl::value_was_changed()
     case coFloatOrPercent:
     case coFloatsOrPercents:
         return boost::any_cast<std::string>(m_value) != boost::any_cast<std::string>(val);
+    case coPointsGroups:
+        return boost::any_cast<std::vector<Vec2d>>(m_value) != boost::any_cast<std::vector<Vec2d>>(val);
     default:
         return true;
     }

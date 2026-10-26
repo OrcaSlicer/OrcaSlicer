@@ -1986,6 +1986,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloatOrPercent,     max_travel_detour_distance))
     ((ConfigOptionPoints,             printable_area))
     ((ConfigOptionPointsGroups,       extruder_printable_area))
+    ((ConfigOptionPointsGroups,       extruder_movable_area))
     ((ConfigOptionBool,               support_parallel_printheads))
     ((ConfigOptionInt,                parallel_printheads_count))
     ((ConfigOptionStrings,            parallel_printheads_bed_exclude_areas))
@@ -2406,6 +2407,11 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE0(
 #undef PRINT_CONFIG_CLASS_DERIVED_INITCACHE
 #undef PRINT_CONFIG_CLASS_DERIVED_INITIALIZER
 #undef PRINT_CONFIG_CLASS_DERIVED_INITIALIZER_ITEM
+
+// Returns the effective per-extruder movable areas. An unset or empty
+// extruder area uses the printable bed bounding box expanded by 2 mm on each
+// side; explicit user areas are preserved.
+std::vector<Pointfs> effective_extruder_move_areas(const ConfigBase& config);
 
 class CLIActionsConfigDef : public ConfigDef
 {

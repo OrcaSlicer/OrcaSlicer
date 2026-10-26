@@ -15217,6 +15217,9 @@ msgstr "可打印区域"
 msgid "Extruder printable area"
 msgstr "挤出机可打印区域"
 
+msgid "Extruder movable area"
+msgstr "挤出机可移动区域"
+
 # AI Translated
 msgid "Support parallel printheads"
 msgstr "支持并联工具头"

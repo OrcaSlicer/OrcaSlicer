@@ -6293,10 +6293,13 @@ if (is_marlin_flavor)
             Option option         = optgroup->get_option("extruder_printable_area", extruder_idx);
             option.opt.full_width = true;
             optgroup->append_single_option_line(option, "printer_extruder_basic_information#extruder-printable-area");
-
             Option exclusion_option = optgroup->get_option("extruder_bed_exclude_volumes", extruder_idx);
             exclusion_option.opt.full_width = true;
             optgroup->append_single_option_line(exclusion_option, "printer_basic_information_printable_space#toolhead-collision-volumes");
+
+            Option option_movable         = optgroup->get_option("extruder_movable_area", extruder_idx);
+            option_movable.opt.full_width = true;
+            optgroup->append_single_option_line(option_movable, "printer_extruder_basic_information#extruder-movable-area");
 
             optgroup->m_on_change = [this](const t_config_option_key& opt_key, boost::any value)
             {
@@ -6922,8 +6925,11 @@ void TabPrinter::toggle_options()
         const wxString extruder_geometry_reason = _L("The extruder printable area and height are fixed by the printer profile.");
         toggle_option("extruder_printable_area", false, i, extruder_geometry_reason);          // disable
         const wxString dual_extruder_reason = _L("This setting is shown for printers with exactly two extruders.");
-        toggle_line("extruder_printable_area", m_preset_bundle->get_printer_extruder_count() == 2, i,
-            dual_extruder_reason);  //hide
+        toggle_line("extruder_printable_area", m_preset_bundle->get_printer_extruder_count() == 2, i, dual_extruder_reason);  //hide
+
+        // extruder_movable_area is user-editable; only show it when multiple extruders are configured.
+        toggle_line("extruder_movable_area", m_preset_bundle->get_printer_extruder_count() > 1 , i); // hide
+
         const bool per_extruder_exclusions =
             m_config->opt_enum<BedExcludeVolumeMode>("bed_exclude_volume_mode") == BedExcludeVolumeMode::PerExtruder;
         toggle_line("extruder_bed_exclude_volumes", m_preset_bundle->get_printer_extruder_count() > 1 && per_extruder_exclusions, i,
