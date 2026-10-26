@@ -1,4 +1,6 @@
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
+#include <BRepAdaptor_Surface.hxx>
+#include <GeomAbs_SurfaceType.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRep_Tool.hxx>
 #include <TopExp_Explorer.hxx>
@@ -1150,6 +1152,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 // read as the offset from the face centre (editable for precise placement).
                 m_hole_on_face   = false;
                 m_hole_face_body = -1;
+                m_hole_face      = -1;
                 m_hole_has_bounds = false;
                 set_hole_target_label(-1);
                 // The hole goes where the user pointed (L1): a picked face. The keyboard route
@@ -1167,6 +1170,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         m_hole_face_plane = face_plane_inward(face);
                         m_hole_on_face    = true;
                         m_hole_face_body  = hb;
+                        m_hole_face       = hf;
                         set_hole_target_label(hf);   // may be the top-face default, not a pick
                         // Face (u,v) extents so the hole dims read from the sides (#2 Part B).
                         m_hole_has_bounds = GeometryEngine::face_plane_bounds(
@@ -1189,6 +1193,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 // the user never types a radius. The diameter field shows what was derived.
                 m_thread_on_face   = false;
                 m_thread_face_body = -1;
+                m_thread_face      = -1;
                 set_thread_target_label(-1, -1);
                 GeometryEngine::CylinderFace cf;
                 bool from_face = false;   // which of the two the cylinder actually came from
@@ -1210,6 +1215,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     m_thread_face_plane = p;
                     m_thread_on_face    = true;
                     m_thread_face_body  = m_sel_solid_body;
+                    m_thread_face       = from_face ? m_sel_solid_face : -1;
                     set_thread_target_label(from_face ? m_sel_solid_face : -1,
                                             from_face ? -1 : m_sel_solid_edge);
                     if (m_thread_internal) m_thread_internal->SetValue(cf.internal);
@@ -1953,6 +1959,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // face's plane instead of the chosen XY/XZ/YZ).
     m_hole_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
         m_hole_on_face    = false;
+        m_hole_face       = -1;
         m_hole_has_bounds = false;
         set_hole_target_label(-1);
         update_hole_gizmo();
@@ -3607,6 +3614,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_hole_face_plane = face_plane_inward(fc);
                 m_hole_on_face    = true;
                 m_hole_face_body  = body;
+                m_hole_face       = face;
                 set_hole_target_label(face);
                 m_hole_has_bounds = GeometryEngine::face_plane_bounds(
                     fc, m_hole_face_plane.origin, m_hole_face_plane.x_axis,
@@ -3634,6 +3642,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_thread_face_plane = p;
                 m_thread_on_face    = true;
                 m_thread_face_body  = m_sel_solid_body;
+                m_thread_face       = from_face ? face : -1;
                 set_thread_target_label(from_face ? face : -1, from_face ? -1 : edge);
                 if (m_thread_internal) m_thread_internal->SetValue(cf.internal);
                 infer_thread_spec(2.0 * cf.radius, cf.internal);   // M size + pitch + depth from the cylinder
@@ -4971,6 +4980,8 @@ void DesignPanel::add_imported_sketch(
             f.import_offset    = c_uv - 0.5 * (lo + hi);              // centre the art on the face
             f.import_on_face   = true;
             f.import_face_body = m_sel_solid_body;
+            SketchPlane fp;   // the art rides the face, whichever way an earlier step moves it
+            if (m_doc.plane_of_face(m_sel_solid_body, m_sel_solid_face, fp)) { f.attach_body = m_sel_solid_body; f.attach_face = m_sel_solid_face; }
             on_face = true;
         }
     }
@@ -5060,8 +5071,17 @@ void DesignPanel::on_add_sketch()
     wxString where;                                            // named for the status line
     SketchPlane plane = sketch_plane_from_selection(where);    // picked face, else the 3D plane click
     m_feature_counter++;
-    m_doc.add_sketch(shape, plane, m_width->GetValue(), m_height->GetValue(),
-                     m_radius->GetValue(), feature_name(_L("Sketch")));
+    const int sk = m_doc.add_sketch(shape, plane, m_width->GetValue(), m_height->GetValue(),
+                                    m_radius->GetValue(), feature_name(_L("Sketch")));
+    {   // drawn on a picked face: it follows that face through edits upstream, as a sketch drawn with the sketch tool does
+        const int fb = (m_sel_solid_face >= 0 && m_sel_solid_body >= 0) ? m_sel_solid_body : m_pick_face_body;
+        const int fi = (m_sel_solid_face >= 0 && m_sel_solid_body >= 0) ? m_sel_solid_face : m_pick_face;
+        SketchPlane fp;
+        if (sk >= 0 && fb >= 0 && fi >= 0 && m_doc.plane_of_face(fb, fi, fp)) {
+            m_doc.features[sk].attach_body = fb;
+            m_doc.features[sk].attach_face = fi;
+        }
+    }
     m_doc.recompute();  // a lone sketch yields an empty body; that is expected
     set_status(StatusKind::Info, wxString::Format(_L("Sketch added (plane: %s) — select it, then right-click to Extrude"), where));
     refresh_tree();
@@ -5215,6 +5235,19 @@ SketchPlane DesignPanel::hole_plane() const
     return p;
 }
 
+// A hole or thread picked on a face is told which one, so the rebuild can carry its plane with the face when an earlier
+// step is edited. Only if the face is what the plane was made from: a planar face for a hole, a cylinder for a thread.
+void DesignPanel::attach_to_face(CadFeature& f, int body, int face, bool cylinder) const
+{
+    f.attach_body = f.attach_face = -1;
+    if (body < 0 || face < 0 || body >= int(m_doc.bodies.size())) return;
+    const TopoDS_Face fc = GeometryEngine::face_by_index(m_doc.bodies[size_t(body)].shape, face);
+    if (fc.IsNull()) return;
+    if (cylinder ? !GeometryEngine::cylinder_of_face(fc).ok : BRepAdaptor_Surface(fc).GetType() != GeomAbs_Plane) return;
+    f.attach_body = body;
+    f.attach_face = face;
+}
+
 void DesignPanel::on_add_hole()
 {
     if (m_doc.body.IsNull()) {
@@ -5232,8 +5265,10 @@ void DesignPanel::on_add_hole()
     const int hidx = m_doc.add_hole(dia, depth, through, px, py, plane,
                                     feature_name(_L_CONTEXT("Hole", "Design")));
     // On-face holes drill the body the face belongs to (even after the pick was cleared).
-    if (m_hole_on_face && hidx >= 0 && hidx < int(m_doc.features.size()))
+    if (m_hole_on_face && hidx >= 0 && hidx < int(m_doc.features.size())) {
         m_doc.features[hidx].target_body = m_hole_face_body;
+        attach_to_face(m_doc.features[hidx], m_hole_face_body, m_hole_face, false);
+    }
 
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
@@ -5310,8 +5345,10 @@ void DesignPanel::on_add_thread()
                      internal, m_thread_x->GetValue(), m_thread_y->GetValue(),
                      plane, feature_name(_L("Thread")));
     // On-surface internal thread taps the body the cylindrical face belongs to.
-    if (m_thread_on_face && tidx >= 0 && tidx < int(m_doc.features.size()))
+    if (m_thread_on_face && tidx >= 0 && tidx < int(m_doc.features.size())) {
         m_doc.features[tidx].target_body = m_thread_face_body;
+        attach_to_face(m_doc.features[tidx], m_thread_face_body, m_thread_face, true);
+    }
 
     if (!recompute_guarded(_L("Rebuilding model…")))
         set_status(StatusKind::Error, wxString::Format(_L("The model could not be rebuilt: %s"), kernel_error_text(m_doc.error)));
@@ -9966,6 +10003,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_hole_on_face    = !is_base_plane(f.plane, m_doc.modeling_origin);
         m_hole_face_plane = f.plane;
         m_hole_face_body  = m_hole_on_face ? f.target_body : -1;
+        m_hole_face       = m_hole_on_face ? f.attach_face : -1;
         // The face's (u,v) extent is not serialized, so the gizmo's footprint clamp has nothing
         // to stand on. Unbounded is the honest state; the stale bounds of another face are not.
         m_hole_has_bounds = false;
@@ -9991,6 +10029,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_thread_on_face    = !is_base_plane(f.plane, m_doc.modeling_origin);
         m_thread_face_plane = f.plane;
         m_thread_face_body  = m_thread_on_face ? f.target_body : -1;
+        m_thread_face       = m_thread_on_face ? f.attach_face : -1;
         if (m_thread_target_label)
             m_thread_target_label->SetLabel(m_thread_on_face
                 ? (f.target_body >= 0 ? wxString::Format(_L("On a face of Body %d"), f.target_body + 1)
@@ -10692,7 +10731,8 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.hole_through  = m_hole_through->GetValue();
         f.hole_x        = m_hole_x->GetValue();
         f.hole_y        = m_hole_y->GetValue();
-        if (m_hole_on_face) f.target_body = m_hole_face_body;   // preview the right body
+        if (m_hole_on_face) { f.target_body = m_hole_face_body; attach_to_face(f, m_hole_face_body, m_hole_face, false); }   // preview the right body
+        else                { f.attach_body = f.attach_face = -1; }
         break;
     case Tool::Thread:
         f.type            = CadFeatureType::Thread;
@@ -10708,7 +10748,8 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         // re-edited keeps the reading it was made with (f was seeded from it), so editing its
         // pitch does not also silently change its diameter.
         if (!editing) f.thread_major_nominal = true;
-        if (m_thread_on_face) f.target_body = m_thread_face_body;   // tap the right body
+        if (m_thread_on_face) { f.target_body = m_thread_face_body; attach_to_face(f, m_thread_face_body, m_thread_face, true); }   // tap the right body
+        else                  { f.attach_body = f.attach_face = -1; }
         break;
     case Tool::Shell:
         f.type            = CadFeatureType::Shell;

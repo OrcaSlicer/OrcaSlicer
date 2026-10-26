@@ -331,6 +331,8 @@ json describe_tools_core()
                      json{{"name", "x"},        {"type", "number"}, {"unit", "mm"}, {"default", 0}, {"description", "in the sketch plane's frame (origin = describe_scene.modeling_origin), NOT world"}},
                      json{{"name", "y"},        {"type", "number"}, {"unit", "mm"}, {"default", 0}, {"description", "in the sketch plane's frame (origin = describe_scene.modeling_origin), NOT world"}},
                      json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                     json{{"name", "face"},     {"type", "integer"}, {"description", "a planar face id from query_topology: drill ON it (x,y from the face centre), and the hole follows that face when an earlier step is edited. Replaces plane."}},
+                     json{{"name", "body"},     {"type", "integer"}, {"description", "the body that face is on; omit for the last"}},
                  })}},
             json{{"name", "hole_styled"}, {"summary", "Drill a hole with optional counterbore (style=1) or countersink (style=2) at (x,y) on a plane."},
                  {"params", json::array({
@@ -805,6 +807,56 @@ SketchPlane plane_from(const json& params, const CadDocument& doc)
     SketchPlane pl = n == "XZ" ? SketchPlane::XZ() : n == "YZ" ? SketchPlane::YZ() : SketchPlane::XY();
     pl.origin = doc.modeling_origin;   // land on the bed centre, like the GUI
     return pl;
+}
+
+// A hole or thread given a `face` (an id from query_topology, on `body`, default the last) sits ON that face and follows it
+// through upstream edits, as a sketch drawn on a face does: the hole's x,y are then from the face centre, the plane faces
+// into the body. A thread's face is the cylinder it is cut on, its plane the cylinder's axis.
+static bool face_of_params(const json& params, const CadDocument& doc, int& body, int& face, TopoDS_Face& fc)
+{
+    if (!params.contains("face")) return false;
+    if (!params["face"].is_number_integer()) throw std::runtime_error("'face' must be a face id from query_topology");
+    body = params.value("body", int(doc.bodies.size()) - 1);
+    face = params["face"].get<int>();
+    if (body < 0 || body >= int(doc.bodies.size())) throw std::runtime_error("body index out of range");
+    fc = GeometryEngine::face_by_index(doc.bodies[size_t(body)].shape, face);
+    if (fc.IsNull()) throw std::runtime_error("no such face on that body (ids expire when the model rebuilds)");
+    return true;
+}
+
+SketchPlane hole_plane_from(const json& params, const CadDocument& doc)
+{
+    int body, face; TopoDS_Face fc;
+    if (!face_of_params(params, doc, body, face, fc)) return plane_from(params, doc);
+    SketchPlane pl;
+    if (!doc.plane_of_face(body, face, pl)) throw std::runtime_error("the face is not planar");
+    pl.normal = -pl.normal;                       // into the body, as the GUI's hole does
+    pl.y_axis = pl.normal.cross(pl.x_axis);
+    return pl;
+}
+
+SketchPlane thread_plane_from(const json& params, const CadDocument& doc)
+{
+    int body, face; TopoDS_Face fc;
+    if (!face_of_params(params, doc, body, face, fc)) return plane_from(params, doc);
+    const GeometryEngine::CylinderFace cf = GeometryEngine::cylinder_of_face(fc);
+    if (!cf.ok) throw std::runtime_error("the face is not a cylinder");
+    SketchPlane p;
+    p.origin = cf.base;
+    p.normal = cf.axis;
+    const Vec3d ref = std::abs(cf.axis.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+    p.x_axis = ref.cross(cf.axis).normalized();
+    p.y_axis = cf.axis.cross(p.x_axis).normalized();
+    return p;
+}
+
+void attach_to_face(CadFeature& f, const json& params, const CadDocument& doc)
+{
+    int body, face; TopoDS_Face fc;
+    if (!face_of_params(params, doc, body, face, fc)) return;
+    f.attach_body = body;
+    f.attach_face = face;
+    f.target_body = body;
 }
 BooleanMode bool_from(const std::string& s)
 {
@@ -1450,7 +1502,7 @@ json action_hole(DesignPanel* panel, const json& params)
     if (dia <= 0) throw std::runtime_error("diameter must be > 0");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to drill");
-    SketchPlane pl = plane_from(params, doc);
+    SketchPlane pl = hole_plane_from(params, doc);
     std::vector<std::pair<double, double>> pts;   // `points` [[x,y],...] = one hole each, one undo step; else the single x,y
     if (params.contains("points")) {
         if (!params["points"].is_array() || params["points"].empty()) throw std::runtime_error("'points' must be a non-empty [[x,y],...]");
@@ -1465,7 +1517,7 @@ json action_hole(DesignPanel* panel, const json& params)
     int h = -1;
     const double tip = params.value("tip_angle", 0.0);
     if (tip < 0 || tip >= 180) throw std::runtime_error("tip_angle must be in [0, 180)");
-    for (const auto& p : pts) { h = doc.add_hole(dia, depth, thru, p.first, p.second, pl, "Hole"); doc.features[size_t(h)].hole_tip_angle = tip; if (target >= 0) doc.features[size_t(h)].target_body = target; }
+    for (const auto& p : pts) { h = doc.add_hole(dia, depth, thru, p.first, p.second, pl, "Hole"); doc.features[size_t(h)].hole_tip_angle = tip; attach_to_face(doc.features[size_t(h)], params, doc); if (target >= 0) doc.features[size_t(h)].target_body = target; }
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
@@ -1487,7 +1539,7 @@ json action_hole_styled(DesignPanel* panel, const json& params)
     if (dia <= 0) throw std::runtime_error("diameter must be > 0");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to drill");
-    SketchPlane pl = plane_from(params, doc);
+    SketchPlane pl = hole_plane_from(params, doc);
     std::vector<std::pair<double, double>> pts;   // `points` [[x,y],...] = one styled hole each, one undo step
     if (params.contains("points")) {
         if (!params["points"].is_array() || params["points"].empty()) throw std::runtime_error("'points' must be a non-empty [[x,y],...]");
@@ -1506,6 +1558,7 @@ json action_hole_styled(DesignPanel* panel, const json& params)
                                 cbore_diameter, cbore_depth,
                                 csink_diameter, csink_angle, standard, "Hole");
         doc.features[size_t(h)].hole_tip_angle = tip;
+        attach_to_face(doc.features[size_t(h)], params, doc);
     }
     bool ok = doc.recompute();
     if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
@@ -1523,10 +1576,11 @@ json action_hole_standard(DesignPanel* panel, const json& params)
     const double x = params.value("x", 0.0), y = params.value("y", 0.0);
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to drill");
-    SketchPlane pl = plane_from(params, doc);
+    SketchPlane pl = hole_plane_from(params, doc);
     doc.checkpoint();
     try {
         int h = doc.add_hole_standard(desig, style, thru, depth, x, y, pl, "Hole");
+        attach_to_face(doc.features[size_t(h)], params, doc);
         bool ok = doc.recompute();
         if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
         panel->mcp_after_change();
@@ -3622,10 +3676,11 @@ json action_thread(DesignPanel* panel, const json& params)
     if (doc.bodies.empty()) throw std::runtime_error("no body to thread");
     const double r = params.value("radius", 5.0), pitch = params.value("pitch", 2.0), h = params.value("height", 10.0), d = params.value("depth", 1.0);
     if (r <= 0 || pitch <= 0 || h <= 0 || d <= 0) throw std::runtime_error("radius, pitch, height and depth must be > 0");
-    SketchPlane pl = plane_from(params, doc);
+    SketchPlane pl = thread_plane_from(params, doc);
     doc.checkpoint();
     const int i = doc.add_thread(r, pitch, h, d, params.value("internal", false), params.value("x", 0.0), params.value("y", 0.0), pl, "Thread");
     doc.features[i].thread_major_nominal = true;
+    attach_to_face(doc.features[size_t(i)], params, doc);
     return finish_feature(panel, doc, json{{"thread_index", i}});
 }
 

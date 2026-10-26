@@ -10355,6 +10355,87 @@ TEST_CASE("a sketch attached to a face follows it", "[CadDocument][naming]")
     }
 }
 
+// A hole drilled on a face is a plane plus a position; unless it is told which face, an edit upstream leaves it drilling
+// where the face used to be. Every id-valued field of a feature has to follow its face the same way.
+TEST_CASE("a hole drilled on a face follows the face", "[CadDocument][naming]")
+{
+    auto top_area = [](const CadDocument& d) {   // the highest upward face of body 0
+        double best_z = -1e9, area = 0;
+        for (const TopoDS_Face& f : GeometryEngine::faces_of(d.bodies[0].shape)) {
+            if (GeometryEngine::face_normal_world(f).z() < 0.99) continue;
+            const double z = GeometryEngine::face_centroid_world(f).z();
+            if (z > best_z) { best_z = z; GProp_GProps g; BRepGProp::SurfaceProperties(f, g); area = g.Mass(); }
+        }
+        return area;
+    };
+    auto build = [](CadDocument& doc, int& base, bool attach) {
+        SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+        const int s = doc.add_sketch_profile(sp, SketchPlane::XY(), "Base");
+        base = doc.add_extrude(s, 10.0, false, BooleanMode::New, "Base");
+        REQUIRE(doc.recompute());
+        int top = -1;
+        const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+        for (size_t i = 0; i < faces.size(); ++i)
+            if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+        REQUIRE(top >= 0);
+        SketchPlane pl; REQUIRE(doc.plane_of_face(0, top, pl));
+        pl.normal = -pl.normal; pl.y_axis = pl.normal.cross(pl.x_axis);   // into the body, as the Hole card does
+        const int h = doc.add_hole(6.0, 4.0, false, 8.0, 8.0, pl, "Hole");
+        if (attach) { doc.features[h].attach_body = 0; doc.features[h].attach_face = top; }
+        REQUIRE(doc.recompute());
+    };
+    const double with_hole = 40.0 * 40.0 - M_PI * 9.0;
+    SECTION("the base grows taller") {
+        CadDocument doc; int base;
+        build(doc, base, true);
+        CHECK(top_area(doc) == Approx(with_hole).epsilon(1e-6));
+        doc.features[base].distance = 15.0;
+        REQUIRE(doc.recompute());
+        CHECK(top_area(doc) == Approx(with_hole).epsilon(1e-6));   // the hole is still open at the new top
+        CHECK(doc.feature_warnings.empty());
+    }
+    SECTION("without the attachment it stays behind (the bug this guards)") {
+        CadDocument doc; int base;
+        build(doc, base, false);
+        doc.features[base].distance = 15.0;
+        REQUIRE(doc.recompute());
+        CHECK(top_area(doc) == Approx(40.0 * 40.0).epsilon(1e-6));
+    }
+    SECTION("it survives a save") {
+        CadDocument doc; int base;
+        build(doc, base, true);
+        CadDocument back;
+        REQUIRE(back.deserialize_recipe(doc.serialize_recipe()));
+        back.features[base].distance = 15.0;
+        REQUIRE(back.recompute());
+        CHECK(top_area(back) == Approx(with_hole).epsilon(1e-6));
+    }
+}
+
+TEST_CASE("a split by a face follows the face when a hole renumbers the faces before it", "[CadDocument][naming]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+    SketchProfile bp; bp.points = { Vec2d(10,10), Vec2d(30,10), Vec2d(30,30), Vec2d(10,30) }; bp.closed = true;
+    SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+    doc.add_extrude(doc.add_sketch_profile(bp, on_top, "Boss"), 5.0, false, BooleanMode::Add, "Boss");
+    REQUIRE(doc.recompute());
+    int side = -1;   // the boss's +x wall
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i)
+        if (GeometryEngine::face_normal_world(faces[i]).x() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).x() - 30.0) < 1e-6) side = int(i);
+    REQUIRE(side >= 0);
+    doc.add_split_by_face(0, 0, side, true, true, "Split");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    const int hole = doc.add_hole(6.0, 10.0, true, 5.0, 5.0, SketchPlane::XY(), "Hole");   // appended, then moved in front of the split
+    std::rotate(doc.features.begin() + hole - 1, doc.features.begin() + hole, doc.features.end());
+    REQUIRE(doc.recompute());
+    CHECK(doc.bodies.size() == 2);
+    CHECK(doc.feature_warnings.empty());
+}
+
 // Acceptance: on a 30-feature model a tail edit replays one feature and costs a fraction of a full rebuild.
 TEST_CASE("a tail edit on a 30-feature model is much cheaper than a full rebuild", "[CadDocument][incremental]")
 {

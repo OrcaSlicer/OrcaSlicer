@@ -4956,18 +4956,36 @@ static bool replay_is_trivial(const CadFeature& f)
         || f.type == CadFeatureType::SmRule;
 }
 
-// Carry the face/edge ids of `f` from the body it was written against (`was`) to the rebuilt one (`now`). Returns how
-// many it could not place; those keep their id. Only single-body references: a boolean's two bodies are left alone.
-static int remap_feature_refs(CadFeature& f, const TopoDS_Shape& was, const TopoDS_Shape& now)
+// Carry every face/edge id of `f` from the bodies it was written against (`was`) to the rebuilt ones (`now`). `target` is
+// the body the feature works on; a field that names another body (a cut face, a project source, a datum's body) is
+// followed on that one. Returns how many it could not place; those keep their id. Every id-valued field of CadFeature
+// is listed here: one added without a line below silently points elsewhere after the first upstream edit (see the
+// "every id field is followed" test in test_caddocument.cpp).
+static int remap_feature_refs(CadFeature& f, const std::vector<CadBody>& was, const std::vector<CadBody>& now, int target)
 {
     int lost = 0;
-    auto face = [&](int& id) { if (id < 0) return; const int n = TopoRemap::remap_face(was, now, id); if (n < 0) ++lost; else id = n; };
-    auto edge = [&](int& id) { if (id < 0) return; const int n = TopoRemap::remap_edge(was, now, id); if (n < 0) ++lost; else id = n; };
-    face(f.up_to_face); face(f.extrude_src_face); face(f.shell_face); face(f.draft_face);
-    for (int& id : f.shell_faces) face(id);
-    for (int& id : f.draft_faces) face(id);
-    edge(f.dressup_edge);
-    for (int& id : f.dressup_edges) edge(id);
+    auto usable = [&](int body) { return body >= 0 && body < int(was.size()) && body < int(now.size()) && !was[body].shape.IsSame(now[body].shape); };
+    auto face = [&](int body, int& id) { if (id < 0 || !usable(body)) return; const int n = TopoRemap::remap_face(was[body].shape, now[body].shape, id); if (n < 0) ++lost; else id = n; };
+    auto edge = [&](int body, int& id) { if (id < 0 || !usable(body)) return; const int n = TopoRemap::remap_edge(was[body].shape, now[body].shape, id); if (n < 0) ++lost; else id = n; };
+    auto last = [&](int ref) { return ref == -1 ? int(now.size()) - 1 : ref; };   // pick_body's rule
+    const int t = target;
+    face(t, f.up_to_face); face(t, f.extrude_src_face); face(t, f.shell_face); face(t, f.draft_face);
+    for (int& id : f.shell_faces) face(t, id);
+    for (int& id : f.draft_faces) face(t, id);
+    for (int& id : f.delete_faces) face(t, id);
+    edge(t, f.dressup_edge);
+    for (int& id : f.dressup_edges) edge(t, id);
+    face(t, f.thicken_face);
+    face(t, f.bool_target_face); face(last(f.bool_tool_body), f.bool_tool_face);
+    face(f.cut_face_body == -1 ? t : f.cut_face_body, f.cut_face);
+    const int src = last(f.project_source_body);
+    for (int& id : f.project_edges) edge(src, id);
+    face(src, f.project_face);
+    // datum planes, axes and coordinate systems: their bodies are explicit (-1 = no reference)
+    face(f.plane_face_body, f.plane_face);   face(f.plane_face2_body, f.plane_face2);
+    edge(f.plane_edge_body, f.plane_edge);   edge(f.plane_edge2_body, f.plane_edge2);
+    face(f.axis_body, f.axis_face);          edge(f.axis_body, f.axis_edge);
+    face(f.coordsys_body, f.coordsys_face);  edge(f.coordsys_body, f.coordsys_edge);
     return lost;
 }
 
@@ -5026,20 +5044,34 @@ bool CadDocument::recompute()
             prof.hash_ms += Prof::since(th);
             return h;
         };
-        // A sketch drawn on a face follows that face: find where the face went, and move the sketch plane onto it.
-        auto attach_update = [&](size_t fi) {
+        // A sketch or hole drawn on a face (a thread on a cylinder) follows that face: find where the face went, and move
+        // the plane onto it.
+        auto attach_update = [&](size_t fi, auto was) {
             CadFeature& f = features[fi];
-            auto warn = [&](const std::string& why) { feature_warnings.emplace_back(int(fi), why); };
+            const std::string what = f.type == CadFeatureType::Sketch ? _u8L("the sketch") : f.type == CadFeatureType::Hole ? _u8L("the hole") : _u8L("the thread");
+            auto warn = [&](const std::string& why) { feature_warnings.emplace_back(int(fi), what + why + _u8L("; it stays where it is")); };
             const int tb = f.attach_body;
-            if (tb < 0 || tb >= int(built.size())) { warn(_u8L("the sketch's body no longer exists at this point; the sketch stays where it is")); return; }
+            if (tb < 0 || tb >= int(built.size())) { warn(_u8L("'s body no longer exists at this point")); return; }
             int face = f.attach_face;
-            auto was = m_seen_by_feature.find(own_hash(f));
-            if (remap_refs && was != m_seen_by_feature.end() && tb < int(was->second.size()) && !was->second[tb].shape.IsSame(built[tb].shape)) {
+            if (was != m_seen_by_feature.end() && tb < int(was->second.size()) && !was->second[tb].shape.IsSame(built[tb].shape)) {
                 face = TopoRemap::remap_face(was->second[tb].shape, built[tb].shape, face);
-                if (face < 0) { warn(_u8L("the sketch lost the face it was drawn on; the sketch stays where it is")); return; }
+                if (face < 0) { warn(_u8L(" lost the face it was drawn on")); return; }
             }
             const TopoDS_Face fc = GeometryEngine::face_by_index(built[tb].shape, face);
-            if (fc.IsNull() || BRepAdaptor_Surface(fc).GetType() != GeomAbs_Plane) { warn(_u8L("the sketch's face is no longer planar; the sketch stays where it is")); return; }
+            if (f.type == CadFeatureType::Thread) {   // the axis of the cylinder it was cut on
+                const GeometryEngine::CylinderFace cf = fc.IsNull() ? GeometryEngine::CylinderFace() : GeometryEngine::cylinder_of_face(fc);
+                if (!cf.ok) { warn(_u8L("'s cylinder is gone")); return; }
+                SketchPlane np = f.plane;
+                np.origin = cf.base;
+                np.normal = cf.axis.dot(f.plane.normal) < 0 ? Vec3d(-cf.axis) : cf.axis;
+                const Vec3d ref = std::abs(np.normal.z()) < 0.9 ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+                np.x_axis = ref.cross(np.normal).normalized();
+                np.y_axis = np.normal.cross(np.x_axis).normalized();
+                if ((np.origin - f.plane.origin).norm() > 1e-9 || (np.normal - f.plane.normal).norm() > 1e-9 || (np.x_axis - f.plane.x_axis).norm() > 1e-9) f.plane = np;
+                f.attach_face = face;
+                return;
+            }
+            if (fc.IsNull() || BRepAdaptor_Surface(fc).GetType() != GeomAbs_Plane) { warn(_u8L("'s face is no longer planar")); return; }
             Vec3d n = GeometryEngine::face_normal_world(fc);
             if (n.norm() < 1e-9) return;
             n.normalize();
@@ -5083,21 +5115,25 @@ bool CadDocument::recompute()
             m_pre_states.push_back(built);   // the state this feature starts from (feature patterns look back at it)
             if (features[fi].enabled && features[fi].type == CadFeatureType::Sketch && features[fi].attach_datum >= 0) datum_update(fi);
             if (!incremental) { replay_feature(fi, built); ++replay_stats.replayed; continue; }
-            if (features[fi].enabled && features[fi].type == CadFeatureType::Sketch && features[fi].attach_face >= 0) {
-                attach_update(fi);
-                seen_now[own_hash(features[fi])] = built;
-            }
             const bool solid_feature = !replay_is_trivial(features[fi]);
-            if (solid_feature && remap_refs && !m_seen_by_feature.empty()) {
+            const bool on_face = features[fi].enabled && features[fi].attach_face >= 0
+                              && (features[fi].type == CadFeatureType::Sketch || features[fi].type == CadFeatureType::Hole || features[fi].type == CadFeatureType::Thread);
+            // What this feature saw last time, found under its bytes as they are now: before the face follow and the id remap
+            // below change them.
+            auto was = m_seen_by_feature.end();
+            if ((solid_feature || on_face) && remap_refs && !m_seen_by_feature.empty()) was = m_seen_by_feature.find(own_hash(features[fi]));
+            if (on_face) {
+                attach_update(fi, was);
+                if (!solid_feature) seen_now[own_hash(features[fi])] = built;
+            }
+            if (solid_feature && was != m_seen_by_feature.end()) {
                 // An upstream edit rebuilt the body this feature's ids were written against: follow them.
-                auto was = m_seen_by_feature.find(own_hash(features[fi]));
                 // not pick_body(): the reference may still be waiting to be re-pointed, and pick_body throws on a stale one
                 const int tb = features[fi].target_body;
                 const int t = tb == -1 ? int(built.size()) - 1 : tb;
-                if (was != m_seen_by_feature.end() && t >= 0 && t < int(was->second.size()) && t < int(built.size())
-                    && !was->second[t].shape.IsSame(built[t].shape)) {
+                if (t >= 0) {
                     const auto tr = std::chrono::steady_clock::now();
-                    const int lost = remap_feature_refs(features[fi], was->second[t].shape, built[t].shape);
+                    const int lost = remap_feature_refs(features[fi], was->second, built, t);
                     prof.remap_ms += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - tr).count(); ++prof.remaps;
                     if (lost > 0)
                         feature_warnings.emplace_back(int(fi), format(_u8L("%1% face/edge reference(s) could not be followed through the edit and may point elsewhere"), lost));
@@ -5185,6 +5221,17 @@ bool CadDocument::recompute()
         if (bodies[i].has_user_name) {
             built[j].has_user_name = true;
             built[j].user_name     = bodies[i].user_name;
+        }
+    }
+    // Datum planes, axes and coordinate systems name faces and edges of the FINISHED body list: follow them from the list
+    // the last rebuild made to this one, before the old one is gone.
+    if (remap_refs && rollback_index < 0 && !bodies.empty()) {
+        for (int fi = 0; fi < int(features.size()); ++fi) {
+            CadFeature& f = features[fi];
+            if (!f.enabled || (f.type != CadFeatureType::Plane && f.type != CadFeatureType::Axis && f.type != CadFeatureType::CoordSys)) continue;
+            const int lost = remap_feature_refs(f, bodies, built, -1);
+            if (lost > 0)
+                feature_warnings.emplace_back(fi, format(_u8L("%1% face/edge reference(s) could not be followed through the edit and may point elsewhere"), lost));
         }
     }
     bodies = std::move(built);
