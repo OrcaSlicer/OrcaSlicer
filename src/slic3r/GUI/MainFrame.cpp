@@ -14,6 +14,7 @@
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "libslic3r/Preset.hpp"
 #include <functional>
+#include <memory>
 #include <wx/busycursor.h>
 #include <cstddef>
 #include "slic3r/GUI/Project.hpp"
