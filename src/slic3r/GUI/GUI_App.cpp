@@ -1230,6 +1230,9 @@ void GUI_App::post_init()
            }
         }
     }
+    if (m_startup_cloud_report)
+        std::exchange(m_startup_cloud_report, nullptr)();
+
     BOOST_LOG_TRIVIAL(info) << "finished post_init";
 //BBS: remove the single instance currently
 #ifdef _WIN32
@@ -2912,6 +2915,8 @@ int GUI_App::OnExit()
 {
     stop_http_server();
     stop_sync_user_preset();
+    if (m_startup_cloud_plugin_fetch_thread.joinable())
+        m_startup_cloud_plugin_fetch_thread.join();
 
     if (m_device_manager) {
         delete m_device_manager;
@@ -2968,6 +2973,8 @@ void GUI_App::CleanUp()
     // OnExit() does not run when OnInit() fails, and m_agent is then still set. Stop the check before
     // wxApp::CleanUp() resets wxTheApp, which a result posted from the worker would still be using.
     stop_orca_health_check(m_agent);
+    if (m_startup_cloud_plugin_fetch_thread.joinable())
+        m_startup_cloud_plugin_fetch_thread.join();
     wxApp::CleanUp();
 }
 
@@ -3240,6 +3247,9 @@ bool GUI_App::on_init_inner()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
+        // Before the plugin manager and network module go away.
+        if (m_startup_cloud_plugin_fetch_thread.joinable())
+            m_startup_cloud_plugin_fetch_thread.join();
         Slic3r::NetworkAgent::unload_network_module();
         Slic3r::PluginManager::instance().shutdown();
         Slic3r::PythonInterpreter::instance().shutdown();
@@ -3621,23 +3631,47 @@ bool GUI_App::on_init_inner()
     if (m_agent && m_agent->is_user_login()) {
         enable_user_preset_folder(true);
         plugin_mgr.set_cloud_user(m_agent->get_user_id());
-        // If there is a user logged in we do an immediate sync.
-        std::vector<std::string> not_found, unauthorized;
-        plugin_mgr.fetch_plugins_from_cloud(&not_found, &unauthorized);
-        if (plater()) {
-            for (const auto& uuid : not_found) {
-                plater()->get_notification_manager()->push_notification(
-                    NotificationType::CustomNotification,
-                    NotificationManager::NotificationLevel::RegularNotificationLevel,
-                    format(_L("Plugin %s is no longer available."), uuid));
+        // Sync cloud plugin metadata off the UI thread; the network round trips took ~2 s of startup.
+        m_startup_cloud_plugin_fetch_thread = Slic3r::create_thread([this] {
+            std::vector<std::string> not_found, unauthorized;
+            try {
+                PluginManager::instance().fetch_plugins_from_cloud(&not_found, &unauthorized);
+            } catch (const std::exception& ex) {
+                BOOST_LOG_TRIVIAL(error) << "Startup cloud plugin fetch failed: " << ex.what();
+                return;
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "Startup cloud plugin fetch failed";
+                return;
             }
-            for (const auto& uuid : unauthorized) {
-                plater()->get_notification_manager()->push_notification(
-                    NotificationType::CustomNotification,
-                    NotificationManager::NotificationLevel::RegularNotificationLevel,
-                    format(_L("Plugin %s access is unauthorized."), uuid));
-            }
-        }
+            auto report = [this, not_found = std::move(not_found), unauthorized = std::move(unauthorized)] {
+                if (is_closing())
+                    return;
+                if (m_plugins_dlg)
+                    m_plugins_dlg->update_plugin_dialog_ui();
+                Plater* plater = this->plater();
+                if (plater == nullptr || m_agent == nullptr || !m_agent->is_user_login())
+                    return; // logged out meanwhile
+                for (const auto& uuid : not_found) {
+                    plater->get_notification_manager()->push_notification(
+                        NotificationType::CustomNotification,
+                        NotificationManager::NotificationLevel::RegularNotificationLevel,
+                        format(_L("Plugin %s is no longer available."), uuid));
+                }
+                for (const auto& uuid : unauthorized) {
+                    plater->get_notification_manager()->push_notification(
+                        NotificationType::CustomNotification,
+                        NotificationManager::NotificationLevel::RegularNotificationLevel,
+                        format(_L("Plugin %s access is unauthorized."), uuid));
+                }
+            };
+            // This can run in a splash wxYield() before the main window exists.
+            CallAfter([this, report = std::move(report)]() mutable {
+                if (m_post_initialized)
+                    report();
+                else
+                    m_startup_cloud_report = std::move(report);
+            });
+        });
     } else {
         enable_user_preset_folder(false);
         plugin_mgr.set_cloud_user("");
@@ -5406,6 +5440,9 @@ void GUI_App::request_user_logout(const std::string& provider/* = ORCA_CLOUD_PRO
 
             remove_user_presets();
             enable_user_preset_folder(false);
+            // A startup fetch still in flight would re-add this user's cloud metadata.
+            if (m_startup_cloud_plugin_fetch_thread.joinable())
+                m_startup_cloud_plugin_fetch_thread.join();
             Slic3r::PluginManager::instance().unload_cloud_plugins();
             Slic3r::PluginManager::instance().clear_cloud_plugin_metadata();
             Slic3r::PluginManager::instance().set_cloud_user("");

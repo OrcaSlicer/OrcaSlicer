@@ -22,8 +22,13 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/error.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
+#include <boost/asio/ssl/verify_mode.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
@@ -33,7 +38,9 @@
 #include <boost/beast/core/buffers_to_string.hpp>
 #include <boost/beast/core/stream_traits.hpp>
 #include <boost/beast/core/string_type.hpp>
+#include <boost/beast/ssl/ssl_stream.hpp>
 #include <boost/beast/websocket.hpp>
+#include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
 #include <boost/beast/websocket/stream_base.hpp>
 #include <boost/beast/websocket/rfc6455.hpp>
@@ -42,6 +49,9 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <openssl/tls1.h>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -58,6 +68,7 @@
 #include <set>
 #include <thread>
 #include <vector>
+#include <type_traits>
 #include <utility>
 
 namespace {
@@ -66,6 +77,7 @@ namespace beast     = boost::beast;
 namespace http      = beast::http;
 namespace websocket = beast::websocket;
 namespace net       = boost::asio;
+namespace ssl       = net::ssl;
 using tcp           = net::ip::tcp;
 
 struct WsEndpoint
@@ -1541,11 +1553,6 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
         BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: websocket endpoint invalid for base_url=" << base_url;
         return;
     }
-    if (endpoint.secure) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: websocket wss not supported for base_url=" << base_url;
-        return;
-    }
-
     net::io_context       ioc;
     net::steady_timer     backoff{ioc};
     std::function<void()> abort_connection; // Set while a connection attempt runs
@@ -1575,11 +1582,12 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
     ws_reconnect_requested.store(false); // Reset reconnect flag
     int retry_count = 0;
 
-    while (!ws_stop.load()) {
+    // Runs one connection over a plain or TLS stream, and returns whether it was lost rather than closed cleanly
+    const auto run_connection = [&](auto& ws) {
+        constexpr bool secure = !std::is_same_v<std::decay_t<decltype(ws.next_layer())>, beast::tcp_stream>;
         bool connection_lost = false; // Flag to distinguish clean shutdown from unexpected disconnect
 
         tcp::resolver                        resolver{ioc};
-        websocket::stream<beast::tcp_stream> ws{ioc};
         beast::tcp_stream&                   stream = beast::get_lowest_layer(ws);
         net::steady_timer                    close_deadline{ioc};
         bool                                 closing          = false;
@@ -1627,6 +1635,19 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
             }
             // Clears the connect deadline, which would otherwise close the socket 5 s after connecting
             stream.expires_never();
+            if constexpr (secure) {
+                // Server name indication carries a host name only, never an address
+                beast::error_code not_address;
+                net::ip::make_address(endpoint.host, not_address);
+                if (not_address && !SSL_set_tlsext_host_name(ws.next_layer().native_handle(), endpoint.host.c_str())) {
+                    throw beast::system_error{beast::error_code(static_cast<int>(::ERR_get_error()), net::error::get_ssl_category())};
+                }
+                stream.expires_after(timings.handshake);
+                if (const auto ec = run([&](auto&& handler) { ws.next_layer().async_handshake(ssl::stream_base::client, handler); })) {
+                    throw beast::system_error{ec};
+                }
+                stream.expires_never();
+            }
 
             websocket::stream_base::timeout timeouts{};
             timeouts.handshake_timeout = timings.handshake;
@@ -1648,7 +1669,7 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
             }));
 
             std::string host_header = endpoint.host;
-            if (!endpoint.port.empty() && endpoint.port != "80") {
+            if (!endpoint.port.empty() && endpoint.port != (secure ? "443" : "80")) {
                 host_header += ":" + endpoint.port;
             }
             if (const auto ec = run([&](auto&& handler) { ws.async_handshake(host_header, endpoint.target, handler); })) {
@@ -1762,6 +1783,21 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
         ioc.restart();
         // Both handlers refer to this connection, so neither may be left queued for the next one
         while ((closing || deadline_pending) && ioc.run_one() != 0) {}
+        return connection_lost;
+    };
+
+    while (!ws_stop.load()) {
+        bool connection_lost = false;
+        if (endpoint.secure) {
+            // Unverified, like the agent's HTTP requests, so a printer's self-signed certificate is accepted
+            ssl::context ctx{ssl::context::tls_client};
+            ctx.set_verify_mode(ssl::verify_none);
+            websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws{ioc, ctx};
+            connection_lost = run_connection(ws);
+        } else {
+            websocket::stream<beast::tcp_stream> ws{ioc};
+            connection_lost = run_connection(ws);
+        }
 
         // Exit loop on clean shutdown
         if (!connection_lost) {
