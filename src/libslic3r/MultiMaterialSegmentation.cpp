@@ -2469,8 +2469,7 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
 
 // Returns multi-material segmentation based on painting in multi-material segmentation gizmo
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback) {
-    // CLI filament overrides need not supply a display colour for every filament.
-    // Match the filament count used by apply_mm_segmentation, not the optional palette.
+    // apply_mm_segmentation() reads one entry per filament_diameter, and filament_colour can be shorter.
     const size_t num_facets_states  = print_object.print()->config().filament_diameter.size() + 1;
     const float  max_width          = float(print_object.config().mmu_segmented_region_max_width.value);
     const float  interlocking_depth = float(print_object.config().mmu_segmented_region_interlocking_depth.value);
