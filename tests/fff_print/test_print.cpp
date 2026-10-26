@@ -2130,7 +2130,7 @@ TEST_CASE("Modifier 0-wall boundary handling", "[Print]")
     SECTION("separate interior 3-wall modifier keeps its own walls") {
         Model model;
         ModelObject *object = model.add_object();
-        object->add_volume(cube(40.));
+        object->add_volume(cube(60.));
 
         DynamicPrintConfig mod0_config;
         mod0_config.set_key_value("wall_loops", new ConfigOptionInt(0));
@@ -2142,7 +2142,7 @@ TEST_CASE("Modifier 0-wall boundary handling", "[Print]")
         mod3_config.set_key_value("wall_loops", new ConfigOptionInt(3));
         ModelVolume *mod3 = object->add_volume(cube(10.), ModelVolumeType::PARAMETER_MODIFIER, false);
         mod3->config.apply(mod3_config);
-        mod3->set_offset(Vec3d(25., 25., 5.));
+        mod3->set_offset(Vec3d(35., 35., 5.));
 
         object->add_instance()->set_offset(Vec3d(50., 50., 0.));
         object->ensure_on_bed();
