@@ -121,7 +121,9 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
+#include <random>
 #include <unordered_set>
 #include "slic3r/GUI/GUI_Utils.hpp"
 
@@ -4549,9 +4551,17 @@ void TabFilament::build()
                     apply_filament_id();
                     e.Skip();
                 });
+                m_filament_id_generate = new ::Button(parent, wxEmptyString, "refresh", 0, 16);
+                m_filament_id_generate->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+                m_filament_id_generate->SetToolTip(_L("Generate a new filament ID that no other profile uses."));
+                m_filament_id_generate->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+                    m_filament_id_input->GetTextCtrl()->ChangeValue(from_u8(generate_filament_id()));
+                    apply_filament_id();
+                });
                 update_filament_id_line();
                 auto* s = new wxBoxSizer(wxHORIZONTAL);
                 s->Add(m_filament_id_input, 0, wxALIGN_CENTER_VERTICAL);
+                s->Add(m_filament_id_generate, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, parent->FromDIP(5));
                 return s;
             };
             optgroup->append_line(line);
@@ -5120,6 +5130,7 @@ void TabFilament::clear_pages()
     m_volumetric_speed_description_line = nullptr;
 	m_cooling_description_line = nullptr;
     m_filament_id_input = nullptr;
+    m_filament_id_generate = nullptr;
 
     //BBS: GUI refactor
     m_overrides_options.clear();
@@ -5153,6 +5164,29 @@ void TabFilament::update_filament_id_line()
     ctrl->ChangeValue(from_u8(m_presets->get_edited_preset().filament_id));
     ctrl->SetEditable(editable);
     m_filament_id_input->SetToolTip(tip);
+    if (m_filament_id_generate)
+        m_filament_id_generate->Enable(editable);
+}
+
+// Same format as the IDs "Create filament" gives new profiles ("P" and 7 hex digits), picked at random
+// until no other filament profile uses it.
+std::string TabFilament::generate_filament_id() const
+{
+    std::mt19937                            gen(std::random_device{}());
+    std::uniform_int_distribution<unsigned> dist(0, 0xFFFFFFF);
+    for (;;) {
+        char buf[9];
+        std::snprintf(buf, sizeof(buf), "P%07x", dist(gen));
+        const std::string id(buf);
+        bool              used = false;
+        for (const Preset& preset : *m_presets)
+            if (preset.filament_id == id) {
+                used = true;
+                break;
+            }
+        if (!used)
+            return id;
+    }
 }
 
 // Applies the typed ID to the edited preset only. It is written to disk when the profile is saved,
