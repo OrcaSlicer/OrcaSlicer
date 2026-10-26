@@ -9660,7 +9660,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             // Use the existing variable-speed writer, which preserves scarf Z/flow,
             // cooling markers and adaptive PA. Only affected paths lose arc fitting.
             std::vector<ProcessedPoint> points;
-            if (variable_speed)
+            if (requires_segmented_extrusion)
                 points = new_points;
             else
                 for (const Point3 &p : path.polyline.points)
@@ -9671,7 +9671,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                                                    support_fan_enabled, blend_to_normal);
             if (support_speed_applied) {
                 new_points = std::move(points);
-                variable_speed = true;
+                requires_segmented_extrusion = true;
             }
         }
     }
