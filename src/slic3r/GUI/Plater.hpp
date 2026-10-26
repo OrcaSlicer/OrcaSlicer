@@ -505,6 +505,9 @@ public:
     bool are_view3D_labels_shown() const;
     void show_view3D_labels(bool show);
 
+    bool are_collision_volumes_shown() const;
+    void show_collision_volumes(bool show);
+
     bool is_view3D_overhang_shown() const;
     void show_view3D_overhang(bool show);
 
@@ -770,7 +773,9 @@ public:
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
-    static std::vector<Vec2f> get_empty_cells(const Vec2f step);
+    static std::vector<Vec2f> get_empty_cells(const Vec2f step,
+                                              const std::vector<BoundingBoxf> &local_exclude_boxes = {},
+                                              bool include_plate_exclude_areas = true);
 
     //BBS:
     void fill_color(int extruder_id);

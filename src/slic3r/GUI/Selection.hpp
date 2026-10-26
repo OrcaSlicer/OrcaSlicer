@@ -396,6 +396,11 @@ public:
         render_bounding_box(box, Transform3d::Identity(), get_auto_drop(), color);
     }
 
+    void render_bounding_box(const BoundingBoxf3& box, const Transform3d& trafo, const ColorRGB& color, float scale) {
+        m_scale_factor = scale;
+        render_bounding_box(box, trafo, get_auto_drop(), color);
+    }
+
     //BBS
     void cut_to_clipboard();
     void copy_to_clipboard();

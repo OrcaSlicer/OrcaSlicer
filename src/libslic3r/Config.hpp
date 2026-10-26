@@ -37,6 +37,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <cereal/access.hpp>
+#include <cereal/cereal.hpp>
 #include <cereal/types/base_class.hpp>
 // The serialize() members below archive ConfigOption hierarchies through
 // cereal::base_class, whose registration machinery lives in polymorphic.hpp.
@@ -458,7 +459,9 @@ public:
         }
         if (rhs->type() == this->type()) {
             // Assign the first value of the rhs vector.
-            auto other = static_cast<const ConfigOptionVector<T>*>(rhs);
+            auto other = dynamic_cast<const ConfigOptionVector<T>*>(rhs);
+            if (other == nullptr)
+                throw ConfigurationError("ConfigOptionVector::set_at(): Assigning an incompatible type");
             if (other->values.empty())
                 throw ConfigurationError("ConfigOptionVector::set_at(): Assigning from an empty vector");
             this->values[i] = other->get_at(j);
@@ -896,7 +899,7 @@ public:
     static double 			nil_value() { return std::numeric_limits<double>::quiet_NaN(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (! std::isnan(v)) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return std::isnan(this->values[idx]); }
+    bool 					is_nil(size_t idx) const override { return this->values.empty() || std::isnan(idx < this->values.size() ? this->values[idx] : this->values.front()); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1080,7 +1083,7 @@ public:
     static int	 			nil_value() { return std::numeric_limits<int>::max(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (v != nil_value()) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return this->values[idx] == nil_value(); }
+    bool 					is_nil(size_t idx) const override { return this->values.empty() || (idx < this->values.size() ? this->values[idx] : this->values.front()) == nil_value(); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1421,7 +1424,7 @@ public:
     static FloatOrPercent   nil_value() { return { std::numeric_limits<double>::quiet_NaN(), false }; }
     // A scalar is nil, or all values of a vector are nil.
     bool                    is_nil() const override { for (auto v : this->values) if (! std::isnan(v.value)) return false; return true; }
-    bool                    is_nil(size_t idx) const override { return std::isnan(this->values[idx].value); }
+    bool                    is_nil(size_t idx) const override { return this->values.empty() || std::isnan((idx < this->values.size() ? this->values[idx] : this->values.front()).value); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1615,6 +1618,11 @@ public:
 
     bool deserialize(const std::string &str, bool append = false) override
     {
+        // Extended exclusion-volume syntax belongs to the dedicated string option.
+        // Rejecting it here also makes --bed-exclude-area fail instead of silently
+        // turning a volume definition into malformed legacy points.
+        if (str.find('|') != std::string::npos || str.find(';') != std::string::npos || str.find("..") != std::string::npos)
+            return false;
         if (! append)
             this->values.clear();
         std::istringstream is(str);
@@ -1635,18 +1643,18 @@ public:
     }
 
 private:
-	friend class cereal::access;
-	template<class Archive> void save(Archive& archive) const {
-		size_t cnt = this->values.size();
-		archive(cnt);
-		archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
-	template<class Archive> void load(Archive& archive) {
-		size_t cnt;
-		archive(cnt);
-		this->values.assign(cnt, Vec2d());
-		archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
+    friend class cereal::access;
+    template<class Archive> void save(Archive& archive) const {
+        size_t cnt = this->values.size();
+        archive(cnt);
+        archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
+    }
+    template<class Archive> void load(Archive& archive) {
+        size_t cnt;
+        archive(cnt);
+        this->values.assign(cnt, Vec2d());
+        archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
+    }
 };
 
 class ConfigOptionPoint3 : public ConfigOptionSingle<Vec3d>
@@ -1968,7 +1976,7 @@ public:
     static unsigned char	nil_value() { return std::numeric_limits<unsigned char>::max(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (v != nil_value()) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return this->values[idx] == nil_value(); }
+    bool 					is_nil(size_t idx) const override { return this->values.empty() || (idx < this->values.size() ? this->values[idx] : this->values.front()) == nil_value(); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));

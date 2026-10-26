@@ -1,6 +1,7 @@
 #include "DevStatus.h"
 #include <boost/log/trivial.hpp>
 #include <exception>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 

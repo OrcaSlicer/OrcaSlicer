@@ -286,6 +286,39 @@ size_t count_opt_key(const std::vector<StringObjectException>& warnings, const s
         [&](const StringObjectException& w) { return w.opt_key == key; });
 }
 
+DynamicPrintConfig dual_extruder_exclusion_config(
+    BedExcludeVolumeMode mode,
+    const std::vector<std::string> &per_extruder,
+    const std::vector<int> &filament_map = {1})
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(2);
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4, 0.4});
+    config.set_key_value("extruder_offset", new ConfigOptionPoints{Vec2d::Zero(), Vec2d(20.0, 0.0)});
+    config.set_key_value("extruder_printable_height", new ConfigOptionFloatsNullable{256.0, 256.0});
+    config.set_key_value("bed_exclude_volume_mode", new ConfigOptionEnum<BedExcludeVolumeMode>(mode));
+    config.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings(per_extruder));
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
+    config.set_key_value("filament_map", new ConfigOptionInts(filament_map));
+    return config;
+}
+
+StringObjectException validate_multimaterial_cube(const DynamicPrintConfig &config)
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *first = object->add_volume(cube(20));
+    ModelVolume *second = object->add_volume(cube(20));
+    first->config.set("extruder", 1);
+    second->config.set("extruder", 2);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    Print print;
+    print.apply(model, config);
+    return print.validate();
+}
+
 // Make `default_acceleration` exceed the machine's extruding-acceleration limit.
 void trigger_acceleration_warning(DynamicPrintConfig& c)
 {
@@ -311,6 +344,73 @@ void trigger_precise_wall_warning(DynamicPrintConfig& c)
 }
 
 } // namespace
+
+TEST_CASE("Print validation applies individual exclusion volumes to the mapped physical extruder", "[Print][ExclusionVolume][MultiNozzle]")
+{
+    const std::string colliding = "0..256;-100x-100,300x-100,300x300,-100x300";
+    std::vector<StringObjectException> warnings;
+
+    SECTION("mapped colliding extruder is rejected") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {colliding, ""}, {1});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("extruder 1") != std::string::npos);
+    }
+
+    SECTION("mapped clear extruder is accepted") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {colliding, ""}, {2});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+
+    SECTION("an unrelated nozzle exclusion does not reject the object") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {"", colliding}, {1});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+}
+
+TEST_CASE("Print validation applies shared exclusions and ignores volumes above the object", "[Print][ExclusionVolume]")
+{
+    std::vector<StringObjectException> warnings;
+
+    SECTION("shared volume intersects") {
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, {2});
+        config.set_key_value("bed_exclude_volumes", new ConfigOptionString("0..30;-100x-100,300x-100,300x300,-100x300"));
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("extruder 2") != std::string::npos);
+    }
+
+    SECTION("elevated shared volume clears a 20mm cube") {
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, {1});
+        config.set_key_value("bed_exclude_volumes", new ConfigOptionString("30..50;-100x-100,300x-100,300x300,-100x300"));
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+}
+
+TEST_CASE("Legacy excluded areas retain object placement validation", "[Print][ExclusionVolume][Compatibility]")
+{
+    DynamicPrintConfig config = dual_extruder_exclusion_config(
+        BedExcludeVolumeMode::Shared, {"", ""}, {1});
+    config.set_deserialize_strict("bed_exclude_area", "-100x-100,300x-100,300x300,-100x300");
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = validate_cubes(config, warnings);
+    CHECK_FALSE(error.string.empty());
+}
+
+TEST_CASE("Print validation checks every nozzle used by a multimaterial object", "[Print][ExclusionVolume][MultiNozzle]")
+{
+    const std::string colliding = "0..256;-100x-100,300x-100,300x300,-100x300";
+    const DynamicPrintConfig config = dual_extruder_exclusion_config(
+        BedExcludeVolumeMode::PerExtruder, {"", colliding}, {1, 2});
+
+    const StringObjectException error = validate_multimaterial_cube(config);
+    CHECK(error.string.find("extruder 2") != std::string::npos);
+}
 
 // ---------------------------------------------------------------------------
 // {first_object_name} filename placeholder
@@ -547,6 +647,31 @@ TEST_CASE("Print::validate tolerates a null warnings pointer", "[Print][validate
     CHECK(err.string.empty());
 }
 
+TEST_CASE("Print::validate refuses a used filament with a flow ratio of 0", "[Print][validate][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ 0. });
+
+    std::vector<StringObjectException> warnings;
+    StringObjectException err = validate_cubes(config, warnings);
+
+    CHECK_FALSE(err.string.empty());
+    CHECK_FALSE(err.is_warning);
+    CHECK(err.opt_key == "filament_flow_ratio");
+}
+
+TEST_CASE("Print::validate ignores a flow ratio of 0 on an unused filament", "[Print][validate]")
+{
+    // The cube prints with filament 1, so filament 2's ratio is never used.
+    DynamicPrintConfig config = multifilament_config(2, { { "filament_self_index", "1,2" } });
+    config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ 1., 0. });
+
+    std::vector<StringObjectException> warnings;
+    StringObjectException err = validate_cubes(config, warnings);
+
+    CHECK(err.string.empty());
+}
+
 TEST_CASE("Purge tower selection keeps ordinary printers on the classic path", "[Print][PurgeTower][Regression]")
 {
     DynamicPrintConfig config = multifilament_config(2, {
@@ -736,6 +861,32 @@ TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
     CHECK(per_layer.find(";Layer:199 ") != std::string::npos);
     CHECK(per_layer.find(";Layer:399 ") != std::string::npos);
     CHECK(per_layer.find(";Layer:200 (0.1 mm) max 20\n") != std::string::npos);
+}
+
+// The layer change G-code runs before its layer prints, so the layer mass it gets is the previous layer's.
+TEST_CASE("Layer change G-code gets the previous layer's mass under both placeholder names", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "filament_density",   1.24 },
+        // curr_layer_mass is Bambu Studio's name for previous_layer_mass.
+        { "layer_change_gcode", ";Mass:[layer_num] {if previous_layer_mass > 0}printed{else}none{endif} "
+                                "{if previous_layer_mass == curr_layer_mass}same{else}different{endif}" },
+    });
+    // Nothing is printed before the first layer change; layer 0 is printed before the second.
+    CHECK(gcode.find(";Mass:0 none same\n") != std::string::npos);
+    CHECK(gcode.find(";Mass:1 printed same\n") != std::string::npos);
+}
+
+TEST_CASE("Start G-code gets the wipe tower wait position under both placeholder names", "[Print]")
+{
+    // wipe_tower_center_pos_* are Bambu Studio's names for wipe_tower_wait_pos_*.
+    const std::string gcode = slice({ cube(20) }, {
+        { "machine_start_gcode", "; Wait {if wipe_tower_wait_pos_valid}set{else}unset{endif} "
+                                 "{if wipe_tower_center_pos_valid}set{else}unset{endif} "
+                                 "[wipe_tower_wait_pos_x],[wipe_tower_wait_pos_y] [wipe_tower_center_pos_x],[wipe_tower_center_pos_y]" },
+    });
+    // A single-filament print has no wipe tower, so neither name has a position.
+    CHECK(gcode.find("; Wait unset unset 0,0 0,0\n") != std::string::npos);
 }
 
 TEST_CASE("Timelapse G-code gets the snapshot placeholders on bed slingers and other printers", "[Print]")
@@ -1975,4 +2126,72 @@ TEST_CASE("Modifier 0-wall boundary handling", "[Print]")
         CHECK(cube_region->perimeters.flatten().entities.empty());
         CHECK(modifier_region->perimeters.flatten().entities.size() == 3);
     }
+
+    SECTION("separate interior 3-wall modifier keeps its own walls") {
+        Model model;
+        ModelObject *object = model.add_object();
+        object->add_volume(cube(40.));
+
+        DynamicPrintConfig mod0_config;
+        mod0_config.set_key_value("wall_loops", new ConfigOptionInt(0));
+        ModelVolume *mod0 = object->add_volume(cube(10.), ModelVolumeType::PARAMETER_MODIFIER, false);
+        mod0->config.apply(mod0_config);
+        mod0->set_offset(Vec3d(5., 5., 5.));
+
+        DynamicPrintConfig mod3_config;
+        mod3_config.set_key_value("wall_loops", new ConfigOptionInt(3));
+        ModelVolume *mod3 = object->add_volume(cube(10.), ModelVolumeType::PARAMETER_MODIFIER, false);
+        mod3->config.apply(mod3_config);
+        mod3->set_offset(Vec3d(25., 25., 5.));
+
+        object->add_instance()->set_offset(Vec3d(50., 50., 0.));
+        object->ensure_on_bed();
+
+        Print print;
+        print.auto_assign_extruders(object);
+        print.apply(model, config);
+        print.process();
+
+        REQUIRE(!print.objects().empty());
+        const PrintObject &print_object = *print.objects().front();
+        REQUIRE(print_object.layer_count() > 0);
+
+        const Layer *layer = print_object.get_layer(int(print_object.layer_count() / 2));
+        REQUIRE(layer != nullptr);
+
+        size_t total_perimeters = 0;
+        for (const LayerRegion *layerm : layer->regions())
+            total_perimeters += layerm->perimeters.flatten().entities.size();
+
+        CHECK(total_perimeters == 5);
+    }
+}
+
+TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][Regression]")
+{
+    const std::string key = "high_precision_gcode";
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict(key, "0");
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.process();
+    print.set_gcode_file_ready();
+
+    // A key that Print::invalidate_state_by_config_options() does not list invalidates every print step,
+    // so the wipe tower and the skirt tell it apart from a key that invalidates only the G-code export.
+    REQUIRE(print.is_step_done(psGCodeExport));
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+    REQUIRE(print.objects().front()->is_step_done(posSlice));
+    REQUIRE(print.objects().front()->is_step_done(posPerimeters));
+
+    config.set_deserialize_strict(key, "1");
+    print.apply(model, config);
+
+    CHECK_FALSE(print.is_step_done(psGCodeExport));
+    CHECK(print.is_step_done(psWipeTower));
+    CHECK(print.is_step_done(psSkirtBrim));
+    CHECK(print.objects().front()->is_step_done(posSlice));
+    CHECK(print.objects().front()->is_step_done(posPerimeters));
 }

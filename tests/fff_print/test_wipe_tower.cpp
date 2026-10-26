@@ -241,6 +241,43 @@ TEST_CASE("The wipe tower's G-code moves keep a decimal point in a comma-decimal
             FAIL_CHECK(line);
 }
 
+TEST_CASE("The wipe tower's flow tags keep a decimal point in a comma-decimal locale", "[WipeTower]")
+{
+    // GCodeProcessor parses these values with the C locale: a comma makes it log an error and
+    // ignore the tag, leaving the extrusion width and height it assumes to its own defaults.
+    CommaNumericLocale comma;
+    CNumericLocalesSetter restore;
+    if (! comma.apply())
+        SKIP("no locale with a comma decimal separator is installed");
+    DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" } });
+    const std::string gcode = slice_with_prime_tower(config);
+    // WipeTowerWriter forces the BBL flag, so the tower writes these spellings on every printer.
+    // By the time the test asks, export has reset the flag for this Klipper config and
+    // reserved_tag() would hand back the main G-code's ";HEIGHT:" / ";WIDTH:" instead.
+    // The width and height tags are both written by the writer's constructor, before the
+    // tower's start tag, so scan the whole slice.
+    const std::string height_tag = "; LAYER_HEIGHT: ";
+    const std::string width_tag  = "; LINE_WIDTH: ";
+    size_t heights = 0;
+    size_t widths  = 0;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line);) {
+        const bool is_height = line.compare(0, height_tag.size(), height_tag) == 0;
+        const bool is_width  = line.compare(0, width_tag.size(), width_tag) == 0;
+        if (! is_height && ! is_width)
+            continue;
+        if (is_height)
+            ++heights;
+        else
+            ++widths;
+        if (line.find(',') != std::string::npos)
+            FAIL_CHECK(line);
+    }
+    CHECK(heights > 0);
+    CHECK(widths > 0);
+}
+
 // What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
 // they call the estimator directly. The estimate counts the filaments the print really uses,
 // so the two-filament shape gives the outer wall the second one.

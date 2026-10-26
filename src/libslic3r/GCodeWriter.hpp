@@ -97,6 +97,9 @@ public:
     double      get_current_speed() const { return m_current_speed;}
     std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
     std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string(), bool force_z = false);
+    // Physical Z range which travel_to_xyz() will emit without mutating writer state.
+    // This includes an existing lift or a pending lazy lift.
+    std::pair<double, double> planned_travel_z(const Vec3d &point, bool force_z = false) const;
     std::string travel_to_z(double z, const std::string &comment = std::string(), bool force = false);
     bool        will_move_z(double z) const;
     std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
@@ -186,6 +189,13 @@ public:
     // that couples axes.
     void set_force_normal_lift(bool force) { m_force_normal_lift = force; }
 
+    // Whether extrusions, XY travels and retractions are written now with high precision G-code: high_precision_gcode,
+    // unless force_standard_precision() is in effect. Travels that change Z always follow high_precision_gcode, as the
+    // Z they set also holds for the moves after them, such as the object printed after its support on the same layer.
+    bool high_precision() const { return config.high_precision_gcode.value && !m_force_standard_precision; }
+    // Writes the next extrusions, XY travels and retractions with the standard precision. Returns the previous value.
+    bool force_standard_precision(bool force) { return std::exchange(m_force_standard_precision, force); }
+
     // Returns whether this flavor supports separate print and travel acceleration.
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);
 protected:
@@ -221,6 +231,7 @@ protected:
 
     FirstLayerPointTest    m_first_layer_point_test;
     bool                   m_force_normal_lift = false;
+    bool                   m_force_standard_precision = false;
 
     // The machine frame mapping.  Owns the axis-remap state that used to live
     // here as m_remap_* / m_build_vol_max; the setters above forward to it.
@@ -306,7 +317,7 @@ private:
 
 class GCodeFormatter {
 public:
-    GCodeFormatter() {
+    explicit GCodeFormatter(bool high_precision) : m_high_precision(high_precision) {
         this->buf_end = buf + buflen;
         this->ptr_err.ptr = this->buf;
     }
@@ -314,58 +325,51 @@ public:
     GCodeFormatter(const GCodeFormatter&) = delete;
     GCodeFormatter& operator=(const GCodeFormatter&) = delete;
 
-    // At layer height 0.15mm, extrusion width 0.2mm and filament diameter 1.75mm,
-    // the crossection of extrusion is 0.4 * 0.15 = 0.06mm2
-    // and the filament crossection is 1.75^2 = 3.063mm2
-    // thus the filament moves 3.063 / 0.6 = 51x slower than the XY axes
+    // At extrusion width 0.4mm and layer height 0.15mm, the cross-section of extrusion is 0.4 * 0.15 = 0.06mm2
+    // and the cross-section of a 1.75mm filament is 2.405mm2,
+    // thus the filament moves 2.405 / 0.06 = 40x slower than the XY axes
     // and we need roughly two decimal digits more on extruder than on XY.
-#if 1
-    static constexpr const int XYZF_EXPORT_DIGITS = 3;
-    static constexpr const int E_EXPORT_DIGITS    = 5;
-#else
-    // order of magnitude smaller extrusion rate erros
-    static constexpr const int XYZF_EXPORT_DIGITS = 4;
-    static constexpr const int E_EXPORT_DIGITS    = 6;
-    // excessive accuracy
-//    static constexpr const int XYZF_EXPORT_DIGITS = 6;
-//    static constexpr const int E_EXPORT_DIGITS    = 9;
-#endif
+    // High precision G-code adds one digit to both for an order of magnitude smaller extrusion rate errors.
+    // Feedrate does not benefit from it and keeps three digits.
+    static constexpr int xyz_digits(bool high_precision) { return high_precision ? 4 : 3; }
+    static constexpr int e_digits(bool high_precision) { return high_precision ? 6 : 5; }
+    static constexpr const int F_EXPORT_DIGITS = 3;
     static constexpr const std::array<double, 10> pow_10 { 1., 10., 100., 1000., 10000., 100000., 1000000., 10000000., 100000000., 1000000000. };
     static constexpr const std::array<double, 10> pow_10_inv { 1. / 1., 1. / 10., 1. / 100., 1. / 1000., 1. / 10000., 1. / 100000., 1. / 1000000., 1. / 10000000., 1. / 100000000., 1. / 1000000000. };
 
     // Quantize doubles to a resolution of the G-code.
     static double quantize(double v, size_t ndigits) { return std::round(v * pow_10[ndigits]) * pow_10_inv[ndigits]; }
-    static double quantize_xyzf(double v) { return quantize(v, XYZF_EXPORT_DIGITS); }
-    static double quantize_e(double v) { return quantize(v, E_EXPORT_DIGITS); }
+    static double quantize_xyz(double v, bool high_precision) { return quantize(v, xyz_digits(high_precision)); }
+    static double quantize_e(double v, bool high_precision) { return quantize(v, e_digits(high_precision)); }
 
     void emit_axis(const char axis, const double v, size_t digits);
 
     void emit_xy(const Vec2d &point) {
-        this->emit_axis('X', point.x(), XYZF_EXPORT_DIGITS);
-        this->emit_axis('Y', point.y(), XYZF_EXPORT_DIGITS);
+        this->emit_axis('X', point.x(), xyz_digits(m_high_precision));
+        this->emit_axis('Y', point.y(), xyz_digits(m_high_precision));
     }
 
     void emit_xyz(const Vec3d &point) {
-        this->emit_axis('X', point.x(), XYZF_EXPORT_DIGITS);
-        this->emit_axis('Y', point.y(), XYZF_EXPORT_DIGITS);
+        this->emit_axis('X', point.x(), xyz_digits(m_high_precision));
+        this->emit_axis('Y', point.y(), xyz_digits(m_high_precision));
         this->emit_z(point.z());
     }
 
     void emit_z(const double z) {
-        this->emit_axis('Z', z, XYZF_EXPORT_DIGITS);
+        this->emit_axis('Z', z, xyz_digits(m_high_precision));
     }
 
     void emit_e(double v) {
-        this->emit_axis('E', v, E_EXPORT_DIGITS);
+        this->emit_axis('E', v, e_digits(m_high_precision));
     }
 
     void emit_f(double speed) {
-        this->emit_axis('F', speed, XYZF_EXPORT_DIGITS);
+        this->emit_axis('F', speed, F_EXPORT_DIGITS);
     }
     //BBS
     void emit_ij(const Vec2d &point) {
-        this->emit_axis('I', point.x(), XYZF_EXPORT_DIGITS);
-        this->emit_axis('J', point.y(), XYZF_EXPORT_DIGITS);
+        this->emit_axis('I', point.x(), xyz_digits(m_high_precision));
+        this->emit_axis('J', point.y(), xyz_digits(m_high_precision));
     }
 
     void emit_string(const std::string &s) {
@@ -392,6 +396,7 @@ public:
     }
 
 protected:
+    const bool                      m_high_precision;
     static constexpr const size_t   buflen = 256;
     char                            buf[buflen];
     char* buf_end;
@@ -400,7 +405,7 @@ protected:
 
 class GCodeG1Formatter : public GCodeFormatter {
 public:
-    GCodeG1Formatter() {
+    explicit GCodeG1Formatter(bool high_precision) : GCodeFormatter(high_precision) {
         this->buf[0] = 'G';
         this->buf[1] = '1';
         this->buf_end = buf + buflen;
@@ -413,7 +418,7 @@ public:
 
 class GCodeG2G3Formatter : public GCodeFormatter {
 public:
-    GCodeG2G3Formatter(bool is_ccw) {
+    GCodeG2G3Formatter(bool is_ccw, bool high_precision) : GCodeFormatter(high_precision) {
         this->buf[0] = 'G';
         this->buf[1] = is_ccw ? '3' : '2';
         this->buf_end = buf + buflen;

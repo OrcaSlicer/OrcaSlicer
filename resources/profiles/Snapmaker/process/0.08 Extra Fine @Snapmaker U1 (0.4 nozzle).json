@@ -93,5 +93,7 @@
 		"600",
 		"450",
 		"600"
-	]
+	],
+	"top_color_penetration_layers": "8",
+	"bottom_color_penetration_layers": "6"
 }

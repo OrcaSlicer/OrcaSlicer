@@ -65,7 +65,7 @@ namespace GUI {
 static const char *const kCloudUrl = "https://cloud.orcaslicer.com";
 // #LeftBoard in resources/web/homepage/css/home.css is a 262px column plus a 1px right
 // border; the homepage keeps that width as the nav column while the cloud pane is open.
-static const int kLeftNavWidth = 263;
+static const int kLeftNavWidth = 220 + 1; // 1px border
 
 // The home page's strings (resources/web/homepage), keyed by their data-i18n and T() ids.
 static json home_page_strings()
@@ -84,7 +84,7 @@ static json home_page_strings()
         {"recently_opened", _u8L("Recently opened")},
         {"clear_all", _u8L("Clear all")},
         {"remove", _u8L("Remove")},
-        {"open_containing_folder", _u8L("Open Containing Folder")},
+        {"show_in_folder", _u8L("Show in folder")},
     };
 }
 
@@ -605,7 +605,7 @@ void WebViewPanel::load_url(wxString& url)
 {
     this->Show();
     this->Raise();
-    m_url->SetLabelText(url);
+    m_url->ChangeValue(url);
 
     if (wxGetApp().get_mode() == comDevelop)
         wxLogMessage(m_url->GetValue());

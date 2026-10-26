@@ -276,7 +276,7 @@ void Layer::make_perimeters()
                     bool compatible = false;
                     if (is_perimeter_compatible(*m_object->print(), this_region, other_region)) {
                         compatible = true;
-                    } else if (this_region.config().wall_loops != other_region.config().wall_loops && is_perimeter_compatible(*m_object->print(), this_region, other_region, /*ignore_wall_loops=*/true)) {
+                    } else if ((this_region.config().wall_loops == 0) != (other_region.config().wall_loops == 0) && is_perimeter_compatible(*m_object->print(), this_region, other_region, /*ignore_wall_loops=*/true)) {
                         const LayerRegion* walled = (this_region.config().wall_loops > 0) ? *layerm : other_layerm;
                         std::vector<const LayerRegion*> zero_candidates;
                         for (const LayerRegion* lr : m_regions)
@@ -428,7 +428,7 @@ void Layer::simplify_support_path(ExtrusionPath * path)
 {
     const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
+    const bool enable_arc_fitting = print_config.enable_arc_fitting.value == ArcFittingMode::Enabled;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
     if (enable_arc_fitting &&
@@ -443,7 +443,7 @@ void Layer::simplify_support_multi_path(ExtrusionMultiPath* multipath)
 {
     const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
+    const bool enable_arc_fitting = print_config.enable_arc_fitting.value == ArcFittingMode::Enabled;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
     for (size_t i = 0; i < multipath->paths.size(); ++i) {
@@ -460,7 +460,7 @@ void Layer::simplify_support_loop(ExtrusionLoop* loop)
 {
     const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
+    const bool enable_arc_fitting = print_config.enable_arc_fitting.value == ArcFittingMode::Enabled;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
     for (size_t i = 0; i < loop->paths.size(); ++i) {

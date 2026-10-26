@@ -78,6 +78,7 @@
 #include "libslic3r_version.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 

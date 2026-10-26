@@ -23,7 +23,9 @@ rem goes along with its preset JSONs: the cache carries the vendor profile and
 rem the version it was built at, so discovery, version checks and installing all
 rem read it there. Only a vendor that has a cache is pruned, so non-vendor JSONs
 rem (blacklist.json) are left alone, as are the vendor directories themselves -
-rem thumbnails, covers and bed models still live there.
+rem thumbnails, covers and bed models still live there. Only the preset files
+rem the vendor profile lists are deleted: data files beside them (BBL's
+rem filaments_color_codes.json, cli_config.json, ...) are read at runtime.
 rem
 rem   set CONFIG=<cfg> to pin the build config for multi-config generators
 rem   (default: the config of the tool already in the build tree, else Release)
@@ -118,19 +120,28 @@ set /a PRUNED=0
 for %%c in ("%PROFILES%\*.opc") do (
     set /a SHIPPED+=1
     set "VENDOR=%%~nc"
+    rem Prune the vendor directory first: it reads the profile's preset list,
+    rem and with --prune-source the profile is the target's own.
+    if exist "%TARGET%\!VENDOR!\" (
+        call :prune_listed_presets "%PROFILES%\!VENDOR!.json" "%TARGET%\!VENDOR!"
+        rem Deepest first, so a directory the delete above emptied goes too; rd
+        rem refuses the ones still holding covers, meshes or data files.
+        for /f "delims=" %%d in ('dir /s /b /ad "%TARGET%\!VENDOR!" 2^>nul ^| sort /r') do rd "%%d" 2>nul
+    )
     if exist "%TARGET%\!VENDOR!.json" (
         del /q "%TARGET%\!VENDOR!.json"
         set /a PRUNED+=1
     )
-    if exist "%TARGET%\!VENDOR!\" (
-        for /f %%n in ('dir /s /b "%TARGET%\!VENDOR!\*.json" 2^>nul ^| find /c /v ""') do set /a PRUNED+=%%n
-        del /s /q "%TARGET%\!VENDOR!\*.json" >nul 2>&1
-        rem Deepest first, so a directory the delete above emptied goes too; rd
-        rem refuses the ones still holding covers or meshes.
-        for /f "delims=" %%d in ('dir /s /b /ad "%TARGET%\!VENDOR!" 2^>nul ^| sort /r') do rd "%%d" 2>nul
-    )
 )
 echo %TARGET%: !SHIPPED! caches, dropped !PRUNED! preset JSONs
+exit /b 0
+
+rem Delete the preset files a vendor profile (%1) lists from its vendor
+rem directory (%2). Data files beside them (BBL's filaments_color_codes.json,
+rem cli_config.json, ...) are read at runtime, so they ship.
+:prune_listed_presets
+if not exist "%~1" exit /b 0
+for /f %%n in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "$n = 0; $p = ConvertFrom-Json (Get-Content -LiteralPath '%~1' -Raw -Encoding UTF8); foreach ($k in 'machine_model_list','process_list','filament_list','machine_list') { foreach ($e in $p.$k) { $f = Join-Path '%~2' $e.sub_path; if (Test-Path -LiteralPath $f -PathType Leaf) { Remove-Item -LiteralPath $f; $n++ } } }; $n"') do set /a PRUNED+=%%n
 exit /b 0
 
 :find_tool
