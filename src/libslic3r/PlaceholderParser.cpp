@@ -1312,7 +1312,8 @@ namespace client
             if (!opt.has_index()) {
                 // Allow omitting extruder id when referencing vectors
                 const std::string opt_key(opt.it_range.begin(), opt.it_range.end());
-                const size_t elem_index = (opt_key == "z_hop" || boost::starts_with(opt_key, "retract") || boost::starts_with(opt_key, "wipe")) ? ctx->current_extruder_id : ctx->get_extruder_id();
+                const bool per_filament = std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(), "filament_" + opt_key) != filament_extruder_override_keys.end();
+                const size_t elem_index = per_filament ? ctx->current_extruder_id : ctx->get_extruder_id();
                 switch (opt.opt->type()) {
                 case coFloats: {
                     const ConfigOptionFloatsNullable* opt_floatsnullable = dynamic_cast<const ConfigOptionFloatsNullable *>(opt.opt);
