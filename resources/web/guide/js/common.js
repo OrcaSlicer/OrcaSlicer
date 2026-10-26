@@ -46,6 +46,13 @@ window.addEventListener('keydown', function (e) {
 	}
 });
 
+// Screen reader text for how many printers or filaments a search or filter leaves. T() has no
+// plural forms, so a count of 1 has its own string.
+function ResultsText(nCount)
+{
+	return nCount == 1 ? T("count_result_one", "%s result", nCount) : T("count_results", "%s results", nCount);
+}
+
 function ClosePage() {
 	var tSend = {};
 	tSend['sequence_id'] = Math.round(new Date() / 1000);

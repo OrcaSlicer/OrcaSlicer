@@ -361,7 +361,10 @@ function SortFilament()
 	UpdateStats();
 }
 
-function UpdateStats()
+let ShownTimer = null;
+
+// nShownDelay holds back the results count, so typing in Filter items speaks it once typing pauses
+function UpdateStats(nShownDelay)
 {
 	let $i             = $("#ItemBlockArea");
 	let $allItems      = $i.find(".MItem");
@@ -379,7 +382,8 @@ function UpdateStats()
 
 	// ORCA selection and filtering are announced apart, so a change speaks only the count that changed
 	SetStatusText("FilamentCountText", T("count_selected", "%s of %s selected", nChecked, nAll));
-	SetStatusText("FilamentShownText", T("count_shown", "%s shown", visibleCount));
+	clearTimeout(ShownTimer);
+	ShownTimer = setTimeout(() => SetStatusText("FilamentShownText", ResultsText(visibleCount)), nShownDelay || 0);
 }
 
 // Write a status only when its text changes: Chromium announces every write.
@@ -553,7 +557,9 @@ function initInputEvents(){
 	const filterModeFilter  = document.querySelector('.cbr-filter-mode-filter' );
 	const filterModeVisible = document.querySelector('.cbr-filter-mode-visible');
 	
-	filterBar.addEventListener('input', function() {
+	const filterTags        = document.querySelector('#filter-tags');
+
+	filterBar.addEventListener('input', function(e) {
         const search = this.value.trim().toLowerCase();
         const list   = this.closest('.cbr-column').querySelector('.cbr-content');
         const items  = list.querySelectorAll('label');
@@ -566,12 +572,14 @@ function initInputEvents(){
 
 		const showSel   = search == "::checked";
 		const showUnsel = search == "::unchecked";
-		
+		filterTags.value = showSel ? 1 : showUnsel ? 2 : 0;
+
 		if(showSel || showUnsel){
 			items.forEach(item => {
 				const cb   = item.querySelector("input");
 				const hide = showSel ? !cb.checked : cb.checked;
 				item.style.position = hide ? "absolute" : "unset";
+				item.inert = hide; // ORCA moved out of view, so keep Tab and the screen reader out too
 				if(hide) hidden++;
 			});
 		}
@@ -580,21 +588,22 @@ function initInputEvents(){
 				const text = item.querySelector("span").textContent.toLowerCase();
 				const hide = search && !text.includes(search);
 				item.style.position = hide ? "absolute" : "unset";
+				item.inert = !!hide;
 				if(hide) hidden++;
 			});
 		}
-	
+
         list.querySelector('.cbr-no-items').style.display = (hidden === items.length) ? "block" : "none";
 
-		UpdateStats();
+		UpdateStats(e.isTrusted ? 500 : 0); // typed, rather than set by Filter by state or the clear icon
 	});
 	addClearBtnEvents(filterBar);
 
-	document.querySelector('#filter-tags').addEventListener('change', e => {
+	// ORCA the menu shows the state filter in force, and "All" removes it
+	filterTags.addEventListener('change', e => {
 		let v = e.target.value;
-		filterBar.value = v == "1" ? "::checked" : "::unchecked";
+		filterBar.value = v == "1" ? "::checked" : v == "2" ? "::unchecked" : "";
 		filterBar.dispatchEvent(new Event('input', {bubbles: true}));
 		filterBar.focus();
-		e.target.value = 0; // reset back to make dropdown items always selectable
     });
 }

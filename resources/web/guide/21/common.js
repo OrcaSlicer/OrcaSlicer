@@ -259,7 +259,7 @@ function textInput(obj) {
 	// ORCA say how many printers the search leaves, once typing pauses rather than per keystroke
 	clearTimeout(SearchCountTimer);
 	SearchCountTimer = setTimeout(() => {
-		$('#SearchCountText').text(T('count_shown', '%s shown', $('#Content .PrinterBlock').length));
+		$('#SearchCountText').text(ResultsText($('#Content .PrinterBlock').length));
 	}, 500);
 }
 

@@ -109,6 +109,7 @@ static json guide_strings()
         {"finish", _u8L("Finish")},
         {"confirm", _u8L("Confirm")},
         {"cancel", _u8L("Cancel")},
+        {"close", _u8L("Close")},
         {"ok", _u8L("OK")},
         {"yes", _u8L("Yes")},
         {"no", _u8L("No")},
@@ -136,6 +137,8 @@ static json guide_strings()
         {"all", _u8L("All")},
         {"no_items", _u8L("No items")},
         {"filter_items", _u8L("Filter items")},
+        // TRN An item of the "Filter by state" menu beside Filter items: no filter on the checked state.
+        {"state_all", _u8L_CONTEXT("All", "Filter by state")},
         {"checked", _u8L("Checked")},
         {"unchecked", _u8L("Unchecked")},
         {"select_filtered", _u8L("Select filtered")},
@@ -164,7 +167,12 @@ static json guide_strings()
         // it sits beside. The numbers lead; reword freely if your language needs a noun or agreement.
         {"count_selected", _u8L("%s of %s selected")},
         // TRN Screen reader text spoken after a search or filter: how many printers or filaments it leaves.
-        {"count_shown", _u8L("%s shown")},
+        // This form is used only for a count of 1; "%s results" covers every other count.
+        {"count_result_one", _u8L("%s result")},
+        // TRN Screen reader text spoken after a search or filter: how many printers or filaments it leaves.
+        // Used for every count except 1. If your language inflects the noun by number, choose a wording
+        // that reads correctly with any number.
+        {"count_results", _u8L("%s results")},
         {"printers", _u8L("Printers")},
         {"filament_types", _u8L("Filament types")},
         {"filaments", _u8L("Filaments")},

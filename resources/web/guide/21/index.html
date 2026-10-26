@@ -26,7 +26,10 @@
 
 <div id="SidebarContainer" role="dialog" aria-modal="true" aria-labelledby="SidebarTitle">
 	<div id="Sidebar" class="thin-scroll">
-		<h2 class="title" id="SidebarTitle" data-i18n="vendors">Vendors</h2>
+		<div class="SidebarHeader">
+			<h2 class="title" id="SidebarTitle" data-i18n="vendors">Vendors</h2>
+			<button type="button" class="SidebarClose ButtonStyleRegular" data-i18n="close" onclick="SetSidebarOpen(0)">Close</button>
+		</div>
 		<ul class="area" id="SidebarVendors">
 			<!-- <li><button type="button" class="SidebarItem"></button></li> -->
 		</ul>
