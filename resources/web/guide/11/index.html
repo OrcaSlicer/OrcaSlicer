@@ -18,11 +18,11 @@
 </head>
 <body class="PlainButtons" onLoad="OnInit()">
 <div id="Title">
-	<h1 data-i18n="login_region">Please select your login region</h1>
+	<h1 id="RegionTitle" data-i18n="login_region">Please select your login region</h1>
 </div>
 <div id="Content">
 	<div id="EarthIcon"><img src="earth.png" alt=""/></div>
-	<div id="RegionList" role="radiogroup" aria-label="Login region" data-i18n-aria-label="login_region_group">
+	<div id="RegionList" role="radiogroup" aria-labelledby="RegionTitle">
 		<label class="RegionItem RegionSelected TextS1" region="Asia-Pacific" data-i18n="asia_pacific"><input type="radio" name="region" class="A11yOnly" onchange="ChooseRegion('Asia-Pacific')" checked />Asia-Pacific</label>
 		<label class="RegionItem" region="China" data-i18n="china"><input type="radio" name="region" class="A11yOnly" onchange="ChooseRegion('China')" />China</label>
 		<label class="RegionItem" region="Europe" data-i18n="europe"><input type="radio" name="region" class="A11yOnly" onchange="ChooseRegion('Europe')" />Europe</label>

@@ -99,11 +99,12 @@
 			<!-- ORCA "13 / 289 [16]" reads as bare numbers, so a hidden twin says what they count, and announces each change -->
 			<div class="list-item-count" aria-hidden="true"></div>
 			<span class="A11yOnly" id="FilamentCountText" role="status"></span>
-			<div class="cbr-filter-btns">
-				<span class="cbr-filter-mode-filter" data-i18n="select_filtered">Select filtered</span>
-				<span class="cbr-filter-mode-visible" data-i18n="select_visible">Select visible</span>
-				<button type="button" class="ButtonStyleConfirm ButtonTypeWindow" aria-label="Select all shown filaments" data-i18n-aria-label="select_all_shown" onClick="SelectAllFilament(1)" data-i18n="all">All</button>
-				<button type="button" class="ButtonStyleRegular ButtonTypeWindow" aria-label="Clear all shown filaments" data-i18n-aria-label="clear_all_shown" onClick="SelectAllFilament(0)" data-i18n="clear_all">Clear all</button>
+			<span class="A11yOnly" id="FilamentShownText" role="status"></span>
+			<div class="cbr-filter-btns" role="group" aria-labelledby="FilterModeVisible">
+				<span class="cbr-filter-mode-filter" id="FilterModeFilter" data-i18n="select_filtered">Select filtered</span>
+				<span class="cbr-filter-mode-visible" id="FilterModeVisible" data-i18n="select_visible">Select visible</span>
+				<button type="button" class="ButtonStyleConfirm ButtonTypeWindow" onClick="SelectAllFilament(1)" data-i18n="all">All</button>
+				<button type="button" class="ButtonStyleRegular ButtonTypeWindow" onClick="SelectAllFilament(0)" data-i18n="clear_all">Clear all</button>
 			</div>	
 		</div>
 		<div class="cbr-content thin-scroll" id="ItemBlockArea">

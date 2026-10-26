@@ -152,26 +152,23 @@ static json guide_strings()
         {"proprietary_plugins_risk", _u8L("Please be aware that these plugins are not developed or maintained by OrcaSlicer. They should be used at your own discretion and risk.")},
         {"install_bambu_plugin", _u8L("Install Bambu Network plug-in")},
         // Screen reader names for controls and sections that show no text of their own.
-        {"login_region_group", _u8L("Login region")},
-        {"open_sidebar", _u8L("Open sidebar")},
+        {"jump_to_vendor", _u8L("Jump to vendor")},
         {"view_compact_list", _u8L("Compact list view")},
         {"view_compact_cover", _u8L("Compact cover view")},
         {"view_large_cover", _u8L("Large cover view")},
         // TRN %s is a printer vendor name.
         {"select_all_printers", _u8L("Select all %s printers")},
+        // TRN %s is a printer vendor name. Used while a search hides some of the vendor's printers.
+        {"select_all_shown_printers", _u8L("Select all shown %s printers")},
         // TRN Screen reader text for a "3 / 12" count: the number selected, then the total, of the printers or filaments
         // it sits beside. The numbers lead; reword freely if your language needs a noun or agreement.
         {"count_selected", _u8L("%s of %s selected")},
-        // TRN Screen reader text spoken after typing in the printer search: how many printers it leaves.
+        // TRN Screen reader text spoken after a search or filter: how many printers or filaments it leaves.
         {"count_shown", _u8L("%s shown")},
         {"printers", _u8L("Printers")},
         {"filament_types", _u8L("Filament types")},
         {"filaments", _u8L("Filaments")},
         {"filter_by_state", _u8L("Filter by state")},
-        {"select_all_shown", _u8L("Select all shown filaments")},
-        {"clear_all_shown", _u8L("Clear all shown filaments")},
-        // TRN Screen reader text for the filament count under a filter: selected, total, then the number the filter shows.
-        {"count_selected_shown", _u8L("%s of %s selected, %s shown")},
         // TRN Name of the edit button beside a custom filament. %s is the filament name.
         {"edit_filament_named", _u8L("Edit filament %s")},
     };

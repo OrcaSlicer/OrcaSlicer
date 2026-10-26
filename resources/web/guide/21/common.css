@@ -387,6 +387,12 @@ img.ModelThumbnail {
 	padding: 0 0 5px 20px;
 }
 
+#SidebarVendors {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
 #Sidebar .SidebarItem {
 	display: block; /* ORCA a <button> is inline-block - stack the rows like the divs did */
 	width: 100%;

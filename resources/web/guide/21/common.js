@@ -281,6 +281,10 @@ function CreateVendorBlock(vendorName)
 	let alt = VendorDisplayName(vendorName);
 
 	let titleId = 'VendorTitle_' + vendorName.replace(/[^\w-]/g, '_');
+	// a search leaves only the matching printers in the block, and select-all acts on just those
+	let selectAll = SearchBox && SearchBox.value.trim()
+		? T('select_all_shown_printers', 'Select all shown %s printers', alt)
+		: T('select_all_printers', 'Select all %s printers', alt);
 
 	return 	`<div class="OneVendorBlock" Vendor="${vendorName}" role="group" aria-labelledby="${titleId}">` +
 			'	<div class="BlockBanner">' +
@@ -290,7 +294,7 @@ function CreateVendorBlock(vendorName)
 			// "3 / 12" reads as two bare numbers, so a hidden twin says what they count
 			'			<div class="modelCount" aria-hidden="true"></div>' +
 			'			<span class="A11yOnly modelCountText"></span>' +
-			`			<input type="checkbox" class="VendorCheckbox" aria-label="${EscAttr(T('select_all_printers', 'Select all %s printers', alt))}" onChange="ChooseVendor('${vendorName}')"/>`+
+			`			<input type="checkbox" class="VendorCheckbox" aria-label="${EscAttr(selectAll)}" onChange="ChooseVendor('${vendorName}')"/>`+
 			'		</label>'+
 			'	</div>' +
 			'	<div class="PrinterArea">	' +
@@ -340,25 +344,30 @@ function CreatePrinterBlock(OneModel)
 			'</div>';
 }
 
-function SetSidebarOpen(nOpen) {
+// ORCA the open sidebar is a modal dialog: the page behind it is inert, so neither Tab nor a
+// screen reader's browse mode can wander out of it. Closing it moves focus to Target, else back
+// to the button that opened it.
+function SetSidebarOpen(nOpen, Target) {
 	let sidebar = document.getElementById('SidebarContainer');
+	let wasOpen = sidebar.getAttribute('open') == '1';
+	for (let el of document.body.children)
+		if (el !== sidebar && !el.matches('dialog, script'))
+			el.inert = !!nOpen;
+	if (!nOpen && wasOpen)
+		(Target || document.querySelector('.SidebarBtn')).focus({preventScroll: true});
+	// the sidebar goes inert after focus has left it, so focus never sits on a removed node
 	sidebar.setAttribute('open', nOpen ? '1' : '0');
-	sidebar.inert = !nOpen;   // keep the offscreen sidebar out of the Tab order
-	SetAriaState(document.querySelectorAll('.SidebarBtn'), 'aria-expanded', !!nOpen);
+	sidebar.inert = !nOpen;
 	if (nOpen)
 		sidebar.querySelector('.SidebarItem')?.focus();
-	else if (sidebar.contains(document.activeElement))
-		document.querySelector('.SidebarBtn')?.focus();
 }
 
 function scrollToVendor(vendor) {
 	const el = $(".OneVendorBlock[vendor='"+vendor+"']")[0];
 	if (el){
-		// focus goes with the scroll; moved first, so closing the sidebar leaves it there
-		if (document.getElementById('SidebarContainer').contains(document.activeElement))
-			el.querySelector('.VendorCheckbox').focus({preventScroll: true});
-		SetSidebarOpen(0);
-		document.getElementById('Content').scrollTo({top: el.offsetTop, behavior: "smooth"});
+		SetSidebarOpen(0, el.querySelector('.VendorCheckbox'));
+		// no smooth scroll: a screen reader can read out what scrolls past
+		document.getElementById('Content').scrollTo({top: el.offsetTop});
 	}
 }
 
@@ -368,7 +377,7 @@ function UpdateSidebarVendors()
 	$(`.OneVendorBlock`).each((i, el)=>{
 		let vendor = el.getAttribute('vendor');
 		UpdateVendorCheckbox(vendor);
-		SidebarHTML +=`<button type="button" class="SidebarItem" vendor="${vendor}" onclick="scrollToVendor(this.getAttribute('vendor'))">${VendorDisplayName(vendor)}</button>`;
+		SidebarHTML +=`<li><button type="button" class="SidebarItem" vendor="${vendor}" onclick="scrollToVendor(this.getAttribute('vendor'))">${VendorDisplayName(vendor)}</button></li>`;
 	});
 	$('#SidebarVendors').html(SidebarHTML)
 }
@@ -668,13 +677,6 @@ function LayoutMode(value) {
 document.addEventListener('DOMContentLoaded', () => {
 	LayoutMode("large-cover");
 	SetSidebarOpen(0);
-
-	// ORCA close the sidebar when focus moves past it and its button, so focus never sits behind its scrim
-	let sidebar = document.getElementById('SidebarContainer');
-	document.addEventListener('focusin', e => {
-		if (sidebar.getAttribute('open') == "1" && !sidebar.contains(e.target) && !e.target.closest('.SidebarBtn'))
-			SetSidebarOpen(0);
-	});
 });
 
 // KEY EVENTS
@@ -699,8 +701,8 @@ function initKeyEvents(closeOnESC) {
 		if (a != SearchBox && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey
 			&& !a.matches('input, textarea, select')
 			&& !(e.key === ' ' && a.matches('button, a, [role], [tabindex]'))) {
+			SetSidebarOpen(0, SearchBox); // typing implies leaving the sidebar
 			SearchBox.focus();
-			SetSidebarOpen(0); // typing implies leaving the sidebar
 		}
 	};
 }

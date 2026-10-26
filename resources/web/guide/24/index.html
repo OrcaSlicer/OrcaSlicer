@@ -24,16 +24,16 @@
 	<h1 data-i18n="printer_selection">Printer Selection</h1>
 </div>
 
-<div id="SidebarContainer">
+<div id="SidebarContainer" role="dialog" aria-modal="true" aria-labelledby="SidebarTitle">
 	<div id="Sidebar" class="thin-scroll">
-		<h2 class="title" data-i18n="vendors">Vendors</h2>
-		<div class="area" id="SidebarVendors">
-			<!-- <button type="button" class="SidebarItem"></button> -->
-		</div>
+		<h2 class="title" id="SidebarTitle" data-i18n="vendors">Vendors</h2>
+		<ul class="area" id="SidebarVendors">
+			<!-- <li><button type="button" class="SidebarItem"></button></li> -->
+		</ul>
 	</div>
 	<div class="back" aria-hidden="true" onclick="SetSidebarOpen(0)"></div>
 </div>
-<button type="button" class="SidebarBtn ButtonStyleRegular" aria-label="Open sidebar" data-i18n-aria-label="open_sidebar" onclick="SetSidebarOpen(this.getAttribute('aria-expanded') != 'true')">
+<button type="button" class="SidebarBtn ButtonStyleRegular" aria-haspopup="dialog" aria-label="Jump to vendor" data-i18n-aria-label="jump_to_vendor" onclick="SetSidebarOpen(1)">
 	<div class="icon16"></div>
 </button>
 

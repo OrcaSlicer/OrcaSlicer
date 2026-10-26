@@ -377,10 +377,17 @@ function UpdateStats()
 		(bFiltered ? (" [" + visibleCount + "]") : "") // filtered items
 	);
 
-	$("#FilamentCountText").text(
-		bFiltered ? T("count_selected_shown", "%s of %s selected, %s shown", nChecked, nAll, visibleCount)
-		          : T("count_selected", "%s of %s selected", nChecked, nAll)
-	);
+	// ORCA selection and filtering are announced apart, so a change speaks only the count that changed
+	SetStatusText("FilamentCountText", T("count_selected", "%s of %s selected", nChecked, nAll));
+	SetStatusText("FilamentShownText", T("count_shown", "%s shown", visibleCount));
+}
+
+// Write a status only when its text changes: Chromium announces every write.
+function SetStatusText(strId, strText)
+{
+	let el = document.getElementById(strId);
+	if (el.textContent !== strText)
+		el.textContent = strText;
 }
 
 function SelectAllFilament( nShow )
@@ -554,6 +561,8 @@ function initInputEvents(){
 		
 		filterModeFilter.style.display  = search ? "block" : "none";
 		filterModeVisible.style.display = search ? "none" : "block";
+		// ORCA the button group is named by whichever of the two labels shows
+		SetAriaState(filterModeVisible.parentNode, 'aria-labelledby', search ? filterModeFilter.id : filterModeVisible.id);
 
 		const showSel   = search == "::checked";
 		const showUnsel = search == "::unchecked";
