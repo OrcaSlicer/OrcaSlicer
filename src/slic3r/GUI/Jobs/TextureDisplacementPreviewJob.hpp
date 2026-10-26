@@ -15,9 +15,9 @@
 
 namespace Slic3r::GUI {
 
-// Everything process() needs, captured by value on the main thread when the job is queued -
-// mirrors TextureDisplacementBakeInput, but a preview never writes back to the Model.
-struct TextureDisplacementPreviewInput
+// One model part's share of a preview. Captured by value on the main thread when the job is queued -
+// mirrors TextureDisplacementBakeVolume, but a preview never writes back to the Model.
+struct TextureDisplacementPreviewVolume
 {
     indexed_triangle_set                  base_mesh;
     std::vector<TextureDisplacementLayer> layers;
@@ -26,16 +26,26 @@ struct TextureDisplacementPreviewInput
     // Mesh coordinates -> world millimetres, so the preview is displaced in the same space the bake
     // is and the two cannot disagree. See build_texture_displacement().
     Transform3d                           volume_to_world = Transform3d::Identity();
-    // Empty unless a layer is colouring, in which case the preview reports the palette entry per
-    // triangle alongside the mesh, so the Normal view shows the colours the bake will produce.
-    TextureColorSettings                  color;
-    // The volume's own UV channel (ModelVolume::texture_uv), so a ModelUV layer previews through the
-    // same layout it will bake through. Empty when the volume has none.
+    // The part's own UV channel (ModelVolume::texture_uv), so a ModelUV layer previews through the
+    // same layout it will bake through. Empty when the part has none.
     std::vector<Vec2f>                    model_uv;
+    // Where the part sits in its object, as TextureDisplacementBakeVolume has it.
+    Vec3d                                 texture_anchor = Vec3d::Zero();
+    float                                 resting_drop   = 0.f;
 };
 
-// A preview result: the displaced mesh, and - when the input carried a palette - one palette entry per
-// triangle (its index + 1; 0 means "no colour from the texture").
+struct TextureDisplacementPreviewInput
+{
+    // The same parts the bake would displace, in the object's own volume order, so the preview shows
+    // the whole of what Bake will do on a multibody object rather than just its first part.
+    std::vector<TextureDisplacementPreviewVolume> volumes;
+    // Empty unless a layer is colouring, in which case the preview reports the palette entry per
+    // triangle alongside the mesh, so the Normal view shows the colours the bake will produce.
+    TextureColorSettings                          color;
+};
+
+// A preview result for one part: the displaced mesh, and - when the input carried a palette - one
+// palette entry per triangle (its index + 1; 0 means "no colour from the texture").
 struct TextureDisplacementPreviewResult
 {
     indexed_triangle_set  mesh;
@@ -65,9 +75,12 @@ public:
     // already been superseded stops burning CPU instead of running to completion for a result that
     // will only be thrown away. That matters because the UI job worker runs one job at a time in FIFO
     // order: without it, a Bake queued behind a handful of stale previews waits for every one of them.
+    //
+    // `on_finished` receives one result per input part, at the same index - or an empty vector when
+    // the run was superseded, cancelled or threw.
     TextureDisplacementPreviewJob(TextureDisplacementPreviewInput &&input, uint64_t generation,
                                    std::shared_ptr<const std::atomic<uint64_t>> current_generation,
-                                   std::function<void(TextureDisplacementPreviewResult, uint64_t)> on_finished);
+                                   std::function<void(std::vector<TextureDisplacementPreviewResult>, uint64_t)> on_finished);
 
     void process(Ctl &ctl) override;
     void finalize(bool canceled, std::exception_ptr &eptr) override;
@@ -76,8 +89,8 @@ private:
     TextureDisplacementPreviewInput                    m_input;
     uint64_t                                            m_generation;
     std::shared_ptr<const std::atomic<uint64_t>>        m_current_generation;
-    TextureDisplacementPreviewResult                    m_result;
-    std::function<void(TextureDisplacementPreviewResult, uint64_t)> m_on_finished;
+    std::vector<TextureDisplacementPreviewResult>       m_results;
+    std::function<void(std::vector<TextureDisplacementPreviewResult>, uint64_t)> m_on_finished;
 };
 
 } // namespace Slic3r::GUI

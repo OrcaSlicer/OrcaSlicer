@@ -5,6 +5,7 @@
 #include "bambu_networking.hpp"
 
 #include <functional>
+#include <chrono>
 #include <cstdint>
 #include <atomic>
 #include <memory>
@@ -85,13 +86,23 @@ protected:
         bool        use_ssl = false;
     } device_info;
 
+    // Copied when the stream starts, so changes apply to the next start_status_stream()
+    struct StatusStreamTimings
+    {
+        std::chrono::milliseconds handshake{std::chrono::seconds(10)};      // Opening and closing handshakes
+        std::chrono::milliseconds close{std::chrono::seconds(1)};           // Wait for the close frame's answer before dropping the socket
+        std::chrono::milliseconds idle{std::chrono::seconds(30)};           // Silence before giving up, with a ping every half of it
+        std::chrono::milliseconds heartbeat{std::chrono::seconds(10)};      // Silence before the cached status is sent again
+        std::chrono::milliseconds reconnect_delay{std::chrono::seconds(1)}; // First wait, doubling per consecutive failure up to 32x
+    } ws_timings;
+
     // Tray data for AMS payload building
     struct AmsTrayData {
         int         slot_index = 0;      // 0-based slot index
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
-        std::string tray_info_idx;       // Setting ID (optional)
+        std::string tray_info_idx;       // Filament ID (optional)
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
     };
@@ -101,7 +112,14 @@ protected:
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
-    virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+    // An override must give up its request once `cancelled` returns true, or the destructor waits out its timeout
+    virtual bool fetch_device_info(const std::string&           base_url,
+                                   const std::string&           api_key,
+                                   MoonrakerDeviceInfo&         info,
+                                   std::string&                 error,
+                                   const std::function<bool()>& cancelled) const;
+    void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
+    void stop_status_stream();
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;
@@ -124,7 +142,11 @@ private:
     int send_access_code(const std::string& dev_id);
 
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
-    bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
+    bool query_printer_status(const std::string&           base_url,
+                              const std::string&           api_key,
+                              nlohmann::json&              status,
+                              std::string&                 error,
+                              const std::function<bool()>& cancelled) const;
     bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
     void send_gcode_async(const std::string& dev_id, const std::string& gcode,
                           std::function<void(bool)> on_result = {}) const;
@@ -133,10 +155,11 @@ private:
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
     void dispatch_printer_connected(const std::string& dev_id);
     void dispatch_message(const std::string& dev_id, const std::string& payload);
-    void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
-    void stop_status_stream();
-    void run_status_stream(std::string dev_id, std::string base_url, std::string api_key);
+    // Joins a stream stopped from its own callback, so a new stream can start without waiting on it under connect_mutex
+    void join_stopped_status_stream();
+    void run_status_stream(std::string dev_id, std::string base_url, std::string api_key, StatusStreamTimings timings);
     void handle_ws_message(const std::string& dev_id, const std::string& payload);
+    void send_heartbeat_if_due(const std::string& dev_id, std::chrono::milliseconds interval);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
 
@@ -196,6 +219,8 @@ private:
     std::atomic<bool>   ws_reconnect_requested{false};  // Flag to trigger reconnection
     std::atomic<uint64_t> ws_last_emit_ms{0};
     std::thread         ws_thread;
+    std::mutex          ws_abort_mutex; // Guards ws_thread and ws_abort
+    std::function<void()> ws_abort; // Interrupts whatever the stream thread is waiting on, from any thread
 
     // Throttling configuration for WebSocket updates
     // Critical changes (state transitions) dispatch immediately; telemetry is throttled

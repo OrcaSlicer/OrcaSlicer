@@ -71,9 +71,11 @@
 #include <windows.h>
 #include <VersionHelpers.h>
 #include <sysinfoapi.h>
+#include <winternl.h>
 #endif
 
 #ifdef __LINUX__
+#include "LinuxDisplayBackend.hpp"
 #include <wx/textfile.h>
 #include <wx/tokenzr.h>
 #include <cstdlib>
@@ -97,6 +99,8 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/HyperLink.hpp"
 #include "Widgets/Button.hpp"
+#include "Plater.hpp"
+#include "MsgDialog.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -201,7 +205,11 @@ TroubleshootDialog::TroubleshootDialog()
             return std::vector<wxString>{GetOStype()};
         return std::vector<wxString>{
             GetOSinfo(),
+#ifdef __LINUX__
+            GetPackageType() + GetAppDisplayBackend(),
+#else
             GetPackageType(),
+#endif
             GetCPUinfo(),
             GetRAMinfo() + " RAM",
             GetGPUinfo(),
@@ -434,10 +442,15 @@ wxString TroubleshootDialog::GetTimestamp()
 
 wxString TroubleshootDialog::GetSysInfoAll()
 {
+    wxString package = GetPackageType();
+#ifdef __LINUX__
+    package += GetAppDisplayBackend();
+#endif
+
     wxString info;
     info += "Version   :  " + wxString(SoftFever_VERSION) + "\n"
           + "Build     :  " + wxString(build_commit_label) + "\n"
-          + "Package   :  " + GetPackageType() + "\n"
+          + "Package   :  " + package + "\n"
           + "Platform  :  " + GetOSinfo()      + "\n"
           + "Processor :  " + GetCPUinfo() + "\n"
           + "Memory    :  " + GetRAMinfo() + "RAM" + "\n"
@@ -750,6 +763,18 @@ wxString TroubleshootDialog::GetLinuxDisplayServer()
         return "X11"; // DISPLAY being set suggests X11
 
     return "";
+}
+
+wxString TroubleshootDialog::GetAppDisplayBackend()
+{
+    // Display backend actually used by the app (GDK), not the session type
+    wxString display;
+    switch (get_linux_display_backend()) {
+        case LinuxDisplayBackend::X11:     display = "X11";     break;
+        case LinuxDisplayBackend::Wayland: display = "Wayland"; break;
+        default: break;
+    }
+    return display.IsEmpty() ? "" : (" (" + display + ")"); // spacing included here to prevent non centered text
 }
 #endif
 

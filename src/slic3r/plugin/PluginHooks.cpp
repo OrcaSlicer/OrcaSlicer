@@ -102,6 +102,12 @@ void install_slicing_pipeline_hook()
                         ctx.step   = step;
                         ctx.print  = &print;
                         ctx.object = object;
+                        // Slicing hooks are synchronous by design and never await: the context
+                        // borrows Print/PrintObject that are only valid during this call, and the
+                        // UI thread may itself be blocked waiting on this slicing worker. An async
+                        // override is rejected here rather than scheduled -- cap->execute() casts
+                        // its Python result to ExecutionResult and a coroutine object cannot be
+                        // cast, so it surfaces as the SlicingError below.
                         r = cap->execute(ctx);
                     } catch (const CanceledException&) {
                         throw; // cancellation must reach process(), never become a slicing error

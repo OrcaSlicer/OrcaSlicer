@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Basic @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "QIDI PLA Basic@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "7wZXosB2ESqFRgAG",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.016"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

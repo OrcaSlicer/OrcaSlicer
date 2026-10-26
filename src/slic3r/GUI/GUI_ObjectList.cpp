@@ -1618,7 +1618,9 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
             get_selected_item_indexes(obj_idx, vol_idx, item);
             if (obj_idx != -1) {
                 Plater::TakeSnapshot snapshot(plater, _u8L("Shift objects to bed"));
-                (*m_objects)[obj_idx]->ensure_on_bed();
+                // Shift on request also when auto drop is off, which ensure_on_bed() skips.
+                ModelObject* mo = (*m_objects)[obj_idx];
+                mo->translate_instances(-mo->min_z() * Vec3d::UnitZ());
                 cnv->reload_scene(true, true);
                 update_info_items(obj_idx);
                 notify_instance_updated(obj_idx);
@@ -3651,6 +3653,7 @@ void ObjectList::delete_all_connectors_for_object(int obj_idx)
             if (obj->volumes.empty() || !obj->has_solid_mesh()) {
                 const std::string deleted_obj_name = obj->name;
                 model.delete_object(idx);
+                wxGetApp().plater()->get_partplate_list().notify_instance_removed(idx, -1);
                 {
                     Slic3r::LifecycleEventContext ctx;
                     ctx.name = deleted_obj_name;
@@ -6734,7 +6737,9 @@ void ObjectList::OnEditingStarted(wxDataViewEvent &event)
         Plater::TakeSnapshot snapshot(plater, _u8L("Shift objects to bed"));
         int obj_idx, vol_idx;
         get_selected_item_indexes(obj_idx, vol_idx, item);
-        (*m_objects)[obj_idx]->ensure_on_bed();
+        // Shift on request also when auto drop is off, which ensure_on_bed() skips.
+        ModelObject* mo = (*m_objects)[obj_idx];
+        mo->translate_instances(-mo->min_z() * Vec3d::UnitZ());
         cnv->reload_scene(true, true);
         update_info_items(obj_idx);
         notify_instance_updated(obj_idx);
