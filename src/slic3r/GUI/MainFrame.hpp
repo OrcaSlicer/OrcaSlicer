@@ -28,6 +28,7 @@
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "IdleScheduler.hpp"
 
 
@@ -72,7 +73,6 @@ namespace GUI
 
 class Tab;
 class PrintHostQueueDialog;
-class DiffPresetDialog;
 class ParamsPanel;
 class MonitorPanel;
 class MultiMachinePage;
