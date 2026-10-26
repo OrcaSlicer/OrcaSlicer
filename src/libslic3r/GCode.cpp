@@ -25,6 +25,7 @@
 #include "libslic3r/format.hpp"
 #include "Time.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
+#include "GCode/SupportInterfaceSpeed.hpp"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -2918,6 +2919,12 @@ static BambuBedType to_bambu_bed_type(BedType type)
 void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
 {
     PROFILE_FUNC();
+
+    m_above_support_layer = nullptr;
+    m_above_support_regions.clear();
+    m_above_support_fan_on = false;
+    m_above_support_fan_marker_layer = -1;
+    m_above_support_fan_blend = -1;
 
     m_print = &print;
     m_timelapse_pos_picker.init(&print,m_writer.get_xy_offset().cast<coord_t>());
@@ -8301,6 +8308,41 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
     }
 
+    bool support_speed_applied = false;
+    const bool support_fan_enabled = FILAMENT_CONFIG(first_layer_above_support_fan_speed) >= 0;
+    if ((m_config.first_layer_above_support_speed.value > 0 || support_fan_enabled) && m_layer != nullptr &&
+        (is_perimeter(path.role()) || is_infill(path.role()) || path.role() == erGapFill) &&
+        path.role() != erIroning && !path.is_force_no_extrusion() && path.mm3_per_mm > 0) {
+        if (m_above_support_layer != m_layer) {
+            const size_t slow_layers = size_t(std::max(1, m_config.slow_layers_above_support.value));
+            m_above_support_regions.clear();
+            for (SupportInterfaceLayerRegion &result : support_interface_regions_for_slow_layers(*m_layer, slow_layers)) {
+                if (m_config.slow_area_above_support_expansion.value > 0.)
+                    result.regions = offset_ex(result.regions, scale_(m_config.slow_area_above_support_expansion.value));
+                m_above_support_regions.emplace_back(std::move(result.regions), double(result.layer_offset) / double(slow_layers));
+            }
+            m_above_support_layer = m_layer;
+        }
+        if (!m_above_support_regions.empty()) {
+            // Use the existing variable-speed writer, which preserves scarf Z/flow,
+            // cooling markers and adaptive PA. Only affected paths lose arc fitting.
+            std::vector<ProcessedPoint> points;
+            if (variable_speed)
+                points = new_points;
+            else
+                for (const Point3 &p : path.polyline.points)
+                    points.push_back({p, float(speed), 1.f});
+            for (const auto &[regions, blend_to_normal] : m_above_support_regions)
+                support_speed_applied |= limit_speed_above_support(points, regions,
+                                                                   m_config.first_layer_above_support_speed,
+                                                                   support_fan_enabled, blend_to_normal);
+            if (support_speed_applied) {
+                new_points = std::move(points);
+                variable_speed = true;
+            }
+        }
+    }
+
     double F = speed * 60;  // convert mm/sec to mm/min
     
     // Orca: Dynamic PA
@@ -8496,6 +8538,26 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
         }
     };
+    auto append_above_support_fan_marker = [this, &gcode](bool fan_on, double blend_to_normal = 0.) {
+        if (!m_enable_cooling_markers)
+            return;
+        if (fan_on) {
+            const int blend = int(std::lround(100. * blend_to_normal));
+            if (!m_above_support_fan_on || m_above_support_fan_marker_layer != m_layer_index || m_above_support_fan_blend != blend) {
+                gcode += ";_ABOVE_SUPPORT_FAN_START B";
+                gcode += std::to_string(blend);
+                gcode += "\n";
+                m_above_support_fan_on = true;
+                m_above_support_fan_marker_layer = m_layer_index;
+                m_above_support_fan_blend = blend;
+            }
+        } else if (m_above_support_fan_on) {
+            gcode += ";_ABOVE_SUPPORT_FAN_END\n";
+            m_above_support_fan_on = false;
+            m_above_support_fan_marker_layer = -1;
+            m_above_support_fan_blend = -1;
+        }
+    };
     auto apply_role_based_fan_speed = [
         &path, &append_role_based_fan_marker,
         supp_interface_fan_speed = FILAMENT_CONFIG(support_material_interface_fan_speed),
@@ -8600,6 +8662,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 }
 
                 apply_role_based_fan_speed();
+                append_above_support_fan_marker(false);
             }
             // BBS: use G1 if not enable arc fitting or has no arc fitting result or in spiral_mode mode or we are doing sloped extrusion
             // Attention: G2 and G3 is not supported in spiral_mode mode
@@ -8764,6 +8827,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 }
 
                 apply_role_based_fan_speed();
+                append_above_support_fan_marker(pre_processed_point.above_support_interface,
+                                                pre_processed_point.above_support_blend_to_normal);
             }
 
             const double line_length = (p - prev).norm();
@@ -8821,7 +8886,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             if ((std::abs(last_set_speed - new_speed) > 60)) {
                 gcode += m_writer.set_speed(new_speed, "", comment);
                 last_set_speed = new_speed;
-            } else if ((std::abs(F - new_speed) <= 60)) {
+            } else if (!support_speed_applied && (std::abs(F - new_speed) <= 60)) {
                 gcode += m_writer.set_speed(F, "", comment);
                 last_set_speed = F;
             }

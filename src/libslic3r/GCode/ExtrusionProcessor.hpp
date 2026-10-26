@@ -395,6 +395,8 @@ struct ProcessedPoint
     Point3 p;
     float speed = 1.0f;
     float overlap = 1.0f;
+    bool above_support_interface = false;
+    float above_support_blend_to_normal = 0.f;
 };
 
 class ExtrusionQualityEstimator

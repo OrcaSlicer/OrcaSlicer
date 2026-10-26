@@ -241,6 +241,7 @@ set(lisbslic3r_sources
     GCode/TimelapsePosPicker.hpp
     GCode.cpp
     GCode/ExtrusionProcessor.hpp
+    GCode/SupportInterfaceSpeed.hpp
     GCode/FanMover.cpp
     GCode/FanMover.hpp
     GCode/GCodeProcessor.cpp

@@ -189,6 +189,7 @@ struct SupportParameters {
         independent_layer_height = print_config.independent_support_layer_height;
 
         // force double walls everywhere if wall count is larger than 1        
+        tree_support_wall_count = std::max(0, object_config.tree_support_wall_count.value);
         tree_branch_diameter_double_wall_area_scaled = object_config.tree_support_wall_count.value > 1  ? 0.1 :
                                                        object_config.tree_support_wall_count.value == 0 ? 0.25 * sqr(scaled<double>(5.0)) * M_PI :
                                                                                                           std::numeric_limits<double>::max();
@@ -281,7 +282,9 @@ struct SupportParameters {
     InfillPattern 			contact_fill_pattern;
     // Shall the sparse (base) layers be printed with a single perimeter line (sheath) for robustness?
     bool                    with_sheath;
-    // Branches of organic supports with area larger than this threshold will be extruded with double lines.
+    // Explicit number of tree-support walls. Zero keeps the automatic one/two-wall behavior.
+    // In auto mode, branches above this area threshold receive a second wall.
+    size_t                  tree_support_wall_count = 0;
     double                  tree_branch_diameter_double_wall_area_scaled = 0.25 * sqr(scaled<double>(5.0)) * M_PI;;
 
     float 					raft_angle_1st_layer;

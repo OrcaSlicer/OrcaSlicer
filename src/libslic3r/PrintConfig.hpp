@@ -1143,6 +1143,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                support_on_build_plate_only))
     ((ConfigOptionBool,                support_critical_regions_only))
     ((ConfigOptionBool,                support_remove_small_overhang))
+    ((ConfigOptionFloatOrPercent,      first_layer_above_support_speed))
+    ((ConfigOptionInt,                 slow_layers_above_support))
+    ((ConfigOptionFloat,               slow_area_above_support_expansion))
     ((ConfigOptionFloat,               support_top_z_distance))
     ((ConfigOptionFloat,               support_bottom_z_distance))
     ((ConfigOptionInt,                 enforce_support_layers))
@@ -1923,6 +1926,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloats,             grab_length))
     ((ConfigOptionBool,                gcode_comments))
     ((ConfigOptionInt,                 slow_down_layers))
+    ((ConfigOptionInts,                first_layer_above_support_fan_speed))
     ((ConfigOptionInts,                support_material_interface_fan_speed))
     ((ConfigOptionInts,                internal_bridge_fan_speed)) // ORCA: Add support for separate internal bridge fan speed control
     ((ConfigOptionInts,                ironing_fan_speed))

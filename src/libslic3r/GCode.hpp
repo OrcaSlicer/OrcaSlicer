@@ -692,6 +692,11 @@ private:
     // Current layer processed. In sequential printing mode, only a single copy will be printed.
     // In non-sequential mode, all its copies will be printed.
     const Layer*                        m_layer;
+    const Layer*                        m_above_support_layer = nullptr;
+    std::vector<std::pair<ExPolygons, double>> m_above_support_regions;
+    bool                                m_above_support_fan_on = false;
+    int                                 m_above_support_fan_marker_layer = -1;
+    int                                 m_above_support_fan_blend = -1;
     // m_layer is an object layer and it is being printed over raft surface.
     bool                                m_object_layer_over_raft;
     //double                              m_volumetric_speed;
