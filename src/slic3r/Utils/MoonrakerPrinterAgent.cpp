@@ -677,8 +677,7 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     return UNKNOWN_FILAMENT_ID;
 }
 
-// JSON helper methods - null-safe accessors
-std::string MoonrakerPrinterAgent::map_creality_material_id(const std::string& material_id)
+static std::string map_creality_material_id(const std::string& material_id)
 {
     static const std::map<std::string, std::string> types = {
         {"000001", "PLA"}, {"000002", "ABS"}, {"000003", "PETG"},
@@ -791,6 +790,7 @@ bool MoonrakerPrinterAgent::fetch_creality_cfs_data(std::vector<AmsTrayData>& tr
     return true;
 }
 
+// JSON helper methods - null-safe accessors
 std::string MoonrakerPrinterAgent::safe_json_string(const nlohmann::json& obj, const char* key)
 {
     auto it = obj.find(key);

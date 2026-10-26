@@ -147,8 +147,8 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
     }
 
     if (matches.empty()) {
-        // filament_id_by_type() falls back to the first visible preset if no system
-        // base of this type exists. Never sync an unrelated material to the CFS.
+        // first_visible_idx_by_type() returns any visible preset when no base of this
+        // type exists. Never sync an unrelated material to the CFS.
         const auto&       fallback_preset = filaments.preset(filaments.first_visible_idx_by_type(base_type));
         const std::string fallback        = fallback_preset.filament_id;
         const bool        fallback_ok     = fallback_preset.config.opt_string("filament_type", 0u) == base_type &&

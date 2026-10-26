@@ -127,8 +127,6 @@ protected:
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
-    static std::string map_creality_material_id(const std::string& material_id);
-
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
