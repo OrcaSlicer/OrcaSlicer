@@ -226,7 +226,8 @@ public:
     void set_extrude_signed(bool on) { m_ex_signed = on; }
     // Grid snap: draw tools land on multiples of `step` (mm) in sketch (u,v). Inference snaps and
     // Shift (the existing "no snapping" modifier) take priority over it.
-    void set_grid_snap(bool on, double step) { m_grid_on = on; m_grid_step = step; }
+    void set_grid_snap(bool on, double step) { m_grid_on = on; m_grid_step = step; }   // show the grid, and its step
+    void set_grid_magnet(bool on) { m_grid_magnet = on; }                              // points snap to the grid, shown or not
     void set_polygon_sides(int n) { m_polygon_sides = (n < 3 ? 3 : n); }
     void set_polygon_circumscribed(bool c) { m_polygon_circumscribed = c; }
     void finish();                            // emit accumulated entities, end session
@@ -1154,7 +1155,8 @@ private:
     mutable int         m_guide_ent{-1};        // the line the rubber band is parallel/perpendicular to (-1: none)
     bool                m_infer_off{false};     // Ctrl/Alt held -> no snapping and no auto-constraints
     bool                m_snap_off{false};      // Shift held -> suppress angle snapping
-    bool                m_grid_on{false};
+    bool                m_grid_on{false};       // the grid is drawn
+    bool                m_grid_magnet{false};   // points are pulled onto it (independent of drawing it)
     bool                m_ex_signed{false};     // extrude gizmo depth may be negative (face push/pull)
     double              m_grid_step{1.0};
     InferenceSnap       m_cursor_snap;          // last cursor inference target (for hint render)

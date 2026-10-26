@@ -646,6 +646,7 @@ private:
     void              fill_project_sources(int editing_feature, bool want_sketch, int want);
     wxCheckBox*       m_grid_snap{nullptr};      // sketch grid snap on/off (persisted)
     wxSpinCtrlDouble* m_grid_step{nullptr};      // snap step, mm (persisted)
+    bool              m_grid_magnet{false};      // points snap to the grid, shown or not (persisted; the I key)
     void              push_grid_snap();          // spin/check -> viewport + config
     // Feature tree on the canvas (ImGui) instead of the side panel's wx list. The wx list stays alive,
     // hidden, as the selection model: the overlay emits events that call the same handlers.

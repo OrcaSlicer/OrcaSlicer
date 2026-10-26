@@ -234,8 +234,9 @@ static const OfferVerb kOfferVerbs[] = {
     {"con_distancex", L_CONTEXT("Horizontal distance", "Design"), 6, nullptr, "con:DistanceX", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_dist_x", L("Fix the horizontal distance between two points")},
     {"con_distancey", L_CONTEXT("Vertical distance", "Design"), 6, nullptr, "con:DistanceY", nullptr, 0x000f0000u, 0, 0, false, true, L("Constrain"), "design_c_dist_y", L("Fix the vertical distance between two points")},
     {"sk_dim_names", L_CONTEXT("Dimension names", "Design"), 6, "J", "key:J", nullptr, 0x000f8000u, 0, 0, false, true, L("Constrain"), nullptr, L("Show the variable behind each dimension instead of its value, and back")},
+    {"sk_grid_magnet", L_CONTEXT("Snap to grid", "Design"), 6, "I", "key:I", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, nullptr, L("Magnet: pull the points you draw onto the grid, or let them move freely")},
 };
-static const int kOfferVerbCount = 123;
+static const int kOfferVerbCount = 124;
 
 }} // namespace Slic3r::GUI
 

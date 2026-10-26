@@ -2862,6 +2862,28 @@
       "action": "key:J",
       "icon": null,
       "hint": "Show the variable behind each dimension instead of its value, and back"
+    },
+    {
+      "id": "sk_grid_magnet",
+      "name": "Snap to grid",
+      "slot": "reference",
+      "key": "I",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:I",
+      "icon": null,
+      "hint": "Magnet: pull the points you draw onto the grid, or let them move freely"
     }
   ],
   "chrome_only": {

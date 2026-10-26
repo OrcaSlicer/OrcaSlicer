@@ -2698,12 +2698,12 @@ Vec2d DesignSketchTool::snap_dir(const Vec2d& anchor, const Vec2d& raw, bool& lo
     // Parallel / perpendicular to a line already in the sketch wins over the fixed-angle table: the relation is
     // the point of drawing near it, and infer_relations then pins it as a constraint on commit.
     // Measured on the cursor BEFORE the grid rounded it: a coarse grid would otherwise push the direction out of range.
-    const DirectionGuide g = infer_direction_guide(m_entities, anchor, m_grid_on ? m_pre_grid : raw, 4.0 * M_PI / 180.0);
+    const DirectionGuide g = infer_direction_guide(m_entities, anchor, m_grid_magnet ? m_pre_grid : raw, 4.0 * M_PI / 180.0);
     if (g.kind != DirectionGuide::Kind::None) {
         locked = true;
         m_guide_ent = g.entity;
         m_guide_kind = g.kind == DirectionGuide::Kind::Parallel ? 1 : 2;
-        return anchor + (m_grid_on ? (m_pre_grid - anchor).norm() : r) * g.dir;
+        return anchor + (m_grid_magnet ? (m_pre_grid - anchor).norm() : r) * g.dir;
     }
 
     const double tol_deg = 5.0;                 // inference half-window
@@ -2808,7 +2808,7 @@ Vec2d DesignSketchTool::snap_vertex(GLCanvas3D& canvas, const wxMouseEvent& evt,
     snapped = s.snapped();   // any hard snap moves the cursor + suppresses angle lock
     // Grid last: an endpoint / centre / axis inference wins, and Shift bypasses both. The grid is
     // not reported as `snapped`, so a line's angle inference still gets to act on the result.
-    if (!snapped && m_grid_on && !evt.ShiftDown()) return snap_to_grid(raw, m_grid_step);
+    if (!snapped && m_grid_magnet && m_grid_step > 0. && !evt.ShiftDown()) return snap_to_grid(raw, m_grid_step);
     return s.point;
 }
 

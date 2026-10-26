@@ -117,6 +117,7 @@ public:
     { m_sketch_tool.on_sketch3d_done = std::move(done); m_sketch_tool.on_sketch3d_cancel = std::move(cancel);
       m_sketch_tool.on_sketch3d_state = std::move(state); }
     void set_sketch_grid_snap(bool on, double step);
+    void set_sketch_grid_magnet(bool on);
     void set_extrude_signed(bool on);
     // Flip the sketch selection between construction and real geometry; returns the
     // number of entities changed (0 = nothing selected, caller falls back to the mode).

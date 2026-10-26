@@ -534,6 +534,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
             set_status(StatusKind::Info, _L("Normal to the sketch plane"));
         }
     };
+    m_keys_sketch['I'] = [this] {   // the grid magnet: points snap to the grid, or move freely
+        m_grid_magnet = !m_grid_magnet;
+        push_grid_snap();
+        set_status(StatusKind::Info, m_grid_magnet ? _L("Snap to grid: on (Shift bypasses it for one click)") : _L("Snap to grid: off"));
+    };
     m_keys_sketch['J'] = [this] {   // dimensions: number <-> the variable behind it
         if (!m_viewport) return;
         DesignSketchTool* t = &m_viewport->mcp_sketch_tool();
@@ -1538,6 +1543,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_grid_snap->SetForegroundColour(dp_ctl_text());
             m_grid_snap->SetToolTip(_L("Place points on a grid. Hold Shift to bypass it for one click."));
             m_grid_snap->SetValue(cfg->get_bool("design_grid_snap"));
+            m_grid_magnet = cfg->get("design_grid_magnet").empty() ? cfg->get_bool("design_grid_snap") : cfg->get_bool("design_grid_magnet");
             m_grid_step = make_spin(m_toolbar, 1.0, 0.01, 1000.0);
             double step = 1.0;
             if (const std::string s = cfg->get("design_grid_step"); !s.empty()) step = std::atof(s.c_str());
@@ -12375,7 +12381,8 @@ void DesignPanel::push_grid_snap()
     AppConfig* cfg = wxGetApp().app_config;
     cfg->set_bool("design_grid_snap", m_grid_snap->GetValue());
     cfg->set("design_grid_step", wxString::Format("%g", m_grid_step->GetValue()).ToStdString());
-    if (m_viewport) m_viewport->set_sketch_grid_snap(m_grid_snap->GetValue(), m_grid_step->GetValue());
+    cfg->set_bool("design_grid_magnet", m_grid_magnet);
+    if (m_viewport) { m_viewport->set_sketch_grid_snap(m_grid_snap->GetValue(), m_grid_step->GetValue()); m_viewport->set_sketch_grid_magnet(m_grid_magnet); }
 }
 
 void DesignPanel::start_sketch_on_target(bool offer_tools)

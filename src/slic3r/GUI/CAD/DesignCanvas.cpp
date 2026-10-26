@@ -583,6 +583,12 @@ void DesignCanvas::set_sketch_grid_snap(bool on, double step)
     request_repaint();
 }
 
+void DesignCanvas::set_sketch_grid_magnet(bool on)
+{
+    m_sketch_tool.set_grid_magnet(on);
+    request_repaint();
+}
+
 bool DesignCanvas::edit_sketch_selection_value()
 {
     const bool ok = m_sketch_tool.open_selection_dimension_editor();
