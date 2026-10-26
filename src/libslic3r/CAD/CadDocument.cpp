@@ -1864,6 +1864,28 @@ bool CadDocument::plane_of_face(int body_idx, int face_idx, SketchPlane& out) co
     return true;
 }
 
+SketchPlane CadDocument::carried_plane(int fi) const
+{
+    if (fi < 0 || fi >= int(features.size())) return SketchPlane();
+    const CadFeature& f = features[fi];
+    SketchPlane p = f.plane;
+    if (!attached_follow_moves || f.attach_body < 0) return p;
+    for (int j = fi + 1; j < int(features.size()); ++j) {
+        if (rollback_index >= 0 && j > rollback_index) break;
+        const CadFeature& t = features[j];
+        if (!t.enabled || t.type != CadFeatureType::Transform || t.xf_copy) continue;
+        const int tb = t.target_body == -1 ? int(bodies.size()) - 1 : t.target_body;
+        if (tb != f.attach_body) continue;
+        // the same motion apply_transform gives the body: rotate about the pivot first, then translate
+        Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
+        if (std::abs(t.xf_angle_deg) > 1e-12 && t.xf_axis.norm() > 1e-9)
+            R = Eigen::AngleAxisd(t.xf_angle_deg * M_PI / 180.0, t.xf_axis.normalized()).toRotationMatrix();
+        p.origin = R * (p.origin - t.xf_pivot) + t.xf_pivot + t.xf_translate;
+        p.normal = R * p.normal; p.x_axis = R * p.x_axis; p.y_axis = R * p.y_axis;
+    }
+    return p;
+}
+
 std::vector<std::pair<std::string, SketchPlane>> CadDocument::resolve_datum_planes() const
 {
     std::vector<std::pair<std::string, SketchPlane>> out;

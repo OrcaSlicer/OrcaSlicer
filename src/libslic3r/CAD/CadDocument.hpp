@@ -879,6 +879,10 @@ public:
     // has no single plane, and guessing one from a mid-parameter normal would silently sketch on a
     // tangent). Same derivation the Coincident datum method uses, shared so the two cannot drift.
     bool plane_of_face(int body_idx, int face_idx, SketchPlane& out) const;
+    // Where feature `fi`, a sketch drawn on a body's face, is SHOWN: its plane carried through the moves (non-copy Transforms of that
+    // body) that come after it in the history. The feature itself is not rewritten: undo the move and it is back. Same plane as
+    // `plane` when the option is off or nothing moved it.
+    SketchPlane carried_plane(int fi) const;
     // Resolved datum axes in feature order. axis_err is non-empty if construction failed.
     struct DatumAxis { std::string name; Vec3d origin{0,0,0}; Vec3d direction{0,0,1};
                        std::string error; };
@@ -920,7 +924,7 @@ public:
     bool remap_refs{true};
     // A sketch, hole or thread drawn on a face goes with that face when the face only MOVED (its body was moved or turned),
     // not just along the face's normal. False keeps the old rule: it stays at its place in the face's plane.
-    bool attached_follow_moves{true};
+    bool attached_follow_moves{true};   // (also: carried_plane shows an attached sketch where its body was moved to)
     struct ReplayCache;
     std::shared_ptr<ReplayCache> m_replay_cache;
 

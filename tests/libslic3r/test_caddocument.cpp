@@ -10584,6 +10584,42 @@ TEST_CASE("a sketch and a hole drawn on a moved object move with it", "[CadDocum
     }
 }
 
+TEST_CASE("a sketch on an object's face is shown where the object was moved to", "[CadDocument][naming]")
+{
+    CadDocument doc;
+    SketchProfile sp; sp.points = { Vec2d(0,0), Vec2d(40,0), Vec2d(40,40), Vec2d(0,40) }; sp.closed = true;
+    doc.add_extrude(doc.add_sketch_profile(sp, SketchPlane::XY(), "Base"), 10.0, false, BooleanMode::New, "Base");
+    REQUIRE(doc.recompute());
+    int top = -1;
+    const auto faces = GeometryEngine::faces_of(doc.bodies[0].shape);
+    for (size_t i = 0; i < faces.size(); ++i)
+        if (GeometryEngine::face_normal_world(faces[i]).z() > 0.99 && std::abs(GeometryEngine::face_centroid_world(faces[i]).z() - 10.0) < 1e-6) top = int(i);
+    REQUIRE(top >= 0);
+    SketchEntity c; c.type = SketchEntity::Type::Circle; c.center = Vec2d(20, 20); c.p0 = c.center; c.radius = 4.0;
+    SketchPlane on_top = SketchPlane::XY(); on_top.origin = Vec3d(0, 0, 10);
+    const int ref_sk = doc.add_sketch_entities({c}, on_top, "Reference");   // a reference sketch: nothing extrudes it
+    doc.features[ref_sk].attach_body = 0; doc.features[ref_sk].attach_face = top;
+    const int move = doc.add_transform(-1, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "Move");
+    REQUIRE(doc.recompute());
+    CHECK(doc.carried_plane(ref_sk).origin.x() == Approx(5.0).margin(1e-9));      // shown with the body
+    CHECK(doc.features[ref_sk].plane.origin.x() == Approx(0.0).margin(1e-9));     // the history is not rewritten
+    SECTION("a turn") {
+        doc.features[move].xf_translate = Vec3d(0, 0, 0);
+        doc.features[move].xf_angle_deg = 90.0;
+        const SketchPlane p = doc.carried_plane(ref_sk);
+        CHECK(p.origin.y() == Approx(0.0).margin(1e-9));
+        CHECK(p.x_axis.y() == Approx(1.0).margin(1e-9));                           // its x axis turned with the object
+    }
+    SECTION("the option off") {
+        doc.attached_follow_moves = false;
+        CHECK(doc.carried_plane(ref_sk).origin.x() == Approx(0.0).margin(1e-9));
+    }
+    SECTION("a copy moves nothing") {
+        doc.features[move].xf_copy = true;
+        CHECK(doc.carried_plane(ref_sk).origin.x() == Approx(0.0).margin(1e-9));
+    }
+}
+
 // Acceptance: on a 30-feature model a tail edit replays one feature and costs a fraction of a full rebuild.
 TEST_CASE("a tail edit on a 30-feature model is much cheaper than a full rebuild", "[CadDocument][incremental]")
 {

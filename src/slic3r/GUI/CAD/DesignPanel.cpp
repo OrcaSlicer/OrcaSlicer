@@ -4486,7 +4486,7 @@ void DesignPanel::sync_sketch_display()
             continue;
         if (!f.entities.empty()) {
             if (consumed_loops.empty()) {
-                ds.push_back({ f.entities, f.plane, i });
+                ds.push_back({ f.entities, m_doc.carried_plane(i), i });
             } else {
                 // Drop the entities of any loop already extruded; keep the rest (other
                 // loops + non-loop entities) so they stay visible and selectable.
@@ -4505,7 +4505,7 @@ void DesignPanel::sync_sketch_display()
                 std::vector<SketchEntity> shown;
                 for (int ei = 0; ei < int(f.entities.size()); ++ei)
                     if (!drop[ei]) shown.push_back(f.entities[ei]);
-                if (!shown.empty()) ds.push_back({ std::move(shown), f.plane, i });
+                if (!shown.empty()) ds.push_back({ std::move(shown), m_doc.carried_plane(i), i });
             }
         } else if (!f.imported_regions.empty()) {
             // Imported art (Text/SVG) carries no solver entities; synthesize
