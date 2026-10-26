@@ -14,6 +14,7 @@
 #include "libslic3r/LocalesUtils.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <utility>
 #include <vector>
 #include <wx/colour.h>
@@ -32,6 +33,16 @@ namespace Slic3r { namespace GUI {
 
 static constexpr int input_width = 120;
 
+// The number in the input, with either decimal separator; false when it is not a finite number.
+static bool parse_input(const ::TextInput* input, double& value)
+{
+    const char dec_sep     = is_decimal_separator_point() ? '.' : ',';
+    const char dec_sep_alt = dec_sep == '.' ? ',' : '.';
+    wxString   str         = input->GetTextCtrl()->GetValue();
+    str.Replace(dec_sep_alt, dec_sep, false);
+    return str.ToDouble(&value) && std::isfinite(value);
+}
+
 PrimitiveSizeDialog::PrimitiveSizeDialog(wxWindow* parent, const wxString& title, const std::vector<Field>& fields)
     : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe), wxID_ANY, title, wxDefaultPosition, wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX)
@@ -40,22 +51,29 @@ PrimitiveSizeDialog::PrimitiveSizeDialog(wxWindow* parent, const wxString& title
     SetFont(Label::Body_14);
 
     auto grid = new wxFlexGridSizer(2, FromDIP(8), FromDIP(20));
-    for (const Field& field : fields) {
-        auto input = new ::TextInput(this, double_to_string(field.value, 2), _L("mm"), "", wxDefaultPosition,
+    for (size_t i = 0; i < fields.size(); ++i) {
+        auto input = new ::TextInput(this, double_to_string(fields[i].value, 2), _L("mm"), "", wxDefaultPosition,
                                      FromDIP(wxSize(input_width, -1)));
         input->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+        input->Bind(wxEVT_TEXT, [this, i](wxCommandEvent& e) {
+            e.Skip();
+            on_input_changed(i);
+        });
         input->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) {
             if (read_values())
                 EndModal(wxID_OK);
         });
-        grid->Add(new wxStaticText(this, wxID_ANY, field.label), 0, wxALIGN_CENTER_VERTICAL);
+        grid->Add(new wxStaticText(this, wxID_ANY, fields[i].label), 0, wxALIGN_CENTER_VERTICAL);
         grid->Add(input, 0, wxALIGN_CENTER_VERTICAL);
         m_inputs.push_back(input);
+        m_last_values.push_back(fields[i].value);
     }
 
     auto sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(grid, 1, wxEXPAND | wxALL, FromDIP(10));
 
+    if (fields.size() > 1)
+        m_uniform_scale = add_checkbox(sizer, _L("Uniform scale"), _L("Changing one dimension changes the others in proportion."));
     m_save_default = add_checkbox(sizer, _L("Save these settings as default"),
                                   _L("If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."));
     m_dont_show    = add_checkbox(sizer, _L("Don't show again"),
@@ -98,17 +116,28 @@ bool PrimitiveSizeDialog::dont_show_again() const { return m_dont_show->GetValue
     return checkbox;
 }
 
+void PrimitiveSizeDialog::on_input_changed(size_t idx)
+{
+    double value = 0.;
+    if (!parse_input(m_inputs[idx], value) || value <= 0.)
+        return;
+    if (m_uniform_scale && m_uniform_scale->GetValue()) {
+        const double ratio = value / m_last_values[idx];
+        for (size_t i = 0; i < m_inputs.size(); ++i)
+            if (i != idx) {
+                m_last_values[i] *= ratio;
+                m_inputs[i]->GetTextCtrl()->ChangeValue(double_to_string(m_last_values[i], 2));
+            }
+    }
+    m_last_values[idx] = value;
+}
+
 bool PrimitiveSizeDialog::read_values()
 {
-    const char dec_sep     = is_decimal_separator_point() ? '.' : ',';
-    const char dec_sep_alt = dec_sep == '.' ? ',' : '.';
-
     std::vector<double> values;
     for (::TextInput* input : m_inputs) {
-        wxString str = input->GetTextCtrl()->GetValue();
-        str.Replace(dec_sep_alt, dec_sep, false);
         double     value     = 0.;
-        const bool is_number = str.ToDouble(&value) && std::isfinite(value);
+        const bool is_number = parse_input(input, value);
         if (!is_number || value <= 0.) {
             MessageDialog msg_dlg(this, is_number ? _L("The size must be greater than zero") : _L("Invalid numeric input."),
                                   wxEmptyString, wxICON_WARNING | wxOK);
@@ -129,6 +158,8 @@ void PrimitiveSizeDialog::on_dpi_changed(const wxRect& suggested_rect)
         input->SetMinSize(FromDIP(wxSize(input_width, -1)));
         input->Rescale();
     }
+    if (m_uniform_scale)
+        m_uniform_scale->Rescale();
     m_save_default->Rescale();
     m_dont_show->Rescale();
     GetSizer()->SetSizeHints(this);

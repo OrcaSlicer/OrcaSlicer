@@ -2,6 +2,7 @@
 
 #include "GUI_Utils.hpp"
 
+#include <cstddef>
 #include <vector>
 #include <wx/gdicmn.h>
 #include <wx/string.h>
@@ -34,9 +35,13 @@ protected:
 
 private:
     ::CheckBox* add_checkbox(wxSizer* sizer, const wxString& label, const wxString& tooltip);
+    void        on_input_changed(size_t idx);
     bool        read_values();
 
     std::vector<::TextInput*> m_inputs;
+    // The last valid value of each input, which uniform scaling multiplies.
+    std::vector<double>       m_last_values;
+    ::CheckBox*               m_uniform_scale{nullptr};
     ::CheckBox*               m_save_default{nullptr};
     ::CheckBox*               m_dont_show{nullptr};
     std::vector<double>       m_values;
