@@ -52,6 +52,7 @@
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "OpenGLManager.hpp"

@@ -365,6 +365,7 @@ void StyleManager::init_trunc_names(float max_width) {
 #include "slic3r/GUI/Plater.hpp" 
 
 // for get DPI
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 

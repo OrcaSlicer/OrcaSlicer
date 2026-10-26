@@ -4,6 +4,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NotificationManager.hpp"

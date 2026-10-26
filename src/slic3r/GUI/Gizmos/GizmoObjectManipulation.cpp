@@ -21,6 +21,7 @@
 #include "libslic3r/Geometry.hpp"
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GLGizmoUtils.hpp"
 

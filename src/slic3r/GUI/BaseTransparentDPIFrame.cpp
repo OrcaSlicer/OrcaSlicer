@@ -12,6 +12,7 @@
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Button.hpp"
 #include <chrono>

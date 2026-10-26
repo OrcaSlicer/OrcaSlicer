@@ -1,6 +1,7 @@
 #include "NetworkPluginDialog.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/Label.hpp"

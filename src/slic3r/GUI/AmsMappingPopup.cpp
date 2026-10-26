@@ -7,6 +7,7 @@
 #include "GUI_App.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "GUI_Preview.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include <wx/event.h>

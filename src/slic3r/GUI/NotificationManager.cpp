@@ -8,6 +8,7 @@
 #include "ObjectDataViewModel.hpp"
 #include "GUI_ObjectList.hpp"
 #include "ParamsPanel.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Tab.hpp"
 #include "libslic3r/Config.hpp"

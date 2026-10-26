@@ -1,6 +1,7 @@
 #include "CloneDialog.hpp"
 
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/event.h>

@@ -3,6 +3,7 @@
 
 #include "Widgets/Button.hpp"
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "ReleaseNote.hpp"
 #include "wxExtensions.hpp"

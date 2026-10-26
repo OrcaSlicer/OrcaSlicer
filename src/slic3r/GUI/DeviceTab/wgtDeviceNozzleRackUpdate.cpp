@@ -10,6 +10,7 @@
 #include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
 #include "slic3r/GUI/DeviceCore/DevUpgrade.h"
 
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"

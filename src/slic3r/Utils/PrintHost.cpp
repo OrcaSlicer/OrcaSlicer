@@ -38,6 +38,7 @@
 #include "ESP3D.hpp"
 #include "CrealityPrint.hpp"
 #include "../GUI/PrintHostDialogs.hpp"
+#include "../GUI/UnsavedChangesDialog.hpp"
 #include "../GUI/MainFrame.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "Obico.hpp"

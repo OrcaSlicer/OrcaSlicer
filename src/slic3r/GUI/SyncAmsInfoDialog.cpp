@@ -49,6 +49,7 @@
 #include "GUI_App.hpp"
 #include "PartPlate.hpp"
 #include "I18N.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/Button.hpp"
 #include "Notebook.hpp"

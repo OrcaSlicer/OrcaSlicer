@@ -2,6 +2,7 @@
 #include "I18N.hpp"
 
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/RadioBox.hpp"
 #include "slic3r/GUI/MultiMachine.hpp"

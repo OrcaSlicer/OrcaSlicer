@@ -21,6 +21,7 @@
 #include <set>
 #include "GUI_App.hpp"
 #include "wxExtensions.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "Preferences.hpp"

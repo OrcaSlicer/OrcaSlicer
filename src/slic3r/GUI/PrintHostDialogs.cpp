@@ -68,6 +68,7 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "PrintHost.hpp"
 #include "libslic3r/AppConfig.hpp"

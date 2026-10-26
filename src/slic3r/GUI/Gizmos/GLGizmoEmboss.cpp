@@ -6,6 +6,7 @@
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // to update title when add text
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/Plater.hpp"

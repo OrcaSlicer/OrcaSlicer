@@ -42,6 +42,7 @@
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
 #include "Plater.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "MediaPlayCtrl.h"
 #include "MediaFilePanel.h"

@@ -4,6 +4,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"

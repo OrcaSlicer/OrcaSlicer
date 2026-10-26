@@ -2,6 +2,7 @@
 #include "I18N.hpp"
 
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include <wx/event.h>
 #include <wx/string.h>

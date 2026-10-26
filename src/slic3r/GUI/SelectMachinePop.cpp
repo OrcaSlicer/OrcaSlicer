@@ -9,6 +9,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"

@@ -15,6 +15,7 @@
 #include <wx/scrolwin.h>
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "Monitor.hpp"
 

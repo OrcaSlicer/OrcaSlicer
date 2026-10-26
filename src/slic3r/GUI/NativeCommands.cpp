@@ -12,6 +12,7 @@
 #include "I18N.hpp"
 #include "Shortcuts.hpp"
 #include "IMSlider.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "NetworkTestDialog.hpp"
 #include "Plater.hpp"

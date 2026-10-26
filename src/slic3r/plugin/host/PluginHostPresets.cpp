@@ -1,4 +1,5 @@
 #include "PluginHostBindings.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "PluginHostUi.hpp"
 #include "slic3r/plugin/PluginBindingUtils.hpp"
 

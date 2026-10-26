@@ -6,6 +6,7 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "EncodedFilament.hpp"
 #include "Widgets/Button.hpp"

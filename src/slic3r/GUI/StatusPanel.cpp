@@ -9,6 +9,7 @@
 
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 
 #include "MsgDialog.hpp"

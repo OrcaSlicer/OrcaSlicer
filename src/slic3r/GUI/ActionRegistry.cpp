@@ -4,6 +4,7 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 #include "ImGuiWrapper.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "NativeCommands.hpp"
 #include "Notebook.hpp"

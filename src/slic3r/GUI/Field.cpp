@@ -6,6 +6,7 @@
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
 
