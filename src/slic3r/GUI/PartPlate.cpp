@@ -117,6 +117,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GLModel.hpp"
+#include <nlohmann/json.hpp>
 
 class wxFont;
 
@@ -4384,6 +4385,8 @@ void PartPlate::set_print(PrintBase* print, GCodeResult* result, int index)
 
 	m_print->set_plate_origin(m_origin);
     invalidate_exclusion_volume_preview();
+	// Keep a newly attached Print synchronized with the plate metadata used for output filenames.
+	m_print->set_plate_name(m_name);
 
 	return;
 }
@@ -7399,6 +7402,19 @@ int PartPlateList::notify_instance_removed(int obj_id, int instance_id)
 	}
 
 	if (instance_id == -1) {
+		// The object's other instances go with it, and may sit on other plates: left in place,
+		// update_object_index below would renumber them onto the previous object.
+		std::set<int> other_instances;
+		for (PartPlate* p : m_plate_list)
+			for (const std::pair<int, int>& obj_inst : p->obj_to_instance_set)
+				if (obj_inst.first == obj_id)
+					other_instances.insert(obj_inst.second);
+		for (const std::pair<int, int>& obj_inst : unprintable_plate.obj_to_instance_set)
+			if (obj_inst.first == obj_id)
+				other_instances.insert(obj_inst.second);
+		for (int other_instance : other_instances)
+			notify_instance_removed(obj_id, other_instance);
+
 		//update all the obj_ids which is bigger
 		for (unsigned int i = 0; i < (unsigned int)m_plate_list.size(); ++i)
 		{

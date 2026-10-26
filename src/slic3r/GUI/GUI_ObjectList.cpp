@@ -100,6 +100,7 @@
 #include <wx/renderer.h>
 #endif /* __WXMSW__ */
 #include "Gizmos/GLGizmoScale.hpp"
+#include "Gizmos/GLGizmosManager.hpp"
 
 #include "libslic3r/TriangleMeshDeal.hpp"
 
@@ -3653,6 +3654,7 @@ void ObjectList::delete_all_connectors_for_object(int obj_idx)
             if (obj->volumes.empty() || !obj->has_solid_mesh()) {
                 const std::string deleted_obj_name = obj->name;
                 model.delete_object(idx);
+                wxGetApp().plater()->get_partplate_list().notify_instance_removed(idx, -1);
                 {
                     Slic3r::LifecycleEventContext ctx;
                     ctx.name = deleted_obj_name;
@@ -6952,6 +6954,71 @@ void ObjectList::reload_all_plates(bool notify_partplate)
     wxGetApp().plater()->update();
     // update printable states on canvas
     wxGetApp().plater()->get_view3D_canvas3D()->update_instance_printable_state_for_objects(obj_idxs);
+}
+
+void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending)
+{
+    struct Entry { wxString name; double value; ModelObject* object; };
+    std::vector<Entry> entries;
+    entries.reserve(objects.size());
+    for (ModelObject* object : objects) {
+        double value = 0.;
+        if (order == ObjectOrder::Filament)
+            value = object->config.has("extruder") ? object->config.extruder() : 1;
+        else if (order != ObjectOrder::Name) {
+            const BoundingBoxf3 bbox = object->instance_convex_hull_bounding_box(object->instances.front());
+            value = order == ObjectOrder::Height ? bbox.max.z() : bbox.size().prod();
+        }
+        entries.push_back({order == ObjectOrder::Name ? from_u8(object->name) : wxString(), value, object});
+    }
+    std::stable_sort(entries.begin(), entries.end(), [order, descending](const Entry& l, const Entry& r) {
+        const Entry& a = descending ? r : l;
+        const Entry& b = descending ? l : r;
+        return order == ObjectOrder::Name ? wxCmpNatural(a.name, b.name) < 0 : a.value < b.value;
+    });
+    for (size_t i = 0; i < objects.size(); ++i)
+        objects[i] = entries[i].object;
+}
+
+void ObjectList::order_objects(ObjectOrder order, bool all_plates)
+{
+    Plater* plater = wxGetApp().plater();
+    if (!plater->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::Undefined))
+        return;
+
+    PartPlateList& plates     = plater->get_partplate_list();
+    const int      curr_plate = plates.get_curr_plate_index();
+    auto sorted = [&](bool descending) {
+        std::vector<ModelObject*> objects = *m_objects;
+        for (int plate_idx = 0; plate_idx < plates.get_plate_count(); ++plate_idx) {
+            if (!all_plates && plate_idx != curr_plate)
+                continue;
+            // Sort within the list positions the plate already holds, so other plates keep their order.
+            std::vector<size_t>       slots;
+            std::vector<ModelObject*> plate_objects;
+            for (size_t obj_idx = 0; obj_idx < objects.size(); ++obj_idx)
+                if (plates.find_instance(int(obj_idx), 0) == plate_idx) {
+                    slots.push_back(obj_idx);
+                    plate_objects.push_back(objects[obj_idx]);
+                }
+            sort_objects(plate_objects, order, descending);
+            for (size_t i = 0; i < slots.size(); ++i)
+                objects[slots[i]] = plate_objects[i];
+        }
+        return objects;
+    };
+    // Choosing the order the objects already have reverses it.
+    std::vector<ModelObject*> objects = sorted(false);
+    if (objects == *m_objects)
+        objects = sorted(true);
+
+    if (objects != *m_objects) {
+        take_snapshot(_u8L("Object order changed"));
+        *m_objects = std::move(objects);
+        plates.reload_all_objects(false, all_plates ? -1 : curr_plate);
+    }
+    // Rebuilt even when the order holds: an object moved to another plate is listed last there.
+    reload_all_plates();
 }
 
 void ObjectList::on_plate_selected(int plate_index)

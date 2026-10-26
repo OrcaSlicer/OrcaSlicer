@@ -58,7 +58,6 @@
 #include <libslic3r/ClipperUtils.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
-#include "libslic3r/Shape/TextShape.hpp"
 
 #include "3DScene.hpp"
 #include "GUI.hpp"
@@ -3158,7 +3157,6 @@ void ImGuiWrapper::load_fonts_texture()
     //    io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
     //    ImFontConfig cfg = ImFontConfig();
     //    cfg.OversampleH = cfg.OversampleV = 1;
-    //    std::map<std::string, std::string> sys_fonts_map = get_occt_fonts_maps(); // map<font name, font path>
     //    im_fonts_map.clear();                                                     // map<font name, ImFont*>
     //    BOOST_LOG_TRIVIAL(info) << "init_im_font start";
     //    for (auto sys_font : sys_fonts_map) {
