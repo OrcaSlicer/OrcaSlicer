@@ -128,6 +128,7 @@ src/slic3r/GUI/ActionRegistry.cpp
 src/slic3r/GUI/AMSMaterialsSetting.cpp
 src/slic3r/GUI/ExtrusionCalibration.cpp
 src/slic3r/GUI/AmsMappingPopup.cpp
+src/slic3r/GUI/AutoFilamentSync.cpp
 src/slic3r/GUI/AMSSetting.cpp
 src/slic3r/GUI/BBLTopbar.cpp
 src/slic3r/GUI/DownloadProgressDialog.cpp

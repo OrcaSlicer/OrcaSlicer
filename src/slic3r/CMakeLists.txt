@@ -22,6 +22,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/AboutDialog.hpp
     GUI/AnimatedTexture.cpp
     GUI/AnimatedTexture.hpp
+    GUI/AutoFilamentSync.cpp
+    GUI/AutoFilamentSync.hpp
     GUI/AmsMappingPopup.cpp
     GUI/AmsMappingPopupUpdate.cpp
     GUI/AmsMappingPopup.hpp

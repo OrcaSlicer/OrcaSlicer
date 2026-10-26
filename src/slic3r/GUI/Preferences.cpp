@@ -2236,6 +2236,11 @@ void PreferencesDialog::create_items()
         {_L("Filament & Color"), _L("Color only")});
     g_sizer->Add(item_filament_sync_mode);
 
+    auto item_auto_filament_sync = create_item_checkbox(_L("Sync filaments when the printer connects"),
+        _L("For printers that report their filaments only when asked, such as Moonraker and QIDI printers. Syncs the filament list once the printer connects, if the project is empty."),
+        "auto_sync_filaments_on_connect");
+    g_sizer->Add(item_auto_filament_sync);
+
     auto item_system_sync      = create_item_checkbox(_L("Update built-in presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
 

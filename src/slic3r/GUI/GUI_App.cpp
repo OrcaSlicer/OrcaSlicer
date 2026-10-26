@@ -6,6 +6,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "AutoFilamentSync.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "BindDialog.hpp"
@@ -2382,6 +2383,7 @@ void GUI_App::init_networking_callbacks()
                         m_agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
 
                     obj->set_online_state(true);
+                    auto_sync_filaments_on_connect(obj->get_dev_id());
                 }
                 });
             });
