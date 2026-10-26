@@ -65,6 +65,11 @@ TEST_CASE("A JPEG textured GLB retains both colors through filament matching", "
     check_texture_import("two_color_jpeg.glb");
 }
 
+TEST_CASE("A PNG textured GLB retains both colors through filament matching", "[TextureImport][Regression]")
+{
+    check_texture_import("two_color_png.glb");
+}
+
 TEST_CASE("An OBJ preserves both MTL colors through filament matching", "[TextureImport][OBJ][Regression]")
 {
     check_texture_import("two_color_sphere/test_two_color_sphere.obj");

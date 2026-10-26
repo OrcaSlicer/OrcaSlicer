@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "School House Spools Transparent PETG @System",
+    "inherits": "School House Spools Transparent PETG @base",
+    "from": "system",
+    "setting_id": "gJW8Fi5DP81yKDcm",
+    "instantiation": "true",
+    "compatible_printers": []
+}

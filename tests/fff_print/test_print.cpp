@@ -647,6 +647,31 @@ TEST_CASE("Print::validate tolerates a null warnings pointer", "[Print][validate
     CHECK(err.string.empty());
 }
 
+TEST_CASE("Print::validate refuses a used filament with a flow ratio of 0", "[Print][validate][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ 0. });
+
+    std::vector<StringObjectException> warnings;
+    StringObjectException err = validate_cubes(config, warnings);
+
+    CHECK_FALSE(err.string.empty());
+    CHECK_FALSE(err.is_warning);
+    CHECK(err.opt_key == "filament_flow_ratio");
+}
+
+TEST_CASE("Print::validate ignores a flow ratio of 0 on an unused filament", "[Print][validate]")
+{
+    // The cube prints with filament 1, so filament 2's ratio is never used.
+    DynamicPrintConfig config = multifilament_config(2, { { "filament_self_index", "1,2" } });
+    config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ 1., 0. });
+
+    std::vector<StringObjectException> warnings;
+    StringObjectException err = validate_cubes(config, warnings);
+
+    CHECK(err.string.empty());
+}
+
 TEST_CASE("Purge tower selection keeps ordinary printers on the classic path", "[Print][PurgeTower][Regression]")
 {
     DynamicPrintConfig config = multifilament_config(2, {
@@ -836,6 +861,32 @@ TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
     CHECK(per_layer.find(";Layer:199 ") != std::string::npos);
     CHECK(per_layer.find(";Layer:399 ") != std::string::npos);
     CHECK(per_layer.find(";Layer:200 (0.1 mm) max 20\n") != std::string::npos);
+}
+
+// The layer change G-code runs before its layer prints, so the layer mass it gets is the previous layer's.
+TEST_CASE("Layer change G-code gets the previous layer's mass under both placeholder names", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "filament_density",   1.24 },
+        // curr_layer_mass is Bambu Studio's name for previous_layer_mass.
+        { "layer_change_gcode", ";Mass:[layer_num] {if previous_layer_mass > 0}printed{else}none{endif} "
+                                "{if previous_layer_mass == curr_layer_mass}same{else}different{endif}" },
+    });
+    // Nothing is printed before the first layer change; layer 0 is printed before the second.
+    CHECK(gcode.find(";Mass:0 none same\n") != std::string::npos);
+    CHECK(gcode.find(";Mass:1 printed same\n") != std::string::npos);
+}
+
+TEST_CASE("Start G-code gets the wipe tower wait position under both placeholder names", "[Print]")
+{
+    // wipe_tower_center_pos_* are Bambu Studio's names for wipe_tower_wait_pos_*.
+    const std::string gcode = slice({ cube(20) }, {
+        { "machine_start_gcode", "; Wait {if wipe_tower_wait_pos_valid}set{else}unset{endif} "
+                                 "{if wipe_tower_center_pos_valid}set{else}unset{endif} "
+                                 "[wipe_tower_wait_pos_x],[wipe_tower_wait_pos_y] [wipe_tower_center_pos_x],[wipe_tower_center_pos_y]" },
+    });
+    // A single-filament print has no wipe tower, so neither name has a position.
+    CHECK(gcode.find("; Wait unset unset 0,0 0,0\n") != std::string::npos);
 }
 
 TEST_CASE("Timelapse G-code gets the snapshot placeholders on bed slingers and other printers", "[Print]")
@@ -1988,4 +2039,33 @@ TEST_CASE("Height ranges and modifiers count for the filament shrinkage compensa
         return w.string.find("Filament shrinkage will not be used") != std::string::npos;
     });
     CHECK(mismatch_warning == ! object_on_filament_2);
+}
+
+TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][Regression]")
+{
+    const std::string key = "high_precision_gcode";
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict(key, "0");
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.process();
+    print.set_gcode_file_ready();
+
+    // A key that Print::invalidate_state_by_config_options() does not list invalidates every print step,
+    // so the wipe tower and the skirt tell it apart from a key that invalidates only the G-code export.
+    REQUIRE(print.is_step_done(psGCodeExport));
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+    REQUIRE(print.objects().front()->is_step_done(posSlice));
+    REQUIRE(print.objects().front()->is_step_done(posPerimeters));
+
+    config.set_deserialize_strict(key, "1");
+    print.apply(model, config);
+
+    CHECK_FALSE(print.is_step_done(psGCodeExport));
+    CHECK(print.is_step_done(psWipeTower));
+    CHECK(print.is_step_done(psSkirtBrim));
+    CHECK(print.objects().front()->is_step_done(posSlice));
+    CHECK(print.objects().front()->is_step_done(posPerimeters));
 }

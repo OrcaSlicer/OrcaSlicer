@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <libslic3r/Config.hpp>
 

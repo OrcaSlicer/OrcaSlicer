@@ -208,7 +208,7 @@ TEST_CASE("AMS filament settings preserve ordered gradient and multicolor RGBA c
     MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
     object.dev_connection_type = GENERATE("lan", "cloud");
     const int color_type = GENERATE(0, 1);
-    const std::vector<std::string> colors{"FF000080", "0000FF40", "00FF00FF"};
+    const std::vector<std::string> colors{"FF000000", "0000FF40", "00FF00FF", "FF000000", "12345601", "FEDCBAFE", "ABCDEF80"};
 
     REQUIRE(object.command_ams_filament_settings(1, 2, "filament-id", "setting-id", colors.front(), "PLA", 190, 220,
                                                  colors, color_type) == 0);

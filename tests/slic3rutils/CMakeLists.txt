@@ -5,6 +5,7 @@ add_executable(${_TEST_NAME}_tests
     test_bed_exclusion_fields.cpp
     test_config_value_formatter.cpp
     test_creality_cfs_match.cpp
+    test_creality_print.cpp
     test_dev_mapping.cpp
     test_device_access.cpp
     test_moonraker_printer_agent.cpp
@@ -12,6 +13,8 @@ add_executable(${_TEST_NAME}_tests
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
     test_filament_color_picker.cpp
+    test_ams_materials_setting.cpp
+    test_gcode_preview_colors.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp
@@ -23,6 +26,7 @@ add_executable(${_TEST_NAME}_tests
     test_network_versions.cpp
     test_orca_cloud_agent.cpp
     test_action_source.cpp
+    test_option_state_registry.cpp
     test_plugin_host_api.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
     test_precise_seam_plugin.cpp
@@ -62,6 +66,10 @@ if (MSVC)
 endif ()
 
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r_gui libslic3r pybind11::embed Catch2::Catch2WithMain)
+if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
+    add_precompiled_header(${_TEST_NAME}_tests ${CMAKE_SOURCE_DIR}/src/slic3r/pchheader.hpp FORCEINCLUDE)
+endif ()
+
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
 orcaslicer_copy_test_dlls(${_TEST_NAME}_tests)

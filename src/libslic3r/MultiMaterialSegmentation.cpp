@@ -1237,6 +1237,12 @@ double resolve_outer_wall_line_width(const PrintRegionConfig &region_config, con
     return width.get_abs_value(nozzle_diameter);
 }
 
+// Layers a painted top or bottom surface colors; 0 follows the shell layer count.
+static int color_penetration_layers(const ConfigOptionInt &penetration_layers, const ConfigOptionInt &shell_layers)
+{
+    return penetration_layers.value > 0 ? penetration_layers.value : shell_layers.value;
+}
+
 // Returns segmentation of top and bottom layers based on painting in segmentation gizmos.
 static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_layers(const PrintObject                                               &print_object,
                                                                                       const std::vector<ExPolygons>                                   &input_expolygons,
@@ -1252,8 +1258,8 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     int max_bottom_layers = 0;
     for (size_t i = 0; i < print_object.num_printing_regions(); ++ i) {
         const PrintRegionConfig &config = print_object.printing_region(i).config();
-        max_top_layers    = std::max(max_top_layers, config.top_shell_layers.value);
-        max_bottom_layers = std::max(max_bottom_layers, config.bottom_shell_layers.value);
+        max_top_layers    = std::max(max_top_layers, color_penetration_layers(config.top_color_penetration_layers, config.top_shell_layers));
+        max_bottom_layers = std::max(max_bottom_layers, color_penetration_layers(config.bottom_color_penetration_layers, config.bottom_shell_layers));
     }
 
     // Project upwards pointing painted triangles over top surfaces,
@@ -1289,8 +1295,8 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                             slicing_params.trafo = volume_trafo;
                             Polygons bottom_slice = slice_mesh(painted, zs[0], slicing_params);
 
-                            // Only the requested projections exist: with
-                            // top_shell_layers = 0 `top` is empty and erasing its begin() was
+                            // Only the requested projections exist: with no top
+                            // penetration layers `top` is empty and erasing its begin() was
                             // undefined (found by fuzzing: a sunk, painted object crashed here).
                             if (! top.empty())
                                 top.erase(top.begin());
@@ -1402,9 +1408,9 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
         // Minimum radius of a region to be printable. Used to filter regions by morphological opening.
         float   small_region_threshold  { 0.f };
         // Maximum number of top layers for a queried color.
-        int     top_shell_layers        { 0 };
+        int     top_penetration_layers    { 0 };
         // Maximum number of bottom layers for a queried color.
-        int     bottom_shell_layers     { 0 };
+        int     bottom_penetration_layers { 0 };
         //BBS: spacing according to width and layer height
         float   extrusion_spacing{ 0.f };
     };
@@ -1419,8 +1425,8 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                 //BBS: the extrusion line width is outer wall rather than inner wall
                 double outer_wall_line_width = resolve_outer_wall_line_width(config, print_object.config(), print_object.print()->config());
                 out.extrusion_width     = std::max<float>(out.extrusion_width, outer_wall_line_width);
-                out.top_shell_layers    = std::max<int>(out.top_shell_layers, config.top_shell_layers);
-                out.bottom_shell_layers = std::max<int>(out.bottom_shell_layers, config.bottom_shell_layers);
+                out.top_penetration_layers    = std::max(out.top_penetration_layers, color_penetration_layers(config.top_color_penetration_layers, config.top_shell_layers));
+                out.bottom_penetration_layers = std::max(out.bottom_penetration_layers, color_penetration_layers(config.bottom_color_penetration_layers, config.bottom_shell_layers));
                 out.small_region_threshold = config.gap_infill_speed.get_at(print_object.print()->get_extruder_id(config.outer_wall_filament_id - 1)) > 0 ?
                                              // Gap fill enabled. Enable a single line of 1/2 extrusion width.
                                              0.5f * outer_wall_line_width :
@@ -1497,7 +1503,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                         if (! top_ex.empty()) {
                             append(triangles_by_color_top[color_idx][layer_idx], top_ex);
                             std::vector<size_t> shell_layers;
-                            for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_shell_layers), int(0)); --last_idx)
+                            for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_penetration_layers), int(0)); --last_idx)
                                 shell_layers.emplace_back(size_t(last_idx));
                             project_to_shells(top_ex, layer_idx, shell_layers, stat, shell_triangles_by_color_top[color_idx][layer_idx]);
                         }
@@ -1509,7 +1515,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                         if (! bottom_ex.empty()) {
                             append(triangles_by_color_bottom[color_idx][layer_idx], bottom_ex);
                             std::vector<size_t> shell_layers;
-                            for (size_t last_idx = layer_idx + 1; last_idx < std::min(layer_idx + stat.bottom_shell_layers, num_layers); ++last_idx)
+                            for (size_t last_idx = layer_idx + 1; last_idx < std::min(layer_idx + stat.bottom_penetration_layers, num_layers); ++last_idx)
                                 shell_layers.emplace_back(last_idx);
                             project_to_shells(bottom_ex, layer_idx, shell_layers, stat, shell_triangles_by_color_bottom[color_idx][layer_idx]);
                         }

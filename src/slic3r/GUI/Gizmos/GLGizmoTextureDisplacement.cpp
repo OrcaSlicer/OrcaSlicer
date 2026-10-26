@@ -4056,10 +4056,11 @@ void GLGizmoTextureDisplacement::ensure_panel_icons()
 
 // Seconds on a real clock, for the tooltips' own timing.
 //
-// Not ImGui::GetTime(): nothing in OrcaSlicer ever sets io.DeltaTime, so it keeps imgui's default of
-// 1/60 per frame and its clock counts frames rather than seconds. On a canvas that renders only when
-// something asks it to, that is not a clock at all - an animation driven by it crawled while the canvas
-// was idle and raced while a moving mouse was rendering it flat out.
+// Not ImGui::GetTime(): ImGuiWrapper::new_frame() feeds io.DeltaTime the real frame time but caps it
+// at 1/60 s, so the idle gaps of the event-driven canvas don't count as time a +/- button is held.
+// That cap also means ImGui's clock stalls while the canvas is idle - a pointer resting still on a
+// control renders nothing, so the tooltip delay would never run out on ImGui's clock. A real clock
+// keeps the tooltip timing and media playback independent of how often the canvas renders.
 static double tip_now()
 {
     using clock = std::chrono::steady_clock;
@@ -7605,9 +7606,20 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         if (mv != nullptr) {
             const std::string count = std::to_string(mv->texture_displacement_layers.size()) + " / " +
                                       std::to_string(TEXTURE_DISPLACEMENT_MAX_LAYERS);
+
+            const std::string add_label = "+  " + _u8L("Add layer");
+
             ImGui::SameLine();
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), ImGui::GetWindowContentRegionMax().x - ImGui::CalcTextSize(count.c_str()).x));
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), ImGui::GetWindowContentRegionMax().x - ImGui::CalcTextSize(count.c_str()).x - ImGui::CalcTextSize(add_label.c_str()).x) - (style.FrameBorderSize + style.FramePadding.x) * 2.f - style.ItemSpacing.x);
             ImGui::TextDisabled("%s", count.c_str());
+
+            ImGui::SameLine();
+            const bool full = mv->texture_displacement_layers.size() >= TEXTURE_DISPLACEMENT_MAX_LAYERS;
+            //Slic3r::format(into_u8(_L_PLURAL("All %1% layer used", "All %1% layers used", unsigned(TEXTURE_DISPLACEMENT_MAX_LAYERS))), TEXTURE_DISPLACEMENT_MAX_LAYERS)
+            m_imgui->disabled_begin(busy || full);
+            if (ImGui::Button((add_label + "##add_layer").c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 0.f)))
+                add_texture_layer();
+            m_imgui->disabled_end();
         }
     }
 
@@ -8315,16 +8327,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         }
     }
 
-    if (mv != nullptr) {
-        const bool        full  = mv->texture_displacement_layers.size() >= TEXTURE_DISPLACEMENT_MAX_LAYERS;
-        const std::string label = full ? Slic3r::format(into_u8(_L_PLURAL("All %1% layer used", "All %1% layers used", unsigned(TEXTURE_DISPLACEMENT_MAX_LAYERS))), TEXTURE_DISPLACEMENT_MAX_LAYERS) :
-                                         "+  " + _u8L("Add layer");
-        m_imgui->disabled_begin(busy || full);
-        if (ImGui::Button((label + "##add_layer").c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 0.f)))
-            add_texture_layer();
-        m_imgui->disabled_end();
-    }
-
     // ---- Mesh preparation: Pro only. Standard pins all of it and runs it from Bake. ----
     if (pro_mode()) {
         ImGui::Separator();
@@ -8578,24 +8580,6 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                            "cleans up sliver triangles, displaces and simplifies in one run; nothing needs "
                            "preparing first, but it does not produce colors yet."));
         }
-        if (opts.pipeline_v2) {
-            // -1 is "auto": the row shows the recommendation, greyed; editing it makes it a fixed value.
-            const bool auto_budget = opts.v2_max_triangles_k < 0;
-            int        shown_k     = auto_budget ? v2_recommendation(*mv).budget_k : opts.v2_max_triangles_k;
-            m_imgui->disabled_begin(auto_budget);
-            // TRN Slider value: %d is the triangle budget in thousands
-            if (int_row("##v2budget", _L("Budget"), &shown_k, 0, 4000, auto_budget ? _u8L("%d k (auto)").c_str() : "%d k", 0.f,
-                        _L("How many thousand triangles this bake may spend on the area you painted. "
-                           "Relief already baked into the rest of the model is kept on top of it, so a "
-                           "second bake somewhere else gets the same budget as the first. Raise it if the "
-                           "warning below Resolution says the detail will not fit; 0 keeps every triangle "
-                           "the refinement produced, however many that is."),
-                        { { "subdivide.gif" } })) {
-                opts.v2_max_triangles_k = shown_k;
-                m_preview_params_dirty  = true;
-            }
-            m_imgui->disabled_end();
-        }
         if (SHOW_PIPELINE_DEV_CONTROLS && opts.pipeline_v2) {
             // Keeping the relief above the plate is not a checkbox: it is unconditional, in both pipelines
             // (see build_texture_displacement()).
@@ -8667,8 +8651,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
 
     // ---- Footer: pinned below the body, so Bake never scrolls away. ----
     const float footer_top = ImGui::GetCursorScreenPos().y;
-    ImGui::Separator();
     {
+        TextureDisplacementOptions &opts = mv->texture_displacement_options;
         const float x0 = ImGui::GetCursorPosX();
         // Over every part the bake will act on, not just the one holding the layer stack, so the count
         // the footer quotes is the count Bake is actually working with on a multibody object. Before
@@ -8682,109 +8666,150 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 base_facets += part->mesh().facets_count();
         }
         const int  base_k = int((base_facets + 500) / 1000);
-        const bool v2     = mv != nullptr && mv->texture_displacement_options.pipeline_v2;
+        const bool v2     = mv != nullptr && opts.pipeline_v2;
 
-        // The triangle budget is the one subdivision control Standard mode keeps: its right value depends on
-        // the part rather than on the recipe (a big model, or a fine texture, simply needs more of them), and
-        // raising or lowering it is safe without understanding anything else. Pro's Subdivide uses it too.
-        ImGui::AlignTextToFramePadding();
-        if (v2) {
-            // The one control the default pipeline needs: the edge length its refinement targets, which
-            // decides how much of the texture the mesh can carry. About eight texels per edge is where
-            // fine detail (mortar joints, knurl ridges) stops being lost between vertices.
-            TextureDisplacementOptions &opts = mv->texture_displacement_options;
-            const V2Resolution         &rec  = v2_recommendation(*mv);
-            m_imgui->text(_L("Resolution"));
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-            // Auto: the edge (and the budget) follow the texture and the model. Off: the slider holds
-            // a fixed value, seeded with the recommendation so it starts from something sensible.
-            bool auto_res = opts.v2_refine_mm <= 0.f;
-            m_imgui->disabled_begin(busy);
-            if (m_imgui->bbl_checkbox(wxString::FromUTF8("##v2auto"), auto_res)) {
-                if (auto_res) {
-                    opts.v2_refine_mm       = 0.f;
-                    opts.v2_max_triangles_k = -1;
+        ImGui::Separator();
+
+        if (!m_show_resolution) 
+            ImGui::SetNextTreeNodeOpen(false);
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding;
+        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0); // removes extra space on tree node indentation
+        bool auto_res = opts.v2_refine_mm <= 0.f;
+        std::string quality_title = (auto_res ? _u8L("Quality") + " (" + _u8L("Auto") + ")" 
+                                              : _u8L("Quality")) // resolution value can be shown while collapsed
+                                  + "###v2quality";  // stable ID, label can change freely
+        m_imgui->push_bold_font();
+        const bool quality_open = ImGui::TreeNodeEx(quality_title.c_str(), flags);
+        m_imgui->pop_bold_font();
+        if (quality_open) {
+            if (!m_show_resolution) {
+                m_show_resolution = true;
+                m_imgui->set_requires_extra_frame();
+            } else {
+                // The triangle budget is the one subdivision control Standard mode keeps: its right value depends on
+                // the part rather than on the recipe (a big model, or a fine texture, simply needs more of them), and
+                // raising or lowering it is safe without understanding anything else. Pro's Subdivide uses it too.
+                ImGui::AlignTextToFramePadding();
+                if (v2) {
+                    const V2Resolution         &rec  = v2_recommendation(*mv);
+
+                    // -1 is "auto": the row shows the recommendation, greyed; editing it makes it a fixed value.
+                    const bool auto_budget = opts.v2_max_triangles_k < 0;
+                    int        shown_k     = auto_budget ? v2_recommendation(*mv).budget_k : opts.v2_max_triangles_k;
+                    m_imgui->disabled_begin(auto_budget);
+                    // TRN Slider value: %d is the triangle budget in thousands
+                    if (int_row("##v2budget", _L("Budget"), &shown_k, 0, 4000, auto_budget ? _u8L("%d k (auto)").c_str() : "%d k", 0.f,
+                                _L("How many thousand triangles this bake may spend on the area you painted. "
+                                   "Relief already baked into the rest of the model is kept on top of it, so a "
+                                   "second bake somewhere else gets the same budget as the first. Raise it if the "
+                                   "warning below Resolution says the detail will not fit; 0 keeps every triangle "
+                                   "the refinement produced, however many that is."),
+                                { { "subdivide.gif" } })) {
+                        opts.v2_max_triangles_k = shown_k;
+                        m_preview_params_dirty  = true;
+                    }
+                    m_imgui->disabled_end();
+
+                    // The one control the default pipeline needs: the edge length its refinement targets, which
+                    // decides how much of the texture the mesh can carry. About eight texels per edge is where
+                    // fine detail (mortar joints, knurl ridges) stops being lost between vertices.
+                    m_imgui->text(_L("Resolution"));
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
+                    // Auto: the edge (and the budget) follow the texture and the model. Off: the slider holds
+                    // a fixed value, seeded with the recommendation so it starts from something sensible.
+                    m_imgui->disabled_begin(busy);
+                    if (m_imgui->bbl_checkbox(wxString::FromUTF8("##v2auto"), auto_res)) {
+                        if (auto_res) {
+                            opts.v2_refine_mm       = 0.f;
+                            opts.v2_max_triangles_k = -1;
+                        } else {
+                            opts.v2_refine_mm       = rec.edge_mm > 0.f ? rec.edge_mm : 0.3f;
+                            opts.v2_max_triangles_k = rec.budget_k > 0 ? rec.budget_k : 750;
+                        }
+                        m_preview_params_dirty = true;
+                        m_parent.set_as_dirty();
+                    }
+                    m_imgui->disabled_end();
+                    hover_tip(_u8L("On: the resolution follows the size of the model and the budget is left at its "
+                                   "default. Untick to set both yourself - worth doing for a texture much finer or "
+                                   "much coarser than the part it sits on."));
+                    ImGui::SameLine();
+                    float shown = auto_res ? rec.edge_mm : opts.v2_refine_mm;
+                    // Held in a local: the format outlives the call that reads it, and the slider and the
+                    // range in its tooltip are then formatted the same way.
+                    const std::string v2edge_format = auto_res ? _u8L("%.2f mm (auto)") : std::string("%.2f mm");
+                    const bool        v2edge_chosen = auto_res && rec.edge_mm > 0.f;
+                    const wxString    v2edge_tip =
+                        v2edge_chosen ?
+                            from_u8(Slic3r::format(_u8L("Chosen from the size of the model: %1$.2f mm triangles, "
+                                                        "budget %2% k. Untick Auto to set them yourself."),
+                                                   rec.edge_mm, rec.budget_k)) :
+                            _L("How fine the mesh is made under the paint, in millimetres. It has to be "
+                               "smaller than the detail you want out of the texture - a 0.5 mm groove needs "
+                               "triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs "
+                               "four times as many, and once they no longer fit the budget the bake simplifies "
+                               "back down and the detail goes with it.");
+                    m_imgui->disabled_begin(busy || auto_res);
+                    if (typed_slider("##v2edge", x0 + panel_w - ImGui::GetCursorPosX() - edit_icon_room, &shown, 0.02f, 2.f,
+                                     v2edge_format.c_str(), true, v2edge_tip,
+                                     v2edge_chosen ? std::vector<TipMedia>{} : std::vector<TipMedia>{ { "subdivide.gif" } })) {
+                        opts.v2_refine_mm      = shown;
+                        m_preview_params_dirty = true;
+                        m_parent.set_as_dirty();
+                    }
+                    m_imgui->disabled_end();
+
+                    // What this resolution costs over what is painted, against what the budget allows. Refining
+                    // past the budget is not an error - the bake simplifies back down to it - but the result
+                    // then carries less of the texture than the resolution asks for, and the only sign of that
+                    // used to be a mesh that came out coarser than expected. Shown before the bake, so the
+                    // answer is to change a number rather than to wait out a bake and redo it.
+                    const float  edge_now   = auto_res ? rec.edge_mm : opts.v2_refine_mm;
+                    const int    budget_k   = opts.v2_max_triangles_k < 0 ? rec.budget_k : opts.v2_max_triangles_k;
+                    const size_t budget     = size_t(std::max(0, budget_k)) * 1000;
+                    const size_t needed     = estimated_refined_triangles(*mv, edge_now);
+                    // Only when it is clearly over: the estimate runs about 3% high where it matters and up to
+                    // a third high at coarse resolutions, where the mesh's own triangles are already near the
+                    // target, and a warning about a bake that would have fitted is worse than none.
+                    if (budget > 0 && needed > budget * 5 / 4) {
+                        // Thousands under a million: a 119 k budget shown as "0.1 M" says nothing.
+                        const auto count = [](size_t n) {
+                            return n >= 1000000 ? Slic3r::format("%1$.1f M", double(n) / 1000000.) :
+                                                  Slic3r::format("%1% k", (n + 500) / 1000);
+                        };
+                        // Wrapped to the panel, like the note under the buttons: unwrapped text runs past the
+                        // panel's edge and takes the window's width with it.
+                        ImGui::PushTextWrapPos(x0 + panel_w);
+                        m_imgui->warning_text(Slic3r::format(_u8L("Needs about %1% triangles, budget %2% - the bake "
+                                                                  "will simplify back down and lose detail."),
+                                                             count(needed), count(budget)));
+                        ImGui::PopTextWrapPos();
+                    }
                 } else {
-                    opts.v2_refine_mm       = rec.edge_mm > 0.f ? rec.edge_mm : 0.3f;
-                    opts.v2_max_triangles_k = rec.budget_k > 0 ? rec.budget_k : 750;
+                    m_imgui->text(_L("Triangles"));
+                    ImGui::SameLine();
+                    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
+                    m_imgui->disabled_begin(busy);
+                    if (typed_slider_int("##subdivbudget", x0 + panel_w - ImGui::GetCursorPosX() - edit_icon_room,
+                                         &m_subdivide_budget_k, 10, 2000, "+%d k", true,
+                                         _L("How many thousand triangles the refinement may add to the model. The triangle "
+                                            "that fits worst is always split first, so even a run that spends the lot has "
+                                            "spent it where it shows most. Raise it if the relief still looks coarse."),
+                                         { { "subdivide.gif" } })) {
+                        if (m_subdivide_editing)
+                            rebuild_subdivide_preview();
+                        m_parent.set_as_dirty();
+                    }
+                    m_imgui->disabled_end();
                 }
-                m_preview_params_dirty = true;
-                m_parent.set_as_dirty();
             }
-            m_imgui->disabled_end();
-            hover_tip(_u8L("On: the resolution follows the size of the model and the budget is left at its "
-                           "default. Untick to set both yourself - worth doing for a texture much finer or "
-                           "much coarser than the part it sits on."));
-            ImGui::SameLine();
-            float shown = auto_res ? rec.edge_mm : opts.v2_refine_mm;
-            // Held in a local: the format outlives the call that reads it, and the slider and the
-            // range in its tooltip are then formatted the same way.
-            const std::string v2edge_format = auto_res ? _u8L("%.2f mm (auto)") : std::string("%.2f mm");
-            const bool        v2edge_chosen = auto_res && rec.edge_mm > 0.f;
-            const wxString    v2edge_tip =
-                v2edge_chosen ?
-                    from_u8(Slic3r::format(_u8L("Chosen from the size of the model: %1$.2f mm triangles, "
-                                                "budget %2% k. Untick Auto to set them yourself."),
-                                           rec.edge_mm, rec.budget_k)) :
-                    _L("How fine the mesh is made under the paint, in millimetres. It has to be "
-                       "smaller than the detail you want out of the texture - a 0.5 mm groove needs "
-                       "triangles well under 0.5 mm. Smaller costs triangles fast: halving it needs "
-                       "four times as many, and once they no longer fit the budget the bake simplifies "
-                       "back down and the detail goes with it.");
-            m_imgui->disabled_begin(busy || auto_res);
-            if (typed_slider("##v2edge", x0 + panel_w - ImGui::GetCursorPosX() - edit_icon_room, &shown, 0.02f, 2.f,
-                             v2edge_format.c_str(), true, v2edge_tip,
-                             v2edge_chosen ? std::vector<TipMedia>{} : std::vector<TipMedia>{ { "subdivide.gif" } })) {
-                opts.v2_refine_mm      = shown;
-                m_preview_params_dirty = true;
-                m_parent.set_as_dirty();
-            }
-            m_imgui->disabled_end();
-
-            // What this resolution costs over what is painted, against what the budget allows. Refining
-            // past the budget is not an error - the bake simplifies back down to it - but the result
-            // then carries less of the texture than the resolution asks for, and the only sign of that
-            // used to be a mesh that came out coarser than expected. Shown before the bake, so the
-            // answer is to change a number rather than to wait out a bake and redo it.
-            const float  edge_now   = auto_res ? rec.edge_mm : opts.v2_refine_mm;
-            const int    budget_k   = opts.v2_max_triangles_k < 0 ? rec.budget_k : opts.v2_max_triangles_k;
-            const size_t budget     = size_t(std::max(0, budget_k)) * 1000;
-            const size_t needed     = estimated_refined_triangles(*mv, edge_now);
-            // Only when it is clearly over: the estimate runs about 3% high where it matters and up to
-            // a third high at coarse resolutions, where the mesh's own triangles are already near the
-            // target, and a warning about a bake that would have fitted is worse than none.
-            if (budget > 0 && needed > budget * 5 / 4) {
-                // Thousands under a million: a 119 k budget shown as "0.1 M" says nothing.
-                const auto count = [](size_t n) {
-                    return n >= 1000000 ? Slic3r::format("%1$.1f M", double(n) / 1000000.) :
-                                          Slic3r::format("%1% k", (n + 500) / 1000);
-                };
-                // Wrapped to the panel, like the note under the buttons: unwrapped text runs past the
-                // panel's edge and takes the window's width with it.
-                ImGui::PushTextWrapPos(x0 + panel_w);
-                m_imgui->warning_text(Slic3r::format(_u8L("Needs about %1% triangles, budget %2% - the bake "
-                                                          "will simplify back down and lose detail."),
-                                                     count(needed), count(budget)));
-                ImGui::PopTextWrapPos();
-            }
-        } else {
-            m_imgui->text(_L("Triangles"));
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), x0 + label_w));
-            m_imgui->disabled_begin(busy);
-            if (typed_slider_int("##subdivbudget", x0 + panel_w - ImGui::GetCursorPosX() - edit_icon_room,
-                                 &m_subdivide_budget_k, 10, 2000, "+%d k", true,
-                                 _L("How many thousand triangles the refinement may add to the model. The triangle "
-                                    "that fits worst is always split first, so even a run that spends the lot has "
-                                    "spent it where it shows most. Raise it if the relief still looks coarse."),
-                                 { { "subdivide.gif" } })) {
-                if (m_subdivide_editing)
-                    rebuild_subdivide_preview();
-                m_parent.set_as_dirty();
-            }
-            m_imgui->disabled_end();
+            ImGui::TreePop();
+        } else if (m_show_resolution) {
+            m_show_resolution = false;
+            m_imgui->set_requires_extra_frame();
         }
+        ImGui::PopStyleVar(1); // ImGuiStyleVar_IndentSpacing
 
         const float button_h = std::round(frame_h * 1.25f);
         const float button_w = std::max({

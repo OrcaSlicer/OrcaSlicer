@@ -7,21 +7,16 @@
 #include <map>
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Color.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Format/ProjectStrategy.hpp"
 #include <functional>
 #include <array>
 #include "libslic3r/Point.hpp"
-#include "libslic3r/PublishSettings.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"
 #include <atomic>
 #include <memory>
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include <string>
-#include "slic3r/GUI/ObjectDataViewModel.hpp"
-#include "slic3r/GUI/SettingsIndex.hpp"
-#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
@@ -43,8 +38,6 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "Jobs/Job.hpp"
 #include "Jobs/Worker.hpp"
-#include "Search.hpp"
-#include "PartPlate.hpp"
 #include "GUI_App.hpp"
 #include "Jobs/PrintJob.hpp"
 #include "Jobs/SendJob.hpp"
@@ -63,8 +56,18 @@ class wxScrolledWindow;
 class wxString;
 class ComboBox;
 class Button;
+class TextInput;
 
 namespace Slic3r {
+
+struct PlateData;
+typedef std::vector<PlateData*> PlateDataPtrs;
+struct PublishedMaterialEntry;
+class TriangleMesh;
+namespace Search {
+class OptionsSearcher;
+class SettingsIndex;
+}
 
 class BuildVolume;
 class MachineObject;
@@ -105,7 +108,9 @@ class DailyTipsWindow;
 struct Camera;
 class GLToolbar;
 class PlaterPresetComboBox;
+class PartPlate;
 class PartPlateList;
+class ObjectDataViewModelNode;
 class SyncNozzleAndAmsDialog;
 class FinishSyncAmsDialog;
 
@@ -840,6 +845,9 @@ public:
     // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
     // notification is active, so it clears automatically once the required plugin is available.
     void revalidate_current_plate_if_plugins_missing();
+    // Rebuilds the missing-plugin notices for the active presets without validating the plate, e.g.
+    // after a plugin loads or unloads, and refreshes the Slice button when the block toggles.
+    void refresh_missing_plugin_notifications();
     // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
     // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
     // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.
