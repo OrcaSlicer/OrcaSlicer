@@ -220,11 +220,39 @@ TEST_CASE("An item larger than the bed cannot be placed", "[Arrange]")
     ArrangePolygons items;
     items.emplace_back(make_square(scaled(20.)));
     items.emplace_back(make_square(scaled(400.))); // far bigger than the bed
+    // An item that cannot be placed keeps the position it came in with, so the
+    // caller can leave it where the user had it.
+    items[1].translation = {scaled(10.), scaled(20.)};
 
     arrange(items, bed(200, 200), quiet_params(scaled(1.)));
 
     REQUIRE(items[0].bed_idx == 0);
     REQUIRE(items[1].bed_idx == UNARRANGED);
+    REQUIRE(items[1].translation.x() == scaled(10.));
+    REQUIRE(items[1].translation.y() == scaled(20.));
+}
+
+TEST_CASE("An item filling the printable area is arranged", "[Arrange]")
+{
+    // The arrange bed keeps a margin from the printable area and the item is widened by
+    // its brim. Neither may keep an item that fits the printable area from being placed.
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+
+    ArrangePolygons items = squares(1, 197.);
+    items.front().brim_width = 1.;
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+    REQUIRE(items.front().bed_idx == 0);
+
+    // Larger than the printable area is still refused.
+    ArrangeParams   p_large = quiet_params();
+    ArrangePolygons large   = squares(1, 201.);
+    update_arrange_params(p_large, &cfg, large);
+    update_selected_items_inflation(large, &cfg, p_large);
+    arrange(large, get_shrink_bedpts(&cfg, p_large), p_large);
+    REQUIRE(large.front().bed_idx == UNARRANGED);
 }
 
 TEST_CASE("Items overflowing one bed spill onto virtual beds", "[Arrange]")
@@ -476,4 +504,72 @@ TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")
 
     update_selected_items_inflation(items, &cfg, p);
     CHECK(p.min_obj_distance == 0);
+}
+
+TEST_CASE("Bed exclusions apply by physical nozzle and overlapping Z range", "[Arrange][ExclusionVolume][MultiNozzle]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.has_z_range = true;
+    object.z_min = 0.0;
+    object.z_max = 20.0;
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon exclusion = make_square(scaled(20.));
+    exclusion.is_bed_exclusion = true;
+    exclusion.has_z_range = true;
+    exclusion.z_min = 10.0;
+    exclusion.z_max = 30.0;
+    exclusion.bed_exclusion_extruder_id = 1;
+
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    exclusion.bed_exclusion_extruder_id = 0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Empty physical-nozzle assignments mean unresolved, so arrangement stays conservative.
+    object.bed_exclusion_extruder_ids.clear();
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    object.bed_exclusion_extruder_ids = {0};
+    object.z_max = 9.0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Touching at one Z plane is intentionally treated as a collision.
+    object.z_max = 10.0;
+    CHECK(bed_exclusion_applies(object, exclusion));
+}
+
+TEST_CASE("Shared bed exclusions apply to every arranged object", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon shared = make_square(scaled(20.));
+    shared.is_bed_exclusion = true;
+    shared.bed_exclusion_extruder_id = -1;
+
+    CHECK(has_bed_exclusion_regions({shared}));
+    CHECK_FALSE(has_bed_exclusion_regions({object}));
+    CHECK(bed_exclusion_applies(object, shared));
+}
+
+TEST_CASE("Arrange keeps relevant objects outside conditional exclusion obstacles", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon exclusion = make_square(scaled(30.));
+    exclusion.translation = Vec2crd(scaled(35.0), scaled(35.0));
+    exclusion.is_bed_exclusion = true;
+    exclusion.bed_exclusion_extruder_id = 0;
+
+    ArrangePolygons items = squares(4, 20.0);
+    for (ArrangePolygon &item : items)
+        item.bed_exclusion_extruder_ids = {0};
+
+    arrange(items, {exclusion}, bed(100.0, 100.0), quiet_params(scaled(1.0)));
+
+    const ExPolygon excluded_shape = exclusion.transformed_poly();
+    for (const ArrangePolygon &item : items) {
+        REQUIRE(item.bed_idx == 0);
+        CHECK(intersection(ExPolygons{item.transformed_poly()}, ExPolygons{excluded_shape}).empty());
+    }
+    require_no_overlap(items);
 }

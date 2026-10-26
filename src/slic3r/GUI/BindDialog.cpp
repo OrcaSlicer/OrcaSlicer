@@ -52,6 +52,8 @@
 #include "Widgets/WebView.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "HMS.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 using json = nlohmann::json;
 

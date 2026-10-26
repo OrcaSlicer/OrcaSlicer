@@ -6,6 +6,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "BindDialog.hpp"
@@ -132,6 +133,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <regex>
+#include <system_error>
 #include <thread>
 #include <string_view>
 
@@ -139,6 +141,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/sources/severity_feature.hpp>
+#include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -246,6 +251,7 @@
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/ConfigWizard.hpp"
+#include "slic3r/GUI/ConfigWizardTypes.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -289,6 +295,7 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 #endif // __WINDOWS__
 
 #endif
+#include <nlohmann/json.hpp>
 #ifdef _WIN32
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <direct.h>
@@ -626,10 +633,7 @@ bool static check_old_linux_datadir(const wxString& app_name) {
 
     std::string new_path = Slic3r::data_dir();
 
-    wxString dir;
-    if (! wxGetEnv(wxS("XDG_CONFIG_HOME"), &dir) || dir.empty() )
-        dir = wxFileName::GetHomeDir() + wxS("/.config");
-    std::string default_path = (dir + "/" + app_name).ToUTF8().data();
+    std::string default_path = xdg_config_dir(app_name.ToUTF8().data());
 
     if (new_path != default_path) {
         // This happens when the user specifies a custom --datadir.
@@ -1225,6 +1229,9 @@ void GUI_App::post_init()
            }
         }
     }
+    if (m_startup_cloud_report)
+        std::exchange(m_startup_cloud_report, nullptr)();
+
     BOOST_LOG_TRIVIAL(info) << "finished post_init";
 //BBS: remove the single instance currently
 #ifdef _WIN32
@@ -1249,10 +1256,13 @@ GUI_App::GUI_App()
     //, m_app_mode(mode)
     , m_app_mode(EAppMode::Editor)
     , m_em_unit(10)
+    , m_opengl_mgr(std::make_unique<OpenGLManager>())
     , m_imgui(new ImGuiWrapper())
 	, m_removable_drive_manager(std::make_unique<RemovableDriveManager>())
     , m_downloader(std::make_unique<Downloader>())
 	, m_other_instance_message_handler(std::make_unique<OtherInstanceMessageHandler>())
+    , m_http_server(std::make_unique<HttpServer>())
+    , m_action_registry(std::make_unique<ActionRegistry>())
 {
 	//app config initializes early becasuse it is used in instance checking in OrcaSlicer.cpp
     this->init_app_config();
@@ -1266,6 +1276,12 @@ GUI_App::GUI_App()
 
     reset_to_active();
 }
+
+GLShaderProgram* GUI_App::get_shader(const std::string& shader_name) { return m_opengl_mgr->get_shader(shader_name); }
+GLShaderProgram* GUI_App::get_current_shader() { return m_opengl_mgr->get_current_shader(); }
+
+bool GUI_App::is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr->get_gl_info().is_version_greater_or_equal_to(major, minor); }
+bool GUI_App::is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr->get_gl_info().is_glsl_version_greater_or_equal_to(major, minor); }
 
 void GUI_App::shutdown()
 {
@@ -1292,6 +1308,32 @@ void GUI_App::shutdown()
     NetworkAgentFactory::clear_printer_agent_cache();
 
     BOOST_LOG_TRIVIAL(info) << "GUI_App::shutdown exit";
+}
+
+void GUI_App::start_exit_watchdog()
+{
+    // Last resort for code that never returns while the app closes (plugins, vendor libraries,
+    // network calls). The app config is saved on idle and again in MainFrame::shutdown, so ending
+    // the process loses little; static destructors and atexit handlers are skipped too, as they may
+    // be what is stuck.
+    constexpr auto grace = std::chrono::seconds(30);
+    try {
+        // Made now: by the time the watchdog fires, static destruction may be under way. The logger
+        // holds its own reference, which keeps boost::log's core and sinks alive.
+        boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level> logger;
+        std::thread([grace, logger]() mutable {
+            std::this_thread::sleep_for(grace);
+            try {
+                BOOST_LOG_SEV(logger, boost::log::trivial::error)
+                    << "OrcaSlicer did not finish closing within " << grace.count() << " s; ending the process";
+            } catch (...) {
+                // A failing log sink must not stop the exit.
+            }
+            std::_Exit(EXIT_FAILURE);
+        }).detach();
+    } catch (const std::system_error& ex) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not start the exit watchdog: " << ex.what();
+    }
 }
 
 
@@ -2589,19 +2631,19 @@ std::string GUI_App::get_gl_info(bool for_github)
 
 wxGLContext* GUI_App::init_glcontext(wxGLCanvas& canvas)
 {
-    return m_opengl_mgr.init_glcontext(canvas, init_params != nullptr ? init_params->opengl_version : std::make_pair(0, 0),
+    return m_opengl_mgr->init_glcontext(canvas, init_params != nullptr ? init_params->opengl_version : std::make_pair(0, 0),
         init_params != nullptr ? init_params->opengl_compatibility_profile : false, init_params != nullptr ? init_params->opengl_debug : false);
 }
 
 bool GUI_App::init_opengl()
 {
 #ifdef __linux__
-    bool status = m_opengl_mgr.init_gl();
+    bool status = m_opengl_mgr->init_gl();
     if (status)
         m_opengl_initialized = true;
     return status;
 #else
-    return m_opengl_mgr.init_gl();
+    return m_opengl_mgr->init_gl();
 #endif
 }
 
@@ -2699,6 +2741,14 @@ void GUI_App::init_app_config()
 	// Mac : "~/Library/Application Support/Slic3r"
 
     if (data_dir().empty()) {
+#ifdef __linux__
+        // The same lookup the start-up code performs before GUI_App exists, so both read one file.
+        const boost::filesystem::path data_dir_path(default_data_dir());
+        migrate_flatpak_legacy_datadir(data_dir_path);
+        set_data_dir(data_dir_path.string());
+        if (!boost::filesystem::exists(data_dir_path))
+            boost::filesystem::create_directory(data_dir_path);
+#else
         // Orca: check if data_dir folder exists in application folder use it if it exists
         // Note:wxStandardPaths::Get().GetExecutablePath() return following paths
         // Unix: /usr/local/bin/exename
@@ -2715,26 +2765,15 @@ void GUI_App::init_app_config()
             set_data_dir(app_data_dir_path.string());
         }
         else{
-            boost::filesystem::path data_dir_path;
-            #ifndef __linux__
-                std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
-                //BBS create folder if not exists
-                data_dir_path = boost::filesystem::path(data_dir);
-                set_data_dir(data_dir);
-            #else
-                // Since version 2.3, config dir on Linux is in ${XDG_CONFIG_HOME}.
-                // https://github.com/prusa3d/PrusaSlicer/issues/2911
-                wxString dir;
-                if (! wxGetEnv(wxS("XDG_CONFIG_HOME"), &dir) || dir.empty() )
-                    dir = wxFileName::GetHomeDir() + wxS("/.config");
-                data_dir_path = boost::filesystem::path((dir + "/" + GetAppName()).ToUTF8().data());
-                migrate_flatpak_legacy_datadir(data_dir_path);
-                set_data_dir(data_dir_path.string());
-            #endif
+            std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
+            //BBS create folder if not exists
+            boost::filesystem::path data_dir_path(data_dir);
+            set_data_dir(data_dir);
             if (!boost::filesystem::exists(data_dir_path)){
                 boost::filesystem::create_directory(data_dir_path);
             }
         }
+#endif
 
         // Change current dirtory of application
 
@@ -2881,6 +2920,8 @@ int GUI_App::OnExit()
 {
     stop_http_server();
     stop_sync_user_preset();
+    if (m_startup_cloud_plugin_fetch_thread.joinable())
+        m_startup_cloud_plugin_fetch_thread.join();
 
     if (m_device_manager) {
         delete m_device_manager;
@@ -2937,6 +2978,8 @@ void GUI_App::CleanUp()
     // OnExit() does not run when OnInit() fails, and m_agent is then still set. Stop the check before
     // wxApp::CleanUp() resets wxTheApp, which a result posted from the worker would still be using.
     stop_orca_health_check(m_agent);
+    if (m_startup_cloud_plugin_fetch_thread.joinable())
+        m_startup_cloud_plugin_fetch_thread.join();
     wxApp::CleanUp();
 }
 
@@ -3002,8 +3045,10 @@ void GUI_App::init_plugin_gui_wiring()
     };
 
     // why: a newly loaded plugin only adds a selectable agent
-    // refresh the dropdown and leave the live agent alone
-    auto refresh_printer_agent_dropdown_after_load = [](const std::string&)
+    // refresh the dropdown and leave the live agent alone, unless it brought a printer connection
+    // the selected preset may be waiting for: plugins load asynchronously and can register their
+    // agent after the startup preset is applied
+    auto refresh_printer_agent_after_load = [](bool provides_printer_connection)
     {
         if (!wxTheApp)
             return;
@@ -3012,10 +3057,14 @@ void GUI_App::init_plugin_gui_wiring()
         if (app->is_closing())
             return;
 
-        app->CallAfter([app]
+        app->CallAfter([app, provides_printer_connection]
         {
-            if (!app->is_closing())
-                app->refresh_printer_agent_dropdown();
+            if (app->is_closing())
+                return;
+
+            if (provides_printer_connection)
+                app->switch_printer_agent_if_pending();
+            app->refresh_printer_agent_dropdown();
         });
     };
 
@@ -3055,14 +3104,19 @@ void GUI_App::init_plugin_gui_wiring()
             return;
         wxGetApp().mainframe->plugin_pages().on_plugin_deregister(plugin_key);
     });
-    plugin_mgr.subscribe_on_load_callback(refresh_printer_agent_dropdown_after_load);
+    plugin_mgr.subscribe_on_load_callback([refresh_printer_agent_after_load](const std::string& plugin_key) {
+        refresh_printer_agent_after_load(!PluginManager::instance()
+                                              .get_plugin_capabilities(plugin_key, PluginCapabilityType::PrinterConnection,
+                                                                       /*only_enabled=*/true)
+                                              .empty());
+    });
     plugin_mgr.subscribe_on_unload_callback(switch_printer_agent_after_unload);
     plugin_mgr.subscribe_on_capability_load_callback(
-        [refresh_plugins_dialog, refresh_printer_agent_dropdown_after_load](const PluginCapabilityId& capability) {
+        [refresh_plugins_dialog, refresh_printer_agent_after_load](const PluginCapabilityId& capability) {
             if (capability.type == PluginCapabilityType::PrinterConnection)
                 NetworkAgentFactory::register_python_printer_agent(capability.plugin_key, capability.name);
             refresh_plugins_dialog();
-            refresh_printer_agent_dropdown_after_load(capability.plugin_key);
+            refresh_printer_agent_after_load(capability.type == PluginCapabilityType::PrinterConnection);
             // A newly loaded capability may satisfy a missing-plugin notification; re-validate the
             // current plate (on the UI thread) so the notification clears once its plugin is available.
             if (wxTheApp && !wxGetApp().is_closing())
@@ -3082,6 +3136,22 @@ void GUI_App::init_plugin_gui_wiring()
             refresh_plugins_dialog();
             switch_printer_agent_after_unload(capability.plugin_key);
         });
+    // A plugin that finished loading, or went away, can resolve or raise a missing-plugin notice. A fresh
+    // load fires no capability-load callback, and nothing above re-checks on unload or disable.
+    const auto refresh_missing_plugin_notifications = []() {
+        if (wxTheApp == nullptr || wxGetApp().is_closing())
+            return;
+        wxGetApp().CallAfter([]() {
+            if (wxGetApp().is_closing())
+                return;
+            if (Plater* plater = wxGetApp().plater())
+                plater->refresh_missing_plugin_notifications();
+        });
+    };
+    plugin_mgr.subscribe_on_load_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
+    plugin_mgr.subscribe_on_unload_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
+    plugin_mgr.subscribe_on_capability_unload_callback(
+        [refresh_missing_plugin_notifications](const PluginCapabilityId&) { refresh_missing_plugin_notifications(); });
     plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
@@ -3198,6 +3268,9 @@ bool GUI_App::on_init_inner()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
+        // Before the plugin manager and network module go away.
+        if (m_startup_cloud_plugin_fetch_thread.joinable())
+            m_startup_cloud_plugin_fetch_thread.join();
         Slic3r::NetworkAgent::unload_network_module();
         Slic3r::PluginManager::instance().shutdown();
         Slic3r::PythonInterpreter::instance().shutdown();
@@ -3561,7 +3634,7 @@ bool GUI_App::on_init_inner()
     init_plugin_gui_wiring();
 
     // Subscribe to the plugin loader and enumerate current actions (UI thread, once).
-    m_action_registry.init();
+    m_action_registry->init();
 
     for (const std::string& plugin_key : plugin_mgr.get_enabled_plugin_keys()) {
         if (!plugin_mgr.is_plugin_loaded(plugin_key)) {
@@ -3579,23 +3652,47 @@ bool GUI_App::on_init_inner()
     if (m_agent && m_agent->is_user_login()) {
         enable_user_preset_folder(true);
         plugin_mgr.set_cloud_user(m_agent->get_user_id());
-        // If there is a user logged in we do an immediate sync.
-        std::vector<std::string> not_found, unauthorized;
-        plugin_mgr.fetch_plugins_from_cloud(&not_found, &unauthorized);
-        if (plater()) {
-            for (const auto& uuid : not_found) {
-                plater()->get_notification_manager()->push_notification(
-                    NotificationType::CustomNotification,
-                    NotificationManager::NotificationLevel::RegularNotificationLevel,
-                    format(_L("Plugin %s is no longer available."), uuid));
+        // Sync cloud plugin metadata off the UI thread; the network round trips took ~2 s of startup.
+        m_startup_cloud_plugin_fetch_thread = Slic3r::create_thread([this] {
+            std::vector<std::string> not_found, unauthorized;
+            try {
+                PluginManager::instance().fetch_plugins_from_cloud(&not_found, &unauthorized);
+            } catch (const std::exception& ex) {
+                BOOST_LOG_TRIVIAL(error) << "Startup cloud plugin fetch failed: " << ex.what();
+                return;
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "Startup cloud plugin fetch failed";
+                return;
             }
-            for (const auto& uuid : unauthorized) {
-                plater()->get_notification_manager()->push_notification(
-                    NotificationType::CustomNotification,
-                    NotificationManager::NotificationLevel::RegularNotificationLevel,
-                    format(_L("Plugin %s access is unauthorized."), uuid));
-            }
-        }
+            auto report = [this, not_found = std::move(not_found), unauthorized = std::move(unauthorized)] {
+                if (is_closing())
+                    return;
+                if (m_plugins_dlg)
+                    m_plugins_dlg->update_plugin_dialog_ui();
+                Plater* plater = this->plater();
+                if (plater == nullptr || m_agent == nullptr || !m_agent->is_user_login())
+                    return; // logged out meanwhile
+                for (const auto& uuid : not_found) {
+                    plater->get_notification_manager()->push_notification(
+                        NotificationType::CustomNotification,
+                        NotificationManager::NotificationLevel::RegularNotificationLevel,
+                        format(_L("Plugin %s is no longer available."), uuid));
+                }
+                for (const auto& uuid : unauthorized) {
+                    plater->get_notification_manager()->push_notification(
+                        NotificationType::CustomNotification,
+                        NotificationManager::NotificationLevel::RegularNotificationLevel,
+                        format(_L("Plugin %s access is unauthorized."), uuid));
+                }
+            };
+            // This can run in a splash wxYield() before the main window exists.
+            CallAfter([this, report = std::move(report)]() mutable {
+                if (m_post_initialized)
+                    report();
+                else
+                    m_startup_cloud_report = std::move(report);
+            });
+        });
     } else {
         enable_user_preset_folder(false);
         plugin_mgr.set_cloud_user("");
@@ -4236,6 +4333,12 @@ void GUI_App::switch_printer_agent()
         return;
     }
 
+    // why: installing an agent updates the sidebar and the main frame's print button; until the
+    // main window exists, load_current_presets() has not run Tab::on_presets_changed(), which
+    // installs the selected preset's agent once the window is up
+    if (!mainframe || !plater_)
+        return;
+
     const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
     const std::string effective_agent_id = resolve_printer_agent_id(config.opt_string("printer_agent"));
 
@@ -4303,6 +4406,21 @@ void GUI_App::switch_printer_agent()
     select_machine(effective_agent_id);
 }
 
+void GUI_App::switch_printer_agent_if_pending()
+{
+    if (!m_agent || !preset_bundle)
+        return;
+
+    const std::string wanted_agent_id = resolve_printer_agent_id(preset_bundle->printers.get_edited_preset().config.opt_string("printer_agent"));
+    const auto        live_agent      = m_agent->get_printer_agent();
+    if (live_agent && live_agent->get_agent_info().id == wanted_agent_id)
+        return;
+    if (!NetworkAgentFactory::get_printer_agent_info(wanted_agent_id))
+        return;
+
+    switch_printer_agent();
+}
+
 void GUI_App::select_machine(const std::string& agent_id)
 {
     // Skip for BBL agent for now - uses its own device discovery/selection
@@ -4320,8 +4438,27 @@ void GUI_App::select_machine(const std::string& agent_id)
     const auto& preset = preset_bundle->printers.get_edited_preset();
     const DynamicPrintConfig* host_cfg = &preset.config;
 
+    // Hands the machine to the Device tab's full selection flow (UI updates, callbacks, etc.).
+    auto select_dev = [this](const std::string& dev_id) {
+        if (MonitorPanel* monitor = MonitorPanel::if_built()) {
+            monitor->select_machine(dev_id);
+            BOOST_LOG_TRIVIAL(info) << "GUI_App::select_machine" << ": triggered select_machine for dev_id=" << dev_id;
+        } else if (m_device_manager->set_selected_machine(dev_id)) {
+            // The Device tab's own state is set when the tab is built.
+            MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
+            BOOST_LOG_TRIVIAL(info) << "GUI_App::select_machine" << ": set_selected_machine dev_id=" << dev_id;
+        }
+    };
+
     std::string print_host = host_cfg->opt_string("print_host");
     if (print_host.empty()) {
+        // Orca: a printer bound from the Device tab is kept as a device of the agent rather than in
+        // the preset's print_host. Select it when it is the agent's only one, as
+        // MainFrame::load_printer_url() does; otherwise nothing is selected until the print dialog
+        // picks it, and filament sync has no printer to read from.
+        const auto machines = m_device_manager->get_my_machine_list(agent_id);
+        if (machines.size() == 1 && machines.begin()->second)
+            select_dev(machines.begin()->second->get_dev_id());
         return;
     }
     std::string port = host_cfg->opt_string("printhost_port");
@@ -4368,17 +4505,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         existing->set_access_code(access_code);
     }
     existing->local_use_ssl = boost::istarts_with(print_host, "https://");
-
-    // Use MonitorPanel::select_machine() to trigger full selection flow
-    // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
-    if (MonitorPanel* monitor = MonitorPanel::if_built()) {
-        monitor->select_machine(dev_id);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
-    } else if (m_device_manager->set_selected_machine(dev_id)) {
-        // The Device tab's own state is set when the tab is built.
-        MonitorPanel::on_machine_selected(m_device_manager->get_selected_machine());
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": set_selected_machine dev_id=" << dev_id;
-    }
+    select_dev(dev_id);
 }
 
 bool GUI_App::dark_mode()
@@ -5334,6 +5461,9 @@ void GUI_App::request_user_logout(const std::string& provider/* = ORCA_CLOUD_PRO
 
             remove_user_presets();
             enable_user_preset_folder(false);
+            // A startup fetch still in flight would re-add this user's cloud metadata.
+            if (m_startup_cloud_plugin_fetch_thread.joinable())
+                m_startup_cloud_plugin_fetch_thread.join();
             Slic3r::PluginManager::instance().unload_cloud_plugins();
             Slic3r::PluginManager::instance().clear_cloud_plugin_metadata();
             Slic3r::PluginManager::instance().set_cloud_user("");
@@ -8255,12 +8385,12 @@ void GUI_App::on_stealth_mode_enter()
 
 void GUI_App::start_http_server(const std::string& provider)
 {
-    m_http_server.set_request_handler([provider](const std::string& url) {
+    m_http_server->set_request_handler([provider](const std::string& url) {
         return HttpServer::auth_handle_request(url, provider);
     });
 
-    if (!m_http_server.is_started())
-        m_http_server.start();
+    if (!m_http_server->is_started())
+        m_http_server->start();
 }
 
 void GUI_App::start_http_server(int port, const std::string& provider)
@@ -8270,24 +8400,24 @@ void GUI_App::start_http_server(int port, const std::string& provider)
         return;
     }
 
-    m_http_server.set_request_handler([provider](const std::string& url) {
+    m_http_server->set_request_handler([provider](const std::string& url) {
         return HttpServer::auth_handle_request(url, provider);
     });
 
-    if (m_http_server.is_started()) {
-        if (m_http_server.get_port() == static_cast<boost::asio::ip::port_type>(port)) {
+    if (m_http_server->is_started()) {
+        if (m_http_server->get_port() == static_cast<boost::asio::ip::port_type>(port)) {
             return;
         }
-        m_http_server.stop();
+        m_http_server->stop();
     }
 
-    m_http_server.set_port(static_cast<boost::asio::ip::port_type>(port));
-    m_http_server.start();
+    m_http_server->set_port(static_cast<boost::asio::ip::port_type>(port));
+    m_http_server->start();
 }
 
 void GUI_App::stop_http_server()
 {
-    m_http_server.stop();
+    m_http_server->stop();
 }
 
 #ifdef __linux__
@@ -8998,7 +9128,8 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
     // Render settings the canvas reads every frame; a change needs one redraw to show.
     static constexpr const char* opengl_render_setting_keys[] = {
         SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
-        SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS
+        SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
+        SETTING_OPENGL_REALISTIC_GLOSS
     };
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)
@@ -9062,7 +9193,7 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
         }
         // Built-in Speed Dial command titles are copied from the catalog at init and don't follow a
         // live locale switch; rebuild them in the new language before the GUI (and palette) rebuilds.
-        m_action_registry.relocalize_builtins();
+        m_action_registry->relocalize_builtins();
     }
 
     if (need_recreate_gui)
@@ -9889,7 +10020,7 @@ bool GUI_App::may_switch_to_SLA_preset(const wxString& caption)
     return true;
 }
 
-bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage start_page)
+bool GUI_App::run_wizard(RunReason reason, StartPage start_page)
 {
     wxCHECK_MSG(mainframe != nullptr, false, "Internal error: Main frame not created / null");
 
@@ -9908,7 +10039,7 @@ bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage
     }
 #endif
 
-    //if (reason == ConfigWizard::RR_USER) {
+    //if (reason == RunReason::RR_USER) {
     //    //TODO: turn off it currently, maybe need to turn on in the future
     //    if (preset_updater->config_update(app_config->orig_version(), PresetUpdater::UpdateParams::FORCED_BEFORE_WIZARD) == PresetUpdater::R_ALL_CANCELED)
     //        return false;
@@ -9923,9 +10054,9 @@ bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage
         pStyle = wxCAPTION | wxTAB_TRAVERSAL;
 
     GuideFrame wizard(this, pStyle);
-    auto page = start_page == ConfigWizard::SP_WELCOME ? GuideFrame::BBL_WELCOME :
-                start_page == ConfigWizard::SP_FILAMENTS ? GuideFrame::BBL_FILAMENT_ONLY :
-                start_page == ConfigWizard::SP_PRINTERS ? GuideFrame::BBL_MODELS_ONLY :
+    auto page = start_page == StartPage::SP_WELCOME ? GuideFrame::BBL_WELCOME :
+                start_page == StartPage::SP_FILAMENTS ? GuideFrame::BBL_FILAMENT_ONLY :
+                start_page == StartPage::SP_PRINTERS ? GuideFrame::BBL_MODELS_ONLY :
                 GuideFrame::BBL_MODELS;
     wizard.SetStartPage(page);
     bool       res = wizard.run();
@@ -10092,7 +10223,7 @@ bool GUI_App::config_wizard_startup()
 {
     if (!m_app_conf_exists || preset_bundle->printers.only_default_printers()) {
         BOOST_LOG_TRIVIAL(info) << "run wizard...";
-        run_wizard(ConfigWizard::RR_DATA_EMPTY);
+        run_wizard(RunReason::RR_DATA_EMPTY);
         BOOST_LOG_TRIVIAL(info) << "finished run wizard";
         return true;
     } /*else if (get_app_config()->legacy_datadir()) {
@@ -10102,7 +10233,7 @@ bool GUI_App::config_wizard_startup()
         MsgDataLegacy dlg;
         dlg.ShowModal();
 
-        run_wizard(ConfigWizard::RR_DATA_LEGACY);
+        run_wizard(RunReason::RR_DATA_LEGACY);
         return true;
     }*/
     return false;

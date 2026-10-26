@@ -1,0 +1,8 @@
+# Derived texture-file regression: color comes from map_Kd, not Kd.
+newmtl Red
+Kd 1 1 1
+map_Kd textures/two_color.jpg
+
+newmtl Blue
+Kd 1 1 1
+map_Kd textures/two_color.jpg

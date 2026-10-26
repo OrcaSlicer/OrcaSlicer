@@ -188,6 +188,8 @@ private:
     GLGizmoAlignment::AlignType m_hovered_align_type{GLGizmoAlignment::AlignType::NONE};
     // Align to the object or plate holding the selection rather than within the selection.
     bool                        m_align_to_parent{false};
+    // Whether the selection can align within itself, tracked to detect when the selection crosses that threshold.
+    bool                        m_can_align_within{false};
 
     // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
     std::vector<std::pair<wxString, wxString>> m_shortcuts_move;

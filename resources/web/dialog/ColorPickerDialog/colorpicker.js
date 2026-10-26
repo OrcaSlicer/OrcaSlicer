@@ -31,6 +31,11 @@
   const rgbInputs = ["r", "g", "b"].map((name) => byId(name + "Value"));
   const hslInputs = ["h", "s", "l"].map((name) => byId(name + "Value"));
   const hexInput = byId("hexInput"), opacityInput = byId("oValue");
+  const eyedropperBtn = byId("eyedropperBtn");
+  // The host's native sampler (macOS NSColorSampler, a GDI overlay on Windows). The web EyeDropper
+  // API is not used: in WebView2 it captures through Windows Graphics Capture, which draws a
+  // yellow border around the screen.
+  let canSampleScreen = false;
   const pageId = Date.now().toString(36) + Math.random().toString(36).slice(2);
   let state = model.createState(), favorites = [], initialized = false, favoritesWritable = true;
   // The selection the dialog opened with; the original swatch shows it and restores it on click.
@@ -242,6 +247,8 @@
     if (!state.options.allow_gradient && paletteCombo.value === "gradient") paletteCombo.value = "basic";
     setSidebarOpen(ui.sidebar_open === true);
     byId("alphaControls").classList.toggle("hidden", !state.options.allow_alpha);
+    canSampleScreen = payload.can_sample_screen === true;
+    eyedropperBtn.classList.toggle("hidden", !canSampleScreen);
     hexInput.maxLength = state.options.allow_alpha ? 9 : 7;
     populatePalette(); drawFavorites(); render(true);
     initialized = true;
@@ -267,6 +274,7 @@
           !model.normalizeSelection(payload.selection, options, hostLimit) || !validFavorites(payload.favorites) ||
           (payload.favorites_writable !== undefined && typeof payload.favorites_writable !== "boolean") ||
           (payload.preserve_multi_color !== undefined && typeof payload.preserve_multi_color !== "boolean") ||
+          (payload.can_sample_screen !== undefined && typeof payload.can_sample_screen !== "boolean") ||
           (payload.ui !== undefined && (!payload.ui || typeof payload.ui !== "object" ||
             (payload.ui.sidebar_open !== undefined && typeof payload.ui.sidebar_open !== "boolean") ||
             (payload.ui.palette !== undefined && typeof payload.ui.palette !== "string")))) return false;
@@ -279,7 +287,29 @@
     if (payload.command === "favorites" && initialized && validFavorites(payload.favorites)) {
       favorites = model.normalizeFavorites(payload.favorites); drawFavorites(); return true;
     }
+    if (payload.command === "sampled_color" && initialized && typeof payload.picked === "boolean") {
+      setSampling(false);
+      if (!payload.picked) return true;
+      return applySampledRgb(payload.rgb);
+    }
     return false;
+  }
+
+  function setSampling(active) {
+    eyedropperBtn.setAttribute("aria-pressed", String(active));
+  }
+  // A sampled screen color replaces the active color's RGB and keeps its alpha.
+  function applySampledRgb(rgb) {
+    if (!Array.isArray(rgb) || rgb.length !== 3 || !rgb.every((v) => Number.isInteger(v) && v >= 0 && v <= 255)) return false;
+    if (!model.setRgb(state, rgb)) return false;
+    render(true);
+    return true;
+  }
+  function sampleScreen() {
+    if (!initialized || !canSampleScreen || eyedropperBtn.getAttribute("aria-pressed") === "true") return;
+    setOpacitySliderOpen(false);
+    setSampling(true);
+    emit("sample_screen");
   }
 
   function validFavorites(values) {
@@ -406,6 +436,7 @@
     populatePalette();
     if (initialized) emit("update_ui", uiState());
   });
+  eyedropperBtn.addEventListener("click", sampleScreen);
   paletteSearchToggle.addEventListener("click", () => setPaletteSearch(paletteSearchToggle.getAttribute("aria-pressed") !== "true"));
   paletteFilter.addEventListener("input", populatePalette);
   // Pointer capture ends by itself on pointerup/pointercancel, so it doubles as the drag state.
