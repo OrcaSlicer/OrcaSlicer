@@ -5,6 +5,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <atomic>
 #include <boost/optional/optional.hpp>
+#include <boost/thread/thread.hpp>
 #include <chrono>
 #include <cstdint>
 #include <cstddef>
@@ -16,20 +17,13 @@
 #include "libslic3r/Semver.hpp"
 #include <memory>
 #include <set>
-#include "slic3r/GUI/GLShader.hpp"
 #include <string>
-#include "ActionRegistry.hpp"
-#include "ImGuiWrapper.hpp"
-#include "ConfigWizard.hpp"
-#include "OpenGLManager.hpp"
+#include "ConfigWizardTypes.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
-#include "slic3r/GUI/Jobs/UpgradeNetworkJob.hpp"
-#include "slic3r/GUI/HttpServer.hpp"
-#include "../Utils/PrintHost.hpp"
 #include "libslic3r/Point.hpp"
 
 #include <vector>
@@ -63,6 +57,8 @@ class wxMenuBar;
 class wxTopLevelWindow;
 class wxDataViewCtrl;
 class wxBookCtrlBase;
+class wxGLCanvas;
+class wxGLContext;
 // BBS
 class Notebook;
 struct wxLanguageInfo;
@@ -82,6 +78,8 @@ class MachineObject;
 class NetworkAgent;
 class IPrinterAgent;
 class TaskManager;
+class GLShaderProgram;
+class PrintHostJobQueue;
 
 // Same typedef as in bambu_networking.hpp, so this header need not include it.
 typedef std::function<bool()> WasCancelledFn;
@@ -113,6 +111,13 @@ class NetworkErrorDialog;
 class PluginsDialog;
 class SpeedDialWebDialog;
 class TerminalDialog;
+class ActionRegistry;
+class HttpServer;
+class ImGuiWrapper;
+class OpenGLManager;
+class UpgradeNetworkJob;
+
+typedef std::function<void(int status, int percent, bool& cancel)> InstallProgressFn;
 
 
 enum FileType
@@ -306,7 +311,7 @@ private:
     const wxLanguageInfo		 *m_language_info_best   = nullptr;
     wxString                    m_active_language_code;
 
-    OpenGLManager m_opengl_mgr;
+    std::unique_ptr<OpenGLManager> m_opengl_mgr;
     std::unique_ptr<RemovableDriveManager> m_removable_drive_manager;
 
     std::unique_ptr<ImGuiWrapper> m_imgui;
@@ -351,10 +356,16 @@ private:
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };
 
     boost::thread    m_sync_update_thread;
+    // Startup cloud plugin sync; joined on logout, in OnExit(), CleanUp() and on macOS end session.
+    boost::thread    m_startup_cloud_plugin_fetch_thread;
+    std::function<void()> m_startup_cloud_report; // run by post_init() if the results came earlier
     std::shared_ptr<int> m_user_sync_token;
     std::atomic<bool>    m_restart_sync_pending {false};
     std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
+    bool                 m_user_preset_pull_pending {false}; // set when a sync thread starts, cleared once its pull is applied; a failed pull or a stopped sync leaves it set
+    bool                 m_legacy_filament_check_due {false}; // the startup check waits for that pull
+    bool                 m_legacy_filament_check_running {false}; // a check is in progress, its dialog may be open
     std::atomic<bool>    m_migration_retry_pending {false};
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
@@ -365,10 +376,12 @@ private:
     // and a generation counter so a superseded mint/login result is dropped (guide §5, "only the
     // newest request counts").
     std::string      m_cloud_handoff_state;
+    // The OrcaCloud path the open requests target, remembered so a login re-seed keeps the same page.
+    std::string      m_cloud_open_path;
     uint64_t         m_cloud_handoff_gen { 0 };
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
-    HttpServer       m_http_server;
+    std::unique_ptr<HttpServer> m_http_server;
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:
@@ -406,7 +419,11 @@ public:
     const boost::optional<Semver>& last_config_version() const { return m_last_config_version; }
 
     // Reconcile the live printer agent with the stored preset selection.
+    // No-op until the main window exists; the startup preset load installs the agent then.
     void switch_printer_agent();
+    // Install the selected preset's agent if it is registered but not live, e.g. when its plugin
+    // finishes loading after the startup preset was applied. Otherwise leave the live agent alone.
+    void switch_printer_agent_if_pending();
 
     std::string resolve_printer_agent_id(const std::string& stored_id) const;
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
@@ -426,6 +443,8 @@ public:
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
     void set_closing(bool closing) { m_is_closing.store(closing, std::memory_order_release); }
+    // Called once closing can no longer be vetoed: ends the process if closing does not finish in time.
+    void start_exit_watchdog();
     
     // SoftFever
     bool show_gcode_window() const { return m_show_gcode_window; }
@@ -466,6 +485,9 @@ public:
 #if wxUSE_WEBVIEW_EDGE
     void            init_webview_runtime();
 #endif
+    // Switches to the Home tab and opens the OrcaCloud pane beside the homepage on `next`, a
+    // same-site OrcaCloud path (empty = the page's default). Work is deferred internally.
+    void            open_orca_cloud(const std::string& next = std::string());
     static unsigned get_colour_approx_luma(const wxColour& colour);
     static bool     dark_mode();
     const wxColour  get_label_default_clr_system();
@@ -572,7 +594,7 @@ public:
     // called from the pane when the page asks for a session; it opens the desktop login dialog if
     // signed out, otherwise mints a one-time token on a worker thread and loads the Complete URL
     // in the same webview.
-    wxString        cloud_webview_handoff();
+    wxString        cloud_webview_handoff(const std::string& next = std::string());
     void            request_cloud_web_session(const std::string& state);
     void            mint_cloud_web_session(const std::string& state, uint64_t gen);
     void            on_cloud_web_session_minted(const std::string& state, uint64_t gen, const std::string& token_hash);
@@ -589,7 +611,8 @@ public:
     void            check_new_version_sf(bool show_tips = false, int by_user = 0);
     // Offers to migrate user filament presets made against an older release that lost printers their parent
     // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
-    // reminded; by_user also reports when there is nothing to migrate.
+    // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also
+    // reports when there is nothing to migrate.
     void            check_legacy_user_filament_presets(bool by_user);
     bool            process_network_msg(std::string dev_id, std::string msg);
     void            request_new_version(int by_user);
@@ -600,7 +623,8 @@ public:
     std::string     format_IP(const std::string& ip);
     void            show_dialog(wxString msg);
     void            push_notification(const MachineObject* obj, wxString msg, wxString title = wxEmptyString, UserNotificationStyle style = UserNotificationStyle::UNS_NORMAL);
-    void            reload_settings();
+    // Returns false when the cloud presets could not be fetched, so nothing was reloaded.
+    bool            reload_settings();
     void            remove_user_presets();
 
     bool            maybe_migrate_user_presets_on_login();
@@ -629,7 +653,7 @@ public:
     PluginsDialog* m_plugins_dlg{nullptr};
     SpeedDialWebDialog* m_speed_dial_dialog{nullptr};
     TerminalDialog* m_terminal_dlg{nullptr};
-    ActionRegistry  m_action_registry;
+    std::unique_ptr<ActionRegistry> m_action_registry;
 
 
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -708,7 +732,7 @@ public:
     void            install_local_plugin();
     void            open_terminal_dialog();
     void            open_speed_dial();
-    ActionRegistry& action_registry() { return m_action_registry; }
+    ActionRegistry& action_registry() { return *m_action_registry; }
     void            open_exportpresetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     virtual bool OnExceptionInMainLoop() override;
     // Calls wxLaunchDefaultBrowser if user confirms in dialog.
@@ -806,7 +830,7 @@ public:
 
     void            open_web_page_localized(const std::string &http_address);
     bool            may_switch_to_SLA_preset(const wxString& caption);
-    bool            run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage start_page = ConfigWizard::SP_WELCOME);
+    bool            run_wizard(RunReason reason, StartPage start_page = StartPage::SP_WELCOME);
     void            show_desktop_integration_dialog();
 
 #if ENABLE_THUMBNAIL_GENERATOR_DEBUG
@@ -814,12 +838,12 @@ public:
     void            gcode_thumbnails_debug();
 #endif // ENABLE_THUMBNAIL_GENERATOR_DEBUG
 
-    OpenGLManager& get_opengl_manager() { return m_opengl_mgr; }
-    GLShaderProgram* get_shader(const std::string& shader_name) { return m_opengl_mgr.get_shader(shader_name); }
-    GLShaderProgram* get_current_shader() { return m_opengl_mgr.get_current_shader(); }
+    OpenGLManager& get_opengl_manager() { return *m_opengl_mgr; }
+    GLShaderProgram* get_shader(const std::string& shader_name);
+    GLShaderProgram* get_current_shader();
 
-    bool is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr.get_gl_info().is_version_greater_or_equal_to(major, minor); }
-    bool is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const { return m_opengl_mgr.get_gl_info().is_glsl_version_greater_or_equal_to(major, minor); }
+    bool is_gl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const;
+    bool is_glsl_version_greater_or_equal_to(unsigned int major, unsigned int minor) const;
     int  GetSingleChoiceIndex(const wxString& message, const wxString& caption, const wxArrayString& choices, int initialSelection);
 
     // extend is stl/3mf/gcode/step etc 

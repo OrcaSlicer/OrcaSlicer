@@ -57,24 +57,6 @@ const double GizmoObjectManipulation::mm_to_in = 0.0393700787;
 const double GizmoObjectManipulation::oz_to_g = 28.34952;
 const double GizmoObjectManipulation::g_to_oz = 0.035274;
 
-// Helper function to be used by drop to bed button. Returns lowest point of this
-// volume in world coordinate system.
-static double get_volume_min_z(const GLVolume* volume)
-{
-    const Transform3f& world_matrix = volume->world_matrix().cast<float>();
-
-    // need to get the ModelVolume pointer
-    const ModelObject* mo = wxGetApp().model().objects[volume->composite_id.object_id];
-    const ModelVolume* mv = mo->volumes[volume->composite_id.volume_id];
-    const TriangleMesh& hull = mv->get_convex_hull();
-
-    float min_z = std::numeric_limits<float>::max();
-    for (const stl_vertex& vert : hull.its.vertices) {
-        min_z = std::min(min_z, Vec3f::UnitZ().dot(world_matrix * vert));
-    }
-    return min_z;
-}
-
 GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
     : m_glcanvas(glcanvas), m_alignment_helper(glcanvas)
 {
@@ -295,12 +277,14 @@ void GizmoObjectManipulation::update_reset_buttons_visibility()
 {
     const Selection& selection = m_glcanvas.get_selection();
 
+    // Assembly view has its own selection and transformations, which drop_selection() doesn't update
+    m_enable_drop_to_bed = m_glcanvas.get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D && selection.can_drop();
+
     if (selection.is_single_full_instance() || selection.is_single_volume_or_modifier()) {
         const GLVolume *               volume = selection.get_first_volume();
 
         Vec3d rotation;
         Vec3d scale;
-        double min_z = 0.;
 
         if (selection.is_single_full_instance()) {
             rotation = volume->get_instance_rotation();
@@ -309,12 +293,10 @@ void GizmoObjectManipulation::update_reset_buttons_visibility()
         else {
             rotation = volume->get_volume_rotation();
             scale = volume->get_volume_scaling_factor();
-            min_z = get_volume_min_z(volume);
         }
         m_show_clear_rotation = !rotation.isApprox(m_init_rotation);
         m_show_reset_0_rotation = !rotation.isApprox(Vec3d::Zero());
         m_show_clear_scale = (m_cache.scale / 100.0f - Vec3d::Ones()).norm() > 0.001;
-        m_show_drop_to_bed = (std::abs(min_z) > EPSILON);
     }
 }
 
@@ -766,11 +748,17 @@ void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &
 void GizmoObjectManipulation::reset_align_state()
 {
     m_hovered_align_type = GLGizmoAlignment::AlignType::NONE;
-    m_align_to_parent    = !m_alignment_helper.can_align(GLGizmoAlignment::AlignType::X_MIN);
+    m_can_align_within   = m_alignment_helper.can_align(GLGizmoAlignment::AlignType::X_MIN);
+    m_align_to_parent    = !m_can_align_within;
 }
 
 void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit)
 {
+    float scale = m_glcanvas.get_scale();
+#ifdef WIN32
+    scale *= (float)get_dpi_for_window(wxGetApp().GetTopWindow()) / (float)DPI_DEFAULT;
+#endif // WIN32
+
     // BBS: GUI refactor: move gizmo to the right
     if (abs(last_move_input_window_width) > 0.01f) {
         if (x + last_move_input_window_width > m_glcanvas.get_canvas_size().get_width()) {
@@ -842,7 +830,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     // Rotation
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
     // Four align buttons sit under each axis' input, a space before the next axis, so the inputs widen to hold them.
-    const float align_icon_size   = 16.f * m_glcanvas.get_scale(); // ORCA use 16px icons
+    const float align_icon_size   = 16.f * scale;
     const float align_button_size = align_icon_size + 2.f * style.FramePadding.x;  // ORCA
     if (show_align) {
         unit_size = std::max(unit_size, 3.f * align_button_size);
@@ -870,11 +858,12 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
         combox_changed = true;
     }
+    ImGuiWrapper::pop_combo_style();
+    // After pop_combo_style(): its light popup background would hide the tooltip's white text.
     if (ImGui::IsItemHovered()) {
         auto tooltip_str = _L("Coordinate system used for transform actions.");
         imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
     }
-    ImGuiWrapper::pop_combo_style();
 
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
@@ -936,7 +925,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
 
-    // Align and distribute along the world axes, within the selection or to the object or plate holding it.
+    // Align and distribute along the coordinate system of the panel, within the selection or to the object or plate holding it.
     using AlignType                = GLGizmoAlignment::AlignType;
     const bool old_align_to_parent = m_align_to_parent;
     AlignType  hovered_align_type  = AlignType::NONE;
@@ -944,6 +933,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+        m_alignment_helper.set_object_cs(is_instance_coordinates());
 
         // Each row is row_height tall, separated by ItemSpacing.y. Every control is centered vertically in its row.
         const float       row_y         = ImGui::GetCursorPosY();
@@ -966,7 +956,13 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             _u8L("Selection"),
             m_alignment_helper.is_parts_selection(true) ? _u8L("Object") : _u8L("Plate")
         };
-        if (!m_alignment_helper.can_align(AlignType::X_MIN)) {
+        // Selecting enough items to align within them makes that the default, as when the tool opens.
+        const bool can_align_within = m_alignment_helper.can_align(AlignType::X_MIN);
+        if (can_align_within != m_can_align_within) {
+            m_can_align_within = can_align_within;
+            m_align_to_parent  = !can_align_within;
+        }
+        if (!can_align_within) {
             align_modes.erase(align_modes.begin());
             m_align_to_parent = true;
         }
@@ -977,11 +973,12 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         if (render_combo(imgui_wrapper, "", align_modes, align_mode_idx, 0, coord_combo_width))
             m_align_to_parent = align_mode_idx + 1 == align_modes.size();
         ImGui::PopID();
+        ImGuiWrapper::pop_combo_style();
+        // After pop_combo_style(): its light popup background would hide the tooltip's white text.
         if (ImGui::IsItemHovered()) {
             wxString tooltip_str = _L("Reference for alignment");
             imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
         }
-        ImGuiWrapper::pop_combo_style();
 
         const bool dark_mode    = wxGetApp().dark_mode();
         int        current_axis = -1;
@@ -1071,6 +1068,17 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
     GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_move, x, y);
+
+    // ORCA use existing function for drop and show button on bottom bar to keep gizmo compact
+    imgui_wrapper->disabled_begin(!m_enable_drop_to_bed);
+    ImGui::SameLine(0, space_size * 1.5f);
+    if (imgui_wrapper->button(_L("Drop"))){
+        wxGetApp().plater()->drop_selection();
+        UpdateAndShow(true);
+    }
+    imgui_wrapper->disabled_end();
+    if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        imgui_wrapper->tooltip(_L("Move the selection along Z so that its lowest point touches the bed."), ImGui::GetFontSize() * 20.0f);
 
     ImGui::SameLine();
     GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
@@ -1379,11 +1387,12 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
         combox_changed = true;
     }
+    ImGuiWrapper::pop_combo_style();
+    // After pop_combo_style(): its light popup background would hide the tooltip's white text.
     if (ImGui::IsItemHovered()) {
         auto tooltip_str = _L("Coordinate system used for transform actions.");
         imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
     }
-    ImGuiWrapper::pop_combo_style();
 
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;

@@ -53,7 +53,7 @@ call :add_section "Build configuration"
 call :add_arg config string "" config "release, debug, relwithdebinfo or minsizerel (default: release)"
 call :add_arg target_arch string "" arch "x64 or arm64 (default: the host architecture)"
 call :add_arg slicer_asan bool a asan "Build the slicer with ASAN enabled"
-call :add_arg no_pch bool "" no-pch "Build without the precompiled header, implied by --cache"
+call :add_arg no_pch bool "" no-pch "Build without the precompiled header, implied by -l and --cache"
 
 call :add_section "Toolchain"
 call :add_arg use_clang_cl bool l clang-cl "Use clang-cl as the compiler"
@@ -388,6 +388,9 @@ if "%use_ninja%" == "ON" if "%use_msbuild%" == "ON" (
     exit /b 1
 )
 
+REM CMakeLists turns the precompiled header off for clang-cl (llvm/llvm-project#53486).
+if "%use_clang_cl%" == "ON" set "no_pch=ON"
+
 set "generator=!vs_gen_%vs_version%!"
 if "%use_ninja%" == "ON" (
     set "generator=Ninja Multi-Config"
@@ -543,7 +546,7 @@ REM real path rather than one glued onto the repository root.
 for %%p in ("!build_dir!") do set "build_full=%%~fp"
 echo Configuration: %build_type%, %arch%
 if not "%clang_exe%" == "" echo Compiler: %clang_exe%
-if "%no_pch%" == "ON" echo Precompiled header: off
+if "%build_slicer%" == "ON" if "%no_pch%" == "ON" echo Precompiled header: off
 if not "%cache_args%" == "" echo Compiler cache: %cache_exe%
 
 set "SIG_FLAG="
@@ -716,8 +719,8 @@ if "%build_slicer%" == "ON" (
         set "slicer_args=!slicer_args! -DSLIC3R_ASAN=ON"
     )
 
-    REM A later -DSLIC3R_PCH=ON in ORCA_SLICER_CMAKE_ARGS still wins, because
-    REM CMake takes the last definition on the command line.
+    REM Under cl, a later -DSLIC3R_PCH=ON in ORCA_SLICER_CMAKE_ARGS still wins,
+    REM because CMake takes the last definition on the command line.
     if "%no_pch%" == "ON" (
         set "slicer_args=!slicer_args! -DSLIC3R_PCH=OFF"
     )

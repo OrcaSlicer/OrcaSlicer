@@ -32,6 +32,7 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/TabCtrl.hpp"
+#include "Plater.hpp"
 #include <wx/display.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -2225,8 +2226,10 @@ void PublishSettingsDialog::refresh_tab_indicators()
             if (section.variant_switch != nullptr) {
                 const wxString& title = m_categories[section.categories[i]].title;
                 const wxString  text  = on ? title + wxString(" ") + wxString(wxUniChar(0x2022)) : title;
-                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(i)) != text)
+                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(i)) != text) {
                     section.variant_switch->SetOptionText(static_cast<unsigned int>(i), text);
+                    section.page->Layout();
+                }
             }
             any = any || on;
         }

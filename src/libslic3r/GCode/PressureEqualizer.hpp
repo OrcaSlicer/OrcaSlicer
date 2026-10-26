@@ -85,6 +85,7 @@ private:
     ExtrusionRole     m_current_extrusion_role;
     bool                            m_retracted;
     bool                            m_use_relative_e_distances;
+    bool                            m_high_precision;
 
 	// Maximum segment length to split a long segment if the initial and the final flow rate differ.
 	// Smaller value means a smoother transition between two different flow rates.

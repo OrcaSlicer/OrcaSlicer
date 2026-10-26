@@ -11,6 +11,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <cstddef>
+#include <future>
 #include <memory>
 #include <ios>
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -49,16 +50,22 @@ bool CloudPluginService::fetch_manifests_into_descriptors(std::vector<PluginDesc
     unauthorized.clear();
 
     if (m_orca_agent) {
+        // Refresh the token once, then run both requests in parallel.
+        m_orca_agent->ensure_token_fresh("fetch_plugin_manifests");
+        std::vector<PluginDescriptor> mine_descriptors;
+        auto mine = std::async(std::launch::async, [agent = m_orca_agent, &mine_descriptors] {
+            return agent->fetch_mine_manifests_into_descriptors(mine_descriptors);
+        });
+
         int ret = m_orca_agent->fetch_subscribed_manifests_into_descriptors(descriptors, not_found, unauthorized);
+        const int mine_ret = mine.get();
 
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to get subscribed plugins.";
             return false;
         }
 
-        std::vector<PluginDescriptor> mine_descriptors;
-
-        ret = m_orca_agent->fetch_mine_manifests_into_descriptors(mine_descriptors);
+        ret = mine_ret;
 
         if (ret != 0) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to get owned plugins.";

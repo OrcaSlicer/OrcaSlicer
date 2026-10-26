@@ -40,7 +40,7 @@ TEST_CASE("Arc fitting remains active with overhang fan control", "[Cooling][Reg
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-        { "enable_arc_fitting",             true },
+        { "enable_arc_fitting",             "enabled" },
         { "enable_overhang_bridge_fan",     true },
         { "enable_overhang_speed",          true },
         { "initial_layer_print_height",     0.2 },
@@ -99,7 +99,7 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "bridge_speed",                   2.0 },
-        { "enable_arc_fitting",             false },
+        { "enable_arc_fitting",             "disabled" },
         { "enable_overhang_bridge_fan",     true },
         { "enable_overhang_speed",          false },
         { "initial_layer_print_height",     0.3 },

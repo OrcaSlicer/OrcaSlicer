@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the tree-maintenance half of scripts/orca_profile_tool.py: the
-normalize, trim, update-index, fix-variant and check commands, and the subcommand
-dispatch that reaches them (stdlib unittest, no external deps).
+normalize, trim, update-index, fix-variant, check and gcode-diff commands, and the
+subcommand dispatch that reaches them (stdlib unittest, no external deps).
 
 The id halves are covered by test_filament_id.py and test_setting_id.py.
 
@@ -14,9 +14,12 @@ import json
 import os
 import re
 import shutil
+import stat
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -41,7 +44,24 @@ class Tree:
         os.makedirs(self.profiles)
 
     def cleanup(self):
-        shutil.rmtree(self.dir, ignore_errors=True)
+        root = os.path.abspath(self.dir)
+
+        def writable_retry(func, path, _exc):
+            # Windows refuses to delete read-only files such as git's objects, and POSIX
+            # refuses to delete the entries of a read-only directory.
+            if not os.path.lexists(path):  # already removed, as on a second cleanup
+                return
+            parent = os.path.dirname(os.path.abspath(path))
+            try:
+                if os.path.commonpath([parent, root]) == root:  # never the temp dir itself
+                    os.chmod(parent, stat.S_IRWXU)
+                if not os.path.islink(path):  # chmod would follow it out of the tree
+                    os.chmod(path, stat.S_IRWXU)
+                func(path)
+            except (OSError, ValueError):  # commonpath raises ValueError across drives
+                pass
+        hook = "onexc" if sys.version_info >= (3, 12) else "onerror"
+        shutil.rmtree(self.dir, **{hook: writable_retry})
 
     def index_path(self, vendor):
         return os.path.join(self.profiles, vendor + ".json")
@@ -1407,6 +1427,292 @@ class TestDispatch(TreeCase):
         rc, out = self.run_command("normalize", "--vendor", "")
         self.assertEqual(rc, 0, out)
         self.assertEqual(self.t.read("V", "filament/A.json")["type"], "filament")
+
+
+# ---------------------------------------------------------------------------
+# gcode-diff
+# ---------------------------------------------------------------------------
+
+@unittest.skipUnless(shutil.which("git"), "git not installed")
+class TestGcodeDiff(TreeCase):
+    START = "G28\nM104 S200\nG1 Z5"
+
+    def git(self, *args):
+        subprocess.run(["git", "-C", self.t.dir, "-c", "user.name=t", "-c", "user.email=t@t",
+                        "-c", "commit.gpgsign=false", *args], check=True, capture_output=True)
+
+    def printer(self, name, **extra):
+        self.t.write("V", f"machine/{name}.json", {"type": "machine", "name": name, **extra})
+
+    def commit(self):
+        self.git("add", "-A")
+        self.git("commit", "-q", "--allow-empty", "-m", "x")
+
+    @classmethod
+    def setUpClass(cls):
+        # git's list of the variables that tie a process to a repository, asked with no
+        # GIT_* set since a stray GIT_DIR fails the query.
+        clean = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+        cls.repo_env_vars = set(subprocess.run(
+            ["git", "rev-parse", "--local-env-vars"], env=clean, check=True,
+            capture_output=True, text=True).stdout.split())
+
+    def setUp(self):
+        super().setUp()
+        # A git hook's GIT_DIR or GIT_INDEX_FILE would point every git call here, the
+        # tool's included, at the real repository instead of the temp tree.
+        env = {k: v for k, v in os.environ.items() if k not in self.repo_env_vars}
+        patcher = mock.patch.dict(os.environ, env, clear=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.git("init", "-q")
+        for name in ("A", "B", "C"):
+            self.printer(name, machine_start_gcode=self.START, nozzle_diameter=["0.4"])
+        self.printer("Gone", machine_end_gcode="M84")
+        self.commit()
+
+    def diff(self):
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD")
+        self.assertEqual(rc, 0, out)
+        return out
+
+    def test_identical_edits_share_one_section(self):
+        for name in ("A", "B"):
+            self.printer(name, machine_start_gcode="G28\nM104 S210  \nG1 Z5")
+        self.printer("C", machine_start_gcode="G28\nM104 S220\nG1 Z5")
+        out = self.diff()
+        self.assertEqual(out.count("<details>"), 2)
+        self.assertIn("<code>V/machine/A.json</code>, <code>V/machine/B.json</code> - "
+                      "<code>machine_start_gcode</code>", out)
+        self.assertIn("<code>V/machine/C.json</code> - <code>machine_start_gcode</code>", out)
+        # Trailing spaces are removed.
+        self.assertIn("\n-M104 S200\n+M104 S210\n", out)
+        self.assertIn("\n\n```diff\n@@ ", out)
+        self.assertIn("\n```\n\n</details>", out)
+
+    def test_nothing_is_printed_without_a_text_change(self):
+        self.printer("A", machine_start_gcode=self.START, nozzle_diameter=["0.6"])
+        self.assertEqual(self.diff(), "")
+
+    def test_added_and_deleted_files_show_the_whole_value(self):
+        # An untracked file counts as added; the validator's user dir is not a profile.
+        self.printer("New", machine_start_gcode="G28\nG29")
+        self.t.write("user", "default/machine/U.json", {"machine_start_gcode": "G28"})
+        os.remove(self.t.path("V", "machine/Gone.json"))
+        out = self.diff()
+        self.assertIn("@@ -0,0 +1,2 @@\n+G28\n+G29\n", out)
+        self.assertIn("<code>V/machine/Gone.json</code> - <code>machine_end_gcode</code>", out)
+        self.assertIn("@@ -1 +0,0 @@\n-M84\n", out)
+        self.assertNotIn("U.json", out)
+
+    def test_a_multi_line_value_counts_whatever_its_key(self):
+        self.printer("A", machine_start_gcode=self.START, custom_note="one\ntwo")
+        self.assertIn("<code>V/machine/A.json</code> - <code>custom_note</code>", self.diff())
+
+    def test_a_file_name_cannot_mention_a_user(self):
+        self.t.write("V", "filament/PLA @BBL A1.json", {"filament_start_gcode": ["M106"]})
+        self.assertIn("<code>V/filament/PLA @BBL A1.json</code>", self.diff())
+
+    def test_head_compares_two_commits(self):
+        self.printer("A", machine_start_gcode="G28")
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>V/machine/A.json</code> - <code>machine_start_gcode</code>", out)
+
+    def test_a_renamed_file_diffs_against_its_old_self(self):
+        os.rename(self.t.path("V", "machine/A.json"), self.t.path("V", "machine/A2.json"))
+        self.printer("A2", machine_start_gcode="G28\nM104 S210\nG1 Z5", nozzle_diameter=["0.4"])
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>V/machine/A2.json</code> - <code>machine_start_gcode</code>", out)
+        self.assertIn("\n G28\n-M104 S200\n+M104 S210\n G1 Z5\n", out)
+
+    def test_a_file_renamed_off_json_loses_its_values(self):
+        os.rename(self.t.path("V", "machine/Gone.json"), self.t.path("V", "machine/Gone.json.bak"))
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>V/machine/Gone.json</code> - <code>machine_end_gcode</code>", out)
+        self.assertIn("@@ -1 +0,0 @@\n-M84\n", out)
+
+    def test_a_file_renamed_onto_json_is_new(self):
+        with open(self.t.path("V", "machine/Draft.txt"), "w", encoding="utf-8") as f:
+            json.dump({"type": "machine", "machine_start_gcode": self.START}, f)
+        self.commit()
+        os.rename(self.t.path("V", "machine/Draft.txt"), self.t.path("V", "machine/Draft.json"))
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("@@ -0,0 +1,3 @@\n+G28\n+M104 S200\n+G1 Z5\n", out)
+
+    def test_a_batch_read_survives_paths_that_are_not_files(self):
+        blobs = apt._blobs_at(self.t.profiles, [("HEAD", "V/machine"), ("HEAD", "V/no such.json"),
+                                                ("HEAD", "V/machine/Gone.json")])
+        self.assertIsNone(blobs[("HEAD", "V/machine")])
+        self.assertIsNone(blobs[("HEAD", "V/no such.json")])
+        self.assertEqual(json.loads(blobs[("HEAD", "V/machine/Gone.json")])["machine_end_gcode"],
+                         "M84")
+
+    def test_each_value_of_a_vector_option_is_its_own_setting(self):
+        self.t.write("V", "filament/F.json", {"filament_start_gcode": ["M106", "M107"]})
+        self.commit()
+        self.t.write("V", "filament/F.json", {"filament_start_gcode": ["M106", "M106 S0"]})
+        out = self.diff()
+        self.assertEqual(out.count("<details>"), 1)
+        self.assertIn("<code>filament_start_gcode[1]</code>", out)
+
+    def test_vendor_limits_the_files(self):
+        self.printer("A", machine_start_gcode="G28")
+        self.t.write("W", "machine/X.json", {"machine_start_gcode": "G28"})
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD", "--vendor", "V")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("V/machine/A.json", out)
+        self.assertNotIn("W/machine/X.json", out)
+
+    def test_vendor_includes_files_moved_out_of_it(self):
+        self.t.add_vendor("W")
+        os.rename(self.t.path("V", "machine/A.json"), self.t.path("W", "machine/A.json"))
+        data = self.t.read("W", "machine/A.json")
+        self.t.write("W", "machine/A.json", {**data, "machine_start_gcode": "G28\nM104 S210\nG1 Z5"})
+        self.commit()
+        rc, out = self.run_command("gcode-diff", "--base", "HEAD~1", "--head", "HEAD",
+                                   "--vendor", "V")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("<code>W/machine/A.json</code> - <code>machine_start_gcode</code>", out)
+
+    def same_edit(self, names):
+        """The diff after one start G-code edit to each of names; returns (summary, output)."""
+        for name in names:
+            self.printer(name, machine_start_gcode=self.START, nozzle_diameter=["0.4"])
+        self.commit()
+        for name in names:
+            self.printer(name, machine_start_gcode="G28")
+        out = self.diff()
+        return re.search(r"<summary>(.*)</summary>", out).group(1), out
+
+    def test_a_long_file_list_moves_into_the_section(self):
+        summary, out = self.same_edit("ABCDE")
+        self.assertIn("<code>V/machine/C.json</code> and 2 more - ", summary)
+        self.assertNotIn("D.json", summary)
+        self.assertIn("<code>V/machine/D.json</code>, <code>V/machine/E.json</code></p>\n\n```diff",
+                      out)
+
+    def test_four_files_are_all_named_in_the_summary(self):
+        summary, _out = self.same_edit("ABCD")
+        self.assertIn("<code>V/machine/D.json</code> - ", summary)
+        self.assertNotIn("more", summary)
+
+    def test_an_error_goes_to_stderr_only(self):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc, out = self.run_command("gcode-diff", "--base", "no-such-ref")
+        self.assertEqual(rc, 1)
+        self.assertEqual(out, "")
+        self.assertIn("no-such-ref", err.getvalue())
+
+    def test_a_file_name_that_is_not_utf8_is_an_error(self):
+        bad = UnicodeDecodeError("utf-8", b"\xe9.json", 0, 1, "invalid continuation byte")
+        err = io.StringIO()
+        with mock.patch.object(apt, "_changed_profiles", side_effect=bad), \
+                contextlib.redirect_stderr(err):
+            rc, out = self.run_command("gcode-diff", "--base", "HEAD")
+        self.assertEqual((rc, out), (1, ""))
+        self.assertIn("invalid continuation byte", err.getvalue())
+
+    def test_output_is_cut_to_whole_sections(self):
+        for name in ("A", "B", "C"):
+            self.printer(name, machine_start_gcode=name * 300)
+        size = len(apt.gcode_diff(self.t.profiles, "HEAD").encode("utf-8"))
+        with mock.patch.object(apt, "GCODE_DIFF_BUDGET", size - 1):
+            out = self.diff()
+        self.assertEqual(out.count("<details>"), 2)
+        self.assertEqual(out.count("</details>"), 2)
+        self.assertIn("\n1 of 3 sections is not shown", out)
+        with mock.patch.object(apt, "GCODE_DIFF_BUDGET", 1):
+            self.assertIn("\n3 of 3 sections are not shown", self.diff())
+
+    def test_cleanup_removes_the_repo(self):
+        # setUp's commit leaves read-only git objects, and a read-only directory blocks
+        # deletion on POSIX.
+        os.chmod(self.t.path("V", "machine"), stat.S_IRUSR | stat.S_IXUSR)
+        self.t.cleanup()
+        self.assertFalse(os.path.exists(self.t.dir))
+        with mock.patch.object(os, "chmod") as chmod:
+            self.t.cleanup()  # a second cleanup, as addCleanup runs, must not touch the temp dir
+        chmod.assert_not_called()
+
+    def test_only_repository_variables_are_stripped(self):
+        self.assertTrue({"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"} <= self.repo_env_vars)
+        self.assertFalse({"GIT_SSH", "GIT_EXEC_PATH", "GIT_EDITOR"} & self.repo_env_vars)
+
+    def test_cleanup_leaves_symlink_targets_alone(self):
+        outside = tempfile.mkdtemp(prefix="profile_tool_outside_")
+        self.addCleanup(shutil.rmtree, outside, True)
+        target = os.path.join(outside, "f")
+        open(target, "w").close()
+        os.chmod(target, stat.S_IRUSR)
+        self.addCleanup(os.chmod, target, stat.S_IRWXU)  # runs before the rmtree above
+        machine = self.t.path("V", "machine")
+        try:
+            os.symlink(target, os.path.join(machine, "link"))
+        except (OSError, NotImplementedError):
+            self.skipTest("cannot create symlinks here")
+        os.chmod(machine, stat.S_IRUSR | stat.S_IXUSR)  # so removing the link fails at first
+        self.t.cleanup()
+        self.assertFalse(os.path.exists(self.t.dir))
+        self.assertEqual(stat.S_IMODE(os.stat(target).st_mode) & stat.S_IWUSR, 0)
+
+    def test_a_git_hook_environment_is_ignored(self):
+        scripts = os.path.join(REPO_ROOT, "scripts")
+        result = subprocess.run(
+            [sys.executable, "-m", "unittest",
+             "tests.test_profile_tool.TestGcodeDiff.test_head_compares_two_commits"],
+            cwd=scripts, capture_output=True, text=True,
+            env={**os.environ, "GIT_DIR": os.path.join(self.t.dir, "nowhere")})
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_the_options_are_read_from_the_engine(self):
+        keys = apt._text_option_keys()
+        self.assertTrue({"machine_start_gcode", "filament_start_gcode", "printing_by_object_gcode",
+                         "notes", "post_process"} <= keys)
+        self.assertNotIn("emit_machine_limits_to_gcode", keys)  # a coBool
+
+    START_DEF = 'def = this->add("machine_start_gcode", coString);\n'
+
+    def keys_from(self, print_config, tab=None):
+        """_text_option_keys read from these sources; no tab means no Tab.cpp."""
+        paths = [os.path.join(self.t.dir, "PrintConfig.cpp"), os.path.join(self.t.dir, "Tab.cpp")]
+        for path, text in zip(paths, (print_config, tab)):
+            if text is not None:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(text)
+        apt._text_option_keys.cache_clear()
+        self.addCleanup(apt._text_option_keys.cache_clear)
+        with mock.patch.object(apt, "PRINT_CONFIG_CPP", paths[0]), \
+                mock.patch.object(apt, "TAB_CPP", paths[1]):
+            return apt._text_option_keys()
+
+    def test_multiline_is_read_whatever_its_spacing(self):
+        keys = self.keys_from(self.START_DEF + 'def = this->add("printer_notes", coString);\n'
+                                               '    def->multiline  = true;\n')
+        self.assertIn("printer_notes", keys)
+
+    def test_the_code_options_of_tab_cpp_are_read(self):
+        keys = self.keys_from(self.START_DEF, 'option = optgroup->get_option("filename_format");\n'
+                                              'option.opt.is_code = true;\n'
+                                              'option = optgroup->get_option("layer_height");\n')
+        self.assertIn("filename_format", keys)
+        self.assertNotIn("layer_height", keys)
+
+    def test_a_missing_tab_cpp_is_not_an_error(self):
+        self.assertIn("machine_start_gcode", self.keys_from(self.START_DEF))
+
+    def test_markdown_in_a_file_name_stays_literal(self):
+        section = apt._gcode_diff_section(["V/a *b*.json", "V/c.json", "V/d.json", "V/e.json",
+                                           "V/f.json"], "machine_start_gcode", "@@ -1 +1 @@")
+        self.assertIn("\n<p><code>V/a *b*.json</code>, ", section)
 
 
 # ---------------------------------------------------------------------------

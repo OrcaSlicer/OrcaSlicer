@@ -72,6 +72,7 @@
 		"259"
 	],
 	"support_box_temp_control": "1",
+	"support_multi_bed_types": "1",
 	"thumbnails_format": "PNG",
 	"thumbnail_size": [
 		"150x150"
