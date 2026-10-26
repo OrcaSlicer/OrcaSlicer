@@ -4385,6 +4385,8 @@ void PartPlate::set_print(PrintBase* print, GCodeResult* result, int index)
 
 	m_print->set_plate_origin(m_origin);
     invalidate_exclusion_volume_preview();
+	// Keep a newly attached Print synchronized with the plate metadata used for output filenames.
+	m_print->set_plate_name(m_name);
 
 	return;
 }

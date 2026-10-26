@@ -47,6 +47,9 @@
 #include <ctime>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <wx/textentry.h>
@@ -397,6 +400,8 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 #endif
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
+
+MainFrame::~MainFrame() = default;
 
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
