@@ -73,6 +73,7 @@
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 

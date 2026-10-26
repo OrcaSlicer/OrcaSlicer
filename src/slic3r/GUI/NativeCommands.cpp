@@ -16,6 +16,7 @@
 #include "NetworkTestDialog.hpp"
 #include "Plater.hpp"
 #include "PluginsDialog.hpp"
+#include "PartPlate.hpp"
 #include "PlateSettingsDialog.hpp"
 #include "SceneBenchmark.hpp"
 #include "DeviceCore/DevManager.h"

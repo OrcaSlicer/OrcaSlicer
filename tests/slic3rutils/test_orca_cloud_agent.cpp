@@ -34,6 +34,7 @@
 #include "slic3r/Utils/OrcaCloudServiceAgent.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "test_utils.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;

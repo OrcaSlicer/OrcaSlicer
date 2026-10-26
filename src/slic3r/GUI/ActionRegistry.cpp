@@ -40,6 +40,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 

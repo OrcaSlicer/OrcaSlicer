@@ -31,6 +31,7 @@
 #include <wx/event.h>
 #include <utility>
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include <wx/anybutton.h>
 #include <wx/timer.h>
 #include <cstddef>
