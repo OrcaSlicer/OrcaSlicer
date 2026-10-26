@@ -7029,6 +7029,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("toolchange_prime_on_printer", coBool);
+    def->label = L("Time primes on the printer");
+    def->category = L("Tool change priming");
+    def->tooltip = L("Let a printer macro time how long each tool was really parked, instead of using the slicer's estimate. "
+                     "This also covers pauses the slicer cannot see, such as a pause pressed on the printer, a filament runout "
+                     "or a long reheat. The tool change prime G-code then runs unchanged and the printer sizes the prime. "
+                     "Turn this on only after installing the printer's macro (for the Snapmaker U1, SMART_TOOLCHANGE_PRIME), "
+                     "otherwise the tool changes are not primed.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
 
     def = this->add("file_start_gcode", coString);
     def->label = L("File header G-code");
@@ -8160,7 +8171,8 @@ void PrintConfigDef::init_fff_params()
                      "wiping the nozzle, so no prime tower is needed. It is used only when the prime tower is disabled. "
                      "Use relative extrusion (M83) and the prime_length and prime_speed placeholders. "
                      "Extrusions in this G-code are scaled by the estimated time the tool was parked, between the minimum and maximum "
-                     "prime lengths, and the whole block is skipped below the skip time.");
+                     "prime lengths, and the whole block is skipped below the skip time. "
+                     "When primes are timed on the printer, this G-code is not changed: pass the settings to the printer's macro instead.");
     def->multiline = true;
     def->full_width = true;
     def->height = 5;

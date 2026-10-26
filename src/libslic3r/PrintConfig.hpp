@@ -2088,6 +2088,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloat,              toolchange_prime_length_max))
     ((ConfigOptionFloat,              toolchange_prime_idle_time))
     ((ConfigOptionFloat,              toolchange_prime_skip_time))
+    ((ConfigOptionBool,               toolchange_prime_on_printer))
     ((ConfigOptionInts,               nozzle_temperature))
     ((ConfigOptionBools,              wipe))
     // BBS

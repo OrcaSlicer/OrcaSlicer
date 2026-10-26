@@ -11314,7 +11314,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += m_ooze_prevention.post_toolchange(*this);
 
     // Prime the new tool off the bed (e.g. into a purge bucket) instead of on a prime tower.
-    // The block is wrapped in tags so GCodeProcessor can size or skip it by the tool's estimated idle time.
+    // The block is wrapped in tags so GCodeProcessor can size or skip it by the tool's estimated idle time,
+    // unless a printer macro times the parks itself.
     const std::string& toolchange_prime_gcode = m_config.toolchange_prime_gcode.value;
     if (m_config.toolchange_prime_enable && !toolchange_prime_gcode.empty() && !m_config.enable_prime_tower && !m_config.single_extruder_multi_material &&
         old_filament_id >= 0 && old_filament_id != int(new_filament_id)) {
@@ -11339,12 +11340,16 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         std::string prime_gcode = placeholder_parser_process("toolchange_prime_gcode", toolchange_prime_gcode, new_filament_id, &prime_config);
         check_add_eol(prime_gcode);
 
-        char tag[128];
-        std::snprintf(tag, sizeof(tag), ";%s T%u P%d L%.3f%s\n", GCodeProcessor::Toolchange_Prime_Start_Tag.c_str(), new_filament_id,
-                      old_filament_id, prime_length, first_use ? " FIRST" : "");
-        gcode += tag;
-        gcode += prime_gcode;
-        gcode += ";" + GCodeProcessor::Toolchange_Prime_End_Tag + "\n";
+        if (m_config.toolchange_prime_on_printer) {
+            gcode += prime_gcode;
+        } else {
+            char tag[128];
+            std::snprintf(tag, sizeof(tag), ";%s T%u P%d L%.3f%s\n", GCodeProcessor::Toolchange_Prime_Start_Tag.c_str(), new_filament_id,
+                          old_filament_id, prime_length, first_use ? " FIRST" : "");
+            gcode += tag;
+            gcode += prime_gcode;
+            gcode += ";" + GCodeProcessor::Toolchange_Prime_End_Tag + "\n";
+        }
         // The prime G-code moves the extruder and the nozzle behind the writer's back.
         gcode += m_writer.reset_e(true);
         m_writer.set_current_position_clear(false);

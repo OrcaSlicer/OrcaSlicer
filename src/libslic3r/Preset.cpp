@@ -1290,6 +1290,7 @@ static std::vector<std::string> s_Preset_print_options{
     "toolchange_prime_length_max",
     "toolchange_prime_idle_time",
     "toolchange_prime_skip_time",
+    "toolchange_prime_on_printer",
     "interface_shells",
     "line_width",
     "initial_layer_line_width",

@@ -130,3 +130,27 @@ TEST_CASE("Tool change prime is full length after a pause", "[ToolchangePrime]")
             REQUIRE(block.after_pause);
     }
 }
+
+TEST_CASE("Tool change prime is left to the printer when timed on the printer", "[ToolchangePrime]")
+{
+    DynamicPrintConfig config = two_tool_config();
+    config.set_deserialize_strict({
+        { "toolchange_prime_on_printer", true },
+        { "toolchange_prime_skip_time",  36000 },
+        { "toolchange_prime_gcode",      "SMART_TOOLCHANGE_PRIME TOOL=[next_extruder] PREV=[previous_extruder] "
+                                         "FIRST={if prime_first_use}1{else}0{endif} MIN=[toolchange_prime_length_min] "
+                                         "MAX=[toolchange_prime_length_max] SKIP=[toolchange_prime_skip_time]\n" },
+    });
+    std::string gcode = slice({TestMesh::cube_20x20x20}, config);
+
+    // No tags, so the slicer neither scales nor skips the block (the skip time would otherwise drop every prime).
+    CHECK(prime_blocks(gcode).empty());
+    std::regex  call("SMART_TOOLCHANGE_PRIME TOOL=(\\d) PREV=(\\d) FIRST=([01]) MIN=1 MAX=10 SKIP=36000");
+    size_t      calls = 0, first_uses = 0;
+    for (auto it = std::sregex_iterator(gcode.begin(), gcode.end(), call); it != std::sregex_iterator(); ++it, ++calls) {
+        CHECK((*it)[1].str() != (*it)[2].str());
+        first_uses += (*it)[3].str() == "1";
+    }
+    CHECK(calls > 2);
+    CHECK(first_uses == 1);
+}

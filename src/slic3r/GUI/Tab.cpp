@@ -3425,6 +3425,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("toolchange_prime_length_max");
         optgroup->append_single_option_line("toolchange_prime_idle_time");
         optgroup->append_single_option_line("toolchange_prime_skip_time");
+        optgroup->append_single_option_line("toolchange_prime_on_printer");
 
         optgroup = page->new_optgroup(L("Flush options"), L"param_flush");
         optgroup->append_single_option_line("flush_into_infill", "multimaterial_settings_flush_options#flush-into-objects-infill");

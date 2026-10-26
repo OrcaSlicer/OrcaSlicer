@@ -374,6 +374,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "toolchange_prime_length_max",
         "toolchange_prime_idle_time",
         "toolchange_prime_skip_time",
+        "toolchange_prime_on_printer",
         "toolchange_prime_gcode",
         "machine_start_gcode",
         "filament_start_gcode",

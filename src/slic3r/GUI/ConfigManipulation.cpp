@@ -1190,7 +1190,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         && preset_bundle->printers.get_edited_preset().config.opt_bool("enable_belt_purge_tower");
     toggle_line("toolchange_prime_enable", !have_prime_tower, -1, _L("Disable the prime tower to prime tools with the printer's tool change prime G-code instead."));
     const bool have_toolchange_prime = !have_prime_tower && config->opt_bool("toolchange_prime_enable");
-    for (auto el : {"toolchange_prime_length_min", "toolchange_prime_length_max", "toolchange_prime_idle_time", "toolchange_prime_skip_time"})
+    for (auto el : {"toolchange_prime_length_min", "toolchange_prime_length_max", "toolchange_prime_idle_time", "toolchange_prime_skip_time", "toolchange_prime_on_printer"})
         toggle_line(el, have_toolchange_prime, -1,
                     have_prime_tower ? _L("Disable the prime tower to prime tools with the printer's tool change prime G-code instead.") :
                                        _L("Enable smart tool change prime to use this setting."));
