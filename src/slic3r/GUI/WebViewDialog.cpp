@@ -39,6 +39,8 @@
 #include <wx/toplevel.h>
 #include <wx/url.h>
 #include <wx/uri.h>
+#include <wx/menu.h>
+#include <wx/button.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
