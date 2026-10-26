@@ -32,12 +32,13 @@ static void apply_tolerance(ModelVolume* vol)
 
     vol->set_scaling_factor(sf);
 
-    // For Dowel, DO NOT shift offset: the dowel must stay symmetrically at z = 0!
+    // Dowels are centered on the cut plane, so only plugs and snaps need the extra depth moved to their far end.
     if (cut_info.connector_type == CutConnectorType::Plug || cut_info.connector_type == CutConnectorType::Snap) {
         Vec3d rot_norm = rotation_transform(vol->get_rotation()) * Vec3d::UnitZ();
         if (rot_norm.norm() != 0.0)
             rot_norm.normalize();
 
+        // add small Z offset to better preview
         double z_offset = 0.5 * static_cast<double>(cut_info.height_tolerance) - 0.05;
         vol->set_offset(vol->get_offset() + rot_norm * z_offset);
     }
