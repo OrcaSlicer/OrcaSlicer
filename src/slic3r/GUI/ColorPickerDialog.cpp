@@ -47,11 +47,46 @@
 #include <map>
 #include <array>
 #include <charconv>
+#include <functional>
 #include <system_error>
+
+// ColorSampler
+#if defined(__WXMSW__)
+#include <wx/msw/wrapwin.h>
+#include <cstdint>
+#elif defined(__WXGTK__)
+#include <gio/gio.h>
+#endif
 
 namespace Slic3r::GUI {
 
 namespace {
+
+// - macOS: system NSColorSampler loupe. The system captures the screen and only the chosen
+//   color reaches Orca, so the Screen Recording permission is never requested.
+// - Windows: one GDI snapshot of the virtual screen in a topmost overlay with a magnifier loupe.
+//   GDI reads need no permission
+// - Linux: Uses XDG Screenshot portal’s PickColor method
+class ColorSampler
+{
+public:
+    using Callback = std::function<void(std::optional<ColorRGBA>)>; // std::nullopt when user cancels; otherwise an opaque sRGB color
+    ColorSampler() = delete;
+    #if defined(__WXOSX__) || defined(__WXMSW__) || defined(__WXGTK__)
+        static inline bool m_sampler_available = true;
+    #else
+        static inline bool m_sampler_available = false; // No sampler: start() is left undefined, and dialog never calls it here
+    #endif
+    static void start(Callback done); // Runs `done` exactly once on the GUI thread
+
+private:
+#ifdef __WXMSW__
+    class Overlay;
+#endif
+#if defined(__WXOSX__) || defined(__WXMSW__) || defined(__WXGTK__)
+    static inline bool s_running = false; // Only platforms with a sampler use this
+#endif
+};
 
 struct ColorPickerFavoritesState {
     std::vector<ColorSelection> favorites;
@@ -291,10 +326,10 @@ constexpr int COLOR_PICKER_PAGE_HEIGHT   = 360 + 2 * 10;
 constexpr int COLOR_PICKER_SIDEBAR_WIDTH = 160 + 10;
 
 // Palette ids are short lowercase words defined by the page (basic, orca, ral, gradient, ...).
-bool valid_palette_id(const std::string& id)
+bool valid_palette_id(const std::string& palette)
 {
-    return !id.empty() && id.size() <= 32 &&
-           std::all_of(id.begin(), id.end(), [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-'; });
+    return !palette.empty() && palette.size() <= 32 &&
+           std::all_of(palette.begin(), palette.end(), [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-'; });
 }
 
 // English palette names are stable translation keys; RAL codes stay in the page data.
@@ -320,6 +355,7 @@ nlohmann::json color_picker_ui_strings()
         // TRN: Clicking the current color preview adds it to the saved favorites.
         {"Save current color", _u8L("Save current color")},
         {"Palettes", _u8L("Palettes")},
+        {"Pick color from screen", _u8L("Pick color from screen")},
         {"Search colors", _u8L("Search colors")},
         {"Filter colors", _u8L("Filter colors")},
         {"No matching colors", _u8L("No matching colors")},
@@ -966,14 +1002,15 @@ void ColorPickerDialog::handle_web_command(const nlohmann::json& payload)
     const auto page_id = payload.find("page_id");
     if (command == payload.end() || !command->is_string() || page_id == payload.end() || !page_id->is_string())
         return;
-    const auto& id = page_id->get_ref<const std::string&>();
-    if (id.empty() || id.size() > 64)
+    // Not named `id`: on macOS this file is Objective-C++, where `id` is a built-in type.
+    const auto& page = page_id->get_ref<const std::string&>();
+    if (page.empty() || page.size() > 64)
         return;
     if (*command == "ready") {
         // A repeated ready from the same document must not reset its edits. A new
         // document (e.g. WebView recreation) gets a fresh initialization handshake.
-        if (id != m_page_id) {
-            m_page_id = id;
+        if (page != m_page_id) {
+            m_page_id = page;
             m_page_ready = false;
             m_init_sent = false;
         }
@@ -981,7 +1018,7 @@ void ColorPickerDialog::handle_web_command(const nlohmann::json& payload)
             send_initial_state();
         return;
     }
-    if (id != m_page_id)
+    if (page != m_page_id)
         return;
     if (*command == "cancel") {
         finish(wxID_CANCEL);
@@ -1039,17 +1076,19 @@ void ColorPickerDialog::handle_web_command(const nlohmann::json& payload)
             const nlohmann::json response = {{"command", "favorites"}, {"page_id", m_page_id}, {"favorites", std::move(canonical)}};
             run_script(wxString::FromUTF8("window.ColorPickerDialog.handleMessage(" + response.dump() + ")"));
         }
+    } else if (*command == "sample_screen") {
+        sample_screen();
     } else if (*command == "update_ui") {
         // Sidebar open/closed and the chosen palette, restored the next time the picker opens.
         const auto open = payload.find("sidebar_open");
         const auto palette = payload.find("palette");
         if (open == payload.end() || !open->is_boolean() || palette == payload.end() || !palette->is_string() || !wxGetApp().app_config)
             return;
-        const auto& id = palette->get_ref<const std::string&>();
-        if (!valid_palette_id(id))
+        const auto& palette_id = palette->get_ref<const std::string&>();
+        if (!valid_palette_id(palette_id))
             return;
         m_sidebar_open = open->get<bool>();
-        m_palette = id;
+        m_palette = palette_id;
         // set() marks the config dirty; it is written with the rest of the app config.
         AppConfig& config = *wxGetApp().app_config;
         config.set(COLOR_PICKER_UI_SECTION, "sidebar_open", m_sidebar_open ? "1" : "0");
@@ -1065,6 +1104,7 @@ void ColorPickerDialog::send_initial_state()
     const nlohmann::json payload = {{"command", "init"}, {"page_id", m_page_id},
                                    {"options", {{"allow_gradient", m_options.allow_gradient}, {"allow_alpha", m_options.allow_alpha},
                                                 {"max_gradient_colors", COLOR_PICKER_MAX_GRADIENT_COLORS}}},
+                                   {"can_sample_screen", ColorSampler::m_sampler_available},
                                    {"selection", color_selection_to_json(m_initial)}, {"favorites", std::move(favorites)},
                                    {"favorites_writable", m_favorites_writable}, {"preserve_multi_color", m_preserve_multi_color},
                                    {"ui", {{"sidebar_open", m_sidebar_open}, {"palette", m_palette}}}};
@@ -1073,6 +1113,31 @@ void ColorPickerDialog::send_initial_state()
     // second CallAfter, which could run after this modal dialog is destroyed.
     if (!run_script(wxString::FromUTF8("window.ColorPickerDialog.handleMessage(" + payload.dump() + ")")))
         m_init_sent = false;
+}
+
+void ColorPickerDialog::sample_screen()
+{
+#if defined(__WXOSX__) || defined(__WXMSW__) || defined(__WXGTK__)
+    // One sampler at a time; a second click while the loupe is up is ignored
+    if (m_sampling)
+        return;
+    m_sampling = true;
+    // Loupe can outlive this dialog (e.g. Escape reaches dialog first),
+    // so result is only applied while the lifetime token says dialog still exists
+    ColorSampler::start([this, alive = m_alive](std::optional<ColorRGBA> color) {
+        if (!alive->load(std::memory_order_acquire))
+            return;
+        m_sampling = false;
+        if (m_closing || !m_page_ready || !browser())
+            return;
+        const auto byte = [](float value) { return static_cast<int>(std::lround(std::clamp(value, 0.f, 1.f) * 255.f)); };
+        nlohmann::json response = {{"command", "sampled_color"}, {"page_id", m_page_id}, {"picked", color.has_value()}};
+        if (color)
+            response["rgb"] = {byte(color->r()), byte(color->g()), byte(color->b())};
+        run_script(wxString::FromUTF8("window.ColorPickerDialog.handleMessage(" + response.dump() + ")"));
+        focus_webview();
+    });
+#endif
 }
 
 void ColorPickerDialog::finish(int return_code)
@@ -1087,5 +1152,507 @@ void ColorPickerDialog::finish(int return_code)
     else
         Hide();
 }
+
+#if defined(__WXMSW__)
+
+// Left-click, Enter or Space picks.Escape, right-click or switching apps, cancels picking
+// Shift key slow downs mouse movement for preciese picking
+// DPI awware with using built-in Orca's manifest
+class ColorSampler::Overlay
+{
+public:
+    static void start(Callback done);
+
+private:
+    static constexpr wchar_t WINDOW_CLASS[]    = L"OrcaSlicerColorSampler";
+    static constexpr int     LOUPE_SIZE        = 64;         // Side of the square loupe at 96 DPI
+    static constexpr int     LOUPE_CELLS       = 9;          // Screen pixels per side; odd, so one sits in the middle
+    static constexpr double  SLOW_SPEED        = 0.2;        // Cursor speed while Shift is held
+    static constexpr UINT    WM_SAMPLER_MOVE   = WM_APP + 1; // Posted by the hook, which must return quickly
+    static constexpr UINT    WM_SAMPLER_FINISH = WM_APP + 2; // wParam: picked
+
+    // 32-bit top-down DIB selected into a memory DC, with direct access to its 0x00RRGGBB pixels
+    struct Bitmap
+    {
+        HDC            dc     = nullptr;
+        HBITMAP        bitmap = nullptr;
+        HGDIOBJ        old    = nullptr;
+        std::uint32_t* bits   = nullptr;
+        int            width  = 0;
+        int            height = 0;
+
+        Bitmap() = default;
+        Bitmap(const Bitmap&) = delete;
+        Bitmap& operator=(const Bitmap&) = delete;
+        ~Bitmap() { reset(); }
+        bool create(int w, int h);
+        void reset();
+    };
+
+    explicit Overlay(Callback done) : m_done(std::move(done)) {}
+
+    bool          take_snapshot();
+    std::uint32_t pixel(POINT p) const;
+    void          follow_cursor();
+    void          update_loupe();
+    void          finish(bool picked);
+
+    static int monitor_dpi(HMONITOR monitor);
+    static LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
+    static LRESULT CALLBACK mouse_hook(int code, WPARAM message, LPARAM lparam);
+
+    Callback m_done;
+    RECT     m_screen{};               // Virtual screen
+    POINT    m_target{};               // Target pixel
+    Bitmap   m_snapshot;
+    Bitmap   m_loupe;                  // Loupe image: cells, target frame and border in one bitmap
+    HWND     m_window       = nullptr; // Full-screen overlay showing snapshot
+    HWND     m_loupe_window = nullptr; // Layered, click-through, owned by m_window
+    bool     m_active       = false;   // Shown and focused; losing activation then cancels
+    bool     m_finished     = false;
+
+    static inline Overlay* s_overlay      = nullptr;
+    static inline HHOOK    s_hook         = nullptr; // Swallows mouse buttons to prevent clicking items under sampler
+    static inline bool     s_move_pending = false;
+    static inline double   m_x            = 0.;      // Cursor position the hook last saw or set,
+    static inline double   m_y            = 0.;      // kept fractional for slow movement
+};
+
+bool ColorSampler::Overlay::Bitmap::create(int w, int h)
+{
+    reset();
+    BITMAPINFO info{};
+    info.bmiHeader.biSize        = sizeof(info.bmiHeader);
+    info.bmiHeader.biWidth       = w;
+    info.bmiHeader.biHeight      = -h; // Top-down rows
+    info.bmiHeader.biPlanes      = 1;
+    info.bmiHeader.biBitCount    = 32;
+    info.bmiHeader.biCompression = BI_RGB;
+    void* data = nullptr;
+    bitmap = CreateDIBSection(nullptr, &info, DIB_RGB_COLORS, &data, nullptr, 0);
+    dc     = bitmap ? CreateCompatibleDC(nullptr) : nullptr;
+    if (!dc) {
+        reset();
+        return false;
+    }
+    old    = SelectObject(dc, bitmap);
+    bits   = static_cast<std::uint32_t*>(data);
+    width  = w;
+    height = h;
+    return true;
+}
+
+void ColorSampler::Overlay::Bitmap::reset()
+{
+    if (dc) {
+        SelectObject(dc, old);
+        DeleteDC(dc);
+    }
+    if (bitmap)
+        DeleteObject(bitmap);
+    dc     = nullptr;
+    bitmap = nullptr;
+    old    = nullptr;
+    bits   = nullptr;
+    width  = 0;
+    height = 0;
+}
+
+// Loaded at runtime so the sampler still starts where shcore.dll lacks it
+int ColorSampler::Overlay::monitor_dpi(HMONITOR monitor)
+{
+    using GetDpiForMonitorFn = HRESULT(WINAPI*)(HMONITOR, int, UINT*, UINT*);
+    static const auto get_dpi = [] {
+        HMODULE shcore = LoadLibraryW(L"shcore.dll");
+        return shcore ? reinterpret_cast<GetDpiForMonitorFn>(reinterpret_cast<void*>(GetProcAddress(shcore, "GetDpiForMonitor"))) : nullptr;
+    }();
+    UINT dpi_x = 96, dpi_y = 96;
+    if (get_dpi)
+        get_dpi(monitor, 0 /* MDT_EFFECTIVE_DPI */, &dpi_x, &dpi_y);
+    return std::clamp<int>(dpi_x, 96, 4 * 96);
+}
+
+bool ColorSampler::Overlay::take_snapshot()
+{
+    m_screen.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    m_screen.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    m_screen.right  = m_screen.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    m_screen.bottom = m_screen.top  + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    const int w = m_screen.right  - m_screen.left;
+    const int h = m_screen.bottom - m_screen.top;
+    if (w <= 0 || h <= 0 || !m_snapshot.create(w, h))
+        return false;
+    HDC screen = GetDC(nullptr);
+    if (!screen)
+        return false;
+    // CAPTUREBLT includes layered windows (menus, tooltips, many modern apps)
+    const bool ok = BitBlt(m_snapshot.dc, 0, 0, w, h, screen, m_screen.left, m_screen.top, SRCCOPY | CAPTUREBLT) != FALSE;
+    ReleaseDC(nullptr, screen);
+    GdiFlush();
+    return ok;
+}
+
+std::uint32_t ColorSampler::Overlay::pixel(POINT p) const
+{
+    const int x = p.x - m_screen.left;
+    const int y = p.y - m_screen.top;
+    return ((x >= 0 && y >= 0 && x < m_snapshot.width && y < m_snapshot.height)
+        ? m_snapshot.bits[static_cast<std::size_t>(y) * m_snapshot.width + x]
+        : 0); // Black past the screen edge
+}
+
+void ColorSampler::Overlay::follow_cursor()
+{
+    POINT cursor{};
+    if (!GetCursorPos(&cursor) || (cursor.x == m_target.x && cursor.y == m_target.y))
+        return;
+    m_target = cursor;
+    update_loupe();
+}
+
+// Draws every loupe pixel (magnified cells, target frame and border) into one bitmap with borders
+void ColorSampler::Overlay::update_loupe()
+{
+    HMONITOR    monitor = MonitorFromPoint(m_target, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    GetMonitorInfoW(monitor, &info);
+    const int side = LOUPE_SIZE * monitor_dpi(monitor) / 96;
+    if (side != m_loupe.width && !m_loupe.create(side, side))
+        return;
+
+    // Centered on target pixel, then shifted to stay fully on its monitor
+    const RECT& bounds = info.rcMonitor;
+    POINT pos{
+        std::clamp<LONG>(m_target.x - side / 2, bounds.left, std::max<LONG>(bounds.left, bounds.right  - side)),
+        std::clamp<LONG>(m_target.y - side / 2, bounds.top , std::max<LONG>(bounds.top , bounds.bottom - side))
+    };
+
+    const auto cell  = [side](int offset) { return offset * LOUPE_CELLS / side; };                    // Cell of a loupe pixel
+    const auto first = [side](int index ) { return (index * side + LOUPE_CELLS - 1) / LOUPE_CELLS; }; // First pixel of a cell
+    // Target cell is the one under cursor; off center when loupe was shifted
+    const int  t_col = cell(m_target.x - pos.x);
+    const int  t_row = cell(m_target.y - pos.y);
+
+    for (int y = 0; y < side; ++y) {
+        const int row = cell(y);
+        for (int x = 0; x < side; ++x) {
+            const int col = cell(x);
+            // Distance to loupe edge or to target cell's edge inside target cell
+            int ring = std::min({x, y, side - 1 - x, side - 1 - y});
+            if (col == t_col && row == t_row)
+                ring = std::min({ring, x - first(col), first(col + 1) - 1 - x, y - first(row), first(row + 1) - 1 - y});
+            m_loupe.bits[y * side + x] = ring == 0 ? 0x000000u // Black outer line
+                                       : ring == 1 ? 0xFFFFFFu // White inner line
+                                       : pixel(POINT{m_target.x + col - t_col, m_target.y + row - t_row});
+        }
+    }
+
+    SIZE  size{side, side};
+    POINT origin{0, 0};
+    UpdateLayeredWindow(m_loupe_window, nullptr, &pos, &size, m_loupe.dc, &origin, 0, nullptr, ULW_OPAQUE);
+}
+
+// Windows, mouse hook and overlay state are gone before callback runs,
+// so callback may start another sampler or close dialog that asked for this one
+void ColorSampler::Overlay::finish(bool picked)
+{
+    if (m_finished)
+        return;
+    m_finished = true;
+    const std::uint32_t value = pixel(m_target);
+    Callback done = std::move(m_done);
+    DestroyWindow(m_window);                   // Also destroys owned loupe window; WM_NCDESTROY frees this overlay
+    SetCursor(LoadCursor(nullptr, IDC_ARROW)); // Show an arrow until window under cursor sets its own
+    done(picked ? std::optional<ColorRGBA>(ColorRGBA(static_cast<unsigned char>((value >> 16) & 0xFF),
+                                                     static_cast<unsigned char>((value >> 8) & 0xFF),
+                                                     static_cast<unsigned char>(value & 0xFF),
+                                                     static_cast<unsigned char>(255)))
+                : std::nullopt);
+}
+
+LRESULT CALLBACK ColorSampler::Overlay::mouse_hook(int code, WPARAM message, LPARAM lparam)
+{
+    if (code != HC_ACTION || !s_overlay)
+        return CallNextHookEx(nullptr, code, message, lparam);
+    const POINT pt = reinterpret_cast<const MSLLHOOKSTRUCT*>(lparam)->pt;
+    switch (message) {
+    case WM_MOUSEMOVE: {
+        // Shift: swallows move and advance cursor by a fraction without system-wide changes
+        const bool slow = GetAsyncKeyState(VK_SHIFT) < 0;
+        if (slow) {
+            const RECT& scr = s_overlay->m_screen;
+            m_x = std::clamp(m_x + (pt.x - std::lround(m_x)) * SLOW_SPEED, double(scr.left), double(scr.right  - 1));
+            m_y = std::clamp(m_y + (pt.y - std::lround(m_y)) * SLOW_SPEED, double(scr.top) , double(scr.bottom - 1));
+            SetCursorPos(static_cast<int>(std::lround(m_x)), static_cast<int>(std::lround(m_y)));
+        } else {
+            m_x = pt.x;
+            m_y = pt.y;
+        }
+        if (!s_move_pending) // Coalesced; overlay reads latest position when it handles message
+            s_move_pending = PostMessageW(s_overlay->m_window, WM_SAMPLER_MOVE, 0, 0) != FALSE;
+        return slow ? 1 : CallNextHookEx(nullptr, code, message, lparam);
+    }
+    case WM_LBUTTONUP:
+    case WM_RBUTTONUP:
+        PostMessageW(s_overlay->m_window, WM_SAMPLER_FINISH, message == WM_LBUTTONUP, 0);
+        return 1;
+    case WM_LBUTTONDOWN:
+    case WM_RBUTTONDOWN:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+    case WM_XBUTTONDOWN:
+    case WM_XBUTTONUP:
+    case WM_MOUSEWHEEL:
+    case WM_MOUSEHWHEEL:
+        return 1; // Swallowed: nothing under the overlay sees these
+    default:
+        return CallNextHookEx(nullptr, code, message, lparam);
+    }
+}
+
+LRESULT CALLBACK ColorSampler::Overlay::window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+{
+    Overlay* overlay = s_overlay;
+    if (!overlay || hwnd != overlay->m_window) // Loupe window, and the overlay while it is being created
+        return DefWindowProcW(hwnd, message, wparam, lparam);
+
+    switch (message) {
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        HDC dc = BeginPaint(hwnd, &ps);
+        const RECT& r = ps.rcPaint; // Client coordinates match the snapshot's
+        BitBlt(dc, r.left, r.top, r.right - r.left, r.bottom - r.top, overlay->m_snapshot.dc, r.left, r.top, SRCCOPY);
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_SETCURSOR:
+        // Hidden only while it is over overlay; this is no ShowCursor counter,
+        // so system shows cursor again as soon as overlay is gone, even if app crashes
+        SetCursor(nullptr);
+        return TRUE;
+    case WM_SAMPLER_MOVE:
+        s_move_pending = false;
+        overlay->follow_cursor();
+        return 0;
+    case WM_SAMPLER_FINISH:
+        overlay->follow_cursor();
+        overlay->finish(wparam != 0);
+        return 0;
+    case WM_KEYDOWN:
+        if (wparam == VK_ESCAPE)
+            overlay->finish(false);
+        else if (wparam == VK_RETURN || wparam == VK_SPACE)
+            overlay->finish(true);
+        return 0;
+    case WM_ACTIVATE:
+        // Switching away (Alt+Tab, Win key) cancels instead of leaving a frozen screen behind
+        if (LOWORD(wparam) == WA_INACTIVE && overlay->m_active)
+            overlay->finish(false);
+        return 0;
+    case WM_CANCELMODE:
+    case WM_CLOSE:
+        overlay->finish(false);
+        return 0;
+    case WM_DPICHANGED:
+        return 0; // Keep covering whole virtual screen; never resize to suggested rect
+    case WM_NCDESTROY: {
+        if (s_hook)
+            UnhookWindowsHookEx(s_hook);
+        s_hook         = nullptr;
+        s_overlay      = nullptr;
+        s_move_pending = false;
+        s_running      = false;
+        // Destroyed without finish() (e.g. at app exit): still report a cancel
+        Callback done = overlay->m_finished ? nullptr : std::move(overlay->m_done);
+        delete overlay;
+        if (done)
+            done(std::nullopt);
+        return DefWindowProcW(hwnd, message, wparam, lparam);
+    }
+    default:
+        return DefWindowProcW(hwnd, message, wparam, lparam);
+    }
+}
+
+void ColorSampler::Overlay::start(Callback done)
+{
+    HINSTANCE   instance = GetModuleHandleW(nullptr);
+    WNDCLASSEXW wc{};
+    wc.cbSize        = sizeof(wc);
+    wc.lpfnWndProc   = window_proc;
+    wc.hInstance     = instance;
+    wc.lpszClassName = WINDOW_CLASS; // No class cursor: hidden over overlay
+    const bool registered = RegisterClassExW(&wc) != 0 || GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
+
+    std::unique_ptr<Overlay> overlay(new Overlay(std::move(done)));
+    if (registered && overlay->take_snapshot()) {
+        const RECT& s = overlay->m_screen;
+        // Topmost tool window over every monitor; no taskbar button and no Alt+Tab entry
+        overlay->m_window = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, WINDOW_CLASS, L"", WS_POPUP,
+                                            s.left, s.top, s.right - s.left, s.bottom - s.top, nullptr, nullptr, instance, nullptr);
+    }
+    if (!overlay->m_window) {
+        Callback callback = std::move(overlay->m_done);
+        overlay.reset();
+        callback(std::nullopt);
+        return;
+    }
+
+    // From here overlay window owns overlay: finish() reports result and frees everything
+    Overlay* o = overlay.release();
+    s_overlay  = o;
+    s_running  = true;
+    o->m_loupe_window = CreateWindowExW(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+                                        WINDOW_CLASS, L"", WS_POPUP, 0, 0, 0, 0, o->m_window, nullptr, instance, nullptr);
+    // Runs on this GUI thread, which pumps messages. Without it clicks could reach other windows
+    s_hook = SetWindowsHookExW(WH_MOUSE_LL, mouse_hook, instance, 0);
+    if (!o->m_loupe_window || !s_hook || !GetCursorPos(&o->m_target)) {
+        o->finish(false);
+        return;
+    }
+    m_x = o->m_target.x;
+    m_y = o->m_target.y;
+    o->update_loupe();
+
+    ShowWindow(o->m_window, SW_SHOW);
+    ShowWindow(o->m_loupe_window, SW_SHOWNOACTIVATE);
+    SetForegroundWindow(o->m_window);
+    SetFocus(o->m_window);
+    SetCursor(nullptr); // Hide it now rather than on first move
+    UpdateWindow(o->m_window);
+    if (s_overlay != o) // Showing can already end sampling (e.g. WM_CANCELMODE), which frees overlay
+        return;
+    o->m_active = GetForegroundWindow() == o->m_window;
+    if (!o->m_active) // Without focus Escape would never reach overlay; give up rather than trap user
+        o->finish(false);
+}
+
+void ColorSampler::start(Callback done)
+{
+    if (!done)
+        return;
+    if (s_running) {
+        done(std::nullopt);
+        return;
+    }
+    Overlay::start(std::move(done));
+}
+
+#elif defined(__WXOSX__)
+
+void ColorSampler::start(Callback done)
+{
+    if (!done)
+        return;
+    if (s_running) {
+        done(std::nullopt);
+        return;
+    }
+    s_running = true;
+    sample_screen_color([done = std::move(done)](std::optional<ColorRGBA> color) {
+        s_running = false;
+        done(color);
+    });
+}
+
+#elif defined(__WXGTK__)
+// Desktop portal picker (GNOME, KDE; X11 and Wayland): Desktop shows its own picker and only chosen sRGB color reaches Orca.
+// Every failure (no session bus, no portal, no PickColor backend, portal exiting mid-pick) ends as a cancel
+void ColorSampler::start(Callback done)
+{
+    if (!done)
+        return;
+    GDBusConnection* bus    = s_running ? nullptr : g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, nullptr);
+    const char*      unique = bus ? g_dbus_connection_get_unique_name(bus) : nullptr;
+    if (!unique) { // Already picking, no session bus, or not a message bus connection
+        if (bus)
+            g_object_unref(bus);
+        done(std::nullopt);
+        return;
+    }
+
+    struct Request
+    {
+        Callback         done;
+        GDBusConnection* bus;
+        GCancellable*    cancellable  = g_cancellable_new();
+        guint            subscription = 0;
+        guint            watch        = 0;
+        bool             portal_seen  = false;
+
+        // Unhooks everything first, so no callback can reach this request after it is deleted
+        void finish(std::optional<ColorRGBA> color)
+        {
+            g_cancellable_cancel(cancellable);
+            g_object_unref(cancellable);
+            g_dbus_connection_signal_unsubscribe(bus, subscription);
+            g_bus_unwatch_name(watch);
+            g_object_unref(bus);
+            s_running = false;
+            Callback callback = std::move(done);
+            delete this;
+            callback(color);
+        }
+    };
+    auto* request = new Request{std::move(done), bus};
+    s_running     = true;
+
+    // Answer arrives as a Response signal on a Request object whose path follows from our bus name and a token;
+    // subscribe before calling so it can't be missed
+    static unsigned   counter = 0;
+    const std::string token   = "orca_pick_" + std::to_string(++counter);
+    std::string       sender  = unique + 1; // Without the leading ':'
+    std::replace(sender.begin(), sender.end(), '.', '_');
+    const std::string path = "/org/freedesktop/portal/desktop/request/" + sender + "/" + token;
+
+    request->subscription = g_dbus_connection_signal_subscribe(bus, "org.freedesktop.portal.Desktop",
+        "org.freedesktop.portal.Request", "Response", path.c_str(), nullptr, G_DBUS_SIGNAL_FLAGS_NONE,
+        [](GDBusConnection*, const gchar*, const gchar*, const gchar*, const gchar*, GVariant* parameters, gpointer data) {
+            guint32   response = 2;
+            GVariant* results  = nullptr;
+            g_variant_get(parameters, "(u@a{sv})", &response, &results);
+            double r = 0., g = 0., b = 0.;
+            std::optional<ColorRGBA> color;
+            if (response == 0 && g_variant_lookup(results, "color", "(ddd)", &r, &g, &b)) // 0: picked, 1: cancelled, 2: other
+                color = ColorRGBA(float(r), float(g), float(b), 1.f);
+            g_variant_unref(results);
+            static_cast<Request*>(data)->finish(color);
+        }, request, nullptr);
+
+    // Portal exiting mid-pick would never send Response. It starts on demand, so an inactive portal also reports
+    // vanished before the call below launches it; only a portal that was seen running counts
+    request->watch = g_bus_watch_name_on_connection(bus, "org.freedesktop.portal.Desktop", G_BUS_NAME_WATCHER_FLAGS_NONE,
+        [](GDBusConnection*, const gchar*, const gchar*, gpointer data) { static_cast<Request*>(data)->portal_seen = true; },
+        [](GDBusConnection*, const gchar*, gpointer data) {
+            auto* request = static_cast<Request*>(data);
+            if (request->portal_seen)
+                request->finish(std::nullopt);
+        }, request, nullptr);
+
+    GVariantBuilder options;
+    g_variant_builder_init(&options, G_VARIANT_TYPE_VARDICT);
+    g_variant_builder_add(&options, "{sv}", "handle_token", g_variant_new_string(token.c_str()));
+    g_dbus_connection_call(bus, "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
+        "org.freedesktop.portal.Screenshot", "PickColor", g_variant_new("(sa{sv})", "", &options),
+        G_VARIANT_TYPE("(o)"), G_DBUS_CALL_FLAGS_NONE, -1, request->cancellable,
+        [](GObject* source, GAsyncResult* result, gpointer data) {
+            GError*   error = nullptr;
+            GVariant* reply = g_dbus_connection_call_finish(G_DBUS_CONNECTION(source), result, &error);
+            if (reply) { // Accepted; the color comes with the Response signal
+                g_variant_unref(reply);
+                return;
+            }
+            const bool cancelled = g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
+            g_error_free(error);
+            if (cancelled) // Request already finished and freed
+                return;
+            m_sampler_available = false; // No portal, or no backend implementing PickColor: hide the button for this session
+            static_cast<Request*>(data)->finish(std::nullopt);
+        }, request);
+}
+#endif
 
 } // namespace Slic3r::GUI
