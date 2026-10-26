@@ -4209,7 +4209,8 @@ void MainFrame::focus_cycle_pane(bool forward)
         if (!target && pane->CanAcceptFocus())
             target = pane;
         if (target) {
-            target->SetFocus();
+            // ORCA: as Tab traversal does, so a tab button shows its focus ring.
+            target->SetFocusFromKbd();
             return;
         }
     }

@@ -6,6 +6,7 @@
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/StateColor.hpp"
+#include "Widgets/StateHandler.hpp"
 
 //BBS set font size
 
@@ -18,6 +19,7 @@
 #include <wx/button.h>
 #include <wx/colour.h>
 #include <wx/dcclient.h>
+#include <wx/defs.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
@@ -28,19 +30,76 @@
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
 
 // ORCA: a tab button's fill and its keyboard focus ring, set together. The border is drawn in
-// every state, in the fill's own colour except while focused, so only focus changes what the tab
-// looks like; StateHandler repaints on focus changes. #FEFEFE matches the label and, unlike
-// #FFFFFF, is not remapped for dark mode.
+// every state, in the fill's own colour except while focused, so only the ring shows focus: the
+// fill ignores it. StateHandler repaints on focus changes. The ring takes Button::SetStyle's focus
+// colours, #00FFD4 in light mode and the Orca teal in dark mode. The teal is #009689 because the
+// dark mode map turns #009688 into #00675B, the selected tab's own fill, which would hide the ring.
 static void set_tab_colors(Button* btn, const wxColour& normal, const wxColour& hovered)
 {
-    btn->SetBackgroundColor(StateColor(std::pair{hovered, (int) StateColor::Hovered},
-                                       std::pair{normal, (int) StateColor::Normal}));
-    StateColor border(std::pair{wxColour(254, 254, 254), (int) StateColor::Focused},
+    StateColor background(std::pair{hovered, (int) StateColor::Hovered},
+                          std::pair{normal, (int) StateColor::Normal});
+    background.setTakeFocusedAsHovered(false);
+    btn->SetBackgroundColor(background);
+    const bool is_dark = StateColor::darkModeColorFor("#FFFFFF") != wxColour("#FFFFFF");
+    StateColor border(std::pair{is_dark ? wxColour("#009689") : wxColour("#00FFD4"), (int) StateColor::Focused},
                       std::pair{hovered, (int) StateColor::Hovered},
                       std::pair{normal, (int) StateColor::Normal});
     border.setTakeFocusedAsHovered(false);
     btn->SetBorderColor(border);
 }
+
+// ORCA: a tab button that draws its focus ring only for focus a key press brought, as a
+// browser's :focus-visible does. A click still focuses the tab (Button::mouseDown), but the ring
+// stays off: StateHandler, which runs first, marks every focus Focused, so focus that did not
+// come through SetFocusFromKbd() has the state cleared again. Tab traversal, the arrow keys, F6
+// and Enter/Space activation all move focus through SetFocusFromKbd(), and any other key press
+// on a clicked tab, short of a Ctrl/Alt shortcut, brings the ring back too.
+namespace {
+class NotebookTabButton : public Button
+{
+public:
+    NotebookTabButton(wxWindow* parent, const wxString& text, const wxString& icon, long style)
+        : Button(parent, text, icon, style)
+    {
+        Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
+            m_focus_from_kbd = false;
+            state_handler.set_state(0, StateHandler::Focused); // a click on the already focused tab
+            evt.Skip();
+        });
+        Bind(wxEVT_SET_FOCUS, [this](wxFocusEvent& evt) {
+            if (!m_focus_from_kbd)
+                state_handler.set_state(0, StateHandler::Focused);
+            evt.Skip();
+        });
+        Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& evt) {
+            const int key = evt.GetKeyCode();
+            const bool modifier_key = key == WXK_SHIFT || key == WXK_CONTROL || key == WXK_ALT || key == WXK_RAW_CONTROL ||
+                                      key == WXK_WINDOWS_LEFT || key == WXK_WINDOWS_RIGHT || key == WXK_WINDOWS_MENU;
+            if (!modifier_key && !(evt.GetModifiers() & (wxMOD_CONTROL | wxMOD_ALT | wxMOD_META)))
+                show_focus_ring();
+            evt.Skip();
+        });
+    }
+
+    void SetFocusFromKbd() override
+    {
+        m_focus_from_kbd = true;
+        Button::SetFocusFromKbd();
+        show_focus_ring();
+    }
+
+private:
+    // A tab that already has the focus gets no focus event to set the state from.
+    void show_focus_ring()
+    {
+        m_focus_from_kbd = true;
+        if (HasFocus())
+            state_handler.set_state(StateHandler::Focused, StateHandler::Focused);
+    }
+
+    bool m_focus_from_kbd = false;
+};
+} // namespace
 
 ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
     wxControl(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxTAB_TRAVERSAL)
@@ -208,7 +267,7 @@ wxWindow* ButtonsListCtrl::GetSelectedButton() const
 
 bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /* = false*/, const std::string &bmp_name /* = ""*/, const wxBitmap &bmp /* = wxNullBitmap */)
 {
-    Button * btn = new Button(this, text, bmp_name, wxNO_BORDER);
+    Button * btn = new NotebookTabButton(this, text, bmp_name, wxNO_BORDER);
     btn->SetCornerRadius(0);
 
     if (bmp_name.empty() && bmp.IsOk())
@@ -272,7 +331,7 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
             evt.Skip();
             return;
         }
-        m_pageButtons[next]->SetFocus();
+        m_pageButtons[next]->SetFocusFromKbd();
     });
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
     m_pageButtons.insert(m_pageButtons.begin() + n, btn);

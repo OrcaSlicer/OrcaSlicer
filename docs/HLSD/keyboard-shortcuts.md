@@ -60,6 +60,12 @@ bridge in `GUI_App::handle_web_request()`. The bridge forwards the key code itse
 moving the binding to a key the bridge does not forward leaves the focus stuck in the
 web view.
 
+A tab button shows a focus ring only when a key press moved the focus there (F6, Tab, the
+arrow keys, Enter or Space). A click also focuses the tab but draws no ring, as a browser's
+`:focus-visible` does; the next key pressed on it, other than a Ctrl or Alt shortcut, brings
+the ring back. Keyboard paths therefore move the focus with `SetFocusFromKbd()`, not
+`SetFocus()`; a new one that uses `SetFocus()` lands on a tab without a ring.
+
 `MainFrame::handle_global_shortcut` skips a chord that `KeyChord::edits_text()` reports
 while a text field has the focus (a wx text entry, spin control, web view or ImGui
 InputText), and skips every chord while an ImGui modal is open, as a wx modal dialog
