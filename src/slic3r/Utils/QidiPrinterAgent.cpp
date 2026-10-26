@@ -205,6 +205,10 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
                 }
             }
             tray.tray_type = normalize_filament_type(filament_name);
+            const nlohmann::json::json_pointer material_name("/multi_color_controller/box/box" + std::to_string(i / 4) +
+                                                             "_filament_info_" + std::to_string(i % 4) + "_filament_str");
+            if (status.contains(material_name) && status[material_name].is_string())
+                tray.tray_sub_brands = status[material_name].get<std::string>();
 
             // Try Qidi-specific setting ID first; fall back to visible preset by type
             std::string setting_id = build_setting_id(filament_type, vendor_type, tray.tray_type);

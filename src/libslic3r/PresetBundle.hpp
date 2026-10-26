@@ -453,6 +453,14 @@ public:
 
     void get_ams_cobox_infos(AMSComboInfo &combox_info);
     unsigned int sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only = false);
+    // Orca: filament preset the user chose for a synced AMS/Box filament, keyed by ams_override_key().
+    // Filled by the GUI from AppConfig before sync_ams_list() runs.
+    std::map<std::string, std::string> ams_preset_overrides;
+    // Orca: (key, normalized colour) of every slot the last sync_ams_list() produced, index-aligned with its output.
+    std::vector<std::pair<std::string, std::string>> last_ams_sync_slot_keys;
+    static std::string normalize_ams_color(const std::string &color);
+    static std::string ams_override_key(const std::string &printer_model, const std::string &filament_type, const std::string &color,
+                                        const std::string &material_name = {});
     //BBS: check whether this is the only edited filament
     bool is_the_only_edited_filament(unsigned int filament_index);
 
