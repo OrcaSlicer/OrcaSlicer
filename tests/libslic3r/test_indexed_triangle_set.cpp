@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -7,6 +9,7 @@
 #include "libslic3r/libslic3r.h"
 #include <limits>
 #include <random>
+#include <ratio>
 #include <catch2/catch_all.hpp>
 #include <vector>
 #include <string>
@@ -14,8 +17,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include <Eigen/Core>
+#include <igl/per_corner_normals.h>
 
 #include "test_utils.hpp"
 
@@ -393,4 +399,146 @@ TEST_CASE("Flipped faces keep the mass properties", "[its]")
     CHECK_THAT(flipped.volume, WithinRel(solid.volume, 1e-9));
     CHECK_THAT((flipped.center - solid.center).norm(), WithinAbs(0., 1e-9));
     CHECK_THAT((flipped.spread - solid.spread).norm(), WithinAbs(0., 1e-9));
+}
+
+static std::vector<Vec3f> igl_corner_normals(const indexed_triangle_set &its, double threshold_degrees)
+{
+    Eigen::MatrixXd vertices(its.vertices.size(), 3);
+    for (size_t i = 0; i < its.vertices.size(); ++i)
+        vertices.row(Eigen::Index(i)) = its.vertices[i].cast<double>().transpose();
+    Eigen::MatrixXi indices(its.indices.size(), 3);
+    for (size_t i = 0; i < its.indices.size(); ++i)
+        indices.row(Eigen::Index(i)) = its.indices[i].transpose();
+    Eigen::MatrixXd corner_normals;
+    igl::per_corner_normals(vertices, indices, threshold_degrees, corner_normals);
+    std::vector<Vec3f> normals(size_t(corner_normals.rows()));
+    for (size_t i = 0; i < normals.size(); ++i)
+        normals[i] = corner_normals.row(Eigen::Index(i)).transpose().cast<float>();
+    return normals;
+}
+
+static indexed_triangle_set rim_fanned_cylinder(int sides)
+{
+    indexed_triangle_set its;
+    for (int z = 0; z < 2; ++z)
+        for (int i = 0; i < sides; ++i) {
+            const double angle = 2. * PI * i / sides;
+            its.vertices.emplace_back(float(10. * std::cos(angle)), float(10. * std::sin(angle)), float(20 * z));
+        }
+    for (int i = 1; i + 1 < sides; ++i) {
+        its.indices.emplace_back(0, i + 1, i);
+        its.indices.emplace_back(sides, sides + i, sides + i + 1);
+    }
+    for (int i = 0; i < sides; ++i) {
+        const int next = (i + 1) % sides;
+        its.indices.emplace_back(i, next, sides + next);
+        its.indices.emplace_back(i, sides + next, sides + i);
+    }
+    return its;
+}
+
+// A triangle fan around an apex raised apex_height above its rim, plus one degenerate face.
+static indexed_triangle_set fan_with_degenerate_face(int segments, double radius, const Vec3d &center, double apex_height)
+{
+    indexed_triangle_set its;
+    its.vertices.emplace_back((center + apex_height * Vec3d::UnitZ()).cast<float>());
+    for (int i = 0; i < segments; ++i) {
+        const double angle = 2. * PI * i / segments;
+        its.vertices.emplace_back((center + radius * Vec3d(std::cos(angle), std::sin(angle), 0.)).cast<float>());
+    }
+    for (int i = 0; i < segments; ++i)
+        its.indices.emplace_back(0, 1 + i, 1 + (i + 1) % segments);
+    its.indices.emplace_back(1, 1, 2);
+    return its;
+}
+
+static indexed_triangle_set with_nan_vertex(indexed_triangle_set its, size_t vertex_id)
+{
+    its.vertices[vertex_id].x() = std::numeric_limits<float>::quiet_NaN();
+    return its;
+}
+
+// A flat fan plus one small face at its apex for each direction on a 1 degree grid, except 3 to 7 degrees from the
+// fan, where faces would sit near the 5 degree threshold. The small faces come first.
+static indexed_triangle_set fan_with_scattered_faces(int segments, int grid)
+{
+    indexed_triangle_set its       = fan_with_degenerate_face(segments, 10., Vec3d::Zero(), 0.);
+    const size_t         fan_faces = its.indices.size();
+    for (int a = 0; a < grid; ++a)
+        for (int b = 0; b < grid; ++b) {
+            const Vec3d  normal = Vec3d(std::tan((a - grid / 2) * PI / 180.), std::tan((b - grid / 2) * PI / 180.), 1.).normalized();
+            const double tilt   = std::acos(std::clamp(normal.z(), -1., 1.)) * 180. / PI;
+            if (tilt > 3. && tilt < 7.)
+                continue;
+            const Vec3d side = normal.unitOrthogonal();
+            its.vertices.emplace_back(side.cast<float>());
+            its.vertices.emplace_back(normal.cross(side).cast<float>());
+            its.indices.emplace_back(0, int(its.vertices.size()) - 2, int(its.vertices.size()) - 1);
+        }
+    std::rotate(its.indices.begin(), its.indices.begin() + fan_faces, its.indices.end());
+    return its;
+}
+
+// How many times longer smoothing takes than computing the face normals of the same mesh, best of 3 runs each.
+static double smoothing_time_ratio(const indexed_triangle_set &its)
+{
+    const auto best_ms = [](const auto &run) {
+        double best = std::numeric_limits<double>::max();
+        for (int i = 0; i < 3; ++i) {
+            const auto started = std::chrono::steady_clock::now();
+            run();
+            best = std::min(best, std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count());
+        }
+        return best;
+    };
+    const double face_normals_ms = best_ms([&its] { REQUIRE(its_face_normals(its).size() == its.indices.size()); });
+    const double smoothing_ms    = best_ms([&its] { REQUIRE(its_smooth_corner_normals(its, 5.).size() == 3 * its.indices.size()); });
+    return smoothing_ms / face_normals_ms;
+}
+
+TEST_CASE("Smooth corner normals match libigl's per-corner normals", "[its]")
+{
+    // The raised fan's faces differ by up to 5 degrees around its apex, at the smoothing threshold.
+    const indexed_triangle_set its =
+        GENERATE(its_make_sphere(10., PI / 90.), its_make_sphere(10., PI / 12.), its_make_cylinder(10., 20., PI / 180.),
+                 rim_fanned_cylinder(180), fan_with_degenerate_face(400, 10., Vec3d::Zero(), 0.),
+                 fan_with_degenerate_face(400, 10., Vec3d(150., 150., 0.), 0.),
+                 fan_with_degenerate_face(360, 10., Vec3d::Zero(), 10. * std::tan(2.5 * PI / 180.)),
+                 with_nan_vertex(fan_with_degenerate_face(400, 10., Vec3d::Zero(), 0.5), 5), its_make_cube(10., 20., 30.));
+    const std::vector<Vec3f> expected = igl_corner_normals(its, 5.);
+    const std::vector<Vec3f> normals  = its_smooth_corner_normals(its, 5.);
+    REQUIRE(normals.size() == expected.size());
+    float  max_deviation = 0.f;
+    size_t non_finite    = 0;
+    for (size_t corner = 0; corner < normals.size(); ++corner) {
+        non_finite += !normals[corner].allFinite();
+        max_deviation = std::max(max_deviation, (normals[corner] - expected[corner]).norm());
+    }
+    CHECK(non_finite == 0);
+    CHECK_THAT(max_deviation, WithinAbs(0., 1e-5));
+}
+
+TEST_CASE("Smooth corner normals are zero for a mesh with an index outside its vertices", "[its]")
+{
+    indexed_triangle_set its = fan_with_degenerate_face(10, 10., Vec3d::Zero(), 1.);
+    its.indices.emplace_back(0, 1, int(its.vertices.size()));
+    for (const Vec3f &normal : its_smooth_corner_normals(its, 5.))
+        CHECK_THAT(normal.norm(), WithinAbs(0., 0.));
+}
+
+TEST_CASE("Smoothing a large tilted flat fan far from the origin costs a small multiple of its face normals", "[its]")
+{
+    // Tilted, so rounding its vertices to float scatters the face normals.
+    indexed_triangle_set its = fan_with_degenerate_face(30000, 50., Vec3d::Zero(), 0.);
+    its_transform(its, Geometry::translation_transform({150., 150., 100.}) * Geometry::rotation_transform({0.5, 0.3, 0.}));
+    const double ratio = smoothing_time_ratio(its);
+    // Comparing every pair of faces around the apex takes thousands of times longer.
+    CHECK(ratio < 100.);
+}
+
+TEST_CASE("Smoothing a vertex shared by one large flat group and thousands of small ones costs a small multiple of its face normals", "[its]")
+{
+    const double ratio = smoothing_time_ratio(fan_with_scattered_faces(1000000, 80));
+    // Scanning every face once per group, or every group for each face, takes hundreds of times longer.
+    CHECK(ratio < 100.);
 }

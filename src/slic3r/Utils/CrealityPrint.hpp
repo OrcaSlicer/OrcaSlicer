@@ -1,6 +1,7 @@
 #ifndef slic3r_CrealityPrint_hpp_
 #define slic3r_CrealityPrint_hpp_
 
+#include <chrono>
 #include <map>
 #include <string>
 #include <wx/string.h>
@@ -42,6 +43,15 @@ public:
 
 protected:
     virtual void set_auth(Http& http) const;
+
+    struct WsSettings
+    {
+        std::string               port{"9999"};
+        std::chrono::milliseconds connect{std::chrono::seconds(5)}; // Per resolved address tried, then again for the opening handshake
+        std::chrono::milliseconds reply{std::chrono::seconds(10)};  // Commands and the replies read after them
+        std::chrono::milliseconds close{std::chrono::seconds(3)};   // Closing handshake
+    } ws_settings;
+
 private:
     std::string m_host;
     std::string m_port;

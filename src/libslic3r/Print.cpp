@@ -950,7 +950,9 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     const std::string collision_message = !exclusion_collision->collision_volume ?
                         (boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) % instance.model_instance->get_object()->name).str() :
                         is_auto_filament_map_mode(print.get_filament_map_mode()) && print.is_BBL_printer() ?
+                            // TRN %1% is the object name.
                             (boost::format(L("%1% intersects collision volumes for every available extruder.")) % instance.model_instance->get_object()->name).str() :
+                            // TRN %1% is the object name, %2% the extruder number counted from 1.
                             (boost::format(L("%1% intersects a collision volume for extruder %2%.")) % instance.model_instance->get_object()->name % (exclusion_collision->extruder_id + 1)).str();
                     if (single_object_exception.string.empty()) {
                         single_object_exception.string = collision_message;
@@ -1986,6 +1988,23 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
+
+    // A flow ratio of 0 would extrude nothing, and a nil one would write NaN extrusion lengths.
+    {
+        const std::vector<double> &flow_ratios = m_config.filament_flow_ratio.values;
+        const std::vector<int>    &self_index  = m_config.filament_self_index.values;
+        for (size_t column = 0; column < flow_ratios.size(); ++column) {
+            // filament_self_index maps a column to its filament once the filament arrays hold one column per variant
+            const unsigned int filament_id = self_index.size() == flow_ratios.size() ? self_index[column] - 1 : column;
+            if (flow_ratios[column] > 0. || !std::binary_search(extruders.begin(), extruders.end(), filament_id))
+                continue;
+            StringObjectException err;
+            // TRN %1% is the filament number as shown in the filament list, starting from 1.
+            err.string  = Slic3r::format(L("The flow ratio of filament %1% must be greater than 0."), filament_id + 1);
+            err.opt_key = "filament_flow_ratio";
+            return err;
+        }
+    }
 
     // IDEX/IQEX: block multi-color in non-primary parallel modes when the active
     // configuration can't physically support it (no within-gantry toolchange path

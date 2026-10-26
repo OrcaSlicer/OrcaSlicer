@@ -3,6 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 
@@ -2040,4 +2042,81 @@ TEST_CASE("Unused extruder turns off on non-IMEX three-tool print", "[MultiFilam
     // T1 and T2 print up to 10mm — neither should get S0 before that.
     CHECK_FALSE(premature_s0_t1);
     CHECK_FALSE(premature_s0_t2);
+}
+
+static DynamicPrintConfig short_change_length_config() {
+    DynamicPrintConfig config = multifilament_config(2, {
+        // One value for two filaments: the tower must not read past it.
+        { "filament_change_length",         "10" },
+        { "filament_change_length_nc",      "10" },
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height",      "0,0" },
+        { "single_extruder_multi_material", 0 },
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "1,2" },
+        { "enable_prime_tower",             1 },
+        { "prime_tower_width",              35 },
+        { "wipe_tower_x",                   "50" },
+        { "wipe_tower_y",                   "50" },
+        { "layer_height",                   "0.3" },
+        { "wipe_tower_type",                "type1" },
+    });
+    size_flush_to_nozzles(config);
+    return config;
+}
+
+// Sum of positive extrusion per NOZZLE_CHANGE block, keyed by the block's direction tag.
+static std::map<std::string, std::vector<double>> nozzle_change_e_sums(const std::string& gcode)
+{
+    std::map<std::string, std::vector<double>> sums;
+    std::istringstream in(gcode);
+    std::string dir;
+    double esum = 0.;
+    for (std::string line; std::getline(in, line);) {
+        if (const size_t at = line.find("NOZZLE_CHANGE_START"); at != std::string::npos) {
+            dir  = line.substr(at + std::string("NOZZLE_CHANGE_START").size() + 1);
+            esum = 0.;
+        } else if (line.find("NOZZLE_CHANGE_END") != std::string::npos) {
+            sums[dir].push_back(esum);
+            dir.clear();
+        } else if (!dir.empty() && line.rfind("G1 ", 0) == 0) {
+            const size_t e = line.find(" E");
+            if (e != std::string::npos && line[e + 2] != '-')
+                esum += std::stod(line.substr(e + 2));
+        }
+    }
+    return sums;
+}
+
+// Identical filaments ram the same length in both directions. Medians skip the first layer's
+// flow-ratio outlier.
+TEST_CASE("Nozzle change ramming is symmetric for identical filaments", "[MultiFilament]")
+{
+    TriangleMesh a = cube(20);
+    a.translate(80, 80, 0);
+    TriangleMesh b = cube(20);
+    b.translate(110, 80, 0);
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(std::move(a));
+    meshes.push_back(std::move(b));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides =
+        { { { "extruder", 1 } }, { { "extruder", 2 } } };
+    Print print;
+    Model model;
+    init_print(std::move(meshes), print, model, short_change_length_config(), &overrides, /*arrange=*/false);
+    const std::string gcode = Slic3r::Test::gcode(print);
+    REQUIRE(gcode.find("; WIPE_TOWER_START") != std::string::npos);
+    auto sums = nozzle_change_e_sums(gcode);
+    REQUIRE(sums.size() == 2);
+    std::vector<double> medians;
+    for (auto& [dir, e] : sums) {
+        INFO("direction " << dir);
+        REQUIRE_FALSE(e.empty());
+        std::sort(e.begin(), e.end());
+        medians.push_back(e[e.size() / 2]);
+        CHECK(medians.back() > 0.);
+    }
+    CHECK_THAT(medians[0], Catch::Matchers::WithinRel(medians[1], 0.01));
 }

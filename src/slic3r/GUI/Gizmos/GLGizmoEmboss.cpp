@@ -2642,12 +2642,14 @@ bool GLGizmoEmboss::rev_input(const std::string &name, T &value, const T *defaul
     const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags) const
 {
     // draw offseted input
-    auto draw_offseted_input = [&offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
+    auto draw_offseted_input = [this, &offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
                                 &name, &value, &step, &step_fast, format, flags](){
         ImGui::SameLine(offset);
         ImGui::SetNextItemWidth(width);
-        return imgui_input(("##" + name).c_str(),
+        bool changed = imgui_input(("##" + name).c_str(),
             &value, step, step_fast, format, flags);
+        m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
+        return changed;
     };
     return revertible(name, value, default_value, undo_tooltip, 
                       0.0f, draw_offseted_input);

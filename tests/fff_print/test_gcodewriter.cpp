@@ -873,7 +873,7 @@ static std::string shipped_change_filament_gcode(const std::string &printer)
     const std::string template_name = "Bambu Lab " + printer + " 0.4 nozzle template change_filament_gcode";
     // PROFILES_DIR is an absolute path baked in at build time; a sparse test checkout
     // without resources/ leaves it missing. Skip rather than dereference a config that
-    // never loaded - this is the only fff_print test that reads a shipped profile.
+    // never loaded.
     if (!boost::filesystem::exists(machine_path))
         SKIP("shipped profile not present in this checkout: " << machine_path);
 

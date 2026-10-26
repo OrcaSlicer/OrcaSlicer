@@ -166,6 +166,30 @@ public:
     // (non-tree) grants keep their verbatim string comparison.
     bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
 
+    // Ask the user to grant network access to the given http(s) URLs. Each URL is reduced to its
+    // scheme and host before prompting and persisting, so one approval covers every path, query
+    // and port on that host. The grant is recorded as an HTTP grant; network_permission_matches
+    // applies it to raw socket events for the same host too. Like request_permissions, the request
+    // may originate on a plugin load worker; denial aborts the plugin load without adding a
+    // permission.
+    bool request_network_permissions(const std::string& plugin_key,
+                                     const std::vector<std::string>& urls);
+
+    // Canonical scheme://host form used to store and match network permissions. Returns an empty
+    // string unless `url` is an absolute http(s) URL with a host. The path, query, fragment,
+    // userinfo and port are discarded; scheme and host are lowercased.
+    static std::string normalize_network_url(const std::string& url);
+
+    // True when a granted scheme://host entry covers `target`. `target` is a URL (urllib.Request),
+    // a bare host (http.client.connect, socket.getaddrinfo) or an address as exposed by the audit
+    // event (a hostname, a host:port pair, or a legacy persisted tuple such as "('host', 443)").
+    // URL targets must match both scheme and host. Canonical scheme://host grants cover all paths;
+    // older full-URL grants remain exact. A bare host carries no scheme, so it matches the host of
+    // a canonical scheme://host grant only; a full-URL grant does not authorize raw sockets to its
+    // host, and a bare host never matches a different host.
+    static bool network_permission_matches(const std::vector<std::string>& granted,
+                                           const std::string& target);
+
     void report_violation(const AuditViolation& violation);
     bool audit_denial_pending() const;
     void clear_audit_denial();
@@ -227,6 +251,7 @@ private:
 
     // mutable: is_denied_filename() is a const query that must lock.
     mutable std::mutex m_mutex;
+
     std::vector<AllowedRoot>             m_global_allowed_roots;
     std::vector<std::string>             m_denied_filenames;
     std::vector<std::string>             m_denied_path_keywords;

@@ -728,6 +728,7 @@ set(SLIC3R_GUI_SOURCES
     pchheader.hpp
     Utils/ASCIIFolding.cpp
     Utils/ASCIIFolding.hpp
+    Utils/AsioUtils.hpp
     Utils/AstroBox.cpp
     Utils/AstroBox.hpp
     Utils/bambu_networking.hpp

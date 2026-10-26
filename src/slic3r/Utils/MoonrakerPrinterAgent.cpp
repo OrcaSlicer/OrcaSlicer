@@ -1,4 +1,5 @@
 #include "MoonrakerPrinterAgent.hpp"
+#include "AsioUtils.hpp"
 #include "Http.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
@@ -20,7 +21,6 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/connect.hpp>
-#include <boost/asio/error.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/post.hpp>
@@ -125,25 +125,6 @@ std::string map_moonraker_state(std::string state)
         return "FAILED";
     }
     return "IDLE";
-}
-
-// Runs one asynchronous operation to completion, because synchronous Beast calls ignore timeouts and cannot be aborted
-template<class Initiate>
-beast::error_code run_until_done(net::io_context& ioc, const std::atomic<bool>& stop, Initiate&& initiate)
-{
-    // An abort that runs before the operation starts finds nothing to cancel
-    if (stop.load()) {
-        return net::error::operation_aborted;
-    }
-    beast::error_code result;
-    bool              done = false;
-    initiate([&](beast::error_code ec, auto&&...) {
-        result = ec;
-        done   = true;
-    });
-    ioc.restart();
-    while (!done && ioc.run_one() != 0) {} // run() never returns while the websocket idle timer is armed
-    return done ? result : beast::error_code{net::error::operation_aborted};
 }
 
 Slic3r::Http::ProgressFn cancel_when(std::function<bool()> cancelled)
@@ -1639,16 +1620,8 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
         const ScopeGuard clear_connection_abort([&] { abort_connection = nullptr; });
 
         try {
-            beast::error_code connect_ec = net::error::host_not_found;
-            for (const auto& entry : resolver.resolve(endpoint.host, endpoint.port)) {
-                beast::error_code ignored;
-                stream.socket().close(ignored); // A failed attempt leaves the socket open
-                stream.expires_after(std::chrono::seconds(5));
-                connect_ec = run([&](auto&& handler) { stream.async_connect(entry.endpoint(), handler); });
-                if (!connect_ec || ws_stop.load()) {
-                    break;
-                }
-            }
+            const beast::error_code connect_ec =
+                connect_until_done(ioc, stream, resolver.resolve(endpoint.host, endpoint.port), std::chrono::seconds(5), ws_stop);
             if (connect_ec) {
                 throw beast::system_error{connect_ec};
             }

@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "Mouse3DController.hpp"
 #include "GUI.hpp"
 
@@ -450,6 +451,15 @@ bool Mouse3DController::apply(Camera& camera)
 #endif // _WIN32
 
     return m_state.apply(m_params, camera);
+}
+
+bool Mouse3DController::can_show_settings_dialog() const
+{
+#ifdef _WIN32
+    if (wxGetApp().app_config->get("use_legacy_3DConnexion") != "true")
+        return false;
+#endif // _WIN32
+    return this->connected();
 }
 
 void Mouse3DController::render_settings_dialog(GLCanvas3D& canvas) const

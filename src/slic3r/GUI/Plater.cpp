@@ -1118,11 +1118,15 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
         // ORCA: a non-Bambu printer with several extruders lists one nozzle row per tool; Bambu's own
         // multi-extruder printers keep the left/right pair above.
         const bool multi_extruder_rows = !preset_bundle.is_bbl_vendor() && extruder_count > 1;
+        const auto &diameters = cfg.option<ConfigOptionFloats>("nozzle_diameter")->values;
+        const bool mixed_diameters = std::any_of(diameters.begin(), diameters.end(), [&diameters](double value) {
+            return get_diameter_string(value) != get_diameter_string(diameters.front());
+        });
 
         // The variant box switches the machine variant. The card below lists the nozzles when there
-        // are flow variants to choose or several extruders to show; otherwise the box says it all.
+        // are flow variants to choose or extruders of different diameters; otherwise the box says it all.
         panel_nozzle_dia->Show(true);
-        extruder_single_sizer->Show(has_flow_variant || multi_extruder_rows);
+        extruder_single_sizer->Show(has_flow_variant || (multi_extruder_rows && mixed_diameters));
         single_extruder->SetNozzleRowCount(multi_extruder_rows ? size_t(extruder_count) : 1);
     } else {
         panel_nozzle_dia->Show(false);
@@ -4018,7 +4022,8 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto extruder_max_nozzle_count = printer_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
-        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count](ExtruderGroup & extruder, size_t row, int index) {
+        const bool has_flow_variant = preset_bundle.support_different_extruders();
+        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant](ExtruderGroup & extruder, size_t row, int index) {
             ComboBox *combo_flow = extruder.rows[row].flow;
             combo_flow->Clear();
             // A profile may leave the per-extruder lists shorter than the nozzle count (they are
@@ -4054,8 +4059,8 @@ void Sidebar::update_presets(Preset::Type preset_type)
             if (select == -1)
                 select = combo_flow->GetCount() - 1;
             combo_flow->SetSelection(select);
-            // No flow variant for this extruder: the diameter keeps the whole row.
-            combo_flow->Show(combo_flow->GetCount() > 0);
+            // No flow variant for this printer or extruder: the diameter keeps the whole row.
+            combo_flow->Show(has_flow_variant && combo_flow->GetCount() > 0);
         };
 
         auto update_extruder_diameter = [&diameters, &nozzle_diameter, &diameter](int extruder_index,ExtruderGroup & extruder) {

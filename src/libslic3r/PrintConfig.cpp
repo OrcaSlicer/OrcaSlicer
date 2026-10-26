@@ -1075,7 +1075,8 @@ void PrintConfigDef::init_common_params()
     def->tooltip = L("Choose whether all nozzles use the same collision volumes, derive toolhead-relative volumes from each nozzle's XY offset, or configure independent volumes for every extruder. In individual mode, select each extruder on the Extruder page to configure its volumes.");
     def->enum_keys_map = &ConfigOptionEnum<BedExcludeVolumeMode>::get_enum_values();
     def->enum_values = { "shared", "toolhead_offset", "per_extruder" };
-    def->enum_labels = { L("Shared"), L("Toolhead-relative (nozzle offsets)"), L("Individual per extruder") };
+    // TRN Collision volume modes: one set for all nozzles, one set moved by each nozzle's XY offset, or one set per extruder.
+    def->enum_labels = { L("Shared by all nozzles"), L("Toolhead-relative (nozzle offsets)"), L("Individual per extruder") };
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<BedExcludeVolumeMode>(BedExcludeVolumeMode::Shared));
 
@@ -3295,7 +3296,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Shrinkage (XY)");
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). "
-        "The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+        "The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments.\n"
         "Be sure to allow enough space between objects, as this compensation is done after the checks.");
     def->sidetext = "%";
     def->ratio_over = "";
@@ -3410,7 +3411,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_cooling_before_tower", coFloats);
     def->label = L("Wipe tower cooling");
-    def->tooltip = L("Temperature drop before entering filament tower");
+    def->tooltip = L("Temperature drop before entering the wipe tower.");
     def->sidetext = L(u8"\u2103" /* °C */); // degrees Celsius, CIS languages need translation
     def->mode = comDevelop;
     def->nullable = true;
@@ -3946,7 +3947,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("accel_to_decel_factor", coPercent);
     def->label = L("accel_to_decel");
     def->category = L("Speed");
-    def->tooltip = L("Klipper's max_accel_to_decel will be adjusted to this %% of acceleration.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Klipper's max_accel_to_decel will be adjusted to this % of acceleration.");
     def->sidetext = "%";
     def->min = 1;
     def->max = 100;
@@ -4283,6 +4285,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fuzzy_skin_mode", coEnum);
     def->label = L("Fuzzy skin generator mode");
     def->category = L("Others");
+    // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Fuzzy skin generation mode. Works only with Arachne!\n"
                      "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
                      "Extrusion: The mode when the pattern formed by the amount of extruded plastic. "
@@ -4291,7 +4294,7 @@ void PrintConfigDef::init_fff_params()
                      "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n\n"
                      "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. "
                      "At the same time, the width of the extrusion for a particular layer should also not be below a certain level. "
-                     "It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! "
+                     "It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! "
                      "If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated." );
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinMode>::get_enum_values();
     def->enum_values.push_back("displacement");
@@ -4610,14 +4613,14 @@ void PrintConfigDef::init_fff_params()
     // Orca: may remove this option later
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support controlling chamber temperature");
-    def->tooltip=L("This option is enabled if machine support controlling chamber temperature\nG-code command: M141 S(0-255)");
+    def->tooltip=L("This option is enabled if the machine supports controlling the chamber temperature\nG-code command: M141 S(0-255)");
     def->mode=comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     def->readonly=false;
 
     def =this->add("support_air_filtration",coBool);
     def->label=L("Support air filtration");
-    def->tooltip=L("Enable this if printer support air filtration\nG-code command: M106 P3 S(0-255)");
+    def->tooltip=L("Enable this if the printer supports air filtration\nG-code command: M106 P3 S(0-255)");
     def->mode=comDevelop;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -4628,7 +4631,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("cooling_filter_enabled", coBool);
     def->label = L("Use cooling filter");
-    def->tooltip = L("Enable this if printer support cooling filter");
+    def->tooltip = L("Enable this if the printer supports a cooling filter");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5893,7 +5896,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("detect_overhang_wall", coBool);
     def->label = L("Detect overhang walls");
     def->category = L("Quality");
-    def->tooltip = L("This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("This detects the overhang percentage relative to line width and uses a different speed to print. For 100% overhang, bridging speed is used.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -13604,7 +13608,7 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
     {"before_layer_change_gcode",   {"layer_num", "layer_z", "max_layer_z"}},
     {"layer_change_gcode",          {"layer_num", "layer_z", "max_layer_z", "most_used_physical_extruder_id",
                                       "current_filament_id", "current_nozzle_id", "curr_y_acceleration_limit",
-                                      "curr_accumulated_mass", "curr_layer_mass"}},
+                                      "curr_accumulated_mass", "previous_layer_mass", "curr_layer_mass"}},
     {"time_lapse_gcode",            {"layer_num", "layer_z", "max_layer_z", "most_used_physical_extruder_id",
                                       "curr_physical_extruder_id", "timelapse_pos_x", "timelapse_pos_y",
                                       "has_timelapse_safe_pos", "timelapse_inline_photo",
@@ -13620,6 +13624,7 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
                                "flush_length", "flush_volumetric_speeds", "flush_temperatures", "filament_cooling_before_tower",
                                "wipe_avoid_perimeter", "wipe_avoid_pos_x", "is_prime_tower_interface",
                                "filament_tower_interface_purge_volume", "filament_tower_interface_print_temp",
+                               "wipe_tower_wait_pos_x", "wipe_tower_wait_pos_y", "wipe_tower_wait_pos_valid",
                                "wipe_tower_center_pos_x", "wipe_tower_center_pos_y", "wipe_tower_center_pos_valid",
                                "temperature", "nozzle_temperature", "first_layer_temperature", "nozzle_temperature_initial_layer",
                                "new_filament_e_feedrate", "new_filament_temp", "new_retract_length",
@@ -13683,7 +13688,9 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("current_extruder_id", coInt, L("Current extruder ID"), L("Index of the currently active physical extruder. The index is zero-based (first extruder has index 0)."));
     new_def("current_nozzle_id", coInt, L("Current nozzle ID"), L("Index of the currently active nozzle. The index is zero-based (first nozzle has index 0)."));
     new_def("nozzle_diameter_at_nozzle_id", coFloats, L("Nozzle diameters"), L("Nozzle diameters indexed by nozzle ID."));
-    new_def("nozzle_volume_types", coStrings, L("Nozzle volume types"), L("Nozzle volume variants indexed by nozzle ID."));
+    new_def("nozzle_volume_types", coStrings, L("Nozzle volume types"),
+            // TRN The quoted values are G-code identifiers; keep them in English.
+            L("Nozzle volume types indexed by nozzle ID, such as \"Standard\" or \"High Flow\"."));
     new_def("retraction_distance_when_cut", coFloat, L("Retraction distance when cut"), L("Retraction distance used when cutting filament."));
     new_def("long_retraction_when_cut", coBool, L("Long retraction when cut"), L("Whether long retraction is used when cutting filament."));
 
@@ -13691,28 +13698,33 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("most_used_physical_extruder_id", coInt, L("Most-used physical extruder ID"), L("Index of the physical extruder used most often on the current layer. The index is zero-based (first extruder has index 0)."));
     new_def("curr_y_acceleration_limit", coFloat, L("Current Y acceleration limit"), L("Current Y-axis acceleration limit after the bed-mass adjustment."));
     new_def("curr_accumulated_mass", coFloat, L("Current accumulated mass"), L("Accumulated printed mass at the current layer."));
-    new_def("curr_layer_mass", coFloat, L("Current layer mass"), L("Printed mass of the previous layer."));
+    new_def("previous_layer_mass", coFloat, L("Previous layer mass"), L("Printed mass of the previous layer."));
+    new_def("curr_layer_mass", coFloat, L("Previous layer mass"), L("Same as previous_layer_mass. Bambu Studio uses this name."));
 
 // time_lapse_gcode
     new_def("curr_physical_extruder_id", coInt, L("Current physical extruder ID"), L("Index of the physical extruder active for the current layer. The index is zero-based (first extruder has index 0)."));
     new_def("timelapse_pos_x", coInt, L("Timelapse position X"), L("Selected X position for timelapse capture."));
     new_def("timelapse_pos_y", coInt, L("Timelapse position Y"), L("Selected Y position for timelapse capture."));
     new_def("has_timelapse_safe_pos", coBool, L("Has timelapse safe position"), L("Whether a safe timelapse position was found."));
-    new_def("timelapse_inline_photo", coBool, L("Timelapse inline photo"), L("Whether the timelapse photo is captured at the inline position."));
+    new_def("timelapse_inline_photo", coBool, L("Timelapse inline photo"), L("Whether the photo is taken where the nozzle already is, without moving to a safe timelapse position first."));
     new_def("farthest_point_timelapse_enabled", coBool, L("Farthest-point timelapse enabled"), L("Whether farthest-point timelapse positioning is active."));
-    new_def("clear_to_x0", coBool, L("Clear to X0"), L("Whether the timelapse move is clear to X0."));
+    new_def("clear_to_x0", coBool, L("Clear path to X0"), L("Whether the nozzle can move to X0 at the current height without hitting another printed object."));
 
 // change_filament_gcode
     new_def("previous_extruder", coInt, L("Previous extruder"), L("Index of the filament that is being unloaded. The index is zero-based (first filament has index 0). At the start of the print, when no filament is loaded yet, it is -1."));
     new_def("next_extruder", coInt, L("Next extruder"), L("Index of the filament that is being loaded. The index is zero-based (first filament has index 0)."));
-    new_def("current_hotend", coInt, L("Current hotend"), L("Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."));
-    new_def("next_hotend", coInt, L("Next hotend"), L("Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."));
+    new_def("current_hotend", coInt, L("Current hotend"), L("Hotend of the outgoing filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."));
+    new_def("next_hotend", coInt, L("Next hotend"), L("Hotend of the incoming filament, given as its zero-based extruder index. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."));
     new_def("next_nozzle_id", coInt, L("Next nozzle ID"), L("Index of the nozzle associated with the incoming filament. The index is zero-based (first nozzle has index 0)."));
     new_def("next_filament_id", coInt, L("Next filament ID"), L("Index of the incoming filament. The index is zero-based (first filament has index 0)."));
-    new_def("old_extruder_variant", coString, L("Old extruder variant"), L("Nozzle-volume variant of the outgoing extruder."));
-    new_def("new_extruder_variant", coString, L("New extruder variant"), L("Nozzle-volume variant of the incoming extruder."));
+    new_def("old_extruder_variant", coString, L("Old extruder variant"),
+            // TRN The quoted value is a G-code identifier; keep it in English.
+            L("Extruder type and nozzle volume type of the outgoing extruder, such as \"Direct Drive High Flow\"."));
+    new_def("new_extruder_variant", coString, L("New extruder variant"),
+            // TRN The quoted value is a G-code identifier; keep it in English.
+            L("Extruder type and nozzle volume type of the incoming extruder, such as \"Direct Drive High Flow\"."));
     new_def("filament_retract_length_nc", coFloat, L("Filament nozzle-change retract length"), L("Nozzle-change retraction length of the outgoing filament."));
-    new_def("new_extruder_retracted_length", coFloat, L("New extruder retracted length"), L("Currently parked retraction length of the incoming extruder."));
+    new_def("new_extruder_retracted_length", coFloat, L("New extruder retracted length"), L("Retraction length still applied to the incoming extruder from when it was parked."));
     new_def("outer_wall_volumetric_speed", coFloat, L("Outer wall volumetric speed"), L("Volumetric speed used for the outer wall."));
     new_def("relative_e_axis", coBool, L("Relative e-axis"), L("Indicates if relative positioning is being used."));
     new_def("toolchange_count", coInt, L("Toolchange count"), L("The number of toolchanges throughout the print."));
@@ -13727,8 +13739,8 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("x_after_toolchange", coFloat, L("X after toolchange"), L("The X pos after toolchange."));
     new_def("y_after_toolchange", coFloat, L("Y after toolchange"), L("The Y pos after toolchange."));
     new_def("z_after_toolchange", coFloat, L("Z after toolchange"), L("The Z pos after toolchange."));
-    new_def("first_flush_volume", coFloat, L("First flush volume"), L("The first flush volume."));
-    new_def("second_flush_volume", coFloat, L("Second flush volume"), L("The second flush volume."));
+    new_def("first_flush_volume", coFloat, L("First flush volume"), L("First half of the planned purge length, in mm of filament."));
+    new_def("second_flush_volume", coFloat, L("Second flush volume"), L("Second half of the planned purge length, in mm of filament."));
     new_def("old_filament_e_feedrate", coInt, L("Old filament e feedrate"), L("The old filament extruder feedrate."));
     new_def("new_filament_e_feedrate", coInt, L("New filament e feedrate"), L("The new filament extruder feedrate."));
     new_def("travel_point_1_x", coFloat, L("Travel point 1 X"), L("The travel point 1 X."));
@@ -13744,19 +13756,22 @@ CustomGcodeSpecificConfigDef::CustomGcodeSpecificConfigDef()
     new_def("flush_length", coFloat, L("Flush length"), L("Total flush length."));
     new_def("flush_volumetric_speeds", coFloats, L("Flush volumetric speeds"), L("Flush volumetric speeds for each filament."));
     new_def("flush_temperatures", coInts, L("Flush temperatures"), L("Flush temperatures for each filament."));
-    new_def("filament_cooling_before_tower", coFloats, L("Filament cooling before tower"), L("Temperature drop before entering filament tower"));
+    new_def("filament_cooling_before_tower", coFloats, L("Filament cooling before tower"), L("Temperature drop before entering the wipe tower."));
     new_def("wipe_avoid_perimeter", coBool, L("Avoid wipe perimeter"), L("Whether travel should avoid the wipe perimeter."));
-    new_def("wipe_avoid_pos_x", coFloat, L("Wipe avoidance X"), L("X position used to avoid the wipe area."));
-    new_def("is_prime_tower_interface", coBool, L("Prime tower interface"), L("Whether the current purge is for a prime-tower interface."));
+    new_def("wipe_avoid_pos_x", coFloat, L("Wipe tower avoidance X"), L("X position just beside the wipe tower that the nozzle moves to so it stays clear of the tower."));
+    new_def("is_prime_tower_interface", coBool, L("Prime tower interface"), L("Whether the current purge is for the prime tower interface layer (where different materials meet)."));
     new_def("filament_tower_interface_purge_volume", coFloat, L("Interface layer purge length"), L("Purge length for prime tower interface layer (where different materials meet)."));
-    new_def("filament_tower_interface_print_temp", coInt, L("Filament tower interface print temperature"), L("Print temperature used for the filament tower interface."));
-    new_def("wipe_tower_center_pos_x", coFloat, L("Wipe tower center X"), L("X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."));
-    new_def("wipe_tower_center_pos_y", coFloat, L("Wipe tower center Y"), L("Y coordinate of the nozzle's wipe-tower wait position."));
-    new_def("wipe_tower_center_pos_valid", coBool, L("Wipe tower center position valid"), L("Whether the print has a wipe tower."));
+    new_def("filament_tower_interface_print_temp", coInt, L("Interface layer print temperature"), L("Print temperature for prime tower interface layer (where different materials meet)."));
+    new_def("wipe_tower_wait_pos_x", coFloat, L("Wipe tower wait position X"), L("X coordinate of the nozzle's wipe-tower wait position, 2 mm outside the tower edge."));
+    new_def("wipe_tower_wait_pos_y", coFloat, L("Wipe tower wait position Y"), L("Y coordinate of the nozzle's wipe-tower wait position."));
+    new_def("wipe_tower_wait_pos_valid", coBool, L("Wipe tower wait position valid"), L("Whether the wait position is set, which is the case when the print has a wipe tower."));
+    new_def("wipe_tower_center_pos_x", coFloat, L("Wipe tower wait position X"), L("Same as wipe_tower_wait_pos_x. Bambu Studio uses this name."));
+    new_def("wipe_tower_center_pos_y", coFloat, L("Wipe tower wait position Y"), L("Same as wipe_tower_wait_pos_y. Bambu Studio uses this name."));
+    new_def("wipe_tower_center_pos_valid", coBool, L("Wipe tower wait position valid"), L("Same as wipe_tower_wait_pos_valid. Bambu Studio uses this name."));
     new_def("temperature", coInts, L("Temperature"), L("Nozzle temperatures indexed by filament."));
     new_def("nozzle_temperature", coInts, L("Nozzle temperature"), L("Nozzle temperatures indexed by filament."));
     new_def("first_layer_temperature", coInts, L("First layer temperature"), L("First-layer nozzle temperatures indexed by filament."));
-    new_def("nozzle_temperature_initial_layer", coInts, L("Nozzle temperature initial layer"), L("First-layer nozzle temperatures indexed by filament."));
+    new_def("nozzle_temperature_initial_layer", coInts, L("First layer nozzle temperature"), L("First-layer nozzle temperatures indexed by filament."));
 
 // change_extrusion_role_gcode
     // The whole tooltip is one literal so that the GUI can look it up in the catalog.

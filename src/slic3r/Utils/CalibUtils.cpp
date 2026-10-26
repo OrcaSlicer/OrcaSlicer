@@ -23,6 +23,7 @@
 #include "../GUI/Plater.hpp"
 #include <memory>
 #include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/format.hpp"
 #include <string>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
@@ -310,7 +311,7 @@ static bool is_same_nozzle_type(const DynamicPrintConfig &full_config, const Mac
         if (abs(filament_nozzle_hrc) > abs(printer_nozzle_hrc)) {
             BOOST_LOG_TRIVIAL(info) << "filaments hardness mismatch:  printer_nozzle_hrc = " << printer_nozzle_hrc << ", filament_nozzle_hrc = " << filament_nozzle_hrc;
             std::string filament_type = full_config.opt_string("filament_type", 0);
-            error_msg = wxString::Format(_L("Printing %1s material with %2s nozzle may cause nozzle damage."), filament_type, to_wstring_name(NozzleTypeEumnToStr[obj->GetExtderSystem()->GetNozzleType(0)]));
+            error_msg = format_wxstr(_L("Printing %1% material with %2% nozzle may cause nozzle damage."), filament_type, to_wstring_name(NozzleTypeEumnToStr[obj->GetExtderSystem()->GetNozzleType(0)]));
             error_msg += "\n";
 
             MessageDialog msg_dlg(nullptr, error_msg, wxEmptyString, wxICON_WARNING | wxOK | wxCANCEL);

@@ -740,7 +740,9 @@ TEST_CASE("Local reload reconciles filament slots and purge volumes while retain
 {
     LocalReloadFixture f;
     DynamicPrintConfig printer_config(f.bundle.printers.get_selected_preset().config);
+    // A tool changer, whose filament slots follow its nozzle count.
     printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.4, 0.4};
+    printer_config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
     write_preset_with_inherits(printer_config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
     f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = {0.};
     f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values = {111., 222.};
@@ -2442,6 +2444,101 @@ TEST_CASE("Sizing the filament list to a multi-tool nozzle count keeps mixed slo
         CHECK(bundle.filament_presets.size() == nozzle_count);
         CHECK(bundle.num_mixed_filaments() == 0);
     }
+}
+
+// Select an in-memory printer with the given nozzle count, either feeding every filament through
+// shared nozzles (single_extruder_multi_material, as on a Bambu Lab H2D) or giving each nozzle a
+// filament of its own (a tool changer).
+namespace {
+void select_multi_nozzle_printer(PresetBundle &bundle, size_t nozzle_count, bool single_extruder_multi_material)
+{
+    Preset &printer = add_inmemory_preset(bundle.printers, single_extruder_multi_material ? "Shared Nozzle Printer" : "Tool Changer");
+    printer.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = std::vector<double>(nozzle_count, 0.4);
+    printer.config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = single_extruder_multi_material;
+    bundle.printers.select_preset_by_name(printer.name, true);
+}
+} // namespace
+
+// A printer that maps filaments onto shared nozzles can run fewer filaments than it has nozzles,
+// so the sidebar lets the user delete down to one. The deleted slot must not come back in the
+// preset list alone, or the project saves a filament with no colour that returns on reload.
+TEST_CASE("Deleting a filament on a shared-nozzle printer keeps it deleted", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, 2, true);
+    bundle.set_num_filaments(2u, std::string("#FF0000"));
+    REQUIRE(bundle.filament_presets.size() == 2);
+
+    bundle.update_num_filaments(1);
+
+    CHECK(bundle.filament_presets.size() == 1);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
+}
+
+// Each tool of a tool changer carries its own filament, so the filament list never drops below the
+// tool count.
+TEST_CASE("A tool changer keeps a filament for every tool", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, 4, false);
+    bundle.filament_presets = { bundle.filaments.get_selected_preset_name() };
+
+    bundle.update_multi_material_filament_presets();
+
+    CHECK(bundle.filament_presets.size() == 4);
+}
+
+// The app config keeps each printer's filament list. The next start (load_selections) and a switch
+// back to the printer with remember_printer_config on (update_selections) restore it from there: a
+// shared-nozzle printer gets back the one filament it was left with, a tool changer still gets one
+// per tool.
+TEST_CASE("A remembered one-filament list comes back at the printer's minimum length", "[Preset][Bundle]")
+{
+    const bool   shared_nozzles = GENERATE(true, false);
+    const bool   on_startup     = GENERATE(true, false);
+    const size_t nozzle_count   = shared_nozzles ? 2 : 4;
+    const size_t expected       = shared_nozzles ? 1 : nozzle_count;
+    CAPTURE(shared_nozzles, on_startup);
+
+    AppConfig app_config;
+    {
+        PresetBundle bundle;
+        select_multi_nozzle_printer(bundle, nozzle_count, shared_nozzles);
+        add_inmemory_preset(bundle.filaments, "Test Filament");
+        bundle.filaments.select_preset_by_name("Test Filament", true);
+        // Set the one-filament list directly: set_num_filaments() runs the padding under test.
+        bundle.filament_presets = { "Test Filament" };
+        bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values = { "#123456" };
+        bundle.export_selections(app_config);
+    }
+
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, nozzle_count, shared_nozzles);
+    add_inmemory_preset(bundle.filaments, "Test Filament");
+    if (on_startup)
+        bundle.load_selections(app_config);
+    else
+        bundle.update_selections(app_config);
+
+    CHECK(bundle.filament_presets.size() == expected);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == expected);
+}
+
+// A one-colour print for a shared-nozzle printer, as Bambu Studio saves it for an H2D or X2D, opens
+// with that one filament rather than one per nozzle.
+TEST_CASE("A one-filament project for a shared-nozzle printer opens with one filament", "[Preset][Bundle]")
+{
+    DynamicPrintConfig config = published_pla_file_config();
+    config.opt<ConfigOptionFloats>("nozzle_diameter")->values = { 0.4, 0.4 };
+    config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = true;
+    // The GUI normalizes the config before load; mirror that so only the production path runs.
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    CHECK(bundle.filament_presets.size() == 1);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
 }
 
 // A "published" 3MF keeps the user's currently-selected presets and overlays only the
@@ -5392,13 +5489,15 @@ TEST_CASE("Adding a filament preserves slots with incomplete mixed metadata", "[
     }
 }
 
-// The nozzle-count top-up in update_multi_material_filament_presets() grows filament_presets on
-// its own, so a physical count derived from that list reports a slot no per-filament array has
-// yet. That is what made the extruder-count handler conclude there was nothing to add and leave
-// the new sidebar combo with no colour to draw.
+// On a tool changer the nozzle-count top-up in update_multi_material_filament_presets() grows
+// filament_presets on its own, so a physical count derived from that list reports a slot no
+// per-filament array has yet. That is what made the extruder-count handler conclude there was
+// nothing to add and leave the new sidebar combo with no colour to draw.
 TEST_CASE("The physical filament count is not fooled by a lone filament_presets top-up", "[Preset][Bundle][FilamentMixer]")
 {
     PresetBundle bundle;
+    // The extruder-count handler that adds filaments runs on tool changers only.
+    bundle.printers.get_edited_preset().config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
 
     SECTION("no mixed slots") {
         bundle.set_num_filaments(4u, std::string("#FF0000"));
@@ -5431,6 +5530,7 @@ TEST_CASE("The physical filament count is not fooled by a lone filament_presets 
 TEST_CASE("New filament colours are placed by array position", "[Preset][Bundle][FilamentMixer]")
 {
     PresetBundle bundle;
+    bundle.printers.get_edited_preset().config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
     bundle.set_num_filaments(4u, std::string("#FF0000"));
     bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
         { 0.4, 0.4, 0.4, 0.4, 0.4 };

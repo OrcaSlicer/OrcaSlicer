@@ -425,6 +425,117 @@ TEST_CASE("Plugin audit a read-only allowed root blocks writes but not reads", "
     }
 }
 
+TEST_CASE("Plugin audit network permissions match by scheme and host", "[audit]")
+{
+    SECTION("a URL is reduced to its scheme and host")
+    {
+        CHECK(PluginAuditManager::normalize_network_url("https://API.Example.com:8443/v1/items?page=2#top") ==
+              "https://api.example.com");
+        CHECK(PluginAuditManager::normalize_network_url("http://example.com") == "http://example.com");
+        CHECK(PluginAuditManager::normalize_network_url("https://[2001:db8::1]:443/path") == "https://[2001:db8::1]");
+    }
+
+    SECTION("non-http schemes and targets without a scheme are not network URLs")
+    {
+        CHECK(PluginAuditManager::normalize_network_url("ftp://example.com").empty());
+        CHECK(PluginAuditManager::normalize_network_url("api.example.com").empty());
+        CHECK(PluginAuditManager::normalize_network_url("https://").empty());
+    }
+
+    SECTION("a URL target matches the same scheme and host regardless of path and port")
+    {
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "https://api.example.com/v1/items?page=2"));
+        CHECK(PluginAuditManager::network_permission_matches(granted, "https://api.example.com:8443/upload"));
+    }
+
+    SECTION("canonical host grants are broad but persisted full-URL grants stay exact")
+    {
+        const std::vector<std::string> declared_host{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(declared_host, "https://api.example.com/v1"));
+
+        const std::vector<std::string> saved_url{"https://api.example.com/v1"};
+        CHECK(PluginAuditManager::network_permission_matches(saved_url, "https://api.example.com/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "https://api.example.com/v2"));
+    }
+
+    SECTION("a URL target does not match a different host or a different scheme")
+    {
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "https://evil.example.com/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "http://api.example.com/v1"));
+    }
+
+    SECTION("a bare host target matches the host of a grant")
+    {
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "api.example.com"));
+        CHECK(PluginAuditManager::network_permission_matches(granted, "api.example.com:443"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "other.example.com"));
+    }
+
+    SECTION("a saved full URL does not authorize raw socket access to its host")
+    {
+        const std::vector<std::string> saved_url{"https://api.example.com/v1"};
+        CHECK(PluginAuditManager::network_permission_matches(saved_url, "https://api.example.com/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "api.example.com"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "api.example.com:443"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_url, "('api.example.com', 443)"));
+
+        const std::vector<std::string> saved_ipv6{"https://[2001:db8::1]/v1"};
+        CHECK(PluginAuditManager::network_permission_matches(saved_ipv6, "https://[2001:db8::1]/v1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_ipv6, "2001:db8::1"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(saved_ipv6, "[2001:db8::1]:443"));
+
+        // Canonical scheme://host grants still cover raw socket targets, IPv6 brackets aside.
+        const std::vector<std::string> canonical{"https://api.example.com", "https://[2001:db8::1]"};
+        CHECK(PluginAuditManager::network_permission_matches(canonical, "api.example.com"));
+        CHECK(PluginAuditManager::network_permission_matches(canonical, "2001:db8::1"));
+
+        // Normalization lowercases the scheme and host, so case alone keeps a grant canonical.
+        const std::vector<std::string> uppercase{"HTTPS://API.Example.com", "HTTPS://[2001:DB8::1]"};
+        CHECK(PluginAuditManager::network_permission_matches(uppercase, "api.example.com"));
+        CHECK(PluginAuditManager::network_permission_matches(uppercase, "2001:db8::1"));
+    }
+
+    SECTION("legacy persisted address tuples keep matching their host")
+    {
+        const std::vector<std::string> legacy_granted{"('api.example.com', 443)"};
+        CHECK(PluginAuditManager::network_permission_matches(legacy_granted, "api.example.com"));
+
+        const std::vector<std::string> granted{"https://api.example.com"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "('api.example.com', 443)"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "('93.184.216.34', 443)"));
+    }
+
+    SECTION("an IPv6 literal matches across bracketed and bare forms")
+    {
+        const std::vector<std::string> granted{"https://[2001:db8::1]"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "2001:db8::1"));
+        CHECK(PluginAuditManager::network_permission_matches(granted, "[2001:db8::1]:443"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "2001:db8::2"));
+    }
+
+    SECTION("a non-http URL only matches an exact grant")
+    {
+        const std::vector<std::string> granted{"ftp://example.com/file"};
+        CHECK(PluginAuditManager::network_permission_matches(granted, "ftp://example.com/file"));
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "ftp://example.com/other"));
+
+        const std::vector<std::string> https{"https://api.example.com"};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(https, "ftp://api.example.com/file"));
+    }
+
+    SECTION("an empty grant list or an empty target never matches")
+    {
+        const std::vector<std::string> granted{};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(granted, "https://api.example.com"));
+
+        const std::vector<std::string> any{"https://api.example.com"};
+        CHECK_FALSE(PluginAuditManager::network_permission_matches(any, ""));
+    }
+}
+
 TEST_CASE("Plugin audit a scoped root can also be registered read-only", "[audit]")
 {
     ScopedDataDir data_dir_guard("plugin-audit-scoped-readonly");
@@ -890,8 +1001,8 @@ TEST_CASE("A freshly approved operation covers its nested events", "[audit][Pyth
         {"tempfile.mkdtemp", "tempfile.mkdtemp(dir=OUTSIDE)"},
         {"tempfile.mkstemp", "os.close(tempfile.mkstemp(dir=OUTSIDE)[0])"},
         {"shutil.rmtree", "shutil.rmtree(os.path.join(OUTSIDE, 'copy'))"},
-        // send() runs after connect() has returned, so its own grant is asked once.
-        {"http.client.connect\nhttp.client.send",
+        // The host grant from connect() also authorizes targetless send() events.
+        {"http.client.connect",
          "connection = http.client.HTTPConnection('127.0.0.1', PORT)\n"
          "connection.request('GET', '/a')\n"
          "connection.getresponse().read()\n"
@@ -971,6 +1082,45 @@ right.close()
     CHECK(harness.saved_permissions(PLUGIN).events ==
           std::vector<std::string>{"Socket:socket.__new__", "Socket:socket.gethostname", "Socket:socket.sendmsg"});
 #endif
+}
+
+TEST_CASE("A saved network grant covers a network event that names no target", "[Audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The connection is opened outside the plugin, so only the send itself is judged: it names
+    // no host, just the connection it writes to.
+    python.exec(R"PY(
+connection = http.client.HTTPConnection("127.0.0.1", PORT)
+connection.connect()
+)PY");
+    harness.save_permissions(PLUGIN, http_grants({"http://127.0.0.1"}));
+
+    python.run_as(PLUGIN, R"PY(
+send_outcome = attempt(lambda: connection.send(b"GET /"))
+)PY");
+
+    // The host grant already covers the connection's send: no prompt, and no event grant.
+    CHECK(python.str("send_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK(harness.saved_permissions(PLUGIN).events.empty());
+
+    // With no network grant there is nothing covering the send, so it is asked for by name.
+    harness.save_permissions(PLUGIN, http_grants({}));
+    python.run_as(PLUGIN, R"PY(
+denied_outcome = attempt(lambda: connection.send(b"GET /"))
+)PY");
+    CHECK(python.str("denied_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "http.client.send:\n");
+    CHECK(harness.saved_permissions(PLUGIN).events.empty());
+    CHECK(harness.saved_permissions(PLUGIN).network_http.empty());
+
+    python.exec("connection.close()");
 }
 
 TEST_CASE("An event grant does not stand in for another access or a target of the same name", "[audit][Python]")
