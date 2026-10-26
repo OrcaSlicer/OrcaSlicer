@@ -137,7 +137,7 @@ struct PaintedIntentNode {
     std::optional<size_t> attachment_host_edge;
 };
 
-struct PaintedCreaseIntent {
+struct FinCreaseIntent {
     size_t crease, pair, part;
     // Immutable source geometry, with one vertex for a point intent.
     std::vector<Vec3d> points;
@@ -186,7 +186,7 @@ struct PaintedCreaseIntent {
 
 // A selected crease-side chain is already resolved geometry. It bypasses
 // ordinary fitting/correction but uses ordinary contact and finite-path rules.
-struct PaintedOrdinaryPathIntent {
+struct FinSurfacePathIntent {
     size_t crease, pair;
     std::vector<Vec3d> points;
     Vec3d macro_normal;
@@ -198,8 +198,8 @@ struct PaintedIntentGraph {
     std::vector<PaintedIntentNode> nodes;
     std::vector<PaintedIntentStroke> strokes;
     std::vector<PaintedIntentPoint> points;
-    std::vector<std::shared_ptr<const PaintedCreaseIntent>> creases;
-    std::vector<PaintedOrdinaryPathIntent> ordinary_paths;
+    std::vector<std::shared_ptr<const FinCreaseIntent>> creases;
+    std::vector<FinSurfacePathIntent> ordinary_paths;
 };
 
 struct PaintedIsland {
@@ -356,6 +356,9 @@ struct FinCandidate {
     };
     std::optional<size_t> intent_island;
     std::optional<size_t> intent_edge;
+    // Published standalone-point index within intent_island; distinct from
+    // an original line that was reclassified as a point.
+    std::optional<size_t> intent_point;
     std::vector<IntentNode> intent_nodes;
     std::optional<IntentRoot> intent_root;
     bool intent_line = false;
@@ -365,7 +368,7 @@ struct FinCandidate {
     std::optional<Path> path;
     // The complete immutable 3D intent, shared with its producer and root stem.
     // A member's local path can be a stem; it must not replace this geometry.
-    std::shared_ptr<const PaintedCreaseIntent> crease_intent;
+    std::shared_ptr<const FinCreaseIntent> crease_intent;
 };
 
 struct FinCandidateProposal {
@@ -509,9 +512,8 @@ struct TracedFin {
     std::vector<ExPolygons> contact_centers;
     std::vector<ExPolygons> areas;
     BoundingBoxes area_bounds;
-    // Legacy styles keep finalized per-fin centers. Painted Shape keeps
-    // pre-clearance source contours for attribution only; its common clipped
-    // layer centers are passed separately to the output stage.
+    // Finalized per-fin centers for projected styles only. Painted Shape
+    // publishes its common geometry and attribution outside this workspace.
     std::vector<ExPolygons> centers;
     std::vector<Polylines> outlines;
 };
@@ -544,9 +546,9 @@ bool fin_surface_near_vertical(const Vec3d &normal)
     return length > EPSILON && std::abs(normal.z()) <= max_fin_vertical_point_normal_z * length;
 }
 
-// Diagnostic-only projection of a persistent crease. Segment metadata keeps
-// the two adjacent source faces identifiable across separate patch SVGs.
-struct PaintedCreaseProbePath {
+// Chart projection of a persistent crease used by intent selection and pairing.
+// Segment metadata preserves source-face identity across patch charts.
+struct PaintedCreaseChartPath {
     size_t id;
     std::vector<Vec2d> points;
     struct Segment {
@@ -577,7 +579,7 @@ struct PaintedCreaseProbe {
 };
 
 PaintedCreaseProbe probe_painted_crease(const PaintedIntentSample &sample, const Vec2d &towards,
-                                      const std::vector<PaintedCreaseProbePath> &creases)
+                                      const std::vector<PaintedCreaseChartPath> &creases)
 {
     PaintedCreaseProbe probe;
     double nearest = std::numeric_limits<double>::infinity();
@@ -700,7 +702,7 @@ struct PaintedCreaseSelection {
 PaintedCreaseSelection select_painted_crease_points(
     const PrintObject &object,
     const std::vector<std::vector<PaintedIntentSample>> &blue_paths,
-    const std::vector<PaintedCreaseProbePath> &creases)
+    const std::vector<PaintedCreaseChartPath> &creases)
 {
     PaintedCreaseSelection selection;
     // This call owns one source patch/chart. Merge only exact source vertices,
@@ -831,7 +833,7 @@ PaintedCreasePosition painted_crease_position(const std::vector<double> &lengths
     return {segment, length > 0. ? std::clamp((position - lengths[segment]) / length, 0., 1.) : 0.};
 }
 
-Vec3d painted_crease_surface_point(const PaintedCreaseProbePath &crease, double position)
+Vec3d painted_crease_surface_point(const PaintedCreaseChartPath &crease, double position)
 {
     const auto at = painted_crease_position(crease.surface_lengths, position);
     return crease.surface_points[at.segment] +
@@ -879,7 +881,7 @@ std::string painted_crease_cap_record(size_t run, size_t chart, size_t crease,
 
 std::vector<std::vector<PaintedCreaseCapSpan>> painted_crease_cap_spans(
     const PrintObject &object, const ExPolygon &area,
-    const std::vector<PaintedCreaseProbePath> &creases, const PaintedCreaseSelection &selection,
+    const std::vector<PaintedCreaseChartPath> &creases, const PaintedCreaseSelection &selection,
     bool blue_point_fallback)
 {
     std::vector<std::vector<PaintedCreaseCapSpan>> result(creases.size());
@@ -974,6 +976,8 @@ std::vector<std::vector<PaintedCreaseCapSpan>> painted_crease_cap_spans(
     return result;
 }
 
+// Optional stage snapshots and measurements for reporting. Resolved paths and
+// points belong to the intent pipeline and are passed separately to exporters.
 struct PaintedBlueDiagnostic {
     struct SkeletonEdge {
         Line line;
@@ -985,13 +989,13 @@ struct PaintedBlueDiagnostic {
     size_t groups = 0;
     double longest_length = 0., group_width = 0.;
     bool point = false;
-    std::optional<PaintedIntentPoint> output_point;
 };
 
 void export_painted_skeleton_stages(size_t chart, const ExPolygon &area,
                                     const PaintedBlueDiagnostic &blue,
                                     const std::vector<std::vector<PaintedIntentSample>> &coarsened,
                                     const std::vector<std::vector<PaintedIntentSample>> &retained,
+                                    const std::optional<PaintedIntentPoint> &output_point,
                                     PaintedIslandDiagnostic &diagnostic)
 {
     const BoundingBox bounds = get_extents(area);
@@ -1050,8 +1054,8 @@ void export_painted_skeleton_stages(size_t chart, const ExPolygon &area,
                         points.push_back(scaled_point(sample.chart));
                     draw_points(points, panel, "#0072b2", 0.18);
                 }
-                if (panel == 7 && blue.output_point) {
-                    const Point point = display(blue.output_point->chart, panel);
+                if (panel == 7 && output_point) {
+                    const Point point = display(output_point->chart, panel);
                     svg.draw(point, "#000000", scale_(0.4));
                     svg.draw_text(point, "POINT", "#000000", 1);
                 }
@@ -1066,10 +1070,11 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
                                  size_t patch, size_t source_chart, const ExPolygon &area,
                                  const ThickPolylines &raw_skeleton,
                                  const std::vector<std::vector<PaintedIntentSample>> &blue_paths,
-                                 const std::vector<PaintedCreaseProbePath> &creases,
+                                 const std::vector<PaintedCreaseChartPath> &creases,
                                  const PaintedCreaseSelection &selection,
                                  const std::vector<std::vector<PaintedCreaseCapSpan>> &cap_spans,
                                  const PaintedBlueDiagnostic &blue_diagnostic,
+                                 const std::optional<PaintedIntentPoint> &output_point,
                                  PaintedIslandDiagnostic &diagnostic, SVG *output = nullptr)
 {
     const std::string &filename = diagnostic.filename;
@@ -1129,7 +1134,7 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
         const Vec2d page_size = draw_probes ? Vec2d(unscale(canvas.size())) : Vec2d::Zero();
         diagnostic.pages.push_back({page_size, [=, &object, &diagnostic](SVG &svg) {
             export_painted_crease_probes(object, run, chart, patch, source_chart, area,
-                raw_skeleton, blue_paths, creases, selection, cap_spans, blue_diagnostic, diagnostic, &svg);
+                raw_skeleton, blue_paths, creases, selection, cap_spans, blue_diagnostic, output_point, diagnostic, &svg);
         }});
         return;
     }
@@ -1222,8 +1227,8 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
                 if (panel != 3)
                     svg.draw(line, "#0072b2", scale_(0.12));
             }
-            if (panel == 0 && blue_diagnostic.output_point) {
-                const Point xy = display(blue_diagnostic.output_point->chart, panel);
+            if (panel == 0 && output_point) {
+                const Point xy = display(output_point->chart, panel);
                 svg.draw(xy, "#000000", scale_(0.5));
                 svg.draw_text(xy, "POINT", "#000000", 1);
             }
@@ -1238,9 +1243,9 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
                    << " groups=" << blue_diagnostic.groups << " longest_length_mm=" << blue_diagnostic.longest_length
                    << " group_width_mm=" << blue_diagnostic.group_width << " retained_paths=" << blue_paths.size();
     if (blue_diagnostic.point) {
-        classification << " point_emitted=" << blue_diagnostic.output_point.has_value();
-        if (blue_diagnostic.output_point) {
-            const PaintedIntentPoint &point = *blue_diagnostic.output_point;
+        classification << " point_emitted=" << output_point.has_value();
+        if (output_point) {
+            const PaintedIntentPoint &point = *output_point;
             classification << " point_chart_x=" << point.chart.x() << " point_chart_y=" << point.chart.y()
                            << " source_face=" << point.surface.face
                            << " point_x=" << point.surface.point.x() << " point_y=" << point.surface.point.y()
@@ -1492,7 +1497,7 @@ void export_painted_crease_probes(const PrintObject &object, size_t run, size_t 
 // Pairing inputs and diagnostic snapshots outlive each patch's local blue graph.
 // Pairing uses the two source faces of each crease edge, not projected proximity.
 struct PaintedCreaseComparison {
-    PaintedCreaseProbePath crease;
+    PaintedCreaseChartPath crease;
     struct Chain {
         size_t chart;
         size_t patch;
@@ -1514,7 +1519,7 @@ struct PaintedCreaseComparison {
 
 void collect_painted_crease_comparison(
     size_t chart, size_t patch, size_t source_chart, const Vec3d &macro_normal,
-    const std::vector<PaintedCreaseProbePath> &creases, const PaintedCreaseSelection &selection,
+    const std::vector<PaintedCreaseChartPath> &creases, const PaintedCreaseSelection &selection,
     const std::vector<std::vector<PaintedCreaseCapSpan>> &cap_spans, bool blue_point_fallback,
     std::map<size_t, PaintedCreaseComparison> &comparisons)
 {
@@ -1615,7 +1620,7 @@ struct PaintedCreasePair {
     bool full_expansion = false;
 };
 
-void build_painted_crease_intents(const PaintedCreaseProbePath &crease, PaintedCreasePair &pair)
+void build_painted_crease_intents(const PaintedCreaseChartPath &crease, PaintedCreasePair &pair)
 {
     if (pair.point) {
         pair.intents.push_back({pair.begin, pair.end, 0, 0,
@@ -3667,7 +3672,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
     static std::atomic_size_t next_crease_svg_run{0};
     const size_t crease_svg_run = export_crease_svg ? next_crease_svg_run.fetch_add(1) : 0;
     result.crease_run = crease_svg_run;
-    size_t next_diagnostic_crease = 0;
+    size_t next_crease_id = 0;
     std::map<size_t, PaintedCreaseComparison> crease_comparisons;
     struct BlueChart {
         size_t island;
@@ -3767,8 +3772,8 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
 
         struct PersistentCreasePath {
             std::vector<Vec3d> points;
-            size_t diagnostic_id = 0;
-            std::vector<PaintedCreaseProbePath::Segment> diagnostic_segments;
+            size_t id = 0;
+            std::vector<PaintedCreaseChartPath::Segment> segments;
         };
         std::vector<PersistentCreasePath> persistent_creases;
         std::vector<Vec3d> macro_normals(geometry.size(), Vec3d::Zero());
@@ -3857,7 +3862,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                 std::vector<bool> path_edge_visited(sharp_edges.size(), false);
                 auto trace_crease = [&](int start_vertex, size_t first_edge) {
                     PersistentCreasePath path;
-                    path.diagnostic_id = next_diagnostic_crease++;
+                    path.id = next_crease_id++;
                     path.points.push_back((transform * facets.vertices[size_t(start_vertex)]).cast<double>());
                     int vertex = start_vertex;
                     size_t edge_id = first_edge;
@@ -3872,7 +3877,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                             // participate in paired crease intent construction.
                             const bool convex = geometry[edge.face].normal.dot(
                                 geometry[edge.neighbor].center - geometry[edge.face].center) < 0.;
-                            path.diagnostic_segments.push_back({
+                            path.segments.push_back({
                                 {edge.face, edge.neighbor}, 0, convex,
                                 {geometry[edge.face].normal, geometry[edge.neighbor].normal}});
                         }
@@ -3988,10 +3993,10 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
             const Vec3d reference = std::abs(chart_normal.z()) < 0.9 ? Vec3d::UnitZ() : Vec3d::UnitX();
             const Vec3d chart_u = reference.cross(chart_normal).normalized();
             const Vec3d chart_v = chart_normal.cross(chart_u).normalized();
-            std::vector<PaintedCreaseProbePath> diagnostic_creases;
+            std::vector<PaintedCreaseChartPath> chart_creases;
             {
                 for (const auto &crease : persistent_creases) {
-                    PaintedCreaseProbePath projected{crease.diagnostic_id, {}, crease.diagnostic_segments,
+                    PaintedCreaseChartPath projected{crease.id, {}, crease.segments,
                         crease.points, {0.}};
                     bool touches_patch = false;
                     for (auto &segment : projected.segments) {
@@ -4009,7 +4014,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                     for (size_t i = 1; i < crease.points.size(); ++i)
                         projected.surface_lengths.push_back(projected.surface_lengths.back() +
                             (crease.points[i] - crease.points[i - 1]).norm());
-                    diagnostic_creases.push_back(std::move(projected));
+                    chart_creases.push_back(std::move(projected));
                 }
             }
             struct ProjectedFace {
@@ -4215,9 +4220,9 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
 
             // Transfer retained blue samples to world XY, preserving measured
             // half-widths and source surface heights independently of green fits.
-            size_t diagnostic_chart = 0;
+            size_t next_chart_id = 0;
             for (const ExPolygon &area : chart) {
-                const size_t chart_id = diagnostic_chart++;
+                const size_t chart_id = next_chart_id++;
                 const Vec2d chart_size = unscale(get_extents(area).size());
                 ThickPolylines skeleton;
                 // Keep narrow medial-axis branches until their connectivity is
@@ -4228,10 +4233,12 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                 std::vector<Geometry::MedialAxis::WidthMeasurements> measurements;
                 medial_axis.build(&skeleton, &measurements);
                 result.raw_intent_paths += skeleton.size();
-                PaintedBlueDiagnostic blue_diagnostic;
+                std::optional<PaintedBlueDiagnostic> blue_diagnostic;
+                if (export_crease_svg)
+                    blue_diagnostic.emplace();
                 CoarseIntentSkeleton coarse = coarse_intent_skeleton(
                     skeleton, measurements, area, feature_scale,
-                    export_crease_svg ? &blue_diagnostic : nullptr);
+                    blue_diagnostic ? &*blue_diagnostic : nullptr);
                 result.compact_intent_components += coarse.compact_components;
                 result.intent_junctions += coarse.junctions;
                 result.paired_intent_junctions += coarse.paired_junctions;
@@ -4289,8 +4296,8 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
 
                     // Free-end caps were removed between the two pruning passes.
                     // Pairing and joining must never cause another cap trim.
-                    if (export_crease_svg)
-                        blue_diagnostic.paths.push_back(samples);
+                    if (blue_diagnostic)
+                        blue_diagnostic->paths.push_back(samples);
 
                     double raw_trimmed_length = 0.;
                     double raw_trimmed_width_moment = 0.;
@@ -4489,6 +4496,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                 // the same centroid alternative when no qualified line remains.
                 blue_point_fallback = retained_blue_paths.empty();
                 result.point_blue_intent_charts += blue_point_fallback;
+                std::optional<PaintedIntentPoint> output_point;
                 if (blue_point_fallback) {
                     const SectionMoments moments = area_moments(ExPolygons{area});
                     if (moments.area > 0.) {
@@ -4499,35 +4507,35 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                         point.macro_normal = intent.macro_normal;
                         point.area = moments.area;
                         if (point.surface.face != std::numeric_limits<size_t>::max())
-                            blue_diagnostic.output_point = point;
+                            output_point = point;
                     }
                 }
 
                 {
-                    blue_diagnostic.groups = blue_groups.size();
-                    blue_diagnostic.longest_length = longest_blue_group == no_blue_group ?
-                        0. : blue_groups[longest_blue_group].length;
-                    blue_diagnostic.group_width = blue_group_width;
-                    blue_diagnostic.point = blue_point_fallback;
                     const PaintedCreaseSelection selection =
-                        select_painted_crease_points(object, retained_blue_paths, diagnostic_creases);
+                        select_painted_crease_points(object, retained_blue_paths, chart_creases);
                     const auto cap_spans = painted_crease_cap_spans(
-                        object, area, diagnostic_creases, selection, blue_point_fallback);
-                    const size_t diagnostic_chart = blue_charts.size();
-                    if (export_crease_svg) {
+                        object, area, chart_creases, selection, blue_point_fallback);
+                    const size_t blue_chart_id = blue_charts.size();
+                    if (blue_diagnostic) {
+                        blue_diagnostic->groups = blue_groups.size();
+                        blue_diagnostic->longest_length = longest_blue_group == no_blue_group ?
+                            0. : blue_groups[longest_blue_group].length;
+                        blue_diagnostic->group_width = blue_group_width;
+                        blue_diagnostic->point = blue_point_fallback;
                         auto &diagnostic = result.diagnostics.at(result.islands.size());
-                        export_painted_skeleton_stages(diagnostic_chart, area, blue_diagnostic,
-                            blue_paths, retained_blue_paths, diagnostic);
-                        export_painted_crease_probes(object, crease_svg_run, diagnostic_chart,
-                            faces.front(), chart_id, area, skeleton, retained_blue_paths, diagnostic_creases, selection, cap_spans,
-                            blue_diagnostic, diagnostic);
+                        export_painted_skeleton_stages(blue_chart_id, area, *blue_diagnostic,
+                            blue_paths, retained_blue_paths, output_point, diagnostic);
+                        export_painted_crease_probes(object, crease_svg_run, blue_chart_id,
+                            faces.front(), chart_id, area, skeleton, retained_blue_paths, chart_creases, selection, cap_spans,
+                            *blue_diagnostic, output_point, diagnostic);
                     }
-                    collect_painted_crease_comparison(diagnostic_chart, faces.front(), chart_id, intent.macro_normal,
-                        diagnostic_creases, selection, cap_spans, blue_point_fallback, crease_comparisons);
+                    collect_painted_crease_comparison(blue_chart_id, faces.front(), chart_id, intent.macro_normal,
+                        chart_creases, selection, cap_spans, blue_point_fallback, crease_comparisons);
                 }
 
                 blue_charts.push_back({result.islands.size(), intent.macro_normal,
-                    std::move(retained_blue_paths), std::move(blue_diagnostic.output_point)});
+                    std::move(retained_blue_paths), std::move(output_point)});
             }
             return;
         };
@@ -4683,7 +4691,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                         << " chart=" << chain.chart << " kind=point emitted=" << chart.point.has_value();
                     continue;
                 }
-                PaintedOrdinaryPathIntent intent{comparison.crease.id, p, {}, chain.macro_normal, {}};
+                FinSurfacePathIntent intent{comparison.crease.id, p, {}, chain.macro_normal, {}};
                 for (const auto &sample : chain.samples)
                     intent.points.push_back(sample.source.surface.point);
                 // An incomplete selected line does not create a new point intent.
@@ -4707,7 +4715,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
             auto &graph = result.islands[island].intent;
             for (size_t i = 0; i < pair.intents.size(); ++i) {
                 const auto &output = pair.intents[i];
-                PaintedCreaseIntent intent;
+                FinCreaseIntent intent;
                 intent.crease = comparison.crease.id;
                 intent.pair = p;
                 intent.part = i;
@@ -4750,7 +4758,7 @@ PaintedSides painted_sides(const PrintObject &object, bool split_painted_islands
                     intent.nodes.push_back(graph.nodes.size());
                     graph.nodes.push_back({point.head<2>(), point.z(), {}, std::nullopt});
                 }
-                graph.creases.push_back(std::make_shared<const PaintedCreaseIntent>(std::move(intent)));
+                graph.creases.push_back(std::make_shared<const FinCreaseIntent>(std::move(intent)));
                 ++result.crease_intent_strokes;
             }
         }
@@ -5220,7 +5228,7 @@ std::optional<ContourRayHit> painted_clearance_hit(const Layer &layer, const Vec
 
 std::optional<PaintedContactAxis> painted_contact_axis(
     const Layer &layer, const Vec2d &body_start, const Vec2d &body_direction,
-    const PaintedCreaseIntent *crease)
+    const FinCreaseIntent *crease)
 {
     if (crease != nullptr) {
         const auto at = crease->position_at_z(layer.slice_z);
@@ -6030,32 +6038,45 @@ struct ProjectionResult {
     ProjectionStop stop = ProjectionStop::bed;
 };
 
-enum class FinExtensionState { pending, materializing, complete };
-enum class FinExtensionLayerState { inactive, contact, materialized };
+enum class PaintedFinExtensionState { pending, materializing, complete };
+enum class PaintedFinSectionKind { none, contact, transition };
 
-struct FinCenterExtension {
-    FinContactBand band{0, 0};
-    FinExtensionState state = FinExtensionState::pending;
+struct PaintedFinExtensionLayer {
+    PaintedFinSectionKind kind = PaintedFinSectionKind::none;
+    ExPolygons section;
+    ExPolygons completed;
+};
+
+struct PaintedFinExtensionWork {
+    PaintedFinExtensionState state = PaintedFinExtensionState::pending;
     // Geometry and completion state remain tied to this member's body until
     // its taper finishes. Failed layers remain inactive; successful taper
     // layers, including the terminal absorption layer, are materialized.
-    std::vector<ExPolygons> layers;
-    // Complete local contours, joined before band/taper publication.
-    std::vector<ExPolygons> completed_layers;
-    std::vector<FinExtensionLayerState> layer_states;
+    std::vector<PaintedFinExtensionLayer> layers;
 };
 
-struct FinComponentCenterGeometry {
-    size_t source = std::numeric_limits<size_t>::max();
-    bool complete = false;
-    // Member-local body centers serve exposure queries and diagnostics.
-    // Completed contours retain their member ownership through compound assembly.
-    std::vector<ExPolygons> body_centers;
+struct PaintedFinSupportSection {
+    PaintedFinSectionKind kind = PaintedFinSectionKind::none;
+    ExPolygons centers;
+};
+
+struct PaintedFinMemberLayer {
     // Contacts are spliced into their own member before any compound union.
-    std::vector<ExPolygons> completed_centers;
-    // Extensions retain their member identity until the compound completion
-    // barrier separates support transitions from actual contact sections.
-    std::vector<FinCenterExtension> extensions;
+    ExPolygons centers;
+    // Actual contacts and transitions retain their separate clearance ownership.
+    std::vector<PaintedFinSupportSection> sections;
+};
+
+struct PaintedFinMemberGeometry {
+    // Published only after every local band/taper has finished. Query bodies
+    // and extension work never cross this boundary.
+    std::vector<PaintedFinMemberLayer> layers;
+};
+
+struct PaintedFinAssemblyMember {
+    size_t source;
+    // Assembly owns a copy so reachability clipping cannot modify the member result.
+    PaintedFinMemberGeometry geometry;
 };
 
 struct ContactProjectionRay {
@@ -6583,7 +6604,7 @@ ProjectionResult backfill_painted_contact_projection(
     const std::vector<ExPolygons> &body_centers,
     std::vector<ExPolygons> &contacts, std::vector<ProjectionClip> &clips,
     std::vector<ExPolygons> *projection_copy,
-    FinCenterExtension *extension,
+    PaintedFinExtensionWork *extension,
     const std::vector<PaintedLayerGeometryCache> *geometry_cache,
     const FinContactContinuation *bottom_continuation,
     PaintedFinContacts &painted_contacts, bool crease)
@@ -6606,7 +6627,7 @@ ProjectionResult backfill_painted_contact_projection(
             << " body_regions=" << body_centers[layer_id].size();
     };
     if (extension != nullptr)
-        extension->state = FinExtensionState::materializing;
+        extension->state = PaintedFinExtensionState::materializing;
 
     const double angle = object.config().fin_support_contact_projection_angle.value * M_PI / 180.;
     // Rotate about the direction perpendicular to the saved contact axis.
@@ -6742,10 +6763,10 @@ ProjectionResult backfill_painted_contact_projection(
             continue;
         }
         if (extension != nullptr)
-            extension->completed_layers[layer_id] = std::move(completed);
+            extension->layers[layer_id].completed = std::move(completed);
         planned[layer_id] = std::move(projection);
         if (extension != nullptr) {
-            extension->layer_states[layer_id] = FinExtensionLayerState::materialized;
+            extension->layers[layer_id].kind = PaintedFinSectionKind::transition;
         }
         if (absorbed)
             break;
@@ -6757,14 +6778,14 @@ ProjectionResult backfill_painted_contact_projection(
         if (projection_copy != nullptr)
             expolygons_append((*projection_copy)[layer_id], planned[layer_id]);
         if (extension != nullptr)
-            expolygons_append(extension->layers[layer_id], planned[layer_id]);
+            expolygons_append(extension->layers[layer_id].section, planned[layer_id]);
         else
             expolygons_append(contacts[layer_id], std::move(planned[layer_id]));
         ++result.layers;
         ++result.exposed_layers;
     }
     if (extension != nullptr)
-        extension->state = FinExtensionState::complete;
+        extension->state = PaintedFinExtensionState::complete;
     return result;
 }
 
@@ -6776,7 +6797,7 @@ ProjectionResult backfill_contact_projection(
     const std::vector<ExPolygons> &body_centers,
     std::vector<ExPolygons> &contacts, std::vector<ProjectionClip> &clips,
     std::vector<ExPolygons> *projection_copy,
-    FinCenterExtension *extension,
+    PaintedFinExtensionWork *extension,
     const std::vector<PaintedLayerGeometryCache> *geometry_cache,
     const FinContactContinuation *bottom_continuation,
     PaintedFinContacts &painted_contacts, bool crease)
@@ -7119,7 +7140,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                            FinWallGeometry &walls, const std::vector<PaintedLayer> &painted,
                            const std::vector<Polygons> &blockers,
                            bool include_seed_contact = true,
-                           FinComponentCenterGeometry *component_geometry = nullptr,
+                           std::optional<PaintedFinMemberGeometry> *component_geometry = nullptr,
                            const std::vector<PaintedLayerGeometryCache> *geometry_cache = nullptr,
                            bool end_has_downstream = false)
 {
@@ -7138,12 +7159,9 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
     ExPolygons painted_bed_foot;
     std::vector<ExPolygons> contact_sections(count), projections(count);
     std::vector<ProjectionClip> clips(count);
-    if (component_geometry != nullptr) {
-        component_geometry->complete = false;
-        component_geometry->body_centers.clear();
-        component_geometry->completed_centers.clear();
-        component_geometry->extensions.clear();
-    }
+    std::vector<PaintedFinExtensionWork> extensions;
+    if (component_geometry != nullptr)
+        component_geometry->reset();
     auto record_projection = [&](const ProjectionResult &projection) {
         ++fin.contact_projection_attempts;
         fin.contact_projection_layers += projection.layers;
@@ -7414,12 +7432,9 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
         ++fin.accepted_contact_bands;
         std::optional<size_t> extension_id;
         if (component_geometry != nullptr) {
-            extension_id = component_geometry->extensions.size();
-            FinCenterExtension &extension = component_geometry->extensions.emplace_back();
-            extension.band = band;
+            extension_id = extensions.size();
+            PaintedFinExtensionWork &extension = extensions.emplace_back();
             extension.layers.resize(count);
-            extension.completed_layers.resize(count);
-            extension.layer_states.assign(count, FinExtensionLayerState::inactive);
         }
         for (size_t i = band.begin; i < band.end; ++i) {
             const size_t index = i - band.begin;
@@ -7427,13 +7442,13 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             if (copy != nullptr)
                 expolygons_append((*copy)[i], prepared.sections[index]);
             if (extension_id.has_value()) {
-                FinCenterExtension &extension =
-                    component_geometry->extensions[*extension_id];
-                extension.layers[i] = prepared.sections[index];
-                extension.completed_layers[i] = std::move(prepared.completed[index]);
-                extension.layer_states[i] = prepared.sections[index].empty() ? FinExtensionLayerState::inactive :
+                PaintedFinExtensionWork &extension =
+                    extensions[*extension_id];
+                extension.layers[i].section = prepared.sections[index];
+                extension.layers[i].completed = std::move(prepared.completed[index]);
+                extension.layers[i].kind = prepared.sections[index].empty() ? PaintedFinSectionKind::none :
                     prepared.actual_contacts[index] ?
-                    FinExtensionLayerState::contact : FinExtensionLayerState::materialized;
+                    PaintedFinSectionKind::contact : PaintedFinSectionKind::transition;
             }
             if (!staged_painted)
                 expolygons_append(
@@ -7501,8 +7516,8 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             append_band(seed_band, prepared, &seed_reach);
         ++fin.seed_contact_bands;
         if (seed_band.begin > 0) {
-            FinCenterExtension *extension = extension_id.has_value() ?
-                &component_geometry->extensions[*extension_id] : nullptr;
+            PaintedFinExtensionWork *extension = extension_id.has_value() ?
+                &extensions[*extension_id] : nullptr;
             const ProjectionResult projection = backfill_contact_projection(
                 object, fin, seed_band.begin, bed, thickness, contact_width, gap,
                 prepared.contacts.front(), body_centers, body_centers,
@@ -7512,7 +7527,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             record_projection(projection);
         }
         if (extension_id.has_value() && seed_band.begin == 0)
-            component_geometry->extensions[*extension_id].state = FinExtensionState::complete;
+            extensions[*extension_id].state = PaintedFinExtensionState::complete;
     }
 
     const std::vector<FinContactBand> periodic_bands = periodic_fin_contact_bands(object, fin);
@@ -7539,8 +7554,8 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
         const std::optional<size_t> extension_id =
             append_band(band, prepared, nullptr);
         if (band.begin > 0) {
-            FinCenterExtension *extension = extension_id.has_value() ?
-                &component_geometry->extensions[*extension_id] : nullptr;
+            PaintedFinExtensionWork *extension = extension_id.has_value() ?
+                &extensions[*extension_id] : nullptr;
             const ProjectionResult projection = backfill_contact_projection(
                 object, fin, band.begin, bed, thickness, contact_width, gap,
                 prepared.contacts.front(), body_centers, body_centers,
@@ -7550,7 +7565,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             record_projection(projection);
         }
         if (extension_id.has_value() && band.begin == 0)
-            component_geometry->extensions[*extension_id].state = FinExtensionState::complete;
+            extensions[*extension_id].state = PaintedFinExtensionState::complete;
     }
     if (include_seed_contact && !fin.contacts.back()) {
         return fin.diagnostics.reject(FinReject::top_band, object.get_layer(int(fin.seed.top_layer))->print_z);
@@ -7559,24 +7574,27 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
     if (component_geometry != nullptr) {
         // Establish fixed extension invariants before publishing the member.
         // Layer assembly only checks each layer's state and geometry.
-        component_geometry->complete = std::all_of(
-            component_geometry->extensions.begin(), component_geometry->extensions.end(),
-            [](const FinCenterExtension &extension) {
-                assert(extension.layers.size() == extension.layer_states.size());
-                return extension.state == FinExtensionState::complete;
+        const bool complete = std::all_of(
+            extensions.begin(), extensions.end(),
+            [](const PaintedFinExtensionWork &extension) {
+                return extension.state == PaintedFinExtensionState::complete;
             });
-        if (!component_geometry->complete) {
+        if (!complete) {
             return false;
         }
         if (fin.seed.geometry_mode == FinGeometryMode::painted_shape) {
             // Normalized body regions support queries; the owned perimeter
             // retains the exact attachment points needed for output assembly.
-            component_geometry->body_centers = body_centers;
-            component_geometry->completed_centers.assign(count, {});
+            PaintedFinMemberGeometry result;
+            result.layers.resize(count);
             for (size_t layer = 0; layer < count; ++layer) {
-                auto &completed = component_geometry->completed_centers[layer];
-                for (FinCenterExtension &extension : component_geometry->extensions)
-                    expolygons_append(completed, std::move(extension.completed_layers[layer]));
+                auto &completed = result.layers[layer].centers;
+                result.layers[layer].sections.reserve(extensions.size());
+                for (PaintedFinExtensionWork &extension : extensions) {
+                    PaintedFinExtensionLayer &local = extension.layers[layer];
+                    expolygons_append(completed, std::move(local.completed));
+                    result.layers[layer].sections.push_back({local.kind, std::move(local.section)});
+                }
                 if (completed.empty() && fin.body_boundaries[layer].points.size() >= 3) {
                     Polygon boundary(fin.body_boundaries[layer].points);
                     boundary.make_counter_clockwise();
@@ -7593,9 +7611,9 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                     (*geometry_cache)[layer].bed_center : computed_bed;
                 completed = intersection_ex(union_ex(completed), bed_center);
             }
+            *component_geometry = std::move(result);
             return true;
         }
-        component_geometry->body_centers = body_centers;
     }
 
     return finalize_legacy_fin_geometry(
@@ -8067,7 +8085,7 @@ bool realize_fin_candidate(const PrintObject &object, const FinCandidate &candid
                            const Polygon &bed, const std::vector<PaintedLayer> &painted,
                            const std::vector<Polygons> &blockers, double line_width,
                            TracedFin &fin, FinWallGeometry &walls, bool include_seed_contact = true,
-                           FinComponentCenterGeometry *component_geometry = nullptr,
+                           std::optional<PaintedFinMemberGeometry> *component_geometry = nullptr,
                            const std::vector<PaintedLayerGeometryCache> *geometry_cache = nullptr)
 {
     fin = TracedFin{};
@@ -8554,8 +8572,19 @@ struct FinEmitStats {
     size_t merged_outline_splits = 0;
 };
 
+struct PaintedFinOutputSource {
+    Vec2d normal;
+    // Pre-clearance contours select seam direction; they are never output geometry.
+    std::vector<ExPolygons> layers;
+};
+
+struct PaintedFinOutput {
+    std::vector<ExPolygons> layer_centers;
+    std::vector<PaintedFinOutputSource> sources;
+};
+
 FinEmitStats emit_fin_support(PrintObject &object, const std::vector<TracedFin> &fins,
-                              const std::vector<ExPolygons> *merged_layer_centers = nullptr)
+                              const PaintedFinOutput *painted_output = nullptr)
 {
     FinEmitStats stats;
     size_t support_id = 0;
@@ -8565,11 +8594,11 @@ FinEmitStats emit_fin_support(PrintObject &object, const std::vector<TracedFin> 
         Polygons feet;
         const Flow flow = support_material_flow(&object, float(layer.height));
         ExPolygons areas, centers;
-        if (merged_layer_centers != nullptr) {
+        if (painted_output != nullptr) {
             // Painted Shape's common gap result is the output geometry. Expand
             // it once here for the physical envelope, inner walls and bed fill;
             // never split it back into candidates for physical rejection.
-            centers = (*merged_layer_centers)[layer_id];
+            centers = painted_output->layer_centers[layer_id];
             areas = offset_ex(centers, float(scale_(0.5 * flow.width())),
                               jtRound, double(scale_(0.005)));
         } else if (layer_id == 0) {
@@ -8581,17 +8610,16 @@ FinEmitStats emit_fin_support(PrintObject &object, const std::vector<TracedFin> 
         }
         if (layer_id == 0) {
             generate_fin_foot_toolpaths(object, std::move(areas), std::move(centers), paths, feet);
-        } else if (merged_layer_centers != nullptr) {
+        } else if (painted_output != nullptr) {
             const int wall_count = std::max(1, object.config().tree_support_wall_count.value);
             for (size_t area_id = 0; area_id < areas.size(); ++area_id) {
                 const ExPolygon &area = areas[area_id];
                 const ExPolygons component_centers = intersection_ex(centers, ExPolygons{area});
                 Vec2d normal = Vec2d::UnitX();
-                for (const TracedFin &fin : fins) {
-                    // Per-fin centers retain pre-clearance provenance only.
-                    if (layer_id < fin.centers.size() && !intersection_ex(
-                            ExPolygons{area}, fin.centers[layer_id]).empty()) {
-                        normal = fin.seed.normal;
+                for (const PaintedFinOutputSource &source : painted_output->sources) {
+                    if (layer_id < source.layers.size() && !intersection_ex(
+                            ExPolygons{area}, source.layers[layer_id]).empty()) {
+                        normal = source.normal;
                         break;
                     }
                 }
@@ -8790,7 +8818,7 @@ std::optional<Vec2d> fin_plane_contour_intersection(const Vec2d &origin, const V
 
 // Resolve a vertical sheet direction without moving the painted intent target.
 // Whole-model demand may turn the sheet by at most 30 degrees from its wall.
-PointFinDirection painted_shape_fin_direction(const Vec2d &wall_normal, const FinShapeLayer *shape)
+PointFinDirection fin_point_direction(const Vec2d &wall_normal, const FinShapeLayer *shape)
 {
     PointFinDirection best{wall_normal, 0};
     if (shape == nullptr)
@@ -8813,86 +8841,220 @@ PointFinDirection painted_shape_fin_direction(const Vec2d &wall_normal, const Fi
     return best;
 }
 
-struct PaintedFinTarget;
-struct PaintedFinSpan;
-struct PaintedFinRoot;
+// Published ordinary points already name their selected model slice and sheet
+// direction. This is a source anchor, not a printed-wall contact hit.
+struct FinPointIntent {
+    Vec2d point;
+    size_t layer; // Contact-top anchor at this object's slice_z, not a center to shift upward.
+    Vec2d direction;
+    Vec2d surface_direction;
+    Vec3d macro_normal;
+};
+
+enum class FinPointReference { surface_center, contact_top };
+
+struct FinIntentSurfaceRun {
+    Vec2d a, b, normal;
+    Vec3d macro_normal;
+    Vec3d surface_normal;
+};
+
+struct FinPointResolutionReport {
+    size_t without_contour = 0;
+    size_t contact_top_clamped = 0;
+    size_t geometry_fallback = 0;
+    size_t shifted_to_contact_top = 0;
+    size_t direction_adjusted = 0;
+    double max_center_distance = 0.;
+};
+
+struct FinIntentNode {
+    Vec2d point;
+    double surface_z;
+    std::optional<size_t> attachment_host_edge;
+};
+
+// Evidence required by ordinary fitted-line correction. Chart samples and
+// fitting work remain with the producer. Node order is endpoints, then junctions.
+struct FinIntentLine {
+    Vec3d center, anchor, macro_normal;
+    Vec2d point_direction;
+    Vec2d direction;
+    std::vector<size_t> nodes;
+    double width;
+    bool starts_at_root;
+    std::optional<size_t> attachment_host_edge;
+};
+
+struct FinIntentRegion {
+    std::vector<FinIntentNode> nodes;
+    std::vector<FinIntentLine> lines;
+    std::vector<FinPointIntent> points;
+    // Only needed when an ordinary line becomes a point. These immutable
+    // source cuts authorize anchoring and are matched to contours on demand;
+    // they do not authorize physical contacts.
+    std::vector<std::vector<FinIntentSurfaceRun>> point_surfaces;
+    std::vector<FinSurfacePathIntent> ordinary_paths;
+    std::vector<std::shared_ptr<const FinCreaseIntent>> creases;
+};
+
+struct FinIntentInput {
+    std::vector<FinIntentRegion> regions;
+};
+
+struct FinCorrectionTarget;
 
 // One mutable entity per actual junction. Source measurements stay read-only;
 // correction splits references only when the resulting positions differ.
-struct PaintedFinNode {
+struct FinCorrectionNode {
     size_t id;
-    const PaintedIntentNode *source;
+    const FinIntentNode *source;
     Vec2d point;
-    PaintedFinTarget *attachment_host = nullptr;
-    std::optional<double> z;
-    std::vector<PaintedFinSpan *> incoming, outgoing;
-    PaintedFinRoot *root = nullptr;
-    std::optional<Vec2d> root_direction; // Direct crease source's XY exterior bisector.
+    FinCorrectionTarget *attachment_host = nullptr;
 };
 
-struct PaintedFinTarget {
+// Semantic attributes shared by the correction workspace and its value output.
+// Layer activation, dimensions and physical contact state belong downstream.
+struct FinIntentAttributes {
     Vec3d point;
     Vec2d macro_direction = Vec2d::Zero();
     Vec2d direction = Vec2d::Zero();
     std::optional<size_t> edge;
-    // Endpoints first, followed by interior junction references.
-    std::vector<PaintedFinNode *> nodes;
     bool line = false;
     Vec3d macro_normal = Vec3d::Zero();
+    std::optional<std::pair<size_t, size_t>> source_attachment_junction;
+    FinPointReference point_reference = FinPointReference::surface_center;
+    std::optional<FinPointIntent> resolved_point;
+    std::optional<size_t> source_point;
+};
+
+struct FinCorrectionTarget : FinIntentAttributes {
+    // Endpoints first, followed by interior junction references.
+    std::vector<FinCorrectionNode *> nodes;
     bool starts_at_root = false;
     bool usable = true;
-    std::optional<std::pair<size_t, size_t>> source_attachment_junction;
 };
 
-struct PaintedFinSource {
-    PaintedFinTarget point;
-    std::optional<PaintedFinTarget> line;
+struct FinCorrectionSource {
+    FinCorrectionTarget point;
+    std::optional<FinCorrectionTarget> line;
 };
 
-struct PaintedFinIsland {
-    const PaintedIsland *source;
+struct FinCorrectionRegion {
+    const FinIntentRegion *source;
     // deque preserves entity addresses while correction adds split/free nodes.
-    std::deque<PaintedFinNode> nodes;
-    std::vector<PaintedFinSource> sources;
+    std::deque<FinCorrectionNode> nodes;
+    std::vector<FinCorrectionSource> sources;
 };
 
-struct PreparedPaintedFin {
+// Published correction data owns values and local node IDs, never references
+// into mutable correction entities or source-chart storage.
+struct FinCorrectedNode {
+    Vec2d point;
+    double surface_z;
+    size_t source_node;
+};
+
+struct FinCorrectedTarget {
+    FinIntentAttributes attributes;
+    std::vector<size_t> nodes;
+};
+
+struct FinCorrectedRegion {
+    // Direct source-edge IDs follow the ordinary strokes, including strokes
+    // reclassified as points. Correction must not renumber their provenance.
+    size_t source_stroke_count = 0;
+    std::vector<FinCorrectedNode> nodes;
+    std::vector<FinCorrectedTarget> targets;
+    std::vector<FinSurfacePathIntent> ordinary_paths;
+    std::vector<std::shared_ptr<const FinCreaseIntent>> creases;
+};
+
+struct FinLineCorrection {
+    size_t line_planes = 0;
+    size_t macro_planes = 0;
+    size_t tangent_planes = 0;
+    size_t ambiguous_planes = 0;
+    size_t missing_macro = 0;
+};
+
+struct FinCorrectionResult {
+    std::vector<FinCorrectedRegion> islands;
+    FinLineCorrection planes;
+    size_t point_intents = 0;
+    size_t line_intents = 0;
+    size_t branched_intents = 0;
+    size_t intent_strokes = 0;
+    size_t vertical_point_targets = 0;
+    size_t line_plane_alignment_rejects = 0;
+};
+
+struct FinPreparationCandidate {
     FinCandidate attributes;
-    // Ordered path references, including bends and interior junctions.
-    // Empty for a point candidate. The producer supplies traversal order;
-    // fin-intent resolution must not recover it from an endpoint chord.
-    std::vector<PaintedFinNode *> nodes;
+    size_t island;
+    // Ordered local node IDs, including bends and interior junctions.
+    // Empty for a point candidate; preparation must preserve this order.
+    std::vector<size_t> nodes;
 };
 
-struct PaintedFinWork {
-    std::vector<std::unique_ptr<PaintedFinIsland>> islands;
-    std::vector<PreparedPaintedFin> candidates;
+struct FinPreparationInput {
+    std::vector<std::vector<FinCorrectedNode>> islands;
+    std::vector<FinPreparationCandidate> candidates;
 };
 
-struct PaintedFinGroup {
+struct FinPreparationSpan;
+struct FinPreparationRoot;
+
+// Height/root resolution has its own mutable nodes. The corrected input and
+// the original intent are both read-only throughout preparation.
+struct FinPreparationNode {
+    size_t id;
+    const FinCorrectedNode *source;
+    Vec2d point;
+    std::optional<double> z;
+    std::vector<FinPreparationSpan *> incoming, outgoing;
+    FinPreparationRoot *root = nullptr;
+    std::optional<Vec2d> root_direction;
+};
+
+struct FinPreparationRegion {
+    std::deque<FinPreparationNode> nodes;
+};
+
+struct PreparedFin {
+    FinCandidate attributes;
+    std::vector<FinPreparationNode *> nodes;
+};
+
+struct FinPreparationWork {
+    std::vector<std::unique_ptr<FinPreparationRegion>> islands;
+    std::vector<PreparedFin> candidates;
+};
+
+struct FinPreparationGroup {
     const FinCandidate *attributes;
-    std::vector<PaintedFinNode *> nodes; // Directed whole path, including interior junctions.
+    std::vector<FinPreparationNode *> nodes; // Whole path, including interior junctions.
 };
 
 // Directed adjacency for root detection and missing-height dependencies only.
 // A span does not own an activation height, contact schedule or clipped body.
-struct PaintedFinSpan {
-    PaintedFinGroup *group;
-    PaintedFinNode *start;
-    PaintedFinNode *end;
+struct FinPreparationSpan {
+    FinPreparationGroup *group;
+    FinPreparationNode *start;
+    FinPreparationNode *end;
 };
 
-struct PaintedFinRoot {
-    PaintedFinNode *node;
+struct FinPreparationRoot {
+    FinPreparationNode *node;
     Vec2d extension_direction = Vec2d::Zero();
     bool valid = false;
 };
 
-struct PaintedFinSite {
+struct FinPointSite {
     bool found = false;
     Vec2d point = Vec2d::Zero();
     Vec2d direction = Vec2d::Zero();
-    PaintedSegment run;
+    FinIntentSurfaceRun run;
     size_t layer = 0;
     double distance_squared = std::numeric_limits<double>::infinity();
     double planar_distance_squared = std::numeric_limits<double>::infinity();
@@ -8901,7 +9063,7 @@ struct PaintedFinSite {
     bool macro_side = false;
 };
 
-double painted_fin_expansion_slope(const Vec3d &normal, const Vec2d &direction, double factor)
+double fin_intent_expansion_slope(const Vec3d &normal, const Vec2d &direction, double factor)
 {
     const double horizontal = normal.head<2>().norm();
     const double lean = -normal.z() / horizontal *
@@ -8912,11 +9074,11 @@ double painted_fin_expansion_slope(const Vec3d &normal, const Vec2d &direction, 
 
 // Prepare physical attributes without copying the shared graph. Geometry and
 // endpoint heights are materialized only after fin-intent resolution.
-FinCandidate make_painted_fin_candidate(const PaintedFinTarget &target, FinCandidate candidate,
+FinCandidate make_fin_intent_candidate(const FinIntentAttributes &target, FinCandidate candidate,
                                         const Vec3d &candidate_macro_normal, double expansion_factor,
                                         size_t island_id)
 {
-    candidate.expansion_slope = target.line ? painted_fin_expansion_slope(
+    candidate.expansion_slope = target.line ? fin_intent_expansion_slope(
         candidate_macro_normal, candidate.normal, expansion_factor) : expansion_factor;
     candidate.surface_normals = FinSurfaceNormalPolicy::painted_region;
     candidate.geometry_mode = FinGeometryMode::painted_shape;
@@ -8925,68 +9087,338 @@ FinCandidate make_painted_fin_candidate(const PaintedFinTarget &target, FinCandi
     candidate.wall_follow_island = island_id;
     candidate.intent_island = island_id;
     candidate.intent_edge = target.edge;
+    candidate.intent_point = target.source_point;
     candidate.intent_line = target.line;
     if (target.line)
         candidate.source_attachment_junction = target.source_attachment_junction;
     return candidate;
 }
 
-// Prepare shared nodes and line references without rotating or classifying lines.
-void prepare_painted_fin_sources(PaintedFinIsland &work)
+// Match semantic source cuts only when a point actually needs resolving.
+// Reuse the existing contour authorization operation; its placement workspace
+// is temporary and never becomes part of the published intent graph.
+std::vector<std::vector<FinIntentSurfaceRun>> match_fin_point_surfaces(
+    const PrintObject &object, const std::vector<std::vector<FinIntentSurfaceRun>> &source)
 {
-    const PaintedIsland &island = *work.source;
-    auto &sources = work.sources;
-    for (const auto &node : island.intent.nodes)
-        work.nodes.push_back({work.nodes.size(), &node, node.point});
-    sources.reserve(island.intent.strokes.size() + island.intent.points.size());
-    auto point_target = [&](const PaintedIntentStroke &stroke, size_t edge_id) {
-        Vec2d macro_direction = stroke.macro_normal.head<2>();
-        if (macro_direction.norm() >= min_fin_macro_horizontal)
-            macro_direction.normalize();
-        else {
-            macro_direction = island.intent.macro_normal.head<2>();
-            if (macro_direction.norm() >= min_fin_macro_horizontal)
-                macro_direction.normalize();
-            else
-                macro_direction = Vec2d::Zero();
+    std::vector<std::vector<FinIntentSurfaceRun>> result(source.size());
+    const double width = support_material_flow(&object).width();
+    for (size_t layer_id = 1; layer_id < source.size(); ++layer_id) {
+        if (object.print()->canceled())
+            throw CanceledException();
+        std::vector<PaintedSegment> cuts;
+        cuts.reserve(source[layer_id].size());
+        for (const FinIntentSurfaceRun &run : source[layer_id]) {
+            PaintedSegment cut{run.a, run.b, run.normal, run.surface_normal};
+            cut.macro_normal = run.macro_normal;
+            cuts.push_back(std::move(cut));
         }
-        PaintedFinTarget target{stroke.center, macro_direction};
+        const SimpleCandidateLayer layer = build_simple_candidate_space(
+            object, *object.get_layer(int(layer_id)), cuts, width);
+        for (const PaintedSegment &run : layer.runs)
+            result[layer_id].push_back({run.a, run.b, run.normal, run.macro_normal, run.surface_normal});
+    }
+    return result;
+}
+
+std::optional<FinPointIntent> resolve_fin_point_intent(
+    const PrintObject &object, const FinIntentAttributes &target,
+    const std::vector<std::vector<FinIntentSurfaceRun>> &contour_runs,
+    const FinShapeAnalysis &shape, FinPointResolutionReport &report)
+{
+    const PrintObjectConfig &config = object.config();
+    const double width = support_material_flow(&object).width();
+    const double local_selection_radius = std::max(
+        3 * width, fin_support_dimensions(object).contact_width + width);
+    auto better_site = [local_selection_radius, width](const FinPointSite &candidate, const FinPointSite &current) {
+        if (!current.found)
+            return true;
+        if (candidate.macro_side != current.macro_side)
+            return candidate.macro_side;
+        const size_t candidate_height_band = size_t(candidate.height_error / width);
+        const size_t current_height_band = size_t(current.height_error / width);
+        if (candidate_height_band != current_height_band)
+            return candidate_height_band < current_height_band;
+        const size_t candidate_distance_band = size_t(
+            std::sqrt(candidate.planar_distance_squared) / local_selection_radius);
+        const size_t current_distance_band = size_t(
+            std::sqrt(current.planar_distance_squared) / local_selection_radius);
+        if (candidate_distance_band != current_distance_band)
+            return candidate_distance_band < current_distance_band;
+        if (std::abs(candidate.demand - current.demand) > 1e-9)
+            return candidate.demand > current.demand;
+        return candidate.distance_squared < current.distance_squared;
+    };
+    auto resolve_direction = [](const Vec2d &macro_direction, const FinShapeLayer *shape) {
+        if (macro_direction.squaredNorm() <= EPSILON * EPSILON)
+            return PointFinDirection{Vec2d::Zero(), 0.};
+        return fin_point_direction(macro_direction, shape);
+    };
+
+    const Vec2d center = target.point.head<2>();
+    const bool at_contact_top = target.point_reference == FinPointReference::contact_top;
+    FinPointSite center_site;
+    for (size_t layer_id = 1; layer_id < contour_runs.size(); ++layer_id) {
+        const Layer &model_layer = *object.get_layer(int(layer_id));
+        const double dz = model_layer.slice_z - target.point.z();
+        if (at_contact_top && dz > EPSILON)
+            continue;
+        // Compare macro faces near this skeleton feature before
+        // committing the intent to one actual sliced contour point.
+        for (const FinIntentSurfaceRun &run : contour_runs[layer_id]) {
+            const Vec2d edge = run.b - run.a;
+            if (edge.squaredNorm() <= EPSILON * EPSILON)
+                continue;
+            const double position = std::clamp((center - run.a).dot(edge) / edge.squaredNorm(), 0., 1.);
+            const Vec2d point = run.a + position * edge;
+            FinPointSite site;
+            site.found = true;
+            site.point = point;
+            site.run = run;
+            site.layer = layer_id;
+            site.distance_squared = (point - center).squaredNorm() + dz * dz;
+            site.planar_distance_squared = (point - center).squaredNorm();
+            site.height_error = std::abs(dz);
+            const double macro_horizontal = run.macro_normal.head<2>().norm();
+            const Vec2d macro_xy = macro_horizontal > EPSILON ?
+                run.macro_normal.head<2>() / macro_horizontal : run.normal;
+            const FinShapeLayer *shape_layer = layer_id < shape.layers.size() ? &shape.layers[layer_id] : nullptr;
+            const auto resolved = resolve_direction(target.macro_direction, shape_layer);
+            site.direction = resolved.direction;
+            site.demand = resolved.demand;
+            site.macro_side = macro_horizontal >= min_fin_macro_horizontal &&
+                macro_xy.dot(run.normal) >= min_fin_contact_alignment &&
+                fin_contact_aligned(resolved.direction, macro_xy);
+            if (better_site(site, center_site))
+                center_site = std::move(site);
+        }
+    }
+    if (!center_site.found) {
+        ++report.without_contour;
+        return std::nullopt;
+    }
+
+    // Converted green lines already target their highest source Z.
+    // Only standalone center points need the half-contact-height shift.
+    const double target_z = target.point.z() +
+        (at_contact_top ? 0. : 0.5 * config.fin_support_contact_height.value);
+    size_t target_layer = center_site.layer;
+    double target_error = std::abs(object.get_layer(int(target_layer))->slice_z - target_z);
+    for (size_t layer_id = center_site.layer + 1; layer_id < contour_runs.size(); ++layer_id) {
+        if (at_contact_top && object.get_layer(int(layer_id))->slice_z > target_z + EPSILON)
+            break;
+        const double error = std::abs(object.get_layer(int(layer_id))->slice_z - target_z);
+        if (error > target_error)
+            break;
+        target_error = error;
+        target_layer = layer_id;
+    }
+
+    FinPointSite best = center_site;
+    for (size_t layer_id = center_site.layer + 1; layer_id <= target_layer; ++layer_id) {
+        const Layer &previous_layer = *object.get_layer(int(layer_id - 1));
+        const Layer &model_layer = *object.get_layer(int(layer_id));
+        const double dz = model_layer.slice_z - previous_layer.slice_z;
+        const double horizontal = best.run.macro_normal.head<2>().norm();
+        Vec2d predicted = best.point;
+        if (horizontal > EPSILON)
+            predicted -= best.run.macro_normal.z() / horizontal * dz * best.run.normal;
+        const double continuity = std::sqrt(3.) * std::abs(dz) + 2 * width;
+        const FinIntentSurfaceRun *next_run = nullptr;
+        Vec2d next_point = Vec2d::Zero();
+        double next_distance_squared = continuity * continuity;
+        for (const FinIntentSurfaceRun &run : contour_runs[layer_id]) {
+            if (run.normal.dot(best.run.normal) <= 0. ||
+                run.macro_normal.dot(best.run.macro_normal) < fin_crease_alignment)
+                continue;
+            const Vec2d edge = run.b - run.a;
+            if (edge.squaredNorm() <= EPSILON * EPSILON)
+                continue;
+            const double position =
+                std::clamp((predicted - run.a).dot(edge) / edge.squaredNorm(), 0., 1.);
+            const Vec2d point = run.a + position * edge;
+            const double distance_squared = (point - predicted).squaredNorm();
+            if (distance_squared <= next_distance_squared) {
+                next_distance_squared = distance_squared;
+                next_point = point;
+                next_run = &run;
+            }
+        }
+        if (next_run != nullptr) {
+            best.point = next_point;
+            best.run = *next_run;
+            best.layer = layer_id;
+            continue;
+        }
+
+        Vec2d unused;
+        if (nearest_outer_contour_point(model_layer, predicted, best.run.normal, continuity, unused)) {
+            ++report.contact_top_clamped;
+            break;
+        }
+        ++report.geometry_fallback;
+        break;
+    }
+    report.shifted_to_contact_top += best.layer > center_site.layer;
+    best.distance_squared = (best.point - center).squaredNorm() +
+        std::pow(object.get_layer(int(best.layer))->slice_z - target_z, 2);
+    const Vec3d &surface_normal = best.run.macro_normal;
+    const double horizontal = surface_normal.head<2>().norm();
+    if (horizontal < min_fin_macro_horizontal) {
+        ++report.without_contour;
+        return std::nullopt;
+    }
+    const Vec2d macro_contact_normal = surface_normal.head<2>() / horizontal;
+    if (macro_contact_normal.dot(best.run.normal) < min_fin_contact_alignment) {
+        ++report.without_contour;
+        return std::nullopt;
+    }
+    const FinShapeLayer *shape_layer = best.layer < shape.layers.size() ? &shape.layers[best.layer] : nullptr;
+    const auto resolved = resolve_direction(target.macro_direction, shape_layer);
+    if (!fin_contact_aligned(resolved.direction, macro_contact_normal)) {
+        ++report.without_contour;
+        return std::nullopt;
+    }
+    best.direction = resolved.direction;
+    best.demand = resolved.demand;
+
+    Vec3d candidate_macro_normal = target.macro_normal;
+    if (candidate_macro_normal.squaredNorm() <= EPSILON * EPSILON)
+        candidate_macro_normal = surface_normal;
+    else {
+        candidate_macro_normal.normalize();
+        if (candidate_macro_normal.head<2>().dot(best.run.normal) < 0)
+            candidate_macro_normal = -candidate_macro_normal;
+    }
+    const double candidate_macro_horizontal = candidate_macro_normal.head<2>().norm();
+    if (candidate_macro_horizontal < min_fin_macro_horizontal) {
+        ++report.without_contour;
+        return std::nullopt;
+    }
+    report.direction_adjusted += best.direction.dot(best.run.normal) < 1 - 1e-9;
+    report.max_center_distance = std::max(report.max_center_distance, std::sqrt(best.distance_squared));
+    return FinPointIntent{best.point, best.layer, best.direction, best.run.normal, candidate_macro_normal};
+}
+
+// Only this adapter reads Painted Shape's charts/fitted source records.
+// The published values do not alias its mutable graph or correction workspace.
+FinIntentInput publish_painted_fin_intents(const PrintObject &object,
+    const PaintedSides &painted, const FinShapeAnalysis &shape, FinPointResolutionReport &report)
+{
+    FinIntentInput result;
+    result.regions.resize(painted.islands.size());
+    if (result.regions.empty())
+        return result;
+    for (size_t region_id = 0; region_id < painted.islands.size(); ++region_id) {
+        const PaintedIntentGraph &source = painted.islands[region_id].intent;
+        if (!source.points.empty() || !source.strokes.empty())
+            result.regions[region_id].point_surfaces.resize(painted.layers.size());
+    }
+    // Partition once, preserving each layer's source order. Scanning all cuts
+    // separately for every region makes publication scale with regions * cuts.
+    for (size_t layer_id = 1; layer_id < painted.layers.size(); ++layer_id) {
+        if (object.print()->canceled())
+            throw CanceledException();
+        for (const PaintedSegment &run : painted.layers[layer_id].sections[0]) {
+            if (run.island >= result.regions.size())
+                continue;
+            auto &surfaces = result.regions[run.island].point_surfaces;
+            if (!surfaces.empty())
+                surfaces[layer_id].push_back({run.a, run.b, run.normal, run.macro_normal, run.surface_normal});
+        }
+    }
+    for (size_t region_id = 0; region_id < painted.islands.size(); ++region_id) {
+        if (object.print()->canceled())
+            throw CanceledException();
+        const PaintedIntentGraph &source = painted.islands[region_id].intent;
+        FinIntentRegion &region = result.regions[region_id];
+        for (const PaintedIntentNode &node : source.nodes)
+            region.nodes.push_back({node.point, node.surface_z, node.attachment_host_edge});
+        for (const PaintedIntentStroke &stroke : source.strokes) {
+            Vec2d point_direction = stroke.macro_normal.head<2>();
+            if (point_direction.norm() >= min_fin_macro_horizontal)
+                point_direction.normalize();
+            else {
+                point_direction = source.macro_normal.head<2>();
+                if (point_direction.norm() >= min_fin_macro_horizontal)
+                    point_direction.normalize();
+                else
+                    point_direction = Vec2d::Zero();
+            }
+            Vec2d direction = Vec2d::Zero();
+            if (!stroke.points.empty() && stroke.nodes.size() >= 2 &&
+                (stroke.xy[1] - stroke.xy[0]).norm() > EPSILON)
+                direction = Vec2d(stroke.xy[1] - stroke.xy[0]).normalized();
+            region.lines.push_back({stroke.center, stroke.anchor, stroke.macro_normal,
+                point_direction, direction, stroke.nodes, stroke.width, stroke.starts_at_root,
+                stroke.attachment_host_edge});
+        }
+        const auto point_surfaces = source.points.empty() ?
+            std::vector<std::vector<FinIntentSurfaceRun>>{} : match_fin_point_surfaces(object, region.point_surfaces);
+        for (const PaintedIntentPoint &point : source.points) {
+            Vec2d direction = point.macro_normal.head<2>();
+            if (direction.norm() >= min_fin_macro_horizontal)
+                direction.normalize();
+            else
+                direction = Vec2d::Zero();
+            FinIntentAttributes target{point.surface.point, direction};
+            target.macro_normal = point.macro_normal;
+            target.point_reference = FinPointReference::surface_center;
+            if (const auto resolved = resolve_fin_point_intent(object, target, point_surfaces, shape, report))
+                region.points.push_back(*resolved);
+        }
+        region.ordinary_paths = source.ordinary_paths;
+        region.creases = source.creases;
+    }
+    return result;
+}
+
+// Prepare shared nodes and line references without rotating or classifying lines.
+void bind_fin_correction(const PrintObject &object, FinCorrectionRegion &work)
+{
+    const FinIntentRegion &island = *work.source;
+    auto &sources = work.sources;
+    for (const auto &node : island.nodes)
+        work.nodes.push_back({work.nodes.size(), &node, node.point});
+    sources.reserve(island.lines.size() + island.points.size());
+    auto point_target = [&](const FinIntentLine &stroke, size_t edge_id) {
+        const Vec2d macro_direction = stroke.point_direction;
+        FinCorrectionTarget target{{stroke.center, macro_direction}};
         target.edge = edge_id;
+        target.point_reference = FinPointReference::contact_top;
         target.macro_normal = stroke.macro_normal;
         return target;
     };
-    auto line_target = [&](const PaintedIntentStroke &stroke, size_t edge_id) -> std::optional<PaintedFinTarget> {
-        if (stroke.points.empty() || stroke.nodes.size() < 2 ||
-            (stroke.xy[1] - stroke.xy[0]).norm() <= EPSILON)
+    auto line_target = [&](const FinIntentLine &stroke, size_t edge_id) -> std::optional<FinCorrectionTarget> {
+        if (stroke.direction.squaredNorm() <= EPSILON * EPSILON)
             return std::nullopt;
         Vec2d macro_direction = stroke.macro_normal.head<2>();
         if (macro_direction.norm() >= min_fin_macro_horizontal)
             macro_direction.normalize();
         else
             macro_direction = Vec2d::Zero();
-        PaintedFinTarget target{stroke.anchor, macro_direction};
+        FinCorrectionTarget target{{stroke.anchor, macro_direction}};
         target.edge = edge_id;
         target.line = true;
         target.macro_normal = stroke.macro_normal;
         for (size_t side = 0; side < stroke.nodes.size(); ++side) {
             const size_t node_id = stroke.nodes[side];
-            if (node_id >= island.intent.nodes.size())
+            if (node_id >= island.nodes.size())
                 continue;
             target.nodes.push_back(&work.nodes[node_id]);
         }
-        target.direction = Vec2d(stroke.xy[1] - stroke.xy[0]).normalized();
+        target.direction = stroke.direction;
         target.starts_at_root = stroke.starts_at_root;
         return target;
     };
     // Prepare both alternatives without deciding whether the straight line
     // is acceptable. Source geometry and heights are copied unchanged.
-    for (size_t edge_id = 0; edge_id < island.intent.strokes.size(); ++edge_id) {
-        const PaintedIntentStroke &stroke = island.intent.strokes[edge_id];
-        PaintedFinSource source{point_target(stroke, edge_id), line_target(stroke, edge_id)};
-        if (stroke.attachment_host_edge && *stroke.attachment_host_edge < island.intent.strokes.size()) {
-            const PaintedIntentStroke &parent = island.intent.strokes[*stroke.attachment_host_edge];
+    for (size_t edge_id = 0; edge_id < island.lines.size(); ++edge_id) {
+        const FinIntentLine &stroke = island.lines[edge_id];
+        FinCorrectionSource source{point_target(stroke, edge_id), line_target(stroke, edge_id)};
+        if (stroke.attachment_host_edge && *stroke.attachment_host_edge < island.lines.size()) {
+            const FinIntentLine &parent = island.lines[*stroke.attachment_host_edge];
             for (size_t node : stroke.nodes) {
-                if (node >= island.intent.nodes.size() ||
+                if (node >= island.nodes.size() ||
                     std::find(parent.nodes.begin(), parent.nodes.end(), node) == parent.nodes.end())
                     continue;
                 if (source.line)
@@ -8996,16 +9428,18 @@ void prepare_painted_fin_sources(PaintedFinIsland &work)
         }
         sources.push_back(std::move(source));
     }
-    // Keep stroke indices stable for node/host references. Standalone points
-    // follow the lines and retain the blue producer's own location and normal.
-    for (const PaintedIntentPoint &blue_point : island.intent.points) {
-        Vec2d macro_direction = blue_point.macro_normal.head<2>();
-        if (macro_direction.norm() >= min_fin_macro_horizontal)
-            macro_direction.normalize();
-        else
-            macro_direction = Vec2d::Zero();
-        PaintedFinTarget point{blue_point.surface.point, macro_direction};
-        point.macro_normal = blue_point.macro_normal;
+    // Keep line indices stable for node/host references. Standalone points
+    // follow the lines and retain their published location and direction.
+    for (size_t point_id = 0; point_id < island.points.size(); ++point_id) {
+        const FinPointIntent &input = island.points[point_id];
+        assert(input.layer < object.layer_count());
+        const Vec3d position(input.point.x(), input.point.y(), object.get_layer(int(input.layer))->slice_z);
+        FinCorrectionTarget point{{position, input.surface_direction}};
+        point.direction = input.direction;
+        point.macro_normal = input.macro_normal;
+        point.point_reference = FinPointReference::contact_top;
+        point.resolved_point = input;
+        point.source_point = point_id;
         sources.push_back({std::move(point), std::nullopt});
     }
     // Resolve geometric-host relationships only after the source vector is
@@ -9017,38 +9451,30 @@ void prepare_painted_fin_sources(PaintedFinIsland &work)
     }
 }
 
-struct PaintedFinLineCorrection {
-    size_t line_planes = 0;
-    size_t macro_planes = 0;
-    size_t tangent_planes = 0;
-    size_t ambiguous_planes = 0;
-    size_t missing_macro = 0;
-};
-
 // Plan every rotation and attachment against frozen segments. These temporary
 // positions are proposals, not independent copies of the shared node state.
-PaintedFinLineCorrection correct_painted_fin_lines(PaintedFinIsland &work)
+FinLineCorrection correct_fin_lines(FinCorrectionRegion &work)
 {
     struct Placement {
-        PaintedFinNode *origin;
+        FinCorrectionNode *origin;
         Vec2d point;
         bool keep = true;
         bool detached = false;
     };
     struct Correction {
-        PaintedFinTarget *line = nullptr;
+        FinCorrectionTarget *line = nullptr;
         Vec2d start = Vec2d::Zero(), end = Vec2d::Zero();
         bool changed = false;
         std::vector<Placement> nodes;
     };
-    PaintedFinLineCorrection result;
+    FinLineCorrection result;
     std::vector<Correction> corrections(work.sources.size());
-    std::map<PaintedFinTarget *, Correction *> by_line;
+    std::map<FinCorrectionTarget *, Correction *> by_line;
     for (size_t edge = 0; edge < work.sources.size(); ++edge) {
         if (!work.sources[edge].line)
             continue;
-        PaintedFinTarget &line = *work.sources[edge].line;
-        const PaintedIntentStroke &stroke = work.source->intent.strokes[edge];
+        FinCorrectionTarget &line = *work.sources[edge].line;
+        const FinIntentLine &stroke = work.source->lines[edge];
         if (line.macro_direction.squaredNorm() <= EPSILON * EPSILON) {
             ++result.missing_macro;
             line.usable = false;
@@ -9101,7 +9527,7 @@ PaintedFinLineCorrection correct_painted_fin_lines(PaintedFinIsland &work)
         // The original references remain unchanged throughout planning. Host
         // placements appended below must not become new attachment requests.
         for (size_t slot = 0; slot < dependent.line->nodes.size(); ++slot) {
-            PaintedFinNode *node = dependent.line->nodes[slot];
+            FinCorrectionNode *node = dependent.line->nodes[slot];
             const auto entry = by_line.find(node->attachment_host);
             if (entry == by_line.end() || entry->second == &dependent)
                 continue;
@@ -9153,7 +9579,7 @@ PaintedFinLineCorrection correct_painted_fin_lines(PaintedFinIsland &work)
 
     // Commit only after all intersections are known. Placements originating at
     // one shared node still reference one entity unless correction splits them.
-    std::map<PaintedFinNode *, std::vector<PaintedFinNode *>> resolved;
+    std::map<FinCorrectionNode *, std::vector<FinCorrectionNode *>> resolved;
     for (Correction &correction : corrections) {
         if (!correction.line)
             continue;
@@ -9174,9 +9600,9 @@ PaintedFinLineCorrection correct_painted_fin_lines(PaintedFinIsland &work)
                     continue;
             }
             auto &pieces = resolved[placement.origin];
-            PaintedFinNode *node = nullptr;
+            FinCorrectionNode *node = nullptr;
             if (!placement.detached) {
-                for (PaintedFinNode *piece : pieces)
+                for (FinCorrectionNode *piece : pieces)
                     if ((piece->point - placement.point).norm() <= EPSILON) {
                         node = piece;
                         break;
@@ -9201,321 +9627,151 @@ PaintedFinLineCorrection correct_painted_fin_lines(PaintedFinIsland &work)
     return result;
 }
 
-PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
-                                                  const PaintedSides &painted_sides,
-                                                  const FinShapeAnalysis &shape)
+FinCorrectionResult correct_fin_intents(const PrintObject &object,
+                                       const FinIntentInput &input, const FinShapeAnalysis &shape,
+                                       FinPointResolutionReport &point_report)
 {
-    const PrintObjectConfig &config = object.config();
-    const double width = support_material_flow(&object).width();
-    const double minimum_painted_line_alignment =
-        std::cos(config.fin_support_painted_shape_line_angle.value * M_PI / 180.);
-    const double local_selection_radius = std::max(
-        3 * width, fin_support_dimensions(object).contact_width + width);
-    auto better_site = [local_selection_radius, width](const PaintedFinSite &candidate, const PaintedFinSite &current) {
-        if (!current.found)
-            return true;
-        if (candidate.macro_side != current.macro_side)
-            return candidate.macro_side;
-        const size_t candidate_height_band = size_t(candidate.height_error / width);
-        const size_t current_height_band = size_t(current.height_error / width);
-        if (candidate_height_band != current_height_band)
-            return candidate_height_band < current_height_band;
-        const size_t candidate_distance_band = size_t(
-            std::sqrt(candidate.planar_distance_squared) / local_selection_radius);
-        const size_t current_distance_band = size_t(
-            std::sqrt(current.planar_distance_squared) / local_selection_radius);
-        if (candidate_distance_band != current_distance_band)
-            return candidate_distance_band < current_distance_band;
-        if (std::abs(candidate.demand - current.demand) > 1e-9)
-            return candidate.demand > current.demand;
-        return candidate.distance_squared < current.distance_squared;
-    };
-    auto resolve_direction = [](const Vec2d &macro_direction, const FinShapeLayer *shape) {
-        if (macro_direction.squaredNorm() <= EPSILON * EPSILON)
-            return PointFinDirection{Vec2d::Zero(), 0.};
-        return painted_shape_fin_direction(macro_direction, shape);
-    };
+    FinCorrectionResult result;
+    result.islands.reserve(input.regions.size());
+    const double minimum_line_alignment =
+        std::cos(object.config().fin_support_painted_shape_line_angle.value * M_PI / 180.);
+    for (const FinIntentRegion &island : input.regions) {
+        if (object.print()->canceled())
+            throw CanceledException();
+        FinCorrectionRegion work;
+        work.source = &island;
+        bind_fin_correction(object, work);
+        const FinLineCorrection correction = correct_fin_lines(work);
+        result.planes.line_planes += correction.line_planes;
+        result.planes.macro_planes += correction.macro_planes;
+        result.planes.tangent_planes += correction.tangent_planes;
+        result.planes.ambiguous_planes += correction.ambiguous_planes;
+        result.planes.missing_macro += correction.missing_macro;
 
-    struct ResolvedPointTarget {
-        PaintedFinSite site;
-        FinSupportDimensions dimensions;
-        Vec3d macro_normal;
-    };
-    PaintedFinWork work;
-    auto &proposals = work.candidates;
-    size_t without_contour = 0;
-    size_t contact_top_clamped = 0;
-    size_t geometry_fallback = 0;
-    size_t shifted_to_contact_top = 0;
-    size_t direction_adjusted = 0;
-    size_t intent_direction_used = 0;
-    size_t point_intents = 0;
-    size_t line_intents = 0;
-    size_t branched_intents = 0;
-    size_t intent_strokes = 0;
-    size_t line_plane_targets = 0;
-    size_t macro_plane_targets = 0;
-    size_t tangent_plane_targets = 0;
-    size_t ambiguous_plane_targets = 0;
-    size_t vertical_point_targets = 0;
+        FinCorrectedRegion corrected;
+        corrected.source_stroke_count = island.lines.size();
+        result.point_intents += island.points.size();
+        result.line_intents += island.lines.size() == 1;
+        result.branched_intents += island.lines.size() > 1;
+        result.intent_strokes += island.lines.size();
+        corrected.nodes.reserve(work.nodes.size());
+        for (const FinCorrectionNode &node : work.nodes)
+            corrected.nodes.push_back({node.point, node.source->surface_z,
+                size_t(node.source - island.nodes.data())});
+        corrected.targets.reserve(work.sources.size());
+        std::optional<std::vector<std::vector<FinIntentSurfaceRun>>> point_surfaces;
+        for (const FinCorrectionSource &source : work.sources) {
+            const FinCorrectionTarget *target = &source.point;
+            const bool near_vertical = fin_surface_near_vertical(source.point.macro_normal);
+            result.vertical_point_targets += near_vertical && source.point.edge.has_value();
+            if (!near_vertical && source.line && source.line->usable &&
+                source.line->nodes.size() >= 2 && source.line->edge) {
+                if (fin_contact_aligned(source.line->direction, source.line->macro_direction,
+                                        minimum_line_alignment))
+                    target = &*source.line;
+                else
+                    ++result.line_plane_alignment_rejects;
+            }
+            FinCorrectedTarget output{*target, {}};
+            if (target->line) {
+                for (const FinCorrectionNode *node : target->nodes)
+                    output.nodes.push_back(node->id);
+            } else if (target->edge) {
+                // Reclassification owns a derived point; its source line and
+                // original connections remain unchanged in the published input.
+                const FinCorrectionNode *top = nullptr;
+                auto consider = [&](const FinCorrectionNode &node) {
+                    if (top == nullptr || node.source->surface_z > top->source->surface_z)
+                        top = &node;
+                };
+                if (source.line) {
+                    for (const FinCorrectionNode *node : source.line->nodes)
+                        consider(*node);
+                } else {
+                    for (size_t node : island.lines[*target->edge].nodes)
+                        consider(work.nodes[node]);
+                }
+                if (top != nullptr)
+                    output.attributes.point = Vec3d(top->point.x(), top->point.y(), top->source->surface_z);
+            }
+            if (!output.attributes.line && !output.attributes.resolved_point) {
+                if (!point_surfaces)
+                    point_surfaces = match_fin_point_surfaces(object, island.point_surfaces);
+                output.attributes.resolved_point = resolve_fin_point_intent(
+                    object, output.attributes, *point_surfaces, shape, point_report);
+                if (!output.attributes.resolved_point)
+                    continue;
+            }
+            corrected.targets.push_back(std::move(output));
+        }
+        // Crease interpretation has already selected these independent paths
+        // and points. They bypass ordinary correction and retain source order.
+        corrected.ordinary_paths = island.ordinary_paths;
+        corrected.creases = island.creases;
+        result.islands.push_back(std::move(corrected));
+    }
+    return result;
+}
+
+struct FinCandidatePreparationReport {
     size_t line_to_point_fallbacks = 0;
-    size_t line_plane_alignment_rejects = 0;
-    size_t line_plane_missing_macro = 0;
     size_t finite_line_candidates = 0;
     size_t resolved_line_candidates = 0;
     size_t resolved_point_candidates = 0;
-    double max_center_distance = 0.;
-    size_t next_direct_group = painted_sides.islands.size();
-    proposals.reserve(painted_sides.islands.size());
-    for (size_t island_id = 0; island_id < painted_sides.islands.size(); ++island_id) {
+    size_t intent_direction_used = 0;
+};
+
+FinPreparationInput prepare_fin_candidates(const PrintObject &object,
+                                           const FinCorrectionResult &corrected,
+                                           FinCandidatePreparationReport &report)
+{
+    const PrintObjectConfig &config = object.config();
+    FinPreparationInput work;
+    work.islands.reserve(corrected.islands.size());
+    for (const auto &island : corrected.islands)
+        work.islands.push_back(island.nodes);
+    auto &proposals = work.candidates;
+    size_t next_direct_group = corrected.islands.size();
+    proposals.reserve(corrected.islands.size());
+    for (size_t island_id = 0; island_id < corrected.islands.size(); ++island_id) {
         if (object.print()->canceled())
             throw CanceledException();
-        const PaintedIsland &island = painted_sides.islands[island_id];
-        point_intents += island.intent.points.size();
-        line_intents += island.intent.strokes.size() == 1;
-        branched_intents += island.intent.strokes.size() > 1;
-        intent_strokes += island.intent.strokes.size();
-        work.islands.push_back(std::make_unique<PaintedFinIsland>());
-        PaintedFinIsland &graph = *work.islands.back();
-        graph.source = &island;
-        prepare_painted_fin_sources(graph);
-        const PaintedFinLineCorrection correction = correct_painted_fin_lines(graph);
-        line_plane_targets += correction.line_planes;
-        macro_plane_targets += correction.macro_planes;
-        tangent_plane_targets += correction.tangent_planes;
-        ambiguous_plane_targets += correction.ambiguous_planes;
-        line_plane_missing_macro += correction.missing_macro;
+        const FinCorrectedRegion &graph = corrected.islands[island_id];
 
-        std::vector<std::vector<PaintedSegment>> contour_runs;
-        auto resolve_point_target = [&](const PaintedFinTarget &target) -> std::optional<ResolvedPointTarget> {
-            if (contour_runs.empty()) {
-                contour_runs.resize(painted_sides.layers.size());
-                for (size_t layer_id = 1; layer_id < painted_sides.layers.size(); ++layer_id) {
-                    const Layer &model_layer = *object.get_layer(int(layer_id));
-                    std::vector<PaintedSegment> island_runs;
-                    for (const PaintedSegment &run : painted_sides.layers[layer_id].sections[0]) {
-                        if (run.island == island_id)
-                            island_runs.push_back(run);
-                    }
-                    SimpleCandidateLayer layer = build_simple_candidate_space(object, model_layer, island_runs, width);
-                    contour_runs[layer_id] = std::move(layer.runs);
-                }
-            }
-            const Vec2d center = target.point.head<2>();
-            const bool at_contact_top = target.edge.has_value();
-            PaintedFinSite center_site;
-            for (size_t layer_id = 1; layer_id < contour_runs.size(); ++layer_id) {
-                const Layer &model_layer = *object.get_layer(int(layer_id));
-                const double dz = model_layer.slice_z - target.point.z();
-                if (at_contact_top && dz > EPSILON)
-                    continue;
-                // Compare macro faces near this skeleton feature before
-                // committing the intent to one actual sliced contour point.
-                for (const PaintedSegment &run : contour_runs[layer_id]) {
-                    const Vec2d edge = run.b - run.a;
-                    if (edge.squaredNorm() <= EPSILON * EPSILON)
-                        continue;
-                    const double position = std::clamp((center - run.a).dot(edge) / edge.squaredNorm(), 0., 1.);
-                    const Vec2d point = run.a + position * edge;
-                    PaintedFinSite site;
-                    site.found = true;
-                    site.point = point;
-                    site.run = run;
-                    site.layer = layer_id;
-                    site.distance_squared = (point - center).squaredNorm() + dz * dz;
-                    site.planar_distance_squared = (point - center).squaredNorm();
-                    site.height_error = std::abs(dz);
-                    const double macro_horizontal = run.macro_normal.head<2>().norm();
-                    const Vec2d macro_xy = macro_horizontal > EPSILON ?
-                        run.macro_normal.head<2>() / macro_horizontal : run.normal;
-                    const FinShapeLayer *shape_layer = layer_id < shape.layers.size() ? &shape.layers[layer_id] : nullptr;
-                    const auto resolved = resolve_direction(target.macro_direction, shape_layer);
-                    site.direction = resolved.direction;
-                    site.demand = resolved.demand;
-                    site.macro_side = macro_horizontal >= min_fin_macro_horizontal &&
-                        macro_xy.dot(run.normal) >= min_fin_contact_alignment &&
-                        fin_contact_aligned(resolved.direction, macro_xy);
-                    if (better_site(site, center_site))
-                        center_site = std::move(site);
-                }
-            }
-            if (!center_site.found) {
-                ++without_contour;
-                return std::nullopt;
-            }
-
-            // Converted green lines already target their highest source Z.
-            // Only standalone center points need the half-contact-height shift.
-            const double target_z = target.point.z() +
-                (at_contact_top ? 0. : 0.5 * config.fin_support_contact_height.value);
-            size_t target_layer = center_site.layer;
-            double target_error = std::abs(object.get_layer(int(target_layer))->slice_z - target_z);
-            for (size_t layer_id = center_site.layer + 1; layer_id < painted_sides.layers.size(); ++layer_id) {
-                if (at_contact_top && object.get_layer(int(layer_id))->slice_z > target_z + EPSILON)
-                    break;
-                const double error = std::abs(object.get_layer(int(layer_id))->slice_z - target_z);
-                if (error > target_error)
-                    break;
-                target_error = error;
-                target_layer = layer_id;
-            }
-
-            PaintedFinSite best = center_site;
-            for (size_t layer_id = center_site.layer + 1; layer_id <= target_layer; ++layer_id) {
-                const Layer &previous_layer = *object.get_layer(int(layer_id - 1));
-                const Layer &model_layer = *object.get_layer(int(layer_id));
-                const double dz = model_layer.slice_z - previous_layer.slice_z;
-                const double horizontal = best.run.macro_normal.head<2>().norm();
-                Vec2d predicted = best.point;
-                if (horizontal > EPSILON)
-                    predicted -= best.run.macro_normal.z() / horizontal * dz * best.run.normal;
-                const double continuity = std::sqrt(3.) * std::abs(dz) + 2 * width;
-                const PaintedSegment *next_run = nullptr;
-                Vec2d next_point = Vec2d::Zero();
-                double next_distance_squared = continuity * continuity;
-                for (const PaintedSegment &run : contour_runs[layer_id]) {
-                    if (run.normal.dot(best.run.normal) <= 0. ||
-                        run.macro_normal.dot(best.run.macro_normal) < fin_crease_alignment)
-                        continue;
-                    const Vec2d edge = run.b - run.a;
-                    if (edge.squaredNorm() <= EPSILON * EPSILON)
-                        continue;
-                    const double position =
-                        std::clamp((predicted - run.a).dot(edge) / edge.squaredNorm(), 0., 1.);
-                    const Vec2d point = run.a + position * edge;
-                    const double distance_squared = (point - predicted).squaredNorm();
-                    if (distance_squared <= next_distance_squared) {
-                        next_distance_squared = distance_squared;
-                        next_point = point;
-                        next_run = &run;
-                    }
-                }
-                if (next_run != nullptr) {
-                    best.point = next_point;
-                    best.run = *next_run;
-                    best.layer = layer_id;
-                    continue;
-                }
-
-                Vec2d unused;
-                if (nearest_outer_contour_point(model_layer, predicted, best.run.normal, continuity, unused)) {
-                    ++contact_top_clamped;
-                    break;
-                }
-                ++geometry_fallback;
-                break;
-            }
-            shifted_to_contact_top += best.layer > center_site.layer;
-            best.distance_squared = (best.point - center).squaredNorm() +
-                std::pow(object.get_layer(int(best.layer))->slice_z - target_z, 2);
-            const Vec3d &surface_normal = best.run.macro_normal;
-            const double horizontal = surface_normal.head<2>().norm();
-            if (horizontal < min_fin_macro_horizontal) {
-                ++without_contour;
-                return std::nullopt;
-            }
-            const Vec2d macro_contact_normal = surface_normal.head<2>() / horizontal;
-            if (macro_contact_normal.dot(best.run.normal) < min_fin_contact_alignment) {
-                ++without_contour;
-                return std::nullopt;
-            }
-            const FinShapeLayer *shape_layer = best.layer < shape.layers.size() ? &shape.layers[best.layer] : nullptr;
-            const auto resolved = resolve_direction(target.macro_direction, shape_layer);
-            if (!fin_contact_aligned(resolved.direction, macro_contact_normal)) {
-                ++without_contour;
-                return std::nullopt;
-            }
-            best.direction = resolved.direction;
-            best.demand = resolved.demand;
-
-            const FinSupportDimensions dimensions = fin_support_dimensions(object);
-            Vec3d candidate_macro_normal = target.macro_normal;
-            if (candidate_macro_normal.squaredNorm() <= EPSILON * EPSILON)
-                candidate_macro_normal = surface_normal;
-            else {
-                candidate_macro_normal.normalize();
-                if (candidate_macro_normal.head<2>().dot(best.run.normal) < 0)
-                    candidate_macro_normal = -candidate_macro_normal;
-            }
-            const double candidate_macro_horizontal = candidate_macro_normal.head<2>().norm();
-            if (candidate_macro_horizontal < min_fin_macro_horizontal) {
-                ++without_contour;
-                return std::nullopt;
-            }
-            return ResolvedPointTarget{std::move(best), dimensions, candidate_macro_normal};
-        };
-
-        for (PaintedFinSource &source : graph.sources) {
-            const PaintedFinTarget *target = &source.point;
-            const bool near_vertical = fin_surface_near_vertical(source.point.macro_normal);
-            vertical_point_targets += near_vertical && source.point.edge.has_value();
-            if (!near_vertical && source.line && source.line->usable &&
-                source.line->nodes.size() >= 2 && source.line->edge) {
-                // Classify in the source patch frame once, after correction and
-                // junction resolution. Accepted lines never enter point-site selection.
-                if (fin_contact_aligned(source.line->direction, source.line->macro_direction,
-                                        minimum_painted_line_alignment))
-                    target = &*source.line;
-                else
-                    ++line_plane_alignment_rejects;
-            }
-            if (target->line) {
-                // Finite paths obtain their positions and activation heights from
-                // shared nodes during path resolution, not from a painted contour site.
-                FinCandidate candidate = make_painted_fin_candidate(*target,
-                    {target->nodes.front()->point, target->direction, target->macro_direction, 0,
+        for (const FinCorrectedTarget &resolved_target : graph.targets) {
+            const FinIntentAttributes &target = resolved_target.attributes;
+            if (target.line) {
+                FinCandidate candidate = make_fin_intent_candidate(target,
+                    {graph.nodes[resolved_target.nodes.front()].point, target.direction, target.macro_direction, 0,
                      fin_support_dimensions(object), 0.},
-                    target->macro_normal.normalized(), config.fin_support_expansion_factor.value, island_id);
-                // This producer emits straight lines. Convert its endpoint-first
-                // references to traversal order before the general path boundary.
-                auto refs = target->nodes;
-                const Vec2d origin = refs[0]->point;
-                const Vec2d chord = refs[1]->point - origin;
-                std::stable_sort(refs.begin(), refs.end(), [&](const auto *a, const auto *b) {
-                    return (a->point - origin).dot(chord) < (b->point - origin).dot(chord);
+                    target.macro_normal.normalized(), config.fin_support_expansion_factor.value, island_id);
+                // Convert endpoint-first references to traversal order without
+                // changing the published correction result.
+                auto refs = resolved_target.nodes;
+                const Vec2d origin = graph.nodes[refs[0]].point;
+                const Vec2d chord = graph.nodes[refs[1]].point - origin;
+                std::stable_sort(refs.begin(), refs.end(), [&](size_t a, size_t b) {
+                    return (graph.nodes[a].point - origin).dot(chord) <
+                           (graph.nodes[b].point - origin).dot(chord);
                 });
-                proposals.push_back({std::move(candidate), std::move(refs)});
-                ++finite_line_candidates;
-                ++intent_direction_used;
-                ++resolved_line_candidates;
+                proposals.push_back({std::move(candidate), island_id, std::move(refs)});
+                ++report.finite_line_candidates;
+                ++report.intent_direction_used;
+                ++report.resolved_line_candidates;
             } else {
-                PaintedFinTarget point_target = *target;
-                if (point_target.edge) {
-                    // Use final green XY with its immutable source height; this
-                    // point follows the contour-site search, not model-height resolution.
-                    const PaintedFinNode *top = nullptr;
-                    auto consider = [&](const PaintedFinNode &node) {
-                        if (top == nullptr || node.source->surface_z > top->source->surface_z)
-                            top = &node;
-                    };
-                    if (source.line) {
-                        for (const PaintedFinNode *node : source.line->nodes)
-                            consider(*node);
-                    } else {
-                        // XY-degenerate strokes still retain their green nodes.
-                        for (const size_t node : island.intent.strokes[*point_target.edge].nodes)
-                            consider(graph.nodes[node]);
-                    }
-                    if (top != nullptr)
-                        point_target.point = Vec3d(top->point.x(), top->point.y(), top->source->surface_z);
-                }
-                const auto resolved = resolve_point_target(point_target);
-                if (!resolved)
-                    continue;
-                const PaintedFinSite &site = resolved->site;
-                FinCandidate candidate = make_painted_fin_candidate(point_target,
-                    {site.point, site.direction, site.run.normal, site.layer, resolved->dimensions, 0.},
-                    resolved->macro_normal, config.fin_support_expansion_factor.value, island_id);
-                direction_adjusted += site.direction.dot(site.run.normal) < 1 - 1e-9;
-                max_center_distance = std::max(max_center_distance, std::sqrt(site.distance_squared));
-                proposals.push_back({std::move(candidate)});
-                ++resolved_point_candidates;
-                line_to_point_fallbacks += source.line.has_value() || source.point.edge.has_value();
+                const FinPointIntent &point = *target.resolved_point;
+                FinCandidate candidate = make_fin_intent_candidate(target,
+                    {point.point, point.direction, point.surface_direction, point.layer,
+                     fin_support_dimensions(object), 0.},
+                    point.macro_normal, config.fin_support_expansion_factor.value, island_id);
+                proposals.push_back({std::move(candidate), island_id, {}});
+                ++report.resolved_point_candidates;
+                report.line_to_point_fallbacks += target.edge.has_value();
             }
         }
 
-        for (size_t i = 0; i < island.intent.ordinary_paths.size(); ++i) {
-            const auto &intent = island.intent.ordinary_paths[i];
+        for (size_t i = 0; i < graph.ordinary_paths.size(); ++i) {
+            const auto &intent = graph.ordinary_paths[i];
             const Vec3d &start = intent.points.front();
             Vec2d direction = Vec2d::Zero();
             for (size_t v = 1; v < intent.points.size(); ++v) {
@@ -9532,39 +9788,34 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
             }
             direction.normalize();
             const Vec2d outward = intent.macro_normal.head<2>() / horizontal;
-            PaintedFinTarget target{start, outward};
+            FinIntentAttributes target{start, outward};
             target.line = true;
-            target.edge = island.intent.strokes.size() + island.intent.creases.size() + i;
+            target.edge = graph.source_stroke_count + graph.creases.size() + i;
             size_t layer_id = 0;
             while (layer_id + 1 < object.layer_count() &&
                    object.get_layer(int(layer_id + 1))->slice_z <= start.z() + EPSILON)
                 ++layer_id;
-            FinCandidate candidate = make_painted_fin_candidate(target,
+            FinCandidate candidate = make_fin_intent_candidate(target,
                 {start.head<2>(), direction, outward, layer_id, fin_support_dimensions(object), 0.},
                 intent.macro_normal.normalized(), config.fin_support_expansion_factor.value, island_id);
             candidate.intent_island = next_direct_group++;
             candidate.path = FinCandidate::Path{intent.points, false, false, *candidate.intent_edge};
             if (!valid_painted_fin_path(object, candidate))
                 continue;
-            std::vector<PaintedFinNode *> refs;
-            for (const size_t node_id : intent.nodes) {
-                auto &node = graph.nodes[node_id];
-                node.z = node.source->surface_z;
-                refs.push_back(&node);
-            }
+            std::vector<size_t> refs = intent.nodes;
             BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
                 << " stage=painted-crease-ordinary-side crease=" << intent.crease << " pair=" << intent.pair
                 << " intent_island=" << *candidate.intent_island << " edge=" << *candidate.intent_edge
                 << " vertices=" << intent.points.size() << " root_z=" << start.z();
-            ++resolved_line_candidates;
-            proposals.push_back({std::move(candidate), std::move(refs)});
+            ++report.resolved_line_candidates;
+            proposals.push_back({std::move(candidate), island_id, std::move(refs)});
         }
 
         // Direct crease geometry bypasses point-site selection and ordinary
         // normal/angle correction. Ordinary contact construction still validates
         // its actual layer contacts during realization.
-        for (size_t i = 0; i < island.intent.creases.size(); ++i) {
-            const auto &intent = *island.intent.creases[i];
+        for (size_t i = 0; i < graph.creases.size(); ++i) {
+            const auto &intent = *graph.creases[i];
             const bool line = intent.points.size() > 1;
             Vec2d outward = Vec2d::Zero();
             Vec3d macro_normal = Vec3d::Zero();
@@ -9598,26 +9849,22 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
             const auto dimensions = fin_support_dimensions(object);
             FinCandidate candidate{start.head<2>(), outward, outward, layer_id, dimensions,
                 intent.full_expansion ? config.fin_support_expansion_factor.value :
-                line ? 0. : painted_fin_expansion_slope(macro_normal, outward, config.fin_support_expansion_factor.value)};
+                line ? 0. : fin_intent_expansion_slope(macro_normal, outward, config.fin_support_expansion_factor.value)};
             candidate.surface_normals = FinSurfaceNormalPolicy::painted_region;
             candidate.geometry_mode = FinGeometryMode::painted_shape;
             candidate.requires_painted_contact = false;
             candidate.macro_normal = macro_normal;
             candidate.wall_follow_island = island_id;
             candidate.intent_island = next_direct_group++;
-            candidate.intent_edge = island.intent.strokes.size() + i;
+            candidate.intent_edge = graph.source_stroke_count + i;
             candidate.intent_line = line;
-            candidate.crease_intent = island.intent.creases[i];
-            std::vector<PaintedFinNode *> refs;
+            candidate.crease_intent = graph.creases[i];
+            std::vector<size_t> refs;
             if (candidate.intent_line) {
                 candidate.path = FinCandidate::Path{intent.points, false, false, *candidate.intent_edge};
                 if (!valid_painted_fin_path(object, candidate))
                     continue;
-                for (const size_t node_id : intent.nodes) {
-                    auto &node = graph.nodes[node_id];
-                    node.z = node.source->surface_z;
-                    refs.push_back(&node);
-                }
+                refs = intent.nodes;
             }
             BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
                 << " stage=painted-crease-direct crease=" << intent.crease
@@ -9628,13 +9875,43 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
                 << " full_expansion=" << intent.full_expansion
                 << " direction_resolved=" << !line
                 << " outward_x=" << outward.x() << " outward_y=" << outward.y();
-            resolved_line_candidates += candidate.intent_line;
-            resolved_point_candidates += !candidate.intent_line;
-            proposals.push_back({std::move(candidate), std::move(refs)});
+            report.resolved_line_candidates += candidate.intent_line;
+            report.resolved_point_candidates += !candidate.intent_line;
+            proposals.push_back({std::move(candidate), island_id, std::move(refs)});
         }
     }
+    return work;
+}
+
+void log_painted_fin_preparation(const PrintObject &object, const PaintedSides &painted_sides,
+    const FinCorrectionResult &corrected, const FinPointResolutionReport &points,
+    const FinCandidatePreparationReport &report, size_t candidate_count)
+{
+    const size_t without_contour = points.without_contour;
+    const size_t contact_top_clamped = points.contact_top_clamped;
+    const size_t geometry_fallback = points.geometry_fallback;
+    const size_t shifted_to_contact_top = points.shifted_to_contact_top;
+    const size_t direction_adjusted = points.direction_adjusted;
+    const size_t intent_direction_used = report.intent_direction_used;
+    const size_t point_intents = std::accumulate(painted_sides.islands.begin(), painted_sides.islands.end(), size_t(0),
+        [](size_t count, const PaintedIsland &island) { return count + island.intent.points.size(); });
+    const size_t line_intents = corrected.line_intents;
+    const size_t branched_intents = corrected.branched_intents;
+    const size_t intent_strokes = corrected.intent_strokes;
+    const size_t line_plane_targets = corrected.planes.line_planes;
+    const size_t macro_plane_targets = corrected.planes.macro_planes;
+    const size_t tangent_plane_targets = corrected.planes.tangent_planes;
+    const size_t ambiguous_plane_targets = corrected.planes.ambiguous_planes;
+    const size_t vertical_point_targets = corrected.vertical_point_targets;
+    const size_t line_to_point_fallbacks = report.line_to_point_fallbacks;
+    const size_t line_plane_alignment_rejects = corrected.line_plane_alignment_rejects;
+    const size_t line_plane_missing_macro = corrected.planes.missing_macro;
+    const size_t finite_line_candidates = report.finite_line_candidates;
+    const size_t resolved_line_candidates = report.resolved_line_candidates;
+    const size_t resolved_point_candidates = report.resolved_point_candidates;
+    const double max_center_distance = points.max_center_distance;
     BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
-        << " stage=painted-shape-candidates islands=" << painted_sides.islands.size()
+        << " stage=painted-shape-candidates islands=" << corrected.islands.size()
         << " undersized_painted_islands=" << painted_sides.undersized_painted_islands
         << " point_intents=" << point_intents << " line_intents=" << line_intents
         << " branched_intents=" << branched_intents << " intent_strokes=" << intent_strokes
@@ -9678,7 +9955,7 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
         << " finite_line_candidates=" << finite_line_candidates
         << " resolved_line_candidates=" << resolved_line_candidates
         << " resolved_point_candidates=" << resolved_point_candidates
-        << " candidates=" << proposals.size()
+        << " candidates=" << candidate_count
         << " without_contour=" << without_contour
         << " contact_top_clamped=" << contact_top_clamped
         << " geometry_fallback=" << geometry_fallback
@@ -9686,7 +9963,6 @@ PaintedFinWork select_painted_shape_fin_candidates(const PrintObject &object,
         << " intent_direction_used=" << intent_direction_used
         << " direction_adjusted=" << direction_adjusted
         << " max_center_distance_mm=" << max_center_distance;
-    return work;
 }
 
 // Own both the transformed model and the acceleration structure: neither a
@@ -9926,20 +10202,51 @@ Vec2d fin_root_extension_direction(const std::vector<Vec2d> &directions)
     return Vec2d(std::cos(middle), std::sin(middle));
 }
 
-// Keep shared working entities through height resolution. Only the completed
-// intent is exported as the value snapshots consumed by layer geometry.
-std::vector<FinCandidateProposal> resolve_painted_fin_paths(
-    const PrintObject &object, PaintedFinWork work)
+// Rebind immutable node IDs into a preparation-owned graph. Height, root and
+// adjacency state never lives in the correction workspace or its snapshots.
+FinPreparationWork bind_fin_preparation(const FinPreparationInput &input)
 {
+    FinPreparationWork work;
+    work.islands.reserve(input.islands.size());
+    for (const auto &nodes : input.islands) {
+        auto island = std::make_unique<FinPreparationRegion>();
+        for (const FinCorrectedNode &node : nodes)
+            island->nodes.push_back({island->nodes.size(), &node, node.point});
+        work.islands.push_back(std::move(island));
+    }
+    work.candidates.reserve(input.candidates.size());
+    for (const FinPreparationCandidate &candidate : input.candidates) {
+        assert(candidate.island < work.islands.size());
+        auto &nodes = work.islands[candidate.island]->nodes;
+        PreparedFin prepared{candidate.attributes, {}};
+        prepared.nodes.reserve(candidate.nodes.size());
+        for (size_t id : candidate.nodes) {
+            assert(id < nodes.size());
+            auto &node = nodes[id];
+            // Direct ordinary-side and crease paths retain source heights;
+            // fitted ordinary paths resolve their heights against the model.
+            if (candidate.attributes.path)
+                node.z = node.source->surface_z;
+            prepared.nodes.push_back(&node);
+        }
+        work.candidates.push_back(std::move(prepared));
+    }
+    return work;
+}
+
+std::vector<FinCandidateProposal> resolve_fin_paths(
+    const PrintObject &object, const FinPreparationInput &input)
+{
+    FinPreparationWork work = bind_fin_preparation(input);
     if (std::none_of(work.candidates.begin(), work.candidates.end(),
-            [](const PreparedPaintedFin &candidate) { return !candidate.nodes.empty(); })) {
+            [](const PreparedFin &candidate) { return !candidate.nodes.empty(); })) {
         std::vector<FinCandidateProposal> result;
         for (const auto &candidate : work.candidates)
             result.push_back({candidate.attributes});
         return result;
     }
     PaintedFinModel model(object, std::any_of(work.candidates.begin(), work.candidates.end(),
-        [](const PreparedPaintedFin &candidate) {
+        [](const PreparedFin &candidate) {
             return candidate.attributes.crease_intent && candidate.attributes.path;
         }));
     std::vector<float> crease_heights;
@@ -9951,7 +10258,7 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
     // Crease geometry enters unchanged. Only its root needs a horizontal
     // direction for the outward stem and a 3D normal for expansion slope.
     work.candidates.erase(std::remove_if(work.candidates.begin(), work.candidates.end(),
-        [&](PreparedPaintedFin &candidate) {
+        [&](PreparedFin &candidate) {
             auto &seed = candidate.attributes;
             if (!seed.crease_intent || !seed.path)
                 return false;
@@ -9991,18 +10298,18 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             seed.normal = seed.contact_normal = *direction;
             seed.macro_normal = *normal;
             seed.expansion_slope = intent.full_expansion ? object.config().fin_support_expansion_factor.value :
-                painted_fin_expansion_slope(
+                fin_intent_expansion_slope(
                     seed.macro_normal, *direction, object.config().fin_support_expansion_factor.value);
             return false;
         }), work.candidates.end());
-    std::deque<PaintedFinGroup> groups;
-    std::deque<PaintedFinSpan> spans;
-    std::vector<PaintedFinNode *> nodes;
-    std::map<PaintedFinNode *, PaintedFinIsland *> node_owners;
+    std::deque<FinPreparationGroup> groups;
+    std::deque<FinPreparationSpan> spans;
+    std::vector<FinPreparationNode *> nodes;
+    std::map<FinPreparationNode *, FinPreparationRegion *> node_owners;
     for (const auto &island : work.islands)
-        for (PaintedFinNode &node : island->nodes)
+        for (FinPreparationNode &node : island->nodes)
             node_owners.emplace(&node, island.get());
-    auto add_span = [&](PaintedFinGroup &group, PaintedFinNode *start, PaintedFinNode *end) {
+    auto add_span = [&](FinPreparationGroup &group, FinPreparationNode *start, FinPreparationNode *end) {
         spans.push_back({&group, start, end});
         start->outgoing.push_back(&spans.back());
         end->incoming.push_back(&spans.back());
@@ -10011,16 +10318,16 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
     for (const auto &candidate : work.candidates)
         if (candidate.attributes.intent_edge)
             next_edge = std::max(next_edge, *candidate.attributes.intent_edge + 1);
-    for (const PreparedPaintedFin &candidate : work.candidates) {
+    for (const PreparedFin &candidate : work.candidates) {
         if (candidate.nodes.empty()) {
             groups.push_back({&candidate.attributes, {}});
             continue;
         }
-        for (PaintedFinNode *node : candidate.nodes)
+        for (FinPreparationNode *node : candidate.nodes)
             if (std::find(nodes.begin(), nodes.end(), node) == nodes.end())
                 nodes.push_back(node);
         groups.push_back({&candidate.attributes, candidate.nodes});
-        PaintedFinGroup &group = groups.back();
+        FinPreparationGroup &group = groups.back();
         for (size_t i = 1; i < group.nodes.size(); ++i)
             add_span(group, group.nodes[i - 1], group.nodes[i]);
     }
@@ -10030,12 +10337,12 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             result.push_back({candidate.attributes});
         return result;
     }
-    std::deque<PaintedFinRoot> roots;
-    for (PaintedFinNode *node : nodes) {
+    std::deque<FinPreparationRoot> roots;
+    for (FinPreparationNode *node : nodes) {
         if (!node->incoming.empty() || node->outgoing.empty())
             continue;
         std::vector<Vec2d> directions;
-        for (const PaintedFinSpan *span : node->outgoing) {
+        for (const FinPreparationSpan *span : node->outgoing) {
             // Consecutive vertices can share XY while carrying distinct Z.
             // Use the first nonzero outgoing segment, not the endpoint chord.
             for (size_t i = 1; i < span->group->nodes.size(); ++i) {
@@ -10054,10 +10361,10 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
         node->root = &roots.back();
     }
     std::deque<FinCandidate> root_candidates;
-    for (PaintedFinRoot &root : roots) {
+    for (FinPreparationRoot &root : roots) {
         if (object.print()->canceled())
             throw CanceledException();
-        PaintedFinNode &node = *root.node;
+        FinPreparationNode &node = *root.node;
         if (!node.z)
             node.z = model.height(node.point, node.source->surface_z, node.source->surface_z);
         if (!node.z || root.extension_direction.squaredNorm() <= EPSILON * EPSILON)
@@ -10087,18 +10394,18 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             continue;
         // Keep the source root as a junction. A single outward stem owns the
         // generation root and seed contact; none of the original lines rotates.
-        PaintedFinGroup &source_group = *node.outgoing.front()->group;
+        FinPreparationGroup &source_group = *node.outgoing.front()->group;
         const bool crease_path = source_group.attributes->crease_intent != nullptr;
         FinCandidate attributes = *source_group.attributes;
         // Preserve the existing common-extension maximum without summing the
         // outgoing contacts or giving each branch a separate seed band.
-        for (const PaintedFinSpan *span : node.outgoing)
+        for (const FinPreparationSpan *span : node.outgoing)
             attributes.expansion_slope = std::max(attributes.expansion_slope,
                 span->group->attributes->expansion_slope);
         attributes.dimensions = fin_support_dimensions(object);
-        PaintedFinIsland &island = *node_owners.at(&node);
+        FinPreparationRegion &island = *node_owners.at(&node);
         island.nodes.push_back({island.nodes.size(), node.source, exit->point});
-        PaintedFinNode &outer = island.nodes.back();
+        FinPreparationNode &outer = island.nodes.back();
         outer.z = node.z;
         outer.root = &root;
         root.node = &outer;
@@ -10124,8 +10431,8 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
     }
     // Roots and direct crease nodes already have heights. Resolve every
     // ordinary downstream node once, after all of its incoming starts finish.
-    std::vector<PaintedFinNode *> unresolved;
-    for (PaintedFinNode *node : nodes)
+    std::vector<FinPreparationNode *> unresolved;
+    for (FinPreparationNode *node : nodes)
         if (node->root == nullptr && !node->z)
             unresolved.push_back(node);
     size_t resolved_heights = 0;
@@ -10135,9 +10442,9 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             throw CanceledException();
         bool progress = false;
         for (auto it = unresolved.begin(); it != unresolved.end();) {
-            PaintedFinNode *node = *it;
+            FinPreparationNode *node = *it;
             const bool waiting = std::any_of(node->incoming.begin(), node->incoming.end(),
-                [&](const PaintedFinSpan *span) {
+                [&](const FinPreparationSpan *span) {
                     return std::find(unresolved.begin(), unresolved.end(), span->start) != unresolved.end();
                 });
             if (waiting) {
@@ -10147,8 +10454,8 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             // A shared junction must not rise above any available upstream
             // start. Failed starts cannot supply a bound or a replacement Z.
             std::optional<double> upper;
-            for (const PaintedFinSpan *span : node->incoming) {
-                const PaintedFinNode &start = *span->start;
+            for (const FinPreparationSpan *span : node->incoming) {
+                const FinPreparationNode &start = *span->start;
                 if (!start.z || (start.root && !start.root->valid))
                     continue;
                 if (!upper || *start.z < *upper)
@@ -10165,7 +10472,7 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
                     << " xy=" << node->point.transpose() << " source_z=" << node->source->surface_z;
                 if (!node->incoming.empty())
                     detail << " island=" << node->incoming.front()->group->attributes->intent_island.value_or(size_t(-1));
-                for (const PaintedFinSpan *span : node->incoming)
+                for (const FinPreparationSpan *span : node->incoming)
                     detail << " incoming_node=" << span->start->id;
                 if (upper)
                     detail << " upper_z=" << *upper;
@@ -10185,7 +10492,7 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
     }
     size_t discarded = 0;
     size_t line_groups = 0;
-    for (const PaintedFinGroup &group : groups) {
+    for (const FinPreparationGroup &group : groups) {
         if (object.print()->canceled())
             throw CanceledException();
         FinCandidate seed = *group.attributes;
@@ -10193,11 +10500,11 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             result.push_back({std::move(seed)});
             continue;
         }
-        const PaintedFinNode &start = *group.nodes.front();
-        const PaintedFinNode &end = *group.nodes.back();
+        const FinPreparationNode &start = *group.nodes.front();
+        const FinPreparationNode &end = *group.nodes.back();
         if ((start.root && !start.root->valid) ||
             std::any_of(group.nodes.begin(), group.nodes.end(),
-                [](const PaintedFinNode *node) { return !node->z; })) {
+                [](const FinPreparationNode *node) { return !node->z; })) {
             ++discarded;
             continue;
         }
@@ -10205,7 +10512,7 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
             start.incoming.size() + start.outgoing.size() > 1,
             end.incoming.size() + end.outgoing.size() > 1,
             *seed.intent_edge};
-        for (const PaintedFinNode *node : group.nodes) {
+        for (const FinPreparationNode *node : group.nodes) {
             seed.path->points.emplace_back(node->point.x(), node->point.y(), *node->z);
             seed.intent_nodes.push_back({node->id, node->point, std::nullopt,
                                          node->source->surface_z, *node->z});
@@ -10234,7 +10541,7 @@ std::vector<FinCandidateProposal> resolve_painted_fin_paths(
     BOOST_LOG_TRIVIAL(info) << "Fin support object=" << object.model_object()->name
         << " stage=painted-fin-intents groups=" << line_groups
         << " roots=" << roots.size() << " root_stems=" << std::count_if(roots.begin(), roots.end(),
-            [](const PaintedFinRoot &root) { return root.valid; })
+            [](const FinPreparationRoot &root) { return root.valid; })
         << " topology_spans=" << spans.size() << " shared_nodes=" << nodes.size()
         << " resolved_node_heights=" << resolved_heights << " missing_node_heights=" << missing_heights
         << " unresolved_node_heights=" << unresolved.size()
@@ -10441,15 +10748,81 @@ void export_painted_fin_paths(const PrintObject &object, PaintedSides &painted,
     }
 }
 
+struct PaintedFinAssemblyLayer {
+    ExPolygons centers;
+    ExPolygons contact_centers;
+    // Contact sections and their plane-clipped downward transitions cross the
+    // model-clearance band by construction. Keep that exemption separate
+    // from semantic contact ownership; it is applied once to the complete
+    // layer-wide clearance mask.
+    ExPolygons clearance_exemptions;
+    std::vector<ExPolygons> projection_sections;
+};
+
+bool assemble_painted_fin_layer(
+    size_t layer_id, ExPolygons centers,
+    const std::vector<PaintedFinAssemblyMember> &components,
+    PaintedFinAssemblyLayer &prepared, const char *&failure_stage)
+{
+    failure_stage = "none";
+    prepared = {};
+    for (const PaintedFinAssemblyMember &component : components) {
+        if (layer_id >= component.geometry.layers.size())
+            continue;
+        const PaintedFinMemberLayer &layer = component.geometry.layers[layer_id];
+        expolygons_append(centers, layer.centers);
+        for (const PaintedFinSupportSection &section : layer.sections) {
+            const PaintedFinSectionKind kind = section.kind;
+            const bool owns_geometry =
+                kind == PaintedFinSectionKind::contact ||
+                kind == PaintedFinSectionKind::transition;
+            if (owns_geometry != !section.centers.empty()) {
+                failure_stage = "extension-layer-geometry";
+                return false;
+            }
+            if (!owns_geometry)
+                continue;
+            if (kind == PaintedFinSectionKind::transition) {
+                // Every member keeps its solved transition identifiable
+                // until the component completion barrier. It contributes
+                // support geometry and the clearance exemption required
+                // to connect the contact segment to its A1 cap.
+                expolygons_append(prepared.clearance_exemptions, section.centers);
+                prepared.projection_sections.push_back(section.centers);
+            } else {
+                // Contact sections are part of the completed support and
+                // carve their own exemption out of the clearance mask.
+                expolygons_append(prepared.contact_centers, section.centers);
+                expolygons_append(prepared.clearance_exemptions, section.centers);
+            }
+        }
+    }
+
+    prepared.contact_centers = union_ex(prepared.contact_centers);
+    prepared.clearance_exemptions = union_ex(
+        prepared.clearance_exemptions);
+    // Union completed members and shared joins only. Adding query-body
+    // copies or separate root strips would restore obsolete caps and seams.
+    prepared.centers = union_ex(centers);
+    if (prepared.centers.empty()) {
+        failure_stage = "empty-completed-center";
+        return false;
+    }
+    return true;
+}
+
 void generate_candidate_fin_support(PrintObject &object, const std::vector<PaintedLayer> &painted,
                                     const std::vector<Polygons> &blockers, const Polygon &bed,
                                     double line_width, FinWallGeometry &walls,
                                     const std::vector<FinCandidateProposal> &proposals,
-                                    const char *stage, const char *diagnostic_stage)
+                                    FinGeometryMode geometry_mode, const char *stage, const char *diagnostic_stage)
 {
-    const bool painted_shape = object.config().fin_support_style.value == fssPaintedShape;
+    const bool painted_shape = geometry_mode == FinGeometryMode::painted_shape;
     if (object.print()->canceled())
         return;
+    assert(std::all_of(proposals.begin(), proposals.end(), [geometry_mode](const FinCandidateProposal &proposal) {
+        return proposal.primary.geometry_mode == geometry_mode;
+    }));
     std::vector<PaintedLayerGeometryCache> geometry_cache;
     if (painted_shape && !proposals.empty()) {
         size_t cache_layers = 0;
@@ -10488,12 +10861,12 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
 
     struct PendingFin {
         TracedFin fin;
-        FinComponentCenterGeometry component_geometry;
+        std::optional<PaintedFinMemberGeometry> component_geometry;
         bool valid = true;
         bool owns_seed = true;
         // Only shared joins; members already own their root depth.
         std::vector<ExPolygons> connection_centers;
-        std::vector<FinComponentCenterGeometry> assembled_components;
+        std::vector<PaintedFinAssemblyMember> assembled_components;
     };
     std::vector<PendingFin> pending;
     pending.reserve(proposals.size());
@@ -10570,7 +10943,7 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             throw CanceledException();
         const bool owns_seed = !proposal.primary.intent_line || proposal.primary.intent_root.has_value();
         TracedFin fin;
-        FinComponentCenterGeometry component_geometry;
+        std::optional<PaintedFinMemberGeometry> component_geometry;
         bool realized;
         if (proposal.primary.path) {
             // Resolve all finite layer paths before contacts: disconnected or
@@ -10590,7 +10963,6 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             ++rejected_geometry;
             continue;
         }
-        component_geometry.source = pending.size();
         pending.push_back({std::move(fin), std::move(component_geometry), true, owns_seed});
     }
     auto log_composite_failure = [&](size_t parent, size_t child) {
@@ -10822,78 +11194,10 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
         return centers;
     };
 
-    struct PreparedFinLayer {
-        ExPolygons centers;
-        ExPolygons contact_centers;
-        // Contact sections and their plane-clipped downward transitions cross the
-        // model-clearance band by construction. Keep that exemption separate
-        // from semantic contact ownership; it is applied once to the complete
-        // layer-wide clearance mask.
-        ExPolygons clearance_exemptions;
-        std::vector<ExPolygons> projection_sections;
-    };
-    auto assemble_component_section = [&](
-        size_t layer_id, ExPolygons centers,
-        const std::vector<FinComponentCenterGeometry> &components,
-        PreparedFinLayer &prepared, const char *&failure_stage) {
-        failure_stage = "none";
-        prepared = {};
-        for (const FinComponentCenterGeometry &component : components) {
-            if (layer_id < component.completed_centers.size())
-                expolygons_append(centers, component.completed_centers[layer_id]);
-            for (const FinCenterExtension &extension : component.extensions) {
-                if (layer_id >= extension.layers.size())
-                    continue;
-                const FinExtensionLayerState layer_state = extension.layer_states[layer_id];
-                const bool owns_geometry =
-                    layer_state == FinExtensionLayerState::contact ||
-                    layer_state == FinExtensionLayerState::materialized;
-                if (owns_geometry != !extension.layers[layer_id].empty()) {
-                    failure_stage = "extension-layer-geometry";
-                    return false;
-                }
-                if (!owns_geometry)
-                    continue;
-                if (layer_state == FinExtensionLayerState::materialized) {
-                    // Every member keeps its solved transition identifiable
-                    // until the component completion barrier. It contributes
-                    // support geometry and the clearance exemption required
-                    // to connect the contact segment to its A1 cap.
-                    expolygons_append(
-                        prepared.clearance_exemptions,
-                        extension.layers[layer_id]);
-                    prepared.projection_sections.push_back(
-                        extension.layers[layer_id]);
-                } else {
-                    // Contact sections are part of the completed support and
-                    // carve their own exemption out of the clearance mask.
-                    expolygons_append(
-                        prepared.contact_centers,
-                        extension.layers[layer_id]);
-                    expolygons_append(
-                        prepared.clearance_exemptions,
-                        extension.layers[layer_id]);
-                }
-            }
-        }
-
-        prepared.contact_centers = union_ex(prepared.contact_centers);
-        prepared.clearance_exemptions = union_ex(
-            prepared.clearance_exemptions);
-        // Union completed members and shared joins only. Adding query-body
-        // copies or separate root strips would restore obsolete caps and seams.
-        prepared.centers = union_ex(centers);
-        if (prepared.centers.empty()) {
-            failure_stage = "empty-completed-center";
-            return false;
-        }
-        return true;
-    };
-
     auto prepare_line_intent_component = [&](
         TracedFin &hub, const std::vector<size_t> &members,
         std::vector<ExPolygons> &connection_centers,
-        std::vector<FinComponentCenterGeometry> &assembled_components) {
+        std::vector<PaintedFinAssemblyMember> &assembled_components) {
         composite_merge_failure_stage = "none";
         composite_merge_failure_layer = std::numeric_limits<size_t>::max();
         auto fail = [&](const char *failure_stage,
@@ -10913,12 +11217,16 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
         double thickness = hub.seed.dimensions.thickness;
         for (const size_t member : members) {
             assert(member < pending.size());
-            const FinComponentCenterGeometry &component_geometry =
+            const auto &component_geometry =
                 pending[member].component_geometry;
-            assert(component_geometry.source == member);
-            if (!component_geometry.complete)
+            if (!component_geometry)
                 return fail("member-incomplete");
-            assembled_components.push_back(component_geometry);
+            auto &assembled = assembled_components.emplace_back(
+                PaintedFinAssemblyMember{member, *component_geometry});
+            const auto &retained = pending[member].fin.path_present;
+            for (size_t layer = 0; layer < assembled.geometry.layers.size(); ++layer)
+                if (layer >= retained.size() || !retained[layer])
+                    assembled.geometry.layers[layer] = {};
             thickness = std::max(
                 thickness, pending[member].fin.seed.dimensions.thickness);
         }
@@ -10994,9 +11302,9 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
     };
 
     auto prepared_member_layer_center = [](
-        const FinComponentCenterGeometry &component, size_t layer_id) {
-        return layer_id < component.completed_centers.size() ?
-            component.completed_centers[layer_id] : ExPolygons{};
+        const PaintedFinAssemblyMember &component, size_t layer_id) {
+        return layer_id < component.geometry.layers.size() ?
+            component.geometry.layers[layer_id].centers : ExPolygons{};
     };
     std::vector<bool> line_processed(pending.size(), false);
     std::vector<bool> emitted_composite(pending.size(), false);
@@ -11045,7 +11353,8 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
         completed.intent_root_count = generation_roots.size();
 
         // Geometry failure may remove another member after the initial intent
-        // clip. Remove its unreachable material without inventing new roots.
+        // clip. Clear contact flags here; assembly filters its own geometry
+        // copy by the same retained paths without inventing new roots.
         completed.path_present.assign(completed.body_axes.size(), false);
         for (size_t layer = 0; layer < completed.body_axes.size(); ++layer) {
             completed.path_present[layer] = !completed.body_axes[layer].empty();
@@ -11053,22 +11362,12 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                 const TracedFin &fin = pending[member].fin;
                 if (layer < fin.path_present.size() && fin.path_present[layer])
                     continue;
-                auto &component = pending[member].component_geometry;
-                if (layer < component.body_centers.size()) {
-                    component.body_centers[layer].clear();
-                    component.completed_centers[layer].clear();
-                }
-                for (FinCenterExtension &extension : component.extensions)
-                    if (layer < extension.layers.size()) {
-                        extension.layers[layer].clear();
-                        extension.layer_states[layer] = FinExtensionLayerState::inactive;
-                    }
                 if (layer < pending[member].fin.contacts.size())
                     pending[member].fin.contacts[layer] = false;
             }
         }
         std::vector<ExPolygons> connection_centers;
-        std::vector<FinComponentCenterGeometry> assembled_components;
+        std::vector<PaintedFinAssemblyMember> assembled_components;
         if (!prepare_line_intent_component(completed, members, connection_centers, assembled_components)) {
             log_composite_failure(root, root);
             // An invalid completed component must not silently acquire another
@@ -11111,13 +11410,13 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             << " composite_fins=" << composite_intent_fins
             << " merge_failures=" << composite_merge_failures.count;
 
-    std::vector<ExPolygons> painted_layer_centers;
+    PaintedFinOutput painted_output;
     if (painted_shape) {
         // The intent graph is immutable from this point onward. Assemble all
         // components, then clip the layer union once by the exempted model mask.
         // This common result goes directly to outlining, without per-owner
         // geometry reconstruction or another whole-fin acceptance barrier.
-        std::vector<std::vector<PreparedFinLayer>> prepared(pending.size());
+        std::vector<std::vector<PaintedFinAssemblyLayer>> prepared(pending.size());
         std::vector<ExPolygons> layer_centers(object.layer_count());
         std::vector<ExPolygons> layer_clearance_exemptions(object.layer_count());
         size_t projection_exemption_sections = 0;
@@ -11126,15 +11425,13 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             if (!item.valid)
                 continue;
             if (item.connection_centers.empty()) {
-                assert(item.component_geometry.source == item_id);
-                if (!item.component_geometry.complete ||
-                    item.component_geometry.body_centers.empty()) {
+                if (!item.component_geometry || item.component_geometry->layers.empty()) {
                     item.valid = false;
                     ++rejected_geometry;
                     continue;
                 }
-                item.assembled_components = {item.component_geometry};
-                item.connection_centers.resize(item.component_geometry.completed_centers.size());
+                item.assembled_components = {{item_id, *item.component_geometry}};
+                item.connection_centers.resize(item.component_geometry->layers.size());
             }
             const size_t layer_count = item.connection_centers.size();
             prepared[item_id].resize(layer_count);
@@ -11143,7 +11440,7 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                 if (!item.fin.path_present.empty() && !item.fin.path_present[layer_id])
                     continue;
                 const char *failure_stage = "none";
-                if (!assemble_component_section(
+                if (!assemble_painted_fin_layer(
                         layer_id, item.connection_centers[layer_id],
                         item.assembled_components,
                         prepared[item_id][layer_id], failure_stage)) {
@@ -11196,13 +11493,13 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
         // components, and the parent itself never contributes to this union.
         struct SiblingMember {
             size_t owner;
-            const FinComponentCenterGeometry *component;
+            const PaintedFinAssemblyMember *component;
         };
         std::map<std::tuple<size_t, size_t, size_t>, std::vector<SiblingMember>> sibling_groups;
         for (size_t owner = 0; owner < pending.size(); ++owner) {
             if (!pending[owner].valid)
                 continue;
-            for (const FinComponentCenterGeometry &component : pending[owner].assembled_components) {
+            for (const PaintedFinAssemblyMember &component : pending[owner].assembled_components) {
                 const FinCandidate &seed = pending[component.source].fin.seed;
                 if (seed.intent_island && seed.source_attachment_junction)
                     sibling_groups[{*seed.intent_island, seed.source_attachment_junction->first,
@@ -11261,7 +11558,7 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             << " stage=painted-shape-sibling-cavities"
             << " filled_sections=" << sibling_cavity_sections;
 
-        painted_layer_centers.resize(object.layer_count());
+        painted_output.layer_centers.resize(object.layer_count());
         size_t nonempty_support_layers = 0;
         size_t model_gap_clip_layers = 0;
         size_t clearance_exemption_layers = 0;
@@ -11296,9 +11593,9 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                     float(scale_(0.5 * gap)), jtRound, double(scale_(0.005))));
             // This is the model-gap subtraction of completed center geometry;
             // finite intent paths were clipped separately before contacts.
-            painted_layer_centers[layer_id] = diff_ex(
+            painted_output.layer_centers[layer_id] = diff_ex(
                 layer_centers[layer_id], clearance);
-            if (painted_layer_centers[layer_id].empty()) {
+            if (painted_output.layer_centers[layer_id].empty()) {
                 const Layer &layer = *object.get_layer(int(layer_id));
                 BOOST_LOG_TRIVIAL(info)
                     << "Fin support object=" << object.model_object()->name
@@ -11323,15 +11620,17 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             PendingFin &item = pending[item_id];
             if (!item.valid)
                 continue;
-            item.fin.centers.resize(prepared[item_id].size());
+            PaintedFinOutputSource source_geometry{item.fin.seed.normal, {}};
+            source_geometry.layers.resize(prepared[item_id].size());
             item.fin.contact_projection_retained_layers = 0;
             for (size_t layer_id = 0; layer_id < prepared[item_id].size(); ++layer_id) {
                 auto &source = prepared[item_id][layer_id];
                 for (const ExPolygons &projection : source.projection_sections)
                     item.fin.contact_projection_retained_layers +=
-                        diff_ex(projection, painted_layer_centers[layer_id]).empty();
-                item.fin.centers[layer_id] = std::move(source.centers);
+                        diff_ex(projection, painted_output.layer_centers[layer_id]).empty();
+                source_geometry.layers[layer_id] = std::move(source.centers);
             }
+            painted_output.sources.push_back(std::move(source_geometry));
         }
     }
 
@@ -11419,7 +11718,7 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                 << " stage=painted-shape-emit-begin"
                 << " fins=" << fins.size();
         emit_stats = emit_fin_support(object, fins,
-            painted_shape ? &painted_layer_centers : nullptr);
+            painted_shape ? &painted_output : nullptr);
     }
     std::ostringstream stage_failure_summary;
     bool has_stage_failures = false;
@@ -11534,7 +11833,7 @@ void generate_fin_support(PrintObject &object)
         for (const FinCandidate &candidate : candidates)
             proposals.push_back({candidate});
         generate_candidate_fin_support(object, painted, blockers, bed, line_width, walls, proposals,
-                                       "simple", "simple-geometry");
+                                       FinGeometryMode::projected, "simple", "simple-geometry");
         return;
     }
     if (config.fin_support_style.value == fssPaintedShape) {
@@ -11542,11 +11841,21 @@ void generate_fin_support(PrintObject &object)
         BOOST_LOG_TRIVIAL(debug)
             << "Fin support object=" << object.model_object()->name
             << " stage=painted-shape-analysis-complete";
-        const std::vector<FinCandidateProposal> proposals = resolve_painted_fin_paths(
-            object, select_painted_shape_fin_candidates(object, painted_data, shape));
+        std::vector<FinCandidateProposal> proposals;
+        {
+            FinPointResolutionReport point_report;
+            const FinIntentInput input = publish_painted_fin_intents(object, painted_data, shape, point_report);
+            const FinCorrectionResult corrected = correct_fin_intents(object, input, shape, point_report);
+            FinCandidatePreparationReport preparation_report;
+            const FinPreparationInput prepared =
+                prepare_fin_candidates(object, corrected, preparation_report);
+            log_painted_fin_preparation(object, painted_data, corrected, point_report,
+                preparation_report, prepared.candidates.size());
+            proposals = resolve_fin_paths(object, prepared);
+        }
         export_painted_fin_paths(object, painted_data, proposals);
         generate_candidate_fin_support(object, painted, blockers, bed, line_width, walls, proposals,
-                                       "painted-shape", "painted-shape-geometry");
+                                       FinGeometryMode::painted_shape, "painted-shape", "painted-shape-geometry");
         return;
     }
     FinDiagnostics diagnostics;
