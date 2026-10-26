@@ -37,6 +37,7 @@ add_executable(${_TEST_NAME}_tests
     test_preset_diff.cpp
     test_vendor_cache.cpp
     test_preset_options.cpp
+    test_distance_transform.cpp
     test_edge_grid.cpp
     test_elephant_foot_compensation.cpp
     test_exclusion_volumes.cpp

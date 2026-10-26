@@ -110,6 +110,11 @@ using AdaptiveInfillFieldPtr = std::unique_ptr<AdaptiveInfillField>;
 // A field for every adaptive mode in use, indexed by the mode.
 using AdaptiveInfillFields = std::array<AdaptiveInfillFieldPtr, size_t(AdaptiveInfillMode::Count)>;
 
+// Scale of the adaptive infill relative to the surface, at a depth from 0 at the surface to 1 at the deepest point, for
+// a ratio of the interior to the surface density: the density the modes grade towards, and the curve of the density
+// graph of the settings.
+double adaptive_infill_target_scale(double ratio, AdaptiveInfillGradient gradient, double depth);
+
 struct AdaptiveTpms
 {
     // Implicit TPMS equation with a period of 2 PI.

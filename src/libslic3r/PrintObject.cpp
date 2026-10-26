@@ -31,6 +31,7 @@
 #include "TriangleMeshSlicer.hpp"
 #include "Utils.hpp"
 #include "Fill/FillAdaptive.hpp"
+#include "Fill/FillBone.hpp"
 #include "Fill/Fill.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Fill/AdaptiveInfillField.hpp"
@@ -1303,6 +1304,14 @@ AdaptiveInfillFields PrintObject::prepare_adaptive_infill_fields() const
     return fields;
 }
 
+BoneInfillPtr PrintObject::prepare_bone_infill() const
+{
+    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id)
+        if (uses_bone_infill(this->printing_region(region_id).config()))
+            return std::make_unique<BoneInfill>(*this, [this]() { m_print->throw_if_canceled(); });
+    return {};
+}
+
 void PrintObject::clear_layers()
 {
     if (!m_shared_object) {
@@ -1709,6 +1718,13 @@ bool PrintObject::invalidate_state_by_config_options(
                    || opt_key == "adaptive_infill_mode"
                    || opt_key == "adaptive_infill_interior_density"
                    || opt_key == "adaptive_infill_gradient"
+                   || opt_key == "bone_falloff"
+                   || opt_key == "bone_falloff_curve"
+                   || opt_key == "bone_falloff_custom"
+                   || opt_key == "bone_hollow_depth"
+                   || opt_key == "bone_irregularity"
+                   || opt_key == "bone_isotropy"
+                   || opt_key == "bone_max_bridge"
                    // Orca: Body centering now also determines bridge anchors during preparation.
                    // Invalidating preparation also invalidates infill, including top/bottom surfaces.
                    || opt_key == "center_of_surface_pattern"
@@ -3363,6 +3379,7 @@ void PrintObject::bridge_over_infill()
 
         this->m_adaptive_fill_octrees = this->prepare_adaptive_infill_data(surfaces_w_layer);
         this->m_adaptive_infill_fields    = this->prepare_adaptive_infill_fields();
+        this->m_bone_infill               = this->prepare_bone_infill();
 
         std::vector<size_t> layers_to_generate_infill;
         for (const auto &pair : surfaces_by_layer) {

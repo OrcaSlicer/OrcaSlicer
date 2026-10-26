@@ -6,7 +6,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Fill/FillBone.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/Surface.hpp"
 #include "libslic3r/Point.hpp"
@@ -2504,4 +2507,197 @@ TEST_CASE("Monotonic line top surfaces print their gap fill next to their lines 
     }
     REQUIRE(gap_fills > 0);
     CHECK(gap_fills_before_a_line > 0);
+}
+
+// A 60 mm cube in 0.4 mm layers with bone infill, centered on the origin in XY.
+static void slice_bone_cube(Print &print, std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {})
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", "bone"},
+                                   {"sparse_infill_density", "35%"},
+                                   {"adaptive_infill_interior_density", "6%"},
+                                   {"bone_falloff", 7},
+                                   {"bone_hollow_depth", 0},
+                                   {"layer_height", 0.4},
+                                   {"initial_layer_print_height", 0.4}});
+    config.set_deserialize_strict(extra);
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(60)}, print, config);
+}
+
+TEST_CASE("Bone infill is dense under the walls and sparse in the core", "[Fill]")
+{
+    Print print;
+    slice_bone_cube(print);
+    // At mid height, a band 1 to 5 mm inside the side walls (35% to about 25% dense) against the middle,
+    // more than 20 mm from every face (6% dense). Both have the same area: 4 * 4 * 54 = 864 against 29.4^2.
+    const Polygons band = diff(centered_square(29.), centered_square(25.));
+    const Polygons core = centered_square(14.7);
+    const double   band_length = sparse_infill_length(print, 25., 35., band);
+    const double   core_length = sparse_infill_length(print, 25., 35., core);
+    REQUIRE(band_length > 0.);
+    CHECK(core_length > 0.);
+    CHECK(core_length < 0.5 * band_length);
+}
+
+TEST_CASE("Bone infill leaves out the hollow core", "[Fill]")
+{
+    Print print;
+    slice_bone_cube(print, {{"bone_hollow_depth", 8}});
+    // More than 12 mm from every side wall and from the top and bottom: deeper than the 8 mm hollow depth.
+    CHECK_THAT(sparse_infill_length(print, 15., 45., centered_square(17.)), Catch::Matchers::WithinAbs(0., 1e-9));
+    CHECK(sparse_infill_length(print, 15., 45., diff(centered_square(29.), centered_square(25.))) > 0.);
+}
+
+TEST_CASE("Bone infill leaves the core hollow below 3% interior density", "[Fill]")
+{
+    Print print;
+    slice_bone_cube(print, {{"adaptive_infill_interior_density", "1%"}});
+    // With no hollow depth set, the core is hollow where the density falls below 3%, about 8 mm deep,
+    // instead of being crossed by spokes from the band.
+    CHECK_THAT(sparse_infill_length(print, 15., 45., centered_square(17.)), Catch::Matchers::WithinAbs(0., 1e-9));
+    CHECK(sparse_infill_length(print, 15., 45., diff(centered_square(29.), centered_square(25.))) > 0.);
+}
+
+TEST_CASE("Bone infill fills the layers under the top surface", "[Fill]")
+{
+    Print print;
+    slice_bone_cube(print);
+    // Cells get smaller towards the top, so new walls bridge the larger cells below: the band 2 to 6 mm under
+    // the top surface is filled about as densely as the band 2 to 6 mm inside a side wall. Both are 4 mm deep
+    // over the same area, 50^2 against 4 * 4 * 52 = 832 over 10 mm, so their lengths compare as 2500 : 2080.
+    const double under_top = sparse_infill_length(print, 54., 58., centered_square(25.));
+    const double beside_side = sparse_infill_length(print, 25., 35., diff(centered_square(28.), centered_square(24.)));
+    REQUIRE(beside_side > 0.);
+    CHECK(under_top / 2500. > 0.75 * beside_side / 2080.);
+}
+
+TEST_CASE("Bone infill walls rest on the infill below or bridge short gaps", "[Fill]")
+{
+    Print print;
+    slice_bone_cube(print, {{"bone_max_bridge", 3}, {"layer_height", 0.2}, {"initial_layer_print_height", 0.2}});
+    const double width = print.objects().front()->layers().front()->regions().front()->flow(frInfill).width();
+    // Share of the infill of each layer farther than half a line from the infill below, where that layer has
+    // sparse infill under it: the bridges, which are short and few. Away from the perimeters, where the
+    // infill is connected along them.
+    double floating = 0., total = 0.;
+    const auto &layers = print.objects().front()->layers();
+    for (size_t l = 2; l + 2 < layers.size(); ++l) {
+        Polylines here, below;
+        for (const LayerRegion *region : layers[l]->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (entity->role() == erInternalInfill)
+                    entity->collect_polylines(here);
+        for (const LayerRegion *region : layers[l - 1]->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (entity->role() == erInternalInfill)
+                    entity->collect_polylines(below);
+        if (below.empty())
+            continue;
+        here = intersection_pl(here, centered_square(27.));
+        const Polygons support = offset(below, float(scale_(0.5 * width)));
+        const double   length  = unscale<double>(total_length(here));
+        total += length;
+        floating += length - unscale<double>(total_length(intersection_pl(here, support)));
+    }
+    REQUIRE(total > 0.);
+    CHECK(floating < 0.1 * total);
+}
+
+TEST_CASE("Bone infill density follows its falloff curve", "[Fill]")
+{
+    using Catch::Matchers::WithinAbs;
+    BoneGradient g;
+    g.wall_density = 0.8;
+    g.core_density = 0.1;
+    g.falloff      = 10.;
+    for (BoneFalloffCurve curve : { BoneFalloffCurve::Linear, BoneFalloffCurve::SCurve, BoneFalloffCurve::Exponential,
+                                    BoneFalloffCurve::Logarithmic, BoneFalloffCurve::Custom }) {
+        g.curve = curve;
+        CHECK_THAT(g.density(0.), WithinAbs(0.8, 1e-9));
+        CHECK_THAT(g.density(10.), WithinAbs(0.1, 1e-9));
+        CHECK_THAT(g.density(20.), WithinAbs(0.1, 1e-9));
+        // Every curve goes down all the way.
+        for (double depth = 0.; depth < 10.; depth += 0.25)
+            CHECK(g.density(depth + 0.25) <= g.density(depth) + 1e-9);
+    }
+    // Exponential drops early, logarithmic late.
+    g.curve = BoneFalloffCurve::Exponential;
+    const double early = g.density(2.);
+    g.curve = BoneFalloffCurve::Logarithmic;
+    CHECK(early < 0.5);
+    CHECK(g.density(2.) > 0.7);
+
+    // The custom curve goes through its points.
+    g.curve  = BoneFalloffCurve::Custom;
+    g.custom = { 0.1, 0.3, 0.85, 0.9 };
+    CHECK_THAT(g.progress(0.2), WithinAbs(0.1, 1e-9));
+    CHECK_THAT(g.progress(0.6), WithinAbs(0.85, 1e-9));
+}
+
+TEST_CASE("Bone infill reads its custom curve with a decimal point in any locale", "[Fill]")
+{
+    using Catch::Matchers::WithinAbs;
+    const std::array<double, 4> custom = BoneGradient::parse_custom(" 10.5, 30,85.25 ,90");
+    CHECK_THAT(custom[0], WithinAbs(0.105, 1e-9));
+    CHECK_THAT(custom[1], WithinAbs(0.3, 1e-9));
+    CHECK_THAT(custom[2], WithinAbs(0.8525, 1e-9));
+    CHECK_THAT(custom[3], WithinAbs(0.9, 1e-9));
+    CHECK(BoneGradient::serialize_custom({ 0.105, 0.3, 0.85, 0.9 }) == "10.5,30,85,90");
+    // Anything but four numbers reads as the linear curve.
+    const std::array<double, 4> linear { 0.2, 0.4, 0.6, 0.8 };
+    CHECK(BoneGradient::parse_custom("10,abc,85,90") == linear);
+    CHECK(BoneGradient::parse_custom("10,30,85") == linear);
+    CHECK(BoneGradient::parse_custom("10,30,85,90x") == linear);
+}
+
+TEST_CASE("Bone infill leaves the core hollow where the density falls below 3%", "[Fill]")
+{
+    using Catch::Matchers::WithinAbs;
+    BoneGradient g;
+    g.wall_density = 0.8;
+    g.core_density = 0.01;
+    g.falloff      = 10.;
+    g.curve        = BoneFalloffCurve::Linear;
+    // The linear density reaches 3% at 10 * (0.8 - 0.03) / (0.8 - 0.01) mm.
+    CHECK_THAT(g.hollow_from(), WithinAbs(10. * 0.77 / 0.79, 0.05));
+    // A shallower hollow depth wins.
+    g.hollow_depth = 4.;
+    CHECK_THAT(g.hollow_from(), WithinAbs(4., 1e-9));
+    // At or above 3% and without a hollow depth, nothing is hollow.
+    g.core_density = 0.1;
+    g.hollow_depth = 0.;
+    CHECK(std::isinf(g.hollow_from()));
+}
+
+TEST_CASE("Bone infill walls are the same each time they are generated", "[Fill]")
+{
+    // A 20 mm cube in 0.5 mm layers, filled everywhere but its outer millimetre.
+    const auto square = [](double lo, double hi) {
+        return ExPolygons { ExPolygon(Polygon { Point::new_scale(lo, lo), Point::new_scale(hi, lo), Point::new_scale(hi, hi), Point::new_scale(lo, hi) }) };
+    };
+    const ExPolygons       outline = square(0., 20.);
+    std::vector<BoneLayer> layers;
+    for (int l = 0; l < 40; ++l)
+        layers.push_back({ 0.5 * l, 0.5 * (l + 1), &outline, l >= 2 && l < 38 ? square(1., 19.) : ExPolygons() });
+    BoneParams params;
+    params.gradient.wall_density = 0.35;
+    params.gradient.core_density = 0.1;
+
+    const std::vector<Polylines> first  = generate_bone_walls(layers, params, [] {});
+    const std::vector<Polylines> second = generate_bone_walls(layers, params, [] {});
+    REQUIRE(first.size() == layers.size());
+    CHECK_FALSE(first[20].empty());
+    CHECK(first == second);
+}
+
+TEST_CASE("Bone infill measures the deepest point of a part", "[Fill]")
+{
+    // A 60 mm cube in 0.5 mm layers: its centre is 30 mm below every face.
+    const ExPolygons square { ExPolygon(Polygon { Point::new_scale(0., 0.), Point::new_scale(60., 0.), Point::new_scale(60., 60.),
+                                                  Point::new_scale(0., 60.) }) };
+    std::vector<BoneLayer> layers;
+    for (int l = 0; l < 120; ++l)
+        layers.push_back({ 0.5 * l, 0.5 * (l + 1), &square, {} });
+    // The distance field is made of 0.4 mm voxels: within one and a half of them.
+    CHECK_THAT(bone_max_depth(layers, [] {}), Catch::Matchers::WithinAbs(30., 0.6));
 }

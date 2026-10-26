@@ -13,6 +13,7 @@
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
 #include "Fill/AdaptiveInfillField.hpp"
+#include "Fill/FillBone.hpp"
 
 #include "BoundingBox.hpp"
 #include "ExtrusionEntityCollection.hpp"
@@ -408,6 +409,8 @@ public:
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
     const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
+    // Walls of the bone infill of every layer, or nullptr without it.
+    const BoneInfill*                bone_infill() const { return m_bone_infill.get(); }
 
     // BBS
     void generate_support_preview();
@@ -657,6 +660,7 @@ private:
         const std::vector<std::pair<const Surface*, const Layer*>>& surfaces_w_layer) const;
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
     AdaptiveInfillFields prepare_adaptive_infill_fields() const;
+    BoneInfillPtr        prepare_bone_infill() const;
 
     // BBS
     SupportNecessaryType is_support_necessary();
@@ -708,6 +712,7 @@ private:
     std::vector<BoundingBox>                m_separated_body_bboxes;
     FillLightning::GeneratorPtr m_lightning_generator;
     AdaptiveInfillFields m_adaptive_infill_fields;
+    BoneInfillPtr        m_bone_infill;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;

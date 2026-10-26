@@ -133,6 +133,7 @@ enum InfillPattern : int {
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipSpiralInset, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
+    ipBone,
     ipCount,
 };
 
@@ -304,6 +305,15 @@ enum class AdaptiveInfillGradient {
     Linear,
     Quadratic,
     Exponential,
+};
+
+// Orca: how the bone infill density changes over the falloff depth below the walls.
+enum class BoneFalloffCurve {
+    Linear,
+    SCurve,
+    Exponential,
+    Logarithmic,
+    Custom,
 };
 
 //BBS
@@ -834,6 +844,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ArcFittingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillGradient)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BoneFalloffCurve)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -1522,6 +1533,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,              adaptive_infill_interior_density))
     ((ConfigOptionEnum<AdaptiveInfillGradient>, adaptive_infill_gradient))
     ((ConfigOptionBool,                 gyroid_optimized))
+    ((ConfigOptionFloat,                bone_falloff))
+    ((ConfigOptionEnum<BoneFalloffCurve>, bone_falloff_curve))
+    ((ConfigOptionString,               bone_falloff_custom))
+    ((ConfigOptionFloat,                bone_hollow_depth))
+    ((ConfigOptionPercent,              bone_irregularity))
+    ((ConfigOptionPercent,              bone_isotropy))
+    ((ConfigOptionFloat,                bone_max_bridge))
     // Ironing options
     ((ConfigOptionEnum<IroningType>, ironing_type))
     ((ConfigOptionEnum<InfillPattern>, ironing_pattern))

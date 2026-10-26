@@ -848,12 +848,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                             is_adaptive_infill_pattern(pattern);
     toggle_line("adaptive_infill_mode", have_adaptive_infill_pattern);
     bool have_adaptive_infill = have_adaptive_infill_pattern && config->opt_enum<AdaptiveInfillMode>("adaptive_infill_mode") != AdaptiveInfillMode::Disabled;
-    toggle_line("adaptive_infill_interior_density", have_adaptive_infill);
+    // The sparse infill density is the density of the bone infill just inside the walls, which grades to the
+    // interior density in its core; at 100% the infill is solid.
+    bool have_bone_infill = have_infill && pattern == ipBone && config->option<ConfigOptionPercent>("sparse_infill_density")->value < 100;
+    toggle_line("adaptive_infill_interior_density", have_adaptive_infill || have_bone_infill);
     toggle_line("adaptive_infill_gradient", have_adaptive_infill);
+    toggle_line("adaptive_infill_graph", have_adaptive_infill);
 
     // gyroid_optimized only applies when the sparse infill pattern is gyroid without adaptive density;
     // hide the whole line otherwise.
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid && !have_adaptive_infill);
+
+    for (auto el : {"bone_falloff", "bone_falloff_curve", "bone_hollow_depth", "bone_irregularity", "bone_isotropy", "bone_max_bridge",
+                    "bone_infill_tuning"})
+        toggle_line(el, have_bone_infill);
+    toggle_line("bone_falloff_custom", have_bone_infill && config->opt_enum<BoneFalloffCurve>("bone_falloff_curve") == BoneFalloffCurve::Custom);
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {

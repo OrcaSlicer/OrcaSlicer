@@ -112,6 +112,8 @@
 #include "BedShapeDialog.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "WipeTowerDialog.hpp"
+#include "AdaptiveInfillDialog.hpp"
+#include "BoneInfillDialog.hpp"
 
 
 #ifdef WIN32
@@ -2976,6 +2978,29 @@ void Tab::update_frequently_changed_parameters()
     }
 }
 
+// Orca: a row with a button that opens a dialog, and no setting behind it. Its key only lets toggle_line() show it
+// with the settings the dialog edits; TabPrintModel drops it, as no object config has that key.
+static Line dialog_button_line(const std::string &key, const char *label, const char *tooltip, const std::string &label_path,
+                               ConfigOptionMode mode, const wxString &button_label, std::function<void()> open)
+{
+    ConfigOptionDef placeholder_def;
+    placeholder_def.label   = label;
+    placeholder_def.mode    = mode;
+    placeholder_def.tooltip = tooltip;
+    Line line { placeholder_def.label, placeholder_def.tooltip };
+    line.label_path = label_path;
+    line.append_option(Option{ placeholder_def, key });
+    line.widget = [button_label, open = std::move(open)](wxWindow *parent) -> wxSizer * {
+        auto *btn = new Button(parent, button_label);
+        btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+        btn->Bind(wxEVT_BUTTON, [open](wxCommandEvent &) { open(); });
+        auto *sizer = new wxBoxSizer(wxHORIZONTAL);
+        sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL);
+        return sizer;
+    };
+    return line;
+}
+
 //BBS: BBS new parameter list
 void TabPrint::build()
 {
@@ -3156,7 +3181,29 @@ void TabPrint::build()
         optgroup->append_single_option_line("adaptive_infill_mode", "strength_settings_patterns#adaptive-density");
         optgroup->append_single_option_line("adaptive_infill_interior_density", "strength_settings_patterns#interior-density");
         optgroup->append_single_option_line("adaptive_infill_gradient", "strength_settings_patterns#adaptive-gradient");
+        optgroup->append_line(dialog_button_line("adaptive_infill_graph", L("Density graph"),
+                                                 L("Shape the adaptive infill on a graph of its density from the surface to "
+                                                   "the center of the object."),
+                                                 "strength_settings_patterns#adaptive-density", comAdvanced, _L("Edit on graph"), [this] {
+                                                     AdaptiveInfillDialog dlg(wxGetApp().mainframe, this);
+                                                     dlg.ShowModal();
+                                                 }));
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
+        optgroup->append_single_option_line("bone_falloff", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_falloff_curve", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_falloff_custom", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_hollow_depth", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_irregularity", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_isotropy", "strength_settings_patterns#bone");
+        optgroup->append_single_option_line("bone_max_bridge", "strength_settings_patterns#bone");
+        // In Simple mode too, since the dialog is the easiest way to tune the bone settings, which are all Advanced.
+        optgroup->append_line(dialog_button_line("bone_infill_tuning", L("Density graph"),
+                                                 L("Shape the bone infill on a graph of its density below the walls, with an "
+                                                   "approximate preview."),
+                                                 "strength_settings_patterns#bone", comSimple, _L("Edit on graph"), [this] {
+                                                     BoneInfillDialog dlg(wxGetApp().mainframe, this);
+                                                     dlg.ShowModal();
+                                                 }));
         optgroup->append_single_option_line("sparse_infill_smooth_factor", "strength_settings_infill#sparse-infill-smooth-factor");
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");
         optgroup->append_single_option_line("sparse_infill_rotate_template", "strength_settings_infill_rotation_template_metalanguage");

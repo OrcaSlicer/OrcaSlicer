@@ -445,6 +445,9 @@ coordf_t Layer::get_sparse_infill_max_void_area()
         // Orca: the adaptive TPMS infill is as sparse as its interior density.
         if (density < 100.f && config.adaptive_infill_mode != AdaptiveInfillMode::Disabled && is_adaptive_infill_pattern(pattern))
             density = std::min(density, std::max(1.f, float(config.adaptive_infill_interior_density)));
+        // Orca: so is the bone infill, which always grades to the interior density.
+        if (density < 100.f && pattern == ipBone)
+            density = std::min(density, std::max(1.f, float(config.adaptive_infill_interior_density)));
 
         //BBS: rough estimation and need to be optimized
         double spacing = flow.scaled_spacing() * (100 - density) / density;
@@ -468,6 +471,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
             case ipLateralLattice:
             case ipHoneycomb:
             case ipLightning:
+            case ipBone:
                 max_void_area = std::max(max_void_area, 4.0 * spacing * spacing);
                 break;
             case ipCubic:

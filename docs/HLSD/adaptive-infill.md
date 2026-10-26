@@ -38,7 +38,9 @@ A regular 3D grid of cubic cells is rasterized from the `lslices` of the layers,
 so the field follows what is printed: negative volumes, the union of
 overlapping parts and holes are taken into account, and the mesh does not need
 to be closed. A padding node around the grid is always outside. The grid is
-capped at about a million nodes, with cells no smaller than 0.5 mm.
+capped at about a million nodes, with cells no smaller than 0.5 mm. The
+rasterization and the distance transform below are shared with the Bone infill,
+in `src/libslic3r/DistanceTransform.hpp`.
 
 - Bodies are the connected inside nodes. Each is graded on its own, so separate
   parts of one object each get their own sparse center.
@@ -199,6 +201,18 @@ the three modes trade differently:
 
 Stepped shells and Smooth blend need neither lobes nor reaches, which are not
 built for them.
+
+## Density graph
+
+`AdaptiveInfillDialog` (`src/slic3r/GUI/AdaptiveInfillDialog.{hpp,cpp}`) opens
+from the "Edit on graph" button below the adaptive gradient. It plots the target
+density, the surface density times `adaptive_infill_target_scale()`, from the
+surface to the deepest point, on a `DensityCurveGraph` (see
+[bone-infill.md](bone-infill.md)). Its two points set `sparse_infill_density`
+and `adaptive_infill_interior_density`, and a list picks
+`adaptive_infill_gradient`; Apply writes them into the Process tab. Stepped
+shells and Smooth blend reach that target in steps, and the lobe modes average
+it over the ball around the center, so the graph shows what the modes aim at.
 
 ## Constraints
 

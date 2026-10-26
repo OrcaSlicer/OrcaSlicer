@@ -336,7 +336,8 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "spiralinset", ipSpiralInset },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
-    { "octagramspiral", ipOctagramSpiral }
+    { "octagramspiral", ipOctagramSpiral },
+    { "bone", ipBone }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -402,6 +403,15 @@ static t_config_enum_values s_keys_map_AdaptiveInfillGradient{
     { "exponential", int(AdaptiveInfillGradient::Exponential) },
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AdaptiveInfillGradient)
+
+static t_config_enum_values s_keys_map_BoneFalloffCurve{
+    { "linear",      int(BoneFalloffCurve::Linear) },
+    { "s_curve",     int(BoneFalloffCurve::SCurve) },
+    { "exponential", int(BoneFalloffCurve::Exponential) },
+    { "logarithmic", int(BoneFalloffCurve::Logarithmic) },
+    { "custom",      int(BoneFalloffCurve::Custom) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BoneFalloffCurve)
 
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
@@ -3765,7 +3775,10 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("adaptive_infill_interior_density", coPercent);
     def->label      = L("Interior density");
     def->category   = L("Strength");
-    def->tooltip    = L("Density of the adaptive infill at the center of the object.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip    = L("Density of the adaptive infill at the center of the object, and of the bone infill in its core. "
+                        "Where the density of the bone infill falls below 3%, its core is left hollow, since cells that "
+                        "large would only cross it as long spokes between the walls.");
     def->sidetext   = "%";
     def->min        = 1;
     def->max        = 100;
@@ -3790,6 +3803,100 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Exponential"));
     def->mode       = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<AdaptiveInfillGradient>(AdaptiveInfillGradient::Linear));
+
+    def             = this->add("bone_falloff", coFloat);
+    def->label      = L("Density falloff");
+    def->category   = L("Strength");
+    def->tooltip    = L("Depth below the walls, and below the top and bottom shells, over which the bone infill goes "
+                        "from the sparse infill density to the interior density.");
+    def->sidetext   = L("mm");
+    def->min        = 0.5;
+    def->mode       = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(7));
+
+    def             = this->add("bone_falloff_curve", coEnum);
+    def->label      = L("Falloff curve");
+    def->category   = L("Strength");
+    def->tooltip    = L("How the bone infill density changes over the falloff depth.\n"
+                        "Linear: the density changes at a constant rate.\n"
+                        "S-curve: the density stays close to the sparse infill density just inside the walls, changes "
+                        "fastest halfway and levels off towards the interior density.\n"
+                        "Exponential: the density drops quickly just inside the walls and levels off towards the "
+                        "interior density.\n"
+                        "Logarithmic: the density stays close to the sparse infill density and drops quickly at the "
+                        "end of the falloff depth.\n"
+                        "Custom: the density follows the points of the custom curve.");
+    def->enum_keys_map = &ConfigOptionEnum<BoneFalloffCurve>::get_enum_values();
+    def->enum_values.push_back("linear");
+    def->enum_values.push_back("s_curve");
+    def->enum_values.push_back("exponential");
+    def->enum_values.push_back("logarithmic");
+    def->enum_values.push_back("custom");
+    def->enum_labels.push_back(L("Linear"));
+    def->enum_labels.push_back(L("S-curve"));
+    def->enum_labels.push_back(L("Exponential"));
+    def->enum_labels.push_back(L("Logarithmic"));
+    def->enum_labels.push_back(L("Custom"));
+    def->mode       = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<BoneFalloffCurve>(BoneFalloffCurve::SCurve));
+
+    def             = this->add("bone_falloff_custom", coString);
+    def->label      = L("Custom curve");
+    def->category   = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip    = L("Points of the custom falloff curve at 20%, 40%, 60% and 80% of the falloff depth, separated "
+                        "by commas. Each is how far the density has gone from the sparse infill density towards the "
+                        "interior density, in percent: 0 is the sparse infill density, 100 the interior density.");
+    def->mode       = comExpert;
+    def->set_default_value(new ConfigOptionString("20,40,60,80"));
+
+    def             = this->add("bone_hollow_depth", coFloat);
+    def->label      = L("Hollow core depth");
+    def->category   = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip    = L("The bone infill is left out deeper than this below the walls, like the cavity of a long "
+                        "bone. The cavity closes with a pointed roof so that the infill above it stays supported. "
+                        "0 fills the whole object, except for the hollow core left by an interior density below 3%.");
+    def->sidetext   = L("mm");
+    def->min        = 0;
+    def->mode       = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def             = this->add("bone_irregularity", coPercent);
+    def->label      = L("Irregularity");
+    def->category   = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip    = L("How irregular the cells of the bone infill are. 0% gives even cells, higher values vary "
+                        "their size and spacing like cancellous bone.");
+    def->sidetext   = "%";
+    def->min        = 0;
+    def->max        = 100;
+    def->mode       = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(100));
+
+    def             = this->add("bone_isotropy", coPercent);
+    def->label      = L("Isotropy");
+    def->category   = L("Strength");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip    = L("Shape of the cells of the bone infill. 100% gives round cells, which brace the part equally "
+                        "in every direction. Lower values make the cells taller, which is stiffer under vertical "
+                        "load and needs fewer bridges.");
+    def->sidetext   = "%";
+    def->min        = 0;
+    def->max        = 100;
+    def->mode       = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(80));
+
+    def             = this->add("bone_max_bridge", coFloat);
+    def->label      = L("Maximum bridge");
+    def->category   = L("Strength");
+    def->tooltip    = L("Longest span of bone infill printed over nothing between two supported points. Walls that "
+                        "would need longer bridges are left out. 0 keeps only walls that rest on the layer below.");
+    def->sidetext   = L("mm");
+    def->min        = 0;
+    def->max        = 10;
+    def->mode       = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(3));
 
     // Z-buckling bias optimization (experimental). Tightens the gyroid wave along the Z
     // (vertical) axis at low infill density to shorten the effective column length under
@@ -3832,6 +3939,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tpmsd");
     def->enum_values.push_back("tpmsfk");
     def->enum_values.push_back("gyroid");
+    def->enum_values.push_back("bone");
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
@@ -3858,6 +3966,8 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("TPMS-D"));
     def->enum_labels.push_back(L("TPMS-FK"));
     def->enum_labels.push_back(L("Gyroid"));
+    // TRN: Name of an infill pattern, a foam graded like cancellous bone.
+    def->enum_labels.push_back(L("Bone"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));

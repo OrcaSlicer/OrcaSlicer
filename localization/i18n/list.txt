@@ -124,6 +124,7 @@ src/slic3r/GUI/ThermalPreconditioningDialog.hpp
 src/slic3r/GUI/Jobs/SLAImportJob.cpp
 src/slic3r/GUI/Jobs/UpgradeNetworkJob.cpp
 src/slic3r/GUI/AboutDialog.cpp
+src/slic3r/GUI/AdaptiveInfillDialog.cpp
 src/slic3r/GUI/ActionRegistry.cpp
 src/slic3r/GUI/AMSMaterialsSetting.cpp
 src/slic3r/GUI/ExtrusionCalibration.cpp
@@ -135,6 +136,7 @@ src/slic3r/GUI/RecenterDialog.cpp
 src/slic3r/GUI/BackgroundSlicingProcess.cpp
 src/slic3r/GUI/BedShapeDialog.cpp
 src/slic3r/GUI/BedShapeDialog.hpp
+src/slic3r/GUI/BoneInfillDialog.cpp
 src/slic3r/GUI/ConfigManipulation.cpp
 src/slic3r/GUI/ConfigValueFormatter.cpp
 src/slic3r/GUI/DeviceManager.cpp
