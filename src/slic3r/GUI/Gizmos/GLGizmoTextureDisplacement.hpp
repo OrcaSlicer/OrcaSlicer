@@ -586,6 +586,13 @@ private:
     TextureAdjustments                m_adjust_preview_running; // what the in-flight pass is computing
     TextureAdjustments                m_adjust_preview_shown;   // what m_adjust_preview_tex holds
     bool                              m_adjust_preview_valid = false;
+    // Set while the image-adjustment panel's background dropper is armed: the next click on the preview
+    // image or on the model takes the colour under it.
+    bool                              m_adjust_bg_picking = false;
+    // Takes the background colour from the point of the model under `mouse_pos`: the picture's own
+    // colour there, read through the same projection the bake uses, not the lit pixel on screen.
+    // False when the ray misses or the layer does not colour that point, leaving the dropper armed.
+    bool                              pick_background_at(const Vec2d &mouse_pos);
     // Drops the GPU copies of the layer's image so the next frame rebuilds them from the decode, which
     // is where the live adjustment is applied. Called whenever the panel moves or reverts it.
     void invalidate_adjust_textures();
