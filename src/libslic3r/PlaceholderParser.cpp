@@ -1249,6 +1249,8 @@ namespace client
 
             if (!opt.has_index()) {
                 // Allow omitting extruder id when referencing vectors
+                const std::string opt_key(opt.it_range.begin(), opt.it_range.end());
+                const size_t elem_index = (opt_key == "z_hop" || boost::starts_with(opt_key, "retract") || boost::starts_with(opt_key, "wipe")) ? ctx->current_extruder_id : ctx->get_extruder_id();
                 switch (opt.opt->type()) {
                 case coFloats: {
                     const ConfigOptionFloatsNullable* opt_floatsnullable = dynamic_cast<const ConfigOptionFloatsNullable *>(opt.opt);
@@ -1256,14 +1258,14 @@ namespace client
                         if (opt_floatsnullable->size() == 1) { // old version
                             output.set_d(opt_floatsnullable->get_at(0));
                         } else {
-                            output.set_d(opt_floatsnullable->get_at(ctx->get_extruder_id()));
+                            output.set_d(opt_floatsnullable->get_at(elem_index));
                         }
                     } else {
                         const ConfigOptionFloats* opt_floats = static_cast<const ConfigOptionFloats*>(opt.opt);
                         if (opt_floats->size() == 1) { // old version
                             output.set_d(opt_floats->get_at(0));
                         } else {
-                            output.set_d(opt_floats->get_at(ctx->get_extruder_id()));
+                            output.set_d(opt_floats->get_at(elem_index));
                         }
                     }
                     break;
@@ -1271,12 +1273,12 @@ namespace client
                 case coFloatsOrPercents: {
                     const ConfigOptionFloatsOrPercentsNullable *opt_vec_nullable = dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(opt.opt);
                     if (opt_vec_nullable) {
-                        size_t elem_index = (opt_vec_nullable->size() == 1) ? 0 : ctx->get_extruder_id();
-                        resolve_float_or_percent(opt_vec_nullable->get_at(elem_index), elem_index);
+                        size_t idx = (opt_vec_nullable->size() == 1) ? 0 : elem_index;
+                        resolve_float_or_percent(opt_vec_nullable->get_at(idx), idx);
                     } else {
                         const ConfigOptionFloatsOrPercents *opt_vec = static_cast<const ConfigOptionFloatsOrPercents *>(opt.opt);
-                        size_t elem_index = (opt_vec->size() == 1) ? 0 : ctx->get_extruder_id();
-                        resolve_float_or_percent(opt_vec->get_at(elem_index), elem_index);
+                        size_t idx = (opt_vec->size() == 1) ? 0 : elem_index;
+                        resolve_float_or_percent(opt_vec->get_at(idx), idx);
                     }
                     break;
                 }
