@@ -3619,13 +3619,14 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
     const double sparse_infill_density = effective_float("sparse_infill_density");
     const int top_shell_layers = effective_int("top_shell_layers");
     const int bottom_shell_layers = effective_int("bottom_shell_layers");
-    const std::array<std::pair<const char *, bool>, 6> feature_filament_keys = {
+    const std::array<std::pair<const char *, bool>, 7> feature_filament_keys = {
         std::pair{ "outer_wall_filament_id", wall_loops > 0 || has_brim },
         std::pair{ "inner_wall_filament_id", wall_loops > 1 },
         std::pair{ "sparse_infill_filament_id", sparse_infill_density > 0.0 },
         std::pair{ "internal_solid_filament_id", sparse_infill_density > 0.0 || top_shell_layers > 0 || bottom_shell_layers > 0 },
         std::pair{ "top_surface_filament_id", top_shell_layers > 0 },
-        std::pair{ "bottom_surface_filament_id", bottom_shell_layers > 0 }
+        std::pair{ "bottom_surface_filament_id", bottom_shell_layers > 0 },
+        std::pair{ "ironing_filament", effective_int("ironing_type") != int(IroningType::NoIroning) }
     };
     auto collect_config_filaments = [&filament_ids, &feature_filament_keys](const DynamicConfig &config) {
         for (const auto &[key, active] : feature_filament_keys) {
@@ -3657,12 +3658,15 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
 
     const bool has_support = effective_bool("enable_support") || effective_int("raft_layers") > 0;
     if (has_support) {
-        const int support_filament = effective_int("support_filament");
-        const int interface_filament = effective_int("support_interface_filament");
-        if (support_filament > 0)
-            filament_ids.emplace(support_filament);
-        if (interface_filament > 0)
-            filament_ids.emplace(interface_filament);
+        // Resolves "Auto" support filaments, which needs the filament-scope keys of a full config.
+        std::optional<DynamicPrintConfig> full_config;
+        std::vector<int> support_filaments;
+        append_support_extruders(support_filaments, object, process_config, [&full_config]() -> const DynamicPrintConfig & {
+            if (!full_config)
+                full_config = wxGetApp().preset_bundle->full_config();
+            return *full_config;
+        });
+        filament_ids.insert(support_filaments.begin(), support_filaments.end());
     }
 
     // Match Orca's normal fallback for an unassigned object.

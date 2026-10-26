@@ -4726,6 +4726,8 @@ std::vector<unsigned int> PrintObject::printing_extruders() const
         };
         append_fixed_filament(config().support_filament.value);
         append_fixed_filament(config().support_interface_filament.value);
+        if (config().support_ironing)
+            append_fixed_filament(config().support_ironing_filament.value);
     }
     if (extruders.empty())
         extruders.emplace_back(0);
