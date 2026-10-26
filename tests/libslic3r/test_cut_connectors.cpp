@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
@@ -12,6 +13,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/libslic3r.h"
@@ -26,7 +28,7 @@ ModelObject* make_cube_object(Model& model)
     TriangleMesh mesh = make_cube(40.0, 40.0, 40.0);
     mesh.translate(Vec3f(-20.f, -20.f, -20.f));
     ModelObject* obj = model.add_object();
-    obj->add_volume(mesh, ModelVolumeType::MODEL_PART);
+    obj->add_volume(std::move(mesh));
     obj->add_instance();
     return obj;
 }
