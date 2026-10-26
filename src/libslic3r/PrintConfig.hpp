@@ -2083,6 +2083,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInt,                standby_temperature_delta))
     ((ConfigOptionFloat,                preheat_time))
     ((ConfigOptionInt,                preheat_steps))
+    ((ConfigOptionBool,               toolchange_prime_enable))
     ((ConfigOptionFloat,              toolchange_prime_length_min))
     ((ConfigOptionFloat,              toolchange_prime_length_max))
     ((ConfigOptionFloat,              toolchange_prime_idle_time))

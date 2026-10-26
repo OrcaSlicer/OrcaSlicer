@@ -11316,7 +11316,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     // Prime the new tool off the bed (e.g. into a purge bucket) instead of on a prime tower.
     // The block is wrapped in tags so GCodeProcessor can size or skip it by the tool's estimated idle time.
     const std::string& toolchange_prime_gcode = m_config.toolchange_prime_gcode.value;
-    if (!toolchange_prime_gcode.empty() && !m_config.enable_prime_tower && !m_config.single_extruder_multi_material &&
+    if (m_config.toolchange_prime_enable && !toolchange_prime_gcode.empty() && !m_config.enable_prime_tower && !m_config.single_extruder_multi_material &&
         old_filament_id >= 0 && old_filament_id != int(new_filament_id)) {
         if (m_toolchange_primed_extruders.size() <= new_filament_id)
             m_toolchange_primed_extruders.resize(new_filament_id + 1, false);

@@ -1430,11 +1430,23 @@ void GCodeProcessor::run_post_process()
     // Tool change priming: size each block between Toolchange_Prime_Start_Tag and Toolchange_Prime_End_Tag
     // by how long the new tool sat parked, and drop it entirely below the skip time.
     std::vector<float> tool_parked_since;
+    // Estimated time of the last pause or filament change. Its real length is unknown, so a tool parked across it gets a full prime.
+    float last_pause_time       = -1.0f;
     bool  in_toolchange_prime   = false;
     bool  skip_toolchange_prime = false;
     float toolchange_prime_scale = 1.0f;
     // return: true if the line was a move commented out by a skipped block
     auto process_toolchange_prime = [&](std::string& gcode_line) {
+        if (!in_toolchange_prime &&
+            (boost::starts_with(gcode_line, ";" + reserved_tag(ETags::Pause_Print)) ||
+             boost::starts_with(gcode_line, ";" + reserved_tag(ETags::Color_Change)) ||
+             boost::starts_with(gcode_line, ";" + reserved_tag(ETags::Manual_Tool_Change)) ||
+             GCodeReader::GCodeLine::cmd_is(gcode_line, "M600") || GCodeReader::GCodeLine::cmd_is(gcode_line, "M0") ||
+             GCodeReader::GCodeLine::cmd_is(gcode_line, "M1") || GCodeReader::GCodeLine::cmd_is(gcode_line, "M25") ||
+             GCodeReader::GCodeLine::cmd_is(gcode_line, "PAUSE"))) {
+            last_pause_time = export_line.get_normal_time();
+            return false;
+        }
         if (boost::starts_with(gcode_line, ";" + Toolchange_Prime_Start_Tag)) {
             int   next = -1, prev = -1;
             float max_length = 0.0f;
@@ -1447,8 +1459,11 @@ void GCodeProcessor::run_post_process()
                 tool_parked_since[prev] = now;
             }
             float idle = std::numeric_limits<float>::max();
-            if (!first_use && next >= 0 && size_t(next) < tool_parked_since.size() && tool_parked_since[next] >= 0.0f)
-                idle = now - tool_parked_since[next];
+            bool  after_pause = false;
+            if (!first_use && next >= 0 && size_t(next) < tool_parked_since.size() && tool_parked_since[next] >= 0.0f) {
+                after_pause = last_pause_time >= tool_parked_since[next];
+                idle        = after_pause ? std::numeric_limits<float>::max() : now - tool_parked_since[next];
+            }
             const float min_length = std::clamp(m_toolchange_prime_length_min, 0.0f, max_length);
             const float ratio      = m_toolchange_prime_idle_time > 0.0f ? std::clamp(idle / m_toolchange_prime_idle_time, 0.0f, 1.0f) : 1.0f;
             const float length     = min_length + (max_length - min_length) * ratio;
@@ -1458,6 +1473,8 @@ void GCodeProcessor::run_post_process()
             char buf[96];
             if (skip_toolchange_prime)
                 std::snprintf(buf, sizeof(buf), " (idle %.0fs, skipped)", idle);
+            else if (after_pause)
+                std::snprintf(buf, sizeof(buf), " (after pause, %.2fmm)", length);
             else if (idle == std::numeric_limits<float>::max())
                 std::snprintf(buf, sizeof(buf), " (first use, %.2fmm)", length);
             else

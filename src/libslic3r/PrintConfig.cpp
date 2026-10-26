@@ -6979,12 +6979,19 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInt(1));
 
+    def = this->add("toolchange_prime_enable", coBool);
+    def->label = L("Smart tool change prime");
+    def->category = L("Tool change priming");
+    def->tooltip = L("Run the printer's tool change prime G-code after each tool change, sized by how long the new tool was parked. "
+                     "Only used when the printer has tool change prime G-code and the prime tower is disabled.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("toolchange_prime_length_min", coFloat);
     def->label = L("Minimum prime length");
     def->category = L("Tool change priming");
     def->tooltip = L("Filament length primed by the tool change prime G-code when the new tool was parked only briefly. "
-                     "The prime length grows from this value to the maximum prime length as the tool's idle time grows. "
-                     "Only used when the printer has tool change prime G-code and the prime tower is disabled.");
+                     "The prime length grows from this value to the maximum prime length as the tool's idle time grows.");
     def->sidetext = "mm";
     def->min = 0;
     def->mode = comAdvanced;
@@ -6994,7 +7001,9 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Maximum prime length");
     def->category = L("Tool change priming");
     def->tooltip = L("Filament length primed after the new tool has been idle for the full idle time, or the first time it is used. "
-                     "Longer idle times let more filament ooze out and degrade in the hot nozzle, so more is purged.");
+                     "Longer idle times let more filament ooze out and degrade in the hot nozzle, so more is purged. "
+                     "A tool that was parked across a pause or filament change always gets this length, "
+                     "because the slicer cannot know how long the pause lasted.");
     def->sidetext = "mm";
     def->min = 0;
     def->mode = comAdvanced;

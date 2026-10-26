@@ -3420,6 +3420,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("preheat_steps", "multimaterial_settings_ooze_prevention#preheat-steps");
 
         optgroup = page->new_optgroup(L("Tool change priming"), L"param_flush");
+        optgroup->append_single_option_line("toolchange_prime_enable");
         optgroup->append_single_option_line("toolchange_prime_length_min");
         optgroup->append_single_option_line("toolchange_prime_length_max");
         optgroup->append_single_option_line("toolchange_prime_idle_time");

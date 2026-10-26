@@ -19,6 +19,7 @@ struct PrimeBlock
     bool        first_use;
     bool        skipped;
     double      e;
+    bool        after_pause;
 };
 
 std::vector<PrimeBlock> prime_blocks(const std::string& gcode)
@@ -32,7 +33,7 @@ std::vector<PrimeBlock> prime_blocks(const std::string& gcode)
     std::smatch m;
     while (std::getline(in, line)) {
         if (std::regex_match(line, m, start)) {
-            blocks.push_back({m[1].matched, false, 0.});
+            blocks.push_back({m[1].matched, false, 0., line.find("(after pause") != std::string::npos});
             in_block = true;
         } else if (in_block && std::regex_match(line, m, move)) {
             blocks.back().skipped = m[1].matched;
@@ -53,6 +54,7 @@ DynamicPrintConfig two_tool_config()
         { "wall_filament",                1 },
         { "sparse_infill_filament",       2 },
         { "solid_infill_filament",        2 },
+        { "toolchange_prime_enable",      true },
         { "toolchange_prime_gcode",       "G1 E{prime_length} F300 ; prime\n" },
         { "toolchange_prime_length_min",  1 },
         { "toolchange_prime_length_max",  10 },
@@ -101,4 +103,27 @@ TEST_CASE("Tool change prime is not emitted with a prime tower", "[ToolchangePri
     DynamicPrintConfig config = two_tool_config();
     config.set_deserialize_strict({{ "enable_prime_tower", true }});
     REQUIRE(prime_blocks(slice({TestMesh::cube_20x20x20}, config)).empty());
+}
+
+TEST_CASE("Tool change prime is off unless enabled", "[ToolchangePrime]")
+{
+    DynamicPrintConfig config = two_tool_config();
+    config.set_deserialize_strict({{ "toolchange_prime_enable", false }});
+    REQUIRE(prime_blocks(slice({TestMesh::cube_20x20x20}, config)).empty());
+}
+
+TEST_CASE("Tool change prime is full length after a pause", "[ToolchangePrime]")
+{
+    DynamicPrintConfig config = two_tool_config();
+    // A pause on every layer: the slicer can't know how long it lasts, so every reused tool gets the full prime.
+    config.set_deserialize_strict({{ "layer_change_gcode", "M600" }, { "toolchange_prime_skip_time", 36000 }});
+    std::vector<PrimeBlock> blocks = prime_blocks(slice({TestMesh::cube_20x20x20}, config));
+
+    REQUIRE(blocks.size() > 2);
+    for (const PrimeBlock& block : blocks) {
+        REQUIRE_FALSE(block.skipped);
+        REQUIRE_THAT(block.e, Catch::Matchers::WithinAbs(10., 1e-3));
+        if (!block.first_use)
+            REQUIRE(block.after_pause);
+    }
 }

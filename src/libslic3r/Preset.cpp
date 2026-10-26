@@ -1285,6 +1285,7 @@ static std::vector<std::string> s_Preset_print_options{
     "standby_temperature_delta",
     "preheat_time",
     "preheat_steps",
+    "toolchange_prime_enable",
     "toolchange_prime_length_min",
     "toolchange_prime_length_max",
     "toolchange_prime_idle_time",
