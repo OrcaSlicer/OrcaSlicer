@@ -1104,11 +1104,12 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         this->set_current_position_clear(true);
         return this->travel_to_xy(to_2d(point));
     }
-    else {
-        /*  In all the other cases, we perform an actual XYZ move and cancel
-            the lift. */
-        m_lifted = 0;
-    }
+    // A lifted nozzle that has to end lower travels at the lifted height and descends at the
+    // target, so it never sinks while crossing the print.
+    const bool descend_after_xy = m_lifted > EPSILON && point(2) < m_pos(2) - EPSILON;
+    /*  In all the other cases, we perform an actual XYZ move and cancel
+        the lift. */
+    m_lifted = 0;
 
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
@@ -1120,9 +1121,9 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         w.emit_f(final_travel_speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string();
-    } else if (!this->is_current_position_clear())
+    } else if (!this->is_current_position_clear() || descend_after_xy)
     {
-        //force to move xy first then z after filament change
+        //force to move xy first then z after filament change, or when coming down from a lift
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
         w.emit_f(final_travel_speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);

@@ -2041,3 +2041,54 @@ TEST_CASE("Initial filament start G-code tolerates a list shorter than the filam
 
     REQUIRE_NOTHROW(Slic3r::Test::gcode(print));
 }
+
+TEST_CASE("A lifted nozzle reaches its target height only after the travel back to the print", "[GCodeWriter]") {
+    // Two filaments on one nozzle with a prime tower: after each tool change the nozzle is
+    // lifted at the tower and travels back to the object.
+    const int lift = GENERATE(int(zhtNormal), int(zhtSlope), int(zhtSpiral), int(zhtAuto));
+    CAPTURE(lift);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        {"filament_self_index", "1,2"},
+        {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
+        {"z_hop", "0.4"},
+        {"retract_lift_below", "0"},
+        {"enable_prime_tower", 1},
+        {"wipe_tower_x", "50"},
+        {"wipe_tower_y", "50"},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+    });
+    config.option<ConfigOptionEnumsGeneric>("z_hop_types", true)->values = {lift};
+    Print print;
+    Model model;
+    print.is_BBL_printer() = true;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", "1"}}, {{"extruder", "2"}}};
+    Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config, &overrides);
+
+    // A travel (no E) that changes X or Y while lowering Z drags the nozzle down over the print.
+    std::istringstream lines(Test::gcode(print));
+    std::string        line;
+    double             z = 0.;
+    int                descending_travels = 0;
+    while (std::getline(lines, line)) {
+        if (line.rfind("G0 ", 0) != 0 && line.rfind("G1 ", 0) != 0)
+            continue;
+        std::istringstream words(line.substr(0, line.find(';')));
+        std::string        word;
+        words >> word; // the command
+        bool   xy = false, e = false;
+        double new_z = z;
+        while (words >> word) {
+            xy |= word[0] == 'X' || word[0] == 'Y';
+            e |= word[0] == 'E';
+            if (word[0] == 'Z')
+                new_z = std::stod(word.substr(1));
+        }
+        if (xy && !e && new_z < z - EPSILON) {
+            INFO(line);
+            ++descending_travels;
+        }
+        z = new_z;
+    }
+    CHECK(descending_travels == 0);
+}
