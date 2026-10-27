@@ -3277,8 +3277,6 @@ msgstr "İsim"
 msgid "All Plates"
 msgstr "Tüm Plakalar"
 
-# AI Translated
-# Needs human review: Context menu entry 'Order By' for plates; check 'Sıralama' reads right as a submenu title.
 msgid "Order By"
 msgstr "Sıralama"
 
@@ -5381,181 +5379,135 @@ msgstr ""
 "Evet - Arachne Duvarı Oluşturucusunu Etkinleştir\n"
 "Hayır - Arachne Duvarı Oluşturucusunu Devre Dışı Bırak ve Pütürlü Yüzey [Yer Değiştirme] modunu ayarla"
 
-# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
 msgstr "Ekstrüzyon hızını yumuşatmayı kullanmak için maksimum hacimsel ekstrüzyon hızı eğimini sıfırın üzerine ayarlayın."
 
-# AI Translated
-# Needs human review: 'Arc fitting' is shown as 'Ark' in the settings UI; 'Ark uydurma' used here for clarity.
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
 msgstr "Ark uydurma, bant yazıcılarda ve ekstrüzyon hızını yumuşatma etkinken kullanılamaz."
 
-# AI Translated
 msgid "Set wall loops above zero to use this setting."
 msgstr "Bu ayarı kullanmak için duvar döngülerini sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
 msgstr "Dolgu yoğunluğu sıfır olduğu için bu ayar gizlendi."
 
-# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
 msgstr "Dolgu çapaları için dolgu yoğunluğunun sıfırdan farklı olması ve desenin Konsantrik ya da Spiral içe dışında bir desen olması gerekir."
 
-# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
 msgstr "Bu ayarı görmek için dolgu kombinasyonunu etkinleştirin ve sıfırdan farklı bir dolgu yoğunluğu kullanın."
 
-# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
 msgstr "Dolgu yoğunluğu sıfırdan büyük ve %100'den küçükken Jiroid, Tpms-d ya da Tpms-fk dolgu seçin."
 
-# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
 msgstr "Dolgu yoğunluğu sıfırdan büyük ve %100'den küçükken Jiroid, Tpms-d ya da Tpms-fk dolgu için uyarlanabilir yoğunluğu etkinleştirin."
 
-# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
 msgstr "Bu ayarı kullanmak için sıfırdan farklı dolgu yoğunluğuyla Jiroid dolgu seçin ve uyarlanabilir yoğunluğu kapatın."
 
-# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
 msgstr "Seçili dolgu deseni çok çizgili dolguyu desteklemiyor."
 
-# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
 msgstr "Çizgi dolgu deseni dolgu çapalarını desteklemiyor."
 
-# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
 msgstr "Çizgi dışında bir dolgu deseni seçin ve maksimum dolgu çapası uzunluğunu sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
 msgstr "Bu ayarı kullanmak için Çapraz Zikzak ya da Kilitli Zikzak dolgu desenini seçin."
 
-# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
 msgstr "Bu ayarı kullanmak için Kilitli Zikzak dolgu desenini seçin."
 
-# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
 msgstr "Bu ayarı kullanmak için Zig zag, Çapraz Zikzak ya da Kilitli Zikzak dolgu desenini seçin."
 
-# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
 msgstr "Bu ayarı kullanmak için sıfırdan farklı dolgu yoğunluğuyla 3D petek dolgu seçin."
 
-# AI Translated
 msgid "Enable spiral vase mode to use this setting."
 msgstr "Bu ayarı kullanmak için spiral vazo modunu etkinleştirin."
 
-# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
 msgstr "Bu ayarı kullanmak için spiral vazo modunu ve pürüzsüz spirali etkinleştirin."
 
-# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
 msgstr "Bu ayar için üst katmanlar ya da spiral vazo modunda birden fazla alt katman gerekir."
 
-# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
 msgstr "Bu ayar için üst yüzey yoğunluğu sıfırdan farklı bir üst kabuk gerekir."
 
-# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
 msgstr "Bu ayarı kullanmak için alt katmanları sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
 msgstr "Sıfırdan farklı bir dolgu yoğunluğu ile dolgu yumuşatmayı destekleyen bir dolgu deseni ve çok çizgili dolgu ayarı kullanın."
 
-# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
 msgstr "Bu ayarı kullanmak için üst yüzey genişletmeyi sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
 msgstr "Arşimet akorları ya da Sekizgen spiral yüzey deseniyle bir üst ya da alt kabuk kullanın."
 
-# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
 msgstr "Seçili dolgu deseni ayrık dolguları desteklemiyor."
 
-# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
 msgstr "Yüzey yoğunluğu sıfırdan farklı bir üst kabuk ve Konsantrik, Spiral içe, Arşimet akorları ya da Sekizgen spiral yüzey deseni kullanın."
 
-# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
 msgstr "Alt katmanlar ve Konsantrik, Spiral içe, Arşimet akorları ya da Sekizgen spiral yüzey deseni kullanın."
 
-# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
 msgstr "Bu ayarı düzenlemek için sıfırdan farklı bir dolgu yoğunluğu ya da üst veya alt katmanlar kullanın."
 
-# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
 msgstr "Üst katman kalınlığını düzenlemek için spiral vazo modunu kapatın ve üst katmanları sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
 msgstr "Alt katman kalınlığını düzenlemek için spiral vazo modunu kapatın ve alt katmanları sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
 msgstr "Her ekstrüzyon rolünün ivmesini ayrı düzenlemek için varsayılan ivmeyi sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "This setting requires the Marlin firmware G-code flavor."
 msgstr "Bu ayar için Marlin ürün yazılımı G-code türü gerekir."
 
-# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
 msgstr "Yazıcı köşe sapması kullanırken sarsıntı ayarları kullanılamaz."
 
-# AI Translated
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
 msgstr "Bu ayarı düzenlemek için Marlin ürün yazılımı G-code türünde yazıcının köşe sapması sınırını sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
 msgstr "Her ekstrüzyon rolünün sarsıntısını ayrı düzenlemek için varsayılan sarsıntıyı sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
 msgstr "Bu ayarı kullanmak için bant yazıcı olmayan bir yazıcıda etek sayısını sıfırın üzerine ayarlayın."
 
-# AI Translated
-# Needs human review: 'full-height draft shield': 'tam yükseklikte rüzgarlık' - check the option name in the UI.
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
 msgstr "Etek yüksekliğini düzenlemek için bant yazıcı olmayan bir yazıcıda etek sayısını sıfırın üzerine ayarlayın ve tam yükseklikte rüzgarlığı kapatın."
 
-# AI Translated
 msgid "Skirts are unavailable for belt printers."
 msgstr "Bant yazıcılarda etek kullanılamaz."
 
-# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
 msgstr "Bu ayarı kullanmak için Kenarsız dışında bir kenar tipi seçin."
 
-# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
 msgstr "Bu ayarı kullanmak için eğik bandı olmayan bir yazıcıda kenarı etkinleştirin."
 
-# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
 msgstr "Genişliği düzenlenebilen bir kenar tipi seçin ya da eğik bantlı bir yazıcıda kenarı etkinleştirin."
 
-# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
 msgstr "Bu ayar için eğik dilimleme düzlemine sahip bir bant yazıcı gerekir."
 
-# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
 msgstr "Bu ayarı kullanmak için eğik dilimleme düzlemine sahip bir bant yazıcıda kenarı etkinleştirin."
 
-# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
 msgstr "Duvar filamentini seçmek için duvarları ya da kenarı etkinleştirin."
 
@@ -5566,378 +5518,282 @@ msgstr "Kenar kulak yarıçapı"
 msgid "Brim width"
 msgstr "Kenar genişliği"
 
-# AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
 msgstr "Kenar kulağı algılamayı düzenlemek için kenar genişliğini sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
 msgstr "Bu ayarı düzenlemek için boyanmış kenar kulakları kullanın ya da kenar genişliğini sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
 msgstr "Bu ayarı kullanmak için eğik bandı olmayan bir yazıcıda otomatik kenar kulaklarını seçin."
 
-# AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
 msgstr "Bu ayarı kullanmak için eğik bandı olmayan bir yazıcıda otomatik ya da boyanmış kenar kulaklarını seçin."
 
-# AI Translated
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
 msgstr "Bu ayarı kullanmak için fil ayağı telafisini etkinleştirin ya da fil ayağı katman yoğunluğunu %100'ün altına ayarlayın."
 
-# AI Translated
 msgid "Rafts are unavailable for belt printers."
 msgstr "Bant yazıcılarda raft kullanılamaz."
 
-# AI Translated
 msgid "Enable support to edit this setting."
 msgstr "Bu ayarı düzenlemek için desteği etkinleştirin."
 
-# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
 msgstr "Bu ayarı düzenlemek için desteği etkinleştirin ya da raft katmanları ekleyin."
 
-# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
 msgstr "Destek açısını düzenlemek için otomatik bir destek tipi seçin."
 
-# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
 msgstr "Eşik çakışmasını düzenlemek için otomatik bir destek tipi seçin ve destek açısını sıfıra ayarlayın."
 
-# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
 msgstr "Eşik çakışması ağaç desteklerde kullanılamaz."
 
-# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
 msgstr "Bu ayarı görmek için ağaç destekleri etkinleştirin ve Organik ya da Varsayılan dışında bir stil seçin."
 
-# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
 msgstr "Bu ayarı görmek için ağaç destekleri Organik ya da Varsayılan stille etkinleştirin."
 
-# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
 msgstr "Bağımsız destek katman yüksekliği organik ağaç desteklerde kullanılamaz."
 
-# AI Translated
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
 msgstr "Ağaç desteği kenar genişliğini düzenlemek için ağaç destekleri etkinleştirin ve otomatik kenar genişliğini kapatın."
 
-# AI Translated
 msgid "Enable tree supports to show the maximum bridge length."
 msgstr "Maksimum köprü uzunluğunu görmek için ağaç destekleri etkinleştirin."
 
-# AI Translated
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
 msgstr "Ağaç destekler, köprü destek ayarı yerine maksimum köprü uzunluğunu kullanır."
 
-# AI Translated
 msgid "Enable automatic tree supports to show this setting."
 msgstr "Bu ayarı görmek için otomatik ağaç destekleri etkinleştirin."
 
-# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit this setting."
 msgstr "Bu ayarı düzenlemek için üst ya da alt destek arayüz katmanlarını sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
 msgstr "Destek ütülemeyi kullanmak için bir raft ya da üst arayüz katmanlı destekleri etkinleştirin."
 
-# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
 msgstr "Bu ayarı görmek için destek ütülemeyi bir raft ya da üst destek arayüz katmanlarıyla etkinleştirin."
 
-# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
 msgstr "Arayüz aralığını düzenlemek için üst ya da alt destek arayüz katmanlarını sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
 msgstr "Destek ütüleme katı bir arayüz gerektirdiği için arayüz aralığı düzenlenemez."
 
-# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
 msgstr "İç duvar çizgi genişliğini düzenlemek için duvarları, eteği ya da kenarı etkinleştirin."
 
-# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
 msgstr "Destek filamentini seçmek için desteği, raftı ya da eteği etkinleştirin."
 
-# AI Translated
 msgid "Add raft layers to show raft contact distance."
 msgstr "Raft kontak mesafesini görmek için raft katmanları ekleyin."
 
-# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
 msgstr "Üst destek Z mesafesi sıfırken raft kontak mesafesi kullanılamaz."
 
-# AI Translated
 msgid "Add raft layers to show raft expansion."
 msgstr "Raft genişletmeyi görmek için raft katmanları ekleyin."
 
-# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
 msgstr "İnce, Güçlü ve Hibrit ağaç destekler raft genişletme yerine ilk katman genişletmeyi kullanır."
 
-# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
 msgstr "İlk katman genişletmeyi düzenlemek için bir raft ekleyin ya da İnce veya Güçlü dışında bir ağaç destek stili seçin."
 
-# AI Translated
 msgid "Enable ironing to use this setting."
 msgstr "Bu ayarı kullanmak için ütülemeyi etkinleştirin."
 
-# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
 msgstr "Ütüleme açılarını düzenlemek için ütülemeyi Doğrusal desenle etkinleştirin."
 
-# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
 msgstr "Ütüleme hızını düzenlemek için ütülemeyi ya da destek ütülemeyi etkinleştirin."
 
-# AI Translated
 msgid "Enable Z contouring to use this setting."
 msgstr "Bu ayarı kullanmak için Z konturlamayı etkinleştirin."
 
-# AI Translated
 msgid "Print order cannot be edited when the print sequence is By object."
 msgstr "Yazdırma sırası Nesneye göre iken baskı sırası düzenlenemez."
 
-# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
 msgstr "Bu ayar Bambu Lab yazıcılarında kullanılamaz."
 
-# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
 msgstr "Bu ayar tek ekstruder çoklu malzeme modunda kullanılamaz."
 
-# AI Translated
 msgid "Enable ooze prevention to use this setting."
 msgstr "Bu ayarı kullanmak için sızıntı önlemeyi etkinleştirin."
 
-# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
 msgstr "Bu ayarı görmek için sızıntı önlemeyi etkinleştirin ve pozitif sayıda ön ısıtma adımı kullanın."
 
-# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
 msgstr "Bu ayarı kullanmak için bant yazıcı ayarlarında bant yıkama kulesini etkinleştirin."
 
-# AI Translated
 msgid "Enable the prime tower on a non-belt printer to use this setting."
 msgstr "Bu ayarı kullanmak için bant yazıcı olmayan bir yazıcıda prime kulesini etkinleştirin."
 
-# AI Translated
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
 msgstr "Bu ayarı kullanmak için bant yazıcı olmayan bir yazıcıda prime kulesini ve kule arayüzü özelliklerini etkinleştirin."
 
-# AI Translated
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
 msgstr "Bambu olmayan ve bant yazıcı olmayan bir yazıcıda prime kulesini etkinleştirin ve silme kulesi Tip 2'yi seçin."
 
-# AI Translated
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
 msgstr "Katman birleştirmeyi kullanmak için bant yazıcı olmayan bir yazıcıda prime kulesini etkinleştirin ve seyrek kule katmanlarını atlamayı kapatın."
 
-# AI Translated
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
 msgstr "Bu ayarı kullanmak için bant yazıcı olmayan bir yazıcıda prime kulesini Kaburga duvarlarla etkinleştirin."
 
-# AI Translated
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
 msgstr "Bambu olmayan ve bant yazıcı olmayan bir yazıcıda Koni duvarlı Tip 2 prime kulesini etkinleştirin."
 
-# AI Translated
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
 msgstr "Kule genişliğini düzenlemek için bant yazıcı olmayan bir yazıcıda prime kulesini etkinleştirin ve Kaburga dışında bir duvar tipi seçin."
 
-# AI Translated
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
 msgstr "Bambu olmayan ve bant yazıcı olmayan bir yazıcıda Tip 2 prime kulesini etkinleştirin ve tek ekstruder çoklu malzeme modunu kapatın."
 
-# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
 msgstr "Bu ayarı kullanmak için Döngüsel takım değişimi sıralamasını seçin."
 
-# AI Translated
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
 msgstr "Prime kulesini etkinleştirin ve ya prime kulesinde temizlemeyi ya da tek ekstruder çoklu malzeme modunu kapatın."
 
-# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "Bu ayarı kullanmak için prime kulesini etkinleştirin."
 
-# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
 msgstr "Maksimum seyahat sapma mesafesini düzenlemek için duvar geçişinden kaçınmayı etkinleştirin."
 
-# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
 msgstr "Bu ayarı kullanmak için diğer akış oranlarını ayarlamayı etkinleştirin."
 
-# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
 msgstr "Bu ayarı kullanmak için çıkıntılarda yavaşlamayı etkinleştirin."
 
-# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
 msgstr "Bu ayar genel baskı ayarlarında değil, nesne ayarlarında bulunur."
 
-# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
 msgstr "Bu ayarı görmek için belirli bir destek arayüzü filamenti seçin ve varsayılan destek filamentini kullanın."
 
-# AI Translated
 msgid "Enable fuzzy skin to use this setting."
 msgstr "Bu ayarı kullanmak için pütürlü yüzeyi etkinleştirin."
 
-# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
 msgstr "Bu ayarı kullanmak için pütürlü yüzeyi Ripple gürültüsüyle etkinleştirin."
 
-# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
 msgstr "Gürültü ölçeğini düzenlemek için pütürlü yüzeyi etkinleştirin ve Klasik ya da Ripple dışında bir gürültü tipi seçin."
 
-# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
 msgstr "Gürültü oktavlarını düzenlemek için pütürlü yüzeyi etkinleştirin ve Klasik, Voronoi ya da Ripple dışında bir gürültü tipi seçin."
 
-# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
 msgstr "Kalıcılığı düzenlemek için pütürlü yüzeyi Perlin ya da Billow gürültüsüyle etkinleştirin."
 
-# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
 msgstr "Bu ayarı kullanmak için duvar türü olarak Arachne'yi seçin."
 
-# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
 msgstr "İnce duvar algılama, duvar türü Arachne iken kullanılamaz."
 
-# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
 msgstr "Temizleme hızını elle düzenlemek için role göre temizleme hızını kapatın."
 
-# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
 msgstr "İçe doğru temizleme mesafesini düzenlemek için içe doğru temizlemeyi etkinleştirin."
 
-# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
 msgstr "Bu ayar için Klipper G-code türü gerekir."
 
-# AI Translated
-# Needs human review: 'acceleration to deceleration' option name; check it matches the setting label.
 msgid "Enable acceleration to deceleration to edit its factor."
 msgstr "Katsayısını düzenlemek için accel_to_decel'i etkinleştirin."
 
-# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
 msgstr "Dış hat toleransını düzenlemek için Klipper G-code türünde nesneleri hariç tutmayı etkinleştirin."
 
-# AI Translated
 msgid "Enable making overhangs printable to use this setting."
 msgstr "Bu ayarı kullanmak için çıkıntıları yazdırılabilir yapmayı etkinleştirin."
 
-# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
 msgstr "Üst katmanlarla birlikte üst yüzeylerde yalnızca bir dış duvarı etkinleştirin ya da minimum duvar uzunluğu katsayısı 0.5'in üzerinde olacak şekilde Arachne kullanın."
 
-# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
 msgstr "Bu ayarı kullanmak için delikleri çokgen deliklere dönüştürmeyi etkinleştirin."
 
-# AI Translated
 msgid "Enable overhang wall detection to use this setting."
 msgstr "Bu ayarı kullanmak için çıkıntı duvarı algılamayı etkinleştirin."
 
-# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
 msgstr "Ters çıkıntı yönü spiral vazo modunda kullanılamaz."
 
-# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
 msgstr "Bu ayarı kullanmak için spiral vazo modunu kapatın ve ters çıkıntı yönünü etkinleştirin."
 
-# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
 msgstr "Çıkıntı duvarı algılamayı ve ters çıkıntı yönünü etkinleştirin, spiral vazo modunu kapatın ve yalnızca iç çevreleri ters çevirmeyi kapatın."
 
-# AI Translated
 msgid "This setting requires a Bambu Lab printer."
 msgstr "Bu ayar için bir Bambu Lab yazıcı gerekir."
 
-# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
 msgstr "Modelini düzenlemek için küçük alan dolgu akış telafisini etkinleştirin."
 
-# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
 msgstr "Atkı dikişleri spiral vazo modunda ve bant yazıcılarda kullanılamaz."
 
-# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
 msgstr "Bu ayarı kullanmak için spiral vazo modu kapalı, bant yazıcı olmayan bir yazıcıda atkı dikişlerini etkinleştirin."
 
-# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
 msgstr "Minimum atkı dikişi uzunluğunu düzenlemek için tüm döngüye atkı uygulamayı kapatın."
 
-# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
 msgstr "Bu ayarı kullanmak için spiral vazo modu kapalı, bant yazıcı olmayan bir yazıcıda koşullu atkı dikişlerini etkinleştirin."
 
-# AI Translated
 msgid "Enable beam interlocking to use this setting."
 msgstr "Bu ayarı kullanmak için kiriş kilitlemeyi etkinleştirin."
 
-# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
 msgstr "Bölümlenmiş bölge kilitleme derinliğini düzenlemek için kiriş kilitlemeyi kapatın."
 
-# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
 msgstr "Bu ayarı kullanmak için Yanal kafes dolgu desenini seçin."
 
-# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
 msgstr "Bu ayarı kullanmak için Yıldırım dolgu desenini seçin."
 
-# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
 msgstr "Dolgu döndürme şablonları Uyarlanabilir kübik ve Destek kübik dolguda kullanılamaz."
 
-# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
 msgstr "Dolgu yönünü düzenlemek için seyrek dolgu döndürme şablonunu temizleyin ve Uyarlanabilir kübik ya da Destek kübik dışında bir desen seçin."
 
-# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
 msgstr "Katı dolgu yönünü düzenlemek için katı dolgu döndürme şablonunu temizleyin."
 
-# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
 msgstr "Bu ayarı kullanmak için Yanal petek dolgu desenini seçin."
 
-# AI Translated
-# Needs human review: 'wrapping detection' (filament wrapping around the nozzle/rod); 'sarılma algılama' - check.
 msgid "The selected printer does not support wrapping detection."
 msgstr "Seçili yazıcı sarılma algılamayı desteklemiyor."
 
-# AI Translated
-# Needs human review: SLA 'pad' kept as 'ped'; check against other SLA strings.
 msgid "Enable the pad to edit this setting."
 msgstr "Bu ayarı düzenlemek için pedi etkinleştirin."
 
-# AI Translated
 msgid "Enable the pad around the object to edit this setting."
 msgstr "Bu ayarı düzenlemek için nesnenin çevresindeki pedi etkinleştirin."
 
-# AI Translated
 msgid "Enable support and disable the pad around the object to edit object elevation."
 msgstr "Nesne yükseltmeyi düzenlemek için desteği etkinleştirin ve nesnenin çevresindeki pedi kapatın."
 
@@ -7696,7 +7552,6 @@ msgstr "Pencere düzenini sıfırla"
 msgid "Reset to default window layout"
 msgstr "Varsayılan pencere düzenine sıfırla"
 
-# AI Translated
 msgid "Show 3Dconnexion Settings"
 msgstr "3Dconnexion ayarlarını göster"
 
@@ -9201,20 +9056,16 @@ msgstr ""
 "Bu tür için kullanılabilir eklenti yeteneği yok.\n"
 "Kullanmak için birkaçını etkinleştirin veya yükleyin."
 
-# AI Translated
 msgid "Hidden by the current configuration."
 msgstr "Geçerli yapılandırma tarafından gizlendi."
 
-# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
 msgstr "Gizli: %1%"
 
-# AI Translated
 msgid "Disabled by the current configuration."
 msgstr "Geçerli yapılandırma tarafından devre dışı bırakıldı."
 
-# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
 msgstr "Devre dışı: %1%"
@@ -9434,7 +9285,6 @@ msgstr "Nesnenin tüm ayarları"
 msgid "Material settings"
 msgstr "Malzeme ayarları"
 
-# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
 msgstr "İşlem akış oranı bu panelde düzenlenemez."
 
@@ -10855,13 +10705,10 @@ msgstr "Pencere düğmelerini sol tarafta kullan"
 msgid "(Requires restart)"
 msgstr "(Yeniden başlatma gerektirir)"
 
-# AI Translated
-# Needs human review: 'discrete GPU' translated as 'harici GPU'; check it reads natural for dGPU.
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
 msgstr "Harici GPU'da işle"
 
-# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
 msgstr "İki GPU'lu bir bilgisayarda OrcaSlicer'ı ekranı süren GPU yerine harici GPU'da çalıştırır. Bazı Wayland sistemleri diğer GPU'da işlenen kareleri gösteremez ya da pencereyi hiç açamaz. 3D görünüm boş kalırsa bunu kapatın; OrcaSlicer artık açılmıyorsa buraya geri dönebilmek için onu bir kez DRI_PRIME=0 ortam değişkeniyle başlatın."
@@ -13046,7 +12893,6 @@ msgstr ""
 "Araç başlığı olmadan timelapse kaydederken, bir \"Timelapse Wipe Tower\" eklenmesi önerilir.\n"
 "Yapı plakasının boş konumuna sağ tıklayın ve \"İlkel Ekle\" -> \"Timelapse Temizleme Kulesi\" seçeneğini seçin."
 
-# AI Translated
 msgid "Setting unavailable"
 msgstr "Ayar kullanılamıyor"
 
@@ -13221,14 +13067,12 @@ msgstr "Eklenti Yapılandırması"
 msgid "Notes"
 msgstr "Notlar"
 
-# AI Translated
 msgid "The selected printer does not support multiple bed types."
 msgstr "Seçili yazıcı birden fazla yatak tipini desteklemiyor."
 
 msgid "Frequent"
 msgstr "Sıklıkla"
 
-# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
 msgstr "Plakada karışık renkli filamentler varken özel filament baskı sırası kullanılamaz."
 
@@ -13258,15 +13102,12 @@ msgstr "Ayarların Üzerine Yaz"
 msgid "Retraction when switching material"
 msgstr "Malzemeyi Değiştirirken Geri Çekme"
 
-# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
 msgstr "Bu ayarı düzenlemek için filament geri çekme uzunluğunu sıfırın üzerine ayarlayın ya da yazıcının değerini kullanın."
 
-# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
 msgstr "Kesimde uzun geri çekme için yazıcı profili filament geçersiz kılmalarına izin vermelidir."
 
-# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
 msgstr "Bu ayarı kullanmak için yazıcı profilinde kesimde uzun geri çekmeye izin verin ve filament profilinde bunu etkinleştirin."
 
@@ -13401,77 +13242,57 @@ msgstr "Uyumlu yazıcılar"
 msgid "Compatible process profiles"
 msgstr "Uyumlu süreç profilleri"
 
-# AI Translated
 msgid "Enable cooling for overhangs and bridges to edit this setting."
 msgstr "Bu ayarı düzenlemek için çıkıntılar ve köprüler için soğutmayı etkinleştirin."
 
-# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
 msgstr "Bu ayarı kullanmak için katman soğutması için yavaşlamayı etkinleştirin."
 
-# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
 msgstr "İlk katman fan hızını geçersiz kılmak için soğutmasız ilk katman sayısını sıfıra ayarlayın."
 
-# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
 msgstr "Bu ayarı kullanmak için yazıcı profilinde yardımcı fanı etkinleştirin."
 
-# AI Translated
 msgid "The selected printer does not support air filtration."
 msgstr "Seçili yazıcı hava filtrelemeyi desteklemiyor."
 
-# AI Translated
 msgid "Activate air filtration to edit this setting."
 msgstr "Bu ayarı düzenlemek için hava filtrelemeyi etkinleştirin."
 
-# AI Translated
-# Needs human review: Glossary has 'Egzos Fanı' (typo); used 'Egzoz fanı'.
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
 msgstr "Egzoz fanı hızını düzenlemek için hava filtrelemeyi etkinleştirin ve baskı sırasında açın."
 
-# AI Translated
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
 msgstr "Egzoz fanı hızını düzenlemek için hava filtrelemeyi etkinleştirin ve baskı bitiminde açın."
 
-# AI Translated
 msgid "Enable pressure advance to use this setting."
 msgstr "Bu ayarı kullanmak için Pressure Advance'ı etkinleştirin."
 
-# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
 msgstr "Sıcaklık ayarlarını görmek için bu yatak tipini seçin ya da yazıcı profilinde birden fazla yatak tipi desteğini etkinleştirin."
 
-# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
 msgstr "Bu ayarı kullanmak için Pressure Advance'ı ve uyarlanabilir Pressure Advance'ı etkinleştirin."
 
-# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
 msgstr "Bu ayarı kullanmak için yazıcı profilinde pelet yazıcı seçeneğini etkinleştirin."
 
-# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
 msgstr "Filament çapı pelet yazıcılarda kullanılamaz."
 
-# AI Translated
 msgid "The selected printer does not support chamber temperature control."
 msgstr "Seçili yazıcı bölme sıcaklığı kontrolünü desteklemiyor."
 
-# AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Uyarlanabilir hacimsel hızı etkinleştirmeden önce sıfırdan farklı hacimsel hız katsayıları ayarlayın."
 
-# AI Translated
-# Needs human review: 'ramming' kept in English; check usage in other strings.
 msgid "Enable multitool ramming to edit this setting."
 msgstr "Bu ayarı düzenlemek için çoklu takım ramming'ini etkinleştirin."
 
-# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
 msgstr "Bu ayar için birden fazla ekstruderli bir Bambu Lab yazıcı gerekir."
 
-# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
 msgstr "Birden fazla ekstruderli bir Bambu Lab yazıcı kullanın ve ekstruder değiştiğinde uzun geri çekmeyi etkinleştirin."
 
@@ -13636,80 +13457,60 @@ msgstr "Katman Yüksekliği Sınırları"
 msgid "Z-Hop"
 msgstr "Z Sıçraması"
 
-# AI Translated
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
 msgstr "Güç kaybının geri kazanımı için bir Bambu Lab yazıcı ya da Marlin ürün yazılımı G-code türü gerekir."
 
-# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
 msgstr "Bant yazıcılarda yatak eğimi bant eğiminden türetilir."
 
-# AI Translated
 msgid "Enable belt printer mode to use this setting."
 msgstr "Bu ayarı kullanmak için bant yazıcı modunu etkinleştirin."
 
-# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
 msgstr "Açısını düzenlemek için bant yazıcı modunu etkinleştirin ve bir bant dönme ekseni seçin."
 
-# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
 msgstr "Bu ayarı kullanmak için bant yazıcı modunu etkinleştirin ve Uzman ya da Geliştirici ayar görünürlüğünü seçin."
 
-# AI Translated
-# Needs human review: 'machine frame tilt' uses the glossary term 'makine koordinat sistemi'; check it makes sense.
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
 msgstr "Açısını düzenlemek için bant yazıcı modunu etkinleştirin, Uzman ya da Geliştirici ayar görünürlüğünü seçin ve makine koordinat sistemi eğimini ayırın."
 
-# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
 msgstr "Sayılarını düzenlemek için paralel baskı kafası desteğini etkinleştirin."
 
-# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
 msgstr "Çarpışma hacmi modu seçimi için birden fazla ekstruder gerekir."
 
-# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
 msgstr "Bu ayarı düzenlemek için paylaşılan bir çarpışma hacmi modu seçin ya da tek ekstruderli bir yazıcı kullanın."
 
-# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
 msgstr "Yönünü düzenlemek için yardımcı fanı etkinleştirin."
 
-# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
 msgstr "Hava filtreleme ve soğutma filtresi birbirinin yerine kullanılan aksesuarlardır; hava filtrelemeyi kullanmak için soğutma filtresi desteğini kapatın."
 
-# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
 msgstr "Bu ayarı kullanmak için yazıcı profilinde soğutma filtresi desteğini etkinleştirin."
 
-# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
 msgstr "Bant yıkama kulesini kullanmak için bant yazıcı modunu etkinleştirin."
 
-# AI Translated
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
 msgstr "Silme kulesi tipi seçimi Bambu Lab yazıcılarında ve bant yazıcılarda kullanılamaz."
 
-# AI Translated
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
 msgstr "Bu ayarı kullanmak için Bambu olmayan bir yazıcıda silme kulesi Tip 2'yi seçin."
 
-# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
 msgstr "Tek ekstruder çoklu malzeme modunda ekstruder sayısı düzenlenemez."
 
-# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
 msgstr "Manuel filament değişimini kullanmak için tek ekstruder çoklu malzeme modunu etkinleştirin."
 
-# AI Translated
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
 msgstr "Bu ayarı kullanmak için Bambu olmayan bir yazıcıda tek ekstruder çoklu malzeme modunu silme kulesi Tip 2 ile etkinleştirin."
 
-# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
 msgstr "Bu ayarı kullanmak için IDEX/IQEX yazıcı modunu etkinleştirin."
 
@@ -13729,43 +13530,33 @@ msgstr "Sol arka"
 msgid "Rear-right"
 msgstr "Sağ arka"
 
-# AI Translated
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
 msgstr "Bambu olmayan bir yazıcıda birden fazla ekstruderi silme kulesi Tip 2 ile kullanın ve tek ekstruder çoklu malzeme modunu kapatın."
 
-# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
 msgstr "Bu ayarı kullanmak için geri çekme uzunluğunu sıfırın üzerine ayarlayın ya da yazılımsal geri çekmeyi etkinleştirin."
 
-# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
 msgstr "Ekstruderin yazdırılabilir alanı ve yüksekliği yazıcı profili tarafından sabitlenmiştir."
 
-# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
 msgstr "Bu ayar yalnızca tam olarak iki ekstruderi olan yazıcılarda gösterilir."
 
-# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
 msgstr "Bu ayarı düzenlemek için birden fazla ekstruderli bir yazıcıda ekstruder başına çarpışma hacimlerini seçin."
 
-# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
 msgstr "Yazılımsal geri çekme etkinken geri çekme uzunluğunu ürün yazılımı belirler."
 
-# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
 msgstr "Bu ayarı kullanmak için geri çekmeyi etkinleştirin ve Z hop'u sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
 msgstr "Bu ayarı düzenlemek için geri çekme uzunluğunu sıfırın üzerine ayarlayın ve yazılımsal geri çekmeyi kapatın."
 
-# AI Translated
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
 msgstr "Temizleme öncesi geri çekmeyi düzenlemek için geri çekmeyi ve temizlemeyi etkinleştirin ve temizleme sonrası geri çekmeyi %100'ün altına ayarlayın."
 
-# AI Translated
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
 msgstr "Temizleme sonrası geri çekmeyi düzenlemek için geri çekmeyi ve temizlemeyi etkinleştirin ve temizleme öncesi geri çekmeyi %100'ün altına ayarlayın."
 
@@ -13782,59 +13573,45 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "Yazılımsal Geri Çekme"
 
-# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
 msgstr "Temizleme mesafesini düzenlemek için geri çekmeyi ve temizlemeyi etkinleştirin."
 
-# AI Translated
 msgid "This setting requires multiple extruders."
 msgstr "Bu ayar için birden fazla ekstruder gerekir."
 
-# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
 msgstr "Bu ayarı düzenlemek için birden fazla ekstruder kullanın ve takım değişimi geri çekme uzunluğunu sıfırın üzerine ayarlayın."
 
-# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
 msgstr "Bu ayarı kullanmak için yazılımsal geri çekmeyi kapatın ve kesimde uzun geri çekmeye izin verin."
 
-# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
 msgstr "Geri çekme mesafesini düzenlemek için kesimde uzun geri çekmeyi etkinleştirin."
 
-# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
 msgstr "Seyahat eğimini düzenlemek için Normal dışında bir Z hop tipi seçin."
 
-# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
 msgstr "Seyahat ivmesi sınırları Marlin (eski) ve Klipper G-code türlerinde kullanılamaz."
 
-# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
 msgstr "Marlin sıfırdan farklı köşe sapması kullanırken sarsıntı sınırları kullanılamaz."
 
-# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
 msgstr "Makine sınırlarını yazmak için Marlin (eski), Marlin ya da RepRapFirmware G-code türü gerekir."
 
-# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
 msgstr "Hız aralığını düzenlemek için rezonans kaçınmayı etkinleştirin."
 
-# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
 msgstr "Bu input shaping ayarı için Marlin ya da RepRapFirmware G-code türü gerekir."
 
-# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
 msgstr "Input shaping ayarlarını yazmak için makine sınırlarını G-code'a yazmayı etkinleştirin."
 
-# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
 msgstr "Bu ayarı düzenlemek için makine sınırlarını ve input shaping'i G-code'a yazmayı etkinleştirin."
 
-# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
 msgstr "Ayrı Y ekseni değerlerini düzenlemek için Marlin ürün yazılımı G-code türünde makine sınırlarını ve input shaping'i G-code'a yazmayı etkinleştirin."
 
@@ -13895,7 +13672,6 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "Seçilen ön ayarı silmek istediğinizden emin misiniz?"
 
-# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
 msgstr "Açık bir profil listesi yerine uyumluluk koşulunu düzenlemek için \"Tümü\" seçeneğini seçin."
 
@@ -14016,7 +13792,6 @@ msgstr "Geçerli değeri sıfırlamak ve genel değere eklemek için tıklayın.
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Geçerli değişikliği bırakmak ve kaydedilen değere sıfırlamak için tıklayın."
 
-# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
 msgstr "SL1 yazıcısı için malzeme baskı hızı düzenlenemez."
 
@@ -15526,7 +15301,6 @@ msgstr "Yine de yazdırmak istiyorsanız Tercihler / Denetim / Dilimleme / Karı
 msgid "No extrusions under current settings."
 msgstr "Mevcut ayarlarda ekstrüzyon yok."
 
-# AI Translated
 #. TRN %1% is the filament number as shown in the filament list, starting from 1.
 #, boost-format
 msgid "The flow ratio of filament %1% must be greater than 0."
@@ -18795,11 +18569,9 @@ msgstr "Ayrıntılı G-code"
 msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
 msgstr "Her satırın açıklayıcı bir metinle açıklandığı, yorumlu bir G-code dosyası almak için bunu etkinleştirin. SD karttan yazdırırsanız dosyanın ilave ağırlığı ürün yazılımınızın yavaşlamasına neden olabilir."
 
-# AI Translated
 msgid "High precision G-code (experimental)"
 msgstr "Yüksek hassasiyetli G-code (deneysel)"
 
-# AI Translated
 msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
 msgstr "G-code'daki yuvarlama hatalarını azaltmak için X, Y, Z, I ve J değerlerini 3 yerine 4, E değerini 5 yerine 6 ondalık basamakla yazar. Göreli E mesafelerinde her hareketin yuvarlama hatası bir sonrakine de aktarılır. Destekler baskıdan sonra söküldüğü için standart hassasiyette kalır. Bu, her hareketin çok az malzeme çıkardığı ve yuvarlama hatalarının en çok önem taşıdığı küçük nozullarda (örn. 0.2 mm) ve ince katmanlarda (örn. 0.08 mm veya daha az) ekstrüzyonu kararlı hale getirmeye yardımcı olabilir. Etkisi diğer ayarların ne kadar iyi yapıldığına çok bağlıdır ve baskı profili iyi kalibre edilmemişse fark edilmesi zor olabilir. G-code dosyası yaklaşık yüzde 10 büyür; bu, G-code'u yavaş işleyen yazıcıları yavaşlatabilir."
 
@@ -32447,7 +32219,6 @@ msgstr "Geçerli rengi kaydet"
 msgid "Palettes"
 msgstr "Paletler"
 
-# AI Translated
 msgid "Pick color from screen"
 msgstr "Ekrandan renk seç"
 
@@ -37117,7 +36888,6 @@ msgstr[1] ""
 "\"%s\" eklentisi aşağıdaki dosyaları silmek istiyor:\n"
 "%s"
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
@@ -37130,7 +36900,6 @@ msgstr ""
 "\n"
 "Onay, listelenen sunuculara HTTP ya da HTTPS erişimini ve ham ağ bağlantılarını kapsar. Portları kısıtlamaz. Yol, sorgu ya da port içeren bir URL yalnızca o URL için geçerlidir."
 
-# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting network access to:\n"
