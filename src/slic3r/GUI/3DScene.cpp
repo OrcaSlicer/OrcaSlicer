@@ -1665,6 +1665,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     if (object_results && (extruder_count > 1))
     {
         object_results->mode = curr_plate->get_real_filament_map_mode(plate_project_config);
+        // Only Bambu printers regroup filaments; check the others against the map they print with.
+        const bool supports_filament_grouping = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+        if (!supports_filament_grouping && object_results->mode < FilamentMapMode::fmmManual)
+            object_results->mode = FilamentMapMode::fmmManual;
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1726,7 +1730,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         else
         {
             std::set<int> conflict_filaments_set;
-            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(plate_project_config);
+            std::vector<int> filament_maps = supports_filament_grouping ?
+                curr_plate->get_real_filament_maps(plate_project_config) :
+                curr_plate->get_effective_exclusion_filament_maps(plate_project_config, GUI::wxGetApp().preset_bundle->filament_presets.size(),
+                                                                  size_t(extruder_count));
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;
