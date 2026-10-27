@@ -12,7 +12,6 @@
 #include <functional>
 #include <cstddef>
 #include <string>
-#include <nlohmann/json.hpp>
 #include <utility>
 #include <unordered_map>
 

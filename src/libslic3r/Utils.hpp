@@ -7,9 +7,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <cstdint>
 #include <cstdio>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <algorithm>
 #include <iomanip>
 #include <limits>
@@ -24,13 +21,10 @@
 #include <system_error>
 #include <initializer_list>
 #include <string_view>
-#include <regex>
 
 #include <boost/system/error_code.hpp>
-#include <boost/algorithm/string.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/date_time.hpp>
-#include "boost/date_time/posix_time/ptime.hpp"
 
 #include <openssl/md5.h>
 #include <vector>
@@ -206,6 +200,21 @@ const std::string& custom_gcodes_dir();
 void set_data_dir(const std::string &path);
 // Return a full path to the GUI resource files.
 const std::string& data_dir();
+#ifndef _WIN32
+// The per-user configuration directory an application gets when no --datadir is given:
+// $XDG_CONFIG_HOME/<app_name>, or ~/.config/<app_name> when XDG_CONFIG_HOME is unset or empty.
+std::string xdg_config_dir(const std::string &app_name);
+// True when this process runs inside a Flatpak sandbox.
+bool is_running_in_flatpak();
+// True when the socket wl_display_connect(NULL) would open exists, which is the connection GTK's
+// Wayland backend tries before X11.
+bool wayland_socket_available();
+#endif
+#ifdef __linux__
+// The data directory a start without --datadir uses: a data_dir folder next to the executable
+// when one exists, otherwise xdg_config_dir(SLIC3R_APP_KEY). Does not throw.
+std::string default_data_dir();
+#endif
 
 // BBL: true: succeed create or dir exists; false: fail to create
 bool makedir(const std::string path);
@@ -316,24 +325,12 @@ inline bool is_prusaslicer_open(const std::string& url) { return boost::starts_w
 inline bool is_bambustudio_open(const std::string& url) { return boost::starts_with(url, "bambustudio://open") || boost::starts_with(url, "bambustudioopen://"); }
 inline bool is_cura_open(const std::string& url) { return boost::starts_with(url, "cura://open"); }
 inline bool is_supported_open_protocol(const std::string& url) { return is_orca_open(url) || is_prusaslicer_open(url) || is_bambustudio_open(url) || is_cura_open(url); }
-inline bool is_printables_link(const std::string& url) {
-    const std::regex url_regex("(http|https)://printables.com", std::regex_constants::icase);
-    return std::regex_match(url, url_regex);
-}
-inline bool is_makerworld_link(const std::string& url) {
-    const std::regex url_regex("(http|https)://makerworld.com", std::regex_constants::icase);
-    return std::regex_match(url, url_regex);
-}
-inline bool is_thingiverse_link(const std::string& url) {
-    const std::regex url_regex("(http|https)://www.thingiverse.com", std::regex_constants::icase);
-    return std::regex_match(url, url_regex);
-}
+bool is_printables_link(const std::string& url);
+bool is_makerworld_link(const std::string& url);
+bool is_thingiverse_link(const std::string& url);
 
 // sanitize a string to be used as a filename
-inline std::string sanitize_filename(const std::string &filename){
-    const std::regex special_chars("[/\\\\:*?\"<>|]");
-    return std::regex_replace(filename, special_chars, "_");
-}
+std::string sanitize_filename(const std::string &filename);
 // Reduce an untrusted, possibly path-qualified name to a single sanitized file name.
 // Returns an empty string when nothing usable remains.
 inline std::string sanitize_file_basename(const std::string &name){
@@ -739,20 +736,7 @@ inline std::string get_bbl_monitor_time_dhm(float time_in_secs)
     return buffer;
 }
 
-inline std::string get_bbl_monitor_end_time_dhm(float time_in_secs)
-{
-    if (time_in_secs == 0.0f)
-        return {};
-
-    std::stringstream stream;
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-    auto endTime = now + boost::posix_time::seconds(static_cast<int>(time_in_secs));
-    auto facet = new boost::posix_time::time_facet("%H:%M");//%Y-%m-%d %H:%M:%S
-    stream.imbue(std::locale(std::locale::classic(), facet));
-    stream << endTime;
-
-    return stream.str();
-}
+std::string get_bbl_monitor_end_time_dhm(float time_in_secs);
 
 inline std::string get_bbl_remain_time_dhms(float time_in_secs)
 {

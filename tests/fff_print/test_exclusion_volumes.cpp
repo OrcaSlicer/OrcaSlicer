@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -21,7 +22,9 @@
 #include "libslic3r/GCode/ExclusionVolumeTravelAvoidance.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExclusionVolumeGeometry.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintBase.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Support/SupportCommon.hpp"
 #include "libslic3r/Support/SupportLayer.hpp"
@@ -335,6 +338,46 @@ struct SupportPrintFixture
 
     PrintObject &object() { return *print.objects_mutable().front(); }
 };
+
+// Three nozzles and filaments, plus filament 4 mixed from filaments 2 and 3. The mixed
+// filament's own map entry names extruder 1, which prints neither component. A nonzero
+// `colliding_extruder` gets an exclusion volume covering the whole bed.
+DynamicPrintConfig mixed_filament_config(FilamentMapMode map_mode, int colliding_extruder = 0)
+{
+    std::vector<std::string> per_extruder(3);
+    if (colliding_extruder > 0)
+        per_extruder[colliding_extruder - 1] = "0..256;-100x-100,300x-100,300x300,-100x300";
+
+    DynamicPrintConfig config = Test::multifilament_config(4, {
+        {"filament_is_mixed",                "0,0,0,1"},
+        {"filament_mixed_components",        ";;;2,3"},
+        {"filament_mixed_sublayer_ratios",   ";;;0.5,0.5"},
+        {"filament_mixed_gradient",          "0,0,0,0"},
+        {"filament_mixed_gradient_range",    ";;;"},
+        {"filament_mixed_gradient_curve",    ";;;"},
+        {"filament_mixed_gradient_per_part", "0,0,0,0"},
+        {"layer_change_gcode",               "G92 E0\n"}, // validate() relative-E reset
+    });
+    config.set_num_extruders(3);
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats(3, 0.4));
+    config.set_key_value("extruder_offset", new ConfigOptionPoints(3, Vec2d::Zero()));
+    config.set_key_value("extruder_printable_height", new ConfigOptionFloatsNullable(3, 256.0));
+    config.set_key_value("bed_exclude_volume_mode", new ConfigOptionEnum<BedExcludeVolumeMode>(BedExcludeVolumeMode::PerExtruder));
+    config.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings(per_extruder));
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(map_mode));
+    config.set_key_value("filament_map", new ConfigOptionInts{1, 2, 3, 1});
+    return config;
+}
+
+// Validate a cube that prints with the mixed filament 4 only.
+StringObjectException validate_mixed_filament_cube(FilamentMapMode map_mode, int colliding_extruder)
+{
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> object_overrides { { { "extruder", 4 } } };
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20.) }, print, model, mixed_filament_config(map_mode, colliding_extruder), &object_overrides);
+    return print.validate();
+}
 
 } // namespace
 
@@ -809,4 +852,34 @@ TEST_CASE("Support trimming applies the correct nozzle mask to every polygon cat
     CHECK_FALSE(polygons_cover(*base.contact_polygons, -4.0, -4.0));
     CHECK_FALSE(polygons_cover(*base.overhang_polygons, -4.0, -4.0));
     CHECK_FALSE(polygons_cover(*base.enforcer_polygons, -4.0, -4.0));
+}
+
+TEST_CASE("A mixed filament's exclusion extruders are its component filaments' extruders", "[ExclusionVolume][MultiNozzle][MixedFilament]")
+{
+    const FilamentMapMode map_mode = GENERATE(fmmAutoForFlush, fmmManual);
+    CAPTURE(map_mode);
+    Print print;
+    Model model;
+    Test::init_print({ Test::cube(20.) }, print, model, mixed_filament_config(map_mode));
+
+    // Filament 4 (id 3) mixes filaments 2 and 3, which print on extruders 2 and 3 (ids 1 and 2).
+    CHECK(bed_exclusion_physical_extruders(print, {3}, 3, 0) == std::vector<size_t>{1, 2});
+}
+
+TEST_CASE("Print validation accepts a mixed filament when only an extruder printing neither component collides", "[ExclusionVolume][Print][MultiNozzle][MixedFilament]")
+{
+    const FilamentMapMode map_mode = GENERATE(fmmAutoForFlush, fmmManual);
+    CAPTURE(map_mode);
+    // Extruder 1 prints neither filament 2 nor filament 3.
+    CHECK(validate_mixed_filament_cube(map_mode, 1).string.empty());
+}
+
+TEST_CASE("Print validation rejects a mixed filament when the extruder of one of its components collides", "[ExclusionVolume][Print][MultiNozzle][MixedFilament]")
+{
+    const FilamentMapMode map_mode = GENERATE(fmmAutoForFlush, fmmManual);
+    const int colliding_extruder = GENERATE(2, 3);
+    CAPTURE(map_mode, colliding_extruder);
+    // Filaments 2 and 3, the components of filament 4, print on extruders 2 and 3.
+    CHECK_THAT(validate_mixed_filament_cube(map_mode, colliding_extruder).string,
+               Catch::Matchers::ContainsSubstring("extruder " + std::to_string(colliding_extruder)));
 }

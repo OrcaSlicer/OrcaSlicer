@@ -5,6 +5,6 @@
 	"nozzle_diameter": "0.4",
 	"machine_tech": "FFF",
 	"family": "VOLUMIC",
-	"bed_model": "VS30U_bed.STL",
+	"bed_model": "VS30U_bed.stl",
 	"default_materials": "Volumic UNIVERSAL Ultra"
 }

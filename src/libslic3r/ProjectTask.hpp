@@ -6,10 +6,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <boost/thread.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem.hpp>
 
 namespace Slic3r {
 
@@ -159,6 +156,14 @@ public:
     std::string                 model_id;
     std::string                 model_name;
     std::string                 profile_name;
+
+    // The Bambu network plug-in fills this object in place through get_subtask(), so the
+    // members must stay in the order and count of the 02.08.04 plug-in's BBLModelTask.
+    // Older plug-ins write only the members above and leave these empty.
+    std::string                 design_title;
+    std::string                 title;
+    std::string                 instance_title;
+    std::string                 create_client;
 };
 
 class BBLSubTask {

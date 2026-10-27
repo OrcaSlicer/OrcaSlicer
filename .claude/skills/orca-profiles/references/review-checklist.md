@@ -6,7 +6,7 @@ affected preset types. The table lists the gaps CI cannot see, so only a reviewe
 
 | Not checked by CI | Consequence |
 | --- | --- |
-| The `version` bump | The change never reaches an upgrading user; an absent `version` hides the vendor from the setup wizard |
+| A `version` bump of the wrong size, or one that only reaches a version a nightly or OTA test already shipped | `version_bump` checks only that the version is newer than the branch's base, so the change still never reaches a user whose installed version is higher |
 | A misspelled setting key | The setting silently has no effect |
 | A filename Windows cannot check out, or one that differs from its `sub_path` only in case | Works on the author's machine, breaks the bundle on another platform |
 | `bed_model` / `bed_texture` / `hotend_model` / cover pointing at a missing asset | A missing bed model renders a generic custom bed and a missing texture renders none, the hotend falls back to the generic model, the cover shows a placeholder |
@@ -29,10 +29,11 @@ For **every** bundle whose folder the diff touches, `resources/profiles/<Vendor>
 `version` incremented: last component, carrying `.99` into the third component. A library change means
 bumping `OrcaFilamentLibrary.json`.
 
-*Why:* nothing in CI checks it, and the app reinstalls a bundled profile set only when its version is
-newer than the installed one: without a bump the change reaches neither an upgrading user nor the
-author's own running app. Without any `version` the vendor vanishes from the setup wizard, and neither
-`check` nor the validator reports it.
+*Why:* the app reinstalls a bundled profile set only when its version is newer than the installed one:
+without a bump the change reaches neither an upgrading user nor the author's own running app. CI's
+`version_bump` fails a changed bundle whose version is not newer than the branch's base, or that has
+no `version` at all, but it cannot know what users have installed: a version a nightly or an OTA test
+already shipped, then reverted, has to be passed again, not merely incremented.
 
 ## 2. Was the index rebuilt, and does the diff contain only this change?
 
@@ -261,8 +262,8 @@ hold ([shared bases](shared-bases.md)), and a filename that disagrees with the p
 A finding is **one defect**: its file (or quoted lines), what breaks at runtime or in CI, and the fix.
 Split independent defects into separate findings even when they live in one file: five id problems in
 one bullet get one fix and four survivors. Say which findings `check` or the validator reports and which
-only a reader catches: a missing version bump, a misspelled key and wrong temperatures pass CI, so a
-contributor who only reruns the tools fixes what CI flags and resubmits the rest.
+only a reader catches: a misspelled key and wrong temperatures pass CI, so a contributor who only
+reruns the tools fixes what CI flags and resubmits the rest.
 
 Severity discriminates only if it is earned:
 

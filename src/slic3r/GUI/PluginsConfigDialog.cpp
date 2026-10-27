@@ -22,6 +22,7 @@
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <wx/msgdlg.h>
 #include <wx/busycursor.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 

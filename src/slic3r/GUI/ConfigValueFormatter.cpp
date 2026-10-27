@@ -182,6 +182,12 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
                 out.RemoveLast(1);
                 return out;
             }
+            if (orig_opt_idx < 0 && opt->gui_flags == "serialized") {
+                // Joins the entries as the settings tab shows them.
+                for (const std::string& value : strings->values)
+                    out += from_u8(value) + ";";
+                return out;
+            }
             if (!strings->empty() && opt_idx < strings->values.size())
                 return from_u8(strings->get_at(opt_idx));
         }

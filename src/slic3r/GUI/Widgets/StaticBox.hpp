@@ -16,6 +16,9 @@
 class StaticBox : public wxWindow
 {
 public:
+    // Corner radius, in DIP, of the boxed input widgets (TextInput, ComboBox, SpinInput, TempInput)
+    static constexpr int InputCornerRadius = 6;
+
     StaticBox();
 
     StaticBox(wxWindow* parent,
@@ -63,8 +66,13 @@ protected:
 
     virtual void doRender(wxDC& dc);
 
+    // While input_corner_radius is set, sets the radius to InputCornerRadius at the current DPI. Input widgets
+    // set the flag in their constructor and call this from Create() and Rescale(); SetCornerRadius() clears it.
+    void apply_input_corner_radius();
+
 protected:
     double radius;
+    bool   input_corner_radius = false;
     int border_width = 1;
     int top_margin = 0;
     wxPenStyle border_style = wxPENSTYLE_SOLID;
