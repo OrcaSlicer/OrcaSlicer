@@ -856,10 +856,24 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
     case Shortcut::TabPrevious: {
         // Cycle through the tab bar, wrapping around at either end
         const int count = int(m_tabpanel->GetPageCount());
-        const int sel   = m_tabpanel->GetSelection();
+        int       sel   = m_tabpanel->GetSelection();
         if (count > 1 && sel != wxNOT_FOUND) {
             const int step = (*shortcut == Shortcut::TabNext) ? 1 : count - 1;
-            m_tabpanel->SetSelection(size_t((sel + step) % count));
+            // Skip a tab that vetoes the switch, such as Device without the network plug-in
+            for (int tried = 1; tried < count; ++tried) {
+                sel = (sel + step) % count;
+                m_tabpanel->SetSelection(size_t(sel));
+                if (m_tabpanel->GetSelection() == sel)
+                    break;
+            }
+            // Focus the tab bar on any page but the canvases, since CHAR_HOOK gets no keys while a web page has focus
+            wxWindow* const page = m_tabpanel->GetCurrentPage();
+            bool keeps_focus = page == m_plater;
+#ifdef SLIC3R_CAD
+            keeps_focus = keeps_focus || page == m_design_page;
+#endif
+            if (!keeps_focus)
+                m_tabpanel->GetBtnsListCtrl()->SetFocus();
         }
         break;
     }
