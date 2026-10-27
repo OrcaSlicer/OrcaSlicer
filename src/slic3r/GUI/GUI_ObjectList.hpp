@@ -58,6 +58,11 @@ struct ObjectVolumeID {
 
 typedef Event<ObjectVolumeID> ObjectSettingEvent;
 
+enum class ObjectOrder { Name, Filament, Height, Size };
+
+// Stable sort by natural name order, filament, top Z, or bounding box volume of the first instance.
+void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending = false);
+
 class PartPlate;
 
 wxDECLARE_EVENT(EVT_OBJ_LIST_OBJECT_SELECT, SimpleEvent);
@@ -309,8 +314,9 @@ public:
     // ! ysFIXME - delete commented code after testing and rename "load_modifier" to something common
     //void                load_part(ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false);
     void                load_modifier(const wxArrayString& input_files, ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false);
-    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type);
-    void                load_shape_object(const std::string &type_name);
+    // interactive uses the size the user enters or saved as default; otherwise the shape gets its built-in default size.
+    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive = true);
+    void                load_shape_object(const std::string &type_name, bool interactive);
     void                load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center = true);
     // One object holding one part per mesh; the parts keep their placement relative to each other.
     void                load_mesh_object(const std::vector<std::pair<const TriangleMesh*, wxString>> &parts, const wxString &name, bool center = true);
@@ -495,6 +501,8 @@ public:
     void on_plate_added(PartPlate* part_plate);
     void on_plate_deleted(int plate_index);
     void reload_all_plates(bool notify_partplate = false);
+    // Sorts the selected plate or every plate, which sets the print order; repeating a sort reverses it.
+    void order_objects(ObjectOrder order, bool all_plates);
     void on_plate_selected(int plate_index);
     void notify_instance_updated(int obj_idx);
     void object_config_options_changed(const ObjectVolumeID& ov_id);

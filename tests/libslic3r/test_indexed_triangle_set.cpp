@@ -542,3 +542,15 @@ TEST_CASE("Smoothing a vertex shared by one large flat group and thousands of sm
     // Scanning every face once per group, or every group for each face, takes hundreds of times longer.
     CHECK(ratio < 100.);
 }
+
+TEST_CASE("A torus has its own segment counts around the ring and around the tube", "[its]")
+{
+    const double               r     = 20.;
+    const double               h     = 2.;
+    const indexed_triangle_set torus = its_make_torus(r, h, 0.05, 0.3);
+    // ceil(2 pi / 0.05) = 126 segments around the ring, ceil(2 pi / 0.3) = 21 around the tube.
+    CHECK(torus.vertices.size() == 126 * 21);
+    CHECK(torus.indices.size() == 2 * 126 * 21);
+    // The true torus holds 2 pi^2 r h^2; 21 segments around the tube lose about 1.5 % of it.
+    CHECK_THAT(its_mass_properties(torus).volume, WithinRel(2. * PI * PI * r * h * h, 0.02));
+}

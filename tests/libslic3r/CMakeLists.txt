@@ -25,6 +25,7 @@ add_executable(${_TEST_NAME}_tests
     test_calib.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
+    test_cut_connectors.cpp
     test_config.cpp
     test_config_variant_expansion.cpp
     test_locales_utils.cpp

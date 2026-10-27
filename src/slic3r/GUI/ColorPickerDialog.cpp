@@ -139,7 +139,7 @@ std::optional<ColorSelection> normalize_color_selection(const ColorSelection& se
             return std::nullopt;
     } else {
         auto& gradient = std::get<ColorGradient>(normalized);
-        if (!options.allow_gradient || gradient.size() < 2 || gradient.size() > COLOR_PICKER_MAX_GRADIENT_COLORS)
+        if (!options.supports_gradient(gradient.size()))
             return std::nullopt;
         for (ColorRGBA& color : gradient)
             if (!normalize_color(color, options.allow_alpha))
@@ -160,7 +160,7 @@ std::optional<ColorSelection> color_selection_from_json(const nlohmann::json& va
         ColorRGBA solid;
         if (parse_color((*colors)[0], solid))
             return normalize_color_selection(solid, options);
-    } else if (*type == "gradient" && options.allow_gradient && colors->size() >= 2 && colors->size() <= COLOR_PICKER_MAX_GRADIENT_COLORS) {
+    } else if (*type == "gradient" && options.supports_gradient(colors->size())) {
         ColorGradient gradient(colors->size());
         for (std::size_t i = 0; i < gradient.size(); ++i)
             if (!parse_color((*colors)[i], gradient[i]))
@@ -1103,7 +1103,7 @@ void ColorPickerDialog::send_initial_state()
         favorites.push_back(color_selection_to_json(selection));
     const nlohmann::json payload = {{"command", "init"}, {"page_id", m_page_id},
                                    {"options", {{"allow_gradient", m_options.allow_gradient}, {"allow_alpha", m_options.allow_alpha},
-                                                {"max_gradient_colors", COLOR_PICKER_MAX_GRADIENT_COLORS}}},
+                                                {"max_gradient_colors", m_options.gradient_color_limit()}}},
                                    {"can_sample_screen", ColorSampler::m_sampler_available},
                                    {"selection", color_selection_to_json(m_initial)}, {"favorites", std::move(favorites)},
                                    {"favorites_writable", m_favorites_writable}, {"preserve_multi_color", m_preserve_multi_color},

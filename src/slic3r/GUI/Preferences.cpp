@@ -1884,6 +1884,10 @@ void PreferencesDialog::create_items()
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
 
+    auto item_primitive_dialog = create_item_checkbox(_L("Show options when adding a primitive"),
+        _L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added."), "enable_primitive_size_dialog");
+    g_sizer->Add(item_primitive_dialog);
+
     //// CONTROL > Slicing
     g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);
 
