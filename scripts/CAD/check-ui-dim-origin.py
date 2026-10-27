@@ -140,5 +140,18 @@ time.sleep(0.5)
 on_origin = [e for e in ents() if e["type"] == "point" and abs(e["p"][0]) < 1e-9 and abs(e["p"][1]) < 1e-9]
 check(len(on_origin) == 1, "clicking the bare origin made a point on it (%d)" % len(on_origin))
 check(ncons() >= base + 2, "and the quote is a constraint on top of the origin's own (constraints %d -> %d)" % (base, ncons()))
+
+# an axis is a pick too: click the X axis, then the circle centre -> distance from the axis (a construction line is made on it)
+base = ncons()
+call("run_verb", verb="sk_dimension")
+time.sleep(0.4)
+ax = scr([-60.0, 0.0])
+call("ui.move", at=ax); call("ui.click", at=ax); time.sleep(0.4)
+call("ui.move", at=p); call("ui.click", at=p); time.sleep(0.6)
+call("ui.key", key="Return")
+time.sleep(0.5)
+axl = [e for e in ents() if e["type"] == "line" and e["construction"] and abs(e["p0"][0]) < 1e-9 and abs(e["p0"][1]) < 1e-9 and abs(e["p1"][1]) < 1e-9]
+check(len(axl) == 1, "clicking the X axis made a construction line on it (%d)" % len(axl))
+check(ncons() >= base + 4, "held on the axis, plus the quote (constraints %d -> %d)" % (base, ncons()))
 call("sketch_cancel")
 print("dim origin: %s" % ("PASS" if not fails else "FAIL (%d)" % len(fails)))

@@ -117,7 +117,7 @@ corners = [[cx - 300, cy - 180], [cx + 300, cy - 180], [cx + 300, cy + 240], [cx
 for q in corners:
     call("ui.move", at=q, mods=["shift"]); call("ui.click", at=q, mods=["shift"]); time.sleep(0.4)   # Shift: off the grid, so the point is where it was clicked
 call("ui.key", key="Escape")
-pts = points()
+pts = [q for q in points() if abs(q["p"][0]) + abs(q["p"][1]) > 1e-9][-4:]   # (not the origin point a new sketch starts with)
 calibrate([((p["p"][0], p["p"][1]), q) for p, q in zip(pts, corners)])
 A0, A1 = [cx - 250, cy - 150], [cx - 50, cy - 150]
 draw_line(A0, A1)

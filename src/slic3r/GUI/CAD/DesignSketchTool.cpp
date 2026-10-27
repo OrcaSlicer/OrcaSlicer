@@ -2583,6 +2583,44 @@ void DesignSketchTool::keep_segment_as_drawn()
     m_awaiting_length = false;
 }
 
+int DesignSketchTool::ensure_axis_line(bool y_axis)
+{
+    if (!m_active) return -1;
+    const int ref = y_axis ? kSketchRefAxisY : kSketchRefAxisX;
+    for (const SketchEntityConstraintDef& c : m_constraints)   // already there: a construction line held on the axis
+        if (c.type == SketchConstraintType::PointOnLine && c.eb == ref && c.ea >= 0 && c.ea < int(m_entities.size())
+            && m_entities[c.ea].type == SketchEntity::Type::Line && m_entities[c.ea].construction)
+            return c.ea;
+    // as long as the sketch is wide, so the line is under the cursor wherever the axis is clicked on the drawing
+    double ext = 50.0;
+    for (const SketchEntity& e : m_entities)
+        for (const Vec2d& q : { e.p0, e.p1, e.center })
+            ext = std::max(ext, 1.5 * std::max(std::abs(q.x()), std::abs(q.y())));
+    SketchEntity l;
+    l.type = SketchEntity::Type::Line;
+    l.p0 = Vec2d(0, 0);
+    l.p1 = y_axis ? Vec2d(0, ext) : Vec2d(ext, 0);
+    l.construction = true;
+    m_entities.push_back(l);
+    const int ei = int(m_entities.size()) - 1;
+    SketchEntityConstraintDef c;
+    c.type = SketchConstraintType::Coincident;
+    c.ea = ei; c.ra = SketchPointRole::P0; c.eb = kSketchRefOrigin; c.rb = SketchPointRole::P0;
+    m_constraints.push_back(c);
+    c = SketchEntityConstraintDef();
+    c.type = SketchConstraintType::PointOnLine;
+    c.ea = ei; c.ra = SketchPointRole::P1; c.eb = ref;
+    m_constraints.push_back(c);
+    c = SketchEntityConstraintDef();
+    c.type = y_axis ? SketchConstraintType::LockY : SketchConstraintType::LockX;   // its length: fully held, no stray freedom
+    c.ea = ei; c.ra = SketchPointRole::P1; c.value = ext;
+    m_constraints.push_back(c);
+    m_autoedit_seen = int(m_entities.size());
+    resolve_live();
+    if (on_constraints_changed) on_constraints_changed();
+    return ei;
+}
+
 void DesignSketchTool::add_origin_reference()
 {
     if (!m_active || !m_entities.empty()) return;
@@ -12494,10 +12532,17 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 pe = ensure_origin_point(); pr = SketchPointRole::P0;
                 got_pt = pe >= 0;
             }
-            const int he = hit_test(p, tol);
+            int he = hit_test(p, tol);
+            bool axis_pick = false;
+            if (!got_pt && he < 0 && (std::abs(p.y()) < tol || std::abs(p.x()) < tol)) {   // a bare axis: measure to a line held on it
+                he = ensure_axis_line(std::abs(p.y()) >= tol);
+                axis_pick = he >= 0;
+            }
             if (!m_dim_has0) {
                 if (got_pt) {                          // first point picked: await a second
-                    m_dim_e0 = pe; m_dim_r0 = pr; m_dim_has0 = true;
+                    m_dim_e0 = pe; m_dim_r0 = pr; m_dim_has0 = true; m_dim_line_first = false;
+                } else if (axis_pick) {                // an axis first: await the point to measure from it
+                    m_dim_e0 = he; m_dim_r0 = SketchPointRole::P0; m_dim_has0 = true; m_dim_line_first = true;
                 } else if (he >= 0) {                  // whole-entity dimension
                     DimAnnot a; a.ea = he;
                     const SketchEntity::Type t = m_entities[he].type;
@@ -12507,6 +12552,15 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                     else
                         notify(_u8L("No dimension for that entity yet — click a line, a circle, an arc, or two points"));
                 }
+            } else if (m_dim_line_first) {             // the first pick was an axis line: the second names the point
+                if (got_pt && pe != m_dim_e0) {
+                    DimAnnot a; a.kind = DimType::DistanceToLine;
+                    a.ea = pe; a.ra = pr; a.eb = m_dim_e0;
+                    place_dimension(a);
+                } else {
+                    notify(_u8L("Click a point (a vertex or a circle centre) to measure from that axis"), false);
+                }
+                m_dim_has0 = false;
             } else {
                 if (got_pt && !(pe == m_dim_e0 && pr == m_dim_r0)) {
                     DimAnnot a; a.kind = DimType::Distance;

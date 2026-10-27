@@ -232,6 +232,9 @@ public:
     // The index of the sketch's origin point (a Point held on the origin), adding it when the sketch has none: what the Dimension
     // tool measures from when the bare origin is clicked. -1 when no sketch is open.
     int ensure_origin_point();
+    // The same for a sketch axis: a construction line lying on the X (or Y) axis from the origin, added when the sketch has none. The
+    // Dimension tool measures a point's distance to it. -1 when no sketch is open.
+    int ensure_axis_line(bool y_axis);
     // Is this sketch nothing but that point? Then there is nothing to commit.
     static bool is_only_origin_reference(const std::vector<SketchEntity>& ents, const std::vector<SketchEntityConstraintDef>& cons);
     void set_grid_magnet(bool on) { m_grid_magnet = on; }                              // points snap to the grid, shown or not
@@ -1345,6 +1348,7 @@ private:
     int                 m_dim_e0{-1};             // first picked point's entity (Dimension)
     SketchPointRole     m_dim_r0{SketchPointRole::P0};
     bool                m_dim_has0{false};        // a first point is pending
+    bool                m_dim_line_first{false};  // ...or, when set, a first LINE (an axis): the second pick is the point to measure
     int                 m_pending_dim{-1};        // dim awaiting a value-card entry
     // The expressions bound to the dimensions of the sketch being edited (m_constraints index -> expression, and the value it
     // had when loaded: a dimension whose value has moved on since is no longer that expression's, and shows its number).
