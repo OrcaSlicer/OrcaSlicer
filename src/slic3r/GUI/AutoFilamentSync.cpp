@@ -13,9 +13,11 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <wx/event.h>
 #include <wx/timer.h>
 
 #include <set>
+#include <string>
 
 namespace Slic3r { namespace GUI {
 
