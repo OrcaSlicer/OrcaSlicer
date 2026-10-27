@@ -24,6 +24,7 @@
 #include <wx/scrolwin.h>
 #include <vector>
 #include "slic3r/GUI/MsgDialog.hpp"
+#include "DeviceCore/DevExtruderSystem.h"
 #include <string>
 #include <algorithm>
 #include <wx/dcgraph.h>

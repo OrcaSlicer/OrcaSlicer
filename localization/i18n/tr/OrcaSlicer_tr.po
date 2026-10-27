@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 15:39-0300\n"
+"POT-Creation-Date: 2026-10-26 21:45+0800\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -3271,6 +3271,15 @@ msgstr "Otomatik döndürme"
 msgid "Auto rotate current plate"
 msgstr "Geçerli plakayı otomatik döndürme"
 
+msgid "Name"
+msgstr "İsim"
+
+msgid "All Plates"
+msgstr "Tüm Plakalar"
+
+msgid "Order By"
+msgstr ""
+
 # AI Translated
 msgid "Fix All"
 msgstr "Tümünü düzelt"
@@ -3374,9 +3383,6 @@ msgstr "Plakayı sil"
 
 msgid "Remove the selected plate"
 msgstr "Seçilen plakayı kaldır"
-
-msgid "Name"
-msgstr "İsim"
 
 # AI Translated
 msgid "Fila."
@@ -5373,12 +5379,423 @@ msgstr ""
 "Evet - Arachne Duvarı Oluşturucusunu Etkinleştir\n"
 "Hayır - Arachne Duvarı Oluşturucusunu Devre Dışı Bırak ve Pütürlü Yüzey [Yer Değiştirme] modunu ayarla"
 
+msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
+msgstr ""
+
+msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
+msgstr ""
+
+msgid "Set wall loops above zero to use this setting."
+msgstr ""
+
+msgid "This setting is hidden because sparse infill density is zero."
+msgstr ""
+
+msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
+msgstr ""
+
+msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
+msgstr ""
+
+msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
+msgstr ""
+
+msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
+msgstr ""
+
+msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
+msgstr ""
+
+msgid "The selected sparse infill pattern does not support multiline infill."
+msgstr ""
+
+msgid "The Line infill pattern does not support infill anchors."
+msgstr ""
+
+msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
+msgstr ""
+
+msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
+msgstr ""
+
+msgid "Select the Locked Zag sparse infill pattern to use this setting."
+msgstr ""
+
+msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
+msgstr ""
+
+msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
+msgstr ""
+
+msgid "Enable spiral vase mode to use this setting."
+msgstr ""
+
+msgid "Enable spiral vase mode and spiral smoothing to use this setting."
+msgstr ""
+
+msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
+msgstr ""
+
+msgid "This setting requires a top shell with nonzero top surface density."
+msgstr ""
+
+msgid "Set bottom shell layers above zero to use this setting."
+msgstr ""
+
+msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
+msgstr ""
+
+msgid "Set top surface expansion above zero to use this setting."
+msgstr ""
+
+msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
+msgstr ""
+
+msgid "The selected sparse infill pattern does not support separated infills."
+msgstr ""
+
+msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
+msgstr ""
+
+msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
+msgstr ""
+
+msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
+msgstr ""
+
+msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
+msgstr ""
+
+msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
+msgstr ""
+
+msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
+msgstr ""
+
+msgid "This setting requires the Marlin firmware G-code flavor."
+msgstr ""
+
+msgid "Jerk settings are unavailable while the printer uses junction deviation."
+msgstr ""
+
+msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
+msgstr ""
+
+msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
+msgstr ""
+
+msgid "Use a non-belt printer with skirt loops above zero to use this setting."
+msgstr ""
+
+msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
+msgstr ""
+
+msgid "Skirts are unavailable for belt printers."
+msgstr ""
+
+msgid "Select a brim type other than No brim to use this setting."
+msgstr ""
+
+msgid "Enable a brim on a printer without a tilted belt to use this setting."
+msgstr ""
+
+msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
+msgstr ""
+
+msgid "This setting requires a belt printer with a tilted slicing plane."
+msgstr ""
+
+msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
+msgstr ""
+
+msgid "Enable walls or a brim to select the wall filament."
+msgstr ""
+
 # AI Translated
 msgid "Brim ear radius"
 msgstr "Kenar kulak yarıçapı"
 
 msgid "Brim width"
 msgstr "Kenar genişliği"
+
+msgid "Set brim width above zero to edit brim ear detection."
+msgstr ""
+
+msgid "Use painted brim ears or set brim width above zero to edit this setting."
+msgstr ""
+
+msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
+msgstr ""
+
+msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
+msgstr ""
+
+msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
+msgstr ""
+
+msgid "Rafts are unavailable for belt printers."
+msgstr ""
+
+msgid "Enable support to edit this setting."
+msgstr ""
+
+msgid "Enable support or add raft layers to edit this setting."
+msgstr ""
+
+msgid "Select an automatic support type to edit the threshold angle."
+msgstr ""
+
+msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
+msgstr ""
+
+msgid "Threshold overlap is unavailable for tree supports."
+msgstr ""
+
+msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
+msgstr ""
+
+msgid "Enable tree supports with the Organic or Default style to show this setting."
+msgstr ""
+
+msgid "Independent support layer height is unavailable for organic tree supports."
+msgstr ""
+
+msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
+msgstr ""
+
+msgid "Enable tree supports to show the maximum bridge length."
+msgstr ""
+
+msgid "Tree supports use maximum bridge length instead of the bridge support setting."
+msgstr ""
+
+msgid "Enable automatic tree supports to show this setting."
+msgstr ""
+
+msgid "Set top or bottom support interface layers above zero to edit this setting."
+msgstr ""
+
+msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
+msgstr ""
+
+msgid "Enable support ironing with a raft or top support interface layers to show this setting."
+msgstr ""
+
+msgid "Set top or bottom support interface layers above zero to edit interface spacing."
+msgstr ""
+
+msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
+msgstr ""
+
+msgid "Enable walls, a skirt or a brim to edit inner wall line width."
+msgstr ""
+
+msgid "Enable support, a raft, or a skirt to select the support filament."
+msgstr ""
+
+msgid "Add raft layers to show raft contact distance."
+msgstr ""
+
+msgid "Raft contact distance is unavailable when the top support Z distance is zero."
+msgstr ""
+
+msgid "Add raft layers to show raft expansion."
+msgstr ""
+
+msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
+msgstr ""
+
+msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
+msgstr ""
+
+msgid "Enable ironing to use this setting."
+msgstr ""
+
+msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
+msgstr ""
+
+msgid "Enable ironing or support ironing to edit ironing speed."
+msgstr ""
+
+msgid "Enable Z contouring to use this setting."
+msgstr ""
+
+msgid "Print order cannot be edited when the print sequence is By object."
+msgstr ""
+
+msgid "This setting is unavailable for Bambu Lab printers."
+msgstr ""
+
+msgid "This setting is unavailable in single extruder multimaterial mode."
+msgstr ""
+
+msgid "Enable ooze prevention to use this setting."
+msgstr ""
+
+msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
+msgstr ""
+
+msgid "Enable the belt purge tower in the belt printer settings to use this setting."
+msgstr ""
+
+msgid "Enable the prime tower on a non-belt printer to use this setting."
+msgstr ""
+
+msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
+msgstr ""
+
+msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
+msgstr ""
+
+msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
+msgstr ""
+
+msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
+msgstr ""
+
+msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
+msgstr ""
+
+msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
+msgstr ""
+
+msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
+msgstr ""
+
+msgid "Select Cyclic tool change ordering to use this setting."
+msgstr ""
+
+msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
+msgstr ""
+
+msgid "Enable the prime tower to use this setting."
+msgstr ""
+
+msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
+msgstr ""
+
+msgid "Enable setting other flow ratios to use this setting."
+msgstr ""
+
+msgid "Enable slowing down for overhangs to use this setting."
+msgstr ""
+
+msgid "This setting is available in object settings rather than global print settings."
+msgstr ""
+
+msgid "Select a specific support interface filament and use the default support filament to show this setting."
+msgstr ""
+
+msgid "Enable fuzzy skin to use this setting."
+msgstr ""
+
+msgid "Enable fuzzy skin with Ripple noise to use this setting."
+msgstr ""
+
+msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
+msgstr ""
+
+msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
+msgstr ""
+
+msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
+msgstr ""
+
+msgid "Select the Arachne wall generator to use this setting."
+msgstr ""
+
+msgid "Thin wall detection is unavailable with the Arachne wall generator."
+msgstr ""
+
+msgid "Disable role-based wipe speed to edit wipe speed manually."
+msgstr ""
+
+msgid "Enable inward wiping to edit inward wipe distance."
+msgstr ""
+
+msgid "This setting requires the Klipper G-code flavor."
+msgstr ""
+
+msgid "Enable acceleration to deceleration to edit its factor."
+msgstr ""
+
+msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
+msgstr ""
+
+msgid "Enable making overhangs printable to use this setting."
+msgstr ""
+
+msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
+msgstr ""
+
+msgid "Enable converting holes to polyholes to use this setting."
+msgstr ""
+
+msgid "Enable overhang wall detection to use this setting."
+msgstr ""
+
+msgid "Reverse overhang direction is unavailable in spiral vase mode."
+msgstr ""
+
+msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
+msgstr ""
+
+msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
+msgstr ""
+
+msgid "This setting requires a Bambu Lab printer."
+msgstr ""
+
+msgid "Enable small area infill flow compensation to edit its model."
+msgstr ""
+
+msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
+msgstr ""
+
+msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
+msgstr ""
+
+msgid "Disable scarfing the entire loop to edit the minimum scarf length."
+msgstr ""
+
+msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
+msgstr ""
+
+msgid "Enable beam interlocking to use this setting."
+msgstr ""
+
+msgid "Disable beam interlocking to edit segmented region interlocking depth."
+msgstr ""
+
+msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
+msgstr ""
+
+msgid "Select the Lightning sparse infill pattern to use this setting."
+msgstr ""
+
+msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
+msgstr ""
+
+msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
+msgstr ""
+
+msgid "Clear the solid infill rotation template to edit solid infill direction."
+msgstr ""
+
+msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
+msgstr ""
+
+msgid "The selected printer does not support wrapping detection."
+msgstr ""
+
+msgid "Enable the pad to edit this setting."
+msgstr ""
+
+msgid "Enable the pad around the object to edit this setting."
+msgstr ""
+
+msgid "Enable support and disable the pad around the object to edit object elevation."
+msgstr ""
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "Spiral mod yalnızca duvar döngüleri 1 olduğunda, destek devre dışı bırakıldığında, problama yoluyla topaklanma tespiti devre dışı bırakıldığında, üst kabuk katmanları 0 olduğunda, seyrek dolgu yoğunluğu 0 olduğunda ve hızlandırılmış tip geleneksel olduğunda çalışır."
@@ -6527,9 +6944,6 @@ msgstr "Hepsini dilimle"
 msgid "Failed"
 msgstr "Başarısız"
 
-msgid "All Plates"
-msgstr "Tüm Plakalar"
-
 msgid "Stats"
 msgstr "İstatistikler"
 
@@ -6655,7 +7069,7 @@ msgstr "Hacim:"
 msgid "Size:"
 msgstr "Boyut:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "%d katmanında G-code yollarında çakışmalar bulundu, Z = %.2lfmm. Lütfen çakışan nesneleri daha uzağa ayırın (%s <-> %s)."
 
@@ -7137,6 +7551,12 @@ msgstr "Pencere düzenini sıfırla"
 
 msgid "Reset to default window layout"
 msgstr "Varsayılan pencere düzenine sıfırla"
+
+msgid "Show 3Dconnexion Settings"
+msgstr ""
+
+msgid "Show/Hide 3Dconnexion devices settings dialog"
+msgstr "3Dconnexion cihazları ayarları iletişim kutusunu Göster/Gizle"
 
 msgid "Show &Labels"
 msgstr "Etiketleri göster"
@@ -8636,6 +9056,20 @@ msgstr ""
 "Bu tür için kullanılabilir eklenti yeteneği yok.\n"
 "Kullanmak için birkaçını etkinleştirin veya yükleyin."
 
+msgid "Hidden by the current configuration."
+msgstr ""
+
+#, boost-format
+msgid "Hidden: %1%"
+msgstr ""
+
+msgid "Disabled by the current configuration."
+msgstr ""
+
+#, boost-format
+msgid "Disabled: %1%"
+msgstr ""
+
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
 msgstr "Geçerli baskı işinde ip çekmeye eğilimli filament var. Nozul topaklanma algılamasını şimdi etkinleştirmek baskı kalitesini düşürebilir. Etkinleştirmek istediğinizden emin misiniz?"
@@ -8850,6 +9284,9 @@ msgstr "Nesnenin tüm ayarları"
 
 msgid "Material settings"
 msgstr "Malzeme ayarları"
+
+msgid "The process flow ratio cannot be edited in this panel."
+msgstr ""
 
 # AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Tool (printer)": this entry uses "araç"; align it once the term is settled.
@@ -10267,6 +10704,14 @@ msgstr "Pencere düğmelerini sol tarafta kullan"
 
 msgid "(Requires restart)"
 msgstr "(Yeniden başlatma gerektirir)"
+
+#. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
+msgid "Render on the discrete GPU"
+msgstr ""
+
+#. TRN DRI_PRIME is an environment variable name and must stay as it is.
+msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
+msgstr ""
 
 msgid "Downloads folder"
 msgstr "İndirilenler klasörü"
@@ -12448,6 +12893,9 @@ msgstr ""
 "Araç başlığı olmadan timelapse kaydederken, bir \"Timelapse Wipe Tower\" eklenmesi önerilir.\n"
 "Yapı plakasının boş konumuna sağ tıklayın ve \"İlkel Ekle\" -> \"Timelapse Temizleme Kulesi\" seçeneğini seçin."
 
+msgid "Setting unavailable"
+msgstr ""
+
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Mevcut sistem ön ayarının, sistem ön ayarından ayrılacak bir kopyası oluşturulacaktır."
 
@@ -12619,8 +13067,14 @@ msgstr "Eklenti Yapılandırması"
 msgid "Notes"
 msgstr "Notlar"
 
+msgid "The selected printer does not support multiple bed types."
+msgstr ""
+
 msgid "Frequent"
 msgstr "Sıklıkla"
+
+msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -12647,6 +13101,15 @@ msgstr "Ayarların Üzerine Yaz"
 
 msgid "Retraction when switching material"
 msgstr "Malzemeyi Değiştirirken Geri Çekme"
+
+msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
+msgstr ""
+
+msgid "The printer profile must allow filament overrides for long retraction when cutting."
+msgstr ""
+
+msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
+msgstr ""
 
 msgid "Basic information"
 msgstr "Temel Bilgiler"
@@ -12778,6 +13241,60 @@ msgstr "Uyumlu yazıcılar"
 
 msgid "Compatible process profiles"
 msgstr "Uyumlu süreç profilleri"
+
+msgid "Enable cooling for overhangs and bridges to edit this setting."
+msgstr ""
+
+msgid "Enable slowing down for layer cooling to use this setting."
+msgstr ""
+
+msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
+msgstr ""
+
+msgid "Enable the auxiliary fan in the printer profile to use this setting."
+msgstr ""
+
+msgid "The selected printer does not support air filtration."
+msgstr ""
+
+msgid "Activate air filtration to edit this setting."
+msgstr ""
+
+msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
+msgstr ""
+
+msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
+msgstr ""
+
+msgid "Enable pressure advance to use this setting."
+msgstr ""
+
+msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
+msgstr ""
+
+msgid "Enable pressure advance and adaptive pressure advance to use this setting."
+msgstr ""
+
+msgid "Enable the pellet printer option in the printer profile to use this setting."
+msgstr ""
+
+msgid "Filament diameter is unavailable for pellet printers."
+msgstr ""
+
+msgid "The selected printer does not support chamber temperature control."
+msgstr ""
+
+msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
+msgstr ""
+
+msgid "Enable multitool ramming to edit this setting."
+msgstr ""
+
+msgid "This setting requires a Bambu Lab printer with multiple extruders."
+msgstr ""
+
+msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
+msgstr ""
 
 msgid "Printable space"
 msgstr "Plaka Ayarı"
@@ -12940,6 +13457,63 @@ msgstr "Katman Yüksekliği Sınırları"
 msgid "Z-Hop"
 msgstr "Z Sıçraması"
 
+msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
+msgstr ""
+
+msgid "Build plate tilt is derived from the belt tilt on belt printers."
+msgstr ""
+
+msgid "Enable belt printer mode to use this setting."
+msgstr ""
+
+msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
+msgstr ""
+
+msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
+msgstr ""
+
+msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
+msgstr ""
+
+msgid "Enable support for parallel printheads to edit their count."
+msgstr ""
+
+msgid "Collision volume mode selection requires multiple extruders."
+msgstr ""
+
+msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
+msgstr ""
+
+msgid "Enable the auxiliary fan to edit its direction."
+msgstr ""
+
+msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
+msgstr ""
+
+msgid "Enable cooling filter support in the printer profile to use this setting."
+msgstr ""
+
+msgid "Enable belt printer mode to use the belt purge tower."
+msgstr ""
+
+msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
+msgstr ""
+
+msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
+msgstr ""
+
+msgid "Extruder count cannot be edited in single extruder multimaterial mode."
+msgstr ""
+
+msgid "Enable single extruder multimaterial mode to use manual filament changes."
+msgstr ""
+
+msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
+msgstr ""
+
+msgid "Enable IDEX/IQEX printer mode to use this setting."
+msgstr ""
+
 # AI Translated
 msgid "Front-left"
 msgstr "Sol ön"
@@ -12956,6 +13530,36 @@ msgstr "Sol arka"
 msgid "Rear-right"
 msgstr "Sağ arka"
 
+msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
+msgstr ""
+
+msgid "Set retraction length above zero or enable firmware retraction to use this setting."
+msgstr ""
+
+msgid "The extruder printable area and height are fixed by the printer profile."
+msgstr ""
+
+msgid "This setting is shown for printers with exactly two extruders."
+msgstr ""
+
+msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
+msgstr ""
+
+msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
+msgstr ""
+
+msgid "Enable retraction and set Z hop above zero to use this setting."
+msgstr ""
+
+msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
+msgstr ""
+
+msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
+msgstr ""
+
+msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
+msgstr ""
+
 # AI Translated
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
@@ -12968,6 +13572,48 @@ msgstr ""
 
 msgid "Firmware Retraction"
 msgstr "Yazılımsal Geri Çekme"
+
+msgid "Enable retraction and wiping to edit wipe distance."
+msgstr ""
+
+msgid "This setting requires multiple extruders."
+msgstr ""
+
+msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
+msgstr ""
+
+msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
+msgstr ""
+
+msgid "Enable long retraction when cutting to edit the retraction distance."
+msgstr ""
+
+msgid "Select a Z hop type other than Normal to edit travel slope."
+msgstr ""
+
+msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
+msgstr ""
+
+msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
+msgstr ""
+
+msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
+msgstr ""
+
+msgid "Enable resonance avoidance to edit its speed range."
+msgstr ""
+
+msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
+msgstr ""
+
+msgid "Enable emitting machine limits to G-code to emit input shaping settings."
+msgstr ""
+
+msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
+msgstr ""
+
+msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
+msgstr ""
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
 msgstr "Farklı ekstruder türlerine veya numaralarına sahip bir yazıcıya geçiş yapmak, ekstruder veya çoklu nozulla ilgili parametrelerde yapılan değişiklikleri iptal edecek veya sıfırlayacaktır."
@@ -13025,6 +13671,9 @@ msgstr ""
 # AI Translated
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "Seçilen ön ayarı silmek istediğinizden emin misiniz?"
+
+msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
+msgstr ""
 
 msgid "Select printers"
 msgstr "Yazıcıları seçin"
@@ -13142,6 +13791,9 @@ msgstr "Geçerli değeri sıfırlamak ve genel değere eklemek için tıklayın.
 
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Geçerli değişikliği bırakmak ve kaydedilen değere sıfırlamak için tıklayın."
+
+msgid "Material print speed cannot be edited for the SL1 printer."
+msgstr ""
 
 msgid "Process Settings"
 msgstr "İşlem Ayarları"
@@ -14648,6 +15300,11 @@ msgstr "Yine de yazdırmak istiyorsanız Tercihler / Denetim / Dilimleme / Karı
 
 msgid "No extrusions under current settings."
 msgstr "Mevcut ayarlarda ekstrüzyon yok."
+
+#. TRN %1% is the filament number as shown in the filament list, starting from 1.
+#, boost-format
+msgid "The flow ratio of filament %1% must be greater than 0."
+msgstr ""
 
 # AI Translated
 msgid "Mixed filaments are not supported in IDEX/IQEX parallel modes. Switch this plate to Primary mode."
@@ -17911,6 +18568,12 @@ msgstr "Ayrıntılı G-code"
 
 msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
 msgstr "Her satırın açıklayıcı bir metinle açıklandığı, yorumlu bir G-code dosyası almak için bunu etkinleştirin. SD karttan yazdırırsanız dosyanın ilave ağırlığı ürün yazılımınızın yavaşlamasına neden olabilir."
+
+msgid "High precision G-code (experimental)"
+msgstr ""
+
+msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgstr ""
 
 msgid "Infill combination"
 msgstr "Dolgu kombinasyonu"
@@ -25423,16 +26086,16 @@ msgid "Could not connect to CrealityPrint"
 msgstr "CrealityPrint'e bağlanılamadı"
 
 # AI Translated
-msgid "Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network."
-msgstr "Bağlantı zaman aşımına uğradı. Lütfen yazıcı ve bilgisayar ağının düzgün çalışıp çalışmadığını denetleyin ve aynı ağda olduklarını doğrulayın."
-
-# AI Translated
 msgid "The Hostname/IP/URL could not be parsed, please check it and try again."
 msgstr "Ana makine adı/IP/URL ayrıştırılamadı, lütfen denetleyip yeniden deneyin."
 
 # AI Translated
 msgid "File/data transfer interrupted. Please check the printer and network, then try it again."
 msgstr "Dosya/veri aktarımı kesildi. Lütfen yazıcıyı ve ağı denetleyin, ardından yeniden deneyin."
+
+# AI Translated
+msgid "Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network."
+msgstr "Bağlantı zaman aşımına uğradı. Lütfen yazıcı ve bilgisayar ağının düzgün çalışıp çalışmadığını denetleyin ve aynı ağda olduklarını doğrulayın."
 
 msgid "The provided state is not correct."
 msgstr "Sağlanan durum doğru değil."
@@ -30544,9 +31207,6 @@ msgstr "Yakınlaştır"
 msgid "Zoom out"
 msgstr "Uzaklaştır"
 
-msgid "Show/Hide 3Dconnexion devices settings dialog"
-msgstr "3Dconnexion cihazları ayarları iletişim kutusunu Göster/Gizle"
-
 # AI Translated
 msgid "Show/Hide wireframe"
 msgstr "Wireframe Göster/Gizle"
@@ -31558,6 +32218,9 @@ msgstr "Geçerli rengi kaydet"
 # Needs human review: Glossary has no Turkish rendering for Palette; check 'Paletler'.
 msgid "Palettes"
 msgstr "Paletler"
+
+msgid "Pick color from screen"
+msgstr ""
 
 # AI Translated
 msgid "Search colors"
@@ -33986,6 +34649,10 @@ msgid "Texture layers"
 msgstr "Doku katmanları"
 
 # AI Translated
+msgid "Add layer"
+msgstr "Katman ekle"
+
+# AI Translated
 msgid "Drag onto another layer to reorder. The first layer sits on the bare surface; each one after it adds its relief on top of the ones before."
 msgstr "Yeniden sıralamak için başka bir katmanın üzerine sürükleyin. İlk katman çıplak yüzeyin üzerinde durur; sonraki her katman kendi kabartmasını öncekilerin üzerine ekler."
 
@@ -34346,17 +35013,6 @@ msgid "More settings"
 msgstr "Daha fazla ayar"
 
 # AI Translated
-#, boost-format
-msgid "All %1% layer used"
-msgid_plural "All %1% layers used"
-msgstr[0] "%1% katmanın tümü kullanıldı"
-msgstr[1] "%1% katmanın tümü kullanıldı"
-
-# AI Translated
-msgid "Add layer"
-msgstr "Katman ekle"
-
-# AI Translated
 msgid "Subdivision"
 msgstr "Alt bölümleme"
 
@@ -34563,20 +35219,6 @@ msgid "Bake by moving the vertices the mesh already has, after preparing it (rem
 msgstr "Mesh'i hazırladıktan sonra (yeniden mesh oluşturma, uyarlanabilir alt bölümleme ve dokudaki keskin basamaklar boyunca kesme) mesh'te zaten var olan tepe noktalarını hareket ettirerek pişirir. Renklerin ihtiyaç duyduğu topolojiyi korur. Varsayılan hat ise tek seferde sıklaştırır, ince uzun üçgenleri temizler, yer değiştirir ve sadeleştirir; önceden hiçbir hazırlık gerekmez, ancak henüz renk üretmez."
 
 # AI Translated
-#. TRN Slider value: %d is the triangle budget in thousands
-msgid "Budget"
-msgstr "Bütçe"
-
-# AI Translated
-#, c-format, boost-format
-msgid "%d k (auto)"
-msgstr "%d k (otomatik)"
-
-# AI Translated
-msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
-msgstr "Bu pişirmenin boyadığınız alana kaç bin üçgen harcayabileceği. Modelin geri kalanına önceden pişirilmiş kabartma buna ek olarak korunur; böylece başka bir yerdeki ikinci pişirme de ilkiyle aynı bütçeyi alır. Çözünürlük altındaki uyarı ayrıntının sığmayacağını söylüyorsa artırın; 0, sıklaştırmanın ürettiği her üçgeni, sayısı ne olursa olsun korur."
-
-# AI Translated
 msgid "Align mesh to texture edges"
 msgstr "Mesh'i doku kenarlarına hizala"
 
@@ -34591,6 +35233,20 @@ msgstr "İnce uzun üçgenleri temizle"
 # AI Translated
 msgid "Collapse the thin triangles refinement inherits from the model's own tessellation, before displacement samples them. A sliver's three corners land on three unrelated parts of the texture, which is what makes the relief look jagged."
 msgstr "Sıklaştırmanın modelin kendi üçgenlemesinden devraldığı ince üçgenleri, yer değiştirme onları örneklemeden önce çökertir. İnce uzun bir üçgenin üç köşesi dokunun birbiriyle ilgisiz üç kısmına denk gelir; kabartmanın tırtıklı görünmesinin nedeni budur."
+
+# AI Translated
+#. TRN Slider value: %d is the triangle budget in thousands
+msgid "Budget"
+msgstr "Bütçe"
+
+# AI Translated
+#, c-format, boost-format
+msgid "%d k (auto)"
+msgstr "%d k (otomatik)"
+
+# AI Translated
+msgid "How many thousand triangles this bake may spend on the area you painted. Relief already baked into the rest of the model is kept on top of it, so a second bake somewhere else gets the same budget as the first. Raise it if the warning below Resolution says the detail will not fit; 0 keeps every triangle the refinement produced, however many that is."
+msgstr "Bu pişirmenin boyadığınız alana kaç bin üçgen harcayabileceği. Modelin geri kalanına önceden pişirilmiş kabartma buna ek olarak korunur; böylece başka bir yerdeki ikinci pişirme de ilkiyle aynı bütçeyi alır. Çözünürlük altındaki uyarı ayrıntının sığmayacağını söylüyorsa artırın; 0, sıklaştırmanın ürettiği her üçgeni, sayısı ne olursa olsun korur."
 
 # AI Translated
 msgid "On: the resolution follows the size of the model and the budget is left at its default. Untick to set both yourself - worth doing for a texture much finer or much coarser than the part it sits on."
@@ -36030,9 +36686,6 @@ msgstr "Yeni proje oluştur"
 msgid "Recently opened"
 msgstr "Yakın zamanda açıldı"
 
-msgid "Open Containing Folder"
-msgstr "Dosyayı içeren klasörü açınız"
-
 # AI Translated
 msgid "Forward"
 msgstr "İleri"
@@ -37465,3400 +38118,3 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
-
-#~ msgid "Subdivision mesh"
-#~ msgstr "Poligon artırma"
-
-#~ msgid "(Lost color)"
-#~ msgstr "(Renk kaybı)"
-
-# AI Translated
-# Needs human review: Option of the collision volume behavior dropdown (all nozzles share the same volumes); check it reads right next to the other two options.
-#~ msgid "Shared"
-#~ msgstr "Ortak"
-
-#, no-c-format, no-boost-format
-#~ msgid ""
-#~ "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
-#~ "Be sure to allow enough space between objects, as this compensation is done after the checks."
-#~ msgstr ""
-#~ "Filamentin soğuduktan sonra alacağı büzülme yüzdesini girin (100 mm yerine 94 mm ölçerseniz 94%). Parça, telafi etmek için xy'de ölçeklendirilecektir. Yalnızca çevre için kullanılan filament dikkate alınır.\n"
-#~ "Bu telafi kontrollerden sonra yapıldığından, nesneler arasında yeterli boşluk bıraktığınızdan emin olun."
-
-# AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "Filament kulesi"; align it once the term is settled.
-#~ msgid "Temperature drop before entering filament tower"
-#~ msgstr "Filament kulesine girmeden önceki sıcaklık düşüşü"
-
-#, c-format, boost-format
-#~ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
-#~ msgstr "Klipper'ın max_accel_to_decel değeri ivmenin bu %%'sine göre ayarlanacak."
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Fuzzy skin generation mode. Works only with Arachne!\n"
-#~ "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
-#~ "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
-#~ "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
-#~ "\n"
-#~ "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
-#~ msgstr ""
-#~ "Pütürlü yüzey oluşturma modu. Sadece Arachne ile çalışır!\n"
-#~ "Yer Değiştirme: Desen, nozulun orijinal yoldan yana kaydırılmasıyla oluşturulduğu klasik mod.\n"
-#~ "Ekstrüzyon: Desenin ekstrüde edilen plastik miktarına göre oluşturulduğu mod. Bu, nozul sarsıntısı olmadan pürüzsüz bir desen veren hızlı ve düz bir algoritmadır. Ancak, tüm dizilimde gevşek duvarlar oluşturmak için daha kullanışlıdır.\n"
-#~ "Birleşik: Eklem modu [Yer Değiştirme] + [Ekstrüzyon]. Duvarların görünümü [Yer Değiştirme] Moduna benzer, ancak çevreler arasında gözenek bırakmaz.\n"
-#~ "\n"
-#~ "Dikkat! [Ekstrüzyon] ve [Birleşik] modları yalnızca fuzzy_skin_thickness parametresini çalıştırır, yazdırılan ilmeğin kalınlığından daha fazla olmamalıdır. Aynı zamanda, belirli bir katman için ekstrüzyon genişliği de belirli bir seviyenin altında olmamalıdır. Genellikle katman yüksekliğinin %%15-25'ine eşittir. Bu nedenle, 0,4 mm çevre genişliği ve 0,2 mm katman yüksekliğine sahip maksimum pütürlü yüzey kalınlığı 0,4-(0,2*0,25)=±0,35 mm olacaktır! Bundan daha yüksek bir parametre girerseniz, Flow::spacing() hatası görüntülenir ve model dilimlenmez. Bu hata tekrarlanana kadar bu sayıyı seçebilirsiniz."
-
-#~ msgid ""
-#~ "This option is enabled if machine support controlling chamber temperature\n"
-#~ "G-code command: M141 S(0-255)"
-#~ msgstr ""
-#~ "Bu seçenek, hazne sıcaklığını kontrol eden makine desteği varsa etkinleştirilir\n"
-#~ "G-code komut: M141 S(0-255)"
-
-#~ msgid ""
-#~ "Enable this if printer support air filtration\n"
-#~ "G-code command: M106 P3 S(0-255)"
-#~ msgstr ""
-#~ "Yazıcı hava filtrelemeyi destekliyorsa bunu etkinleştirin\n"
-#~ "G-code komut: M106 P3 S(0-255)"
-
-# AI Translated
-#~ msgid "Enable this if printer support cooling filter"
-#~ msgstr "Yazıcı soğutma filtresini destekliyorsa bunu etkinleştirin"
-
-#, c-format, boost-format
-#~ msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
-#~ msgstr "Çizgi genişliğine göre çıkıntı yüzdesini tespit edin ve yazdırmak için farklı hızlar kullanın. %%100 çıkıntı için köprü hızı kullanılır."
-
-# AI Translated
-#~ msgid "Nozzle volume variants indexed by nozzle ID."
-#~ msgstr "Nozul kimliğine göre dizinlenmiş nozul hacmi varyantları."
-
-# AI Translated
-#~ msgid "Current layer mass"
-#~ msgstr "Geçerli katman kütlesi"
-
-# AI Translated
-# Needs human review: Check 'inline position' wording together with the 'Timelapse inline photo' label.
-#~ msgid "Whether the timelapse photo is captured at the inline position."
-#~ msgstr "Timelapse fotoğrafının satır içi konumda çekilip çekilmediği."
-
-# AI Translated
-# Needs human review: Short placeholder label with no context; check that 'clear to X0' (path to X0 is free) reads right.
-#~ msgid "Clear to X0"
-#~ msgstr "X0'a kadar serbest"
-
-# AI Translated
-# Needs human review: Check wording together with the 'Clear to X0' label.
-#~ msgid "Whether the timelapse move is clear to X0."
-#~ msgstr "Timelapse hareketinin X0'a kadar serbest olup olmadığı."
-
-# AI Translated
-#~ msgid "Zero-based extruder index of the outgoing filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-#~ msgstr "Çıkan filamentin sıfır tabanlı ekstruder indeksi. Bambu yazıcılarda -1'dir veya bir filament katmanlar arasında nozullar arasında geçtiğinde nozul kimliğidir."
-
-# AI Translated
-#~ msgid "Zero-based extruder index of the incoming filament. On Bambu printers it is -1, or the nozzle ID when a filament moves between nozzles across layers."
-#~ msgstr "Gelen filamentin sıfır tabanlı ekstruder indeksi. Bambu yazıcılarda -1'dir veya bir filament katmanlar arasında nozullar arasında geçtiğinde nozul kimliğidir."
-
-# AI Translated
-#~ msgid "Nozzle-volume variant of the outgoing extruder."
-#~ msgstr "Çıkan ekstruderin nozul hacmi varyantı."
-
-# AI Translated
-#~ msgid "Nozzle-volume variant of the incoming extruder."
-#~ msgstr "Gelen ekstruderin nozul hacmi varyantı."
-
-# AI Translated
-#~ msgid "Currently parked retraction length of the incoming extruder."
-#~ msgstr "Gelen ekstruderin şu anda park edilmiş geri çekme uzunluğu."
-
-# AI Translated
-#~ msgid "The first flush volume."
-#~ msgstr "İlk yıkama hacmi."
-
-# AI Translated
-#~ msgid "The second flush volume."
-#~ msgstr "İkinci yıkama hacmi."
-
-# AI Translated
-#~ msgid "Wipe avoidance X"
-#~ msgstr "Temizlemeden kaçınma X"
-
-# AI Translated
-#~ msgid "X position used to avoid the wipe area."
-#~ msgstr "Temizleme alanından kaçınmak için kullanılan X konumu."
-
-# AI Translated
-#~ msgid "Whether the current purge is for a prime-tower interface."
-#~ msgstr "Geçerli yıkamanın bir prime kulesi arayüzü için olup olmadığı."
-
-# AI Translated
-#~ msgid "Filament tower interface print temperature"
-#~ msgstr "Filament kule arayüzü baskı sıcaklığı"
-
-# AI Translated
-#~ msgid "Print temperature used for the filament tower interface."
-#~ msgstr "Filament kule arayüzü için kullanılan baskı sıcaklığı."
-
-# AI Translated
-#~ msgid "Whether the print has a wipe tower."
-#~ msgstr "Baskıda silme kulesi olup olmadığı."
-
-# AI Translated
-#~ msgid "Nozzle temperature initial layer"
-#~ msgstr "İlk katman nozul sıcaklığı"
-
-#, c-format, boost-format
-#~ msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-#~ msgstr "%1s malzemeyi %2s püskürtme ucuyla yazdırmak püskürtme ucu hasarına neden olabilir."
-
-# AI Translated
-#~ msgid "Python interpreter is shutting down"
-#~ msgstr "Python yorumlayıcısı kapanıyor"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-#~ msgstr[0] "%s filamenti %s içine yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir aralığını aşıyor."
-#~ msgstr[1] "%s filamentleri %s içine yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir aralığını aşıyor."
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-#~ msgid_plural "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-#~ msgstr[0] "%s filamenti %s'e yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir yüksekliğini aşıyor."
-#~ msgstr[1] "%s filamentleri %s'e yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir yüksekliğini aşıyor."
-
-#~ msgid "Mirror along the X Axis"
-#~ msgstr "X ekseni boyunca aynala"
-
-#~ msgid "Mirror along the Y Axis"
-#~ msgstr "Y ekseni boyunca aynala"
-
-#~ msgid "Mirror along the Z Axis"
-#~ msgstr "Z ekseni boyunca aynala"
-
-#~ msgid "Split the selected object"
-#~ msgstr "Seçilen nesneyi böl"
-
-#~ msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as polygon by points in following format: \"XxY, XxY, ...\""
-#~ msgstr "XY düzleminde yazdırılamayan alan. Örneğin X1 Serisi yazıcılar, filament değişimi sırasında filamenti kesmek için sol ön köşeyi kullanır. Alan şu formatta noktalarla çokgen olarak ifade edilir: \"XxY, XxY, ...\""
-
-#~ msgid ""
-#~ "Enable this to get a G-code file which has G2 and G3 moves. The fitting tolerance is same as the resolution.\n"
-#~ "\n"
-#~ "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from arc commands as these are split again into line segments by the firmware. This results in a reduction in surface quality as line segments are converted to arcs by the slicer and then back to line segments by the firmware."
-#~ msgstr ""
-#~ "G2 ve G3 hareketlerine sahip bir G-code dosyası elde etmek için bunu etkinleştirin. Montaj toleransı çözünürlükle aynıdır.\n"
-#~ "\n"
-#~ "Not: Klipper makineler için bu seçeneğin devre dışı bırakılması önerilir. Klipper, yazılım tarafından tekrar çizgi bölümlerine bölündüğü için yay komutlarından faydalanmaz. Bu, çizgi bölümlerinin dilimleyici tarafından yaylara dönüştürülmesi ve ardından donanım yazılımı tarafından tekrar çizgi bölümlerine dönüştürülmesi nedeniyle yüzey kalitesinde bir azalmaya neden olur."
-
-# AI Translated
-#~ msgid "Silent Mode"
-#~ msgstr "Sessiz mod"
-
-#~ msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
-#~ msgstr "Daha sessiz baskı için ivmelenmeyi düşüren sessiz mod desteği"
-
-#~ msgid ""
-#~ "In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
-#~ "This amount can be specified in millimeters or as a percentage of the current extruder diameter. The default value for this parameter is 10%."
-#~ msgstr ""
-#~ "Kapalı döngü ekstrüzyonda dikişin görünürlüğünü azaltmak için döngü kesintiye uğrar ve belirli bir miktarda kısaltılır.\n"
-#~ "Bu miktar milimetre cinsinden veya mevcut ekstruder çapının yüzdesi olarak belirtilebilir. Bu parametrenin varsayılan değeri %10'dur."
-
-#~ msgid "Wipe tower volume"
-#~ msgstr "Kule hacmini sil"
-
-#~ msgid "Total filament volume extruded on the wipe tower."
-#~ msgstr "Silme kulesinde ekstrüzyona tabi tutulan toplam filament hacmi."
-
-# AI Translated
-#~ msgid "Index of the current layer. Zero-based (i.e. first layer is number 0), except in extrusion role change G-code, where it is one-based."
-#~ msgstr "Geçerli katmanın indeksi. Sıfır tabanlıdır (yani ilk katman 0 numaralıdır); ancak ekstrüzyon rolü değişim G-code'unda bir tabanlıdır."
-
-#~ msgid "The current extruder ID. The same as current_extruder."
-#~ msgstr "Geçerli ekstruder kimliği. Mevcut ekstruder ile aynı."
-
-# AI Translated
-#~ msgid "Index of the extruder that is being unloaded. The index is zero based (first extruder has index 0)."
-#~ msgstr "Boşaltılmakta olan ekstruderin indeksi. İndeks sıfır tabanlıdır (ilk ekstruderin indeksi 0'dır)."
-
-# AI Translated
-#~ msgid "Index of the extruder that is being loaded. The index is zero based (first extruder has index 0)."
-#~ msgstr "Yüklenmekte olan ekstruderin indeksi. İndeks sıfır tabanlıdır (ilk ekstruderin indeksi 0'dır)."
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" requests filesystem read access to:\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi dosya sistemine okuma erişimi istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to make an HTTP request to:\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi şu adrese HTTP isteği yapmak istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to open a network connection to:\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi şu adrese ağ bağlantısı açmak istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "Plugin filesystem read permission request denied"
-#~ msgstr "Eklenti dosya sistemi okuma izni isteği reddedildi"
-
-# AI Translated
-# Needs human review: Possibly meant Daffodil yellow (RAL 1007); translated literally.
-#~ msgid "Dalmatian yellow"
-#~ msgstr "Dalmaçya sarısı"
-
-# AI Translated
-#~ msgid "Capsanthin violet"
-#~ msgstr "Kapsantin moru"
-
-# AI Translated
-# Needs human review: Probably RAL Olive grey; translated as Zeytin grisi.
-#~ msgid "Olivestone"
-#~ msgstr "Zeytin grisi"
-
-# AI Translated
-#~ msgid "Available anywhere in the window, even while typing in a text field."
-#~ msgstr "Pencerenin her yerinde, bir metin alanına yazarken bile kullanılabilir."
-
-# AI Translated
-#~ msgid "Global shortcuts also apply while typing."
-#~ msgstr "Genel kısayollar yazarken de geçerlidir."
-
-#~ msgid "Please choose the filament color"
-#~ msgstr "Lütfen filament rengini seçin"
-
-# AI Translated
-#~ msgid ""
-#~ "Line width of the Bridge. If expressed as a %, it will be computed over the nozzle diameter.\n"
-#~ "Recommended to use with a higher Bridge density or Bridge flow ratio.\n"
-#~ "\n"
-#~ "The maximum value is 100% or the nozzle diameter.\n"
-#~ "If set to 0, the line width will match the Internal solid infill width."
-#~ msgstr ""
-#~ "Köprünün çizgi genişliği. Yüzde olarak ifade edilirse nozul çapı üzerinden hesaplanır.\n"
-#~ "Daha yüksek bir Köprü yoğunluğu veya Köprü akış oranı ile birlikte kullanılması önerilir.\n"
-#~ "\n"
-#~ "En büyük değer %100 veya nozul çapıdır.\n"
-#~ "0 olarak ayarlanırsa çizgi genişliği İç katı dolgu genişliğiyle eşleşir."
-
-# AI Translated
-#, no-c-format, no-boost-format
-#~ msgid ""
-#~ "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
-#~ "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
-#~ "\n"
-#~ "It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
-#~ "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
-#~ "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
-#~ "\n"
-#~ "Recommendations when enabling this option:\n"
-#~ "1. Reduce Pressure Advance smooth time to 0.015 - 0.02 so the extruder reacts quickly to the speed changes.\n"
-#~ "2. Increase the minimum print speeds to limit the magnitude of the slowdown and reduce the variance between fast and slow segments.\n"
-#~ "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
-#~ "\n"
-#~ "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-#~ "For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 100% overhang speed will be applied."
-#~ msgstr ""
-#~ "Duvarların yukarı doğru kıvrılmış olabileceği bölgelerde yazdırmayı yavaşlatmak için bu seçeneği etkinleştirin.\n"
-#~ "Örneğin, Benchy gövdesinin ön kısmı gibi keskin köşelerdeki çıkıntılar yazdırılırken ek yavaşlama uygulanır; bu da birden çok katmanda birikerek artan kıvrılmayı azaltır.\n"
-#~ "\n"
-#~ "Yazıcınızın soğutması yeterince güçlü değilse veya baskı hızı duvar kıvrılması oluşmayacak kadar düşük değilse bu seçeneğin açık olması genellikle önerilir. \n"
-#~ "Yüksek bir dış duvar hızıyla yazdırılıyorsa, baskı hızlarındaki olası büyük değişkenlik ekstruderin istenen akış değişimine yetişememesine yol açacağından bu parametre yavaşlama sırasında duvarda bozulmalara neden olabilir.\n"
-#~ "Bu bozulmaların asıl nedeni büyük olasılıkla PA ayarının biraz kaymış olmasıdır, özellikle de yüksek bir PA yumuşatma süresiyle birleştiğinde.\n"
-#~ "\n"
-#~ "Bu seçeneği etkinleştirirken öneriler:\n"
-#~ "1. Ekstruderin hız değişimlerine hızlı tepki vermesi için Pressure Advance yumuşatma süresini 0,015 - 0,02 değerine düşürün.\n"
-#~ "2. Yavaşlamanın büyüklüğünü sınırlamak ve hızlı ile yavaş bölümler arasındaki farkı azaltmak için minimum baskı hızlarını artırın.\n"
-#~ "3. Bozulmalar hâlâ görünüyorsa, akış geçişlerini daha da yumuşatmak için Ekstrüzyon Hızı Yumuşatma'yı (ERS) etkinleştirin.\n"
-#~ "\n"
-#~ "Not: Bu seçenek etkinleştirildiğinde çıkıntı duvarları çıkıntı gibi ele alınır; yani çıkıntı yapan duvar bir köprünün parçası olsa bile çıkıntı hızı uygulanır.\n"
-#~ "Örneğin duvarlar %100 çıkıntı yapıyorsa ve altlarında onları destekleyen bir duvar yoksa %100 çıkıntı hızı uygulanır."
-
-#~ msgid ""
-#~ "Speed of the externally visible bridge extrusions.\n"
-#~ "\n"
-#~ "In addition, if Slow down for curled perimeters is disabled or Classic overhang mode is enabled, it will be the print speed of overhang walls that are supported by less than 13%, whether they are part of a bridge or an overhang."
-#~ msgstr ""
-#~ "Dışarıdan görülebilen köprü ekstrüzyonlarının hızı.\n"
-#~ "\n"
-#~ "Ayrıca, kıvrılmış çevreler için yavaşlama devre dışı bırakılırsa veya Klasik çıkıntı modu etkinleştirilirse, ister bir köprünün ister bir çıkıntının parçası olsun, %13’ten daha az desteklenen çıkıntılı duvarların yazdırma hızı olacaktır."
-
-#~ msgid "This separate setting will affect the speed of perimeters having radius <= small_perimeter_threshold (usually holes). If expressed as percentage (for example: 80%) it will be calculated on the outer wall speed setting above. Set to zero for auto."
-#~ msgstr "Bu ayrı ayar, yarıçapı <= küçük_çevre_eşiği olan çevrelerin (genellikle delikler) hızını etkileyecektir. Yüzde olarak ifade edilirse (örneğin: %80), yukarıdaki dış duvar hızı ayarına göre hesaplanacaktır. Otomatik için sıfıra ayarlayın."
-
-# AI Translated
-#~ msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
-#~ msgstr "\"Küçük çevre (perimeter)\" ile aynıdır, ancak destekler için geçerlidir. Bu ayrı ayar, `small_support_perimeter_threshold` değerinden küçük veya ona eşit alanlar için destek hızını etkiler. Yüzde olarak ifade edilirse (örneğin: %80), yukarıdaki destek veya destek arayüzü hızı ayarı üzerinden hesaplanır. Otomatik için sıfır olarak ayarlayın."
-
-#~ msgid ""
-#~ "Print sequence of the internal (inner) and external (outer) walls.\n"
-#~ "\n"
-#~ "Use Inner/Outer for best overhangs. This is because the overhanging walls can adhere to a neighbouring perimeter while printing. However, this option results in slightly reduced surface quality as the external perimeter is deformed by being squashed to the internal perimeter.\n"
-#~ "\n"
-#~ "Use Inner/Outer/Inner for the best external surface finish and dimensional accuracy as the external wall is printed undisturbed from an internal perimeter. However, overhang performance will reduce as there is no internal perimeter to print the external wall against. This option requires a minimum of 3 walls to be effective as it prints the internal walls from the 3rd perimeter onwards first, then the external perimeter and, finally, the first internal perimeter. This option is recommended against the Outer/Inner option in most cases.\n"
-#~ "\n"
-#~ "Use Outer/Inner for the same external wall quality and dimensional accuracy benefits of Inner/Outer/Inner option. However, the Z seams will appear less consistent as the first extrusion of a new layer starts on a visible surface."
-#~ msgstr ""
-#~ "İç (iç) ve dış (dış) duvarların baskı sırası.\n"
-#~ "\n"
-#~ "En iyi çıkıntılar için İç/Dış seçeneğini kullanın. Bunun nedeni, sarkan duvarların baskı sırasında komşu çevreye yapışabilmesidir. Ancak bu seçenek, dış çevrenin iç çevreye sıkıştırılarak deforme olması nedeniyle yüzey kalitesinin biraz düşmesine neden olur.\n"
-#~ "\n"
-#~ "Dış duvar iç çevreden rahatsız edilmeden basıldığından, en iyi dış yüzey kalitesi ve boyutsal doğruluk için İç/Dış/İç seçeneğini kullanın. Ancak, dış duvarın üzerine baskı yapılacak bir iç çevre olmadığından sarkma performansı düşecektir. Bu seçenek, önce 3. çevreden itibaren iç duvarları, ardından dış çevreyi ve son olarak da birinci iç çevreyi yazdırdığından etkili olması için en az 3 duvar gerektirir. Bu seçenek çoğu durumda Dış/İç seçeneğine karşı önerilir.\n"
-#~ "\n"
-#~ "İç/Dış/İç seçeneğinin aynı dış duvar kalitesi ve boyutsal doğruluk avantajları için Dış/İç seçeneğini kullanın. Bununla birlikte, yeni bir katmanın ilk ekstrüzyonu görünür bir yüzey üzerinde başladığından Z dikişleri daha az tutarlı görünecektir."
-
-#~ msgid "This is the speed for the first layer except for solid infill sections."
-#~ msgstr "Katı dolgu kısmı dışındaki ilk katmanın hızı."
-
-#~ msgid "This is the speed for solid infill parts of the first layer."
-#~ msgstr "İlk katmanın katı dolgu kısmının hızı."
-
-#, no-c-format, no-boost-format
-#~ msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
-#~ msgstr "Daha iyi yapışma için dolgu alanı duvarla örtüşecek şekilde hafifçe genişletilir. Yüzde değeri seyrek dolgunun çizgi genişliğine göredir. Aşırı ekstrüzyon ve pürüzlü üst yüzeylere neden olan malzeme birikmesi potansiyelini en aza indirmek için bu değeri ~%10-15’e ayarlayın."
-
-#, no-c-format, no-boost-format
-#~ msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
-#~ msgstr "Üst katı dolgu alanı, daha iyi yapışma sağlamak ve üst dolgunun duvarlarla buluştuğu yerde küçük deliklerin görünümünü en aza indirmek için duvarla üst üste gelecek şekilde hafifçe genişletilir. %25-30’luk bir değer, iğne deliklerinin görünümünü en aza indiren iyi bir başlangıç noktasıdır. Yüzde değeri seyrek dolgunun çizgi genişliğine göredir."
-
-#~ msgid "Interlocking depth of a segmented region. It will be ignored if \"mmu_segmented_region_max_width\" is zero or if \"mmu_segmented_region_interlocking_depth\" is bigger than \"mmu_segmented_region_max_width\". Zero disables this feature."
-#~ msgstr "Bölümlere ayrılmış bir bölgenin birbirine kenetlenen derinliği. “mmu_segmented_region_max_width” sıfırsa veya “mmu_segmented_region_interlocking_length”, “mmu_segmented_region_max_width” değerinden büyükse göz ardı edilecektir. Sıfır bu özelliği devre dışı bırakır."
-
-# AI Translated
-#~ msgid ""
-#~ "Reduce the height of top-surface perimeters to match the model edge height.\n"
-#~ "Affects perimeters with a slope less than this angle (degrees).\n"
-#~ "A reasonable value is 35. Set to 0 to disable."
-#~ msgstr ""
-#~ "Üst yüzey duvarlarının yüksekliğini model kenar yüksekliğine uyacak şekilde azaltır.\n"
-#~ "Eğimi bu açıdan (derece) küçük olan duvarları etkiler.\n"
-#~ "Makul bir değer 35'tir. Devre dışı bırakmak için 0 olarak ayarlayın."
-
-#~ msgid "Role base wipe speed"
-#~ msgstr "Otomatik temizleme hızı"
-
-#~ msgid ""
-#~ "A draft shield is useful to protect an ABS or ASA print from warping and detaching from print bed due to wind draft. It is usually needed only with open frame printers, i.e. without an enclosure.\n"
-#~ "\n"
-#~ "Enabled = skirt is as tall as the highest printed object. Otherwise 'Skirt height' is used.\n"
-#~ "Note: With the draft shield active, the skirt will be printed at skirt distance from the object. Therefore, if brims are active it may intersect with them. To avoid this, increase the skirt distance value.\n"
-#~ msgstr ""
-#~ "Rüzgar taslağı nedeniyle ABS veya ASA baskının eğrilmesine ve baskı yatağından ayrılmasına karşı koruma sağlamak için bir rüzgarlık kullanışlıdır. Genellikle yalnızca açık çerçeveli, yani muhafazasız yazıcılarda gereklidir.\n"
-#~ "\n"
-#~ "Etkin = etek, yazdırılan en yüksek nesne kadar uzun. Aksi takdirde ‘Etek yüksekliği’ kullanılır.\n"
-#~ "Not: Rüzgarlık etkinken etek, nesneden etek mesafesinde yazdırılacaktır. Bu nedenle eğer kenarlar aktifse onlarla kesişebilir. Bunu önlemek için etek mesafesi değerini artırın.\n"
-
-#~ msgid ""
-#~ "The maximum print speed when purging in the wipe tower and printing the wipe tower sparse layers. When purging, if the sparse infill speed or calculated speed from the filament max volumetric speed is lower, the lowest will be used instead.\n"
-#~ "\n"
-#~ "When printing the sparse layers, if the internal perimeter speed or calculated speed from the filament max volumetric speed is lower, the lowest will be used instead.\n"
-#~ "\n"
-#~ "Increasing this speed may affect the tower's stability as well as increase the force with which the nozzle collides with any blobs that may have formed on the wipe tower.\n"
-#~ "\n"
-#~ "Before increasing this parameter beyond the default of 90 mm/s, make sure your printer can reliably bridge at the increased speeds and that ooze when tool changing is well controlled.\n"
-#~ "\n"
-#~ "For the wipe tower external perimeters the internal perimeter speed is used regardless of this setting."
-#~ msgstr ""
-#~ "Silme kulesinde temizleme yaparken ve silme kulesi seyrek katmanlarını yazdırırken maksimum yazdırma hızı. Temizleme sırasında seyrek dolum hızı veya filamentin maksimum hacimsel hızından hesaplanan hız daha düşükse, bunun yerine en düşük olanı kullanılacaktır.\n"
-#~ "\n"
-#~ "Seyrek katmanları yazdırırken iç çevre hızı veya filamentin maksimum hacimsel hızından hesaplanan hız daha düşükse bunun yerine en düşük olanı kullanılacaktır.\n"
-#~ "\n"
-#~ "Bu hızın arttırılması kulenin stabilitesini etkileyebileceği gibi, nozulun silme kulesi üzerinde oluşmuş olabilecek damlacıklarla çarpışma kuvvetini de arttırabilir.\n"
-#~ "\n"
-#~ "Bu parametreyi varsayılan 90 mm/sn’nin üzerine çıkarmadan önce, yazıcınızın artan hızlarda güvenilir şekilde köprü kurabildiğinden ve takım değişimi iyi kontrol edildiğinde sızıntı yaptığından emin olun.\n"
-#~ "\n"
-#~ "Silme kulesi dış çevreleri için bu ayardan bağımsız olarak iç çevre hızı kullanılır."
-
-# AI Translated
-#~ msgid ""
-#~ "Wipe tower outer wall type.\n"
-#~ "1. Rectangle: The default wall type, a rectangle with fixed width and height.\n"
-#~ "2. Cone: A cone with a fillet at the bottom to help stabilize the wipe tower.\n"
-#~ "3. Rib: Adds four ribs to the tower wall for enhanced stability."
-#~ msgstr ""
-#~ "Silme kulesi dış duvar tipi.\n"
-#~ "1. Dikdörtgen: Varsayılan duvar tipi, sabit genişlik ve yüksekliğe sahip bir dikdörtgendir.\n"
-#~ "2. Koni: Silme kulesinin sabitlenmesine yardımcı olmak için alt kısmı yuvarlatılmış bir koni.\n"
-#~ "3. Kaburga: Kule duvarına gelişmiş denge için dört kaburga ekler."
-
-#~ msgid "Extra flow used for the purging lines on the wipe tower. This makes the purging lines thicker or narrower than they normally would be. The spacing is adjusted automatically."
-#~ msgstr "Silme kulesindeki temizleme hatları için ekstra akış kullanılır. Bu, temizleme hatlarının normalde olduğundan daha kalın veya daha dar olmasına neden olur. Aralık otomatik olarak ayarlanır."
-
-#~ msgid ""
-#~ "Adjust this value to prevent short, unclosed walls from being printed, which could increase print time. Higher values remove more and longer walls.\n"
-#~ "\n"
-#~ "NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. Adjust 'One wall threshold' in the Advanced settings below to adjust the sensitivity of what is considered a top-surface. 'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled."
-#~ msgstr ""
-#~ "Yazdırma süresini artırabilecek kısa, kapatılmamış duvarların yazdırılmasını önlemek için bu değeri ayarlayın. Daha yüksek değerler daha fazla ve daha uzun duvarları kaldırır.\n"
-#~ "\n"
-#~ "NOT: Modelin dış kısmında görsel boşluk kalmaması için alt ve üst yüzeyler bu değerden etkilenmeyecektir. Üst yüzey olarak kabul edilen şeyin hassasiyetini ayarlamak için aşağıdaki Gelişmiş ayarlarda 'Tek duvar eşiği'ni ayarlayın. 'Tek duvar eşiği' yalnızca bu ayar varsayılan değer olan 0,5'in üzerine ayarlandığında veya tek duvarlı üst yüzeyler etkinleştirildiğinde görünür."
-
-# AI Translated
-#, boost-format
-#~ msgid "Split into %1% part"
-#~ msgid_plural "Split into %1% parts"
-#~ msgstr[0] "%1% parçaya ayır"
-#~ msgstr[1] "%1% parçaya ayır"
-
-#~ msgid "Repair failed"
-#~ msgstr "Onarım başarısız oldu"
-
-#~ msgid "Repair canceled"
-#~ msgstr "Onarım iptal edildi"
-
-# AI Translated
-#~ msgid "What this layer does where it overlaps the ones below. Add and Subtract pile relief on or carve it away. Multiply and Divide scale what is underneath, which turns this layer into a mask over it - there, Depth acts as a strength, and 1 mm leaves white areas untouched."
-#~ msgstr "Bu katmanın alttakilerle örtüştüğü yerde ne yaptığı. Ekle ve Çıkar kabartmayı üst üste ekler veya oyar. Çarp ve Böl alttakini ölçekler; bu da bu katmanı onun üzerinde bir maskeye dönüştürür - bu durumda Derinlik bir şiddet gibi davranır ve 1 mm beyaz alanlara dokunmaz."
-
-# AI Translated
-#~ msgid "The mesh has non-manifold geometry or open boundaries. You can import it as-is or repair it with Windows 3D repair service before importing."
-#~ msgstr "Mesh'te manifold olmayan geometri veya açık sınırlar var. Olduğu gibi içe aktarabilir ya da içe aktarmadan önce Windows 3D onarım hizmetiyle onarabilirsiniz."
-
-# AI Translated
-#~ msgid "Please note that the mesh has non-manifold geometry or open boundaries."
-#~ msgstr "Lütfen mesh'te manifold olmayan geometri veya açık sınırlar olduğunu unutmayın."
-
-# AI Translated
-#~ msgid "Mesh issue"
-#~ msgstr "Mesh sorunu"
-
-# AI Translated
-#~ msgid "Repair failed: mesh still open after hole filling."
-#~ msgstr "Onarım başarısız oldu: delik doldurmadan sonra mesh hâlâ açık."
-
-# AI Translated
-#~ msgid "Cannot apply logical operation to non-boolean operators."
-#~ msgstr "Mantıksal işlem, boole olmayan işleçlere uygulanamıyor."
-
-# AI Translated
-#~ msgid "Reading"
-#~ msgstr "Okunuyor"
-
-#, boost-format
-#~ msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
-#~ msgstr "Filament sayısı, boyama aracının desteklediği maksimum sayıyı aşıyor. Boyama aracında yalnızca ilk %1% filament mevcut olacaktır."
-
-#~ msgid "Shortcut Key "
-#~ msgstr "Kısayol tuşu "
-
-# AI Translated
-#~ msgid "Build Volume"
-#~ msgstr "Yapı hacmi"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-#~ "Please report to the OrcaSlicer team in which scenario this issue happened.\n"
-#~ "Thank you."
-#~ msgstr ""
-#~ "Nesnelerde(%1%) yinelenen bağlantı elemanları var. Dilimleme sonucunda bazı bağlantı elemanları eksik olabilir.\n"
-#~ "Lütfen bu sorunun hangi senaryoda oluştuğunu OrcaSlicer ekibine bildirin.\n"
-#~ "Teşekkürler."
-
-#, c-format, boost-format
-#~ msgid "%d triangles"
-#~ msgstr "%d üçgen"
-
-#~ msgid " (Moving)"
-#~ msgstr " (Hareketli)"
-
-#~ msgid " (Fixed)"
-#~ msgstr " (Sabit)"
-
-# AI Translated
-#~ msgid "Filament "
-#~ msgstr "Filament "
-
-# AI Translated
-#~ msgid "hotend"
-#~ msgstr "hotend"
-
-# AI Translated
-#~ msgid "Arranging "
-#~ msgstr "Hizalanıyor "
-
-#~ msgid "Orienting"
-#~ msgstr "Yönlendiriliyor"
-
-#~ msgid "Please home all axes (click "
-#~ msgstr "Lütfen tüm eksenleri hizalayın (tıklayın) "
-
-#~ msgid ") to locate the toolhead's position. This prevents device moving beyond the printable boundary and causing equipment wear."
-#~ msgstr ") takım kafasının konumunu bulmak için. Bu, cihazın yazdırılabilir sınırın dışına çıkmasını ve ekipmanın aşınmasına neden olmasını önler."
-
-#, boost-format
-#~ msgid "Increase %1%g filament and %2% changes compared to optimal grouping."
-#~ msgstr "Optimum gruplamaya kıyasla %1%g filament ve %2% değişimi artırın."
-
-#, boost-format
-#~ msgid "Increase %1%g filament and save %2% changes compared to optimal grouping."
-#~ msgstr "Optimum gruplamaya kıyasla %1%g filamenti artırın ve %2% değişiklikten tasarruf edin."
-
-#, boost-format
-#~ msgid "Save %1%g filament and increase %2% changes compared to optimal grouping."
-#~ msgstr "Optimum gruplamaya kıyasla %1%g filamentten tasarruf edin ve değişiklikleri %2% artırın."
-
-#, boost-format
-#~ msgid "Save %1%g filament and %2% changes compared to a printer with one nozzle."
-#~ msgstr "Tek nozullu bir yazıcıya kıyasla %1%g filament ve %2% değişiklikten tasarruf edin."
-
-#, boost-format
-#~ msgid "Save %1%g filament and increase %2% changes compared to a printer with one nozzle."
-#~ msgstr "Tek nozullu yazıcıya kıyasla %1%g filamentten tasarruf edin ve değişiklikleri %2% artırın."
-
-#, boost-format
-#~ msgid "Increase %1%g filament and save %2% changes compared to a printer with one nozzle."
-#~ msgstr "Tek nozullu yazıcıya kıyasla %1%g filamenti artırın ve %2% değişiklikten tasarruf edin."
-
-#~ msgid "number keys"
-#~ msgstr "sayı tuşları"
-
-#, c-format, boost-format
-#~ msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-#~ msgstr "%s filamentleri %s içine yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir aralığını aşıyor."
-
-#, c-format, boost-format
-#~ msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-#~ msgstr "%s filamentleri %s'e yerleştirildi, ancak oluşturulan G-code yolu %s'nin yazdırılabilir yüksekliğini aşıyor."
-
-#, c-format, boost-format
-#~ msgid "Filaments %s cannot be printed directly on the surface of this plate."
-#~ msgstr "%s filamentleri bu plakanın yüzeyine doğrudan basılamaz."
-
-#~ msgid "will be closed before creating a new model. Do you want to continue?"
-#~ msgstr "yeni bir model oluşturulmadan önce kapatılacaktır. Devam etmek istiyor musun?"
-
-#, c-format, boost-format
-#~ msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
-#~ msgstr "Bulut Dilimleme Sırasında önünüzde %s görev var."
-
-#~ msgid " upload failed"
-#~ msgstr " yükleme başarısız"
-
-#~ msgid " upload config prase failed\n"
-#~ msgstr " yapılandırma ön yüklemesi başarısız oldu\n"
-
-#~ msgid " No corresponding storage bucket\n"
-#~ msgstr " Uygun depolama alanı yok\n"
-
-#~ msgid " cannot be opened\n"
-#~ msgstr " açılamaz\n"
-
-#~ msgid ""
-#~ "Your comment result cannot be uploaded due to the following reasons:\n"
-#~ "\n"
-#~ "  error code: "
-#~ msgstr ""
-#~ "Yorum sonucunuz aşağıdaki bazı nedenlerden dolayı yüklenemiyor. Sebep:\n"
-#~ "\n"
-#~ "  hata kodu: "
-
-#~ msgid "error message: "
-#~ msgstr "hata mesajı: "
-
-#~ msgid ""
-#~ "\n"
-#~ "\n"
-#~ "Would you like to redirect to the webpage to give a rating?"
-#~ msgstr ""
-#~ "\n"
-#~ "\n"
-#~ "Derecelendirme için web sayfasına yönlendirmek ister misiniz?"
-
-# AI Translated
-#, boost-format
-#~ msgid " (process preset: %1%)"
-#~ msgstr " (işlem ön ayarı: %1%)"
-
-#, c-format, boost-format
-#~ msgid "The %s nozzle can not print %s."
-#~ msgstr "%s püskürtme ucu %s'yi yazdıramıyor."
-
-#~ msgid " nozzle"
-#~ msgstr " nozul"
-
-#, boost-format
-#~ msgid "It is not recommended to print the following filament(s) with %1%: %2%\n"
-#~ msgstr "Aşağıdaki filament(ler)in %1%: %2% ile yazdırılması önerilmez.\n"
-
-#, boost-format
-#~ msgid " plate %1%:"
-#~ msgstr " plaka %1%:"
-
-# AI Translated
-#, boost-format
-#~ msgid "Remove all %1% mixed filaments?"
-#~ msgstr "%1% karışık filamentin tümü kaldırılsın mı?"
-
-#~ msgid "Do you want to replace it"
-#~ msgstr "Değiştirmek istiyor musun"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Bed temperature conflict: T%d (%s) sets the bed to %d°C — T%d (%s) requires %d°C. The primary tool controls the bed; secondary tools print at whatever temperature it sets."
-#~ msgstr "Yatak sıcaklığı çakışması: T%d (%s) yatağı %d°C'ye ayarlıyor — T%d (%s) ise %d°C gerektiriyor. Yatağı birincil araç kontrol eder; ikincil araçlar onun ayarladığı sıcaklıkta basar."
-
-#~ msgid "No accelerations provided for calibration. Use default acceleration value "
-#~ msgstr "Kalibrasyon için ivme sağlanmadı. Varsayılan ivme değerini kullanın "
-
-#~ msgid "No speeds provided for calibration. Use default optimal speed "
-#~ msgstr "Kalibrasyon için hız sağlanmadı. Varsayılan optimum hızı kullanın "
-
-# AI Translated
-#, boost-format
-#~ msgid "No belt temperature tower is available for the range %1% to %2% °C. Use a range the tower models cover, for example 230 to 190."
-#~ msgstr "%1% ile %2% °C aralığı için bant sıcaklık kulesi mevcut değil. Kule modellerinin kapsadığı bir aralık kullanın, örneğin 230 ile 190."
-
-#~ msgid "The selected file"
-#~ msgstr "Seçili dosya"
-
-#~ msgid "Does not contain valid G-code."
-#~ msgstr "Geçerli bir G-code içermiyor."
-
-#~ msgid "with OrcaSlicer so that Orca can open models from"
-#~ msgstr "orca'nın modelleri şuradan açabilmesi için OrcaSlicer ile (ilişkilendir / eşleştir)"
-
-#, c-format, boost-format
-#~ msgid "Cost %dg filament and %d changes more than optimal grouping."
-#~ msgstr "Maliyet %dg filament ve %d, optimum gruplandırmadan daha fazla değişir."
-
-# AI Translated
-#~ msgid "Parameters with this icon can be configurable per nozzle."
-#~ msgstr "Bu simgeye sahip parametreler nozul başına yapılandırılabilir."
-
-#~ msgid "Reserved keywords found"
-#~ msgstr "Ayrılmış anahtar kelimeler bulundu"
-
-#, c-format, boost-format
-#~ msgid "%d Filament Preset and %d Process Preset is attached to this printer. Those presets would be deleted if the printer is deleted."
-#~ msgstr "%d Filament Ön Ayarı ve %d İşlem Ön Ayarı bu yazıcıya eklenmiştir. Yazıcı silinirse bu ön ayarlar silinir."
-
-#~ msgid "The following presets inherit this preset."
-#~ msgid_plural "The following preset inherits this preset."
-#~ msgstr[0] "Aşağıdaki ön ayarlar bu ön ayarı devralır."
-#~ msgstr[1] "Aşağıdaki ön ayar bu ön ayarı devralır."
-
-#, boost-format
-#~ msgid "%1% Preset"
-#~ msgstr "%1% Ön Ayar"
-
-#, boost-format
-#~ msgid "Are you sure you want to %1% the selected preset?"
-#~ msgstr "Seçilen ön ayarı %1% yaptığınızdan emin misiniz?"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s %s"
-#~ msgstr "%s %s"
-
-# AI Translated
-#, boost-format
-#~ msgid "Split into %1% parts"
-#~ msgstr "%1% parçaya ayır"
-
-# AI Translated
-#~ msgid "Downloading new vendor profile(s): "
-#~ msgstr "Yeni satıcı profilleri indiriliyor: "
-
-# AI Translated
-#~ msgid "Failed to download vendor profile(s): "
-#~ msgstr "Satıcı profilleri indirilemedi: "
-
-# AI Translated
-#, boost-format
-#~ msgid "In this Span mode only %1% print colors, but filament %2% isn't routed to any tool. Use filaments routed to %1%, or switch this plate to Primary mode."
-#~ msgstr "Bu Span modunda renkleri yalnızca %1% basar, ancak filament %2% hiçbir araca yönlendirilmemiş. %1% aracına yönlendirilmiş filamentleri kullanın veya bu plakayı Birincil moda geçirin."
-
-# AI Translated
-#, boost-format
-#~ msgid "In this Span mode only %1% print colors, but filament %2% is routed to T%3%. Use filaments routed to %1%, or switch this plate to Primary mode."
-#~ msgstr "Bu Span modunda renkleri yalnızca %1% basar, ancak filament %2%, T%3% aracına yönlendirilmiş. %1% aracına yönlendirilmiş filamentleri kullanın veya bu plakayı Birincil moda geçirin."
-
-#~ msgid " is too close to exclusion area, there may be collisions when printing."
-#~ msgstr " Hariç tutma alanına çok yakın olduğundan yazdırma sırasında çarpışmalar meydana gelebilir."
-
-#~ msgid " is too close to clumping detection area, there may be collisions when printing."
-#~ msgstr " topaklanma algılama alanına çok yakın, baskı sırasında çarpışmalar meydana gelebilir."
-
-# AI Translated
-#~ msgid "Prime Tower"
-#~ msgstr "Prime Kulesi"
-
-#~ msgid " is too close to others, and collisions may be caused.\n"
-#~ msgstr " başkalarına çok yakın olduğundan çarpışmalara neden olabilir.\n"
-
-#~ msgid " is too close to an exclusion area, and collisions will be caused.\n"
-#~ msgstr " dışlama alanına çok yakın ve çarpışmalara neden olacak.\n"
-
-#~ msgid " is too close to clumping detection area, and collisions will be caused.\n"
-#~ msgstr " topaklanma algılama alanına çok yakın, çarpışmalar meydana gelecektir.\n"
-
-# AI Translated
-#~ msgid " is partially outside the printable area, and it cannot be printed.\n"
-#~ msgstr " yazdırılabilir alanın kısmen dışında ve yazdırılamaz.\n"
-
-# AI Translated
-#~ msgid "no configured tool"
-#~ msgstr "yapılandırılmış araç yok"
-
-#~ msgid "Maximum X speed"
-#~ msgstr "Maksimum X hızı"
-
-#~ msgid "Maximum Y speed"
-#~ msgstr "Maksimum Y hızı"
-
-#~ msgid "Maximum Z speed"
-#~ msgstr "Maksimum Z hızı"
-
-#~ msgid "Maximum E speed"
-#~ msgstr "Maksimum E hızı"
-
-# AI Translated
-#~ msgid "Python plugin(s) invoked at each slicing pipeline step to read and modify intermediate slicing data, including a final G-code post-processing step. Research/experimental."
-#~ msgstr "Ara dilimleme verilerini okumak ve değiştirmek için her dilimleme hattı adımında çağrılan Python eklentileri; son bir G-code son işleme adımı da buna dahildir. Araştırma/deneysel."
-
-# AI Translated
-#~ msgid "Per-plate override mapping physical heads to filament slots (1-based). Empty means use pem-inversion defaults."
-#~ msgstr "Fiziksel kafaları filament yuvalarına eşleyen plaka başına geçersiz kılma (1 tabanlı). Boş bırakılırsa pem-inversion varsayılanları kullanılır."
-
-#~ msgid " not in range "
-#~ msgstr " aralıkta değil "
-
-#~ msgid "floating regions"
-#~ msgstr "yayılmış bölgeler"
-
-#~ msgid "floating cantilever"
-#~ msgstr "yüzen konsol"
-
-#~ msgid "large overhangs"
-#~ msgstr "büyük çıkıntılar"
-
-#, c-format, boost-format
-#~ msgid "It seems object %s has %s. Please re-orient the object or enable support generation."
-#~ msgstr "Görünüşe göre %s nesnesinde %s var. Lütfen nesneyi yeniden yönlendirin veya destek oluşturmayı etkinleştirin."
-
-#~ msgid "No layers were detected. You might want to repair your STL file(s) or check their size or thickness and retry.\n"
-#~ msgstr "Hiçbir katman algılanmadı. STL dosyalarınızı onarmak veya boyutlarını veya kalınlıklarını kontrol edip yeniden denemek isteyebilirsiniz.\n"
-
-#, c-format, boost-format
-#~ msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
-#~ msgstr "Bu makine türü püskürtme ucu başına yalnızca %d geçmiş sonucunu tutabilir. Bu sonuç kaydedilmeyecek."
-
-#, c-format, boost-format
-#~ msgid "This machine type can only hold %d historical results per nozzle."
-#~ msgstr "Bu makine türü püskürtme ucu başına yalnızca %d geçmiş sonucunu tutabilir."
-
-# AI Translated
-#~ msgid "Overhang"
-#~ msgstr "Çıkıntı"
-
-#~ msgid "Start / End"
-#~ msgstr "Başlangıç / Bitiş"
-
-# AI Translated
-#~ msgid "Damp"
-#~ msgstr "Sönümleme"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Detected %d IFS slots on printer."
-#~ msgstr "Yazıcıda %d IFS yuvası algılandı."
-
-#~ msgid "selected"
-#~ msgstr "seçildi"
-
-#~ msgid "The following presets inherits this preset."
-#~ msgid_plural "The following preset inherits this preset."
-#~ msgstr[0] "Aşağıdaki ön ayarlar bu ön ayarı devralır."
-#~ msgstr[1] "Aşağıdaki ön ayar bu ön ayarı devralır."
-
-# AI Translated
-#, c-format
-#~ msgid "Found %zu Creality printer(s). Select one and click Use Selected."
-#~ msgstr "%zu Creality yazıcısı bulundu. Birini seçip Seçileni Kullan'a tıklayın."
-
-# AI Translated
-#~ msgid "log(s)"
-#~ msgstr "günlük"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Error: %s extruder has no available %s nozzle, current group result is invalid."
-#~ msgstr "Hata: %s ekstruderde kullanılabilir %s nozul yok, geçerli gruplama sonucu geçersiz."
-
-# AI Translated
-#~ msgid "invalid brim ears"
-#~ msgstr "geçersiz kenar kulakları"
-
-#, c-format, boost-format
-#~ msgid "Skipping %d objects."
-#~ msgstr "%d nesne atlanıyor."
-
-# AI Translated
-#~ msgid "Open folder in explorer"
-#~ msgstr "Klasörü dosya gezgininde aç"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Click center then a vertex — %d sides, %s"
-#~ msgstr "Merkeze, ardından bir köşe noktasına tıklayın — %d kenar, %s"
-
-# AI Translated
-#~ msgid "circumscribed"
-#~ msgstr "dıştan çizilmiş"
-
-# AI Translated
-#~ msgid "inscribed"
-#~ msgstr "içten çizilmiş"
-
-# AI Translated
-#, c-format
-#~ msgid "Sketch created (%zu driving dims) — select it, then right-click to Extrude"
-#~ msgstr "Eskiz oluşturuldu (%zu sürücü ölçü) — seçin, ardından Ekstrüzyon için sağ tıklayın"
-
-# AI Translated
-#, c-format
-#~ msgid "OK — %zu triangles"
-#~ msgstr "Tamam — %zu üçgen"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar merging, so importing it may take a long time and leave a body that is slow to edit. Decimating the mesh first is usually better.\n"
-#~ "\n"
-#~ "Import anyway?"
-#~ msgstr ""
-#~ "Bu mesh %d üçgen içeriyor. Eş düzlemli birleştirmeden önce her üçgen bir B-rep yüzüne dönüşür; bu nedenle içe aktarma uzun sürebilir ve düzenlemesi yavaş bir gövde bırakabilir. Genellikle önce mesh'i sadeleştirmek daha iyidir.\n"
-#~ "\n"
-#~ "Yine de içe aktarılsın mı?"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, then Fillet / Cut / Shell to modify"
-#~ msgstr "Katı içe aktarıldı — %d üçgen → %d yüz, hacim %.2f mm³. Değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
-
-# AI Translated
-#~ msgid " — drag to place/size, then Confirm"
-#~ msgstr " — yerleştirmek/boyutlandırmak için sürükleyin, ardından Onayla'ya basın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%d sketch entities"
-#~ msgstr "%d eskiz öğesi"
-
-# AI Translated
-#~ msgid " — type a value, press Enter (or Confirm)"
-#~ msgstr " — bir değer yazın, Enter'a basın (veya Onayla)"
-
-# AI Translated
-#, c-format
-#~ msgid "Preview — %zu triangles"
-#~ msgstr "Ön izleme — %zu üçgen"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, or a zero-size circle) and are ignored"
-#~ msgstr "%1% kısıtlama bu geometriye uygulanamıyor (elips veya spline eğrisi ya da sıfır boyutlu daire) ve yok sayılıyor"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% constraint(s) the fillet/chamfer invalidated were removed"
-#~ msgstr "Yuvarlatma/pah nedeniyle geçersiz hâle gelen %1% kısıtlama kaldırıldı"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% constraint(s) released by the transform"
-#~ msgstr "%1% kısıtlama dönüştürme nedeniyle serbest bırakıldı"
-
-# AI Translated
-#, boost-format
-#~ msgid "...and %1% more open end(s)"
-#~ msgstr "...ve %1% açık uç daha"
-
-# AI Translated
-#, boost-format
-#~ msgid "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."
-#~ msgstr "Malzeme listesi en fazla %1% rengi destekler. %2% ayrıştırmasından sonra malzeme sayısı %1% sınırını aşacaktır. Lütfen ayrıştırmadan önce ana ekrandaki kullanılmayan filamentleri silin."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% printable colors from %2% filaments"
-#~ msgstr "%2% filamentten %1% yazdırılabilir renk"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% islands"
-#~ msgstr "%1% ada"
-
-# AI Translated
-#, boost-format
-#~ msgid "All %1% layers used"
-#~ msgstr "%1% katmanın tümü kullanıldı"
-
-# AI Translated
-#, boost-format
-#~ msgid "Preview: %1% triangles"
-#~ msgstr "Ön izleme: %1% üçgen"
-
-# AI Translated
-#, boost-format
-#~ msgid "Model: %1% triangles - the bake refines to the resolution above, up to its budget"
-#~ msgstr "Model: %1% üçgen - pişirme, bütçesi elverdiğince yukarıdaki çözünürlüğe kadar sıklaştırır"
-
-# AI Translated
-#, boost-format
-#~ msgid "Bake moves existing vertices - the model stays at %1% triangles"
-#~ msgstr "Pişirme mevcut tepe noktalarını hareket ettirir - model %1% üçgende kalır"
-
-# AI Translated
-#, boost-format
-#~ msgid "Bake result up to ~%1% k triangles"
-#~ msgstr "Pişirme sonucu en fazla ~%1% k üçgen"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% layers not painted, skipped"
-#~ msgstr "%1% katman boyanmadı, atlandı"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "The project supports up to %d filaments. Extra filaments will be discarded."
-#~ msgstr "Proje en fazla %d filamenti destekler. Fazla filamentler atılacak."
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%d vertices selected  |  drag = move together, Shift/Ctrl click = add/remove"
-#~ msgstr "%d tepe noktası seçildi  |  sürükle = birlikte taşı, Shift/Ctrl tıklama = ekle/kaldır"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%d edges selected  |  drag = move together, Shift/Ctrl click = add/remove"
-#~ msgstr "%d kenar seçildi  |  sürükle = birlikte taşı, Shift/Ctrl tıklama = ekle/kaldır"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%d islands selected  |  drag = move together, Shift/Ctrl click = add/remove, R/S = rotate/scale primary"
-#~ msgstr "%d ada seçildi  |  sürükle = birlikte taşı, Shift/Ctrl tıklama = ekle/kaldır, R/S = birincil adayı döndür/ölçekle"
-
-# AI Translated
-# Needs human review: The English names a "Tiling" setting, but the layer settings only have "Tile" (Döşeme) and "Tile size" (Döşeme boyutu); rendered as the tiling options. Check against the texture-displacement layer card.
-#~ msgid "The active layer's tile size: how much of the model one repeat of the texture covers. The canvas is measured in tiles, so one grid cell is one repeat. Change it with Tiling in the layer's settings."
-#~ msgstr "Etkin katmanın döşeme boyutu: dokunun bir tekrarının modelin ne kadarını kapladığı. Tuval döşemelerle ölçülür; bu nedenle bir ızgara hücresi bir tekrara karşılık gelir. Bunu katmanın ayarlarındaki döşeme seçeneklerinden değiştirin."
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%d islands, %s faces"
-#~ msgstr "%d ada, %s yüz"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to read the following file(s):\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi aşağıdaki dosyaları okumak istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to read/write the following file(s):\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi aşağıdaki dosyaları okumak/yazmak istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file(s):\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi aşağıdaki dosyaları oluşturmak istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file(s):\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi aşağıdaki dosyaları silmek istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to run the following command(s):\n"
-#~ "%s"
-#~ msgstr ""
-#~ "\"%s\" eklentisi aşağıdaki komutları çalıştırmak istiyor:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "Plugin installation failed"
-#~ msgstr "Eklenti yüklemesi başarısız oldu"
-
-# AI Translated
-#~ msgid ""
-#~ "The Microsoft WebView2 Runtime could not be installed.\n"
-#~ "Some features, including the setup wizard, may appear blank until it is installed.\n"
-#~ "Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
-#~ msgstr ""
-#~ "Microsoft WebView2 Runtime yüklenemedi.\n"
-#~ "Kurulum sihirbazı dahil bazı özellikler, yüklenene kadar boş görünebilir.\n"
-#~ "Lütfen https://developer.microsoft.com/microsoft-edge/webview2/ adresinden elle yükleyin ve Orca Slicer'ı yeniden başlatın."
-
-#~ msgid "Why this grouping"
-#~ msgstr "Neden bu gruplama"
-
-#~ msgid "The software does not support using different diameter of nozzles for one print. If the left and right nozzles are inconsistent, we can only proceed with single-head printing. Please confirm which nozzle you would like to use for this project."
-#~ msgstr "Yazılım, bir baskı için farklı çaptaki püskürtme uçlarının kullanılmasını desteklemez. Eğer sol ve sağ püskürtme uçları tutarsız ise yalnızca tek kafalı baskıya geçebiliriz. Lütfen bu proje için hangi nozulu kullanmak istediğinizi onaylayın."
-
-#~ msgid "Switch diameter"
-#~ msgstr "Anahtar çapı"
-
-# AI Translated
-#~ msgid "BambuStudio Project"
-#~ msgstr "BambuStudio Projesi"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "The 3MF was created by BambuStudio (version %s), which is newer than the compatible version %s. Found unrecognized settings:"
-#~ msgstr "3MF, BambuStudio (sürüm %s) ile oluşturulmuş; bu sürüm, uyumlu sürüm %s'ten daha yeni. Tanınmayan ayarlar bulundu:"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "The 3MF was created by BambuStudio (version %s), which is newer than the compatible version %s. Some settings may not be fully compatible."
-#~ msgstr "3MF, BambuStudio (sürüm %s) ile oluşturulmuş; bu sürüm, uyumlu sürüm %s'ten daha yeni. Bazı ayarlar tam olarak uyumlu olmayabilir."
-
-# AI Translated
-#~ msgid "The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer."
-#~ msgstr "3MF, BambuStudio ile oluşturulmuş. Bazı ayarlar OrcaSlicer'dakinden farklı olabilir."
-
-# AI Translated
-#~ msgid "Cannot undo or redo while an operation is running. Stop it first."
-#~ msgstr "Bir işlem sürerken geri alma veya ileri alma yapılamaz. Önce işlemi durdurun."
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s: %s"
-#~ msgstr "%s: %s"
-
-# AI Translated
-#~ msgid ""
-#~ "Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
-#~ "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
-#~ "Affects line and grid patterns and rotation-template infills.\n"
-#~ "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
-#~ msgstr ""
-#~ "Her parçanın iç dolgusunu, tüm montaja göre değil, sanki tek başına dilimlenmiş gibi kendi üzerinde ortalar. Birbirine değen veya çakışan parçalar tek gövde olarak ele alınır ve ortak bir merkezi paylaşır; ayrı parçaların (veya farklı 3D nesnelerin) her biri kendi merkezine sahip olur.\n"
-#~ "Bir montaj, her biri tutarlı ve kendi merkezine göre hizalanmış dolguyu koruması gereken birkaç nesneyi gruplandırdığında yararlıdır.\n"
-#~ "Çizgi ve ızgara desenlerini ve döndürme şablonlu dolguları etkiler.\n"
-#~ "Genel koordinatlara kilitlenmiş desenler (Jiroid, Bal peteği, TPMS, ...) etkilenmez."
-
-#~ msgid "Index of the current layer. One-based (i.e. first layer is number 1)."
-#~ msgstr "Geçerli katmanın dizini. Tek tabanlı (yani ilk katman 1 numaradır)."
-
-#~ msgid "Video tutorial"
-#~ msgstr "Öğretici Video"
-
-# AI Translated
-#~ msgid "Primitive"
-#~ msgstr "Şekil"
-
-# AI Translated
-#~ msgid "Empty mesh generated"
-#~ msgstr "Boş mesh oluşturuldu"
-
-# AI Translated
-#~ msgid "Box"
-#~ msgstr "Kutu"
-
-# AI Translated
-#~ msgid "Quick:"
-#~ msgstr "Hızlı:"
-
-# AI Translated
-#~ msgid "Width (X)"
-#~ msgstr "Genişlik (X)"
-
-# AI Translated
-#~ msgid "Depth (Y)"
-#~ msgstr "Derinlik (Y)"
-
-# AI Translated
-#~ msgid "Height (Z)"
-#~ msgstr "Yükseklik (Z)"
-
-# AI Translated
-#~ msgid "Bottom R"
-#~ msgstr "Alt R"
-
-# AI Translated
-#~ msgid "Top R"
-#~ msgstr "Üst R"
-
-# AI Translated
-#~ msgid "Major R"
-#~ msgstr "Büyük R"
-
-# AI Translated
-#~ msgid "Minor R"
-#~ msgstr "Küçük R"
-
-# AI Translated
-#~ msgid "All edges"
-#~ msgstr "Tüm kenarlar"
-
-# AI Translated
-#~ msgid "Top edges"
-#~ msgstr "Üst kenarlar"
-
-# AI Translated
-#~ msgid "Bottom edges"
-#~ msgstr "Alt kenarlar"
-
-# AI Translated
-#~ msgid "Lateral edges"
-#~ msgstr "Yan kenarlar"
-
-# AI Translated
-#~ msgid "Mesh resolution"
-#~ msgstr "Mesh çözünürlüğü"
-
-# AI Translated
-#~ msgid "Add Shape"
-#~ msgstr "Şekil ekle"
-
-# AI Translated
-#~ msgid "No outer profile"
-#~ msgstr "Dış profil yok"
-
-# AI Translated
-#~ msgid "Failed to make outer face"
-#~ msgstr "Dış yüz oluşturulamadı"
-
-# AI Translated
-#~ msgid "Failed to build face with holes"
-#~ msgstr "Delikli yüz oluşturulamadı"
-
-# AI Translated
-#~ msgid "Revolve failed"
-#~ msgstr "Döndürme başarısız oldu"
-
-# AI Translated
-#~ msgid "Profile"
-#~ msgstr "Profil"
-
-# AI Translated
-#~ msgid "Start new profile (for holes)"
-#~ msgstr "Yeni profil başlat (delikler için)"
-
-# AI Translated
-#~ msgid "Segments"
-#~ msgstr "Segmentler"
-
-# AI Translated
-#~ msgid "Sides"
-#~ msgstr "Kenar sayısı"
-
-# AI Translated
-#~ msgid "Click on canvas to draw"
-#~ msgstr "Çizmek için tuvale tıklayın"
-
-# AI Translated
-#~ msgid "Snap to grid"
-#~ msgstr "Izgaraya yasla"
-
-# AI Translated
-#~ msgid "Grid step"
-#~ msgstr "Izgara adımı"
-
-# AI Translated
-#~ msgid "Outer"
-#~ msgstr "Dış"
-
-# AI Translated
-#~ msgid "closed"
-#~ msgstr "kapalı"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% %2%: %3% points %4%"
-#~ msgstr "%1% %2%: %3% nokta %4%"
-
-# AI Translated
-#~ msgid "XY (Top)"
-#~ msgstr "XY (Üst)"
-
-# AI Translated
-#~ msgid "XZ (Front)"
-#~ msgstr "XZ (Ön)"
-
-# AI Translated
-#~ msgid "YZ (Side)"
-#~ msgstr "YZ (Yan)"
-
-# AI Translated
-#~ msgid "Revolve deg"
-#~ msgstr "Döndürme açısı"
-
-# AI Translated
-#~ msgid "Set to 0 for extrude, >0 for revolve"
-#~ msgstr "Ekstrüzyon için 0, döndürme için >0 girin"
-
-# AI Translated
-#~ msgid "Pocket (cut)"
-#~ msgstr "Cep (kes)"
-
-# AI Translated
-#, c-format
-#~ msgid "%zu closed profile"
-#~ msgid_plural "%zu closed profiles"
-#~ msgstr[0] "%zu kapalı profil"
-#~ msgstr[1] "%zu kapalı profil"
-
-# AI Translated
-#~ msgid "Draw a closed profile to enable"
-#~ msgstr "Etkinleştirmek için kapalı bir profil çizin"
-
-# AI Translated
-#~ msgid "Empty result"
-#~ msgstr "Boş sonuç"
-
-# AI Translated
-#, boost-format
-#~ msgid "Extrude: %1%"
-#~ msgstr "Ekstrüzyon: %1%"
-
-# AI Translated
-#, boost-format
-#~ msgid "Revolve: %1%"
-#~ msgstr "Döndürme: %1%"
-
-# AI Translated
-#~ msgid "No object selected"
-#~ msgstr "Nesne seçilmedi"
-
-# AI Translated
-#~ msgid "Face failed"
-#~ msgstr "Yüz oluşturulamadı"
-
-# AI Translated
-#~ msgid "Face with holes failed"
-#~ msgstr "Delikli yüz oluşturulamadı"
-
-# AI Translated
-#~ msgid "Tool mesh empty"
-#~ msgstr "Araç mesh'i boş"
-
-# AI Translated
-#~ msgid "Pocket added (negative volume)"
-#~ msgstr "Cep eklendi (negatif hacim)"
-
-# AI Translated
-#, boost-format
-#~ msgid "Pocket: %1%"
-#~ msgstr "Cep: %1%"
-
-# AI Translated
-#~ msgid "Needs the active layer mapped with Unwrap (LSCM)."
-#~ msgstr "Etkin katmanın Açınım (LSCM) ile haritalanmış olmasını gerektirir."
-
-# AI Translated
-#~ msgid "Checker - a test grid instead of the texture. Where the squares stay square the texture is undistorted; where they stretch, it will too"
-#~ msgstr "Dama - doku yerine bir test ızgarası. Karelerin kare kaldığı yerlerde doku bozulmamıştır; karelerin gerildiği yerlerde doku da gerilecektir"
-
-# AI Translated
-#~ msgid "Distortion - blue-to-red stretch heatmap over the unwrap"
-#~ msgstr "Bozulma - açınım üzerinde maviden kırmızıya gerilme ısı haritası"
-
-# AI Translated
-#~ msgid "Mix by"
-#~ msgstr "Karıştırma yöntemi"
-
-# AI Translated
-#~ msgctxt "Texture Displacement"
-#~ msgid "Surface"
-#~ msgstr "Yüzey"
-
-# AI Translated
-#~ msgid ""
-#~ "Layers: the two filaments alternate between print layers, which blends smoothly on upright surfaces but disappears on flat-facing ones, where a whole layer is a single band.\n"
-#~ "Surface: a fine checkerboard across the surface, which works at any angle but can read as texture rather than as a blend.\n"
-#~ "Automatic: layers on upright faces; flat-facing faces take the nearer single filament, since a checkerboard there shows as a pattern."
-#~ msgstr ""
-#~ "Katmanlar: iki filament baskı katmanları arasında dönüşümlü kullanılır; bu, dik yüzeylerde yumuşak bir karışım verir ancak tüm katmanın tek bir şerit olduğu düz bakan yüzeylerde kaybolur.\n"
-#~ "Yüzey: yüzey boyunca ince bir dama deseni; her açıda çalışır ancak karışım yerine doku gibi algılanabilir.\n"
-#~ "Otomatik: dik yüzlerde katmanlar; düz bakan yüzler en yakın tek filamenti alır, çünkü orada dama deseni bir desen olarak görünür."
-
-# AI Translated
-#~ msgid "Island - move, rotate and scale whole islands"
-#~ msgstr "Ada - adaların tamamını taşı, döndür ve ölçekle"
-
-# AI Translated
-#~ msgid "Vertex - drag vertices to reshape; Shift/Ctrl to multi-select"
-#~ msgstr "Tepe noktası - yeniden şekillendirmek için tepe noktalarını sürükleyin; çoklu seçim için Shift/Ctrl"
-
-# AI Translated
-#~ msgid "Edge - drag edges to reshape; Shift/Ctrl to multi-select"
-#~ msgstr "Kenar - yeniden şekillendirmek için kenarları sürükleyin; çoklu seçim için Shift/Ctrl"
-
-# AI Translated
-#~ msgid "Frame all islands (Home)"
-#~ msgstr "Tüm adaları çerçevele (Home)"
-
-# AI Translated
-#~ msgid "(Experimental) Use printer agents instead of print hosts"
-#~ msgstr "(Deneysel) Baskı sunucuları yerine yazıcı aracılarını kullan"
-
-# AI Translated
-#~ msgid "FEATURES"
-#~ msgstr "UNSURLAR"
-
-# AI Translated
-#~ msgid "Click a face or a reference plane in the viewport, then a sketch tool"
-#~ msgstr "Görünüm penceresinde bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın"
-
-# AI Translated
-#~ msgid "Click a face or a reference plane, then a sketch tool."
-#~ msgstr "Bir yüze veya referans düzlemine, ardından bir eskiz aracına tıklayın."
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s plane selected — right-click for the drawing tools"
-#~ msgstr "%s düzlemi seçildi — çizim araçları için sağ tıklayın"
-
-# AI Translated
-#~ msgid ""
-#~ "Nothing yet — import a STEP or a mesh from the toolbar,\n"
-#~ "or click a reference plane and right-click it to start a sketch."
-#~ msgstr ""
-#~ "Henüz bir şey yok — araç çubuğundan bir STEP veya mesh içe aktarın\n"
-#~ "ya da bir eskize başlamak için bir referans düzlemine tıklayıp sağ tıklayın."
-
-# AI Translated
-#~ msgid "Click a face or a reference plane, then pick a drawing tool"
-#~ msgstr "Bir yüze veya referans düzlemine tıklayın, ardından bir çizim aracı seçin"
-
-# AI Translated
-#~ msgid "XY"
-#~ msgstr "XY"
-
-# AI Translated
-#~ msgid "XZ"
-#~ msgstr "XZ"
-
-# AI Translated
-#~ msgid "YZ"
-#~ msgstr "YZ"
-
-# AI Translated
-#~ msgid "Equal"
-#~ msgstr "Eşit"
-
-# AI Translated
-#~ msgid "Perpendicular"
-#~ msgstr "Dik"
-
-# AI Translated
-#~ msgid "Midpoint"
-#~ msgstr "Orta nokta"
-
-# AI Translated
-#~ msgid "Equal length"
-#~ msgstr "Eşit uzunluk"
-
-# AI Translated
-#~ msgid "Equal radius"
-#~ msgstr "Eşit yarıçap"
-
-# AI Translated
-#~ msgid "Collinear"
-#~ msgstr "Eş doğrusal"
-
-# AI Translated
-#~ msgid "Symmetric about the vertical axis"
-#~ msgstr "Dikey eksene göre simetrik"
-
-# AI Translated
-#~ msgid "Symmetric about the horizontal axis"
-#~ msgstr "Yatay eksene göre simetrik"
-
-# AI Translated
-#~ msgid "Fix point (anchor in place)"
-#~ msgstr "Noktayı sabitle (yerine kilitle)"
-
-# AI Translated
-#~ msgid "Horizontal distance"
-#~ msgstr "Yatay mesafe"
-
-# AI Translated
-#~ msgid "Vertical distance"
-#~ msgstr "Dikey mesafe"
-
-#~ msgid "Face recognition"
-#~ msgstr "Yüz tanıma"
-
-#~ msgid "Perform Recognition"
-#~ msgstr "Tanıma Gerçekleştir"
-
-#~ msgid "Text Gap"
-#~ msgstr "Metin Boşluğu"
-
-# AI Translated
-#~ msgid "Embedded depth"
-#~ msgstr "Gömülü derinlik"
-
-#~ msgid "Input text"
-#~ msgstr "Giriş metni"
-
-#~ msgid "Surface"
-#~ msgstr "Yüzey"
-
-#~ msgid "Horizontal text"
-#~ msgstr "Yatay metin"
-
-#~ msgid "Mouse move up or down"
-#~ msgstr "Mouse’u yukarı veya aşağı hareket ettirin"
-
-#~ msgid "Rotate text"
-#~ msgstr "Metni döndür"
-
-#~ msgid "Text shape"
-#~ msgstr "Metin şekli"
-
-#, c-format, boost-format
-#~ msgid "Slicing Plate %d"
-#~ msgstr "Plaka %d dilimleniyor"
-
-#~ msgid "Please resolve the slicing errors and publish again."
-#~ msgstr "Lütfen dilimleme hatalarını giderip tekrar yayınlayın."
-
-# AI Translated
-#~ msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you."
-#~ msgstr "Birbirine 0,001 mm'den yakın eskiz uç noktalarını tek bir birleşim noktası sayar ve döngüyü kaynaklayarak kapatır. Kapalı: yalnızca tam çakışan uç noktalar birleşir; bu nedenle küçük bir boşluğu olan döngü sizin için kapatılmak yerine açık olarak gösterilir."
-
-#~ msgid "Slice all plates to obtain time and filament estimation"
-#~ msgstr "Zaman ve filament tahminini elde etmek için tüm plakayı dilimleyin"
-
-#~ msgid "Packing project data into 3MF file"
-#~ msgstr "Proje verilerini 3MF dosyasına paketleme"
-
-#~ msgid "Uploading 3MF"
-#~ msgstr "3mf yükleniyor"
-
-#~ msgid "Jump to model publish web page"
-#~ msgstr "Model yayınlama web sayfasına git"
-
-#~ msgid "Note: The preparation may take several minutes. Please be patient."
-#~ msgstr "Not: Hazırlık birkaç dakika sürebilir. Lütfen sabırlı olun."
-
-#~ msgid "Publish was canceled"
-#~ msgstr "Yayınlama iptal edildi"
-
-#~ msgid "Slicing Plate 1"
-#~ msgstr "Dilimleme Plakası 1"
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "Verileri 3mf'ye paketle"
-
-#~ msgid "Uploading data"
-#~ msgstr "Veriler yükleniyor"
-
-#~ msgid "Jump to webpage"
-#~ msgstr "Web sayfasına atla"
-
-#~ msgid "OBJ file import color"
-#~ msgstr "Obj dosyası renkli olarak içe aktar"
-
-#~ msgid "Some faces don't have color defined."
-#~ msgstr "Bazı yüzlerin renk tanımları yoktur."
-
-#~ msgid "MTL file exist error, could not find the material:"
-#~ msgstr "MTL dosyası mevcut hatası, materyal bulunamadı:"
-
-#~ msgid "Please check OBJ or MTL file."
-#~ msgstr "Lütfen OBJ veya MTL dosyasını kontrol edin."
-
-#~ msgid "Specify number of colors:"
-#~ msgstr "Renk sayısını belirtin:"
-
-#~ msgid "Enter or click the adjustment button to modify number again"
-#~ msgstr "Numarayı tekrar değiştirmek için ayar düğmesini girin veya tıklayın"
-
-#~ msgid "Recommended "
-#~ msgstr "Tavsiye edilir "
-
-#~ msgid "view"
-#~ msgstr "görüş"
-
-#~ msgid "Current filament colors"
-#~ msgstr "Mevcut filament renkleri"
-
-#~ msgid "Matching"
-#~ msgstr "Eşleştirme"
-
-#~ msgid "Quick set"
-#~ msgstr "Hızlı ayar"
-
-#~ msgid "Color match"
-#~ msgstr "Renk uyumu"
-
-#~ msgid "Approximate color matching."
-#~ msgstr "Yaklaşık renk eşleşmesi."
-
-#~ msgid "Append"
-#~ msgstr "Ekle"
-
-#~ msgid "Append to existing filaments"
-#~ msgstr "Mevcut filamentlere ekleyin"
-
-#~ msgid "Reset mapped extruders."
-#~ msgstr "Eşlenmiş ekstrüderleri sıfırlayın."
-
-#~ msgid "Note"
-#~ msgstr "Not"
-
-#~ msgid ""
-#~ "The color has been selected, you can choose OK \n"
-#~ " to continue or manually adjust it."
-#~ msgstr ""
-#~ "Renk seçildi; devam etmek için Tamam'ı seçebilir\n"
-#~ "veya elle ayarlayabilirsiniz."
-
-#~ msgid "—> "
-#~ msgstr "—> "
-
-#~ msgid "It has a small layer height. This results in almost negligible layer lines and high print quality. It is suitable for most printing cases."
-#~ msgstr "Küçük bir katman yüksekliğine sahiptir ve neredeyse ihmal edilebilir katman çizgileri ve yüksek baskı kalitesi sağlar. Çoğu genel yazdırma durumu için uygundur."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in much higher print quality but a much longer print time."
-#~ msgstr "0,2 mm’lik nozulun varsayılan profiliyle karşılaştırıldığında daha düşük hız ve ivmeye sahiptir ve seyrek dolgu deseni Gyroid’dir. Böylece çok daha yüksek baskı kalitesi elde edilir, ancak çok daha uzun baskı süresi elde edilir."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height. This results in almost negligible layer lines and slightly shorter print time."
-#~ msgstr "0,2 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, biraz daha büyük katman yüksekliğine sahiptir ve neredeyse ihmal edilebilir düzeyde katman çizgileri ve biraz daha kısa yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height. This results in slightly visible layer lines but shorter print time."
-#~ msgstr "0,2 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha büyük bir katman yüksekliğine sahiptir ve katman çizgilerinin hafifçe görülebilmesine karşın yazdırma süresinin daha kısa olmasına neden olur."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in almost invisible layer lines and higher print quality but longer print time."
-#~ msgstr "0,2 mm nozulun varsayılan profiliyle karşılaştırıldığında, daha küçük bir katman yüksekliğine sahiptir. Bu, neredeyse görünmez katman çizgileri ve daha yüksek baskı kalitesiyle birlikte daha uzun baskı süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost invisible layer lines and much higher print quality but much longer print time."
-#~ msgstr "0,2 mm’lik nozulun varsayılan profiliyle karşılaştırıldığında, daha küçük katman çizgilerine, daha düşük hızlara ve ivmeye sahiptir ve seyrek dolgu deseni Gyroid’dir. Böylece neredeyse görünmez katman çizgileri ve çok daha yüksek baskı kalitesi elde edilir, ancak çok daha uzun baskı süresi elde edilir."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height. This results in minimal layer lines and higher print quality but longer print time."
-#~ msgstr "0,2 mm'lik nozulun varsayılan profiliyle karşılaştırıldığında, daha küçük bir katman yüksekliğine sahiptir. Bu sayede minimum katman çizgisi ve daha yüksek baskı kalitesi elde edilirken, baskı süresi daha uzundur."
-
-#~ msgid "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer lines, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in minimal layer lines and much higher print quality but much longer print time."
-#~ msgstr "0,2 mm’lik nozulun varsayılan profiliyle karşılaştırıldığında, daha küçük katman çizgilerine, daha düşük hızlara ve ivmeye sahiptir ve seyrek dolgu deseni Gyroid’dir. Böylece minimum katman çizgileri ve çok daha yüksek baskı kalitesi elde edilir, ancak çok daha uzun baskı süresi elde edilir."
-
-#~ msgid "It has a normal layer height. This results in average layer lines and print quality. It is suitable for most printing cases."
-#~ msgstr "Genel bir katman yüksekliğine sahiptir ve genel katman çizgileri ve baskı kalitesiyle sonuçlanır. Çoğu genel yazdırma durumu için uygundur."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-#~ msgstr "0,4 mm’lik nozulun varsayılan profiliyle karşılaştırıldığında, daha fazla duvar döngüsüne ve daha yüksek seyrek dolgu yoğunluğuna sahiptir. Bu, baskıların daha güçlü olmasına, ancak daha fazla filament tüketimine ve daha uzun baskı süresine neden olur."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but slightly shorter print time."
-#~ msgstr "0,4 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha büyük bir katman yüksekliğine sahiptir ve daha belirgin katman çizgileri ve daha düşük baskı kalitesi sağlar, ancak biraz daha kısa yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time."
-#~ msgstr "0,4 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha büyük bir katman yüksekliğine sahiptir ve daha belirgin katman çizgileri ve daha düşük baskı kalitesi sağlar, ancak daha kısa yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-#~ msgstr "0,4 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha küçük bir katman yüksekliğine sahiptir ve daha az görünür katman çizgileri ve daha yüksek baskı kalitesi sağlar, ancak daha uzun yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in less apparent layer lines and much higher print quality but much longer print time."
-#~ msgstr "0,4 mm’lik nozulun varsayılan profiliyle karşılaştırıldığında daha küçük katman yüksekliğine, daha düşük hızlara ve ivmeye sahiptir ve seyrek dolgu deseni Gyroid’dir. Böylece daha az belirgin katman çizgileri ve çok daha yüksek baskı kalitesi elde edilir, ancak çok daha uzun yazdırma süresi elde edilir."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and higher print quality but longer print time."
-#~ msgstr "0,4 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, katman yüksekliği daha küçüktür ve neredeyse göz ardı edilebilir katman çizgileri ve daha yüksek baskı kalitesi sağlar, ancak daha uzun yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, lower speeds and acceleration, and the sparse infill pattern is Gyroid. This results in almost negligible layer lines and much higher print quality but much longer print time."
-#~ msgstr "0,4 mm’lik nozulun varsayılan profiliyle karşılaştırıldığında daha küçük katman yüksekliğine, daha düşük hızlara ve ivmeye sahiptir ve seyrek dolgu deseni Gyroid’dir. Böylece, neredeyse göz ardı edilebilecek düzeyde katman çizgileri ve çok daha yüksek baskı kalitesi elde edilirken, çok daha uzun baskı süresi elde edilir."
-
-#~ msgid "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height. This results in almost negligible layer lines and longer print time."
-#~ msgstr "0,4 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, katman yüksekliği daha küçüktür ve neredeyse göz ardı edilebilecek düzeyde katman çizgileri ve daha uzun yazdırma süresi sağlar."
-
-#~ msgid "It has a big layer height. This results in apparent layer lines and ordinary print quality and print time."
-#~ msgstr "Büyük bir katman yüksekliğine sahiptir ve belirgin katman çizgileri ile sıradan baskı kalitesi ve baskı süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. This results in higher print strength but more filament consumption and longer print time."
-#~ msgstr "0,6 mm’lik nozulun varsayılan profiliyle karşılaştırıldığında, daha fazla duvar döngüsüne ve daha yüksek seyrek dolgu yoğunluğuna sahiptir. Bu, baskıların daha güçlü olmasına, ancak daha fazla filament tüketimine ve daha uzun baskı süresine neden olur."
-
-#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in more apparent layer lines and lower print quality, but shorter print time in some cases."
-#~ msgstr "0,6 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha büyük bir katman yüksekliğine sahiptir ve daha belirgin katman çizgileri ve daha düşük baskı kalitesi sağlar, ancak bazı yazdırma durumlarında daha kısa yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height. This results in much more apparent layer lines and much lower print quality, but shorter print time in some cases."
-#~ msgstr "0,6 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha büyük bir katman yüksekliğine sahiptir ve çok daha belirgin katman çizgileri ve çok daha düşük baskı kalitesi sağlar, ancak bazı yazdırma durumlarında daha kısa yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and slight higher print quality but longer print time."
-#~ msgstr "0,6 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha küçük bir katman yüksekliğine sahiptir ve katman çizgilerinin daha az belirgin olmasına ve biraz daha yüksek baskı kalitesine, ancak daha uzun yazdırma süresine neden olur."
-
-#~ msgid "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height. This results in less apparent layer lines and higher print quality but longer print time."
-#~ msgstr "0,6 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, daha küçük bir katman yüksekliğine sahiptir ve daha az görünür katman çizgileri ve daha yüksek baskı kalitesi sağlar, ancak daha uzun yazdırma süresi sağlar."
-
-#~ msgid "It has a very big layer height. This results in very apparent layer lines, low print quality and shorter print time."
-#~ msgstr "Çok büyük bir katman yüksekliğine sahiptir. Bu da çok belirgin katman çizgilerine, düşük baskı kalitesine ve daha kısa baskı süresine neden olur."
-
-#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height. This results in very apparent layer lines and much lower print quality, but shorter print time in some cases."
-#~ msgstr "0,8 mm'lik nozulun varsayılan profiliyle karşılaştırıldığında, daha büyük bir katman yüksekliğine sahiptir. Bu, çok belirgin katman çizgilerine ve çok daha düşük baskı kalitesine, ancak bazı durumlarda daha kısa baskı süresine neden olur."
-
-#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height. This results in extremely apparent layer lines and much lower print quality, but much shorter print time in some cases."
-#~ msgstr "0,8 mm'lik nozulun varsayılan profiliyle karşılaştırıldığında, çok daha büyük bir katman yüksekliğine sahiptir. Bu, son derece belirgin katman çizgilerine ve çok daha düşük baskı kalitesine, ancak bazı durumlarda çok daha kısa baskı süresine neden olur."
-
-#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a slightly smaller layer height. This results in slightly less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-#~ msgstr "0,8 mm’lik püskürtme ucunun varsayılan profiliyle karşılaştırıldığında, biraz daha küçük bir katman yüksekliğine sahiptir ve biraz daha az ama yine de görünür katman çizgileri ve biraz daha yüksek baskı kalitesi sağlar, ancak bazı yazdırma durumlarında daha uzun yazdırma süresi sağlar."
-
-#~ msgid "Compared with the default profile of a 0.8 mm nozzle, it has a smaller layer height. This results in less but still apparent layer lines and slightly higher print quality but longer print time in some cases."
-#~ msgstr "0,8 mm'lik nozulun varsayılan profiliyle karşılaştırıldığında, daha küçük bir katman yüksekliğine sahiptir. Bu, daha az ancak yine de belirgin katman çizgileri ve biraz daha yüksek baskı kalitesiyle sonuçlanır, ancak bazı durumlarda daha uzun baskı süresi sağlar."
-
-#~ msgid "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances."
-#~ msgstr "Bu ne yaygın olarak kullanılan bir filament ne de Bambu filamentlerinden biri ve markadan markaya çok değişiyor. Bu nedenle, yazdırmadan önce satıcınızdan uygun profili sormanız ve bazı parametreleri performansına göre ayarlamanız önemle tavsiye edilir."
-
-#~ msgid "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-#~ msgstr "Bu filamenti yazdırırken eğrilme ve düşük katman yapışma mukavemeti riski vardır. Daha iyi sonuçlar almak için lütfen şu wiki'ye bakın: Yüksek Sıcaklık / Mühendislik malzemeleri için Yazdırma İpuçları."
-
-#~ msgid "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
-#~ msgstr "Bu filamenti yazdırırken nozulun tıkanması, sızması, eğrilmesi ve düşük katman yapışma mukavemeti riski vardır. Daha iyi sonuçlar almak için lütfen şu wiki'ye bakın: Yüksek Sıcaklık / Mühendislik malzemeleri için Yazdırma İpuçları."
-
-#~ msgid "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG."
-#~ msgstr "İlgili filamentle daha iyi şeffaf veya yarı şeffaf sonuçlar elde etmek için lütfen şu wiki'ye bakın: Şeffaf PETG için yazdırma ipuçları."
-
-#~ msgid "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing."
-#~ msgstr "Baskıların daha parlak olmasını sağlamak için lütfen kullanmadan önce filamenti kurutun ve dilimleme sırasında dış duvar hızını 40 ila 60 mm/s olarak ayarlayın."
-
-#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: Instructions for printing RC model with foaming PLA (PLA Aero)."
-#~ msgstr "Bu filament genellikle yalnızca düşük yoğunluklu modelleri basmak için kullanılır ve bazı özel parametreler gereklidir. Daha iyi baskı kalitesi elde etmek için lütfen bu wiki'ye bakın: RC modelini köpüklü PLA (PLA Aero) ile yazdırma talimatları."
-
-#~ msgid "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide."
-#~ msgstr "Bu filament genellikle yalnızca düşük yoğunluklu modelleri basmak için kullanılır ve bazı özel parametreler gereklidir. Daha iyi baskı kalitesi elde etmek için lütfen şu wiki'ye bakın: ASA Aero Printing Guide."
-
-#~ msgid "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-#~ msgstr "Bu filament çok yumuşak ve AMS ile uyumlu değil. Yazdırmanın birçok gereksinimi vardır ve daha iyi yazdırma kalitesi elde etmek için lütfen şu wiki'ye bakın: TPU yazdırma kılavuzu."
-
-#~ msgid "This filament has high enough hardness (about 67D)  and is compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide."
-#~ msgstr "Bu filament yeterince yüksek sertliğe sahiptir (yaklaşık 67D) ve AMS ile uyumludur. Yazdırmanın birçok gereksinimi vardır ve daha iyi yazdırma kalitesi elde etmek için lütfen şu wiki'ye bakın: TPU yazdırma kılavuzu."
-
-#~ msgid "If you are to print a kind of soft TPU, please don't slice with this profile, and it is only for TPU that has high enough hardness (not less than 55D) and is compatible with the AMS. To get better printing quality, please refer to this wiki: TPU printing guide."
-#~ msgstr "Bir tür yumuşak TPU yazdıracaksanız lütfen bu profille kesmeyin; bu yalnızca yeterince yüksek sertliğe sahip (55D'den az olmayan) ve AMS ile uyumlu TPU içindir. Daha iyi baskı kalitesi elde etmek için lütfen şu wiki'ye bakın: TPU yazdırma kılavuzu."
-
-#~ msgid "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide."
-#~ msgstr "Bu suda çözünebilen bir destek filamentidir ve genellikle model gövdesi için değil yalnızca destek yapısı içindir. Bu filamenti yazdırmak birçok gereksinimi gerektirir ve daha iyi baskı kalitesi elde etmek için lütfen şu wiki'ye bakın: PVA Yazdırma Kılavuzu."
-
-#~ msgid "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function."
-#~ msgstr "Bu suda çözünmeyen bir destek filamentidir ve genellikle model gövdesi için değil yalnızca destek yapısı içindir. Daha iyi baskı kalitesi elde etmek için lütfen şu wiki'ye bakın: Destek Filamenti ve Destek Fonksiyonu için Yazdırma İpuçları."
-
-#~ msgid "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets."
-#~ msgstr "Genel ön ayarlar, daha geniş bir filament yelpazesiyle uyumluluk için muhafazakar bir şekilde ayarlanmıştır. Daha yüksek baskı kalitesi ve hızları için lütfen Bambu ön ayarlarına sahip Bambu filamentlerini kullanın."
-
-#~ msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-#~ msgstr "0,2 mm püskürtme ucu için baskı kalitesini ön planda tutan yüksek kaliteli profil."
-
-#~ msgid "High quality profile for 0.16mm layer height, prioritizing print quality and strength."
-#~ msgstr "Baskı kalitesini ve gücünü ön planda tutan, 0,16 mm katman yüksekliği için yüksek kaliteli profil."
-
-#~ msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-#~ msgstr "Hızı ön planda tutan, 0,16 mm katman yüksekliği için standart profil."
-
-#~ msgid "High quality profile for 0.2mm layer height, prioritizing strength and print quality."
-#~ msgstr "Gücü ve baskı kalitesini ön planda tutan, 0,2 mm katman yüksekliği için yüksek kaliteli profil."
-
-#~ msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-#~ msgstr "Hıza öncelik veren 0,4 mm nozul için standart profil."
-
-#~ msgid "High quality profile for 0.6mm nozzle, prioritizing print quality and strength."
-#~ msgstr "0,6 mm püskürtme ucu için baskı kalitesini ve gücünü ön planda tutan yüksek kaliteli profil."
-
-#~ msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-#~ msgstr "0,6 mm'lik nozul için güç profiline öncelik veren güç profili."
-
-#~ msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-#~ msgstr "0,6 mm nozul için hıza öncelik veren standart profil."
-
-#~ msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-#~ msgstr "0,8 mm püskürtme ucu için baskı kalitesini ön planda tutan yüksek kaliteli profil."
-
-#~ msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-#~ msgstr "0,8 mm'lik nozul için güç profili, dayanıklılığa öncelik verilir."
-
-#~ msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-#~ msgstr "Hıza öncelik veren 0,8 mm nozul için standart profil."
-
-# AI Translated
-#~ msgid "Slot — two centerline ends, then end radius"
-#~ msgstr "Kanal — merkez çizgisinin iki ucu, ardından uç yarıçapı"
-
-# AI Translated
-#~ msgid "Isometric view, fitted"
-#~ msgstr "İzometrik görünüm, sığdırıldı"
-
-# AI Translated
-#~ msgid "Coord Sys"
-#~ msgstr "Koord. Sist."
-
-# AI Translated
-#~ msgid "Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"
-#~ msgstr "Montaj: iki koordinat sistemi unsurunu hizalayın (sabit, düzlemsel, döner, kayar, silindirik)"
-
-# AI Translated
-#~ msgid "Click points; click the first point to close the loop, right-click to end the chain"
-#~ msgstr "Noktalara tıklayın; döngüyü kapatmak için ilk noktaya tıklayın, zinciri bitirmek için sağ tıklayın"
-
-# AI Translated
-#~ msgid "Click two centerline ends, then a point for the end radius"
-#~ msgstr "Merkez çizgisinin iki ucuna, ardından uç yarıçapı için bir noktaya tıklayın"
-
-# AI Translated
-#~ msgid "Click control points; double-click or right-click to finish"
-#~ msgstr "Kontrol noktalarına tıklayın; bitirmek için çift tıklayın veya sağ tıklayın"
-
-# AI Translated
-#~ msgid "Click a segment to trim it back to its nearest intersection; right-click exits"
-#~ msgstr "Bir segmenti en yakın kesişimine kadar kırpmak için ona tıklayın; çıkmak için sağ tıklayın"
-
-# AI Translated
-#~ msgid "Click a line or arc to extend it to the nearest entity; right-click exits"
-#~ msgstr "Bir çizgiyi veya yayı en yakın öğeye kadar uzatmak için ona tıklayın; çıkmak için sağ tıklayın"
-
-# AI Translated
-#~ msgid "✓ Confirm"
-#~ msgstr "✓ Onayla"
-
-# AI Translated
-#~ msgid "✗ Cancel"
-#~ msgstr "✗ İptal"
-
-# AI Translated
-#~ msgid "Undo (Ctrl+Z)"
-#~ msgstr "Geri al (Ctrl+Z)"
-
-# AI Translated
-#~ msgid "Redo (Ctrl+Shift+Z)"
-#~ msgstr "İleri al (Ctrl+Shift+Z)"
-
-# AI Translated
-#~ msgid "Taper °"
-#~ msgstr "Daralma °"
-
-# AI Translated
-#~ msgid "Total angle°"
-#~ msgstr "Toplam açı°"
-
-# AI Translated
-#~ msgid "Union (join)"
-#~ msgstr "Birleşim (birleştir)"
-
-# AI Translated
-#~ msgid "Subtract (cut)"
-#~ msgstr "Çıkarma (kes)"
-
-# AI Translated
-#~ msgid "Angle°"
-#~ msgstr "Açı°"
-
-# AI Translated
-#~ msgid "CS A (fixed)"
-#~ msgstr "KS A (sabit)"
-
-# AI Translated
-#~ msgid "CS B (moves)"
-#~ msgstr "KS B (hareketli)"
-
-# AI Translated
-#~ msgid "Move body"
-#~ msgstr "Gövdeyi taşı"
-
-# AI Translated
-#~ msgid "Select a body row first, then move it"
-#~ msgstr "Önce bir gövde satırı seçin, ardından taşıyın"
-
-# AI Translated
-#~ msgid "+"
-#~ msgstr "+"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Body %d: edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-#~ msgstr "Gövde %d: kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-#~ msgstr "Kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
-
-# AI Translated
-#~ msgid "Text to insert:"
-#~ msgstr "Eklenecek metin:"
-
-# AI Translated
-#~ msgid "STEP import failed: "
-#~ msgstr "STEP içe aktarma başarısız oldu: "
-
-# AI Translated
-#~ msgid "Could not read the OBJ file: "
-#~ msgstr "OBJ dosyası okunamadı: "
-
-# AI Translated
-#~ msgid "Mesh conversion failed: "
-#~ msgstr "Mesh dönüştürme başarısız oldu: "
-
-# AI Translated
-#~ msgid "Mesh import failed: "
-#~ msgstr "Mesh içe aktarma başarısız oldu: "
-
-# AI Translated
-#~ msgid "Drag a corner to scale, the center to move — right-click when done"
-#~ msgstr "Ölçeklendirmek için bir köşeyi, taşımak için merkezi sürükleyin — bitince sağ tıklayın"
-
-# AI Translated
-#~ msgid "Recompute error: "
-#~ msgstr "Yeniden hesaplama hatası: "
-
-# AI Translated
-#~ msgid "Mate needs two CoordSys features — create them first"
-#~ msgstr "Montaj ilişkisi için iki koordinat sistemi unsuru gerekir — önce bunları oluşturun"
-
-# AI Translated
-#~ msgid "Mate: CS A and CS B must be different CoordSys features"
-#~ msgstr "Montaj ilişkisi: KS A ve KS B farklı koordinat sistemi unsurları olmalıdır"
-
-# AI Translated
-#~ msgid "No interference — need at least two solid bodies to check"
-#~ msgstr "Girişim yok — kontrol için en az iki katı gövde gerekir"
-
-# AI Translated
-#, c-format
-#~ msgid "%zu interference pair, worst %.2f mm³"
-#~ msgid_plural "%zu interference pairs, worst %.2f mm³"
-#~ msgstr[0] "%zu girişim çifti, en kötüsü %.2f mm³"
-#~ msgstr[1] "%zu girişim çifti, en kötüsü %.2f mm³"
-
-# AI Translated
-#~ msgid ""
-#~ "Interference pairs:\n"
-#~ "\n"
-#~ msgstr ""
-#~ "Girişim çiftleri:\n"
-#~ "\n"
-
-# AI Translated
-#~ msgid "Interference"
-#~ msgstr "Girişim"
-
-# AI Translated
-#~ msgid "Select a solid body first — its mass properties are what is reported"
-#~ msgstr "Önce katı bir gövde seçin — raporlanan, onun kütle özellikleridir"
-
-# AI Translated
-#~ msgid "Mass properties could not be computed for this body"
-#~ msgstr "Bu gövde için kütle özellikleri hesaplanamadı"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s: sheet body — %.2f cm² of surface, no volume"
-#~ msgstr "%s: yüzey gövdesi — %.2f cm² yüzey, hacim yok"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "%s\n"
-#~ "\n"
-#~ "Sheet body (open shell)\n"
-#~ "Surface area: %.2f cm²\n"
-#~ "\n"
-#~ "A sheet encloses no material, so it has no volume. Thicken it into a solid to get one."
-#~ msgstr ""
-#~ "%s\n"
-#~ "\n"
-#~ "Yüzey gövdesi (açık kabuk)\n"
-#~ "Yüzey alanı: %.2f cm²\n"
-#~ "\n"
-#~ "Yüzey gövdesi hiç malzeme çevrelemediği için hacmi yoktur. Hacim elde etmek için onu kalınlaştırarak katıya dönüştürün."
-
-# AI Translated
-#~ msgid "Mass properties"
-#~ msgstr "Kütle özellikleri"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s: %.3f cm³, %.2f cm²"
-#~ msgstr "%s: %.3f cm³, %.2f cm²"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "%s\n"
-#~ "\n"
-#~ "Volume: %.3f cm³\n"
-#~ "Surface area: %.2f cm²"
-#~ msgstr ""
-#~ "%s\n"
-#~ "\n"
-#~ "Hacim: %.3f cm³\n"
-#~ "Yüzey alanı: %.2f cm²"
-
-# AI Translated
-#~ msgid "Boolean needs two solid bodies — add or import a second one"
-#~ msgstr "Boole için iki katı gövde gerekir — ikinci bir gövde ekleyin veya içe aktarın"
-
-# AI Translated
-#~ msgid "Line — click the end point, or type the length"
-#~ msgstr "Çizgi — bitiş noktasına tıklayın veya uzunluğu yazın"
-
-# AI Translated
-#~ msgid "Polyline — click the next point  ·  click the start point to close it  ·  right-click to end the chain"
-#~ msgstr "Çoklu çizgi — sonraki noktaya tıklayın  ·  kapatmak için başlangıç noktasına tıklayın  ·  zinciri bitirmek için sağ tıklayın"
-
-# AI Translated
-#~ msgid "Circle — click to set the radius, or type it"
-#~ msgstr "Daire — yarıçapı ayarlamak için tıklayın veya yazın"
-
-# AI Translated
-#~ msgid "Spline — click the next control point  ·  right-click to finish the curve"
-#~ msgstr "Spline — sonraki kontrol noktasına tıklayın  ·  eğriyi bitirmek için sağ tıklayın"
-
-# AI Translated
-#~ msgid "Trim — click a segment where it crosses another entity  ·  right-click to exit"
-#~ msgstr "Kırp — bir segmente, başka bir öğeyle kesiştiği yerde tıklayın  ·  çıkmak için sağ tıklayın"
-
-# AI Translated
-#~ msgid "Extend — click a line or arc to grow it out to the nearest entity  ·  right-click to exit"
-#~ msgstr "Uzat — en yakın öğeye kadar uzatmak için bir çizgiye veya yaya tıklayın  ·  çıkmak için sağ tıklayın"
-
-# AI Translated
-#~ msgid "Fillet — drag the arrow, or click the number to type the radius  ·  click empty space to apply  ·  right-click cancels"
-#~ msgstr "Yuvarlatma — oku sürükleyin veya yarıçapı yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın  ·  sağ tıklama iptal eder"
-
-# AI Translated
-#~ msgid "Chamfer — drag the arrow, or click the number to type the setback  ·  click empty space to apply  ·  right-click cancels"
-#~ msgstr "Pah — oku sürükleyin veya pah mesafesini yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın  ·  sağ tıklama iptal eder"
-
-# AI Translated
-#~ msgid "Offset — click the entity to offset"
-#~ msgstr "Ofset — ofsetlenecek öğeye tıklayın"
-
-# AI Translated
-#~ msgid "Offset — drag the arrow to either side, or click the number to type the distance  ·  click empty space to apply  ·  right-click cancels"
-#~ msgstr "Ofset — oku iki yönden birine sürükleyin veya mesafeyi yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın  ·  sağ tıklama iptal eder"
-
-# AI Translated
-#~ msgid "Mirror — axis set  ·  now click the entities to mirror  ·  right-click cancels"
-#~ msgstr "Aynala — eksen belirlendi  ·  şimdi aynalanacak öğelere tıklayın  ·  sağ tıklama iptal eder"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Mirror — axis set  ·  %d to mirror  ·  click another to add or remove it  ·  click empty space to apply"
-#~ msgstr "Aynala — eksen belirlendi  ·  aynalanacak: %d  ·  eklemek veya kaldırmak için başka bir öğeye tıklayın  ·  uygulamak için boş alana tıklayın"
-
-# AI Translated
-#~ msgid "Move — drag the handle, or click the number to type the distance  ·  click empty space to apply"
-#~ msgstr "Taşı — tutamacı sürükleyin veya mesafeyi yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın"
-
-# AI Translated
-#~ msgid "Rotate — drag the handle, or click the number to type the angle  ·  click empty space to apply"
-#~ msgstr "Döndür — tutamacı sürükleyin veya açıyı yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın"
-
-# AI Translated
-#~ msgid "Scale — drag the handle, or click the number to type the factor  ·  click empty space to apply"
-#~ msgstr "Ölçeklendir — tutamacı sürükleyin veya katsayıyı yazmak için sayıya tıklayın  ·  uygulamak için boş alana tıklayın"
-
-# AI Translated
-#~ msgid "Array — drag the handle to set the step, click the count to type it  ·  click empty space to apply"
-#~ msgstr "Dizi — adımı ayarlamak için tutamacı sürükleyin, adedi yazmak için adet değerine tıklayın  ·  uygulamak için boş alana tıklayın"
-
-# AI Translated
-#~ msgid "Polar array — drag the handle to set the sweep, click the count to type it  ·  click empty space to apply"
-#~ msgstr "Dairesel dizi — açıyı ayarlamak için tutamacı sürükleyin, adedi yazmak için adet değerine tıklayın  ·  uygulamak için boş alana tıklayın"
-
-# AI Translated
-#~ msgid "Drag a corner to scale, the center to move  ·  right-click when done"
-#~ msgstr "Ölçeklendirmek için bir köşeyi, taşımak için merkezi sürükleyin  ·  bitince sağ tıklayın"
-
-# AI Translated
-#~ msgid "Coord Sys added"
-#~ msgstr "Koord. Sist. eklendi"
-
-# AI Translated
-#~ msgid "Could not restore the CAD model: "
-#~ msgstr "CAD modeli geri yüklenemedi: "
-
-# AI Translated
-#~ msgid "Boolean needs two bodies — create or import a second solid"
-#~ msgstr "Boole için iki gövde gerekir — ikinci bir katı oluşturun veya içe aktarın"
-
-# AI Translated
-#~ msgid "Edit rejected: "
-#~ msgstr "Düzenleme reddedildi: "
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Delete %s?\n"
-#~ "\n"
-#~ "That is the feature this body was made from. Features built on it may be removed or stop working."
-#~ msgstr ""
-#~ "%s silinsin mi?\n"
-#~ "\n"
-#~ "Bu, gövdenin oluşturulduğu unsurdur. Bunun üzerine kurulan unsurlar kaldırılabilir veya çalışmayı durdurabilir."
-
-# AI Translated
-#~ msgid "Delete body"
-#~ msgstr "Gövdeyi sil"
-
-# AI Translated
-#~ msgid "STEP export failed: "
-#~ msgstr "STEP dışa aktarma başarısız oldu: "
-
-# AI Translated
-#~ msgid "Coord Sys ready"
-#~ msgstr "Koord. Sist. hazır"
-
-# AI Translated
-#~ msgid "Mate needs at least two CoordSys features"
-#~ msgstr "Montaj ilişkisi için en az iki koordinat sistemi unsuru gerekir"
-
-# AI Translated
-#~ msgid "Mate: CS A and CS B must be different"
-#~ msgstr "Montaj ilişkisi: KS A ve KS B farklı olmalıdır"
-
-# AI Translated
-#~ msgid "Invalid: "
-#~ msgstr "Geçersiz: "
-
-# AI Translated
-#~ msgid "Variable name:"
-#~ msgstr "Değişken adı:"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Expression for '%s':"
-#~ msgstr "'%s' için ifade:"
-
-# AI Translated
-#~ msgid "Seg"
-#~ msgstr "Segment"
-
-# AI Translated
-#~ msgid "CLOSED"
-#~ msgstr "KAPALI"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% %2%: %3% pts %4%"
-#~ msgstr "%1% %2%: %3% nokta %4%"
-
-# AI Translated
-#~ msgid "Pocket (Cut)"
-#~ msgstr "Cep (Kes)"
-
-# AI Translated
-#~ msgid "Clear All"
-#~ msgstr "Tümünü Temizle"
-
-# AI Translated
-#~ msgid "Hollow this object"
-#~ msgstr "Bu nesnenin içini boşalt"
-
-# AI Translated
-#~ msgid "Preview hollowed and drilled model"
-#~ msgstr "İçi boşaltılmış ve delinmiş modeli önizle"
-
-# AI Translated
-#~ msgid "Closing distance"
-#~ msgstr "Kapanma mesafesi"
-
-# AI Translated
-#~ msgid "Hole diameter"
-#~ msgstr "Delik çapı"
-
-# AI Translated
-#~ msgid "Hole depth"
-#~ msgstr "Delik derinliği"
-
-# AI Translated
-#~ msgid "Remove selected holes"
-#~ msgstr "Seçili delikleri kaldır"
-
-# AI Translated
-#~ msgid "Remove all holes"
-#~ msgstr "Tüm delikleri kaldır"
-
-# AI Translated
-#~ msgid "Clipping of view"
-#~ msgstr "Görünüm kırpma"
-
-#~ msgid "Reset direction"
-#~ msgstr "Yönü sıfırla"
-
-# AI Translated
-#~ msgid "Show supports"
-#~ msgstr "Destekleri göster"
-
-# AI Translated
-#~ msgid "Hollow and drill"
-#~ msgstr "İçini boşalt ve del"
-
-#~ msgid "Head diameter"
-#~ msgstr "Kafa çapı"
-
-# AI Translated
-#~ msgid "Lock supports under new islands"
-#~ msgstr "Yeni adaların altındaki destekleri kilitle"
-
-#~ msgid "Remove selected points"
-#~ msgstr "Seçili noktaları kaldır"
-
-# AI Translated
-#~ msgid "Remove all points"
-#~ msgstr "Tüm noktaları kaldır"
-
-# AI Translated
-#~ msgid "Apply changes"
-#~ msgstr "Değişiklikleri uygula"
-
-# AI Translated
-#~ msgid "Discard changes"
-#~ msgstr "Değişiklikleri at"
-
-# AI Translated
-#~ msgid "Minimal points distance"
-#~ msgstr "Minimum nokta mesafesi"
-
-# AI Translated
-#~ msgid "Support points density"
-#~ msgstr "Destek noktası yoğunluğu"
-
-#~ msgid "Auto-generate points"
-#~ msgstr "Noktaları otomatik olarak üret"
-
-# AI Translated
-#~ msgid "Manual editing"
-#~ msgstr "Manuel düzenleme"
-
-# AI Translated
-#~ msgid "SLA Support Points"
-#~ msgstr "SLA Destek Noktaları"
-
-# AI Translated
-#~ msgid "Do you want to save your manually edited support points?"
-#~ msgstr "Manuel düzenlediğiniz destek noktalarını kaydetmek istiyor musunuz?"
-
-# AI Translated
-#~ msgid "Save support points?"
-#~ msgstr "Destek noktaları kaydedilsin mi?"
-
-# AI Translated
-#~ msgid "Autogeneration will erase all manually edited points."
-#~ msgstr "Otomatik oluşturma, manuel düzenlenen tüm noktaları silecek."
-
-# AI Translated
-#~ msgid "Are you sure you want to do it?"
-#~ msgstr "Bunu yapmak istediğinizden emin misiniz?"
-
-# AI Translated
-#~ msgid "SLA gizmo keyboard shortcuts"
-#~ msgstr "SLA gizmo klavye kısayolları"
-
-# AI Translated
-#~ msgid "Note: some shortcuts work in (non)editing mode only."
-#~ msgstr "Not: bazı kısayollar yalnızca düzenleme modunda ya da yalnızca bu mod dışında çalışır."
-
-#~ msgid "Left click"
-#~ msgstr "Sol tık"
-
-# AI Translated
-#~ msgid "Add point"
-#~ msgstr "Nokta ekle"
-
-#~ msgid "Right click"
-#~ msgstr "Sağ tık"
-
-# AI Translated
-#~ msgid "Remove point"
-#~ msgstr "Noktayı kaldır"
-
-# AI Translated
-#~ msgid "Move point"
-#~ msgstr "Noktayı taşı"
-
-# AI Translated
-#~ msgid "Add point to selection"
-#~ msgstr "Seçime nokta ekle"
-
-# AI Translated
-#~ msgid "Remove point from selection"
-#~ msgstr "Noktayı seçimden kaldır"
-
-# AI Translated
-#~ msgid "Select by rectangle"
-#~ msgstr "Dikdörtgenle seç"
-
-# AI Translated
-#~ msgid "Deselect by rectangle"
-#~ msgstr "Dikdörtgenle seçimi kaldır"
-
-# AI Translated
-#~ msgid "Select all points"
-#~ msgstr "Tüm noktaları seç"
-
-# AI Translated
-#~ msgid "Move clipping plane"
-#~ msgstr "Kırpma düzlemini taşı"
-
-# AI Translated
-#~ msgid "Reset clipping plane"
-#~ msgstr "Kırpma düzlemini sıfırla"
-
-# AI Translated
-#~ msgid "Switch to editing mode"
-#~ msgstr "Düzenleme moduna geç"
-
-# AI Translated
-#~ msgctxt "Design"
-#~ msgid "Union"
-#~ msgstr "Birleşim"
-
-# AI Translated
-#~ msgid "target is not a sheet body"
-#~ msgstr "hedef bir yüzey gövdesi değil"
-
-# AI Translated
-#~ msgid "Drill a hole, centred on a picked face or placed on a plane"
-#~ msgstr "Seçilen bir yüzde ortalanmış veya bir düzleme yerleştirilmiş bir delik açın"
-
-# AI Translated
-#~ msgid "Shell needs a solid body"
-#~ msgstr "Kabuklama için katı bir gövde gerekir"
-
-# AI Translated
-#~ msgid "Split needs a solid body"
-#~ msgstr "Bölme için katı bir gövde gerekir"
-
-# AI Translated
-#~ msgid "Pattern on curve needs a body and a curve"
-#~ msgstr "Eğri üzerinde çoğaltma için bir gövde ve bir eğri gerekir"
-
-# AI Translated
-#~ msgid "A mate needs two coordinate systems"
-#~ msgstr "Montaj ilişkisi için iki koordinat sistemi gerekir"
-
-# AI Translated
-#~ msgid "Align needs a body"
-#~ msgstr "Hizalama için bir gövde gerekir"
-
-# AI Translated
-#~ msgctxt "Design"
-#~ msgid "Coord Sys"
-#~ msgstr "Koord. Sist."
-
-# AI Translated
-#~ msgctxt "Design"
-#~ msgid "Mass"
-#~ msgstr "Kütle"
-
-# AI Translated
-#~ msgctxt "Design"
-#~ msgid "Colour"
-#~ msgstr "Renk"
-
-# AI Translated
-#~ msgid "Set the selected body's display colour"
-#~ msgstr "Seçili gövdenin görüntüleme rengini ayarlayın"
-
-# AI Translated
-#~ msgctxt "Design"
-#~ msgid "Centre rectangle"
-#~ msgstr "Merkez dikdörtgeni"
-
-# AI Translated
-#~ msgctxt "Design"
-#~ msgid "Centre circle"
-#~ msgstr "Merkezden daire"
-
-# AI Translated
-#~ msgctxt "Design"
-#~ msgid "Centre-point arc"
-#~ msgstr "Merkez noktalı yay"
-
-# AI Translated
-#~ msgid "Triangle — click centre, then a vertex"
-#~ msgstr "Üçgen — merkeze, ardından bir köşe noktasına tıklayın"
-
-# AI Translated
-#~ msgid "Square — click centre, then a vertex"
-#~ msgstr "Kare — merkeze, ardından bir köşe noktasına tıklayın"
-
-# AI Translated
-#~ msgid "Pentagon — click centre, then a vertex"
-#~ msgstr "Beşgen — merkeze, ardından bir köşe noktasına tıklayın"
-
-# AI Translated
-#~ msgid "Hexagon — click centre, then a vertex"
-#~ msgstr "Altıgen — merkeze, ardından bir köşe noktasına tıklayın"
-
-# AI Translated
-#~ msgid "Octagon — click centre, then a vertex"
-#~ msgstr "Sekizgen — merkeze, ardından bir köşe noktasına tıklayın"
-
-# AI Translated
-#~ msgid "Dodecagon — click centre, then a vertex"
-#~ msgstr "Onikigen — merkeze, ardından bir köşe noktasına tıklayın"
-
-# AI Translated
-#~ msgid "Type text; its outline is added to this sketch as editable lines"
-#~ msgstr "Metin yazın; dış hattı bu eskize düzenlenebilir çizgiler olarak eklenir"
-
-# AI Translated
-#~ msgid "Major"
-#~ msgstr "Büyük eksen"
-
-# AI Translated
-#~ msgid "Minor"
-#~ msgstr "Küçük eksen"
-
-# AI Translated
-#~ msgid "Extend: click a line/arc that can reach another live entity"
-#~ msgstr "Uzat: başka bir mevcut öğeye ulaşabilen bir çizgiye/yaya tıklayın"
-
-# AI Translated
-#~ msgid "Trim: click a segment where it crosses another live entity"
-#~ msgstr "Kırp: başka bir mevcut öğeyle kesiştiği yerde bir segmente tıklayın"
-
-# AI Translated
-#~ msgid "closed profile(s)"
-#~ msgstr "kapalı profil"
-
-#~ msgid "Failed to generate cali G-code"
-#~ msgstr "Cali G-code oluşturma başarısız oldu"
-
-# AI Translated
-#~ msgid "Multiply"
-#~ msgstr "Çarp"
-
-# AI Translated
-#~ msgid " and "
-#~ msgstr " ve "
-
-# AI Translated
-#~ msgid "cannot be mixed. Please select the same filament type."
-#~ msgstr "karıştırılamaz. Lütfen aynı filament türünü seçin."
-
-# AI Translated
-#~ msgid "An error occurred loading "
-#~ msgstr "Yüklenirken bir hata oluştu: "
-
-# AI Translated
-#~ msgid "/"
-#~ msgstr "/"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Load %s to "
-#~ msgstr "%s şuraya yükle: "
-
-# AI Translated
-#~ msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face's orientation is read without being learned. Turn this off for the conventional CAD representation."
-#~ msgstr "Tasarım sekmesinde montaj bağlayıcısını, dönüş çeyreği olan geleneksel disk yerine küçük bir yüz olarak çizer. Bir yüzün yönü, öğrenmeye gerek kalmadan okunur. Geleneksel CAD gösterimi için bunu kapatın."
-
-# AI Translated
-#~ msgid "Expert"
-#~ msgstr "Uzman"
-
-# AI Translated
-#~ msgid "Simple"
-#~ msgstr "Basit"
-
-# AI Translated
-#~ msgid "Click points; click first / right-click to close the loop"
-#~ msgstr "Noktalara tıklayın; döngüyü kapatmak için ilk noktaya tıklayın / sağ tıklayın"
-
-# AI Translated
-#~ msgid "X hint X"
-#~ msgstr "X yönü X"
-
-# AI Translated
-#~ msgid "X hint Y"
-#~ msgstr "X yönü Y"
-
-# AI Translated
-#~ msgid "X hint Z"
-#~ msgstr "X yönü Z"
-
-# AI Translated
-#~ msgid " — the eye suppresses this mate"
-#~ msgstr " — göz simgesi bu montaj ilişkisini devre dışı bırakır"
-
-#~ msgid "Del"
-#~ msgstr "Sil"
-
-# AI Translated
-#~ msgid "Sketch kept — Finish to commit it, Cancel to discard"
-#~ msgstr "Eskiz korundu — kaydetmek için Bitir'e, atmak için İptal'e basın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Finish or Cancel in the toolbar"
-#~ msgstr "Düzenleniyor: Eskiz %d   ·   N = düzleme dik bak   ·   Araç çubuğunda Bitir veya İptal"
-
-# AI Translated
-#~ msgid "Editing sketch — drag a handle or click a quote to edit"
-#~ msgstr "Eskiz düzenleniyor — düzenlemek için bir tutamacı sürükleyin veya bir ölçüye tıklayın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Showing %s actions"
-#~ msgstr "%s eylem gösteriliyor"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s actions"
-#~ msgstr "%s eylem"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s tabs"
-#~ msgstr "%s sekme"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s matches"
-#~ msgstr "%s eşleşme"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%s  ·  on %s"
-#~ msgstr "%s  ·  %s üzerinde"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Sketching on %s — pick a tool"
-#~ msgstr "%s üzerinde eskiz çiziliyor — bir araç seçin"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Drawing on %s.\n"
-#~ "Pick a tool, or press Menu for the list."
-#~ msgstr ""
-#~ "%s üzerinde çiziliyor.\n"
-#~ "Bir araç seçin veya liste için Menü tuşuna basın."
-
-# AI Translated
-#~ msgid "Colour"
-#~ msgstr "Renk"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Body %d "
-#~ msgstr "Gövde %d "
-
-# AI Translated
-#~ msgid "vertex selected — click again for the whole body"
-#~ msgstr "köşe noktası seçildi — tüm gövde için tekrar tıklayın"
-
-# AI Translated
-#~ msgid "selected (whole body) — right-click for what applies to it"
-#~ msgstr "seçildi (tüm gövde) — uygulanabilecek işlemler için sağ tıklayın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "face %d selected — right-click to push/pull it, or click again for the whole body"
-#~ msgstr "yüz %d seçildi — itmek/çekmek için sağ tıklayın veya tüm gövde için tekrar tıklayın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"
-#~ msgstr "kenar %d seçildi — Yuvarlatma/Pah ile işleyin veya tüm gövde için tekrar tıklayın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "placed (%.1f, %.1f, %.1f) mm — drag arrows to move, rings to rotate"
-#~ msgstr "yerleştirildi (%.1f, %.1f, %.1f) mm — taşımak için okları, döndürmek için halkaları sürükleyin"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%d degrees of freedom"
-#~ msgstr "%d serbestlik derecesi"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"
-#~ msgstr "%d katı içe aktarıldı — değiştirmek için bir yüz veya kenar seçin, ardından Yuvarlatma / Kes / Kabuklama kullanın"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated geometry; boolean features may fail on it"
-#~ msgstr "Açık kabuk olarak içe aktarıldı (su geçirmez değil): %d sınır kenarı, %d manifold olmayan kenar — %d üçgen → %d yüz. Kaynak mesh'te delikler veya yinelenen geometri var; boole unsurları bu mesh üzerinde başarısız olabilir"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Sketch added on %s — select it, then right-click to Extrude"
-#~ msgstr "%s üzerine eskiz eklendi — seçin, ardından Ekstrüzyon için sağ tıklayın"
-
-# AI Translated
-#, c-format
-#~ msgid "%zu interference pairs, worst %.2f mm³"
-#~ msgstr "%zu girişim çifti, en kötüsü %.2f mm³"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "the picked face of Body %d"
-#~ msgstr "Gövde %d üzerindeki seçilen yüz"
-
-# AI Translated
-#~ msgid "the picked face"
-#~ msgstr "seçilen yüz"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "%d selected  ·  Del removes them  ·  Shift-click adds  ·  double-click takes the whole loop"
-#~ msgstr "%d seçildi  ·  Del bunları kaldırır  ·  Shift+tıklama ekler  ·  çift tıklama tüm döngüyü alır"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid "Section view — showing the %s half"
-#~ msgstr "Kesit görünümü — %s yarı gösteriliyor"
-
-# AI Translated
-#~ msgid "upper"
-#~ msgstr "üst"
-
-# AI Translated
-#~ msgid "lower"
-#~ msgstr "alt"
-
-# AI Translated
-#, c-format
-#~ msgid "Redo  (%zu more)"
-#~ msgstr "İleri al  (%zu tane daha)"
-
-# AI Translated
-#, c-format
-#~ msgid "Undo  (%zu more)"
-#~ msgstr "Geri al  (%zu tane daha)"
-
-#~ msgid "Section View"
-#~ msgstr "Bölüm Görünümü"
-
-#~ msgid "Hostname or IP"
-#~ msgstr "Ana bilgisayar adı veya IP"
-
-#~ msgid "Custom camera source"
-#~ msgstr "Özel kamera kaynağı"
-
-#~ msgid "Switch Camera View"
-#~ msgstr "Kamera Görünümünü Değiştir"
-
-# AI Translated
-#~ msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-#~ msgstr "Gerçekçi görünümde plakaya, diğer nesnelere ve her nesnenin kendi üzerine düşen gölgeleri işler."
-
-#~ msgid "Support/Color Painting: adjust section position"
-#~ msgstr "Destek/Renkli Boyama: bölüm konumunu ayarlayın"
-
-# AI Translated
-#~ msgid "Tab"
-#~ msgstr "Sekme"
-
-# AI Translated
-#~ msgid "Displays current viewport FPS in the top-right corner."
-#~ msgstr "Geçerli görünüm penceresinin FPS değerini sağ üst köşede gösterir."
-
-# AI Translated
-#~ msgid "Publish 3MF Wiki"
-#~ msgstr "3MF Yayınlama Wiki"
-
-# AI Translated
-#~ msgid "Publish 3MF Video Guide"
-#~ msgstr "3MF Yayınlama Video Kılavuzu"
-
-#~ msgid "Toolbar"
-#~ msgstr "Araç Çubuğu"
-
-#~ msgid "Switch table page"
-#~ msgstr "Tablo sayfasını değiştir"
-
-#~ msgid "Global shortcuts"
-#~ msgstr "Genel kısayollar"
-
-# AI Translated
-#~ msgid "Middle mouse button"
-#~ msgstr "Orta fare düğmesi"
-
-#~ msgid "Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project."
-#~ msgstr "Seçilen nesneleri veya tüm nesneleri otomatik olarak yönlendirir. Seçilen nesneler varsa, yalnızca seçilenleri yönlendirir. Aksi takdirde mevcut projedeki tüm nesneler yönlendirilecektir."
-
-#~ msgid "Auto orients all objects on the active plate."
-#~ msgstr "Aktif plakadaki tüm nesneleri otomatik olarak yönlendirir."
-
-#~ msgid "Any arrow"
-#~ msgstr "Herhangi bir ok"
-
-#~ msgid "Gizmo SLA support points"
-#~ msgstr "Gizmo SLA destek noktaları"
-
-#~ msgid "Plater"
-#~ msgstr "Plakacı"
-
-# AI Translated
-#~ msgid "Gizmo"
-#~ msgstr "Gizmo"
-
-#~ msgid "Delete objects, parts, modifiers"
-#~ msgstr "Nesneleri, parçaları, değiştiricileri silin"
-
-#~ msgid "Objects List"
-#~ msgstr "Nesne Listesi"
-
-#~ msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-#~ msgstr "G-code, çıktı dosyasının en üstünde, diğer içeriklerden önce yazılır. Yazıcı ürün yazılımının dosyanın ilk satırlarından okuduğu meta verileri (ör. tahmini yazdırma süresi, filament kullanımı) eklemek için kullanışlıdır. {print_time_sec} ve {used_filament_length} gibi yer tutucuları destekler."
-
-#~ msgid "Print time (seconds)"
-#~ msgstr "Yazdırma süresi (saniye)"
-
-# AI Translated
-#~ msgid "Open actions speed dial"
-#~ msgstr "Eylem hızlı erişim menüsünü aç"
-
-# AI Translated
-#~ msgid "Left: "
-#~ msgstr "Sol: "
-
-# AI Translated
-#~ msgid "Right: "
-#~ msgstr "Sağ: "
-
-#~ msgid "The maximum temperature cannot exceed "
-#~ msgstr "Maksimum sıcaklık şu değeri aşamaz: "
-
-#~ msgid "The minmum temperature should not be less than "
-#~ msgstr "Minimum sıcaklık şu değerden az olamaz: "
-
-#~ msgid "up to"
-#~ msgstr "kadar"
-
-#~ msgid "above"
-#~ msgstr "üstünde"
-
-#~ msgid "from"
-#~ msgstr "itibaren"
-
-#~ msgid "Configuration package: "
-#~ msgstr "Yapılandırma paketi: "
-
-#~ msgid " updated to "
-#~ msgstr " güncellendi "
-
-#~ msgid "Grouping error: "
-#~ msgstr "Gruplama hatası: "
-
-#~ msgid " can not be placed in the "
-#~ msgstr " içine yerleştirilemez "
-
-# AI Translated
-#~ msgid " maximum drying temperature is "
-#~ msgstr " için maksimum kurutma sıcaklığı "
-
-# AI Translated
-#~ msgid " minimum drying temperature is "
-#~ msgstr " için minimum kurutma sıcaklığı "
-
-# AI Translated
-#~ msgid "needs"
-#~ msgstr "şunu gerektirir"
-
-# AI Translated
-#~ msgid "not enabled"
-#~ msgstr "etkin değil"
-
-# AI Translated
-#~ msgid "material not published"
-#~ msgstr "malzeme yayınlanmadı"
-
-#~ msgid "Select the language"
-#~ msgstr "Dili seçin"
-
-# AI Translated
-#~ msgid "Select plugin"
-#~ msgstr "Eklenti seç"
-
-# AI Translated
-#~ msgid ""
-#~ "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
-#~ "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
-#~ "Default uses shortest-path ordering, which may run in either direction."
-#~ msgstr ""
-#~ "Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken üst yüzeylerin doldurulma yönü.\n"
-#~ "Dışarı, yüzeyin merkezinden başlar; böylece fazla malzeme en az göründüğü kenara doğru itilir. İçeri kenardan başlar ve merkezdeki dar kavislerle biter.\n"
-#~ "Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
-
-# AI Translated
-#~ msgid ""
-#~ "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
-#~ "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
-#~ "Default uses shortest-path ordering, which may run in either direction."
-#~ msgstr ""
-#~ "Merkez tabanlı bir desen (Konsantrik, Arşimet akorları, Sekizgen spiral) kullanılırken alt yüzeylerin doldurulma yönü.\n"
-#~ "İçeri, her yüzeye daha geniş dış kavislerle başlar; bu da merkezdeki dar kavislerin yapışmayabileceği yapı plakalarında ilk katman yapışmasını iyileştirir. Dışarı merkezden başlar ve fazla malzemeyi kenara doğru iter.\n"
-#~ "Varsayılan, her iki yönde de ilerleyebilen en kısa yol sıralamasını kullanır."
-
-#~ msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-#~ msgstr "Etkinleştirilirse, silme kulesi araç değişimi olmayan katmanlarda yazdırılmayacaktır. Araç değişimi olan katmanlarda, ekstruder silme kulesini yazdırmak için aşağı doğru hareket edecektir. Baskı ile çarpışma olmamasını sağlamak kullanıcının sorumluluğundadır."
-
-#~ msgid "This exports settings to a file."
-#~ msgstr "Ayarları bir dosyaya aktarın."
-
-# AI Translated
-#~ msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-#~ msgstr "Yerel Wayland canlı görüntüsü, GStreamer GTK video alıcısını gerektirir. Lütfen GStreamer için gtksink eklentisini yükleyin ve ardından OrcaSlicer'ı yeniden başlatın."
-
-# AI Translated
-#~ msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
-#~ msgstr "Yerel Wayland GStreamer video alıcısı başlatılamadı. Lütfen GStreamer GTK eklentisi kurulumunuzu denetleyin."
-
-#~ msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
-#~ msgstr "Bu görev için Windows Media Player gereklidir! İşletim sisteminiz için ‘Windows Media Player’ı etkinleştirmek istiyor musunuz?"
-
-#~ msgid "BambuSource has not correctly been registered for media playing! Press Yes to re-register it. You will be promoted twice"
-#~ msgstr "BambuSource medya oynatımı için doğru şekilde kaydedilmemiş! Yeniden kaydetmek için Evet’e basın"
-
-#~ msgid "Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."
-#~ msgstr "Medya oynatma için kayıtlı BambuSource bileşeni eksik! Lütfen OrcaSlicer'ı yeniden yükleyin veya topluluk yardımı isteyin."
-
-#~ msgid "Using a BambuSource from a different install, video play may not work correctly! Press Yes to fix it."
-#~ msgstr "Farklı bir kurulumdan bir BambuSource kullanıyorsunuz, video oynatma doğru çalışmayabilir! Düzeltmek için Evet’e basın."
-
-#~ msgid "Your system is missing H.264 codecs for GStreamer, which are required to play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-libav packages, then restart Orca Slicer?)"
-#~ msgstr "Sisteminizde video oynatmak için gerekli olan GStreamer H.264 codec bileşenleri eksik. (gstreamer1.0-plugins-bad veya gstreamer1.0-libav paketlerini kurmayı deneyin, ardından Orca Slicer’ı yeniden başlatın)"
-
-# AI Translated
-#~ msgid "N"
-#~ msgstr "N"
-
-# AI Translated
-#~ msgid "g"
-#~ msgstr "g"
-
-# AI Translated
-#~ msgid "Fila Saving"
-#~ msgstr "Filament Tasarrufu"
-
-#~ msgid ""
-#~ "Layer height is too small.\n"
-#~ "It will set to min_layer_height\n"
-#~ msgstr ""
-#~ "Katman yüksekliği çok küçük.\n"
-#~ "min_layer_height olarak ayarlanacak\n"
-
-#~ msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-#~ msgstr "Katman yüksekliği, Yazıcı Ayarları -> Ekstruder -> Katman yüksekliği sınırları bölümündeki sınırı aşıyor bu durum baskı kalitesi sorunlarına neden olabilir."
-
-#~ msgid "Adjust to the set range automatically?\n"
-#~ msgstr "Ayarlanan aralığa otomatik olarak ayarlansın mı?\n"
-
-#~ msgid "Print order within a single layer."
-#~ msgstr "Tek bir katmanda yazdırma sırası."
-
-#~ msgid "Front"
-#~ msgstr "Ön"
-
-#~ msgid "Rear"
-#~ msgstr "Arka"
-
-#~ msgid "Arrow Up"
-#~ msgstr "Yukarı ok"
-
-#~ msgid "Arrow Down"
-#~ msgstr "Aşağı ok"
-
-#~ msgid "Arrow Left"
-#~ msgstr "Sol Yön Tuşu"
-
-#~ msgid "Arrow Right"
-#~ msgstr "Sağ Yön Tuşu"
-
-#~ msgid "Hotend"
-#~ msgstr "Hotend"
-
-#~ msgid "Select filament that installed to the left nozzle"
-#~ msgstr "Sol nozule takılan filamenti seçin"
-
-#~ msgid "Select filament that installed to the right nozzle"
-#~ msgstr "Sağ nozule takılan filamenti seçin"
-
-#, c-format, boost-format
-#~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-#~ msgstr "Not: filament türü(%s), dilimleme dosyasındaki filament türü(%s) ile eşleşmiyor. Bu slotu kullanmak istiyorsanız %s yerine %s yükleyebilir ve 'Cihaz' sayfasında slot bilgilerini değiştirebilirsiniz."
-
-#, c-format, boost-format
-#~ msgid "Note: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
-#~ msgstr "Not: yuva boş veya tanımsız. Bu yuvayı kullanmak istiyorsanız 'Cihaz' sayfasından %s yükleyebilir ve yuva bilgilerini değiştirebilirsiniz."
-
-#~ msgid "Note: Only filament-loaded slots can be selected."
-#~ msgstr "Not: Yalnızca filament yüklü yuvalar seçilebilir."
-
-#~ msgid "Save the printing files initiated from Bambu Studio, Bambu Handy and MakerWorld on External Storage"
-#~ msgstr "Bambu Studio, Bambu Handy ve MakerWorld'den başlatılan yazdırma dosyalarını Harici Depolamaya kaydedin"
-
-#~ msgid "The current firmware supports a maximum of 16 materials. You can either reduce the number of materials to 16 or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
-#~ msgstr "Mevcut donanım yazılımı maksimum 16 materyali desteklemektedir. Hazırlık Sayfasında malzeme sayısını 16 veya daha azına düşürebilir veya ürün yazılımını güncellemeyi deneyebilirsiniz. Güncellemeden sonra hala kısıtlıysanız lütfen sonraki ürün yazılımı desteğini bekleyin."
-
-# TODO: Review, changed by lang refactor. PR 14254
-#~ msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
-#~ msgstr "Orca Slicer bir sonraki sefer başlatıldığında Ağ eklentisini güncellemek için Tamam'a tıklayın."
-
-# TODO: Review, changed by lang refactor. PR 14254
-#, boost-format
-#~ msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
-#~ msgstr "%1% çizgi genişliği hesaplanamadı. \"%2%\" değeri alınamıyor "
-
-#~ msgid "Continue to sync filaments"
-#~ msgstr "Filamentleri senkronize etmeye devam edin"
-
-#~ msgctxt "Sync_Nozzle_AMS"
-#~ msgid "Cancel"
-#~ msgstr "İptal etmek"
-
-#~ msgid "Align infill direction to model"
-#~ msgstr "Dolgu yönünü modele hizalayın"
-
-#~ msgid "Print"
-#~ msgstr "Yazdır"
-
-#~ msgid "in"
-#~ msgstr "in"
-
-#~ msgid "Object coordinates"
-#~ msgstr "Nesne koordinatları"
-
-#~ msgid "World coordinates"
-#~ msgstr "Dünya koordinatları"
-
-#~ msgid "Translate(Relative)"
-#~ msgstr "Çevir(Göreceli)"
-
-#~ msgid "Rotate (absolute)"
-#~ msgstr "Döndür (mutlak)"
-
-#~ msgid "Part coordinates"
-#~ msgstr "Parça koordinatları"
-
-#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
-#~ msgstr "Çıkıntılar için uyarlanabilir basınç ilerlemesini etkinleştirin (beta)"
-
-#~ msgid "Pressure advance for bridges"
-#~ msgstr "Köprüler için basınç ilerlemesi"
-
-#~ msgid ""
-#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
-#~ "\n"
-#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
-#~ msgstr ""
-#~ "Köprüler için basınç ilerleme değeri. Devre dışı bırakmak için 0’a ayarlayın.\n"
-#~ "\n"
-#~ " Köprüleri yazdırırken daha düşük bir basınç değeri, köprülerden hemen sonra hafif ekstrüzyon görünümünün azaltılmasına yardımcı olur. Bunun nedeni, havada yazdırma sırasında nozuldaki basınç düşüşüdür ve daha düşük bir basınç, bunu önlemeye yardımcı olur."
-
-#~ msgid "Filament Sync Options"
-#~ msgstr "Filament Senkronizasyon Seçenekleri"
-
-#~ msgid "Network plug-in"
-#~ msgstr "Ağ eklentisi"
-
-#~ msgid "View control settings"
-#~ msgstr "Kontrol ayarlarını görüntüle"
-
-#~ msgid "Rotate view"
-#~ msgstr "Görüntüyü döndür"
-
-#~ msgid "Pan view"
-#~ msgstr "Pan Görünümü"
-
-#~ msgid "Zoom view"
-#~ msgstr "Zoom Görünümü"
-
-# TODO: Review, changed by lang refactor. PR 14254
-#~ msgid "Reverse scroll direction while zooming"
-#~ msgstr "Yakınlaştırma sırasında fare tekerleği ters dönüyor"
-
-#, c-format, boost-format
-#~ msgid "Left: %s"
-#~ msgstr "Sol: %s"
-
-#, c-format, boost-format
-#~ msgid "Right: %s"
-#~ msgstr "Sağ: %s"
-
-#~ msgid "Enable network plug-in"
-#~ msgstr "Ağ eklentisini etkinleştir"
-
-#~ msgid "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-#~ msgstr "Aynı özellik içinde akış değiştiğinde ve çıkıntılar için uyarlanabilir PA’yı etkinleştirin. Bu deneysel bir seçenektir, sanki basınç profili doğru ayarlanmazsa, çıkma öncesi ve sonrası dış yüzeylerde yeknesaklık sorunlarına neden olacaktır.\n"
-
-#~ msgid "Perform"
-#~ msgstr "Uygula"
-
-#~ msgid "Reset Rotation"
-#~ msgstr "Döndürmeyi Sıfırla"
-
-#~ msgid "Top Solid Layers"
-#~ msgstr "Üst Katı Katmanlar"
-
-#~ msgid "Add modifier"
-#~ msgstr "Değiştirici ekle"
-
-#~ msgid "Bed Type"
-#~ msgstr "Yatak Tipi"
-
-#~ msgid "Last Step"
-#~ msgstr "Son adım"
-
-#~ msgid "Dynamic flow Calibration"
-#~ msgstr "Dinamik akış kalibrasyonu"
-
-#~ msgid "Print with filaments mounted on the back of the chassis"
-#~ msgstr "Kasanın arkasına monte edilmiş filamentler ile yazdırma"
-
-#~ msgid "Load Filament"
-#~ msgstr "Filament Yükle"
-
-#~ msgid "Filament Changes"
-#~ msgstr "Filament Değişiklikleri"
-
-#~ msgid "Mirror Object"
-#~ msgstr "Nesneyi Aynala"
-
-#~ msgid "Delete all"
-#~ msgstr "Hepsini sil"
-
-#~ msgid "Select all"
-#~ msgstr "Hepsini seç"
-
-#~ msgid "Deselect all"
-#~ msgstr "Hiçbirini seçme"
-
-#~ msgid "Filament Settings"
-#~ msgstr "Filament Ayarları"
-
-#~ msgid "Detail."
-#~ msgstr "Detay."
-
-#~ msgid "Support painting"
-#~ msgstr "Destek boyama"
-
-#~ msgid "Color painting"
-#~ msgstr "Renkli boyama"
-
-#~ msgid "Same as Global Bed Type"
-#~ msgstr "Global Yatak Tipi ile aynı"
-
-#~ msgid "Undef"
-#~ msgstr "Tanımsız"
-
-#~ msgid "Undefine"
-#~ msgstr "Tanımsız"
-
-#~ msgid "Number of top interface layers."
-#~ msgstr "Üst arayüz katmanlarının sayısı."
-
-#~ msgid "Bed Leveling"
-#~ msgstr "Yatak Tesviyesi"
-
-#~ msgid ""
-#~ "It is recommended to assemble objects first,\n"
-#~ "because the objects is restriced to bed \n"
-#~ "and only parts can be lifted."
-#~ msgstr ""
-#~ "Önce nesnelerin bir araya getirilmesi tavsiye edilir.\n"
-#~ "çünkü nesneler yatakla sınırlıdır \n"
-#~ "ve yalnızca parçalar kaldırılabilir."
-
-#~ msgid "part selection"
-#~ msgstr "parça seçimi"
-
-#~ msgid ""
-#~ "The Wipe option is not available when using the Firmware Retraction mode.\n"
-#~ "\n"
-#~ "Shall I disable it in order to enable Firmware Retraction?"
-#~ msgstr ""
-#~ "Yazılımsal Geri Çekme modunu kullanırken Temizleme seçeneği kullanılamaz.\n"
-#~ "\n"
-#~ "Yazılımsal Geri Çekmeyi etkinleştirmek için bunu devre dışı bırakmalı mıyım?"
-
-#~ msgid "\"G92 E0\" was found in before_layer_gcode, which is incompatible with absolute extruder addressing."
-#~ msgstr "Before_layer_gcode'da \"G92 E0\" bulundu ve bu, mutlak ekstruder adreslemeyle uyumsuzdu."
-
-#~ msgid "\"G92 E0\" was found in layer_gcode, which is incompatible with absolute extruder addressing."
-#~ msgstr "Layer_gcode'da mutlak ekstruder adreslemeyle uyumlu olmayan \"G92 E0\" bulundu."
-
-#, no-c-format, no-boost-format
-#~ msgid "Bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for external bridges. Use 180° for zero angle."
-#~ msgstr "Köprüleme açısı geçersiz kılma. Sıfıra bırakılırsa köprüleme açısı otomatik olarak hesaplanacaktır. Aksi halde dış köprüler için sağlanan açı kullanılacaktır. Sıfır açı için 180°'yi kullanın."
-
-#~ msgid ""
-#~ "Internal bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for internal bridges. Use 180° for zero angle.\n"
-#~ "\n"
-#~ "It is recommended to leave it at 0 unless there is a specific model need not to."
-#~ msgstr ""
-#~ "İç köprüleme açısı geçersiz kılma. Sıfır olarak bırakılırsa, köprüleme açısı otomatik olarak hesaplanacaktır. Aksi takdirde sağlanan açı iç köprüler için kullanılacaktır. Sıfır açı için 180° kullanın.\n"
-#~ "\n"
-#~ "Belirli bir model ihtiyacı olmadığı sürece 0’da bırakılması önerilir."
-
-#~ msgid ""
-#~ "Controls the density (spacing) of external bridge lines. Default is 100%.\n"
-#~ "\n"
-#~ "Lower density external bridges can help improve reliability as there is more space for air to circulate around the extruded bridge, improving its cooling speed. Minimum is 10%.\n"
-#~ "\n"
-#~ "Higher densities can produce smoother bridge surfaces, as overlapping lines provide additional support during printing. Maximum is 120%.\n"
-#~ "Note: Bridge density that is too high can cause warping or overextrusion."
-#~ msgstr ""
-#~ "Harici köprü hatlarının yoğunluğunu (aralığını) kontrol eder. Varsayılan %100'dür.\n"
-#~ "\n"
-#~ "Daha düşük yoğunluklu harici köprüler, ekstrüzyonlu köprü çevresinde havanın dolaşımı için daha fazla alan olduğundan ve soğutma hızını arttırdığından güvenilirliğin artırılmasına yardımcı olabilir. Asgari %10'dur.\n"
-#~ "\n"
-#~ "Üst üste binen çizgiler yazdırma sırasında ek destek sağladığından, daha yüksek yoğunluklar daha düzgün köprü yüzeyleri üretebilir. Maksimum %120'dir.\n"
-#~ "Not: Çok yüksek köprü yoğunluğu bükülmeye veya aşırı ekstrüzyona neden olabilir."
-
-#~ msgid ""
-#~ "Controls the density (spacing) of internal bridge lines. 100% means solid bridge. Default is 100%.\n"
-#~ "\n"
-#~ "Lower density internal bridges can help reduce top surface pillowing and improve internal bridge reliability as there is more space for air to circulate around the extruded bridge, improving its cooling speed.\n"
-#~ "\n"
-#~ "This option works particularly well when combined with the second internal bridge over infill option, further improving internal bridging structure before solid infill is extruded."
-#~ msgstr ""
-#~ "İç köprü çizgilerinin yoğunluğunu (aralığını) kontrol eder. 100 katı köprü anlamına gelir. Varsayılan değer %100’dür.\n"
-#~ "\n"
-#~ " Daha düşük yoğunluklu iç köprüler, üst yüzeydeki yastıklanmayı azaltmaya yardımcı olabilir ve ekstrüde köprünün etrafında havanın dolaşması için daha fazla alan olduğundan iç köprü güvenilirliğini artırarak soğutma hızını artırır.\n"
-#~ "\n"
-#~ "Bu seçenek, dolgu üzerine ikinci iç köprü seçeneği ile birleştirildiğinde özellikle iyi çalışır ve katı dolgu ekstrüde edilmeden önce iç köprüleme yapısını daha da iyileştirir."
-
-#~ msgid ""
-#~ "Decrease this value slightly (for example 0.9) to reduce the amount of material for bridge, to improve sag.\n"
-#~ "\n"
-#~ "The actual bridge flow used is calculated by multiplying this value with the filament flow ratio, and if set, the object's flow ratio."
-#~ msgstr ""
-#~ "Köprü için malzeme miktarını azaltmak ve sarkmayı iyileştirmek amacıyla bu değeri biraz azaltın (örneğin 0,9).\n"
-#~ "\n"
-#~ "Kullanılan gerçek köprü akışı, bu değerin filament akış oranıyla ve ayarlandıysa nesnenin akış oranıyla çarpılmasıyla hesaplanır."
-
-#~ msgid ""
-#~ "This value governs the thickness of the internal bridge layer. This is the first layer over sparse infill. Decrease this value slightly (for example 0.9) to improve surface quality over sparse infill.\n"
-#~ "\n"
-#~ "The actual internal bridge flow used is calculated by multiplying this value with the bridge flow ratio, the filament flow ratio, and if set, the object's flow ratio."
-#~ msgstr ""
-#~ "Bu değer iç köprü katmanının kalınlığını belirler. Bu, seyrek dolgunun üzerindeki ilk katmandır. Seyrek dolguya göre yüzey kalitesini iyileştirmek için bu değeri biraz azaltın (örneğin 0,9).\n"
-#~ "\n"
-#~ "Kullanılan gerçek iç köprü akışı, bu değerin köprü akış oranı, filament akış oranı ve ayarlandıysa nesnenin akış oranıyla çarpılmasıyla hesaplanır."
-
-#, no-c-format, no-boost-format
-#~ msgid ""
-#~ "Enable this option to slow down printing in areas where perimeters may have curled upwards. For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
-#~ "\n"
-#~ "It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed slow enough that perimeter curling does not happen. If printing with a high external perimeter speed, this parameter may introduce slight artifacts when slowing down due to the large variance in print speeds. If you notice artifacts, ensure your pressure advance is tuned correctly.\n"
-#~ "\n"
-#~ "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge. For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 100% overhang speed will be applied."
-#~ msgstr ""
-#~ "Çevrelerin yukarıya doğru kıvrılmış olabileceği alanlarda yazdırmayı yavaşlatmak için bu seçeneği etkinleştirin. Örneğin, Benchy gövdesinin önü gibi keskin köşelerdeki çıkıntılara yazdırırken birden fazla katman üzerinde oluşan kıvrılmayı azaltacak şekilde ek yavaşlama uygulanacaktır.\n"
-#~ "\n"
-#~ " Yazıcınızın soğutması yeterince güçlü olmadığı veya yazdırma hızı çevre kıvrılmasını önleyecek kadar yavaş olmadığı sürece, genellikle bu seçeneğin açık olması önerilir. Yüksek harici çevre hızıyla yazdırılıyorsa, bu parametre, yazdırma hızlarındaki büyük farklılıklar nedeniyle yavaşlama sırasında hafif bozulmalara neden olabilir. Artefaktlar fark ederseniz basınç ilerlemenizin doğru şekilde ayarlandığından emin olun.\n"
-#~ "\n"
-#~ "Not: Bu seçenek etkinleştirildiğinde, çıkıntı çevreleri çıkıntılar gibi ele alınır; bu, çıkıntının çevresi bir köprünün parçası olsa bile çıkıntı hızının uygulandığı anlamına gelir. Örneğin, çevreler 100% çıkıntılı olduğunda ve onları alttan destekleyen bir duvar olmadığında 100% çıkıntı hızı uygulanacaktır."
-
-#~ msgid "If enabled, bridges are more reliable, can bridge longer distances, but may look worse. If disabled, bridges look better but are reliable just for shorter bridged distances."
-#~ msgstr "Etkinleştirilirse köprüler daha güvenilir olur, daha uzun mesafeler arasında köprü kurabilir ancak daha kötü görünebilir. Devre dışı bırakıldığında köprüler daha iyi görünür ancak yalnızca daha kısa köprü mesafeleri için güvenilirdir."
-
-#~ msgid "If enabled, thick internal bridges will be used. It's usually recommended to have this feature turned on. However, consider turning it off if you are using large nozzles."
-#~ msgstr "Etkinleştirilirse kalın iç köprüler kullanılacaktır. Genellikle bu özelliğin açık olması önerilir. Ancak büyük nozul uçları kullanıyorsanız kapatmayı düşünün."
-
-#~ msgid "Aligns infill and surface fill directions to follow the model's orientation on the build plate. When enabled, fill directions rotate with the model to maintain optimal strength characteristics."
-#~ msgstr "Dolgu ve yüzey dolgu yönlerini, modelin yapı plakasındaki yönünü takip edecek şekilde hizalar. Etkinleştirildiğinde, dolgu yönleri optimum dayanıklılık özelliklerini korumak için modelle birlikte döner."
-
-#~ msgid "Filament to print internal sparse infill."
-#~ msgstr "İç seyrek dolguyu yazdırmak için filament."
-
-#~ msgid "Filament to print walls."
-#~ msgstr "Duvarları yazdırmak için filament."
-
-#~ msgid "Solid infill"
-#~ msgstr "Katı dolgu"
-
-#~ msgid "Filament to print solid infill."
-#~ msgstr "Katı dolguyu yazdırmak için filament."
-
-#~ msgid "Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used."
-#~ msgstr "Destek tabanını ve salı yazdırmak için filament. \"Varsayılan\", destek için belirli bir filamentin olmadığı ve mevcut filamentin kullanıldığı anlamına gelir."
-
-#~ msgid "Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used."
-#~ msgstr "Filament baskı desteği arayüzü. \"Varsayılan\", destek arayüzü için özel bir filamentin olmadığı ve mevcut filamentin kullanıldığı anlamına gelir."
-
-#~ msgid "Erase all painting"
-#~ msgstr "Tüm boyamayı sil"
-
-#~ msgid "Reset cut"
-#~ msgstr "Kesimi sıfırla"
-
-#~ msgid "Swap pan and rotate mouse buttons"
-#~ msgstr "Pan ve döndürme işlevlerini fare düğmeleri arasında değiştir"
-
-#~ msgid "If enabled, swaps the left and right mouse buttons pan and rotate functions."
-#~ msgstr "Etkinleştirildiğinde, sol ve sağ fare düğmelerinin pan ve döndürme işlevlerini yer değiştirir."
-
-#, c-format, boost-format
-#~ msgid "nozzle size in preset: %d"
-#~ msgstr "ön ayardaki meme boyutu: %d"
-
-#, c-format, boost-format
-#~ msgid "nozzle size memorized: %d"
-#~ msgstr "hafızaya alınan meme boyutu: %d"
-
-#~ msgid "The size of nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
-#~ msgstr "Ön ayardaki nozul tipinin boyutu hafızaya alınan nozul ile tutarlı değil. Son zamanlarda nozulunuzu değiştirdiniz mi?"
-
-#, c-format, boost-format
-#~ msgid "nozzle[%d] in preset: %.1f"
-#~ msgstr "püskürtme ucu[%d] ön ayarda: %.1f"
-
-#, c-format, boost-format
-#~ msgid "nozzle[%d] memorized: %.1f"
-#~ msgstr "nozul[%d] hafızaya alındı: %.1f"
-
-#~ msgid "Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?"
-#~ msgstr "Ön ayardaki püskürtme ucu tipiniz hafızaya alınan püskürtme ucuyla tutarlı değil. Son zamanlarda nozulunuzu değiştirdiniz mi?"
-
-#~ msgid "Remove all"
-#~ msgstr "Hepsini kaldır"
-
-#~ msgid "Add a brim ear"
-#~ msgstr "Destek kulağı ekle"
-
-#~ msgid "Delete a brim ear"
-#~ msgstr "Destek kulağı sil"
-
-#~ msgid "Adjust head diameter"
-#~ msgstr "Kafa çapını ayarlayın"
-
-#~ msgid "Adjust section view"
-#~ msgstr "Kesit görünümünü ayarla"
-
-#~ msgid " invalid brim ears"
-#~ msgstr " geçersi̇z kenarlı kulaklar"
-
-#~ msgid ""
-#~ "Reverse on odd\n"
-#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve the surface quality of your overhangs?"
-#~ msgstr ""
-#~ "Tersine çevir\n"
-#~ "<b>Tersine çevir</b> özelliğinin çıkıntılarınızın yüzey kalitesini önemli ölçüde artırabileceğini biliyor muydunuz?"
-
-#~ msgid "Pen size"
-#~ msgstr "Kalem boyutu"
-
-#~ msgid "Pen shape"
-#~ msgstr "Kalem şekli"
-
-#~ msgid "Key 1~9"
-#~ msgstr "Tuş 1~9"
-
-#~ msgid "Select feature"
-#~ msgstr "Özellik seçin"
-
-#~ msgid "Based on PrusaSlicer and BambuStudio"
-#~ msgstr "PrusaSlicer ve BambuStudio'ya dayanmaktadır"
-
-#~ msgid "Object/Part Setting"
-#~ msgstr "Nesne/Parça Ayarı"
-
-#~ msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
-#~ msgstr "OrcaSlicer, BambuStudio, PrusaSlicer ve SuperSlicer'ı temel alır."
-
-#~ msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
-#~ msgstr "BambuStudio orijinal olarak PrusaResearch'ün PrusaSlicer'ını temel almaktadır."
-
-#~ msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
-#~ msgstr "PrusaSlicer orijinal olarak Alessandro Ranellucci'nin Slic3r'sine dayanmaktadır."
-
-#~ msgid "Slic3r was created by Alessandro Ranellucci with the help of many other contributors."
-#~ msgstr "Slic3r, Alessandro Ranellucci tarafından diğer birçok katkıda bulunanların yardımıyla yaratıldı."
-
-#~ msgid "Actual Speed: "
-#~ msgstr "Gerçek Hız: "
-
-#~ msgid "Mouse wheel:"
-#~ msgstr "Fare tekerleği:"
-
-#~ msgid "Pass 1"
-#~ msgstr "Geçiş 1"
-
-#~ msgid "Flow ratio test - Pass 1"
-#~ msgstr "Akış oranı testi - Geçiş 1"
-
-#~ msgid "Pass 2"
-#~ msgstr "Geçiş 2"
-
-#~ msgid "Flow ratio test - Pass 2"
-#~ msgstr "Akış oranı testi - Geçiş 2"
-
-#~ msgid "Orca YOLO flowratio calibration, 0.01 step"
-#~ msgstr "Orca YOLO akış oranı kalibrasyonu, 0,01 adım"
-
-#~ msgid "YOLO (perfectionist version)"
-#~ msgstr "YOLO (Mükemmeliyetçi)"
-
-#~ msgid "Orca YOLO flowratio calibration, 0.005 step"
-#~ msgstr "Orca YOLO akış oranı kalibrasyonu, 0,005 adım"
-
-#~ msgid "Retraction test"
-#~ msgstr "Geri çekme testi"
-
-#~ msgid "Tutorial"
-#~ msgstr "Öğretici"
-
-#~ msgid "Calibration help"
-#~ msgstr "Kalibrasyon yardımı"
-
-#~ msgid ""
-#~ "Do you want to synchronize your personal data from Bambu Cloud?\n"
-#~ "It contains the following information:\n"
-#~ "1. The Process presets\n"
-#~ "2. The Filament presets\n"
-#~ "3. The Printer presets"
-#~ msgstr ""
-#~ "Kişisel verilerinizi Bambu Cloud'dan senkronize etmek ister misiniz?\n"
-#~ "Aşağıdaki bilgileri içerir:\n"
-#~ "1. Süreç ön ayarları\n"
-#~ "2. Filament ön ayarları\n"
-#~ "3. Yazıcı ön ayarları"
-
-#~ msgid "Show/Hide advanced parameters"
-#~ msgstr "Gelişmiş parametreleri Göster/Gizle"
-
-#~ msgid "Left nozzle: %smm"
-#~ msgstr "Sol püskürtme ucu: %smm"
-
-#~ msgid "Right nozzle: %smm"
-#~ msgstr "Sağ nozul: %smm"
-
-#~ msgid "\"Fix Model\" feature is currently only on Windows. Please repair the model on Orca Slicer(windows) or CAD softwares."
-#~ msgstr "\"Modeli Onar\" özelliği şu anda yalnızca Windows'ta bulunmaktadır. Lütfen modeli Orca Slicer (windows) veya CAD yazılımlarında onarın."
-
-#~ msgid "This stops the transmission of data to Bambu's cloud services. Users who don't use BBL machines or use LAN mode only can safely turn on this function."
-#~ msgstr "Bu, Bambu’nun bulut hizmetlerine veri aktarımını durdurur. BBL makinelerini kullanmayan veya yalnızca LAN modunu kullanan kullanıcılar bu işlevi güvenle açabilir."
-
-#~ msgid "Resonance Avoidance"
-#~ msgstr "Rezonans Kaçınma"
-
-#~ msgid "Saving objects into the 3MF failed."
-#~ msgstr "Nesneleri 3mf'ye kaydetme işlemi başarısız oldu."
-
-#~ msgid "Only Windows 10 is supported."
-#~ msgstr "Yalnızca Windows 10 desteklenmektedir."
-
-#~ msgid "Failed to initialize the WinRT library."
-#~ msgstr "WinRT kitaplığı başlatılamadı."
-
-#~ msgid "Exporting objects"
-#~ msgstr "Nesneleri dışa aktarma"
-
-#~ msgid "Failed loading objects."
-#~ msgstr "Nesneler yüklenemedi."
-
-#~ msgid "Repairing object by Windows service"
-#~ msgstr "Nesneyi Windows hizmetiyle onarma"
-
-#~ msgid "Repair failed."
-#~ msgstr "Onarım başarısız oldu."
-
-#~ msgid "Loading repaired objects"
-#~ msgstr "Onarılan nesnelerin yüklenmesi"
-
-#~ msgid "Exporting 3MF file failed"
-#~ msgstr "3mf dosyasını dışa aktarma işlemi başarısız oldu"
-
-#~ msgid "Import 3MF file failed"
-#~ msgstr "3mf dosyasını içe aktarma başarısız oldu"
-
-#~ msgid "Repaired 3MF file does not contain any object"
-#~ msgstr "Onarılan 3MF dosyası herhangi bir nesne içermiyor"
-
-#~ msgid "Repaired 3MF file contains more than one object"
-#~ msgstr "Onarılan 3MF dosyası birden fazla nesne içeriyor"
-
-#~ msgid "Repaired 3MF file does not contain any volume"
-#~ msgstr "Onarılan 3MF dosyası herhangi bir birim içermiyor"
-
-#~ msgid "Repaired 3MF file contains more than one volume"
-#~ msgstr "Onarılan 3MF dosyası birden fazla birim içeriyor"
-
-#~ msgid "Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage."
-#~ msgstr "Yüksek sıcaklıktaki ve düşük sıcaklıktaki filamentlerin birlikte yazdırılması püskürtme uçlarının tıkanmasına veya yazıcının zarar görmesine neden olabilir."
-
-#~ msgid "Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage. If you still want to print, you can enable the option in Preferences."
-#~ msgstr "Yüksek sıcaklıktaki ve düşük sıcaklıktaki filamentlerin birlikte yazdırılması püskürtme uçlarının tıkanmasına veya yazıcının zarar görmesine neden olabilir. Yine de yazdırmak istiyorsanız Tercihler'deki seçeneği etkinleştirebilirsiniz."
-
-#~ msgid "Printing different-temp filaments together may cause nozzle clogging or printer damage."
-#~ msgstr "Farklı sıcaklıktaki filamentlerin birlikte yazdırılması püskürtme uçlarının tıkanmasına veya yazıcının zarar görmesine neden olabilir."
-
-#~ msgid "Printing high-temp and mid-temp filaments together may cause nozzle clogging or printer damage."
-#~ msgstr "Yüksek sıcaklıktaki ve orta sıcaklıktaki filamentlerin birlikte yazdırılması püskürtme uçlarının tıkanmasına veya yazıcının zarar görmesine neden olabilir."
-
-#~ msgid "Printing mid-temp and low-temp filaments together may cause nozzle clogging or printer damage."
-#~ msgstr "Orta sıcaklıktaki ve düşük sıcaklıktaki filamentlerin birlikte yazdırılması püskürtme uçlarının tıkanmasına veya yazıcının zarar görmesine neden olabilir."
-
-#~ msgid ""
-#~ "The direction which the wall loops are extruded when looking down from the top.\n"
-#~ "\n"
-#~ "By default all walls are extruded in counter-clockwise, unless Reverse on even is enabled. Set this to any option other than Auto will force the wall direction regardless of the Reverse on even.\n"
-#~ "\n"
-#~ "This option will be disabled if spiral vase mode is enabled."
-#~ msgstr ""
-#~ "Yukarıdan aşağıya bakıldığında duvar döngülerinin ekstrüzyona uğradığı yön.\n"
-#~ "\n"
-#~ "Çift yönlü ters çevirme seçeneği etkinleştirilmediği sürece, varsayılan olarak tüm duvarlar saat yönünün tersine ekstrüde edilir. Bunu Otomatik dışında herhangi bir seçeneğe ayarlayın, Ters çevirmeden bağımsız olarak duvar yönünü eşit olarak zorlayacaktır.\n"
-#~ "\n"
-#~ "Spiral vazo modu etkinse bu seçenek devre dışı bırakılacaktır."
-
-#~ msgid ""
-#~ "Noise type to use for fuzzy skin generation:\n"
-#~ "Classic: Classic uniform random noise.\n"
-#~ "Perlin: Perlin noise, which gives a more consistent texture.\n"
-#~ "Billow: Similar to perlin noise, but clumpier.\n"
-#~ "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates marble-like textures.\n"
-#~ "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture."
-#~ msgstr ""
-#~ "Pütürlü yüzey oluşumu için kullanılacak gürültü türü.\n"
-#~ "Klasik: Klasik tek tip rastgele gürültü.\n"
-#~ "Perlin: Daha tutarlı bir doku veren Perlin gürültüsü.\n"
-#~ "Billow: Perlin gürültüsüne benzer, ancak daha topaklanır.\n"
-#~ "Ridged multifractal: Keskin, pürüzlü özelliklere sahip çıkıntılı gürültü. Mermer benzeri dokular oluşturur.\n"
-#~ "Voronoi: Yüzeyi voronoi hücrelerine böler ve her birini rastgele miktarda yer değiştirir. Patchwork dokusu oluşturur."
-
-#~ msgid "Flow Rate"
-#~ msgstr "Akış hızı"
-
-#~ msgid "Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing"
-#~ msgstr "Sıcaklık farkı çok büyük olan birden fazla filament aynı anda basılamaz. Aksi takdirde ekstruder ve nozul baskı sırasında tıkanabilir veya zarar görebilir"
