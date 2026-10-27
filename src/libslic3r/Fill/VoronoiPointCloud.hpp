@@ -43,6 +43,7 @@ class ActivePointCloud {
 public:
     explicit ActivePointCloud(std::shared_ptr<const PointCloudProvider> provider = std::make_shared<PoissonPointCloud>());
     double spacing(double extrusion_spacing, double nominal_height, double density) const;
+    // False means the finite provider is empty; coverage failures throw.
     bool update(const BoundingBox &bounds, double z, double margin, double spacing,
                 const std::function<double(const std::vector<Vec3d> &)> &radius,
                 const std::function<void(double)> &retire = {});
