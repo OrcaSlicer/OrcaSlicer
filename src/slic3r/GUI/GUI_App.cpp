@@ -16,6 +16,7 @@
 #include "WebUserLoginDialog.hpp"
 #include "WebViewDialog.hpp"
 #include "slic3r/Utils/BBLCloudServiceAgent.hpp"
+#include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
@@ -6040,11 +6041,13 @@ void GUI_App::enable_user_preset_folder(bool enable)
         app_config->set("preset_folder", user_id);
         GUI::wxGetApp().preset_bundle->update_user_presets_directory(user_id);
         PluginManager::instance().set_cloud_user(user_id);
+        m_cloud_delete_queue.start_session(user_id);
     } else {
         BOOST_LOG_TRIVIAL(info) << "preset_folder: set to empty";
         app_config->set("preset_folder", "");
         GUI::wxGetApp().preset_bundle->update_user_presets_directory(DEFAULT_USER_FOLDER_NAME);
         PluginManager::instance().set_cloud_user("");
+        m_cloud_delete_queue.start_session("");
     }
 }
 
@@ -7092,7 +7095,9 @@ bool GUI_App::reload_settings()
             load_pending_vendors();
 
             preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
-            preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
+            // save_user_presets() never fills this list; cloud deletes go through m_cloud_delete_queue.
+            std::map<std::string, std::string> unused_delete_list;
+            preset_bundle->save_user_presets(*app_config, unused_delete_list);
 
             // Re-apply any edited config that was wiped during vendor loading or sync.
             auto restore_snapshot = [](PresetCollection& col, const PresetSnapshot& snap, const char* label) {
@@ -9482,137 +9487,39 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
         }
 }
 
-static std::mutex mutex_delete_cache_presets;
-
-std::map<std::string, std::string> & GUI_App::get_delete_cache_presets()
-{
-    return need_delete_presets;
-}
-
-std::map<std::string, std::string> GUI_App::get_delete_cache_presets_lock()
-{
-    std::scoped_lock l(mutex_delete_cache_presets);
-    return need_delete_presets;
-}
-
+// Sends the due cloud deletes of the signed-in account. Runs on the preset sync thread.
 void GUI_App::process_delete_presets()
 {
-    std::map<std::string, std::string> delete_cache_presets = get_delete_cache_presets_lock();
-    for (auto it = delete_cache_presets.begin(); it != delete_cache_presets.end();) {
-        if (it->first.empty()) continue;
-        std::string del_setting_id = it->first;
-        int result = m_agent->delete_setting(del_setting_id);
-        if (result == 0) {
-            preset_deleted_from_cloud(del_setting_id);
-            it = delete_cache_presets.erase(it);
-            m_create_preset_blocked = { false, false, false, false, false, false };
-            BOOST_LOG_TRIVIAL(trace) << "sync_preset: sync operation: delete success! setting id = " << del_setting_id;
-        }
-        else {
-            BOOST_LOG_TRIVIAL(info) << "delete setting = " <<del_setting_id << " failed";
-            it++;
-        }
-    }
+    const auto orca = get_orca_cloud_agent(m_agent);
+    if (!orca)
+        return;
+    send_cloud_deletes(m_cloud_delete_queue, *orca, [this](const CloudDeleteQueue::Entry& entry) {
+        m_create_preset_blocked = { false, false, false, false, false, false };
+        BOOST_LOG_TRIVIAL(trace) << "sync_preset: sync operation: delete success! setting id = " << entry.setting_id;
+    });
 }
 
-void GUI_App::delete_preset_from_cloud(std::string setting_id, std::string preset_file_path)
+void GUI_App::delete_preset_from_cloud(const Preset& preset)
 {
-    std::scoped_lock l(mutex_delete_cache_presets);
-    fs::path info_path = fs::path(preset_file_path);
+    // System, bundle and project presets, and user presets never uploaded, name no cloud profile of this account.
+    if (!preset.is_user() || preset.setting_id.empty())
+        return;
+    fs::path info_path = fs::path(preset.file);
     info_path.replace_extension("info");
-    need_delete_presets.emplace(setting_id, info_path.string());
-}
-
-void GUI_App::preset_deleted_from_cloud(std::string setting_id)
-{
-    std::scoped_lock l(mutex_delete_cache_presets);
-
-    // Get the preset info path BEFORE erasing from the map
-    std::string preset_file_path = need_delete_presets[setting_id];
-
-    // Delete the .info file after cloud deletion is confirmed
-    if (!preset_file_path.empty() && fs::exists(fs::path(preset_file_path))) {
-        InstanceLock instance_lock(user_presets_lock_path());
-        boost::nowide::remove(preset_file_path.c_str());
-        BOOST_LOG_TRIVIAL(info) << "Deleted .info file after cloud confirmation: " << preset_file_path;
-    }
-
-    // Now erase from map
-    need_delete_presets.erase(setting_id);
-}
-
-// BBS: extract setting_id from .info file
-std::string GUI_App::extract_setting_id_from_info(const std::string& info_file_path)
-{
-    boost::nowide::ifstream file(info_file_path);
-    if (!file.is_open())
-        return "";
-
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.find("setting_id") == 0) {
-            size_t pos = line.find("=");
-            if (pos != std::string::npos) {
-                std::string setting_id = line.substr(pos + 1);
-                // Trim whitespace
-                setting_id.erase(0, setting_id.find_first_not_of(" \t"));
-                setting_id.erase(setting_id.find_last_not_of(" \t\r\n") + 1);
-                return setting_id;
-            }
-        }
-    }
-    return "";
+    // No owner given: the delete belongs to the session's account, whose presets the UI shows.
+    m_cloud_delete_queue.add(m_cloud_delete_queue.generation(), preset.setting_id, info_path.string(), {});
 }
 
 // Scan for orphaned .info files on startup
 void GUI_App::scan_orphaned_info_files()
 {
-    // Get user preset directory
+    // Read the session before the folder: if the account changes after this point, every add is refused,
+    // so a scan that started for one account never queues deletes into another's session.
+    const uint64_t generation = m_cloud_delete_queue.generation();
     std::string user_sub_folder = app_config->get("preset_folder");
     if (user_sub_folder.empty())
         user_sub_folder = DEFAULT_USER_FOLDER_NAME;
-    const std::string dir_user_presets = data_dir() + "/" + PRESET_USER_DIR + "/" + user_sub_folder;
-
-    // Scan for orphaned .info files in each preset type directory
-    std::vector<std::string> preset_types = {PRESET_PRINT_NAME, PRESET_FILAMENT_NAME, PRESET_PRINTER_NAME};
-
-    for (const std::string& type : preset_types) {
-        fs::path type_dir = fs::path(dir_user_presets) / type;
-        if (!fs::exists(type_dir))
-            continue;
-
-        // Iterate through all .info files. Use the error_code-based iterator so a transient
-        // directory-read failure (e.g. macOS readdir returning ENOTSUP) is logged and skipped
-        // instead of throwing an uncaught exception that would terminate the app from the
-        // background sync thread this runs on.
-        boost::system::error_code ec;
-        for (boost::filesystem::directory_iterator it(type_dir, ec), end; !ec && it != end; it.increment(ec)) {
-            const auto& entry = *it;
-            if (entry.path().extension() != ".info")
-                continue;
-
-            fs::path info_file = entry.path();
-            fs::path preset_file = info_file;
-            preset_file.replace_extension(".json");
-
-            // If .json doesn't exist, .info is orphaned. Read under the lock, so a
-            // remove_files() in another instance is seen whole or not at all; the
-            // delete queue's own mutex is taken after the lock is released.
-            std::string setting_id;
-            {
-                InstanceLock instance_lock(user_presets_lock_path());
-                if (!fs::exists(preset_file))
-                    setting_id = extract_setting_id_from_info(info_file.string());
-            }
-            if (!setting_id.empty()) {
-                // Add to need_delete_presets
-                delete_preset_from_cloud(setting_id, info_file.string());
-                BOOST_LOG_TRIVIAL(info) << "Found orphaned .info file on startup: " << info_file.string();
-            }
-        }
-        if (ec)
-            BOOST_LOG_TRIVIAL(warning) << "scan_orphaned_info_files: failed to scan " << type_dir.string() << ": " << ec.message();
-    }
+    queue_orphaned_info_files(m_cloud_delete_queue, generation, data_dir() + "/" + PRESET_USER_DIR + "/" + user_sub_folder);
 }
 
 wxString GUI_App::filter_string(wxString str)

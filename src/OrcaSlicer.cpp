@@ -325,7 +325,9 @@ typedef struct _cli_callback_mgr {
         else
             j["message"] = m_message;
 
-        std::string notify_message = j.dump();
+        // ORCA: m_message can carry an object name, which may be invalid UTF-8 on Linux.
+        //       This runs on the callback thread with no handler, so a throw would abort.
+        std::string notify_message = j.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
         //notify_message = "Plate "+ std::to_string(m_plate_index) + "/" +std::to_string(m_plate_count)+  ": Percent " + std::to_string(m_progress) + ": "+m_message;
 
         char pipe_message[PIPE_BUFFER_SIZE] = {0};
@@ -515,6 +517,21 @@ static void cli_record_warning(sliced_info_t &sliced_info, const std::string &cl
     sliced_info.warnings.push_back(std::move(details));
 }
 
+// Reports each config value that could not be parsed and was replaced.
+static void cli_report_config_substitutions(const std::string &file, const ConfigSubstitutions &substitutions,
+                                            sliced_info_t &sliced_info)
+{
+    for (const ConfigSubstitution &subst : substitutions) {
+        const std::string new_value = subst.new_value->serialize();
+        boost::nowide::cerr << "warning: " << file << ": value \"" << subst.old_value << "\" for "
+                            << subst.opt_def->opt_key << " is not valid, using \"" << new_value
+                            << "\" instead" << std::endl;
+        cli_record_warning(sliced_info, "config_value_substituted",
+                           nlohmann::json{{"file", file}, {"key", subst.opt_def->opt_key},
+                                          {"old_value", subst.old_value}, {"new_value", new_value}});
+    }
+}
+
 void record_exit_reson(std::string outputdir, int code, int plate_id, std::string error_message, sliced_info_t& sliced_info, std::map<std::string, std::string> key_values = std::map<std::string, std::string>())
 {
 #if defined(__linux__) || defined(__LINUX__)
@@ -558,7 +575,8 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
-        c << j.dump(1, '\t') << std::endl;
+        // ORCA: names can be invalid UTF-8 on Linux, write U+FFFD instead of throwing.
+        c << j.dump(1, '\t', false, nlohmann::json::error_handler_t::replace) << std::endl;
         c.close();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%result_file;
@@ -1285,6 +1303,13 @@ int CLI::run(int argc, char **argv)
     }
 #endif // __WXGTK__
 
+#ifdef _WIN32
+    // WebView2 152+ hides the pointer while typing and only restores it on a mouse event inside the
+    // webview, so closing one from the keyboard (e.g. Enter in the Speed Dial) leaves it hidden
+    // app-wide (WebView2Feedback#5687). Must be set before the first webview is created.
+    boost::nowide::setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-features=HideCursorWhileTyping", /* replace */ false);
+#endif
+
 	// Switch boost::filesystem to utf8.
     try {
         boost::nowide::nowide_filesystem();
@@ -1964,11 +1989,7 @@ int CLI::run(int argc, char **argv)
                     record_exit_reson(outfile_dir, CLI_INVALID_PRINTER_TECH, 0, cli_errors[CLI_INVALID_PRINTER_TECH], sliced_info);
                     flush_and_exit(CLI_INVALID_PRINTER_TECH);
                 }
-                if (!config_substitutions.substitutions.empty()) {
-                    BOOST_LOG_TRIVIAL(info) << "Found legacy configuration values, substituted when loading " << file << ":\n";
-                    for (const ConfigSubstitution &subst : config_substitutions.substitutions)
-                        BOOST_LOG_TRIVIAL(info) << "\tkey = \"" << subst.opt_def->opt_key << "\"\t old_value = \"" << subst.old_value << "\tnew_value = \"" << subst.new_value->serialize() << "\"\n";
-                }
+                cli_report_config_substitutions(file, config_substitutions.substitutions, sliced_info);
 
                 // config is applied to m_print_config before the current m_config values.
                 config += std::move(m_print_config);
@@ -2181,7 +2202,7 @@ int CLI::run(int argc, char **argv)
         return Slic3r::escape_strings_cstyle(keys);
     };
 
-    auto load_config_file = [&resolve_preset](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    auto load_config_file = [&resolve_preset, &sliced_info](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -2239,9 +2260,7 @@ int CLI::run(int argc, char **argv)
             config.normalize_fdm();
 
             if (! config_substitutions.empty()) {
-                BOOST_LOG_TRIVIAL(info) << "Found legacy configuration values, substituted when loading " << file << ":\n";
-                for (const ConfigSubstitution &subst : config_substitutions)
-                    BOOST_LOG_TRIVIAL(info) << "\tkey = \"" << subst.opt_def->opt_key << "\"\t old_value = \"" << subst.old_value << "\tnew_value = \"" << subst.new_value->serialize() << "\"\n";
+                cli_report_config_substitutions(file, config_substitutions, sliced_info);
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "no substitutions performed from file " << file << "\n";

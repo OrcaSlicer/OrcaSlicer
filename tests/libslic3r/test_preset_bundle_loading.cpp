@@ -1239,6 +1239,163 @@ TEST_CASE("The selected preset is its own base when its parent is not loaded", "
     CHECK(printers.get_selected_preset_base().name == "Orphan Printer");
 }
 
+TEST_CASE("A printer's own presets are the user presets made for it alone", "[Preset]")
+{
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    // load_preset() inserts in name order, so each preset is adjusted before the next one is added.
+    auto add = [&filaments](const std::string &name, std::vector<std::string> compatible_printers) -> Preset & {
+        Preset &preset = add_inmemory_preset(filaments, name);
+        preset.config.option<ConfigOptionStrings>("compatible_printers", true)->values = std::move(compatible_printers);
+        return preset;
+    };
+    add("Made For It", {"My Printer"});
+    add("Also For Other", {"My Printer", "Other Printer"});
+    add("For Other", {"Other Printer"});
+    add("Unrestricted", {});
+    add("By Condition", {}).config.option<ConfigOptionString>("compatible_printers_condition", true)->value = "nozzle_diameter[0]==0.4";
+    add("System For It", {"My Printer"}).is_system = true;
+    add("Bundle For It", {"My Printer"}).bundle_id = "bundle";
+    add("Project For It", {"My Printer"}).is_project_embedded = true;
+
+    auto names_for = [&filaments](const std::string &printer) {
+        std::vector<std::string> names;
+        for (const Preset *preset : filaments.get_user_presets_for_printer(printer))
+            names.push_back(preset->name);
+        return names;
+    };
+    CHECK(names_for("My Printer") == std::vector<std::string>{"Made For It"});
+    CHECK(names_for("Other Printer") == std::vector<std::string>{"For Other"});
+    CHECK(names_for("Unknown Printer").empty());
+}
+
+TEST_CASE("A printer's own preset stays while a kept preset inherits from it", "[Preset]")
+{
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    auto add = [&filaments](const std::string &name, const std::string &inherits, std::vector<std::string> compatible_printers) {
+        add_inmemory_preset(filaments, name, inherits).config.option<ConfigOptionStrings>("compatible_printers", true)->values =
+            std::move(compatible_printers);
+    };
+    // Root <- Middle <- Shared: Shared also lists another printer, so it is kept along with its parents.
+    add("Root", "", {"My Printer"});
+    add("Middle", "Root", {"My Printer"});
+    add("Shared", "Middle", {"My Printer", "Other Printer"});
+    // Alone <- Child: both are made for the printer alone, so both go with it.
+    add("Alone", "", {"My Printer"});
+    add("Child", "Alone", {"My Printer"});
+
+    std::vector<std::string> names;
+    for (const Preset *preset : filaments.get_user_presets_for_printer("My Printer"))
+        names.push_back(preset->name);
+    CHECK(names == std::vector<std::string>{"Alone", "Child"});
+}
+
+TEST_CASE("A preset cloned from a bundle's for a new printer is the user's own", "[Preset]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetCollection   filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                                 static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    PresetsConfigSubstitutions substitutions;
+    filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    boost::filesystem::create_directories(temp_dir.path() / PRESET_FILAMENT_NAME / "base");
+    add_inmemory_preset(filaments, "Bundle PLA @Template").bundle_id = "bundle";
+
+    std::vector<std::string> failures;
+    REQUIRE(filaments.clone_presets_for_printer({filaments.find_preset("Bundle PLA @Template")}, failures, "My Printer",
+                                                [](const std::string &) { return std::string("GFU01"); }));
+
+    const std::vector<Preset const *> own = filaments.get_user_presets_for_printer("My Printer");
+    REQUIRE(own.size() == 1);
+    CHECK(own[0]->name == "Bundle PLA @My Printer");
+    CHECK(own[0]->is_user());
+}
+
+TEST_CASE("Saving another preset over a synced user preset keeps its cloud profile", "[Preset]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetCollection   filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                                 static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    PresetsConfigSubstitutions substitutions;
+    filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    const boost::filesystem::path base_dir = temp_dir.path() / PRESET_FILAMENT_NAME / "base";
+    boost::filesystem::create_directories(base_dir);
+    add_inmemory_preset(filaments, "Base PLA").is_system = true;
+
+    // The user's synced root preset, which is replaced by one made from "Base PLA".
+    Preset &mine    = add_inmemory_preset(filaments, "Mine");
+    mine.file       = (base_dir / "Mine.json").string();
+    mine.setting_id = "cloud-1";
+    mine.user_id    = "u1";
+    mine.save(nullptr);
+    mine.save_info();
+
+    filaments.select_preset_by_name("Base PLA", true);
+    filaments.save_current_preset("Mine");
+
+    const Preset *saved = filaments.find_preset("Mine", false, true);
+    REQUIRE(saved != nullptr);
+    // It is made from the saved settings ...
+    CHECK(saved->inherits() == "Base PLA");
+    CHECK(saved->file == (temp_dir.path() / PRESET_FILAMENT_NAME / "Mine.json").make_preferred().string());
+    // ... and takes over the cloud profile of the preset it replaces, to update it with those settings.
+    CHECK(saved->setting_id == "cloud-1");
+    CHECK(saved->user_id == "u1");
+    CHECK(saved->sync_info == "update");
+    // The replaced preset leaves no .info for the startup scan to turn into a delete of that profile.
+    CHECK_FALSE(boost::filesystem::exists(base_dir / "Mine.json"));
+    CHECK_FALSE(boost::filesystem::exists(base_dir / "Mine.info"));
+}
+
+TEST_CASE("A cloud update that gives a root user preset a parent leaves no copy of it in base", "[Preset]")
+{
+    auto make_collection = [] {
+        auto coll = std::make_unique<PresetCollection>(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                                                       static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+        Preset &parent    = add_inmemory_preset(*coll, "Base PLA");
+        parent.is_system  = true;
+        parent.setting_id = "base-id";
+        return coll;
+    };
+
+    // Another device saved a preset made from "Base PLA" over the root preset "Mine".
+    auto  other   = make_collection();
+    Preset &saved = add_inmemory_preset(*other, "Mine", "Base PLA");
+    saved.version = Semver(1, 0, 0);
+    std::map<std::string, std::string> values;
+    REQUIRE(other->get_differed_values_to_update(saved, values) == 0);
+    values[BBL_JSON_KEY_SETTING_ID]  = "cloud-1";
+    values[BBL_JSON_KEY_USER_ID]     = "u1";
+    values[ORCA_JSON_KEY_UPDATE_TIME] = "200";
+
+    // This device still has "Mine" as the root preset it was, in base.
+    ScopedTemporaryDir         temp_dir;
+    auto                       filaments = make_collection();
+    PresetsConfigSubstitutions substitutions;
+    filaments->load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    const boost::filesystem::path filament_dir = temp_dir.path() / PRESET_FILAMENT_NAME;
+    boost::filesystem::create_directories(filament_dir / "base");
+    Preset &mine      = add_inmemory_preset(*filaments, "Mine");
+    mine.file         = (filament_dir / "base" / "Mine.json").string();
+    mine.setting_id   = "cloud-1";
+    mine.user_id      = "u1";
+    mine.updated_time = 100;
+    REQUIRE(mine.save(nullptr));
+
+    filaments->load_user_preset("Mine", values, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    std::map<std::string, std::string> unused_delete_list;
+    filaments->save_user_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, unused_delete_list);
+
+    const Preset *updated = filaments->find_preset("Mine", false, true);
+    REQUIRE(updated != nullptr);
+    CHECK(updated->inherits() == "Base PLA");
+    CHECK(boost::filesystem::exists(filament_dir / "Mine.json"));
+    CHECK(boost::filesystem::exists(filament_dir / "Mine.info"));
+    // A copy left in base would load as a second "Mine".
+    CHECK_FALSE(boost::filesystem::exists(filament_dir / "base" / "Mine.json"));
+    CHECK_FALSE(boost::filesystem::exists(filament_dir / "base" / "Mine.info"));
+}
+
 TEST_CASE("Renamed parent is normalized into a loaded preset's inherits", "[Preset][Rename]")
 {
     ScopedTemporaryDir   temp_dir;
