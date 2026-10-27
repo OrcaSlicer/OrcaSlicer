@@ -79,8 +79,7 @@
 		"BLOCKS RF50"
 	],
 	"machine_start_gcode": [
-		"PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer]\n",
-		"SET_PRESSURE_ADVANCE ADVANCE=0.046\n"
+		"PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer]\nSET_PRESSURE_ADVANCE ADVANCE=0.046\n"
 	],
 	"printer_variant": "0.6",
 	"wipe_distance": [

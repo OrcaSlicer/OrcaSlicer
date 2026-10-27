@@ -6,11 +6,16 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <cstring>
 #include <functional>
 #include <future>
+#include <ios>
+#include <iterator>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -19,8 +24,12 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
+#include <boost/beast/core/stream_traits.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/http/read.hpp>
 #include <boost/beast/http/status.hpp>
@@ -28,11 +37,23 @@
 #include <boost/beast/http/write.hpp>
 #include <boost/beast/websocket/error.hpp>
 #include <boost/beast/websocket/rfc6455.hpp>
+#include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/cstdlib.hpp>
+#include <miniz.h>
 #include <nlohmann/json.hpp>
 
+#include "libslic3r/miniz_extension.hpp"
+#include "slic3r/GUI/DeviceCore/DevStorage.h"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
+#include "test_utils.hpp"
 
 using namespace Slic3r;
 
@@ -42,8 +63,29 @@ namespace beast     = boost::beast;
 namespace http      = beast::http;
 namespace websocket = beast::websocket;
 namespace net       = boost::asio;
+namespace ssl       = net::ssl;
 using tcp           = net::ip::tcp;
 using namespace std::chrono_literals;
+
+// A self-signed certificate for 127.0.0.1, valid until 2126; the agent does not verify it.
+const char* const TEST_CERTIFICATE = R"(-----BEGIN CERTIFICATE-----
+MIIBfjCCASWgAwIBAgIUQ6GXkNGttqdwgzP8jnIbjZmbmsUwCgYIKoZIzj0EAwIw
+FDESMBAGA1UEAwwJMTI3LjAuMC4xMCAXDTI2MTAyNTIyMzQzNloYDzIxMjYxMDAx
+MjIzNDM2WjAUMRIwEAYDVQQDDAkxMjcuMC4wLjEwWTATBgcqhkjOPQIBBggqhkjO
+PQMBBwNCAAQzyTk4fzS67d2QTOgff5VZdiFu6zfRKL1j1XrmZRdSNSQ+A/ecb+RA
+wYLxO+ImIhC9nfFDz83gN6HMdIDhKZqvo1MwUTAdBgNVHQ4EFgQUqLCEdBHexenh
+R0myp07v6RmToacwHwYDVR0jBBgwFoAUqLCEdBHexenhR0myp07v6RmToacwDwYD
+VR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgNHADBEAiBtuziYmXx6OICr8OZ/ljgW
+206TTprzJEsote+V0YwmawIgCTzg5n5sn/JH8DSUh7udfljYTtgIwlfqiqLZ9Y79
+Xz8=
+-----END CERTIFICATE-----
+)";
+const char* const TEST_PRIVATE_KEY = R"(-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgvrE3Z+AMBnG/JEQl
+PP9feoILjFkSRm5XAYES7mSg6JWhRANCAAQzyTk4fzS67d2QTOgff5VZdiFu6zfR
+KL1j1XrmZRdSNSQ+A/ecb+RAwYLxO+ImIhC9nfFDz83gN6HMdIDhKZqv
+-----END PRIVATE KEY-----
+)";
 
 class DiscoveryAgent : public MoonrakerPrinterAgent
 {
@@ -111,6 +153,29 @@ protected:
     }
 };
 
+// Fails its first `refusals` device info queries, as when macOS refuses the app's first local network connections.
+class RefusedAgent : public StreamAgent
+{
+public:
+    using StreamAgent::StreamAgent;
+    int refusals = 0;
+    mutable std::atomic<int> fetches{0};
+
+protected:
+    bool fetch_device_info(const std::string&           base_url,
+                           const std::string&           api_key,
+                           MoonrakerDeviceInfo&         info,
+                           std::string&                 error,
+                           const std::function<bool()>& cancelled) const override
+    {
+        if (++fetches <= refusals) {
+            error = "Couldn't connect to server";
+            return false;
+        }
+        return StreamAgent::fetch_device_info(base_url, api_key, info, error, cancelled);
+    }
+};
+
 enum class Behavior {
     SilentBeforeHandshake,     // Accepts the connection and never answers
     Silent,                    // Completes the upgrade, then never reads or sends
@@ -127,8 +192,10 @@ enum class Behavior {
 class FakePrinter
 {
 public:
-    explicit FakePrinter(Behavior behavior) : m_behavior(behavior)
+    explicit FakePrinter(Behavior behavior, bool tls = false) : m_behavior(behavior), m_tls(tls)
     {
+        m_tls_context.use_certificate_chain(net::buffer(std::string_view(TEST_CERTIFICATE)));
+        m_tls_context.use_private_key(net::buffer(std::string_view(TEST_PRIVATE_KEY)), ssl::context::pem);
         m_accept_thread = std::thread([this] { accept_loop(); });
     }
 
@@ -147,7 +214,7 @@ public:
 
     std::string host() const { return "127.0.0.1"; }
     std::string port() const { return std::to_string(m_acceptor.local_endpoint().port()); }
-    std::string base_url() const { return "http://" + host() + ":" + port(); }
+    std::string base_url() const { return (m_tls ? "https://" : "http://") + host() + ":" + port(); }
 
     // A connection is ready once it reaches the state its behavior waits in.
     bool wait_for_ready_connections(int count, std::chrono::milliseconds timeout = 10s)
@@ -182,6 +249,27 @@ public:
         return m_changed.wait_for(lock, 10s, [&] { return m_close_frames >= count; });
     }
 
+    // The answer to the gcodes directory listing, which reports the free space in disk_usage. Null leaves disk_usage out.
+    void set_gcodes_listing(nlohmann::json disk_usage)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_disk_usage = std::move(disk_usage);
+    }
+
+    // The multipart body of the last file upload.
+    std::string upload()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_upload;
+    }
+
+    // The last G-code script sent to the printer.
+    std::string script()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_script;
+    }
+
     // Hangs up every connection that is waiting.
     void release()
     {
@@ -213,20 +301,32 @@ private:
             wait_for_release();
             return;
         }
+        if (!m_tls) {
+            serve_stream(ioc, std::move(socket));
+            return;
+        }
+        ssl::stream<tcp::socket> stream{std::move(socket), m_tls_context};
+        beast::error_code ec;
+        stream.handshake(ssl::stream_base::server, ec);
+        if (!ec)
+            serve_stream(ioc, std::move(stream));
+    }
 
+    template<class Stream> void serve_stream(net::io_context& ioc, Stream stream)
+    {
         beast::flat_buffer buffer;
         http::request<http::string_body> request;
         beast::error_code ec;
-        http::read(socket, buffer, request, ec);
+        http::read(stream, buffer, request, ec);
         if (ec)
             return;
-        // The agent also queries the printer's status and object list over plain HTTP.
+        // The agent also queries the printer's status and object list over HTTP.
         if (!websocket::is_upgrade(request)) {
-            serve_http(socket, request);
+            serve_http(stream, request);
             return;
         }
 
-        websocket::stream<tcp::socket> ws{std::move(socket)};
+        websocket::stream<Stream> ws{std::move(stream)};
         ws.accept(request, ec);
         // Without its object list the stream never sends the subscribe request.
         const int requests = m_behavior == Behavior::StallsObjectList ? 1 : 2;
@@ -266,7 +366,7 @@ private:
         }
     }
 
-    void serve_http(tcp::socket& socket, const http::request<http::string_body>& request)
+    template<class Stream> void serve_http(Stream& stream, const http::request<http::string_body>& request)
     {
         {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -281,20 +381,41 @@ private:
         if (m_behavior == Behavior::StallsHttp) {
             wait_for_release();
             beast::error_code ec;
-            socket.close(ec);
+            beast::get_lowest_layer(stream).close(ec);
             std::lock_guard<std::mutex> lock(m_mutex);
             ++m_http_hung_up;
             m_changed.notify_all();
             return;
         }
         http::response<http::string_body> response{http::status::not_found, request.version()};
+        if (request.target() == "/server/files/directory?path=gcodes") {
+            nlohmann::json result = {{"dirs", nlohmann::json::array()}, {"files", nlohmann::json::array()}};
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (!m_disk_usage.is_null())
+                    result["disk_usage"] = m_disk_usage;
+            }
+            response.result(http::status::ok);
+            response.body() = nlohmann::json{{"result", result}}.dump();
+        } else if (request.target() == "/server/files/upload") {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_upload = request.body();
+            response.result(http::status::created);
+            response.body() = "{}";
+        } else if (request.target() == "/printer/gcode/script") {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            const nlohmann::json body = nlohmann::json::parse(request.body(), nullptr, false);
+            m_script                  = body.is_object() ? body.value("script", "") : "";
+            response.result(http::status::ok);
+            response.body() = R"({"result": "ok"})";
+        }
         response.prepare_payload();
         beast::error_code ec;
-        http::write(socket, response, ec);
+        http::write(stream, response, ec);
     }
 
     // Keeps a read pending, which answers pings, until released or closed, and with `chatter` also sends a notification every 50 ms.
-    void answer_pings(net::io_context& ioc, websocket::stream<tcp::socket>& ws, bool chatter)
+    template<class WebSocket> void answer_pings(net::io_context& ioc, WebSocket& ws, bool chatter)
     {
         const std::string notification = nlohmann::json{{"jsonrpc", "2.0"},
                                                         {"method", "notify_proc_stat_update"},
@@ -330,7 +451,7 @@ private:
             ioc.run_for(20ms);
         }
         beast::error_code ignored;
-        ws.next_layer().close(ignored);
+        beast::get_lowest_layer(ws).close(ignored);
         while (reading || writing) {
             ioc.restart();
             ioc.run_for(20ms);
@@ -357,6 +478,8 @@ private:
     }
 
     const Behavior m_behavior;
+    const bool m_tls;
+    ssl::context m_tls_context{ssl::context::tls_server};
     net::io_context m_accept_ioc;
     tcp::acceptor m_acceptor{m_accept_ioc, {net::ip::make_address("127.0.0.1"), 0}};
     std::atomic<bool> m_stopping{false};
@@ -369,6 +492,9 @@ private:
     int m_http_hung_up  = 0;
     int m_close_frames  = 0;
     bool m_released     = false;
+    nlohmann::json m_disk_usage = {{"total", 8e9}, {"used", 2e9}, {"free", 6e9}};
+    std::string m_upload;
+    std::string m_script;
 };
 
 // Records when the agent dispatches a status report.
@@ -405,7 +531,7 @@ private:
 // A printer and a stream agent connected to it.
 struct StreamFixture
 {
-    explicit StreamFixture(Behavior behavior) : printer(behavior) {}
+    explicit StreamFixture(Behavior behavior, bool tls = false) : printer(behavior, tls) {}
 
     // Runs before the members are destroyed, so the agent's destructor never joins a stream the printer still holds open.
     ~StreamFixture() { printer.release(); }
@@ -441,6 +567,69 @@ template<class Agent> bool destroys_within(std::unique_ptr<Agent>& agent, std::c
     auto destroyed = std::async(std::launch::async, [&] { agent.reset(); });
     return destroyed.wait_for(limit) == std::future_status::ready;
 }
+
+// Uploads to a printer without connecting to it, and records the file it is told to print.
+class UploadAgent : public MoonrakerPrinterAgent
+{
+public:
+    explicit UploadAgent(const FakePrinter& printer) : MoonrakerPrinterAgent("") { device_info.base_url = printer.base_url(); }
+    std::string printed;
+    bool        takes_3mf = false;
+
+protected:
+    bool accepts_3mf() const override { return takes_3mf; }
+
+    bool print_uploaded_file(const PrintParams& params, const std::string& filename) override
+    {
+        printed = filename;
+        return MoonrakerPrinterAgent::print_uploaded_file(params, filename);
+    }
+};
+
+// Writes a .gcode.3mf holding one line of G-code for each of the given plate numbers.
+void write_bundle(const std::string& path, const std::vector<std::string>& plates)
+{
+    mz_zip_archive zip;
+    mz_zip_zero_struct(&zip);
+    REQUIRE(open_zip_writer(&zip, path));
+    for (const std::string& plate : plates) {
+        const std::string gcode = "; plate " + plate + "\n";
+        REQUIRE(mz_zip_writer_add_mem(&zip, ("Metadata/plate_" + plate + ".gcode").c_str(), gcode.data(), gcode.size(), MZ_DEFAULT_COMPRESSION));
+    }
+    REQUIRE(mz_zip_writer_finalize_archive(&zip));
+    REQUIRE(close_zip_writer(&zip));
+}
+
+// Makes a fresh directory the system temp folder for its lifetime, so a test sees only what the agent leaves there.
+class ScopedSystemTemp : public ScopedTemporaryDir
+{
+public:
+    ScopedSystemTemp() : ScopedTemporaryDir("moonraker-temp")
+    {
+#ifdef _WIN32
+        const std::string dir = boost::nowide::narrow(path().wstring());
+#else
+        const std::string dir = string();
+#endif
+        for (const char* name : {"TMP", "TEMP", "TMPDIR"}) {
+            const char* value = boost::nowide::getenv(name);
+            m_saved.emplace_back(name, value ? std::optional<std::string>(value) : std::nullopt);
+            boost::nowide::setenv(name, dir.c_str(), 1);
+        }
+    }
+    ~ScopedSystemTemp()
+    {
+        for (const auto& [name, value] : m_saved) {
+            if (value)
+                boost::nowide::setenv(name.c_str(), value->c_str(), 1);
+            else
+                boost::nowide::unsetenv(name.c_str());
+        }
+    }
+
+private:
+    std::vector<std::pair<std::string, std::optional<std::string>>> m_saved;
+};
 
 } // namespace
 
@@ -575,6 +764,63 @@ TEST_CASE("A callback on the stream thread can stop the status stream", "[Moonra
     CHECK(f.stops_within(3s));
 }
 
+TEST_CASE("Status reports tell the send dialog whether the gcodes storage has free space", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    auto [disk_usage, has_storage] = GENERATE(table<nlohmann::json, bool>({
+        {{{"total", 8e9}, {"used", 2e9}, {"free", 6e9}}, true},
+        {{{"total", 8e9}, {"used", 8e9}, {"free", 0}}, false},
+        {nullptr, false},
+    }));
+    CAPTURE(disk_usage.dump());
+
+    std::promise<std::string> first_report;
+    std::once_flag reported;
+    StreamFixture f(Behavior::AnswersPings);
+    f.printer.set_gcodes_listing(disk_usage);
+    f.agent.set_on_local_message_fn([&](std::string, std::string payload) {
+        std::call_once(reported, [&] { first_report.set_value(payload); });
+    });
+    f.start();
+
+    auto report = first_report.get_future();
+    REQUIRE(report.wait_for(5s) == std::future_status::ready);
+    const nlohmann::json print = nlohmann::json::parse(report.get()).at("print");
+    // MachineObject reads the storage state from "sdcard" and then again from home_flag bits 8-9.
+    CHECK(print.at("sdcard") == has_storage);
+    CHECK(((print.at("home_flag").get<int>() >> 8) & 0x3) == (has_storage ? DevStorage::HAS_SDCARD_NORMAL : DevStorage::NO_SDCARD));
+    CHECK(f.stops_within(3s));
+}
+
+TEST_CASE("The status stream keeps re-reading the printer's free space", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    std::mutex mutex;
+    std::condition_variable changed;
+    std::vector<bool> storage_reports;
+    // Chatters sends a message every 50 ms, which the stream re-reads the free space after
+    StreamFixture f(Behavior::Chatters);
+    f.agent.ws_timings.storage_check = 100ms;
+    f.printer.set_gcodes_listing({{"total", 8e9}, {"used", 8e9}, {"free", 0}});
+    f.agent.set_on_local_message_fn([&](std::string, std::string payload) {
+        std::lock_guard<std::mutex> lock(mutex);
+        storage_reports.push_back(nlohmann::json::parse(payload).at("print").at("sdcard").get<bool>());
+        changed.notify_all();
+    });
+    const auto wait_for_storage = [&](bool has_storage) {
+        std::unique_lock<std::mutex> lock(mutex);
+        return changed.wait_for(lock, 5s, [&] { return !storage_reports.empty() && storage_reports.back() == has_storage; });
+    };
+    f.start();
+    REQUIRE(wait_for_storage(false));
+
+    f.printer.set_gcodes_listing({{"total", 8e9}, {"used", 2e9}, {"free", 6e9}});
+    REQUIRE(wait_for_storage(true));
+
+    // A listing without disk usage cannot be checked, which counts as no storage
+    f.printer.set_gcodes_listing(nullptr);
+    CHECK(wait_for_storage(false));
+    CHECK(f.stops_within(3s));
+}
+
 TEST_CASE("A quiet printer that is still up keeps reporting its status", "[MoonrakerPrinterAgent][StatusStream]")
 {
     Reports reports;
@@ -591,6 +837,18 @@ TEST_CASE("A quiet printer that is still up keeps reporting its status", "[Moonr
     CHECK(times[1] - times[0] >= 299ms);
     CHECK(times[2] - times[1] >= 299ms);
     CHECK(f.stops_within(3s));
+}
+
+TEST_CASE("The status stream reports a printer's status over TLS", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    Reports reports;
+    StreamFixture f(Behavior::AnswersPings, true);
+    reports.attach(f.agent);
+    f.start();
+
+    CHECK(reports.wait_for(1));
+    CHECK(f.stops_within(3s));
+    CHECK(f.printer.wait_for_close_frames(1));
 }
 
 TEST_CASE("The status stream sends no heartbeat while the printer has nothing new to report", "[MoonrakerPrinterAgent][StatusStream]")
@@ -653,4 +911,174 @@ TEST_CASE("Destroying the agent stops a stalled status query", "[MoonrakerPrinte
 
     // The stalled query sees the change within 1 s of curl progress.
     CHECK(destroys_within(agent, 2s));
+}
+
+TEST_CASE("A connection the printer refuses at first is retried", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::AnswersPings);
+    RefusedAgent agent("");
+    agent.refusals                   = 2;
+    agent.ws_timings.reconnect_delay = 10ms;
+    agent.connect_printer(connection_to(printer));
+
+    // The status stream starts only once a device info query succeeds.
+    CHECK(printer.wait_for_ready_connections(1));
+    CHECK(agent.fetches == 3);
+    printer.release();
+}
+
+TEST_CASE("Destroying the agent does not wait out a connection retry's delay", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::AnswersPings);
+    auto agent                        = std::make_unique<RefusedAgent>("");
+    agent->refusals                   = 1;
+    agent->ws_timings.reconnect_delay = 10s;
+    agent->connect_printer(connection_to(printer));
+    const auto deadline = std::chrono::steady_clock::now() + 5s;
+    while (agent->fetches == 0 && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(10ms);
+    REQUIRE(agent->fetches == 1);
+
+    CHECK(destroys_within(agent, 1s));
+}
+
+TEST_CASE("A .gcode.3mf goes to the printer as the printed plate's G-code unless the printer takes 3MF", "[MoonrakerPrinterAgent][Upload]")
+{
+    const bool takes_3mf = GENERATE(false, true);
+    CAPTURE(takes_3mf);
+    const std::string name = takes_3mf ? "Cube.gcode.3mf" : "Cube.gcode";
+
+    ScopedTemporaryDir dir("moonraker-upload");
+    const std::string bundle = (dir.path() / ".1234.0.3mf").string();
+    write_bundle(bundle, {"1", "2"});
+    ScopedSystemTemp temp;
+    REQUIRE(boost::filesystem::equivalent(boost::filesystem::temp_directory_path(), temp.path()));
+
+    FakePrinter printer(Behavior::AnswersPings);
+    UploadAgent agent(printer);
+    agent.takes_3mf = takes_3mf;
+    PrintParams params{};
+    params.filename    = bundle;
+    params.plate_index = 2;
+
+    SECTION("Print plate")
+    {
+        params.project_name = "Cube";
+        REQUIRE(agent.start_local_print(params, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+        CHECK(agent.printed == name);
+    }
+    SECTION("Send to printer")
+    {
+        params.project_name = "Cube.gcode.3mf";
+        REQUIRE(agent.start_send_gcode_to_sdcard(params, nullptr, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+        CHECK(agent.printed.empty());
+    }
+
+    const std::string upload = printer.upload();
+    CHECK(upload.find("filename=\"" + name + "\"") != std::string::npos);
+    if (takes_3mf) {
+        CHECK(upload.find("PK\x03\x04") != std::string::npos);
+    } else {
+        CHECK(upload.find("; plate 2") != std::string::npos);
+        CHECK(upload.find("; plate 1") == std::string::npos);
+    }
+    // Neither the source folder nor the temp folder keeps an extracted copy
+    CHECK(std::distance(boost::filesystem::directory_iterator(dir.path()), boost::filesystem::directory_iterator()) == 1);
+    CHECK(boost::filesystem::is_empty(temp.path()));
+}
+
+TEST_CASE("A bundle without the printed plate's G-code is uploaded only when it holds a single plate", "[MoonrakerPrinterAgent][Upload]")
+{
+    auto [plates, uploaded] = GENERATE(table<std::vector<std::string>, bool>({
+        {{"1"}, true},
+        {{"1", "3"}, false},
+    }));
+    CAPTURE(plates.size());
+
+    ScopedTemporaryDir dir("moonraker-upload");
+    const std::string bundle = (dir.path() / ".1234.0.3mf").string();
+    write_bundle(bundle, plates);
+
+    FakePrinter printer(Behavior::AnswersPings);
+    UploadAgent agent(printer);
+    PrintParams params{};
+    params.filename     = bundle;
+    params.plate_index  = 2;
+    params.project_name = "Cube";
+
+    const int result = agent.start_local_print(params, nullptr, nullptr);
+    CHECK((result == BAMBU_NETWORK_SUCCESS) == uploaded);
+    CHECK((printer.upload().find("; plate 1") != std::string::npos) == uploaded);
+}
+
+TEST_CASE("The job name reaches the print start as a file name the printer can store and list", "[MoonrakerPrinterAgent][Upload]")
+{
+    // A long name is cut to fit 255 bytes with room for .gcode.3mf, at a whole 2-byte character
+    std::string long_name;
+    for (int i = 0; i < 150; ++i)
+        long_name += "\xC3\xA9";
+    const std::size_t max_stem      = 255 - std::strlen(".gcode.3mf");
+    const std::string cut_long_name = long_name.substr(0, max_stem - max_stem % 2);
+
+    auto [job_name, file_name] = GENERATE_COPY(table<std::string, std::string>({
+        {"Cable clip #2; v\"3\"*", "Cable clip _2_ v_3__.gcode"},
+        {"Bracket 1/2", "Bracket 1_2.gcode"},
+        {"A: frame", "A: frame.gcode"},
+        {"Bob's", "Bob's.gcode"},
+        {"Bob's \"best\" frame (v2) [final] {\xC3\xA9} <x> |y| ?!&%$@=+,~`", "Bob's _best_ frame (v2) [final] {\xC3\xA9} <x> |y| ?!&%$@=+,~`.gcode"},
+        {"x\nM104 S300", "x_M104 S300.gcode"},
+        {" .Cube", "Cube.gcode"},
+        {"", "1234.0.gcode"},
+        {long_name, cut_long_name + ".gcode"},
+    }));
+    CAPTURE(job_name);
+
+    ScopedTemporaryDir dir("moonraker-upload");
+    const std::string bundle = (dir.path() / ".1234.0.3mf").string();
+    write_bundle(bundle, {"1"});
+
+    FakePrinter printer(Behavior::AnswersPings);
+    UploadAgent agent(printer);
+    PrintParams params{};
+    params.filename     = bundle;
+    params.plate_index  = 1;
+    params.project_name = job_name;
+
+    REQUIRE(agent.start_local_print(params, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+    CHECK(printer.upload().find("filename=\"" + file_name + "\"") != std::string::npos);
+    CHECK(printer.script() == "SDCARD_PRINT_FILE FILENAME=\"" + file_name + "\"");
+}
+
+TEST_CASE("A file that is not a 3MF is uploaded as it is, named after the job when there is one", "[MoonrakerPrinterAgent][Upload]")
+{
+    auto [job_name, file_name] = GENERATE(table<std::string, std::string>({
+        {"Cube", "Cube.gcode"},
+        {"", "part.gcode"},
+    }));
+    CAPTURE(job_name);
+
+    ScopedTemporaryDir dir("moonraker-upload");
+    const boost::filesystem::path gcode = dir.path() / "part.gcode";
+    boost::filesystem::ofstream(gcode, std::ios::binary) << "; plain G-code\n";
+
+    FakePrinter printer(Behavior::AnswersPings);
+    UploadAgent agent(printer);
+    PrintParams params{};
+    params.filename     = gcode.string();
+    params.project_name = job_name;
+
+    SECTION("Print plate")
+    {
+        REQUIRE(agent.start_local_print(params, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+        CHECK(agent.printed == file_name);
+    }
+    SECTION("Send to printer")
+    {
+        REQUIRE(agent.start_send_gcode_to_sdcard(params, nullptr, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+    }
+
+    const std::string upload = printer.upload();
+    CHECK(upload.find("filename=\"" + file_name + "\"") != std::string::npos);
+    CHECK(upload.find("; plain G-code") != std::string::npos);
+    CHECK(std::distance(boost::filesystem::directory_iterator(dir.path()), boost::filesystem::directory_iterator()) == 1);
 }

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "3D-Fuel PET CF @System",
+	"inherits": "3D-Fuel PET CF @base",
+	"from": "system",
+	"setting_id": "2HVX3gV7vnazGLf8",
+	"instantiation": "true",
+	"compatible_printers": []
+}

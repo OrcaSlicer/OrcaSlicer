@@ -33,7 +33,9 @@ protected:
     
 #ifdef __WXOSX__
     virtual wxBitmap DoGetBitmap(State which) const wxOVERRIDE;
-    
+
+    virtual void DoSetToolTipText(const wxString& tip) wxOVERRIDE;
+
     void updateBitmap(wxEvent & evt);
     
     bool m_disable = false;
@@ -43,6 +45,13 @@ protected:
     
 private:
 	void update();
+
+#ifdef __WXOSX__
+    // Expose this checkbox to VoiceOver / Voice Control. Native NSButton-backed controls
+    // already report their role, value and press action, so this only supplies the
+    // accessible name and Voice Control identifier.
+    void applyAccessibility();
+#endif
 
 private:
     ScalableBitmap m_on;

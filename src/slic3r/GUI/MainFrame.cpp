@@ -14,6 +14,7 @@
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "libslic3r/Preset.hpp"
 #include <functional>
+#include <memory>
 #include <wx/busycursor.h>
 #include <cstddef>
 #include "slic3r/GUI/Project.hpp"
@@ -47,6 +48,9 @@
 #include <ctime>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <wx/textentry.h>
@@ -398,6 +402,8 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
 
+MainFrame::~MainFrame() = default;
+
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
     , m_printhost_queue_dlg(new PrintHostQueueDialog(this))
@@ -405,7 +411,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     , m_recent_projects(18)
     , m_settings_dialog(this)
     , m_idle([] { return wxGetApp().input_idle_ms(); })
-    , m_diff_dialog("compare_presets", 100, [this] { return make_diff_dialog(); })
+    , m_diff_dialog(std::make_unique<Lazy<DiffPresetDialog>>("compare_presets", 100, [this] { return make_diff_dialog(); }))
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -845,6 +851,44 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
         return false;
 
     switch (*shortcut) {
+    case Shortcut::GoToHome:    m_tabpanel->SelectPageByName(TAB_ID_HOME); break;
+#ifdef SLIC3R_CAD
+    case Shortcut::GoToDesign:  m_tabpanel->SelectPageByName(TAB_ID_DESIGN); break;
+#endif
+    case Shortcut::GoToPrepare: m_tabpanel->SelectPageByName(TAB_ID_PREPARE); break;
+    case Shortcut::GoToPreview: m_tabpanel->SelectPageByName(TAB_ID_PREVIEW); break;
+    case Shortcut::GoToDevice:
+        if (!m_tabpanel->SelectPageByName(TAB_ID_MONITOR))
+            m_tabpanel->SelectPageByName(TAB_ID_MONITOR_WEB);
+        break;
+    case Shortcut::GoToMultiDevice: m_tabpanel->SelectPageByName(TAB_ID_MULTI_DEVICE); break;
+    case Shortcut::GoToProject:     m_tabpanel->SelectPageByName(TAB_ID_PROJECT); break;
+    case Shortcut::GoToCalibration: m_tabpanel->SelectPageByName(TAB_ID_CALIBRATION); break;
+    case Shortcut::TabNext:
+    case Shortcut::TabPrevious: {
+        // Cycle through the tab bar, wrapping around at either end
+        const int count = int(m_tabpanel->GetPageCount());
+        int       sel   = m_tabpanel->GetSelection();
+        if (count > 1 && sel != wxNOT_FOUND) {
+            const int step = (*shortcut == Shortcut::TabNext) ? 1 : count - 1;
+            // Skip a tab that vetoes the switch, such as Device without the network plug-in
+            for (int tried = 1; tried < count; ++tried) {
+                sel = (sel + step) % count;
+                m_tabpanel->SetSelection(size_t(sel));
+                if (m_tabpanel->GetSelection() == sel)
+                    break;
+            }
+            // Focus the tab bar on any page but the canvases, since CHAR_HOOK gets no keys while a web page has focus
+            wxWindow* const page = m_tabpanel->GetCurrentPage();
+            bool keeps_focus = page == m_plater;
+#ifdef SLIC3R_CAD
+            keeps_focus = keeps_focus || page == m_design_page;
+#endif
+            if (!keeps_focus)
+                m_tabpanel->GetBtnsListCtrl()->SetFocus();
+        }
+        break;
+    }
     case Shortcut::SlicePlate:
         if (m_slice_enable) {
             wxGetApp().plater()->update(true, true);
@@ -1957,8 +2001,10 @@ void MainFrame::publish_project()
     // published 3MF); a null pointer means "fresh", keeping the dirty defaults.
     std::vector<std::string> pending_keys;
     std::vector<Slic3r::PublishedMaterialEntry> pending_material;
-    const bool has_prior = m_plater->get_pending_published(pending_keys, pending_material);
-    PublishSettingsDialog dlg(this, has_prior ? &pending_keys : nullptr, has_prior ? &pending_material : nullptr);
+    bool pending_legacy_process = false;
+    const bool has_prior = m_plater->get_pending_published(pending_keys, pending_material, pending_legacy_process);
+    PublishSettingsDialog dlg(this, has_prior ? &pending_keys : nullptr, has_prior ? &pending_material : nullptr,
+                              pending_legacy_process);
     if (dlg.ShowModal() != wxID_OK)
         return;
     m_plater->set_pending_published(dlg.GetPublishedKeys(), dlg.GetPublishedMaterialKeys());
@@ -4269,7 +4315,7 @@ void MainFrame::prebuild_pages_when_idle()
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);
-    m_idle.add(m_diff_dialog);
+    m_idle.add(*m_diff_dialog);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
     m_idle.start();
     m_prebuild_started = true;

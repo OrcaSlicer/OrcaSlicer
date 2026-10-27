@@ -1926,9 +1926,9 @@ void GLGizmoMeasure::show_selection_ui()
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             m_only_select_plane = m_assembly_mode == AssemblyMode::FACE_FACE ? true : false;
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Select 2 faces on objects and \n make objects assemble together.")); // tip
+                m_imgui->text(_u8L("Select 2 faces on objects and\nmake objects assemble together.")); // tip
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Select 2 points or circles on objects and \n specify distance between them.")); // tip
+                m_imgui->text(_u8L("Select 2 points or circles on objects and\nspecify distance between them.")); // tip
             }
         }
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_1ST_COLOR));
