@@ -1630,7 +1630,7 @@ TEST_CASE("background removal keys out corner or chosen colours into alpha witho
     layer.midlevel     = 0.25f;
     Vec3f rgb          = Vec3f::Zero();
     CHECK_FALSE(sample_layer_color(keyed, layer, Vec3f(3.5f, -0.5f, 0.f), Vec3f::UnitZ(), rgb));
-    CHECK(sample_layer_height(keyed, layer, Vec3f(3.5f, -0.5f, 0.f), Vec3f::UnitZ()) == Approx(layer.midlevel));
+    CHECK_THAT(sample_layer_height(keyed, layer, Vec3f(3.5f, -0.5f, 0.f), Vec3f::UnitZ()), WithinAbs(layer.midlevel, 1e-6f));
     CHECK(sample_layer_color(keyed, layer, Vec3f(1.5f, -1.5f, 0.f), Vec3f::UnitZ(), rgb));
     CHECK(rgb.x() > 0.8f);
     CHECK(sample_layer_height(keyed, layer, Vec3f(1.5f, -1.5f, 0.f), Vec3f::UnitZ()) > layer.midlevel);
