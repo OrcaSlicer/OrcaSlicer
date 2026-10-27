@@ -27,6 +27,8 @@ ctest --test-dir ./tests/libslic3r -C Release       # individual suite
 ctest --test-dir ./tests/fff_print -C Release
 ```
 
+To run the app and see or drive it (reproduce an issue, capture before/after screenshots, script GUI steps), use its MCP server through the [orca-mcp skill](.claude/skills/orca-mcp/SKILL.md); the design is in [docs/HLSD/mcp-server.md](docs/HLSD/mcp-server.md).
+
 ## Documentation
 
 - Docs live in `docs/`; the high-level design of a subsystem goes in `docs/HLSD/<subsystem>.md`.
