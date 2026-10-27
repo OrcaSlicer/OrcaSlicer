@@ -76,3 +76,6 @@ change a setting, slice and capture.
 
 `test_stdio_bridge.py [--bin PATH]` checks `orca-slicer --mcp-stdio` against the launched instance:
 the handshake, notifications, tool calls in both protocol eras, and errors.
+`test_recovery_under_load.py` fills the server's connections with 32 blocked `wait` calls and 32
+idle or half-sent connections while a dialog is open, and checks that `dialog_respond` on a new
+connection still closes it.

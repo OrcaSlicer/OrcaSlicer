@@ -455,4 +455,6 @@ export outcomes; `test_mcp_script` parsing, substitution, matchers and await; `t
 snapshot text, ref liveness and synthetic key state. End to end, `tools/mcp/orca_mcp.py` launches
 the app on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip
 lands in a screenshot) and runs `tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
-checks `--mcp-script` headless, and `tools/mcp/test_stdio_bridge.py` the stdio bridge. See `tools/mcp/README.md` and the `orca-mcp` skill.
+checks `--mcp-script` headless, `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
+`tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
+connection. See `tools/mcp/README.md` and the `orca-mcp` skill.
