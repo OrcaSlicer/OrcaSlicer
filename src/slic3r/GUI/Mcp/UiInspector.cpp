@@ -37,6 +37,7 @@
 #include <wx/menu.h>
 #include <wx/notebook.h>
 #include <wx/radiobut.h>
+#include <wx/scrolwin.h>
 #include <wx/slider.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
@@ -46,6 +47,10 @@
 #include <wx/arrstr.h>
 #include <wx/utils.h>
 #include <wx/webview.h>
+
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -475,6 +480,36 @@ wxMouseEvent mouse_event(wxEventType type, const wxPoint& pos, bool left, bool r
     evt.SetMiddleDown(middle);
     set_modifiers(evt, mods);
     return evt;
+}
+
+// Scrolls every scrolled ancestor so `w` is in view, as a person would before using it.
+void scroll_into_view(wxWindow* w)
+{
+    for (wxWindow* p = w->GetParent(); p != nullptr && !p->IsTopLevel(); p = p->GetParent()) {
+        auto* scroller = dynamic_cast<wxScrollHelperBase*>(p);
+        if (scroller == nullptr)
+            continue;
+        const wxPoint pos    = w->GetScreenPosition() - p->GetScreenPosition();
+        const wxSize  client = p->GetClientSize();
+        if (pos.y >= 0 && pos.y + w->GetSize().y <= client.y)
+            continue;
+        int ppu_x = 0, ppu_y = 0, view_x = 0, view_y = 0;
+        scroller->GetScrollPixelsPerUnit(&ppu_x, &ppu_y);
+        scroller->GetViewStart(&view_x, &view_y);
+        if (ppu_y <= 0)
+            continue;
+        const int units = std::max(0, (view_y * ppu_y + pos.y - client.y / 3) / ppu_y);
+#ifdef __WXGTK__
+        // Moving the scrollbar, as the mouse wheel does: after wxScrollHelper::Scroll() GTK leaves
+        // the panel's native labels unpainted.
+        if (GtkWidget* widget = static_cast<GtkWidget*>(p->GetHandle()); widget != nullptr && GTK_IS_SCROLLED_WINDOW(widget)) {
+            gtk_adjustment_set_value(gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(widget)), units);
+            continue;
+        }
+#endif
+        scroller->Scroll(-1, units);
+        p->Update();
+    }
 }
 
 // A mouse click on a plain window at its centre: down, up, and the double-click or context-menu
@@ -979,6 +1014,17 @@ UiTarget UiInspector::resolve(const json& target)
             visit(tlw);
     if (matches.empty())
         throw ToolFailure("Nothing matches " + target.dump() + "; take a ui_snapshot");
+    if (matches.size() > 1 && index < 0) {
+        // A row's label and the field it names share the text; the field is what an agent acts on.
+        std::vector<wxWindow*> controls;
+        for (wxWindow* w : matches) {
+            const std::string k = kind_of(w);
+            if (k != "label" && k != "control" && k != "window" && k != "dialog" && !k.empty())
+                controls.push_back(w);
+        }
+        if (controls.size() == 1)
+            matches = controls;
+    }
     if (matches.size() > 1 && index < 0)
         throw ToolFailure(std::to_string(matches.size()) + " elements match " + target.dump() + "; add \"index\" (0-based) or use a ref");
     const std::size_t i = index < 0 ? 0 : std::size_t(index);
@@ -1069,6 +1115,7 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         throw ToolFailure("The element is gone; take a new ui_snapshot");
     if (!w->IsEnabled())
         throw ToolFailure("The element is disabled");
+    scroll_into_view(w);
     if (o.at_point || dynamic_cast<wxGLCanvas*>(w) != nullptr) {
         GLCanvas3D* canvas = canvas_of(&t);
         if (canvas == nullptr)
@@ -1126,6 +1173,7 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
     wxWindow* w = t.window.get();
     if (!w->IsEnabled())
         throw ToolFailure("The control is disabled");
+    scroll_into_view(w);
     const std::string text = value.is_string() ? value.get<std::string>() : value.is_boolean() ? (value.get<bool>() ? "1" : "0") : value.dump();
 
     if (checked_of(w) >= 0) {
@@ -1205,6 +1253,8 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
     wxWindow* target = key_target(t);
     if (target == nullptr)
         throw ToolFailure("No window to send keys to");
+    if (t != nullptr)
+        scroll_into_view(target);
     GLCanvas3D* canvas = nullptr;
     for (GLCanvas3D* c : live_canvases())
         if (c->get_wxglcanvas() == target)
