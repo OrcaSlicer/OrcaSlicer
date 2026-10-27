@@ -8560,6 +8560,9 @@ size_t GLCanvas3D::_shadow_casters_signature(bool toolpath_casters) const
         return m_gcode_viewer.shadow_casters_signature();
 
     size_t hash = 1;
+    const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
+    for (double value : clipping_plane.get_data())
+        boost::hash_combine(hash, value);
     for (const GLVolume* volume : m_volumes.volumes) {
         if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
             continue;
@@ -9230,7 +9233,9 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
             const std::vector<double> layer_zs = m_gcode_viewer.get_layers_zs();
             if (!layer_zs.empty()) {
                 const size_t top = std::min<size_t>(m_gcode_viewer.get_layers_z_range()[1], layer_zs.size() - 1);
-                obj_bb.max.z() = std::max(obj_bb.min.z(), std::min(obj_bb.max.z(), layer_zs[top]));
+                // Layer Z drops back down for each object in a by object print, so take the highest layer up to the top one.
+                const double max_z = *std::max_element(layer_zs.begin(), layer_zs.begin() + top + 1);
+                obj_bb.max.z() = std::max(obj_bb.min.z(), std::min(obj_bb.max.z(), max_z));
             }
         }
         else {
@@ -9387,15 +9392,19 @@ void GLCanvas3D::_render_shadows(const Transform3d& view_matrix, const Transform
 
                 if (toolpath_casters)
                     m_gcode_viewer.render_shadow_casters(Transform3d(light_view), Transform3d(light_proj), eye);
-                // Only this branch draws through "flat"; the toolpaths bring their own program.
-                else if (GLShaderProgram* shader = wxGetApp().get_shader("flat"); shader != nullptr) {
+                // Only this branch draws through "flat_clip"; the toolpaths bring their own program.
+                else if (GLShaderProgram* shader = wxGetApp().get_shader("flat_clip"); shader != nullptr) {
                     shader->start_using();
                     shader->set_uniform("projection_matrix", Transform3d(light_proj));
+                    // Clipped as _render_objects() clips them, so a cut away part casts no shadow.
+                    shader->set_uniform("clipping_plane", get_raycaster_clipping_plane().inverted_normal().get_data());
+                    shader->set_uniform("z_range", std::array<float, 2>{ -FLT_MAX, FLT_MAX });
                     for (GLVolume* volume : m_volumes.volumes) {
                         if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
                             continue;
-                        const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
-                        shader->set_uniform("view_model_matrix", view_model);
+                        const Transform3d world = volume->world_matrix();
+                        shader->set_uniform("volume_world_matrix", world);
+                        shader->set_uniform("view_model_matrix", Transform3d(light_view) * world);
                         volume->model.render(shader);
                     }
                     shader->stop_using();
