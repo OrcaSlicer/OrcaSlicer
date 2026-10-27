@@ -6,6 +6,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/calib.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
@@ -25,6 +26,8 @@
 #include <cstddef>
 #include <fstream>
 #include <ios>
+#include <regex>
+#include <set>
 #include <map>
 #include <sstream>
 #include <string>
@@ -368,6 +371,63 @@ TEST_CASE("Sparse infill only arc fitting emits arcs in the sparse infill alone"
     CHECK(arcs_per_type("disabled").empty());
 }
 
+TEST_CASE("Exported moves use the decimal places selected by the G-code precision option, and supports use the standard ones", "[GCode]")
+{
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(high_precision);
+    // The pressure equalizer rewrites moves after the writer has formatted them.
+    const std::string gcode = Test::slice({ Test::TestMesh::overhang }, {
+        { "high_precision_gcode",                high_precision },
+        { "max_volumetric_extrusion_rate_slope", 10 },
+        { "enable_support",                      1 },
+        { "use_relative_e_distances",            1 },
+    });
+
+    // Trailing zeros are not written, so the longest fraction per axis shows the precision in use.
+    // Only the extrusions of a support are counted apart: its travels that change Z, and the travel to the object
+    // path after it, keep the precision of the option.
+    std::map<char, size_t> max_decimals;
+    std::map<char, size_t> max_support_decimals;
+    size_t support_extrusions = 0;
+    bool in_support = false;
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line)) {
+        if (line.rfind(";TYPE:", 0) == 0)
+            in_support = line.rfind(";TYPE:Support", 0) == 0;
+        if (line.rfind("G1 ", 0) != 0 && line.rfind("G2 ", 0) != 0 && line.rfind("G3 ", 0) != 0)
+            continue;
+        std::istringstream words(line.substr(0, line.find(';')));
+        std::string word;
+        words >> word;
+        std::map<char, std::string> values;
+        while (words >> word)
+            values[word.front()] = word.substr(1);
+        // With relative E distances, a positive E on an XY move is an extrusion.
+        const bool extrusion = (values.count('X') || values.count('Y')) && values.count('E') && values['E'].front() != '-';
+        const bool support_extrusion = in_support && extrusion;
+        support_extrusions += support_extrusion;
+        for (const auto &[axis, value] : values) {
+            const size_t point = value.find('.');
+            size_t &decimals = (support_extrusion ? max_support_decimals : max_decimals)[axis];
+            decimals = std::max(decimals, point == std::string::npos ? size_t(0) : value.size() - point - 1);
+        }
+    }
+
+    const size_t xyz_decimals = high_precision ? 4 : 3;
+    const size_t e_decimals   = high_precision ? 6 : 5;
+    CHECK(max_decimals['X'] == xyz_decimals);
+    CHECK(max_decimals['Y'] == xyz_decimals);
+    CHECK(max_decimals['Z'] <= xyz_decimals);
+    CHECK(max_decimals['E'] == e_decimals);
+    CHECK(max_decimals['F'] <= 3);
+    // Supports are removed after printing, so they keep the standard precision.
+    REQUIRE(support_extrusions > 0);
+    CHECK(max_support_decimals['X'] == 3);
+    CHECK(max_support_decimals['Y'] == 3);
+    CHECK(max_support_decimals['E'] == 5);
+}
+
 TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")
 {
     // Two filaments, so the config block carries the flush matrix already multiplied by flush_multiplier.
@@ -402,4 +462,125 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     REQUIRE(multiplier.size() == 1);
     CHECK_THAT(matrix[1] * multiplier[0], Catch::Matchers::WithinAbs(140., 1e-6));
     CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
+}
+
+TEST_CASE("Z hop follows the lift settings of the filament printing", "[GCode]")
+{
+    // One nozzle, two filaments. Filament 2 overrides one lift setting; filament 1 keeps the printer's default,
+    // which lifts on every layer.
+    auto [key, value] = GENERATE(table<std::string, std::string>({
+        {"filament_retract_lift_above", "nil,1"},             // only lift Z above 1 mm
+        {"filament_retract_lift_enforce", "nil,Bottom Only"}, // only lift on the first layer
+    }));
+    const int filament = GENERATE(1, 2);
+    CAPTURE(key, filament);
+    DynamicPrintConfig config = Test::multifilament_config(2, {
+        // each filament its own variant column, as in a real preset
+        {"filament_self_index", "1,2"},
+        {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
+        {"z_hop", "0.6"},
+        {key, value},
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+        {"enable_prime_tower", 0},
+    });
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides(2, {{"extruder", std::to_string(filament)}});
+    // Two objects, so every layer travels between them with a retraction.
+    Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config, &overrides);
+
+    // The heights of the layers with a move that lifts Z above the layer.
+    std::set<double>   lift_layers;
+    double             layer_z = 0.;
+    std::istringstream lines(Test::gcode(print));
+    std::string        line;
+    const std::regex   z_word(R"(\bZ([-0-9.]+))");
+    while (std::getline(lines, line)) {
+        if (line.rfind(";Z:", 0) == 0) {
+            layer_z = std::stod(line.substr(3));
+            continue;
+        }
+        // Skip the start G-code, which lifts the nozzle before the first layer.
+        if (layer_z <= 0. || (line.rfind("G1 ", 0) != 0 && line.rfind("G0 ", 0) != 0))
+            continue;
+        const std::string move = line.substr(0, line.find(';'));
+        std::smatch       match;
+        if (std::regex_search(move, match, z_word) && std::stod(match[1]) > layer_z + 0.3)
+            lift_layers.insert(layer_z);
+    }
+
+    REQUIRE_FALSE(lift_layers.empty());
+    const double first = *lift_layers.begin();
+    const double last  = *lift_layers.rbegin();
+    if (filament == 1) {
+        CHECK(first < 0.2 + EPSILON);
+        CHECK(last > 1.);
+    } else if (key == "filament_retract_lift_above")
+        CHECK(first > 1. - EPSILON);
+    else
+        CHECK(last < 0.2 + EPSILON);
+}
+
+// A temperature tower re-targets the hotend at every layer. On a multi-tool printer that
+// command has to name the tool printing the tower: a bare M104 goes to whichever tool the
+// firmware considers active, which the first-layer M109 right before it already addresses by
+// tool index. A single-tool printer keeps the bare form.
+TEST_CASE("The temperature tower steps the temperature of the tool printing it", "[GCode][Calib]")
+{
+    const bool multi_tool = GENERATE(false, true);
+    DYNAMIC_SECTION((multi_tool ? "two direct drive tools, the tower on the second one (filament 2 -> T1)" : "one tool")) {
+        DynamicPrintConfig config = multi_tool ?
+            Test::multifilament_config(2, {
+                {"nozzle_diameter", "0.4,0.4"},
+                {"printer_extruder_id", "1,2"},
+                {"printer_extruder_variant", "Direct Drive Standard,Direct Drive Standard"},
+                {"extruder_printable_height", "0,0"},
+                {"filament_self_index", "1,2"},
+                {"single_extruder_multi_material", 0},
+                {"enable_prime_tower", 0},
+                {"nozzle_temperature_initial_layer", "230,230"},
+                {"nozzle_temperature", "230,230"},
+            }) :
+            DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            {"skirt_loops", 0},
+            {"brim_type", "no_brim"},
+            // Without the end G-code's heater-off M104 S0, every temperature command after the
+            // first layer change is the tower's.
+            {"machine_end_gcode", ""},
+        });
+        if (multi_tool)
+            Test::size_flush_to_nozzles(config);
+
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", multi_tool ? 2 : 1}}};
+        Print print;
+        Model model;
+        // A 20 mm cube at the default 0.2 mm layer height is 100 layers, more than ten per band.
+        Test::init_print({Test::cube(20)}, print, model, config, &overrides);
+        Calib_Params params;
+        params.mode  = CalibMode::Calib_Temp_Tower;
+        params.start = 230;
+        params.end   = 190;
+        params.step  = 5;
+        print.set_calib_params(params);
+        const std::string gcode = Test::gcode(print);
+
+        const size_t layers_begin = gcode.find(";LAYER_CHANGE");
+        REQUIRE(layers_begin != std::string::npos);
+        const std::regex      temperature_command(R"(^M10[49] S(\d+)(?: T(\d+))?)");
+        std::set<int>         temperatures;
+        std::set<std::string> tools;
+        std::istringstream    stream(gcode.substr(layers_begin));
+        for (std::string line; std::getline(stream, line);) {
+            std::smatch m;
+            if (!std::regex_search(line, m, temperature_command))
+                continue;
+            temperatures.insert(std::stoi(m[1]));
+            tools.insert(m[2].matched ? m[2].str() : "none");
+        }
+        // Every 5 degree band from the start to the end temperature, and nothing else.
+        CHECK(temperatures == std::set<int>{190, 195, 200, 205, 210, 215, 220, 225, 230});
+        CHECK(tools == std::set<std::string>{multi_tool ? "1" : "none"});
+    }
 }

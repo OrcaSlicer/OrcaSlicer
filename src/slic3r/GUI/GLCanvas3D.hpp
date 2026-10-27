@@ -542,6 +542,10 @@ class GLCanvas3D
         // Shows the details of the marker under the mouse, else hides them; whether it hit one.
         bool on_left_down(GLCanvas3D& canvas, const Vec2d& mouse);
         void render_details(GLCanvas3D& canvas);
+        // Whether the mouse is over the details.
+        bool details_hovered() const;
+        // Whether there were details to hide.
+        bool hide_details(GLCanvas3D& canvas);
     };
 
     class Tooltip

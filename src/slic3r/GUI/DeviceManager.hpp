@@ -405,7 +405,7 @@ public:
     bool upgrade_force_upgrade { false };
     bool upgrade_new_version { false };
     bool upgrade_consistency_request { false };
-    DevFirmwareUpgradingState upgrade_display_state;
+    DevFirmwareUpgradingState upgrade_display_state { DevFirmwareUpgradingState::UpgradingUnavaliable };
     int upgrade_display_hold_count = 0;
     PrinterFirmwareType       firmware_type; // engineer|production
     PrinterFirmwareType       lifecycle { PrinterFirmwareType::FIRMWARE_TYPE_PRODUCTION };

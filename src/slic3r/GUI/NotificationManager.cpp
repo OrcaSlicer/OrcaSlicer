@@ -12,6 +12,7 @@
 #include "Tab.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "format.hpp"
 
 #include <algorithm>
@@ -46,11 +47,13 @@
 #include "libslic3r/Model.hpp"
 #include <wx/dataview.h>
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <wx/time.h>
 
 #include "GUI_App.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
 #include "FilamentMapDialog.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
@@ -2237,6 +2240,14 @@ void NotificationManager::close_notification_of_type(const NotificationType type
 	}
 }
 
+bool NotificationManager::has_notification_of_type(const NotificationType type) const
+{
+	for (const std::unique_ptr<PopNotification> &notification : m_pop_notifications)
+		if (notification->get_type() == type && !notification->is_finished())
+			return true;
+	return false;
+}
+
 void NotificationManager::close_and_delete_self(PopNotification * self)
 {
     for (auto it = m_pop_notifications.begin(); it != m_pop_notifications.end();) {
@@ -3610,7 +3621,9 @@ void NotificationManager::bbl_show_filament_map_invalid_notification_before_slic
         return false;
     };
 
-    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,_u8L("Click here to regroup"),callback }, 0);
+    // Only Bambu printers can regroup; without the link the callback is unreachable.
+    const std::string regroup = wxGetApp().preset_bundle->is_bbl_vendor() ? _u8L("Click here to regroup") : "";
+    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,regroup,callback }, 0);
 }
 
 void NotificationManager::bbl_close_filament_map_invalid_notification_before_slice(const NotificationType type)
@@ -3633,7 +3646,9 @@ void NotificationManager::bbl_show_filament_map_invalid_notification_after_slice
         return false;
     };
 
-    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,_u8L("Click here to regroup"),callback }, 0);
+    // Only Bambu printers can regroup; without the link the callback is unreachable.
+    const std::string regroup = wxGetApp().preset_bundle->is_bbl_vendor() ? _u8L("Click here to regroup") : "";
+    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,regroup,callback }, 0);
 }
 
 void NotificationManager::bbl_close_filament_map_invalid_notification_after_slice(const NotificationType type)

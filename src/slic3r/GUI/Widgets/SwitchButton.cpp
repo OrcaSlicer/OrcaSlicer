@@ -842,6 +842,15 @@ void MultiSwitchButton::SetSelection(int index)
     Refresh();
 }
 
+void MultiSwitchButton::Unselect()
+{
+    if (sel < 0)
+        return;
+    sel = -1;
+    update_button_styles();
+    Refresh();
+}
+
 wxString MultiSwitchButton::GetSelectedText() const
 {
     return sel >= 0 && sel < (int) btns.size() ? btns[sel]->GetLabel() : wxString();

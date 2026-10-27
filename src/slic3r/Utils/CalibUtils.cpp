@@ -1853,7 +1853,7 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
     }
 
     else if (!obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
-        error_message = _L("Storage needs to be inserted before printing.");
+        error_message = _L("Insert storage or free up space before printing.");
         return;
     }
     if (obj_->is_lan_mode_printer()) {
@@ -1959,7 +1959,7 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
     }
 
     else if (!obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
-        error_message = _L("Storage needs to be inserted before printing.");
+        error_message = _L("Insert storage or free up space before printing.");
         return;
     }
     if (obj_->is_lan_mode_printer()) {
