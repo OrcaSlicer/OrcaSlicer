@@ -136,6 +136,23 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionRegistry.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
+    GUI/Mcp/JobRegistry.cpp
+    GUI/Mcp/JobRegistry.hpp
+    GUI/Mcp/McpCore.cpp
+    GUI/Mcp/McpCore.hpp
+    GUI/Mcp/McpHttpServer.cpp
+    GUI/Mcp/McpHttpServer.hpp
+    GUI/Mcp/McpJournal.cpp
+    GUI/Mcp/McpJournal.hpp
+    GUI/Mcp/McpOperations.cpp
+    GUI/Mcp/McpOperations.hpp
+    GUI/Mcp/McpProtocol.cpp
+    GUI/Mcp/McpProtocol.hpp
+    GUI/Mcp/McpScript.cpp
+    GUI/Mcp/McpScript.hpp
+    GUI/Mcp/McpTypes.hpp
+    GUI/Mcp/UiInvoker.cpp
+    GUI/Mcp/UiInvoker.hpp
     GUI/PluginsConfigDialog.cpp
     GUI/PluginsConfigDialog.hpp
     GUI/ProcessRunner.cpp

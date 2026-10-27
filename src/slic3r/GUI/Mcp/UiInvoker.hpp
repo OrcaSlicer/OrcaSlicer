@@ -1,0 +1,72 @@
+#pragma once
+
+#include "McpTypes.hpp"
+
+#include <nlohmann/json.hpp>
+
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+
+namespace Slic3r { namespace GUI { namespace Mcp {
+
+// Posts closures to the UI thread. The app implementation uses wxApp::CallAfter; tests drain a
+// queue by hand to play the UI thread.
+class UiDispatcher
+{
+public:
+    virtual ~UiDispatcher() = default;
+    virtual void post(std::function<void()> fn) = 0;
+};
+
+// App state the guards need, read on the UI thread when a closure is about to run.
+struct GuardState
+{
+    bool           closing   = false; // the app is shutting down
+    bool           suspended = false; // the main frame is being recreated (language change)
+    bool           modal     = false; // a modal dialog or an ImGui modal popup is open
+    nlohmann::json dialogs   = nlohmann::json::array();
+};
+
+// Runs closures on the UI thread for tool handlers, which run on other threads. A closure holds
+// only shared state, never references into the caller's stack, so it is safe to run after the
+// caller gave up waiting; it re-checks the guards on the UI thread before doing anything, because
+// the app can change between posting and running (a modal can open, the app can start closing).
+class UiInvoker
+{
+public:
+    UiInvoker(UiDispatcher& dispatcher, std::function<GuardState()> guards_on_ui);
+    ~UiInvoker();
+
+    // Runs `fn` on the UI thread under `guard` and returns its value. Throws ToolFailure when a
+    // guard refuses, when the UI thread does not pick the closure up within `queue_timeout`
+    // (the closure is then abandoned and never runs), or on shutdown. `tool` names the caller in
+    // busy messages.
+    nlohmann::json run(GuardClass guard, const std::string& tool, const std::function<nlohmann::json()>& fn,
+                       std::chrono::milliseconds queue_timeout = std::chrono::seconds(10));
+
+    // UI-thread state for the request thread's blocked_by_dialog decision: whether any UI call is
+    // running (i.e. we are inside its nested event loop) and the guard state. nullopt when the UI
+    // thread does not answer within `timeout`.
+    struct Probe
+    {
+        bool        call_running = false;
+        std::string running_tool;
+        GuardState  guards;
+    };
+    std::optional<Probe> probe(std::chrono::milliseconds timeout);
+
+    // Wakes every waiting caller with "shutting down"; closures that run afterwards do nothing.
+    void shutdown();
+    bool is_shutdown() const;
+
+private:
+    struct Shared;
+    std::shared_ptr<Shared> m_shared;
+    UiDispatcher&           m_dispatcher;
+};
+
+}}} // namespace Slic3r::GUI::Mcp

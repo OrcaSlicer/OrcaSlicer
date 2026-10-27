@@ -22,6 +22,11 @@ add_executable(${_TEST_NAME}_tests
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
     test_lazy.cpp
+    test_mcp_core.cpp
+    test_mcp_http.cpp
+    test_mcp_operations.cpp
+    test_mcp_protocol.cpp
+    test_mcp_script.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
     test_network_versions.cpp
