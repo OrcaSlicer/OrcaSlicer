@@ -10,6 +10,7 @@
 #include <fstream>
 #include <future>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -231,14 +232,15 @@ template<class Call> bool finishes_within(FakeCrealityPrinter& printer, std::chr
     return in_time;
 }
 
-bool upload_and_print(const CrealityPrint& host, wxString& error)
+bool upload_and_print(const CrealityPrint& host, wxString& error, const std::map<std::string, std::string>& extended_info = {})
 {
     const ScopedTemporaryFile source(".gcode");
     std::ofstream(source.string()) << "G28\n";
     PrintHostUpload upload;
-    upload.source_path = source.path();
-    upload.upload_path = "test.gcode";
-    upload.post_action = PrintHostPostUploadAction::StartPrint;
+    upload.source_path   = source.path();
+    upload.upload_path   = "test.gcode";
+    upload.post_action   = PrintHostPostUploadAction::StartPrint;
+    upload.extended_info = extended_info;
     return host.upload(upload, [](Http::Progress, bool&) {}, [&](wxString message) { error = message; }, [](wxString, wxString) {});
 }
 
@@ -296,18 +298,22 @@ TEST_CASE("Starting a print gives a silent printer no more than its deadlines", 
 TEST_CASE("Starting a print sends each command with the G-code path in a text frame", "[CrealityPrint]")
 {
     // F008 is a multi-color model and F001 a plain one. K1-family models keep their G-code under /usr/data.
-    const auto [model, commands, gcode] = GENERATE(table<std::string, std::vector<std::string>, std::string>({
-        {"F008", {"colorMatch", "multiColorPrint"}, "/mnt/UDISK/printer_data/gcodes/test.gcode"},
-        {"F001", {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
-        {"K1C", {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
+    // Only a mapping onto CFS slots starts a multi-color print; a printer that listed no slots starts plainly.
+    const std::map<std::string, std::string> cfs_mapping = {{"enableSelfTest", "0"}, {"colorMatch_0", "T1A\tPLA\t#FF0000\t1\t0"}};
+    const auto [model, extended_info, commands, gcode] = GENERATE_REF(table<std::string, std::map<std::string, std::string>, std::vector<std::string>, std::string>({
+        {"F008", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"F008", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"F001", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"K1C", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
+        {"K1C", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
     }));
-    CAPTURE(model);
+    CAPTURE(model, extended_info.size());
 
     FakeCrealityPrinter printer(Behavior::Answers, model);
     const auto host = make_host(printer, 5s);
     wxString error;
 
-    CHECK(upload_and_print(*host, error));
+    CHECK(upload_and_print(*host, error, extended_info));
     CHECK(error.empty());
     const std::vector<Message> messages = printer.messages();
     REQUIRE(messages.size() == commands.size());
@@ -318,4 +324,87 @@ TEST_CASE("Starting a print sends each command with the G-code path in a text fr
         REQUIRE(params.contains(commands[i]));
         CHECK(params.at(commands[i]).dump().find(gcode) != std::string::npos);
     }
+}
+
+namespace {
+
+const std::string gcode_path = "/usr/data/printer_data/gcodes/part.gcode";
+
+// A colorMatch_<n> value as the send dialog writes it: "toolId\ttype\tcolor\tboxId\tmaterialId"
+std::string slot(const std::string& tool, int box_id, int material_id)
+{
+    return tool + "\tPLA\t#FF0000\t" + std::to_string(box_id) + "\t" + std::to_string(material_id);
+}
+
+std::vector<nlohmann::json> start_commands(bool multi_color, const std::map<std::string, std::string>& extended_info)
+{
+    std::vector<nlohmann::json> parsed;
+    for (const std::string& cmd : CrealityPrint::start_print_commands(multi_color, gcode_path, extended_info))
+        parsed.push_back(nlohmann::json::parse(cmd));
+    return parsed;
+}
+
+} // namespace
+
+TEST_CASE("A CFS-capable printer that listed no slots starts from the spool holder", "[CrealityPrint]")
+{
+    // The dialog maps filaments only onto slots the printer listed in boxsInfo;
+    // a K1-family printer without a CFS lists none.
+    auto cmds = start_commands(true, {{"enableSelfTest", "1"}});
+    REQUIRE(cmds.size() == 1);
+    const nlohmann::json& params = cmds[0]["params"];
+    CHECK(params["opGcodeFile"] == "printprt:" + gcode_path);
+    CHECK(params["enableSelfTest"] == 1);
+    CHECK_FALSE(params.contains("colorMatch"));
+}
+
+TEST_CASE("A filament mapped onto the spool holder starts a plain print", "[CrealityPrint]")
+{
+    auto cmds = start_commands(true, {{"enableSelfTest", "0"}, {"colorMatch_0", slot("T1A", 0, 0)}});
+    REQUIRE(cmds.size() == 1);
+    const nlohmann::json& params = cmds[0]["params"];
+    CHECK(params["opGcodeFile"] == "printprt:" + gcode_path);
+    CHECK(params["enableSelfTest"] == 0);
+}
+
+TEST_CASE("A mapping that includes the spool holder starts a plain print even when other filaments map to CFS slots", "[CrealityPrint]")
+{
+    auto cmds = start_commands(true, {{"enableSelfTest", "0"},
+                                      {"colorMatch_0", slot("T1A", 1, 2)},
+                                      {"colorMatch_1", slot("T1B", 0, 0)}});
+    REQUIRE(cmds.size() == 1);
+    CHECK(cmds[0]["params"]["opGcodeFile"] == "printprt:" + gcode_path);
+    CHECK_FALSE(cmds[0]["params"].contains("colorMatch"));
+}
+
+TEST_CASE("Filaments mapped onto CFS slots send the colour match before the multi-colour start", "[CrealityPrint]")
+{
+    auto cmds = start_commands(true, {{"enableSelfTest", "1"},
+                                      {"colorMatch_0", slot("T1A", 1, 0)},
+                                      {"colorMatch_1", slot("T1B", 1, 3)}});
+    REQUIRE(cmds.size() == 2);
+
+    const nlohmann::json& match = cmds[0]["params"]["colorMatch"];
+    CHECK(match["path"] == gcode_path);
+    REQUIRE(match["list"].size() == 2);
+    CHECK(match["list"][0]["id"] == "T1A");
+    CHECK(match["list"][0]["boxId"] == 1);
+    CHECK(match["list"][0]["materialId"] == 0);
+    CHECK(match["list"][1]["id"] == "T1B");
+    CHECK(match["list"][1]["materialId"] == 3);
+    CHECK(match["list"][1]["type"] == "PLA");
+    CHECK(match["list"][1]["color"] == "#FF0000");
+
+    const nlohmann::json& start = cmds[1]["params"]["multiColorPrint"];
+    CHECK(start["gcode"] == gcode_path);
+    CHECK(start["enableSelfTest"] == 1);
+}
+
+TEST_CASE("A printer without CFS support gets the plain start command", "[CrealityPrint]")
+{
+    auto cmds = start_commands(false, {{"enableSelfTest", "1"}});
+    REQUIRE(cmds.size() == 1);
+    const nlohmann::json& params = cmds[0]["params"];
+    CHECK(params["opGcodeFile"] == "printprt:" + gcode_path);
+    CHECK_FALSE(params.contains("enableSelfTest"));
 }

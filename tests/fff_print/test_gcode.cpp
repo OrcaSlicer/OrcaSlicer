@@ -368,6 +368,63 @@ TEST_CASE("Sparse infill only arc fitting emits arcs in the sparse infill alone"
     CHECK(arcs_per_type("disabled").empty());
 }
 
+TEST_CASE("Exported moves use the decimal places selected by the G-code precision option, and supports use the standard ones", "[GCode]")
+{
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(high_precision);
+    // The pressure equalizer rewrites moves after the writer has formatted them.
+    const std::string gcode = Test::slice({ Test::TestMesh::overhang }, {
+        { "high_precision_gcode",                high_precision },
+        { "max_volumetric_extrusion_rate_slope", 10 },
+        { "enable_support",                      1 },
+        { "use_relative_e_distances",            1 },
+    });
+
+    // Trailing zeros are not written, so the longest fraction per axis shows the precision in use.
+    // Only the extrusions of a support are counted apart: its travels that change Z, and the travel to the object
+    // path after it, keep the precision of the option.
+    std::map<char, size_t> max_decimals;
+    std::map<char, size_t> max_support_decimals;
+    size_t support_extrusions = 0;
+    bool in_support = false;
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line)) {
+        if (line.rfind(";TYPE:", 0) == 0)
+            in_support = line.rfind(";TYPE:Support", 0) == 0;
+        if (line.rfind("G1 ", 0) != 0 && line.rfind("G2 ", 0) != 0 && line.rfind("G3 ", 0) != 0)
+            continue;
+        std::istringstream words(line.substr(0, line.find(';')));
+        std::string word;
+        words >> word;
+        std::map<char, std::string> values;
+        while (words >> word)
+            values[word.front()] = word.substr(1);
+        // With relative E distances, a positive E on an XY move is an extrusion.
+        const bool extrusion = (values.count('X') || values.count('Y')) && values.count('E') && values['E'].front() != '-';
+        const bool support_extrusion = in_support && extrusion;
+        support_extrusions += support_extrusion;
+        for (const auto &[axis, value] : values) {
+            const size_t point = value.find('.');
+            size_t &decimals = (support_extrusion ? max_support_decimals : max_decimals)[axis];
+            decimals = std::max(decimals, point == std::string::npos ? size_t(0) : value.size() - point - 1);
+        }
+    }
+
+    const size_t xyz_decimals = high_precision ? 4 : 3;
+    const size_t e_decimals   = high_precision ? 6 : 5;
+    CHECK(max_decimals['X'] == xyz_decimals);
+    CHECK(max_decimals['Y'] == xyz_decimals);
+    CHECK(max_decimals['Z'] <= xyz_decimals);
+    CHECK(max_decimals['E'] == e_decimals);
+    CHECK(max_decimals['F'] <= 3);
+    // Supports are removed after printing, so they keep the standard precision.
+    REQUIRE(support_extrusions > 0);
+    CHECK(max_support_decimals['X'] == 3);
+    CHECK(max_support_decimals['Y'] == 3);
+    CHECK(max_support_decimals['E'] == 5);
+}
+
 TEST_CASE("An exported G-code's settings load back as the settings it was sliced with", "[GCode]")
 {
     // Two filaments, so the config block carries the flush matrix already multiplied by flush_multiplier.

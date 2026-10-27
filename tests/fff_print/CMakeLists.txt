@@ -3,10 +3,12 @@ add_executable(${_TEST_NAME}_tests
 	${_TEST_NAME}_tests.cpp
 	test_helpers.cpp
 	test_helpers.hpp
+	test_adaptive_pressure_advance.cpp
 	test_cooling.cpp
 	test_extrusion_entity.cpp
 	test_extrusion_processor.cpp
 	test_exclusion_volumes.cpp
+	test_fan_mover.cpp
 	test_fill.cpp
 	test_flow.cpp
 	test_gcode_processor.cpp
@@ -29,6 +31,7 @@ add_executable(${_TEST_NAME}_tests
 	test_seam_placer.cpp
 	test_skirt_brim.cpp
 	test_slicing_pipeline_hook.cpp
+	test_spiral_vase.cpp
 	test_support_material.cpp
 	test_texture_displacement.cpp
 	test_tree_support.cpp
@@ -37,6 +40,10 @@ add_executable(${_TEST_NAME}_tests
 	test_wipe_tower.cpp
 	)
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
+    add_precompiled_header(${_TEST_NAME}_tests ${CMAKE_SOURCE_DIR}/src/libslic3r/pchheader.hpp FORCEINCLUDE)
+endif ()
+
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
 orcaslicer_copy_test_dlls()

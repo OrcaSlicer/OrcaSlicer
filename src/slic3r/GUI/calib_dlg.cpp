@@ -40,6 +40,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Utils.hpp"
+#include "Plater.hpp"
 
 namespace Slic3r { namespace GUI {
 

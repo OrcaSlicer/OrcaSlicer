@@ -67,6 +67,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;

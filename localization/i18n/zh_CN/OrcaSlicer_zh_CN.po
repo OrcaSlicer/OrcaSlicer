@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 17:19+0800\n"
+"POT-Creation-Date: 2026-10-26 21:45+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -3278,6 +3278,17 @@ msgstr "自动朝向"
 msgid "Auto rotate current plate"
 msgstr "在当前盘执行自动朝向"
 
+msgid "Name"
+msgstr "名称"
+
+# AI Translated
+msgid "All Plates"
+msgstr "所有盘"
+
+# AI Translated
+msgid "Order By"
+msgstr "排序方式"
+
 # AI Translated
 msgid "Fix All"
 msgstr "全部修复"
@@ -3385,9 +3396,6 @@ msgstr "删除盘"
 
 msgid "Remove the selected plate"
 msgstr "删除所选盘"
-
-msgid "Name"
-msgstr "名称"
 
 msgid "Fila."
 msgstr "耗材丝"
@@ -5393,11 +5401,562 @@ msgstr ""
 "否  - 禁用Arachne墙生成器并将绒毛表面设置为[位移]模式"
 
 # AI Translated
+msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
+msgstr "将“平滑挤出率”设为大于 0 后，才能使用此设置。"
+
+# AI Translated
+msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
+msgstr "传送带打印机或已启用挤出率平滑时，无法使用圆弧拟合。"
+
+# AI Translated
+msgid "Set wall loops above zero to use this setting."
+msgstr "将“墙层数”设为大于 0 后，才能使用此设置。"
+
+# AI Translated
+msgid "This setting is hidden because sparse infill density is zero."
+msgstr "“稀疏填充密度”为 0，因此已隐藏此设置。"
+
+# AI Translated
+msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
+msgstr "填充锚线要求“稀疏填充密度”不为 0，且图案不是“同心”或“螺旋内缩”。"
+
+# AI Translated
+msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
+msgstr "启用“合并填充”并将“稀疏填充密度”设为非零值后，才会显示此设置。"
+
+# AI Translated
+msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
+msgstr "选择“螺旋体”、“TPMS-D结构”或“TPMS-FK结构”填充，并将“稀疏填充密度”设为大于 0 且小于 100%。"
+
+# AI Translated
+msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
+msgstr "为“螺旋体”、“TPMS-D结构”或“TPMS-FK结构”填充启用自适应密度，并将“稀疏填充密度”设为大于 0 且小于 100%。"
+
+# AI Translated
+msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
+msgstr "选择“螺旋体”填充，将“稀疏填充密度”设为非零值并关闭自适应密度后，才能使用此设置。"
+
+# AI Translated
+msgid "The selected sparse infill pattern does not support multiline infill."
+msgstr "所选的稀疏填充图案不支持多线填充。"
+
+# AI Translated
+msgid "The Line infill pattern does not support infill anchors."
+msgstr "“线”填充图案不支持填充锚线。"
+
+# AI Translated
+msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
+msgstr "选择“线”以外的填充图案，并将“填充锚线的最大长度”设为大于 0。"
+
+# AI Translated
+msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
+msgstr "将稀疏填充图案设为“交叉之字”或“限定之字”后，才能使用此设置。"
+
+# AI Translated
+msgid "Select the Locked Zag sparse infill pattern to use this setting."
+msgstr "将稀疏填充图案设为“限定之字”后，才能使用此设置。"
+
+# AI Translated
+msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
+msgstr "将稀疏填充图案设为“之字形”、“交叉之字”或“限定之字”后，才能使用此设置。"
+
+# AI Translated
+msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
+msgstr "选择“3D 蜂窝”填充并将“稀疏填充密度”设为非零值后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable spiral vase mode to use this setting."
+msgstr "启用旋转花瓶模式后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable spiral vase mode and spiral smoothing to use this setting."
+msgstr "启用旋转花瓶模式和“光滑螺旋模式”后，才能使用此设置。"
+
+# AI Translated
+msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
+msgstr "此设置需要顶部外壳层；在旋转花瓶模式下，则需要多于一层的底部外壳层。"
+
+# AI Translated
+msgid "This setting requires a top shell with nonzero top surface density."
+msgstr "此设置需要顶部外壳，且“顶面密度”不为 0。"
+
+# AI Translated
+msgid "Set bottom shell layers above zero to use this setting."
+msgstr "将“底部外壳层数”设为大于 0 后，才能使用此设置。"
+
+# AI Translated
+msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
+msgstr "需要将“稀疏填充密度”设为非零值，并选用支持填充平滑的填充图案和“填充多线”设置。"
+
+# AI Translated
+msgid "Set top surface expansion above zero to use this setting."
+msgstr "将“顶面扩展”设为大于 0 后，才能使用此设置。"
+
+# AI Translated
+msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
+msgstr "需要顶部或底部外壳，并使用“阿基米德和弦”或“八角螺旋”表面图案。"
+
+# AI Translated
+msgid "The selected sparse infill pattern does not support separated infills."
+msgstr "所选的稀疏填充图案不支持分离式填充。"
+
+# AI Translated
+msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
+msgstr "需要“顶面密度”不为 0 的顶部外壳，并使用“同心”、“螺旋内缩”、“阿基米德和弦”或“八角螺旋”表面图案。"
+
+# AI Translated
+msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
+msgstr "需要底部外壳层，并使用“同心”、“螺旋内缩”、“阿基米德和弦”或“八角螺旋”表面图案。"
+
+# AI Translated
+msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
+msgstr "将“稀疏填充密度”设为非零值，或设置顶部或底部外壳层后，才能编辑此设置。"
+
+# AI Translated
+msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
+msgstr "关闭旋转花瓶模式并将“顶部外壳层数”设为大于 0 后，才能编辑“顶部外壳厚度”。"
+
+# AI Translated
+msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
+msgstr "关闭旋转花瓶模式并将“底部外壳层数”设为大于 0 后，才能编辑“底部外壳厚度”。"
+
+# AI Translated
+msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
+msgstr "将默认加速度设为大于 0 后，才能分别编辑各挤出类型的加速度。"
+
+# AI Translated
+msgid "This setting requires the Marlin firmware G-code flavor."
+msgstr "此设置需要将“G-code风格”设为 Marlin 2。"
+
+# AI Translated
+msgid "Jerk settings are unavailable while the printer uses junction deviation."
+msgstr "打印机使用结点偏差时，无法使用抖动设置。"
+
+# AI Translated
+msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
+msgstr "将“G-code风格”设为 Marlin 2，并将打印机的“最大结点偏差”设为大于 0 后，才能编辑此设置。"
+
+# AI Translated
+msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
+msgstr "将默认抖动设为大于 0 后，才能分别编辑各挤出类型的抖动。"
+
+# AI Translated
+msgid "Use a non-belt printer with skirt loops above zero to use this setting."
+msgstr "使用非传送带打印机，并将“裙边圈数”设为大于 0 后，才能使用此设置。"
+
+# AI Translated
+msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
+msgstr "使用非传送带打印机，将“裙边圈数”设为大于 0 并关闭全高风挡后，才能编辑“裙边高度”。"
+
+# AI Translated
+msgid "Skirts are unavailable for belt printers."
+msgstr "传送带打印机无法使用裙边。"
+
+# AI Translated
+msgid "Select a brim type other than No brim to use this setting."
+msgstr "将“Brim类型”设为“无Brim”以外的选项后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable a brim on a printer without a tilted belt to use this setting."
+msgstr "在没有倾斜传送带的打印机上启用 Brim 后，才能使用此设置。"
+
+# AI Translated
+msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
+msgstr "请选择宽度可编辑的 Brim 类型，或在倾斜传送带打印机上启用 Brim。"
+
+# AI Translated
+msgid "This setting requires a belt printer with a tilted slicing plane."
+msgstr "此设置需要切片平面倾斜的传送带打印机。"
+
+# AI Translated
+msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
+msgstr "在切片平面倾斜的传送带打印机上启用 Brim 后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable walls or a brim to select the wall filament."
+msgstr "启用墙或 Brim 后，才能选择墙的耗材丝。"
+
+# AI Translated
 msgid "Brim ear radius"
 msgstr "耳状 Brim半径"
 
 msgid "Brim width"
 msgstr "Brim宽度"
+
+# AI Translated
+msgid "Set brim width above zero to edit brim ear detection."
+msgstr "将“Brim宽度”设为大于 0 后，才能编辑耳状 Brim 检测。"
+
+# AI Translated
+msgid "Use painted brim ears or set brim width above zero to edit this setting."
+msgstr "使用绘制的耳状 Brim，或将“Brim宽度”设为大于 0 后，才能编辑此设置。"
+
+# AI Translated
+msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
+msgstr "在没有倾斜传送带的打印机上将“Brim类型”设为“圆盘”后，才能使用此设置。"
+
+# AI Translated
+msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
+msgstr "在没有倾斜传送带的打印机上将“Brim类型”设为“圆盘”或“绘制”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
+msgstr "启用“象脚补偿”，或将“象脚补偿层密度”设为小于 100% 后，才能使用此设置。"
+
+# AI Translated
+msgid "Rafts are unavailable for belt printers."
+msgstr "传送带打印机无法使用筏层。"
+
+# AI Translated
+msgid "Enable support to edit this setting."
+msgstr "启用支撑后，才能编辑此设置。"
+
+# AI Translated
+msgid "Enable support or add raft layers to edit this setting."
+msgstr "启用支撑或添加筏层后，才能编辑此设置。"
+
+# AI Translated
+msgid "Select an automatic support type to edit the threshold angle."
+msgstr "选择自动支撑类型后，才能编辑“阈值角度”。"
+
+# AI Translated
+msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
+msgstr "选择自动支撑类型并将“阈值角度”设为 0 后，才能编辑“阈值支撑比例”。"
+
+# AI Translated
+msgid "Threshold overlap is unavailable for tree supports."
+msgstr "树状支撑无法使用“阈值支撑比例”。"
+
+# AI Translated
+msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
+msgstr "启用树状支撑并选择“有机树”和“默认”以外的样式后，才会显示此设置。"
+
+# AI Translated
+msgid "Enable tree supports with the Organic or Default style to show this setting."
+msgstr "启用树状支撑并将样式设为“有机树”或“默认”后，才会显示此设置。"
+
+# AI Translated
+msgid "Independent support layer height is unavailable for organic tree supports."
+msgstr "有机树状支撑无法使用“支撑独立层高”。"
+
+# AI Translated
+msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
+msgstr "启用树状支撑并关闭“自动Brim宽度”后，才能编辑“树状支撑Brim宽度”。"
+
+# AI Translated
+msgid "Enable tree supports to show the maximum bridge length."
+msgstr "启用树状支撑后，才会显示“最大桥接长度”。"
+
+# AI Translated
+msgid "Tree supports use maximum bridge length instead of the bridge support setting."
+msgstr "树状支撑使用“最大桥接长度”，而不是“不支撑桥接”设置。"
+
+# AI Translated
+msgid "Enable automatic tree supports to show this setting."
+msgstr "启用自动树状支撑后，才会显示此设置。"
+
+# AI Translated
+msgid "Set top or bottom support interface layers above zero to edit this setting."
+msgstr "将“顶部支撑面层数”或“底部支撑面层数”设为大于 0 后，才能编辑此设置。"
+
+# AI Translated
+msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
+msgstr "启用筏层，或启用带顶部支撑面层的支撑后，才能使用支撑面熨烫。"
+
+# AI Translated
+msgid "Enable support ironing with a raft or top support interface layers to show this setting."
+msgstr "在有筏层或顶部支撑面层时启用“支撑面熨烫”后，才会显示此设置。"
+
+# AI Translated
+msgid "Set top or bottom support interface layers above zero to edit interface spacing."
+msgstr "将“顶部支撑面层数”或“底部支撑面层数”设为大于 0 后，才能编辑支撑面线距。"
+
+# AI Translated
+msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
+msgstr "支撑面熨烫需要实心支撑面，因此无法编辑支撑面线距。"
+
+# AI Translated
+msgid "Enable walls, a skirt or a brim to edit inner wall line width."
+msgstr "启用墙、裙边或 Brim 后，才能编辑内墙线宽。"
+
+# AI Translated
+msgid "Enable support, a raft, or a skirt to select the support filament."
+msgstr "启用支撑、筏层或裙边后，才能选择支撑耗材丝。"
+
+# AI Translated
+msgid "Add raft layers to show raft contact distance."
+msgstr "添加筏层后，才会显示“筏层Z间距”。"
+
+# AI Translated
+msgid "Raft contact distance is unavailable when the top support Z distance is zero."
+msgstr "支撑的“顶部Z距离”为 0 时，无法使用“筏层Z间距”。"
+
+# AI Translated
+msgid "Add raft layers to show raft expansion."
+msgstr "添加筏层后，才会显示“筏层扩展”。"
+
+# AI Translated
+msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
+msgstr "“苗条树”、“粗壮树”和“混合树”样式的树状支撑使用“首层扩展”，而不是“筏层扩展”。"
+
+# AI Translated
+msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
+msgstr "添加筏层，或选择“苗条树”和“粗壮树”以外的树状支撑样式后，才能编辑“首层扩展”。"
+
+# AI Translated
+msgid "Enable ironing to use this setting."
+msgstr "启用熨烫后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
+msgstr "启用熨烫并使用“直线”图案后，才能编辑熨烫角度。"
+
+# AI Translated
+msgid "Enable ironing or support ironing to edit ironing speed."
+msgstr "启用熨烫或支撑面熨烫后，才能编辑“熨烫速度”。"
+
+# AI Translated
+msgid "Enable Z contouring to use this setting."
+msgstr "启用 Z 层抗锯齿后，才能使用此设置。"
+
+# AI Translated
+msgid "Print order cannot be edited when the print sequence is By object."
+msgstr "“打印顺序”为“逐件”时，无法编辑“层内打印顺序”。"
+
+# AI Translated
+msgid "This setting is unavailable for Bambu Lab printers."
+msgstr "此设置不适用于 Bambu Lab 打印机。"
+
+# AI Translated
+msgid "This setting is unavailable in single extruder multimaterial mode."
+msgstr "单挤出机多材料模式下无法使用此设置。"
+
+# AI Translated
+msgid "Enable ooze prevention to use this setting."
+msgstr "启用防渗料后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
+msgstr "启用防渗料并将“预热步数”设为正数后，才会显示此设置。"
+
+# AI Translated
+msgid "Enable the belt purge tower in the belt printer settings to use this setting."
+msgstr "在传送带打印机设置中启用传送带冲刷塔后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable the prime tower on a non-belt printer to use this setting."
+msgstr "在非传送带打印机上启用擦拭塔后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
+msgstr "在非传送带打印机上启用擦拭塔和擦拭塔接触层功能后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
+msgstr "在非 Bambu、非传送带打印机上启用擦拭塔，并将“擦拭塔类型”设为“类型 2”。"
+
+# AI Translated
+msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
+msgstr "在非传送带打印机上启用擦拭塔并关闭“无稀疏层”后，才能使用“合并稀疏层”。"
+
+# AI Translated
+msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
+msgstr "在非传送带打印机上启用擦拭塔并将“墙类型”设为“加强筋”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
+msgstr "在非 Bambu、非传送带打印机上启用“类型 2”擦拭塔，并将“墙类型”设为“圆锥体”。"
+
+# AI Translated
+msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
+msgstr "在非传送带打印机上启用擦拭塔并选择“加强筋”以外的墙类型后，才能编辑擦拭塔宽度。"
+
+# AI Translated
+msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
+msgstr "在非 Bambu、非传送带打印机上启用“类型 2”擦拭塔，并关闭单挤出机多材料模式。"
+
+# AI Translated
+msgid "Select Cyclic tool change ordering to use this setting."
+msgstr "将“换料顺序”设为“循环”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
+msgstr "启用擦拭塔，并关闭“冲刷进擦拭塔”或单挤出机多材料模式。"
+
+# AI Translated
+msgid "Enable the prime tower to use this setting."
+msgstr "启用擦拭塔后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
+msgstr "启用“避免跨越外墙”后，才能编辑最大绕行长度。"
+
+# AI Translated
+msgid "Enable setting other flow ratios to use this setting."
+msgstr "启用“设置其他流量比例”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable slowing down for overhangs to use this setting."
+msgstr "启用“悬垂降速”后，才能使用此设置。"
+
+# AI Translated
+msgid "This setting is available in object settings rather than global print settings."
+msgstr "此设置只能在对象设置中修改，全局打印设置中没有此项。"
+
+# AI Translated
+msgid "Select a specific support interface filament and use the default support filament to show this setting."
+msgstr "为支撑面指定耗材丝，并让支撑主体使用默认耗材丝后，才会显示此设置。"
+
+# AI Translated
+msgid "Enable fuzzy skin to use this setting."
+msgstr "启用绒毛表面后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable fuzzy skin with Ripple noise to use this setting."
+msgstr "启用绒毛表面并使用“波纹”噪波后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
+msgstr "启用绒毛表面并选择“经典”和“波纹”以外的噪波类型后，才能编辑“绒毛表面特征尺寸”。"
+
+# AI Translated
+msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
+msgstr "启用绒毛表面并选择“经典”、“维诺图”和“波纹”以外的噪波类型后，才能编辑“绒毛表面噪波倍频”。"
+
+# AI Translated
+msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
+msgstr "启用绒毛表面并使用“柏林噪波”或“云状噪波”后，才能编辑“绒毛表面噪波持续性”。"
+
+# AI Translated
+msgid "Select the Arachne wall generator to use this setting."
+msgstr "将“墙生成器”设为 Arachne 后，才能使用此设置。"
+
+# AI Translated
+msgid "Thin wall detection is unavailable with the Arachne wall generator."
+msgstr "使用 Arachne 墙生成器时，无法使用“检查薄壁”。"
+
+# AI Translated
+msgid "Disable role-based wipe speed to edit wipe speed manually."
+msgstr "关闭“基于挤出类型的擦拭速度”后，才能手动编辑“擦拭速度”。"
+
+# AI Translated
+msgid "Enable inward wiping to edit inward wipe distance."
+msgstr "启用“向内擦拭”后，才能编辑“向内擦拭距离”。"
+
+# AI Translated
+msgid "This setting requires the Klipper G-code flavor."
+msgstr "此设置需要将“G-code风格”设为 Klipper。"
+
+# AI Translated
+msgid "Enable acceleration to deceleration to edit its factor."
+msgstr "启用 accel_to_decel 后，才能编辑其系数。"
+
+# AI Translated
+msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
+msgstr "将“G-code风格”设为 Klipper 并启用“对象排除”后，才能编辑“轮廓线公差”。"
+
+# AI Translated
+msgid "Enable making overhangs printable to use this setting."
+msgstr "启用“悬垂可打印化”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
+msgstr "在有顶部外壳层时启用“顶面单层墙”，或使用 Arachne 并将“最短墙长度”设为大于 0.5。"
+
+# AI Translated
+msgid "Enable converting holes to polyholes to use this setting."
+msgstr "启用“将圆孔转换为多边形孔”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable overhang wall detection to use this setting."
+msgstr "启用“识别悬垂墙”后，才能使用此设置。"
+
+# AI Translated
+msgid "Reverse overhang direction is unavailable in spiral vase mode."
+msgstr "旋转花瓶模式下无法使用“反转偶数层悬垂方向”。"
+
+# AI Translated
+msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
+msgstr "关闭旋转花瓶模式并启用“反转偶数层悬垂方向”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
+msgstr "启用“识别悬垂墙”和“反转偶数层悬垂方向”，关闭旋转花瓶模式，并关闭“仅反转内墙”。"
+
+# AI Translated
+msgid "This setting requires a Bambu Lab printer."
+msgstr "此设置仅适用于 Bambu Lab 打印机。"
+
+# AI Translated
+msgid "Enable small area infill flow compensation to edit its model."
+msgstr "启用“小区域填充流量补偿”后，才能编辑“流量补偿模型”。"
+
+# AI Translated
+msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
+msgstr "旋转花瓶模式下和传送带打印机上无法使用斜拼接缝。"
+
+# AI Translated
+msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
+msgstr "在非传送带打印机上关闭旋转花瓶模式并启用斜拼接缝后，才能使用此设置。"
+
+# AI Translated
+msgid "Disable scarfing the entire loop to edit the minimum scarf length."
+msgstr "关闭“斜拼接缝覆盖整圈墙”后，才能编辑“斜拼接缝长度”。"
+
+# AI Translated
+msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
+msgstr "在非传送带打印机上关闭旋转花瓶模式并启用“选择性应用斜拼接缝”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable beam interlocking to use this setting."
+msgstr "启用互锁梁后，才能使用此设置。"
+
+# AI Translated
+msgid "Disable beam interlocking to edit segmented region interlocking depth."
+msgstr "关闭互锁梁后，才能编辑“分段区域的互锁深度”。"
+
+# AI Translated
+msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
+msgstr "将稀疏填充图案设为“侧向晶格”后，才能使用此设置。"
+
+# AI Translated
+msgid "Select the Lightning sparse infill pattern to use this setting."
+msgstr "将稀疏填充图案设为“闪电”后，才能使用此设置。"
+
+# AI Translated
+msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
+msgstr "“自适应立方体”和“支撑立方体”填充无法使用填充旋转模板。"
+
+# AI Translated
+msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
+msgstr "清空“稀疏填充旋转模板”，并选择“自适应立方体”和“支撑立方体”以外的图案后，才能编辑“稀疏填充方向”。"
+
+# AI Translated
+msgid "Clear the solid infill rotation template to edit solid infill direction."
+msgstr "清空“实心填充旋转模板”后，才能编辑“实心填充方向”。"
+
+# AI Translated
+msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
+msgstr "将稀疏填充图案设为“侧向蜂窝”后，才能使用此设置。"
+
+# AI Translated
+msgid "The selected printer does not support wrapping detection."
+msgstr "所选打印机不支持结块检测。"
+
+# AI Translated
+# Needs human review: SLA-only string; check that 底座 matches how the SLA pad is named elsewhere.
+msgid "Enable the pad to edit this setting."
+msgstr "启用底座后，才能编辑此设置。"
+
+# AI Translated
+# Needs human review: SLA-only string; check that 底座 matches how the SLA pad is named elsewhere.
+msgid "Enable the pad around the object to edit this setting."
+msgstr "启用对象周围的底座后，才能编辑此设置。"
+
+# AI Translated
+# Needs human review: SLA-only string; check the pad (底座) and object elevation wording.
+msgid "Enable support and disable the pad around the object to edit object elevation."
+msgstr "启用支撑并关闭对象周围的底座后，才能编辑对象抬升高度。"
 
 # AI Translated
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
@@ -6620,10 +7179,6 @@ msgstr "切片所有盘"
 
 msgid "Failed"
 msgstr "失败"
-
-# AI Translated
-msgid "All Plates"
-msgstr "所有盘"
 
 msgid "Stats"
 msgstr "统计"
@@ -8787,6 +9342,24 @@ msgstr ""
 "请启用或安装后再使用。"
 
 # AI Translated
+msgid "Hidden by the current configuration."
+msgstr "当前配置下已隐藏。"
+
+# AI Translated
+#, boost-format
+msgid "Hidden: %1%"
+msgstr "已隐藏：%1%"
+
+# AI Translated
+msgid "Disabled by the current configuration."
+msgstr "当前配置下已禁用。"
+
+# AI Translated
+#, boost-format
+msgid "Disabled: %1%"
+msgstr "已禁用：%1%"
+
+# AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
 msgstr "当前打印任务中存在易拉丝的耗材丝。此时启用裹头检测可能会降低打印质量。您确定要启用吗？"
 
@@ -8990,6 +9563,10 @@ msgstr "查看所有对象的配置"
 
 msgid "Material settings"
 msgstr "材料设置"
+
+# AI Translated
+msgid "The process flow ratio cannot be edited in this panel."
+msgstr "无法在此面板中编辑工艺的流量比例。"
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -10455,6 +11032,16 @@ msgstr "将窗口按钮置于左侧"
 
 msgid "(Requires restart)"
 msgstr "（需要重启）"
+
+# AI Translated
+#. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
+msgid "Render on the discrete GPU"
+msgstr "使用独立显卡渲染"
+
+# AI Translated
+#. TRN DRI_PRIME is an environment variable name and must stay as it is.
+msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
+msgstr "在有两块显卡的电脑上，使用独立显卡而不是驱动显示器的显卡运行 OrcaSlicer。部分 Wayland 系统无法显示另一块显卡渲染的画面，甚至无法打开窗口。如果 3D 视图一直空白，请关闭此选项；如果 OrcaSlicer 无法再启动，请在环境变量中设置 DRI_PRIME=0 启动一次，即可回到此处。"
 
 msgid "Downloads folder"
 msgstr "下载文件夹"
@@ -12649,6 +13236,10 @@ msgstr ""
 "在录制无工具头延时摄影视频时，建议添加“延时摄影擦拭塔”：\n"
 "右键单击热床空白处，选择“添加标准模型”->“延时摄影擦拭塔”。"
 
+# AI Translated
+msgid "Setting unavailable"
+msgstr "设置不可用"
+
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "将创建当前系统预设的副本，该副本将与系统预设分离。"
 
@@ -12831,8 +13422,16 @@ msgstr "插件配置"
 msgid "Notes"
 msgstr "注释"
 
+# AI Translated
+msgid "The selected printer does not support multiple bed types."
+msgstr "所选打印机不支持多种热床类型。"
+
 msgid "Frequent"
 msgstr "常用"
+
+# AI Translated
+msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
+msgstr "盘上有混合耗材丝时，无法自定义耗材丝打印顺序。"
 
 #, c-format, boost-format
 msgid ""
@@ -12856,6 +13455,18 @@ msgstr "参数覆盖"
 
 msgid "Retraction when switching material"
 msgstr "切换材料时的回抽量"
+
+# AI Translated
+msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
+msgstr "将耗材丝的回抽长度设为大于 0，或使用打印机的设置值后，才能编辑此设置。"
+
+# AI Translated
+msgid "The printer profile must allow filament overrides for long retraction when cutting."
+msgstr "打印机预设必须允许耗材丝覆盖切料时长回抽设置。"
+
+# AI Translated
+msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
+msgstr "在打印机预设中允许切料时长回抽，并在耗材丝预设中启用后，才能使用此设置。"
 
 msgid "Basic information"
 msgstr "基础信息"
@@ -12995,6 +13606,78 @@ msgstr "兼容打印机"
 # AI Translated
 msgid "Compatible process profiles"
 msgstr "兼容的工艺预设"
+
+# AI Translated
+msgid "Enable cooling for overhangs and bridges to edit this setting."
+msgstr "启用“悬垂/桥接强制冷却”后，才能编辑此设置。"
+
+# AI Translated
+msgid "Enable slowing down for layer cooling to use this setting."
+msgstr "启用“降低打印速度以获得更好的层冷却”后，才能使用此设置。"
+
+# AI Translated
+msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
+msgstr "将关闭冷却的初始层数设为 0 后，才能覆盖“首层风扇转速”。"
+
+# AI Translated
+msgid "Enable the auxiliary fan in the printer profile to use this setting."
+msgstr "在打印机预设中启用“辅助部件冷却风扇”后，才能使用此设置。"
+
+# AI Translated
+msgid "The selected printer does not support air filtration."
+msgstr "所选打印机不支持空气过滤。"
+
+# AI Translated
+msgid "Activate air filtration to edit this setting."
+msgstr "启用空气过滤后，才能编辑此设置。"
+
+# AI Translated
+msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
+msgstr "启用空气过滤并勾选“打印中”后，才能编辑排气风扇速度。"
+
+# AI Translated
+msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
+msgstr "启用空气过滤并勾选“完成时”后，才能编辑排气风扇速度。"
+
+# AI Translated
+msgid "Enable pressure advance to use this setting."
+msgstr "启用 Pressure Advance 后，才能使用此设置。"
+
+# AI Translated
+msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
+msgstr "选择此热床类型，或在打印机预设中启用“支持多种热床类型”后，才会显示其温度设置。"
+
+# AI Translated
+msgid "Enable pressure advance and adaptive pressure advance to use this setting."
+msgstr "启用 Pressure Advance 和自适应 Pressure Advance 后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable the pellet printer option in the printer profile to use this setting."
+msgstr "在打印机预设中启用“颗粒改装打印机”后，才能使用此设置。"
+
+# AI Translated
+msgid "Filament diameter is unavailable for pellet printers."
+msgstr "颗粒打印机无法使用耗材丝直径。"
+
+# AI Translated
+msgid "The selected printer does not support chamber temperature control."
+msgstr "所选打印机不支持腔体温度控制。"
+
+# AI Translated
+msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
+msgstr "请先将“最大体积流量多项式系数”设为非零值，再启用自适应体积流量。"
+
+# AI Translated
+msgid "Enable multitool ramming to edit this setting."
+msgstr "启用多工具头尖端成型后，才能编辑此设置。"
+
+# AI Translated
+msgid "This setting requires a Bambu Lab printer with multiple extruders."
+msgstr "此设置仅适用于多挤出机的 Bambu Lab 打印机。"
+
+# AI Translated
+msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
+msgstr "使用多挤出机的 Bambu Lab 打印机，并启用“更换挤出机时长回抽”。"
 
 msgid "Printable space"
 msgstr "可打印区域"
@@ -13157,6 +13840,82 @@ msgid "Z-Hop"
 msgstr "Z轴抬升"
 
 # AI Translated
+msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
+msgstr "断电恢复需要 Bambu Lab 打印机，或将“G-code风格”设为 Marlin 2。"
+
+# AI Translated
+msgid "Build plate tilt is derived from the belt tilt on belt printers."
+msgstr "传送带打印机的热床倾斜由传送带倾斜角度推算得出。"
+
+# AI Translated
+msgid "Enable belt printer mode to use this setting."
+msgstr "启用传送带打印后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
+msgstr "启用传送带打印并选择“传送带倾斜轴”后，才能编辑其角度。"
+
+# AI Translated
+msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
+msgstr "启用传送带打印并将设置模式切换为“专家”或“开发者”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
+msgstr "启用传送带打印，将设置模式切换为“专家”或“开发者”，并启用“解耦机器坐标系倾角”后，才能编辑其角度。"
+
+# AI Translated
+msgid "Enable support for parallel printheads to edit their count."
+msgstr "启用“支持并联工具头”后，才能编辑其数量。"
+
+# AI Translated
+msgid "Collision volume mode selection requires multiple extruders."
+msgstr "多挤出机打印机才能选择“碰撞体积行为”。"
+
+# AI Translated
+msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
+msgstr "选择共享的碰撞体积行为，或使用单挤出机打印机后，才能编辑此设置。"
+
+# AI Translated
+msgid "Enable the auxiliary fan to edit its direction."
+msgstr "启用辅助部件冷却风扇后，才能编辑其方向。"
+
+# AI Translated
+msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
+msgstr "空气过滤与冷却过滤器是二选一的配件；请关闭冷却过滤器支持以使用空气过滤。"
+
+# AI Translated
+msgid "Enable cooling filter support in the printer profile to use this setting."
+msgstr "在打印机预设中启用冷却过滤器支持后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable belt printer mode to use the belt purge tower."
+msgstr "启用传送带打印后，才能使用传送带冲刷塔。"
+
+# AI Translated
+msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
+msgstr "Bambu Lab 打印机和传送带打印机无法选择擦拭塔类型。"
+
+# AI Translated
+msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
+msgstr "在非 Bambu 打印机上将“擦拭塔类型”设为“类型 2”后，才能使用此设置。"
+
+# AI Translated
+msgid "Extruder count cannot be edited in single extruder multimaterial mode."
+msgstr "单挤出机多材料模式下无法编辑挤出机数量。"
+
+# AI Translated
+msgid "Enable single extruder multimaterial mode to use manual filament changes."
+msgstr "启用单挤出机多材料模式后，才能使用“手动更换耗材丝”。"
+
+# AI Translated
+msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
+msgstr "在非 Bambu 打印机上启用单挤出机多材料模式并将“擦拭塔类型”设为“类型 2”后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable IDEX/IQEX printer mode to use this setting."
+msgstr "启用“IDEX/IQEX 打印机”后，才能使用此设置。"
+
+# AI Translated
 msgid "Front-left"
 msgstr "左前"
 
@@ -13172,6 +13931,46 @@ msgstr "左后"
 msgid "Rear-right"
 msgstr "右后"
 
+# AI Translated
+msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
+msgstr "在非 Bambu 打印机上使用多个挤出机并将“擦拭塔类型”设为“类型 2”，同时关闭单挤出机多材料模式。"
+
+# AI Translated
+msgid "Set retraction length above zero or enable firmware retraction to use this setting."
+msgstr "将回抽长度设为大于 0 或启用固件回抽后，才能使用此设置。"
+
+# AI Translated
+msgid "The extruder printable area and height are fixed by the printer profile."
+msgstr "挤出机可打印区域和高度由打印机预设决定，无法修改。"
+
+# AI Translated
+msgid "This setting is shown for printers with exactly two extruders."
+msgstr "此设置仅对恰好有两个挤出机的打印机显示。"
+
+# AI Translated
+msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
+msgstr "在多挤出机打印机上将“碰撞体积行为”设为“每个挤出机单独设置”后，才能编辑此设置。"
+
+# AI Translated
+msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
+msgstr "启用固件回抽时，回抽长度由固件控制。"
+
+# AI Translated
+msgid "Enable retraction and set Z hop above zero to use this setting."
+msgstr "启用回抽并将“Z抬升高度”设为大于 0 后，才能使用此设置。"
+
+# AI Translated
+msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
+msgstr "将回抽长度设为大于 0 并关闭固件回抽后，才能编辑此设置。"
+
+# AI Translated
+msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
+msgstr "启用回抽和擦拭，并将“擦拭后的回抽量”设为小于 100% 后，才能编辑“擦拭前的回抽量”。"
+
+# AI Translated
+msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
+msgstr "启用回抽和擦拭，并将“擦拭前的回抽量”设为小于 100% 后，才能编辑“擦拭后的回抽量”。"
+
 msgid ""
 "The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
 "\n"
@@ -13183,6 +13982,62 @@ msgstr ""
 
 msgid "Firmware Retraction"
 msgstr "固件回抽"
+
+# AI Translated
+msgid "Enable retraction and wiping to edit wipe distance."
+msgstr "启用回抽和擦拭后，才能编辑“擦拭距离”。"
+
+# AI Translated
+msgid "This setting requires multiple extruders."
+msgstr "此设置需要多个挤出机。"
+
+# AI Translated
+msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
+msgstr "使用多个挤出机并将“回抽长度（换工具头）”设为大于 0 后，才能编辑此设置。"
+
+# AI Translated
+msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
+msgstr "关闭固件回抽并允许切料时长回抽后，才能使用此设置。"
+
+# AI Translated
+msgid "Enable long retraction when cutting to edit the retraction distance."
+msgstr "启用切料时长回抽后，才能编辑“切料回抽距离”。"
+
+# AI Translated
+msgid "Select a Z hop type other than Normal to edit travel slope."
+msgstr "将“Z抬升类型”设为“普通”以外的选项后，才能编辑“空驶抬高角度”。"
+
+# AI Translated
+msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
+msgstr "“G-code风格”为 Marlin（旧版）或 Klipper 时，无法使用空驶加速度限制。"
+
+# AI Translated
+msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
+msgstr "Marlin 使用非零结点偏差时，无法使用抖动限制。"
+
+# AI Translated
+msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
+msgstr "“G-code风格”为 Marlin（旧版）、Marlin 2 或 RepRapFirmware 时，才能写入机器限制。"
+
+# AI Translated
+msgid "Enable resonance avoidance to edit its speed range."
+msgstr "启用“共振规避”后，才能编辑其速度范围。"
+
+# AI Translated
+msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
+msgstr "此输入整形设置需要将“G-code风格”设为 Marlin 2 或 RepRapFirmware。"
+
+# AI Translated
+msgid "Enable emitting machine limits to G-code to emit input shaping settings."
+msgstr "启用“写入限制到G-code”后，才能写入输入整形设置。"
+
+# AI Translated
+msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
+msgstr "启用“写入限制到G-code”和“写入输入整形参数”后，才能编辑此设置。"
+
+# AI Translated
+msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
+msgstr "将“G-code风格”设为 Marlin 2，并启用“写入限制到G-code”和“写入输入整形参数”后，才能单独编辑 Y 轴的值。"
 
 # AI Translated
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
@@ -13241,6 +14096,10 @@ msgstr ""
 # AI Translated
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "确定要删除所选预设吗？"
+
+# AI Translated
+msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
+msgstr "勾选“所有”（不使用指定的预设列表）后，才能编辑兼容条件。"
 
 msgid "Select printers"
 msgstr "选择打印机"
@@ -13352,6 +14211,10 @@ msgstr "点击该图标，恢复到全局的配置数值，并与全局配置同
 
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "点击该图标，丢弃当前的修改，恢复到上次保存的数值。"
+
+# AI Translated
+msgid "Material print speed cannot be edited for the SL1 printer."
+msgstr "SL1 打印机无法编辑材料打印速度。"
 
 msgid "Process Settings"
 msgstr "工艺设置"
@@ -18312,6 +19175,14 @@ msgstr "注释G-code"
 
 msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
 msgstr "启用此选项，将获得带有注释的G-code文件，每行都附带文本注释。若您从SD卡打印，文件的额外内容可能会增加您的固件的负担。"
+
+# AI Translated
+msgid "High precision G-code (experimental)"
+msgstr "高精度 G-code（实验性）"
+
+# AI Translated
+msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgstr "将 X、Y、Z、I 和 J 写为 4 位小数（而不是 3 位），将 E 写为 6 位小数（而不是 5 位），以减少 G-code 中的舍入误差。使用相对 E 距离时，每次移动的舍入误差还会累积到下一次移动。支撑在打印后会拆除，因此保留标准精度。使用小喷嘴（如 0.2 mm）和薄层（如 0.08 mm 或更薄）时，每次移动的挤出量很少，舍入误差的影响最大，此选项可能有助于稳定挤出。效果在很大程度上取决于其他设置的调校情况；除非打印预设已经过充分校准，否则可能难以察觉。G-code 文件会增大约 10%，可能会使解析 G-code 较慢的打印机变慢。"
 
 msgid "Infill combination"
 msgstr "合并填充"
@@ -32141,6 +33012,10 @@ msgstr "保存当前颜色"
 # AI Translated
 msgid "Palettes"
 msgstr "调色板"
+
+# AI Translated
+msgid "Pick color from screen"
+msgstr "从屏幕取色"
 
 # AI Translated
 msgid "Search colors"

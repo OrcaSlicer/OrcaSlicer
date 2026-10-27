@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Basic @Qidi X-Smart 5 0.2 nozzle",
+	"inherits": "QIDI PETG Basic@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "SMgPbr6YYrnwNhuA",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"1"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.2 nozzle"
+	]
+}
