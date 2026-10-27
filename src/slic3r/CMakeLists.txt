@@ -148,9 +148,31 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpOperations.hpp
     GUI/Mcp/McpProtocol.cpp
     GUI/Mcp/McpProtocol.hpp
+    GUI/Mcp/McpOptions.hpp
     GUI/Mcp/McpScript.cpp
     GUI/Mcp/McpScript.hpp
+    GUI/Mcp/McpService.cpp
+    GUI/Mcp/McpService.hpp
+    GUI/Mcp/McpStdioBridge.cpp
+    GUI/Mcp/McpStdioBridge.hpp
+    GUI/Mcp/McpToken.cpp
+    GUI/Mcp/McpToken.hpp
+    GUI/Mcp/McpTools.hpp
+    GUI/Mcp/McpPaths.cpp
+    GUI/Mcp/McpPaths.hpp
+    GUI/Mcp/McpToolsActions.cpp
+    GUI/Mcp/McpToolsApp.cpp
+    GUI/Mcp/McpToolsCommon.cpp
+    GUI/Mcp/McpToolsConfig.cpp
+    GUI/Mcp/McpToolsPending.cpp
+    GUI/Mcp/McpToolsProject.cpp
+    GUI/Mcp/McpToolsScene.cpp
+    GUI/Mcp/McpToolsView.cpp
+    GUI/Mcp/ScreenCapture.cpp
+    GUI/Mcp/ScreenCapture.hpp
     GUI/Mcp/McpTypes.hpp
+    GUI/Mcp/ModalTracker.cpp
+    GUI/Mcp/ModalTracker.hpp
     GUI/Mcp/UiInvoker.cpp
     GUI/Mcp/UiInvoker.hpp
     GUI/PluginsConfigDialog.cpp
@@ -901,6 +923,7 @@ if (WIN32)
             GUI/dark_mode/UAHMenuBar.hpp
             GUI/dark_mode.hpp
             GUI/dark_mode.cpp
+            GUI/Mcp/ScreenCapture_win.cpp
         )
 endif ()
 
@@ -918,6 +941,7 @@ if (APPLE)
             GUI/GUI_UtilsMac.mm
             GUI/MacIME.mm
             GUI/MacIME.hpp
+            GUI/Mcp/ScreenCapture_mac.mm
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()

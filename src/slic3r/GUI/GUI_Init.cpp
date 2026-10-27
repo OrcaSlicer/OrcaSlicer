@@ -4,6 +4,7 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/InstanceCheck.hpp"
+#include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -61,16 +62,21 @@ int GUI_Run(GUI_InitParams &params)
         GUI::GUI_App::SetInstance(gui);
         gui->init_params = &params;
 
+        int result = 0;
         if (params.argc > 1) {
             // STUDIO-273 wxWidgets report error when opening some files with specific names
             // wxWidgets does not handle parameters, so intercept parameters here, only keep the app name
             int                 argc = 1;
             std::vector<char *> argv;
             argv.push_back(params.argv[0]);
-            return wxEntry(argc, argv.data());
+            result = wxEntry(argc, argv.data());
         } else {
-            return wxEntry(params.argc, params.argv);
+            result = wxEntry(params.argc, params.argv);
         }
+        // An --mcp-script run reports its outcome as the process exit code.
+        if (const int script_code = Mcp::McpService::script_exit_code(); script_code >= 0)
+            return script_code;
+        return result;
     } catch (const Slic3r::Exception &ex) {
         BOOST_LOG_TRIVIAL(error) << ex.what() << std::endl;
         wxMessageBox(boost::nowide::widen(ex.what()), _L("Orca Slicer GUI initialization failed"), wxICON_STOP);

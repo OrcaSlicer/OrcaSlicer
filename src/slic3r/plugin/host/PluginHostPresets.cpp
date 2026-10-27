@@ -182,77 +182,13 @@ GUI::Tab* require_tab(GUI::GUI_App& app, Preset::Type type)
     return tab;
 }
 
-// True for a combo row that is a group header, a marker or a disabled row: it carries a marker in
-// its client data and is not a selectable preset.
-bool combo_item_is_marker(GUI::PresetComboBox& combo, int item)
-{
-    const auto marker = reinterpret_cast<std::size_t>(combo.GetClientData(item));
-    return marker >= GUI::PresetComboBox::LABEL_ITEM_DISABLED && marker < GUI::PresetComboBox::LABEL_ITEM_MAX;
-}
-
-// How a caller-supplied name resolved against a combo's actual items.
-struct ComboPresetMatch
-{
-    int         item          = -1;    // first matching item, or -1
-    bool        ambiguous     = false; // two distinct items carry this name
-    std::string internal_name;         // internal preset name of the match (empty when none)
-};
-
-// Resolve `requested` by the name each combo item shows: its display label, or its stored item
-// alias (the internal preset name, or the printer model for a system printer preset). Names are
-// compared with the modified-dirty suffix removed, i.e. exactly what the dropdown shows. Reading
-// the combo's own items means this respects the combo's real selectable model (visibility, its
-// show-incompatible state and, for a slot combo, that slot's compatibility). A name that two
-// distinct items carry is reported ambiguous instead of being resolved by position.
-ComboPresetMatch resolve_combo_preset(GUI::PresetComboBox& combo, const std::string& requested)
-{
-    ComboPresetMatch  match;
-    const std::string want       = Preset::remove_suffix_modified(requested);
-    const int         item_count = combo.GetCount();
-    for (int item = 0; item < item_count; ++item) {
-        if (combo_item_is_marker(combo, item))
-            continue;
-        const wxString    alias      = combo.GetItemAlias(item);
-        const std::string alias_name = alias.empty() ? std::string()
-                                                     : Preset::remove_suffix_modified(alias.ToUTF8().data());
-        const std::string label_name = Preset::remove_suffix_modified(combo.GetString(item).ToUTF8().data());
-        if ((alias_name.empty() || alias_name != want) && label_name != want)
-            continue;
-        if (match.item >= 0 && match.item != item) {
-            match.ambiguous = true;
-            return match;
-        }
-        match.item          = item;
-        match.internal_name = alias_name.empty() ? label_name : alias_name;
-    }
-    return match;
-}
-
-// Index of the item whose internal name is `preset_name`, or -1. Used for per-item flags (the AMS
-// sync badge); the internal name is unique, so no ambiguity handling is needed here.
-int combo_item_for_preset(GUI::PresetComboBox& combo, const std::string& preset_name)
-{
-    const std::string want       = Preset::remove_suffix_modified(preset_name);
-    const int         item_count = combo.GetCount();
-    for (int item = 0; item < item_count; ++item) {
-        if (combo_item_is_marker(combo, item))
-            continue;
-        const wxString    alias = combo.GetItemAlias(item);
-        const std::string alias_name = alias.empty() ? std::string()
-                                                     : Preset::remove_suffix_modified(alias.ToUTF8().data());
-        if (!alias_name.empty() && alias_name == want)
-            return item;
-    }
-    return -1;
-}
-
 // Resolve `requested` to the internal preset name its dropdown entry names, or throw. `category`
 // and `selector` are used only for the error text. A name the selector does not offer, or that two
 // entries share, raises std::invalid_argument.
 std::string resolve_preset_in_combo(GUI::PresetComboBox& combo, const std::string& requested,
                                     const std::string& category, const std::string& selector)
 {
-    const ComboPresetMatch match = resolve_combo_preset(combo, requested);
+    const GUI::PresetComboBox::NameMatch match = combo.find_by_name(requested);
     if (match.ambiguous)
         throw std::invalid_argument("The " + category + " name \"" + requested + "\" is ambiguous in the " + selector
                                     + "; more than one entry shows it, so name the preset by its own entry");
@@ -456,7 +392,7 @@ void bind_filament_target(int slot_number, const std::string& preset_name, Prese
         GUI::PlaterPresetComboBox* slot_combo = slot_index < slot_combos.size() ? slot_combos[slot_index] : nullptr;
         std::string                resolved;
         if (slot_combo != nullptr && slot_combo->GetCount() > 0) {
-            const ComboPresetMatch match = resolve_combo_preset(*slot_combo, preset_name);
+            const GUI::PresetComboBox::NameMatch match = slot_combo->find_by_name(preset_name);
             if (match.ambiguous)
                 throw std::invalid_argument("The filament name \"" + preset_name
                                             + "\" is ambiguous in the filament preset selector for filament slot "
@@ -540,7 +476,7 @@ void bind_filament_target(int slot_number, const std::string& preset_name, Prese
             slot_combo->update();
             // Keep the slot's AMS sync badge truthful, reading the item's own flag, the same source
             // on_select_preset() reads, so no UI state is invented here.
-            const int item = combo_item_for_preset(*slot_combo, target);
+            const int item = slot_combo->item_for_preset(target);
             if (item >= 0)
                 slot_combo->set_sync_badge(slot_combo->GetFlag(item)
                                            == static_cast<int>(GUI::PresetComboBox::FilamentAMSType::FROM_AMS));

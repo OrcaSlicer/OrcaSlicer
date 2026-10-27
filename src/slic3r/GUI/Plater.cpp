@@ -19,6 +19,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <clocale>
 #include <cstddef>
+#include <deque>
 #include <algorithm>
 #include <ios>
 #include <iomanip>
@@ -7230,6 +7231,20 @@ struct Plater::priv
     bool m_ignore_event{false};
     bool m_slice_all{false};
     bool m_is_slicing {false};
+
+    // Automation bookkeeping behind Plater::SliceRun / ExportRun.
+    static constexpr std::size_t  kKeepSliceRuns  = 1024; // far more than one Slice All's runs (MAX_PLATE_COUNT)
+    static constexpr std::size_t  kKeepExportRuns = 16;
+    uint64_t                      project_revision {0};
+    uint64_t                      slice_request_seq {0};
+    uint64_t                      slice_run_seq {0};
+    uint64_t                      export_seq {0};
+    std::deque<Plater::SliceRun>  slice_runs;
+    std::deque<Plater::ExportRun> export_runs;
+    // A background run started; a run still open from before was restarted, so it ends cancelled.
+    void note_run_started();
+    // The background process reported completion: closes the open run and any export in flight.
+    void note_process_completed(bool cancelled, bool success, const std::string& error);
     // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
     // gate plugin-load re-validation and avoid needlessly recreating the notification when the set
     // is unchanged. Whether missing plugins block slicing is derived directly from PluginResolver
@@ -7588,7 +7603,9 @@ struct Plater::priv
             GUI::show_error(this->q, msg);
         }
     }
-    void export_gcode(fs::path output_path, bool output_path_on_removable_media);
+    // `tracked` numbers the export for automation and, when it cannot start right away, unschedules
+    // it instead of leaving it for a later restart. Returns whether it started.
+    bool export_gcode(fs::path output_path, bool output_path_on_removable_media, bool tracked = false);
     void export_gcode(fs::path output_path, bool output_path_on_removable_media, PrintHostJob upload_job);
 
     void reload_from_disk();
@@ -10850,6 +10867,7 @@ void Plater::priv::delete_all_objects_from_model()
 
 void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
 {
+    ++project_revision;
     // TakeSnapshot below and load_current_presets() further down each re-evaluate the
     // aggregate dirty flag against a baseline that hasn't been reset yet, so they can toggle
     // is_dirty() back and forth several times before it settles; coalesce those into one event.
@@ -11664,6 +11682,7 @@ bool Plater::priv::restart_background_process(unsigned int state)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: print is valid, try to start it now")%__LINE__;
         // The print is valid and it can be started.
         if (this->background_process.start()) {
+            note_run_started();
             if (!show_warning_dialog)
                 on_slicing_began();
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: start successfully")%__LINE__;
@@ -11674,6 +11693,7 @@ bool Plater::priv::restart_background_process(unsigned int state)
         PartPlate* cur_plate = background_process.get_current_plate();
         if (cur_plate->is_slice_result_valid() && ((state & UPDATE_BACKGROUND_PROCESS_FORCE_RESTART) != 0)) {
             if (this->background_process.start()) {
+                note_run_started();
                 if (!show_warning_dialog)
                     on_slicing_began();
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: start successfully")%__LINE__;
@@ -11685,17 +11705,17 @@ bool Plater::priv::restart_background_process(unsigned int state)
     return false;
 }
 
-void Plater::priv::export_gcode(fs::path output_path, bool output_path_on_removable_media)
+bool Plater::priv::export_gcode(fs::path output_path, bool output_path_on_removable_media, bool tracked)
 {
-    wxCHECK_RET(!(output_path.empty()), "export_gcode: output_path and upload_job empty");
+    wxCHECK_MSG(!(output_path.empty()), false, "export_gcode: output_path and upload_job empty");
 
     BOOST_LOG_TRIVIAL(trace) << boost::format("export_gcode: output_path %1%")%output_path.string();
     if (model.objects.empty())
-        return;
+        return false;
 
     if (background_process.is_export_scheduled()) {
         GUI::show_error(q, _L("Another export job is running."));
-        return;
+        return false;
     }
 
     // bitmask of UpdateBackgroundProcessReturnState
@@ -11704,7 +11724,7 @@ void Plater::priv::export_gcode(fs::path output_path, bool output_path_on_remova
         view3D->reload_scene(false);
 
     if ((state & priv::UPDATE_BACKGROUND_PROCESS_INVALID) != 0)
-        return;
+        return false;
 
     show_warning_dialog = true;
     if (! output_path.empty()) {
@@ -11716,7 +11736,22 @@ void Plater::priv::export_gcode(fs::path output_path, bool output_path_on_remova
 
     // If the SLA processing of just a single object's supports is running, restart slicing for the whole object.
     this->background_process.set_task(PrintBase::TaskParams());
-    this->restart_background_process(priv::UPDATE_BACKGROUND_PROCESS_FORCE_EXPORT);
+    const bool started = this->restart_background_process(priv::UPDATE_BACKGROUND_PROCESS_FORCE_EXPORT);
+    if (!tracked)
+        return started;
+    if (!started) {
+        // The caller refused to export while the process was running, so reset_export() is effective.
+        background_process.reset_export();
+        notification_manager->close_notification_of_type(NotificationType::ExportOngoing);
+        return false;
+    }
+    Plater::ExportRun run;
+    run.seq  = ++export_seq;
+    run.path = output_path.string();
+    export_runs.push_back(std::move(run));
+    while (export_runs.size() > kKeepExportRuns)
+        export_runs.pop_front();
+    return true;
 }
 void Plater::priv::export_gcode(fs::path output_path, bool output_path_on_removable_media, PrintHostJob upload_job)
 {
@@ -13537,6 +13572,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         }
     }
 
+    note_process_completed(evt.cancelled(), evt.success(), has_error ? lifecycle_error_msg : std::string());
     exporting_status = ExportingStatus::NOT_EXPORTING;
 
 
@@ -13766,6 +13802,7 @@ static std::vector<wxString> collect_imex_warnings(PartPlate* plate)
 void Plater::priv::on_action_slice_plate(SimpleEvent&)
 {
     if (q != nullptr) {
+        ++slice_request_seq;
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice plate event\n" ;
         // IMEX parallel mode warnings (current plate only)
         if (wxGetApp().app_config->get("imex_pre_slice_warnings") != "false") {
@@ -13807,6 +13844,7 @@ void Plater::priv::on_action_slice_plate(SimpleEvent&)
 void Plater::priv::on_action_slice_all(SimpleEvent&)
 {
     if (q != nullptr) {
+        ++slice_request_seq;
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice project event\n" ;
         // IMEX parallel mode warnings (all plates)
         if (wxGetApp().app_config->get("imex_pre_slice_warnings") != "false") {
@@ -15287,6 +15325,8 @@ int Plater::priv::get_active_snapshot_index()
 
 void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRedo::SnapshotType snapshot_type)
 {
+    // A suppressed snapshot is still an edit.
+    ++project_revision;
     if (m_prevent_snapshots > 0)
         return;
     assert(m_prevent_snapshots >= 0);
@@ -15433,6 +15473,7 @@ bool Plater::priv::up_to_date(bool saved, bool backup)
 
 void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator it_snapshot)
 {
+    ++project_revision;
     // Make sure that no updating function calls take_snapshot until we are done.
     SuppressSnapshots snapshot_supressor(q);
 
@@ -16324,15 +16365,19 @@ void Plater::load_project(wxString const& filename2,
 }
 
 // BBS: save logic
-int Plater::save_project(bool saveAs)
+int Plater::save_project(bool saveAs, const wxString& path)
 {
     //if (up_to_date(false, false)) // should we always save
     //    return;
     auto filename = get_project_filename(".3mf");
-    if (!saveAs && filename.IsEmpty())
-        saveAs = true;
-    if (saveAs)
-        filename = p->get_export_file(FT_3MF);
+    if (!path.empty())
+        filename = path;
+    else {
+        if (!saveAs && filename.IsEmpty())
+            saveAs = true;
+        if (saveAs)
+            filename = p->get_export_file(FT_3MF);
+    }
     if (filename.empty())
         return wxID_NO;
     if (filename == "<cancel>")
@@ -19633,13 +19678,13 @@ void Plater::send_to_printer(bool isall)
 }
 
 //BBS export gcode 3mf to file
-void Plater::export_gcode_3mf(bool export_all)
+bool Plater::export_gcode_3mf(bool export_all, const boost::filesystem::path& given_output_path)
 {
     if (p->model.objects.empty())
-        return;
+        return false;
 
     if (p->process_completed_with_error == p->partplate_list.get_curr_plate_index())
-        return;
+        return false;
 
     //calc default_output_file, get default output file from background process
     fs::path default_output_file;
@@ -19650,18 +19695,18 @@ void Plater::export_gcode_3mf(bool export_all)
         // Also if there is something wrong with the current configuration, a pop-up dialog will be shown and the export will not be performed.
         unsigned int state = this->p->update_restart_background_process(false, false);
         if (state & priv::UPDATE_BACKGROUND_PROCESS_INVALID)
-            return;
+            return false;
         default_output_file = this->p->background_process.output_filepath_for_project(
             into_path(this->p->get_project_filename(".3mf")));
     }
     catch (const Slic3r::PlaceholderParserError& ex) {
         // Show the error with monospaced font.
         show_error(this, ex.what(), true);
-        return;
+        return false;
     }
     catch (const std::exception& ex) {
         show_error(this, ex.what(), false);
-        return;
+        return false;
     }
     default_output_file.replace_extension(".gcode.3mf");
     default_output_file = fs::path(Slic3r::fold_utf8_to_ascii(default_output_file.string()));
@@ -19669,8 +19714,8 @@ void Plater::export_gcode_3mf(bool export_all)
     //Get a last save path
     start_dir = appconfig.get_last_output_dir(default_output_file.parent_path().string(), false);
 
-    fs::path output_path;
-    {
+    fs::path output_path = given_output_path;
+    if (output_path.empty()) {
         std::string ext = default_output_file.extension().string();
         wxFileDialog dlg(this, _L("Save Sliced file as:"),
             start_dir,
@@ -19703,7 +19748,7 @@ void Plater::export_gcode_3mf(bool export_all)
         if (export_3mf(output_path, strategy, plate_idx) < 0) {
             // No file was written (e.g. a post-processing script failed), don't report a successful export.
             p->exporting_status = ExportingStatus::NOT_EXPORTING;
-            return;
+            return false;
         }
 
         RemovableDriveManager& removable_drive_manager = *wxGetApp().removable_drive_manager();
@@ -19716,6 +19761,7 @@ void Plater::export_gcode_3mf(bool export_all)
         appconfig.update_last_output_dir(output_path.parent_path().string(), false);
         p->notification_manager->push_exporting_finished_notification(output_path.string(), p->last_output_dir_path, on_removable);
     }
+    return !output_path.empty();
 }
 
 void Plater::send_gcode_finish(wxString name)
@@ -19755,9 +19801,9 @@ private:
 
 } // namespace
 
-void Plater::export_core_3mf()
+void Plater::export_core_3mf(const wxString& output_path)
 {
-    wxString path = p->get_export_file(FT_3MF);
+    wxString path = output_path.empty() ? p->get_export_file(FT_3MF) : output_path;
     if (path.empty()) { return; }
     const std::string path_u8 = into_u8(path);
     export_3mf(path_u8, SaveStrategy::Silence);
@@ -20101,7 +20147,7 @@ TriangleMesh Plater::combine_mesh_fff(const ModelObject& mo, int instance_id, st
 
 // BBS export with/without boolean, however, stil merge mesh
 #define EXPORT_WITH_BOOLEAN 0
-void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, FileType file_type)
+void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, FileType file_type, const wxString& output_path)
 {
     if (p->model.objects.empty()) { return; }
 
@@ -20118,7 +20164,11 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
     }
 
     wxString path;
-    if (multi_stls) {
+    if (!output_path.empty()) {
+        path = output_path;
+        if (multi_stls && !path.EndsWith("/") && !path.EndsWith("\\"))
+            path += "/";
+    } else if (multi_stls) {
         wxDirDialog dlg(this, _L("Choose a directory"), from_u8(wxGetApp().app_config->get_last_dir()),
                         wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
         if (dlg.ShowModal() == wxID_OK) {
@@ -21563,6 +21613,7 @@ void Plater::config_change_notification(const DynamicPrintConfig &config, const 
 
 void Plater::on_config_change(const DynamicPrintConfig &config)
 {
+    ++p->project_revision;
     bool update_scheduled = false;
     bool bed_shape_changed = false;
     bool exclusion_preview_changed = false;
@@ -23655,6 +23706,107 @@ void Plater::set_bed_position(Vec2d& pos)
 bool Plater::is_background_process_slicing() const
 {
     return p->m_is_slicing;
+}
+
+bool Plater::is_slicing_any() const
+{
+    return p->m_is_slicing || p->background_process.running() || is_background_process_update_scheduled();
+}
+
+void Plater::request_slice(bool all_plates)
+{
+    SimpleEvent evt(all_plates ? EVT_GLTOOLBAR_SLICE_ALL : EVT_GLTOOLBAR_SLICE_PLATE);
+    if (all_plates)
+        p->on_action_slice_all(evt);
+    else
+        p->on_action_slice_plate(evt);
+}
+
+void Plater::cancel_slicing()
+{
+    if (!p->background_process.idle())
+        p->background_process.stop();
+}
+
+bool Plater::export_gcode_to(const boost::filesystem::path& output_path)
+{
+    // Only a finished, valid slice is exported: anything that would start the background process
+    // first could leave the export scheduled behind a running slice, out of the caller's sight.
+    if (p->model.objects.empty() || is_slicing_any())
+        return false;
+    if (p->process_completed_with_error == p->partplate_list.get_curr_plate_index() ||
+        !p->partplate_list.get_curr_plate()->is_slice_result_valid())
+        return false;
+    p->notification_manager->new_export_began(false);
+    p->exporting_status     = ExportingStatus::EXPORTING_TO_LOCAL;
+    p->last_output_path     = output_path.string();
+    p->last_output_dir_path = output_path.parent_path().string();
+    if (!p->export_gcode(output_path, false, /*tracked=*/true)) {
+        p->exporting_status = ExportingStatus::NOT_EXPORTING;
+        return false;
+    }
+    return true;
+}
+
+uint64_t Plater::project_revision() const { return p->project_revision; }
+uint64_t Plater::slice_request_seq() const { return p->slice_request_seq; }
+uint64_t Plater::slice_run_seq() const { return p->slice_run_seq; }
+uint64_t Plater::export_seq() const { return p->export_seq; }
+
+std::optional<Plater::SliceRun> Plater::slice_run(uint64_t seq) const
+{
+    for (const SliceRun& run : p->slice_runs)
+        if (run.seq == seq)
+            return run;
+    return std::nullopt;
+}
+
+std::optional<Plater::ExportRun> Plater::export_run(uint64_t seq) const
+{
+    for (const ExportRun& run : p->export_runs)
+        if (run.seq == seq)
+            return run;
+    return std::nullopt;
+}
+
+void Plater::priv::note_run_started()
+{
+    for (Plater::SliceRun& run : slice_runs)
+        if (!run.finished) {
+            run.finished              = true;
+            run.cancelled             = true;
+            run.revision_at_finish    = project_revision;
+            run.request_seq_at_finish = slice_request_seq;
+        }
+    Plater::SliceRun run;
+    run.seq = ++slice_run_seq;
+    slice_runs.push_back(run);
+    while (slice_runs.size() > kKeepSliceRuns)
+        slice_runs.pop_front();
+}
+
+void Plater::priv::note_process_completed(bool cancelled, bool success, const std::string& error)
+{
+    for (auto it = slice_runs.rbegin(); it != slice_runs.rend(); ++it)
+        if (!it->finished) {
+            it->finished              = true;
+            it->cancelled             = cancelled;
+            it->error                 = error;
+            it->revision_at_finish    = project_revision;
+            it->request_seq_at_finish = slice_request_seq;
+            break;
+        }
+    if (exporting_status == ExportingStatus::NOT_EXPORTING)
+        return;
+    for (auto it = export_runs.rbegin(); it != export_runs.rend(); ++it)
+        if (!it->finished) {
+            it->finished           = true;
+            it->cancelled          = cancelled;
+            it->ok                 = success && !cancelled;
+            it->error              = error;
+            it->revision_at_finish = project_revision;
+            break;
+        }
 }
 
 //BBS: update slicing context

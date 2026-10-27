@@ -200,6 +200,50 @@ BitmapCache& PresetComboBox::bitmap_cache()
     return bmps;
 }
 
+bool PresetComboBox::is_marker_item(int item)
+{
+    const auto marker = reinterpret_cast<std::size_t>(GetClientData(item));
+    return marker >= LABEL_ITEM_DISABLED && marker < LABEL_ITEM_MAX;
+}
+
+PresetComboBox::NameMatch PresetComboBox::find_by_name(const std::string& requested)
+{
+    NameMatch         match;
+    const std::string want       = Preset::remove_suffix_modified(requested);
+    const int         item_count = GetCount();
+    for (int item = 0; item < item_count; ++item) {
+        if (is_marker_item(item))
+            continue;
+        const wxString    alias      = GetItemAlias(item);
+        const std::string alias_name = alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data());
+        const std::string label_name = Preset::remove_suffix_modified(GetString(item).ToUTF8().data());
+        if ((alias_name.empty() || alias_name != want) && label_name != want)
+            continue;
+        if (match.item >= 0 && match.item != item) {
+            match.ambiguous = true;
+            return match;
+        }
+        match.item          = item;
+        match.internal_name = alias_name.empty() ? label_name : alias_name;
+    }
+    return match;
+}
+
+int PresetComboBox::item_for_preset(const std::string& preset_name)
+{
+    const std::string want       = Preset::remove_suffix_modified(preset_name);
+    const int         item_count = GetCount();
+    for (int item = 0; item < item_count; ++item) {
+        if (is_marker_item(item))
+            continue;
+        const wxString    alias      = GetItemAlias(item);
+        const std::string alias_name = alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data());
+        if (!alias_name.empty() && alias_name == want)
+            return item;
+    }
+    return -1;
+}
+
 void PresetComboBox::set_label_marker(int item, LabelItemType label_item_type)
 {
     this->SetClientData(item, (void*)label_item_type);

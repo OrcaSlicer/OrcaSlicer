@@ -2517,6 +2517,27 @@ void GLCanvas3D::render(bool only_init)
     _render_frame(true, only_init);
 }
 
+bool GLCanvas3D::render_and_capture(wxImage& out, std::string& err)
+{
+    if (m_in_render) {
+        err = "The 3D view is in the middle of drawing a frame (a dialog was opened from it); capture the window instead";
+        return false;
+    }
+    if (m_canvas == nullptr || !_is_shown_on_screen()) {
+        err = "The 3D view is not shown; switch to the Prepare or Preview tab first";
+        return false;
+    }
+    out = wxImage();
+    m_frame_capture = &out;
+    Slic3r::ScopeGuard reset([this]() { m_frame_capture = nullptr; });
+    render();
+    if (!out.IsOk()) {
+        err = "The 3D view did not draw a frame";
+        return false;
+    }
+    return true;
+}
+
 void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 {
     if (m_in_render) {
@@ -2600,6 +2621,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    // Automation records ImGui items per canvas (ImGuiWrapper::set_item_recording).
+    wxGetApp().imgui()->set_frame_owner(this);
     wxGetApp().imgui()->new_frame();
 
     if (_update_inactive_plates_visibility())
@@ -2772,6 +2795,28 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     wxGetApp().imgui()->render(draw_data);
     m_frame_profiler.mark("imgui draw");
+
+    if (m_frame_capture != nullptr) {
+        const Size size = get_canvas_size();
+        const int  w = size.get_width(), h = size.get_height();
+        if (w > 0 && h > 0) {
+            std::vector<unsigned char> pixels(size_t(w) * size_t(h) * 4);
+            glsafe(::glPixelStorei(GL_PACK_ALIGNMENT, 1));
+            glsafe(::glReadBuffer(GL_BACK));
+            glsafe(::glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data()));
+            m_frame_capture->Create(w, h, false);
+            unsigned char* rgb = m_frame_capture->GetData();
+            // OpenGL rows run bottom-up.
+            for (int y = 0; y < h; ++y) {
+                const unsigned char* src = pixels.data() + size_t(h - 1 - y) * size_t(w) * 4;
+                for (int x = 0; x < w; ++x, src += 4, rgb += 3) {
+                    rgb[0] = src[0];
+                    rgb[1] = src[1];
+                    rgb[2] = src[2];
+                }
+            }
+        }
+    }
 
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.

@@ -13173,6 +13173,42 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = L("Load and store settings at the given directory. This is useful for maintaining different profiles or including configurations from a network storage.");
 
 
+    def = this->add("mcp", coBool);
+    def->label = L("MCP server");
+    def->tooltip = L("Start the MCP server for AI agents on 127.0.0.1 for this run, whatever the preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("mcp_port", coInt);
+    def->label = L("MCP server port");
+    def->tooltip = L("Port of the MCP server. Defaults to the preference, or 13619.");
+    def->cli_params = "port";
+    def->min = 0;
+    def->max = 65535;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("mcp_token", coString);
+    def->label = L("MCP server token");
+    def->tooltip = L("Bearer token the MCP server requires for this run. The ORCA_MCP_TOKEN environment variable takes precedence and does not show up in the process list.");
+    def->cli_params = "token";
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("mcp_script", coString);
+    def->label = L("MCP script");
+    def->tooltip = L("Run an MCP script once the GUI is ready, write its results, and exit: 0 when it passed, 1 when a step failed, 2 when the script is invalid.");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("mcp_script_out", coString);
+    def->label = L("MCP script output directory");
+    def->tooltip = L("Where --mcp-script writes result.json and screenshots. Defaults to <script name>.out next to the script.");
+    def->cli_params = "dir";
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("mcp_stdio", coBool);
+    def->label = L("MCP stdio bridge");
+    def->tooltip = L("Act as an MCP server on standard input and output for clients that cannot use HTTP, forwarding to the running OrcaSlicer (started with --mcp when none answers).");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("outputdir", coString);
     def->label = L("Output directory");
     def->tooltip = L("This is the output directory for exported files.");

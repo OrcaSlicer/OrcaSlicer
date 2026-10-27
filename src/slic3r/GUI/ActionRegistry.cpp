@@ -34,6 +34,7 @@
 #include <boost/nowide/convert.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <ctime>
 #include <exception>
@@ -163,7 +164,10 @@ struct PluginScriptAction : AppAction
                     std::move(source_name))
         , plugin_key(std::move(plugin_key_in))
         , capability(std::move(capability_in))
-    {}
+    {
+        this->automation_description = "Run the plugin script \"" + this->title() + "\" (" + this->source_name() +
+                                       "). Its result arrives as a notification.";
+    }
 
     AppActionRunResult run(const std::string& /*param*/) const override
     {
@@ -236,7 +240,8 @@ struct PluginPageAction : AppAction
         , capability(std::move(capability_in))
     {
         // Stay classified as a plugin: grouped under "Plugins" and gated by the same run-confirm.
-        this->kind = AppActionKind::Plugin;
+        this->kind                   = AppActionKind::Plugin;
+        this->automation_description = "Open the plugin page \"" + this->title() + "\" (" + this->source_name() + ").";
         // Icon is left empty on purpose: the webview builds resources/images/<icon>.svg, which a
         // plugin filesystem icon path would not resolve to.
     }
@@ -402,9 +407,10 @@ struct PlateAction : AppAction
     PlateAction(int index, std::string title, std::string source_name)
         : AppAction(AppActionId{id_for(index)}, std::move(title), kOrcaSourceKey, std::move(source_name)), plate_index(index)
     {
-        this->kind     = AppActionKind::Command;
-        this->group_en = L("Plate");
-        this->group    = I18N::translate_utf8(this->group_en);
+        this->kind                   = AppActionKind::Command;
+        this->group_en               = L("Plate");
+        this->group                  = I18N::translate_utf8(this->group_en);
+        this->automation_description = "Make plate " + std::to_string(index + 1) + " (index " + std::to_string(index) + ") the current plate.";
     }
 
     AppActionRunResult run(const std::string& /*param*/) const override
@@ -426,9 +432,10 @@ struct RecentProjectAction : AppAction
     RecentProjectAction(std::string path, std::string title, std::string source)
         : AppAction(AppActionId{id_for(path)}, std::move(title), kOrcaSourceKey, std::move(source)), file_path(std::move(path))
     {
-        this->kind     = AppActionKind::Command;
-        this->group_en = L("Recent Projects");
-        this->group    = I18N::translate_utf8(this->group_en);
+        this->kind                   = AppActionKind::Command;
+        this->group_en               = L("Recent Projects");
+        this->group                  = I18N::translate_utf8(this->group_en);
+        this->automation_description = "Open the recent project " + file_path + ".";
     }
 
     AppActionRunResult run(const std::string& /*param*/) const override
@@ -690,7 +697,7 @@ AppAction* ActionRegistry::find(const std::string& id) { return const_cast<AppAc
 
 // ---- dispatch + write-through ----------------------------------------------
 
-AppActionRunResult ActionRegistry::run(const std::string& id, const std::string& param)
+AppActionRunResult ActionRegistry::run(const std::string& id, const std::string& param, bool record_stats)
 {
     assert(wxThread::IsMain());
     auto it = m_actions.find(id);
@@ -701,7 +708,7 @@ AppActionRunResult ActionRegistry::run(const std::string& id, const std::string&
     // keep-alive preserves the action until run returns.
     std::shared_ptr<AppAction> keep = it->second;
     AppActionRunResult o            = keep->run(param);
-    if (o.level == AppActionRunResult::Level::Busy)
+    if (o.level == AppActionRunResult::Level::Busy || !record_stats)
         return o;
 
     // Bump stats (write-through). Re-read to avoid clobbering a concurrent field.
@@ -1035,6 +1042,77 @@ nlohmann::json ActionRegistry::snapshot()
             {"recent", std::move(recent_json)},
             {"user_mode", mode_key(wxGetApp().get_mode())},
             {"tooltip_expanded", tooltip_expanded()}};
+}
+
+// ---- automation catalog -------------------------------------------------------
+
+nlohmann::json ActionRegistry::describe(const Query& query)
+{
+    assert(wxThread::IsMain());
+    materialize_plate_actions();
+    materialize_recent_project_actions();
+    if (query.include_settings)
+        materialize_setting_actions();
+
+    auto lower = [](std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+        return s;
+    };
+    const std::string text  = lower(query.text);
+    const std::string group = lower(query.group);
+
+    std::vector<const AppAction*> matches;
+    for (const auto& [id, action] : m_actions) {
+        const AppAction& a = *action;
+        if (!query.include_settings && id.rfind(kSettingPrefix, 0) == 0)
+            continue;
+        if (!group.empty() && lower(a.group) != group && lower(a.group_en) != group)
+            continue;
+        if (!text.empty()) {
+            bool hit = false;
+            for (const std::string* field : {&a.id(), &a.title(), &a.title_en, &a.group, &a.group_en, &a.source_name(), &a.source_en,
+                                             &a.full_label, &a.full_label_en, &a.automation_description})
+                if (lower(*field).find(text) != std::string::npos) {
+                    hit = true;
+                    break;
+                }
+            if (!hit)
+                continue;
+        }
+        matches.push_back(&a);
+    }
+    std::sort(matches.begin(), matches.end(), [](const AppAction* a, const AppAction* b) {
+        const std::string& ga = a->group_en.empty() ? a->group : a->group_en;
+        const std::string& gb = b->group_en.empty() ? b->group : b->group_en;
+        if (ga != gb)
+            return ga < gb;
+        if (a->title() != b->title())
+            return a->title() < b->title();
+        return a->id() < b->id();
+    });
+
+    nlohmann::json actions = nlohmann::json::array();
+    for (std::size_t i = query.offset; i < matches.size() && actions.size() < query.limit; ++i) {
+        const AppAction& a = *matches[i];
+        nlohmann::json   j{{"id", a.id()},
+                           {"title", a.title_en.empty() ? a.title() : a.title_en},
+                           {"group", a.group_en.empty() ? (a.group.empty() ? a.source_name() : a.group) : a.group_en},
+                           {"kind", a.kind == AppActionKind::Plugin ? "plugin" : "command"}};
+        std::string description = a.automation_description;
+        if (description.empty() && !a.tooltip.empty())
+            description = a.tooltip.substr(0, 300);
+        if (!description.empty())
+            j["description"] = description;
+        if (a.param_type != "none")
+            j["param"] = {{"type", a.param_type}, {"help", a.param_help}};
+        if (a.completes_in_background)
+            j["completes"] = "export";
+        actions.push_back(std::move(j));
+    }
+    nlohmann::json out{{"total", matches.size()}, {"offset", query.offset}, {"actions", std::move(actions)}};
+    if (query.offset + query.limit < matches.size())
+        out["next_offset"] = query.offset + query.limit;
+    return out;
 }
 
 // ---- tab options (enumerate the MainFrame notebook's current pages) ----------

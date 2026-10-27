@@ -112,6 +112,7 @@
 #include "../Utils/PrintHost.hpp"
 
 #include "GUI_App.hpp"
+#include "Mcp/McpService.hpp"
 #include "ImGuiWrapper.hpp"
 #include "OpenGLManager.hpp"
 #include "Shortcuts.hpp"
@@ -1330,6 +1331,14 @@ void MainFrame::update_edge_panels()
 void MainFrame::shutdown()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "MainFrame::shutdown enter";
+    // MCP calls must not reach panels that are about to go away. A language change rebuilds the
+    // frame, so the server only pauses until GUI_App::recreate_GUI() resumes it.
+    if (Mcp::McpService* mcp = wxGetApp().mcp_service()) {
+        if (wxGetApp().is_recreating_gui())
+            mcp->suspend();
+        else
+            wxGetApp().stop_mcp_service();
+    }
     m_idle.stop();
     if (ProjectPanel* project = ProjectPanel::if_built())
         project->shutdown();

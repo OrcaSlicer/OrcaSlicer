@@ -581,6 +581,7 @@ void ImGuiWrapper::new_frame()
     if (m_new_frame_open) {
         return;
     }
+    m_frame_items.clear();
 
     if (m_font_texture == 0) {
         init_font(true);
@@ -626,6 +627,8 @@ void ImGuiWrapper::new_frame()
 
 ImDrawData* ImGuiWrapper::end_frame()
 {
+    if (m_item_recording && m_frame_owner != nullptr)
+        m_recorded_items[m_frame_owner] = m_frame_items;
 #ifdef __APPLE__
     // io.ImeWindowHandle is the focused canvas' view (GLCanvas3D::on_set_focus()).
     if (void* view = ImGui::GetIO().ImeWindowHandle)
@@ -634,6 +637,48 @@ ImDrawData* ImGuiWrapper::end_frame()
     ImGui::Render();
     m_new_frame_open = false;
     return ImGui::GetDrawData();
+}
+
+void ImGuiWrapper::set_item_recording(bool on)
+{
+    m_item_recording = on;
+    if (ImGuiContext* ctx = ImGui::GetCurrentContext())
+        ctx->TestEngineHookItems = on;
+    if (!on) {
+        m_frame_items.clear();
+        m_recorded_items.clear();
+    }
+}
+
+std::vector<ImGuiWrapper::RecordedItem> ImGuiWrapper::recorded_items(const void* owner) const
+{
+    auto it = m_recorded_items.find(owner);
+    return it == m_recorded_items.end() ? std::vector<RecordedItem>{} : it->second;
+}
+
+void ImGuiWrapper::record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window)
+{
+    // ImGui reports an item again when it re-submits it within a frame; keep the last rectangle.
+    for (RecordedItem& item : m_frame_items)
+        if (item.id == id) {
+            item.x = x0, item.y = y0, item.w = x1 - x0, item.h = y1 - y0;
+            return;
+        }
+    RecordedItem item;
+    item.id     = id;
+    item.window = window != nullptr ? window : "";
+    item.x = x0, item.y = y0, item.w = x1 - x0, item.h = y1 - y0;
+    m_frame_items.push_back(std::move(item));
+}
+
+void ImGuiWrapper::record_item_info(unsigned id, const char* label, int flags)
+{
+    for (auto it = m_frame_items.rbegin(); it != m_frame_items.rend(); ++it)
+        if (it->id == id) {
+            it->label = label != nullptr ? label : "";
+            it->flags = flags;
+            return;
+        }
 }
 
 void ImGuiWrapper::render(ImDrawData* draw_data)
@@ -3703,3 +3748,21 @@ bool IMTexture::load_from_svg_file(const std::string& filename, unsigned width, 
 
 } // namespace GUI
 } // namespace Slic3r
+
+// ImGui's test-engine hooks (IMGUI_ENABLE_TEST_ENGINE in imconfig.h). ImGui calls them only while
+// ImGuiContext::TestEngineHookItems is set, i.e. while ImGuiWrapper records items for automation.
+void ImGuiTestEngineHook_ItemAdd(ImGuiContext* ctx, const ImRect& bb, ImGuiID id)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = Slic3r::GUI::wxGetApp().imgui(); imgui != nullptr && imgui->item_recording())
+        imgui->record_item_add(id, bb.Min.x, bb.Min.y, bb.Max.x, bb.Max.y, ctx->CurrentWindow ? ctx->CurrentWindow->Name : nullptr);
+}
+
+void ImGuiTestEngineHook_ItemInfo(ImGuiContext*, ImGuiID id, const char* label, ImGuiItemStatusFlags flags)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = Slic3r::GUI::wxGetApp().imgui(); imgui != nullptr && imgui->item_recording())
+        imgui->record_item_info(id, label, int(flags));
+}
+
+void ImGuiTestEngineHook_IdInfo(ImGuiContext*, ImGuiDataType, ImGuiID, const void*) {}
+void ImGuiTestEngineHook_IdInfo(ImGuiContext*, ImGuiDataType, ImGuiID, const void*, const void*) {}
+void ImGuiTestEngineHook_Log(ImGuiContext*, const char*, ...) {}

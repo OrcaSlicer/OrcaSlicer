@@ -52,6 +52,8 @@
 #include <vector>
 #include <string>
 #include <wx/string.h>
+
+class wxImage;
 #include <wx/colour.h>
 #include <wx/time.h>
 #include <wx/timer.h>
@@ -647,6 +649,8 @@ private:
 #endif
     unsigned int m_last_w, m_last_h;
     bool m_in_render;
+    // Set only during render_and_capture(): the frame is read back into it before the swap.
+    wxImage* m_frame_capture{ nullptr };
     // How many canvases are inside _render_frame() right now - see is_frame_in_progress().
     static int s_frames_in_progress;
     wxTimer m_timer;
@@ -1158,6 +1162,11 @@ public:
     bool has_mouse_capture() const;
 
     void render(bool only_init = false);
+    // Draws a full frame now and copies it, as presented (scene, toolpaths, toolbars and ImGui
+    // overlays), into `out` at the canvas's pixel size. Used by automation screenshots. Fails with
+    // `err` when the canvas is hidden, not drawable, or already inside a frame (a dialog opened
+    // from one of its panels). UI thread.
+    bool render_and_capture(wxImage& out, std::string& err);
     bool is_rendering_enabled()
     {
         return m_enable_render;

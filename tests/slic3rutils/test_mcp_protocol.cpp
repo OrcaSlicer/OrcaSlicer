@@ -29,6 +29,7 @@ public:
             ToolResult call_child(const std::string&, const json&) override { return ToolResult::error("no children"); }
             std::set<std::string> lineage() const override { return {}; }
             void set_journal_args(json) override {}
+            void begin_operation() override {}
         } ctx;
         return def.handler(args, ctx);
     }

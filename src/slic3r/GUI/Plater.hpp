@@ -13,7 +13,9 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include <atomic>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include <string>
@@ -379,7 +381,8 @@ public:
     int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true);
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
-    int save_project(bool saveAs = false);
+    // `path` saves there without asking (automation); empty keeps the interactive behaviour.
+    int save_project(bool saveAs = false, const wxString& path = {});
     //BBS download project by project id
     void import_model_id(wxString download_info);
     void download_project(const wxString& project_id);
@@ -575,9 +578,10 @@ public:
 
     void send_to_printer(bool isall = false);
     void export_gcode(bool prefer_removable);
-    void export_gcode_3mf(bool export_all = false);
+    // `output_path` writes there without the file dialog; returns whether the file was written.
+    bool export_gcode_3mf(bool export_all = false, const boost::filesystem::path& output_path = {});
     void send_gcode_finish(wxString name);
-    void export_core_3mf();
+    void export_core_3mf(const wxString& output_path = {});
     // Write the project to output_path as a copy: the project's file name, dirty state and model stay
     // as they are, and the signed-in account is not added as the designer. False when the write fails.
     bool export_3mf_copy(const boost::filesystem::path& output_path);
@@ -589,7 +593,9 @@ public:
     bool get_pending_published(std::vector<std::string>& out_keys, std::vector<Slic3r::PublishedMaterialEntry>& out_material, bool& out_legacy_process) const;
     void set_pending_published(const std::vector<std::string>& published_keys, const std::vector<Slic3r::PublishedMaterialEntry>& material_keys);
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
+    // `output_path` (a directory for multi_stls) skips the file dialog.
+    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL,
+                    const wxString& output_path = {});
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -879,6 +885,47 @@ public:
     void set_bed_position(Vec2d& pos);
     //BBS: is the background process slicing currently
     bool is_background_process_slicing() const;
+    // Slicing in any form: the background process running, Slice All in progress, or an update
+    // scheduled to start one.
+    bool is_slicing_any() const;
+
+    // A slice request from a user-facing entry point (toolbar, menu, shortcut, Speed Dial, MCP):
+    // the same path as the toolbar's Slice plate / Slice all.
+    void request_slice(bool all_plates);
+    // What the slicing progress notification's cancel button does.
+    void cancel_slicing();
+    // Starts a G-code export to `output_path` without a dialog. Refused while the background process
+    // is running; when it cannot start, nothing is left scheduled. Returns whether it started.
+    bool export_gcode_to(const boost::filesystem::path& output_path);
+
+    // Bookkeeping that lets an automated caller tell its own slice or export from anyone else's.
+    // The project revision moves on every edit (snapshot, undo/redo, preset or setting change,
+    // reset, load); slice requests, background runs and exports are numbered.
+    struct SliceRun
+    {
+        uint64_t    seq       = 0;
+        bool        finished  = false;
+        bool        cancelled = false;
+        std::string error;
+        uint64_t    revision_at_finish    = 0;
+        uint64_t    request_seq_at_finish = 0;
+    };
+    struct ExportRun
+    {
+        uint64_t    seq = 0;
+        std::string path;
+        bool        finished  = false;
+        bool        ok        = false;
+        bool        cancelled = false;
+        std::string error;
+        uint64_t    revision_at_finish = 0;
+    };
+    uint64_t                 project_revision() const;
+    uint64_t                 slice_request_seq() const;
+    uint64_t                 slice_run_seq() const;
+    std::optional<SliceRun>  slice_run(uint64_t seq) const;
+    uint64_t                 export_seq() const;
+    std::optional<ExportRun> export_run(uint64_t seq) const;
     //BBS: update slicing context
     void update_slicing_context_to_current_partplate();
     //BBS: show object info

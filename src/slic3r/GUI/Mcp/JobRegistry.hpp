@@ -39,8 +39,9 @@ public:
     std::set<std::string> lineage(const std::string& id) const;
     // True when a running job exists that is not in `excluded`.
     bool any_running_except(const std::set<std::string>& excluded) const;
-    // Running jobs of the given tools that are not in `excluded`, for operation admission.
-    std::vector<std::string> running_of(const std::set<std::string>& tools, const std::set<std::string>& excluded) const;
+    // Operation admission: a job marked as an operation holds the project until it finishes.
+    void                     set_operation(const std::string& id);
+    std::vector<std::string> running_operations() const;
 
     // [{id, tool, parent, state, age_ms}] for get_state.
     nlohmann::json list() const;
@@ -53,7 +54,8 @@ private:
     {
         std::string                           tool;
         std::string                           parent;
-        bool                                  finished = false;
+        bool                                  finished  = false;
+        bool                                  operation = false;
         ToolResult                            result;
         std::chrono::steady_clock::time_point created;
     };

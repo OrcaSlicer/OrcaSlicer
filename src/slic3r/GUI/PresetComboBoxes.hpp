@@ -70,6 +70,25 @@ public:
     void set_label_marker(int item, LabelItemType label_item_type = LABEL_ITEM_MARKER);
     bool set_printer_technology(PrinterTechnology pt);
 
+    // True for a row that is a group header, a marker or disabled: not a selectable preset.
+    bool is_marker_item(int item);
+    // How a caller-supplied preset name resolved against this combo's items.
+    struct NameMatch
+    {
+        int         item      = -1;    // first matching item, or -1
+        bool        ambiguous = false; // two distinct items carry this name
+        std::string internal_name;     // internal preset name of the match (empty when none)
+    };
+    // Resolves `requested` by the name each item shows: its display label, or its stored item alias
+    // (the internal preset name, or the printer model for a system printer preset). Names are
+    // compared with the modified-dirty suffix removed, i.e. exactly what the dropdown shows, so this
+    // respects the combo's real selectable model (visibility, show-incompatible state, and for a
+    // filament slot combo that slot's compatibility). A name two distinct items carry is reported
+    // ambiguous instead of being resolved by position. Used by scripts and automation.
+    NameMatch find_by_name(const std::string& requested);
+    // Index of the item whose internal name is `preset_name`, or -1.
+    int item_for_preset(const std::string& preset_name);
+
     void set_selection_changed_function(std::function<void(int)> sel_changed) { on_selection_changed = sel_changed; }
 
     bool is_selected_physical_printer();

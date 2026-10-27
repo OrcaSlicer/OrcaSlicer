@@ -7219,7 +7219,7 @@ bool ImGui::BBLImageSelectable(ImTextureID user_texture_id, const ImVec2& size_a
     if (pressed && (window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiSelectableFlags_DontClosePopups) && !(g.CurrentItemFlags & ImGuiItemFlags_SelectableDontClosePopup))
         CloseCurrentPopup();
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, NULL, window->DC.LastItemStatusFlags);
 
     return pressed;
 }

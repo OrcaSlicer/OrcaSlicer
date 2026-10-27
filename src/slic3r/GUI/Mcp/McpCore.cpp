@@ -44,6 +44,12 @@ public:
             m_journal->set_args(m_seq, std::move(args));
     }
 
+    void begin_operation() override
+    {
+        if (!m_job.empty())
+            m_core.jobs().set_operation(m_job);
+    }
+
 private:
     McpCore&       m_core;
     const ToolDef& m_def;
@@ -108,7 +114,7 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     // Operation admission: an MCP slice/export holds the project until it finishes; only recovery
     // input and the tools that may run during an operation (cancel) get through.
     if (def.guard == GuardClass::Mutate && !def.allowed_during_operation)
-        if (const auto busy = m_jobs.running_of(m_operation_tools, {}); !busy.empty())
+        if (const auto busy = m_jobs.running_operations(); !busy.empty())
             return finish(ToolResult::error("Busy: job " + busy.front() +
                                                 " (a slice or export) is running; wait for it or cancel it before changing the project",
                                             {{"job", busy.front()}}));

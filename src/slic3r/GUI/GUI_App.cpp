@@ -255,6 +255,8 @@
 #include "slic3r/GUI/ConfigWizardTypes.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
+#include "slic3r/GUI/Mcp/McpOptions.hpp"
+#include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/ParamsDialog.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
@@ -1232,6 +1234,9 @@ void GUI_App::post_init()
     }
     if (m_startup_cloud_report)
         std::exchange(m_startup_cloud_report, nullptr)();
+
+    if (m_mcp)
+        m_mcp->mark_ready();
 
     BOOST_LOG_TRIVIAL(info) << "finished post_init";
 //BBS: remove the single instance currently
@@ -2845,6 +2850,8 @@ void GUI_App::init_app_config()
     // MainFrame shortcut read the same value; an existing config (true or false) is left untouched.
     if (app_config->get("enable_speed_dial").empty())
         app_config->set_bool("enable_speed_dial", true);
+    if (app_config->get("mcp_port").empty())
+        app_config->set("mcp_port", std::to_string(Mcp::kDefaultPort));
     set_logging_level(Slic3r::level_string_to_boost(app_config->get("log_severity_level")));
 
 }
@@ -2925,6 +2932,7 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
+    stop_mcp_service();
     stop_http_server();
     stop_sync_user_preset();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
@@ -2987,6 +2995,9 @@ void GUI_App::CleanUp()
     stop_orca_health_check(m_agent);
     if (m_startup_cloud_plugin_fetch_thread.joinable())
         m_startup_cloud_plugin_fetch_thread.join();
+    // Same reason: the MCP server started before the first startup dialog, so an initialization that
+    // failed after it never reaches OnExit().
+    stop_mcp_service();
     wxApp::CleanUp();
 }
 
@@ -3273,6 +3284,7 @@ bool GUI_App::on_init_inner()
     // Stop the Orca Cloud health check as OnExit() does, so no request is in flight while exit() tears down.
     wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
+        stop_mcp_service();
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
         // Before the plugin manager and network module go away.
@@ -3337,6 +3349,14 @@ bool GUI_App::on_init_inner()
 //    wxSystemOptions::SetOption("msw.notebook.themed-background", 0);
 
 //     Slic3r::debugf "wxWidgets version %s, Wx version %s\n", wxVERSION_STRING, wxVERSION;
+    // The MCP server starts before the first startup dialog (the TLS prompt below, the setup wizard)
+    // so an agent can see and answer it; tools that need the main window report not-ready until
+    // post_init() has run.
+    if (init_params != nullptr) {
+        const bool serve = init_params->mcp.enable || app_config->get_bool("mcp_enabled");
+        if (serve || !init_params->mcp.script.empty())
+            start_mcp_service(serve);
+    }
     if (is_editor()) {
         std::string msg = Slic3r::Http::tls_global_init();
         std::string ssl_cert_store = app_config->get("tls_accepted_cert_store_location");
@@ -5047,6 +5067,8 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     update_publish_status();
 
     m_is_recreating_gui = false;
+    if (m_mcp)
+        m_mcp->resume();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI exit";
 }
@@ -8433,6 +8455,43 @@ void GUI_App::start_http_server(int port, const std::string& provider)
 void GUI_App::stop_http_server()
 {
     m_http_server->stop();
+}
+
+bool GUI_App::start_mcp_service(bool serve, std::string* error)
+{
+    // Only the launch options from the command line carry a script; a later start from Preferences
+    // must not run it again.
+    Mcp::McpLaunchOptions options;
+    if (init_params != nullptr && !m_post_initialized)
+        options = init_params->mcp;
+    else if (init_params != nullptr) {
+        options.port  = init_params->mcp.port;
+        options.token = init_params->mcp.token;
+    }
+    if (!m_mcp)
+        m_mcp = std::make_unique<Mcp::McpService>();
+    std::string err;
+    const bool  ok = m_mcp->start(options, serve, err);
+    if (!ok) {
+        BOOST_LOG_TRIVIAL(error) << err;
+        if (plater() != nullptr)
+            plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                                    NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                                                                    err);
+    }
+    if (m_post_initialized)
+        m_mcp->mark_ready();
+    if (error != nullptr)
+        *error = err;
+    return ok;
+}
+
+void GUI_App::stop_mcp_service()
+{
+    if (!m_mcp)
+        return;
+    m_mcp->stop();
+    m_mcp.reset();
 }
 
 #ifdef __linux__

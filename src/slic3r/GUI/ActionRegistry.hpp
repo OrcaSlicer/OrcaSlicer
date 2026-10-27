@@ -98,6 +98,13 @@ struct AppAction
     std::string full_label_en;
     // Full wiki URL, when the action has one (SettingActions whose row declared a label_path).
     std::string help_url;
+    // For automation (MCP, scripts): what the action does in English, what `param` means
+    // ("none", "percent", "tab", "path", "index", "text") and whether its effect finishes after
+    // run() returns (an export that runs in the background). Not shown in the palette.
+    std::string automation_description;
+    std::string param_type = "none";
+    std::string param_help;
+    bool        completes_in_background = false;
 
     virtual ~AppAction() = default;
     // Re-resolves + runs (UI thread). `param` carries an optional per-run argument for
@@ -194,8 +201,22 @@ public:
     // Hard cap on the favourites bar: the numbered quick-launch slots (Alt/Option+1..9, 0).
     static constexpr size_t kFavLimit = 10;
 
-    // Dispatch + write-through (registry is the only thing that touches AppConfig).
-    AppActionRunResult run(const std::string& id, const std::string& param = {}); // runs + bumps stats
+    // Dispatch + write-through (registry is the only thing that touches AppConfig). Automation passes
+    // record_stats = false so agent runs don't reorder the user's palette.
+    AppActionRunResult run(const std::string& id, const std::string& param = {}, bool record_stats = true);
+
+    // The catalog for agents: actions whose id, title, group, source or description contains `text`
+    // (case-insensitive, English aliases included), sorted by group then title, paged. Settings are
+    // listed only when asked for, since there are thousands.
+    struct Query
+    {
+        std::string text;
+        std::string group;
+        bool        include_settings = false;
+        std::size_t offset           = 0;
+        std::size_t limit            = 50;
+    };
+    nlohmann::json describe(const Query& query);
     // Pin/unpin. Returns false when `on` would exceed kFavLimit (the bar is full) so the
     // caller can surface a "favourites are full" hint instead of silently dropping the pin.
     bool set_favourite(const std::string& id, bool on);

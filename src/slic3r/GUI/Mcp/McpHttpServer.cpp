@@ -328,7 +328,11 @@ bool McpHttpServer::start(uint16_t port, std::string& error)
     try {
         const tcp::endpoint endpoint(net::ip::address_v4::loopback(), port);
         m_impl->acceptor.open(endpoint.protocol());
-        // Not reuse_address: a second instance on the same port must fail instead of sharing it.
+#ifndef _WIN32
+        // Lets a restarted server bind while its old connections sit in TIME_WAIT. POSIX still
+        // refuses a second listener on the port; Windows' SO_REUSEADDR would not, so it stays off.
+        m_impl->acceptor.set_option(tcp::acceptor::reuse_address(true));
+#endif
         m_impl->acceptor.bind(endpoint);
         m_impl->acceptor.listen(net::socket_base::max_listen_connections);
         m_impl->bound_port = m_impl->acceptor.local_endpoint().port();

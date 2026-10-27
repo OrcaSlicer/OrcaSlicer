@@ -20,8 +20,11 @@
 #include "PlateSettingsDialog.hpp"
 #include "SceneBenchmark.hpp"
 #include "DeviceCore/DevManager.h"
+#include "Mcp/McpPaths.hpp"
 
 #include "libslic3r/Config.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <functional>
 #include <initializer_list>
 #include <libslic3r/Model.hpp>
@@ -111,6 +114,28 @@ void go_to_layer(Plater* plater, const std::string& param)
     }
 }
 
+// The path a command was given, checked for reading (`output` false) or writing. nullopt with an
+// Error in `fail` when the parameter is unusable.
+std::optional<boost::filesystem::path> path_param(const std::string& param, bool output, AppActionRunResult& fail)
+{
+    std::string err;
+    auto        pp = Mcp::parse_path_param(param, err);
+    std::optional<boost::filesystem::path> path;
+    if (pp)
+        path = output ? Mcp::resolve_output_path(pp->path, pp->overwrite, err) : Mcp::resolve_input_path(pp->path, err);
+    if (!path)
+        fail = {AppActionRunResult::Level::Error, from_u8(err)};
+    return path;
+}
+
+AppActionRunResult written(const boost::filesystem::path& path)
+{
+    boost::system::error_code ec;
+    if (boost::filesystem::exists(path, ec))
+        return {AppActionRunResult::Level::Success, from_u8(path.string())};
+    return {AppActionRunResult::Level::Error, _L("The file was not written.")};
+}
+
 // Select a named camera view. Plater::select_view dispatches to the current panel.
 AppActionRunResult view_command(Plater* plater, const std::string& dir)
 {
@@ -153,8 +178,116 @@ struct CommandAction : AppAction
         this->group_en = c.group;
         this->input    = c.input;
         this->icon     = c.icon;
+        this->automation_description  = c.description;
+        this->param_type              = NativeCommands::param_type_name(c.param.type);
+        this->param_help              = c.param.help;
+        this->completes_in_background = c.completion == CommandCompletion::Export;
     }
 };
+
+// What automation needs to call each command: a description for agents (English, never shown in the
+// palette), the meaning of `param`, and whether the effect finishes after run() returns. Commands
+// without an entry run immediately and ignore `param`.
+void describe_commands(std::vector<NativeCommand>& commands)
+{
+    struct Detail
+    {
+        const char*       key;
+        const char*       description;
+        CommandParamType  param = CommandParamType::None;
+        const char*       param_help = "";
+        CommandCompletion completion = CommandCompletion::None;
+    };
+    static const Detail details[] = {
+        {"slice_and_preview", "Slice the current plate and show the Preview tab. Returns at once; use the slice tool to wait for the result."},
+        {"slice_all", "Slice every plate and show the Preview tab. Returns at once; use the slice tool to wait for results."},
+        {"go_to_layer", "Show the Preview tab at a layer chosen as a percentage of the layer range.", CommandParamType::Percent, "0-100"},
+        {"go_to_tab", "Switch to a main window tab.", CommandParamType::Tab, "tab id: home, prepare, preview, monitor, project, calibration, or a plugin page id"},
+        {"load_project", "Open a project. With a path, opens that file without a dialog (asks first if the current project has unsaved changes).", CommandParamType::Path, "absolute path of a .3mf project"},
+        {"save_project", "Save the project to its current file (asks for a name if it has none)."},
+        {"save_project_as", "Save the project as a .3mf file. With a path, saves there without a dialog.", CommandParamType::Path, "absolute output path, or {\"path\": ..., \"overwrite\": true}"},
+        {"new_project", "Start a new, empty project (asks first if the current one has unsaved changes)."},
+        {"undo", "Undo the last change to the project."},
+        {"redo", "Redo the last undone change."},
+        {"open_preferences", "Open the Preferences dialog."},
+        {"mode_simple", "Switch the settings view to Simple mode."},
+        {"mode_advanced", "Switch the settings view to Advanced mode."},
+        {"mode_expert", "Switch the settings view to Expert mode."},
+        {"toggle_developer_mode", "Turn Developer mode on or off."},
+        {"export_gcode", "Export the current plate's G-code. With a path, exports there without a dialog once the plate is sliced; the export runs in the background.", CommandParamType::Path, "absolute .gcode path, or {\"path\": ..., \"overwrite\": true}", CommandCompletion::Export},
+        {"export_stl", "Export all objects as one STL. With a path, writes there without a dialog.", CommandParamType::Path, "absolute .stl path, or {\"path\": ..., \"overwrite\": true}"},
+        {"export_3mf", "Export the model as a .3mf without slicing data. With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
+        {"export_sliced_file", "Export the current plate's sliced file (.gcode.3mf). With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
+        {"export_all_sliced_file", "Export every plate's sliced file into one .gcode.3mf. With a path, writes there without a dialog.", CommandParamType::Path, "absolute .3mf path, or {\"path\": ..., \"overwrite\": true}"},
+        {"export_stl_multi", "Export each object as its own STL. With a directory, writes there without a dialog.", CommandParamType::Path, "absolute path of an existing directory"},
+        {"export_drc_single", "Export all objects as one Draco (.drc) file."},
+        {"export_drc_multi", "Export each object as its own Draco (.drc) file."},
+        {"export_toolpaths_obj", "Export the sliced toolpaths as an OBJ."},
+        {"export_config", "Export presets as a bundle (opens a dialog to choose them)."},
+        {"import_file", "Import models (3MF/STL/STEP/SVG/OBJ/AMF). With a path, imports that file without a dialog.", CommandParamType::Path, "absolute path of a model file"},
+        {"import_zip_archive", "Import models from a ZIP archive (opens a file dialog)."},
+        {"import_configs", "Import configuration presets. With a path, loads that .ini/.json without a dialog.", CommandParamType::Path, "absolute path of a config file"},
+        {"view_default", "Reset the 3D camera to the default view and fit the plate."},
+        {"view_fit_bed", "Fit the build plate in the 3D view."},
+        {"view_toggle_perspective", "Switch the 3D camera between perspective and orthographic."},
+        {"reset_window_layout", "Restore the default window layout."},
+        {"obj_delete", "Delete the selected objects or parts."},
+        {"obj_delete_all", "Delete all objects."},
+        {"select_all", "Select all objects in the 3D view."},
+        {"deselect_all", "Clear the selection."},
+        {"obj_mirror_x", "Mirror the selection along X."},
+        {"obj_mirror_y", "Mirror the selection along Y."},
+        {"obj_mirror_z", "Mirror the selection along Z."},
+        {"obj_split_objects", "Split the selected object into separate objects."},
+        {"obj_split_parts", "Split the selected object into parts."},
+        {"obj_center", "Center the selection on its plate."},
+        {"obj_drop", "Drop the selection onto the bed."},
+        {"obj_fit_volume", "Scale the selection to fit the print volume."},
+        {"obj_instances_up", "Add an instance of the selected object."},
+        {"obj_instances_down", "Remove an instance of the selected object."},
+        {"obj_arrange", "Arrange all objects on the plates (runs in the background)."},
+        {"obj_orient", "Auto-orient the selection (runs in the background)."},
+        {"plate_add", "Add a plate."},
+        {"plate_duplicate", "Duplicate the current plate."},
+        {"plate_delete", "Delete the current plate."},
+        {"plate_rename", "Rename the current plate (opens a dialog)."},
+        {"plate_toggle_lock", "Lock or unlock the current plate."},
+        {"plate_goto", "Make a plate the current one.", CommandParamType::Index, "0-based plate index"},
+        {"sync_ams", "Synchronize the filament list from the connected printer's AMS."},
+        {"preset_bundle", "Open the preset bundle manager."},
+        {"sync_presets", "Synchronize user presets with the cloud account."},
+        {"help_keyboard_shortcuts", "Show the keyboard shortcuts dialog."},
+        {"help_setup_wizard", "Open the setup wizard."},
+        {"help_open_config_folder", "Open the configuration folder in the file manager."},
+        {"help_migrate_filament_presets", "Migrate legacy user filament presets."},
+        {"help_troubleshoot", "Open the troubleshooting center."},
+        {"help_network_test", "Open the network test dialog."},
+        {"help_benchmark_3d_scene", "Benchmark rendering of the current 3D scene."},
+        {"help_tip_of_the_day", "Show a tip of the day."},
+        {"help_check_updates", "Check for a newer OrcaSlicer."},
+        {"help_about", "Show the About dialog."},
+        {"open_wiki", "Open the OrcaSlicer wiki in the browser."},
+        {"open_youtube", "Open the OrcaSlicer YouTube channel in the browser."},
+        {"open_plugins", "Open the plugins dialog."},
+        {"refresh_plugins", "Reload plugins."},
+        {"install_plugin", "Open the plugin hub to install a plugin."},
+        {"install_local_plugin", "Install a plugin from a local file (opens a file dialog)."},
+    };
+    for (NativeCommand& c : commands) {
+        auto it = std::find_if(std::begin(details), std::end(details), [&](const Detail& d) { return c.key == d.key; });
+        if (it != std::end(details)) {
+            c.description = it->description;
+            c.param       = {it->param, it->param_help};
+            c.completion  = it->completion;
+        } else if (c.key.rfind("calib_", 0) == 0) {
+            c.description = "Open the " + c.title + " wizard.";
+        } else if (c.key.rfind("view_", 0) == 0) {
+            c.description = "Point the 3D camera: " + c.title + ".";
+        } else if (c.key.rfind("add_primitive_", 0) == 0 || c.key.rfind("add_handy_", 0) == 0) {
+            c.description = "Add a " + c.title + " object to the current plate.";
+        }
+    }
+}
 
 std::vector<NativeCommand> build_command_catalog()
 {
@@ -172,11 +305,21 @@ std::vector<NativeCommand> build_command_catalog()
     };
 
     // ---- Slice & Export ----
+    // Slices through the toolbar's path, so it counts as a user slice request (Plater::request_slice).
     add_with_icon("slice_and_preview", L("Slice and Preview"), L("Slice & Export"), "media_play", [](const std::string&) {
         Plater* plater = wxGetApp().plater();
         if (plater) {
-            plater->reslice();
+            plater->request_slice(false);
             plater->select_view_3D("Preview", false);
+            if (MainFrame* mf = wxGetApp().mainframe; mf)
+                mf->select_tab(TAB_ID_PREVIEW);
+        }
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add_with_icon("slice_all", L("Slice All Plates"), L("Slice & Export"), "media_play", [](const std::string&) {
+        Plater* plater = wxGetApp().plater();
+        if (plater) {
+            plater->request_slice(true);
             if (MainFrame* mf = wxGetApp().mainframe; mf)
                 mf->select_tab(TAB_ID_PREVIEW);
         }
@@ -208,9 +351,19 @@ std::vector<NativeCommand> build_command_catalog()
         },
         "tab");
 
-    add_with_icon("load_project", L("Load Project"), L("Commands"), "menu_open", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
+    add_with_icon("load_project", L("Load Project"), L("Commands"), "menu_open", [](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
             plater->load_project();
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        AppActionRunResult fail;
+        const auto         path = path_param(param, false, fail);
+        if (!path)
+            return fail;
+        plater->load_project(from_path(*path));
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("save_project", L("Save Project"), L("Commands"), "menu_save", [](const std::string&) {
@@ -218,9 +371,35 @@ std::vector<NativeCommand> build_command_catalog()
             plater->save_project(false);
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add_with_icon("save_project_as", L("Save Project As"), L("Commands"), "menu_save", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
+    add_with_icon("save_project_as", L("Save Project As"), L("Commands"), "menu_save", [](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
             plater->save_project(true);
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        AppActionRunResult fail;
+        const auto         path = path_param(param, true, fail);
+        if (!path)
+            return fail;
+        if (plater->save_project(true, from_path(*path)) != wxID_YES && !boost::filesystem::exists(*path))
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The project was not saved.")};
+        return written(*path);
+    });
+    add_with_icon("new_project", L("New Project"), L("Commands"), "menu_open", [](const std::string&) {
+        if (Plater* plater = wxGetApp().plater())
+            plater->new_project();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add_with_icon("undo", L("Undo"), L("Commands"), "menu_undo", [](const std::string&) {
+        if (Plater* plater = wxGetApp().plater())
+            plater->undo();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add_with_icon("redo", L("Redo"), L("Commands"), "menu_redo", [](const std::string&) {
+        if (Plater* plater = wxGetApp().plater())
+            plater->redo();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("open_preferences", L("Preferences"), L("Commands"), "cog", [](const std::string&) {
@@ -252,31 +431,74 @@ std::vector<NativeCommand> build_command_catalog()
     });
 
     // ---- Export pipeline ----
-    add_with_icon("export_gcode", L("Export G-code"), L("Slice & Export"), "custom-gcode_gcode", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
+    add_with_icon("export_gcode", L("Export G-code"), L("Slice & Export"), "custom-gcode_gcode", [](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
             plater->export_gcode(false);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        AppActionRunResult fail;
+        const auto         path = path_param(param, true, fail);
+        if (!path)
+            return fail;
+        if (plater->is_slicing_any())
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Slicing is in progress. Wait for it to finish and export again.")};
+        if (!plater->export_gcode_to(*path))
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The export could not start. Slice the plate first and check for slicing errors.")};
+        return AppActionRunResult{AppActionRunResult::Level::Info, from_u8(path->string())};
     });
-    add_with_icon("export_stl", L("Export STL"), L("Slice & Export"), "save", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
+    add_with_icon("export_stl", L("Export STL"), L("Slice & Export"), "save", [](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
             plater->export_stl();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        AppActionRunResult fail;
+        const auto         path = path_param(param, true, fail);
+        if (!path)
+            return fail;
+        plater->export_stl(false, false, false, FT_STL, from_path(*path));
+        return written(*path);
     });
-    add_with_icon("export_3mf", L("Export 3MF"), L("Slice & Export"), "menu_save", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
+    add_with_icon("export_3mf", L("Export 3MF"), L("Slice & Export"), "menu_save", [](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
             plater->export_core_3mf();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        AppActionRunResult fail;
+        const auto         path = path_param(param, true, fail);
+        if (!path)
+            return fail;
+        plater->export_core_3mf(from_path(*path));
+        return written(*path);
     });
-    add_with_icon("export_sliced_file", L("Export Sliced File"), L("Slice & Export"), "save", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
-            plater->export_gcode_3mf(false);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
-    });
-    add_with_icon("export_all_sliced_file", L("Export All Sliced Files"), L("Slice & Export"), "save", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
-            plater->export_gcode_3mf(true);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
-    });
+    auto export_sliced = [](bool all) {
+        return [all](const std::string& param) {
+            Plater* plater = wxGetApp().plater();
+            if (plater == nullptr)
+                return AppActionRunResult{};
+            if (param.empty()) {
+                plater->export_gcode_3mf(all);
+                return AppActionRunResult{AppActionRunResult::Level::Success};
+            }
+            AppActionRunResult fail;
+            const auto         path = path_param(param, true, fail);
+            if (!path)
+                return fail;
+            if (!plater->export_gcode_3mf(all, *path))
+                return AppActionRunResult{AppActionRunResult::Level::Error, _L("The sliced file was not written. Slice first and check for slicing errors.")};
+            return written(*path);
+        };
+    };
+    add_with_icon("export_sliced_file", L("Export Sliced File"), L("Slice & Export"), "save", export_sliced(false));
+    add_with_icon("export_all_sliced_file", L("Export All Sliced Files"), L("Slice & Export"), "save", export_sliced(true));
 
     // ---- Calibration ----
     // The tab-strip calib_sf glyph is drawn white for the dark tab bar and vanishes on the palette's
@@ -346,6 +568,19 @@ std::vector<NativeCommand> build_command_catalog()
     add_with_icon("obj_delete_all", L("Delete All Objects"), L("Object"), "delete", [](const std::string&) {
         return object_op(
             wxGetApp().plater(), [](Plater* p) { return p->can_delete_all(); }, [](Plater* p) { p->delete_all_objects_from_model(); });
+    });
+    add("select_all", L("Select All Objects"), L("Object"), [](const std::string&) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        ensure_3d_view(plater);
+        plater->select_all();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add("deselect_all", L("Deselect All"), L("Object"), [](const std::string&) {
+        if (Plater* plater = wxGetApp().plater())
+            plater->deselect_all();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("obj_mirror_x", L("Mirror X"), L("Object"), "menu_mirror_x", [](const std::string&) {
         return object_op(wxGetApp().plater(), [](Plater* p) { return p->can_mirror(); }, [](Plater* p) { p->mirror(Axis::X); });
@@ -529,14 +764,24 @@ std::vector<NativeCommand> build_command_catalog()
     });
 
     // ---- Import ----
-    add_with_icon("import_file", L("Import 3MF/STL/STEP/SVG/OBJ/AMF"), L("Import"), "menu_open", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater()) {
+    add_with_icon("import_file", L("Import 3MF/STL/STEP/SVG/OBJ/AMF"), L("Import"), "menu_open", [](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
 #ifdef __APPLE__
             plater->add_model();
 #else
-                plater->add_file();
+            plater->add_file();
 #endif
+            return AppActionRunResult{AppActionRunResult::Level::Success};
         }
+        AppActionRunResult fail;
+        const auto         path = path_param(param, false, fail);
+        if (!path)
+            return fail;
+        if (plater->load_files(std::vector<boost::filesystem::path>{*path}).empty())
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Nothing was imported.")};
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("import_zip_archive", L("Import ZIP Archive"), L("Import"), "menu_open", [](const std::string&) {
@@ -544,17 +789,39 @@ std::vector<NativeCommand> build_command_catalog()
             plater->import_zip_archive();
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add_with_icon("import_configs", L("Import Configs"), L("Import"), "menu_open", [](const std::string&) {
-        if (MainFrame* mf = wxGetApp().mainframe)
+    add_with_icon("import_configs", L("Import Configs"), L("Import"), "menu_open", [](const std::string& param) {
+        MainFrame* mf = wxGetApp().mainframe;
+        if (mf == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
             mf->load_config_file();
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        AppActionRunResult fail;
+        const auto         path = path_param(param, false, fail);
+        if (!path)
+            return fail;
+        if (!mf->load_config_file(path->string()))
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The configuration was not loaded.")};
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
 
     // ---- Export extras ----
-    add_with_icon("export_stl_multi", L("Export All Objects as STLs"), L("Export"), "save", [](const std::string&) {
-        if (Plater* plater = wxGetApp().plater())
+    add_with_icon("export_stl_multi", L("Export All Objects as STLs"), L("Export"), "save", [](const std::string& param) {
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        if (param.empty()) {
             plater->export_stl(false, false, true);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }
+        std::string err;
+        auto        pp  = Mcp::parse_path_param(param, err);
+        auto        dir = pp ? Mcp::resolve_output_dir(pp->path, err) : std::nullopt;
+        if (!dir)
+            return AppActionRunResult{AppActionRunResult::Level::Error, from_u8(err)};
+        plater->export_stl(false, false, true, FT_STL, from_path(*dir));
+        return AppActionRunResult{AppActionRunResult::Level::Success, from_u8(dir->string())};
     });
     add_with_icon("export_drc_single", L("Export All Objects as DRC (one file)"), L("Export"), "save", [](const std::string&) {
         if (Plater* plater = wxGetApp().plater())
@@ -650,6 +917,7 @@ std::vector<NativeCommand> build_command_catalog()
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
 
+    describe_commands(out);
     return out;
 }
 
@@ -664,6 +932,26 @@ const std::vector<NativeCommand>& NativeCommands::catalog()
 std::unique_ptr<AppAction> NativeCommands::make_action(const NativeCommand& command)
 {
     return std::make_unique<CommandAction>(command);
+}
+
+const NativeCommand* NativeCommands::find(const std::string& key)
+{
+    for (const NativeCommand& c : catalog())
+        if (c.key == key)
+            return &c;
+    return nullptr;
+}
+
+const char* NativeCommands::param_type_name(CommandParamType type)
+{
+    switch (type) {
+    case CommandParamType::Percent: return "percent";
+    case CommandParamType::Tab: return "tab";
+    case CommandParamType::Path: return "path";
+    case CommandParamType::Index: return "index";
+    case CommandParamType::Text: return "text";
+    default: return "none";
+    }
 }
 
 AppActionRunResult NativeCommands::run(const std::string& key, const std::string& param)

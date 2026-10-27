@@ -3376,6 +3376,35 @@ void NotificationManager::device_ejected()
 			notification->close();
 	}
 }
+std::vector<NotificationSummary> NotificationManager::summaries() const
+{
+    std::vector<NotificationSummary> out;
+    for (const std::unique_ptr<PopNotification>& n : m_pop_notifications) {
+        if (n->is_finished())
+            continue;
+        const NotificationData& data = n->get_data();
+        NotificationSummary     s;
+        s.type = int(data.type);
+        switch (data.level) {
+        case NotificationLevel::ErrorNotificationLevel: s.level = "error"; break;
+        case NotificationLevel::WarningNotificationLevel:
+        case NotificationLevel::SeriousWarningNotificationLevel: s.level = "warning"; break;
+        case NotificationLevel::ProgressBarNotificationLevel: s.level = "progress"; break;
+        case NotificationLevel::HintNotificationLevel: s.level = "hint"; break;
+        default: s.level = "info"; break;
+        }
+        s.text = data.text1;
+        if (!data.hypertext.empty())
+            s.text += " " + data.hypertext;
+        if (!data.text2.empty())
+            s.text += " " + data.text2;
+        if (s.text.find_first_not_of(" \n") == std::string::npos)
+            continue; // progress bars and other notifications without text
+        out.push_back(std::move(s));
+    }
+    return out;
+}
+
 size_t NotificationManager::get_notification_count() const
 {
 	size_t ret = 0;

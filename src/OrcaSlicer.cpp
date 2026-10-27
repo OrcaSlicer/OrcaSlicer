@@ -169,6 +169,7 @@ using json = nlohmann::json;
 
 #ifdef SLIC3R_GUI
     #include "slic3r/GUI/GUI_Init.hpp"
+    #include "slic3r/GUI/Mcp/McpStdioBridge.hpp"
     // BBLPrinterAgent::from_orca_filament_id(); the map and its lookups live in libslic3r_gui,
     // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
     // in CMakeLists).
@@ -1203,6 +1204,13 @@ int CLI::run(int argc, char **argv)
     // Save the thread ID of the main thread.
     save_main_thread_id();
 
+#ifdef SLIC3R_GUI
+    // The stdio bridge is a plain pipe to a running GUI instance; it needs none of the setup below.
+    for (int i = 1; i < argc; ++i)
+        if (std::strcmp(argv[i], "--mcp-stdio") == 0)
+            return Slic3r::GUI::Mcp::run_stdio_bridge(argc, argv);
+#endif
+
 #ifdef __WXGTK__
     // ------------------------------------------------------------------
     // Linux backend selection — runtime, based on GDK_BACKEND env var.
@@ -1510,6 +1518,18 @@ int CLI::run(int argc, char **argv)
         }
         //BBS: remove GCodeViewer as separate APP logic
         //params.start_as_gcodeviewer = start_as_gcodeviewer;
+
+        if (const auto *opt = m_config.opt<ConfigOptionBool>("mcp"))
+            params.mcp.enable = opt->value;
+        if (const auto *opt = m_config.opt<ConfigOptionInt>("mcp_port"))
+            params.mcp.port = opt->value;
+        if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_token"))
+            params.mcp.token = opt->value;
+        // Resolved now: the GUI moves the working directory to <data_dir>/log before the script runs.
+        if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_script"))
+            params.mcp.script = resolve_cli_input_path(opt->value);
+        if (const auto *opt = m_config.opt<ConfigOptionString>("mcp_script_out"))
+            params.mcp.script_out = resolve_cli_input_path(opt->value);
 
         BOOST_LOG_TRIVIAL(info) << "begin to launch OrcaSlicer GUI soon";
         return Slic3r::GUI::GUI_Run(params);

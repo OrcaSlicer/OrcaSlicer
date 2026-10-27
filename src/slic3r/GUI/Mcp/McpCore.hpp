@@ -41,10 +41,6 @@ public:
     // exempts it from operation admission against its own ancestors.
     ToolResult call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job);
 
-    // Tools whose jobs hold the operation lock (slice, export): while one runs, other mutate calls
-    // outside its job tree are refused.
-    void set_operation_tools(std::set<std::string> tools) { m_operation_tools = std::move(tools); }
-
     // Wakes all waiters (UiInvoker and JobRegistry must be woken by the owner first or after) and
     // waits, bounded, for job threads to return.
     void shutdown();
@@ -61,7 +57,6 @@ private:
     JobRegistry&        m_jobs;
     Journal*            m_journal;
     CoreTiming          m_timing;
-    std::set<std::string> m_operation_tools;
 
     // Requests that may block (a job within its reply budget, or wait) hold a slot, so the number of
     // blocked request threads stays below the connection limit and recovery calls always get through.

@@ -386,7 +386,8 @@ TEST_CASE("every mutate call is refused while a slice job runs, but cancel and r
 {
     Harness           h;
     std::atomic<bool> release{false};
-    ToolDef slice = tool("slice", GuardClass::Mutate, [&](const json&, ToolContext&) {
+    ToolDef slice = tool("slice", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.begin_operation();
         while (!release)
             std::this_thread::sleep_for(10ms);
         return ToolResult::ok();
@@ -402,7 +403,6 @@ TEST_CASE("every mutate call is refused while a slice job runs, but cancel and r
     h.registry.add(cancel);
     h.registry.add(tool("answer", GuardClass::Recover, [](const json&, ToolContext&) { return ToolResult::ok(); }));
     h.start();
-    h.core->set_operation_tools({"slice"});
 
     const ToolResult running = h.call("slice");
     REQUIRE(running.data["status"] == "running");
@@ -456,7 +456,8 @@ TEST_CASE("idle ignores the caller and its ancestors", "[Mcp]")
     CHECK(jobs.any_running_except(jobs.lineage(step)));
     jobs.finish(other, ToolResult::ok());
     CHECK_FALSE(jobs.any_running_except(jobs.lineage(step)));
-    CHECK(jobs.running_of({"slice"}, {}) == std::vector<std::string>{step});
+    jobs.set_operation(step);
+    CHECK(jobs.running_operations() == std::vector<std::string>{step});
 }
 
 TEST_CASE("the job registry caps running jobs and forgets old finished ones", "[Mcp]")

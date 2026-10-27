@@ -114,6 +114,7 @@ class SpeedDialWebDialog;
 class TerminalDialog;
 class ActionRegistry;
 class HttpServer;
+namespace Mcp { class McpService; }
 class ImGuiWrapper;
 class OpenGLManager;
 class UpgradeNetworkJob;
@@ -383,6 +384,7 @@ private:
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     std::unique_ptr<HttpServer> m_http_server;
+    std::unique_ptr<Mcp::McpService> m_mcp;
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:
@@ -660,6 +662,12 @@ public:
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            stop_http_server();
+
+    // MCP server for AI agents, from Preferences or --mcp/--mcp-script. `serve` opens the HTTP
+    // endpoint; a --mcp-script alone needs only the tool catalog. UI thread.
+    bool            start_mcp_service(bool serve, std::string* error = nullptr);
+    void            stop_mcp_service();
+    Mcp::McpService* mcp_service() { return m_mcp.get(); }
 
     void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            show_check_privacy_dlg(wxCommandEvent& evt);

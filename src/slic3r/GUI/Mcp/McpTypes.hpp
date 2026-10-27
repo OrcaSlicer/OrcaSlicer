@@ -74,6 +74,9 @@ public:
     virtual std::set<std::string> lineage() const = 0;
     // Replaces the arguments the session journal records for this call (refs become locators).
     virtual void set_journal_args(nlohmann::json args) = 0;
+    // Marks this job as a slice/export operation: until it finishes, other mutate calls are refused
+    // so nothing changes the project under it. No-op for inline calls.
+    virtual void begin_operation() = 0;
 };
 
 using ToolHandler = std::function<ToolResult(const nlohmann::json& args, ToolContext& ctx)>;

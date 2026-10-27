@@ -201,6 +201,14 @@ enum class NotificationType
 
 };
 
+// A notification as text, for automation (MCP get_state).
+struct NotificationSummary
+{
+    int         type = 0;   // NotificationType value
+    std::string level;      // "info", "warning", "error", "progress", "hint"
+    std::string text;
+};
+
 class NotificationManager
 {
 public:
@@ -379,6 +387,8 @@ public:
 	bool update_notifications(GLCanvas3D& canvas);
 	// returns number of all notifications shown
 	size_t get_notification_count() const;
+	// The notifications currently shown (not finished or closing), oldest first.
+	std::vector<NotificationSummary> summaries() const;
 
 
 	//BBS Notice

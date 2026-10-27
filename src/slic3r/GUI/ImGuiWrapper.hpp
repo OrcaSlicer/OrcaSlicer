@@ -57,6 +57,22 @@ bool menu_item_with_icon(const char *label, const char *shortcut, ImVec2 icon_si
 
 class ImGuiWrapper
 {
+public:
+    // Automation (the MCP server) lists and clicks ImGui items, which have no window handles. While
+    // recording is on, every item a frame adds is recorded with its id, label, window and rectangle
+    // (in ImGui coordinates), per canvas: the canvas calls set_frame_owner() before new_frame(), and
+    // end_frame() publishes the frame's items as that owner's latest. Off unless the MCP server runs;
+    // ImGui then skips the hooks with one branch per item.
+    struct RecordedItem
+    {
+        unsigned    id = 0;
+        std::string label;  // as passed to ImGui, "##" suffix included
+        std::string window; // name of the ImGui window the item belongs to
+        float       x = 0.f, y = 0.f, w = 0.f, h = 0.f;
+        int         flags = 0; // ImGuiItemStatusFlags
+    };
+
+private:
     const ImWchar* m_glyph_ranges{ nullptr };
     const ImWchar* m_glyph_basic_ranges { nullptr };
     // Chinese, Japanese, Korean
@@ -78,6 +94,11 @@ class ImGuiWrapper
     std::string m_clipboard_text;
     // Keys held down, each with whether ImGui claimed its press.
     std::map<int, bool> m_key_claims;
+    // Item recording for automation, see set_item_recording(). UI thread only.
+    bool                                                m_item_recording{ false };
+    const void*                                         m_frame_owner{ nullptr };
+    std::vector<RecordedItem>                           m_frame_items;
+    std::map<const void*, std::vector<RecordedItem>>    m_recorded_items;
     // Whether ImGui claimed the last key-down, for the char event that follows it.
     std::optional<bool> m_char_claim;
 
@@ -112,6 +133,14 @@ public:
     void new_frame();
     // Ends the frame and returns its draw data without drawing it.
     ImDrawData* end_frame();
+
+    void                      set_item_recording(bool on);
+    bool                      item_recording() const { return m_item_recording; }
+    void                      set_frame_owner(const void* owner) { m_frame_owner = owner; }
+    std::vector<RecordedItem> recorded_items(const void* owner) const;
+    // Called by the ImGui test-engine hooks; not for other use.
+    void record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window);
+    void record_item_info(unsigned id, const char* label, int flags);
     void render(ImDrawData* draw_data);
     // Hash of every draw list's vertices, indices and commands.
     static ImGuiID draw_data_signature(const ImDrawData* draw_data);
