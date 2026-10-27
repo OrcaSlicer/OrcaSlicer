@@ -37,6 +37,7 @@
 #include "SelectMachinePop.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 namespace Slic3r { namespace GUI {
 

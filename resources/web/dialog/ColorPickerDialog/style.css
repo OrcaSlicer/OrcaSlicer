@@ -526,6 +526,10 @@ body {
 .icon-button[aria-expanded="true"]:hover { 
   background: var(--main-color-hover);
 }
+.icon-button[aria-pressed="true"] {
+  background: var(--main-color);
+  color: var(--button-fg-light);
+}
 
 .hidden    { display: none !important }
 .invisible { visibility: hidden }

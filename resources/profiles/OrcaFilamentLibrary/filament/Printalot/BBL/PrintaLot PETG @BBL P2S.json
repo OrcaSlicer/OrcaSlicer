@@ -1,0 +1,30 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @BBL P2S",
+	"inherits": "PrintaLot PETG @base",
+	"from": "system",
+	"setting_id": "pyyQNOoxLVj6scbF",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive E3D High Flow"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"compatible_printers": [
+		"Bambu Lab P2S 0.4 nozzle",
+		"Bambu Lab P2S 0.6 nozzle",
+		"Bambu Lab P2S 0.8 nozzle"
+	]
+}

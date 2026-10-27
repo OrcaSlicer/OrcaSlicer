@@ -71,6 +71,7 @@
 #include <windows.h>
 #include <VersionHelpers.h>
 #include <sysinfoapi.h>
+#include <winternl.h>
 #endif
 
 #ifdef __LINUX__
@@ -98,6 +99,8 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/HyperLink.hpp"
 #include "Widgets/Button.hpp"
+#include "Plater.hpp"
+#include "MsgDialog.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -791,9 +794,8 @@ wxString TroubleshootDialog::GetPackageType()
     return "Portable";
 #elif defined(__LINUX__)
     if (wxGetEnv("APPIMAGE"  , nullptr))   return "AppImage";
-    if (wxGetEnv("FLATPAK_ID", nullptr))   return "Flatpak";
+    if (Slic3r::is_running_in_flatpak())   return "Flatpak";
     //if (wxGetEnv("SNAP"      , nullptr)) return "Snap";
-    if (wxFileExists("/.flatpak-info"))    return "Flatpak";
     //if (wxFileExists("/usr/bin/dpkg"))   return "Debian/Ubuntu (deb)";
     //if (wxFileExists("/usr/bin/rpm"))    return "RPM-based (rpm)";
     //if (wxFileExists("/usr/bin/pacman")) return "Arch (pacman)";
@@ -1016,9 +1018,10 @@ void TroubleshootDialog::PackAll()
                 _L("Select NO to close dialog and review project."),
                 wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE
             ).ShowModal();
-            if (res == wxID_YES)
-                wxGetApp().plater()->save_project();
-            else {
+            if (res == wxID_YES) {
+                if (wxGetApp().plater()->save_project() != wxID_YES)
+                    return; // do not package as if the project had been saved
+            } else {
                 if (res == wxID_NO)
                     EndModal(wxID_CLOSE);
                 return;
@@ -1045,9 +1048,10 @@ void TroubleshootDialog::RebuildSystemProfiles()
             _L("Select NO to close dialog and review project."),
             wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE
         ).ShowModal();
-        if (res == wxID_YES)
-            wxGetApp().plater()->save_project();
-        else {
+        if (res == wxID_YES) {
+            if (wxGetApp().plater()->save_project() != wxID_YES)
+                return; // do not rebuild profiles as if the project had been saved
+        } else {
             if (res == wxID_NO)
                 EndModal(wxID_CLOSE);
             return;

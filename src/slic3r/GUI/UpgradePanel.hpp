@@ -19,6 +19,7 @@
 #include <wx/string.h>
 #include <wx/sizer.h>
 #include <wx/scrolwin.h>
+#include <wx/statline.h>
 #include "ReleaseNote.hpp"
 
 namespace Slic3r {

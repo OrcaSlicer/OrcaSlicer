@@ -4,6 +4,7 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <cstdint>
+#include <memory>
 #include "libslic3r/Config.hpp"
 #include "slic3r/GUI/Lazy.hpp"
 #include <wx/event.h>
@@ -28,28 +29,11 @@
 
 #include "GUI_Utils.hpp"
 #include "Event.hpp"
-//BBS: GUI refactor
-#include "ParamsPanel.hpp"
-#include "Monitor.hpp"
-#include "Auxiliary.hpp"
-#include "Project.hpp"
-#include "CalibrationPanel.hpp"
-#include "UnsavedChangesDialog.hpp"
-#include "Widgets/SideButton.hpp"
-#include "Widgets/SideMenuPopup.hpp"
-#include "FilamentGroupPopup.hpp"
-#include "LazyPage.hpp"
 #include "IdleScheduler.hpp"
 
 
 #include <boost/property_tree/ptree_fwd.hpp>
 
-// BBS
-#include "BBLTopbar.hpp"
-#include "PrinterWebView.hpp"
-#include "calib_dlg.hpp"
-#include "MultiMachinePage.hpp"
-#include "slic3r/plugin/host/PluginPages.hpp"
 
 // Stable identifiers for MainFrame::m_tabpanel's built-in pages. These are
 // names rather than positional indices so optional pages cannot shift them.
@@ -71,16 +55,43 @@
 #define ENABEL_PRINT_ALL 0
 
 class Notebook;
+class BBLTopbar;
+class SideButton;
+class SidePopup;
+class wxLogWindow;
+class wxMenu;
+class wxMenuBar;
+class wxMenuItem;
 class wxBookCtrlBase;
 class wxProgressDialog;
 
 namespace Slic3r {
+
+class PluginPages;
 
 namespace GUI
 {
 
 class Tab;
 class PrintHostQueueDialog;
+class DiffPresetDialog;
+class ParamsPanel;
+class MonitorPanel;
+class MultiMachinePage;
+class ProjectPanel;
+class CalibrationPanel;
+class PrinterWebView;
+class FilamentGroupPopup;
+class PA_Calibration_Dlg;
+class FlowRateCalibrationDialog;
+class Temp_Calibration_Dlg;
+class MaxVolumetricSpeed_Test_Dlg;
+class VFA_Test_Dlg;
+class Retraction_Test_Dlg;
+class Input_Shaping_Freq_Test_Dlg;
+class Input_Shaping_Damp_Test_Dlg;
+class Cornering_Test_Dlg;
+template <class Panel> class LazyPage;
 class Plater;
 #ifdef SLIC3R_CAD
 class DesignPanel;
@@ -326,7 +337,7 @@ protected:
 
 public:
     MainFrame();
-    ~MainFrame() = default;
+    ~MainFrame();
 #ifdef __APPLE__
     bool get_mac_full_screen() { return m_mac_fullscreen; }
 #endif
@@ -487,7 +498,7 @@ public:
     void fit_tab_labels(); // ORCA
     // True while either of the two tabs backed by m_plater is selected.
     bool is_prepare_or_preview_tab() const;
-    PluginPages& plugin_pages() { return m_plugin_pages; }
+    PluginPages& plugin_pages() { return *m_plugin_pages; }
 
     PA_Calibration_Dlg* m_pa_calib_dlg{ nullptr };
     FlowRateCalibrationDialog* m_flow_rate_calib_dlg{ nullptr };
@@ -523,7 +534,7 @@ public:
     LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
     LazyPage<WebViewPanel>* m_home_page { nullptr };
     LazyPage<PrinterWebView>* m_printer_view_page{nullptr};
-    PluginPages           m_plugin_pages;
+    std::unique_ptr<PluginPages> m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };
     // BBS
     //wxBookCtrlBase*       m_tabpanel { nullptr };
@@ -534,7 +545,7 @@ public:
     //BBS
     SettingsDialog        m_settings_dialog;
     // The Compare presets dialog, built on first use or at idle through its holder.
-    Lazy<DiffPresetDialog> m_diff_dialog;
+    std::unique_ptr<Lazy<DiffPresetDialog>> m_diff_dialog;
     wxWindow*             m_plater_page{ nullptr };
     PrintHostQueueDialog* m_printhost_queue_dlg;
 

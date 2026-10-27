@@ -5,7 +5,7 @@
 	"from": "system",
 	"setting_id": "CbQCA65dMMEkK134",
 	"instantiation": "true",
-	"overhang_3_4_speed": "50",
+	"overhang_2_4_speed": "50",
 	"support_threshold_angle": "35",
 	"outer_wall_acceleration": "3000",
 	"inner_wall_acceleration": "6000",

@@ -739,6 +739,12 @@ plain window.
   static `GetParentBackgroundColor(wxWindow*)`. Protected members: `radius`, `border_width`,
   `top_margin`, `border_style`, `state_handler`, `border_color`, `background_color`,
   `background_color2`, `badge`.
+- **Input corner radius:** the boxed inputs (`TextInput` and so `ComboBox`, `SpinInput`, `TempInput`)
+  share `StaticBox::InputCornerRadius` (DIP). Their constructor sets the protected `input_corner_radius`
+  flag, and `Create()` and `Rescale()` call `apply_input_corner_radius()`, which re-applies
+  `FromDIP(InputCornerRadius)` at the current DPI. `SetCornerRadius()` clears the flag, so an explicit
+  radius (`0` for square cells in tables and grids) survives a DPI change. A new boxed input follows
+  the same three steps.
 - **`SetBackgroundColor` ≠ wx `SetBackgroundColour`.** The former sets the `StateColor` fill that
   `doRender` paints; the latter is the wx window colour that the erase pass uses outside the
   rounded rect. They are different things on purpose.

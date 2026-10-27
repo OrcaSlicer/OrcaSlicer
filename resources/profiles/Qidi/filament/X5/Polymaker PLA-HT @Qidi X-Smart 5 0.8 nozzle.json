@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA-HT @Qidi X-Smart 5 0.8 nozzle",
+	"inherits": "Polymaker PLA-HT@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "wUVJWdEh4H9J5zJD",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.009"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.8 nozzle"
+	]
+}

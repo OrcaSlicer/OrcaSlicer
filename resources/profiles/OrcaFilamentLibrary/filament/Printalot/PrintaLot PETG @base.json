@@ -1,0 +1,108 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PETG @base",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"filament_id": "OFdndO9v",
+	"instantiation": "false",
+	"close_additional_fan_first_x_layers": [
+		"3"
+	],
+	"cool_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"70"
+	],
+	"eng_plate_temp_initial_layer": [
+		"70"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"fan_max_speed": [
+		"90"
+	],
+	"fan_min_speed": [
+		"40"
+	],
+	"filament_adhesiveness_category": [
+		"300"
+	],
+	"filament_dev_ams_drying_ams_limitations": [
+		"1",
+		"0"
+	],
+	"filament_dev_ams_drying_heat_distortion_temperature": [
+		"75"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"65",
+		"65",
+		"55",
+		"55"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
+	],
+	"filament_dev_chamber_drying_bed_temperature": [
+		"80"
+	],
+	"filament_dev_chamber_drying_time": [
+		"12.0"
+	],
+	"filament_dev_drying_cooling_temperature": [
+		"55"
+	],
+	"filament_dev_drying_softening_temperature": [
+		"60"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"17"
+	],
+	"filament_notes": [
+		"PrintaLot PETG, 1.75 mm."
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_type": [
+		"PETG"
+	],
+	"filament_vendor": [
+		"PrintaLot"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_initial_layer": [
+		"255"
+	],
+	"nozzle_temperature_range_high": [
+		"270"
+	],
+	"overhang_fan_speed": [
+		"90"
+	],
+	"overhang_fan_threshold": [
+		"10%"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"slow_down_min_speed": [
+		"20"
+	]
+}

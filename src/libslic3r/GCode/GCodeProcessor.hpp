@@ -286,6 +286,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                 Vec3d  moment{ Vec3d::Zero() };
                 // Of the mass about the origin along each axis, the sums of m x^2, m y^2 and m z^2.
                 Vec3d second{ Vec3d::Zero() };
+                // And across the axes, the sums of m x y, m x z and m y z.
+                Vec3d cross{ Vec3d::Zero() };
 
                 void add(const Sum &other)
                 {
@@ -293,11 +295,27 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                     volume += other.volume;
                     moment += other.moment;
                     second += other.second;
+                    cross += other.cross;
+                }
+                // The sum of m x x^T.
+                Matrix3d second_moments() const
+                {
+                    Matrix3d sums;
+                    sums << second.x(), cross.x(), cross.y(), cross.x(), second.y(), cross.z(), cross.y(), cross.z(), second.z();
+                    return sums;
+                }
+                void set_second_moments(const Matrix3d &sums)
+                {
+                    second = sums.diagonal();
+                    cross  = Vec3d(sums(0, 1), sums(0, 2), sums(1, 2));
                 }
             };
             // Everything printed up to each layer id, the plate's with brim, raft and supports, and the box it fills.
             std::vector<Sum> printed_up_to_layer;
             BoundingBoxf3    box;
+            // Of a belt print, the box of the moves mapped by the linear part of its G-code back-transform, as a shear would
+            // carry the corners of the box above far past the moves.
+            BoundingBoxf3 belt_box;
             // Of an object, whether it is an assembly.
             bool assembly{ false };
             // Of an object instance, its model object's name and its index among that object's instances.
@@ -305,7 +323,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             int         instance{ -1 };
 
             Sum  total() const { return printed_up_to_layer.empty() ? Sum{} : printed_up_to_layer.back(); }
-            void add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer);
+            void add(const Sum &sum, const BoundingBoxf3 &extent, const BoundingBoxf3 &belt_extent, size_t layer);
+            // Into the model's frame by a belt print's G-code back-transform; mass and volume stay as printed.
+            void transform(const Transform3d &trafo);
         };
 
         std::string filename;
@@ -369,7 +389,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::vector<float> filament_costs;
         std::vector<int> filament_vitrification_temperature;
         std::vector<int>   filament_maps;
-        std::vector<int>   limit_filament_maps;
+        // Per filament, bit i is set when extruder i + 1 can't print it.
+        std::vector<uint64_t> limit_filament_maps;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
         bool spiral_vase_mode;
@@ -631,6 +652,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Total_Cost_Placeholder,
             Total_Wipe_Tower_Cost_Placeholder,
             Total_Wipe_Tower_Filament_Placeholder,
+            Outer_Overhang_Wall,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -1081,6 +1103,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
             bool is_active() const { return m_active; }
             bool has_first_vertex() const { return m_first_vertex.has_value(); }
+            // Orca: activate(false) keeps the first vertex; a new export must not inherit it.
+            void reset() { m_active = false; m_first_vertex.reset(); }
         };
 
         // Helper class used to fix the z for color change, pause print and
@@ -1306,6 +1330,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // pre-machine-frame (build-volume) frame.
         MachineFrameTransform m_machine_frame_transform;
         bool                  m_belt_printer{ false };
+        // Of a belt print, the linear part of its G-code back-transform, for the boxes of the masses.
+        std::optional<Matrix3d> m_belt_linear;
 
         unsigned int m_line_id;
         unsigned int m_last_line_id;
@@ -1341,6 +1367,11 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         unsigned int m_layer_id;
         CpColor m_cp_color;
         SeamsDetector m_seams_detector;
+        // Orca: an outer wall tagged in the G-code starts on the next printing move
+        // (docs/HLSD/overhang-seam-preview.md).
+        bool m_outer_overhang_pending{false};
+        // Orca: the seam detector candidate is such a wall, so "Overhang wall" counts as "Outer wall".
+        bool m_outer_overhang_candidate{false};
         OptionsZCorrector m_options_z_corrector;
         size_t m_last_default_color_id;
         bool m_detect_layer_based_on_tag {false};
