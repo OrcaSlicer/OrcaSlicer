@@ -392,6 +392,7 @@ img.ModelThumbnail {
 	align-items: center;
 	justify-content: space-between;
 	padding-right: 10px;
+	margin-bottom: 6px; /* clear of the first vendor's focus ring */
 }
 
 #Sidebar .SidebarClose {
