@@ -1027,3 +1027,34 @@ TEST_CASE("Active cloud uses the provider's generation cell size", "[FillVoronoi
     REQUIRE_THAT(cloud.known_bounds().max.z(), Catch::Matchers::WithinAbs(21., EPSILON));
     for (const auto &point : cloud.sites()) REQUIRE(point.z() >= cutoffs.back());
 }
+
+TEST_CASE("Voronoi engines retain independent networks for alternating spacings and providers", "[FillVoronoi][Incremental]")
+{
+    class CountingCloud : public Voronoi::PoissonPointCloud {
+    public:
+        mutable size_t queries = 0;
+        std::vector<Vec3d> points_in_cells(const Vec3i64 &first, const Vec3i64 &last, double spacing) const override
+            { ++queries; return PoissonPointCloud::points_in_cells(first, last, spacing); }
+    };
+    auto provider = std::make_shared<CountingCloud>();
+    VoronoiEngineRegistry engines;
+    const auto region = rectangle(-10., -10., 10., 10.);
+    const auto bounds = region.contour.bounding_box();
+    const std::array<double, 2> spacings {3., 5.};
+    std::array<Polylines, 2> expected;
+    for (double z : {1.1, 1.2}) {
+        for (size_t i = 0; i < spacings.size(); ++i) {
+            const double spacing = spacings[i];
+            expected[i] = engines.get(provider, spacing)->fill_geometry(bounds, region, {.4, .2, z, .45, .2, .2, .4, 1, spacing}).walls;
+            REQUIRE_FALSE(expected[i].empty());
+        }
+        const size_t queries = provider->queries;
+        for (size_t i = 0; i < spacings.size(); ++i)
+            REQUIRE(engines.get(provider, spacings[i])->fill_geometry(bounds, region, {.4, .2, z, .45, .2, .2, .4, 1, spacings[i]}).walls == expected[i]);
+        REQUIRE(provider->queries == queries);
+    }
+    REQUIRE(engines.get(provider, 3.) != engines.get(provider, 5.));
+    REQUIRE(engines.get(provider, 3.) != engines.get(std::make_shared<CountingCloud>(), 3.));
+    REQUIRE(engines.get({}, 3.) == engines.get({}, 3.));
+    REQUIRE(engines.get({}, 3.) != engines.get({}, 5.));
+}
