@@ -115,6 +115,7 @@ Polylines FillVoronoi::fill_band(const Voronoi::Band &band, FillParams params) c
         ExPolygons support = intersection_ex(*m_floor_support, offset_ex(band.polygon, float(reach)));
         const Polygons support_polygons = to_polygons(support);
         ExPolygons allowed = support;
+        allowed.push_back(band.polygon);
         if (!m_surface_boundary.empty()) allowed.push_back(m_surface_boundary);
         allowed = union_ex(allowed);
         for (Polyline &path : lines) {
@@ -138,8 +139,13 @@ Polylines FillVoronoi::fill_band(const Voronoi::Band &band, FillParams params) c
                     if (!std::isfinite(best)) continue;
                     const Vec2d target = original[end].cast<double>() + best * outward;
                     const Point anchor(coord_t(std::round(target.x())), coord_t(std::round(target.y())));
-                    if (!m_surface_boundary.empty() && !diff_pl(Polylines{Polyline(Points{original[end], anchor})}, allowed).empty()) continue;
+                    const Point saved = path.points[end];
                     path.points[end] = anchor;
+                    // Moving a row endpoint also moves its adjacent zigzag connector.
+                    const size_t first = end == 0 ? 0 : end - 1;
+                    const size_t last = std::min(end + 2, path.points.size());
+                    const Polyline changed(Points(path.points.begin() + first, path.points.begin() + last));
+                    if (!diff_pl(Polylines{changed}, allowed).empty()) path.points[end] = saved;
                 }
             }
         }
