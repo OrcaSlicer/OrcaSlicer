@@ -1221,12 +1221,8 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
-    if (!read_install_state(root, state)) {
-        state.installed_from    = descriptor.is_cloud_plugin() ? "cloud" : "local";
-        state.installed_version = !descriptor.installed_version.empty() ? descriptor.installed_version : descriptor.version;
-        state.plugin_name       = descriptor.name;
-        state.cloud_uuid        = descriptor.cloud_uuid();
-    }
+    if (!read_install_state(root, state))
+        seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
         return;
@@ -2157,7 +2153,7 @@ void ScriptAsyncRuntime::Impl::run_invocation(const std::shared_ptr<Run>& run)
     {
         PythonRuntimeLease lease = PythonInterpreter::instance().acquire_runtime_lease();
         if (!lease) {
-            completion.error = _u8L("Python interpreter is shutting down");
+            completion.error = _u8L("Python interpreter is shutting down.");
         } else {
             pybind11::gil_scoped_acquire gil;
 

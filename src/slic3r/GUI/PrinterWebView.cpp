@@ -307,9 +307,10 @@ void PrinterWebView::SendAPIKey()
     // RemoveAllUserScripts causes WebView to forget about our script message handler, 
     // so re-add it here.
     m_browser->RemoveScriptMessageHandler("wx");
-    if (m_browser->AddScriptMessageHandler("wx"))
-        WebView::MarkScriptMessageHandlerAdded(m_browser);
-    else
+    // Mark before adding: on WKWebView the add yields in RunScript() after registering "wx",
+    // and CreateWebView()'s deferred add, if it runs in that yield, would register it again.
+    WebView::MarkScriptMessageHandlerAdded(m_browser);
+    if (!m_browser->AddScriptMessageHandler("wx"))
         wxLogError("Could not add script message handler");
 
 #ifdef __linux__
@@ -356,7 +357,8 @@ void PrinterWebView::OnError(wxWebViewEvent &evt)
 
 void PrinterWebView::OnLoaded(wxWebViewEvent& evt)
 {
-    if (evt.GetURL().IsEmpty())
+    // The web view's initial empty document (about:blank on WebKit) is not the requested page.
+    if (evt.GetURL().IsEmpty() || evt.GetURL() == "about:blank")
         return;
     //ORCA: url loaded successfully, safe to clear
     m_url_deferred.clear();

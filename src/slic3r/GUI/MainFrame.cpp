@@ -14,6 +14,7 @@
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "libslic3r/Preset.hpp"
 #include <functional>
+#include <memory>
 #include <wx/busycursor.h>
 #include <cstddef>
 #include "slic3r/GUI/Project.hpp"
@@ -47,6 +48,9 @@
 #include <ctime>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <wx/textentry.h>
@@ -398,6 +402,8 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
 
+MainFrame::~MainFrame() = default;
+
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
     , m_printhost_queue_dlg(new PrintHostQueueDialog(this))
@@ -405,7 +411,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     , m_recent_projects(18)
     , m_settings_dialog(this)
     , m_idle([] { return wxGetApp().input_idle_ms(); })
-    , m_diff_dialog("compare_presets", 100, [this] { return make_diff_dialog(); })
+    , m_diff_dialog(std::make_unique<Lazy<DiffPresetDialog>>("compare_presets", 100, [this] { return make_diff_dialog(); }))
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -3474,6 +3480,18 @@ void MainFrame::init_menubar_as_editor()
             this);
 
         viewMenu->AppendSeparator();
+        wxMenuItem* mouse3d_settings = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show 3Dconnexion Settings"), Shortcut::Mouse3DSettings, true),
+            _L("Show/Hide 3Dconnexion devices settings dialog"),
+            [this](wxCommandEvent&) {
+                Mouse3DController& controller = m_plater->get_mouse3d_controller();
+                controller.show_settings_dialog(!controller.is_settings_dialog_shown());
+                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+            },
+            this, [this]() { return is_prepare_or_preview_tab() && m_plater->get_mouse3d_controller().can_show_settings_dialog(); },
+            [this]() { return m_plater->get_mouse3d_controller().is_settings_dialog_shown(); }, this);
+        m_shortcut_menu_items.push_back({ mouse3d_settings, Shortcut::Mouse3DSettings, _L("Show 3Dconnexion Settings"), true });
+
+        viewMenu->AppendSeparator();
         wxMenuItem* show_labels = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show &Labels"), Shortcut::ShowLabels, true), _L("Show object labels in 3D scene."),
             [this](wxCommandEvent&) { m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown()); m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT)); }, this,
             [this]() { return m_plater->is_view3D_shown(); }, [this]() { return m_plater->are_view3D_labels_shown(); }, this);
@@ -4257,7 +4275,7 @@ void MainFrame::prebuild_pages_when_idle()
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);
-    m_idle.add(m_diff_dialog);
+    m_idle.add(*m_diff_dialog);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
     m_idle.start();
     m_prebuild_started = true;

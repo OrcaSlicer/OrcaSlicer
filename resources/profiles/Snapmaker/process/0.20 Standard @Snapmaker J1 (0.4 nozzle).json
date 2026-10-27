@@ -8,5 +8,7 @@
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"
 	],
-	"elefant_foot_compensation": "0.15"
+	"elefant_foot_compensation": "0.15",
+	"top_color_penetration_layers": "4",
+	"bottom_color_penetration_layers": "3"
 }

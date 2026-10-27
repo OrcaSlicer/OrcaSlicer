@@ -9,6 +9,7 @@
 #include "GUI_App.hpp"
 #include "GUI_Colors.hpp"
 #include "Plater.hpp"
+#include "PartPlate.hpp"
 #include "BitmapCache.hpp"
 #include "Camera.hpp"
 
@@ -111,14 +112,15 @@ static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
-    if (colors.a() < FullyTransparentMaterialThreshold) { // completely transparent
-        return {1, 1, 1, FullTransparentModdifiedToFixAlpha};
+    // a clear color keeps its hue, at the least opacity that still shows it
+    const float alpha = std::max(colors.a(), FullyTransparentMaterialThreshold);
+    if (colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) {
+        // black, lifted so that the shading shows, the more the more translucent: a dark translucent
+        // surface shows nothing through itself
+        const float grey = FULL_BLACK_THRESHOLD + 0.3f * (1.0f - alpha);
+        return {grey, grey, grey, alpha};
     }
-    else if(colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) { // black
-        return {FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, colors.a()};
-    }
-    else
-        return colors;
+    return {colors.r(), colors.g(), colors.b(), alpha};
 }
 
 namespace Slic3r {
@@ -1238,6 +1240,9 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     // The outline passes below are driven by is_outline, which only the object shaders have; with an
     // overlay one (wireframe, x-ray) bound they would just draw the volume again.
     const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
+    // ORCA: the object shaders that know how draw a part of a translucent filament as its print would
+    // show, in premultiplied color, see translucent_filament_color() in gouraud.fs
+    const bool shade_translucent_filaments = type == ERenderType::Transparent && shader->get_uniform_location("translucent_filament") >= 0;
 
     // Prime depth_tex on every frame so non-outline draws do not keep the
     // default sampler unit 0, which can conflict with other sampler types.
@@ -1343,6 +1348,11 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("projection_matrix", projection_matrix);
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        if (shade_translucent_filaments) {
+            const bool translucent_filament = volume.first->visible && !volume.first->is_modifier && volume.first->color.is_transparent();
+            shader->set_uniform("translucent_filament", translucent_filament);
+            glsafe(::glBlendFunc(translucent_filament ? GL_ONE : GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        }
         if (volume.first->depth_bias) {
             glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
             glsafe(::glPolygonOffset(1.0f, 1.0f));
@@ -1385,6 +1395,11 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     if (disable_cullface)
         glsafe(::glEnable(GL_CULL_FACE));
 
+    if (shade_translucent_filaments) {
+        // the program is shared, so leave it as the other users expect
+        shader->set_uniform("translucent_filament", false);
+        glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    }
     if (type == ERenderType::Transparent)
         glsafe(::glDisable(GL_BLEND));
 }
@@ -1448,8 +1463,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     ModelInstanceEPrintVolumeState overall_state = ModelInstancePVS_Fully_Outside;
     bool contained_min_one = false;
 
-    //BBS: add instance judge logic, besides to original volume judge logic
-    //std::map<int64_t, ModelInstanceEPrintVolumeState> model_state;
+    // Track each instance across all of its printable model-part volumes. A multipart
+    // instance with one volume inside and another fully outside is partly
+    // outside, even though neither individual volume is colliding.
+    std::map<std::pair<int, int>, ModelInstanceEPrintVolumeState> model_state;
 
     GUI::PartPlate* curr_plate = GUI::wxGetApp().plater()->get_partplate_list().get_selected_plate();
     const Pointfs& pp_bed_shape = curr_plate->get_shape();
@@ -1580,7 +1597,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 }
             }
 
-            //int64_t comp_id = ((int64_t)volume->composite_id.object_id << 32) | ((int64_t)volume->composite_id.instance_id);
+            const std::pair<int, int> instance_id { volume->composite_id.object_id, volume->composite_id.instance_id };
             volume->is_outside = (state != BuildVolume::ObjectState::Inside && state != BuildVolume::ObjectState::Limited);
             volume->partly_inside = (state == BuildVolume::ObjectState::Colliding);
             if (volume->printable) {
@@ -1595,38 +1612,43 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     overall_state = ModelInstancePVS_Fully_Outside;
                 }
                 contained_min_one |= !volume->is_outside;
-            }
 
-            /*ModelInstanceEPrintVolumeState volume_state;
-            //if (volume->is_outside && (plate_build_volume.bounding_volume().intersects(volume->bounding_box())))
-            if (volume->is_outside && (state == BuildVolume::ObjectState::Colliding))
-                volume_state = ModelInstancePVS_Partly_Outside;
-            else if (volume->is_outside)
-                volume_state = ModelInstancePVS_Fully_Outside;
-            else
-                volume_state = ModelInstancePVS_Inside;
+                // A volume completely below the bed is intentionally ignored when
+                // deciding whether an instance is printable.
+                if (!volume->is_wipe_tower && volume->composite_id.volume_id >= 0 &&
+                    state != BuildVolume::ObjectState::Below) {
+                    ModelInstanceEPrintVolumeState volume_state;
+                    if (volume->is_outside && state == BuildVolume::ObjectState::Colliding)
+                        volume_state = ModelInstancePVS_Partly_Outside;
+                    else if (volume->is_outside)
+                        volume_state = ModelInstancePVS_Fully_Outside;
+                    else
+                        volume_state = ModelInstancePVS_Inside;
 
-            if (model_state.find(comp_id) != model_state.end())
-            {
-                if (model_state[comp_id] != ModelInstancePVS_Partly_Outside)
-                {
-                    if (volume_state == ModelInstancePVS_Partly_Outside)
-                        model_state[comp_id] = ModelInstancePVS_Partly_Outside;
-                    else if (model_state[comp_id] != volume_state)
-                    {
-                        model_state[comp_id] = ModelInstancePVS_Partly_Outside;
+                    const auto [instance_state_entry, inserted] = model_state.emplace(instance_id, volume_state);
+                    if (!inserted && instance_state_entry->second != ModelInstancePVS_Partly_Outside &&
+                               (volume_state == ModelInstancePVS_Partly_Outside || instance_state_entry->second != volume_state)) {
+                        instance_state_entry->second = ModelInstancePVS_Partly_Outside;
+                    }
+
+                    if (instance_state_entry->second == ModelInstancePVS_Partly_Outside) {
+                        overall_state = ModelInstancePVS_Partly_Outside;
+                        partly_objects_set.emplace(model_objects[volume->object_idx()]);
                     }
                 }
             }
-            else
-            {
-                model_state[comp_id] = volume_state;
-            }
+        }
+    }
 
-            if (model_state[comp_id] == ModelInstancePVS_Partly_Outside) {
-                overall_state = ModelInstancePVS_Partly_Outside;
-                BOOST_LOG_TRIVIAL(debug) << "instance includes " << volume->name << " is partially outside of bed";
-            }*/
+    // Highlight printable parts of an instance that is partly outside the build volume.
+    for (GLVolume* volume : this->volumes)
+    {
+        if (volume->printable && !volume->is_modifier && !volume->is_wipe_tower &&
+            volume->composite_id.volume_id >= 0 && !volume_below(*volume)) {
+            const std::pair<int, int> instance_id { volume->composite_id.object_id, volume->composite_id.instance_id };
+            const auto instance_state_entry = model_state.find(instance_id);
+            if (instance_state_entry != model_state.end() && instance_state_entry->second == ModelInstancePVS_Partly_Outside)
+                volume->partly_inside = true;
         }
     }
 
@@ -1739,22 +1761,6 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         }
 
     }
-
-    /*for (GLVolume* volume : this->volumes)
-    {
-        if (! volume->is_modifier && (volume->shader_outside_printer_detection_enabled || (! volume->is_wipe_tower && volume->composite_id.volume_id >= 0)))
-        {
-            int64_t comp_id = ((int64_t)volume->composite_id.object_id << 32) | ((int64_t)volume->composite_id.instance_id);
-            if (model_state.find(comp_id) != model_state.end())
-            {
-                if (model_state[comp_id] == ModelInstancePVS_Partly_Outside) {
-                    volume->partly_inside = true;
-                }
-                else
-                    volume->partly_inside = false;
-            }
-        }
-    }*/
 
     if (out_state != nullptr)
         *out_state = overall_state;

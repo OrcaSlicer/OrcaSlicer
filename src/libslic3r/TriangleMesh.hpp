@@ -352,13 +352,20 @@ inline Vec3f its_face_normal(const indexed_triangle_set &its, const stl_triangle
     { const stl_vertex vertices[3] { its.vertices[face[0]], its.vertices[face[1]], its.vertices[face[2]] }; return face_normal_normalized(vertices); }
 inline Vec3f its_face_normal(const indexed_triangle_set &its, const int face_idx)
     { return its_face_normal(its, its.indices[face_idx]); }
+// Returns 3 normals per face, one per corner, each the area-weighted average of the faces around the corner's
+// vertex that lie within threshold_degrees of the corner's face, as igl::per_corner_normals computes them.
+// Faces at a vertex that point the same way are compared as one group, so a triangle fan costs one comparison per
+// face where igl compares every pair.
+// Degenerate faces, faces with NaN or infinite coordinates, and every face of a mesh with an index outside its
+// vertices get zero normals.
+std::vector<Vec3f> its_smooth_corner_normals(const indexed_triangle_set &its, double threshold_degrees);
 
 indexed_triangle_set    its_make_cube(double x, double y, double z);
 indexed_triangle_set    its_make_prism(float width, float length, float height);
 indexed_triangle_set    its_make_cylinder(double r, double h, double fa=(2*PI/180));
 indexed_triangle_set    its_make_cone(double r, double h, double fa=(2*PI/180));
 indexed_triangle_set    its_make_frustum(double r, double h, double fa=(2*PI/180));
-indexed_triangle_set    its_make_torus(double r, double h, double fa);
+indexed_triangle_set    its_make_torus(double r, double h, double fa_major, double fa_minor);
 indexed_triangle_set    its_make_frustum_dowel(double r, double h, int sectorCount);
 indexed_triangle_set    its_make_pyramid(float base, float height);
 indexed_triangle_set    its_make_sphere(double radius, double fa);
@@ -374,7 +381,7 @@ inline TriangleMesh     make_cylinder(double r, double h, double fa=(2*PI/180)) 
 inline TriangleMesh     make_cone(double r, double h, double fa=(2*PI/180))     { return TriangleMesh(its_make_cone(r, h, fa)); }
 inline TriangleMesh     make_pyramid(float base, float height)                  { return TriangleMesh(its_make_pyramid(base, height)); }
 inline TriangleMesh     make_sphere(double rho, double fa=(2*PI/90))            { return TriangleMesh(its_make_sphere(rho, fa)); }
-inline TriangleMesh     make_torus(double r, double h, double fa=(PI/60))       { return TriangleMesh(its_make_torus(r, h, fa)); }
+inline TriangleMesh     make_torus(double r, double h, double fa=(PI/60))       { return TriangleMesh(its_make_torus(r, h, fa, fa)); }
 
 bool        its_write_stl_ascii(const char *file, const char *label, const std::vector<stl_triangle_vertex_indices> &indices, const std::vector<stl_vertex> &vertices);
 inline bool its_write_stl_ascii(const char *file, const char *label, const indexed_triangle_set &its) { return its_write_stl_ascii(file, label, its.indices, its.vertices); }

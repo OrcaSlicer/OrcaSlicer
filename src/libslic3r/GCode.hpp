@@ -848,8 +848,8 @@ protected:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
-    // Bedslinger mass model: cumulative printed mass at the previous layer, used to derive
-    // the current layer mass for the per-layer Y acceleration limit (curr_y_acceleration_limit).
+    // Bedslinger mass model: cumulative printed mass at the previous layer change, used to derive
+    // previous_layer_mass, the mass of the layer printed since then.
     double                              m_last_layer_accumulated_mass{ 0.0 };
 
     // Always check gcode placeholders when building in debug mode.
