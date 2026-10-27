@@ -646,6 +646,9 @@ public:
     //void take_snapshot(const wxString &snapshot_name);
     void take_snapshot(const std::string &snapshot_name, UndoRedo::SnapshotType snapshot_type);
     //void take_snapshot(const wxString &snapshot_name, UndoRedo::SnapshotType snapshot_type);
+    // An undo point for selecting another plate. Selecting one changes nothing a slice or an export
+    // depends on, and Slice All selects each plate in turn, so project_revision() stays as it is.
+    void take_plate_selection_snapshot();
 
     void undo();
     void redo();

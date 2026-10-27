@@ -21381,6 +21381,12 @@ void Plater::eject_drive()
 }
 
 void Plater::take_snapshot(const std::string &snapshot_name) { p->take_snapshot(snapshot_name); }
+void Plater::take_plate_selection_snapshot()
+{
+    const uint64_t revision = p->project_revision;
+    p->take_snapshot("select partplate!");
+    p->project_revision = revision;
+}
 //void Plater::take_snapshot(const wxString &snapshot_name) { p->take_snapshot(snapshot_name); }
 void Plater::take_snapshot(const std::string &snapshot_name, UndoRedo::SnapshotType snapshot_type) { p->take_snapshot(snapshot_name, snapshot_type); }
 //void Plater::take_snapshot(const wxString &snapshot_name, UndoRedo::SnapshotType snapshot_type) { p->take_snapshot(snapshot_name, snapshot_type); }
@@ -22725,7 +22731,7 @@ int Plater::select_plate(int plate_index, bool need_slice)
 {
     int ret;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: plate %2%, need_slice %3% ")%__LINE__ %plate_index  %need_slice;
-    take_snapshot("select partplate!");
+    take_plate_selection_snapshot();
     ret = p->partplate_list.select_plate(plate_index);
     if (!ret) {
         if (is_view3D_shown())

@@ -6969,7 +6969,7 @@ int PartPlateList::select_plate(int index)
 	// BBS: erase unnecessary snapshot
 	if (get_curr_plate_index() != index && m_intialized) {
 		if (m_plater)
-			m_plater->take_snapshot("select partplate!");
+			m_plater->take_plate_selection_snapshot();
 	}
 
 	std::vector<PartPlate *>::iterator it = m_plate_list.begin();
