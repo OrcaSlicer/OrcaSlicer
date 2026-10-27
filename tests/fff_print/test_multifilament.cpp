@@ -27,6 +27,7 @@
 #include "libslic3r/PrintBase.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/libslic3r.h"
 #include <limits>
 #include <map>
 #include <optional>
