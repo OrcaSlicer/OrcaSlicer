@@ -199,7 +199,10 @@ static std::optional<BedExclusionCollision> colliding_bed_exclusion(
             std::optional<BedExclusionCollision>(BedExclusionCollision{ *first_collision, true }) : std::nullopt;
     }
 
-    for (const unsigned int filament_id : print_object.printing_extruders()) {
+    // A mixed filament prints with its component filaments.
+    const std::vector<unsigned int> filament_ids = expand_mixed_filaments(print_object.printing_extruders(),
+        print.config().filament_is_mixed.values, print.config().filament_mixed_components.values);
+    for (const unsigned int filament_id : filament_ids) {
         const int resolved_extruder = bed_exclusion_extruder_for_filament(
             filament_id, print.get_filament_maps(), print.get_filament_map_mode(), print.is_BBL_printer(),
             true, regions_by_extruder.size());
