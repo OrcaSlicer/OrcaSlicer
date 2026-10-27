@@ -44,6 +44,11 @@ struct TextureDisplacementDebugInput
     // Mesh coordinates -> world millimetres, as the bake gets it. The captured stages are brought
     // back into mesh coordinates before they are handed over, so the gizmo can draw them directly.
     Transform3d                           volume_to_world = Transform3d::Identity();
+    // Where the preparation samples the texture, and how far below the volume's own bottom its object
+    // rests - both as the bake and its preparation get them (see TextureDisplacementPrepareVolume and
+    // TextureDisplacementBakeVolume).
+    Transform3d                           prepare_texture_frame = Transform3d::Identity();
+    float                                 resting_drop          = 0.f;
     // Only the quantizer is used, and only by the refinement's colour criterion - the debug run
     // produces no colour of its own.
     TextureColorSettings                  color;
@@ -79,6 +84,7 @@ private:
 // caller can clear its own in-progress state. Must be called from the main thread.
 void queue_texture_displacement_debug(const ModelVolume &volume, const TextureColorSettings &color,
                                       const TextureDisplacementPrepareParams &prepare_params,
+                                      const Transform3d &prepare_texture_frame, float resting_drop,
                                       bool run_prepare, bool check_topology,
                                       std::function<void(std::vector<BakeStageSnapshot>)> on_finished);
 

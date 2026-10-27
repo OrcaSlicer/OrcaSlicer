@@ -2,6 +2,7 @@
 #include "EmbossStyleManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
@@ -517,6 +518,46 @@ bool check(ModelVolumeType volume_type) {
            volume_type == ModelVolumeType::NEGATIVE_VOLUME ||
            volume_type == ModelVolumeType::PARAMETER_MODIFIER;
 }
+
+// Text of a new text volume
+const char *const default_text = L("Embossed text");
+
+// Whether the loaded font of the style manager has a glyph for every character of the text
+bool can_write(StyleManager &style_manager, const std::string &text)
+{
+    bool exist_unknown = false;
+    create_range_text(text, *style_manager.get_font_file_with_cache().font_file,
+                      style_manager.get_font_prop().collection_number.value_or(0), &exist_unknown);
+    return !exist_unknown;
+}
+
+bool can_write(const EmbossStyle &style, const std::string &text)
+{
+    StyleManager style_manager(nullptr, {});
+    return style_manager.load_style(StyleManager::Style{style}) && can_write(style_manager, text);
+}
+
+// The default styles use system fonts, which can lack the script of the translated default text, e.g. with
+// a Chinese UI on an English system. Then put first a style with a bundled font that can write it. Only
+// registered faces are used: a text volume can be edited again only when its font is found by face name.
+void add_style_for_default_text(EmbossStyles &styles)
+{
+    const std::string text = _u8L(default_text);
+    // the untranslated text is Latin, which the system fonts have
+    if (text == default_text || can_write(styles.front(), text))
+        return;
+
+    for (const char *face_name : {"HarmonyOS Sans SC", "NanumGothic", "Sarabun"}) {
+        wxFont wx_font = *wxNORMAL_FONT;
+        if (!wx_font.SetFaceName(face_name))
+            continue;
+        EmbossStyle style = WxFontUtils::create_emboss_style(wx_font, _u8L("Default font"));
+        if (can_write(style, text)) {
+            styles.insert(styles.begin(), std::move(style));
+            return;
+        }
+    }
+}
 }
 
 bool GLGizmoEmboss::init_create(ModelVolumeType volume_type)
@@ -541,8 +582,10 @@ bool GLGizmoEmboss::init_create(ModelVolumeType volume_type)
 
     m_style_manager.discard_style_changes();
 
-    // set default text
-    m_text = _u8L("Embossed text");
+    // set default text, in English when the active font cannot write its translation
+    m_text = _u8L(default_text);
+    if (m_style_manager.is_active_font() && !can_write(m_style_manager, m_text))
+        m_text = default_text;
     return true;
 }
 
@@ -1070,29 +1113,28 @@ EmbossStyles GLGizmoEmboss::create_default_styles()
         }),styles.end()
     );
 
-    // exist some valid style?
-    if (!styles.empty())
-        return styles;
-
     // No valid style in defult list
     // at least one style must contain loadable font
-    wxFont wx_font;
-    for (const wxString &face : facenames) {
-        wx_font = wxFont(face);
-        if (WxFontUtils::create_font_file(wx_font) != nullptr)
-            break;
-        wx_font = wxFont(); // NotOk
-    }
+    if (styles.empty()) {
+        wxFont wx_font;
+        for (const wxString &face : facenames) {
+            wx_font = wxFont(face);
+            if (WxFontUtils::create_font_file(wx_font) != nullptr)
+                break;
+            wx_font = wxFont(); // NotOk
+        }
 
-    if (wx_font.IsOk()) {
-        // use first alphabetic sorted installed font
-        styles.push_back(WxFontUtils::create_emboss_style(wx_font, _u8L("First font")));
-    } else {
-        // On current OS is not installed any correct TTF font
-        // use font packed with Slic3r
-        std::string font_path = Slic3r::resources_dir() + "/fonts/NotoSans-Regular.ttf";
-        styles.push_back(EmbossStyle{_u8L("Default font"), font_path, EmbossStyle::Type::file_path});
+        if (wx_font.IsOk()) {
+            // use first alphabetic sorted installed font
+            styles.push_back(WxFontUtils::create_emboss_style(wx_font, _u8L("First font")));
+        } else {
+            // On current OS is not installed any correct TTF font
+            // use font packed with OrcaSlicer
+            std::string font_path = Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf";
+            styles.push_back(EmbossStyle{_u8L("Default font"), font_path, EmbossStyle::Type::file_path});
+        }
     }
+    add_style_for_default_text(styles);
     return styles;
 }
 
@@ -1584,7 +1626,6 @@ void GLGizmoEmboss::draw_window(float x, float y)
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoRotate.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
-#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/Utils/RaycastManager.hpp"
 
 namespace Slic3r::GUI { struct Camera; }
@@ -2601,12 +2642,14 @@ bool GLGizmoEmboss::rev_input(const std::string &name, T &value, const T *defaul
     const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags) const
 {
     // draw offseted input
-    auto draw_offseted_input = [&offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
+    auto draw_offseted_input = [this, &offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
                                 &name, &value, &step, &step_fast, format, flags](){
         ImGui::SameLine(offset);
         ImGui::SetNextItemWidth(width);
-        return imgui_input(("##" + name).c_str(),
+        bool changed = imgui_input(("##" + name).c_str(),
             &value, step, step_fast, format, flags);
+        m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
+        return changed;
     };
     return revertible(name, value, default_value, undo_tooltip, 
                       0.0f, draw_offseted_input);

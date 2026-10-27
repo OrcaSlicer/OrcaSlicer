@@ -7,6 +7,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
+#include <algorithm>
+#include <array>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
@@ -16,6 +18,7 @@
 #include <cmath>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 using json = nlohmann::json;
@@ -64,12 +67,16 @@ const BambuFilamentIdMap& bambu_filament_id_map()
     return map;
 }
 
-// Rewrites every string under "tray_info_idx", "filament_id" or "filamentId", at any depth, in place.
+// Keys whose string value is a filament id. "cate" and "fila_id" are the H2C nozzle rack's: the
+// auto nozzle mapping request and the rack status in the push message.
+constexpr std::array<std::string_view, 5> filament_id_keys{"tray_info_idx", "filament_id", "filamentId", "cate", "fila_id"};
+
+// Rewrites every string under a filament id key, at any depth, in place.
 void rewrite_filament_ids(json& j, const std::unordered_map<std::string, std::string>& map)
 {
     if (j.is_object()) {
         for (auto& [key, value] : j.items()) {
-            if (value.is_string() && (key == "tray_info_idx" || key == "filament_id" || key == "filamentId")) {
+            if (value.is_string() && std::find(filament_id_keys.begin(), filament_id_keys.end(), key) != filament_id_keys.end()) {
                 auto it = map.find(value.get_ref<const std::string&>());
                 if (it != map.end())
                     value = it->second;
@@ -84,8 +91,8 @@ void rewrite_filament_ids(json& j, const std::unordered_map<std::string, std::st
 // Text that does not parse as JSON, or that mentions none of the id keys, comes back byte-identical.
 std::string rewrite_filament_ids(std::string text, const std::unordered_map<std::string, std::string>& map)
 {
-    if (map.empty() || (text.find("tray_info_idx") == std::string::npos && text.find("filament_id") == std::string::npos &&
-                        text.find("filamentId") == std::string::npos))
+    if (map.empty() || std::none_of(filament_id_keys.begin(), filament_id_keys.end(),
+                                    [&text](std::string_view key) { return text.find(key) != std::string::npos; }))
         return text;                                        // nothing to map, skip the parse (moved, not copied)
     try {
         json j = json::parse(text);
@@ -126,6 +133,11 @@ std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_fila
 }
 
 std::string BBLPrinterAgent::from_orca_filament_id(const std::string& orca_filament_id) const
+{
+    return bambu_filament_id(orca_filament_id);
+}
+
+std::string BBLPrinterAgent::bambu_filament_id(const std::string& orca_filament_id)
 {
     const auto& map = bambu_filament_id_map().to_bambu;
     auto it = map.find(orca_filament_id);

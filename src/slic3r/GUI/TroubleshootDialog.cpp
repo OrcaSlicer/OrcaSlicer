@@ -71,6 +71,7 @@
 #include <windows.h>
 #include <VersionHelpers.h>
 #include <sysinfoapi.h>
+#include <winternl.h>
 #endif
 
 #ifdef __LINUX__
@@ -98,6 +99,8 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/HyperLink.hpp"
 #include "Widgets/Button.hpp"
+#include "Plater.hpp"
+#include "MsgDialog.hpp"
 
 namespace Slic3r {
 namespace GUI {

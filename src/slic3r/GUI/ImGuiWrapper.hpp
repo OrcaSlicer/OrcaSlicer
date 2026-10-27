@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 #include <cstdlib>
+#include <chrono>
 
 #include <imgui/imgui.h>
 
@@ -68,11 +69,17 @@ class ImGuiWrapper
     unsigned m_mouse_buttons{ 0 };
     bool m_disabled{ false };
     bool m_new_frame_open{ false };
+    // ORCA Start of the previous frame, see new_frame().
+    std::chrono::steady_clock::time_point m_last_frame_time{};
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     bool m_requires_extra_frame{ false };
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     std::map<wchar_t, int> m_custom_glyph_rects_ids;
     std::string m_clipboard_text;
+    // Keys held down, each with whether ImGui claimed its press.
+    std::map<int, bool> m_key_claims;
+    // Whether ImGui claimed the last key-down, for the char event that follows it.
+    std::optional<bool> m_char_claim;
 
 public:
     struct LastSliderStatus {
@@ -224,8 +231,21 @@ public:
     bool text_input_active() const;
     // True while an ImGui modal popup is on screen.
     bool modal_popup_open() const;
+    // True while any ImGui popup is on screen, modal or not.
+    bool popup_open() const;
+    // Closes the topmost popup on screen unless it is a modal, which handles Esc itself.
+    void close_top_popup();
     // True for every key while a modal is open, and for text-editing keys while an InputText is active.
     bool owns_key(const KeyChord& chord) const;
+    // True while the left mouse button holds an ImGui item, such as a slider being dragged.
+    bool item_held() const;
+    // True while a popup is open, an item is held or an InputText is active.
+    bool owns_keyboard() const;
+    // Returns owns_keyboard() as of the key's key-down, so its repeats, char event and release get the
+    // same answer. Call it once per event.
+    bool claim_key_event(const wxKeyEvent& evt);
+    // Drops the record of held keys, whose key-ups are sent to the window that takes the focus.
+    void forget_key_claims();
 
     // Optional inputs are used for set up value inside of an optional, with default value
     // 
@@ -344,6 +364,13 @@ public:
     bool requires_extra_frame() const { return m_requires_extra_frame; }
     void set_requires_extra_frame() { m_requires_extra_frame = true; }
     void reset_requires_extra_frame() { m_requires_extra_frame = false; }
+    // ORCA Call right after a widget with +/- buttons. ImGui repeats a held button only on new frames and the
+    // canvas renders on events only, so keep frames coming while the widget is held.
+    void request_frames_while_held()
+    {
+        if (ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+            set_requires_extra_frame();
+    }
 
     void disable_background_fadeout_animation();
 

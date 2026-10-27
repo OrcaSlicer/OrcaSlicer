@@ -46,11 +46,13 @@
 #include "libslic3r/Model.hpp"
 #include <wx/dataview.h>
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <wx/time.h>
 
 #include "GUI_App.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
 #include "FilamentMapDialog.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
@@ -2235,6 +2237,14 @@ void NotificationManager::close_notification_of_type(const NotificationType type
 			notification->close();
 		}
 	}
+}
+
+bool NotificationManager::has_notification_of_type(const NotificationType type) const
+{
+	for (const std::unique_ptr<PopNotification> &notification : m_pop_notifications)
+		if (notification->get_type() == type && !notification->is_finished())
+			return true;
+	return false;
 }
 
 void NotificationManager::close_and_delete_self(PopNotification * self)

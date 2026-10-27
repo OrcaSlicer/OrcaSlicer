@@ -56,9 +56,34 @@ combo boxes), so it opens the dial from the canvases and the tab strip only.
 `MainFrame::handle_global_shortcut` skips a chord that `KeyChord::edits_text()` reports
 while a text field has the focus (a wx text entry, spin control, web view or ImGui
 InputText), and skips every chord while an ImGui modal is open, as a wx modal dialog
-would. `ImGuiWrapper::owns_key()` reads the active InputText and the popup stack
-directly, since `WantCaptureKeyboard` lags a frame, and is called only when the focus is on
-a visible canvas from `OpenGLManager::create_wxglcanvas()`.
+would. `ImGuiWrapper::owns_key()` reads the text input request and the popup stack of the
+last drawn frame, since `WantCaptureKeyboard` and `WantTextInput` only catch up when the
+next frame starts, and is called only when the focus is on a visible canvas from
+`OpenGLManager::create_wxglcanvas()`.
+
+The `Plater`, `Preview` and `Painting` shortcuts act on the 3D view, so they run only while
+the 3D view has the keyboard. `GLCanvas3D` feeds every key event to ImGui and asks
+`ImGuiWrapper::claim_key_event()` whether to act on it as well. While an ImGui popup (a
+dropdown, a menu or a modal) is open or an ImGui InputText is active, ImGui claims every key,
+as a focused sidebar text field or an open native dropdown keeps every key from the canvas.
+Esc then closes the topmost dropdown or menu, since this ImGui closes popups on Esc only
+through keyboard navigation, which is off; a modal handles Esc itself. A second Esc reaches
+the canvas once nothing claims it. A slider or button held with the mouse also claims every
+key until it is released, since a shortcut that switches the view or closes the tool would
+leave the drag behind. One side handles a key from its key-down to its release. Its
+repeats, its char event and its release follow the key-down's decision even when a field or
+modal opens or closes in between, so a key never both runs a shortcut and types, and a
+keyboard move of the selection always sees the release of the key that started it.
+
+Key-ups go to whatever window has the focus, so a shortcut that opens a dialog, such as
+Ctrl+P, takes the release of its modifier with it. When the canvas loses the focus it sends
+itself a key-up for each Shift, Ctrl or Alt still held, which ends a gizmo's Shift mode and
+clears ImGui's own copy of the modifier, and then drops its record of held keys.
+`ImGuiWrapper::update_mouse_data()` also takes ImGui's modifiers from each mouse event, which
+carries the real state, since a stale Ctrl would turn every slider click into a Ctrl+click
+and open the slider's text box. The macOS
+Edit menu, whose key equivalents run before the canvas sees the key, follows the same rule
+as the canvas.
 
 ## Which event a chord matches
 

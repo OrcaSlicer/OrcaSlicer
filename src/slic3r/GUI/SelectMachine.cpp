@@ -4087,7 +4087,7 @@ void SelectMachineDialog::update_user_printer()
     {
         m_printer_last_select = "";
         update_select_layout(nullptr);
-        m_printer_box->GetPrinterComboBox()->SetTextLabel("");
+        m_printer_box->GetPrinterComboBox()->SetValue(_L("No available printers"));
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "for send task, current printer id =  " << m_printer_last_select << std::endl;
@@ -5738,8 +5738,9 @@ void SelectMachineDialog::reset_and_sync_ams_list()
 }
 
 // Orca: collapse the per-nozzle material items into the single panel when the printer has one
-// extruder or a filament switch (both feed a single logical mapping surface); otherwise keep the
-// left/right split. Early-returns unless an item is actually in the wrong panel.
+// extruder or a filament switch (both feed a single logical mapping surface), or when the plate is
+// sliced for one nozzle (it has no left/right filament map); otherwise keep the left/right split.
+// Early-returns unless an item is actually in the wrong panel.
 void SelectMachineDialog::update_material_item_pos(MachineObject* obj_)
 {
     if (!obj_) {
@@ -5748,7 +5749,10 @@ void SelectMachineDialog::update_material_item_pos(MachineObject* obj_)
 
     const bool is_single_head = obj_->GetExtderSystem()->GetTotalExtderCount() < 2;
     const bool has_switcher = obj_->GetFilaSwitch()->IsInstalled();
-    const bool use_single_panel = is_single_head || has_switcher;
+    // reset_and_sync_ams_list() fills m_filaments_map only for a multi-nozzle plate
+    const auto& full_config = wxGetApp().preset_bundle->full_config();
+    const bool single_nozzle_plate = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size() < 2;
+    const bool use_single_panel = is_single_head || has_switcher || single_nozzle_plate;
 
     bool to_change_pos = false;
     for (const auto& iter : m_materialList) {

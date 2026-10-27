@@ -1,5 +1,7 @@
 name: Check profiles
 on:
+  # approve_pr_checks.yml approves these runs for first-time contributors and finds this
+  # workflow by its file name.
   pull_request:
     # release/* is included because pr-merge-bot.yml lets delegates merge into
     # it, and it gates on this workflow's result. Without it a delegated merge
@@ -37,6 +39,9 @@ jobs:
     # delegated merge. Renaming it silently disables that gate.
     name: Check profiles
     runs-on: ubuntu-24.04
+    # approve_pr_checks.yml starts first-time contributors' runs without a maintainer looking
+    # at the pull request first. A run takes 2-6 minutes; this bounds a runaway one.
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
