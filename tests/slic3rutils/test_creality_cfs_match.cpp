@@ -5,8 +5,8 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/CrealityCfs.hpp"
 #include "slic3r/Utils/CrealityPrintAgent.hpp"
-#include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
 
 using namespace Slic3r;
 
@@ -91,8 +91,8 @@ TEST_CASE("The Creality Hi Moonraker box response exposes loaded CFS slots", "[C
         "T2":{"state":"None","material_type":["000002","-1","-1","-1"],
               "color_value":["0FFFFFF","-1","-1","-1"]}
     }}}})";
-    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
-    REQUIRE(MoonrakerPrinterAgent::parse_creality_cfs_response(response, slots));
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
     REQUIRE(slots.size() == 2);
     CHECK(slots[0].slot_index == 1);
     CHECK(slots[0].material_type == "PETG");
@@ -104,9 +104,9 @@ TEST_CASE("The Creality Hi Moonraker box response exposes loaded CFS slots", "[C
 
 TEST_CASE("The Creality Hi CFS parser rejects malformed and absent box responses", "[CFS][Creality]")
 {
-    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
-    CHECK_FALSE(MoonrakerPrinterAgent::parse_creality_cfs_response("{", slots));
-    CHECK_FALSE(MoonrakerPrinterAgent::parse_creality_cfs_response(R"({"result":{"status":{}}})", slots));
+    std::vector<CrealityCfsSlot> slots;
+    CHECK_FALSE(parse_creality_cfs_response("{", slots));
+    CHECK_FALSE(parse_creality_cfs_response(R"({"result":{"status":{}}})", slots));
     CHECK(slots.empty());
 }
 
@@ -114,8 +114,8 @@ TEST_CASE("The Creality Hi CFS parser skips unknown material IDs", "[CFS][Creali
 {
     const std::string response = R"({"result":{"status":{"box":{"T1":{"state":"connect",
         "material_type":["999999","000003",null,"-1"],"color_value":["0FFFFFF","0FF1E1E","-1","-1"]}}}}})";
-    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
-    REQUIRE(MoonrakerPrinterAgent::parse_creality_cfs_response(response, slots));
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
     REQUIRE(slots.size() == 1);
     CHECK(slots[0].slot_index == 1);
     CHECK(slots[0].material_type == "PETG");
@@ -133,8 +133,8 @@ TEST_CASE("The Creality K2 Plus CFS parser resolves branded IDs via same_materia
         "T2":{"state":"None","material_type":["-1","-1","-1","-1"],
               "color_value":["-1","-1","-1","-1"]}
     }}}})";
-    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
-    REQUIRE(MoonrakerPrinterAgent::parse_creality_cfs_response(response, slots));
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
     REQUIRE(slots.size() == 1);
     CHECK(slots[0].slot_index == 0);
     CHECK(slots[0].material_type == "PLA");
@@ -148,8 +148,8 @@ TEST_CASE("The Creality CFS parser skips IDs that same_material cannot name", "[
         "T1":{"state":"connect","material_type":["0e1003","000003","-1","-1"],
               "color_value":["0fff014","0FF1E1E","-1","-1"]}
     }}}})";
-    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
-    REQUIRE(MoonrakerPrinterAgent::parse_creality_cfs_response(response, slots));
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
     REQUIRE(slots.size() == 1);
     CHECK(slots[0].slot_index == 1);
     CHECK(slots[0].material_type == "PETG");
@@ -162,8 +162,8 @@ TEST_CASE("The Creality CFS parser tolerates a malformed same_material list", "[
         "T1":{"state":"connect","material_type":["000001","-1","-1","-1"],
               "color_value":["0FFFFFF","-1","-1","-1"]}
     }}}})";
-    std::vector<MoonrakerPrinterAgent::CrealityCfsSlot> slots;
-    REQUIRE(MoonrakerPrinterAgent::parse_creality_cfs_response(response, slots));
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
     REQUIRE(slots.size() == 1);
     CHECK(slots[0].material_type == "PLA");
 }

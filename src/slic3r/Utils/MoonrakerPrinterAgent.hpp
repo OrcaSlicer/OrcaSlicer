@@ -70,14 +70,11 @@ public:
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
-    // Parse the Creality Hi's Moonraker box status without querying printer hardware.
-    // Each slot contains an index, material type and color; empty slots are omitted.
-    struct CrealityCfsSlot {
-        int         slot_index = 0;
-        std::string material_type;
-        std::string color;
-    };
-    static bool parse_creality_cfs_response(const std::string& response, std::vector<CrealityCfsSlot>& slots);
+    // JSON helper methods
+    static std::string safe_json_string(const nlohmann::json& obj, const char* key);
+    static int safe_json_int(const nlohmann::json& obj, const char* key);
+    static std::string safe_array_string(const nlohmann::json& arr, int idx);
+    static int safe_array_int(const nlohmann::json& arr, int idx);
 
 protected:
     struct MoonrakerDeviceInfo
@@ -174,11 +171,6 @@ private:
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_creality_cfs_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
 
-    // JSON helper methods
-    static std::string safe_json_string(const nlohmann::json& obj, const char* key);
-    static int safe_json_int(const nlohmann::json& obj, const char* key);
-    static std::string safe_array_string(const nlohmann::json& arr, int idx);
-    static int safe_array_int(const nlohmann::json& arr, int idx);
     static std::string normalize_color_value(const std::string& color);
 
     std::string                        ssdp_announced_host;
