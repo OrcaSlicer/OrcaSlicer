@@ -6,6 +6,7 @@
 
 #include <wx/glcanvas.h>
 #include <wx/mstream.h>
+#include <wx/gdicmn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
 
@@ -167,8 +168,7 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
             return false;
         }
         out.Create(attr.width, attr.height, false);
-        unsigned char* rgb   = out.GetData();
-        auto           shift = [](unsigned long mask) {
+        auto shift = [](unsigned long mask) {
             int s = 0;
             while (mask != 0 && (mask & 1) == 0) {
                 mask >>= 1;
@@ -176,15 +176,69 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
             }
             return s;
         };
-        const int rs = shift(img->red_mask), gs = shift(img->green_mask), bs = shift(img->blue_mask);
-        for (int y = 0; y < attr.height; ++y)
-            for (int x = 0; x < attr.width; ++x, rgb += 3) {
-                const unsigned long p = XGetPixel(img, x, y);
-                rgb[0]                = (unsigned char) ((p & img->red_mask) >> rs);
-                rgb[1]                = (unsigned char) ((p & img->green_mask) >> gs);
-                rgb[2]                = (unsigned char) ((p & img->blue_mask) >> bs);
+        // Copies an XImage into `out` with its top left at (dx, dy).
+        auto blit = [&](XImage* src, int dx, int dy) {
+            const int rs = shift(src->red_mask), gs = shift(src->green_mask), bs = shift(src->blue_mask);
+            for (int y = 0; y < src->height; ++y) {
+                if (dy + y < 0 || dy + y >= out.GetHeight())
+                    continue;
+                for (int x = 0; x < src->width; ++x) {
+                    if (dx + x < 0 || dx + x >= out.GetWidth())
+                        continue;
+                    const unsigned long p = XGetPixel(src, x, y);
+                    out.SetRGB(dx + x, dy + y, (unsigned char) ((p & src->red_mask) >> rs), (unsigned char) ((p & src->green_mask) >> gs),
+                               (unsigned char) ((p & src->blue_mask) >> bs));
+                }
             }
+        };
+        blit(img, 0, 0);
         XDestroyImage(img);
+
+        // Without backing store, parts covered by another window read back black. Our own popups
+        // and tooltips on top are read and drawn in, as they appear on screen; another
+        // application's window over ours leaves a hole, which the result reports.
+        Window top = xid;
+        for (;;) {
+            Window   root_ret = 0, parent = 0, *kids = nullptr;
+            unsigned nkids = 0;
+            if (!XQueryTree(dpy, top, &root_ret, &parent, &kids, &nkids))
+                break;
+            if (kids != nullptr)
+                XFree(kids);
+            if (parent == 0 || parent == attr.root)
+                break;
+            top = parent;
+        }
+        Window   root_ret = 0, parent = 0, *stack = nullptr;
+        unsigned nstack = 0;
+        if (XQueryTree(dpy, attr.root, &root_ret, &parent, &stack, &nstack) && stack != nullptr) {
+            const wxRect mine(rx, ry, attr.width, attr.height);
+            bool         above = false;
+            for (unsigned i = 0; i < nstack; ++i) { // bottom to top
+                if (stack[i] == top) {
+                    above = true;
+                    continue;
+                }
+                XWindowAttributes a;
+                if (!above || !XGetWindowAttributes(dpy, stack[i], &a) || a.map_state != IsViewable)
+                    continue;
+                const wxRect cover = mine.Intersect(wxRect(a.x + a.border_width, a.y + a.border_width, a.width, a.height));
+                if (cover.IsEmpty())
+                    continue;
+                const bool own = gdk_x11_window_lookup_for_display(gdk_window_get_display(gdkwin), stack[i]) != nullptr;
+                XImage*    part = own ? XGetImage(dpy, stack[i], cover.x - a.x - a.border_width, cover.y - a.y - a.border_width,
+                                                  unsigned(cover.width), unsigned(cover.height), AllPlanes, ZPixmap)
+                                      : nullptr;
+                if (part != nullptr) {
+                    blit(part, cover.x - rx, cover.y - ry);
+                    XDestroyImage(part);
+                } else {
+                    approximate = true;
+                    note        = note.empty() ? "another window covers part of it" : note + "; another window covers part of it";
+                }
+            }
+            XFree(stack);
+        }
         return true;
     }
 #endif

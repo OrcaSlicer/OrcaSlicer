@@ -173,11 +173,45 @@ def seed_datadir(datadir, printer):
 def start_xvfb(width, height):
     for display in range(90, 120):
         if not os.path.exists(f"/tmp/.X11-unix/X{display}") and not os.path.exists(f"/tmp/.X{display}-lock"):
-            proc = subprocess.Popen(["Xvfb", f":{display}", "-screen", "0", f"{width}x{height}x24", "-nolisten", "tcp"],
+            proc = subprocess.Popen(["Xvfb", f":{display}", "-screen", "0", f"{width}x{height}x24", "-nolisten", "tcp", "-noreset"],
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-            time.sleep(0.7)
+            deadline = time.time() + 10
+            while not os.path.exists(f"/tmp/.X11-unix/X{display}") and time.time() < deadline:
+                time.sleep(0.1)
+            park_pointer(f":{display}", width, height)
             return f":{display}", proc.pid
     sys.exit("no free X display for Xvfb")
+
+
+def park_pointer(display, width, height):
+    """Move Xvfb's pointer to the bottom-right corner, where it hovers over nothing.
+
+    It starts in the middle of the screen, where it would raise tooltips over whatever opens there
+    and put them in screenshots."""
+    try:
+        import ctypes
+        import ctypes.util
+        x11 = ctypes.cdll.LoadLibrary(ctypes.util.find_library("X11") or "libX11.so.6")
+        x11.XOpenDisplay.restype = ctypes.c_void_p
+        x11.XDefaultRootWindow.restype = ctypes.c_ulong
+        x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+        x11.XWarpPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                                     ctypes.c_uint, ctypes.c_uint, ctypes.c_int, ctypes.c_int]
+        x11.XFlush.argtypes = [ctypes.c_void_p]
+        x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        dpy = None
+        for _ in range(50):  # the socket exists a moment before the server accepts clients
+            dpy = x11.XOpenDisplay(display.encode())
+            if dpy:
+                break
+            time.sleep(0.1)
+        if not dpy:
+            return
+        x11.XWarpPointer(dpy, 0, x11.XDefaultRootWindow(dpy), 0, 0, 0, 0, width - 1, height - 1)
+        x11.XFlush(dpy)
+        x11.XCloseDisplay(dpy)
+    except OSError:
+        pass
 
 
 def launch(args):
