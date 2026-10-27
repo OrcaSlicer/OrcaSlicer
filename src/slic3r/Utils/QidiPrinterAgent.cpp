@@ -35,35 +35,6 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
-// Builds the SAVE_VARIABLE lines that make each T<n> macro load the Box slot picked for filament n
-std::string build_tool_slot_script(const std::string& ams_mapping)
-{
-    // The firmware has value_t0 to value_t15 and slots 0 to 15
-    constexpr int slot_count = 16;
-
-    // One entry per filament: its Box slot index, negative when no slot was chosen
-    const auto  mapping = nlohmann::json::parse(ams_mapping, nullptr, false);
-    std::string script;
-    if (!mapping.is_array()) {
-        return script;
-    }
-    for (int filament = 0; filament < int(mapping.size()) && filament < slot_count; ++filament) {
-        if (!mapping[filament].is_number_integer()) {
-            continue;
-        }
-        const int slot = mapping[filament].get<int>();
-        if (slot < 0 || slot >= slot_count) {
-            continue;
-        }
-        if (!script.empty()) {
-            script += '\n';
-        }
-        // SAVE_VARIABLE reads VALUE as a Python literal, so the slot name keeps its own quotes
-        script += "SAVE_VARIABLE VARIABLE=value_t" + std::to_string(filament) + " VALUE=\"'slot" + std::to_string(slot) + "'\"";
-    }
-    return script;
-}
-
 } // anonymous namespace
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
@@ -119,6 +90,34 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
     // 4. Build the AMS payload
     build_ams_payload(box_count, box_count * 4 - 1, trays);
     return true;
+}
+
+std::string QidiPrinterAgent::build_tool_slot_script(const std::string& ams_mapping)
+{
+    // The firmware has value_t0 to value_t15 and slots 0 to 15
+    constexpr int slot_count = 16;
+
+    // One entry per filament: its Box slot index, negative when no slot was chosen
+    const auto  mapping = nlohmann::json::parse(ams_mapping, nullptr, false);
+    std::string script;
+    if (!mapping.is_array()) {
+        return script;
+    }
+    for (int filament = 0; filament < int(mapping.size()) && filament < slot_count; ++filament) {
+        if (!mapping[filament].is_number_integer()) {
+            continue;
+        }
+        const int slot = mapping[filament].get<int>();
+        if (slot < 0 || slot >= slot_count) {
+            continue;
+        }
+        if (!script.empty()) {
+            script += '\n';
+        }
+        // SAVE_VARIABLE reads VALUE as a Python literal, so the slot name keeps its own quotes
+        script += "SAVE_VARIABLE VARIABLE=value_t" + std::to_string(filament) + " VALUE=\"'slot" + std::to_string(slot) + "'\"";
+    }
+    return script;
 }
 
 bool QidiPrinterAgent::print_uploaded_file(const PrintParams& params, const std::string& filename)

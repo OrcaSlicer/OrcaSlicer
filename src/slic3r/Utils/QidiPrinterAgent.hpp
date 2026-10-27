@@ -23,6 +23,9 @@ public:
     // Override filament sync (Qidi-specific implementation)
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
+    // Builds the SAVE_VARIABLE lines that make each T<n> macro load the Box slot picked for filament n
+    static std::string build_tool_slot_script(const std::string& ams_mapping);
+
 protected:
     // Saves the Box slot picked for each filament in the print dialog, then starts the print through Moonraker
     bool print_uploaded_file(const PrintParams& params, const std::string& filename) override;
