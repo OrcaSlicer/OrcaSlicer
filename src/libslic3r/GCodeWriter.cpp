@@ -615,10 +615,9 @@ std::string GCodeWriter::set_pressure_advance(double pa, int tool) const
         gcode << "; Override pressure advance value\n";
     } else if (FLAVOR_IS(gcfRepRapFirmware)) {
         // RRF: M572 D<n> targets a specific extruder; a bare M572 applies to whatever tool is
-        // currently selected and errors when there isn't one. Callers with no tool index keep
-        // the historical D0 rather than the bare form: PA would otherwise depend on
-        // tool-selection state for every RRF user, none of whom are asking for IMEX.
-        gcode << "M572 D" << (tool >= 0 ? tool : 0)
+        // currently selected and errors when there isn't one. Callers with no tool index address
+        // the active extruder, so a second extruder gets its own PA (D0 before any extruder is set).
+        gcode << "M572 D" << (tool >= 0 ? tool : std::max(m_curr_extruder_id, 0))
               << " S" << std::setprecision(4) << pa << "; Override pressure advance value\n";
     } else if (FLAVOR_IS(gcfRepetier)) {
         // Repetier M233: X is quadratic (K), Y is linear (L).

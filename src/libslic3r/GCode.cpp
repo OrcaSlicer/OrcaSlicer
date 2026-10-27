@@ -11332,8 +11332,8 @@ std::string GCode::set_filament_pressure_advance(unsigned int filament_id, int t
     // Orca: Adaptive PA
     // Reset Adaptive PA processor last PA value
     m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(fi));
-    // tool >= 0 addresses one IMEX carriage explicitly; -1 omits the qualifier, so every
-    // caller that does not pass one emits exactly what it did before.
+    // tool >= 0 addresses one IMEX carriage explicitly; -1 leaves it to the writer, which omits
+    // the qualifier or, on RepRapFirmware, addresses the active extruder.
     return m_writer.set_pressure_advance(m_config.pressure_advance.get_at(fi), tool);
 }
 
