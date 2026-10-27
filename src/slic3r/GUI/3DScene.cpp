@@ -1463,8 +1463,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     ModelInstanceEPrintVolumeState overall_state = ModelInstancePVS_Fully_Outside;
     bool contained_min_one = false;
 
-    //BBS: add instance judge logic, besides to original volume judge logic
-    //std::map<int64_t, ModelInstanceEPrintVolumeState> model_state;
+    // Track each instance across all of its printable model-part volumes. A multipart
+    // instance with one volume inside and another fully outside is partly
+    // outside, even though neither individual volume is colliding.
+    std::map<std::pair<int, int>, ModelInstanceEPrintVolumeState> model_state;
 
     GUI::PartPlate* curr_plate = GUI::wxGetApp().plater()->get_partplate_list().get_selected_plate();
     const Pointfs& pp_bed_shape = curr_plate->get_shape();
@@ -1595,7 +1597,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 }
             }
 
-            //int64_t comp_id = ((int64_t)volume->composite_id.object_id << 32) | ((int64_t)volume->composite_id.instance_id);
+            const std::pair<int, int> instance_id { volume->composite_id.object_id, volume->composite_id.instance_id };
             volume->is_outside = (state != BuildVolume::ObjectState::Inside && state != BuildVolume::ObjectState::Limited);
             volume->partly_inside = (state == BuildVolume::ObjectState::Colliding);
             if (volume->printable) {
@@ -1610,38 +1612,43 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     overall_state = ModelInstancePVS_Fully_Outside;
                 }
                 contained_min_one |= !volume->is_outside;
-            }
 
-            /*ModelInstanceEPrintVolumeState volume_state;
-            //if (volume->is_outside && (plate_build_volume.bounding_volume().intersects(volume->bounding_box())))
-            if (volume->is_outside && (state == BuildVolume::ObjectState::Colliding))
-                volume_state = ModelInstancePVS_Partly_Outside;
-            else if (volume->is_outside)
-                volume_state = ModelInstancePVS_Fully_Outside;
-            else
-                volume_state = ModelInstancePVS_Inside;
+                // A volume completely below the bed is intentionally ignored when
+                // deciding whether an instance is printable.
+                if (!volume->is_wipe_tower && volume->composite_id.volume_id >= 0 &&
+                    state != BuildVolume::ObjectState::Below) {
+                    ModelInstanceEPrintVolumeState volume_state;
+                    if (volume->is_outside && state == BuildVolume::ObjectState::Colliding)
+                        volume_state = ModelInstancePVS_Partly_Outside;
+                    else if (volume->is_outside)
+                        volume_state = ModelInstancePVS_Fully_Outside;
+                    else
+                        volume_state = ModelInstancePVS_Inside;
 
-            if (model_state.find(comp_id) != model_state.end())
-            {
-                if (model_state[comp_id] != ModelInstancePVS_Partly_Outside)
-                {
-                    if (volume_state == ModelInstancePVS_Partly_Outside)
-                        model_state[comp_id] = ModelInstancePVS_Partly_Outside;
-                    else if (model_state[comp_id] != volume_state)
-                    {
-                        model_state[comp_id] = ModelInstancePVS_Partly_Outside;
+                    const auto [instance_state_entry, inserted] = model_state.emplace(instance_id, volume_state);
+                    if (!inserted && instance_state_entry->second != ModelInstancePVS_Partly_Outside &&
+                               (volume_state == ModelInstancePVS_Partly_Outside || instance_state_entry->second != volume_state)) {
+                        instance_state_entry->second = ModelInstancePVS_Partly_Outside;
+                    }
+
+                    if (instance_state_entry->second == ModelInstancePVS_Partly_Outside) {
+                        overall_state = ModelInstancePVS_Partly_Outside;
+                        partly_objects_set.emplace(model_objects[volume->object_idx()]);
                     }
                 }
             }
-            else
-            {
-                model_state[comp_id] = volume_state;
-            }
+        }
+    }
 
-            if (model_state[comp_id] == ModelInstancePVS_Partly_Outside) {
-                overall_state = ModelInstancePVS_Partly_Outside;
-                BOOST_LOG_TRIVIAL(debug) << "instance includes " << volume->name << " is partially outside of bed";
-            }*/
+    // Highlight printable parts of an instance that is partly outside the build volume.
+    for (GLVolume* volume : this->volumes)
+    {
+        if (volume->printable && !volume->is_modifier && !volume->is_wipe_tower &&
+            volume->composite_id.volume_id >= 0 && !volume_below(*volume)) {
+            const std::pair<int, int> instance_id { volume->composite_id.object_id, volume->composite_id.instance_id };
+            const auto instance_state_entry = model_state.find(instance_id);
+            if (instance_state_entry != model_state.end() && instance_state_entry->second == ModelInstancePVS_Partly_Outside)
+                volume->partly_inside = true;
         }
     }
 
@@ -1658,6 +1665,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     if (object_results && (extruder_count > 1))
     {
         object_results->mode = curr_plate->get_real_filament_map_mode(plate_project_config);
+        // Only Bambu printers regroup filaments; check the others against the map they print with.
+        const bool supports_filament_grouping = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+        if (!supports_filament_grouping && object_results->mode < FilamentMapMode::fmmManual)
+            object_results->mode = FilamentMapMode::fmmManual;
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1719,7 +1730,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         else
         {
             std::set<int> conflict_filaments_set;
-            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(plate_project_config);
+            std::vector<int> filament_maps = supports_filament_grouping ?
+                curr_plate->get_real_filament_maps(plate_project_config) :
+                curr_plate->get_effective_exclusion_filament_maps(plate_project_config, GUI::wxGetApp().preset_bundle->filament_presets.size(),
+                                                                  size_t(extruder_count));
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;
@@ -1754,22 +1768,6 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         }
 
     }
-
-    /*for (GLVolume* volume : this->volumes)
-    {
-        if (! volume->is_modifier && (volume->shader_outside_printer_detection_enabled || (! volume->is_wipe_tower && volume->composite_id.volume_id >= 0)))
-        {
-            int64_t comp_id = ((int64_t)volume->composite_id.object_id << 32) | ((int64_t)volume->composite_id.instance_id);
-            if (model_state.find(comp_id) != model_state.end())
-            {
-                if (model_state[comp_id] == ModelInstancePVS_Partly_Outside) {
-                    volume->partly_inside = true;
-                }
-                else
-                    volume->partly_inside = false;
-            }
-        }
-    }*/
 
     if (out_state != nullptr)
         *out_state = overall_state;
