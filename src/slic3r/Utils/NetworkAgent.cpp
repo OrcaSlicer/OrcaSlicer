@@ -1072,6 +1072,15 @@ int NetworkAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update
     return -1;
 }
 
+int NetworkAgent::start_print_with_mapping(PrintParams params, const PrintMapping& mapping, PrintStartMode mode,
+                                           OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+{
+    if (m_printer_agent)
+        return m_printer_agent->start_print_with_mapping(std::move(params), mapping, mode,
+                                                        std::move(update_fn), std::move(cancel_fn), std::move(wait_fn));
+    return -1;
+}
+
 FilamentSyncMode NetworkAgent::get_filament_sync_mode() const
 {
     if (m_printer_agent)

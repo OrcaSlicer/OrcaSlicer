@@ -2,6 +2,7 @@
 #define __I_PRINTER_AGENT_HPP__
 
 #include "bambu_networking.hpp"
+#include "PrintMapping.hpp"
 // why: these extend the BAMBU_NETWORK_* return space rather than opening a new one - the value
 // flows through the same int domain callers already compare against BAMBU_NETWORK_SUCCESS.
 // They live here and not in bambu_networking.hpp because that file is a vendor header replaced
@@ -9,10 +10,13 @@
 // -70xx is free: the vendor occupies -1..-25 and -10xx through -60xx.
 #define ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED -7010 // no translation exists for this command
 #define ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE -7020 // a translation exists; this printer lacks the capability
+#define ORCA_NETWORK_ERR_INVALID_PRINT_MAPPING -7030 // selected mapping could not be converted
+#define ORCA_NETWORK_ERR_PRINT_MAPPING_FAILED -7040 // printer rejected or could not apply mapping
 #include <string>
 #include <memory>
 #include <vector>
 #include <functional>
+#include <utility>
 #include <cmath>
 #include <nlohmann/json.hpp>
 #include <boost/format.hpp>
@@ -66,6 +70,13 @@ enum class CameraStreamMode {
     rtsp,  // LAN only
     webrtc, // Cloud only
     http_snapshot // HTTP endpoint returning one image per request
+};
+
+enum class PrintStartMode {
+    Cloud,
+    LocalWithRecord,
+    Local,
+    Sdcard
 };
 
 /**
@@ -384,6 +395,35 @@ public:
      * Start a print from printer's SD card.
      */
     virtual int start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) = 0;
+
+    /**
+     * Start an actual print with the mapping selected for this print.
+     *
+     * The default preserves existing agents by dispatching to their existing operation and
+     * leaving mapping handling to that operation. Mapping-aware agents may override this method
+     * to apply mapping before upload, after upload, or as part of native start. Upload-only calls
+     * must continue using start_send_gcode_to_sdcard and never call this method. Mapping updates
+     * should be idempotent: local-to-cloud fallback may retry after upload or start failure.
+     * Return ORCA_NETWORK_ERR_PRINT_MAPPING_FAILED when applying or supporting the selected mapping
+     * fails; callers do not fall back to another start mode after that result.
+     */
+    virtual int start_print_with_mapping(PrintParams params, const PrintMapping& mapping,
+                                         PrintStartMode mode, OnUpdateStatusFn update_fn,
+                                         WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+    {
+        (void) mapping;
+        switch (mode) {
+        case PrintStartMode::Cloud:
+            return start_print(std::move(params), std::move(update_fn), std::move(cancel_fn), std::move(wait_fn));
+        case PrintStartMode::LocalWithRecord:
+            return start_local_print_with_record(std::move(params), std::move(update_fn), std::move(cancel_fn), std::move(wait_fn));
+        case PrintStartMode::Local:
+            return start_local_print(std::move(params), std::move(update_fn), std::move(cancel_fn));
+        case PrintStartMode::Sdcard:
+            return start_sdcard_print(std::move(params), std::move(update_fn), std::move(cancel_fn));
+        }
+        return -1;
+    }
 
     // ========================================================================
     // Callback Registration

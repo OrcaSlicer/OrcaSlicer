@@ -227,6 +227,13 @@ public:
         ORCA_PY_AGENT_OVERRIDE(int, start_print, params, update_fn, cancel_fn, wait_fn);
     }
 
+    int start_print_with_mapping(PrintParams params, const PrintMapping& mapping, PrintStartMode mode,
+                                 OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override
+    {
+        ORCA_PY_AGENT_OVERRIDE_DEFAULT(int, start_print_with_mapping, params, mapping, mode,
+                                       update_fn, cancel_fn, wait_fn);
+    }
+
     int start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override
     {
         ORCA_PY_AGENT_OVERRIDE(int, start_local_print_with_record, params, update_fn, cancel_fn, wait_fn);

@@ -13,6 +13,7 @@
 
 #include "slic3r/Utils/FileTransferUtils.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "slic3r/Utils/PrintMapping.hpp"
 #include "NetworkAgent.hpp"
 #include <string>
 #include "libslic3r/Utils.hpp"
@@ -578,11 +579,19 @@ void PrintJob::process(Ctl &ctl)
             return true;
     };
 
-    if (m_print_type == "from_sdcard_view") {
+    PrintMapping print_mapping;
+    std::string mapping_error;
+    const bool mapping_valid = PrintMapping::from_legacy(params, print_mapping, mapping_error);
+    if (!mapping_valid)
+        BOOST_LOG_TRIVIAL(error) << "print_job: invalid print mapping: " << mapping_error;
+
+    if (!mapping_valid) {
+        result = ORCA_NETWORK_ERR_INVALID_PRINT_MAPPING;
+    } else if (m_print_type == "from_sdcard_view") {
         BOOST_LOG_TRIVIAL(info) << "print_job: try to send with cloud, model is sdcard view";
         ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
         mark_lifecycle_started();
-        result = m_agent->start_sdcard_print(params, update_fn, cancel_fn);
+        result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::Sdcard, update_fn, cancel_fn, wait_fn);
     } else if (params.connection_type != "lan") {
         if (params.dev_ip.empty())
             params.comments = "no_ip";
@@ -606,8 +615,9 @@ void PrintJob::process(Ctl &ctl)
                 ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
                 is_try_lan_mode = true;
                 mark_lifecycle_started();
-                result = m_agent->start_local_print_with_record(params, update_fn, cancel_fn, wait_fn);
-                if (result < 0) {
+                result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::LocalWithRecord, update_fn, cancel_fn, wait_fn);
+                if (result < 0 && result != BAMBU_NETWORK_ERR_CANCELED &&
+                    result != ORCA_NETWORK_ERR_PRINT_MAPPING_FAILED) {
                     error_text = wxString::Format(_L("Access code:%s IP address:%s"), params.password, params.dev_ip);
                     // try to send with cloud
                     BOOST_LOG_TRIVIAL(warning) << "print_job: use ftp send print failed";
@@ -623,7 +633,7 @@ void PrintJob::process(Ctl &ctl)
                 BOOST_LOG_TRIVIAL(info) << "print_job: try to start local print with record";
                 ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
                 mark_lifecycle_started();
-                result = m_agent->start_local_print_with_record(params, update_fn, cancel_fn, wait_fn);
+                result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::LocalWithRecord, update_fn, cancel_fn, wait_fn);
                 if (result == 0) {
                     params.comments = "";
                 }
@@ -633,27 +643,28 @@ void PrintJob::process(Ctl &ctl)
                 else {
                     params.comments = (boost::format("failed(%1%)") % result).str();
                 }
-                if (result < 0) {
+                if (result < 0 && result != BAMBU_NETWORK_ERR_CANCELED &&
+                    result != ORCA_NETWORK_ERR_PRINT_MAPPING_FAILED) {
                     is_try_lan_mode_failed = true;
                     // try to send with cloud
                     BOOST_LOG_TRIVIAL(warning) << "print_job: try to send with cloud";
                     ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
                     // Started was already emitted before the local attempt.
-                    result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
+                    result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::Cloud, update_fn, cancel_fn, wait_fn);
                 }
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "print_job: send with cloud";
                 ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
                 mark_lifecycle_started();
-                result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
+                result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::Cloud, update_fn, cancel_fn, wait_fn);
             }
         }
     } else {
         if (this->could_emmc_print) {
             ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
             mark_lifecycle_started();
-            result = m_agent->start_local_print(params, update_fn, cancel_fn);
+            result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::Local, update_fn, cancel_fn, wait_fn);
         } else {
             switch(this->sdcard_state) {
                 case DevStorage::SdcardState::NO_SDCARD:
@@ -664,7 +675,7 @@ void PrintJob::process(Ctl &ctl)
                         // means the storage is abnormal but can be used option is enabled
                         ctl.update_status(curr_percent, _u8L("Sending print job over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
                         mark_lifecycle_started();
-                        result = m_agent->start_local_print(params, update_fn, cancel_fn);
+                        result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::Local, update_fn, cancel_fn, wait_fn);
                         break;
                     }
                     ctl.update_status(curr_percent, _u8L("The Storage in the printer is abnormal. Please replace it with a normal Storage before sending print job to printer."));
@@ -675,7 +686,7 @@ void PrintJob::process(Ctl &ctl)
                 case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
                     ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
                     mark_lifecycle_started();
-                    result = m_agent->start_local_print(params, update_fn, cancel_fn);
+                    result = m_agent->start_print_with_mapping(params, print_mapping, PrintStartMode::Local, update_fn, cancel_fn, wait_fn);
                     break;
                 default:
                     ctl.update_status(curr_percent, _u8L("Encountered an unknown error with the Storage status. Please try again."));
@@ -689,7 +700,11 @@ void PrintJob::process(Ctl &ctl)
 
         // The printer is still fetching its encryption flag (a transient state), so ask the
         // user to retry rather than showing a generic error.
-        if (result == BAMBU_NETOWRK_ERR_PRINT_SP_ENC_FLAG_NOT_READY) {
+        if (result == ORCA_NETWORK_ERR_INVALID_PRINT_MAPPING) {
+            msg_text = format(_u8L("Invalid print mapping: %1%"), mapping_error);
+        } else if (result == ORCA_NETWORK_ERR_PRINT_MAPPING_FAILED) {
+            msg_text = _u8L("The printer could not apply the selected filament or tool mapping.");
+        } else if (result == BAMBU_NETOWRK_ERR_PRINT_SP_ENC_FLAG_NOT_READY) {
             msg_text = _u8L("Retrieving printer information, please try again later.");
         } else if (result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST) {
             msg_text = file_is_not_exists_str;

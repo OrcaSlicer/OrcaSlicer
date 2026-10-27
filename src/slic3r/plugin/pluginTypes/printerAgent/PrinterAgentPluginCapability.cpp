@@ -36,6 +36,63 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .value("RTSP", CameraStreamMode::rtsp)
         .export_values();
 
+    py::enum_<PrintStartMode>(printer_agent_module, "PrintStartMode")
+        .value("Cloud", PrintStartMode::Cloud)
+        .value("LocalWithRecord", PrintStartMode::LocalWithRecord)
+        .value("Local", PrintStartMode::Local)
+        .value("Sdcard", PrintStartMode::Sdcard);
+
+    py::enum_<PrintMapping::DestinationKind>(printer_agent_module, "MappingDestinationKind")
+        .value("Unmapped", PrintMapping::DestinationKind::unmapped)
+        .value("ExternalSpool", PrintMapping::DestinationKind::external_spool)
+        .value("AmsSlot", PrintMapping::DestinationKind::ams_slot);
+
+    py::enum_<PrintMapping::MappingVersion>(printer_agent_module, "MappingVersion")
+        .value("None_", PrintMapping::MappingVersion::none)
+        .value("V0", PrintMapping::MappingVersion::v0)
+        .value("V1", PrintMapping::MappingVersion::v1);
+
+    py::class_<PrintMapping::Destination>(printer_agent_module, "MappingDestination")
+        .def(py::init<>())
+        .def_readwrite("kind", &PrintMapping::Destination::kind)
+        .def_readwrite("ams_id", &PrintMapping::Destination::ams_id)
+        .def_readwrite("slot_id", &PrintMapping::Destination::slot_id);
+
+    py::class_<PrintMapping::FilamentMetadata>(printer_agent_module, "MappingFilamentMetadata")
+        .def(py::init<>())
+        .def_readwrite("ams", &PrintMapping::FilamentMetadata::ams)
+        .def_readwrite("target_color", &PrintMapping::FilamentMetadata::target_color)
+        .def_readwrite("filament_id", &PrintMapping::FilamentMetadata::filament_id)
+        .def_readwrite("filament_type", &PrintMapping::FilamentMetadata::filament_type)
+        .def_readwrite("nozzle_id", &PrintMapping::FilamentMetadata::nozzle_id)
+        .def_readwrite("source_color", &PrintMapping::FilamentMetadata::source_color);
+
+    py::class_<PrintMapping::Filament>(printer_agent_module, "MappingFilament")
+        .def(py::init<>())
+        .def_readwrite("filament_index", &PrintMapping::Filament::filament_index)
+        .def_readwrite("destination", &PrintMapping::Filament::destination)
+        .def_readwrite("metadata", &PrintMapping::Filament::metadata);
+
+    py::class_<PrintMapping::NozzleMapping>(printer_agent_module, "NozzleMapping")
+        .def(py::init<>())
+        .def_readwrite("index", &PrintMapping::NozzleMapping::index)
+        .def_readwrite("nozzle_id", &PrintMapping::NozzleMapping::nozzle_id);
+
+    py::class_<PrintMapping::NozzleInfo>(printer_agent_module, "NozzleInfo")
+        .def(py::init<>())
+        .def_readwrite("id", &PrintMapping::NozzleInfo::id)
+        .def_readwrite("type", &PrintMapping::NozzleInfo::type)
+        .def_readwrite("flow_size", &PrintMapping::NozzleInfo::flow_size)
+        .def_readwrite("diameter", &PrintMapping::NozzleInfo::diameter);
+
+    py::class_<PrintMapping>(printer_agent_module, "PrintMapping")
+        .def(py::init<>())
+        .def_readwrite("use_ams", &PrintMapping::use_ams)
+        .def_readwrite("ams_mapping_version", &PrintMapping::ams_mapping_version)
+        .def_readwrite("filaments", &PrintMapping::filaments)
+        .def_readwrite("nozzle_mapping", &PrintMapping::nozzle_mapping)
+        .def_readwrite("nozzles", &PrintMapping::nozzles);
+
     py::class_<AgentInfo>(printer_agent_module, "AgentInfo")
         .def(py::init<>())
         .def(py::init([](std::string id, std::string name, std::string version, std::string description) {
@@ -148,7 +205,8 @@ void PrinterAgentPluginCapability::RegisterBindings(pybind11::module_& module)
         .def("unbind", &PrinterAgentPluginCapability::unbind)
         .def("start_print", &PrinterAgentPluginCapability::start_print)
         .def("start_local_print_with_record", &PrinterAgentPluginCapability::start_local_print_with_record)
-        .def("start_sdcard_print", &PrinterAgentPluginCapability::start_sdcard_print);
+        .def("start_sdcard_print", &PrinterAgentPluginCapability::start_sdcard_print)
+        .def("start_print_with_mapping", &IPrinterAgent::start_print_with_mapping);
 }
 
 } // namespace Slic3r
