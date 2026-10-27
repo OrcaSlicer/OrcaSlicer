@@ -7060,8 +7060,8 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(2));
 
     def = this->add("imex_tool_layout", coEnum);
-    def->label = L("Tool 0 Position");
-    def->tooltip = L("Physical position on the bed where tool T0 (index 0) is located. "
+    def->label = L("Tool 1 Position");
+    def->tooltip = L("Physical position on the bed where tool T1 is located. "
                      "Determines how tool indices map to bed zones. "
                      "For single-gantry setups (IDEX) only left/right matters; "
                      "for dual-gantry setups (IQEX) all four corners are selectable "
