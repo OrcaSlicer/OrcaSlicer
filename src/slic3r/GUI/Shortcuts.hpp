@@ -47,14 +47,12 @@ enum class Shortcut : uint8_t {
     ViewDefault, ViewTop, ViewBottom, ViewFront, ViewRear, ViewLeft, ViewRight, ViewPlate, ZoomIn, ZoomOut, Mouse3DSettings,
     // Display
     ShowLabels, ShowCollisionVolumes, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
-    // Tabs
-    TabHome,
-#ifdef SLIC3R_CAD
-    TabDesign,
-#endif
-    TabPrepare, TabPreview, TabDevice, TabDeviceWeb, TabMultiDevice, TabProject, TabCalibration,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, GoToPrepare, GoToPreview, GoToDevice, GoToProject, TabNext, TabPrevious, ReloadDevicePage, KeyboardShortcuts, Quit,
+    Preferences, Search, SwitchView, CollapseSidebar, GoToHome,
+#ifdef SLIC3R_CAD
+    GoToDesign,
+#endif
+    GoToPrepare, GoToPreview, GoToDevice, GoToMultiDevice, GoToProject, GoToCalibration, TabNext, TabPrevious, ReloadDevicePage, KeyboardShortcuts, Quit,
     // Speed Dial
     SpeedDial,
     Count
@@ -75,7 +73,7 @@ struct ShortcutInfo
 
 // Headings of the shortcuts dialog, in listing order.
 enum class ShortcutSection : uint8_t {
-    Project, SlicingAndPrinting, Selection, Editing, Objects, Placement, Gizmos, Sliders, PaintingTools, Camera, Display, Tabs, Application, SpeedDial,
+    Project, SlicingAndPrinting, Selection, Editing, Objects, Placement, Gizmos, Sliders, PaintingTools, Camera, Display, Application, SpeedDial,
     Count
 };
 

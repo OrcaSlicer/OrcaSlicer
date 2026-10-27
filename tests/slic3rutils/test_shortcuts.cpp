@@ -222,8 +222,6 @@ TEST_CASE("Every shortcut is listed under the section of its table row", "[Short
     CHECK(shortcut_section(Shortcut::MovesSliderEnd) == ShortcutSection::Sliders);
     CHECK(shortcut_section(Shortcut::ViewDefault) == ShortcutSection::Camera);
     CHECK(shortcut_section(Shortcut::ShowCollisionVolumes) == ShortcutSection::Display);
-    CHECK(shortcut_section(Shortcut::TabHome) == ShortcutSection::Tabs);
-    CHECK(shortcut_section(Shortcut::TabCalibration) == ShortcutSection::Tabs);
     CHECK(shortcut_section(Shortcut::KeyboardShortcuts) == ShortcutSection::Application);
     CHECK(shortcut_section(Shortcut::Quit) == ShortcutSection::Application);
     CHECK(std::string(section_name(ShortcutSection::SlicingAndPrinting)) == "Slicing and printing");
@@ -298,7 +296,8 @@ TEST_CASE("Tab shortcuts: jump-to-tab is unbound by default, Ctrl+Tab cycles", "
     ShortcutRegistry registry;
 
     // The jump-to-tab shortcuts ship without a key, so F1-F4 stay free (F2 renames in the object list).
-    for (Shortcut shortcut : { Shortcut::GoToPrepare, Shortcut::GoToPreview, Shortcut::GoToDevice, Shortcut::GoToProject })
+    for (Shortcut shortcut : { Shortcut::GoToHome, Shortcut::GoToPrepare, Shortcut::GoToPreview, Shortcut::GoToDevice,
+                               Shortcut::GoToMultiDevice, Shortcut::GoToProject, Shortcut::GoToCalibration })
         CHECK_FALSE(registry.binding(shortcut).valid());
     CHECK_FALSE(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F2 }).has_value());
 
@@ -418,21 +417,20 @@ TEST_CASE("Custom bindings replace the default and survive a config round trip",
 TEST_CASE("A shortcut with no default is saved only while the user has it bound", "[Shortcuts]")
 {
     ShortcutRegistry registry;
-    CHECK_FALSE(registry.binding(Shortcut::TabPreview).valid());
-    CHECK(registry.accelerator(Shortcut::TabPreview).empty());
+    CHECK(registry.accelerator(Shortcut::GoToPreview).empty());
 
     const KeyChord alt_3{ '3', wxMOD_ALT };
-    registry.bind(Shortcut::TabPreview, alt_3);
-    CHECK(registry.lookup(ShortcutContext::Global, alt_3) == Shortcut::TabPreview);
+    registry.bind(Shortcut::GoToPreview, alt_3);
+    CHECK(registry.lookup(ShortcutContext::Global, alt_3) == Shortcut::GoToPreview);
 
     AppConfig config;
     registry.save(config);
-    CHECK(config.get("shortcuts", "tab_preview") == alt_3.to_string());
+    CHECK(config.get("shortcuts", "go_to_preview") == alt_3.to_string());
 
-    registry.bind(Shortcut::TabPreview, KeyChord{});
-    CHECK_FALSE(registry.is_customized(Shortcut::TabPreview));
+    registry.bind(Shortcut::GoToPreview, KeyChord{});
+    CHECK_FALSE(registry.is_customized(Shortcut::GoToPreview));
     registry.save(config);
-    CHECK_FALSE(config.has("shortcuts", "tab_preview"));
+    CHECK_FALSE(config.has("shortcuts", "go_to_preview"));
 }
 
 TEST_CASE("A Global shortcut refuses a config binding that would swallow typing", "[Shortcuts]")

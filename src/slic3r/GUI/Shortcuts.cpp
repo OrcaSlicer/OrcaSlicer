@@ -44,7 +44,6 @@ constexpr KeyChord PREFERENCES_CHORD{ 'P', CTRL };
 constexpr KeyChord DELETE_CHORD{ WXK_DELETE };
 constexpr KeyChord MOUSE3D_CHORD{ 'M', CTRL };
 #endif
-constexpr KeyChord NO_DEFAULT{};
 
 // Each row: enum value, AppConfig key, description shown in the dialog, contexts the key is
 // looked up in, and the default chord. Rows are in the order the dialog lists them, within
@@ -159,29 +158,22 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(ToggleOneLayerMode,  "toggle_one_layer_mode", L("On/Off one layer mode of the vertical slider"),    PREVIEW, { 'L' }),
     SHORTCUT(ToggleBeltRawGcode,  "toggle_belt_raw_gcode", L("Show raw G-code (belt only)"),                     PREVIEW, { 'B' }),
 
-    // Tabs
-    SHORTCUT(TabHome,           "tab_home",           L("Home"),                                                 GLOBAL, NO_DEFAULT),
-#ifdef SLIC3R_CAD
-    SHORTCUT(TabDesign,         "tab_design",         L("Design"),                                               GLOBAL, NO_DEFAULT),
-#endif
-    SHORTCUT(TabPrepare,        "tab_prepare",        L("Prepare"),                                              GLOBAL, NO_DEFAULT),
-    SHORTCUT(TabPreview,        "tab_preview",        L("Preview"),                                              GLOBAL, NO_DEFAULT),
-    SHORTCUT(TabDevice,         "tab_device",         L("Device"),                                               GLOBAL, NO_DEFAULT),
-    SHORTCUT(TabDeviceWeb,      "tab_device_web",     L("Device (Web)"),                                         GLOBAL, NO_DEFAULT),
-    SHORTCUT(TabMultiDevice,    "tab_multi_device",   L("Multi-device"),                                         GLOBAL, NO_DEFAULT),
-    SHORTCUT(TabProject,        "tab_project",        L("Project"),                                              GLOBAL, NO_DEFAULT),
-    SHORTCUT(TabCalibration,    "tab_calibration",    L("Calibration"),                                          GLOBAL, NO_DEFAULT),
-
     // Application
     SHORTCUT(Preferences,       "preferences",        L("Preferences"),                                          GLOBAL, PREFERENCES_CHORD),
     SHORTCUT(Search,            "search",             L("Search"),                                               GLOBAL, { 'F', CTRL }),
     SHORTCUT(SwitchView,        "switch_view",        L("Switch between Prepare/Preview"),                       CANVAS, { WXK_TAB }),
     SHORTCUT(CollapseSidebar,   "collapse_sidebar",   L("Collapse/Expand the sidebar"),                          CANVAS, { WXK_TAB, SHIFT }),
     // The jump-to-tab shortcuts have no default key, so users can bind the ones they want.
+    SHORTCUT(GoToHome,          "go_to_home",         L("Go to the Home tab"),                                   GLOBAL, {}),
+#ifdef SLIC3R_CAD
+    SHORTCUT(GoToDesign,        "go_to_design",       L("Go to the Design tab"),                                 GLOBAL, {}),
+#endif
     SHORTCUT(GoToPrepare,       "go_to_prepare",      L("Go to the Prepare tab"),                                GLOBAL, {}),
     SHORTCUT(GoToPreview,       "go_to_preview",      L("Go to the Preview tab"),                                GLOBAL, {}),
     SHORTCUT(GoToDevice,        "go_to_device",       L("Go to the Device tab"),                                 GLOBAL, {}),
+    SHORTCUT(GoToMultiDevice,   "go_to_multi_device", L("Go to the Multi-device tab"),                           GLOBAL, {}),
     SHORTCUT(GoToProject,       "go_to_project",      L("Go to the Project tab"),                                GLOBAL, {}),
+    SHORTCUT(GoToCalibration,   "go_to_calibration",  L("Go to the Calibration tab"),                            GLOBAL, {}),
     SHORTCUT(TabNext,           "tab_next",           L("Switch to the next tab"),                               GLOBAL, TAB_NEXT_CHORD),
     SHORTCUT(TabPrevious,       "tab_previous",       L("Switch to the previous tab"),                           GLOBAL, TAB_PREVIOUS_CHORD),
     SHORTCUT(ReloadDevicePage,  "reload_device_page", L("Reload the device page"),                               CANVAS, { WXK_F5 }),
@@ -216,7 +208,6 @@ constexpr std::array<SectionInfo, size_t(ShortcutSection::Count)> section_table 
     { Shortcut::PaintToolCircle, L("Painting tools") },
     { Shortcut::ViewDefault,     L("Camera") },
     { Shortcut::ShowLabels,      L("Display") },
-    { Shortcut::TabHome,         L("Tabs") },
     { Shortcut::Preferences,     L("Application") },
     { Shortcut::SpeedDial,       L("Speed Dial") },
 }};
