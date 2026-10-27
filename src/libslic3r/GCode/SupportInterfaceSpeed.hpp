@@ -1,9 +1,21 @@
 #pragma once
 
 #include "../ClipperUtils.hpp"
+#include "../Config.hpp"
+#include "../ExPolygon.hpp"
 #include "../Layer.hpp"
+#include "../Point.hpp"
+#include "../Polygon.hpp"
+#include "../Polyline.hpp"
 #include "../Print.hpp"
+#include "../libslic3r.h"
 #include "ExtrusionProcessor.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 
