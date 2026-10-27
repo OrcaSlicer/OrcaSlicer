@@ -94,6 +94,7 @@ protected:
         std::chrono::milliseconds idle{std::chrono::seconds(30)};           // Silence before giving up, with a ping every half of it
         std::chrono::milliseconds heartbeat{std::chrono::seconds(10)};      // Silence before the cached status is sent again
         std::chrono::milliseconds reconnect_delay{std::chrono::seconds(1)}; // First wait, doubling per consecutive failure up to 32x
+        std::chrono::milliseconds storage_check{std::chrono::seconds(30)};  // How often the free space of the gcodes root is re-read
     } ws_timings;
 
     // Tray data for AMS payload building
@@ -144,7 +145,14 @@ private:
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
+    // GETs a Moonraker endpoint and parses its JSON answer, giving up once `cancelled` returns true
+    bool get_json(const std::string&           url,
+                  const std::string&           api_key,
+                  const std::function<bool()>& cancelled,
+                  nlohmann::json&              json,
+                  std::string&                 error) const;
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
+    bool fetch_has_free_storage(const std::string& base_url, const std::string& api_key, bool& has_free, std::string& error) const;
     bool query_printer_status(const std::string&           base_url,
                               const std::string&           api_key,
                               nlohmann::json&              status,
@@ -163,6 +171,9 @@ private:
     void run_status_stream(std::string dev_id, std::string base_url, std::string api_key, StatusStreamTimings timings);
     void handle_ws_message(const std::string& dev_id, const std::string& payload);
     void send_heartbeat_if_due(const std::string& dev_id, std::chrono::milliseconds interval);
+    void dispatch_status(const std::string& dev_id);
+    // Re-reads whether the gcodes root has free space, and returns whether the answer changed
+    bool refresh_storage(const std::string& base_url, const std::string& api_key);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
 
@@ -217,6 +228,7 @@ private:
 
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection
+    std::atomic<bool>      has_storage{false}; // The gcodes root has free space
 
     std::atomic<bool>   ws_stop{false};
     std::atomic<bool>   ws_reconnect_requested{false};  // Flag to trigger reconnection

@@ -24,8 +24,10 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Print.hpp"
-#include <libslic3r/PrintBase.hpp>
-#include <libslic3r/CustomGCode.hpp>
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/libslic3r.h"
 #include <limits>
 #include <map>
 #include <optional>
@@ -1964,6 +1966,66 @@ TEST_CASE("Each filament cools with the fan speeds of its extruder variant", "[M
         CHECK(fan_speeds(gcode, "M106 P2 S") == std::set<int>{ additional_fan_speed });
         CHECK(gcode.find("; start range high " + std::to_string(range_high) + "\n") != std::string::npos);
     }
+}
+
+// An object moved onto a second filament makes the plate need a prime tower, and moving it back
+// makes the tower unnecessary again. One apply has to settle each move, so that applying the same
+// model once more leaves the print untouched.
+TEST_CASE("The prime tower follows an object switching filaments within one apply", "[MultiFilament]")
+{
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",               1 },
+        { "independent_support_layer_height", 1 },
+        { "gcode_comments",                   1 }, // init_print sets it, so re-applying config differs in nothing else
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config);
+    REQUIRE_FALSE(print.config().enable_prime_tower.value); // both objects on filament 1
+
+    for (const int filament : { 2, 1 }) {
+        INFO("second object moved to filament " << filament);
+        model.objects.back()->config.set("extruder", filament);
+        print.apply(model, config);
+        const bool two_filaments = filament == 2;
+        CHECK(print.config().enable_prime_tower.value == two_filaments);
+        CHECK(print.config().independent_support_layer_height.value != two_filaments);
+        CHECK(print.apply(model, config) == PrintBase::APPLY_STATUS_UNCHANGED);
+    }
+}
+
+// The tower turns independent_support_layer_height off, which rounds the raft gap up to a whole layer
+// and lifts the objects. Objects sliced before the move have to be sliced again.
+TEST_CASE("Objects above a raft are re-sliced when a filament switch turns the prime tower on", "[MultiFilament]")
+{
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",               1 },
+        { "independent_support_layer_height", 1 },
+        { "raft_layers",                      2 },
+        { "raft_contact_distance",            0.1 },
+        { "layer_height",                     0.2 },
+        { "initial_layer_print_height",       0.2 },
+        { "prime_tower_width",                35 },
+        { "wipe_tower_x",                     120 },
+        { "wipe_tower_y",                     120 },
+        { "printable_area",                   "0x0,200x0,200x200,0x200" },
+    });
+    const auto first_layer_z = [](const Print &print) { return print.objects().front()->layers().front()->print_z; };
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config);
+    print.process();
+
+    model.objects.back()->config.set("extruder", 2);
+    print.apply(model, config);
+    REQUIRE(print.config().enable_prime_tower.value);
+    print.process();
+
+    Print fresh;
+    fresh.apply(model, config);
+    fresh.set_status_silent();
+    fresh.process();
+    CHECK_THAT(first_layer_z(print), Catch::Matchers::WithinAbs(first_layer_z(fresh), EPSILON));
 }
 
 TEST_CASE("Shared heater on IMEX printer stays hot until all filaments on it are done", "[MultiFilament]")

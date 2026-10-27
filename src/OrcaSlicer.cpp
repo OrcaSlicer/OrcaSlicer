@@ -1303,6 +1303,13 @@ int CLI::run(int argc, char **argv)
     }
 #endif // __WXGTK__
 
+#ifdef _WIN32
+    // WebView2 152+ hides the pointer while typing and only restores it on a mouse event inside the
+    // webview, so closing one from the keyboard (e.g. Enter in the Speed Dial) leaves it hidden
+    // app-wide (WebView2Feedback#5687). Must be set before the first webview is created.
+    boost::nowide::setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-features=HideCursorWhileTyping", /* replace */ false);
+#endif
+
 	// Switch boost::filesystem to utf8.
     try {
         boost::nowide::nowide_filesystem();

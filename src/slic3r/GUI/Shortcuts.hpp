@@ -54,7 +54,7 @@ enum class Shortcut : uint8_t {
 #endif
     TabPrepare, TabPreview, TabDevice, TabDeviceWeb, TabMultiDevice, TabProject, TabCalibration,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, ReloadDevicePage, KeyboardShortcuts, Quit,
+    Preferences, Search, SwitchView, CollapseSidebar, GoToPrepare, GoToPreview, GoToDevice, GoToProject, TabNext, TabPrevious, ReloadDevicePage, KeyboardShortcuts, Quit,
     // Speed Dial
     SpeedDial,
     Count
