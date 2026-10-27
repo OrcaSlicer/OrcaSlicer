@@ -1,0 +1,34 @@
+// Smoke test of the MCP server's main paths: an auto-answered prompt, settings, slicing, export, a
+// dialog opened by an action and answered by the script, and screenshots. Run against a running
+// instance with
+//   tools/mcp/orca_mcp.py run-script tools/mcp/smoke_test.json --out /tmp/smoke
+// or headless with
+//   orca-slicer --mcp-script tools/mcp/smoke_test.json --mcp-script-out /tmp/smoke
+{
+  "orca_script": 1,
+  "name": "smoke",
+  "vars": {"model": "${script_dir}/../../resources/handy_models/3DBenchy.drc"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    // Startup may ask to restore a project an earlier run left unsaved, and new_project asks about
+    // unsaved changes. The rules end with the script, so they never answer a prompt after the run.
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
+                                                      {"match": "restore", "button": "no"}]}},
+    {"tool": "new_project"},
+    {"tool": "open_files", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "set_settings", "args": {"scope": "print", "values": {"wall_loops": 3}}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/benchy.gcode", "overwrite": true}},
+
+    // The action blocks in the dialog it opens, so it is not awaited until the dialog is answered.
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca"}, "await": false, "save_as": "prefs"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "ui_snapshot", "args": {"root": "dialog", "query": "splash"}, "expect": {"/nodes": {"ge": 1}}},
+    {"tool": "screenshot", "args": {"target": "dialog", "save_path": "${out_dir}/preferences.png", "overwrite": true, "include_image": false}},
+    {"tool": "dialog_respond", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}},
+
+    {"tool": "set_view", "args": {"tab": "preview", "camera": "iso"}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true, "include_image": false}}
+  ]
+}

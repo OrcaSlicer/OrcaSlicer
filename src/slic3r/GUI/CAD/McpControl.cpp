@@ -7,12 +7,12 @@
 #include <exception>
 #include <cstdint>
 
-#ifndef _WIN32  // POSIX Unix-domain-socket transport only (slice 1)
-
+#ifndef _WIN32  // the Unix-domain-socket transport is POSIX only
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>   // umask/chmod: the socket's file mode IS its access control
 #include <unistd.h>
+#endif
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -2138,6 +2138,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     }
 }
 
+#ifndef _WIN32
 // Marshal a request to the main thread and block (with a timeout) for the reply.
 std::string dispatch_request(const std::string& line)
 {
@@ -2280,10 +2281,13 @@ void server_thread(std::string sock_path)
     }
 }
 
+#endif // !_WIN32
+
 } // namespace
 
 void start_mcp_control_if_enabled()
 {
+#ifndef _WIN32
     const char* env = std::getenv("ORCA_CAD_MCP");
     if (!env || !*env) return;
     std::string path = (std::strcmp(env, "1") == 0) ? "/tmp/orca-cad-mcp.sock" : env;
@@ -2291,14 +2295,15 @@ void start_mcp_control_if_enabled()
     if (started) return;
     started = true;
     std::thread(server_thread, path).detach();
+#endif
+}
+
+json cad_control_call(const std::string& method, const json& params)
+{
+    const json reply = json::parse(handle_on_main(method, params, json(1)));
+    if (reply.contains("error"))
+        throw CadCallError(reply["error"].value("code", -32000), reply["error"].value("message", std::string("CAD call failed")));
+    return reply.value("result", json());
 }
 
 }} // namespace Slic3r::GUI
-
-#else  // _WIN32
-
-namespace Slic3r { namespace GUI {
-void start_mcp_control_if_enabled() {}   // ponytail: no Windows transport yet
-}}
-
-#endif

@@ -12,14 +12,30 @@
 // describe_tools lists the methods. A method that changes the document is refused (-32002)
 // while the Design tab is busy with it — a rebuild, an open feature card, a sketch session.
 //
-// ponytail: Unix-socket only (POSIX). Windows compiles this to a no-op; add a named
-// pipe transport when a Windows agent actually needs it.
+// The socket is POSIX only; on Windows the same methods are reached through the app's MCP server
+// (its cad_call tool), which calls cad_control_call().
+
+#include <nlohmann/json.hpp>
+
+#include <stdexcept>
+#include <string>
 
 namespace Slic3r { namespace GUI {
 
 // Start the server thread iff ORCA_CAD_MCP is set. Safe to call once the MainFrame exists —
 // the Design panel is built on the first request. No-op when the env var is unset or on Windows.
 void start_mcp_control_if_enabled();
+
+// A control-surface method's JSON-RPC error.
+struct CadCallError : std::runtime_error
+{
+    int code;
+    CadCallError(int code, const std::string& message) : std::runtime_error(message), code(code) {}
+};
+
+// Runs one control-surface method (describe_tools lists them) with the socket's busy and stale-id
+// checks and returns its result. Throws CadCallError. UI thread only.
+nlohmann::json cad_control_call(const std::string& method, const nlohmann::json& params);
 
 }} // namespace Slic3r::GUI
 

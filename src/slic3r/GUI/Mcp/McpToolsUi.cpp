@@ -24,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <regex>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -133,6 +134,33 @@ public:
 private:
     std::shared_ptr<State> m_state;
 };
+
+// Presses the button with `id` in `dialog` so the dialog's own handler runs, or ends the dialog with
+// that id when no such button exists. Returns whether a button was pressed. UI thread only.
+bool press_dialog_button(wxDialog* dialog, int id)
+{
+    wxWindow* pressed = nullptr;
+    std::function<void(wxWindow*)> find = [&](wxWindow* w) {
+        for (wxWindow* child : w->GetChildren()) {
+            if (pressed != nullptr || dynamic_cast<wxTopLevelWindow*>(child) != nullptr)
+                continue;
+            if (child->GetId() == id && child->IsShown() && child->IsEnabled() &&
+                (dynamic_cast<wxButton*>(child) != nullptr || class_name(child).find("Button") != std::string::npos))
+                pressed = child;
+            else
+                find(child);
+        }
+    };
+    find(dialog);
+    if (pressed == nullptr) {
+        dialog->EndModal(id);
+        return false;
+    }
+    wxCommandEvent evt(wxEVT_BUTTON, id);
+    evt.SetEventObject(pressed);
+    pressed->GetEventHandler()->ProcessEvent(evt);
+    return true;
+}
 
 } // namespace
 
@@ -329,40 +357,21 @@ void register_ui_tools(McpService& service)
                 if (id == wxID_NONE)
                     throw ToolFailure("The dialog has no button \"" + button + "\"", {{"dialog", describe_dialog(dialog)}});
                 const std::string dialog_title = into_u8(dialog->GetTitle());
-                // Press the button itself when there is one, so the dialog's own handler runs.
-                wxWindow* pressed = nullptr;
-                std::function<void(wxWindow*)> find = [&](wxWindow* w) {
-                    for (wxWindow* child : w->GetChildren()) {
-                        if (pressed != nullptr || dynamic_cast<wxTopLevelWindow*>(child) != nullptr)
-                            continue;
-                        if (child->GetId() == id && child->IsShown() && child->IsEnabled() &&
-                            (dynamic_cast<wxButton*>(child) != nullptr || class_name(child).find("Button") != std::string::npos))
-                            pressed = child;
-                        else
-                            find(child);
-                    }
-                };
-                find(dialog);
-                if (pressed != nullptr) {
-                    wxCommandEvent evt(wxEVT_BUTTON, id);
-                    evt.SetEventObject(pressed);
-                    pressed->GetEventHandler()->ProcessEvent(evt);
-                } else {
-                    dialog->EndModal(id);
-                }
-                return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", pressed != nullptr}};
+                const bool        pressed      = press_dialog_button(dialog, id);
+                return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", pressed}};
             });
             settle(ctx);
             return ToolResult::ok(out);
         }));
 
     {
-        ToolDef def = inspect_tool(
+        ToolDef def = recover_input_tool(
             "dialog_auto_answer", "Pre-answer dialogs",
-            "Answer future modal dialogs automatically, native ones included: a dialog whose title or message matches a rule's "
-            "regex (case-insensitive) returns that button at once and never shows. Native file pickers can only be cancelled. "
-            "Called from a script, the rules last until the script ends; otherwise they replace the rules this session set "
-            "before (an empty list clears them).",
+            "Answer modal dialogs automatically, native ones included: a dialog whose title or message matches a rule's regex "
+            "(case-insensitive) returns that button at once and never shows. A matching wx dialog that is already open is "
+            "answered too, so a prompt that appears around the same time (the restore prompt after startup) is handled "
+            "either way. Native file pickers can only be cancelled. Called from a script, the rules last until the script "
+            "ends; otherwise they replace the rules this session set before (an empty list clears them).",
             object_schema({{"rules", array_prop({{"type", "object"},
                                                  {"properties", {{"match", prop("string", "Regex searched in \"title\\nmessage\".")},
                                                                  {"button", prop("string", "yes | no | ok | cancel | close | apply | label | id")}}},
@@ -374,13 +383,30 @@ void register_ui_tools(McpService& service)
                 std::vector<AutoAnswerRule> rules;
                 for (const json& r : args["rules"])
                     rules.push_back(make_rule(r["match"].get<std::string>(), r["button"].get<std::string>()));
+                const std::vector<AutoAnswerRule> registered = rules;
                 const std::string scope = service.set_auto_answer(std::move(rules), ctx.lineage());
-                return ToolResult::ok({{"scope", scope}, {"rules", service.modals().rules_json()}});
+                json out{{"scope", scope}, {"rules", service.modals().rules_json()}};
+                json answered = ctx.run_ui([&]() -> json {
+                    wxDialog* top = service.modals().top();
+                    if (top == nullptr || is_native_dialog(top))
+                        return json();
+                    const json        info = describe_dialog(top);
+                    const std::string text = info["title"].get<std::string>() + "\n" + info["message"].get<std::string>();
+                    for (const AutoAnswerRule& rule : registered)
+                        if (std::regex_search(text, rule.compiled))
+                            if (const int id = resolve_dialog_button(top, rule.button); id != wxID_NONE) {
+                                press_dialog_button(top, id);
+                                return {{"dialog", info["title"]}, {"button", rule.button}};
+                            }
+                    return json();
+                });
+                if (!answered.is_null()) {
+                    out["answered_open_dialog"] = std::move(answered);
+                    settle(ctx);
+                }
+                return ToolResult::ok(std::move(out));
             });
-        def.read_only = false;
         def.idempotent = true;
-        def.guard     = GuardClass::Recover;
-        def.journal   = true;
         reg.add(def);
     }
 

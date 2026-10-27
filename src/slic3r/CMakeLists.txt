@@ -166,9 +166,9 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsApp.cpp
     GUI/Mcp/McpToolsCommon.cpp
     GUI/Mcp/McpToolsConfig.cpp
-    GUI/Mcp/McpToolsPending.cpp
     GUI/Mcp/McpToolsProject.cpp
     GUI/Mcp/McpToolsScene.cpp
+    GUI/Mcp/McpToolsScript.cpp
     GUI/Mcp/McpToolsUi.cpp
     GUI/Mcp/McpToolsView.cpp
     GUI/Mcp/ScreenCapture.cpp
@@ -917,6 +917,7 @@ if (SLIC3R_CAD)
         GUI/CAD/SketchInlineEditor.hpp
         GUI/CAD/McpControl.cpp
         GUI/CAD/McpControl.hpp
+        GUI/Mcp/McpToolsCad.cpp
     )
 endif ()
 

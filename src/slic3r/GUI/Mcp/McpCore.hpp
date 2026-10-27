@@ -37,8 +37,8 @@ public:
 
     // A call from a client. Mutate tools become top-level jobs.
     ToolResult call(const ToolDef& def, const nlohmann::json& args) override;
-    // A call made by a running job (a script step); the new job's parent is `parent_job`, which
-    // exempts it from operation admission against its own ancestors.
+    // A call made by a running job (a script step). The new job's parent is `parent_job`, so a
+    // `wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
     ToolResult call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job);
 
     // Wakes all waiters (UiInvoker and JobRegistry must be woken by the owner first or after) and
