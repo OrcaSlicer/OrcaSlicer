@@ -6995,7 +6995,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = "mm";
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(2.));
+    def->set_default_value(new ConfigOptionFloat(6.));
 
     def = this->add("toolchange_prime_length_max", coFloat);
     def->label = L("Maximum prime length");
