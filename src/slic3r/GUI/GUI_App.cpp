@@ -2444,8 +2444,14 @@ void GUI_App::init_networking_callbacks()
                                     obj->set_access_code("");
                                     text = wxString::Format(_L("Incorrect password"));
                                     wxGetApp().show_dialog(text);
+                                } else if (msg == "-1") {
+                                    text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
+                                    text += L"\n\u2022 " + _L("Check that the printer is on the same network as this computer and that its IP address is correct.");
+                                    text += L"\n\u2022 " + _L("If the connection still fails, try a different network plug-in version in Preferences.");
+                                    text += L"\n\u2022 " + _L("A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error.");
+                                    wxGetApp().show_dialog(text);
                                 } else {
-                                text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
+                                    text = wxString::Format(_L("Connect %s failed! [SN:%s, code=%s]"), from_u8(obj->get_dev_name()), obj->get_dev_id(), msg);
                                     wxGetApp().show_dialog(text);
                                 }
                                 event.SetInt(-1);
