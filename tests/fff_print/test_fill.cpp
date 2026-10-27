@@ -2598,3 +2598,28 @@ TEST_CASE("Perimeter-only modifiers do not split Voronoi infill at their boundar
     }
     REQUIRE(crossings > 0);
 }
+
+TEST_CASE("Voronoi density is unaffected by Locked Zag skin and skeleton settings", "[Fill][Voronoi][Regression]")
+{
+    const auto paths = [](double sparse, double skin) {
+        auto config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"sparse_infill_pattern", "voronoi"}, {"sparse_infill_density", sparse},
+            {"skin_infill_density", skin}, {"skeleton_infill_density", skin},
+            {"top_shell_layers", 0}, {"bottom_shell_layers", 0}, {"top_shell_thickness", 0}, {"bottom_shell_thickness", 0},
+            {"layer_height", 0.2}, {"initial_layer_print_height", 0.2}});
+        Print print;
+        Model model;
+        Slic3r::Test::init_print({make_cube(12., 12., 1.)}, print, model, config);
+        print.process();
+        Polylines result;
+        for (const Layer *layer : print.objects().front()->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.entities)
+                    entity->collect_polylines(result);
+        return result;
+    };
+    const Polylines reference = paths(15., 10.);
+    REQUIRE_FALSE(reference.empty());
+    REQUIRE(paths(15., 80.) == reference);
+    REQUIRE(paths(30., 10.) != reference);
+}
