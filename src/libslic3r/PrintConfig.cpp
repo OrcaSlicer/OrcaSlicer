@@ -7017,7 +7017,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = "s"; // seconds, don't need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(60.));
+    def->set_default_value(new ConfigOptionFloat(30.));
 
     def = this->add("toolchange_prime_skip_time", coFloat);
     def->label = L("Skip prime below idle time");
