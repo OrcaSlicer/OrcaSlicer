@@ -314,8 +314,9 @@ public:
     // ! ysFIXME - delete commented code after testing and rename "load_modifier" to something common
     //void                load_part(ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false);
     void                load_modifier(const wxArrayString& input_files, ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false);
-    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type);
-    void                load_shape_object(const std::string &type_name);
+    // interactive uses the size the user enters or saved as default; otherwise the shape gets its built-in default size.
+    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive = true);
+    void                load_shape_object(const std::string &type_name, bool interactive);
     void                load_mesh_object(const TriangleMesh &mesh, const wxString &name, bool center = true);
     // One object holding one part per mesh; the parts keep their placement relative to each other.
     void                load_mesh_object(const std::vector<std::pair<const TriangleMesh*, wxString>> &parts, const wxString &name, bool center = true);
