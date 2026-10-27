@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFDSrzZ8",
-	"setting_id": "NNDerIjh7qtuh1I3",
 	"name": "Generic PLA @Sovol Zero",
 	"renamed_from": "Sovol Zero PLA Basic",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "NNDerIjh7qtuh1I3",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
 	],

@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFesA6rF",
-	"setting_id": "LA8X1RsMdV2xNT1o",
 	"name": "Generic PLA Silk @Sovol Zero Hardened Steel nozzle",
 	"renamed_from": "Sovol Zero PLA Silk HS Nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "LA8X1RsMdV2xNT1o",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
 	],

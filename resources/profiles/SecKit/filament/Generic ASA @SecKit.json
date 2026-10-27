@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @SecKit",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "SecKit Generic ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "usCYRq4VuLqXvb0T",
 	"filament_id": "OFLPAxz3",

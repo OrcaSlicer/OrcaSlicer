@@ -1,5 +1,7 @@
 #include "TriangleMeshDeal.hpp"
+#include "TriangleMesh.hpp"
 
+#include <Eigen/Core>
 #include <igl/loop.h>
 #undef NDEBUG
 #include <assert.h>

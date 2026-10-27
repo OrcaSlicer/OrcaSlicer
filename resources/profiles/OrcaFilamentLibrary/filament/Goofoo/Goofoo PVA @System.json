@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo PVA @System",
+	"inherits": "Goofoo PVA @base",
+	"from": "system",
+	"setting_id": "tUXbv31nYkXJ87OT",
+	"instantiation": "true",
+	"compatible_printers": []
+}

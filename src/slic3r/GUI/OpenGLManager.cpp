@@ -8,16 +8,31 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Platform.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
+#include <boost/algorithm/string/constants.hpp>
+#include <cstdlib>
 #include <glad/gl.h>
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <string>
+#include <ostream>
+#include "libslic3r/Utils.hpp"
+#include <vector>
+#include <sstream>
+#include <utility>
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/log.h>
 #include <wx/msgdlg.h>
+#include <wx/string.h>
+#include <wx/version.h>
 
 #include "GUI_Init.hpp"
+#include "slic3r/GUI/GLShadersManager.hpp"
 
 #ifdef __APPLE__
 #include "../Utils/MacDarkMode.hpp"
@@ -286,7 +301,7 @@ bool OpenGLManager::init_gl(bool popup_error)
 
         bool valid_version = s_gl_info.is_version_greater_or_equal_to(2, 0);
         if (!valid_version) {
-            BOOST_LOG_TRIVIAL(error) << "Found opengl version <= 3.2"<< std::endl;
+            BOOST_LOG_TRIVIAL(error) << "Found opengl version < 2.0"<< std::endl;
             // Complain about the OpenGL version.
             if (popup_error) {
                 wxString message = from_u8((boost::format(
@@ -412,6 +427,8 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
     return m_context;
 }
 
+static const char* const SCENE_CANVAS_NAME = "OrcaSceneCanvas";
+
 wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
 {
     int antialiasing_samples = 4;
@@ -455,10 +472,15 @@ wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
         attribList[samples_value_idx] = 0;
     }
 
-    wxGLCanvas* canvas = new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS);
+    wxGLCanvas* canvas = new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS, SCENE_CANVAS_NAME);
     // The GL canvas paints its entire surface, so background erasing is unnecessary.
     canvas->SetBackgroundStyle(wxBG_STYLE_PAINT);
     return canvas;
+}
+
+bool OpenGLManager::is_scene_canvas(const wxWindow* window)
+{
+    return window != nullptr && window->GetName() == SCENE_CANVAS_NAME;
 }
 
 void OpenGLManager::detect_multisample(int* attribList)

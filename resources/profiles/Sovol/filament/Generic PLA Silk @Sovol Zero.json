@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFesA6rF",
-	"setting_id": "Se2yKerHRStYtWf5",
 	"name": "Generic PLA Silk @Sovol Zero",
 	"renamed_from": "Sovol Zero PLA Silk",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "Se2yKerHRStYtWf5",
+	"filament_id": "OFesA6rF",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
 	],

@@ -6,12 +6,25 @@
 	"filament_id": "OF9OlTWH",
 	"instantiation": "false",
 	"filament_cost": [
-		"29.99"
+		"21.99"
 	],
 	"filament_density": [
 		"1.22"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
 		"0.98"
 	],
 	"filament_vendor": [

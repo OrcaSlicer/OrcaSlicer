@@ -1,12 +1,12 @@
 {
 	"type": "filament",
 	"name": "re3D PETG @0.4 nozzle",
-	"from": "system",
 	"renamed_from": "re3D PETG",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
-	"filament_id": "OF3F63OE",
+	"from": "system",
 	"setting_id": "epcrSCwjgRXMycBx",
+	"filament_id": "OF3F63OE",
+	"instantiation": "true",
 	"filament_settings_id": [
 		"re3D PETG @0.4 nozzle"
 	],

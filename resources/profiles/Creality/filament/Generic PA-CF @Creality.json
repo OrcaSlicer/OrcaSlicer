@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA-CF @Creality",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "Creality Generic PA-CF",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "JDbda1VeHrPKR0NN",
 	"filament_id": "OFQLcbps",

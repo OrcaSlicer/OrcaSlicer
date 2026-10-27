@@ -4,6 +4,8 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Color.hpp"
+#include <cstddef>
+#include <utility>
 #include <vector>
 #include <string>
 

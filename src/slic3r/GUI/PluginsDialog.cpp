@@ -9,10 +9,19 @@
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 
+#include <cctype>
+#include <exception>
+#include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <chrono>
 #include <libslic3r/Utils.hpp>
 
 #include <slic3r/GUI/NotificationManager.hpp>
 #include <slic3r/GUI/Plater.hpp>
+#include "slic3r/GUI/PluginSource.hpp"
+#include "slic3r/GUI/PluginStatus.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include "slic3r/GUI/PluginSort.hpp"
 #include <slic3r/GUI/format.hpp>
 
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -25,15 +34,21 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include <wx/busycursor.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
+#include <wx/gdicmn.h>
 #include <wx/msgdlg.h>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/utils.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 namespace {
@@ -161,7 +176,7 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     for (const PluginCapabilityView& capability : dialog_item.capabilities) {
         nlohmann::json c;
         c["name"]          = capability.id.name;
-        c["type"]          = plugin_capability_type_display_name(capability.id.type);
+        c["type"]          = PluginConfig::capability_type_label(capability.id.type);
         c["type_key"]      = plugin_capability_type_to_string(capability.id.type);
         c["enabled"]       = capability.enabled;
         c["can_toggle"]    = capability.can_toggle;
@@ -193,6 +208,7 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["label"]                 = dialog_item.display_name;
     payload_item["source"]                = to_string(dialog_item.source);
     payload_item["status"]                = to_string(dialog_item.status);
+    payload_item["is_loaded"]             = dialog_item.is_loaded;
     payload_item["error"]                 = dialog_item.error_text;
     payload_item["update_status"]         = to_string(dialog_item.update_status);
     payload_item["unauthorized"]          = dialog_item.unauthorized;
@@ -250,25 +266,25 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
     available_actions.can_toggle                   = !is_loading && (has_local || available_actions.toggle_installs_cloud_plugin);
 
     auto add_action = [&available_actions](const char* id, const char* label, bool enabled = true, bool danger = false) {
-        available_actions.context_actions.push_back(PluginContextAction{id, label, enabled, danger});
+        available_actions.context_actions.push_back(PluginContextAction{id, _u8L(label), enabled, danger});
     };
 
     // Owned cloud plugins fall through to the local delete: it removes the installed package only.
     // Deleting a plugin from the cloud is a plugin hub operation and is never offered here.
     if (is_cloud && !is_orphaned && !is_mine) {
-        add_action("unsubscribe_plugin", "Unsubscribe", true, true);
+        add_action("unsubscribe_plugin", L("Unsubscribe"), true, true);
     } else if (has_local) {
-        add_action("delete_plugin", "Delete", true, true);
+        add_action("delete_plugin", L("Delete"), true, true);
     }
 
-    add_action("open_folder", "Show in folder", has_local);
+    add_action("open_folder", L("Show in folder"), has_local);
 
     if (!is_orphaned) {
         if (is_cloud) {
-            add_action("reinstall_plugin", "Reinstall");
+            add_action("reinstall_plugin", L("Reinstall"));
         } else {
-            add_action("reload_plugin", "Reload");
-            add_action("clear_cache_reload_plugin", "Delete cache and reload");
+            add_action("reload_plugin", L("Reload"));
+            add_action("clear_cache_reload_plugin", L("Delete cache and reload"));
         }
     }
 
@@ -284,7 +300,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.display_name = descriptor.name;
     item.description  = !descriptor.is_metadata_valid() && descriptor.has_error() ?
                             descriptor.normalized_error() :
-                            (descriptor.description.empty() ? "No description." : descriptor.description);
+                            (descriptor.description.empty() ? _u8L("No description.") : descriptor.description);
     item.author       = descriptor.author;
     item.version      = descriptor.version;
     // The cloud merge overwrites `version` with the latest cloud version, so prefer the preserved local
@@ -311,7 +327,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
                 item.type_labels.push_back(label);
     } else {
         for (const auto& capability : capabilities) {
-            const std::string label = plugin_capability_type_display_name(capability->type());
+            const std::string label = PluginConfig::capability_type_label(capability->type());
             if (std::find(item.type_labels.begin(), item.type_labels.end(), label) == item.type_labels.end())
                 item.type_labels.push_back(label);
         }
@@ -337,14 +353,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.sharing_token = descriptor.sharing_token;
     item.thumbnail_url = descriptor.thumbnail_url;
 
-    if (item.loading)
-        item.status = PluginStatus::Loading;
-    else if (item.has_error)
-        item.status = PluginStatus::Error;
-    else if (item.is_loaded)
-        item.status = PluginStatus::Activated;
-    else
-        item.status = PluginStatus::Inactive;
+    item.status = resolve_plugin_status(item.loading, item.has_error, item.is_loaded);
 
     item.available_actions        = evaluate_action_policy(item);
     const bool has_enabled_script = std::any_of(item.capabilities.begin(), item.capabilities.end(),
@@ -578,6 +587,97 @@ PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, c
     : WebViewHostDialog(parent, id, _L("Plugins"), pos, size, style)
 { create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715)); }
 
+nlohmann::json PluginsDialog::localized_strings() const
+{
+    return {
+        {"search_plugins", _u8L("Search plugins")},
+        {"clear", _u8L("Clear")},
+        {"clear_search", _u8L("Clear search")},
+        {"match_case", _u8L("Match case")},
+        {"match_whole_word", _u8L("Match whole word")},
+        {"refresh", _u8L("Refresh")},
+        {"install_options", _u8L("More plugin install options")},
+        {"install_plugin", _u8L("Install plugin")},
+        {"install_local_plugin", _u8L("Install local plugin")},
+        {"activate", _u8L("Activate")},
+        {"sort_by_name", _u8L("Sort by name")},
+        {"name", _u8L("Name")},
+        {"sort_by_version", _u8L("Sort by version")},
+        {"plugin_version", _u8L("Plugin Version")},
+        {"sort_by_source", _u8L("Sort by source")},
+        {"source", _u8L("Source")},
+        {"sort_by_status", _u8L("Sort by status")},
+        {"status", _u8L_CONTEXT("Status", "Plugin")},
+        {"resize_hint", _u8L("Drag to resize; double-click to reset")},
+        {"resize_list", _u8L("Resize the plugin list")},
+        {"details_label", _u8L("Plugin details")},
+        {"tab_info", _u8L("Plugin Info")},
+        {"description", _u8L("Description")},
+        {"tab_config", _u8L("Config")},
+        {"tab_changelog", _u8L("Changelog")},
+        {"tab_diagnostics", _u8L("Diagnostics")},
+        {"types", _u8L("Types")},
+        {"author", _u8L("Author")},
+        {"installed_version", _u8L("Installed Version")},
+        {"latest_version", _u8L("Latest Version")},
+        {"update_available", _u8L("Update available")},
+        {"update_title", _u8L("Update to the latest version")},
+        {"update", _u8L("Update")},
+        {"no_description", _u8L("No description available")},
+        {"config_select_plugin", _u8L("Select a plugin to configure its capabilities")},
+        {"configurable_capabilities", _u8L("Configurable capabilities")},
+        {"config_json_label", _u8L("Capability configuration (JSON)")},
+        {"config_frame_title", _u8L("Plugin configuration")},
+        {"restore_title", _u8L("Discard the settings saved for this capability and restore the plugin's defaults")},
+        {"restore_defaults", _u8L("Restore defaults")},
+        {"save", _u8L("Save")},
+        {"changelog_label", _u8L("Plugin changelog")},
+        {"version", _u8L("Version")},
+        {"date", _u8L("Date")},
+        {"changes", _u8L("Changes")},
+        {"no_changelog", _u8L("No changelog available")},
+        {"no_issues", _u8L("No issues detected")},
+        {"no_plugins", _u8L("No plugins found")},
+        {"no_match", _u8L("No plugins match \"%s\"")},
+        {"source_mine", _u8L("Mine")},
+        {"source_subscribed", _u8L_CONTEXT("Subscribed", "Plugin")},
+        {"source_orphaned", _u8L("Orphaned")},
+        {"source_local", _u8L_CONTEXT("Local", "Plugin")},
+        {"mixed_capabilities", _u8L("Some plugin capabilities are enabled")},
+        {"collapse_named", _u8L("Collapse %s capabilities")},
+        {"expand_named", _u8L("Expand %s capabilities")},
+        {"collapse", _u8L("Collapse capabilities")},
+        {"expand", _u8L("Expand capabilities")},
+        {"open_in_browser", _u8L("Open this plugin in your browser")},
+        {"capability_count", _u8L("Capabilities: %s")},
+        {"capabilities", _u8L_CONTEXT("Capabilities", "Plugin")},
+        {"run_named", _u8L("Run \"%s\"")},
+        {"enable_named", _u8L("Enable %s")},
+        {"not_available", _u8L("N/A")},
+        {"unauthorized", _u8L("Unauthorized for updates")},
+        {"not_installed", _u8L("Not installed")},
+        {"config_loading", _u8L("Loading the plugin…")},
+        {"config_no_capabilities", _u8L("This plugin exposes no capabilities")},
+        {"config_activate", _u8L("Activate this plugin to configure its capabilities")},
+        {"invalid_json", _u8L("Invalid JSON")},
+        {"view_on_cloud", _u8L("View on OrcaCloud <a>here</a>")},
+        {"status_activated", _u8L("Activated")},
+        {"status_loading", _u8L("Loading")},
+        {"status_error", _u8L("Error")},
+        {"status_runtime_error", _u8L("Runtime error")},
+        {"status_inactive", _u8L("Inactive")},
+        {"status_activated_desc", _u8L("This plugin is active and ready to be used.")},
+        {"status_loading_desc", _u8L("This plugin is still loading.")},
+        {"status_error_desc", _u8L("This plugin is blocked until its error is fixed.")},
+        {"status_runtime_error_desc", _u8L("This plugin is loaded but a capability reported an error.")},
+        {"status_inactive_desc", _u8L("This plugin is inactive. Activate it to install or load it.")},
+        {"select_plugin", _u8L("Select a plugin to view its status and details.")},
+        {"orphaned_note", _u8L("Orphaned: This plugin is no longer subscribed or available in OrcaCloud. The local copy remains installed and can still be used.")},
+        {"newer_version_note", _u8L("A newer plugin version is available.")},
+        {"unauthorized_note", _u8L("Cloud updates are unavailable because this plugin is unauthorized for updates.")},
+    };
+}
+
 PluginsDialog::~PluginsDialog() { m_alive->store(false, std::memory_order_release); }
 
 void PluginsDialog::set_open_terminal_dlg_fn()
@@ -790,6 +890,9 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
         }
 
         BOOST_LOG_TRIVIAL(info) << "Plugin unloaded from Plugins dialog: " << plugin_key;
+        // A user-disabled plugin has no meaningful error state.
+        if (!manager.clear_plugin_error(plugin_key))
+            BOOST_LOG_TRIVIAL(warning) << "Failed to clear plugin error for " << plugin_key << " (failed to find)";
         // A prior activation of this plugin is moot now; drop it so no stale "Activated" arrives later.
         if (m_activating_plugin_key == plugin_key)
             m_activating_plugin_key.clear();
@@ -800,7 +903,7 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
 
     if (!available_actions.can_toggle) {
         if (dialog_item.unauthorized && available_actions.toggle_installs_cloud_plugin == false && row_data.has_local_package() == false) {
-            const std::string install_error = "Unauthorized cloud plugins cannot be installed.";
+            const std::string install_error = _u8L("Unauthorized cloud plugins cannot be installed.");
             manager.set_plugin_error(plugin_key, install_error);
             show_status(from_u8(install_error), "warn");
         }
@@ -992,7 +1095,7 @@ bool PluginsDialog::install_cloud_plugin(const std::string& plugin_key, const st
     } catch (const std::exception& ex) {
         error = ex.what();
     } catch (...) {
-        error = "Unknown error";
+        error = _u8L("Unknown error");
     }
 
     if (!downloaded) {
@@ -1056,11 +1159,8 @@ void PluginsDialog::run_script_plugin_capability(const std::string& plugin_key, 
 {
     PluginManager& manager = PluginManager::instance();
 
-    std::string error;
-    ExecutionResult result;
-
-    auto complete_with_error = [this, &manager, &plugin_key](const std::string& plugin_error, const wxString& status_message) {
-        const std::string normalized_error = plugin_error.empty() ? "Script plugin failed." : plugin_error;
+    auto complete_with_error = [this, &manager, plugin_key](const std::string& plugin_error, const wxString& status_message) {
+        const std::string normalized_error = plugin_error.empty() ? _u8L("Script plugin failed.") : plugin_error;
         if (!manager.set_plugin_error(plugin_key, normalized_error))
             BOOST_LOG_TRIVIAL(warning) << "Failed to record plugin error. plugin_key=" << plugin_key;
 
@@ -1075,32 +1175,53 @@ void PluginsDialog::run_script_plugin_capability(const std::string& plugin_key, 
         show_status(message, "error");
     };
 
+    // Always runs on the GUI thread. For a started invocation (sync `def execute` or `async def`)
+    // the runtime delivers it later; it is called inline here only when the launch itself failed.
+    auto finish = [this, alive = m_alive, plugin_key, &manager, complete_with_error](const ScriptCompletion& completion) {
+        if (!alive->load())
+            return;
+
+        // Cancelled by PluginManager (unload/shutdown): expected termination. Report neither an
+        // error nor a normal success, and do not touch the plugin's error/state.
+        if (completion.cancelled)
+            return;
+
+        if (!completion.error.empty()) {
+            complete_with_error(completion.error, wxString());
+            return;
+        }
+
+        const ExecutionResult& result = completion.result;
+
+        BOOST_LOG_TRIVIAL(info) << "Script plugin execution completed. plugin_key=" << plugin_key
+                                << " status=" << static_cast<int>(result.status) << " message=" << result.message
+                                << " data=" << result.data;
+
+        const bool failed = result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError;
+        if (failed) {
+            complete_with_error(result.message, wxString());
+            return;
+        }
+
+        manager.clear_plugin_error(plugin_key);
+        send_plugins();
+
+        const bool     skipped  = result.status == PluginResult::Skipped;
+        const wxString fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
+        const wxString message  = result.message.empty() ? fallback : from_u8(result.message);
+        show_status(message, skipped ? "info" : "success");
+    };
+
+    PluginManager::ScriptLaunchResult launch;
     {
         wxBusyCursor busy;
-        result = manager.run_script_capability(plugin_key, capability_name, error);
+        launch = manager.launch_script_capability(plugin_key, capability_name, finish);
     }
 
-    if (!error.empty()) {
-        complete_with_error(error, wxString());
-        return;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << "Script plugin execution completed. plugin_key=" << plugin_key
-                            << " status=" << static_cast<int>(result.status) << " message=" << result.message << " data=" << result.data;
-
-    const bool failed = result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError || !error.empty();
-    if (failed) {
-        complete_with_error(result.message, wxString());
-        return;
-    }
-
-    manager.clear_plugin_error(plugin_key);
-    send_plugins();
-
-    const bool     skipped  = result.status == PluginResult::Skipped;
-    const wxString fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
-    const wxString message  = result.message.empty() ? fallback : from_u8(result.message);
-    show_status(message, skipped ? "info" : "success");
+    // Every started invocation — a synchronous `def execute` included — completes later through
+    // `finish`; only a launch failure is reported inline. Return without blocking.
+    if (!launch.launched_async)
+        finish(launch.outcome);
 }
 
 void PluginsDialog::update_plugin(const std::string& plugin_key)
@@ -1123,7 +1244,7 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
     } catch (const std::exception& ex) {
         error = ex.what();
     } catch (...) {
-        error = "Unknown error";
+        error = _u8L("Unknown error");
     }
 
     if (!updated) {
@@ -1199,6 +1320,9 @@ void PluginsDialog::delete_local_plugin(const PluginDescriptor& plugin)
             }
 
             send_plugins();
+            // The package is gone only now; the unload callback rechecked the notices too early.
+            if (Plater* plater = wxGetApp().plater())
+                plater->refresh_missing_plugin_notifications();
             show_status(wxString::Format(_L("Deleted \"%s\"."), plugin_name), "success");
         },
         _L("Deleting plugin"), _L("Deleting plugin..."));
@@ -1230,6 +1354,9 @@ void PluginsDialog::unsubscribe_cloud_plugin(const PluginDescriptor& plugin)
             }
 
             send_plugins();
+            // The package is gone only now; the unload callback rechecked the notices too early.
+            if (Plater* plater = wxGetApp().plater())
+                plater->refresh_missing_plugin_notifications();
             show_status(wxString::Format(_L("Unsubscribed \"%s\"."), plugin_name), "success");
         },
         _L("Unsubscribing plugin"), _L("Deleting local files and unsubscribing plugin..."));
@@ -1251,34 +1378,34 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
                 if (clear_cache) {
                     PluginDescriptor descriptor;
                     if (!manager.try_get_plugin_descriptor(plugin_key, descriptor))
-                        return {false, "Plugin not found."};
+                        return {false, _u8L("Plugin not found.")};
 
                     boost::filesystem::path resolved_root;
                     std::string                  resolve_error;
                     if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
-                                                     "Refusing to clear a plugin cache outside the local plugin directory.",
+                                                     _u8L("Refusing to clear a plugin cache outside the local plugin directory."),
                                                      resolved_root, resolve_error))
                         return {false, resolve_error};
                     cache_dir = resolved_root / "__whl_extracted__";
                 }
 
                 if (!manager.unload_plugin(plugin_key))
-                    return {false, "Failed to unload plugin."};
+                    return {false, _u8L("Failed to unload plugin.")};
 
                 if (clear_cache) {
                     boost::system::error_code ec;
                     boost::filesystem::remove_all(cache_dir, ec);
                     if (ec)
-                        return {false, "Failed to clear plugin cache: " + ec.message()};
+                        return {false, GUI::format(_u8L("Failed to clear plugin cache: %1%"), ec.message())};
                 }
 
                 manager.load_plugin(plugin_key, false);
                 std::string error;
                 if (!manager.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error) || !manager.is_plugin_loaded(plugin_key))
-                    return {false, error.empty() ? "Plugin failed to load." : error};
+                    return {false, error.empty() ? _u8L("Plugin failed to load.") : error};
 
                 if (!was_loaded && !manager.unload_plugin(plugin_key))
-                    return {false, "Plugin reloaded, but failed to restore the inactive state."};
+                    return {false, _u8L("Plugin reloaded, but failed to restore the inactive state.")};
 
                 return {true, {}};
             },
@@ -1286,7 +1413,7 @@ void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clea
     } catch (const std::exception& ex) {
         reload_result = {false, ex.what()};
     } catch (...) {
-        reload_result = {false, "Unknown plugin reload error."};
+        reload_result = {false, _u8L("Unknown plugin reload error.")};
     }
 
     if (!reload_result.first) {
@@ -1333,14 +1460,14 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
                     manager.load_plugin(plugin_key);
                     std::string error;
                     if (!manager.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error) || !manager.is_plugin_loaded(plugin_key))
-                        return {false, error.empty() ? "Plugin failed to load." : error};
+                        return {false, error.empty() ? _u8L("Plugin failed to load.") : error};
                     return {true, {}};
                 },
                 _L("Reloading plugin"), _L("Reloading plugin"));
         } catch (const std::exception& ex) {
             reload_result = {false, ex.what()};
         } catch (...) {
-            reload_result = {false, "Unknown plugin reload error."};
+            reload_result = {false, _u8L("Unknown plugin reload error.")};
         }
 
         if (!reload_result.first) {

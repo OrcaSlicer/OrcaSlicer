@@ -15,8 +15,21 @@
 #include "wx/fontenum.h"
 
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <utility>
+#include <cassert>
+#include <memory>
+#include <cstddef>
+#include <functional>
+#include "libslic3r/TextConfiguration.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <cmath>
+#include <vector>
+#include "libslic3r/SLA/RasterBase.hpp"
+#include "libslic3r/libslic3r.h"
+#include <exception>
 
-using namespace Slic3r;
 using namespace Slic3r::GUI;
 
 const std::string CreateFontImageJob::default_text = "AaBbCc 123";

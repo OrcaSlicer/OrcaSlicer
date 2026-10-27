@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.11",
+	"version": "02.04.00.16",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -473,6 +473,10 @@
 			"sub_path": "filament/Bambu/Bambu PETG HF @base.json"
 		},
 		{
+			"name": "Bambu PETG Matte @base",
+			"sub_path": "filament/Bambu/Bambu PETG Matte @base.json"
+		},
+		{
 			"name": "Bambu PETG Translucent @base",
 			"sub_path": "filament/Bambu/Bambu PETG Translucent @base.json"
 		},
@@ -587,6 +591,18 @@
 		{
 			"name": "SUNLU PETG @base",
 			"sub_path": "filament/SUNLU/SUNLU PETG @base.json"
+		},
+		{
+			"name": "School House Spools Matte PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PETG @base.json"
+		},
+		{
+			"name": "School House Spools PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @base.json"
+		},
+		{
+			"name": "School House Spools Transparent PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Transparent PETG @base.json"
 		},
 		{
 			"name": "eSUN PETG @base",
@@ -709,6 +725,10 @@
 			"sub_path": "filament/Bambu/Bambu PLA Impact @base.json"
 		},
 		{
+			"name": "Bambu PLA Lite @base",
+			"sub_path": "filament/Bambu/Bambu PLA Lite @base.json"
+		},
+		{
 			"name": "Bambu PLA Marble @base",
 			"sub_path": "filament/Bambu/Bambu PLA Marble @base.json"
 		},
@@ -719,6 +739,10 @@
 		{
 			"name": "Bambu PLA Metal @base",
 			"sub_path": "filament/Bambu/Bambu PLA Metal @base.json"
+		},
+		{
+			"name": "Bambu PLA Pure @base",
+			"sub_path": "filament/Bambu/Bambu PLA Pure @base.json"
 		},
 		{
 			"name": "Bambu PLA Silk @base",
@@ -735,6 +759,14 @@
 		{
 			"name": "Bambu PLA Tough @base",
 			"sub_path": "filament/Bambu/Bambu PLA Tough @base.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @base",
+			"sub_path": "filament/Bambu/Bambu PLA Tough+ @base.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @base",
+			"sub_path": "filament/Bambu/Bambu PLA Translucent @base.json"
 		},
 		{
 			"name": "Bambu PLA Wood @base",
@@ -1077,6 +1109,22 @@
 			"sub_path": "filament/SUNLU/SUNLU Wood PLA @base.json"
 		},
 		{
+			"name": "School House Spools Marble PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Marble PLA @base.json"
+		},
+		{
+			"name": "School House Spools Matte PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PLA @base.json"
+		},
+		{
+			"name": "School House Spools PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @base.json"
+		},
+		{
+			"name": "School House Spools Silk PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Silk PLA @base.json"
+		},
+		{
 			"name": "Valment PLA @base",
 			"sub_path": "filament/Valment/Valment PLA @base.json"
 		},
@@ -1193,12 +1241,24 @@
 			"sub_path": "filament/BETA/BETA TPU Matte @base.json"
 		},
 		{
+			"name": "Bambu TPU 85A @base",
+			"sub_path": "filament/Bambu/Bambu TPU 85A @base.json"
+		},
+		{
+			"name": "Bambu TPU 90A @base",
+			"sub_path": "filament/Bambu/Bambu TPU 90A @base.json"
+		},
+		{
 			"name": "Bambu TPU 95A @base",
 			"sub_path": "filament/Bambu/Bambu TPU 95A @base.json"
 		},
 		{
 			"name": "Bambu TPU 95A HF @base",
 			"sub_path": "filament/Bambu/Bambu TPU 95A HF @base.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @base",
+			"sub_path": "filament/Bambu/Bambu TPU for AMS @base.json"
 		},
 		{
 			"name": "COEX TPE 30D @base",
@@ -1255,6 +1315,10 @@
 		{
 			"name": "Overture TPU @base",
 			"sub_path": "filament/Overture/Overture TPU @base.json"
+		},
+		{
+			"name": "School House Spools TPU 95A @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools TPU 95A @base.json"
 		},
 		{
 			"name": "FusRock ABS-GF @BBL A1",
@@ -1365,6 +1429,10 @@
 			"sub_path": "filament/addnorth/BBL/addnorth ABS rABS.json"
 		},
 		{
+			"name": "Goofoo ABS @base",
+			"sub_path": "filament/Goofoo/Goofoo ABS @base.json"
+		},
+		{
 			"name": "NIT ABS @System",
 			"sub_path": "filament/NIT/NIT ABS @System.json"
 		},
@@ -1447,6 +1515,10 @@
 		{
 			"name": "Elegoo ASA-CF @base",
 			"sub_path": "filament/Elegoo/Elegoo ASA-CF @base.json"
+		},
+		{
+			"name": "Goofoo ASA @base",
+			"sub_path": "filament/Goofoo/Goofoo ASA @base.json"
 		},
 		{
 			"name": "Overture ASA @BBL X1",
@@ -1605,8 +1677,20 @@
 			"sub_path": "filament/addnorth/BBL/addnorth PVDF Adamant S1.json"
 		},
 		{
+			"name": "Goofoo PA @base",
+			"sub_path": "filament/Goofoo/Goofoo PA @base.json"
+		},
+		{
 			"name": "addnorth PA-CF Adura X",
 			"sub_path": "filament/addnorth/BBL/addnorth PA-CF Adura X.json"
+		},
+		{
+			"name": "Goofoo PA-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PA-CF @base.json"
+		},
+		{
+			"name": "Goofoo PA-GF10 @base",
+			"sub_path": "filament/Goofoo/Goofoo PA-GF10 @base.json"
 		},
 		{
 			"name": "INSLOGIC PA6-66 @BBL P2S",
@@ -1679,6 +1763,10 @@
 		{
 			"name": "COEX PCTG PRIME @System",
 			"sub_path": "filament/COEX/COEX PCTG PRIME @System.json"
+		},
+		{
+			"name": "Goofoo PE @base",
+			"sub_path": "filament/Goofoo/Goofoo PE @base.json"
 		},
 		{
 			"name": "Generic PE-CF @System",
@@ -1945,6 +2033,10 @@
 			"sub_path": "filament/Bambu/Bambu PETG HF @System.json"
 		},
 		{
+			"name": "Bambu PETG Matte @System",
+			"sub_path": "filament/Bambu/Bambu PETG Matte @System.json"
+		},
+		{
 			"name": "Bambu PETG Translucent @System",
 			"sub_path": "filament/Bambu/Bambu PETG Translucent @System.json"
 		},
@@ -2141,6 +2233,10 @@
 			"sub_path": "filament/addnorth/BBL/addnorth PETG rPETG Matte.json"
 		},
 		{
+			"name": "Goofoo PETG @base",
+			"sub_path": "filament/Goofoo/Goofoo PETG @base.json"
+		},
+		{
 			"name": "Generic PETG HF @System",
 			"sub_path": "filament/Generic PETG HF @System.json"
 		},
@@ -2197,8 +2293,24 @@
 			"sub_path": "filament/SUNLU/SUNLU PETG @System.json"
 		},
 		{
+			"name": "School House Spools Matte PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PETG @System.json"
+		},
+		{
+			"name": "School House Spools PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @System.json"
+		},
+		{
+			"name": "School House Spools Transparent PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Transparent PETG @System.json"
+		},
+		{
 			"name": "eSUN PETG @System",
 			"sub_path": "filament/eSUN/eSUN PETG @System.json"
+		},
+		{
+			"name": "Goofoo PHA @base",
+			"sub_path": "filament/Goofoo/Goofoo PHA @base.json"
 		},
 		{
 			"name": "AliZ PLA @P1-X1",
@@ -2653,6 +2765,10 @@
 			"sub_path": "filament/Bambu/Bambu PLA Impact @System.json"
 		},
 		{
+			"name": "Bambu PLA Lite @System",
+			"sub_path": "filament/Bambu/Bambu PLA Lite @System.json"
+		},
+		{
 			"name": "Bambu PLA Marble @System",
 			"sub_path": "filament/Bambu/Bambu PLA Marble @System.json"
 		},
@@ -2663,6 +2779,10 @@
 		{
 			"name": "Bambu PLA Metal @System",
 			"sub_path": "filament/Bambu/Bambu PLA Metal @System.json"
+		},
+		{
+			"name": "Bambu PLA Pure @System",
+			"sub_path": "filament/Bambu/Bambu PLA Pure @System.json"
 		},
 		{
 			"name": "Bambu PLA Silk @System",
@@ -2679,6 +2799,14 @@
 		{
 			"name": "Bambu PLA Tough @System",
 			"sub_path": "filament/Bambu/Bambu PLA Tough @System.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @System",
+			"sub_path": "filament/Bambu/Bambu PLA Tough+ @System.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @System",
+			"sub_path": "filament/Bambu/Bambu PLA Translucent @System.json"
 		},
 		{
 			"name": "Bambu PLA Wood @System",
@@ -3069,6 +3197,10 @@
 			"sub_path": "filament/addnorth/BBL/addnorth PLA rPLA RE-ADD.json"
 		},
 		{
+			"name": "Goofoo PLA @base",
+			"sub_path": "filament/Goofoo/Goofoo PLA @base.json"
+		},
+		{
 			"name": "addnorth PLA X-PLA High Speed",
 			"sub_path": "filament/addnorth/BBL/addnorth PLA X-PLA High Speed.json"
 		},
@@ -3083,6 +3215,10 @@
 		{
 			"name": "addnorth PLA-CF Carbon Fiber",
 			"sub_path": "filament/addnorth/BBL/addnorth PLA-CF Carbon Fiber.json"
+		},
+		{
+			"name": "Goofoo PLA-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PLA-CF @base.json"
 		},
 		{
 			"name": "INSLOGIC PLA Pro @BBL P2S",
@@ -3721,6 +3857,22 @@
 			"sub_path": "filament/SUNLU/SUNLU Wood PLA @System.json"
 		},
 		{
+			"name": "School House Spools Marble PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Marble PLA @System.json"
+		},
+		{
+			"name": "School House Spools Matte PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PLA @System.json"
+		},
+		{
+			"name": "School House Spools PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @System.json"
+		},
+		{
+			"name": "School House Spools Silk PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Silk PLA @System.json"
+		},
+		{
 			"name": "Valment PLA @System",
 			"sub_path": "filament/Valment/Valment PLA @System.json"
 		},
@@ -3769,6 +3921,10 @@
 			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
 		},
 		{
+			"name": "Goofoo PP @base",
+			"sub_path": "filament/Goofoo/Goofoo PP @base.json"
+		},
+		{
 			"name": "Generic PP-CF @System",
 			"sub_path": "filament/Generic PP-CF @System.json"
 		},
@@ -3787,6 +3943,10 @@
 		{
 			"name": "Bambu PVA @System",
 			"sub_path": "filament/Bambu/Bambu PVA @System.json"
+		},
+		{
+			"name": "Goofoo PVA @base",
+			"sub_path": "filament/Goofoo/Goofoo PVA @base.json"
 		},
 		{
 			"name": "FDplast SBS @System",
@@ -3893,12 +4053,24 @@
 			"sub_path": "filament/BETA/BBL/BETA TPU Matte @BBL X1C.json"
 		},
 		{
+			"name": "Bambu TPU 85A @System",
+			"sub_path": "filament/Bambu/Bambu TPU 85A @System.json"
+		},
+		{
+			"name": "Bambu TPU 90A @System",
+			"sub_path": "filament/Bambu/Bambu TPU 90A @System.json"
+		},
+		{
 			"name": "Bambu TPU 95A @System",
 			"sub_path": "filament/Bambu/Bambu TPU 95A @System.json"
 		},
 		{
 			"name": "Bambu TPU 95A HF @System",
 			"sub_path": "filament/Bambu/Bambu TPU 95A HF @System.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @System",
+			"sub_path": "filament/Bambu/Bambu TPU for AMS @System.json"
 		},
 		{
 			"name": "COEX TPE 30D @BBL A1",
@@ -4049,6 +4221,14 @@
 			"sub_path": "filament/addnorth/BBL/addnorth TPU Pro Matte 95A.json"
 		},
 		{
+			"name": "Goofoo 90A TPU @base",
+			"sub_path": "filament/Goofoo/Goofoo 90A TPU @base.json"
+		},
+		{
+			"name": "Goofoo 95A TPU @base",
+			"sub_path": "filament/Goofoo/Goofoo 95A TPU @base.json"
+		},
+		{
 			"name": "Overture TPU @BBL A1",
 			"sub_path": "filament/Overture/BBL/Overture TPU @BBL A1.json"
 		},
@@ -4093,8 +4273,32 @@
 			"sub_path": "filament/Overture/Overture TPU @System.json"
 		},
 		{
+			"name": "School House Spools TPU 95A @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools TPU 95A @System.json"
+		},
+		{
+			"name": "Goofoo ABS @System",
+			"sub_path": "filament/Goofoo/Goofoo ABS @System.json"
+		},
+		{
 			"name": "Elegoo ASA-CF @System",
 			"sub_path": "filament/Elegoo/Elegoo ASA-CF @System.json"
+		},
+		{
+			"name": "Goofoo ASA @System",
+			"sub_path": "filament/Goofoo/Goofoo ASA @System.json"
+		},
+		{
+			"name": "Goofoo PA @System",
+			"sub_path": "filament/Goofoo/Goofoo PA @System.json"
+		},
+		{
+			"name": "Goofoo PA-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PA-CF @System.json"
+		},
+		{
+			"name": "Goofoo PA-GF10 @System",
+			"sub_path": "filament/Goofoo/Goofoo PA-GF10 @System.json"
 		},
 		{
 			"name": "Elegoo PC-FR @System",
@@ -4111,6 +4315,14 @@
 		{
 			"name": "COEX PCTG PRIME @BBL A1M 0.8 nozzle",
 			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1M 0.8 nozzle.json"
+		},
+		{
+			"name": "Goofoo PE @System",
+			"sub_path": "filament/Goofoo/Goofoo PE @System.json"
+		},
+		{
+			"name": "Goofoo PE-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PE-CF @base.json"
 		},
 		{
 			"name": "AliZ PETG-CF @P1-X1",
@@ -4173,8 +4385,24 @@
 			"sub_path": "filament/Polymaker/BBL/Fiberon PETG-ESD @BBL X1.json"
 		},
 		{
+			"name": "Goofoo PETG @System",
+			"sub_path": "filament/Goofoo/Goofoo PETG @System.json"
+		},
+		{
+			"name": "Goofoo PETG HF @base",
+			"sub_path": "filament/Goofoo/Goofoo PETG HF @base.json"
+		},
+		{
 			"name": "addnorth PETG-CF Rigid X",
 			"sub_path": "filament/addnorth/BBL/addnorth PETG-CF Rigid X.json"
+		},
+		{
+			"name": "Goofoo PETG-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PETG-CF @base.json"
+		},
+		{
+			"name": "Goofoo PHA @System",
+			"sub_path": "filament/Goofoo/Goofoo PHA @System.json"
 		},
 		{
 			"name": "COEX PLA @BBL A1M 0.2 nozzle",
@@ -4239,6 +4467,14 @@
 		{
 			"name": "Elegoo Rapid PLA+ @System",
 			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @System.json"
+		},
+		{
+			"name": "Goofoo PLA @System",
+			"sub_path": "filament/Goofoo/Goofoo PLA @System.json"
+		},
+		{
+			"name": "Goofoo PLA-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PLA-CF @System.json"
 		},
 		{
 			"name": "Numakers PLA+ @BBL A1",
@@ -5125,8 +5361,60 @@
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
 		},
 		{
+			"name": "Goofoo PLA Silk @base",
+			"sub_path": "filament/Goofoo/Goofoo PLA Silk @base.json"
+		},
+		{
+			"name": "Goofoo PP @System",
+			"sub_path": "filament/Goofoo/Goofoo PP @System.json"
+		},
+		{
+			"name": "Goofoo PP-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PP-CF @base.json"
+		},
+		{
+			"name": "Goofoo PP-GF @base",
+			"sub_path": "filament/Goofoo/Goofoo PP-GF @base.json"
+		},
+		{
+			"name": "Goofoo PVA @System",
+			"sub_path": "filament/Goofoo/Goofoo PVA @System.json"
+		},
+		{
 			"name": "Elegoo Rapid TPU 95A @System",
 			"sub_path": "filament/Elegoo/Elegoo Rapid TPU 95A @System.json"
+		},
+		{
+			"name": "Goofoo 90A TPU @System",
+			"sub_path": "filament/Goofoo/Goofoo 90A TPU @System.json"
+		},
+		{
+			"name": "Goofoo 95A TPU @System",
+			"sub_path": "filament/Goofoo/Goofoo 95A TPU @System.json"
+		},
+		{
+			"name": "Goofoo PE-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PE-CF @System.json"
+		},
+		{
+			"name": "Goofoo PETG HF @System",
+			"sub_path": "filament/Goofoo/Goofoo PETG HF @System.json"
+		},
+		{
+			"name": "Goofoo PETG-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PETG-CF @System.json"
+		},
+		{
+			"name": "Goofoo PLA Silk @System",
+			"sub_path": "filament/Goofoo/Goofoo PLA Silk @System.json"
+		},
+		{
+			"name": "Goofoo PP-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PP-CF @System.json"
+		},
+		{
+			"name": "Goofoo PP-GF @System",
+			"sub_path": "filament/Goofoo/Goofoo PP-GF @System.json"
 		}
 	],
 	"process_list": [],

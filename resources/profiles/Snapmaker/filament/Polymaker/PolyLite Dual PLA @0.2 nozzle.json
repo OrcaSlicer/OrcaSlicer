@@ -2,9 +2,9 @@
 	"type": "filament",
 	"name": "PolyLite Dual PLA @0.2 nozzle",
 	"inherits": "PolyLite PLA @0.2 nozzle",
-	"filament_id": "OFYGbPHX",
 	"from": "system",
 	"setting_id": "jhmy4YHi9MuL0DWu",
+	"filament_id": "OFYGbPHX",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.2 nozzle)",

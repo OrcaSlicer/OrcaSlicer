@@ -6,6 +6,9 @@
 	"from": "system",
 	"setting_id": "xTeHmDOY48Bik10J",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_settings_id": [
 		"Generic PLA @Phrozen Arco 0.4 nozzle"
 	],

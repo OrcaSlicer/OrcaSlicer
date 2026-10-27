@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
-	"inherits": "Cubicon PC @base",
 	"renamed_from": "Cubicon PC @base",
+	"inherits": "Cubicon PC @base",
 	"setting_id": "c0sUPS0SRYUNjEpB",
 	"filament_id": "OFEj7sca",
 	"instantiation": "true",

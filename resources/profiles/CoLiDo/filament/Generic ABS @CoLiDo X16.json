@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @CoLiDo X16",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "CoLiDo Generic ABS @CoLiDo X16;CoLiDo Generic ABS CoLiDo X16",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "LE7jeYUNsBZEKQpJ",
 	"filament_id": "OFY9muEs",

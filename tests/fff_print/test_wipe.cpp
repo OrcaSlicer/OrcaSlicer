@@ -2,17 +2,34 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/calib.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include <map>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Layer.hpp"
 
 #include "test_helpers.hpp"
+#include "libslic3r/Polyline.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;

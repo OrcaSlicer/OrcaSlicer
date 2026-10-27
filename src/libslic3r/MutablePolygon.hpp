@@ -4,6 +4,13 @@
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "ExPolygon.hpp"
+#include <cstdint>
+#include <cassert>
+#include <cstddef>
+#include <initializer_list>
+#include <vector>
+#include <algorithm>
+#include "libslic3r.h"
 
 namespace Slic3r {
 

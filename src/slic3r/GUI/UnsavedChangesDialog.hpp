@@ -1,9 +1,24 @@
 #ifndef slic3r_UnsavedChangesDialog_hpp_
 #define slic3r_UnsavedChangesDialog_hpp_
 
+#include "slic3r/GUI/Event.hpp"
+#include <memory>
+#include "libslic3r/Preset.hpp"
+#include <string>
+#include <utility>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include <array>
 #include <wx/dataview.h>
 #include <map>
 #include <vector>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"

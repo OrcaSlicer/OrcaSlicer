@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <vector>
 
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"

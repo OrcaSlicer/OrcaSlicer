@@ -1,7 +1,13 @@
 #ifndef MODELARRANGE_HPP
 #define MODELARRANGE_HPP
 
+#include <functional>
+#include <cstddef>
 #include <libslic3r/Arrange.hpp>
+#include <vector>
+#include "Exception.hpp"
+#include <string>
+#include "Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Model.hpp"
 

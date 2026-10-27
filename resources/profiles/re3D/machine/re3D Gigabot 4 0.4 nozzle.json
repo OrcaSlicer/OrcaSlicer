@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "re3D Gigabot 4 0.4 nozzle",
 	"inherits": "fdm_re3D_common",
+	"setting_id": "2FfoXQpNqgdO0psS",
 	"instantiation": "true",
 	"machine_tech": "FFF",
 	"model_id": "GB4",
@@ -31,6 +32,5 @@
 		"re3D PETG @0.4 nozzle"
 	],
 	"default_print_profile": "0.26 Standard",
-	"printer_settings_id": "re3d_gigbot4_04",
-	"setting_id": "2FfoXQpNqgdO0psS"
+	"printer_settings_id": "re3d_gigbot4_04"
 }

@@ -7,6 +7,21 @@
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
 #include "MsgDialog.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include <vector>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <numeric>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/FilamentMapPanel.hpp"
+#include "slic3r/GUI/FilamentGroupPopup.hpp"
+#include "slic3r/GUI/MainFrame.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -327,7 +342,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
         bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     }
-    main_sizer->Add(bottom_panel, 0, wxEXPAND);
+    main_sizer->Add(bottom_panel, 0, wxEXPAND | wxTOP, FromDIP(15));
 
     m_ok_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_ok, this);
     m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancel, this);
@@ -364,6 +379,13 @@ FilamentMapMode FilamentMapDialog::get_mode()
 
 int FilamentMapDialog::ShowModal()
 {
+    // The Slice-plate hover popup is a transient popup that keeps grabbing the mouse
+    // capture while shown. Left behind this modal dialog it would starve the dialog of
+    // mouse events, so close it synchronously first, whichever path opened the dialog.
+    if (MainFrame* frame = wxGetApp().mainframe;
+        frame && frame->m_filament_group_popup && frame->m_filament_group_popup->IsShown())
+        frame->m_filament_group_popup->Dismiss();
+
     update_panel_status(m_page_type);
     return wxDialog::ShowModal();
 }

@@ -6,6 +6,8 @@
 #define VGCODE_COLORPRINT_HPP
 
 #include "../include/Types.hpp"
+#include <cstdint>
+#include <array>
 
 namespace libvgcode {
 

@@ -5,6 +5,9 @@
 	"from": "system",
 	"setting_id": "2fkQa1BwTGZbSi2z",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_max_volumetric_speed": [
 		"10"
 	],

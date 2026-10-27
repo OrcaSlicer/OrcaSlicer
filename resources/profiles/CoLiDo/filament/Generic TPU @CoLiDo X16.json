@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @CoLiDo X16",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "CoLiDo Generic TPU @CoLiDo X16;CoLiDo Generic TPU CoLiDo X16",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "wylEuYSIKlzSVnoQ",
 	"filament_id": "OFgbpcy9",

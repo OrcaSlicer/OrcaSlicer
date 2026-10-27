@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Prusa MK3.5",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "Prusa Generic TPU @MK3.5;Prusa Generic TPU MK3.5",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "j6bDPJnwtsB16yBu",
 	"filament_id": "OFgbpcy9",

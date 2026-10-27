@@ -7,9 +7,11 @@
 	"filament_id": "OFZJft47",
 	"instantiation": "true",
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"chamber_temperatures": [
@@ -72,6 +74,7 @@
 	"compatible_prints": [],
 	"compatible_prints_condition": "",
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"cool_plate_temp": [
@@ -102,12 +105,14 @@
 		"50"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
 	],
 	"eng_plate_temp": [
@@ -120,9 +125,11 @@
 		"100"
 	],
 	"fan_max_speed": [
+		"100",
 		"100"
 	],
 	"fan_min_speed": [
+		"100",
 		"100"
 	],
 	"filament_adhesiveness_category": [
@@ -148,7 +155,8 @@
 		"; filament end gcode \n"
 	],
 	"filament_extruder_variant": [
-		"Direct Drive Standard"
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	],
 	"filament_flow_ratio": [
 		"0.98",
@@ -166,6 +174,7 @@
 		"12"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_notes": "File Version:2.6 - V.Pack:18_05_2026",
@@ -189,6 +198,7 @@
 		"nil"
 	],
 	"filament_retract_restart_extra": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
@@ -293,9 +303,11 @@
 		"235"
 	],
 	"nozzle_temperature_range_high": [
+		"240",
 		"240"
 	],
 	"nozzle_temperature_range_low": [
+		"200",
 		"200"
 	],
 	"overhang_fan_speed": [
@@ -311,6 +323,7 @@
 		"2"
 	],
 	"pressure_advance": [
+		"0.02",
 		"0.02"
 	],
 	"reduce_fan_stop_start_freq": [

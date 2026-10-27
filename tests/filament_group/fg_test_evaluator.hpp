@@ -2,13 +2,18 @@
 #define FG_TEST_EVALUATOR_HPP
 
 #include "fg_test_serialization.hpp"
+#include <cstddef>
 #include <libslic3r/FilamentGroup.hpp>
 #include <libslic3r/GCode/ToolOrderUtils.hpp>
 #include <libslic3r/MultiNozzleUtils.hpp>
 
 #include <chrono>
+#include <map>
+#include <ratio>
 #include <sstream>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace Slic3r {
 namespace FGTest {

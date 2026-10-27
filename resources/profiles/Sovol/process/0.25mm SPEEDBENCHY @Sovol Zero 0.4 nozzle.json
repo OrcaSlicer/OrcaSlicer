@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "oFrWcSxmad1b6sD4",
 	"name": "0.25mm SPEEDBENCHY @Sovol Zero 0.4 nozzle",
-	"from": "system",
 	"inherits": "fdm_process_zero",
+	"from": "system",
+	"setting_id": "oFrWcSxmad1b6sD4",
 	"instantiation": "true",
 	"layer_height": "0.25",
 	"initial_layer_print_height": "0.25",

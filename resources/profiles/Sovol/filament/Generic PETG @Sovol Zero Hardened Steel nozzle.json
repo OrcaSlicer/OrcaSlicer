@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFYPdQJh",
-	"setting_id": "d9QbCESNz3ZLU6eu",
 	"name": "Generic PETG @Sovol Zero Hardened Steel nozzle",
 	"renamed_from": "Sovol Zero PETG HS Nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "d9QbCESNz3ZLU6eu",
+	"filament_id": "OFYPdQJh",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
 	],

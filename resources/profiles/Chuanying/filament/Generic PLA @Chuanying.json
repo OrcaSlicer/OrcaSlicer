@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Chuanying",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Chuanying Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "PRk8NAihEzwi5Dqd",
 	"filament_id": "OFDSrzZ8",

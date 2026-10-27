@@ -6,6 +6,22 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include <string>
+#include <wx/event.h>
+#include <vector>
+#include <map>
+#include "slic3r/GUI/3DScene.hpp"
+#include <memory>
+#include <optional>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <wx/string.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <cereal/archives/binary.hpp>
+#include "libslic3r/Geometry.hpp"
 
 
 namespace Slic3r {

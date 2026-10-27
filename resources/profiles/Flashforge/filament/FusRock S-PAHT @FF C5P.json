@@ -6,6 +6,9 @@
 	"setting_id": "0i7VkquM4n0uFaXH",
 	"filament_id": "OFCn83wF",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"FusRock"
 	],

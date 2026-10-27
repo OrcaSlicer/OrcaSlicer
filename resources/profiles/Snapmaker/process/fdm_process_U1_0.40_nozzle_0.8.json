@@ -22,5 +22,7 @@
 	"top_surface_speed": "150",
 	"bridge_speed": "30",
 	"overhang_3_4_speed": "25",
-	"overhang_4_4_speed": "5"
+	"overhang_4_4_speed": "5",
+	"top_color_penetration_layers": "3",
+	"bottom_color_penetration_layers": "3"
 }

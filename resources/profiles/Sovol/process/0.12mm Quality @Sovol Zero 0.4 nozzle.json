@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "CaEopiv2Wg6pQJjH",
 	"name": "0.12mm Quality @Sovol Zero 0.4 nozzle",
-	"from": "system",
 	"inherits": "fdm_process_zero",
+	"from": "system",
+	"setting_id": "CaEopiv2Wg6pQJjH",
 	"instantiation": "true",
 	"layer_height": "0.12",
 	"bottom_shell_layers": "8",

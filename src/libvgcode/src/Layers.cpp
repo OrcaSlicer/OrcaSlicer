@@ -9,6 +9,11 @@
 
 #include <assert.h>
 #include <algorithm>
+#include "../include/Types.hpp"
+#include <cstdint>
+#include <cstddef>
+#include <vector>
+#include <iterator>
 
 namespace libvgcode {
 
@@ -70,7 +75,7 @@ std::vector<float> Layers::get_zs() const
 
 size_t Layers::get_layer_id_at(float z) const
 {
-    auto iter = std::upper_bound(m_items.begin(), m_items.end(), z, [](float z, const Item& item) { return item.z < z; });
+    auto iter = std::upper_bound(m_items.begin(), m_items.end(), z, [](float z, const Item& item) { return item.z > z; });
     return std::distance(m_items.begin(), iter);
 }
 

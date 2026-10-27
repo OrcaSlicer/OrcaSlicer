@@ -1,4 +1,10 @@
 // for scroll
+#include <wx/gdicmn.h>
+#include <wx/scrolwin.h>
+#include <cstddef>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
 #include <wx/wx.h>

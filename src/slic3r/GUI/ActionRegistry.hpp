@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <libslic3r/Config.hpp>
 
@@ -88,6 +88,14 @@ struct AppAction
     // Search-only alias when the title differs from the descriptive ConfigOptionDef name (e.g. title
     // "Reverse on even", full_label "Overhang reversal"). Empty when the two agree.
     std::string full_label;
+    // Search-only English counterparts of title(), group, source_name() and full_label, so a
+    // localized UI can still be searched in English. Each is derived exactly like the localized
+    // text it mirrors, minus the translation, so in an English UI it equals that text. Empty when
+    // there is no translated counterpart.
+    std::string title_en;
+    std::string group_en;
+    std::string source_en;
+    std::string full_label_en;
     // Full wiki URL, when the action has one (SettingActions whose row declared a label_path).
     std::string help_url;
 
@@ -137,6 +145,11 @@ inline bool requires_mode_switch(ConfigOptionMode setting_mode, ConfigOptionMode
 // Cap + dedupe a persisted favourite-id list, preserving first-occurrence order. A stale or
 // hand-edited config must never grow the quick-launch bar past `limit`, and a duplicated id must collapse to its first pin.
 std::vector<std::string> cap_favourites(const std::vector<std::string>& ids, size_t limit);
+
+// One action as the Speed Dial page receives it. Each English alias (title_en, group_en, source_en,
+// full_label_en) is sent only when it is non-empty and differs from its localized counterpart, so an
+// English UI receives none and searches exactly the displayed text.
+nlohmann::json action_json(const AppAction& a);
 
 // Self-contained sink and single owner of runnable actions for the app session.
 //
@@ -239,6 +252,7 @@ private:
     // one plugin's whole action set; refresh_capability touches a single capability.
     void refresh_source(const std::string& plugin_key, ActionChange change);
     void refresh_capability(const std::string& plugin_key, const std::string& capability, ActionChange change);
+    void refresh_page_capability(const std::string& plugin_key, const std::string& capability, ActionChange change);
 
     bool m_started = false;                                                // init() runs exactly once; guards double-subscription
     std::unordered_map<std::string, std::shared_ptr<AppAction>> m_actions; // UI-thread confined; no lock

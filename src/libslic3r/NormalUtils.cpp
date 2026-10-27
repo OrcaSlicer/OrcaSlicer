@@ -1,4 +1,9 @@
 #include "NormalUtils.hpp"
+#include "Point.hpp"
+#include <vector>
+#include <cstddef>
+#include <cmath>
+#include <math.h>
 
 using namespace Slic3r;
 

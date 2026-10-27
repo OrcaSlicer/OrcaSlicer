@@ -1,6 +1,7 @@
 {
 	"type": "process",
 	"name": "0.24 Draft @Snapmaker U1 (0.4 nozzle)",
+	"renamed_from": "0.24 Draft Snapmaker U1 (0.4 nozzle);0.24 Draft @Snapmaker U1 (0.4 High Flow nozzle);0.24 Draft Snapmaker U1 (0.4 High Flow nozzle)",
 	"inherits": "fdm_process_U1_0.24",
 	"from": "system",
 	"setting_id": "MYRo7jTenu7F0Zv4",
@@ -12,7 +13,16 @@
 	"ooze_prevention": "1",
 	"prime_tower_width": "30",
 	"prime_volume": "54",
-	"slowdown_for_curled_perimeters": "0",
+	"slowdown_for_curled_perimeters": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
 	"standby_temperature_delta": "-150",
 	"wipe_tower_filament": "0",
 	"prime_tower_brim_width": "5",
@@ -23,5 +33,65 @@
 	"support_type": "tree(auto)",
 	"wipe_tower_extra_rib_length": "8",
 	"wipe_tower_wall_type": "rib",
-	"gap_fill_target": "topbottom"
+	"gap_fill_target": "topbottom",
+	"print_extruder_id": [
+		"1",
+		"1",
+		"2",
+		"2",
+		"3",
+		"3",
+		"4",
+		"4"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"internal_solid_infill_speed": [
+		"230",
+		"600",
+		"230",
+		"600",
+		"230",
+		"600",
+		"230",
+		"600"
+	],
+	"inner_wall_speed": [
+		"230",
+		"600",
+		"230",
+		"600",
+		"230",
+		"600",
+		"230",
+		"600"
+	],
+	"sparse_infill_speed": [
+		"230",
+		"600",
+		"230",
+		"600",
+		"230",
+		"600",
+		"230",
+		"600"
+	],
+	"outer_wall_speed": [
+		"200",
+		"500",
+		"200",
+		"500",
+		"200",
+		"500",
+		"200",
+		"500"
+	]
 }

@@ -1,11 +1,14 @@
 {
 	"type": "filament",
-	"filament_id": "OF2GCW1l",
-	"setting_id": "x68SPQCqVacBSGd5",
 	"name": "SUNLU PETG @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PETG @System",
+	"from": "system",
+	"setting_id": "x68SPQCqVacBSGd5",
+	"filament_id": "OF2GCW1l",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"SUNLU"
 	],

@@ -1,11 +1,34 @@
 #include "FilamentGroup.hpp"
+#include "FilamentGroupUtils.hpp"
 #include "GCode/ToolOrderUtils.hpp"
 #include "FlushVolPredictor.hpp"
+#include "MultiNozzleUtils.hpp"
+#include "PrintConfig.hpp"
+#include "libslic3r.h"
 #include <queue>
+#include <cstdint>
+#include <cstddef>
+#include <optional>
+#include <functional>
+#include <map>
+#include <algorithm>
+#include <limits>
+#include <cmath>
+#include <memory>
+#include <numeric>
+#include <cstdlib>
+#include <iterator>
+#include <deque>
 #include <random>
 #include <cassert>
+#include <set>
 #include <sstream>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
+#include <unordered_map>
+#include <unordered_set>
+#include <string>
 
 namespace Slic3r
 {

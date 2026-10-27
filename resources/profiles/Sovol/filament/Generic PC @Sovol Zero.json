@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"filament_id": "OFLakOUI",
-	"setting_id": "yRKCiPMN6fxibcyg",
 	"name": "Generic PC @Sovol Zero",
 	"renamed_from": "Sovol Zero PC",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"setting_id": "yRKCiPMN6fxibcyg",
+	"filament_id": "OFLakOUI",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
 	],

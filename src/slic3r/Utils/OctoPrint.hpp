@@ -1,6 +1,7 @@
 #ifndef slic3r_OctoPrint_hpp_
 #define slic3r_OctoPrint_hpp_
 
+#include <boost/optional/optional.hpp>
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>
@@ -8,6 +9,7 @@
 
 #include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/enum_bitmask.hpp"
 
 
 namespace Slic3r {

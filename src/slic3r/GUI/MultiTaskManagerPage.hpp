@@ -13,6 +13,16 @@
 #include "Widgets/ScrolledWindow.hpp"
 #include "Widgets/PopupWindow.hpp"
 #include "Widgets/TextInput.hpp"
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/string.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <string>
+#include <wx/panel.h>
+#include <map>
+#include <wx/sizer.h>
+#include <wx/scrolwin.h>
+#include <wx/timer.h>
 
 namespace Slic3r { 
 namespace GUI {

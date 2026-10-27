@@ -48,6 +48,7 @@
 		"25"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"slow_down_layer_time": [

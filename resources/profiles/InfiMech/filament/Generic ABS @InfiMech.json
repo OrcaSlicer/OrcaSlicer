@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @InfiMech",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "InfiMech Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "HRLECASD9Ko4Xxof",
 	"filament_id": "OFY9muEs",

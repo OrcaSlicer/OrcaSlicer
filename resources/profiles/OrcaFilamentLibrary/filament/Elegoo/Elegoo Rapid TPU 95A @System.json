@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Elegoo Rapid TPU 95A @System",
+	"renamed_from": "Elegoo Rapid TPU 95A",
 	"inherits": "Elegoo Rapid TPU 95A @base",
 	"from": "system",
 	"setting_id": "WXLuO112bsdM37MI",
 	"instantiation": "true",
-	"renamed_from": "Elegoo Rapid TPU 95A",
 	"pressure_advance": [
 		"0.1"
 	],

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA-CF @SecKit",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "SecKit Generic PA-CF",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "P6G8DjjyfAFgGaj2",
 	"filament_id": "OFQLcbps",

@@ -3,6 +3,11 @@
 
 #include "PrintHost.hpp"
 #include "slic3r/GUI/Jobs/OAuthJob.hpp"
+#include <string>
+#include <map>
+#include <functional>
+#include <boost/filesystem/path.hpp>
+#include <wx/string.h>
 
 namespace Slic3r {
 

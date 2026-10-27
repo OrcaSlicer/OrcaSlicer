@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "Lxid5Z2e0fvVDMMm",
 	"name": "0.20mm Standard @Afinia H+1(HS)",
-	"from": "system",
 	"inherits": "fdm_process_afinia_HS_common",
+	"from": "system",
+	"setting_id": "Lxid5Z2e0fvVDMMm",
 	"instantiation": "true",
 	"elefant_foot_compensation": "0.15",
 	"top_shell_thickness": "1.0",

@@ -1,17 +1,55 @@
+#include <array>
+#include <atomic>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/optional/optional.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <cassert>
+#include <cctype>
 #include <chrono>
+#include <cstdio>
+#include <cstdint>
+#include <cmath>
 #include <ctime>
+#include <ios>
+#include <optional>
+#include <exception>
+#include <memory>
+#include <initializer_list>
+#include <map>
+#include <iterator>
+#include <functional>
+#include <limits>
 #include <sstream>
 
 #include "PresetBundle.hpp"
+#include "PrinterBedAssets.hpp"
 
+#include "Config.hpp"
+#include "Exception.hpp"
+#include "AppConfig.hpp"
+#include "ParallelResolve.hpp"
+#include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
+#include "Time.hpp"
+#include "Zipper.hpp"
 #include "PrintConfig.hpp"
 #include "PublishSettings.hpp"
 #include "FilamentMixer.hpp"
+#include "Semver.hpp"
 #include "libslic3r.h"
 #include "I18N.hpp"
 #include "Utils.hpp"
+#include "InstanceLock.hpp"
 #include "LocalesUtils.hpp"
 #include "Model.hpp"
 #include "TriangleSelector.hpp"
@@ -19,13 +57,22 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <mutex>
+#include <numeric>
 #include <set>
+#include <shared_mutex>
 #include <fstream>
+#include <string>
+#include <tuple>
+#include <stdexcept>
+#include <unordered_map>
+#include <system_error>
 #include <unordered_set>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/clamp.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/adaptor/transformed.hpp>
+#include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
@@ -37,6 +84,13 @@
 #include <miniz/miniz.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
+#include <tbb/task_group.h>
+#include <tbb/partitioner.h>
+#include <vector>
+#include <utility>
+#include <nlohmann/json.hpp>
+
+namespace fs = boost::filesystem;
 
 // Mark string for localization and translate.
 #define L(s) Slic3r::I18N::translate(s)
@@ -45,7 +99,24 @@
 // This breaks compatibility with the upstream Slic3r if the --datadir is used to switch between the two versions.
 //#define SLIC3R_PROFILE_USE_PRESETS_SUBDIR
 
+using json = nlohmann::json;
+
 namespace Slic3r {
+
+// Per system filament preset of an older release, by its name then, the printers it listed that the preset it
+// now loads as does not (resources/info/legacy_compatible_printers.json, written by orca_profile_tool.py
+// legacy-compat). Empty if the file is missing or malformed.
+static std::map<std::string, std::vector<std::string>> legacy_compatible_printers()
+{
+    const fs::path path = fs::path(resources_dir()) / "info" / "legacy_compatible_printers.json";
+    try {
+        boost::nowide::ifstream in(path.string());
+        return json::parse(in).at("presets").get<std::map<std::string, std::vector<std::string>>>();
+    } catch (const std::exception &err) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": can not read " << path.string() << ": " << err.what();
+        return {};
+    }
+}
 
 // Project-level options imported from a loaded 3MF into project_config. s_project_options_published
 // below is the reduced subset that crosses over in "published" 3MF mode; keep both in sync.
@@ -68,6 +139,12 @@ static std::vector<std::string> s_project_options {
     "nozzle_volume_type",
     "filament_map_mode",
     "filament_map",
+    // physical_extruder_map intentionally NOT here: it's owned by the printer
+    // preset (s_Preset_printer_options). Listing it project-scoped caused
+    // project_config's default [0] to clobber the preset's authored value
+    // (e.g. AFC-shaped [0,1,1,1,1]) during full_fff_config() merge, and the
+    // clobbered value then rode into saved 3mfs and back into the edited
+    // preset on reload.
     // Per-filament nozzle-volume choice; project-level like filament_map so the per-filament
     // slot resolution survives preset switches.
     "filament_volume_map",
@@ -199,7 +276,8 @@ DynamicPrintConfig PresetBundle::construct_full_config(
     if (num_filaments <= 1) {
         // BBS: update filament config related with variants
         DynamicPrintConfig filament_config = in_filament_presets[0].config;
-        if (apply_extruder && ((extruder_count > 1) || different_extruder))
+        // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+        if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_config.has_multi_variant_filament()))
             filament_config.update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[0], (NozzleVolumeType)filament_volume_maps[0]);
         out.apply(filament_config);
         compatible_printers_condition.emplace_back(in_filament_presets[0].compatible_printers_condition());
@@ -223,7 +301,8 @@ DynamicPrintConfig PresetBundle::construct_full_config(
         filament_temp_configs.resize(num_filaments);
         for (size_t i = 0; i < num_filaments; ++i) {
             filament_temp_configs[i] = *(filament_configs[i]);
-            if (apply_extruder && ((extruder_count > 1) || different_extruder))
+            // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+            if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_temp_configs[i].has_multi_variant_filament()))
                 filament_temp_configs[i].update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[i], (NozzleVolumeType)filament_volume_maps[i]);
         }
 
@@ -575,18 +654,22 @@ bool PresetBundle::resolve_preset_config(DynamicPrintConfig &config, Preset::Typ
 const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::path &root_dir,
                                                     const std::string &vendor_id,
                                                     ForwardCompatibilitySubstitutionRule compatibility_rule,
-                                                    std::string &error)
+                                                    std::string &error, bool allow_cache)
 {
-    auto key = std::make_tuple(root_dir.string(), vendor_id, compatibility_rule);
+    auto key = std::make_tuple(root_dir.string(), vendor_id, compatibility_rule, allow_cache);
     if (auto it = m_source_vendor_bundles.find(key); it != m_source_vendor_bundles.end())
         return it->second.get();
 
     // The library loads with no base of its own, so the tree a vendor inherits from
-    // is the same one that resolves the library's own presets.
-    const PresetBundle *library = nullptr;
-    if (vendor_id != ORCA_FILAMENT_LIBRARY &&
-        boost::filesystem::is_regular_file(root_dir / (std::string(ORCA_FILAMENT_LIBRARY) + ".json"))) {
-        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error);
+    // is the same one that resolves the library's own presets. It is only a base, so
+    // it comes from its cache whenever that is all that is installed, even when the
+    // vendor itself is parsed (a vendor updated over the air).
+    const std::string   library_file       = std::string(ORCA_FILAMENT_LIBRARY);
+    const bool          library_json       = boost::filesystem::is_regular_file(root_dir / (library_file + ".json"));
+    const bool          library_cache_only = !library_json && boost::filesystem::is_regular_file(root_dir / (library_file + ".opc"));
+    const PresetBundle *library            = nullptr;
+    if (vendor_id != ORCA_FILAMENT_LIBRARY && (library_json || library_cache_only)) {
+        library = load_source_vendor(root_dir, ORCA_FILAMENT_LIBRARY, compatibility_rule, error, allow_cache || library_cache_only);
         if (library == nullptr) {
             error = "OrcaFilamentLibrary contains invalid presets";
             return nullptr;
@@ -595,7 +678,7 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
 
     auto bundle = std::make_unique<PresetBundle>();
     bundle->m_preserve_vendor_source_paths = true;
-    bundle->load_vendor_configs_from_json(root_dir.string(), vendor_id, LoadSystem, compatibility_rule, library, false);
+    bundle->load_vendor_configs_from_json(root_dir.string(), vendor_id, LoadSystem, compatibility_rule, library, allow_cache);
     if (bundle->error_count() != 0) {
         error = "Vendor bundle contains invalid presets";
         return nullptr;
@@ -634,6 +717,43 @@ bool PresetBundle::resolve_preset_config_type(DynamicPrintConfig &config, Preset
 
     type   = resolved->first;
     config = std::move(resolved->second);
+    error.clear();
+    return true;
+}
+
+bool PresetBundle::resolve_system_preset(DynamicPrintConfig &config, Preset::Type type, const std::string &name,
+                                         ForwardCompatibilitySubstitutionRule compatibility_rule, std::string &error)
+{
+    const std::string vendor_id = find_preset_vendor(name, type);
+    if (vendor_id.empty()) {
+        error = "No vendor lists the preset";
+        return false;
+    }
+    // Release builds ship a vendor as its preset cache alone, without the profile JSONs.
+    auto installed = [&vendor_id](const fs::path &root) {
+        return fs::is_regular_file(root / (vendor_id + ".json")) || fs::is_regular_file(root / (vendor_id + ".opc"));
+    };
+    fs::path root_dir = fs::path(data_dir()) / PRESET_SYSTEM_DIR;
+    if (!installed(root_dir))
+        root_dir = fs::path(resources_dir()) / PRESET_PROFILES_DIR;
+    const bool cache_only = !fs::is_regular_file(root_dir / (vendor_id + ".json"));
+
+    try {
+        const PresetBundle *vendor = load_source_vendor(root_dir, vendor_id, compatibility_rule, error, cache_only);
+        if (vendor == nullptr)
+            return false;
+        const PresetCollection &collection = type == Preset::TYPE_PRINTER ? vendor->printers :
+                                             type == Preset::TYPE_PRINT   ? vendor->prints : vendor->filaments;
+        const Preset *preset = collection.find_preset(name, false);
+        if (preset == nullptr) {
+            error = "Preset was not found in its vendor bundle";
+            return false;
+        }
+        config = preset->config;
+    } catch (const std::exception &ex) {
+        error = ex.what();
+        return false;
+    }
     error.clear();
     return true;
 }
@@ -711,7 +831,7 @@ void PresetBundle::setup_directories()
                 BOOST_LOG_TRIVIAL(warning) << boost::format("creating directory %1% failed, maybe created by other instance, go on!")%subdir.string();
             }
             else
-                throw Slic3r::RuntimeError(std::string("Unable to create directory ") + subdir.string());
+                throw Slic3r::RuntimeError((boost::format(L("Unable to create directory %1%")) % subdir.string()).str());
         }
     }
 }
@@ -945,6 +1065,73 @@ bool PresetBundle::backup_user_folder() const
             boost::filesystem::remove_all(boost::filesystem::path(backup_folderpath));
         return false;
     }
+}
+
+bool PresetBundle::backup_user_folder_to_zip(const std::string &zip_path) const
+{
+    const fs::path user_dir = fs::path(data_dir()) / PRESET_USER_DIR;
+    BOOST_LOG_TRIVIAL(info) << "Backing up user folder to: " << zip_path;
+    try {
+        Zipper zipper(zip_path);
+        // Directories get their own entries, which extract_archive_confined() needs to recreate them.
+        zipper.add_entry(std::string(PRESET_USER_DIR) + "/", nullptr, 0);
+        // The loader follows symlinked folders, and migration writes the presets in them.
+        for (const fs::directory_entry &entry : fs::recursive_directory_iterator(user_dir, fs::directory_options::follow_directory_symlink)) {
+            const std::string name = (fs::path(PRESET_USER_DIR) / entry.path().lexically_relative(user_dir)).generic_string();
+            if (fs::is_directory(entry.status())) {
+                zipper.add_entry(name + "/", nullptr, 0);
+                continue;
+            }
+            if (!fs::is_regular_file(entry.status()))
+                continue;
+            boost::nowide::ifstream in(entry.path().string(), std::ios::binary);
+            const std::string data((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            if (!in.good() && !in.eof())
+                throw Slic3r::RuntimeError("can not read " + entry.path().string());
+            zipper.add_entry(name, data.data(), data.size());
+        }
+        zipper.finalize();
+        return true;
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(error) << "Exception during user folder backup: " << ex.what();
+        boost::system::error_code ec;
+        fs::remove(zip_path, ec);
+        return false;
+    }
+}
+
+std::vector<LegacyUserFilamentPreset> PresetBundle::legacy_user_filament_presets()
+{
+    return filaments.legacy_user_filament_presets(legacy_compatible_printers());
+}
+
+PresetBundle::LegacyUserFilamentPresetMigration PresetBundle::migrate_legacy_user_filament_presets(const std::vector<LegacyUserFilamentPreset> &legacy_presets)
+{
+    LegacyUserFilamentPresetMigration     result;
+    std::vector<LegacyUserFilamentPreset> written;
+    const std::string zip_path = data_dir() + "/filament_preset_migration_" +
+                                 Utils::time2str(Utils::TimeZone::utc, Utils::TimeFormat::iso8601Z) + "_backup.zip";
+    // Before the lock: zipping a large folder takes longer than a guard may be held.
+    if (!backup_user_folder_to_zip(zip_path))
+        return result;
+    result.backup = zip_path;
+    {
+        // One hold for every write, so a lock another instance keeps is one outcome rather than a failure per
+        // preset (the lock backs off for a while after a miss). Held without the collection mutex, the order
+        // InstanceLock requires; each write re-reads its file, so a save that slipped in before is respected.
+        const std::string lock_path = user_presets_lock_path();
+        InstanceLock      instance_lock(lock_path);
+        if (!lock_path.empty() && !instance_lock.locked())
+            return result;
+        result.locked = true;
+        for (const LegacyUserFilamentPreset &legacy : legacy_presets)
+            if (PresetCollection::write_legacy_user_filament_preset(legacy))
+                written.push_back(legacy);
+            else
+                result.failed.push_back(legacy.preset);
+    }
+    filaments.apply_legacy_user_filament_presets(written);
+    return result;
 }
 
 std::optional<FilamentBaseInfo> PresetBundle::get_filament_by_filament_id(const std::string& filament_id, const std::string& printer_name) const
@@ -1200,6 +1387,27 @@ std::string PresetBundle::get_hotend_model_for_printer_model(std::string model_n
     return out;
 }
 
+static void load_bundle_presets(PresetBundle& bundle, const std::string& bundle_dir, BundleMetadata& metadata,
+                                const PresetOrigin& origin, PresetsConfigSubstitutions& substitutions,
+                                ForwardCompatibilitySubstitutionRule substitution_rule, bool read_only = false)
+{
+    struct Collection {
+        PresetCollection&          presets;
+        const char*                directory;
+        std::vector<std::string>&  names;
+    };
+
+    metadata.print_presets.clear();
+    metadata.filament_presets.clear();
+    metadata.printer_presets.clear();
+    for (Collection collection : {
+             Collection{ bundle.prints, PRESET_PRINT_NAME, metadata.print_presets },
+             Collection{ bundle.filaments, PRESET_FILAMENT_NAME, metadata.filament_presets },
+             Collection{ bundle.printers, PRESET_PRINTER_NAME, metadata.printer_presets } })
+        collection.presets.load_presets(bundle_dir, collection.directory, substitutions, substitution_rule,
+                                        [&](Preset& preset) { collection.names.push_back(preset.name); }, origin, read_only);
+}
+
 PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, ForwardCompatibilitySubstitutionRule substitution_rule, bool read_only)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " entry and user is: " << user;
@@ -1227,6 +1435,13 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
 
     const auto user_load_t0 = std::chrono::steady_clock::now();
 
+    // Reads one bundle's metadata under the lock, per file, so the lock is never
+    // held when bundles.WriteLock() is taken afterwards.
+    auto load_bundle_metadata = [read_only](const fs::path &metadata_file, BundleMetadata &metadata) {
+        InstanceLock instance_lock(user_presets_lock_path(read_only));
+        return metadata.load_from_json(metadata_file.string());
+    };
+
     // Load bundle metadata from _local directory first
     fs::path local_dir(folder / PRESET_LOCAL_DIR);
     if (fs::exists(local_dir)) {
@@ -1240,20 +1455,9 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             if (!fs::exists(metadata_file)) continue;
 
             BundleMetadata metadata;
-            if (!metadata.load_from_json(metadata_file.string())) continue;
-            metadata.print_presets.clear();
-            metadata.filament_presets.clear();
-            metadata.printer_presets.clear();
-
-            this->prints.load_presets(bundle_dir, PRESET_PRINT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
-                metadata.print_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id), read_only);
-            this->filaments.load_presets(bundle_dir, PRESET_FILAMENT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
-                metadata.filament_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id), read_only);
-            this->printers.load_presets(bundle_dir, PRESET_PRINTER_NAME, substitutions, substitution_rule, [&](Preset& preset) {
-                metadata.printer_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id), read_only);
+            if (!load_bundle_metadata(metadata_file, metadata)) continue;
+            load_bundle_presets(*this, bundle_dir, metadata, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id),
+                                substitutions, substitution_rule, read_only);
             metadata.bundle_type = BundleType::Local;
             metadata.path = metadata_file.string();
 
@@ -1275,21 +1479,11 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             if (!fs::exists(metadata_file)) continue;
 
             BundleMetadata metadata;
-            if (!metadata.load_from_json(metadata_file.string())) continue;
-            metadata.print_presets.clear();
-            metadata.filament_presets.clear();
-            metadata.printer_presets.clear();
+            if (!load_bundle_metadata(metadata_file, metadata)) continue;
             metadata.is_subscribed = true;
 
-            this->prints.load_presets(bundle_dir, PRESET_PRINT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
-                metadata.print_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id), read_only);
-            this->filaments.load_presets(bundle_dir, PRESET_FILAMENT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
-                metadata.filament_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id), read_only);
-            this->printers.load_presets(bundle_dir, PRESET_PRINTER_NAME, substitutions, substitution_rule, [&](Preset& preset) {
-                metadata.printer_presets.push_back(preset.name);
-            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id), read_only);
+            load_bundle_presets(*this, bundle_dir, metadata, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id),
+                                substitutions, substitution_rule, read_only);
 
             metadata.bundle_type = BundleType::Subscribed;
             metadata.path = metadata_file.string();
@@ -1342,6 +1536,335 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
     set_calibrate_printer("");
 
     return PresetsConfigSubstitutions();
+}
+
+static bool is_single_path_component(const std::string& value)
+{
+    const fs::path path(value);
+    return !value.empty() && value != "." && value != ".." && value.find_first_of("/\\") == std::string::npos &&
+           !path.has_root_name() && !path.has_root_directory();
+}
+
+static bool check_local_bundle(PresetBundleMetadata& bundles, const fs::path& user_dir, const std::string& bundle_id,
+                               BundleMetadata& metadata, std::string& error)
+{
+    if (!is_single_path_component(bundle_id)) {
+        error = "Local bundle id must be a single path component";
+        return false;
+    }
+    const fs::path bundle_dir = user_dir / PRESET_LOCAL_DIR / bundle_id;
+    if (!fs::is_directory(bundle_dir)) {
+        error = "Local bundle directory does not exist";
+        return false;
+    }
+    if (fs::exists(user_dir / PRESET_SUBSCRIBED_DIR / bundle_id)) {
+        error = "A subscribed bundle already uses this id";
+        return false;
+    }
+    {
+        std::shared_lock<std::shared_mutex> lock(bundles.RWMtx);
+        const auto it = bundles.m_bundles.find(bundle_id);
+        if (it != bundles.m_bundles.end() && (it->second.bundle_type == BundleType::Subscribed || it->second.is_subscribed)) {
+            error = "A subscribed bundle already uses this id";
+            return false;
+        }
+    }
+    if (!metadata.load_from_json((bundle_dir / PRESET_BUNDLE_METADATA).string()) || metadata.id != bundle_id) {
+        error = "Local bundle metadata is missing, malformed, or has a different id";
+        return false;
+    }
+    return true;
+}
+
+std::vector<std::string> PresetBundle::list_local_bundle_ids(const std::string& preset_folder)
+{
+    std::vector<std::string> ids;
+    const std::string        user = preset_folder.empty() ? DEFAULT_USER_FOLDER_NAME : preset_folder;
+    if (!is_single_path_component(user))
+        return ids;
+
+    const fs::path user_dir  = fs::path(data_dir()) / PRESET_USER_DIR / user;
+    const fs::path local_dir = user_dir / PRESET_LOCAL_DIR;
+    try {
+        if (!fs::is_directory(local_dir))
+            return ids;
+        for (const auto& entry : fs::directory_iterator(local_dir)) {
+            const std::string bundle_id = entry.path().filename().string();
+            try {
+                BundleMetadata metadata;
+                std::string    error;
+                if (check_local_bundle(bundles, user_dir, bundle_id, metadata, error))
+                    ids.push_back(bundle_id);
+            } catch (const std::exception& exception) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": skipping " << bundle_id << ": " << exception.what();
+            }
+        }
+    } catch (const std::exception& exception) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << exception.what();
+    }
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
+
+bool PresetBundle::reload_local_bundle(const std::string& preset_folder, const std::string& bundle_id, std::string* error)
+{
+    auto fail = [error](const std::string& message) {
+        if (error != nullptr)
+            *error = message;
+        return false;
+    };
+    if (!is_single_path_component(bundle_id))
+        return fail("Local bundle id must be a single path component");
+
+    const std::string user = preset_folder.empty() ? DEFAULT_USER_FOLDER_NAME : preset_folder;
+    if (!is_single_path_component(user))
+        return fail("Preset folder must be a single path component");
+
+    try {
+        const fs::path user_dir      = fs::path(data_dir()) / PRESET_USER_DIR / user;
+        const fs::path bundle_dir    = user_dir / PRESET_LOCAL_DIR / bundle_id;
+        const fs::path metadata_file = bundle_dir / PRESET_BUNDLE_METADATA;
+
+        BundleMetadata metadata;
+        std::string    check_error;
+        if (!check_local_bundle(bundles, user_dir, bundle_id, metadata, check_error))
+            return fail(check_error);
+
+        // Keep background preset sync from changing the collections between copying and committing them.
+        std::scoped_lock collection_lock(prints.m_mutex, filaments.m_mutex, printers.m_mutex);
+        const std::string target_prefix = std::string(PRESET_LOCAL_DIR) + "/" + bundle_id + "/";
+        const auto is_target = [&](const Preset& preset) {
+            return preset.bundle_id == bundle_id && boost::starts_with(preset.name, target_prefix);
+        };
+        struct Selection {
+            std::string              name;
+            Preset                   base{Preset::TYPE_INVALID, std::string()};
+            Preset                   edited{Preset::TYPE_INVALID, std::string()};
+            std::vector<std::string> dirty_options;
+        };
+        auto snapshot = [&](const PresetCollection& collection, Selection& selection) {
+            selection.name = collection.get_selected_preset_name();
+            if (selection.name.empty())
+                return false;
+            for (const Preset& preset : collection.get_presets()) {
+                if (preset.name == selection.name) {
+                    selection.base = preset;
+                    selection.edited = collection.get_edited_preset();
+                    selection.dirty_options = PresetCollection::dirty_options(&selection.edited, &selection.base);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        Selection print_selection, filament_selection, printer_selection;
+        if (!snapshot(prints, print_selection) || !snapshot(filaments, filament_selection) || !snapshot(printers, printer_selection))
+            return fail("Preset selections are not initialized");
+
+        PresetBundle staged;
+        // Collection copies keep vendor pointers into the live vendor map, which is not replaced by this reload.
+        staged.prints           = prints;
+        staged.filaments        = filaments;
+        staged.printers         = printers;
+        staged.filament_presets = filament_presets;
+        staged.project_config.apply_only(project_config, {"flush_volumes_matrix", "flush_volumes_vector", "flush_multiplier"});
+        auto remove_target = [&](PresetCollection& collection) {
+            auto begin = collection.m_presets.begin() + collection.m_num_default_presets;
+            collection.m_presets.erase(std::remove_if(begin, collection.m_presets.end(), is_target), collection.m_presets.end());
+            collection.sort_presets();
+        };
+        remove_target(staged.prints);
+        remove_target(staged.filaments);
+        remove_target(staged.printers);
+
+        const std::array<int, 3> errors_before = { staged.prints.error_count(), staged.filaments.error_count(), staged.printers.error_count() };
+        PresetsConfigSubstitutions substitutions;
+        load_bundle_presets(staged, bundle_dir.string(), metadata, PresetOrigin(PresetOrigin::Kind::LocalBundle, bundle_id),
+                            substitutions, ForwardCompatibilitySubstitutionRule::Enable, true);
+        if (staged.prints.error_count() != errors_before[0] || staged.filaments.error_count() != errors_before[1] || staged.printers.error_count() != errors_before[2])
+            return fail("Local bundle contains an invalid preset");
+
+        auto dirty_target_was_removed = [&](const Selection& selection, const PresetCollection& collection) {
+            if (selection.dirty_options.empty() || !is_target(selection.base))
+                return false;
+            for (const Preset& preset : collection.get_presets())
+                if (preset.name == selection.name && is_target(preset))
+                    return false;
+            return true;
+        };
+        if (dirty_target_was_removed(print_selection, staged.prints) ||
+            dirty_target_was_removed(filament_selection, staged.filaments) ||
+            dirty_target_was_removed(printer_selection, staged.printers))
+            return fail("A modified selected preset was removed or renamed");
+
+        auto external_child_name = [&](const PresetCollection& collection) {
+            auto depends_on_target = [&](const Preset& preset) {
+                if (is_target(preset))
+                    return false;
+                const Preset* parent = &preset;
+                std::unordered_set<const Preset*> visited;
+                while ((parent = collection.get_preset_parent(*parent)) != nullptr && visited.insert(parent).second)
+                    if (is_target(*parent))
+                        return true;
+                for (const char* key : {"compatible_prints", "compatible_printers"}) {
+                    const auto* names = preset.config.option<ConfigOptionStrings>(key);
+                    if (names == nullptr)
+                        continue;
+                    const PresetCollection& referenced = std::string(key) == "compatible_printers" ? printers : prints;
+                    for (const std::string& name : names->values) {
+                        const Preset* dependency = referenced.find_preset(name, false);
+                        if (dependency != nullptr && is_target(*dependency))
+                            return true;
+                    }
+                }
+                return false;
+            };
+            for (const Preset& preset : collection.get_presets())
+                if (depends_on_target(preset))
+                    return preset.name;
+            if (depends_on_target(collection.get_edited_preset()))
+                return collection.get_edited_preset().name;
+            return std::string();
+        };
+        for (const PresetCollection* collection : std::array<const PresetCollection*, 3>{&prints, &filaments, &printers}) {
+            const std::string child_name = external_child_name(*collection);
+            if (!child_name.empty())
+                return fail("Preset outside this bundle depends on it: " + child_name);
+        }
+
+        auto restore_selection = [](PresetCollection& collection, const Selection& selection) {
+            if (collection.find_preset(selection.name, false, true) == nullptr) {
+                collection.select_preset(collection.first_visible_idx());
+                return false;
+            }
+            collection.select_preset_by_name(selection.name, true);
+            if (collection.get_selected_preset_name() != selection.name)
+                return false;
+            Preset& edited = collection.get_edited_preset();
+            for (const std::string& key : selection.dirty_options) {
+                if (const ConfigOption* option = selection.edited.config.option(key))
+                    edited.config.set_key_value(key, option->clone());
+                else
+                    edited.config.erase(key);
+            }
+            collection.update_dirty();
+            return true;
+        };
+
+        staged.prints.update_map_alias_to_profile_name();
+        staged.filaments.update_map_alias_to_profile_name();
+        staged.printers.update_map_alias_to_profile_name();
+        const bool printer_preserved  = restore_selection(staged.printers, printer_selection);
+        const bool print_preserved    = restore_selection(staged.prints, print_selection);
+        const bool filament_preserved = restore_selection(staged.filaments, filament_selection);
+        const auto selection_mode = [printer_preserved](bool selection_preserved) {
+            if (!selection_preserved)
+                return PresetSelectCompatibleType::Always;
+            return printer_preserved ? PresetSelectCompatibleType::Never : PresetSelectCompatibleType::OnlyIfWasCompatible;
+        };
+        if (staged.printers.get_edited_preset().printer_technology() != ptFFF)
+            return fail("Local bundle reload requires an FFF printer selection");
+        staged.update_compatible(selection_mode(print_preserved), selection_mode(filament_preserved));
+        for (std::string& name : staged.filament_presets)
+            if (boost::starts_with(name, target_prefix) && staged.filaments.find_preset(name, false) == nullptr)
+                name = staged.filaments.first_compatible().name;
+        staged.update_multi_material_filament_presets();
+
+        struct Collection
+        {
+            PresetCollection& live;
+            PresetCollection& candidate;
+            size_t original_size;
+        };
+        std::array<Collection, 3> collections{{{prints, staged.prints, prints.size()},
+                                               {filaments, staged.filaments, filaments.size()},
+                                               {printers, staged.printers, printers.size()}}};
+        for (size_t i = 0; i < collections.size(); ++i) {
+            const auto& collection   = collections[i];
+            const auto dirty_options = collection.live.current_dirty_options();
+            if (dirty_options.empty())
+                continue;
+            if (collection.live.get_selected_preset_name() != collection.candidate.get_selected_preset_name())
+                return fail("Reload would discard a modified selected preset");
+            for (const std::string& key : dirty_options) {
+                const ConfigOption* before = collection.live.get_edited_preset().config.option(key);
+                const ConfigOption* after  = collection.candidate.get_edited_preset().config.option(key);
+                if ((before == nullptr) != (after == nullptr) || (before != nullptr && *before != *after))
+                    return fail("Reload would discard a modified preset option: " + key);
+            }
+        }
+
+        if (calibrate_printer != nullptr && staged.printers.find_preset(calibrate_printer->name, false, true) != nullptr)
+            staged.set_calibrate_printer(calibrate_printer->name);
+        std::array<std::pair<ConfigOptionFloats*, ConfigOptionFloats*>, 3> flush_options;
+        size_t i = 0;
+        for (const char* key : {"flush_volumes_matrix", "flush_volumes_vector", "flush_multiplier"})
+            flush_options[i++] = {project_config.option<ConfigOptionFloats>(key), staged.project_config.option<ConfigOptionFloats>(key)};
+
+        metadata.bundle_type = BundleType::Local;
+        metadata.is_subscribed = false;
+        metadata.update_available = false;
+        metadata.path = metadata_file.string();
+        fs::path local_dir        = user_dir / PRESET_LOCAL_DIR;
+        std::unique_lock<std::shared_mutex> lock(bundles.RWMtx);
+        const auto existing = bundles.m_bundles.find(bundle_id);
+        if (existing != bundles.m_bundles.end() &&
+            (existing->second.bundle_type == BundleType::Subscribed || existing->second.is_subscribed))
+            return fail("A subscribed bundle already uses this id");
+
+        std::set<const Preset*> calibration_filaments;
+        const Preset* calibration_printer = nullptr;
+        try {
+            // Growing a deque preserves existing objects. Roll back appended copies if preparation fails.
+            for (size_t i = 0; i < collections.size(); ++i) {
+                auto& collection = collections[i];
+                while (collection.live.size() < collection.candidate.size())
+                    collection.live.m_presets.emplace_back(collection.candidate.m_presets[collection.live.size()]);
+            }
+            auto calibration_preset = [](const Preset* preset, PresetCollection& live, PresetCollection& candidate) -> const Preset* {
+                if (preset == nullptr)
+                    return nullptr;
+                if (preset == &candidate.get_edited_preset())
+                    return &live.get_edited_preset();
+                const auto it = candidate.find_preset_internal(preset->name);
+                return &live.m_presets[it - candidate.m_presets.begin()];
+            };
+            calibration_printer = calibration_preset(staged.calibrate_printer, printers, staged.printers);
+            for (const Preset* preset : staged.calibrate_filaments)
+                calibration_filaments.insert(calibration_preset(preset, filaments, staged.filaments));
+            // Insertion is the last allocating operation. Replacing metadata only moves its members.
+            bundles.m_bundles.insert_or_assign(bundle_id, std::move(metadata));
+        } catch (...) {
+            for (size_t i = 0; i < collections.size(); ++i)
+                while (collections[i].live.size() > collections[i].original_size)
+                    collections[i].live.m_presets.pop_back();
+            throw;
+        }
+        auto install_target = [](PresetCollection& live, PresetCollection& candidate) noexcept {
+            // Keep stored Preset references alive when the collection's layout is unchanged.
+            // Adding/removing presets retains the collection's usual sorted-position semantics.
+            for (size_t i = 0; i < candidate.size(); ++i)
+                live.m_presets[i] = std::move(candidate.m_presets[i]);
+            while (live.size() > candidate.size())
+                live.m_presets.pop_back();
+            live.m_map_alias_to_profile_name.swap(candidate.m_map_alias_to_profile_name);
+            // Move assignment does not allocate (including Semver); swapping Presets would construct temporary containers.
+            live.m_edited_preset = std::move(candidate.m_edited_preset);
+            live.m_saved_preset  = std::move(candidate.m_saved_preset);
+            live.m_idx_selected  = candidate.m_idx_selected;
+        };
+        for (size_t i = 0; i < collections.size(); ++i)
+            install_target(collections[i].live, collections[i].candidate);
+        filament_presets.swap(staged.filament_presets);
+        for (const auto& options : flush_options)
+            options.first->values.swap(options.second->values);
+        calibrate_printer = calibration_printer;
+        calibrate_filaments.swap(calibration_filaments);
+        dir_user_presets_local.swap(local_dir);
+        return true;
+    } catch (const std::exception& exception) {
+        return fail(std::string("Failed to reload local bundle: ") + exception.what());
+    }
 }
 
 PresetsConfigSubstitutions PresetBundle::load_user_presets(AppConfig &                                                config,
@@ -1435,7 +1958,6 @@ bool PresetBundle::apply_vendor_config(
     const std::string& preferred_printer_variant,
     const std::string& preferred_filament)
 {
-    namespace fs = boost::filesystem;
 
     // Get current configuration from AppConfig
     const auto old_vendors = app_config->vendors();
@@ -1577,6 +2099,258 @@ bool PresetBundle::apply_vendor_config(
     return true;
 }
 
+namespace {
+
+// The two bed files a printer bundle can carry. Zip names are bed/<n>/<stem><ext>, never the source basename.
+struct BedAssetSlot {
+    const char *option;
+    const char *stem;
+};
+
+constexpr BedAssetSlot k_bed_asset_slots[] = {
+    {"bed_custom_texture", "texture"},
+    {"bed_custom_model", "model"},
+};
+
+std::string zip_slashes(std::string name)
+{
+    for (char &c : name)
+        if (c == '\\')
+            c = '/';
+    return name;
+}
+
+// The bed dialog loads only png/svg textures and stl models. Anything else is not a bed asset.
+bool bed_extension_allowed(const char *option, const std::string &ext)
+{
+    if (std::string(option) == "bed_custom_texture")
+        return boost::iequals(ext, ".png") || boost::iequals(ext, ".svg");
+    if (std::string(option) == "bed_custom_model")
+        return boost::iequals(ext, ".stl");
+    return false;
+}
+
+// Extension including the dot, or empty when this option may not use it.
+std::string bed_asset_extension(const std::string &path, const char *option)
+{
+    const auto slash = path.find_last_of("/\\");
+    const auto base  = slash == std::string::npos ? 0 : slash + 1;
+    const auto dot   = path.find_last_of('.');
+    if (dot == std::string::npos || dot < base || dot + 1 >= path.size())
+        return {};
+    const std::string ext = path.substr(dot);
+    if (!bed_extension_allowed(option, ext))
+        return {};
+    return ext;
+}
+
+bool utf8_is_file(const std::string &path)
+{
+    if (path.empty())
+        return false;
+    boost::system::error_code ec;
+#ifdef _WIN32
+    // A narrow path is the ANSI code page unless nowide_filesystem() has run.
+    const std::wstring wide = boost::nowide::widen(path);
+    if (wide.empty())
+        return false;
+    return boost::filesystem::is_regular_file(boost::filesystem::path(wide), ec) && !ec;
+#else
+    return boost::filesystem::is_regular_file(path, ec) && !ec;
+#endif
+}
+
+std::string bed_asset_dest_utf8(const fs::path &dest)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(dest.wstring());
+#else
+    return dest.string();
+#endif
+}
+
+// True only for bed/<digits>/<stem><ext> with an extension the bed dialog accepts for this field.
+bool accepted_bed_zip_name(const std::string &raw, const BedAssetSlot &slot, const fs::path &bundle_dir,
+                           std::string &zip_name, std::string &folder)
+{
+    const std::string name = zip_slashes(raw);
+    if (name.find("..") != std::string::npos)
+        return false;
+    if (name.size() < 8 || name.compare(0, 4, "bed/") != 0)
+        return false;
+    const auto slash = name.find('/', 4);
+    if (slash == std::string::npos || slash == 4 || name.find('/', slash + 1) != std::string::npos)
+        return false;
+    const std::string digits = name.substr(4, slash - 4);
+    for (unsigned char c : digits) {
+        if (!std::isdigit(c))
+            return false;
+    }
+    const std::string filename = name.substr(slash + 1);
+    const std::string ext = bed_asset_extension(filename, slot.option);
+    if (ext.empty() || filename != std::string(slot.stem) + ext)
+        return false;
+    if (!is_path_within_root(name, bundle_dir))
+        return false;
+    zip_name = name;
+    folder = digits;
+    return true;
+}
+
+struct PendingBedAsset {
+    std::string option;
+    std::string zip_name;
+    std::string dest;
+    std::string printer_key;
+    fs::path    final_path;
+    fs::path    staged;
+};
+
+// Validated asset names only. A raw manifest value that fails the check is not skipped later,
+// so a value like printer/Name.json cannot hide that preset.
+// printer_asset is keyed by printer_config zip entry. A flat (unkeyed) object is not read.
+std::vector<PendingBedAsset> pending_bed_assets(const json &bundle_json, const fs::path &bundle_dir,
+                                                std::unordered_set<std::string> &skip_names,
+                                                const std::unordered_set<std::string> &zip_entries)
+{
+    std::vector<PendingBedAsset> pending;
+    if (!bundle_json.contains("printer_asset") || !bundle_json["printer_asset"].is_object())
+        return pending;
+    const json &assets = bundle_json["printer_asset"];
+    for (auto it = assets.begin(); it != assets.end(); ++it) {
+        const std::string printer_key = it.key();
+        if (zip_entries.count(printer_key) == 0) {
+            BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset entry is ignored, no matching printer in the zip: " << printer_key;
+            continue;
+        }
+        if (!it.value().is_object())
+            continue;
+        const json &per_printer = it.value();
+        for (const BedAssetSlot &slot : k_bed_asset_slots) {
+            if (!per_printer.contains(slot.option) || !per_printer[slot.option].is_string())
+                continue;
+            const std::string raw = per_printer[slot.option].get<std::string>();
+            std::string zip_name;
+            std::string folder;
+            if (!accepted_bed_zip_name(raw, slot, bundle_dir, zip_name, folder)) {
+                BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset path is rejected: " << raw;
+                continue;
+            }
+            const std::string filename = zip_name.substr(zip_name.rfind('/') + 1);
+            const fs::path final_path = fs::absolute(bundle_dir / "bed" / folder / filename);
+            pending.push_back({slot.option, zip_name, bed_asset_dest_utf8(final_path), printer_key, final_path, {}});
+            skip_names.insert(zip_name);
+        }
+    }
+    return pending;
+}
+
+// Stage under temp_folder. The bundle bed/ directory is not touched until a printer preset keeps the path.
+bool stage_bed_asset(mz_zip_archive &zip, PendingBedAsset &asset, const fs::path &temp_folder)
+{
+    size_t size = 0;
+    void *buf = mz_zip_reader_extract_file_to_heap(&zip, asset.zip_name.c_str(), &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
+    if (buf == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset is missing, skipping " << asset.option << ": " << asset.zip_name;
+        return false;
+    }
+    const std::string filename = asset.zip_name.substr(asset.zip_name.rfind('/') + 1);
+    asset.staged = temp_folder / "bed" / asset.final_path.parent_path().filename() / filename;
+    boost::system::error_code ec;
+    fs::create_directories(asset.staged.parent_path(), ec);
+    const std::string staged_utf8 = bed_asset_dest_utf8(asset.staged);
+    bool wrote = false;
+    if (!ec) {
+        boost::nowide::ofstream out(staged_utf8, std::ios::binary | std::ios::trunc);
+        wrote = static_cast<bool>(out);
+        if (wrote && size > 0)
+            wrote = static_cast<bool>(out.write(static_cast<const char *>(buf), static_cast<std::streamsize>(size)));
+    }
+    mz_free(buf);
+    if (!wrote) {
+        BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset could not be written, skipping " << asset.option << ": " << staged_utf8;
+        fs::remove(asset.staged, ec);
+        return false;
+    }
+    return true;
+}
+
+bool install_bed_asset(const PendingBedAsset &asset)
+{
+    boost::system::error_code ec;
+    fs::create_directories(asset.final_path.parent_path(), ec);
+    if (!ec)
+        fs::copy_file(asset.staged, asset.final_path, fs::copy_options::overwrite_existing, ec);
+    if (ec) {
+        BOOST_LOG_TRIVIAL(warning) << "Printer bundle asset could not be installed: " << asset.dest;
+        return false;
+    }
+    return true;
+}
+
+bool is_pending_bed_asset_entry(const std::string &entry, const std::unordered_set<std::string> &names)
+{
+    return names.count(entry) != 0 || names.count(zip_slashes(entry)) != 0;
+}
+
+bool printer_kept_bed_paths(const PresetCollection &printers, const std::map<std::string, std::string> &paths)
+{
+    if (paths.empty())
+        return false;
+    for (const Preset &preset : printers.get_presets()) {
+        for (const auto &entry : paths)
+            if (preset.config.opt_string(entry.first) == entry.second)
+                return true;
+    }
+    return false;
+}
+
+} // namespace
+
+bool append_printer_bed_assets(mz_zip_archive &zip, const DynamicPrintConfig &config, json &bundle_structure,
+                               const std::string &printer_config_entry, int printer_index)
+{
+    if (printer_config_entry.empty() || printer_index < 0)
+        return true;
+    json assets = json::object();
+    for (const BedAssetSlot &slot : k_bed_asset_slots) {
+        if (!config.has(slot.option))
+            continue;
+        const std::string stored = config.opt_string(slot.option);
+        if (stored.empty())
+            continue;
+        if (!utf8_is_file(stored)) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset file is missing, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        const std::string ext = bed_asset_extension(stored, slot.option);
+        if (ext.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset extension is not packable, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        boost::nowide::ifstream in(stored, std::ios::binary);
+        if (!in) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset file cannot be read, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        const std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        if (in.bad()) {
+            BOOST_LOG_TRIVIAL(warning) << "Bed asset file cannot be read, skipping " << slot.option << ": " << stored;
+            continue;
+        }
+        const std::string zip_name = std::string("bed/") + std::to_string(printer_index) + "/" + slot.stem + ext;
+        const void *data = bytes.empty() ? static_cast<const void *>("") : static_cast<const void *>(bytes.data());
+        if (mz_zip_writer_add_mem(&zip, zip_name.c_str(), data, bytes.size(), MZ_DEFAULT_COMPRESSION) == MZ_FALSE) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to add bed asset to printer bundle: " << zip_name;
+            return false;
+        }
+        assets[slot.option] = zip_name;
+    }
+    if (!assets.empty())
+        bundle_structure["printer_asset"][printer_config_entry] = std::move(assets);
+    return true;
+}
+
 // Import presets from UI control
 PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string> &              files,
                                                         std::function<int(std::string const &)> override_confirm,
@@ -1609,10 +2383,12 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
             if (ec) BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " create directory failed: " << ec.message();
             //create temp folder
             //std::string user_default_temp_dir = data_dir() + "/" + PRESET_USER_DIR + "/" + DEFAULT_USER_FOLDER_NAME + "/" + "temp";
-            fs::path temp_folder(configs_folder / "temp");
+            // Under cache/, per process and per import, so two instances importing
+            // at once do not clear each other's extraction and no preset scan reads it.
+            static std::atomic<unsigned> import_counter{0};
+            fs::path temp_folder(fs::path(data_dir()) / "cache" / ("import." + std::to_string(get_current_pid()) + "." + std::to_string(import_counter++)));
             std::string user_default_temp_dir = temp_folder.make_preferred().string();
-            if (fs::exists(temp_folder)) fs::remove_all(temp_folder);
-            fs::create_directory(temp_folder, ec);
+            fs::create_directories(temp_folder, ec);
             if (ec) BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " create directory failed: " << ec.message();
 
             file = boost::filesystem::path(file).make_preferred().string();
@@ -1624,6 +2400,9 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
             status        = mz_zip_reader_init_cfile(&zip_archive, zipFile, 0, MZ_ZIP_FLAG_CASE_SENSITIVE | MZ_ZIP_FLAG_IGNORE_PATH);
             if (MZ_FALSE == status) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Failed to initialize reader ZIP archive";
+                if (zipFile != nullptr)
+                    std::fclose(zipFile);
+                fs::remove_all(temp_folder, ec);
                 return substitutions;
             } else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Success to initialize reader ZIP archive";
@@ -1667,14 +2446,44 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " No bundle_structure.json found, importing presets into the user preset directory";
             }
 
+            json bundle_json = json::object();
+            std::unordered_set<std::string> bed_asset_entries;
+            std::vector<PendingBedAsset> bed_assets;
+            std::map<std::string, std::map<std::string, std::string>> bed_paths_by_printer;
+            bool bed_paths_loaded = false;
+            if (has_bundle_structure && !bundle_base_dir.empty()) {
+                try {
+                    boost::nowide::ifstream manifest_in(metadata_path.string());
+                    manifest_in >> bundle_json;
+                } catch (const std::exception &err) {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " failed to read bundle manifest: " << err.what();
+                    bundle_json = json::object();
+                }
+                std::unordered_set<std::string> zip_entries;
+                const int zip_file_count = mz_zip_reader_get_num_files(&zip_archive);
+                for (int zi = 0; zi < zip_file_count; ++zi) {
+                    mz_zip_archive_file_stat st;
+                    if (mz_zip_reader_file_stat(&zip_archive, zi, &st))
+                        zip_entries.insert(zip_slashes(st.m_filename));
+                }
+                bed_assets = pending_bed_assets(bundle_json, bundle_base_dir, bed_asset_entries, zip_entries);
+                for (PendingBedAsset &asset : bed_assets)
+                    if (stage_bed_asset(zip_archive, asset, temp_folder))
+                        bed_paths_by_printer[asset.printer_key].emplace(asset.option, asset.dest);
+            }
+
             // Extract Files
             int num_files = mz_zip_reader_get_num_files(&zip_archive);
+            const std::map<std::string, std::string> no_bed_paths;
             for (int i = 0; i < num_files; i++) {
                 mz_zip_archive_file_stat file_stat;
                 status = mz_zip_reader_file_stat(&zip_archive, i, &file_stat);
                 if (status) {
                     std::string file_name = file_stat.m_filename;
+                    const std::string zip_entry = zip_slashes(file_name);
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " From zip file: " << file << ". Read file name: " << file_stat.m_filename;
+                    if (is_pending_bed_asset_entry(file_name, bed_asset_entries))
+                        continue;
                     size_t index = file_name.find_last_of("/\\");
                     if (std::string::npos != index) {
                         file_name = file_name.substr(index + 1);
@@ -1692,10 +2501,23 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Failed to open target file: " << target_file_path;
                     } else {
+                        const auto paths_it = bed_paths_by_printer.find(zip_entry);
+                        const std::map<std::string, std::string> &this_bed_paths =
+                            paths_it != bed_paths_by_printer.end() ? paths_it->second : no_bed_paths;
                         bool is_success = import_json_presets(substitutions, target_file_path, override_confirm, rule, overwrite, result,
-                                                              has_bundle_structure ? bundle_base_dir.string() : std::string());
+                                                              has_bundle_structure ? bundle_base_dir.string() : std::string(),
+                                                              this_bed_paths, &bed_paths_loaded);
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " import target file: " << target_file_path << " import result" << is_success;
                     }
+                }
+            }
+
+            // Copy into bed/ only after this import loads a printer that still holds the staged path.
+            // A preset left from an earlier import must not count: declining this import leaves its files alone.
+            if (bed_paths_loaded) {
+                for (const PendingBedAsset &asset : bed_assets) {
+                    if (printer_kept_bed_paths(printers, {{asset.option, asset.dest}}))
+                        install_bed_asset(asset);
                 }
             }
 
@@ -1740,7 +2562,9 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
                                        ForwardCompatibilitySubstitutionRule    rule,
                                        int &                                   overwrite,
                                        std::vector<std::string> &              result,
-                                       const std::string &                     bundle_dir)
+                                       const std::string &                     bundle_dir,
+                                       const std::map<std::string, std::string> &      bed_asset_paths,
+                                       bool *                                          bed_paths_loaded)
 {
     try {
         DynamicPrintConfig config;
@@ -1804,6 +2628,10 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             if (inherit_preset)
                 inherits_value = inherit_preset->name;  // keep the base_id redo below in sync
         }
+        if (collection == &printers) {
+            for (const auto &entry : bed_asset_paths)
+                config.option<ConfigOptionString>(entry.first, true)->value = entry.second;
+        }
         if (inherit_preset) {
             new_config = inherit_preset->config;
             new_config.apply(std::move(config));
@@ -1821,6 +2649,8 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             new_config.apply(std::move(config));
             extend_default_config_length(new_config, true, default_preset.config);
         }
+        if (bed_paths_loaded != nullptr && collection == &printers && !bed_asset_paths.empty())
+            *bed_paths_loaded = true;
 
         Preset &preset     = collection->load_preset(collection->path_from_name(name, inherit_preset == nullptr), preset_name, std::move(new_config), false);
         preset.bundle_id = load_origin.bundle_id;
@@ -2231,10 +3061,9 @@ void PresetBundle::remove_user_presets_directory(const std::string preset_folder
         return;
     }
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, delete directory : %1%") % dir_user_presets;
-    fs::path folder(dir_user_presets);
-    if (fs::exists(folder)) {
-        fs::remove_all(folder);
-    }
+    boost::system::error_code ec;
+    InstanceLock instance_lock(user_presets_lock_path());
+    fs::remove_all(fs::path(dir_user_presets), ec);
 }
 
 void PresetBundle::update_system_preset_setting_ids(std::map<std::string, std::map<std::string, std::string>>& system_presets)
@@ -2482,7 +3311,7 @@ void PresetBundle::clear_printer_hold_aliases()
 
 //BBS: add json related logic, load system presets from json
 std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_presets_from_json(
-    ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache)
+    ForwardCompatibilitySubstitutionRule compatibility_rule, bool write_caches)
 {
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, compatibility_rule %1%")%compatibility_rule;
@@ -2499,35 +3328,129 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     if (validation_mode)
         dir = (boost::filesystem::path(data_dir())).make_preferred();
 
-    const auto load_t0 = std::chrono::steady_clock::now();
-
     // The vendors below are loaded whole and against each other — the filament
     // library first, then every other vendor with it as the base — so each parse
     // is complete enough to be worth caching.
-    m_generate_vendor_caches = allow_cache && (m_generate_vendor_caches || !validation_mode);
+    m_generate_vendor_caches = write_caches && (m_generate_vendor_caches || !validation_mode);
+
+    // Sorted, so any duplicate-preset warning comes out in the same order on every run.
+    std::vector<VendorSource> vendors;
+    for (const std::string& name : vendor_names_in(dir))
+        if (name == ORCA_FILAMENT_LIBRARY || !(validation_mode && !vendor_to_validate.empty() && name != vendor_to_validate))
+            vendors.push_back({ name, dir });
+    auto result = this->load_vendors(vendors, compatibility_rule, true);
+
+	this->update_system_maps();
+
+    //BBS: add config related logs
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, errors_cummulative %1%")%result.second;
+    return result;
+}
+
+std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_vendors(const std::vector<VendorSource>& vendors,
+    ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache, const std::atomic<bool>* cancel,
+    std::vector<std::string>* failed)
+{
+    const auto load_t0  = std::chrono::steady_clock::now();
+    auto       canceled = [cancel] { return cancel != nullptr && cancel->load(); };
 
     PresetsConfigSubstitutions  substitutions;
     std::string                 errors_cummulative;
     bool first = true;
-    // Sorted, so any duplicate-preset warning below comes out in the same order on
-    // every run.
-    const std::set<std::string> vendor_names = vendor_names_in(dir);
-    // Separate ORCA_FILAMENT_LIBRARY from other vendors. It must be loaded
-    // first because other vendors' filaments may inherit from it via the
-    // `base_bundle` lookup in parse_subfile. The remaining vendors are
-    // independent (no cross-vendor inheritance) and can be loaded in parallel.
-    std::string orca_lib_vendor;
-    std::vector<std::string> other_vendors;
-    other_vendors.reserve(vendor_names.size());
-    for (auto& vn : vendor_names) {
-        if (vn == ORCA_FILAMENT_LIBRARY)
-            orca_lib_vendor = vn;
-        else if (!(validation_mode && !vendor_to_validate.empty() && vn != vendor_to_validate))
-            other_vendors.push_back(vn);
+    // Other vendors inherit from nothing but the library, and only installing them
+    // looks it up, so each is read while it loads and installed once both are done.
+    const VendorSource*              orca_lib = nullptr;
+    std::vector<const VendorSource*> other_vendors;
+    other_vendors.reserve(vendors.size());
+    for (const VendorSource& vendor : vendors) {
+        if (vendor.name == ORCA_FILAMENT_LIBRARY)
+            orca_lib = &vendor;
+        else
+            other_vendors.push_back(&vendor);
     }
 
-    // Step 1: Load ORCA_FILAMENT_LIBRARY into `this` synchronously.
-    if (! orca_lib_vendor.empty()) {
+    // One of the other vendors, loaded into a PresetBundle of its own.
+    struct VendorLoad
+    {
+        const VendorSource*           source { nullptr };
+        std::unique_ptr<PresetBundle> bundle;
+        VendorRead                    read;
+        PresetsConfigSubstitutions    substitutions;
+        std::string                   error;
+        // Counts the vendor's read and the library load; the second to finish installs it.
+        std::atomic<int>              ready { 0 };
+    };
+    std::vector<VendorLoad> loads(other_vendors.size());
+    for (size_t i = 0; i < other_vendors.size(); ++i)
+        loads[i].source = other_vendors[i];
+
+    // Started slowest first, since the load ends when the slowest vendor does.
+    std::vector<size_t> by_cost(loads.size());
+    std::iota(by_cost.begin(), by_cost.end(), size_t(0));
+    // A parse from JSON costs far more than any cache load, so parses go first, and
+    // within each group the bigger file, the cache or the <vendor>.json that lists what
+    // to parse. A cache older than its profile is ordered as a parse.
+    const bool reads_caches = allow_cache && ! validation_mode;
+    std::vector<std::pair<bool, uintmax_t>> vendor_costs(loads.size());
+    for (size_t i = 0; i < loads.size(); ++i) {
+        const VendorSource&           vendor  = *loads[i].source;
+        const boost::filesystem::path cache   = vendor.dir / (vendor.name + ".opc");
+        const boost::filesystem::path profile = vendor.dir / (vendor.name + ".json");
+        boost::system::error_code ec, profile_ec;
+        const uintmax_t cache_size = reads_caches ? boost::filesystem::file_size(cache, ec) : 0;
+        if (reads_caches && ! ec) {
+            const std::time_t profile_time = boost::filesystem::last_write_time(profile, profile_ec);
+            if (profile_ec || profile_time <= boost::filesystem::last_write_time(cache, ec)) {
+                vendor_costs[i] = { false, cache_size };
+                continue;
+            }
+        }
+        const uintmax_t profile_size = boost::filesystem::file_size(profile, profile_ec);
+        vendor_costs[i] = { true, profile_ec ? 0 : profile_size };
+    }
+    std::stable_sort(by_cost.begin(), by_cost.end(),
+        [&](size_t a, size_t b) { return vendor_costs[a] > vendor_costs[b]; });
+
+    // A vendor that failed to read, or that is still to install when `cancel` is
+    // set, is left out.
+    auto install = [&](VendorLoad& load) {
+        if (load.bundle && ! canceled()) {
+            try {
+                load.substitutions = load.bundle->install_vendor_read(std::move(load.read), this).first;
+            } catch (const std::runtime_error &err) {
+                load.error = err.what();
+                load.bundle.reset();
+            }
+        } else
+            load.bundle.reset();
+        load.read = VendorRead();
+    };
+    tbb::task_group group;
+    group.run([&] {
+        // An auto_partitioner splits the range only while a worker is asking for work,
+        // which at this size left every vendor on the calling thread.
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, loads.size(), 1),
+            [&](const tbb::blocked_range<size_t>& range) {
+                for (size_t k = range.begin(); k < range.end(); ++k) {
+                    VendorLoad& load = loads[by_cost[k]];
+                    if (! canceled()) {
+                        try {
+                            auto bundle = std::make_unique<PresetBundle>();
+                            bundle->set_is_validation_mode(validation_mode);
+                            bundle->set_generate_vendor_caches(m_generate_vendor_caches);
+                            load.read   = bundle->read_vendor(load.source->dir.string(), load.source->name,
+                                                              PresetBundle::LoadSystem, compatibility_rule, allow_cache);
+                            load.bundle = std::move(bundle);
+                        } catch (const std::runtime_error &err) {
+                            load.error = err.what();
+                        }
+                    }
+                    if (++ load.ready == 2)
+                        install(load);
+                }
+            }, tbb::simple_partitioner());
+    });
+    if (orca_lib != nullptr && ! canceled()) {
         try {
             // Match a fresh launch before parsing: hold aliases and the error
             // counter survive reset(), and would otherwise carry prior-cycle
@@ -2535,66 +3458,55 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
             this->clear_printer_hold_aliases();
             this->m_errors = 0;
             append(substitutions, this->load_vendor_configs_from_json(
-                dir.string(), orca_lib_vendor, PresetBundle::LoadSystem, compatibility_rule, nullptr, allow_cache).first);
+                orca_lib->dir.string(), orca_lib->name, PresetBundle::LoadSystem, compatibility_rule, nullptr, allow_cache).first);
             first = false;
         } catch (const std::runtime_error &err) {
             if (validation_mode)
                 throw err;
             errors_cummulative += err.what();
             errors_cummulative += "\n";
+            if (failed != nullptr)
+                failed->push_back(orca_lib->name);
         }
     }
+    for (size_t k : by_cost)
+        if (++ loads[k].ready == 2)
+            group.run([&install, &load = loads[k]] { install(load); });
+    group.wait();
 
-    // Step 2: Load remaining vendors in parallel. Each gets its own
-    // PresetBundle and uses `this` (which contains ORCA_FILAMENT_LIBRARY)
-    // as the base_bundle for cross-bundle inheritance lookups.
-    std::vector<std::unique_ptr<PresetBundle>>      parallel_bundles(other_vendors.size());
-    std::vector<PresetsConfigSubstitutions>         parallel_substitutions(other_vendors.size());
-    std::vector<std::string>                        parallel_errors(other_vendors.size());
-
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, other_vendors.size()),
-        [&](const tbb::blocked_range<size_t>& range) {
-            for (size_t i = range.begin(); i < range.end(); ++i) {
-                auto bundle = std::make_unique<PresetBundle>();
-                bundle->set_is_validation_mode(validation_mode);
-                bundle->set_generate_vendor_caches(m_generate_vendor_caches);
-                try {
-                    auto result = bundle->load_vendor_configs_from_json(
-                        dir.string(), other_vendors[i], PresetBundle::LoadSystem, compatibility_rule, this, allow_cache);
-                    parallel_substitutions[i] = std::move(result.first);
-                    parallel_bundles[i] = std::move(bundle);
-                } catch (const std::runtime_error &err) {
-                    parallel_errors[i] = err.what();
-                }
-            }
-        });
-
-    // Step 3: Sequentially merge the parallel-loaded bundles into `this`.
-    // The merge order is the original vendor order so any duplicate-warning
-    // output stays stable across runs.
-    for (size_t i = 0; i < other_vendors.size(); ++i) {
-        if (!parallel_errors[i].empty()) {
+    // Merged in the original vendor order, so any duplicate-warning output stays
+    // stable across runs.
+    std::vector<PresetBundle*> bundles;
+    for (VendorLoad& load : loads)
+        if (load.bundle)
+            bundles.push_back(load.bundle.get());
+    const std::vector<std::vector<std::string>> duplicates = this->merge_presets(bundles);
+    size_t merged = 0;
+    for (VendorLoad& load : loads) {
+        if (! load.error.empty()) {
             if (validation_mode)
-                throw std::runtime_error(parallel_errors[i]);
-            errors_cummulative += parallel_errors[i];
+                throw std::runtime_error(load.error);
+            errors_cummulative += load.error;
             errors_cummulative += "\n";
+            if (failed != nullptr)
+                failed->push_back(load.source->name);
             continue;
         }
-        if (!parallel_bundles[i])
+        if (! load.bundle)
             continue;
 
-        const std::string& vendor_name = other_vendors[i];
-        append(substitutions, std::move(parallel_substitutions[i]));
-        std::vector<std::string> duplicates = this->merge_presets(std::move(*parallel_bundles[i]));
+        const std::string&              vendor_name       = load.source->name;
+        const std::vector<std::string>& vendor_duplicates = duplicates[merged ++];
+        append(substitutions, std::move(load.substitutions));
         first = false;
-        if (!duplicates.empty()) {
+        if (!vendor_duplicates.empty()) {
             errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
-            for (size_t j = 0; j < duplicates.size(); ++j) {
-                if (j > 0)
+            for (size_t k = 0; k < vendor_duplicates.size(); ++k) {
+                if (k > 0)
                     errors_cummulative += ", ";
-                errors_cummulative += duplicates[j];
+                errors_cummulative += vendor_duplicates[k];
                 ++m_errors;
-                BOOST_LOG_TRIVIAL(error) << "Found duplicated preset: " + duplicates[j] + " in vendor: " + vendor_name + ": ";
+                BOOST_LOG_TRIVIAL(error) << "Found duplicated preset: " + vendor_duplicates[k] + " in vendor: " + vendor_name + ": ";
             }
         }
     }
@@ -2604,14 +3516,9 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
 		this->reset(false);
 	}
 
-	this->update_system_maps();
-
     const auto load_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - load_t0).count();
-    BOOST_LOG_TRIVIAL(info) << "PresetBundle: " << vendor_names.size() << " vendor(s) loaded in " << load_ms << " ms";
-
-    //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, errors_cummulative %1%")%errors_cummulative;
+    BOOST_LOG_TRIVIAL(info) << "PresetBundle: " << vendors.size() << " vendor(s) loaded in " << load_ms << " ms";
     return std::make_pair(std::move(substitutions), errors_cummulative);
 }
 
@@ -2629,19 +3536,13 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_mod
     boost::filesystem::path    dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
     PresetsConfigSubstitutions substitutions;
     std::string                errors_cummulative;
-    for (auto &dir_entry : boost::filesystem::directory_iterator(dir)) {
-        std::string vendor_file = dir_entry.path().string();
-        if (Slic3r::is_json_file(vendor_file)) {
-            std::string vendor_name = dir_entry.path().filename().string();
-            // Remove the .json suffix.
-            vendor_name.erase(vendor_name.size() - 5);
-            try {
-                // Load the config bundle, flatten it.
-                append(substitutions, load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadVendorOnly, compatibility_rule).first);
-            } catch (const std::runtime_error &err) {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
-            }
+    for (const std::string &vendor_name : vendor_names_in(dir)) {
+        try {
+            // Load the config bundle, flatten it.
+            append(substitutions, load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadVendorOnly, compatibility_rule).first);
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
         }
     }
 
@@ -2664,35 +3565,33 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_fil
     PresetsConfigSubstitutions substitutions;
     std::string                errors_cummulative;
     bool                       first = true;
-    for (auto &dir_entry : boost::filesystem::directory_iterator(dir)) {
-        std::string vendor_file = dir_entry.path().string();
-        if (Slic3r::is_json_file(vendor_file)) {
-            std::string vendor_name = dir_entry.path().filename().string();
-            // Remove the .json suffix.
-            vendor_name.erase(vendor_name.size() - 5);
-            try {
-                if (first) {
-                    // Reset this PresetBundle and load the first vendor config.
-                    append(substitutions, this->load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
-                    first = false;
-                } else {
-                    // Load the other vendor configs, merge them with this PresetBundle.
-                    // Report duplicate profiles.
-                    PresetBundle other;
-                    append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
-                    std::vector<std::string> duplicates = this->merge_presets(std::move(other));
-                    if (!duplicates.empty()) {
-                        errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
-                        for (size_t i = 0; i < duplicates.size(); ++i) {
-                            if (i > 0) errors_cummulative += ", ";
-                            errors_cummulative += duplicates[i];
-                        }
+    // The filament library loads first, so the filaments that inherit its bases resolve.
+    std::vector<std::string> vendor_names;
+    for (const std::string &vendor_name : vendor_names_in(dir))
+        vendor_names.insert(vendor_name == ORCA_FILAMENT_LIBRARY ? vendor_names.begin() : vendor_names.end(), vendor_name);
+    for (const std::string &vendor_name : vendor_names) {
+        try {
+            if (first) {
+                // Reset this PresetBundle and load the first vendor config.
+                append(substitutions, this->load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule).first);
+                first = false;
+            } else {
+                // Load the other vendor configs, merge them with this PresetBundle.
+                // Report duplicate profiles.
+                PresetBundle other;
+                append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem | PresetBundle::LoadFilamentOnly, compatibility_rule, this).first);
+                std::vector<std::string> duplicates = std::move(this->merge_presets({ &other }).front());
+                if (!duplicates.empty()) {
+                    errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
+                    for (size_t i = 0; i < duplicates.size(); ++i) {
+                        if (i > 0) errors_cummulative += ", ";
+                        errors_cummulative += duplicates[i];
                     }
                 }
-            } catch (const std::runtime_error &err) {
-                errors_cummulative += err.what();
-                errors_cummulative += "\n";
             }
+        } catch (const std::runtime_error &err) {
+            errors_cummulative += err.what();
+            errors_cummulative += "\n";
         }
     }
 
@@ -2726,26 +3625,33 @@ VendorProfile PresetBundle::get_custom_vendor_models() const
     return vendor;
 }
 
-// Merge one vendor's presets with the other vendor's presets, report duplicates.
-std::vector<std::string> PresetBundle::merge_presets(PresetBundle &&other)
+std::vector<std::vector<std::string>> PresetBundle::merge_presets(const std::vector<PresetBundle*> &others)
 {
-    this->vendors.insert(other.vendors.begin(), other.vendors.end());
-    std::vector<std::string> duplicate_prints        = this->prints       .merge_presets(std::move(other.prints),        this->vendors);
-    std::vector<std::string> duplicate_sla_prints    = this->sla_prints   .merge_presets(std::move(other.sla_prints),    this->vendors);
-    std::vector<std::string> duplicate_filaments     = this->filaments    .merge_presets(std::move(other.filaments),     this->vendors);
-    std::vector<std::string> duplicate_sla_materials = this->sla_materials.merge_presets(std::move(other.sla_materials), this->vendors);
-    std::vector<std::string> duplicate_printers      = this->printers     .merge_presets(std::move(other.printers),      this->vendors);
-	append(this->obsolete_presets.prints,        std::move(other.obsolete_presets.prints));
-	append(this->obsolete_presets.sla_prints,    std::move(other.obsolete_presets.sla_prints));
-	append(this->obsolete_presets.filaments,     std::move(other.obsolete_presets.filaments));
-    append(this->obsolete_presets.sla_materials, std::move(other.obsolete_presets.sla_materials));
-	append(this->obsolete_presets.printers,      std::move(other.obsolete_presets.printers));
-	append(duplicate_prints, std::move(duplicate_sla_prints));
-	append(duplicate_prints, std::move(duplicate_filaments));
-    append(duplicate_prints, std::move(duplicate_sla_materials));
-    append(duplicate_prints, std::move(duplicate_printers));
-    m_errors += other.m_errors;
-    return duplicate_prints;
+    for (PresetBundle *other : others)
+        this->vendors.insert(other->vendors.begin(), other->vendors.end());
+    std::vector<std::vector<std::string>> duplicates(others.size());
+    auto merge = [&](auto collection) {
+        std::vector<PresetCollection*> other_collections;
+        for (PresetBundle *other : others)
+            other_collections.push_back(&(other->*collection));
+        std::vector<std::vector<std::string>> collection_duplicates = (this->*collection).merge_presets(other_collections, this->vendors);
+        for (size_t i = 0; i < others.size(); ++ i)
+            append(duplicates[i], std::move(collection_duplicates[i]));
+    };
+    merge(&PresetBundle::prints);
+    merge(&PresetBundle::sla_prints);
+    merge(&PresetBundle::filaments);
+    merge(&PresetBundle::sla_materials);
+    merge(&PresetBundle::printers);
+    for (PresetBundle *other : others) {
+        append(this->obsolete_presets.prints,        std::move(other->obsolete_presets.prints));
+        append(this->obsolete_presets.sla_prints,    std::move(other->obsolete_presets.sla_prints));
+        append(this->obsolete_presets.filaments,     std::move(other->obsolete_presets.filaments));
+        append(this->obsolete_presets.sla_materials, std::move(other->obsolete_presets.sla_materials));
+        append(this->obsolete_presets.printers,      std::move(other->obsolete_presets.printers));
+        m_errors += other->m_errors;
+    }
+    return duplicates;
 }
 
 void PresetBundle::update_system_maps()
@@ -3325,6 +4231,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
 // BBS: change directories by design
 void PresetBundle::export_selections(AppConfig &config)
 {
+    if (m_selection_export_blockers > 0)
+        return;
 	assert(this->printers.get_edited_preset().printer_technology() != ptFFF || filament_presets.size() >= 1);
 	//assert(this->printers.get_edited_preset().printer_technology() != ptFFF || filament_presets.size() > 1 || filaments.get_selected_preset_name() == filament_presets.front());
     config.clear_section("presets");
@@ -3433,8 +4341,9 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     ConfigOptionInts* filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
 
     // Which slots are new is a fact about the arrays below, not about filament_presets:
-    // update_multi_material_filament_presets() tops that list up to the nozzle count on its own,
-    // so it can already sit at the new size while every array below is still at the old one.
+    // on a tool changer, update_multi_material_filament_presets() tops that list up to the tool
+    // count on its own, so it can already sit at the new size while every array below is still at
+    // the old one.
     const size_t old_slot_count = filament_color->values.size();
 
     filament_color->resize(n);
@@ -3449,22 +4358,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     filament_volume_map->values.resize(n, static_cast<int>(NozzleVolumeType::nvtStandard));
     ams_multi_color_filment.resize(n);
 
-    // Mixed-color metadata is a parallel per-filament array set, so it has to grow and shrink
-    // with the filament count exactly like filament_colour above.
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient"))
-        opt->values.resize(n, false);
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_curve"))
-        opt->values.resize(n, std::string{});
-    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"))
-        opt->values.resize(n, false);
+    resize_mixed_filament_metadata(project_config, old_slot_count, n);
 
     //BBS set new filament color to new_color
     if (!new_color.empty()) {
@@ -3576,18 +4470,19 @@ bool PresetBundle::is_mixed_filament(size_t idx) const
 
 size_t PresetBundle::num_mixed_filaments() const
 {
-    auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    return opt == nullptr ? 0 : size_t(std::count(opt->values.begin(), opt->values.end(), true));
+    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    if (opt == nullptr)
+        return 0;
+    const size_t slot_count = project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    return size_t(std::count(opt->values.begin(), opt->values.begin() + std::min(slot_count, opt->values.size()), true));
 }
 
-// Counted off the mixed flags, not filament_presets: that list is topped up to the nozzle count on
-// its own, so it can sit a slot ahead of the arrays that describe slots. Unlike the sibling
-// physical_filament_config_indices(), which bounds by filament_presets, this ignores that top-up.
+// Colours describe actual slots; on a tool changer filament_presets can be topped up to the tool count alone.
+// Imported projects may have fewer mixed flags than slots. Missing flags mean physical filaments.
 size_t PresetBundle::num_physical_filaments() const
 {
-    const auto *opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
-    return opt == nullptr ? filament_presets.size()
-                          : size_t(std::count(opt->values.begin(), opt->values.end(), false));
+    const auto *colors = project_config.option<ConfigOptionStrings>("filament_colour");
+    return colors->values.size() - num_mixed_filaments();
 }
 
 std::vector<size_t> PresetBundle::physical_filament_config_indices() const
@@ -3824,7 +4719,6 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts *   filament_map = project_config.option<ConfigOptionInts>("filament_map");
     ConfigOptionInts *   filament_volume_map = project_config.option<ConfigOptionInts>("filament_volume_map");
-
     // Snapshot and temporarily strip mixed filament slots so AMS sync operates on physical
     // filaments only. A mixed slot is virtual and has no tray to sync against; leaving it in
     // would let AMS mapping overwrite it and would break the physical-first slot ordering the
@@ -4323,8 +5217,17 @@ std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::
     return compatible;
 }
 
+int PresetBundle::get_filament_variant_index(const DynamicPrintConfig &filament_config, const DynamicPrintConfig &printer_config,
+                                             int extruder_id, NozzleVolumeType nozzle_volume_type)
+{
+    const auto        *extruder_types = printer_config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    const ExtruderType extruder_type  = extruder_types && !extruder_types->empty() ? ExtruderType(extruder_types->get_at(extruder_id)) : etDirectDrive;
+    return std::max(0, filament_config.get_index_for_extruder(1, "", extruder_type, nozzle_volume_type, "filament_extruder_variant"));
+}
+
 bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(
-    const std::string &printer_type, std::string& nozzle_diameter_str, std::string &setting_id, std::string &tag_uid, std::string &nozzle_temp_min, std::string &nozzle_temp_max, std::string& preset_setting_id)
+    const std::string &printer_type, std::string& nozzle_diameter_str, std::string &setting_id, std::string &tag_uid, std::string &nozzle_temp_min, std::string &nozzle_temp_max, std::string& preset_setting_id,
+    int extruder_id, NozzleVolumeType nozzle_volume_type)
 {
     bool is_equation = true;
 
@@ -4347,13 +5250,15 @@ bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_m
                 // Compare only once
                 if (!compared) {
                     compared                        = true;
+                    const Preset *printer           = printers.find_preset(printer_str);
+                    const int     variant_index     = printer ? get_filament_variant_index(preset->config, printer->config, extruder_id, nozzle_volume_type) : 0;
                     bool          min_temp_equation = false, max_temp_equation = false;
                     int           min_nozzle_temp = std::stoi(nozzle_temp_min);
                     int           max_nozzle_temp = std::stoi(nozzle_temp_max);
                     ConfigOption *opt_min         = const_cast<Preset *>(preset)->config.option("nozzle_temperature_range_low");
                     if (opt_min) {
                         ConfigOptionInts *opt_min_ints = dynamic_cast<ConfigOptionInts *>(opt_min);
-                        min_nozzle_temp                = opt_min_ints->get_at(0);
+                        min_nozzle_temp                = opt_min_ints->get_at(variant_index);
                         if (std::to_string(min_nozzle_temp) == nozzle_temp_min)
                             min_temp_equation = true;
                         else {
@@ -4364,7 +5269,7 @@ bool PresetBundle::check_filament_temp_equation_by_printer_type_and_nozzle_for_m
                     ConfigOption *opt_max = const_cast<Preset *>(preset)->config.option("nozzle_temperature_range_high");
                     if (opt_max) {
                         ConfigOptionInts *opt_max_ints = dynamic_cast<ConfigOptionInts *>(opt_max);
-                        max_nozzle_temp                = opt_max_ints->get_at(0);
+                        max_nozzle_temp                = opt_max_ints->get_at(variant_index);
                         if (std::to_string(max_nozzle_temp) == nozzle_temp_max)
                             max_temp_equation = true;
                         else {
@@ -4475,14 +5380,21 @@ int PresetBundle::get_printer_extruder_count() const
     return count;
 }
 
+size_t PresetBundle::min_filament_count() const
+{
+    if (printers.get_edited_preset().config.opt_bool("single_extruder_multi_material"))
+        return 1;
+    return static_cast<size_t>(get_printer_extruder_count());
+}
+
 void PresetBundle::update_filament_count()
 {
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
-    const size_t num_extruders = static_cast<size_t>(get_printer_extruder_count());
-    if (filament_presets.size() >= num_extruders)
+    const size_t min_filaments = min_filament_count();
+    if (filament_presets.size() >= min_filaments)
         return;
-    filament_presets.resize(num_extruders, filament_presets.empty()
+    filament_presets.resize(min_filaments, filament_presets.empty()
         ? filaments.first_visible().name
         : filament_presets.back());
 }
@@ -4574,6 +5486,15 @@ const std::set<std::string> ignore_settings_list ={
     "print_settings_id", "filament_settings_id", "printer_settings_id"
 };
 
+std::set<std::string> PresetBundle::project_different_keys(const std::string &different_settings)
+{
+    std::vector<std::string> keys;
+    Slic3r::unescape_strings_cstyle(different_settings, keys);
+    std::set<std::string> keys_set(keys.begin(), keys.end());
+    keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+    return keys_set;
+}
+
 DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optional<std::vector<int>> filament_maps_new, std::optional<std::vector<int>> filament_volume_maps_new) const
 {
     DynamicPrintConfig out;
@@ -4664,7 +5585,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     if (num_filaments <= 1) {
         //BBS: update filament config related with variants
         DynamicPrintConfig filament_config = this->filaments.get_edited_preset().config;
-        if (apply_extruder && ((extruder_count > 1) || different_extruder))
+        // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+        if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_config.has_multi_variant_filament()))
             filament_config.update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[0], (NozzleVolumeType)filament_volume_maps[0]);
         out.apply(filament_config);
         compatible_printers_condition.emplace_back(this->filaments.get_edited_preset().compatible_printers_condition());
@@ -4758,7 +5680,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         filament_temp_configs.resize(num_filaments);
         for (size_t i = 0; i < num_filaments; ++i) {
             filament_temp_configs[i] = *(filament_configs[i]);
-            if (apply_extruder && ((extruder_count > 1) || different_extruder))
+            // Orca: a multi-variant filament resolves its variants on a single-variant printer too.
+            if (apply_extruder && ((extruder_count > 1) || different_extruder || filament_temp_configs[i].has_multi_variant_filament()))
                 filament_temp_configs[i].update_values_to_printer_extruders(out, extruder_count, extruder_volume_type_count, nozzle_volume_types, filament_options_with_variant, "", "filament_extruder_variant", 1, filament_maps[i], (NozzleVolumeType)filament_volume_maps[i]);
         }
 
@@ -4944,21 +5867,92 @@ DynamicPrintConfig PresetBundle::full_sla_config() const
 ConfigSubstitutions PresetBundle::load_config_file(const std::string &path, ForwardCompatibilitySubstitutionRule compatibility_rule)
 {
 	if (is_gcode_file(path)) {
-		DynamicPrintConfig config;
         //BBS: add config related logs
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, gcodefile %1%, compatibility_rule %2%")%path %compatibility_rule;
-		config.apply(FullPrintConfig::defaults());
-        ConfigSubstitutions config_substitutions = config.load_from_gcode_file(path, compatibility_rule);
-        Preset::normalize(config);
+        ConfigSubstitutions config_substitutions;
+        DynamicPrintConfig  config = config_from_gcode(path, compatibility_rule, config_substitutions);
 		load_config_file_config(path, true, std::move(config));
 		return config_substitutions;
 	}
 
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" can not load config file %1% not from gcode")%path ;
-    throw Slic3r::RuntimeError(std::string("Unknown configuration file: ") + path);
-    
+    throw Slic3r::RuntimeError((boost::format(L("Unknown configuration file: %1%")) % path).str());
+
     return ConfigSubstitutions{};
+}
+
+DynamicPrintConfig PresetBundle::config_from_gcode(const std::string &path, ForwardCompatibilitySubstitutionRule compatibility_rule,
+                                                   ConfigSubstitutions &substitutions) const
+{
+    DynamicPrintConfig config;
+    config.apply(FullPrintConfig::defaults());
+    // The config block leaves a few project settings out (filament_colour_type, prime_volume_mode,
+    // flush_multiplier_fast); those keep this bundle's values rather than falling back to the defaults.
+    config.apply(this->project_config);
+    const DynamicPrintConfig base = config;
+    substitutions = config.load_from_gcode_file(path, compatibility_rule);
+    // An empty list of choices sets nothing: G-code written by a tool rather than from presets leaves per-extruder
+    // lists such as nozzle_volume_type empty, and the settings tabs expect a choice per extruder. An empty text
+    // list, such as filament_multi_colour, is a value of its own and stays.
+    for (const std::string &key : config.keys())
+        if (const ConfigOption *opt = config.option(key); opt->type() == coEnums && static_cast<const ConfigOptionVectorBase *>(opt)->size() == 0)
+            if (const ConfigOption *below = base.option(key); below != nullptr && static_cast<const ConfigOptionVectorBase *>(below)->size() > 0)
+                config.set_key_value(key, below->clone());
+    Preset::normalize(config);
+    // The block holds flush_volumes_matrix already multiplied by the multiplier the slice used, so a
+    // multiplier of 1 keeps the purge volumes the file was sliced with. G-code from before 2.3.2 held the
+    // plain matrix and loses a multiplier other than 1.
+    for (const char *key : { "flush_multiplier", "flush_multiplier_fast" })
+        if (auto *multiplier = config.option<ConfigOptionFloats>(key))
+            std::fill(multiplier->values.begin(), multiplier->values.end(), 1.);
+    return config;
+}
+
+std::optional<PresetBundle::Selection> PresetBundle::selection() const
+{
+    auto capture = [](const PresetCollection &presets, Selection::Collection &out) {
+        if (std::any_of(presets.m_presets.begin(), presets.m_presets.end(), [](const Preset &preset) { return preset.is_project_embedded; }))
+            return false;
+        out.selected = presets.get_selected_preset_name();
+        out.edited   = presets.get_edited_preset().config;
+        out.saved    = presets.m_saved_preset.config;
+        out.visible.reserve(presets.m_presets.size());
+        for (const Preset &preset : presets.m_presets)
+            out.visible.push_back(preset.is_visible);
+        return true;
+    };
+    Selection selection;
+    if (!capture(this->prints, selection.prints) || !capture(this->filaments, selection.filaments) || !capture(this->printers, selection.printers))
+        return std::nullopt;
+    selection.filament_presets    = this->filament_presets;
+    selection.project_config      = this->project_config;
+    selection.extruder_ams_counts = this->extruder_ams_counts;
+    return selection;
+}
+
+void PresetBundle::restore_selection(const Selection &selection)
+{
+    auto restore = [](PresetCollection &presets, const Selection::Collection &saved) {
+        presets.reset_project_embedded_presets();
+        // Before selecting: select_preset_by_name() passes over a hidden preset.
+        assert(presets.m_presets.size() == saved.visible.size());
+        for (size_t i = 0; i < std::min(presets.m_presets.size(), saved.visible.size()); ++i)
+            presets.m_presets[i].is_visible = saved.visible[i];
+        presets.select_preset_by_name(saved.selected, true);
+        presets.m_saved_preset.config      = saved.saved;
+        presets.get_edited_preset().config = saved.edited;
+        presets.update_dirty();
+    };
+    restore(this->printers, selection.printers);
+    restore(this->prints, selection.prints);
+    restore(this->filaments, selection.filaments);
+    this->update_compatible(PresetSelectCompatibleType::Never);
+    this->update_multi_material_filament_presets();
+    // Last, as update_multi_material_filament_presets() resizes filament_presets and the flush data in project_config.
+    this->filament_presets    = selection.filament_presets;
+    this->project_config      = selection.project_config;
+    this->extruder_ams_counts = selection.extruder_ams_counts;
 }
 
 
@@ -5110,7 +6104,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
 
 
 //convert the old filament preset to new one after split
-static void convert_filament_preset_name(std::string& machine_name, std::string& filament_name)
+void PresetBundle::convert_filament_preset_name(const std::string& machine_name, std::string& filament_name)
 {
     auto machine_iter = filament_preset_convert.find(machine_name);
     if (machine_iter != filament_preset_convert.end())
@@ -5158,7 +6152,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     ConfigOptionStrings* filament_colour_option = config.option<ConfigOptionStrings>("filament_colour");
     size_t num_filaments = filament_colour_option?filament_colour_option->size():0;
     if (num_filaments == 0)
-        throw Slic3r::RuntimeError(std::string("Invalid configuration file: ") + name_or_path);
+        throw Slic3r::RuntimeError((boost::format(L("Invalid configuration file: %1%")) % name_or_path).str());
 #endif
 
     //BBS: add config related logs
@@ -5198,13 +6192,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     bool process_multi_extruder = false;
     std::vector<int> filament_variant_index;
     size_t extruder_variant_count;
-    if (!config.option<ConfigOptionInts>("filament_self_index")) {
-        std::vector<int>& filament_self_indice = config.option<ConfigOptionInts>("filament_self_index", true)->values;
+    // A config loaded over the full defaults has a one-entry index even when the file has none.
+    ConfigOptionInts* filament_self_index_opt = config.option<ConfigOptionInts>("filament_self_index", true);
+    if (filament_self_index_opt->size() < num_filaments) {
+        std::vector<int>& filament_self_indice = filament_self_index_opt->values;
         filament_self_indice.resize(num_filaments);
         for (int index = 0; index < num_filaments; index++)
             filament_self_indice[index] = index + 1;
     }
-    std::vector<int> filament_self_indice = std::move(config.option<ConfigOptionInts>("filament_self_index")->values);
+    std::vector<int> filament_self_indice = std::move(filament_self_index_opt->values);
     // ORCA: Initialize filament_extruder_variant for backward compatibility with old 3mf files
     // that don't have this option saved or have it with default single-element value
     ConfigOptionStrings* filament_extruder_variant_opt = config.option<ConfigOptionStrings>("filament_extruder_variant");
@@ -5220,7 +6216,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             || (extruder_variant_count < num_filaments)) {
             assert(false);
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": invalid config file %1%, can not find suitable filament_extruder_variant or filament_self_index") % name_or_path;
-            throw Slic3r::RuntimeError(std::string("Invalid configuration file: ") + name_or_path);
+            throw Slic3r::RuntimeError((boost::format(L("Invalid configuration file: %1%")) % name_or_path).str());
         }
         if (num_filaments != extruder_variant_count) {
             process_multi_extruder = true;
@@ -5279,15 +6275,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         if (!is_published) {
             //BBS: add different settings logic
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load print preset from print_settings_id");
-            std::vector<std::string> print_different_keys_vector;
-            std::string print_different_settings = different_values[0];
-            Slic3r::unescape_strings_cstyle(print_different_settings, print_different_keys_vector);
-            std::set<std::string> print_different_keys_set(print_different_keys_vector.begin(), print_different_keys_vector.end());
-            //if (!has_different_settings_to_system) {
-            //    print_different_keys_set.clear();
-            //}
-            //else
-                print_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+            std::set<std::string> print_different_keys_set = project_different_keys(different_values[0]);
             if (!print_compatible_printers.empty()) {
                 ConfigOptionStrings* compatible_printers = config.option<ConfigOptionStrings>("compatible_printers", true);
                 compatible_printers->values = print_compatible_printers;
@@ -5298,15 +6286,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             //clear compatible printers
             clear_compatible_printers(config);
 
-            std::vector<std::string> printer_different_keys_vector;
-            std::string printer_different_settings = different_values[num_filaments + 1];
-            Slic3r::unescape_strings_cstyle(printer_different_settings, printer_different_keys_vector);
-            std::set<std::string> printer_different_keys_set(printer_different_keys_vector.begin(), printer_different_keys_vector.end());
-            //if (!has_different_settings_to_system) {
-            //    printer_different_keys_set.clear();
-            //}
-            //else
-                printer_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+            std::set<std::string> printer_different_keys_set = project_different_keys(different_values[num_filaments + 1]);
             //BBS: add config related logs
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load printer preset from printer_settings_id");
             load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
@@ -5325,15 +6305,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     			Preset                *loaded = nullptr;
 
                 //BBS: add different settings logic
-                std::vector<std::string> filament_different_keys_vector;
-                std::string filament_different_settings = different_values[1];
-                Slic3r::unescape_strings_cstyle(filament_different_settings, filament_different_keys_vector);
-                std::set<std::string> filament_different_keys_set(filament_different_keys_vector.begin(), filament_different_keys_vector.end());
-                //if (!has_different_settings_to_system) {
-                //    filament_different_keys_set.clear();
-                //}
-                //else
-                    filament_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+                std::set<std::string> filament_different_keys_set = project_different_keys(different_values[1]);
 
                 std::string filament_id = filament_ids[0];
                 //BBS: add config related logs
@@ -5396,15 +6368,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     cfg.opt_string("inherits", true)                      = inherits_values[i + 1];
 
                     //BBS: add different settings logic
-                    std::vector<std::string> filament_different_keys_vector;
-                    std::string filament_different_settings = different_values[i+1];
-                    Slic3r::unescape_strings_cstyle(filament_different_settings, filament_different_keys_vector);
-                    std::set<std::string> filament_different_keys_set(filament_different_keys_vector.begin(), filament_different_keys_vector.end());
-                    //if (!has_different_settings_to_system) {
-                    //    filament_different_keys_set.clear();
-                    //}
-                    //else
-                        filament_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
+                    std::set<std::string> filament_different_keys_set = project_different_keys(different_values[i+1]);
 
                     std::string filament_id = filament_ids[i];
 
@@ -5434,6 +6398,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // Load the project config values. In published mode only the plate/bed geometry keys
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
+        // Older projects inherit one-element mixed defaults, regardless of their filament count.
+        if (!is_published)
+            resize_mixed_filament_metadata(this->project_config, num_filaments, num_filaments);
 
         break;
     }
@@ -5683,8 +6650,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 // A payload mix authored at the same slot (a mix inside the physical region) is
                 // processed after this sweep and overrides its own destination below.
                 published_config->mixed_slot_relocations.insert_or_assign(int(slot), int(dest));
-                published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + " -> slot " +
-                                                                      std::to_string(dest) + ": mixed filament");
+                // TRN Filament slot change after loading a published project. %1% and %2% are slot numbers.
+                published_config->material_replacements.emplace_back(
+                    (boost::format(L("slot %1% -> slot %2%: mixed filament")) % slot % dest).str());
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated receiver mixed filament slot " << slot
                                         << " -> " << dest << " (physical-first rebalance)";
             }
@@ -5718,9 +6686,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     // No free virtual slot left: report instead of destroying a real filament.
                     // The local skipped_keys is published wholesale at the end of the pass;
                     // writing published_config->skipped_keys here would be clobbered by it.
-                    skipped_keys.emplace_back("material:" + material_label + (is_payload_mix ?
-                                                                                  " (mixed filament definition: filament slot limit reached)" :
-                                                                                  " (filament slot limit reached)"));
+                    skipped_keys.emplace_back("material:" + material_label + " (" +
+                                              (is_payload_mix ? L("mixed filament definition: filament slot limit reached") :
+                                                                L("filament slot limit reached")) +
+                                              ")");
                     BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF " << (is_payload_mix ? "mixed filament definition" : "material")
                                                << " from slot " << entry.slot << " could not be placed: all " << next_free_slot
                                                << " slots exhausted";
@@ -5732,8 +6701,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     // sidebar's mixed section needs two physical filaments to mix), so a
                     // placeholder would be invisible and unfixable: drop the entry and
                     // report it like any other unappliable input.
-                    skipped_keys.emplace_back("material:" + material_label + " (printer supports only " +
-                                              std::to_string(physical_capacity) + " filament)");
+                    skipped_keys.emplace_back("material:" + material_label + " (" +
+                                              (boost::format(L("the printer's filament limit is %1%")) % physical_capacity).str() + ")");
                     BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF material from slot " << entry.slot
                                                << " dropped: printer supports only " << physical_capacity << " filament";
                     entry_it = published_config->material_keys.erase(entry_it);
@@ -5751,8 +6720,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         any_mixed_relocated     = true;
                         mixed_moves.emplace_back(size_t(authored_slot), size_t(entry.slot));
                         published_config->mixed_slot_relocations.insert_or_assign(authored_slot, entry.slot);
-                        published_config->material_replacements.emplace_back("slot " + std::to_string(authored_slot) + " -> slot " +
-                                                                             std::to_string(entry.slot) + ": mixed filament");
+                        published_config->material_replacements.emplace_back(
+                            (boost::format(L("slot %1% -> slot %2%: mixed filament")) % authored_slot % entry.slot).str());
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF relocated mixed filament slot " << authored_slot
                                                 << " -> " << entry.slot;
                         ++entry_it;
@@ -5770,10 +6739,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         published_config->mixed_slot_relocations.insert_or_assign(authored_slot, dest_slot);
                     }
                     published_config->material_replacements.emplace_back(
-                        (dest_slot != authored_slot ?
-                             "slot " + std::to_string(authored_slot) + " -> slot " + std::to_string(dest_slot) :
-                             "slot " + std::to_string(dest_slot)) +
-                        ": unassigned mixed filament (printer supports only " + std::to_string(physical_capacity) + " filaments)");
+                        dest_slot != authored_slot ?
+                            (boost::format(L("slot %1% -> slot %2%: unassigned mixed filament (the printer's filament limit is %3%)")) %
+                             authored_slot % dest_slot % physical_capacity).str() :
+                            (boost::format(L("slot %1%: unassigned mixed filament (the printer's filament limit is %2%)")) % dest_slot %
+                             physical_capacity).str());
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": published 3MF material from slot " << authored_slot
                                             << " placed as an unassigned mixed filament at slot " << dest_slot
                                             << " (printer supports only " << physical_capacity << " filaments)";
@@ -5995,8 +6965,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     this->filament_presets[slot]   = replacement;
                     material_applied               = true;
                     // The re-point used to be silent; surface it like the other slot changes.
-                    published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + ": " + aliased_name + " -> " +
-                                                                         replacement);
+                    // TRN Filament slot change after loading a published project. %1% is the slot number, %2% the old preset, %3% the new one.
+                    published_config->material_replacements.emplace_back(
+                        (boost::format(L("slot %1%: %2% -> %3%")) % slot % aliased_name % replacement).str());
                 }
                 // Grow the per-slot colour/type/map project vectors to the new slot count and
                 // seed the new entries so the slots render with colours instead of blank chips
@@ -6191,8 +7162,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         // definition below.
                         if (is_mixed_definition(entry) && !this->is_mixed_filament(slot)) {
                             finalize_mixed_placeholder(slot);
-                            published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
-                                                                                 ": mixed filament definition could not be imported");
+                            published_config->material_replacements.emplace_back(
+                                (boost::format(L("slot %1%: mixed filament definition could not be imported")) % slot).str());
                         }
                         continue;
                     }
@@ -6219,17 +7190,18 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             if (comps.size() < 2)
                                 // An empty definition cell counts as broken too: applying it
                                 // would ship a mix the sidebar would only flag later.
-                                mix_error = "needs at least two components";
+                                mix_error = L("needs at least two components");
                             else
                                 for (unsigned int comp : comps)
                                     if (comp < 1 || size_t(comp) > mixed_final_slot_count ||
                                         mixed_final_slots.count(int(comp) - 1) != 0) {
-                                        mix_error = "components reference missing slots";
+                                        mix_error = L("components reference missing slots");
                                         break;
                                     }
                         }
                         if (!mix_error.empty()) {
-                            skipped_keys.emplace_back("material:" + material_label + " (mixed filament definition: " + mix_error + ")");
+                            skipped_keys.emplace_back("material:" + material_label + " (" +
+                                                      (boost::format(L("mixed filament definition: %1%")) % mix_error).str() + ")");
                             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": published 3MF mixed filament from slot " << entry.slot
                                                        << " rejected: " << mix_error;
                             // Degradation, not silent corruption: the slot was already grown and
@@ -6245,9 +7217,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             //    is reported as skipped above.
                             if (!this->is_mixed_filament(slot)) {
                                 finalize_mixed_placeholder(slot);
-                                published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
-                                                                                     ": mixed filament definition could not be imported (" +
-                                                                                     mix_error + ")");
+                                published_config->material_replacements.emplace_back(
+                                    (boost::format(L("slot %1%: mixed filament definition could not be imported (%2%)")) % slot % mix_error).str());
                             }
                             continue;
                         }
@@ -6318,8 +7289,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         const std::string old_name   = this->filament_presets[slot];
                         this->filament_presets[slot] = new_name;
                         material_applied             = true;
-                        published_config->material_replacements.emplace_back("slot " + std::to_string(slot) + ": " + old_name + " -> " +
-                                                                             new_name);
+                        published_config->material_replacements.emplace_back(
+                            (boost::format(L("slot %1%: %2% -> %3%")) % slot % old_name % new_name).str());
                         // Colour is slot-scoped and project-visible: sync into project_config
                         // (the copy already baked it, this makes the chips render).
                         if (entry.publish_color && !entry.color.empty()) {
@@ -6438,11 +7409,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                     << " (score " << score << ", preset_name \"" << entry.preset_name << "\", filament_id \""
                                     << entry.filament_id << "\", setting_id \"" << entry.setting_id << "\", type \""
                                     << entry.publish_type_value << "\")";
-                                std::string replacement_line = "slot " + std::to_string(slot) + ": " + old_name + " -> " + replacement;
                                 // A pick that is not the exact published material is a substitute;
                                 // an entry without identity fields cannot be judged, so it stays plain.
-                                if (score < 2 && (!entry.filament_id.empty() || !entry.filament_vendor.empty()))
-                                    replacement_line += " (substitute)";
+                                const bool  is_substitute    = score < 2 && (!entry.filament_id.empty() || !entry.filament_vendor.empty());
+                                std::string replacement_line = (boost::format(is_substitute ? L("slot %1%: %2% -> %3% (substitute)") :
+                                                                                              L("slot %1%: %2% -> %3%")) %
+                                                                slot % old_name % replacement).str();
                                 published_config->material_replacements.emplace_back(std::move(replacement_line));
                             } else {
                                 // Partial publish with no replacement: keep the receiver's
@@ -6458,8 +7430,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                 // mix is left untouched).
                                 if (is_mixed_definition(entry) && !this->is_mixed_filament(slot)) {
                                     finalize_mixed_placeholder(slot);
-                                    published_config->material_replacements.emplace_back("slot " + std::to_string(slot) +
-                                                                                         ": mixed filament definition could not be imported");
+                                    published_config->material_replacements.emplace_back(
+                                        (boost::format(L("slot %1%: mixed filament definition could not be imported")) % slot).str());
                                 }
                             }
                         }
@@ -6542,8 +7514,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                     if (!this->is_mixed_filament(size_t(gap_slot))) {
                         finalize_mixed_placeholder(size_t(gap_slot));
                         published_config->material_replacements.emplace_back(
-                            "slot " + std::to_string(gap_slot) +
-                            ": unassigned mixed filament (printer supports only " + std::to_string(physical_capacity) + " filaments)");
+                            (boost::format(L("slot %1%: unassigned mixed filament (the printer's filament limit is %2%)")) % gap_slot %
+                             physical_capacity).str());
                     }
             }
         }
@@ -6594,36 +7566,38 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": finished");
 }
 
-// Orca: load one source-form preset entry — parsed from its JSON subfile just
-// now, or deserialized from the vendor's cache; the code is shared so a
-// cache-loaded bundle cannot come out different from a JSON-loaded one.
-// Resolves `inherits` against the presets loaded before this one
-// (config_maps) or against base_bundle's filament library, flattens, validates
-// and registers the preset. Returns the reason loading failed, empty on
-// success.
-std::string PresetBundle::load_vendor_preset(
-    const CachedPreset& entry,
-    const std::string& path, const std::string& vendor_name,
-    const PresetBundle* base_bundle,
-    LoadConfigBundleAttributes flags,
-    ConfigSubstitutionContext& substitution_context, PresetsConfigSubstitutions& substitutions,
-    std::map<std::string, DynamicPrintConfig>& config_maps, std::map<std::string, std::string>& filament_id_maps,
-    PresetCollection* presets_collection, size_t& count, bool is_from_lib,
-    const std::set<std::string>* retain_configs)
+static ConfigurationError failed_loading_error(const std::string& file, const std::string& dir)
 {
-    const VendorProfile*      current_vendor_profile = &this->vendors.at(vendor_name);
-    const std::string         subfile = path + "/" + vendor_name + "/" + entry.sub_path;
+    return ConfigurationError((boost::format(L("Failed loading configuration file %1%\nSuggest cleaning the directory %2% first")) % file % dir).str());
+}
+
+void PresetBundle::log_errors(const std::vector<std::string>& errors)
+{
+    for (const std::string& error : errors) {
+        ++m_errors;
+        BOOST_LOG_TRIVIAL(error) << error;
+    }
+}
+
+PresetBundle::PresetInstall PresetBundle::resolve_vendor_preset(const CachedPreset& entry, const VendorInstall& install) const
+{
+    const std::string&        path = install.path;
+    const std::string&        vendor_name = install.vendor_name;
+    const PresetBundle*       base_bundle = install.base_bundle;
+    const PresetCollection&   presets_collection = *install.presets;
+    const VendorProfile&      current_vendor_profile = *install.vendor_profile;
     const std::string&        preset_name = entry.name;
-    std::string               alias_name, filament_id = entry.filament_id;
-    std::vector<std::string>  renamed_from = entry.renamed_from;
-    DynamicPrintConfig        config;
     const DynamicPrintConfig* default_config = nullptr;
-    std::string               reason;
+    const bool                retain = install.is_from_lib || install.inherited.count(preset_name) != 0;
+
+    PresetInstall out;
+    out.filament_id  = entry.filament_id;
+    out.renamed_from = entry.renamed_from;
 
     //check whether it inherits other preset or not
     if (! entry.inherits.empty()) {
-        auto it2 = config_maps.find(entry.inherits);
-        if (it2 != config_maps.end())
+        auto it2 = install.config_maps.find(entry.inherits);
+        if (it2 != install.config_maps.end())
             default_config = &(it2->second);
         if (default_config == nullptr && base_bundle != nullptr) {
             auto base_it2 = base_bundle->m_config_maps.find(entry.inherits);
@@ -6631,99 +7605,98 @@ std::string PresetBundle::load_vendor_preset(
                 default_config = &(base_it2->second);
         }
         if (default_config != nullptr) {
-            if (filament_id.empty() && (presets_collection->type() == Preset::TYPE_FILAMENT)) {
-                auto filament_id_map_iter = filament_id_maps.find(entry.inherits);
-                if (filament_id_map_iter != filament_id_maps.end()) {
-                    filament_id = filament_id_map_iter->second;
+            if (out.filament_id.empty() && (presets_collection.type() == Preset::TYPE_FILAMENT)) {
+                auto filament_id_map_iter = install.filament_id_maps.find(entry.inherits);
+                if (filament_id_map_iter != install.filament_id_maps.end()) {
+                    out.filament_id = filament_id_map_iter->second;
                 }
-                if (filament_id.empty() && base_bundle != nullptr) {
+                if (out.filament_id.empty() && base_bundle != nullptr) {
                     auto base_filament_id_map_iter = base_bundle->m_filament_id_maps.find(entry.inherits);
                     if (base_filament_id_map_iter != base_bundle->m_filament_id_maps.end()) {
-                        filament_id = base_filament_id_map_iter->second;
+                        out.filament_id = base_filament_id_map_iter->second;
                     }
                 }
             }
         }
         else {
-            ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": can not find inherits " << entry.inherits << " for " << preset_name;
-            // throw ConfigurationError(format("can not find inherits %1% for %2%", inherits, preset_name));
-            reason = "Can not find inherits: " + entry.inherits;
-            return reason;
+            out.errors.push_back(std::string(__FUNCTION__) + ": can not find inherits " + entry.inherits + " for " + preset_name);
+            out.reason = "Can not find inherits: " + entry.inherits;
+            return out;
         }
     }
-    else {
-        if (presets_collection->type() == Preset::TYPE_PRINTER)
-            default_config = &presets_collection->default_preset_for(entry.config_src).config;
-        else
-            default_config = &presets_collection->default_preset().config;
+    else
+        default_config = &presets_collection.default_preset_for(entry.config_src).config;
+    out.config = *default_config;
+    // Layer each included preset's own keys over the parent, in the order listed;
+    // this preset's own keys go on top.
+    for (const std::string& name : entry.includes) {
+        auto it = install.include_maps.find(name);
+        if (it == install.include_maps.end()) {
+            out.errors.push_back(std::string(__FUNCTION__) + ": can not find include " + name + " for " + preset_name);
+            continue;
+        }
+        out.config.apply(it->second);
     }
-    config = *default_config;
-    config.apply(entry.config_src);
-    extend_default_config_length(config, true, *default_config);
+    out.config.apply(entry.config_src);
+    // Record what a base states, its diff against the default, for the presets
+    // that include it. It is taken before extend_default_config_length pads every
+    // per-variant key to the base's variant count: the padded defaults would
+    // otherwise override the values each includer inherits.
+    if (entry.instantiation == "false" && install.included.count(preset_name) != 0) {
+        out.included.emplace();
+        out.included->apply_only(out.config, out.config.diff(presets_collection.default_preset_for(out.config).config));
+    }
+    extend_default_config_length(out.config, true, *default_config);
+    // Report configuration fields, which are misplaced into a wrong group, before
+    // Preset::normalize derives keys from them. An include diff holds only keys of the
+    // collection default, so only the entry's own keys can be missing from default_config.
+    std::string incorrect_keys = Preset::remove_invalid_keys(out.config, *default_config, &entry.config_src);
+    if (!incorrect_keys.empty())
+        out.errors.push_back(std::string(__FUNCTION__) + ": The config " + path + "/" + vendor_name + "/" + entry.sub_path +
+                             " contains incorrect keys: " + incorrect_keys + ", which were removed");
     if (entry.instantiation == "false" && "Template" != vendor_name) {
-        // Report configuration fields, which are misplaced into a wrong group.
-        std::string incorrect_keys = Preset::remove_invalid_keys(config, *default_config);
-        if (!incorrect_keys.empty()) {
-            ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": The config " << subfile << " contains incorrect keys: " << incorrect_keys
-                                     << ", which were removed";
-        }
-
-        if (retain_configs == nullptr || retain_configs->count(preset_name) != 0)
-            config_maps.emplace(preset_name, std::move(config));
-        if ((presets_collection->type() == Preset::TYPE_FILAMENT) && (!filament_id.empty()))
-            filament_id_maps.emplace(preset_name, filament_id);
-        return reason;
+        out.config_only = true;
+        if (retain)
+            out.retained = std::move(out.config);
+        return out;
     }
-    if (config.has("alias"))
-        alias_name = (dynamic_cast<const ConfigOptionString *>(config.option("alias")))->value;
-    Preset::normalize(config);
+    if (out.config.has("alias"))
+        out.alias = (dynamic_cast<const ConfigOptionString *>(out.config.option("alias")))->value;
 
-    // Report configuration fields, which are misplaced into a wrong group.
-    std::string incorrect_keys = Preset::remove_invalid_keys(config, *default_config);
-    if (!incorrect_keys.empty()) {
-        ++m_errors;
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": The config " << subfile << " contains incorrect keys: " << incorrect_keys
-                                 << ", which were removed";
-    }
+    Preset::normalize(out.config);
 
-    if (presets_collection->type() == Preset::TYPE_PRINTER) {
+    if (presets_collection.type() == Preset::TYPE_PRINTER) {
         // Filter out printer presets, which are not mentioned in the vendor profile.
         // These presets are considered not installed.
-        auto printer_model   = config.opt_string("printer_model");
+        auto printer_model   = out.config.opt_string("printer_model");
         if (printer_model.empty()) {
-            ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
-                preset_name << "\" defines no printer model, it will be ignored.";
-            reason = std::string("can not find printer_model");
-            return reason;
+            out.errors.push_back("Error in a Vendor Config Bundle \"" + path + "\": The printer preset \"" +
+                preset_name + "\" defines no printer model, it will be ignored.");
+            out.reason = std::string("can not find printer_model");
+            return out;
         }
-        auto printer_variant = config.opt_string("printer_variant");
+        auto printer_variant = out.config.opt_string("printer_variant");
         if (printer_variant.empty()) {
-            ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
-                preset_name << "\" defines no printer variant, it will be ignored.";
-            reason = std::string("can not find printer_variant");
-            return reason;
+            out.errors.push_back("Error in a Vendor Config Bundle \"" + path + "\": The printer preset \"" +
+                preset_name + "\" defines no printer variant, it will be ignored.");
+            out.reason = std::string("can not find printer_variant");
+            return out;
         }
-        auto it_model = std::find_if(current_vendor_profile->models.cbegin(), current_vendor_profile->models.cend(),
+        auto it_model = std::find_if(current_vendor_profile.models.cbegin(), current_vendor_profile.models.cend(),
             [&](const VendorProfile::PrinterModel &m) { return m.id == printer_model; }
         );
-        if (it_model == current_vendor_profile->models.end()) {
-            ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
-                preset_name << "\" defines invalid printer model \"" << printer_model << "\", it will be ignored.";
-            reason = std::string("can not find printer model in vendor profile");
-            return reason;
+        if (it_model == current_vendor_profile.models.end()) {
+            out.errors.push_back("Error in a Vendor Config Bundle \"" + path + "\": The printer preset \"" +
+                preset_name + "\" defines invalid printer model \"" + printer_model + "\", it will be ignored.");
+            out.reason = std::string("can not find printer model in vendor profile");
+            return out;
         }
         auto it_variant = it_model->variant(printer_variant);
         if (it_variant == nullptr) {
-            ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
-                preset_name << "\" defines invalid printer variant \"" << printer_variant << "\", it will be ignored.";
-            reason = std::string("can not find printer_variant in vendor profile");
-            return reason;
+            out.errors.push_back("Error in a Vendor Config Bundle \"" + path + "\": The printer preset \"" +
+                preset_name + "\" defines invalid printer variant \"" + printer_variant + "\", it will be ignored.");
+            out.reason = std::string("can not find printer_variant in vendor profile");
+            return out;
         }
         // An instantiation printer profile's nozzle_diameter must match the numeric (diameter)
         // prefix of its printer_variant: "0.4" -> {0.4}, "0.8HF" -> {0.8} (a trailing
@@ -6734,7 +7707,7 @@ std::string PresetBundle::load_vendor_preset(
         // validated, not variant uniqueness. Validation-only so the app keeps loading existing
         // profiles unchanged.
         if (validation_mode && entry.instantiation == "true") {
-            const auto *nd = config.option<ConfigOptionFloats>("nozzle_diameter");
+            const auto *nd = out.config.option<ConfigOptionFloats>("nozzle_diameter");
             std::set<double> nozzles, variant_nozzles;
             if (nd != nullptr)
                 nozzles.insert(nd->values.begin(), nd->values.end());
@@ -6749,34 +7722,71 @@ std::string PresetBundle::load_vendor_preset(
                 variant_nozzles.insert(d);
             }
             if (!variant_ok || variant_nozzles != nozzles) {
-                ++m_errors;
-                BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
-                    preset_name << "\" has printer_variant \"" << printer_variant <<
-                    "\" that does not match its nozzle_diameter \"" << (nd ? nd->serialize() : std::string()) << "\". "
+                out.errors.push_back("Error in a Vendor Config Bundle \"" + path + "\": The printer preset \"" +
+                    preset_name + "\" has printer_variant \"" + printer_variant +
+                    "\" that does not match its nozzle_diameter \"" + (nd ? nd->serialize() : std::string()) + "\". "
                     "printer_variant must begin with the nozzle diameter, optionally followed by a non-numeric suffix "
                     "(e.g. \"0.4\", \"0.8HF\"); for multi-nozzle printers, join the per-nozzle diameters with \"+\" in "
-                    "nozzle order (e.g. \"0.4+0.6\").";
+                    "nozzle order (e.g. \"0.4+0.6\").");
             }
         }
     }
-    const Preset *preset_existing = presets_collection->find_preset(preset_name, false);
-    if (preset_existing != nullptr) {
+
+    // Derive the profile logical name aka alias from the preset name if the alias was not stated explicitely.
+    if (out.alias.empty()) {
+        size_t end_pos = preset_name.find_first_of("@");
+        if (end_pos != std::string::npos) {
+            out.alias = preset_name.substr(0, end_pos);
+            if (out.renamed_from.empty())
+                // Add the preset name with the '@' character removed into the "renamed_from" list.
+                out.renamed_from.emplace_back(out.alias + preset_name.substr(end_pos + 1));
+            boost::trim_right(out.alias);
+        }
+    }
+
+    out.file_path = (boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR / vendor_name / entry.sub_path).make_preferred().string();
+    if (validation_mode)
+        out.file_path = (boost::filesystem::path(data_dir()) / vendor_name / entry.sub_path).make_preferred().string();
+    if (m_preserve_vendor_source_paths)
+        out.file_path = (boost::filesystem::path(path) / vendor_name / entry.sub_path).make_preferred().string();
+    if (retain)
+        out.retained = out.config;
+    return out;
+}
+
+std::string PresetBundle::commit_vendor_preset(const CachedPreset& entry, PresetInstall&& resolved,
+                                               ConfigSubstitutions&& substitutions, VendorInstall& install)
+{
+    const std::string&   path = install.path;
+    const std::string&   vendor_name = install.vendor_name;
+    PresetCollection*    presets_collection = install.presets;
+    const VendorProfile* current_vendor_profile = install.vendor_profile;
+    const std::string&   preset_name = entry.name;
+
+    log_errors(resolved.errors);
+    if (resolved.included)
+        install.include_maps.emplace(preset_name, std::move(*resolved.included));
+    if (! resolved.reason.empty())
+        return resolved.reason;
+
+    if (resolved.config_only) {
+        if (resolved.retained)
+            install.config_maps.emplace(preset_name, std::move(*resolved.retained));
+        if ((presets_collection->type() == Preset::TYPE_FILAMENT) && (!resolved.filament_id.empty()))
+            install.filament_id_maps.emplace(preset_name, resolved.filament_id);
+        return std::string();
+    }
+
+    if (! install.installed_names.insert(preset_name).second) {
         ++m_errors;
         BOOST_LOG_TRIVIAL(error) << "Error in a Vendor Config Bundle \"" << path << "\": The printer preset \"" <<
             preset_name << "\" has already been loaded from another Config Bundle.";
-        reason = std::string("duplicated defines");
-        return reason;
+        return std::string("duplicated defines");
     }
 
-    auto file_path = (boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR / vendor_name / entry.sub_path).make_preferred();
-    if (validation_mode)
-        file_path = (boost::filesystem::path(data_dir()) / vendor_name / entry.sub_path).make_preferred();
-    if (m_preserve_vendor_source_paths)
-        file_path = (boost::filesystem::path(path) / vendor_name / entry.sub_path).make_preferred();
-
     // Load the preset into the list of presets, save it to disk.
-    Preset &loaded = presets_collection->load_preset(file_path.string(), preset_name, std::move(config), false);
-    if (flags.has(LoadConfigBundleAttribute::LoadSystem)) {
+    Preset &loaded = presets_collection->append_preset(std::move(resolved.file_path), preset_name, std::move(resolved.config));
+    if (install.flags.has(LoadConfigBundleAttribute::LoadSystem)) {
         loaded.is_system = true;
         loaded.vendor = current_vendor_profile;
         loaded.version = current_vendor_profile->config_version;
@@ -6789,51 +7799,126 @@ std::string PresetBundle::load_vendor_preset(
         if (loaded.setting_id.empty() && entry.instantiation == "true")
             loaded.setting_id = generate_preset_setting_id(
                 vendor_name, Preset::get_type_string(presets_collection->type()), preset_name);
-        loaded.filament_id = filament_id;
-        loaded.m_from_orca_filament_lib = is_from_lib;
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " " << __LINE__ << ", " << loaded.name << " load filament_id: " << filament_id;
+        loaded.filament_id = resolved.filament_id;
+        loaded.m_from_orca_filament_lib = install.is_from_lib;
         if (presets_collection->type() == Preset::TYPE_FILAMENT) {
-            if (filament_id.empty() && "Template" != vendor_name) {
+            if (resolved.filament_id.empty() && "Template" != vendor_name) {
                 ++m_errors;
                 BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": can not find filament_id for " << preset_name;
                 //throw ConfigurationError(format("can not find inherits %1% for %2%", inherits, preset_name));
-                reason = "Can not find filament_id for " + preset_name;
-                return reason;
+                return "Can not find filament_id for " + preset_name;
             }
             else {
-                filament_id_maps.emplace(preset_name, filament_id);
+                install.filament_id_maps.emplace(preset_name, resolved.filament_id);
             }
         }
     }
 
-    // Derive the profile logical name aka alias from the preset name if the alias was not stated explicitely.
-    if (alias_name.empty()) {
-        size_t end_pos = preset_name.find_first_of("@");
-        if (end_pos != std::string::npos) {
-            alias_name = preset_name.substr(0, end_pos);
-            if (renamed_from.empty())
-                // Add the preset name with the '@' character removed into the "renamed_from" list.
-                renamed_from.emplace_back(alias_name + preset_name.substr(end_pos + 1));
-            boost::trim_right(alias_name);
-        }
-    }
-    if (alias_name.empty())
+    if (resolved.alias.empty())
         loaded.alias = preset_name;
     else {
-        loaded.alias = std::move(alias_name);
+        loaded.alias = std::move(resolved.alias);
         filaments.set_printer_hold_alias(loaded.alias, loaded);
     }
-    loaded.renamed_from = std::move(renamed_from);
-    if (! substitution_context.empty())
-        substitutions.push_back({
+    loaded.renamed_from = std::move(resolved.renamed_from);
+    if (! substitutions.empty())
+        install.substitutions->push_back({
             preset_name, presets_collection->type(), PresetConfigSubstitutions::Source::ConfigBundle,
-            std::string(), std::move(substitution_context.substitutions) });
-    if (retain_configs == nullptr || retain_configs->count(preset_name) != 0)
-        config_maps.emplace(preset_name, loaded.config);
-    ++count;
+            std::string(), std::move(substitutions) });
+    if (resolved.retained)
+        install.config_maps.emplace(preset_name, std::move(*resolved.retained));
+    ++install.count;
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", got preset %1%, from %2%")%loaded.name %subfile;
-    return reason;
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ", got preset " << loaded.name << ", filament_id " << loaded.filament_id
+                             << ", from " << path << "/" << vendor_name << "/" << entry.sub_path;
+    return std::string();
+}
+
+void PresetBundle::install_vendor_entries(VendorInstall& install, const std::vector<CachedPreset>& entries,
+                                          std::vector<EntryParse>* parsed)
+{
+    assert(parsed == nullptr || parsed->size() == entries.size());
+    for (const CachedPreset& entry : entries) {
+        if (! entry.inherits.empty())
+            install.inherited.insert(entry.inherits);
+        install.included.insert(entry.includes.begin(), entry.includes.end());
+    }
+    // The names an appended preset may not repeat, since the collection cannot be
+    // searched until it is sorted again.
+    for (const Preset& preset : install.presets->m_presets)
+        install.installed_names.insert(preset.name);
+    // Held until the collection is sorted again, also when an entry throws, so a reader
+    // holding the lock never finds it unsorted.
+    install.presets->lock();
+    ScopeGuard sort_on_exit([&install] {
+        install.presets->sort_presets();
+        install.presets->unlock();
+    });
+
+    auto resolve = [&](size_t i) { return resolve_vendor_preset(entries[i], install); };
+    auto commit  = [&](size_t i, PresetInstall&& resolved) {
+        ConfigSubstitutions substitutions;
+        if (parsed != nullptr) {
+            log_errors((*parsed)[i].errors);
+            for (const std::string& warning : (*parsed)[i].warnings)
+                BOOST_LOG_TRIVIAL(error) << warning;
+            substitutions = std::move((*parsed)[i].substitutions);
+        }
+        const std::string reason = commit_vendor_preset(entries[i], std::move(resolved), std::move(substitutions), install);
+        if (! reason.empty()) {
+            ++m_errors;
+            const std::string subfile_path = install.path + "/" + install.vendor_name + "/" + entries[i].sub_path;
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": can not install " << entries[i].name << " from " << subfile_path << ": " << reason;
+            throw failed_loading_error(subfile_path, install.path);
+        }
+    };
+    // A run of entries resolves together and commits in listing order, and ends
+    // before an entry that inherits or includes one already in it. So no entry
+    // resolves against a registration from its own run, and the result matches
+    // installing one at a time.
+    std::unordered_set<std::string> run_names;
+    size_t run_begin = 0;
+    auto install_run = [&](size_t run_end) {
+        resolve_then_commit(run_end - run_begin,
+            [&](size_t k) { return resolve(run_begin + k); },
+            [&](size_t k, PresetInstall&& resolved) { commit(run_begin + k, std::move(resolved)); });
+        run_names.clear();
+        run_begin = run_end;
+    };
+    auto in_run = [&](const std::string& name) { return run_names.count(name) != 0; };
+    for (size_t i = 0; i < entries.size(); ++ i) {
+        const CachedPreset& entry = entries[i];
+        if (in_run(entry.inherits) || std::any_of(entry.includes.begin(), entry.includes.end(), in_run))
+            install_run(i);
+        if (install.inherited.count(entry.name) != 0 || install.included.count(entry.name) != 0)
+            run_names.insert(entry.name);
+    }
+    install_run(entries.size());
+}
+
+size_t PresetBundle::install_vendor(const std::string& path, const std::string& vendor_name, const PresetBundle* base_bundle,
+                                    LoadConfigBundleAttributes flags, const VendorCacheData& entries,
+                                    VendorParse* parsed, bool complete, PresetsConfigSubstitutions& substitutions)
+{
+    const bool           is_orca_lib    = vendor_name == ORCA_FILAMENT_LIBRARY;
+    const VendorProfile* vendor_profile = &this->vendors.at(vendor_name);
+    size_t               count          = 0;
+    auto install_collection = [&](const std::vector<CachedPreset>& list, std::vector<EntryParse>* list_parsed,
+                                  PresetCollection* presets, bool is_from_lib) {
+        VendorInstall install { path, vendor_name, vendor_profile, base_bundle, flags, presets, is_from_lib, &substitutions };
+        install_vendor_entries(install, list, list_parsed);
+        count += install.count;
+        return install;
+    };
+    install_collection(entries.process_entries, parsed ? &parsed->process_entries : nullptr, &this->prints, false);
+    VendorInstall filaments = install_collection(entries.filament_entries, parsed ? &parsed->filament_entries : nullptr,
+                                                 &this->filaments, is_orca_lib);
+    if (is_orca_lib && complete) {
+        m_config_maps      = std::move(filaments.config_maps);
+        m_filament_id_maps = std::move(filaments.filament_id_maps);
+    }
+    install_collection(entries.machine_entries, parsed ? &parsed->machine_entries : nullptr, &this->printers, false);
+    return count;
 }
 
 //BBS: Load a config bundle file from json
@@ -6841,12 +7926,14 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     const std::string &dir, const std::string &vendor_name, LoadConfigBundleAttributes flags,
     ForwardCompatibilitySubstitutionRule compatibility_rule, const PresetBundle* base_bundle, bool allow_cache)
 {
-    // Enable substitutions for user config bundle, throw an exception when loading a system profile.
-    ConfigSubstitutionContext  substitution_context { compatibility_rule };
-    PresetsConfigSubstitutions substitutions;
-    // Errors already on this bundle when the load began; the cache stamp below
-    // counts only what this parse adds.
-    const int errors_at_entry = m_errors;
+    return this->install_vendor_read(this->read_vendor(dir, vendor_name, flags, compatibility_rule, allow_cache), base_bundle);
+}
+
+PresetBundle::VendorRead PresetBundle::read_vendor(const std::string& dir, const std::string& vendor_name,
+    LoadConfigBundleAttributes flags, ForwardCompatibilitySubstitutionRule compatibility_rule, bool allow_cache)
+{
+    VendorRead read { dir, vendor_name, flags, compatibility_rule };
+    read.errors_at_entry = m_errors;
 
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, path %1%, compatibility_rule %2%")%dir.c_str()%compatibility_rule;
@@ -6854,18 +7941,52 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
         // Reset this bundle, delete user profile files if SaveImported.
         this->reset(flags.has(LoadConfigBundleAttribute::SaveImported));
 
-    // Orca: only a whole-vendor load has a cache — the vendor-only and filament-only
-    // scans want a slice of one. Validation reads the JSONs whatever is cached.
+    // Orca: only a whole-vendor load writes a cache, and a vendor-only or filament-only
+    // scan reads one only where it is the whole installation, as in a shipped build.
+    // Validation reads the JSONs whatever is cached.
+    const bool vendor_only   = flags.has(LoadConfigBundleAttribute::LoadVendorOnly);
+    const bool filament_only = flags.has(LoadConfigBundleAttribute::LoadFilamentOnly);
+    read.cacheable = allow_cache && flags.has(LoadConfigBundleAttribute::LoadSystem) && ! filament_only;
     const boost::filesystem::path dir_path(dir);
-    const bool cacheable = allow_cache && flags.has(LoadConfigBundleAttribute::LoadSystem) && ! flags.has(LoadConfigBundleAttribute::LoadFilamentOnly);
-    if (cacheable && ! validation_mode && this->load_vendor_cache(dir_path, vendor_name, base_bundle)) {
-        size_t presets_loaded = 0;
-        for (const PresetCollection* coll : std::initializer_list<const PresetCollection*>{
-                 &this->prints, &this->sla_prints, &this->filaments, &this->sla_materials, &this->printers })
-            presets_loaded += coll->m_presets.size() - coll->m_num_default_presets;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", %1% served from its preset cache, %2% presets")%vendor_name%presets_loaded;
-        return std::make_pair(std::move(substitutions), presets_loaded);
+    const boost::filesystem::path profile     = dir_path / (vendor_name + ".json");
+    const bool                    has_profile = boost::filesystem::exists(profile);
+    if (allow_cache && ! validation_mode && (read.cacheable || ((vendor_only || filament_only) && ! has_profile))) {
+        // The cache is judged against the profile beside it, or, where the cache is the
+        // whole of the installation, against nothing, since nothing on disk can then be
+        // newer than it. That state is Semver::inf(), which no real profile carries.
+        const Semver version = has_profile ? get_version_from_json(profile.string()) : Semver::inf();
+        read.cache_path = (dir_path / (vendor_name + ".opc")).string();
+        if (vendor_only) {
+            VendorProfile vendor_profile;
+            if (VendorCacheFile::load_vendor_profile(read.cache_path, vendor_name, version, vendor_profile)) {
+                this->vendors.emplace(vendor_name, std::move(vendor_profile));
+                read.vendor_only = true;
+                return read;
+            }
+        } else if (VendorCacheFile::load(read.cache_path, vendor_name, version, read.data)) {
+            read.from_cache = true;
+            if (filament_only) {
+                read.data.process_entries.clear();
+                read.data.machine_entries.clear();
+                // The stamp counts errors across the whole vendor.
+                read.data.parse_errors = 0;
+            }
+            return read;
+        }
     }
+    this->parse_vendor_json(read);
+    return read;
+}
+
+void PresetBundle::parse_vendor_json(VendorRead& read)
+{
+    // Starts over from what read_vendor was asked for, since a cache that could
+    // not be installed leaves its own state behind.
+    read = VendorRead { std::move(read.dir), std::move(read.vendor_name), read.flags, read.compatibility_rule,
+                        read.errors_at_entry, read.cacheable };
+    const std::string&         dir         = read.dir;
+    const std::string&         vendor_name = read.vendor_name;
+    LoadConfigBundleAttributes flags       = read.flags;
 
     // 1) load the vroot json and construct the vendor profile
     VendorProfile vendor_profile(vendor_name);
@@ -6920,7 +8041,8 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 auto config_version = Semver::parse(version_str);
                 if (! config_version) {
                     ++m_errors;
-                    throw ConfigurationError((boost::format("vendor %1%'s config version: %2% invalid\nSuggest cleaning the directory %3% firstly")
+                    // TRN %1% is the vendor name, %2% the version found in its profile, %3% the profile directory.
+                    throw ConfigurationError((boost::format(L("Vendor %1%'s config version: %2% invalid\nSuggest cleaning the directory %3% first"))
                         % vendor_name % version_str % dir).str());
                 } else {
                     vendor_profile.config_version = std::move(*config_version);
@@ -6958,7 +8080,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     }
     catch(nlohmann::detail::parse_error &err) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<root_file<<" got a nlohmann::detail::parse_error, reason = " << err.what();
-        throw ConfigurationError((boost::format("Failed loading configuration file %1%: %2%\nSuggest cleaning the directory %3% firstly")
+        throw ConfigurationError((boost::format(L("Failed loading configuration file %1%: %2%\nSuggest cleaning the directory %3% first"))
                 %root_file %err.what() % dir).str());
         //goto __error_process;
     }
@@ -7073,7 +8195,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
         }
         catch(nlohmann::detail::parse_error &err) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<< subfile <<" got a nlohmann::detail::parse_error, reason = " << err.what();
-            throw ConfigurationError((boost::format("Failed loading configuration file %1%: %2%\nSuggest cleaning the directory %3% firstly")
+            throw ConfigurationError((boost::format(L("Failed loading configuration file %1%: %2%\nSuggest cleaning the directory %3% first"))
                 %subfile %err.what() % dir).str());
         }
 
@@ -7086,21 +8208,21 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
 
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", loaded vendor profile, name %1%, id %2%, version %3%")%vendor_profile.name%vendor_profile.id%vendor_profile.config_version.to_string();
 
-    if (flags.has(LoadConfigBundleAttribute::LoadVendorOnly))
-        return std::make_pair(PresetsConfigSubstitutions{}, 0);
+    if (flags.has(LoadConfigBundleAttribute::LoadVendorOnly)) {
+        read.vendor_only = true;
+        return;
+    }
 
     // 3) paste the process/filament/print configs
-    PresetCollection         *presets = nullptr;
-    size_t                   presets_loaded = 0;
 
     // Parse one subfile into a source-form entry — everything the JSON states,
-    // nothing resolved. Loading the entry (load_vendor_preset) is the
-    // same code whether the entry was parsed just now or deserialized from the
+    // nothing resolved. Installing the entries (install_vendor) is the
+    // same code whether they were parsed just now or deserialized from the
     // vendor's cache.
-    auto parse_subfile = [this, dir, vendor_name](
+    auto parse_subfile = [&dir, &vendor_name](
         ConfigSubstitutionContext& substitution_context,
         const std::pair<std::string, std::string>& subfile_iter,
-        CachedPreset& entry) -> std::string {
+        CachedPreset& entry, std::vector<std::string>& errors, std::vector<std::string>& warnings) -> std::string {
 
         std::string subfile = dir + "/" + vendor_name + "/" + subfile_iter.second;
         std::string reason;
@@ -7112,22 +8234,25 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             entry.sub_path = subfile_iter.second;
             entry.config_src.load_from_json(subfile, substitution_context, false, key_values, reason);
             if (!reason.empty()) {
-                ++m_errors;
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": load config file "<<subfile<<" Failed!";
+                errors.push_back(std::string(__FUNCTION__) + ": load config file " + subfile + " Failed!");
                 return reason;
             }
             entry.name        = key_values[BBL_JSON_KEY_NAME];
             entry.description = key_values[BBL_JSON_KEY_DESCRIPTION];
+            // A file that states no instantiation and is named as G-code, or has no
+            // name, is a template that is only there to be included. A nameless one
+            // goes by its name in the vendor index.
+            if (auto it = key_values.find(BBL_JSON_KEY_INSTANTIATION);
+                (it == key_values.end() || it->second.empty()) && (entry.name.empty() || entry.name.find("gcode") != std::string::npos)) {
+                key_values[BBL_JSON_KEY_INSTANTIATION] = "false";
+                if (entry.name.empty())
+                    entry.name = subfile_iter.first;
+            }
             if(key_values.find(BBL_JSON_KEY_INSTANTIATION) == key_values.end())
-            {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Missing instantiation attribute for " << entry.name;
-                ++m_errors;
-            }
+                errors.push_back(std::string(__FUNCTION__) + ": Missing instantiation attribute for " + entry.name);
             entry.instantiation = key_values[BBL_JSON_KEY_INSTANTIATION];
-            if(entry.instantiation != "false" && entry.instantiation != "true"){
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Missing instantiation attribute for " << entry.name;
-                ++m_errors;
-            }
+            if(entry.instantiation != "false" && entry.instantiation != "true")
+                errors.push_back(std::string(__FUNCTION__) + ": Missing instantiation attribute for " + entry.name);
             auto setting_it = key_values.find(BBL_JSON_KEY_SETTING_ID);
             if (setting_it != key_values.end())
                 entry.setting_id = setting_it->second;
@@ -7140,95 +8265,121 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 // An `inherits` key naming nothing can never resolve; fail it
                 // here so install can key off the empty string as "no inherits".
                 if (entry.inherits.empty()) {
-                    ++m_errors;
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": can not find inherits " << entry.inherits << " for " << entry.name;
+                    errors.push_back(std::string(__FUNCTION__) + ": can not find inherits " + entry.inherits + " for " + entry.name);
                     reason = "Can not find inherits: " + entry.inherits;
                     return reason;
                 }
             }
-            if (key_values.find(ORCA_JSON_KEY_RENAMED_FROM) != key_values.end()) {
-                if (!unescape_strings_cstyle(key_values[ORCA_JSON_KEY_RENAMED_FROM], entry.renamed_from)) {
-                    BOOST_LOG_TRIVIAL(error) << "Error in a Config \"" << dir << "\": The preset \"" << entry.name
-                                             << "\" contains invalid \"renamed_from\" key, which is being ignored.";
+            if (auto it = key_values.find(BBL_JSON_KEY_INCLUDES); it != key_values.end()) {
+                // An array of names, or one bare name; load_from_json kept the JSON text.
+                nlohmann::json includes = nlohmann::json::parse(it->second);
+                if (!includes.is_array())
+                    includes = nlohmann::json::array({std::move(includes)});
+                for (const auto& name : includes) {
+                    if (name.is_string())
+                        entry.includes.push_back(name.get<std::string>());
+                    else
+                        errors.push_back(std::string(__FUNCTION__) + ": invalid include " + name.dump() + " for " + entry.name);
                 }
+            }
+            if (key_values.find(ORCA_JSON_KEY_RENAMED_FROM) != key_values.end()) {
+                if (!unescape_strings_cstyle(key_values[ORCA_JSON_KEY_RENAMED_FROM], entry.renamed_from))
+                    warnings.push_back("Error in a Config \"" + dir + "\": The preset \"" + entry.name +
+                                       "\" contains invalid \"renamed_from\" key, which is being ignored.");
             }
         }
         catch(nlohmann::detail::parse_error &err) {
-            ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<< subfile <<" got a nlohmann::detail::parse_error, reason = " << err.what();
+            errors.push_back(std::string(__FUNCTION__) + ": parse " + subfile + " got a nlohmann::detail::parse_error, reason = " + err.what());
             reason = std::string("json parse error") + err.what();
             return reason;
         }
         return reason;
     };
 
-    std::map<std::string, DynamicPrintConfig> configs;
-    std::map<std::string, std::string> filament_id_maps;
     // Orca: whether to (re)write the vendor's cache after this parse, leaving it
     // in step with the profile so the next run reads it instead. It is written
     // where the vendor was looked for, even when the profile came from resources,
     // and stamped with the version that profile claims — a profile without one
     // cannot be judged for staleness later, and a cache nothing can invalidate is
     // worse than none.
-    const bool will_cache = cacheable && m_generate_vendor_caches && vendor_profile.config_version.valid();
-    VendorCacheData cache_data;
+    read.will_cache = read.cacheable && m_generate_vendor_caches && vendor_profile.config_version.valid();
+    read.version    = vendor_profile.config_version.to_string();
+    // Enable substitutions for user config bundle, throw an exception when loading a system profile.
+    ConfigSubstitutionContext substitution_context { read.compatibility_rule };
+    // Parsed up to the first sub-file that fails, and the ones before it are
+    // installed before that failure is raised, since the filament library and a
+    // filament-only scan keep what a throwing load installed.
+    auto parse_subfiles = [&](const std::vector<std::pair<std::string, std::string>>& subfiles,
+                              std::vector<CachedPreset>& entries, std::vector<EntryParse>& entries_parsed, const char* kind) {
+        for (const auto& subfile : subfiles) {
+            CachedPreset             entry;
+            std::vector<std::string> errors, warnings;
+            read.reason = parse_subfile(substitution_context, subfile, entry, errors, warnings);
+            if (! read.reason.empty()) {
+                read.failed_subfile = subfile.second;
+                read.failed_kind    = kind;
+                read.failed_errors  = std::move(errors);
+                return false;
+            }
+            entries.emplace_back(std::move(entry));
+            entries_parsed.push_back({ std::move(substitution_context.substitutions), std::move(errors), std::move(warnings) });
+        }
+        return true;
+    };
+    // One setter for every sub-file, so the ones load_from_json makes have
+    // nothing to set.
+    CNumericLocalesSetter locales_setter;
+    if (parse_subfiles(process_subfiles, read.data.process_entries, read.parsed.process_entries, "process") &&
+        parse_subfiles(filament_subfiles, read.data.filament_entries, read.parsed.filament_entries, "filament"))
+        parse_subfiles(machine_subfiles, read.data.machine_entries, read.parsed.machine_entries, "printer");
+}
+
+std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::install_vendor_read(VendorRead&& read, const PresetBundle* base_bundle)
+{
+    const std::string&         dir         = read.dir;
+    const std::string&         vendor_name = read.vendor_name;
+    PresetsConfigSubstitutions substitutions;
+    if (read.from_cache) {
+        if (this->install_vendor_cache(read.cache_path, vendor_name, std::move(read.data), base_bundle)) {
+            size_t presets_loaded = 0;
+            for (const PresetCollection* coll : std::initializer_list<const PresetCollection*>{
+                     &this->prints, &this->sla_prints, &this->filaments, &this->sla_materials, &this->printers })
+                presets_loaded += coll->m_presets.size() - coll->m_num_default_presets;
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", %1% served from its preset cache, %2% presets")%vendor_name%presets_loaded;
+            return std::make_pair(std::move(substitutions), presets_loaded);
+        }
+        this->parse_vendor_json(read);
+    }
+    if (read.vendor_only)
+        return std::make_pair(PresetsConfigSubstitutions{}, 0);
+
+    int parse_errors = 0;
+    for (const std::vector<EntryParse>* list : { &read.parsed.process_entries, &read.parsed.filament_entries, &read.parsed.machine_entries })
+        for (const EntryParse& entry_parsed : *list)
+            parse_errors += int(entry_parsed.errors.size());
+    const int    errors_before_install = m_errors;
+    const size_t presets_loaded = install_vendor(dir, vendor_name, base_bundle, read.flags, read.data, &read.parsed,
+                                                 read.reason.empty(), substitutions);
     // Errors added by install are counted apart: a cache load runs install again,
     // so the parse_errors stamped into the cache must hold only what a cache load
     // will not recount.
-    int install_errors = 0;
-    auto load_subfiles = [&](std::vector<std::pair<std::string, std::string>>& subfiles,
-                             std::vector<CachedPreset>& entries, const char* kind, bool is_from_lib = false) {
-        configs.clear();
-        filament_id_maps.clear();
-        for (auto& subfile : subfiles) {
-            CachedPreset entry;
-            std::string reason = parse_subfile(substitution_context, subfile, entry);
-            if (reason.empty()) {
-                const int errors_before_install = m_errors;
-                reason = load_vendor_preset(entry, dir, vendor_name, base_bundle, flags,
-                                               substitution_context, substitutions, configs, filament_id_maps, presets,
-                                               presets_loaded, is_from_lib);
-                install_errors += m_errors - errors_before_install;
-            }
-            if (!reason.empty()) {
-                ++m_errors;
-                //parse error
-                std::string subfile_path = dir + "/" + vendor_name + "/" + subfile.second;
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", got error when parse %1% setting from %2%") % kind % subfile_path;
-                throw ConfigurationError((boost::format("Failed loading configuration file %1%\nSuggest cleaning the directory %2% firstly") % subfile_path % dir).str());
-            }
-            if (will_cache)
-                entries.emplace_back(std::move(entry));
-        }
-    };
-
-    // The section order below — process, filaments (with the ORCA-lib map copy),
-    // printers — is mirrored by load_vendor_cache's install loops; keep the two
-    // in lockstep.
-    //3.1) paste the process
-    presets = &this->prints;
-    load_subfiles(process_subfiles, cache_data.process_entries, "process");
-
-    //3.2) paste the filaments
-    presets = &this->filaments;
-    const auto is_orca_lib = vendor_name == ORCA_FILAMENT_LIBRARY;
-    load_subfiles(filament_subfiles, cache_data.filament_entries, "filament", is_orca_lib);
-    if (is_orca_lib) {
-        m_config_maps      = configs;
-        m_filament_id_maps = filament_id_maps;
+    const int install_errors = m_errors - errors_before_install - parse_errors;
+    if (! read.reason.empty()) {
+        log_errors(read.failed_errors);
+        ++m_errors;
+        //parse error
+        std::string subfile_path = dir + "/" + vendor_name + "/" + read.failed_subfile;
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", got error when parse %1% setting from %2%") % read.failed_kind % subfile_path;
+        throw failed_loading_error(subfile_path, dir);
     }
 
-    //3.3) paste the printers
-    presets = &this->printers;
-    load_subfiles(machine_subfiles, cache_data.machine_entries, "printer");
-
-    if (will_cache) {
+    if (read.will_cache) {
         // Clamped: the count is a difference of three tallies, and a stamp that
         // wrapped would be added to every future load of this vendor.
-        cache_data.parse_errors = uint64_t(std::max(0, m_errors - errors_at_entry - install_errors));
-        cache_data.vendors      = this->vendors;
-        if (! VendorCacheFile::save((dir_path / (vendor_name + ".opc")).string(), vendor_name,
-                                    vendor_profile.config_version.to_string(), cache_data))
+        read.data.parse_errors = uint64_t(std::max(0, m_errors - read.errors_at_entry - install_errors));
+        read.data.vendors      = this->vendors;
+        if (! VendorCacheFile::save((boost::filesystem::path(dir) / (vendor_name + ".opc")).string(), vendor_name,
+                                    read.version, read.data))
             BOOST_LOG_TRIVIAL(warning) << "PresetBundle: failed to save vendor cache for " << vendor_name;
     }
 
@@ -7250,19 +8401,20 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
 
-    // Orca: when the number of existing filament presets is less than the number of extruders, we will append new filament presets with the
-    // same value as the last existing one.
+    // Orca: when there are fewer filament presets than the printer runs with (min_filament_count(): one per tool on a
+    // tool changer, one on a printer sharing its nozzles), append copies of the last one. Padding a shared-nozzle printer
+    // up to its nozzle count would bring back a filament the user deleted, in this list alone, without the colours and
+    // maps of the parallel per-filament arrays.
     //
     // Verify and select the filament presets.
     size_t num_filaments = this->filament_presets.size();
 
-    auto* nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
-    size_t num_extruders  = nozzle_diameter->values.size();
-    if (num_extruders > num_filaments) { // Verify validity of the current filament presets.
-        for (size_t i = 0; i < std::min(this->filament_presets.size(), num_extruders); ++i)
+    const size_t min_filaments = min_filament_count();
+    if (min_filaments > num_filaments) { // Verify validity of the current filament presets.
+        for (size_t i = 0; i < this->filament_presets.size(); ++i)
             this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
         // Append the rest of filament presets.
-        this->filament_presets.resize(num_extruders, this->filament_presets.empty() ? this->filaments.first_visible().name :
+        this->filament_presets.resize(min_filaments, this->filament_presets.empty() ? this->filaments.first_visible().name :
                                                                                       this->filament_presets.back());
         num_filaments = this->filament_presets.size();
     }
@@ -7932,9 +9084,13 @@ bool BundleMetadata::save_to_json(const std::string& path) const
         j["filament_presets"] = strip_prefix(this->filament_presets);                                                                                                                                                                                                                       
         j["printer_presets"] = strip_prefix(this->printer_presets);
 
-        boost::nowide::ofstream ofs(path);
-        ofs << j.dump(4);
-        return ofs.good();
+        const std::string content = j.dump(4);
+        InstanceLock instance_lock(user_presets_lock_path());
+        if (const std::error_code ec = write_file_atomically(path, content)) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to save bundle metadata to " << path << ": " << ec.message();
+            return false;
+        }
+        return true;
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "Failed to save bundle metadata to " << path << ": " << e.what();
         return false;
@@ -7943,79 +9099,42 @@ bool BundleMetadata::save_to_json(const std::string& path) const
 // ---- Per-vendor preset cache: install into this bundle -------------------
 // The file format itself lives in PresetCacheFormat.cpp (VendorCacheFile).
 
-bool PresetBundle::load_vendor_cache(const boost::filesystem::path& dir, const std::string& vendor_name, const PresetBundle* base_bundle)
-{
-    // A vendor is loaded from where it is installed and nowhere else; resources
-    // reaches the app by being installed into `dir` first. The cache there is
-    // judged against the profile beside it — or, where the cache is the whole
-    // of the installation, against nothing, since nothing on disk can then be
-    // newer than it. That state is Semver::inf(), which no real profile carries.
-    const boost::filesystem::path profile = dir / (vendor_name + ".json");
-    const Semver version = boost::filesystem::exists(profile) ? get_version_from_json(profile.string())
-                                                              : Semver::inf();
-    return this->load_vendor_cache((dir / (vendor_name + ".opc")).string(), vendor_name, version, base_bundle);
-}
-
 bool PresetBundle::load_vendor_cache(const std::string& cache_path, const std::string& expected_vendor_name,
                                      const Semver& expected_vendor_version, const PresetBundle* base_bundle)
 {
-    // What this bundle had counted before the cache was tried. The caller
-    // measures its own parse against this same baseline, so a rejection must
-    // put it back rather than reset it to zero.
-    const int errors_at_entry = this->m_errors;
     // Read and validated before this bundle is touched: a rejected file leaves
     // no state to roll back.
     VendorCacheData data;
     if (! VendorCacheFile::load(cache_path, expected_vendor_name, expected_vendor_version, data))
         return false;
+    // VendorCacheFile::load checked the names match.
+    return this->install_vendor_cache(cache_path, expected_vendor_name, std::move(data), base_bundle);
+}
+
+bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std::string& vendor_name, VendorCacheData&& data,
+                                        const PresetBundle* base_bundle)
+{
+    // What this bundle had counted before the cache was tried. The caller
+    // measures its own parse against this same baseline, so a rejection must
+    // put it back rather than reset it to zero.
+    const int errors_at_entry = this->m_errors;
     try {
-        const std::string& vendor_name = expected_vendor_name;   // VendorCacheFile::load checked they match
         this->vendors = std::move(data.vendors);
 
         // What the parse counted before install took over; install recounts its
         // own below, so m_errors comes out as a JSON parse would leave it.
         m_errors += int(data.parse_errors);
 
-        // Install the entries exactly as load_vendor_configs_from_json installs
-        // them straight after parsing — same code, same order. The substitution
-        // context stays empty (the entries were substituted when they were
-        // parsed), so no substitutions are reported, as before.
-        ConfigSubstitutionContext  substitution_context { ForwardCompatibilitySubstitutionRule::EnableSilent };
+        // Stays empty, since the entries were substituted when they were parsed.
         PresetsConfigSubstitutions substitutions;
-        std::map<std::string, DynamicPrintConfig> configs;
-        std::map<std::string, std::string> filament_id_maps;
-        const std::string path = boost::filesystem::path(cache_path).parent_path().string();
-        size_t count = 0;
-        auto install_entries = [&](const std::vector<CachedPreset>& entries, PresetCollection* presets, bool is_from_lib) {
-            configs.clear();
-            filament_id_maps.clear();
-            // Only configs of presets that other entries inherit are ever looked
-            // up again; registering just those skips one full config copy for
-            // every leaf preset. The library's filaments are all retained — they
-            // become the m_config_maps other vendors resolve against.
-            std::set<std::string> inherited;
-            for (const CachedPreset& entry : entries)
-                if (! entry.inherits.empty())
-                    inherited.insert(entry.inherits);
-            const std::set<std::string>* retain_configs = is_from_lib ? nullptr : &inherited;
-            for (const CachedPreset& entry : entries) {
-                const std::string reason = load_vendor_preset(entry, path, vendor_name,
-                    base_bundle, LoadConfigBundleAttribute::LoadSystem, substitution_context, substitutions,
-                    configs, filament_id_maps, presets, count, is_from_lib, retain_configs);
-                if (! reason.empty())
-                    throw std::runtime_error("entry " + entry.name + " failed to install: " + reason);
-            }
-        };
-        install_entries(data.process_entries, &this->prints, false);
-        const bool is_orca_lib = vendor_name == ORCA_FILAMENT_LIBRARY;
-        install_entries(data.filament_entries, &this->filaments, is_orca_lib);
-        if (is_orca_lib) {
-            m_config_maps      = configs;
-            m_filament_id_maps = filament_id_maps;
-        }
-        install_entries(data.machine_entries, &this->printers, false);
+        install_vendor(boost::filesystem::path(cache_path).parent_path().string(), vendor_name, base_bundle,
+                       LoadConfigBundleAttribute::LoadSystem, data, nullptr, true, substitutions);
         return true;
     } catch (const std::exception& e) {
+        // A cancellation of the caller's task group stops the install without
+        // anything being wrong with the cache.
+        if (tbb::is_current_task_group_canceling())
+            throw;
         BOOST_LOG_TRIVIAL(warning) << "PresetBundle: rejecting vendor cache " << cache_path << ": " << e.what();
         // Restore a clean state so the caller can fall back to the JSON parse.
         this->reset(false);

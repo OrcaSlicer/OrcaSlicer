@@ -2,11 +2,17 @@
 #define slic3r_MixedFilamentDialog_hpp_
 
 #include <array>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
 #include <wx/bitmap.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h>
 #include <wx/stattext.h>
 

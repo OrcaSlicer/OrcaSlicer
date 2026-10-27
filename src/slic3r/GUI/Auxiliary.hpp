@@ -2,6 +2,16 @@
 #define slic3r_Auxiliary_hpp_
 
 #include "Tabbook.hpp"
+#include <array>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <boost/filesystem/path.hpp>
+#include <wx/bookctrl.h>
+#include <wx/event.h>
+#include <wx/dynarray.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <string>
+#include <nlohmann/json.hpp>
 #include <wx/notebook.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -10,6 +20,7 @@
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/artprov.h>
+#include <wx/wrapsizer.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/string.h>
 #include <wx/stattext.h>
@@ -17,7 +28,6 @@
 #include <wx/font.h>
 #include <wx/colour.h>
 #include <wx/settings.h>
-#include <wx/sizer.h>
 #include <wx/grid.h>
 #include <wx/dataview.h>
 #include <wx/panel.h>
@@ -25,14 +35,12 @@
 #include <wx/bitmap.h>
 #include <wx/image.h>
 #include <wx/icon.h>
-#include <wx/bmpbuttn.h>
 #include <wx/button.h>
 #include <wx/gbsizer.h>
 #include <wx/statbox.h>
 #include <wx/tglbtn.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/webrequest.h>
 #include <map>
 #include <vector>
@@ -88,7 +96,7 @@ public:
     bool                m_cover{false};
     wxStaticText*       m_text_name {nullptr};
     ::TextInput*        m_input_name {nullptr};
-    fs::path m_file_path;
+    boost::filesystem::path m_file_path;
     wxString m_add_file;
     wxString m_file_name;
     wxString cover_text_left;
@@ -105,7 +113,7 @@ public:
     ScalableBitmap m_bitmap_txt;
 
 public:
-    AuFile(wxWindow *parent, fs::path file_path, wxString file_name, AuxiliaryFolderType type, wxWindowID id = wxID_ANY, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
+    AuFile(wxWindow *parent, boost::filesystem::path file_path, wxString file_name, AuxiliaryFolderType type, wxWindowID id = wxID_ANY, const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
     void enter_rename_mode();
     void exit_rename_mode();
     void OnPaint(wxPaintEvent &evt);
@@ -153,7 +161,7 @@ public:
     
     void clear();
     void update_cover();
-    void update(std::vector<fs::path> paths);
+    void update(std::vector<boost::filesystem::path> paths);
     void msw_rescale();
 
 public:
@@ -229,13 +237,13 @@ public:
     bool Show(bool show);
 
     // core logic
-    std::map<std::string, std::vector<fs::path>>    m_paths_list;
+    std::map<std::string, std::vector<boost::filesystem::path>>    m_paths_list;
     wxString                                        m_root_dir;
     void                                            init_auxiliary();
     void                                            create_folder(wxString name = wxEmptyString);
     std::string                                     replaceSpace(std::string s, std::string ts, std::string ns);
     void                                            on_import_file(wxCommandEvent &event);
-    void                                            Reload(wxString aux_path, std::map<std::string, std::vector<json>> paths);
+    void                                            Reload(wxString aux_path, std::map<std::string, std::vector<nlohmann::json>> paths);
 
     void update_all_panel();
     void update_all_cover();

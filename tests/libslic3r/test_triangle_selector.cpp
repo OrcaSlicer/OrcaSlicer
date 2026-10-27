@@ -1,7 +1,16 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+
+#include <algorithm>
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <cstddef>
+#include <string>
 
 using namespace Slic3r;
 
@@ -122,4 +131,78 @@ TEST_CASE("Extruder states match the CONST_FILAMENTS hex encoding", "[TriangleSe
 
     INFO("Hex " << c.hex << " -> extruder " << c.state);
     REQUIRE(TriangleSelector::has_facets(data, EnforcerBlockerType(c.state)));
+}
+
+// Pack 4-bit codes into a bitstream, least significant bit first, in the order the decoder reads them.
+static std::vector<bool> pack_nibbles(const std::vector<int> &nibbles)
+{
+    std::vector<bool> bitstream;
+    for (const int nibble : nibbles)
+        for (int bit = 0; bit < 4; ++bit)
+            bitstream.push_back((nibble >> bit) & 1);
+    return bitstream;
+}
+
+TEST_CASE("A valid paint stream with nested splits round-trips bit for bit", "[TriangleSelector]")
+{
+    const TriangleMesh mesh = test_mesh();
+
+    TriangleSelector::TriangleSplittingData data;
+    data.triangles_to_split.emplace_back(0, 0);
+    // A three-side split whose children, in stream order, are: a one-side split (side 2) into two
+    // leaves, a two-side split (side 1) into leaves of states 20, 0 and 8, then two plain leaves.
+    const std::vector<int> triangle_0 = {0b0011,
+                                         0b1001, 0b1000, 0b0100,
+                                         0b0110, 0b1100, 0b1111, 20 - 18, 0b0000, 0b1100, 8 - 3,
+                                         0b1000,
+                                         0b0100};
+    data.bitstream = pack_nibbles(triangle_0);
+    data.triangles_to_split.emplace_back(5, int(data.bitstream.size()));
+    const std::vector<bool> triangle_5 = pack_nibbles({0b1100, 3 - 3});
+    data.bitstream.insert(data.bitstream.end(), triangle_5.begin(), triangle_5.end());
+    data.reset_used_states();
+    REQUIRE(data.update_used_states(0));
+
+    TriangleSelector restored(mesh);
+    restored.deserialize(data);
+
+    REQUIRE(restored.num_facets(EnforcerBlockerType::Extruder20) == 1);
+    REQUIRE(restored.num_facets(EnforcerBlockerType::Extruder3) == 1);
+    REQUIRE(restored.serialize() == data);
+}
+
+TEST_CASE("A truncated or malformed paint stream drops only the damaged triangle", "[TriangleSelector][Regression]")
+{
+    struct Case { const char *name; std::vector<int> nibbles; };
+    const auto c = GENERATE(values<Case>({
+        {"three-side split missing two children", {0b0011, 0b1000, 0b1000}},
+        {"leaf missing its state nibble",         {0b1100}},
+        {"leaf missing its second state nibble",  {0b1100, 0b1111}},
+        {"splits nested past the end",            {0b0011, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF,
+                                                    0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF}},
+        {"one-side split of the nonexistent side 3", {0b1101, 0b1000, 0b1000}},
+    }));
+    INFO(c.name);
+
+    const TriangleMesh mesh = test_mesh();
+    TriangleSelector   intact(mesh);
+    intact.set_facet(0, EnforcerBlockerType::Extruder2);
+
+    // Triangle 0 stays intact, triangle 1 carries the damaged stream.
+    TriangleSelector::TriangleSplittingData data = intact.serialize();
+    data.triangles_to_split.emplace_back(1, int(data.bitstream.size()));
+    const std::vector<bool> damaged = pack_nibbles(c.nibbles);
+    data.bitstream.insert(data.bitstream.end(), damaged.begin(), damaged.end());
+
+    TriangleSelector restored(mesh);
+    REQUIRE_NOTHROW(restored.deserialize(data));
+    // Triangle 1 unwinds completely, so the selector holds exactly the intact paint.
+    REQUIRE(restored.serialize() == intact.serialize());
+
+    REQUIRE_NOTHROW(TriangleSelector::has_facets(data, EnforcerBlockerType::Extruder3));
+
+    TriangleSelector::TriangleSplittingData recomputed = data;
+    recomputed.reset_used_states();
+    REQUIRE_FALSE(recomputed.update_used_states(0));
+    REQUIRE(std::none_of(recomputed.used_states.begin(), recomputed.used_states.end(), [](bool used) { return used; }));
 }

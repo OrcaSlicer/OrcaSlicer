@@ -1,0 +1,152 @@
+{
+  "type": "machine",
+  "name": "Goofoo Velo+ Tool 0.4",
+  "inherits": "Goofoo Velo+ 0.4 nozzle",
+  "from": "system",
+  "setting_id": "ww39WeaF5nYks1em",
+  "instantiation": "true",
+  "nozzle_diameter": [
+    "0.4",
+    "0.4"
+  ],
+  "printer_model": "Goofoo Velo+ Tool",
+  "change_filament_gcode": "T[next_extruder]\n；M104 S[nozzle_temperature_initial_layer] T[next_extruder]; 正式设置喷嘴温度（与切片设置一致）\n；M109 S[nozzle_temperature_initial_layer] T[next_extruder] ; 等待喷嘴温度稳定\n",
+  "default_nozzle_volume_type": [
+    "Standard",
+    "Standard"
+  ],
+  "deretraction_speed": [
+    "0",
+    "0"
+  ],
+  "extruder_colour": [
+    "#FCE94F",
+    "#FCE94F"
+  ],
+  "extruder_offset": [
+    "0x0",
+    "0x0"
+  ],
+  "extruder_printable_height": [
+    "0",
+    "0"
+  ],
+  "extruder_type": [
+    "Direct Drive",
+    "Direct Drive"
+  ],
+  "extruder_variant_list": [
+    "Direct Drive Standard",
+    "Direct Drive Standard"
+  ],
+  "long_retractions_when_cut": [
+    "0",
+    "0"
+  ],
+  "machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nT0\nG1 X5 Y{print_bed_max[1]*0.8} F{travel_speed*60} ; present print\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < max_print_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors",
+  "machine_start_gcode": "G90 ; 绝对坐标模式\nM83 ; 挤出机相对模式\nM140 S[first_layer_bed_temperature] ; 设置热床温度\nM104 S140 T0 ; 临时喷嘴温度=切片首层设定（防止归零渗料）\nM104 S140 T1\nG4 S10 ; 预热等待10秒\nG28 ; 归零所有轴\nG1 Z50 F240 ; Z轴抬升\nG1 X2 Y10 F3000 ; 移动至起始位置\nM104 S[nozzle_temperature_initial_layer] T0 ; 正式设置喷嘴温度（与切片设置一致）\nM104 S[nozzle_temperature_initial_layer] T1 ; 正式设置喷嘴温度（与切片设置一致）\nM190 S[bed_temperature_initial_layer_single]  T0; 等待热床温度稳定\nM109 S[nozzle_temperature_initial_layer] T0 ; 等待喷嘴温度稳定\nG1 Z0.28 F240 ; 喷嘴下降至打印高度\nG92 E0 ; 挤出机归零\nG1 Y140 E10 F1500 ; 画第一条 priming 线\nG1 X2.3 F5000 ; X轴微调\nG92 E0 ; 挤出机归零\nG1 Y10 E10 F1200 ; 画第二条 priming 线\nG92 E0 ; 最终挤出机归零\nG1 Z20 F240 ; Z轴抬升\nG1 X280 Y10 F3000 ; 移动至起始位置\nT1\nM104 S[nozzle_temperature_initial_layer] T1 ; 正式设置喷嘴温度（与切片设置一致）\nM190 S[bed_temperature_initial_layer_single]  T1; 等待热床温度稳定\nM109 S[nozzle_temperature_initial_layer]  T1; 等待喷嘴温度稳定\nG4 S10 ; 预热等待10秒\nG1 Z0.28 F240 ; 喷嘴下降至打印高度\nG92 E0 ; 挤出机归零\nG1 Y140 E10 F1500 ; 画第一条 priming 线\nG1 X282.3 F5000 ; X轴微调\nG92 E0 ; 挤出机归零\nG1 Y10 E10 F1200 ; 画第二条 priming 线\nG92 E0 ; 最终挤出机归零",
+  "max_layer_height": [
+    "0.32",
+    "0.32"
+  ],
+  "min_layer_height": [
+    "0.08",
+    "0.08"
+  ],
+  "nozzle_flush_dataset": [
+    "nil",
+    "0"
+  ],
+  "nozzle_type": [
+    "nil",
+    "hardened_steel"
+  ],
+  "nozzle_volume": [
+    "nil",
+    "0"
+  ],
+  "printable_area": [
+    "0x0",
+    "300x0",
+    "300x300",
+    "0x300"
+  ],
+  "printer_extruder_id": [
+    "1",
+    "2"
+  ],
+  "printer_extruder_variant": [
+    "Direct Drive Standard",
+    "Direct Drive Standard"
+  ],
+  "purge_in_prime_tower": "0",
+  "retract_before_wipe": [
+    "100%",
+    "100%"
+  ],
+  "retract_length_toolchange": [
+    "10",
+    "10"
+  ],
+  "retract_lift_above": [
+    "0",
+    "0"
+  ],
+  "retract_lift_below": [
+    "0",
+    "0"
+  ],
+  "retract_lift_enforce": [
+    "All Surfaces",
+    "All Surfaces"
+  ],
+  "retract_restart_extra": [
+    "0",
+    "0"
+  ],
+  "retract_restart_extra_toolchange": [
+    "0",
+    "0"
+  ],
+  "retract_when_changing_layer": [
+    "1",
+    "1"
+  ],
+  "retraction_distances_when_cut": [
+    "18",
+    "18"
+  ],
+  "retraction_length": [
+    "0.5",
+    "0.5"
+  ],
+  "retraction_minimum_travel": [
+    "2",
+    "2"
+  ],
+  "retraction_speed": [
+    "50",
+    "50"
+  ],
+  "single_extruder_multi_material": "0",
+  "travel_slope": [
+    "3",
+    "3"
+  ],
+  "wipe": [
+    "1",
+    "1"
+  ],
+  "wipe_distance": [
+    "1",
+    "1"
+  ],
+  "z_hop": [
+    "0",
+    "0"
+  ],
+  "z_hop_types": [
+    "Slope Lift",
+    "Slope Lift"
+  ]
+}

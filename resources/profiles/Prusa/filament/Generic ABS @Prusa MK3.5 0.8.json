@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Prusa MK3.5 0.8",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Prusa Generic ABS @MK3.5 0.8;Prusa Generic ABS MK3.5 0.8",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "m8neIe1dfWt5Klbq",
 	"filament_id": "OFY9muEs",

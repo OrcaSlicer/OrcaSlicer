@@ -1,4 +1,6 @@
 #include "libslic3r/CAD/ThreadStandards.hpp"
+#include <vector>
+#include <string>
 
 namespace Slic3r {
 

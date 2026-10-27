@@ -6,6 +6,9 @@
 	"setting_id": "3IfLi1ZVCKKbEBUW",
 	"filament_id": "OFvDbkFq",
 	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet_hf"
+	],
 	"compatible_printers": [
 		"Prusa CORE One HF 0.5 nozzle"
 	],

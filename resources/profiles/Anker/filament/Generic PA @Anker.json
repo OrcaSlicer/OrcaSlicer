@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Anker",
-	"inherits": "Generic PA @Anker base",
 	"renamed_from": "Anker Generic PA",
+	"inherits": "Generic PA @Anker base",
 	"from": "system",
 	"setting_id": "sLWVtBxpAC53eUwo",
 	"instantiation": "true",

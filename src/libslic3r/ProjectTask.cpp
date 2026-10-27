@@ -1,9 +1,11 @@
-#include "libslic3r.h"
-#include "Time.hpp"
-#include "Thread.hpp"
 #include "ProjectTask.hpp"
 
 
+#include <map>
+#include <string>
+#include <sstream>
+#include <boost/none.hpp>
+#include <boost/optional/optional.hpp>
 #include <thread>
 #include <mutex>
 #include <codecvt>

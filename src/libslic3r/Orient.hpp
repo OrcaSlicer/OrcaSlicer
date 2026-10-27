@@ -1,7 +1,16 @@
 #ifndef ORIENT_HPP
 #define ORIENT_HPP
 
-#include "libslic3r/Model.hpp"
+#include "TriangleMesh.hpp"
+#include "Point.hpp"
+#include "PrintConfig.hpp"
+#include <string>
+#include <functional>
+#include <Eigen/Core>
+#include <vector>
+
+namespace Slic3r { class ModelInstance; }
+namespace Slic3r { class ModelObject; }
 
 namespace Slic3r {
 

@@ -1,6 +1,7 @@
 #ifndef slic3r_ProjectTask_hpp_
 #define slic3r_ProjectTask_hpp_
 
+#include <functional>
 #include <map>
 #include <vector>
 #include <string>
@@ -9,8 +10,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
-
-namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
@@ -207,7 +206,7 @@ public:
     std::string     task_profile_id;    /* profile id*/
     std::string     task_name;          /* task name, generally filename as task name */
     std::string     task_file;          /* local full file path of 3mf or gcode */
-    fs::path        task_path;          /* local path of 3mf or gcode */
+    boost::filesystem::path task_path;          /* local path of 3mf or gcode */
     std::string     task_gcode_in_3mf;  /* gcode in 3mf */
     std::string     task_create_time;   /* time created by cloud */
     std::string     task_thumbnail_url; /* url of task thumbnail */
@@ -325,7 +324,7 @@ public:
     std::string     project_url_md5;        /* md5 of project url file */
     std::string     project_name;
     std::string     project_3mf_file;
-    fs::path        project_path;
+    boost::filesystem::path project_path;
     std::string     project_content;
     std::string     project_country_code;
 

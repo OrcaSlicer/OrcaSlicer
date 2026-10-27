@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Vzbot",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "Vzbot Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "eC3Pgdpbwi2amDbk",
 	"filament_id": "OFgbpcy9",

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @RatRig",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "RatRig Generic ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "cogJbKPAXzyCQgvf",
 	"filament_id": "OFLPAxz3",

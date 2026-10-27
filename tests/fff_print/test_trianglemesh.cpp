@@ -1,21 +1,26 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/Point.hpp"
-#include "libslic3r/Config.hpp"
-#include "libslic3r/Model.hpp"
 #include "libslic3r/libslic3r.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <cstddef>
+#include <cmath>
 #include <future>
 #include <chrono>
+#include <vector>
+#include <math.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 //#include "test_options.hpp"
-#include "test_helpers.hpp"
 
 using namespace Slic3r;
-using namespace std;
 
 static inline TriangleMesh make_cube() { return make_cube(20., 20, 20); }
 

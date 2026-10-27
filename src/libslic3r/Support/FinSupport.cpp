@@ -9,6 +9,7 @@
 #include "../AABBMesh.hpp"
 #include "../CSGMesh/ModelToCSGMesh.hpp"
 #include "../CSGMesh/PerformCSGMeshBooleans.hpp"
+#include "../ClipperUtils.hpp"
 #include "../Flow.hpp"
 #include "../Geometry.hpp"
 #include "../Geometry/ArcWelder.hpp"
@@ -5195,7 +5196,7 @@ ExPolygons fin_upper_model(const PrintObject &object, size_t layer_id)
     upper = union_ex(upper);
     const double xy_gap = object.config().support_object_xy_distance.value;
     return xy_gap > EPSILON ?
-        offset_ex(upper, float(scale_(xy_gap)), ClipperLib::jtRound, DefaultMiterLimit) : upper;
+        offset_ex(upper, float(scale_(xy_gap)), jtRound, DefaultMiterLimit) : upper;
 }
 
 std::optional<ContourRayHit> painted_clearance_hit(const Layer &layer, const Vec2d &origin,
@@ -5206,7 +5207,7 @@ std::optional<ContourRayHit> painted_clearance_hit(const Layer &layer, const Vec
     const ExPolygons computed_clearance = cached_clearance == nullptr ?
         (gap > EPSILON ? offset_ex(
             layer.lslices, float(scale_(gap)),
-            ClipperLib::jtRound, DefaultMiterLimit) : layer.lslices) :
+            jtRound, DefaultMiterLimit) : layer.lslices) :
         ExPolygons{};
     const ExPolygons &clearance = cached_clearance != nullptr ?
         *cached_clearance : computed_clearance;
@@ -6194,7 +6195,7 @@ void build_fin_body_section(const PrintObject &object, TracedFin &fin, size_t la
     if (fin.seed.geometry_mode == FinGeometryMode::painted_shape) {
         const ExPolygons computed_clearance = cached_clearance == nullptr ?
             offset_ex(layer.lslices, float(scale_(gap + 0.5 * width)),
-                      ClipperLib::jtRound, DefaultMiterLimit) : ExPolygons{};
+                      jtRound, DefaultMiterLimit) : ExPolygons{};
         body_center = fin_body_center_area(
             bed, fin, layer_id, thickness, width,
             cached_clearance != nullptr ? *cached_clearance : computed_clearance, cached_bed_center);
@@ -10916,12 +10917,12 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
             cached.model_gap = gap > EPSILON ?
                 offset_ex(
                     layer.lslices, float(scale_(gap)),
-                    ClipperLib::jtRound, DefaultMiterLimit) :
+                    jtRound, DefaultMiterLimit) :
                 layer.lslices;
             cached.final_model_clearance = offset_ex(
                 layer.lslices,
                 float(scale_(gap + 0.5 * cached.line_width)),
-                ClipperLib::jtRound, DefaultMiterLimit);
+                jtRound, DefaultMiterLimit);
             cached.bed_center = offset_ex(
                 bed, -float(scale_(0.5 * cached.line_width)));
         }
@@ -11656,7 +11657,7 @@ void generate_candidate_fin_support(PrintObject &object, const std::vector<Paint
                             support_material_flow(
                                 &object, float(object.get_layer(
                                     int(layer_id))->height)).width())),
-                        ClipperLib::jtRound, DefaultMiterLimit);
+                        jtRound, DefaultMiterLimit);
             // Expand contact/taper exemptions by half the model gap to protect
             // nearby body material at the shared boundary.
             // The contact trapezoid exemption can still leave part of the join

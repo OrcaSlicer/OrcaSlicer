@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Comgrow T300",
-	"inherits": "Generic PLA @Comgrow",
 	"renamed_from": "Comgrow T300 PLA",
+	"inherits": "Generic PLA @Comgrow",
 	"from": "system",
 	"setting_id": "3N6gPGkzpE9CvkVz",
 	"instantiation": "true",

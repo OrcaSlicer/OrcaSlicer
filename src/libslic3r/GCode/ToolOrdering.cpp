@@ -1,4 +1,9 @@
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Config.hpp"
 #include "ExtrusionEntity.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/FilamentGroup.hpp"
 #include "Print.hpp"
 #include "ToolOrdering.hpp"
 #include "Layer.hpp"
@@ -9,11 +14,24 @@
 #include "MultiNozzleUtils.hpp"
 #include "FilamentMixer.hpp"
 #include "LocalesUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "Utils.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
+#include "../BeltBrim.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <optional>
+#include <functional>
+#include <exception>
+#include <memory>
+#include <tuple>
+#include <iostream>
 
 // #define SLIC3R_DEBUG
 
@@ -35,6 +53,11 @@
 #include <unordered_map>
 
 #include <libslic3r.h>
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace Slic3r {
 
@@ -117,6 +140,29 @@ unsigned int LayerTools::internal_solid_filament_id(const PrintRegion &region) c
 	return resolve_mixed(result);
 }
 
+// 1 based filament of an island's extrusions; the tool ordering and the G-code export must agree on it.
+static unsigned int region_filament(const ExtrusionEntityCollection &extrusions, const PrintRegionConfig &config)
+{
+    if (extrusions.has_infill()) {
+        if (!extrusions.has_solid_infill())
+            return config.sparse_infill_filament_id.value;
+        // Orca: Gap fill takes the filament of the surface it fills.
+        ExtrusionRole role = erNone;
+        for (const ExtrusionEntity *ee : extrusions.entities)
+            if (const ExtrusionRole er = ee->role(); er != erGapFill)
+                role = (role == erNone || role == er) ? er : erMixed;
+        if (role == erTopSolidInfill || role == erIroning)
+            return config.top_surface_filament_id.value;
+        if (role == erBottomSurface)
+            return config.bottom_surface_filament_id.value;
+        return config.internal_solid_filament_id.value;
+    }
+    // Walls, and the gap fill between them.
+    const ExtrusionEntitiesPtr &walls = extrusions.entities;
+    return !walls.empty() && std::all_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); }) ?
+        config.inner_wall_filament_id.value : config.outer_wall_filament_id.value;
+}
+
 // Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
 {
@@ -126,30 +172,7 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().top_surface_filament_id.value > 0);
 	assert(region.config().bottom_surface_filament_id.value > 0);
 	// 1 based extruder ID.
-    unsigned int extruder = 1;
-    if (this->extruder_override == 0) {
-        if (extrusions.has_infill()) {
-            if (extrusions.has_solid_infill()) {
-                ExtrusionRole role = extrusions.role();
-                if (role == erTopSolidInfill || role == erIroning)
-                    extruder = region.config().top_surface_filament_id;
-                else if (role == erBottomSurface)
-                    extruder = region.config().bottom_surface_filament_id;
-                else
-                    extruder = region.config().internal_solid_filament_id;
-            } else {
-                extruder = region.config().sparse_infill_filament_id;
-            }
-        } else {
-            const ExtrusionRole role = extrusions.role();
-            if (role == erPerimeter)
-                extruder = region.config().inner_wall_filament_id.value;
-            else
-                extruder = region.config().outer_wall_filament_id.value;
-        }
-    } else
-        extruder = this->extruder_override;
-
+    const unsigned int extruder = this->extruder_override == 0 ? region_filament(extrusions, region.config()) : this->extruder_override;
     unsigned int result = (extruder == 0) ? 0 : extruder - 1;
     return resolve_mixed(result);
 }
@@ -397,6 +420,10 @@ bool ToolOrdering::insert_wipe_tower_extruder()
 {
     if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
         return false;
+    // Belt mode has no classic wipe tower; the dedicated wipe tower filament
+    // must not inject extra toolchanges into the purge prism planning.
+    if (m_print_config_ptr->belt_printer)
+        return false;
     if (m_print_config_ptr->wipe_tower_filament == 0)
         return false;
 
@@ -494,6 +521,11 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
             zs.emplace_back(layer->print_z);
         for (auto layer : object.support_layers())
             zs.emplace_back(layer->print_z);
+        // Belt brim apron bands sit below the object's first layer and have no
+        // layer of their own, but tools_for_layer() asserts an exact Z match, so
+        // their print_z must be part of the ordering.
+        for (const BeltBrimBand &band : object.belt_brim_prologue())
+            zs.emplace_back(band.print_z);
         this->initialize_layers(zs);
     }
 
@@ -538,6 +570,10 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
                 zs.emplace_back(layer->print_z);
             for (auto layer : object->support_layers())
                 zs.emplace_back(layer->print_z);
+            // See the single-object ctor: belt brim apron bands need their own
+            // ordering entries or tools_for_layer() will assert.
+            for (const BeltBrimBand &band : object->belt_brim_prologue())
+                zs.emplace_back(band.print_z);
 
             max_layer_height = std::max(max_layer_height, object->config().layer_height.value);
         }
@@ -819,7 +855,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 
                 if (something_nonoverriddable){
                		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
-                    if (extruder_override == 0 && region.config().wall_loops.value > 1)
+                    const ExtrusionEntitiesPtr &islands = layerm->perimeters.entities;
+                    const bool has_inner_wall = std::any_of(islands.begin(), islands.end(), [](const ExtrusionEntity *island) {
+                        const ExtrusionEntitiesPtr &walls = static_cast<const ExtrusionEntityCollection*>(island)->entities;
+                        return std::any_of(walls.begin(), walls.end(), [](const ExtrusionEntity *ee) { return is_inner_wall(*ee); });
+                    });
+                    if (extruder_override == 0 && region.config().wall_loops.value > 1 && has_inner_wall)
                         layer_tools.extruders.emplace_back(region.config().inner_wall_filament_id.value);
                     if (layerCount == 0) {
                         firstLayerExtruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
@@ -829,23 +870,13 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 layer_tools.has_object = true;
             }
 
-            bool has_infill             = false;
-            bool has_internal_solid     = false;
-            bool has_top_solid_surface  = false;
-            bool has_bottom_surface     = false;
+            std::vector<unsigned int> fill_filaments;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
-                ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
-                if (role == erTopSolidInfill || role == erIroning)
-                    has_top_solid_surface = true;
-                else if (role == erBottomSurface)
-                    has_bottom_surface = true;
-                else if (is_solid_infill(role))
-                    has_internal_solid = true;
-                else if (role != erNone)
-                    has_infill = true;
+                if (! fill->entities.empty())
+                    fill_filaments.emplace_back(region_filament(*fill, region.config()));
 
                 if (m_print_config_ptr) {
                     if (! layer_tools.wiping_extrusions().is_overriddable_and_mark(*fill, *m_print_config_ptr, object, region))
@@ -854,19 +885,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
 
             if (something_nonoverriddable || !m_print_config_ptr) {
-            	if (extruder_override == 0) {
-                    if (has_internal_solid)
-                        layer_tools.extruders.emplace_back(region.config().internal_solid_filament_id);
-                    if (has_top_solid_surface)
-                        layer_tools.extruders.emplace_back(region.config().top_surface_filament_id);
-                    if (has_bottom_surface)
-                        layer_tools.extruders.emplace_back(region.config().bottom_surface_filament_id);
-	                if (has_infill)
-	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
-                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            	if (extruder_override == 0)
+                    append(layer_tools.extruders, fill_filaments);
+                else if (! fill_filaments.empty())
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            if (! fill_filaments.empty())
                 layer_tools.has_object = true;
         }
 
@@ -972,6 +996,42 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         }
     }
 
+    // Belt brim apron bands own their layers outright: they print below the
+    // object's first layer, so no object or support layer claims an extruder there
+    // and process_layer() would bail out at "Nothing to extrude".  Claim the
+    // object's outer wall filament, in the same raw 1-based domain the loops above
+    // push.  Deliberately not layer_tools.has_object, which drives skirt marking
+    // and wiping overrides.
+    if (! object.belt_brim_prologue().empty()) {
+        // 1-based, same domain the object/support pushes above use; reindexed to 0-based
+        // with the rest of the list later.
+        const unsigned int brim_filament = object.belt_brim_filament();
+        for (const BeltBrimBand &band : object.belt_brim_prologue()) {
+            if (band.fills.empty())
+                continue;
+            LayerTools &layer_tools = this->tools_for_layer(band.print_z);
+            layer_tools.extruders.push_back(brim_filament);
+        }
+    }
+
+    // Coincident brim bands (belt_brim_by_layer) print ON an object layer rather than
+    // below it, but that layer can produce no InstanceVisit in process_layer - a
+    // zero-extrusion lead-in slice with no coinciding support - and the band would then
+    // be silently dropped.  Register the brim filament on every layer that carries a
+    // coincident band, in the same 1-based domain as the prologue push above, so a brim
+    // pass always exists there.
+    if (object.has_belt_brim()) {
+        const unsigned int brim_filament = object.belt_brim_filament();
+        const auto        &by_layer      = object.belt_brim_by_layer();
+        const size_t       n             = std::min(by_layer.size(), object.layers().size());
+        for (size_t i = 0; i < n; ++ i) {
+            if (by_layer[i].empty())
+                continue;
+            LayerTools &layer_tools = this->tools_for_layer(object.layers()[i]->print_z);
+            layer_tools.extruders.push_back(brim_filament);
+        }
+    }
+
     for (auto& layer : m_layer_tools) {
         // Sort and remove duplicates
         sort_remove_duplicates(layer.extruders);
@@ -1014,12 +1074,28 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
     }
 
     //FIXME this is a hack to get the ball rolling.
+    // The `print_z < object_bottom_z` clause reads "below the object" as "raft
+    // gap".  On a belt printer that is wrong: the brim apron legitimately prints
+    // below the object's first layer, and treating those layers as raft would put a
+    // wipe tower at negative Z.  A belt printer never prints the classic
+    // prime tower (Print::has_wipe_tower()), so simply drop the clause there.
+    //
+    // Gate on config.belt_printer, NOT on has_belt_brim: every layer below the
+    // object bottom on a belt printer is legitimately a sub-object stream - brim
+    // apron, belt support printed below Z0, or the object's own lead-in - and none of
+    // them is ever raft, because Print::validate() rejects raft_layers>0 on a belt
+    // printer outright.  Narrowing this to has_belt_brim would reclassify
+    // belt-support-below-floor layers as raft on brim-less belt prints and reintroduce
+    // the negative-Z wipe tower, so the broad belt_printer gate is correct.
+    const bool belt_no_raft_gap = config.belt_printer.value;
     for (LayerTools &lt : m_layer_tools)
         lt.has_wipe_tower |= ((lt.has_object || lt.has_support) && (config.timelapse_type == TimelapseType::tlSmooth || lt.wipe_tower_partitions > 0))
-            || lt.print_z < object_bottom_z + EPSILON;
+            || (! belt_no_raft_gap && lt.print_z < object_bottom_z + EPSILON);
 
     // Test for a raft, insert additional wipe tower layer to fill in the raft separation gap.
-    for (size_t i = 0; i + 1 < m_layer_tools.size(); ++ i) {
+    // Skipped on belt printers for the same reason as the clause above: layers
+    // below the object are brim apron, not raft.
+    for (size_t i = 0; ! belt_no_raft_gap && i + 1 < m_layer_tools.size(); ++ i) {
         const LayerTools &lt      = m_layer_tools[i];
         const LayerTools &lt_next = m_layer_tools[i + 1];
         if (lt.print_z < object_bottom_z + EPSILON && lt_next.print_z >= object_bottom_z + EPSILON) {
@@ -1188,6 +1264,13 @@ void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
         sort_remove_duplicates(m_all_printing_extruders);
     }
 
+    m_last_layer_per_extruder.clear();
+    for (const LayerTools& lt : m_layer_tools) {
+        for (unsigned int ext : lt.extruders) {
+            m_last_layer_per_extruder[ext] = lt.print_z;
+        }
+    }
+
     if (prime_multi_material && ! m_all_printing_extruders.empty()) {
         // Reorder m_all_printing_extruders in the sequence they will be primed, the last one will be m_first_printing_extruder.
         // Then set m_first_printing_extruder to the 1st extruder primed.
@@ -1230,15 +1313,21 @@ void ToolOrdering::cal_most_used_extruder(const PrintConfig &config)
 
 float ToolOrdering::cal_max_additional_fan(const PrintConfig &config)
 {
-    // record
+    std::set<unsigned int> used_filaments;
+    for (const LayerTools &layer_tools : m_layer_tools)
+        used_filaments.insert(layer_tools.extruders.begin(), layer_tools.extruders.end());
+    if (used_filaments.empty())
+        return 0;
+
+    // Orca: additional_cooling_fan_speed can hold one value per extruder variant a filament prints with;
+    // filament_self_index maps such a column to its filament.
+    const std::vector<int> &self_index = config.filament_self_index.values;
+    const size_t columns = std::max(config.additional_cooling_fan_speed.size(), size_t(*used_filaments.rbegin()) + 1);
     float max_fan = 0;
-    for (LayerTools &layer_tools : m_layer_tools) {
-        std::vector<unsigned int> filaments = layer_tools.extruders;
-        std::set<int>             layer_extruder_count;
-        // count once only
-        for (unsigned int &filament : filaments)
-            if (max_fan < config.additional_cooling_fan_speed.get_at(filament))
-                max_fan = config.additional_cooling_fan_speed.get_at(filament);
+    for (size_t column = 0; column < columns; ++column) {
+        const unsigned int filament_id = self_index.size() == columns ? self_index[column] - 1 : column;
+        if (used_filaments.count(filament_id) && max_fan < config.additional_cooling_fan_speed.get_at(column))
+            max_fan = config.additional_cooling_fan_speed.get_at(column);
     }
     return max_fan;
 }
@@ -1454,7 +1543,6 @@ static FilamentGroupContext build_filament_group_context(
     FilamentMapMode                                  mode,
     const std::unordered_map<int, int>&              nozzle_status)
 {
-    using namespace MultiNozzleUtils;
     using namespace FilamentGroupUtils;
 
     FilamentGroupContext context;
@@ -1553,7 +1641,7 @@ static FilamentGroupContext build_filament_group_context(
     context.nozzle_info.extruder_nozzle_list = build_extruder_nozzle_list(context.nozzle_info.nozzle_list);
 
     if (context.nozzle_info.nozzle_list.empty())
-        throw Slic3r::RuntimeError("No valid nozzle found. Please check nozzle count.");
+        throw Slic3r::RuntimeError(_L("No valid nozzle found. Please check nozzle count."));
 
     if (!nozzle_status.empty())
         context.nozzle_info.nozzle_status = nozzle_status;
@@ -1663,7 +1751,6 @@ static std::vector<int> apply_master_extruder_preference(const FilamentGroupCont
 // multi-nozzle (H2C/A2L) resolves to a nozzle-granular result.
 MultiNozzleUtils::LayeredNozzleGroupResult ToolOrdering::get_recommended_filament_maps(const std::vector<std::vector<unsigned int>>& layer_filaments, const Print* print, const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables, const std::map<int, std::set<NozzleVolumeType>>& unprintable_volumes, const std::unordered_map<int, int>& nozzle_status)
 {
-    using namespace FilamentGroupUtils;
     using namespace MultiNozzleUtils;
 
     if (!print || layer_filaments.empty())
@@ -3572,5 +3659,11 @@ int WipingExtrusions::get_support_interface_extruder_overrides(const PrintObject
     return -1;
 }
 
-
+bool ToolOrdering::is_last_extrusion_layer(coordf_t print_z, unsigned int extruder_id) const
+{
+    auto it = m_last_layer_per_extruder.find(extruder_id);
+    if (it == m_last_layer_per_extruder.end())
+        return true;
+    return print_z >= it->second - EPSILON;
+}
 } // namespace Slic3r

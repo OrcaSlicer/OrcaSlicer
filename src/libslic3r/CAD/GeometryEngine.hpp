@@ -1,15 +1,11 @@
 #ifndef slic3r_GeometryEngine_hpp_
 #define slic3r_GeometryEngine_hpp_
 
+#include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
-#include <BRepPrimAPI_MakeBox.hxx>
-#include <BRepPrimAPI_MakeCylinder.hxx>
-#include <BRepPrimAPI_MakeSphere.hxx>
-#include <BRepPrimAPI_MakeCone.hxx>
-#include <BRepPrimAPI_MakeTorus.hxx>
-#include <gp_Ax2.hxx>
-#include <TopoDS_Solid.hxx>
+#include <TopoDS_Shape.hxx>
+#include <array>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Edge.hxx>
 #include <vector>
@@ -17,43 +13,11 @@
 
 namespace Slic3r {
 
-enum class PrimitiveType { Box, Cylinder, Sphere, Cone, Torus, COUNT };
-enum class DressUpType   { Fillet, Chamfer };
 enum class FaceGroup     { Top, Bottom, Lateral, All };
-
-struct PrimitiveParams {
-    PrimitiveType type{PrimitiveType::Box};
-    double box_w{20}, box_h{20}, box_d{20};
-    double cyl_radius{10}, cyl_height{20};
-    double sph_radius{10};
-    double cone_r1{10}, cone_r2{5}, cone_height{20};
-    double torus_r1{10}, torus_r2{3};
-
-    // Dress-up
-    bool   dressup_enabled{false};
-    DressUpType dressup_type{DressUpType::Fillet};
-    FaceGroup   dressup_faces{FaceGroup::All};
-    double dressup_radius{1.0};    // fillet radius
-    double dressup_chamfer_dist{1.0}; // chamfer distance (symmetric)
-
-    // Mesh quality
-    double linear_deflection{0.01};
-    double angular_deflection{0.5};
-
-    template<class Archive>
-    void serialize(Archive& ar) {
-        ar(type, box_w, box_h, box_d, cyl_radius, cyl_height, sph_radius,
-           cone_r1, cone_r2, cone_height, torus_r1, torus_r2,
-           dressup_enabled, dressup_type, dressup_faces, dressup_radius, dressup_chamfer_dist,
-           linear_deflection, angular_deflection);
-    }
-};
 
 class GeometryEngine
 {
 public:
-    static TopoDS_Solid make_primitive(const PrimitiveParams& params);
-
     // Read a STEP file into its top-level solids (one TopoDS_Shape per solid; falls back to
     // the whole shape if it contains no closed solids). Reuses OCCT's STEPControl_Reader,
     // already linked via Format/STEP.cpp — no new dependency. err is set on failure (empty result).
@@ -119,11 +83,15 @@ public:
                                        FaceGroup faces = FaceGroup::All);
     static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
                                        int edge_id);
+    // Several edges in one operation, all ids resolved against `solid`.
+    static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
+                                     const std::vector<int>& edge_ids);
+    static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
+                                       const std::vector<int>& edge_ids);
 
     static TriangleMesh tessellate(const TopoDS_Shape& shape,
-                                   double linear_deflection = 0.01,
+                                   double linear_deflection = 0.003,
                                    double angular_deflection = 0.5);
-    static std::string  primitive_name(PrimitiveType type);
 
     // Topology accessors for in-viewport face/edge picking (Design tab). Face index is the
     // TopExp_Explorer(shape, TopAbs_FACE) ordinal — identical to SketchEngine::tessellate's
@@ -143,6 +111,10 @@ public:
     static Vec3d face_normal_world(const TopoDS_Face& face);
     // Sample an edge into a world-space polyline (>=2 pts) for pick-distance + highlight.
     static std::vector<Vec3d> sample_edge_world(const TopoDS_Edge& edge, double chord_tol = 0.05);
+    // The edges a viewer draws over a body, each as a polyline: every edge of the shape once,
+    // without degenerate edges (a cone apex) and without the seam of a closed surface (the line
+    // down a cylinder's side), which is where OCCT closes the parameter space, not a real edge.
+    static std::vector<std::vector<Vec3d>> display_edges(const TopoDS_Shape& shape, double chord_tol);
     // 0-based edge index into TopExp::MapShapes(shape, TopAbs_EDGE, map).
     static int          edge_count(const TopoDS_Shape& shape);
     static TopoDS_Edge  edge_by_index(const TopoDS_Shape& shape, int index);

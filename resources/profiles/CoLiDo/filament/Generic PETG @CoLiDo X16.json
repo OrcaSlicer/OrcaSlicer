@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @CoLiDo X16",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "CoLiDo Generic PETG @CoLiDo X16;CoLiDo Generic PETG CoLiDo X16",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "eX4i0rDwO3rAlQ2y",
 	"filament_id": "OFYPdQJh",

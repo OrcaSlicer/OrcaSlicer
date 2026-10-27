@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "s620OFLTgFT4Ds2A",
 	"filament_id": "OFdqkWtz",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Luminous"
 	],

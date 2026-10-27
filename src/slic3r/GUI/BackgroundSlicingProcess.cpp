@@ -4,8 +4,27 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 
+#include <cstddef>
+#include <exception>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include <cstdint>
+#include <functional>
 #include <libslic3r/Exception.hpp>
+#include <utility>
+#include <string>
+#include <vector>
+#include <new>
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Zipper.hpp"
+#include <mutex>
+#include "libslic3r/PrintBase.hpp"
+#include <ostream>
+#include <memory>
+#include "libslic3r/Polygon.hpp"
 #include <wx/app.h>
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/stdpaths.h>
 
@@ -36,7 +55,16 @@
 #include "I18N.hpp"
 // #include "RemovableDriveManager.hpp"
 
+#include "libslic3r_version.h"
 #include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCode/GCodeStatistics.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
+#ifdef _WIN32
+#include <excpt.h>
+#endif
 
 namespace Slic3r {
 
@@ -96,7 +124,7 @@ std::pair<std::string, std::vector<size_t>> SlicingProcessCompletedEvent::format
     } catch (std::exception& ex) {
         error = ex.what();
     } catch (...) {
-        error = "Unknown C++ exception.";
+        error = _u8L("Unknown C++ exception.");
     }
     return std::make_pair(std::move(error), std::vector<size_t>{monospace});
 }
@@ -192,12 +220,12 @@ std::string BackgroundSlicingProcess::output_filepath_for_project(const boost::f
 void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
-    PresetBundle& preset_bundle   = *wxGetApp().preset_bundle;
+    PresetBundle& preset_bundle   = *GUI::wxGetApp().preset_bundle;
     m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
     // BBS: add the logic to process from an existed gcode file
     if (m_print->finished()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file") % __LINE__;
-        m_fff_print->set_status(80, _utf8(L("Processing G-Code from previous file\u2026")));
+        m_fff_print->set_status(80, _utf8(L("Processing G-code from previous file\u2026" /* \u2026 -> ... */)));
         wxCommandEvent evt(m_event_slicing_completed_id);
         // Post the Slicing Finished message for the G-code viewer to update.
         // Passing the timestamp
@@ -257,11 +285,12 @@ void BackgroundSlicingProcess::process_fff()
         m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
         m_fff_print->export_gcode(m_temp_output_path, m_gcode_result,
                                   [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
-        // Orca: BBL printers post-process the g-code in place here and never re-parse it into a fresh
-        // GCodeProcessorResult, so m_gcode_result->nozzle_group_result (consumed by the H2C print-dispatch
-        // nozzle mapping) survives post-processing. No preservation guard is needed on this path.
+        // Orca: BBL printers post-process the g-code in place here, in the file the G-code viewer maps, so
+        // the preview re-reads its moves and line offsets from the edited file. The rest of m_gcode_result,
+        // including nozzle_group_result (consumed by the H2C print-dispatch nozzle mapping), is kept.
         if (m_fff_print->is_BBL_printer()) {
-            run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
+            if (run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config()))
+                m_fff_print->reload_gcode_moves(m_gcode_result);
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");
@@ -701,7 +730,7 @@ StringObjectException BackgroundSlicingProcess::validate(std::vector<StringObjec
     assert(m_print != nullptr);
     assert(m_print == m_fff_print);
 
-    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+    m_fff_print->is_BBL_printer() = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
     return m_print->validate(warnings, collison_polygons, height_polygons);
 }
 
@@ -718,7 +747,9 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model& model, const Dyn
 
     // Orca: prevent resetting under gcode viewer mode
     if (invalidated != PrintBase::APPLY_STATUS_UNCHANGED) {
-        const auto plater = GUI::wxGetApp().mainframe->m_plater;
+        // Use the app’s plater accessor instead of going through mainframe, otherwise anything during startup that reaches apply() 
+        // (loading presets, config or input files, e.g. from the CLI) therefore dereferences a null `mainframe` and crashes.
+        const auto plater = GUI::wxGetApp().plater();
         if (plater && plater->only_gcode_mode()) {
             invalidated = PrintBase::APPLY_STATUS_UNCHANGED;
         }
@@ -754,6 +785,7 @@ void BackgroundSlicingProcess::schedule_export(const std::string& path, bool exp
     this->invalidate_step(bspsGCodeFinalize);
     m_export_path                    = path;
     m_export_path_on_removable_media = export_path_on_removable_media;
+    m_export_statistics              = GUI::wxGetApp().app_config->get_bool("export_statistics");
 }
 
 void BackgroundSlicingProcess::schedule_upload(Slic3r::PrintHostJob upload_job)
@@ -879,6 +911,8 @@ void BackgroundSlicingProcess::finalize_gcode()
         BOOST_LOG_TRIVIAL(error) << "Unexpected fail code(" << (int) copy_ret_val << ") durring copy_file() to " << export_path << ".";
         break;
     }
+    if (m_export_statistics)
+        export_gcode_statistics(*m_gcode_result, gcode_statistics_path(export_path));
 
     m_print->set_status(100, GUI::format(_L("G-code file exported to %1%"), export_path));
 }
@@ -926,6 +960,8 @@ void BackgroundSlicingProcess::export_gcode()
         // throw Slic3r::ExportError(_utf8(L("Unknown error when exporting G-code.")));
         break;
     }
+    if (m_export_statistics)
+        export_gcode_statistics(*m_gcode_result, gcode_statistics_path(export_path));
 
     // BBS
     auto evt                  = new wxCommandEvent(m_event_export_finished_id, GUI::wxGetApp().mainframe->m_plater->GetId());

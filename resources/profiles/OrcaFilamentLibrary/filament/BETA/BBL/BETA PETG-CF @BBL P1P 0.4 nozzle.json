@@ -9,9 +9,11 @@
 		"30"
 	],
 	"fan_max_speed": [
+		"40",
 		"40"
 	],
 	"fan_min_speed": [
+		"5",
 		"5"
 	],
 	"filament_long_retractions_when_cut": [

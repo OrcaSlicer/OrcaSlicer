@@ -32,27 +32,35 @@
 	"machine_end_gcode": "M104 S0\n;Retract the filament\nG92 E1\nG1 E-1 F300\nG1 X0 Y140\nG1 Y150 F4000\nM18 X Y E\nM18 S36000",
 	"machine_load_filament_time": "0.5",
 	"machine_max_acceleration_e": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_x": [
+		"2000",
 		"2000"
 	],
 	"machine_max_acceleration_y": [
+		"2000",
 		"2000"
 	],
 	"machine_max_acceleration_z": [
+		"400",
 		"400"
 	],
 	"machine_max_speed_e": [
+		"30",
 		"30"
 	],
 	"machine_max_speed_x": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_y": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_z": [
+		"12",
 		"12"
 	],
 	"machine_start_gcode": "M104 S{first_layer_temperature[0]} ; Begin Heating\n\nG91 ; Relative coordinates\nG1 Z10 ; Lift the head abit\nG90 ; Back to absolute coordinates\nG28 ; Home All\nG1 Z10 F500 ; Dont want to burn the bed while heating\nM109 S{first_layer_temperature[0]} ; Wait for pre-heat\n; Prime the extruder\nG92 E0 ; Set Extruder position to be 0\nG1 E5 F100 ; Extrude a bit in the air\nG1 X0 Y5 Z0.1 F500 ; Touch Down\nG92 E0 ; Set Extruder position to be 0\nG1 X100 Z0.3 E10 F500 ; Nozzle wipe\nG92 E0 ; Set Extruder position to be 0",

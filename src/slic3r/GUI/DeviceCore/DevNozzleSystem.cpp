@@ -4,16 +4,36 @@
 #include "DevNozzleSystem.h"
 #include "DevUtil.h"
 
+#include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/PrintConfig.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/string.h>
+#include <string>
+#include "libslic3r/CommonDefs.hpp"
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include <cassert>
+#include <memory>
+#include <map>
+#include <vector>
+#include "libslic3r/MultiNozzleUtils.hpp"
+#include <utility>
+#include <exception>
+#include <unordered_map>
+#include <optional>
+#include <cmath>
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {
 
-// ---- DevNozzle: flow/volume conversions (Standard / High Flow / TPU High Flow) ----------------------
+// ---- DevNozzle: flow/volume conversions (Standard / High Flow / TPU High Flow / E3D High Flow) ------
 // Device-reported U_FLOW nozzles map to nvtTPUHighFlow so a synced TPU-HF rack activates the H2C
 // change_filament_gcode TPU-kit branch. nvtHybrid is a slicer-only sentinel with no device
 // representation, so ToNozzleFlowType(nvtHybrid) falls through to NONE_FLOWTYPE.
@@ -24,6 +44,7 @@ NozzleFlowType DevNozzle::ToNozzleFlowType(const NozzleVolumeType& type)
         case NozzleVolumeType::nvtStandard:    return NozzleFlowType::S_FLOW;
         case NozzleVolumeType::nvtHighFlow:    return NozzleFlowType::H_FLOW;
         case NozzleVolumeType::nvtTPUHighFlow: return NozzleFlowType::U_FLOW;
+        case NozzleVolumeType::nvtE3DHighFlow: return NozzleFlowType::E_FLOW;
         default: return NozzleFlowType::NONE_FLOWTYPE;
     }
 }
@@ -34,6 +55,7 @@ NozzleVolumeType DevNozzle::ToNozzleVolumeType(const NozzleFlowType& type)
         case NozzleFlowType::S_FLOW: return NozzleVolumeType::nvtStandard;
         case NozzleFlowType::H_FLOW: return NozzleVolumeType::nvtHighFlow;
         case NozzleFlowType::U_FLOW: return NozzleVolumeType::nvtTPUHighFlow;
+        case NozzleFlowType::E_FLOW: return NozzleVolumeType::nvtE3DHighFlow;
         default: {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << "nozzle flow type None convert to nozzle volume type Standard";
             return NozzleVolumeType::nvtStandard;
@@ -47,6 +69,7 @@ wxString DevNozzle::GetNozzleFlowTypeStr(NozzleFlowType type)
     case NozzleFlowType::H_FLOW: return _L("High Flow");
     case NozzleFlowType::S_FLOW: return _L("Standard");
     case NozzleFlowType::U_FLOW: return _L("TPU High Flow");
+    case NozzleFlowType::E_FLOW: return _L("E3D High Flow");
     default: break;
     }
 
@@ -61,6 +84,7 @@ std::string DevNozzle::GetNozzleFlowTypeString(NozzleFlowType type)
         case NozzleFlowType::H_FLOW: return "High Flow";
         case NozzleFlowType::S_FLOW: return "Standard";
         case NozzleFlowType::U_FLOW: return "TPU High Flow";
+        case NozzleFlowType::E_FLOW: return "E3D High Flow";
         default: return "Unknown";
     }
 }
@@ -73,6 +97,7 @@ std::string DevNozzle::ToNozzleFlowString(const NozzleFlowType& type)
         case NozzleFlowType::S_FLOW: return "Standard";
         case NozzleFlowType::H_FLOW: return "High Flow";
         case NozzleFlowType::U_FLOW: return "TPU High Flow";
+        case NozzleFlowType::E_FLOW: return "E3D High Flow";
         default: return std::string();
     }
 }
@@ -401,16 +426,17 @@ void DevNozzleSystem::ClearNozzles()
 
 // ---- parsing ----------------------------------------------------------------------------------------
 
-static unordered_map<string, NozzleFlowType> _str2_nozzle_flow_type = {
+static std::unordered_map<std::string, NozzleFlowType> _str2_nozzle_flow_type = {
     {"S", NozzleFlowType::S_FLOW},
     {"H", NozzleFlowType::H_FLOW},
     {"A", NozzleFlowType::S_FLOW},
     {"X", NozzleFlowType::S_FLOW},
     {"E", NozzleFlowType::H_FLOW}, // E3D high-flow
     {"U", NozzleFlowType::U_FLOW}, // TPU 1.75 high-flow -> nvtTPUHighFlow
+    {"B", NozzleFlowType::E_FLOW}, // E3D High Flow -> nvtE3DHighFlow
 };
 
-static unordered_map<string, NozzleType> _str2_nozzle_type = {
+static std::unordered_map<std::string, NozzleType> _str2_nozzle_type = {
     {"00", NozzleType::ntStainlessSteel},
     {"01", NozzleType::ntHardenedSteel},
     {"05", NozzleType::ntTungstenCarbide}

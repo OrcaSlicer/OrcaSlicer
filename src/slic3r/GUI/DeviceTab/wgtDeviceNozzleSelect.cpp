@@ -12,6 +12,16 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceTab/wgtMsgBox.h"
 #include "slic3r/GUI/Widgets/Label.hpp" // Orca: explicit Label include
+#include <wx/colour.h>
+#include <vector>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/sizer.h>
+#include <memory>
+#include <optional>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 static wxColour s_gray_clr("#B0B0B0");
 static wxColour s_hgreen_clr("#009688"); // Orca: accent green

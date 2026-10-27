@@ -19,12 +19,12 @@
 # working tree to a per-volume staging dir on that host and re-runs this same script
 # there, so the verification contract is identical either way. Drop --host once the image
 # is present locally.
-# Rig build traps already paid for once each (stale project, NLopt cache, pybind11, OCCT_LIBS, SLIC3R_CAD gate): docs/rig_build_traps.md
+# Rig build traps already paid for once each (stale project, NLopt cache, pybind11, OCCT_LIBS, SLIC3R_CAD gate): scripts/CAD/rig_build_traps.md
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # orcacad-deps, NOT snapmaker-deps: this fork is mainline-based and needs Eigen 5.0.1,
-# CGAL 5.6.3, wx 3.3.2 and Python 3.12 Development.Embed, none of which snapmaker-deps has.
+# CGAL 6.2.1, wx 3.3.2 and Python 3.12 Development.Embed, none of which snapmaker-deps has.
 # With the wrong image CMake dies at configure, which is exactly why this fork went
 # M1-M8 without ever compiling (see commit 1633005bba).
 IMAGE="${IMAGE:-orcacad-deps}"

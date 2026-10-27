@@ -1,6 +1,8 @@
 #ifndef SLIC3R_GUI_PLUGINPICKERDIALOG_HPP
 #define SLIC3R_GUI_PLUGINPICKERDIALOG_HPP
 
+#include <wx/string.h>
+#include "slic3r/plugin/PluginDescriptor.hpp"
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
 #    include <wx/wx.h>

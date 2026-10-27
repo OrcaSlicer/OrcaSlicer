@@ -1,5 +1,10 @@
 #include <catch2/catch_all.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Layer.hpp"
@@ -10,8 +15,18 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/PrintConfig.hpp"
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "test_helpers.hpp"
@@ -259,6 +274,124 @@ TEST_CASE("Only one wall on the first layer needs a bottom shell", "[Perimeters]
     CHECK(one_wall < plain);
     // No bottom shell: the option is inert, down to the same walls an unchecked box gives.
     CHECK_THAT(one_wall_no_shell, Catch::Matchers::WithinAbs(plain_no_shell, 1.0));
+}
+
+namespace {
+
+// The last layer of the tab, whose top surface shares an island with the tube walls rising past it.
+const double tab_top_z = 5.0;
+
+// With the widths below the tube walls are 1.10mm wide once the precise outer wall offset (0.043mm a side) is
+// taken off. That is narrower than 3 outer wall spacings (3 x 0.377 = 1.131mm), so an Arachne pass limited to a
+// single wall fills it by widening its 2 beads, yet wide enough for the full 2 wall pass to add a middle wall
+// (from 1.062mm).
+const double narrow_wall = 1.186;
+
+// A 20x30x10 tube with narrow_wall thick walls, and a 20x8x5 tab against its -Y side.
+Print &tube_with_tab(Print &print, Model &model, const DynamicPrintConfig &config)
+{
+    ModelObject *object = model.add_object();
+    object->name = "tube_with_tab.stl";
+    object->add_volume(make_cube(20., 30., 10.), ModelVolumeType::MODEL_PART, false);
+    // Overlaps the tube wall by 0.5mm so the two parts slice as one island.
+    TriangleMesh tab = make_cube(20., 8.5, 5.);
+    tab.translate(0.f, -8.f, 0.f);
+    object->add_volume(std::move(tab), ModelVolumeType::MODEL_PART, false);
+    TriangleMesh bore = make_cube(20. - 2. * narrow_wall, 30. - 2. * narrow_wall, 12.);
+    bore.translate(float(narrow_wall), float(narrow_wall), -1.f);
+    object->add_volume(std::move(bore), ModelVolumeType::NEGATIVE_VOLUME, false);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    return print;
+}
+
+// Every width the narrow_wall arithmetic depends on, so none of them rests on a default.
+DynamicPrintConfig narrow_wall_config(bool only_one_wall_top, double top_surface_expansion)
+{
+    DynamicPrintConfig config = base_config("arachne");
+    config.set_deserialize_strict({
+        { "wall_loops",            2 },
+        { "nozzle_diameter",       "0.4" },
+        { "line_width",            0.42 },
+        { "outer_wall_line_width", 0.42 },
+        { "inner_wall_line_width", 0.45 },
+        { "min_bead_width",        "85%" },
+        { "precise_outer_wall",    true },
+        { "wall_sequence",         "inner wall/outer wall" },
+        { "only_one_wall_top",     only_one_wall_top },
+        { "top_surface_expansion", top_surface_expansion },
+    });
+    return config;
+}
+
+// Inner wall length the layer at print_z extrudes within 3mm of its +Y edge: the tube wall facing away from the tab.
+double far_wall_inner_wall_length(const Print &print, double print_z)
+{
+    for (const Layer *layer : print.objects().front()->layers()) {
+        if (std::abs(layer->print_z - print_z) > EPSILON)
+            continue;
+        BoundingBox band = get_extents(layer->lslices);
+        band.min.y()     = band.max.y() - scaled<coord_t>(3.);
+
+        Polylines inner_walls;
+        auto      collect = [&inner_walls](const ExtrusionPaths &paths) {
+            for (const ExtrusionPath &path : paths)
+                if (path.role() == erPerimeter)
+                    inner_walls.emplace_back(path.as_polyline());
+        };
+        for (const LayerRegion *region : layer->regions()) {
+            const ExtrusionEntityCollection walls = region->perimeters.flatten();
+            for (const ExtrusionEntity *entity : walls.entities) {
+                if (const auto *loop = dynamic_cast<const ExtrusionLoop*>(entity))
+                    collect(loop->paths);
+                else if (const auto *multi_path = dynamic_cast<const ExtrusionMultiPath*>(entity))
+                    collect(multi_path->paths);
+                else if (const auto *path = dynamic_cast<const ExtrusionPath*>(entity))
+                    collect({ *path });
+            }
+        }
+        return unscaled<double>(total_length(intersection_pl(inner_walls, band.polygon())));
+    }
+    return 0.;
+}
+
+} // namespace
+
+// only_one_wall_top first lays out an island with a single Arachne wall and generates the inner walls inside it.
+// On a wall narrower than 3 outer wall spacings that single wall pass widens its 2 beads to fill the wall and leaves
+// no room for the middle wall, which is only intended over the top surface. The tube walls away from the tab are not
+// under the tab's top surface, so on the tab's last layer they keep the inner wall they get with the option off.
+TEST_CASE("Only one wall on top surfaces keeps the inner walls of narrow walls away from the top surface", "[Perimeters]")
+{
+    // 0 re-onions the region beside the top surface, 2 clips the inner walls over it.
+    const double top_surface_expansion = GENERATE(0.0, 2.0);
+    CAPTURE(top_surface_expansion);
+
+    struct TabTopLayer {
+        double perimeters;
+        double far_wall_inner_walls;
+    };
+    auto tab_top_layer_for = [top_surface_expansion](bool only_one_wall_top) {
+        Print print;
+        Model model;
+        tube_with_tab(print, model, narrow_wall_config(only_one_wall_top, top_surface_expansion));
+        print.process();
+        REQUIRE_FALSE(print.objects().empty());
+        return TabTopLayer{ perimeter_length_at(print, tab_top_z), far_wall_inner_wall_length(print, tab_top_z) };
+    };
+
+    const TabTopLayer plain    = tab_top_layer_for(false);
+    const TabTopLayer one_wall = tab_top_layer_for(true);
+
+    // The option acts on this layer: the inner walls under the tab's top surface are gone.
+    REQUIRE(plain.far_wall_inner_walls > 10.);
+    CHECK(one_wall.perimeters < plain.perimeters);
+    CHECK_THAT(one_wall.far_wall_inner_walls, Catch::Matchers::WithinAbs(plain.far_wall_inner_walls, 1.0));
 }
 
 namespace {
@@ -629,4 +762,617 @@ TEST_CASE("A lower layer sliver too thin to print does not support the wall abov
     CHECK_THAT(unprintable, Catch::Matchers::WithinAbs(no_rib, scale_(1.)));
     // A rib that does get printed takes the 20mm outer wall running along it out of the overhangs.
     CHECK(printable < no_rib - scale_(15.));
+}
+
+namespace {
+
+// Every setting the fuzzy skin assertions below depend on.
+DynamicPrintConfig fuzzy_skin_config(const char *wall_generator)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "wall_generator",             wall_generator },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        // One wall, so every wall point along the long sides belongs to the fuzzed outer wall.
+        { "wall_loops",                 1 },
+        { "fuzzy_skin",                 "external" },
+        { "fuzzy_skin_noise_type",      "classic" },
+        { "fuzzy_skin_thickness",       0.3 },
+        { "fuzzy_skin_point_distance",  0.8 },
+    });
+    return config;
+}
+
+// How far the wall points over the middle 60% of the layer's length stray across its width, worst side.
+// A negative result means there is no layer at `print_z`.
+double mid_span_wall_spread(const Print &print, double print_z)
+{
+    for (const Layer *layer : print.objects().front()->layers()) {
+        if (std::abs(layer->print_z - print_z) > 1e-4)
+            continue;
+        const BoundingBox bbox  = get_extents(layer->lslices);
+        const coord_t     x_min = bbox.min.x() + bbox.size().x() / 5;
+        const coord_t     x_max = bbox.max.x() - bbox.size().x() / 5;
+        Points            points;
+        for (const LayerRegion *region : layer->regions())
+            region->perimeters.collect_points(points);
+        coord_t spread = 0;
+        for (const bool south : { true, false }) {
+            coord_t lo = bbox.max.y(), hi = bbox.min.y();
+            for (const Point &p : points)
+                if (p.x() > x_min && p.x() < x_max && (p.y() < bbox.center().y()) == south) {
+                    lo = std::min(lo, p.y());
+                    hi = std::max(hi, p.y());
+                }
+            spread = std::max(spread, hi - lo);
+        }
+        return unscale<double>(spread);
+    }
+    return -1.;
+}
+
+} // namespace
+
+// TestMesh::bridge is a 50x10mm deck from z=5 to z=8 on two 5mm-wide pillars, leaving a 40mm span. The deck's
+// first layer (print_z 5.2) crosses the span unsupported; the layers above it rest on the deck.
+TEST_CASE("Fuzzy skin leaves the walls of a bridge smooth", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    Print print;
+    init_and_process_print({ TestMesh::bridge }, print, fuzzy_skin_config(wall_generator));
+    REQUIRE_FALSE(print.objects().empty());
+
+    // Control: one deck layer up the same walls rest on the deck, so they are fuzzed.
+    CHECK(mid_span_wall_spread(print, 5.6) > 0.1);
+    // Over the unsupported span the walls stay straight.
+    const double bridged = mid_span_wall_spread(print, 5.2);
+    CHECK(bridged >= 0.);
+    CHECK(bridged < 0.001);
+}
+
+// One object: a 20x20x3mm block on the bed and a second one floating above it from z=5 to z=8. The layers in
+// the gap are empty, so the floating block's first layer (print_z 5.2) has a layer below it with nothing
+// printed on it; the layers above rest on the floating block.
+TEST_CASE("Fuzzy skin leaves the walls over an empty layer smooth", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    TriangleMesh mesh     = make_cube(20., 20., 3.);
+    TriangleMesh floating = make_cube(20., 20., 3.);
+    floating.translate(0.f, 0.f, 5.f);
+    mesh.merge(floating);
+
+    Print print;
+    init_and_process_print({ mesh }, print, fuzzy_skin_config(wall_generator));
+    REQUIRE_FALSE(print.objects().empty());
+
+    // Control: one layer up the walls rest on the floating block, so they are fuzzed.
+    CHECK(mid_span_wall_spread(print, 5.6) > 0.1);
+    // Nothing is printed under the first floating layer, so its walls stay straight.
+    const double floating_first_layer = mid_span_wall_spread(print, 5.2);
+    CHECK(floating_first_layer >= 0.);
+    CHECK(floating_first_layer < 0.001);
+}
+
+namespace {
+
+// A 20x20x5mm square tube whose walls are `wall` mm thick, except the far one at `far_wall` mm.
+Print &square_tube(Print &print, Model &model, const DynamicPrintConfig &config, double wall, double far_wall)
+{
+    ModelObject *object = model.add_object();
+    object->name = "square_tube.stl";
+    object->add_volume(make_cube(20., 20., 5.), ModelVolumeType::MODEL_PART, false);
+    TriangleMesh cavity = make_cube(20. - 2. * wall, 20. - wall - far_wall, 5.);
+    cavity.translate(float(wall), float(wall), 0.f);
+    object->add_volume(std::move(cavity), ModelVolumeType::NEGATIVE_VOLUME, false);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    print.process();
+    return print;
+}
+
+// Every setting the wall thicknesses below are measured against. With these widths the two outer walls of
+// a 0.8mm wall touch, a 1mm wall leaves a gap between them for gap fill, and an inner wall needs about 1.5mm.
+// Both one wall options are on, so the first and the last layer have a single wall whatever wall_loops asks.
+DynamicPrintConfig hole_direction_config(int wall_loops, const char *wall_direction)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "wall_generator",             "classic" },
+        { "wall_direction",             wall_direction },
+        { "wall_loops",                 wall_loops },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "outer_wall_line_width",      0.42 },
+        { "inner_wall_line_width",      0.45 },
+        { "detect_thin_wall",           false },
+        { "filter_out_gap_fill",        0 },
+        { "top_shell_layers",           3 },
+        { "bottom_shell_layers",        3 },
+        { "only_one_wall_top",          true },
+        { "only_one_wall_first_layer",  true },
+        { "overhang_reverse",           false },
+        { "sparse_infill_density",      "15%" },
+    });
+    return config;
+}
+
+// The outer walls of a layer, contours and holes apart, and how many inner walls and gap fills it has.
+struct WallDirections {
+    std::vector<bool> contours_ccw;
+    std::vector<bool> holes_ccw;
+    int               inner_walls = 0;
+    size_t            gap_fills   = 0;
+};
+
+std::vector<WallDirections> wall_directions(const Print &print)
+{
+    std::vector<WallDirections> out;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        WallDirections &walls = out.emplace_back();
+        for (const LayerRegion *region : layer->regions()) {
+            walls.gap_fills += region->thin_fills.flatten().entities.size();
+            for (const ExtrusionEntity *entity : region->perimeters.flatten().entities) {
+                if (! entity->is_loop())
+                    continue;
+                const ExtrusionLoop *loop = static_cast<const ExtrusionLoop*>(entity);
+                if (loop->inset_idx > 0)
+                    ++ walls.inner_walls;
+                else
+                    (loop->loop_role() == elrHole ? walls.holes_ccw : walls.contours_ccw).push_back(loop->polygon().is_counter_clockwise());
+            }
+        }
+    }
+    return out;
+}
+
+} // namespace
+
+// Holes run against the wall direction, so the inside of a hole keeps its direction on the layers where the
+// hole opens into the contour. That holds on every layer, the single wall ones included, as soon as anything
+// fits beside the outer wall of the hole: infill, an inner wall, or only gap fill. The 1mm tube with a 3mm far
+// side is the shape that used to flip, where the far side has an inner wall on most layers and gap fill runs
+// around the rest.
+TEST_CASE("Holes run against the wall direction", "[Perimeters]")
+{
+    const auto [wall, far_wall] = GENERATE(std::make_pair(7., 7.), std::make_pair(1., 1.), std::make_pair(1., 3.));
+    const int   wall_loops      = GENERATE(1, 2);
+    const char *wall_direction  = GENERATE("ccw", "cw");
+    CAPTURE(wall, far_wall, wall_loops, wall_direction);
+
+    Print print;
+    Model model;
+    square_tube(print, model, hole_direction_config(wall_loops, wall_direction), wall, far_wall);
+    const std::vector<WallDirections> layers = wall_directions(print);
+    // 5mm at 0.2mm layers.
+    REQUIRE(layers.size() == 25);
+    // Without gap fill between the outer walls the thin tubes would test the case below instead.
+    if (wall < 2.)
+        REQUIRE(layers[layers.size() / 2].gap_fills > 0);
+
+    const bool ccw = std::string(wall_direction) == "ccw";
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        CAPTURE(i);
+        REQUIRE(layers[i].contours_ccw.size() == 1);
+        REQUIRE(layers[i].holes_ccw.size() == 1);
+        CHECK(layers[i].contours_ccw.front() == ccw);
+        CHECK(layers[i].holes_ccw.front() == ! ccw);
+    }
+}
+
+// A hole whose outer wall touches the contour's all around, with nothing between them, runs with the contour
+// on every layer, so the two walls of a thin tube are laid side by side in the same direction.
+TEST_CASE("A hole whose outer wall touches the contour's runs with it", "[Perimeters]")
+{
+    const int   wall_loops     = GENERATE(1, 2);
+    const char *wall_direction = GENERATE("ccw", "cw");
+    CAPTURE(wall_loops, wall_direction);
+
+    Print print;
+    Model model;
+    square_tube(print, model, hole_direction_config(wall_loops, wall_direction), 0.8, 0.8);
+    const std::vector<WallDirections> layers = wall_directions(print);
+    REQUIRE(layers.size() == 25);
+    // Nothing fits between the two outer walls.
+    REQUIRE(layers[layers.size() / 2].gap_fills == 0);
+    REQUIRE(layers[layers.size() / 2].inner_walls == 0);
+
+    const bool ccw = std::string(wall_direction) == "ccw";
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        CAPTURE(i);
+        REQUIRE(layers[i].contours_ccw.size() == 1);
+        REQUIRE(layers[i].holes_ccw.size() == 1);
+        CHECK(layers[i].contours_ccw.front() == ccw);
+        CHECK(layers[i].holes_ccw.front() == ccw);
+    }
+}
+
+namespace {
+
+// The outer radius of round_tube().
+const double tube_radius = 11.5;
+
+// Every setting the tube walls below are measured against. With 0.5mm walls a 1mm tube wall holds only the two
+// outer walls, touching, and every further 0.5mm makes room for one more inner wall.
+DynamicPrintConfig tube_config(const char *wall_generator, int wall_loops)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "wall_generator",             wall_generator },
+        { "wall_loops",                 wall_loops },
+        { "wall_sequence",              "inner wall/outer wall" },
+        { "wall_direction",             "ccw" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "nozzle_diameter",            "0.4" },
+        { "outer_wall_line_width",      0.5 },
+        { "inner_wall_line_width",      0.5 },
+        { "precise_outer_wall",         true },
+        { "detect_thin_wall",           false },
+        { "only_one_wall_top",          false },
+        { "only_one_wall_first_layer",  false },
+        { "brim_type",                  "no_brim" },
+        { "detect_overhang_wall",       true },
+        { "overhang_reverse",           false },
+        { "overhang_reverse_threshold", "0%" },
+    });
+    return config;
+}
+
+// A 2mm tall round tube whose wall is `wall` mm thick.
+Print &round_tube(Print &print, Model &model, const DynamicPrintConfig &config, double wall)
+{
+    ModelObject *object = model.add_object();
+    object->name = "round_tube.stl";
+    object->add_volume(make_cylinder(tube_radius, 2.), ModelVolumeType::MODEL_PART, false);
+    object->add_volume(make_cylinder(tube_radius - wall, 2.), ModelVolumeType::NEGATIVE_VOLUME, false);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    print.process();
+    return print;
+}
+
+// The side of the tube wall a wall loop lies on. The centre is the middle of the tube wall, where Arachne lays the
+// inner wall both sides share when the tube wall is too narrow for a pair of them.
+enum class TubeSide { Contour, Hole, Centre };
+
+struct TubeLoop {
+    TubeSide side;
+    int      inset;
+    bool     ccw;
+};
+
+// The wall loops of every layer of round_tube() in extrusion order.
+std::vector<std::vector<TubeLoop>> tube_loops(const Print &print, double wall)
+{
+    const double centre = tube_radius - 0.5 * wall;
+    std::vector<std::vector<TubeLoop>> out;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        const Vec2d axis = get_extents(layer->lslices).center().cast<double>();
+        std::vector<TubeLoop> &loops = out.emplace_back();
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->perimeters.flatten().entities) {
+                if (! entity->is_loop())
+                    continue;
+                const ExtrusionLoop *loop    = static_cast<const ExtrusionLoop*>(entity);
+                const Polygon        polygon = loop->polygon();
+                double               radius  = 0.;
+                for (const Point &p : polygon.points)
+                    radius += unscaled<double>((p.cast<double>() - axis).norm());
+                radius /= double(polygon.points.size());
+                const TubeSide side = radius > centre + 0.1 ? TubeSide::Contour : radius < centre - 0.1 ? TubeSide::Hole : TubeSide::Centre;
+                loops.push_back({ side, loop->inset_idx, polygon.is_counter_clockwise() });
+            }
+    }
+    return out;
+}
+
+// The insets one side of a wall is printed in, given its deepest inset: inside out for Inner/Outer, outside in for
+// Outer/Inner, and for Inner/Outer/Inner the third wall onwards inside out, then the outer wall, then the first inner
+// wall. Inner/Outer/Inner prints its first layer Inner/Outer, and outside in when there is no third wall.
+std::vector<int> wall_sequence_insets(const std::string &wall_sequence, bool first_layer, int deepest)
+{
+    std::vector<int> insets;
+    if (wall_sequence == "inner wall/outer wall" || (wall_sequence == "inner-outer-inner wall" && first_layer)) {
+        for (int inset = deepest; inset >= 0; -- inset)
+            insets.push_back(inset);
+    } else if (wall_sequence == "outer wall/inner wall" || deepest < 2) {
+        for (int inset = 0; inset <= deepest; ++ inset)
+            insets.push_back(inset);
+    } else {
+        for (int inset = deepest; inset >= 2; -- inset)
+            insets.push_back(inset);
+        insets.push_back(0);
+        insets.push_back(1);
+    }
+    return insets;
+}
+
+// Whether a wall of round_tube() runs with the contour: all but the walls of the hole, and those too when the hole
+// is a thin wall hole, its outer wall touching the contour's with nothing between them.
+bool runs_with_contour(const TubeLoop &loop, bool thin_wall_hole)
+{
+    return loop.side != TubeSide::Hole || thin_wall_hole;
+}
+
+// The insets of the walls on one side of a round_tube() layer, the shared centre line included, in extrusion order.
+std::vector<int> side_insets(const std::vector<TubeLoop> &loops, TubeSide side)
+{
+    std::vector<int> insets;
+    for (const TubeLoop &loop : loops)
+        if (loop.side == side || loop.side == TubeSide::Centre)
+            insets.push_back(loop.inset);
+    return insets;
+}
+
+// The walls of a round_tube() layer in extrusion order, as side and inset: "c0 c1 h0 h1" is the contour's outer wall,
+// then its first inner wall, then the same for the hole, and "m" marks the wall in the middle both sides share.
+std::string wall_order(const std::vector<TubeLoop> &loops)
+{
+    std::string out;
+    for (const TubeLoop &loop : loops)
+        out += std::string(out.empty() ? "" : " ") + (loop.side == TubeSide::Contour ? "c" : loop.side == TubeSide::Hole ? "h" : "m") +
+               std::to_string(loop.inset);
+    return out;
+}
+
+} // namespace
+
+// Each side of a tube wall prints its walls in the order the wall sequence asks for, from two walls a side up to
+// four. The inner wall Arachne lays in the middle of a wall too narrow for a pair of them is an inner wall of both
+// sides; Classic fills that middle with gap fill instead, so it has one wall less a side there.
+TEST_CASE("Each side of a tube wall prints its walls in the wall sequence order", "[Perimeters]")
+{
+    struct TubeWall {
+        double wall;
+        int    wall_loops;
+        // Walls a side, a shared inner wall included.
+        int    arachne_walls;
+        int    classic_walls;
+    };
+    const TubeWall tube = GENERATE(values<TubeWall>({
+        { 1.5, 3, 2, 1 }, { 2.0, 2, 2, 2 }, { 2.5, 3, 3, 2 }, { 3.0, 3, 3, 3 }, { 4.0, 4, 4, 4 } }));
+    const char       *wall_generator = GENERATE("classic", "arachne");
+    const std::string wall_sequence  = GENERATE("inner wall/outer wall", "outer wall/inner wall", "inner-outer-inner wall");
+    CAPTURE(tube.wall, tube.wall_loops, wall_generator, wall_sequence);
+
+    DynamicPrintConfig config = tube_config(wall_generator, tube.wall_loops);
+    config.set_deserialize_strict("wall_sequence", wall_sequence);
+    Print print;
+    Model model;
+    round_tube(print, model, config, tube.wall);
+    const std::vector<std::vector<TubeLoop>> layers = tube_loops(print, tube.wall);
+    // 2mm at 0.2mm layers.
+    REQUIRE(layers.size() == 10);
+
+    const int walls = std::string(wall_generator) == "arachne" ? tube.arachne_walls : tube.classic_walls;
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        for (const TubeSide side : { TubeSide::Contour, TubeSide::Hole }) {
+            const bool contour_side = side == TubeSide::Contour;
+            CAPTURE(i, contour_side);
+            const std::vector<int> insets = side_insets(layers[i], side);
+            REQUIRE(int(insets.size()) == walls);
+            CHECK(insets == wall_sequence_insets(wall_sequence, i == 0, walls - 1));
+        }
+    }
+}
+
+// The outer wall of a thin wall hole touches the contour's with nothing between them. The hole is printed first, so
+// the contour leans on it, unless the wall sequence puts the outer walls first.
+TEST_CASE("A thin wall hole is printed before the contour unless the outer walls go first", "[Perimeters]")
+{
+    const char       *wall_generator = GENERATE("classic", "arachne");
+    const std::string wall_sequence  = GENERATE("inner wall/outer wall", "outer wall/inner wall", "inner-outer-inner wall");
+    CAPTURE(wall_generator, wall_sequence);
+
+    DynamicPrintConfig config = tube_config(wall_generator, 3);
+    config.set_deserialize_strict("wall_sequence", wall_sequence);
+    Print print;
+    Model model;
+    round_tube(print, model, config, 1.);
+    const std::vector<std::vector<TubeLoop>> layers = tube_loops(print, 1.);
+    REQUIRE(layers.size() == 10);
+
+    const TubeSide first = wall_sequence == "outer wall/inner wall" ? TubeSide::Contour : TubeSide::Hole;
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        CAPTURE(i);
+        REQUIRE(layers[i].size() == 2);
+        REQUIRE(layers[i][0].side != layers[i][1].side);
+        CHECK(layers[i].front().side == first);
+    }
+}
+
+// A 1.5mm tube wall leaves Inner/Outer/Inner no third wall to sandwich, only the inner wall Arachne lays in the middle
+// for both sides, or Classic's gap fill. Past the first layer it prints the hole first, then the contour, then the
+// middle.
+TEST_CASE("Inner/Outer/Inner prints the hole of a narrow tube wall first and the middle last", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    DynamicPrintConfig config = tube_config(wall_generator, 3);
+    config.set_deserialize_strict("wall_sequence", "inner-outer-inner wall");
+    Print print;
+    Model model;
+    round_tube(print, model, config, 1.5);
+    const std::vector<std::vector<TubeLoop>> layers = tube_loops(print, 1.5);
+    REQUIRE(layers.size() == 10);
+
+    // Classic's gap fill is not a wall loop, and goes after the walls.
+    const std::string expected = std::string(wall_generator) == "arachne" ? "h0 c0 m1" : "h0 c0";
+    for (size_t i = 1; i < layers.size(); ++ i) {
+        CAPTURE(i);
+        CHECK(wall_order(layers[i]) == expected);
+    }
+}
+
+// The contour's walls run in the wall direction and the hole's against it, except that the walls of a thin wall
+// hole run with the contour, as does the inner wall Arachne shares between both sides of a 1.5mm tube wall.
+TEST_CASE("Tube walls run in the wall direction and hole walls against it", "[Perimeters]")
+{
+    const double      wall           = GENERATE(1.0, 1.5, 2.0, 3.0);
+    const char       *wall_generator = GENERATE("classic", "arachne");
+    const std::string wall_direction = GENERATE("ccw", "cw");
+    CAPTURE(wall, wall_generator, wall_direction);
+
+    DynamicPrintConfig config = tube_config(wall_generator, 3);
+    config.set_deserialize_strict("wall_direction", wall_direction);
+    Print print;
+    Model model;
+    round_tube(print, model, config, wall);
+    const std::vector<std::vector<TubeLoop>> layers = tube_loops(print, wall);
+    REQUIRE(layers.size() == 10);
+
+    const bool thin_wall_hole = wall == 1.;
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        CAPTURE(i);
+        REQUIRE(std::any_of(layers[i].begin(), layers[i].end(), [](const TubeLoop &loop) { return loop.side == TubeSide::Contour; }));
+        REQUIRE(std::any_of(layers[i].begin(), layers[i].end(), [](const TubeLoop &loop) { return loop.side == TubeSide::Hole; }));
+        for (const TubeLoop &loop : layers[i]) {
+            CAPTURE(int(loop.side), loop.inset);
+            CHECK(loop.ccw == (runs_with_contour(loop, thin_wall_hole) == (wall_direction == "ccw")));
+        }
+    }
+}
+
+// Reverse on even with no threshold reverses every wall of every other layer, or only the inner walls when it is
+// restricted to them, and leaves the order of the walls alone.
+TEST_CASE("Reverse on even reverses the tube walls of every other layer", "[Perimeters]")
+{
+    const double wall                  = GENERATE(1.0, 1.5, 3.0);
+    const char  *wall_generator        = GENERATE("classic", "arachne");
+    const bool   reverse_internal_only = GENERATE(false, true);
+    CAPTURE(wall, wall_generator, reverse_internal_only);
+
+    auto slice = [&](bool overhang_reverse) {
+        DynamicPrintConfig config = tube_config(wall_generator, 3);
+        config.set_deserialize_strict({
+            { "overhang_reverse",               overhang_reverse },
+            { "overhang_reverse_internal_only", reverse_internal_only },
+        });
+        Print print;
+        Model model;
+        round_tube(print, model, config, wall);
+        return tube_loops(print, wall);
+    };
+    const std::vector<std::vector<TubeLoop>> plain    = slice(false);
+    const std::vector<std::vector<TubeLoop>> reversed = slice(true);
+    REQUIRE(plain.size() == 10);
+    REQUIRE(reversed.size() == plain.size());
+
+    for (size_t i = 0; i < plain.size(); ++ i) {
+        CAPTURE(i);
+        REQUIRE(reversed[i].size() == plain[i].size());
+        for (size_t j = 0; j < plain[i].size(); ++ j) {
+            CAPTURE(j);
+            CHECK(reversed[i][j].side == plain[i][j].side);
+            CHECK(reversed[i][j].inset == plain[i][j].inset);
+            const bool flips = i % 2 == 1 && (! reverse_internal_only || plain[i][j].inset > 0);
+            CHECK(reversed[i][j].ccw == (plain[i][j].ccw != flips));
+        }
+    }
+}
+
+namespace {
+
+DynamicPrintConfig brim_tube_config(const char *wall_generator, const std::string &wall_sequence, const char *brim_type, double brim_width)
+{
+    DynamicPrintConfig config = tube_config(wall_generator, 3);
+    config.set_deserialize_strict({
+        { "wall_sequence", wall_sequence },
+        { "brim_type",     brim_type },
+        { "brim_width",    brim_width },
+    });
+    return config;
+}
+
+} // namespace
+
+// A brim against the outer walls makes the first layer print them first, whatever the wall sequence, so the brim runs
+// straight on into the outer wall: each side of the tube wall outside in, and the contour before a thin wall hole.
+// Brims that may leave the outer walls bare keep the wall sequence, and so do the layers above.
+TEST_CASE("A brim against the outer walls makes the first layer print them first", "[Perimeters]")
+{
+    struct Brim {
+        const char *type;
+        double      width;
+        bool        outer_walls_first;
+    };
+    const Brim brim = GENERATE(values<Brim>({
+        { "no_brim", 5., false }, { "inner_only", 5., false }, { "auto_brim", 5., false }, { "outer_only", 0., false },
+        { "outer_only", 5., true }, { "outer_and_inner", 5., true }, { "leading_edge_only", 5., true } }));
+    const double      wall           = GENERATE(1.0, 3.0);
+    const char       *wall_generator = GENERATE("classic", "arachne");
+    const std::string wall_sequence  = GENERATE("inner wall/outer wall", "inner-outer-inner wall");
+    CAPTURE(brim.type, brim.width, wall, wall_generator, wall_sequence);
+
+    Print print;
+    Model model;
+    round_tube(print, model, brim_tube_config(wall_generator, wall_sequence, brim.type, brim.width), wall);
+    const std::vector<std::vector<TubeLoop>> layers = tube_loops(print, wall);
+    REQUIRE(layers.size() == 10);
+
+    // The thin wall hole has its outer wall a side, the 3mm tube wall three walls a side.
+    const size_t walls = wall == 1. ? 1 : 3;
+    for (const size_t i : { size_t(0), size_t(1) }) {
+        const bool outer_walls_first = brim.outer_walls_first && i == 0;
+        for (const TubeSide side : { TubeSide::Contour, TubeSide::Hole }) {
+            const bool contour_side = side == TubeSide::Contour;
+            CAPTURE(i, contour_side);
+            const std::vector<int> insets = side_insets(layers[i], side);
+            REQUIRE(insets.size() == walls);
+            CHECK(insets == wall_sequence_insets(outer_walls_first ? "outer wall/inner wall" : wall_sequence, i == 0, int(walls) - 1));
+        }
+        if (wall == 1.)
+            CHECK(layers[i].front().side == (outer_walls_first ? TubeSide::Contour : TubeSide::Hole));
+    }
+}
+
+// Changing the brim of a sliced print regenerates the walls when the first layer's wall order changes with it, so
+// the print gets the walls a slice from scratch with the new brim gets.
+TEST_CASE("Changing the brim updates the wall order of the first layer", "[Perimeters]")
+{
+    struct BrimChange {
+        const char *from_type;
+        double      from_width;
+        const char *to_type;
+        double      to_width;
+    };
+    const BrimChange change = GENERATE(values<BrimChange>({
+        { "outer_only", 0., "outer_only", 5. }, { "outer_only", 5., "outer_only", 0. },
+        { "no_brim", 5., "outer_and_inner", 5. }, { "outer_and_inner", 5., "inner_only", 5. } }));
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(change.from_type, change.from_width, change.to_type, change.to_width, wall_generator);
+
+    const std::string wall_sequence = "inner wall/outer wall";
+    Print print;
+    Model model;
+    round_tube(print, model, brim_tube_config(wall_generator, wall_sequence, change.from_type, change.from_width), 3.);
+    const std::string before = wall_order(tube_loops(print, 3.).front());
+    print.apply(model, brim_tube_config(wall_generator, wall_sequence, change.to_type, change.to_width));
+    print.process();
+    const std::string after = wall_order(tube_loops(print, 3.).front());
+
+    Print fresh_print;
+    Model fresh_model;
+    round_tube(fresh_print, fresh_model, brim_tube_config(wall_generator, wall_sequence, change.to_type, change.to_width), 3.);
+    const std::string fresh = wall_order(tube_loops(fresh_print, 3.).front());
+
+    // The change does turn the first layer around.
+    REQUIRE(before != fresh);
+    CHECK(after == fresh);
 }

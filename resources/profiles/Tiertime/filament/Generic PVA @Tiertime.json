@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA @Tiertime",
-	"inherits": "fdm_filament_pva",
 	"renamed_from": "Tiertime Generic PVA",
+	"inherits": "fdm_filament_pva",
 	"from": "system",
 	"setting_id": "6R2BduAh4ASmGbDd",
 	"filament_id": "OFDvXujf",

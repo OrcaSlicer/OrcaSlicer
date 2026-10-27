@@ -5,8 +5,17 @@
 #include "StateColor.hpp"
 #include "StaticBox.hpp"
 
+#include <cstddef>
 #include <vector>
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <wx/colour.h>
+#include <wx/dc.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
+#include <wx/scrolwin.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h>
 #include "Button.hpp"
 
@@ -161,8 +170,15 @@ public:
         btns[index]->SetTextColor(color);
         btns[index]->Refresh();
     }
+    void SetModified(int index, bool modified);
     void SetButtonCornerRadius(double radius);
+    // Padding around each button's label, in DIP. The switch converts it for the current DPI when it
+    // applies it, and again in Rescale().
     void SetButtonPadding(const wxSize &padding);
+
+    // Keep the switch exactly as wide as the buttons need instead of letting the layout stretch it.
+    // A layout with less room than that still squeezes it, and it scrolls its buttons then.
+    void SetFitToOptions(bool fit = true) { m_fit_to_options = fit; update_scroll_range(); }
 
     void Rescale();
 
@@ -173,14 +189,28 @@ protected:
     bool send_selection_event();
 
 private:
+    // Height of the single button row, measured from the buttons themselves.
+    int  options_height() const;
+    void update_scroll_range();
+    int  scrollbar_height(int options_width) const;
+    void scroll_option_into_view(Button *btn);
+    void on_size(wxSizeEvent &evt);
+
     std::vector<Button *> btns;
-    wxBoxSizer           *sizer = nullptr;
-    int                   sel   = -1;
+    std::vector<bool> btns_modified;
+    // The buttons are laid out inside this scrolled area so that a switch holding more options than
+    // the layout has room for scrolls instead of clipping its tail.
+    wxScrolledWindow     *m_scroll         = nullptr;
+    wxBoxSizer           *sizer            = nullptr;
+    bool                  m_fit_to_options = false;
+    int                   sel              = -1;
 
     StateColor m_bg_color;
     StateColor m_text_color;
+    StateColor m_br_color_modified;
+    StateColor m_fg_color_modified;
     double     m_button_radius;
-    wxSize     m_button_padding;
+    wxSize     m_button_padding; // in DIP
 };
 
 #endif // !slic3r_GUI_SwitchButton_hpp_
