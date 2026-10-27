@@ -1,7 +1,13 @@
 #include "3DPrinterOS.hpp"
 
 #include <algorithm>
+#include "slic3r/GUI/Widgets/DropDown.hpp"
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include <boost/optional/optional.hpp>
 #include <sstream>
+#include <string>
+#include <system_error>
 #include <exception>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
@@ -10,12 +16,16 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <nlohmann/json.hpp>
 
+#include <wx/arrstr.h>
+#include <wx/gdicmn.h>
+#include <utility>
 #include <wx/progdlg.h>
 #include <wx/string.h>
 #include <wx/event.h>
 #include <wx/dialog.h>
 #include <wx/radiobut.h>
 
+#include "PrintHost.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -29,11 +39,10 @@
 
 #include "Http.hpp"
 #include <wx/busyinfo.h>
+#include <wx/timer.h>
+#include <wx/utils.h>
 
 
-using json = nlohmann::json;
-
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace {
@@ -229,7 +238,7 @@ private:
         if (m_cancelled || m_attempt >= m_max_retries) {
             if (m_attempt >= m_max_retries) {
                 m_resp.put("result", false);
-                m_resp.put("message", "Maximum login retries exceeded");
+                m_resp.put("message", _u8L("Maximum login retries exceeded"));
             }
             wxQueueEvent(this, new wxThreadEvent(wxEVT_THREAD, wxID_ABORT));
             return;
@@ -247,7 +256,8 @@ private:
         http.on_error([this](std::string, std::string error, unsigned status) {
                 if (!m_cancelled) {
                     m_resp.put("result", false);
-                    m_resp.put("message", (status != 200) ? "HTTP error: " + std::to_string(status) : error);
+                    // TRN %1% is an HTTP status code.
+                    m_resp.put("message", (status != 200) ? Slic3r::GUI::format(_u8L("HTTP error: %1%"), status) : error);
                     wxQueueEvent(this, new wxThreadEvent(wxEVT_THREAD, wxID_ABORT));
                 }
             })
@@ -255,7 +265,7 @@ private:
                 if (!m_cancelled) {
                     if (status != 200) {
                         m_resp.put("result", false);
-                        m_resp.put("message", "HTTP error: " + std::to_string(status));
+                        m_resp.put("message", Slic3r::GUI::format(_u8L("HTTP error: %1%"), status));
                         wxQueueEvent(this, new wxThreadEvent(wxEVT_THREAD, wxID_ABORT));
                         return;
                     }
@@ -265,7 +275,7 @@ private:
                         pt::read_json(ss, m_resp);
                     } catch (...) {
                         m_resp.put("result", false);
-                        m_resp.put("message", "Could not parse server response");
+                        m_resp.put("message", _u8L("Could not parse server response."));
                     }
 
                     if (m_resp.get<bool>("result", false) && m_resp.get_optional<std::string>("message.session").has_value()) {
@@ -340,7 +350,7 @@ bool C3DPrinterOS::login(wxString& msg) const
             session = login_resp.get<std::string>("message.session");
             email   = login_resp.get<std::string>("message.email");
         } else {
-            msg = wxString(login_resp.get<std::string>("message").c_str());
+            msg = wxString::FromUTF8(login_resp.get<std::string>("message"));
             return false;
         }
     } catch (const std::exception&) {
@@ -356,7 +366,11 @@ bool C3DPrinterOS::login(wxString& msg) const
 
 wxString C3DPrinterOS::get_test_ok_msg() const 
 {
-    return _("Connection to 3DPrinterOS cloud works correctly.") + (!m_username.empty() ? "" + _(" Logined as user: ") + m_username : "");
+    wxString msg = _L("Connection to 3DPrinterOS cloud works correctly.");
+    if (!m_username.empty())
+        // TRN %1% is the 3DPrinterOS account (e-mail address).
+        msg += " " + GUI::format_wxstr(_L("Logged in as user: %1%"), m_username);
+    return msg;
 }
 
 wxString C3DPrinterOS::get_test_failed_msg(wxString &msg) const 
@@ -462,7 +476,7 @@ bool C3DPrinterOS::upload(
                 pt::read_json(ss, uploadResponse);
             } catch (const std::exception &) {
                 uploadResponse.put("result", false);
-                uploadResponse.put("message", "Could not parse server response");
+                uploadResponse.put("message", _u8L("Could not parse server response."));
             }
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
@@ -482,7 +496,7 @@ bool C3DPrinterOS::upload(
             file_id = uploadResponse.get<std::string>("message.file_id");
         } else {
             res = false;
-            error_fn(uploadResponse.get<std::string>("message"));
+            error_fn(wxString::FromUTF8(uploadResponse.get<std::string>("message")));
         }
     } catch (const std::exception &) { 
         res = false;
@@ -542,7 +556,7 @@ std::string C3DPrinterOS::get_api_auth_token(wxString &err) const
         if (resp.get<bool>("result")) {
             result = resp.get<std::string>("message");
         } else {
-            err = wxString(resp.get<std::string>("message").c_str());
+            err = wxString::FromUTF8(resp.get<std::string>("message"));
         }
     } catch (const std::exception &) {
         err = _L("Could not parse server response.");
@@ -564,7 +578,7 @@ bool C3DPrinterOS::check_session(wxString &msg) const {
         if (resp.get<bool>("result")) {
             return true;
         } else {
-            msg = wxString(resp.get<std::string>("message").c_str());
+            msg = wxString::FromUTF8(resp.get<std::string>("message"));
             return false;
         }
 
@@ -580,9 +594,10 @@ bool C3DPrinterOS::save_api_session(const std::string &session, const std::strin
     j.put("session", session);
     j.put("email", email);
     try {
-        auto temp_path = m_api_session_file_path + ".tmp";
-        pt::write_json(temp_path, j);
-        boost::filesystem::rename(temp_path, m_api_session_file_path);
+        std::ostringstream json;
+        pt::write_json(json, j);
+        if (const std::error_code ec = write_file_atomically(m_api_session_file_path, json.str()))
+            throw std::system_error(ec);
     } catch (const std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to write json to file. Path = "
                                  << m_api_session_file_path
@@ -636,7 +651,7 @@ void C3DPrinterOS::send_form(
                 pt::read_json(ss, responseTree);
             } catch (const std::exception &) {
                 responseTree.put("result", false);
-                responseTree.put("message", "Could not parse server response");
+                responseTree.put("message", _u8L("Could not parse server response."));
             }
         })
         .perform_sync();

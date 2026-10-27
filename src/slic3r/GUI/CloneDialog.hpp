@@ -1,5 +1,4 @@
-#ifndef slic3r_GUI_SingleChoice_hpp_
-#define slic3r_GUI_SingleChoice_hpp_
+#pragma once
 
 #include "GUI_Utils.hpp"
 #include "Plater.hpp"
@@ -10,6 +9,7 @@
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ProgressBar.hpp"
+#include "libslic3r/AppConfig.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -32,5 +32,3 @@ private:
 
 };
 }} // namespace Slic3r::GUI
-
-#endif

@@ -2,8 +2,15 @@
 
 #include "slic3r/GUI/GUI_Utils.hpp" // DPIFrame, DPIDialog, DPIAware<P>
 
+#include <wx/vector.h>
+#include <wx/inspector/plugin.h>
+#include <wx/string.h>
+#include <wx/rtti.h>
+#include <wx/object.h>
+#include <wx/inspector/object.h>
 #include <wx/window.h>
 #include <wx/crt.h>
+#include <wx/wxcrtvararg.h>
 
 namespace {
 

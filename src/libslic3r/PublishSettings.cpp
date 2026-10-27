@@ -1,5 +1,6 @@
 #include "PublishSettings.hpp"
 
+#include "Config.hpp"
 #include "PresetBundle.hpp"
 #include "Preset.hpp"
 #include "PrintConfig.hpp"
@@ -8,8 +9,11 @@
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <cstddef>
 #include <map>
 #include <set>
+#include <string>
+#include <vector>
 
 namespace Slic3r {
 

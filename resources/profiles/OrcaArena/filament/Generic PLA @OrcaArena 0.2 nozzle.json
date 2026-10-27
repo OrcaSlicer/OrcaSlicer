@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @OrcaArena 0.2 nozzle",
-	"inherits": "Generic PLA @OrcaArena base",
 	"renamed_from": "OrcaArena Generic PLA @0.2 nozzle;OrcaArena Generic PLA 0.2 nozzle",
+	"inherits": "Generic PLA @OrcaArena base",
 	"from": "system",
 	"setting_id": "HjJH9JT9x9sFtVES",
 	"instantiation": "true",

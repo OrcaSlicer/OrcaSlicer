@@ -23,10 +23,10 @@
 		"90"
 	],
 	"fan_cooling_layer_time": [
-		"10"
+		"15"
 	],
 	"filament_max_volumetric_speed": [
-		"26"
+		"18"
 	],
 	"filament_type": [
 		"PETG"
@@ -72,9 +72,9 @@
 		"260"
 	],
 	"slow_down_min_speed": [
-		"12"
+		"20"
 	],
 	"slow_down_layer_time": [
-		"3"
+		"6"
 	]
 }

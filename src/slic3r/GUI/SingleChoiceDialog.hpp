@@ -4,6 +4,8 @@
 #include "GUI_Utils.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/ComboBox.hpp"
+#include <wx/string.h>
+#include <wx/arrstr.h>
 
 namespace Slic3r { namespace GUI {
 

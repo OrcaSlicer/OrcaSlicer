@@ -6,7 +6,13 @@
 
 #include <cassert>
 #include <algorithm>
+#include <string>
+#include <initializer_list>
+#include <memory>
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "libslic3r/Technologies.hpp"
 #include <string_view>
+#include <utility>
 using namespace std::literals;
 
 #include <glad/gl.h>
@@ -90,6 +96,8 @@ std::pair<bool, std::string> GLShadersManager::init()
         , { "ENABLE_ENVIRONMENT_MAP"sv }
 #endif // ENABLE_ENVIRONMENT_MAP
         );
+    // used to render objects as translucent, edge weighted surfaces in the X-Ray view
+    valid &= append_shader("xray", { prefix + "xray.vs", prefix + "xray.fs" });
     // used to render variable layers heights in 3d editor
     valid &= append_shader("variable_layer_height", { prefix + "variable_layer_height.vs", prefix + "variable_layer_height.fs" });
     // used to render highlight contour around selected triangles inside the multi-material gizmo
@@ -104,6 +112,11 @@ std::pair<bool, std::string> GLShadersManager::init()
         valid &= append_shader("mm_gouraud", { prefix + "mm_gouraud.vs", prefix + "mm_gouraud.fs" }, { "FLIP_TRIANGLE_NORMALS"sv });
     else
         valid &= append_shader("mm_gouraud", { prefix + "mm_gouraud.vs", prefix + "mm_gouraud.fs" });
+    // Fast shaded preview for the texture displacement gizmo (see libslic3r/TextureDisplacement.hpp).
+    valid &= append_shader("texture_displacement_shaded", { prefix + "texture_displacement_shaded.vs", prefix + "texture_displacement_shaded.fs" });
+    // UV-check overlay for the same gizmo: a procedural checker or a distortion heatmap over the
+    // painted patch, to sanity-check the unwrap.
+    valid &= append_shader("texture_displacement_uvcheck", { prefix + "texture_displacement_uvcheck.vs", prefix + "texture_displacement_uvcheck.fs" });
 
     return { valid, error };
 }

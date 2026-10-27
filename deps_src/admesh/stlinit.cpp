@@ -75,6 +75,19 @@ static FILE *stl_open_count_facets(stl_file *stl, const char *file, unsigned int
       		break;
     	}
   	}
+  	// Zero normals and coordinates like 10 or 15 have no byte above 127, so the test above can miss a binary file.
+  	// Its size still matches its facet count; text read as that count would need a file of gigabytes.
+  	if (stl->stats.type == ascii) {
+    	uint32_t header_num_facets;
+    	fseek(fp, custom_header_length, SEEK_SET);
+    	if (fread(&header_num_facets, sizeof(uint32_t), 1, fp) == 1) {
+#if BOOST_ENDIAN_BIG_BYTE
+      		stl_internal_reverse_quads((char*)&header_num_facets, 4);
+#endif /* BOOST_ENDIAN_BIG_BYTE */
+      		if (header_size + uint64_t(header_num_facets) * SIZEOF_STL_FACET == file_size)
+        		stl->stats.type = binary;
+    	}
+  	}
   	rewind(fp);
 
   	uint32_t num_facets = 0;

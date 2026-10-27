@@ -5,7 +5,6 @@
 	"instantiation": "false",
 	"printer_technology": "FFF",
 	"gcode_flavor": "marlin",
-	"silent_mode": "0",
 	"machine_max_acceleration_e": [
 		"5000"
 	],

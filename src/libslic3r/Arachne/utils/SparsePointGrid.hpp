@@ -6,9 +6,13 @@
 #define UTILS_SPARSE_POINT_GRID_H
 
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
+#include "libslic3r/Point.hpp"
 #include "SparseGrid.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r::Arachne {
 

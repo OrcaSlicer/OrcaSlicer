@@ -1,11 +1,43 @@
 #include "Search.hpp"
+#include "OptionStateRegistry.hpp"
 
+#include <wx/app.h>
+#include <wx/control.h>
+
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include <cstdint>
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include <boost/algorithm/string/trim.hpp>
+#include <limits>
+#include <utility>
+#include <boost/algorithm/string/replace.hpp>
+#include <cassert>
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <map>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include "slic3r/GUI/Widgets/ScrolledWindow.hpp"
+#include <tuple>
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include <vector>
 #include <cstddef>
 #include <string>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 #include <boost/nowide/convert.hpp>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/colour.h>
+#include <wx/dc.h>
+#include <wx/dcclient.h>
+#include <wx/popupwin.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/window.h>
+#include <wx/variant.h>
+#include <wx/debug.h>
 
 #include "wx/dataview.h"
 #include "wx/numformatter.h"
@@ -25,8 +57,6 @@
 #if defined(__WXGTK__)
 #include "LinuxDisplayBackend.hpp"
 #endif
-
-using boost::optional;
 
 namespace Slic3r {
 
@@ -50,6 +80,15 @@ bool focus_left_popup(wxWindow* popup, wxWindow* focus_window, wxWindow* related
 
 namespace Search {
 
+static wxString option_availability(const Option& option)
+{
+    if (!wxTheApp)
+        return {};
+    const std::string key = option.opt_key();
+    GUI::Tab* tab = GUI::get_tab_for_option(key, option.type);
+    return tab ? tab->option_state_registry().description(key.substr(0, key.find('#'))) : wxString();
+}
+
 static char marker_by_type(Preset::Type type, PrinterTechnology pt)
 {
     switch (type) {
@@ -62,92 +101,10 @@ static char marker_by_type(Preset::Type type, PrinterTechnology pt)
     }
 }
 
-std::string Option::opt_key() const { return into_u8(key).substr(2); }
-
 void FoundOption::get_marked_label_and_tooltip(const char **label_, const char **tooltip_) const
 {
     *label_   = marked_label.c_str();
     *tooltip_ = tooltip.c_str();
-}
-
-template<class T>
-// void change_opt_key(std::string& opt_key, DynamicPrintConfig* config)
-void change_opt_key(std::string &opt_key, DynamicPrintConfig *config, int &cnt)
-{
-    T *opt_cur = static_cast<T *>(config->option(opt_key));
-    cnt        = opt_cur->values.size();
-    return;
-
-    if (opt_cur->values.size() > 0) opt_key += "#" + std::to_string(0);
-}
-
-static std::string get_key(const std::string &opt_key, Preset::Type type) { return std::to_string(int(type)) + ";" + opt_key; }
-
-void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode)
-{
-    auto emplace = [this, type](const std::string key, const wxString &label) {
-        const GroupAndCategory &gc = groups_and_categories[key];
-        if (gc.group.IsEmpty() || gc.category.IsEmpty()) return;
-
-        wxString suffix;
-        wxString suffix_local;
-        if (gc.category == "Machine limits") {
-            //suffix       = key.back() == '1' ? L("Stealth") : L("Normal");
-            suffix       = key.back() == '1' ? wxEmptyString : wxEmptyString;
-            suffix_local = " " + _(suffix);
-            suffix       = " " + suffix;
-        }
-
-        if (!label.IsEmpty())
-            options.emplace_back(Option{boost::nowide::widen(key), type, (label + suffix).ToStdWstring(), (_(label) + suffix_local).ToStdWstring(), gc.group.ToStdWstring(),
-                                        _(gc.group).ToStdWstring(), gc.category.ToStdWstring(), GUI::Tab::translate_category(gc.category, type).ToStdWstring()});
-    };
-
-    for (std::string opt_key : config->keys()) {
-        const ConfigOptionDef &opt = config->def()->options.at(opt_key);
-        if (opt.mode > mode) continue;
-
-        int cnt = 0;
-
-        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT) && opt_key != "printable_area")
-            switch (config->option(opt_key)->type()) {
-            case coInts: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
-            case coBools: change_opt_key<ConfigOptionBools>(opt_key, config, cnt); break;
-            case coFloats: change_opt_key<ConfigOptionFloats>(opt_key, config, cnt); break;
-            case coStrings: change_opt_key<ConfigOptionStrings>(opt_key, config, cnt); break;
-            case coPercents: change_opt_key<ConfigOptionPercents>(opt_key, config, cnt); break;
-            case coPoints: change_opt_key<ConfigOptionPoints>(opt_key, config, cnt); break;
-            // BBS
-            case coEnums: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
-            default: break;
-            }
-
-        if (type == Preset::TYPE_FILAMENT && filament_options_with_variant.find(opt_key) != filament_options_with_variant.end())
-            opt_key += "#0";
-
-        wxString label = opt.full_label.empty() ? opt.label : opt.full_label;
-
-        std::string key = get_key(opt_key, type);
-        if (cnt == 0)
-            emplace(key, label);
-        else
-            for (int i = 0; i < cnt; ++i)
-                // ! It's very important to use "#". opt_key#n is a real option key used in GroupAndCategory
-                emplace(key + "#" + std::to_string(i), label);
-    }
-}
-
-inline void OptionsSearcher::sort_options()
-{
-    std::sort(options.begin(), options.end(), [](const Option &o1, const Option &o2) { return o1.label < o2.label; });
-    Option * last = nullptr;
-    for (auto& opt : options) {
-        if (last && last->label == opt.label && last->group == opt.group && last->type == opt.type && last->category != opt.category) {
-            last->multi_category = true;
-            opt.multi_category = true;
-        }
-        last = &opt;
-    }
 }
 
 // Mark a string using ColorMarkerStart and ColorMarkerEnd symbols
@@ -231,10 +188,15 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
     };
 
     auto get_tooltip = [this, &sep](const Option &opt) {
-        return wxString(marker_by_type(opt.type, printer_technology)) + opt.category_local + sep + opt.group_local + sep + opt.label_local;
+        wxString tooltip = wxString(marker_by_type(opt.type, printer_technology)) + opt.category_local + sep + opt.group_local + sep + opt.label_local;
+        const wxString availability = option_availability(opt);
+        if (!availability.empty())
+            tooltip += "\n\n" + availability;
+        return tooltip;
     };
 
-    std::vector<uint16_t> matches, matches2;
+    std::vector<uint16_t>      matches, matches2;
+    const std::vector<Option> &options = m_index.options();
     for (size_t i = 0; i < options.size(); i++) {
         const Option &opt = options[i];
         if (full_list) {
@@ -306,111 +268,21 @@ OptionsSearcher::~OptionsSearcher() {}
 
 void OptionsSearcher::init(std::vector<InputInfo> input_values)
 {
-    options.clear();
-    for (auto i : input_values) append_options(i.config, i.type, i.mode);
-    sort_options();
+    m_index.init(std::move(input_values));
 
     search(search_line, true, search_type);
 }
 
 void OptionsSearcher::apply(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode)
 {
-    if (options.empty()) return;
-
-    options.erase(std::remove_if(options.begin(), options.end(), [type](Option opt) { return opt.type == type; }), options.end());
-
-    append_options(config, type, mode);
-
-    sort_options();
-
-    search(search_line, true, search_type);
+    if (m_index.apply(config, type, mode))
+        search(search_line, true, search_type);
 }
 
 const Option &OptionsSearcher::get_option(size_t pos_in_filter) const
 {
     assert(pos_in_filter != size_t(-1) && found[pos_in_filter].option_idx != size_t(-1));
-    return options[found[pos_in_filter].option_idx];
-}
-
-const Option &OptionsSearcher::get_option(const std::string &opt_key, Preset::Type type, int &variant_index) const
-{
-    std::string opt_key2 = opt_key;
-    if (auto n = opt_key.find('#'); n != std::string::npos) {
-        variant_index = std::atoi(opt_key.c_str() + n + 1);
-        opt_key2 = opt_key.substr(0, n);
-    }
-    auto it = std::lower_bound(options.begin(), options.end(), Option({boost::nowide::widen(get_key(opt_key2, type))}));
-    // BBS: return the 0th option when not found in searcher caused by mode difference
-    // assert(it != options.end());
-    if (it == options.end()) { variant_index = -2 ; return options[0]; }
-    if (it->opt_key() == opt_key2) {
-        variant_index = -1;
-    } else {
-        const std::string opt_key3 = opt_key2 + "#";
-        it = std::lower_bound(it, options.end(), Option({boost::nowide::widen(get_key(opt_key3, type))}));
-        if (it == options.end() || it->opt_key().compare(0, opt_key3.length(), opt_key3) != 0) {
-            variant_index = -2; // Not found
-            return options[0];
-        }
-        auto it2 = it;
-        ++it2;
-        if (it2 != options.end() && it2->opt_key().compare(0, opt_key3.length(), opt_key3) == 0
-                && printer_options_with_variant_1.find(opt_key2) == printer_options_with_variant_1.end())
-            variant_index = -2;
-    }
-
-    return options[it - options.begin()];
-}
-
-static Option create_option(const std::string &opt_key, const wxString &label, Preset::Type type, const GroupAndCategory &gc)
-{
-    wxString suffix;
-    wxString suffix_local;
-    if (gc.category == "Machine limits") {
-        //suffix       = opt_key.back() == '1' ? L("Stealth") : L("Normal");
-        suffix       = opt_key.back() == '1' ? wxEmptyString : wxEmptyString;
-        suffix_local = " " + _(suffix);
-        suffix       = " " + suffix;
-    }
-
-    wxString category = gc.category;
-    if (type == Preset::TYPE_PRINTER && category.Contains("Extruder ")) {
-        std::string opt_idx = opt_key.substr(opt_key.find("#") + 1);
-        category            = wxString::Format("%s %d", "Extruder", atoi(opt_idx.c_str()) + 1);
-    }
-
-    return Option{boost::nowide::widen(get_key(opt_key, type)),
-                  type,
-                  (label + suffix).ToStdWstring(),
-                  (_(label) + suffix_local).ToStdWstring(),
-                  gc.group.ToStdWstring(),
-                  _(gc.group).ToStdWstring(),
-                  gc.category.ToStdWstring(),
-                  GUI::Tab::translate_category(category, type).ToStdWstring()};
-}
-
-Option OptionsSearcher::get_option(const std::string &opt_key, const wxString &label, Preset::Type type) const
-{
-    std::string key = get_key(opt_key, type);
-    auto        it  = std::lower_bound(options.begin(), options.end(), Option({boost::nowide::widen(key)}));
-    // BBS: return the 0th option when not found in searcher caused by mode difference
-    if (it == options.end()) return options[0];
-    if (it->key == boost::nowide::widen(key)) return options[it - options.begin()];
-    if (groups_and_categories.find(key) == groups_and_categories.end()) {
-        size_t pos = key.find('#');
-        if (pos == std::string::npos) return options[it - options.begin()];
-
-        std::string zero_opt_key = key.substr(0, pos + 1) + "0";
-
-        if (groups_and_categories.find(zero_opt_key) == groups_and_categories.end()) return options[it - options.begin()];
-
-        return create_option(opt_key, label, type, groups_and_categories.at(zero_opt_key));
-    }
-
-    const GroupAndCategory &gc = groups_and_categories.at(key);
-    if (gc.group.IsEmpty() || gc.category.IsEmpty()) return options[it - options.begin()];
-
-    return create_option(opt_key, label, type, gc);
+    return m_index.option_at(found[pos_in_filter].option_idx);
 }
 
 void OptionsSearcher::show_dialog(Preset::Type type, wxWindow *parent, TextInput *input, wxWindow* ssearch_btn)
@@ -437,21 +309,19 @@ void OptionsSearcher::dlg_msw_rescale()
 {
     if (search_dialog) search_dialog->msw_rescale();
 }
-
-void OptionsSearcher::add_key(const std::string &opt_key, Preset::Type type, const wxString &group, const wxString &category)
-{
-    groups_and_categories[get_key(opt_key, type)] = GroupAndCategory{group, category};
-}
 //------------------------------------------
 //          SearchItem
 //------------------------------------------
 
-SearchItem::SearchItem(wxWindow *parent, wxString text, int index, SearchDialog* sdialog, SearchObjectDialog* search_dialog, wxString tooltip)
-    : wxWindow(parent, wxID_ANY, wxDefaultPosition, wxSize(parent->GetSize().GetWidth(), 3 * GUI::wxGetApp().em_unit()))
+SearchItem::SearchItem(wxWindow *parent, wxString text, int index, SearchDialog* sdialog, SearchObjectDialog* search_dialog,
+                       wxString tooltip, wxString availability)
+    : wxWindow(parent, wxID_ANY, wxDefaultPosition,
+               wxSize(parent->GetSize().GetWidth(), (availability.empty() ? 3 : 5) * GUI::wxGetApp().em_unit()))
 {
     m_sdialog = sdialog;
     m_search_object_dialog = search_dialog;
     m_text  = text;
+    m_availability = std::move(availability);
     m_index = index;
 
     this->SetToolTip(tooltip);
@@ -481,8 +351,8 @@ wxSize SearchItem::DrawTextString(wxDC &dc, const wxString &text, const wxPoint 
 void SearchItem::OnPaint(wxPaintEvent &event)
 {
     wxPaintDC dc(this);
-    auto      top  = 5;
-    int       left = 20;
+    auto      top  = FromDIP(5);
+    int       left = FromDIP(20);
 
     auto bold_pair = std::vector<std::pair<int, int>>();
     
@@ -540,6 +410,16 @@ void SearchItem::OnPaint(wxPaintEvent &event)
                 left += DrawTextString(dc, str, wxPoint(left, top), true).GetWidth();
             }
         }
+    }
+
+    if (!m_availability.empty()) {
+        const int status_top = top + dc.GetCharHeight() + FromDIP(3);
+        dc.SetFont(Label::Body_12);
+        dc.SetTextForeground(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        const int width = GetClientSize().x - FromDIP(40);
+        if (width > 0)
+            dc.DrawText(wxControl::Ellipsize(m_availability.BeforeFirst('\n'), dc, wxELLIPSIZE_END, width),
+                        FromDIP(20), status_top);
     }
 }
 
@@ -779,7 +659,8 @@ void SearchDialog::update_list()
     auto                            index   = 0;
     for (const FoundOption &item : filters) {
         wxString str = from_u8(item.label).Remove(0, 1);
-        auto     tmp = new SearchItem(m_listPanel, str, index, this);
+        const wxString availability = option_availability(searcher->get_option(index));
+        auto tmp = new SearchItem(m_listPanel, str, index, this, nullptr, from_u8(item.tooltip).Remove(0, 1), availability);
         m_listsizer->Add(tmp, 0, wxEXPAND, 0);
         index++;
     }

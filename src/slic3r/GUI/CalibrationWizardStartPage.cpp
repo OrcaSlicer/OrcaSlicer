@@ -1,6 +1,17 @@
 #include "CalibrationWizardStartPage.hpp"
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/CalibrationWizardPage.hpp"
+#include <wx/sizer.h>
+#include <wx/string.h>
+#include <string>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "libslic3r/calib.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 namespace Slic3r { namespace GUI {
 

@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "kj7YrKOrYowWXXrY",
 	"name": "0.18mm Balanced Quality @X-Plus 5 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "kj7YrKOrYowWXXrY",
+	"instantiation": "true",
 	"bridge_flow": "1",
 	"bridge_speed": [
 		"30"

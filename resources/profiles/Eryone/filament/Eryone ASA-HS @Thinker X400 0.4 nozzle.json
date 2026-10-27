@@ -1,0 +1,54 @@
+{
+	"type": "filament",
+	"name": "Eryone ASA-HS @Thinker X400 0.4 nozzle",
+	"inherits": "Eryone Standard PLA",
+	"from": "system",
+	"setting_id": "xw8zqUsFb2WVaSo1",
+	"filament_id": "OFIzY5sP",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Thinker X400 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Eryone ASA-HS @Thinker X400 0.4 nozzle"
+	],
+	"fan_max_speed": [
+		"20"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=1"
+	],
+	"filament_type": [
+		"ASA"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"slow_down_layer_time": [
+		"4"
+	],
+	"slow_down_min_speed": [
+		"15"
+	]
+}

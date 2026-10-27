@@ -50,17 +50,17 @@ function HandleStudio( pVal )
 		let hasError = pVal.hasOwnProperty("error");
 		noticeBar.classList.toggle("notice-error", hasError);
 		if (hasError) {
-			noticeBar.textContent = "Error";
+			noticeBar.textContent = T("error", "Error");
 			noticeText.textContent = pVal["error"];
 		} else if (pVal["vendors"] && pVal["vendors"].length > 0) {
-			noticeBar.textContent = "New printers found";
-			noticeText.textContent = "New printer vendors installed: " + pVal["vendors"].join(", ");
+			noticeBar.textContent = T("new_printers_found", "New printers found");
+			noticeText.textContent = T("new_vendors_installed", "New printer vendors installed: %s", pVal["vendors"].join(", "));
 		} else if (pVal["declined"]) {
-			noticeBar.textContent = "Information";
-			noticeText.textContent = "New printer vendors were found, but installation was cancelled.";
+			noticeBar.textContent = T("information", "Information");
+			noticeText.textContent = T("vendors_declined", "New printer vendors were found, but installation was cancelled.");
 		} else {
-			noticeBar.textContent = "Information";
-			noticeText.textContent = "No new printers found.";
+			noticeBar.textContent = T("information", "Information");
+			noticeText.textContent = T("no_new_printers", "No new printers found.");
 		}
 
 		ShowNotice(1);
@@ -272,7 +272,7 @@ function CreateVendorBlock(vendorName)
 	if( alt == "BBL" )
 		alt = "Bambu Lab";
 	if( alt == "Custom")
-		alt = "Custom Printer";
+		alt = T("custom_printer", "Custom Printer");
 	if( alt == "Other")
 		alt = "Orca colosseum";
 	
@@ -311,11 +311,11 @@ function CreatePrinterBlock(OneModel)
 
 	return	'<div class="PrinterBlock" onClick="ChooseModel(\''+vendor+'\',\''+OneModel['model']+'\')">'+
 			'	<div class="PImg">'+
-			'		<img class="ModelThumbnail" src="' + OneModel['cover'] + '" />'+
+			'		<img class="ModelThumbnail" src="' + OneModel['cover'] + '" onerror="this.onerror=null;this.src=\'../img/printer-dummy.png\';"/>'+
 			'	</div>'+
 			'	<div class="PrinterInfoMark">?</div>'+
 			'	<div class="PrinterInfo">'+
-			'		<div class="title trans">Nozzle</div>'+
+			'		<div class="title">' + T("nozzle", "Nozzle") + '</div>'+
 			'		<div class="value">' + OneModel['nozzle_diameter'].replaceAll(";", " · ") + '</div>'+
 			'	</div>'+
 			'	<div style="display: flex;">'+
@@ -337,8 +337,10 @@ function UpdateSidebarVendors()
 {
 	let SidebarHTML = "";
 	$(`.OneVendorBlock`).each((i, el)=>{
-		UpdateVendorCheckbox(el.getAttribute("vendor"));
-		SidebarHTML +=`<div class="SidebarItem" onclick="scrollToVendor(this.textContent)">${el.getAttribute('vendor')}</div>`;
+		let vendor = el.getAttribute('vendor');
+		UpdateVendorCheckbox(vendor);
+		let label = vendor == "Custom" ? T("custom_vendor", "Custom") : vendor;
+		SidebarHTML +=`<div class="SidebarItem" vendor="${vendor}" onclick="scrollToVendor(this.getAttribute('vendor'))">${label}</div>`;
 	});
 	$('#SidebarVendors').html(SidebarHTML)
 }
@@ -377,7 +379,8 @@ function OnExit()
 	if( nTotal==0 ) {
 		let noticeBar = document.getElementById("NoticeBar");
 		noticeBar.classList.add("notice-error");
-		noticeBar.textContent = "Error";
+		noticeBar.textContent = T("error", "Error");
+		document.getElementById("NoticeText").textContent = T("printer_required", "At least one printer must be selected.");
 		ShowNotice(1);
 		return 0;
 	}

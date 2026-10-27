@@ -1,7 +1,17 @@
 #include "StepMeshDialog.hpp"
 
+#include "libslic3r/Format/STEP.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Thread.hpp"
 #include <thread>
+#include <wx/dialog.h>
+#include <wx/colour.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/dcmemory.h>
@@ -13,6 +23,10 @@
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include <chrono>
+#include <wx/string.h>
+#include <wx/textctrl.h>
+#include <wx/utils.h>
+#include <wx/valtext.h>
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -117,19 +131,14 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
 
     auto tip_frame = new RoundedRectangle(this, StateColor::darkModeColorFor(wxColour("#F1F1F1")), wxDefaultPosition, wxSize(-1,-1), 6, 0);
 
-    wxBoxSizer* tips_sizer = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer* tips_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* info = new wxStaticText(tip_frame, wxID_ANY, _L("Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."));
     info->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     info->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#F1F1F1")));
     info->SetFont(::Label::Body_14);
     info->Wrap(FromDIP(450));
 
-    // ORCA standardized HyperLink
-    HyperLink *tips = new HyperLink(tip_frame, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/import_export#step");
-    tips->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#F1F1F1")));
-
-    tips_sizer->Add(info, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
-    tips_sizer->Add(tips, 0, wxALL, FromDIP(10));
+    tips_sizer->Add(info, 0, wxEXPAND |wxALL , FromDIP(10));
     
     tip_frame->SetSizer(tips_sizer);
     tip_frame->Layout();
@@ -265,6 +274,8 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     mesh_face_number_sizer->Add(mesh_face_number_text, 0, wxALIGN_LEFT);
     bSizer->Add(mesh_face_number_sizer, 0, wxEXPAND | wxALL, LEFT_RIGHT_PADING);
 
+    bSizer->AddSpacer(FromDIP(10));
+
     wxBoxSizer* save_default_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_save_default_checkbox = new wxCheckBox(this, wxID_ANY, _L("Save these settings as default"), wxDefaultPosition, wxDefaultSize, 0);
     m_save_default_checkbox->SetFont(::Label::Body_14);
@@ -273,12 +284,24 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     save_default_sizer->Add(m_save_default_checkbox, 0, wxALIGN_LEFT);
     bSizer->Add(save_default_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
 
-    wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
-    bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
+    bSizer->AddSpacer(FromDIP(10));
+
     m_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
     m_checkbox->SetFont(::Label::Body_14);
     m_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
-    bSizer_button->Add(m_checkbox, 0, wxALIGN_LEFT | wxLEFT | wxALIGN_CENTER_VERTICAL, LEFT_RIGHT_PADING);
+    bSizer->Add(m_checkbox, 0, wxLEFT, LEFT_RIGHT_PADING);
+
+    wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
+
+    // ORCA standardized HyperLink
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url =  "https://www.orcaslicer.com/wiki/import_export#step";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+    bSizer_button->Add(wiki_btn, 0, wxALIGN_LEFT | wxLEFT | wxALIGN_CENTER_VERTICAL, LEFT_RIGHT_PADING);
+
     bSizer_button->AddStretchSpacer(1);
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});

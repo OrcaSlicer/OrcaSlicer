@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "A1MeH5DTrbaapIvs",
 	"name": "Normal performance VS30 - 0.10mm",
-	"from": "system",
 	"inherits": "fdm_process_volumic_common",
+	"from": "system",
+	"setting_id": "A1MeH5DTrbaapIvs",
 	"instantiation": "true",
 	"layer_height": "0.1",
 	"initial_layer_print_height": "0.1",

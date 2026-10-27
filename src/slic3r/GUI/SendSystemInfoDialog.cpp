@@ -1,4 +1,38 @@
 #include "SendSystemInfoDialog.hpp"
+#include "libslic3r/Semver.hpp"
+#include <string>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/textctrl.h>
+#include "libslic3r_version.h"
+#include <map>
+#include <cstddef>
+#include <cstdio>
+#include <stdio.h>
+#include <algorithm>
+#include <vector>
+#include <cstdint>
+#include <cstring>
+#include <iterator>
+#include <wx/language.h>
+#include <wx/intl.h>
+#include <wx/version.h>
+#include <cmath>
+#include <system_error>
+#include <utility>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <functional>
+#include <boost/algorithm/string/trim.hpp>
+#include <sstream>
+#include <wx/dialog.h>
+#include "libslic3r/libslic3r.h"
+#include <cassert>
+#include <wx/colour.h>
+#include <wx/html/htmlwin.h>
+#include <wx/event.h>
+#include "slic3r/GUI/wxExtensions.hpp"
 
 #if __APPLE__
 #import <IOKit/IOKitLib.h>
@@ -12,11 +46,9 @@
 
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/Utils/Http.hpp"
-#include "slic3r/Utils/PresetUpdater.hpp"
 
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
-#include "I18N.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif
@@ -41,6 +73,11 @@
 
 #include <atomic>
 #include <thread>
+#include "slic3r/GUI/GUI.hpp"
+#include <cstdlib>
+#include <iomanip>
+
+class wxWindow;
 
 #ifdef _WIN32
     #include <windows.h>

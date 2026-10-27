@@ -1,0 +1,245 @@
+{
+	"type": "filament",
+	"Bambu Lab X1 Carbon 0.8 nozzle": {
+		"Bambu PA6-CF @BBL X1C": "Bambu PA6-CF @BBL X1C 0.6 nozzle",
+		"Bambu PAHT-CF @BBL X1C": "Bambu PAHT-CF @BBL X1C 0.6 nozzle",
+		"Bambu PPA-CF @BBL X1C": "Bambu PPA-CF @BBL X1C 0.6 nozzle"
+	},
+	"Bambu Lab X1 0.8 nozzle": {
+		"Generic PETG HF @BBL X1C": "Generic PETG HF @BBL X1 0.6 nozzle"
+	},
+	"Bambu Lab X1 0.4 nozzle": {
+		"Generic PETG HF @BBL X1C": "Generic PETG HF @BBL X1 0.6 nozzle"
+	},
+	"Bambu Lab X1 Carbon 0.6 nozzle": {
+		"Bambu ABS @BBL X1C": "Bambu ABS @BBL X1C 0.6 nozzle",
+		"Bambu PA6-CF @BBL X1C": "Bambu PA6-CF @BBL X1C 0.6 nozzle",
+		"Bambu PAHT-CF @BBL X1C": "Bambu PAHT-CF @BBL X1C 0.6 nozzle",
+		"Bambu PETG HF @BBL X1C 0.8 nozzle": "Bambu PETG HF @BBL X1C 0.6 nozzle",
+		"Bambu PETG Translucent @BBL X1C 0.8 nozzle": "Bambu PETG Translucent @BBL X1C 0.6 nozzle",
+		"Bambu PLA Basic @BBL X1C": "Bambu PLA Basic @BBL X1C 0.6 nozzle",
+		"Bambu PLA Dynamic @BBL X1C": "Bambu PLA Dynamic @BBL X1C 0.6 nozzle",
+		"Bambu PLA Galaxy @BBL X1C": "Bambu PLA Galaxy @BBL X1C 0.6 nozzle",
+		"Bambu PLA Glow @BBL X1C": "Bambu PLA Glow @BBL X1C 0.6 nozzle",
+		"Bambu PLA Lite @BBL X1C": "Bambu PLA Lite @BBL X1C 0.6 nozzle",
+		"Bambu PLA Marble @BBL X1C": "Bambu PLA Marble @BBL X1C 0.6 nozzle",
+		"Bambu PLA Matte @BBL X1C": "Bambu PLA Matte @BBL X1C 0.6 nozzle",
+		"Bambu PLA Metal @BBL X1C": "Bambu PLA Metal @BBL X1C 0.6 nozzle",
+		"Bambu PLA Silk+ @BBL X1C": "Bambu PLA Silk+ @BBL X1C 0.6 nozzle",
+		"Bambu PLA Sparkle @BBL X1C": "Bambu PLA Sparkle @BBL X1C 0.6 nozzle",
+		"Bambu PLA Tough+ @BBL X1C": "Bambu PLA Tough+ @BBL X1C 0.6 nozzle",
+		"Bambu PLA Wood @BBL X1C": "Bambu PLA Wood @BBL X1C 0.6 nozzle",
+		"Bambu PPA-CF @BBL X1C": "Bambu PPA-CF @BBL X1C 0.6 nozzle",
+		"Bambu TPU for AMS @BBL X1C": "Bambu TPU for AMS @BBL X1C 0.6 nozzle"
+	},
+	"Bambu Lab X1 0.6 nozzle": {
+		"Generic PETG HF @BBL X1C": "Generic PETG HF @BBL X1 0.6 nozzle"
+	},
+	"Bambu Lab P1S 0.4 nozzle": {
+		"Bambu ABS @BBL X1C": "Bambu ABS @BBL P1S 0.4 nozzle",
+		"Bambu PETG HF @BBL X1C": "Bambu PETG HF @BBL P1S 0.4 nozzle",
+		"Bambu PLA Basic @BBL X1C": "Bambu PLA Basic @BBL P1S 0.4 nozzle",
+		"Bambu PLA Matte @BBL X1C": "Bambu PLA Matte @BBL P1S 0.4 nozzle",
+		"Bambu PLA Silk+ @BBL X1C": "Bambu PLA Silk+ @BBL P1S 0.4 nozzle",
+		"Generic PETG HF @BBL X1C": "Generic PETG HF @BBL P1S 0.4 nozzle"
+	},
+	"Bambu Lab P1S 0.6 nozzle": {
+		"Bambu ABS @BBL X1C": "Bambu ABS @BBL P1S 0.6 nozzle",
+		"Bambu PLA Basic @BBL X1C": "Bambu PLA Basic @BBL P1S 0.6 nozzle",
+		"Bambu PLA Matte @BBL X1C": "Bambu PLA Matte @BBL P1S 0.6 nozzle",
+		"Bambu PLA Silk+ @BBL X1C": "Bambu PLA Silk+ @BBL P1S 0.6 nozzle",
+		"Generic PETG HF @BBL X1C": "Generic PETG HF @BBL P1S 0.6 nozzle"
+	},
+	"Bambu Lab P1P 0.8 nozzle": {
+		"Bambu PAHT-CF @BBL P1P": "Bambu PAHT-CF @BBL P1P 0.6 nozzle",
+		"Bambu PLA Marble @BBL P1P": "Bambu PLA Marble @BBL P1P 0.6 nozzle"
+	},
+	"Bambu Lab P1P 0.6 nozzle": {
+		"Bambu PLA Dynamic @BBL P1P": "Bambu PLA Dynamic @BBL P1P 0.6 nozzle",
+		"Bambu PLA Galaxy @BBL P1P": "Bambu PLA Galaxy @BBL P1P 0.6 nozzle",
+		"Bambu PLA Glow @BBL P1P": "Bambu PLA Glow @BBL P1P 0.6 nozzle",
+		"Bambu PLA Lite @BBL P1P": "Bambu PLA Lite @BBL P1P 0.6 nozzle",
+		"Bambu PLA Silk+ @BBL P1P": "Bambu PLA Silk+ @BBL P1P 0.6 nozzle",
+		"Bambu PLA Wood @BBL P1P": "Bambu PLA Wood @BBL P1P 0.6 nozzle",
+		"Bambu TPU for AMS @BBL P1P": "Bambu TPU for AMS @BBL P1P 0.6 nozzle",
+		"Bambu ABS @BBL P1P": "Bambu ABS @BBL P1P 0.6 nozzle",
+		"Bambu PAHT-CF @BBL P1P": "Bambu PAHT-CF @BBL P1P 0.6 nozzle",
+		"Bambu PC @BBL P1P": "Bambu PC @BBL P1P 0.6 nozzle",
+		"Bambu PLA Basic @BBL P1P": "Bambu PLA Basic @BBL P1P 0.6 nozzle",
+		"Bambu PLA Marble @BBL P1P": "Bambu PLA Marble @BBL P1P 0.6 nozzle",
+		"Bambu PLA Matte @BBL P1P": "Bambu PLA Matte @BBL P1P 0.6 nozzle",
+		"Bambu PLA Metal @BBL P1P": "Bambu PLA Metal @BBL P1P 0.6 nozzle",
+		"Bambu PLA Sparkle @BBL P1P": "Bambu PLA Sparkle @BBL P1P 0.6 nozzle",
+		"Bambu PLA Tough+ @BBL P1P": "Bambu PLA Tough+ @BBL P1P 0.6 nozzle"
+	},
+	"Bambu Lab P1P 0.4 nozzle": {
+		"Bambu PETG HF @BBL X1C": "Bambu PETG HF @BBL P1P 0.4 nozzle"
+	},
+	"Bambu Lab H2D 0.4 nozzle": {
+		"Bambu TPU 95A HF @BBL H2D": "Bambu TPU 95A HF @BBL H2D 0.4 nozzle",
+		"Bambu TPU 95A HF @BBL H2DP": "Bambu TPU 95A HF @BBL H2DP 0.4 nozzle"
+	},
+	"Bambu Lab H2D 0.6 nozzle": {
+		"Bambu TPU 90A @BBL H2D": "Bambu TPU 90A @BBL H2D 0.6 nozzle",
+		"Bambu PA6-CF @BBL H2D": "Bambu PA6-CF @BBL H2D 0.6 nozzle",
+		"Bambu PAHT-CF @BBL H2D": "Bambu PAHT-CF @BBL H2D 0.6 nozzle",
+		"Bambu PLA Lite @BBL H2D": "Bambu PLA Lite @BBL H2D 0.6 nozzle",
+		"Bambu PLA Pure @BBL H2D 0.8 nozzle": "Bambu PLA Pure @BBL H2D 0.6 nozzle",
+		"Bambu PLA Silk+ @BBL H2D": "Bambu PLA Silk+ @BBL H2D 0.6 nozzle",
+		"Bambu PLA Translucent @BBL H2D 0.8 nozzle": "Bambu PLA Translucent @BBL H2D 0.6 nozzle",
+		"Bambu PVA @BBL H2D": "Bambu PVA @BBL H2D 0.6 nozzle",
+		"Bambu Support For PLA @BBL H2D": "Bambu Support For PLA @BBL H2D 0.6 nozzle",
+		"Bambu Support For PLA/PETG @BBL H2D": "Bambu Support For PLA/PETG @BBL H2D 0.6 nozzle",
+		"Bambu Support for ABS @BBL H2D": "Bambu Support for ABS @BBL H2D 0.6 nozzle",
+		"Bambu TPU for AMS @BBL H2D": "Bambu TPU for AMS @BBL H2D 0.6 nozzle"
+	},
+	"Bambu Lab H2D 0.8 nozzle": {
+		"Bambu TPU 90A @BBL H2D": "Bambu TPU 90A @BBL H2D 0.8 nozzle",
+		"Bambu PA6-CF @BBL H2D": "Bambu PA6-CF @BBL H2D 0.8 nozzle",
+		"Bambu PAHT-CF @BBL H2D": "Bambu PAHT-CF @BBL H2D 0.8 nozzle",
+		"Bambu PETG Basic @BBL H2D 0.6 nozzle": "Bambu PETG Basic @BBL H2D 0.8 nozzle",
+		"Bambu PETG Translucent @BBL H2D 0.6 nozzle": "Bambu PETG Translucent @BBL H2D 0.8 nozzle",
+		"Bambu PETG-CF @BBL H2D 0.6 nozzle": "Bambu PETG-CF @BBL H2D 0.8 nozzle",
+		"Bambu PLA Silk+ @BBL H2D": "Bambu PLA Silk+ @BBL H2D 0.8 nozzle",
+		"Bambu PLA-CF @BBL H2D 0.6 nozzle": "Bambu PLA-CF @BBL H2D 0.8 nozzle",
+		"Bambu PVA @BBL H2D": "Bambu PVA @BBL H2D 0.8 nozzle",
+		"Bambu Support For PLA @BBL H2D": "Bambu Support For PLA @BBL H2D 0.8 nozzle",
+		"Bambu Support For PLA/PETG @BBL H2D": "Bambu Support For PLA/PETG @BBL H2D 0.8 nozzle",
+		"Bambu Support for ABS @BBL H2D": "Bambu Support for ABS @BBL H2D 0.8 nozzle",
+		"Bambu TPU 95A HF @BBL H2D": "Bambu TPU 95A HF @BBL H2D 0.8 nozzle",
+		"Bambu TPU for AMS @BBL H2D": "Bambu TPU for AMS @BBL H2D 0.8 nozzle"
+	},
+	"Bambu Lab H2D Pro 0.6 nozzle": {
+		"Bambu TPU 90A @BBL H2DP": "Bambu TPU 90A @BBL H2DP 0.6 nozzle",
+		"Bambu PA6-CF @BBL H2DP": "Bambu PA6-CF @BBL H2DP 0.6 nozzle",
+		"Bambu PAHT-CF @BBL H2DP": "Bambu PAHT-CF @BBL H2DP 0.6 nozzle",
+		"Bambu PLA Pure @BBL H2DP 0.8 nozzle": "Bambu PLA Pure @BBL H2DP 0.6 nozzle",
+		"Bambu PLA Silk+ @BBL H2DP": "Bambu PLA Silk+ @BBL H2DP 0.6 nozzle",
+		"Bambu PLA Translucent @BBL H2DP 0.8 nozzle": "Bambu PLA Translucent @BBL H2DP 0.6 nozzle",
+		"Bambu PVA @BBL H2DP": "Bambu PVA @BBL H2DP 0.6 nozzle",
+		"Bambu Support For PLA @BBL H2DP": "Bambu Support For PLA @BBL H2DP 0.6 nozzle",
+		"Bambu Support For PLA/PETG @BBL H2DP": "Bambu Support For PLA/PETG @BBL H2DP 0.6 nozzle",
+		"Bambu Support for ABS @BBL H2DP": "Bambu Support for ABS @BBL H2DP 0.6 nozzle",
+		"Bambu TPU for AMS @BBL H2DP": "Bambu TPU for AMS @BBL H2DP 0.6 nozzle"
+	},
+	"Bambu Lab H2D Pro 0.8 nozzle": {
+		"Bambu TPU 90A @BBL H2DP": "Bambu TPU 90A @BBL H2DP 0.8 nozzle",
+		"Bambu PA6-CF @BBL H2DP": "Bambu PA6-CF @BBL H2DP 0.8 nozzle",
+		"Bambu PAHT-CF @BBL H2DP": "Bambu PAHT-CF @BBL H2DP 0.8 nozzle",
+		"Bambu PETG Basic @BBL H2DP 0.6 nozzle": "Bambu PETG Basic @BBL H2DP 0.8 nozzle",
+		"Bambu PETG Translucent @BBL H2DP 0.6 nozzle": "Bambu PETG Translucent @BBL H2DP 0.8 nozzle",
+		"Bambu PETG-CF @BBL H2DP 0.6 nozzle": "Bambu PETG-CF @BBL H2DP 0.8 nozzle",
+		"Bambu PLA Silk+ @BBL H2DP": "Bambu PLA Silk+ @BBL H2DP 0.8 nozzle",
+		"Bambu PLA-CF @BBL H2DP 0.6 nozzle": "Bambu PLA-CF @BBL H2DP 0.8 nozzle",
+		"Bambu PVA @BBL H2DP": "Bambu PVA @BBL H2DP 0.8 nozzle",
+		"Bambu Support For PLA @BBL H2DP": "Bambu Support For PLA @BBL H2DP 0.8 nozzle",
+		"Bambu Support For PLA/PETG @BBL H2DP": "Bambu Support For PLA/PETG @BBL H2DP 0.8 nozzle",
+		"Bambu Support for ABS @BBL H2DP": "Bambu Support for ABS @BBL H2DP 0.8 nozzle",
+		"Bambu TPU 95A HF @BBL H2DP": "Bambu TPU 95A HF @BBL H2DP 0.8 nozzle",
+		"Bambu TPU for AMS @BBL H2DP": "Bambu TPU for AMS @BBL H2DP 0.8 nozzle"
+	},
+	"Bambu Lab X2D 0.8 nozzle": {
+		"Bambu ASA @BBL X2D": "Bambu ASA @BBL X2D 0.8 nozzle",
+		"Bambu PA6-CF @BBL X2D": "Bambu PA6-CF @BBL X2D 0.8 nozzle",
+		"Bambu PAHT-CF @BBL X2D": "Bambu PAHT-CF @BBL X2D 0.8 nozzle",
+		"Bambu PETG Basic @BBL X2D": "Bambu PETG Basic @BBL X2D 0.8 nozzle",
+		"Bambu PETG HF @BBL X2D": "Bambu PETG HF @BBL X2D 0.8 nozzle",
+		"Bambu PLA Basic @BBL X2D": "Bambu PLA Basic @BBL X2D 0.8 nozzle",
+		"Bambu PLA Lite @BBL X2D": "Bambu PLA Lite @BBL X2D 0.8 nozzle",
+		"Bambu PLA Matte @BBL X2D": "Bambu PLA Matte @BBL X2D 0.8 nozzle",
+		"Bambu PLA Silk+ @BBL X2D": "Bambu PLA Silk+ @BBL X2D 0.8 nozzle",
+		"Bambu PLA Tough+ @BBL X2D": "Bambu PLA Tough+ @BBL X2D 0.8 nozzle",
+		"Bambu PLA-CF @BBL X2D": "Bambu PLA-CF @BBL X2D 0.8 nozzle",
+		"Bambu PVA @BBL X2D": "Bambu PVA @BBL X2D 0.8 nozzle",
+		"Bambu Support For PLA @BBL X2D": "Bambu Support For PLA @BBL X2D 0.8 nozzle",
+		"Bambu Support For PLA/PETG @BBL X2D": "Bambu Support For PLA/PETG @BBL X2D 0.8 nozzle",
+		"Bambu Support for ABS @BBL X2D": "Bambu Support for ABS @BBL X2D 0.8 nozzle",
+		"Bambu TPU 95A HF @BBL X2D": "Bambu TPU 95A HF @BBL X2D 0.8 nozzle",
+		"Bambu TPU for AMS @BBL X2D": "Bambu TPU for AMS @BBL X2D 0.8 nozzle"
+	},
+	"Bambu Lab H2C 0.8 nozzle": {
+		"Bambu PA6-CF @BBL H2C": "Bambu PA6-CF @BBL H2C 0.8 nozzle",
+		"Bambu PAHT-CF @BBL H2C": "Bambu PAHT-CF @BBL H2C 0.8 nozzle",
+		"Bambu PETG Basic @BBL H2C": "Bambu PETG Basic @BBL H2C 0.8 nozzle",
+		"Bambu PETG Translucent @BBL H2C": "Bambu PETG Translucent @BBL H2C 0.8 nozzle",
+		"Bambu PETG-CF @BBL H2C": "Bambu PETG-CF @BBL H2C 0.8 nozzle",
+		"Bambu PLA Lite @BBL H2C": "Bambu PLA Lite @BBL H2C 0.8 nozzle",
+		"Bambu PLA Pure @BBL H2C": "Bambu PLA Pure @BBL H2C 0.8 nozzle",
+		"Bambu PLA Silk+ @BBL H2C": "Bambu PLA Silk+ @BBL H2C 0.8 nozzle",
+		"Bambu PLA Translucent @BBL H2C": "Bambu PLA Translucent @BBL H2C 0.8 nozzle",
+		"Bambu PLA-CF @BBL H2C": "Bambu PLA-CF @BBL H2C 0.8 nozzle",
+		"Bambu PVA @BBL H2C": "Bambu PVA @BBL H2C 0.8 nozzle",
+		"Bambu Support For PLA @BBL H2C": "Bambu Support For PLA @BBL H2C 0.8 nozzle",
+		"Bambu Support For PLA/PETG @BBL H2C": "Bambu Support For PLA/PETG @BBL H2C 0.8 nozzle",
+		"Bambu Support for ABS @BBL H2C": "Bambu Support for ABS @BBL H2C 0.8 nozzle",
+		"Bambu TPU 95A HF @BBL H2C": "Bambu TPU 95A HF @BBL H2C 0.8 nozzle",
+		"Bambu TPU for AMS @BBL H2C": "Bambu TPU for AMS @BBL H2C 0.8 nozzle"
+	},
+	"Bambu Lab H2S 0.6 nozzle": {
+		"Bambu PA6-CF @BBL H2S": "Bambu PA6-CF @BBL H2S 0.6 nozzle",
+		"Bambu PAHT-CF @BBL H2S": "Bambu PAHT-CF @BBL H2S 0.6 nozzle",
+		"Bambu PETG Translucent @BBL H2S": "Bambu PETG Translucent @BBL H2S 0.6 nozzle",
+		"Bambu PETG-CF @BBL H2S": "Bambu PETG-CF @BBL H2S 0.6 nozzle",
+		"Bambu PLA Lite @BBL H2S": "Bambu PLA Lite @BBL H2S 0.6 nozzle",
+		"Bambu PLA Pure @BBL H2S": "Bambu PLA Pure @BBL H2S 0.6 nozzle",
+		"Bambu PLA Silk+ @BBL H2S": "Bambu PLA Silk+ @BBL H2S 0.6 nozzle",
+		"Bambu PLA Translucent @BBL H2S": "Bambu PLA Translucent @BBL H2S 0.6 nozzle",
+		"Bambu PLA-CF @BBL H2S": "Bambu PLA-CF @BBL H2S 0.6 nozzle",
+		"Bambu PVA @BBL H2S": "Bambu PVA @BBL H2S 0.6 nozzle",
+		"Bambu Support For PLA @BBL H2S": "Bambu Support For PLA @BBL H2S 0.6 nozzle",
+		"Bambu Support For PLA/PETG @BBL H2S": "Bambu Support For PLA/PETG @BBL H2S 0.6 nozzle",
+		"Bambu Support for ABS @BBL H2S": "Bambu Support for ABS @BBL H2S 0.6 nozzle",
+		"Bambu TPU 95A HF @BBL H2S": "Bambu TPU 95A HF @BBL H2S 0.6 nozzle",
+		"Bambu TPU for AMS @BBL H2S": "Bambu TPU for AMS @BBL H2S 0.6 nozzle"
+	},
+	"Bambu Lab H2S 0.8 nozzle": {
+		"Bambu PA6-CF @BBL H2S": "Bambu PA6-CF @BBL H2S 0.8 nozzle",
+		"Bambu PAHT-CF @BBL H2S": "Bambu PAHT-CF @BBL H2S 0.8 nozzle",
+		"Bambu PETG Basic @BBL H2S 0.6 nozzle": "Bambu PETG Basic @BBL H2S 0.8 nozzle",
+		"Bambu PETG Translucent @BBL H2S": "Bambu PETG Translucent @BBL H2S 0.8 nozzle",
+		"Bambu PETG-CF @BBL H2S": "Bambu PETG-CF @BBL H2S 0.8 nozzle",
+		"Bambu PLA Lite @BBL H2S": "Bambu PLA Lite @BBL H2S 0.8 nozzle",
+		"Bambu PLA Pure @BBL H2S": "Bambu PLA Pure @BBL H2S 0.8 nozzle",
+		"Bambu PLA Silk+ @BBL H2S": "Bambu PLA Silk+ @BBL H2S 0.8 nozzle",
+		"Bambu PLA Translucent @BBL H2S": "Bambu PLA Translucent @BBL H2S 0.8 nozzle",
+		"Bambu PLA-CF @BBL H2S": "Bambu PLA-CF @BBL H2S 0.8 nozzle",
+		"Bambu PVA @BBL H2S": "Bambu PVA @BBL H2S 0.8 nozzle",
+		"Bambu Support For PLA @BBL H2S": "Bambu Support For PLA @BBL H2S 0.8 nozzle",
+		"Bambu Support For PLA/PETG @BBL H2S": "Bambu Support For PLA/PETG @BBL H2S 0.8 nozzle",
+		"Bambu Support for ABS @BBL H2S": "Bambu Support for ABS @BBL H2S 0.8 nozzle",
+		"Bambu TPU 95A HF @BBL H2S": "Bambu TPU 95A HF @BBL H2S 0.8 nozzle",
+		"Bambu TPU for AMS @BBL H2S": "Bambu TPU for AMS @BBL H2S 0.8 nozzle"
+	},
+	"Bambu Lab P2S 0.6 nozzle": {
+		"Bambu PA6-CF @BBL P2S": "Bambu PA6-CF @BBL P2S 0.6 nozzle",
+		"Bambu PAHT-CF @BBL P2S": "Bambu PAHT-CF @BBL P2S 0.6 nozzle",
+		"Bambu PVA @BBL P2S": "Bambu PVA @BBL P2S 0.6 nozzle",
+		"Bambu Support For PLA @BBL P2S": "Bambu Support For PLA @BBL P2S 0.6 nozzle",
+		"Bambu Support For PLA/PETG @BBL P2S": "Bambu Support For PLA/PETG @BBL P2S 0.6 nozzle",
+		"Bambu Support for ABS @BBL P2S": "Bambu Support for ABS @BBL P2S 0.6 nozzle",
+		"Bambu TPU 95A HF @BBL P2S": "Bambu TPU 95A HF @BBL P2S 0.6 nozzle",
+		"Bambu TPU for AMS @BBL P2S": "Bambu TPU for AMS @BBL P2S 0.6 nozzle"
+	},
+	"Bambu Lab P2S 0.8 nozzle": {
+		"Bambu PA6-CF @BBL P2S": "Bambu PA6-CF @BBL P2S 0.8 nozzle",
+		"Bambu PAHT-CF @BBL P2S": "Bambu PAHT-CF @BBL P2S 0.8 nozzle",
+		"Bambu PETG Basic @BBL P2S 0.6 nozzle": "Bambu PETG Basic @BBL P2S 0.8 nozzle",
+		"Bambu PETG HF @BBL P2S 0.6 nozzle": "Bambu PETG HF @BBL P2S 0.8 nozzle",
+		"Bambu PETG Translucent @BBL P2S 0.6 nozzle": "Bambu PETG Translucent @BBL P2S 0.8 nozzle",
+		"Bambu PETG-CF @BBL P2S 0.6 nozzle": "Bambu PETG-CF @BBL P2S 0.8 nozzle",
+		"Bambu PLA-CF @BBL P2S 0.6 nozzle": "Bambu PLA-CF @BBL P2S 0.8 nozzle",
+		"Bambu PVA @BBL P2S": "Bambu PVA @BBL P2S 0.8 nozzle",
+		"Bambu Support For PLA @BBL P2S": "Bambu Support For PLA @BBL P2S 0.8 nozzle",
+		"Bambu Support For PLA/PETG @BBL P2S": "Bambu Support For PLA/PETG @BBL P2S 0.8 nozzle",
+		"Bambu Support for ABS @BBL P2S": "Bambu Support for ABS @BBL P2S 0.8 nozzle",
+		"Bambu TPU 95A HF @BBL P2S": "Bambu TPU 95A HF @BBL P2S 0.8 nozzle",
+		"Bambu TPU for AMS @BBL P2S": "Bambu TPU for AMS @BBL P2S 0.8 nozzle"
+	},
+	"Bambu Lab X2D 0.6 nozzle": {
+		"Bambu PLA Basic @BBL X2D": "Bambu PLA Basic @BBL X2D 0.6 nozzle"
+	},
+	"Bambu Lab H2C 0.6 nozzle": {
+		"Bambu PLA Pure @BBL H2C": "Bambu PLA Pure @BBL H2C 0.6 nozzle",
+		"Bambu PLA Translucent @BBL H2C": "Bambu PLA Translucent @BBL H2C 0.6 nozzle"
+	}
+}

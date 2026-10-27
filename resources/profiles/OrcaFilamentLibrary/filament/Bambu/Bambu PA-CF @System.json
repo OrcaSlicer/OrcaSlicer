@@ -6,15 +6,35 @@
 	"setting_id": "XTve0TGrHzrMdBnZ",
 	"instantiation": "true",
 	"nozzle_temperature_initial_layer": [
+		"290",
+		"290",
+		"290",
+		"290",
+		"290",
 		"290"
 	],
 	"nozzle_temperature": [
+		"290",
+		"290",
+		"290",
+		"290",
+		"290",
 		"290"
 	],
 	"fan_max_speed": [
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
 		"30"
 	],
 	"fan_min_speed": [
+		"10",
+		"10",
+		"10",
+		"10",
+		"10",
 		"10"
 	],
 	"fan_cooling_layer_time": [

@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "tc9ZLzQlKlARHNGw",
 	"name": "Normal speed (Stage 2) - 0.10mm",
-	"from": "system",
 	"inherits": "fdm_process_volumic_common",
+	"from": "system",
+	"setting_id": "tc9ZLzQlKlARHNGw",
 	"instantiation": "true",
 	"layer_height": "0.1",
 	"initial_layer_print_height": "0.1",

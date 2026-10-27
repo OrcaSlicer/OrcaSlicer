@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "9KnJva7m7E5M1quB",
 	"name": "Elegoo Neptune 2D 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Elegoo Neptune 2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "9KnJva7m7E5M1quB",
+	"instantiation": "true",
 	"host_type": "elegoolink",
 	"printer_model": "Elegoo Neptune 2D",
 	"default_print_profile": "0.20mm Standard @Elegoo Neptune 0.4 nozzle",
@@ -30,57 +30,85 @@
 	"auxiliary_fan": "0",
 	"machine_max_acceleration_extruding": [
 		"1000",
+		"1000",
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_retracting": [
+		"1000",
+		"1000",
 		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_travel": [
 		"1000",
+		"1000",
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_x": [
+		"1000",
+		"1000",
 		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_y": [
 		"1000",
+		"1000",
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_z": [
+		"100",
+		"100",
 		"100",
 		"100"
 	],
 	"machine_max_speed_e": [
 		"70",
+		"70",
+		"70",
 		"70"
 	],
 	"machine_max_speed_x": [
+		"300",
+		"300",
 		"300",
 		"300"
 	],
 	"machine_max_speed_y": [
 		"300",
+		"300",
+		"300",
 		"300"
 	],
 	"machine_max_speed_z": [
+		"20",
+		"20",
 		"20",
 		"20"
 	],
 	"machine_max_jerk_e": [
 		"5",
+		"5",
+		"5",
 		"5"
 	],
 	"machine_max_jerk_x": [
+		"8",
+		"8",
 		"8",
 		"8"
 	],
 	"machine_max_jerk_y": [
 		"8",
+		"8",
+		"8",
 		"8"
 	],
 	"machine_max_jerk_z": [
+		"0.4",
+		"0.4",
 		"0.4",
 		"0.4"
 	],

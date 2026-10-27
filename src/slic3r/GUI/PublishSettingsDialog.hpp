@@ -2,10 +2,15 @@
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
-#include "Widgets/TabCtrl.hpp"
 
 #include "libslic3r/PublishSettings.hpp"
 
+#include <cstddef>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/wx.h>
 #include <wx/colour.h>
 #include <wx/scrolwin.h>
@@ -14,10 +19,25 @@
 #include <vector>
 #include <string>
 
+class TabCtrl;
+class wxBoxSizer;
+class wxCommandEvent;
+class wxMouseEvent;
+class wxPanel;
+class wxScrolledWindow;
+class wxSizerItem;
+class wxStaticBitmap;
+class wxStaticText;
+class wxTextCtrl;
+class wxWindow;
+namespace Slic3r { class DynamicPrintConfig; }
+
 // Forward declarations (all are global classes, see Widgets/TextInput.hpp and
 // Widgets/StaticLine.hpp).
 class TextInput;
 class StaticLine;
+class CheckBox;
+class MultiSwitchButton;
 
 namespace Slic3r { namespace GUI {
 
@@ -97,7 +117,8 @@ private:
         size_t inner_index{0};
         bool dirty{false};          // matches a dirty base key: pre-checked + bold
         bool matches_filter{false}; // survives the active filter (computed by apply_filter)
-        wxCheckBox* check{nullptr};
+        ::CheckBox* check{nullptr};
+        wxStaticText* check_label{nullptr};
         wxStaticText* value_label{nullptr};
         wxStaticText* unit_label{nullptr};
         wxStaticBitmap* color_chip{nullptr}; // Color rows only; swatch next to the value
@@ -131,11 +152,13 @@ private:
         // header row is hidden. For physical slots the Full Publish toggle sits on a second
         // line (full_line_item) visible only when enabled; for mixed slots Enable alone implies
         // publishing the mix definition, so no Full Publish widget exists at all.
-        wxCheckBox* enable_check{nullptr};
+        ::CheckBox* enable_check{nullptr};
+        wxStaticText* enable_label{nullptr};
         wxSizerItem* full_line_item{nullptr}; // sizer item of the Full Publish line (physical slots only)
         // "Full Publish": while checked, the whole slot preset is serialized and its rows
         // (incl. Color/Type) are disabled.
-        wxCheckBox* full_check{nullptr};
+        ::CheckBox* full_check{nullptr};
+        wxStaticText* full_label{nullptr};
         // True for a mixed-color filament slot: no Material/Retraction rows; Enable publishes
         // the slot's gradient/ratio definition as a whole.
         bool is_mixed{false};
@@ -173,6 +196,10 @@ private:
         ScalableBitmap icon_bmp;      // tab icon next to the title; rescaled on DPI change
         wxPanel* page{nullptr};
         TabCtrl* tabs{nullptr};
+        // Printer section with several extruders: the extruder switch shown instead of `tabs`, the
+        // same MultiSwitchButton (and option names) as the printer tab's Extruder page. One option
+        // per entry of `categories`, named by its title; `tabs` stays as the hidden selection model.
+        MultiSwitchButton* variant_switch{nullptr};
         // Second tab strip, below the main one, listing only the mixed-color filament slots.
         // Present on the Material section only (null elsewhere).
         TabCtrl* mixed_tabs{nullptr};
@@ -255,6 +282,8 @@ private:
     bool row_is_visible(const Row& row) const;
     void apply_visibility();
     void bind_tab_events();
+    // Replaces a section's inner tab strip with a variant switch (see SectionGroup::variant_switch).
+    void setup_variant_switch(size_t section_index);
 
     TabCtrl* m_outer_tabs{nullptr};
     wxPanel* m_outer_host{nullptr};

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @InfiMech",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "InfiMech Generic PC",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "W0oujcCps06G6yNB",
 	"filament_id": "OFLakOUI",

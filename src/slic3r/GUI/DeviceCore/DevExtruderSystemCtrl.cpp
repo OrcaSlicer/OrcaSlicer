@@ -1,10 +1,7 @@
-#include <nlohmann/json.hpp>
 #include "DevExtruderSystem.h"
 
 #include "slic3r/GUI/DeviceManager.hpp"
 
-
-using namespace nlohmann;
 
 namespace Slic3r
 {

@@ -3,6 +3,7 @@
 
 #include "bambu_networking.hpp"
 #include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include <string>
 #include <memory>
 #include <vector>

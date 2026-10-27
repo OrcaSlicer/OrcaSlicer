@@ -1,15 +1,18 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Metal @FF C5",
-	"inherits": "Generic PLA @System",
 	"renamed_from": "Flashforge PLA  Metal @FF C5;Flashforge PLA  Metal FF C5",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "AdjRSTc9RZG6mJ1e",
 	"filament_id": "OFAebKg8",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"
 	],

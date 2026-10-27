@@ -1,7 +1,11 @@
 #include "DevNozzleRack.h"
 #include "DevUtil.h"
 
-#include "slic3r/GUI/DeviceManager.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include <boost/log/trivial.hpp>
+#include <nlohmann/json.hpp>
 
 wxDEFINE_EVENT(DEV_RACK_EVENT_READING_FINISHED, wxCommandEvent);
 namespace Slic3r

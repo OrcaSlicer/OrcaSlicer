@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @Qidi Q1 Pro 0.4 nozzle",
-	"inherits": "Generic PC @Qidi",
 	"renamed_from": "Qidi Generic PC @Qidi Q1 Pro 0.4 nozzle;Qidi Generic PC Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "Generic PC @Qidi",
 	"from": "system",
 	"setting_id": "QmaeYzkbcmKJCJSv",
 	"filament_id": "OFLakOUI",

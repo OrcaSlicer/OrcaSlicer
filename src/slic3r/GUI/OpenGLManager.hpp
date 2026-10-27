@@ -2,6 +2,9 @@
 #define slic3r_OpenGLManager_hpp_
 
 #include "GLShadersManager.hpp"
+#include <string>
+#include <utility>
+#include "slic3r/GUI/GLShader.hpp"
 
 class wxWindow;
 class wxGLCanvas;
@@ -44,6 +47,9 @@ public:
         const std::string& get_vendor() const;
         const std::string& get_renderer() const;
 
+        // False until a GL context has been made current and queried; the getters below detect
+        // on first use, which needs a current context.
+        bool is_detected() const { return m_detected; }
         bool is_core_profile() const { return m_core_profile; }
 
         bool is_mesa() const;
@@ -95,6 +101,8 @@ public:
     static bool are_framebuffers_supported() { return (s_framebuffers_type != EFramebufferType::Unknown); }
     static EFramebufferType get_framebuffers_type() { return s_framebuffers_type; }
     static wxGLCanvas* create_wxglcanvas(wxWindow& parent);
+    // True for a canvas made by create_wxglcanvas(), the kind a GLCanvas3D draws its scene and ImGui into.
+    static bool is_scene_canvas(const wxWindow* window);
     static const GLInfo& get_gl_info() { return s_gl_info; }
     static bool force_power_of_two_textures() { return s_force_power_of_two_textures; }
 

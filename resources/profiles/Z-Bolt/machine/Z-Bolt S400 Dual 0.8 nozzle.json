@@ -23,12 +23,15 @@
 		"0.16"
 	],
 	"retraction_length": [
+		"3",
 		"3"
 	],
 	"retract_length_toolchange": [
+		"3",
 		"3"
 	],
 	"retraction_minimum_travel": [
+		"3",
 		"3"
 	]
 }

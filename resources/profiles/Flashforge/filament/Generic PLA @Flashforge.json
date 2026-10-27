@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Flashforge",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Flashforge Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "keWbSonGBWos68ag",
 	"filament_id": "OFDSrzZ8",

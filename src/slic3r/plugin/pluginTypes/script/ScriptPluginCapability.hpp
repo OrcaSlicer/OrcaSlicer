@@ -2,6 +2,7 @@
 #define slic3r_ScriptPluginCapability_hpp_
 
 #include "../../PythonPluginInterface.hpp"
+#include <pybind11/pybind11.h>
 
 namespace Slic3r {
 class ScriptPluginCapability : public PluginCapabilityInterface

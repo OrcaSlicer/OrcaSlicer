@@ -15,7 +15,7 @@
 		"115"
 	],
 	"hot_plate_temp_initial_layer": [
-		"115"
+		"120"
 	],
 	"close_fan_the_first_x_layers": [
 		"3"
@@ -24,13 +24,13 @@
 		"30"
 	],
 	"filament_density": [
-		"1.24"
+		"1.04"
 	],
 	"filament_flow_ratio": [
 		"0.99"
 	],
 	"filament_max_volumetric_speed": [
-		"23"
+		"14"
 	],
 	"nozzle_temperature_initial_layer": [
 		"240"
@@ -39,19 +39,19 @@
 		"80"
 	],
 	"fan_min_speed": [
-		"70"
+		"15"
 	],
 	"slow_down_min_speed": [
-		"30"
+		"20"
 	],
 	"slow_down_layer_time": [
-		"3"
+		"10"
 	],
 	"nozzle_temperature": [
 		"240"
 	],
 	"temperature_vitrification": [
-		"85"
+		"105"
 	],
 	"nozzle_temperature_range_low": [
 		"220"

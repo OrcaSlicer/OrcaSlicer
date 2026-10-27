@@ -2,6 +2,12 @@
 #define slic3r_Mouse3DController_hpp_
 
 // Enabled debug output to console and extended imgui dialog
+#include <cstddef>
+#include <limits>
+#include <deque>
+#include <map>
+#include <string>
+#include <array>
 #define ENABLE_3DCONNEXION_DEVICES_DEBUG_OUTPUT 0
 
 #include "libslic3r/Point.hpp"
@@ -215,6 +221,8 @@ public:
     // Apply the received 3DConnexion mouse events to the camera. Called from the UI rendering thread.
     bool apply(Camera& camera);
 
+    // Whether the settings dialog can be shown: a device is connected and, on Windows, the legacy driver path is in use.
+    bool can_show_settings_dialog() const;
     bool is_settings_dialog_shown() const { return m_show_settings_dialog; }
     void show_settings_dialog(bool show) { m_show_settings_dialog = show && this->connected(); }
     void render_settings_dialog(GLCanvas3D& canvas) const;

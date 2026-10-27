@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @Anycubic",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "Anycubic Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "z0FSikhD8ZHv2UYt",
 	"filament_id": "OFgbpcy9",

@@ -7,7 +7,9 @@
 
 #pragma once
 
+#include <cstddef>
 #include <wx/artprov.h>
+#include <wx/event.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
@@ -29,12 +31,12 @@
 #include <wx/tglbtn.h>
 #include <wx/gbsizer.h>
 #include <wx/splitter.h>
-#include "Widgets/Button.hpp"
-#include "Widgets/SwitchButton.hpp"
-#include "Widgets/AxisCtrlButton.hpp"
-#include "Widgets/TextInput.hpp"
-#include "Widgets/StaticLine.hpp"
-#include "MediaPlayCtrl.h"
+
+class StaticLine;
+class wxFlexGridSizer;
+class wxStaticBitmap;
+class wxStaticText;
+class wxWindow;
 
 ///////////////////////////////////////////////////////////////////////////
 

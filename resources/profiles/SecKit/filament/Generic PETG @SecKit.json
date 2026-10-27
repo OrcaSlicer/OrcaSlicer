@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @SecKit",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "SecKit Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "Qt4oXABB5Fukbz46",
 	"filament_id": "OFYPdQJh",

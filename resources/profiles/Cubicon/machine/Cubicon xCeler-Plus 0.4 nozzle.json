@@ -73,12 +73,12 @@
 		"20000"
 	],
 	"machine_max_acceleration_z": [
-		"250",
-		"500"
+		"50",
+		"100"
 	],
 	"machine_max_speed_z": [
-		"25",
-		"12"
+		"5",
+		"10"
 	],
 	"machine_max_acceleration_retracting": [
 		"5000",
@@ -213,7 +213,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",

@@ -10,3 +10,6 @@
 # resume after `call :label`. With LF endings that offset can land wrong and the
 # label lookup fails, so keep these CRLF whatever the platform.
 *.bat text eol=crlf
+
+# OCCT BRep fixtures, kept byte for byte as OCCT wrote them.
+*.brep -text

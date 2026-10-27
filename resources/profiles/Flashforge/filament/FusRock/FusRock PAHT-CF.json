@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "FusRock PAHT-CF",
-	"inherits": "Generic PETG @Flashforge",
 	"renamed_from": "FusRock Generic PAHT-CF",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "OGhhxVvR4O4VYuCK",
 	"filament_id": "OFKW5hEW",
@@ -96,9 +96,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"0"
-	],
 	"filament_loading_speed": [
 		"28"
 	],
@@ -170,9 +167,6 @@
 	],
 	"filament_type": [
 		"PAHT-CF"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"35"

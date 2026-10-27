@@ -2,6 +2,9 @@
 #include <strsafe.h>
 //#include <atlconv.h>
 #include <dbghelp.h>
+#include <cstdarg>
+#include <cstddef>
+#include <cstring>
 #pragma comment(lib, "version.lib")
 #pragma comment( lib, "dbghelp.lib" )
 

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG-CF @Anker",
-	"inherits": "Generic PETG-CF @Anker base",
 	"renamed_from": "Anker Generic PETG-CF",
+	"inherits": "Generic PETG-CF @Anker base",
 	"from": "system",
 	"setting_id": "vCAuQeQLoXUk28ph",
 	"instantiation": "true",

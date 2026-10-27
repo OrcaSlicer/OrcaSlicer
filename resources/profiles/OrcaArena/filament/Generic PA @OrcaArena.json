@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @OrcaArena",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "OrcaArena Generic PA",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "KScdeqdB3UR6uvxs",
 	"filament_id": "OFg8ndtj",

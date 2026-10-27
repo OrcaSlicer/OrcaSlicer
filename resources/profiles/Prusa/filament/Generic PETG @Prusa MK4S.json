@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Prusa MK4S",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Prusa Generic PETG @MK4S;Prusa Generic PETG MK4S",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "t3ZCKWVct5d69cb8",
 	"filament_id": "OFYPdQJh",

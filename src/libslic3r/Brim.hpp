@@ -4,8 +4,10 @@
 #include "ExPolygon.hpp"
 #include "ObjectID.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
 
 #include<map>
+#include <utility>
 #include<vector>
 
 namespace Slic3r {

@@ -1,35 +1,31 @@
 #include "CrealityHostDiscovery.hpp"
+#include "CrealityPrint.hpp"
 #include "cxmdns.h"
 #include "Http.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <exception>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <string>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 
 namespace {
 
-struct ModelEntry { const char* code; const char* name; };
-constexpr ModelEntry kCfsCapableModels[] = {
-    {"F008", "K2 Plus"},
-    {"F012", "K2 Pro"},
-    {"F021", "K2"},
-};
-
+// Model capability/name lookups live in CrealityPrint (one table shared
+// with the print host) so discovery can't drift out of sync again.
 bool is_cfs_capable(const std::string& code)
 {
-    for (const auto& m : kCfsCapableModels)
-        if (code == m.code) return true;
-    return false;
+    return CrealityPrint::model_supports_multi_color(code);
 }
 
 std::string model_name_for(const std::string& code)
 {
-    for (const auto& m : kCfsCapableModels)
-        if (code == m.code) return m.name;
-    return {};
+    return CrealityPrint::model_display_name(code);
 }
 
 // Extract the device suffix from a service name like

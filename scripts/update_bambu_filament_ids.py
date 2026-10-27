@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate resources/printers/bambu_filament_ids.json: the map from Orca's
-content-addressed filament_id ("OF" + 6 base62 chars, see orca_id_tool.py)
+content-addressed filament_id ("OF" + 6 base62 chars, see orca_profile_tool.py)
 to Bambu Lab's own AMS/RFID catalog id ("GF..." etc.) for the subset of filament
 products Bambu ships.
 
@@ -54,7 +54,7 @@ import tempfile
 import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from orca_id_tool import (  # noqa: E402
+from orca_profile_tool import (  # noqa: E402
     BAMBU_MAP_PATH,
     OFL,
     PROFILES_DIR,

@@ -1,0 +1,26 @@
+{
+	"type": "process",
+	"name": "0.10mm Standard @Goofoo Velo+",
+	"inherits": "0.20mm Standard @Goofoo Velo+",
+	"from": "system",
+	"setting_id": "dJV4bTrLbOPzW2YB",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Goofoo Velo+ 0.2 nozzle"
+	],
+	"layer_height": "0.1",
+	"initial_layer_print_height": "0.1",
+	"bottom_shell_layers": "6",
+	"top_shell_layers": "12",
+	"wall_loops": "4",
+	"line_width": "0.22",
+	"initial_layer_line_width": "0.25",
+	"inner_wall_line_width": "0.22",
+	"outer_wall_line_width": "0.22",
+	"sparse_infill_line_width": "0.22",
+	"internal_solid_infill_line_width": "0.22",
+	"top_surface_line_width": "0.22",
+	"support_line_width": "0.22",
+	"support_top_z_distance": "0.1",
+	"support_bottom_z_distance": "0.1"
+}

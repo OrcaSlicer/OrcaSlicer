@@ -96,6 +96,7 @@
 		"0.2"
 	],
 	"machine_max_junction_deviation": [
+		"0.01",
 		"0.01"
 	],
 	"fan_speedup_time": "0.2",

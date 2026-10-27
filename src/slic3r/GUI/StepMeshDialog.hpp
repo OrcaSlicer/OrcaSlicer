@@ -2,6 +2,7 @@
 #define _STEP_MESH_DIALOG_H_
 
 #include <thread>
+#include <wx/event.h>
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "libslic3r/Format/STEP.hpp"

@@ -1,6 +1,7 @@
 {
 	"type": "machine",
 	"name": "Elegoo Neptune 4 0.2 nozzle",
+	"renamed_from": "Elegoo Neptune 4 (0.2 nozzle)",
 	"inherits": "Elegoo Neptune 4 0.4 nozzle",
 	"from": "system",
 	"setting_id": "YGH30n1CBw3of81j",
@@ -28,6 +29,5 @@
 	],
 	"min_layer_height": [
 		"0.06"
-	],
-	"renamed_from": "Elegoo Neptune 4 (0.2 nozzle)"
+	]
 }

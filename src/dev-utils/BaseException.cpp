@@ -11,6 +11,14 @@
 
 #include "git_commit_hash.h"
 #include "libslic3r_version.h"
+#include "StackWalker.h"
+#include <algorithm>
+#include <atomic>
+#include <boost/nowide/fstream.hpp>
+#include <cstdarg>
+#include <cstddef>
+#include <ctime>
+#include <excpt.h>
 
 static std::string g_log_folder;
 static std::atomic<int> g_crash_log_count = 0;

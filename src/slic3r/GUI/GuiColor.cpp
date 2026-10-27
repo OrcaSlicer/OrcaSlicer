@@ -1,4 +1,8 @@
 #include "GuiColor.hpp"
+#include <wx/colour.h>
+#include "libslic3r/Color.hpp"
+#include <algorithm>
+#include "ColorSpaceConvert.hpp"
 
 namespace Slic3r { namespace GUI {
 wxColour convert_to_wxColour(const RGBA &color)

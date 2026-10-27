@@ -11,7 +11,6 @@
 		"0x0"
 	],
 	"gcode_flavor": "klipper",
-	"silent_mode": "1",
 	"machine_max_acceleration_e": [
 		"5000"
 	],
@@ -102,7 +101,6 @@
 	],
 	"single_extruder_multi_material": "0",
 	"change_filament_gcode": "",
-	"z_lift_type": "NormalLift",
 	"default_print_profile": "",
 	"nozzle_type": "undefine",
 	"auxiliary_fan": "0",

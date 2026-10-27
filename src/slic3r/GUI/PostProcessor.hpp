@@ -4,8 +4,8 @@
 #include <functional>
 #include <string>
 
-#include "libslic3r/libslic3r.h"
-#include "libslic3r/PrintConfig.hpp"
+namespace Slic3r { class DynamicPrintConfig; }
+
 
 namespace Slic3r {
 

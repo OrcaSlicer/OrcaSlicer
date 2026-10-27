@@ -1,10 +1,13 @@
 {
 	"type": "filament",
-	"setting_id": "ib7AtR3tQ2dSrFNP",
 	"name": "Generic PETG @Sovol SV08 MAX",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PETG @System",
+	"from": "system",
+	"setting_id": "ib7AtR3tQ2dSrFNP",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

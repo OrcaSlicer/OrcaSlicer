@@ -2,8 +2,15 @@
 #ifndef _WX_ERRORMSGSTATTEXT_H_
 #define _WX_ERRORMSGSTATTEXT_H_
 
+#include <wx/dlimpexp.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
+#include <wx/string.h>
 #include "wx/stattext.h"
+
+class wxPaintEvent;
+class wxWindow;
 
 class WXDLLIMPEXP_CORE ErrorMsgStaticText : public wxPanel
 {

@@ -2,6 +2,10 @@
 #define FILLBEDJOB_HPP
 
 #include "ArrangeJob.hpp"
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/Arrange.hpp"
+#include "libslic3r/Point.hpp"
+#include <exception>
 
 namespace Slic3r { namespace GUI {
 

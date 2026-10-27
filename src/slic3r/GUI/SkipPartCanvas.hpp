@@ -1,5 +1,13 @@
 #ifndef SKIPPARTCANVAS_H
 #define SKIPPARTCANVAS_H
+#include <wx/event.h>
+#include <array>
+#include <string>
+#include <cstdint>
+#include <wx/gdicmn.h>
+#include <opencv2/core/mat.hpp>
+#include <unordered_map>
+#include <opencv2/core/types.hpp>
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 #include <opencv2/opencv.hpp>
@@ -9,6 +17,10 @@
 #include <libslic3r/Color.hpp>
 #include <boost/thread/mutex.hpp>
 #include "PartSkipCommon.hpp"
+
+class wxGLContext;
+class wxTextCtrl;
+class wxWindow;
 
 wxDECLARE_EVENT(EVT_ZOOM_PERCENT, wxCommandEvent);
 wxDECLARE_EVENT(EVT_CANVAS_PART, wxCommandEvent);

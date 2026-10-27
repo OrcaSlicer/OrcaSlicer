@@ -15,14 +15,33 @@
 #include "Plater.hpp"
 #include "Camera.hpp"
 
+#include <boost/version.hpp>
+#include <cstddef>
+#include <array>
 #include <glad/gl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include "slic3r/GUI/GLModel.hpp"
+#include <vector>
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Geometry.hpp"
+#include <math.h>
+#include <tuple>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include <Eigen/Geometry>
 
 #if BOOST_VERSION >= 107800
 #include <boost/timer/timer.hpp>
+#include <algorithm>
+#include <cmath>
 #else
 #include <boost/timer.hpp>
 #endif
@@ -394,6 +413,8 @@ void Bed3D::render_internal(GLCanvas3D& canvas, const Transform3d& view_matrix, 
     case Type::Custom: { render_custom(canvas, view_matrix, projection_matrix, bottom); break; }
     }
 
+    render_gravity_arrow(view_matrix, projection_matrix);
+
     glsafe(::glDisable(GL_DEPTH_TEST));
 }
 
@@ -625,6 +646,12 @@ void Bed3D::update_model_offset()
     shift(2) = -0.03;
     Vec3d* model_offset_ptr = const_cast<Vec3d*>(&m_model_offset);
     *model_offset_ptr = shift;
+    //BBS: TODO: hack for current stl for BBL printer
+    if (std::string::npos != m_model_filename.find("bbl-3dp-"))
+    {
+        (*model_offset_ptr)(0) -= m_bed_shape[2].x() / 2.0f;
+        (*model_offset_ptr)(1) -= m_bed_shape[2].y() / 2.0f;
+    }
     (*model_offset_ptr)(2) = -0.41 + GROUND_Z;
 
     // update extended bounding box
@@ -692,7 +719,7 @@ void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& proj
         if (shader != nullptr) {
             shader->start_using();
             shader->set_uniform("emission_factor", 0.0f);
-            const Transform3d model_matrix = Geometry::assemble_transform(m_model_offset);
+            Transform3d model_matrix = Geometry::assemble_transform(m_model_offset);
             shader->set_uniform("volume_world_matrix",  model_matrix);
             shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
             shader->set_uniform("projection_matrix", projection_matrix);
@@ -729,6 +756,59 @@ void Bed3D::render_custom(GLCanvas3D& canvas, const Transform3d& view_matrix, co
 
     /*if (show_texture)
         render_texture(bottom, canvas);*/
+}
+
+void Bed3D::render_gravity_arrow(const Transform3d& view_matrix, const Transform3d& projection_matrix)
+{
+    // build_plate_tilt_{x,y} are kept in sync with the belt tilt (see TabPrinter), so
+    // reading them here covers both belt and non-belt tilted printers.
+    const Vec3d up_dir = build_plate_tilt_up_direction();
+    if (up_dir == Vec3d::UnitZ()) {
+        m_gravity_arrow.reset();
+        return;
+    }
+
+    // A plain line along the tilted "up" direction -- the way the layers lean, i.e.
+    // the gantry -- drawn like the bed axes (no tip: the other direction is not
+    // possible) and shorter than them, so it reads as a hint inside the YZ corner.
+    const float length = 0.6f * m_axes.get_total_length();
+    if (!m_gravity_arrow.is_initialized() || m_gravity_arrow_length != length) {
+        m_gravity_arrow.reset();
+        m_gravity_arrow.init_from(smooth_cylinder(16, /*Radius*/ length / 75.f, length));
+        m_gravity_arrow_length = length;
+    }
+
+    // The cylinder model points along +Z. Compute the rotation that aligns it with
+    // up_dir: rotation axis = cross(+Z, up_dir), angle = acos(dot(+Z, up_dir)).
+    Vec3d from = Vec3d::UnitZ();
+    Vec3d to   = up_dir;
+    double dot  = from.dot(to);
+    Transform3d rot = Transform3d::Identity();
+    if (dot < -0.9999) {
+        // Nearly opposite -- rotate 180 degrees around X
+        rot = Eigen::AngleAxisd(M_PI, Vec3d::UnitX()) * rot;
+    } else if (dot < 0.9999) {
+        Vec3d axis  = from.cross(to).normalized();
+        double angle = std::acos(std::clamp(dot, -1.0, 1.0));
+        rot = Eigen::AngleAxisd(angle, axis) * rot;
+    }
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    shader->start_using();
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    Transform3d model_matrix = Eigen::Translation3d(m_axes.get_origin()) * rot;
+    shader->set_uniform("view_model_matrix", camera.get_view_matrix() * model_matrix);
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+
+    m_gravity_arrow.set_color({ 1.0f, 0.85f, 0.0f, 1.0f }); // yellow
+    m_gravity_arrow.render();
+
+    shader->stop_using();
 }
 
 void Bed3D::render_default(bool bottom, const Transform3d& view_matrix, const Transform3d& projection_matrix)

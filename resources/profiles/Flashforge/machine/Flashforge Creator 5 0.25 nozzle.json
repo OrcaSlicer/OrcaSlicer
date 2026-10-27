@@ -24,7 +24,7 @@
 	"cooling_tube_retraction": "0",
 	"default_bed_type": "",
 	"default_filament_profile": [
-		"Flashforge Generic PLA"
+		"Generic PLA @Flashforge"
 	],
 	"default_print_profile": "0.12mm Standard @FF C5 0.25 nozzle",
 	"deretraction_speed": [
@@ -71,65 +71,161 @@
 	"machine_load_filament_time": "0",
 	"machine_max_acceleration_e": [
 		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_extruding": [
+		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
+		"20000",
 		"30000",
 		"20000"
 	],
 	"machine_max_acceleration_retracting": [
 		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_travel": [
+		"20000",
+		"20000",
+		"20000",
+		"20000",
+		"20000",
+		"20000",
 		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_x": [
 		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
 		"20000"
 	],
 	"machine_max_acceleration_y": [
+		"30000",
+		"20000",
+		"30000",
+		"20000",
+		"30000",
+		"20000",
 		"30000",
 		"20000"
 	],
 	"machine_max_acceleration_z": [
 		"300",
+		"500",
+		"300",
+		"500",
+		"300",
+		"500",
+		"300",
 		"500"
 	],
 	"machine_max_jerk_e": [
+		"2.5",
+		"2.5",
+		"2.5",
+		"2.5",
+		"2.5",
+		"2.5",
 		"2.5",
 		"2.5"
 	],
 	"machine_max_jerk_x": [
 		"9",
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
 		"9"
 	],
 	"machine_max_jerk_y": [
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
+		"9",
 		"9",
 		"9"
 	],
 	"machine_max_jerk_z": [
 		"3",
+		"3",
+		"3",
+		"3",
+		"3",
+		"3",
+		"3",
 		"3"
 	],
 	"machine_max_junction_deviation": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
 		"0",
 		"0"
 	],
 	"machine_max_speed_e": [
 		"30",
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
+		"30",
 		"30"
 	],
 	"machine_max_speed_x": [
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
 		"600",
 		"600"
 	],
 	"machine_max_speed_y": [
 		"600",
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
+		"600",
 		"600"
 	],
 	"machine_max_speed_z": [
+		"20",
+		"20",
+		"20",
+		"20",
+		"20",
+		"20",
 		"20",
 		"20"
 	],
@@ -168,8 +264,18 @@
 	],
 	"nozzle_height": "4",
 	"nozzle_hrc": "0",
-	"nozzle_type": "hardened_steel",
-	"nozzle_volume": "0",
+	"nozzle_type": [
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel"
+	],
+	"nozzle_volume": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
 	"parking_pos_retraction": "0",
 	"pellet_modded_printer": "0",
 	"preferred_orientation": "0",
@@ -264,7 +370,6 @@
 		"30"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "0",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",

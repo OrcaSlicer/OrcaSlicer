@@ -8,23 +8,116 @@
 #include <Windows.h>
 #endif
 
+#include <catch2/catch_test_macros.hpp>
+#include <string>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <catch2/catch_message.hpp>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include <cstddef>
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+
 #include <catch2/catch_all.hpp>
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Slicing.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/BuildVolume.hpp"
+#include "libslic3r/Support/TreeModelVolumes.hpp"
+#include "libslic3r/Support/TreeSupportCommon.hpp"
+#include "libslic3r/Support/BeltFloorContext.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Polyline.hpp"
+#include <limits>
+#include <cmath>
+#include <map>
+#include "libslic3r/Polygon.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/LifecycleEvents.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/predicate.hpp>
+#include <cstdlib>
+#include <sstream>
+#include <limits>
 #include <fstream>
 #include <iterator>
+#include <ios>
+#include <memory>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExPolygon.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
+
+TEST_CASE("Timelapse g-code is emitted once per layer for Bambu and non-Bambu printers", "[Print][Regression]")
+{
+    struct PrinterCase {
+        std::string name;
+        std::string structure;
+        bool        is_bbl;
+    };
+    const PrinterCase printer = GENERATE(from_range(std::vector<PrinterCase>{
+        { "non-BBL undefined", "undefine", false },
+        { "non-BBL CoreXY",    "corexy",   false },
+        { "non-BBL i3",        "i3",       false },
+        { "non-BBL H-Bot",     "hbot",     false },
+        { "non-BBL Delta",     "delta",    false },
+        { "Bambu CoreXY",      "corexy",   true },
+        { "Bambu i3",          "i3",       true },
+    }));
+    INFO("printer: " << printer.name);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode",          ";TEST_LAYER_CHANGE" },
+        { "layer_height",                0.2 },
+        { "printer_structure",           printer.structure },
+        { "spiral_mode",                 false },
+        { "time_lapse_gcode",            "TIMELAPSE_TAKE_FRAME" },
+    });
+    Print print;
+    print.is_BBL_printer() = printer.is_bbl;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    const auto count = [&gcode](std::string_view token) {
+        size_t occurrences = 0;
+        size_t pos = 0;
+        while ((pos = gcode.find(token, pos)) != std::string::npos) {
+            ++occurrences;
+            pos += token.size();
+        }
+        return occurrences;
+    };
+
+    const size_t layer_changes = count("\n;TEST_LAYER_CHANGE\n");
+    REQUIRE(layer_changes > 0);
+    CHECK(count("\nTIMELAPSE_TAKE_FRAME\n") == layer_changes);
+}
 
 SCENARIO("Changing the number of solid shell layers does not make all surfaces internal", "[Print]") {
     GIVEN("sliced 20mm cube and config with top_shell_layers = 2 and bottom_shell_layers = 1") {
@@ -67,6 +160,81 @@ SCENARIO("Changing the number of solid shell layers does not make all surfaces i
             }
         }
     }
+}
+
+// Two copies of one object share a single slice. When a copy that has sliced itself becomes identical to an
+// earlier object, it keeps its own layers while that object slices and only then takes the shared layers over.
+TEST_CASE("An object that starts sharing another object's slices keeps its own layers until it takes them over", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "raft_layers",                1 }, // each object gets support layers of its own
+        { "sparse_infill_density",      "20%" }, // object_a's override below differs from this
+    });
+    // Activates the slicing-pipeline hook installed for the second slice below.
+    config.set_key_value("slicing_pipeline_plugin", new ConfigOptionStrings({"probe"}));
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+    ModelObject *object_a = model.objects.front();
+    // add_object() gives the copy extruder 1, and objects only share slices when their configs match.
+    object_a->config.set_key_value("extruder", new ConfigOptionInt(1));
+    ModelObject *object_b = model.add_object(*object_a); // shares object_a's mesh
+    for (ModelInstance *instance : object_b->instances)
+        instance->set_offset(instance->get_offset() + Vec3d(40., 0., 0.));
+    // A per-object override makes the objects differ, so each slices itself.
+    object_a->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(40));
+
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.objects().size() == 2);
+    // The non-const accessors hand out the layer vectors themselves, which the checks below compare.
+    PrintObject *print_b = print.get_object(1);
+    REQUIRE(print_b->model_object()->id() == object_b->id()); // Print slices its own copy of the model
+    REQUIRE(print_b->get_shared_object() == nullptr);
+    const LayerPtrs        own_layers         = print_b->layers();
+    const SupportLayerPtrs own_support_layers = print_b->support_layers();
+    REQUIRE(!own_layers.empty());
+    REQUIRE(!own_support_layers.empty());
+
+    // Without the override the objects are identical again: print_a redoes the steps the setting invalidated,
+    // and print_b shares it.
+    object_a->config.erase("sparse_infill_density");
+    print.apply(model, config);
+    REQUIRE(print.objects().size() == 2);
+    PrintObject *print_a = print.get_object(0);
+
+    // Erasing the override invalidates print_a's posPrepareInfill and the steps after it. Its hook is the first one
+    // print_a fires, and it runs after print_b starts sharing but before print_b takes the shared layers over.
+    bool hook_fired          = false;
+    bool shared_while_a_runs = false;
+    bool kept_layers         = false;
+    bool kept_support_layers = false;
+    {
+        Print::set_slicing_pipeline_hook_fn([&](Print &, const PrintObject *object, SlicingPipelineStepPlugin) {
+            if (object != print_a || hook_fired)
+                return;
+            hook_fired          = true;
+            shared_while_a_runs = print_b->get_shared_object() == print_a;
+            kept_layers         = print_b->layers() == own_layers;
+            kept_support_layers = print_b->support_layers() == own_support_layers;
+        });
+        const ScopeGuard reset_hook([] { Print::set_slicing_pipeline_hook_fn(nullptr); });
+        print.process();
+    }
+
+    REQUIRE(hook_fired);
+    CHECK(print.objects()[1] == print_b);
+    CHECK(shared_while_a_runs);
+    CHECK(kept_layers);
+    CHECK(kept_support_layers);
+    CHECK(print_b->get_shared_object() == print_a);
+    REQUIRE(!print_a->layers().empty());
+    CHECK(print_b->layers() == print_a->layers());
+    CHECK(print_b->support_layers() == print_a->support_layers());
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +287,39 @@ size_t count_opt_key(const std::vector<StringObjectException>& warnings, const s
         [&](const StringObjectException& w) { return w.opt_key == key; });
 }
 
+DynamicPrintConfig dual_extruder_exclusion_config(
+    BedExcludeVolumeMode mode,
+    const std::vector<std::string> &per_extruder,
+    const std::vector<int> &filament_map = {1})
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(2);
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats{0.4, 0.4});
+    config.set_key_value("extruder_offset", new ConfigOptionPoints{Vec2d::Zero(), Vec2d(20.0, 0.0)});
+    config.set_key_value("extruder_printable_height", new ConfigOptionFloatsNullable{256.0, 256.0});
+    config.set_key_value("bed_exclude_volume_mode", new ConfigOptionEnum<BedExcludeVolumeMode>(mode));
+    config.set_key_value("extruder_bed_exclude_volumes", new ConfigOptionStrings(per_extruder));
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
+    config.set_key_value("filament_map", new ConfigOptionInts(filament_map));
+    return config;
+}
+
+StringObjectException validate_multimaterial_cube(const DynamicPrintConfig &config)
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *first = object->add_volume(cube(20));
+    ModelVolume *second = object->add_volume(cube(20));
+    first->config.set("extruder", 1);
+    second->config.set("extruder", 2);
+    object->add_instance();
+    object->ensure_on_bed();
+
+    Print print;
+    print.apply(model, config);
+    return print.validate();
+}
+
 // Make `default_acceleration` exceed the machine's extruding-acceleration limit.
 void trigger_acceleration_warning(DynamicPrintConfig& c)
 {
@@ -144,6 +345,73 @@ void trigger_precise_wall_warning(DynamicPrintConfig& c)
 }
 
 } // namespace
+
+TEST_CASE("Print validation applies individual exclusion volumes to the mapped physical extruder", "[Print][ExclusionVolume][MultiNozzle]")
+{
+    const std::string colliding = "0..256;-100x-100,300x-100,300x300,-100x300";
+    std::vector<StringObjectException> warnings;
+
+    SECTION("mapped colliding extruder is rejected") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {colliding, ""}, {1});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("extruder 1") != std::string::npos);
+    }
+
+    SECTION("mapped clear extruder is accepted") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {colliding, ""}, {2});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+
+    SECTION("an unrelated nozzle exclusion does not reject the object") {
+        const DynamicPrintConfig config = dual_extruder_exclusion_config(
+            BedExcludeVolumeMode::PerExtruder, {"", colliding}, {1});
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+}
+
+TEST_CASE("Print validation applies shared exclusions and ignores volumes above the object", "[Print][ExclusionVolume]")
+{
+    std::vector<StringObjectException> warnings;
+
+    SECTION("shared volume intersects") {
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, {2});
+        config.set_key_value("bed_exclude_volumes", new ConfigOptionString("0..30;-100x-100,300x-100,300x300,-100x300"));
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.find("extruder 2") != std::string::npos);
+    }
+
+    SECTION("elevated shared volume clears a 20mm cube") {
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, {1});
+        config.set_key_value("bed_exclude_volumes", new ConfigOptionString("30..50;-100x-100,300x-100,300x300,-100x300"));
+        const StringObjectException error = validate_cubes(config, warnings);
+        CHECK(error.string.empty());
+    }
+}
+
+TEST_CASE("Legacy excluded areas retain object placement validation", "[Print][ExclusionVolume][Compatibility]")
+{
+    DynamicPrintConfig config = dual_extruder_exclusion_config(
+        BedExcludeVolumeMode::Shared, {"", ""}, {1});
+    config.set_deserialize_strict("bed_exclude_area", "-100x-100,300x-100,300x300,-100x300");
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = validate_cubes(config, warnings);
+    CHECK_FALSE(error.string.empty());
+}
+
+TEST_CASE("Print validation checks every nozzle used by a multimaterial object", "[Print][ExclusionVolume][MultiNozzle]")
+{
+    const std::string colliding = "0..256;-100x-100,300x-100,300x300,-100x300";
+    const DynamicPrintConfig config = dual_extruder_exclusion_config(
+        BedExcludeVolumeMode::PerExtruder, {"", colliding}, {1, 2});
+
+    const StringObjectException error = validate_multimaterial_cube(config);
+    CHECK(error.string.find("extruder 2") != std::string::npos);
+}
 
 // ---------------------------------------------------------------------------
 // {first_object_name} filename placeholder
@@ -175,7 +443,87 @@ std::string resolved_output_name(Model& model, const std::string& format, const 
     return print.output_filename(filename_base);
 }
 
+struct ScopedLifecycleHook
+{
+    explicit ScopedLifecycleHook(LifecycleHookFn hook) { set_lifecycle_hook_fn(std::move(hook)); }
+    ~ScopedLifecycleHook() { set_lifecycle_hook_fn(nullptr); }
+};
+
 } // namespace
+
+TEST_CASE("Slicing lifecycle events identify the model", "[Print][LifecycleEvents]")
+{
+    struct ObservedEvent {
+        LifecycleEvent event;
+        std::string id;
+        std::string name;
+    };
+    std::vector<ObservedEvent> events;
+    ScopedLifecycleHook hook([&](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        events.push_back({ event, ctx.id, ctx.name });
+    });
+
+    Print print;
+    Model model;
+    ModelInfo info;
+    info.model_name = "Lifecycle test model";
+    model.model_info = std::make_shared<ModelInfo>(std::move(info));
+    init_print({cube(20)}, print, model);
+
+    print.process();
+    ScopedTemporaryFile temp(".gcode");
+    print.export_gcode(temp.string(), nullptr, nullptr);
+    GCodeProcessorResult result;
+    print.export_gcode_from_previous_file(temp.string(), &result);
+
+    const std::string expected_id = std::to_string(print.model().id().id);
+    const std::vector<LifecycleEvent> expected_events = {
+        LifecycleEvent::SliceStarted,
+        LifecycleEvent::SliceGeometryFinished,
+        LifecycleEvent::GCodeExportStarted,
+        LifecycleEvent::GCodeExportFinished,
+        LifecycleEvent::GCodeExportStarted,
+        LifecycleEvent::GCodeExportFinished,
+    };
+    REQUIRE(events.size() == expected_events.size());
+    for (size_t i = 0; i < expected_events.size(); ++i) {
+        CHECK(events[i].event == expected_events[i]);
+        CHECK(events[i].id == expected_id);
+        CHECK(events[i].name == "Lifecycle test model");
+    }
+}
+
+TEST_CASE("Slicing lifecycle event name is empty without model metadata", "[Print][LifecycleEvents]")
+{
+    std::string event_id;
+    std::string event_name = "unset";
+    ScopedLifecycleHook hook([&](LifecycleEvent event, const LifecycleEventContext& ctx) {
+        if (event == LifecycleEvent::SliceStarted) {
+            event_id = ctx.id;
+            event_name = ctx.name;
+        }
+    });
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model);
+    print.process();
+
+    CHECK(event_id == std::to_string(print.model().id().id));
+    CHECK(event_name.empty());
+}
+
+TEST_CASE("Output filenames with numeric statistics fail before slicing finishes", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filename_format", new ConfigOptionString("{int(total_weight*10) / 10.0}"));
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+
+    CHECK_THROWS_AS(print.output_filename(), PlaceholderParserError);
+}
 
 TEST_CASE("Print: {first_object_name} names the first printable object on the plate", "[Print]")
 {
@@ -300,6 +648,113 @@ TEST_CASE("Print::validate tolerates a null warnings pointer", "[Print][validate
     CHECK(err.string.empty());
 }
 
+TEST_CASE("Print::validate refuses a used filament with a flow ratio of 0", "[Print][validate][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ 0. });
+
+    std::vector<StringObjectException> warnings;
+    StringObjectException err = validate_cubes(config, warnings);
+
+    CHECK_FALSE(err.string.empty());
+    CHECK_FALSE(err.is_warning);
+    CHECK(err.opt_key == "filament_flow_ratio");
+}
+
+TEST_CASE("Print::validate ignores a flow ratio of 0 on an unused filament", "[Print][validate]")
+{
+    // The cube prints with filament 1, so filament 2's ratio is never used.
+    DynamicPrintConfig config = multifilament_config(2, { { "filament_self_index", "1,2" } });
+    config.set_key_value("filament_flow_ratio", new ConfigOptionFloatsNullable{ 1., 0. });
+
+    std::vector<StringObjectException> warnings;
+    StringObjectException err = validate_cubes(config, warnings);
+
+    CHECK(err.string.empty());
+}
+
+TEST_CASE("Purge tower selection keeps ordinary printers on the classic path", "[Print][PurgeTower][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "belt_printer",            0 },
+        { "enable_prime_tower",      1 },
+        { "enable_belt_purge_tower", 1 }
+    });
+    config.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(TimelapseType::tlSmooth));
+
+    Model model;
+    Print print;
+    build_cubes(model, print, config, /*n=*/1, /*overlap=*/false);
+
+    CHECK(print.has_wipe_tower());
+    CHECK_FALSE(print.has_belt_purge_tower());
+}
+
+TEST_CASE("Belt purge planning requires its managed purge object", "[Print][PurgeTower][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "belt_printer",             1 },
+        { "enable_belt_purge_tower", 1 }
+    });
+
+    Model model;
+    Print print;
+    build_cubes(model, print, config, /*n=*/1, /*overlap=*/false);
+    CHECK_FALSE(print.has_belt_purge_tower());
+
+    model.objects.front()->config.set_key_value("belt_purge_tower_object", new ConfigOptionBool(true));
+    print.apply(model, config);
+    CHECK(print.has_belt_purge_tower());
+    CHECK_FALSE(print.has_wipe_tower());
+}
+
+// The GUI creates the purge tower object; a project sliced without one (the CLI) must say
+// that its filament changes go unpurged.
+TEST_CASE("Belt purge tower enabled without a tower object warns", "[Print][PurgeTower][belt]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "belt_printer",            1 },
+        { "enable_belt_purge_tower", 1 },
+        { "layer_change_gcode",      "G92 E0\n" }
+    });
+    auto purge_warnings = [](Print &print) {
+        std::vector<StringObjectException> warnings;
+        print.validate(&warnings);
+        return std::count_if(warnings.begin(), warnings.end(), [](const StringObjectException &w) {
+            return w.opt_key == "enable_belt_purge_tower";
+        });
+    };
+
+    Model model;
+    Print print;
+    build_cubes(model, print, config, /*n=*/2, /*overlap=*/false);
+    model.objects[1]->config.set_key_value("extruder", new ConfigOptionInt(2));
+    print.apply(model, config);
+    REQUIRE(print.extruders().size() > 1);
+    CHECK(purge_warnings(print) == 1);
+
+    model.objects.front()->config.set_key_value("belt_purge_tower_object", new ConfigOptionBool(true));
+    print.apply(model, config);
+    CHECK(purge_warnings(print) == 0);
+}
+
+TEST_CASE("Belt purge rejects multiple managed purge objects", "[Print][PurgeTower][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "belt_printer",             1 },
+        { "enable_belt_purge_tower", 1 }
+    });
+
+    Model model;
+    Print print;
+    build_cubes(model, print, config, /*n=*/2, /*overlap=*/false);
+    for (ModelObject *object : model.objects)
+        object->config.set_key_value("belt_purge_tower_object", new ConfigOptionBool(true));
+    print.apply(model, config);
+
+    CHECK_FALSE(print.validate().string.empty());
+}
+
 TEST_CASE("A default slice emits perimeter, infill, and skirt", "[Print]")
 {
     const std::string gcode = slice({ cube(20) }, {
@@ -354,6 +809,25 @@ TEST_CASE("gcode_skip_config_block omits the resolved-settings comment block", "
     CHECK(gcode.find("; EXECUTABLE_BLOCK_START") != std::string::npos);
 }
 
+// Some firmwares only scan the last N lines of the file for "estimated printing time", so it
+// must stay close to EOF regardless of the resolved-settings config block's size.
+TEST_CASE("The estimated printing time comment stays near the end of the file", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {});
+    const size_t config_block_end = gcode.find("; CONFIG_BLOCK_END");
+    const size_t filament_stats   = gcode.find("; filament used [mm]");
+    const size_t time_comment     = gcode.find("estimated printing time");
+    REQUIRE(config_block_end != std::string::npos);
+    REQUIRE(filament_stats != std::string::npos);
+    REQUIRE(time_comment != std::string::npos);
+    CHECK(filament_stats > config_block_end);
+    CHECK(time_comment > filament_stats);
+
+    const size_t line_start = gcode.rfind('\n', time_comment) + 1;
+    const size_t trailing_lines = std::count(gcode.begin() + line_start, gcode.end(), '\n');
+    CHECK(trailing_lines <= 5);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
@@ -377,15 +851,182 @@ TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
                 })
               .find("; between-object-gcode") != std::string::npos);
 
-    // [layer_num] keeps counting across sequentially printed objects (199 then 399).
+    // [layer_num] keeps counting across sequentially printed objects (199 then 399), and [max_layer_z]
+    // stays at the first object's 20mm top while the second object starts.
     const std::string per_layer = slice_two_cubes_arranged({
         { "print_sequence",             "by object" },
-        { "layer_change_gcode",         ";Layer:[layer_num] ([layer_z] mm)" },
+        { "layer_change_gcode",         ";Layer:[layer_num] ([layer_z] mm) max [max_layer_z]" },
         { "layer_height",               0.1 },
         { "initial_layer_print_height", 0.1 },
     });
     CHECK(per_layer.find(";Layer:199 ") != std::string::npos);
     CHECK(per_layer.find(";Layer:399 ") != std::string::npos);
+    CHECK(per_layer.find(";Layer:200 (0.1 mm) max 20\n") != std::string::npos);
+}
+
+// A finished export is reused, so a renamed plate needs the export step invalidated.
+TEST_CASE("Plate name reaches the G-code once G-code export is invalidated", "[Print]")
+{
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, { { "machine_start_gcode", "; Plate {plate_name}" } });
+    print.set_status_silent();
+
+    ScopedTemporaryFile output(".gcode");
+    const auto export_and_read = [&print, &output]() {
+        print.process();
+        print.export_gcode(output.string(), nullptr, nullptr);
+        std::ifstream in(output.string(), std::ios::binary);
+        return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    };
+
+    print.set_plate_name("First");
+    CHECK(export_and_read().find("; Plate First") != std::string::npos);
+    REQUIRE(print.finished());
+
+    // Renaming alone keeps the old export.
+    print.set_plate_name("Second");
+    CHECK(print.finished());
+    CHECK(export_and_read().find("; Plate First") != std::string::npos);
+
+    // Invalidating the export step re-emits the name without re-slicing.
+    print.set_gcode_file_invalidated();
+    CHECK_FALSE(print.finished());
+    CHECK(print.objects().front()->is_step_done(posSlice));
+    const std::string regenerated = export_and_read();
+    CHECK(regenerated.find("; Plate Second") != std::string::npos);
+    CHECK(regenerated.find("; Plate First") == std::string::npos);
+}
+
+// The layer change G-code runs before its layer prints, so the layer mass it gets is the previous layer's.
+TEST_CASE("Layer change G-code gets the previous layer's mass under both placeholder names", "[Print]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "filament_density",   1.24 },
+        // curr_layer_mass is Bambu Studio's name for previous_layer_mass.
+        { "layer_change_gcode", ";Mass:[layer_num] {if previous_layer_mass > 0}printed{else}none{endif} "
+                                "{if previous_layer_mass == curr_layer_mass}same{else}different{endif}" },
+    });
+    // Nothing is printed before the first layer change; layer 0 is printed before the second.
+    CHECK(gcode.find(";Mass:0 none same\n") != std::string::npos);
+    CHECK(gcode.find(";Mass:1 printed same\n") != std::string::npos);
+}
+
+TEST_CASE("Start G-code gets the wipe tower wait position under both placeholder names", "[Print]")
+{
+    // wipe_tower_center_pos_* are Bambu Studio's names for wipe_tower_wait_pos_*.
+    const std::string gcode = slice({ cube(20) }, {
+        { "machine_start_gcode", "; Wait {if wipe_tower_wait_pos_valid}set{else}unset{endif} "
+                                 "{if wipe_tower_center_pos_valid}set{else}unset{endif} "
+                                 "[wipe_tower_wait_pos_x],[wipe_tower_wait_pos_y] [wipe_tower_center_pos_x],[wipe_tower_center_pos_y]" },
+    });
+    // A single-filament print has no wipe tower, so neither name has a position.
+    CHECK(gcode.find("; Wait unset unset 0,0 0,0\n") != std::string::npos);
+}
+
+TEST_CASE("Timelapse G-code gets the snapshot placeholders on bed slingers and other printers", "[Print]")
+{
+    const std::string structure = GENERATE(as<std::string>{}, "i3", "corexy");
+    CAPTURE(structure);
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = slice({ cube(20) }, {
+                        { "printer_structure",         structure },
+                        { "printable_area",            "0x0,200x0,200x200,0x200" },
+                        { "bed_exclude_area",          "0x0" },
+                        { "extruder_clearance_radius", 40 },
+                        { "timelapse_type",            "0" },
+                        { "time_lapse_gcode",  "; Timelapse {if has_timelapse_safe_pos}safe{else}none{endif} [timelapse_pos_x] "
+                                               "[clear_to_x0] [curr_physical_extruder_id]" },
+                    }));
+    CHECK(gcode.find("\n; Timelapse safe ") != std::string::npos);
+}
+
+TEST_CASE("The first filament start G-code on Bambu Lab printers gets the layer placeholders", "[Print]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_start_gcode", new ConfigOptionStrings({ "; Start [layer_num] [layer_z] [max_layer_z]" }));
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.is_BBL_printer() = true;
+
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = Slic3r::Test::gcode(print));
+    // The first filament start G-code runs before the first layer.
+    CHECK(gcode.find("\n; Start -1 ") != std::string::npos);
+}
+
+// The final print statistics are known only after the whole G-code is generated, yet every custom G-code,
+// the file header included, gets the same values as filename_format.
+TEST_CASE("Print statistics in custom G-code match the final print statistics", "[Print][Regression]")
+{
+    const std::string gcode_key = GENERATE(as<std::string>{}, "file_start_gcode", "machine_start_gcode", "machine_end_gcode");
+    // Bambu printers use another tag table and G-code layout.
+    const bool is_bbl = GENERATE(false, true);
+    CAPTURE(gcode_key, is_bbl);
+
+    const std::vector<std::string> number_keys = { "total_weight", "used_filament", "total_cost", "total_wipe_tower_cost",
+                                                   "total_wipe_tower_filament" };
+    const std::vector<std::string> time_keys   = { "print_time", "normal_print_time", "silent_print_time" };
+    std::string                    templ;
+    for (const std::vector<std::string> *keys : { &number_keys, &time_keys })
+        for (const std::string &key : *keys)
+            templ += "; stat " + key + "={" + key + "}\n";
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { gcode_key,          templ },
+        { "filament_density", "1.25" },
+        { "filament_cost",    "20" },
+        { "time_cost",        "2" },
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.is_BBL_printer() = is_bbl;
+
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = Slic3r::Test::gcode(print));
+
+    // Match whole lines only: the config block repeats the template on a single line, and Bambu printers
+    // write that block before the start G-code.
+    const std::string lines    = "\n" + gcode;
+    const auto        value_of = [&lines](const std::string &key) {
+        const std::string prefix = "\n; stat " + key + "=";
+        const size_t      start  = lines.find(prefix);
+        REQUIRE(start != std::string::npos);
+        const size_t begin = start + prefix.size();
+        return lines.substr(begin, lines.find('\n', begin) - begin);
+    };
+    // The same statistics filename_format is expanded with.
+    DynamicConfig stats = print.print_statistics().config();
+    // A 20mm cube with filament_density 1.25 weighs something, unlike the running extruded_weight_total in the header.
+    CHECK(stats.opt_float("total_weight") > 0.);
+    for (const std::string &key : number_keys) {
+        CAPTURE(key);
+        const std::string value = value_of(key);
+        REQUIRE(value.find('@') == std::string::npos);
+        // Written with two decimals.
+        CHECK_THAT(std::stod(value), Catch::Matchers::WithinAbs(stats.opt_float(key), 0.006));
+    }
+    for (const std::string &key : time_keys) {
+        CAPTURE(key);
+        CHECK(value_of(key) == stats.opt_string(key));
+    }
+}
+
+TEST_CASE("Print statistics in custom G-code cannot be used in a calculation", "[Print]")
+{
+    const std::string key = GENERATE(as<std::string>{}, "total_weight", "used_filament", "total_cost", "print_time", "normal_print_time",
+                                     "silent_print_time", "total_wipe_tower_cost", "total_wipe_tower_filament", "print_time_total_sec",
+                                     "print_time_day", "print_time_hour", "print_time_minute", "print_time_sec", "used_filament_length");
+    CAPTURE(key);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "file_start_gcode", "; {" + key + " + 1}\n" } });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    CHECK_THROWS_WITH(Slic3r::Test::gcode(print), Catch::Matchers::ContainsSubstring("known only after the G-code is generated"));
 }
 
 TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export_gcode]")
@@ -407,6 +1048,57 @@ TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export
     REQUIRE_FALSE(gcode.empty());
 }
 
+TEST_CASE("Exporting a sliced print again gives the same G-code", "[Print][export_gcode][Regression]")
+{
+    const int instances = GENERATE(1, 3);
+    CAPTURE(instances);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    TestMesh           mesh   = TestMesh::ipadstand;
+    SECTION("infill reversed by chaining") { config.set_deserialize_strict({{"sparse_infill_pattern", "gyroid"}}); }
+    SECTION("support reversed by chaining") {
+        mesh = TestMesh::overhang;
+        config.set_deserialize_strict({{"enable_support", true}, {"support_interface_pattern", "concentric"}});
+    }
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::mesh(mesh)}, print, model, config, nullptr, true, instances);
+
+    const auto export_without_timestamp = [&print]() {
+        std::string gcode = Slic3r::Test::gcode(print);
+        const size_t line = gcode.find("; generated by ");
+        REQUIRE(line != std::string::npos);
+        gcode.erase(line, gcode.find('\n', line) - line);
+        return gcode;
+    };
+    const std::string first  = export_without_timestamp();
+    const std::string second = export_without_timestamp();
+
+    // Shows the first differing line on failure.
+    const size_t diff       = std::mismatch(first.begin(), first.end(), second.begin(), second.end()).first - first.begin();
+    const size_t line_start = diff == 0 ? 0 : first.rfind('\n', diff - 1) + 1;
+    INFO("first export:  " << first.substr(line_start, first.find('\n', diff) - line_start));
+    INFO("second export: " << second.substr(line_start, second.find('\n', diff) - line_start));
+    CHECK(diff == first.size());
+    CHECK(first.size() == second.size());
+}
+
+// Peak Z of the first object printed in by-object G-code: the highest extrusion before Z drops back
+// to the first layer, which with by-object printing only happens at an object change.
+static double first_object_peak_z(const std::string &gcode)
+{
+    double first_object_peak_z = 0.0;
+    double running_peak        = 0.0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&] (GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        if (first_object_peak_z != 0.0 || !line.extruding(self)) return; // ignore travels (e.g. start-gcode Z lift)
+        if (running_peak > 1.0 && self.z() < 1.0)
+            first_object_peak_z = running_peak;
+        else
+            running_peak = std::max(running_peak, static_cast<double>(self.z()));
+    });
+    return first_object_peak_z;
+}
+
 TEST_CASE("Sequential printing follows model order", "[Print]")
 {
     // Two objects of different heights, taller one added first. Orca prints
@@ -418,21 +1110,89 @@ TEST_CASE("Sequential printing follows model order", "[Print]")
         { "z_hop",                      0 }
     });
 
-    // The first object's height is the peak Z reached before Z drops back to the
-    // first layer (the object change). With by-object printing only an object
-    // change returns Z to the bottom.
-    double first_object_peak_z = 0.0;
-    double running_peak        = 0.0;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&] (GCodeReader& self, const GCodeReader::GCodeLine& line) {
-        if (first_object_peak_z != 0.0 || !line.extruding(self)) return; // ignore travels (e.g. start-gcode Z lift)
-        if (running_peak > 1.0 && self.z() < 1.0)
-            first_object_peak_z = running_peak;
-        else
-            running_peak = std::max(running_peak, static_cast<double>(self.z()));
-    });
+    REQUIRE_THAT(first_object_peak_z(gcode), Catch::Matchers::WithinAbs(20.0, 0.3));
+}
 
-    REQUIRE_THAT(first_object_peak_z, Catch::Matchers::WithinAbs(20.0, 0.3));
+// 20 mm boxes of the given heights, in list order, 60 mm apart in X at the same Y, so they share a
+// Y band but are far enough apart for the toolhead radius rule. The rod is lowered to 25 mm, so a
+// 30 mm box reaches above it and a 10 mm one does not.
+static void place_boxes_in_one_y_band(const std::vector<double> &heights, Print &print, Model &model)
+{
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < heights.size(); ++i) {
+        TriangleMesh box = make_cube(20, 20, heights[i]);
+        box.translate(float(80 + 80 * i), 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "skirt_loops",                      0 },
+        { "layer_height",                     0.2 },
+        { "initial_layer_print_height",       0.2 },
+        { "z_hop",                            0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+}
+
+static const StringObjectException *find_order_warning(const std::vector<StringObjectException> &warnings)
+{
+    auto it = std::find_if(warnings.begin(), warnings.end(),
+        [](const StringObjectException &w) { return w.string.find("is printed later than its place in the object list") != std::string::npos; });
+    return it == warnings.end() ? nullptr : &*it;
+}
+
+TEST_CASE("Sequential printing accepts a taller object listed first and over the rod height", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 30, 10 }, print, model);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+
+    // The print no longer follows the object list, so the user is told about the taller object,
+    // which is held back to clear the rod, and the notification jumps to it.
+    const StringObjectException *order_warning = find_order_warning(warnings);
+    REQUIRE(order_warning != nullptr);
+    CHECK(order_warning->object == print.model().objects.front()->instances.front());
+    CHECK(order_warning->string.find('\n') == std::string::npos); // only the taller object is named
+}
+
+TEST_CASE("Sequential printing prints the shorter object first when the taller one is over the rod height", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 30, 10 }, print, model);
+
+    REQUIRE_THAT(first_object_peak_z(Test::gcode(print)), Catch::Matchers::WithinAbs(10.0, 0.3));
+}
+
+TEST_CASE("Sequential printing keeps a list order that already clears the rod", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 10, 30 }, print, model);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+    CHECK(find_order_warning(warnings) == nullptr);
+    REQUIRE_THAT(first_object_peak_z(Test::gcode(print)), Catch::Matchers::WithinAbs(10.0, 0.3));
+}
+
+TEST_CASE("Sequential printing still rejects two objects over the rod height that share a Y band", "[Print]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({ 30, 30 }, print, model);
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("too tall"));
 }
 
 // A sequential (by-object) print must publish the print-level nozzle group result just
@@ -455,4 +1215,977 @@ TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][Mult
         });
         CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
     }
+}
+
+// A scarf joint starts one layer height below the layer and ramps up along the
+// wall. On a tilted belt that start is a step backwards along the belt axis, into
+// the previous layer's wall at the seam: 0.283 mm per 0.2 mm layer at 45 degrees.
+// With an aligned seam the nozzle rams the same spot on every layer (field report
+// from a BabyBelt Pro: the belt "jumped backwards" and knocked the part loose).
+// Belt printers therefore never get a scarf, whatever the process preset says.
+TEST_CASE("Belt printers never start a scarf seam below the layer", "[Print][belt][Seam]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "belt_printer",               1 },
+        { "belt_slice_rotation",        "x" },
+        { "belt_slice_rotation_angle",  45 },
+        { "gcode_remap_x",              "rev_x" },
+        { "gcode_remap_y",              "pos_z" },
+        { "gcode_remap_z",              "pos_y" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "top_shell_layers",           0 },
+        { "bottom_shell_layers",        1 },
+        { "wall_loops",                 2 },
+        { "seam_position",              "back" },
+        { "seam_slope_type",            "external" },
+        { "seam_slope_inner_walls",     1 },
+        { "seam_slope_start_height",    0 },
+        // No z-hop: on a belt a lift is a move along the belt axis (0.4 mm / sin 45 = 0.57 mm)
+        // and its return would read as a back-step. The shipped belt profiles print without one.
+        { "z_hop",                      0 },
+        { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
+    });
+    const std::string gcode = slice({ cube(20) }, config);
+    REQUIRE(! gcode.empty());
+
+    // The belt axis is machine Z. Within a layer it only drifts by the frame
+    // coupling (well under 0.1 mm across a 20 mm cube); a scarf start is a full
+    // layer pitch (0.283 mm) backwards.
+    double last_z = std::numeric_limits<double>::lowest();
+    double worst_backstep = 0.;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (! line.cmd_is("G1") || ! line.has_z())
+            return;
+        const double z = line.z();
+        if (last_z != std::numeric_limits<double>::lowest())
+            worst_backstep = std::max(worst_backstep, last_z - z);
+        last_z = z;
+    });
+    CHECK(worst_backstep < 0.2);
+}
+
+// printable_height on a belt printer is the clearance under the gantry, so an object taller
+// than that is refused whatever the machine-frame transform does to the emitted coordinates.
+TEST_CASE("Belt printers refuse an object taller than the gantry clearance", "[Print][belt]")
+{
+    auto belt_config = [](double printable_height) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "belt_printer",               1 },
+            { "belt_slice_rotation",        "x" },
+            { "belt_slice_rotation_angle",  45 },
+            { "gcode_remap_x",              "rev_x" },
+            { "gcode_remap_y",              "pos_z" },
+            { "gcode_remap_z",              "pos_y" },
+            { "printable_height",           printable_height },
+            { "skirt_loops",                0 },
+            { "layer_change_gcode",         "G92 E0\n" },
+        });
+        return config;
+    };
+
+    SECTION("a 20 mm cube fits under 50 mm of clearance") {
+        Print print;
+        Model model;
+        init_print({ cube(20) }, print, model, belt_config(50));
+        CHECK(print.validate().string.empty());
+    }
+    SECTION("a 60 mm cube does not") {
+        Print print;
+        Model model;
+        init_print({ cube(60) }, print, model, belt_config(50));
+        CHECK(print.validate().string.find("height") != std::string::npos);
+    }
+}
+
+// On a belt every tilted layer starts on the belt, so "the first layers" the fan stays off
+// for are a band along the belt, not the first slicing layers. The generator marks where
+// each extrusion segment enters and leaves that band and the cooling buffer keeps the fan
+// off inside it, on every layer.
+TEST_CASE("Belt printers keep the part fan off within the band above the belt", "[Print][belt][Cooling]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "belt_printer",                 1 },
+        { "belt_slice_rotation",          "x" },
+        { "belt_slice_rotation_angle",    45 },
+        { "gcode_remap_x",                "rev_x" },
+        { "gcode_remap_y",                "pos_z" },
+        { "gcode_remap_z",                "pos_y" },
+        { "layer_height",                 0.2 },
+        { "initial_layer_print_height",   0.2 },
+        { "skirt_loops",                  0 },
+        { "z_hop",                        0 },
+        // Three layers, 0.6 mm: the lowest wall of each tilted layer is centred about 0.3 mm
+        // above the belt (half a line width in from the contact edge).
+        { "close_fan_the_first_x_layers", 3 },
+        { "full_fan_speed_layer",         0 },
+        { "fan_min_speed",                100 },
+        { "fan_max_speed",                100 },
+        { "slow_down_layer_time",         1000 },
+        { "fan_cooling_layer_time",       1001 },
+        { "reduce_fan_stop_start_freq",   0 },
+        { "machine_start_gcode",          "T[initial_tool]\n" },
+        { "layer_change_gcode",           "G92 E0\n" },
+    });
+    const std::string gcode = slice({ cube(20) }, config);
+    REQUIRE(! gcode.empty());
+
+    // The markers are consumed by the cooling buffer and never reach the file.
+    CHECK(gcode.find(";_BELT_BAND") == std::string::npos);
+
+    // With this axis mapping machine Y is the height above the belt along the gantry. Walk
+    // the moves with the fan state: extrusions that stay within 0.45 mm of the belt are well
+    // inside the band and must print with the fan off; extrusions that stay 5 mm clear of it
+    // must print with it on. The first three slicing layers have the fan off altogether.
+    size_t in_band = 0, in_band_fan_on = 0, clear = 0, clear_fan_off = 0;
+    int    layer   = -1;
+    bool   fan_on  = false;
+    double y       = 0.;
+    std::istringstream lines(gcode);
+    for (std::string line; std::getline(lines, line); ) {
+        if (boost::starts_with(line, ";LAYER_CHANGE")) {
+            ++ layer;
+        } else if (boost::starts_with(line, "M107")) {
+            fan_on = false;
+        } else if (boost::starts_with(line, "M106")) {
+            const size_t s = line.find('S');
+            fan_on = s != std::string::npos && std::atof(line.c_str() + s + 1) > 0.;
+        } else if (boost::starts_with(line, "G1 ")) {
+            const size_t comment = line.find(';');
+            const std::string cmd = line.substr(0, comment);
+            const size_t ypos = cmd.find(" Y"), epos = cmd.find(" E");
+            if (ypos == std::string::npos)
+                continue;
+            const double y_new     = std::atof(cmd.c_str() + ypos + 2);
+            const bool   extruding = epos != std::string::npos && std::atof(cmd.c_str() + epos + 2) > 0.;
+            if (extruding && layer >= 3) {
+                if (std::max(y, y_new) < 0.45) {
+                    ++ in_band;
+                    in_band_fan_on += fan_on;
+                } else if (std::min(y, y_new) > 5.) {
+                    ++ clear;
+                    clear_fan_off += ! fan_on;
+                }
+            }
+            y = y_new;
+        }
+    }
+    CHECK(in_band > 20);
+    CHECK(in_band_fan_on == 0);
+    CHECK(clear > 20);
+    CHECK(clear_fan_off == 0);
+}
+
+// Organic supports under an overhang on a belt printer reach below the object's first layer,
+// where the virtual belt raft layers sit at negative Z. The lowest of them used to get a
+// negative height and abort slicing with a negative flow error.
+TEST_CASE("Belt printers slice organic tree supports that reach the belt", "[Print][belt][Support]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "belt_printer",               1 },
+        { "belt_slice_rotation",        "x" },
+        { "belt_slice_rotation_angle",  45 },
+        { "gcode_remap_x",              "rev_x" },
+        { "gcode_remap_y",              "pos_z" },
+        { "gcode_remap_z",              "pos_y" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "z_hop",                      0 },
+        { "enable_support",             1 },
+        { "support_type",               "tree(auto)" },
+        { "support_style",              "organic" },
+        { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
+    });
+    std::string gcode;
+    REQUIRE_NOTHROW(gcode = slice({ TestMesh::overhang }, config));
+    CHECK(! gcode.empty());
+}
+
+TEST_CASE("Slicing errors are reported per object with the object's name", "[Print]")
+{
+    Print print;
+    Model model;
+    init_print({Slic3r::Test::cube(20.)}, print, model);
+    // Lift the cube off the bed: its first layer is empty, which G-code export reports per object.
+    ModelObject *object = model.objects.front();
+    object->name = "floating cube";
+    object->instances.front()->set_offset(object->instances.front()->get_offset() + Vec3d(0., 0., 2.));
+    print.apply(model, DynamicPrintConfig::full_print_config());
+    print.set_status_silent();
+
+    ScopedTemporaryFile temp(".gcode");
+    std::string message;
+    try {
+        print.process();
+        print.export_gcode(temp.string(), nullptr, nullptr);
+        FAIL("slicing did not report the empty first layer");
+    } catch (const SlicingErrors &errors) {
+        REQUIRE(errors.errors_.size() == 1);
+        message = print.slicing_errors_message(errors);
+    }
+    CHECK(message.rfind("floating cube: ", 0) == 0);
+    CHECK(message.find("empty first layer") != std::string::npos);
+}
+
+// ---------------------------------------------------------------------------
+// Belt mode must be invisible when it is off, and must not leave traces behind.
+// ---------------------------------------------------------------------------
+
+// Everything the slicer decided, without the lines that legitimately differ between
+// two exports of the same print: comments (the config block lists every key, the
+// header carries the export time) and the thumbnail blocks.
+static std::string gcode_body(const std::string &gcode)
+{
+    std::string      body;
+    std::istringstream in(gcode);
+    for (std::string line; std::getline(in, line); ) {
+        line.erase(std::min(line.size(), line.find(';')));
+        while (! line.empty() && line.back() == ' ')
+            line.pop_back();
+        if (! line.empty())
+            body += line + '\n';
+    }
+    return body;
+}
+
+static DynamicPrintConfig belt_test_config()
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "belt_printer",               1 },
+        { "belt_slice_rotation",        "x" },
+        { "belt_slice_rotation_angle",  45 },
+        { "gcode_remap_x",              "rev_x" },
+        { "gcode_remap_y",              "pos_z" },
+        { "gcode_remap_z",              "pos_y" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "z_hop",                      0 },
+        { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
+    });
+    return config;
+}
+
+TEST_CASE("Belt-only keys at non-default values leave non-belt G-code unchanged", "[Print][belt][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "z_hop",                      0 },
+        { "brim_type",                  "outer_only" },
+        { "brim_width",                 4 },
+        { "enable_support",             1 },
+        { "support_type",               "tree(auto)" },
+        { "support_style",              "organic" },
+        { "sparse_infill_pattern",      "adaptivecubic" },
+        { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
+    });
+    const std::string reference = gcode_body(slice({ TestMesh::overhang }, config));
+    REQUIRE(! reference.empty());
+
+    // Every belt key a profile can carry, at a value that would change a belt print.
+    // belt_printer stays off, so none of them may reach the G-code: the axis remaps are
+    // gated on belt mode, the rest is only read on belt printers. build_plate_tilt_x/y
+    // is a feature of its own on a flat bed and is left alone here; "leading_edge_only"
+    // prints as an outer brim by design.
+    config.set_deserialize_strict({
+        { "belt_printer",                0 },
+        { "belt_printer_infinite_y",     0 },
+        { "belt_slice_rotation",         "y" },
+        { "belt_slice_rotation_angle",   30 },
+        { "gcode_remap_x",               "rev_x" },
+        { "gcode_remap_y",               "pos_z" },
+        { "gcode_remap_z",               "pos_y" },
+        { "belt_frame_tilt_decouple",    1 },
+        { "belt_frame_tilt_angle",       30 },
+        { "belt_support_floor_offset",   -5 },
+        { "enable_belt_purge_tower",     1 },
+        { "belt_purge_tower_width",      10 },
+        { "leading_brim_length",         10 },
+        { "extra_brim_width",            5 },
+    });
+    CHECK(gcode_body(slice({ TestMesh::overhang }, config)) == reference);
+}
+
+TEST_CASE("Switching a sliced project from belt to non-belt matches a fresh slice", "[Print][belt][Regression]")
+{
+    // The organic support layers and the adaptive infill octree are placed with the
+    // belt global Z offset, and the mesh with the belt min-Z lift. Both are only
+    // written while belt mode slices, so they used to survive a switch away from it.
+    DynamicPrintConfig flat = DynamicPrintConfig::full_print_config();
+    flat.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "z_hop",                      0 },
+        { "enable_support",             1 },
+        { "support_type",               "tree(auto)" },
+        { "support_style",              "organic" },
+        { "sparse_infill_pattern",      "adaptivecubic" },
+        { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
+    });
+    DynamicPrintConfig belt = belt_test_config();
+    belt.set_deserialize_strict({
+        { "enable_support",        1 },
+        { "support_type",          "tree(auto)" },
+        { "support_style",         "organic" },
+        { "sparse_infill_pattern", "adaptivecubic" },
+    });
+
+    // Both prints are placed with the belt config, so only the slicing history differs.
+    auto fresh_slice = [&](const DynamicPrintConfig &target) {
+        Print print;
+        Model model;
+        init_print({ TestMesh::overhang }, print, model, belt);
+        print.apply(model, target);
+        const std::string out = gcode(print);
+        return gcode_body(out);
+    };
+    auto resliced = [&](const DynamicPrintConfig &target) {
+        Print print;
+        Model model;
+        init_print({ TestMesh::overhang }, print, model, belt);
+        REQUIRE(! gcode(print).empty());
+        print.apply(model, target);
+        const std::string out = gcode(print);
+        return gcode_body(out);
+    };
+    SECTION("belt printer to a flat-bed printer") {
+        CHECK(resliced(flat) == fresh_slice(flat));
+    }
+    SECTION("belt tilt axis set to None") {
+        DynamicPrintConfig untilted = belt;
+        untilted.set_deserialize_strict({ { "belt_slice_rotation", "none" } });
+        CHECK(resliced(untilted) == fresh_slice(untilted));
+    }
+}
+
+TEST_CASE("A support-only change on a belt purge print matches a fresh slice", "[Print][belt][PurgeTower][Regression]")
+{
+    // Snapping the purge prism onto the parts' layer grid shifts every object's layers by
+    // up to half a layer. A support-only change reruns support generation without
+    // reslicing, so the cached belt floor and the global Z offset have to carry the
+    // snap too, or the supports land on the pre-snap grid.
+    auto make_config = [](bool support) {
+        DynamicPrintConfig config = multifilament_config(2, {
+            { "belt_printer",               1 },
+            { "belt_slice_rotation",        "x" },
+            { "belt_slice_rotation_angle",  45 },
+            { "gcode_remap_x",              "rev_x" },
+            { "gcode_remap_y",              "pos_z" },
+            { "gcode_remap_z",              "pos_y" },
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "skirt_loops",                0 },
+            { "z_hop",                      0 },
+            { "enable_belt_purge_tower",    1 },
+            { "machine_start_gcode",        "T[initial_tool]\n" },
+            { "layer_change_gcode",         "G92 E0\n" },
+        });
+        config.set_deserialize_strict({
+            { "enable_support", support ? 1 : 0 },
+            { "support_type",   "tree(auto)" },
+            { "support_style",  "organic" },
+        });
+        return config;
+    };
+    const std::vector<std::vector<Slic3r::ConfigBase::SetDeserializeItem>> overrides {
+        { { "extruder", 1 } }, { { "extruder", 2 } },
+    };
+    auto build = [&](Print &print, Model &model, const DynamicPrintConfig &config) {
+        init_print(std::vector<TriangleMesh>{ mesh(TestMesh::overhang), cube(20) }, print, model, config, &overrides);
+        model.objects.back()->config.set_key_value("belt_purge_tower_object", new ConfigOptionBool(true));
+        print.apply(model, config);
+        REQUIRE(print.has_belt_purge_tower());
+    };
+
+    std::string fresh;
+    {
+        Print print;
+        Model model;
+        build(print, model, make_config(true));
+        fresh = gcode_body(gcode(print));
+    }
+    REQUIRE(! fresh.empty());
+
+    Print print;
+    Model model;
+    build(print, model, make_config(false));
+    REQUIRE(! gcode(print).empty());
+    // Support only: posSlice stays valid, posSupportMaterial reruns.
+    print.apply(model, make_config(true));
+    CHECK(gcode_body(gcode(print)) == fresh);
+}
+
+TEST_CASE("Organic tree supports place a support blocker at its own height above a raft", "[Print][Support][Regression]")
+{
+    // TreeModelVolumes consumes the support blockers in the same index space as the
+    // layer outlines, where object layer i sits at num_raft_layers + i, but
+    // slice_support_blockers() returns them in object-layer space. Without the shift
+    // every blocker lands num_raft_layers too low, so branches are kept out of the
+    // wrong layers and may pass through the blocked ones.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "enable_support",             1 },
+        { "support_type",               "tree(auto)" },
+        { "support_style",              "organic" },
+        { "raft_layers",                3 },
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    // A blocker floating beside the cube, 8 mm to 12 mm above the bed, so a collision at
+    // its centre can only come from the blocker itself (the part keeps its mesh
+    // coordinates in object space, hence the offset relative to the part).
+    ModelObject *object  = model.objects.front();
+    ModelVolume *blocker = object->add_volume(TriangleMesh(its_make_cube(6., 6., 4.)));
+    blocker->set_type(ModelVolumeType::SUPPORT_BLOCKER);
+    const Vec3d part_offset = object->volumes.front()->get_offset();
+    blocker->set_offset(Vec3d(part_offset.x() + 20., part_offset.y(), 10.));
+    print.apply(model, config);
+    print.set_status_silent();
+    print.process();
+
+    const PrintObject &print_object = *print.objects().front();
+    const std::vector<Vec2d> bed = { { 0., 0. }, { 200., 0. }, { 200., 200. }, { 0., 200. } };
+    const BuildVolume build_volume{ bed, print.config().printable_height.value, {}, {} };
+    TreeSupport3D::TreeModelVolumes volumes{ print_object, build_volume, scaled<coord_t>(1.), scaled<coord_t>(0.5), 0, {} };
+
+    // The generator's raft layer count: the raft itself plus the gap layers up to the object.
+    const size_t num_raft = TreeSupport3D::TreeSupportSettings(TreeSupport3D::TreeSupportMeshGroupSettings(print_object),
+                                                               print_object.slicing_parameters()).raft_layers.size();
+    REQUIRE(num_raft >= 3);
+    // Object layers the blocker was sliced into (object-layer space, as the generator
+    // receives them).
+    const std::vector<Polygons> blockers = print_object.slice_support_blockers();
+    size_t first = 0, last = 0;
+    bool   found = false;
+    for (size_t i = 0; i < blockers.size(); ++ i)
+        if (! blockers[i].empty()) {
+            if (! found) { first = i; found = true; }
+            last = i;
+        }
+    REQUIRE(found);
+    REQUIRE(last - first > num_raft);
+    // The blocker's centre in the slicing frame (add_volume centred its mesh on its offset).
+    const Vec3d centre3 = print_object.trafo_sliced() * blocker->get_offset();
+    const Point centre  = Point::new_scale(centre3.x(), centre3.y());
+    auto collides = [&](size_t tree_layer) {
+        for (const Slic3r::Polygon &poly : volumes.getCollision(0, TreeSupport3D::LayerIndex(tree_layer), false))
+            if (poly.contains(centre))
+                return true;
+        return false;
+    };
+    // In TreeModelVolumes' index space the blocker lives at num_raft + object layer.
+    CHECK(collides(num_raft + first));
+    CHECK(collides(num_raft + last));
+    // The layers just below it, where an unshifted blocker would land, are free; the
+    // layers just above the unshifted range, which the blocker does occupy, are not.
+    CHECK_FALSE(collides(first));
+    CHECK_FALSE(collides(first + num_raft - 1));
+    CHECK(collides(last + 1));
+    CHECK(collides(last + num_raft));
+}
+
+// organic_draw_branches() trims every branch slice against the collision volume (the
+// part grown by the support XY distance), the bed and, on a belt, the belt plane before
+// it becomes support, so a branch never runs into the part it supports.  Not a belt
+// feature: this is the generator every printer uses.
+TEST_CASE("Organic tree supports keep their distance from the part", "[Print][Support]")
+{
+    // A 20 mm cube carrying a 60 x 60 mm plate: a 20 mm wide ceiling all around the
+    // cube, 16 mm above the bed, with the cube's four corners in the way of the branches
+    // that drop from it.  The plate reaches into the cube so the two shells overlap
+    // instead of sharing a face.
+    indexed_triangle_set its   = its_make_cube(20., 20., 20.);
+    indexed_triangle_set plate = its_make_cube(60., 60., 4.);
+    its_translate(its, Vec3f(20.f, 20.f, 0.f));
+    its_translate(plate, Vec3f(0.f, 0.f, 16.f));
+    its_merge(its, plate);
+    TriangleMesh mesh(std::move(its));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "enable_support",             1 },
+        { "support_type",               "tree(auto)" },
+        { "support_style",              "organic" },
+        { "support_threshold_angle",    30 },
+    });
+    Print print;
+    Model model;
+    init_print({ mesh }, print, model, config);
+    // On the bed, not at its corner (the fixture leaves the object at the origin).
+    model.objects.front()->instances.front()->set_offset(Vec3d(100., 100., 0.));
+    print.apply(model, config);
+    print.set_status_silent();
+    print.process();
+
+    const PrintObject &object = *print.objects().front();
+    INFO("object layers " << object.layers().size() << ", support layers " << object.support_layers().size());
+    REQUIRE(! object.support_layers().empty());
+    // Support exists under the plate at all.
+    size_t support_layers_with_fills = 0;
+    for (const SupportLayer *layer : object.support_layers())
+        if (! layer->support_fills.empty())
+            ++ support_layers_with_fills;
+    INFO("support layers with extrusions " << support_layers_with_fills);
+    CHECK(support_layers_with_fills > 20);
+
+    // Object layers by print_z, to look up the part's slice at a support layer's height.
+    std::map<coord_t, const Layer *> object_layers;
+    for (const Layer *layer : object.layers())
+        object_layers[scaled<coord_t>(layer->print_z)] = layer;
+    auto contains = [](const ExPolygons &expolys, const Point &pt) {
+        for (const ExPolygon &ex : expolys)
+            if (ex.contains(pt))
+                return true;
+        return false;
+    };
+    // No support extrusion may run closer to the part's slice than half a line width:
+    // the generator keeps the support XY distance (0.35 mm by default) plus the line's
+    // own half width away from it.
+    const float min_gap = scaled<float>(0.2);
+    size_t too_close = 0, points = 0, layers_checked = 0, layers_unmatched = 0;
+    for (const SupportLayer *layer : object.support_layers()) {
+        if (layer->support_fills.empty())
+            continue;
+        // The object layer whose slab spans this support layer's height.
+        auto it = object_layers.lower_bound(scaled<coord_t>(layer->print_z - EPSILON));
+        if (it == object_layers.end()) {
+            ++ layers_unmatched;
+            continue;
+        }
+        ++ layers_checked;
+        const ExPolygons grown = offset_ex(it->second->lslices, min_gap);
+        for (const ExtrusionEntity *entity : layer->support_fills.flatten().entities)
+            for (const Slic3r::Polyline &pl : entity->as_polylines())
+                for (size_t i = 0; i < pl.points.size(); ++ i) {
+                    // The vertices and the midpoints of the segments between them.
+                    ++ points;
+                    if (contains(grown, pl.points[i]))
+                        ++ too_close;
+                    if (i + 1 < pl.points.size() && contains(grown, (pl.points[i] + pl.points[i + 1]) / 2))
+                        ++ too_close;
+                }
+    }
+    INFO("support layers checked " << layers_checked << " (unmatched " << layers_unmatched << "), support points " << points
+         << ", within 0.2 mm of the part " << too_close);
+    CHECK(layers_checked > 20);
+    CHECK(layers_unmatched == 0);
+    REQUIRE(points > 0);
+    CHECK(too_close == 0);
+}
+
+// Two parts along the belt: the second part's slicing frame starts at the belt
+// below its leading end, so its first layers are empty and interleave with the
+// first part's printing layers. Those must not reach the G-code as layer changes
+// that print nothing: the preview numbers its layers from the moves it sees, and
+// a gap folded every later layer into the one before it.
+TEST_CASE("Belt G-code has no layer that prints nothing", "[Print][belt][GCode][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "belt_printer",               1 },
+        { "belt_slice_rotation",        "x" },
+        { "belt_slice_rotation_angle",  45 },
+        { "gcode_remap_x",              "rev_x" },
+        { "gcode_remap_y",              "pos_z" },
+        { "gcode_remap_z",              "pos_y" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "z_hop",                      0 },
+        { "brim_type",                  "outer_only" },
+        { "brim_width",                 4 },
+        { "machine_start_gcode",        "T[initial_tool]\n" },
+        { "layer_change_gcode",         "G92 E0\n" },
+    });
+    // Both export paths drop the empty layers and count the layers the same way.
+    SECTION("by layer")  { config.set_deserialize_strict({{ "print_sequence", "by layer" }}); }
+    SECTION("by object") { config.set_deserialize_strict({{ "print_sequence", "by object" }}); }
+    Print print;
+    Model model;
+    TriangleMesh cube_a(its_make_cube(20., 20., 20.));
+    TriangleMesh cube_b(its_make_cube(20., 20., 20.));
+    init_print({ cube_a, cube_b }, print, model, config);
+    // 60 mm apart along the belt: the second cube's lead-in layers fall among the
+    // first cube's layers.
+    model.objects[0]->instances.front()->set_offset(Vec3d(50., 40., 0.));
+    model.objects[1]->instances.front()->set_offset(Vec3d(50., 100., 0.));
+    print.apply(model, config);
+    print.set_status_silent();
+    const std::string gc = gcode(print);
+    REQUIRE(! gc.empty());
+
+    size_t layers = 0, empty = 0, total_header = 0, total_count = 0;
+    bool   extruded = true;   // before the first layer change
+    auto close_layer = [&]() { if (! extruded) ++ empty; };
+    GCodeReader reader;
+    reader.apply_config(config);
+    reader.parse_buffer(gc, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string &raw = line.raw();
+        if (raw.rfind(";LAYER_CHANGE", 0) == 0) {
+            close_layer();
+            ++ layers;
+            extruded = false;
+        } else if (raw.rfind("; total layer number: ", 0) == 0) {
+            // Counted by the G-code processor from the layer changes it saw.
+            total_header = size_t(std::atoi(raw.c_str() + 22));
+        } else if (raw.rfind("; total layers count = ", 0) == 0) {
+            // GCode::m_layer_count, counted up front from the objects' layers; it also
+            // drives the M73 progress and the total_layer_count placeholder.
+            total_count = size_t(std::atoi(raw.c_str() + 23));
+        } else if (! extruded && line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            // Material laid down along a move: a wipe or an unretraction does not count.
+            extruded = true;
+        }
+    });
+    close_layer();
+    INFO("layers " << layers << ", header " << total_header << ", count " << total_count
+         << ", layers without extrusion " << empty);
+    CHECK(layers > 150);          // both cubes, 141 layers each, overlapping along the belt
+    CHECK(empty == 0);
+    CHECK(total_header == layers);
+    CHECK(total_count == layers);
+}
+
+// A part with an overhang on its LEADING side (the end that prints first) needs
+// supports below the object's own lowest slicing layer: the belt under that overhang
+// is reached before the object's first contact with it, so the support layers sit at
+// a lower slicing Z than any object layer. A generator that stops at the object's
+// first layer, or at global Z = 0, leaves those supports floating above the belt.
+TEST_CASE("Belt supports reach the belt under a leading overhang", "[Print][belt][Support][Regression]")
+{
+    // default resolves to organic for tree support; tree_hybrid is the classic tree.
+    const char *support_type  = GENERATE("normal(auto)", "tree(auto)");
+    const char *support_style = GENERATE("default", "organic", "tree_hybrid");
+    if (std::string(support_type) == "normal(auto)" && std::string(support_style) != "default")
+        return;   // organic and tree_hybrid are tree styles
+    DYNAMIC_SECTION(support_type << " / " << support_style) {
+        // A 20 mm cube with a 2 mm thick fin that leaves its top edge and reaches
+        // 20 mm toward -Y, the end of the part that prints first, climbing at 45 deg
+        // as it goes (from z = 18 at the cube to z = 38 at the tip).  With the layers
+        // leaning toward -Y at 45 deg the fin's underside is parallel to the layers:
+        // a ceiling 20 x 28 mm in one layer, with nothing but air between it and the
+        // belt, which lies up to 41 mm (of slicing Z) below the object's own lowest
+        // point.  Support has to span all of it.
+        indexed_triangle_set its = its_make_cube(20., 20., 20.);
+        indexed_triangle_set fin = its_make_cube(20., 20., 2.);
+        Transform3d shear = Transform3d::Identity();
+        shear.matrix() << 1., 0., 0.,   0.,
+                          0., 1., 0., -20.,
+                          0., -1., 1., 38.,
+                          0., 0., 0.,   1.;
+        its_transform(fin, shear);
+        its_merge(its, fin);
+        TriangleMesh mesh(std::move(its));
+
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "belt_printer",               1 },
+            { "belt_slice_rotation",        "x" },
+            { "belt_slice_rotation_angle",  45 },
+            { "gcode_remap_x",              "rev_x" },
+            { "gcode_remap_y",              "pos_z" },
+            { "gcode_remap_z",              "pos_y" },
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "skirt_loops",                0 },
+            { "z_hop",                      0 },
+            { "enable_support",             1 },
+            { "support_type",               support_type },
+            { "support_style",              support_style },
+            { "support_threshold_angle",    30 },
+            { "machine_start_gcode",        "T[initial_tool]\n" },
+            { "layer_change_gcode",         "G92 E0\n" },
+        });
+        Print print;
+        Model model;
+        init_print({ mesh }, print, model, config);
+        // On the bed, not at its corner: organic tree support clips its branches to
+        // the bed outline, and the fixture leaves the object at the origin.
+        model.objects.front()->instances.front()->set_offset(Vec3d(100., 100., 0.));
+        print.apply(model, config);
+        print.set_status_silent();
+        print.process();
+
+        const PrintObject &object = *print.objects().front();
+        REQUIRE(! object.layers().empty());
+        // The whole part is sliced: the layers lean at 45 deg, so the part spans
+        // (y + z) / sqrt(2) of slicing Z, and every layer in that span has geometry.
+        {
+            double lo = std::numeric_limits<double>::max(), hi = std::numeric_limits<double>::lowest();
+            for (const stl_vertex &v : mesh.its.vertices) {
+                lo = std::min<double>(lo, v.y() + v.z());
+                hi = std::max<double>(hi, v.y() + v.z());
+            }
+            const double span = (hi - lo) / std::sqrt(2.);
+            size_t nonempty = 0;
+            for (const Layer *layer : object.layers())
+                if (! layer->lslices.empty())
+                    ++ nonempty;
+            INFO("non-empty object layers " << nonempty << ", slicing span " << span << " mm");
+            CHECK(double(nonempty) * 0.2 > span - 0.6);
+        }
+        BeltFloorContext floor;
+        REQUIRE(floor.init(object.slicing_parameters(), print.config()));
+
+        // The lowest support layer that prints anything, and the belt floor beneath it.
+        const SupportLayer *lowest = nullptr;
+        for (const SupportLayer *layer : object.support_layers())
+            if (! layer->support_fills.empty() && (lowest == nullptr || layer->print_z < lowest->print_z))
+                lowest = layer;
+        REQUIRE(lowest != nullptr);
+        double floor_under_lowest = std::numeric_limits<double>::max();
+        for (const ExtrusionEntity *entity : lowest->support_fills.flatten().entities)
+            for (const Slic3r::Polyline &pl : entity->as_polylines())
+                for (const Point &pt : pl.points)
+                    floor_under_lowest = std::min(floor_under_lowest, floor.floor_print_z(pt));
+        // The object's lowest geometry.  The slicing frame starts at the lowest
+        // belt-floor point under the footprint, so the layers below the leading
+        // tip of the overhang are empty.
+        double first_object_z = std::numeric_limits<double>::max();
+        for (const Layer *layer : object.layers())
+            if (! layer->lslices.empty()) { first_object_z = layer->print_z; break; }
+        REQUIRE(first_object_z < std::numeric_limits<double>::max());
+        INFO("lowest support z " << lowest->print_z << ", floor under it " << floor_under_lowest
+             << ", first object layer " << first_object_z);
+        // Well below the object's own lowest layer (the belt under the tip of the fin
+        // is ~41 mm of slicing Z below the cube's leading edge, which rests on it)...
+        CHECK(lowest->print_z < first_object_z - 5.);
+        // ...and resting on the belt: within a few layers of the floor beneath its own lines.
+        CHECK(lowest->print_z - floor_under_lowest < 4. * 0.2 + EPSILON);
+        CHECK(lowest->print_z - floor_under_lowest > -0.2 - EPSILON);
+    }
+}
+
+TEST_CASE("The build height check counts the Z shrinkage compensation once", "[Print][validate][Regression]")
+{
+    // printable_height is 100 mm and Z shrinks to 95 %, so the object is sliced 100 / 95 times taller.
+    // 92 mm become about 96.8 mm and fit; 97 mm become about 102.1 mm and only the compensation makes them too tall; 101 mm are too tall on their own.
+    const auto [height, expected] = GENERATE(table<double, std::string>({
+        { 92., "" },
+        { 97., "because of material shrinkage compensation" },
+        { 101., "exceeds the maximum build volume height." },
+    }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "printable_height", 100. },
+        { "filament_shrinkage_compensation_z", "95%" },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+
+    Print print;
+    Model model;
+    init_print({ make_cube(20., 20., height) }, print, model, config);
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (expected.empty())
+        CHECK(error.empty());
+    else
+        CHECK(error.find(expected) != std::string::npos);
+}
+
+TEST_CASE("The build height check counts the raft", "[Print][validate][Regression]")
+{
+    // printable_height is 100 mm; three raft layers lift the object by 0.9 mm.
+    const auto [height, fits] = GENERATE(table<double, bool>({ { 98.8, true }, { 99.8, false } }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "printable_height", 100. },
+        { "raft_layers", 3 },
+        { "layer_height", 0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+
+    Print print;
+    Model model;
+    init_print({ make_cube(20., 20., height) }, print, model, config);
+    const SlicingParameters &slicing_params = print.objects().front()->slicing_parameters();
+    REQUIRE_THAT(slicing_params.object_print_z_min, Catch::Matchers::WithinAbs(0.9, EPSILON));
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (fits)
+        CHECK(error.empty());
+    else
+        CHECK(error.find("maximum build volume height") != std::string::npos);
+}
+
+TEST_CASE("Filament shrinkage compensation scales the sliced object", "[Print][Regression]")
+{
+    // A 20 mm cube printed with a filament that shrinks to xy % / z % is sliced 20 * 100 / xy wide and,
+    // up to one layer, 20 * 100 / z tall.
+    const auto [xy, z] = GENERATE(table<double, double>({ { 100., 100. }, { 90., 100. }, { 100., 95. } }));
+    const double layer_height = 0.2;
+
+    Print print;
+    init_and_process_print({ cube(20.) }, print, {
+        { "filament_shrink", xy },
+        { "filament_shrinkage_compensation_z", z },
+        { "layer_height", layer_height },
+        { "initial_layer_print_height", layer_height },
+        { "precise_z_height", false },
+        { "raft_layers", 0 },
+        { "xy_contour_compensation", 0. },
+    });
+
+    const PrintObject &object = *print.objects().front();
+    const Layer &middle = *object.get_layer(int(object.layer_count() / 2));
+    const BoundingBox extents = get_extents(middle.lslices);
+    CHECK_THAT(unscale<double>(extents.size().x()), Catch::Matchers::WithinAbs(20. * 100. / xy, 0.01));
+    CHECK_THAT(unscale<double>(extents.size().y()), Catch::Matchers::WithinAbs(20. * 100. / xy, 0.01));
+    CHECK_THAT(object.layers().back()->print_z, Catch::Matchers::WithinAbs(20. * 100. / z, layer_height));
+}
+
+TEST_CASE("Filament shrinkage compensation follows the filaments the object prints with", "[Print][Regression]")
+{
+    // Filament 1 shrinks to 90 %, filament 2 not at all. An unused filament does not matter; two used filaments
+    // that disagree switch the compensation off and validate() warns about it.
+    const auto [wall_filament, expected_width] = GENERATE(table<int, double>({ { 1, 20. * 100. / 90. }, { 2, 20. } }));
+
+    Print print;
+    init_and_process_print({ cube(20.) }, print, multifilament_config(2, {
+        { "filament_shrink", "90%,100%" },
+        { "outer_wall_filament_id", wall_filament },
+        { "inner_wall_filament_id", wall_filament },
+        { "xy_contour_compensation", 0. },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    }));
+
+    const PrintObject &object = *print.objects().front();
+    const BoundingBox extents = get_extents(object.get_layer(int(object.layer_count() / 2))->lslices);
+    CHECK_THAT(unscale<double>(extents.size().x()), Catch::Matchers::WithinAbs(expected_width, 0.01));
+
+    std::vector<StringObjectException> warnings;
+    CHECK(print.validate(&warnings).string.empty());
+    const bool mismatch_warning = std::any_of(warnings.begin(), warnings.end(), [](const StringObjectException &w) {
+        return w.string.find("Filament shrinkage will not be used") != std::string::npos;
+    });
+    CHECK(mismatch_warning == (wall_filament == 2));
+}
+
+TEST_CASE("Applying the same model again keeps the filament shrinkage compensation", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "filament_shrink", "90%" }, { "xy_contour_compensation", 0. } });
+
+    Print print;
+    Model model;
+    init_print({ cube(20.) }, print, model, config);
+    const auto width = [&print]() {
+        print.process();
+        const PrintObject &object = *print.objects().front();
+        return unscale<double>(get_extents(object.get_layer(int(object.layer_count() / 2))->lslices).size().x());
+    };
+    CHECK_THAT(width(), Catch::Matchers::WithinAbs(20. * 100. / 90., 0.01));
+    print.apply(model, config);
+    CHECK_THAT(width(), Catch::Matchers::WithinAbs(20. * 100. / 90., 0.01));
+}
+
+TEST_CASE("Height ranges and modifiers count for the filament shrinkage compensation", "[Print][Regression]")
+{
+    // The model is complete before the first apply(), so no PrintRegion tells yet which filaments print.
+    enum class Setup { RangeWall, ModifierInfill, ModifierInheritingObjectFilament };
+    const Setup setup = GENERATE(Setup::RangeWall, Setup::ModifierInfill, Setup::ModifierInheritingObjectFilament);
+    // The object prints with the filament that shrinks to 90 %, the other one does not shrink.
+    const bool object_on_filament_2 = setup == Setup::ModifierInheritingObjectFilament;
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "filament_shrink", object_on_filament_2 ? "100%,90%" : "90%,100%" },
+        { "xy_contour_compensation", 0. },
+        { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+    });
+
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(cube(20.));
+    DynamicPrintConfig override;
+    switch (setup) {
+    case Setup::RangeWall:
+        // The walls of a height range print with the other filament.
+        override.set_key_value("outer_wall_filament_id", new ConfigOptionInt(2));
+        // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+        override.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+        object->layer_config_ranges[{ 5., 10. }].assign_config(std::move(override));
+        break;
+    case Setup::ModifierInfill:
+        // The infill inside a modifier prints with the other filament.
+        override.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(2));
+        object->add_volume(cube(10.), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(override);
+        break;
+    case Setup::ModifierInheritingObjectFilament:
+        // The modifier only changes the infill density and keeps printing with the filament of the object.
+        object->config.set_key_value("extruder", new ConfigOptionInt(2));
+        override.set_key_value("sparse_infill_density", new ConfigOptionPercent(30));
+        object->add_volume(cube(10.), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(override);
+        break;
+    }
+    object->add_instance()->set_offset(Vec3d(90., 90., 0.));
+    object->ensure_on_bed();
+
+    Print print;
+    print.apply(model, config);
+    print.process();
+
+    const PrintObject &print_object = *print.objects().front();
+    const BoundingBox extents = get_extents(print_object.get_layer(int(print_object.layer_count() / 2))->lslices);
+    const double expected_width = object_on_filament_2 ? 20. * 100. / 90. : 20.;
+    CHECK_THAT(unscale<double>(extents.size().x()), Catch::Matchers::WithinAbs(expected_width, 0.01));
+    std::vector<StringObjectException> warnings;
+    CHECK(print.validate(&warnings).string.empty());
+    const bool mismatch_warning = std::any_of(warnings.begin(), warnings.end(), [](const StringObjectException &w) {
+        return w.string.find("Filament shrinkage will not be used") != std::string::npos;
+    });
+    CHECK(mismatch_warning == ! object_on_filament_2);
+}
+
+TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][Regression]")
+{
+    const std::string key = "high_precision_gcode";
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict(key, "0");
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.process();
+    print.set_gcode_file_ready();
+
+    // A key that Print::invalidate_state_by_config_options() does not list invalidates every print step,
+    // so the wipe tower and the skirt tell it apart from a key that invalidates only the G-code export.
+    REQUIRE(print.is_step_done(psGCodeExport));
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+    REQUIRE(print.objects().front()->is_step_done(posSlice));
+    REQUIRE(print.objects().front()->is_step_done(posPerimeters));
+
+    config.set_deserialize_strict(key, "1");
+    print.apply(model, config);
+
+    CHECK_FALSE(print.is_step_done(psGCodeExport));
+    CHECK(print.is_step_done(psWipeTower));
+    CHECK(print.is_step_done(psSkirtBrim));
+    CHECK(print.objects().front()->is_step_done(posSlice));
+    CHECK(print.objects().front()->is_step_done(posPerimeters));
 }

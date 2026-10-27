@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "XtZarwF2HIipdHjN",
 	"name": "QIDI PLA Matte Basic @Qidi X-Plus 5 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Matte Basic@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "XtZarwF2HIipdHjN",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.016"
 	],

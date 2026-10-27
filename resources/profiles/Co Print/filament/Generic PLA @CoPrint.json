@@ -1,20 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @CoPrint",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "CoPrint Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "9tNsM3FhIDgKJ05R",
 	"filament_id": "OFDSrzZ8",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Generic"
-	],
-	"filament_load_time": [
-		"9.75"
-	],
-	"filament_unload_time": [
-		"9.75"
 	],
 	"compatible_printers": [
 		"Co Print ChromaSet 0.4 nozzle",

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @FLSun",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "FLSun Generic ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "22OH64Yfg5sdyEmz",
 	"filament_id": "OFLPAxz3",

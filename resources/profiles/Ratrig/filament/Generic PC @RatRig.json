@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @RatRig",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "RatRig Generic PC",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "7x5VtUIevdAmBqqA",
 	"filament_id": "OFLakOUI",

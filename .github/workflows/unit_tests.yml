@@ -54,8 +54,10 @@ jobs:
         shell: bash
         run: |
           tar -xvf build_tests.tar
-          # Multi-config generators (Windows/macOS) need a config; Linux is single-config.
-          scripts/run_unit_tests.sh "${{ inputs.test-dir }}" "${{ runner.os != 'Linux' && 'Release' || '' }}"
+          # Every platform builds with a multi-config generator (build_linux.sh uses Ninja
+          # Multi-Config), so ctest needs the config: without it, plain add_test() tests
+          # lose their labels and report "Not Run".
+          scripts/run_unit_tests.sh "${{ inputs.test-dir }}" Release
       - name: Upload Test Logs
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7

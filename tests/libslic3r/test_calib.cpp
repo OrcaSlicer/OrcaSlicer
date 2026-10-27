@@ -1,13 +1,18 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include "libslic3r/CustomGCode.hpp"
 #include <sstream>
 #include <string>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/calib.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Point.hpp"
 
 using namespace Slic3r;
 

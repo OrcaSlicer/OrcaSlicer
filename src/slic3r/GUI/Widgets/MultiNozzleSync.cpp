@@ -1,5 +1,6 @@
 #include "MultiNozzleSync.hpp"
 
+#include "../GUI.hpp"
 #include "../GUI_App.hpp"
 #include "../I18N.hpp"
 #include "../Plater.hpp"
@@ -9,21 +10,52 @@
 #include "../wxExtensions.hpp"
 #include "Button.hpp"
 #include "Label.hpp"
+#include "ComboBox.hpp"
 #include "StaticBox.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <cmath>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include <cstdlib>
+#include <cstddef>
+#include "libslic3r/MultiNozzleUtils.hpp"
 #include <map>
+#include <memory>
 #include <numeric>
+#include <optional>
 #include <set>
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/arrstr.h>
+#include <vector>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <utility>
+#include <unordered_map>
+#include <string>
+#include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
 #include <wx/choice.h>
-#include <wx/filename.h>
-#include <wx/filesys.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/colour.h>
+#include <wx/dcclient.h>
+#include <wx/dialog.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/toplevel.h>
+#include <wx/webview.h>
+#include <wx/string.h>
+#include <wx/timer.h>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 namespace Slic3r { namespace GUI {
 
@@ -69,47 +101,62 @@ int getExtruderNozzleCountTotal(PresetBundle *preset_bundle, int extruder_id)
 
 // ---- ManualNozzleCountDialog ----------------------------------------------------------------------------------
 
-ManualNozzleCountDialog::ManualNozzleCountDialog(
-    wxWindow *parent, NozzleVolumeType volume_type, int standard_count, int highflow_count, int max_nozzle_count, bool force_no_zero)
+ManualNozzleCountDialog::ManualNozzleCountDialog(wxWindow *parent, NozzleVolumeType volume_type, int standard_count, int highflow_count, int e3d_count,
+                                                 int max_nozzle_count, bool force_no_zero, const std::set<NozzleVolumeType> &supported_types)
     : DPIDialog(parent, wxID_ANY, _L("Set nozzle count"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
     SetBackgroundColour(*wxWHITE);
 
     wxPanel *content = new wxPanel(this);
     content->SetBackgroundColour(*wxWHITE);
-    wxBitmap    nozzle_bmp  = create_scaled_bitmap("hotend_thumbnail", nullptr, FromDIP(60));
+    wxBitmap    nozzle_bmp  = create_scaled_bitmap("hotend_thumbnail", nullptr, 60);
     auto       *nozzle_icon = new wxStaticBitmap(content, wxID_ANY, nozzle_bmp);
     wxBoxSizer *content_sizer = new wxBoxSizer(wxHORIZONTAL);
     content->SetSizer(content_sizer);
 
     wxBoxSizer *choice_sizer = new wxBoxSizer(wxVERTICAL);
-    choice_sizer->Add(new wxStaticText(content, wxID_ANY, _L("Please set nozzle count")), 0, wxALL | wxALIGN_LEFT, FromDIP(10));
+    auto nozzle_label = new wxStaticText(content, wxID_ANY, _L("Please set nozzle count"));
+    nozzle_label->SetFont(Label::Body_14);
+    nozzle_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    choice_sizer->Add(nozzle_label, 0, wxTOP | wxRIGHT, FromDIP(15));
 
     wxArrayString nozzle_choices;
     for (int i = 0; i <= max_nozzle_count; ++i)
         nozzle_choices.Add(wxString::Format("%d", i));
 
-    // A Hybrid extruder mixes Standard and High Flow nozzles, so it gets both count choices; the concrete
-    // types get exactly one.
-    if (volume_type == nvtStandard || volume_type == nvtHybrid) {
-        choice_sizer->Add(new wxStaticText(content, wxID_ANY, _L(get_nozzle_volume_type_string(nvtStandard))), 0, wxALL | wxALIGN_LEFT, FromDIP(5));
-        m_standard_choice = new wxChoice(content, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(100), -1), nozzle_choices);
-        m_standard_choice->SetSelection(standard_count);
-        choice_sizer->Add(m_standard_choice, 0, wxLEFT | wxBOTTOM | wxRIGHT, FromDIP(10));
-    }
-    if (volume_type == nvtHighFlow || volume_type == nvtHybrid) {
-        choice_sizer->Add(new wxStaticText(content, wxID_ANY, _L(get_nozzle_volume_type_string(nvtHighFlow))), 0, wxALL | wxALIGN_LEFT, FromDIP(5));
-        m_highflow_choice = new wxChoice(content, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(100), -1), nozzle_choices);
-        m_highflow_choice->SetSelection(highflow_count);
-        choice_sizer->Add(m_highflow_choice, 0, wxLEFT | wxBOTTOM | wxRIGHT, FromDIP(10));
-    }
+    // A Hybrid extruder mixes several nozzle volume types, so it gets a count choice for each type the
+    // extruder actually has; a concrete type gets exactly its own, which it supports by definition.
+    auto shows = [volume_type, &supported_types](NozzleVolumeType type) {
+        return volume_type == type || (volume_type == nvtHybrid && (supported_types.empty() || supported_types.count(type) > 0));
+    };
+    auto add_count_choice = [this, content, choice_sizer, &nozzle_choices](NozzleVolumeType type, int count) {
+        wxBoxSizer *row_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto label = new wxStaticText(content, wxID_ANY, _L(get_nozzle_volume_type_string(type)), wxDefaultPosition, wxSize(FromDIP(100), -1));
+        label->SetFont(Label::Body_14);
+        label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        row_sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+        auto choice = new ComboBox(content, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(80), -1), 0, nullptr, wxCB_READONLY);
+        for (const wxString &item : nozzle_choices)
+            choice->Append(item);
+        choice->SetSelection(count);
+        row_sizer->Add(choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+        choice_sizer->Add(row_sizer, 0, wxTOP | wxRIGHT, FromDIP(15));
+        return choice;
+    };
+    if (shows(nvtStandard))
+        m_standard_choice = add_count_choice(nvtStandard, standard_count);
+    if (shows(nvtHighFlow))
+        m_highflow_choice = add_count_choice(nvtHighFlow, highflow_count);
+    if (shows(nvtE3DHighFlow))
+        m_e3d_choice = add_count_choice(nvtE3DHighFlow, e3d_count);
 
     m_error_label = new wxStaticText(this, wxID_ANY, "");
     m_error_label->SetForegroundColour(wxColour("#E14747"));
     m_error_label->Hide();
 
-    auto update_nozzle_error = [this, force_no_zero, content, max_nozzle_count](int standard_count, int highflow_count) {
-        const int total_count = standard_count + highflow_count;
+    auto update_nozzle_error = [this, force_no_zero, content, max_nozzle_count](wxCommandEvent &e) {
+        // The Hybrid count is the sum over every choice on screen, whatever the extruder's own type.
+        const int total_count = GetNozzleCount(nvtHybrid);
         if (0 < total_count && total_count <= max_nozzle_count && m_error_label->IsShown()) {
             m_error_label->Hide();
             m_confirm_btn->Enable();
@@ -125,30 +172,24 @@ ManualNozzleCountDialog::ManualNozzleCountDialog(
             Layout();
             Fit();
         }
+        e.Skip();
     };
 
-    if (m_standard_choice)
-        m_standard_choice->Bind(wxEVT_CHOICE, [this, update_nozzle_error](wxCommandEvent &e) {
-            update_nozzle_error(m_standard_choice->GetSelection(), m_highflow_choice ? m_highflow_choice->GetSelection() : 0);
-            e.Skip();
-        });
-    if (m_highflow_choice)
-        m_highflow_choice->Bind(wxEVT_CHOICE, [this, update_nozzle_error](wxCommandEvent &e) {
-            update_nozzle_error(m_standard_choice ? m_standard_choice->GetSelection() : 0, m_highflow_choice->GetSelection());
-            e.Skip();
-        });
+    for (ComboBox *choice : {m_standard_choice, m_highflow_choice, m_e3d_choice})
+        if (choice)
+            choice->Bind(wxEVT_COMBOBOX, update_nozzle_error);
 
     content_sizer->Add(nozzle_icon, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(15));
     content_sizer->Add(choice_sizer, 0, wxALIGN_CENTRE_VERTICAL);
 
     m_confirm_btn = new Button(this, _L("Confirm"));
-    m_confirm_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    m_confirm_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_confirm_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { EndModal(wxID_OK); });
 
     wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
     main_sizer->Add(content, 1, wxEXPAND);
-    main_sizer->Add(m_error_label, 0, wxALL, FromDIP(5));
-    main_sizer->Add(m_confirm_btn, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, FromDIP(20));
+    main_sizer->Add(m_error_label, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
+    main_sizer->Add(m_confirm_btn, 0, wxALIGN_RIGHT | wxALL, FromDIP(15));
 
     SetSizerAndFit(main_sizer);
     CentreOnParent();
@@ -161,9 +202,10 @@ int ManualNozzleCountDialog::GetNozzleCount(NozzleVolumeType volume_type) const
         return m_standard_choice ? m_standard_choice->GetSelection() : 0;
     if (volume_type == nvtHighFlow)
         return m_highflow_choice ? m_highflow_choice->GetSelection() : 0;
+    if (volume_type == nvtE3DHighFlow)
+        return m_e3d_choice ? m_e3d_choice->GetSelection() : 0;
     if (volume_type == nvtHybrid)
-        return (m_standard_choice ? m_standard_choice->GetSelection() : 0) +
-               (m_highflow_choice ? m_highflow_choice->GetSelection() : 0);
+        return GetNozzleCount(nvtStandard) + GetNozzleCount(nvtHighFlow) + GetNozzleCount(nvtE3DHighFlow);
     return 0;
 }
 
@@ -298,6 +340,7 @@ void manuallySetNozzleCount(int extruder_id)
     const NozzleVolumeType volume_type    = NozzleVolumeType(nozzle_volume_type_opt->values[extruder_id]);
     const int              standard_count = getExtruderNozzleCount(preset_bundle, extruder_id, nvtStandard);
     const int              highflow_count = getExtruderNozzleCount(preset_bundle, extruder_id, nvtHighFlow);
+    const int              e3d_count      = getExtruderNozzleCount(preset_bundle, extruder_id, nvtE3DHighFlow);
 
     // Require at least one nozzle for a Hybrid extruder (an empty mix is meaningless) and when the other
     // extruder currently has none.
@@ -305,11 +348,19 @@ void manuallySetNozzleCount(int extruder_id)
     if (nozzle_volume_type_opt->values.size() > 1)
         force_no_zero |= getExtruderNozzleCountTotal(preset_bundle, 1 - extruder_id) == 0;
 
-    ManualNozzleCountDialog dialog(wxGetApp().plater(), volume_type, standard_count, highflow_count, max_nozzle_count->values[extruder_id], force_no_zero);
+    // The printer profile's variant list is the authority on which volume types an extruder provides. An
+    // empty set means the profile could not be read, and the dialog then skips filtering instead of hiding
+    // everything.
+    const std::set<NozzleVolumeType> supported_types =
+        get_extruder_supported_nozzle_volume_types(preset_bundle->printers.get_edited_preset().config, extruder_id);
+
+    ManualNozzleCountDialog dialog(wxGetApp().plater(), volume_type, standard_count, highflow_count, e3d_count,
+                                   max_nozzle_count->values[extruder_id], force_no_zero, supported_types);
     if (dialog.ShowModal() == wxID_OK) {
         if (volume_type == nvtHybrid) {
             setExtruderNozzleCount(preset_bundle, extruder_id, nvtStandard, dialog.GetNozzleCount(nvtStandard), true);
             setExtruderNozzleCount(preset_bundle, extruder_id, nvtHighFlow, dialog.GetNozzleCount(nvtHighFlow), false);
+            setExtruderNozzleCount(preset_bundle, extruder_id, nvtE3DHighFlow, dialog.GetNozzleCount(nvtE3DHighFlow), false);
         } else {
             setExtruderNozzleCount(preset_bundle, extruder_id, volume_type, dialog.GetNozzleCount(volume_type), true);
         }
@@ -621,8 +672,7 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
     m_web_view->AddScriptMessageHandler("nozzleListTable");
     m_web_view->EnableContextMenu(false);
     fs::path filepath = fs::path(resources_dir()) / "web/flush/NozzleListTable.html";
-    wxFileName fn(wxString::FromUTF8(filepath.string()));
-    wxString url = wxFileSystem::FileNameToURL(fn);
+    wxString url = file_url_from_path(filepath);
     m_web_view->LoadURL(url);
 
     auto sizer = new wxBoxSizer(wxVERTICAL);

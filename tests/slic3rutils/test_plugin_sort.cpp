@@ -1,7 +1,10 @@
+#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <slic3r/GUI/PluginSort.hpp>
 
+#include "slic3r/GUI/PluginSource.hpp"
+#include "slic3r/GUI/PluginStatus.hpp"
 #include <string>
 #include <vector>
 
@@ -10,9 +13,6 @@ using Slic3r::GUI::PluginSortKey;
 using Slic3r::GUI::PluginSortOrder;
 using Slic3r::GUI::PluginSource;
 using Slic3r::GUI::PluginStatus;
-using Slic3r::GUI::plugin_sort_key_from_string;
-using Slic3r::GUI::plugin_sort_order_from_string;
-using Slic3r::GUI::sort_plugin_items_for_dialog;
 
 namespace {
 

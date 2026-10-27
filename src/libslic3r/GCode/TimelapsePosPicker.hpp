@@ -1,11 +1,17 @@
 #ifndef TIMELAPSE_POS_PICKER_HPP
 #define TIMELAPSE_POS_PICKER_HPP
 
+#include <optional>
+#include <unordered_map>
 #include <vector>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+
+namespace Slic3r { enum class PrintSequence; }
 
 namespace Slic3r {
 

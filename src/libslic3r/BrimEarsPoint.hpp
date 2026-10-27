@@ -1,7 +1,10 @@
 #ifndef BRIMEARSPOINT_HPP
 #define BRIMEARSPOINT_HPP
 
+#include <cstdlib>
+#include "libslic3r.h"
 #include <libslic3r/Point.hpp>
+#include <vector>
 
 
 namespace Slic3r {

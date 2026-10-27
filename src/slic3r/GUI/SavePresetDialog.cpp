@@ -1,13 +1,40 @@
 #include "SavePresetDialog.hpp"
 
+#include <cassert>
+#include <boost/algorithm/string/predicate.hpp>
 #include <cstddef>
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/RadioGroup.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <cstring>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/OptionsGroup.hpp"
 #include <vector>
 #include <string>
+#include <set>
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/colour.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
+#include <wx/tglbtn.h>
+#include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
 #include "libslic3r/PresetBundle.hpp"
@@ -18,8 +45,6 @@
 #include "Tab.hpp"
 
 #include "Widgets/DialogButtons.hpp"
-
-using Slic3r::GUI::format_wxstr;
 
 namespace Slic3r { namespace GUI {
 
@@ -36,7 +61,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_presets = tab->get_presets();
 
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
+    std::string   preset_name = sel_preset.is_default ? _u8L("Untitled") : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
 
     // if name contains extension
     if (boost::iends_with(preset_name, ".ini")) {
@@ -97,8 +122,10 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_valid_label = new wxStaticText(m_parent, wxID_ANY, "");
     m_valid_label->SetForegroundColour(wxColor(255, 111, 0));
 
-    sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, BORDER_W);
+    sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP, BORDER_W);
+    sizer->AddSpacer(FromDIP(5));
     sizer->Add(input_sizer_h, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, BORDER_W);
+    sizer->AddSpacer(FromDIP(5));
     sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT, BORDER_W);
 
     if (m_type == Preset::TYPE_PRINTER) m_parent->add_info_for_edit_ph_printer(sizer);
@@ -172,69 +199,108 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     update();
 }
 
+PresetNameStatus check_preset_name(const PresetCollection &presets, const std::string &name, wxString &info_line)
+{
+    info_line.clear();
+
+    static const char *unusable_symbols = "<>[]:/\\|?*\"";
+    if (name.find_first_of(unusable_symbols) != std::string::npos) {
+        info_line = _L("Name is invalid;") + "\n" + _L("illegal characters:") + " " + unusable_symbols;
+        return PresetNameStatus::Invalid;
+    }
+
+    if (name.find(PresetCollection::get_suffix_modified()) != std::string::npos) {
+        info_line = _L("Name is invalid;") + "\n" + _L("illegal suffix:") + "\n\t" + from_u8(PresetCollection::get_suffix_modified());
+        return PresetNameStatus::Invalid;
+    }
+
+    if (name == "Default Setting" || name == PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER || name == "Default Printer") {
+        info_line = _L("Name is unavailable.");
+        return PresetNameStatus::Invalid;
+    }
+
+    const Preset *existing = presets.find_preset(name, false);
+    if (existing && !existing->can_overwrite()) {
+        info_line = _L("Overwriting a system profile is not allowed.");
+        return PresetNameStatus::Invalid;
+    }
+
+    if (existing && name != presets.get_selected_preset_name()) {
+        if (existing->is_compatible)
+            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists.")) % name).str());
+        else
+            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with the current printer.")) % name).str());
+        info_line += "\n" + _L("Please note that saving will overwrite the current preset.");
+        return PresetNameStatus::Warning;
+    }
+
+    if (name.empty()) {
+        info_line = _L("The name field is not allowed to be empty.");
+        return PresetNameStatus::Invalid;
+    }
+
+    // Control characters (ASCII 0-31 and DEL) can come in through copy and paste, mostly tabs and line feeds.
+    if (std::any_of(name.begin(), name.end(), [](unsigned char c) { return c < 0x20 || c == 0x7F; })) {
+        info_line = _L("Name is invalid;") + "\n" + _L("control characters are not allowed.");
+        return PresetNameStatus::Invalid;
+    }
+
+    // Windows reserved device names, case-insensitive. "CON.foo.json" is reserved too, so only the part
+    // before the first dot counts. Windows 11 relaxed this, but earlier versions still refuse these names.
+    {
+        std::string base = name.substr(0, name.find('.'));
+        while (!base.empty() && base.back() == ' ')
+            base.pop_back();
+        boost::to_upper(base);
+
+        static const std::set<std::string> reserved = {
+            "CON",  "PRN",  "AUX",  "NUL",
+            "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+            "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
+        if (reserved.count(base) > 0) {
+            info_line = _L("The name is a reserved system name.");
+            return PresetNameStatus::Invalid;
+        }
+    }
+
+    // Keeps "<name>.json.<pid>.<n>.tmp" within the Linux 255-byte file name limit and, with the data
+    // folder path, the Windows 260 UTF-16 unit path limit.
+    size_t utf16_units = 0;
+    for (unsigned char c : name)
+        if ((c & 0xC0) != 0x80)
+            utf16_units += c >= 0xF0 ? 2 : 1; // a 4-byte UTF-8 character is a UTF-16 surrogate pair
+    if (name.size() > 230 || utf16_units > 150) {
+        info_line = _L("The name is too long.");
+        return PresetNameStatus::Invalid;
+    }
+
+    if (name.front() == ' ') {
+        info_line = _L("The name is not allowed to start with a space.");
+        return PresetNameStatus::Invalid;
+    }
+
+    if (name.back() == ' ') {
+        info_line = _L("The name is not allowed to end with a space.");
+        return PresetNameStatus::Invalid;
+    }
+
+    if (presets.get_preset_name_by_alias(name) != name) {
+        info_line = _L("The name cannot be the same as a preset alias name.");
+        return PresetNameStatus::Invalid;
+    }
+
+    return PresetNameStatus::Valid;
+}
+
 void SavePresetDialog::Item::update()
 {
     m_preset_name = into_u8(m_input_ctrl->GetTextCtrl()->GetValue());
 
-    m_valid_type = Valid;
-    wxString info_line;
-
-    const char *unusable_symbols = "<>[]:/\\|?*\"";
-
-    const std::string unusable_suffix = PresetCollection::get_suffix_modified(); //"(modified)";
-    for (size_t i = 0; i < std::strlen(unusable_symbols); i++) {
-        if (m_preset_name.find_first_of(unusable_symbols[i]) != std::string::npos) {
-            info_line    = _L("Name is invalid;") + "\n" + _L("illegal characters:") + " " + unusable_symbols;
-            m_valid_type = NoValid;
-            break;
-        }
-    }
-
-    if (m_valid_type == Valid && m_preset_name.find(unusable_suffix) != std::string::npos) {
-        info_line    = _L("Name is invalid;") + "\n" + _L("illegal suffix:") + "\n\t" + from_u8(PresetCollection::get_suffix_modified());
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid &&
-        (m_preset_name == "Default Setting" || m_preset_name == PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER || m_preset_name == "Default Printer")) {
-        info_line    = _L("Name is unavailable.");
-        m_valid_type = NoValid;
-    }
+    wxString                 info_line;
+    const PresetNameStatus   status = check_preset_name(*m_presets, m_preset_name, info_line);
+    m_valid_type = status == PresetNameStatus::Invalid ? NoValid : status == PresetNameStatus::Warning ? Warning : Valid;
 
     const Preset *existing = m_presets->find_preset(m_preset_name, false);
-    if (m_valid_type == Valid && existing && !existing->can_overwrite()) {
-        info_line = _L("Overwriting a system profile is not allowed.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && existing && m_preset_name != m_presets->get_selected_preset_name()) {
-        if (existing->is_compatible)
-            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists.")) % m_preset_name).str());
-        else
-            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with the current printer.")) % m_preset_name).str());
-        info_line += "\n" + _L("Please note that saving will overwrite the current preset.");
-        m_valid_type = Warning;
-    }
-
-    if (m_valid_type == Valid && m_preset_name.empty()) {
-        info_line    = _L("The name field is not allowed to be empty.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && m_preset_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with a space.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && m_preset_name.find_last_of(' ') == m_preset_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with a space.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && m_presets->get_preset_name_by_alias(m_preset_name) != m_preset_name) {
-        info_line    = _L("The name cannot be the same as a preset alias name.");
-        m_valid_type = NoValid;
-    }
 
     // BBS: add project embedded presets logic
     if (existing) { // ORCA RadioGroup
@@ -254,6 +320,15 @@ void SavePresetDialog::Item::update()
     m_valid_label->SetLabel(info_line);
     m_valid_label->Show(!info_line.IsEmpty());
 
+    if (!m_ok_btn)
+        m_ok_btn = static_cast<Button*>(wxWindow::FindWindowById(wxID_OK, m_parent));
+    if (m_ok_btn){
+        if(m_valid_type == NoValid && m_ok_btn->IsEnabled())
+            m_ok_btn->Disable();
+        else if(m_valid_type != NoValid && !m_ok_btn->IsEnabled())
+            m_ok_btn->Enable();
+    }
+
     // update_valid_bmp();
 
     if (m_type == Preset::TYPE_PRINTER) m_parent->update_info_for_edit_ph_printer(m_preset_name);
@@ -265,19 +340,6 @@ void SavePresetDialog::Item::update_valid_bmp()
 {
     std::string bmp_name = m_valid_type == Warning ? "obj_warning" : m_valid_type == NoValid ? "cross" : "blank_16";
     m_valid_bmp->SetBitmap(create_scaled_bitmap(bmp_name, m_parent));
-}
-
-void SavePresetDialog::Item::accept()
-{
-    if (m_valid_type == Warning) {
-        auto    it               = m_presets->find_preset(m_preset_name, false);
-        Preset &current_preset   = *it;
-        if (!current_preset.setting_id.empty()) {
-            BOOST_LOG_TRIVIAL(info) << "delete preset = " << current_preset.name << ", setting_id = " << current_preset.setting_id;
-            wxGetApp().delete_preset_from_cloud(current_preset.setting_id, current_preset.file);
-        }
-        m_presets->delete_preset(m_preset_name);
-    }
 }
 
 void SavePresetDialog::Item::DoSetSize(int x, int y, int width, int height, int sizeFlags /*= wxSIZE_AUTO*/)
@@ -320,14 +382,13 @@ void SavePresetDialog::build(std::vector<Preset::Type> types, std::string suffix
 
     m_presets_sizer = new wxBoxSizer(wxVERTICAL);
 
+    // create dialog buttons before item to make it available for changing enable/disable
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
+
     // Add first item
     for (Preset::Type type : types) AddItem(type, suffix);
-
-    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
-
-    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
-
-    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
 
     m_Sizer_main->Add(m_presets_sizer, 0, wxEXPAND | wxALL, BORDER_W);
     m_Sizer_main->Add(dlg_btns, 0, wxEXPAND);
@@ -361,10 +422,8 @@ void SavePresetDialog::input_name_from_other(std::string new_preset_name) {
 }
 
 void SavePresetDialog::confirm_from_other() {
-    for (Item *item : m_items) {
-        item->accept();
+    for (Item *item : m_items)
         if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
-    }
 }
 
 // BBS: add project relate
@@ -494,10 +553,8 @@ void SavePresetDialog::update_physical_printers(const std::string &preset_name)
 
 void SavePresetDialog::accept(wxCommandEvent &event)
 {
-    for (Item *item : m_items) {
-        item->accept();
+    for (Item *item : m_items)
         if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
-    }
 
     EndModal(wxID_OK);
 }

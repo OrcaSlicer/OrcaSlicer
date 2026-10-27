@@ -1,15 +1,18 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Matte @FF C5P",
-	"inherits": "Generic PLA @System",
 	"renamed_from": "Flashforge PLA  Matte @FF C5P;Flashforge PLA  Matte FF C5P",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "Bn2BaG7f1tkvlyYI",
 	"filament_id": "OF6qAuyi",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],

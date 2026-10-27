@@ -1,9 +1,18 @@
 #include "UndoRedo.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <cstdint>
+#include <cereal/specialize.hpp>
+#include <boost/log/trivial.hpp>
 #include <iostream>
 #include <fstream>
+#include <map>
+#include "libslic3r/Exception.hpp"
 #include <memory>
+#include <string>
+#include <sstream>
+#include <type_traits>
 #include <typeinfo>
 #include <cassert>
 #include <cstddef>
@@ -14,10 +23,11 @@
 #include <cereal/types/utility.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
+#include <vector>
+#include <utility>
 #define CEREAL_FUTURE_EXPERIMENTAL
 #include <cereal/archives/adapters.hpp>
 
-#include <libslic3r/PrintConfig.hpp>
 #include <libslic3r/ObjectID.hpp>
 #include <libslic3r/Utils.hpp>
 
@@ -805,11 +815,11 @@ namespace cereal
 }
 
 #include <libslic3r/Model.hpp>
-#include <libslic3r/TriangleMesh.hpp>
 #include <slic3r/GUI/Selection.hpp>
 #include <slic3r/GUI/Gizmos/GLGizmosManager.hpp>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
 namespace UndoRedo {
