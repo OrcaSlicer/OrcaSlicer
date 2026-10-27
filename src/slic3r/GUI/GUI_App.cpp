@@ -4157,6 +4157,8 @@ bool GUI_App::on_init_network(bool try_backup)
     // on the old agent would still report into the GUI.
     stop_orca_health_check(m_agent);
     m_agent = agent_ptr.release();
+    // The new agent's cloud agents have not been cleaned up by get_login_info() yet.
+    m_logged_out_providers.clear();
 
     if (!m_device_manager)
         m_device_manager = new Slic3r::DeviceManager(m_agent);
@@ -5355,11 +5357,16 @@ void GUI_App::get_login_info(const std::string& provider/* = ORCA_CLOUD_PROVIDER
 {
     if (m_agent) {
         if (m_agent->is_user_login(provider)) {
+            m_logged_out_providers.erase(provider);
             std::string login_cmd = m_agent->build_login_cmd(provider);
             wxString strJS = wxString::Format("window.postMessage(%s)", from_u8(login_cmd));
             GUI::wxGetApp().run_script(strJS);
         } else {
-            m_agent->user_logout(false, provider);
+            // The home page polls this every 2 s. Run the logout clean-up when the provider is first seen
+            // logged out, not on every poll: the Bambu plugin's logout runs on this UI thread and can take
+            // hundreds of milliseconds per call.
+            if (m_logged_out_providers.insert(provider).second)
+                m_agent->user_logout(false, provider);
             std::string logout_cmd = m_agent->build_logout_cmd(provider);
             wxString    strJS      = wxString::Format("window.postMessage(%s)", from_u8(logout_cmd));
             GUI::wxGetApp().run_script(strJS);
@@ -6226,6 +6233,8 @@ void GUI_App::on_user_login(wxCommandEvent &evt)
     int online_login = evt.GetInt();
     std::string provider = evt.GetString().ToStdString();
     if (provider.empty()) provider = ORCA_CLOUD_PROVIDER;
+    // This session needs the logout clean-up in get_login_info() once it ends, even if it ends before the next poll.
+    m_logged_out_providers.erase(provider);
 
     // check privacy before handle
     check_privacy_version(online_login, provider);

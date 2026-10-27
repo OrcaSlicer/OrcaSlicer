@@ -330,6 +330,9 @@ private:
     Slic3r::UserManager* m_user_manager { nullptr };
     Slic3r::TaskManager* m_task_manager { nullptr };
     NetworkAgent* m_agent { nullptr };
+    // Cloud providers get_login_info() has already seen logged out, so the polling home page
+    // runs the logout clean-up once per logout instead of on every poll.
+    std::set<std::string> m_logged_out_providers;
     std::map<std::string, std::string> need_delete_presets;   // store setting ids of preset
     std::vector<bool> m_create_preset_blocked { false, false, false, false, false, false }; // excceed limit
     std::vector<std::string> m_pending_conflict_setting_ids; // setting_id from the most recent 409 conflict
