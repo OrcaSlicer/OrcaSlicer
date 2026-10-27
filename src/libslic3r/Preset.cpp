@@ -1440,6 +1440,7 @@ static std::vector<std::string> s_Preset_print_options{
     "wipe_inward",
     "wipe_inward_distance",
     "wipe_before_external_loop",
+    "retract_after_outer_wall",
     "bridge_density",
     "internal_bridge_density",
     "precise_outer_wall",
