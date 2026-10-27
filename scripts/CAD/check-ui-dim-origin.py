@@ -134,20 +134,50 @@ time.sleep(0.4)
 o = scr([0.0, 0.0])
 call("ui.move", at=o); call("ui.click", at=o); time.sleep(0.4)
 p = scr(circ["center"])
-call("ui.move", at=p); call("ui.click", at=p); time.sleep(0.6)
+call("ui.move", at=p); call("ui.click", at=p); time.sleep(0.4)
+# the quote now follows the cursor: above the span, between its ends in x -> a horizontal distance; a click sets it down
+q = [(o[0] + p[0]) / 2, min(o[1], p[1]) - 90]
+call("ui.move", at=q); time.sleep(0.3); call("ui.click", at=q); time.sleep(0.6)
+call("ui.text", text="80")
 call("ui.key", key="Return")
 time.sleep(0.5)
+c1 = [e for e in ents() if e["type"] == "circle"][0]
+check(abs(abs(c1["center"][0]) - 80.0) < 1e-6 and abs(c1["center"][1] - circ["center"][1]) < 1e-6,
+      "placed above it is a HORIZONTAL distance: x is 80 and y did not move (%s from %s)" % (c1["center"], circ["center"]))
 on_origin = [e for e in ents() if e["type"] == "point" and abs(e["p"][0]) < 1e-9 and abs(e["p"][1]) < 1e-9]
 check(len(on_origin) == 1, "clicking the bare origin made a point on it (%d)" % len(on_origin))
 check(ncons() >= base + 2, "and the quote is a constraint on top of the origin's own (constraints %d -> %d)" % (base, ncons()))
 
-# an axis is a pick too: click the X axis, then the circle centre -> distance from the axis (a construction line is made on it)
+# the same on the other side of the span -> a VERTICAL distance (the circle's y), the x it has stays
+call("run_verb", verb="sk_dimension")
+time.sleep(0.4)
+o = scr([0.0, 0.0])
+p = scr(c1["center"])
+call("ui.move", at=o); call("ui.click", at=o); time.sleep(0.4)
+call("ui.move", at=p); call("ui.click", at=p); time.sleep(0.4)
+q = [max(o[0], p[0]) + 120, (o[1] + p[1]) / 2]
+call("ui.move", at=q); time.sleep(0.3); call("ui.click", at=q); time.sleep(0.6)
+call("ui.text", text="50")
+call("ui.key", key="Return")
+time.sleep(0.5)
+c2 = [e for e in ents() if e["type"] == "circle"][0]
+check(abs(abs(c2["center"][1]) - 50.0) < 1e-6 and abs(c2["center"][0] - c1["center"][0]) < 1e-6,
+      "placed beside it is a VERTICAL distance: y is 50 and x did not move (%s from %s)" % (c2["center"], c1["center"]))
+
+# an axis is a pick too: click the X axis, then another circle's centre -> distance from the axis (a construction line is made on it)
+call("ui.key", key="C")
+K = [cx - 150, cy + 100]
+call("ui.move", at=K); call("ui.click", at=K); time.sleep(0.5)
+call("ui.move", at=[K[0] + 30, K[1]]); call("ui.click", at=[K[0] + 30, K[1]]); time.sleep(0.5)
+call("ui.key", key="Escape")
 base = ncons()
+k = [e for e in ents() if e["type"] == "circle"][1]
 call("run_verb", verb="sk_dimension")
 time.sleep(0.4)
 ax = scr([-60.0, 0.0])
 call("ui.move", at=ax); call("ui.click", at=ax); time.sleep(0.4)
-call("ui.move", at=p); call("ui.click", at=p); time.sleep(0.6)
+pk = scr(k["center"])
+call("ui.move", at=pk); call("ui.click", at=pk); time.sleep(0.6)
 call("ui.key", key="Return")
 time.sleep(0.5)
 axl = [e for e in ents() if e["type"] == "line" and e["construction"] and abs(e["p0"][0]) < 1e-9 and abs(e["p0"][1]) < 1e-9 and abs(e["p1"][1]) < 1e-9]

@@ -113,7 +113,7 @@ public:
     // tool's first anchor, an edit-op's or a transform's subjects, Constrain's picks. Together
     // with pending_points() they are CadLevel::Gesture, so Esc drops them and keeps the tool.
     bool has_pending_picks() const {
-        return m_dim_has0 || m_op_a >= 0 || !m_tf_targets.empty() || m_pick0 >= 0 || m_sel_a >= 0;
+        return m_dim_has0 || m_dim_draft_on || m_op_a >= 0 || !m_tf_targets.empty() || m_pick0 >= 0 || m_sel_a >= 0;
     }
     bool gesture_pending() const { return !m_points.empty() || has_pending_picks(); }
     // Enter while an edit-op or a transform is ready: apply it, the same as its value field's
@@ -871,6 +871,8 @@ private:
         double          side{1.0};   // perpendicular offset sign of the quote line
         int             con{-1};     // slot in m_constraints driving this dimension
         Vec2d           label_pos{0, 0};  // cached label centre (plane coords), for picking
+        int             orient{0};        // Distance / Length: 0 aligned, 1 horizontal (DistanceX), 2 vertical (DistanceY)
+        double          lvl{std::numeric_limits<double>::quiet_NaN()};   // horizontal / vertical: where the quote line sits (y, or x); NaN = clear of the geometry
     };
 
     // --- Onshape-style visual editing: handles + parametric feature grouping -----
@@ -1006,6 +1008,7 @@ private:
     double measure_dim(const DimAnnot& a) const;                            // value from geometry
     std::string dimtype_title(DimType k) const;
     SketchEntityConstraintDef constraint_for(const DimAnnot& a) const;      // driving def
+    void oriented_constraint(const DimAnnot& a, SketchEntityConstraintDef& c) const;   // DistanceX / DistanceY form of a Distance / Length
     // One driving constraint (and one visible quote) per kind+operands: re-typing a value must
     // UPDATE it, not append a rival asking for something else. Both return the index.
     int upsert_constraint(const SketchEntityConstraintDef& c);
@@ -1024,6 +1027,7 @@ public:
 private:
     std::string dim_text(const DimAnnot& a) const;                          // rendered label string
     void render_dimensions(double unit_per_px);                            // quote lines + labels
+    void render_dim_draft(double unit_per_px);
     // Draw ONE dimension's quote (extension/dimension lines, arrowheads, label) and
     // return its label centre in out_label; false if the annot can't be drawn. Shared
     // by render_dimensions (placed driving quotes) and render_live_quotes (live ones).
@@ -1348,6 +1352,14 @@ private:
     int                 m_dim_e0{-1};             // first picked point's entity (Dimension)
     SketchPointRole     m_dim_r0{SketchPointRole::P0};
     bool                m_dim_has0{false};        // a first point is pending
+    // A Distance / Length the picks fixed, not placed yet: its quote follows the cursor, and where the cursor sits decides aligned,
+    // horizontal or vertical (FreeCAD, SolidCraft). A click places it and opens the value card.
+    bool                m_dim_draft_on{false};
+    DimAnnot            m_dim_draft;
+    void                begin_dim_draft(DimAnnot a, const Vec2d& cur);
+    void                update_dim_draft(const Vec2d& cur);
+    static int          dim_orientation(const Vec2d& a, const Vec2d& b, const Vec2d& cur);
+    bool                dim_ends(const DimAnnot& a, Vec2d& pa, Vec2d& pb) const;
     bool                m_dim_line_first{false};  // ...or, when set, a first LINE (an axis): the second pick is the point to measure
     int                 m_pending_dim{-1};        // dim awaiting a value-card entry
     // The expressions bound to the dimensions of the sketch being edited (m_constraints index -> expression, and the value it

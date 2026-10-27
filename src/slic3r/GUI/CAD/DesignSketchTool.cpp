@@ -132,7 +132,7 @@ void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
     m_point_sel.clear();
     m_constraints.clear();
     m_dimensions.clear();
-    m_dim_has0 = false;
+    m_dim_has0 = false; m_dim_draft_on = false;
     m_pending_dim = -1;
     m_dof = -1; m_solve_ok = true; m_entity_conflict.clear();
     m_features.clear();
@@ -158,12 +158,14 @@ void DesignSketchTool::begin_edit(const std::vector<SketchEntity>& entities,
         DimAnnot a;
         a.con = i; a.value = c.value; a.ea = c.ea; a.ra = c.ra; a.eb = c.eb; a.rb = c.rb;
         using T = SketchConstraintType;
-        if (c.type == T::Distance && c.ea == c.eb && c.ra == SketchPointRole::P0 && c.rb == SketchPointRole::P1) a.kind = DimType::Length;
+        if ((c.type == T::Distance || c.type == T::DistanceX || c.type == T::DistanceY) && c.ea == c.eb
+            && ((c.ra == SketchPointRole::P0 && c.rb == SketchPointRole::P1) || (c.ra == SketchPointRole::P1 && c.rb == SketchPointRole::P0))) a.kind = DimType::Length;
         else if (c.type == T::Distance || c.type == T::DistanceX || c.type == T::DistanceY)                     a.kind = DimType::Distance;
         else if (c.type == T::Diameter)                                                                          a.kind = DimType::Diameter;
         else if (c.type == T::Radius)                                                                            a.kind = DimType::Radius;
         else if (c.type == T::Angle)                                                                             a.kind = DimType::Angle;
         else continue;
+        a.orient = c.type == T::DistanceX ? 1 : c.type == T::DistanceY ? 2 : 0;
         m_dimensions.push_back(a);
     }
     rebuild_features_from_entities();
@@ -358,7 +360,7 @@ void DesignSketchTool::set_tool(Mode mode)
     // constraint or a dimension landing on geometry the user did not choose. Drop the modal
     // picks left armed by the tool we are leaving: the Dimension tool's first pick, the
     // Constrain tool's picks, and the individual point selection.
-    m_dim_has0 = false;
+    m_dim_has0 = false; m_dim_draft_on = false;
     m_dim_e0   = -1;
     m_dim_r0   = SketchPointRole::P0;
     m_pick0 = m_pick1 = m_pick2 = -1;
@@ -389,7 +391,7 @@ void DesignSketchTool::cancel()
     m_point_sel.clear();
     m_constraints.clear();
     m_dimensions.clear();
-    m_dim_has0 = false;
+    m_dim_has0 = false; m_dim_draft_on = false;
     m_pending_dim = -1;
     m_dof = -1; m_solve_ok = true; m_entity_conflict.clear();
     m_features.clear();
@@ -443,7 +445,7 @@ bool DesignSketchTool::abort_gesture()
     if (has_pending_picks()) {
         reset_op();
         reset_tf();
-        m_dim_has0 = false;
+        m_dim_has0 = false; m_dim_draft_on = false;
         m_dim_e0   = -1;
         m_dim_r0   = SketchPointRole::P0;
         m_pick0 = m_pick1 = m_pick2 = -1;
@@ -627,7 +629,7 @@ void DesignSketchTool::delete_selected()
         }
         m_dimensions.swap(kept_d);
     }
-    m_dim_has0 = false;
+    m_dim_has0 = false; m_dim_draft_on = false;
     m_pending_dim = -1;
     // The Dimension tool's pending FIRST pick is the same dangling-reference hazard as the placed
     // quotes just cleared above: it references an entity index that has shifted or gone away, and
@@ -1331,8 +1333,9 @@ double DesignSketchTool::measure_dim(const DimAnnot& a) const
     Vec2d pa, pb;
     switch (a.kind) {
     case DimType::Length:
-        return (a.ea >= 0 && a.ea < int(m_entities.size()))
-                   ? (m_entities[a.ea].p1 - m_entities[a.ea].p0).norm() : 0.0;
+        if (!(a.ea >= 0 && a.ea < int(m_entities.size()))) return 0.0;
+        pa = m_entities[a.ea].p0; pb = m_entities[a.ea].p1;
+        return a.orient == 1 ? std::abs(pb.x() - pa.x()) : a.orient == 2 ? std::abs(pb.y() - pa.y()) : (pb - pa).norm();
     case DimType::Diameter:
         return (a.ea >= 0 && a.ea < int(m_entities.size())) ? 2.0 * m_entities[a.ea].radius : 0.0;
     case DimType::Radius:
@@ -1350,7 +1353,8 @@ double DesignSketchTool::measure_dim(const DimAnnot& a) const
         return deg;
     }
     case DimType::Distance:
-        return (point_at(a.ea, a.ra, pa) && point_at(a.eb, a.rb, pb)) ? (pb - pa).norm() : 0.0;
+        if (!(point_at(a.ea, a.ra, pa) && point_at(a.eb, a.rb, pb))) return 0.0;
+        return a.orient == 1 ? std::abs(pb.x() - pa.x()) : a.orient == 2 ? std::abs(pb.y() - pa.y()) : (pb - pa).norm();
     case DimType::DistanceToLine: {
         if (!point_at(a.ea, a.ra, pa) || a.eb < 0 || a.eb >= int(m_entities.size())) return 0.0;
         const SketchEntity& L = m_entities[a.eb];
@@ -1397,14 +1401,16 @@ int DesignSketchTool::upsert_constraint(const SketchEntityConstraintDef& c)
 // which reads as the edit being ignored. Replace across that pair, then upsert normally.
 int DesignSketchTool::upsert_dimension_constraint(const SketchEntityConstraintDef& c)
 {
-    const bool zero_case = (c.type == SketchConstraintType::Coincident);
-    const bool dist_case = (c.type == SketchConstraintType::Distance);
+    using CT = SketchConstraintType;
+    const bool zero_case = (c.type == CT::Coincident);
+    const bool dist_case = (c.type == CT::Distance || c.type == CT::DistanceX || c.type == CT::DistanceY);
     if (zero_case || dist_case) {
         erase_constraints([&](int, const SketchEntityConstraintDef& d) {
             const bool same = (d.ea == c.ea && d.eb == c.eb) || (d.ea == c.eb && d.eb == c.ea);
             if (!same) return false;
-            return zero_case ? (d.type == SketchConstraintType::Distance)
-                             : (d.type == SketchConstraintType::Coincident);
+            const bool is_dist = d.type == CT::Distance || d.type == CT::DistanceX || d.type == CT::DistanceY;
+            if (zero_case) return is_dist;
+            return d.type == CT::Coincident || (is_dist && d.type != c.type);   // the other orientation of the same quote
         });
     }
     return upsert_constraint(c);
@@ -1435,6 +1441,7 @@ SketchEntityConstraintDef DesignSketchTool::constraint_for(const DimAnnot& a) co
         c.type = SketchConstraintType::Distance;
         c.ea = a.ea; c.ra = SketchPointRole::P0;
         c.eb = a.ea; c.rb = SketchPointRole::P1; c.value = a.value;
+        if (a.orient) oriented_constraint(a, c);
         break;
     case DimType::Diameter: c.type = SketchConstraintType::Diameter; c.ea = a.ea; c.value = a.value; break;
     case DimType::Radius:   c.type = SketchConstraintType::Radius;   c.ea = a.ea; c.value = a.value; break;
@@ -1442,6 +1449,7 @@ SketchEntityConstraintDef DesignSketchTool::constraint_for(const DimAnnot& a) co
         if (a.value < 1e-9) c.type = SketchConstraintType::Coincident;
         else              { c.type = SketchConstraintType::Distance; c.value = a.value; }
         c.ea = a.ea; c.ra = a.ra; c.eb = a.eb; c.rb = a.rb;
+        if (a.orient) oriented_constraint(a, c);
         break;
     case DimType::DistanceToLine:
         c.type = SketchConstraintType::PointOnLine;
@@ -1450,6 +1458,69 @@ SketchEntityConstraintDef DesignSketchTool::constraint_for(const DimAnnot& a) co
     default: break;
     }
     return c;
+}
+
+// A horizontal / vertical distance: DistanceX / DistanceY run from the first operand to the second and are signed, so the operands are
+// ordered to make the value positive (FreeCAD does the same), and the sketch keeps the side it was drawn on. Zero means the two share
+// an x (Vertical) or a y (Horizontal).
+void DesignSketchTool::oriented_constraint(const DimAnnot& a, SketchEntityConstraintDef& c) const
+{
+    Vec2d pa, pb;
+    if (!dim_ends(a, pa, pb)) return;
+    const bool x = a.orient == 1;
+    if ((x ? pb.x() < pa.x() : pb.y() < pa.y())) { std::swap(c.ea, c.eb); std::swap(c.ra, c.rb); }
+    if (a.value < 1e-9) c.type = x ? SketchConstraintType::Vertical : SketchConstraintType::Horizontal;
+    else                { c.type = x ? SketchConstraintType::DistanceX : SketchConstraintType::DistanceY; c.value = a.value; }
+}
+
+// The two points a Length / Distance quote measures between.
+bool DesignSketchTool::dim_ends(const DimAnnot& a, Vec2d& pa, Vec2d& pb) const
+{
+    if (a.kind == DimType::Length) {
+        if (a.ea < 0 || a.ea >= int(m_entities.size())) return false;
+        pa = m_entities[a.ea].p0; pb = m_entities[a.ea].p1;
+        return true;
+    }
+    return point_at(a.ea, a.ra, pa) && point_at(a.eb, a.rb, pb);
+}
+
+// Where the cursor sits decides the kind of distance: above or below the span (between its ends in x) -> horizontal, beside it
+// (between its ends in y) -> vertical, anywhere else -> aligned. A span already horizontal / vertical is that kind whatever the cursor does.
+int DesignSketchTool::dim_orientation(const Vec2d& a, const Vec2d& b, const Vec2d& cur)
+{
+    const double eps = 1e-9;
+    if (std::abs(a.y() - b.y()) < eps) return 1;
+    if (std::abs(a.x() - b.x()) < eps) return 2;
+    const double x0 = std::min(a.x(), b.x()), x1 = std::max(a.x(), b.x());
+    const double y0 = std::min(a.y(), b.y()), y1 = std::max(a.y(), b.y());
+    const bool in_x = cur.x() > x0 && cur.x() < x1, in_y = cur.y() > y0 && cur.y() < y1;
+    if (in_x && !in_y) return 1;
+    if (in_y && !in_x) return 2;
+    return 0;
+}
+
+void DesignSketchTool::begin_dim_draft(DimAnnot a, const Vec2d& cur)
+{
+    m_dim_draft = a;
+    m_dim_draft_on = true;
+    update_dim_draft(cur);
+}
+
+void DesignSketchTool::update_dim_draft(const Vec2d& cur)
+{
+    DimAnnot& a = m_dim_draft;
+    Vec2d pa, pb;
+    if (!dim_ends(a, pa, pb)) { m_dim_draft_on = false; return; }
+    a.orient = dim_orientation(pa, pb, cur);
+    a.lvl = std::numeric_limits<double>::quiet_NaN();
+    if (a.orient == 1)      { a.lvl = cur.y(); a.side = cur.y() >= 0.5 * (pa.y() + pb.y()) ? 1.0 : -1.0; }
+    else if (a.orient == 2) { a.lvl = cur.x(); a.side = cur.x() >= 0.5 * (pa.x() + pb.x()) ? 1.0 : -1.0; }
+    else {
+        const Vec2d d = pb - pa;
+        const double n = d.norm();
+        if (n > 1e-9) a.side = ((cur - pa).dot(Vec2d(-d.y(), d.x()) / n) >= 0.0) ? 1.0 : -1.0;
+    }
+    a.value = measure_dim(a);
 }
 
 // Measure the just-picked dimension, append its driving constraint, live-solve, and
@@ -2675,7 +2746,7 @@ void DesignSketchTool::finish()
     m_constraints.clear();
     m_dimensions.clear();
     m_point_sel.clear();
-    m_dim_has0 = false;
+    m_dim_has0 = false; m_dim_draft_on = false;
     m_pending_dim = -1;
     m_has_cursor = false;
     m_features.clear();
@@ -8623,11 +8694,27 @@ bool DesignSketchTool::draw_dim_quote(const DimAnnot& a, double th, const ColorR
         const Vec2d d = pb - pa;
         const double L = d.norm();
         if (L < 1e-6) return false;
-        const Vec2d u = d / L;
-        const Vec2d nrm(-u.y(), u.x());
+        Vec2d u = d / L;
         const double side = (a.side != 0.0) ? a.side : 1.0;
-        const double off  = side * std::max(L * 0.18, 8.0);
-        const Vec2d A2 = pa + nrm * off, B2 = pb + nrm * off;   // offset clear of the sketch line
+        Vec2d A2, B2, nrm(-u.y(), u.x());
+        if (a.orient) {   // horizontal / vertical: the quote line is parallel to the axis, the extension lines are not
+            const bool x = a.orient == 1;
+            u = x ? Vec2d(1.0, 0.0) : Vec2d(0.0, 1.0);
+            nrm = Vec2d(-u.y(), u.x());
+            if (d.dot(u) < 0.0) std::swap(pa, pb);
+            const double span = std::abs(d.dot(u));
+            if (span < 1e-6) return false;
+            double lv = a.lvl;
+            if (!std::isfinite(lv)) {
+                const double hi = std::max(pa.dot(nrm), pb.dot(nrm)), lo = std::min(pa.dot(nrm), pb.dot(nrm));
+                lv = side > 0.0 ? hi + std::max(span * 0.18, 8.0) : lo - std::max(span * 0.18, 8.0);
+            }
+            A2 = pa + nrm * (lv - pa.dot(nrm)); B2 = pb + nrm * (lv - pb.dot(nrm));
+            segs.emplace_back(pa, A2); segs.emplace_back(pb, B2);   // extension lines
+        } else {
+            const double off = side * std::max(L * 0.18, 8.0);
+            A2 = pa + nrm * off; B2 = pb + nrm * off;           // offset clear of the sketch line
+        }
         segs.emplace_back(A2, B2);                              // dimension line (not on the geometry)
         const double as = std::max(L * 0.04, 2.0);
         auto arrow = [&](const Vec2d& tip, const Vec2d& dir) {
@@ -8635,7 +8722,7 @@ bool DesignSketchTool::draw_dim_quote(const DimAnnot& a, double th, const ColorR
             segs.emplace_back(tip, back + nrm * (as * 0.5));
             segs.emplace_back(tip, back - nrm * (as * 0.5));
         };
-        arrow(A2, u); arrow(B2, -u);
+        arrow(A2, (B2 - A2).normalized()); arrow(B2, (A2 - B2).normalized());
         out_label = (A2 + B2) * 0.5 + nrm * (side * (th * 0.7 + 1.5));
     } else if (a.kind == DimType::Diameter || a.kind == DimType::Radius) {
         if (a.ea < 0 || a.ea >= int(m_entities.size())) return false;
@@ -8717,6 +8804,15 @@ void DesignSketchTool::render_dimensions(double unit_per_px)
         if (draw_dim_quote(m_dimensions[di], th, col, label))
             m_dimensions[di].label_pos = label;
     }
+}
+
+// (the quote that follows the cursor before it is placed is drawn by render_dim_draft, right after the placed ones)
+void DesignSketchTool::render_dim_draft(double unit_per_px)
+{
+    if (!m_dim_draft_on) return;
+    const double th = std::max(15.0 * unit_per_px, 1e-4);
+    Vec2d label;
+    draw_dim_quote(m_dim_draft, th, ColorRGBA(0.45f, 0.85f, 1.0f, 1.0f), label);
 }
 
 // Per-entity-type characteristic dimensions, drawn as live non-driving quotes for the
@@ -10633,6 +10729,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // Placed dimension quotes (drawn in every mode so they persist while sketching).
     // Pass plane-units-per-pixel so labels keep a constant on-screen size.
     render_dimensions(1.0 / std::max(camera.get_zoom(), 1e-6));
+    render_dim_draft(1.0 / std::max(camera.get_zoom(), 1e-6));
     render_live_quotes(1.0 / std::max(camera.get_zoom(), 1e-6));
     // Draw-then-edit: the selection's live quotes now exist. Open the primary value editor on
     // the next event-loop tick (NOT here inside the paint) so the floating field grabs focus
@@ -12511,6 +12608,19 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     // a circle -> Diameter, an arc -> Radius, a point then a line -> DistanceToLine.
     // Each resolved pick places a driving quote and pops the value card.
     if (m_mode == Mode::Dimension) {
+        if (m_dim_draft_on) {                      // a Distance / Length waiting for its place: the cursor orients it, a click sets it down
+            Vec2d cur;
+            screen_to_plane(canvas, evt, cur);
+            if (evt.LeftDown()) {
+                const DimAnnot a = m_dim_draft;
+                m_dim_draft_on = false;
+                place_dimension(a);
+                return true;
+            }
+            if (evt.RightDown()) { m_dim_draft_on = false; return true; }
+            update_dim_draft(cur);
+            return evt.Moving();
+        }
         if (update_hover(canvas, evt)) return true;   // repaint when the hovered handle changes
         if (evt.LeftDClick()) {                    // double-click a quote label -> edit it
             Vec2d p;
@@ -12546,7 +12656,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 } else if (he >= 0) {                  // whole-entity dimension
                     DimAnnot a; a.ea = he;
                     const SketchEntity::Type t = m_entities[he].type;
-                    if (t == SketchEntity::Type::Line)        { a.kind = DimType::Length;   place_dimension(a); }
+                    if (t == SketchEntity::Type::Line)        { a.kind = DimType::Length;   begin_dim_draft(a, p); }
                     else if (t == SketchEntity::Type::Circle) { a.kind = DimType::Diameter; place_dimension(a); }
                     else if (t == SketchEntity::Type::Arc)    { a.kind = DimType::Radius;   place_dimension(a); }
                     else
@@ -12565,7 +12675,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 if (got_pt && !(pe == m_dim_e0 && pr == m_dim_r0)) {
                     DimAnnot a; a.kind = DimType::Distance;
                     a.ea = m_dim_e0; a.ra = m_dim_r0; a.eb = pe; a.rb = pr;
-                    place_dimension(a);
+                    begin_dim_draft(a, p);
                 } else if (he >= 0 && m_entities[he].type == SketchEntity::Type::Line) {
                     DimAnnot a; a.kind = DimType::DistanceToLine;
                     a.ea = m_dim_e0; a.ra = m_dim_r0; a.eb = he;
