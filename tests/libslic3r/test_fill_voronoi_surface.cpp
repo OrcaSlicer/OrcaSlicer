@@ -490,3 +490,60 @@ TEST_CASE("Short rotated floor rows extend onto perimeter footprints", "[FillVor
         }
     REQUIRE(rows > 0);
 }
+
+TEST_CASE("Floor row phase follows its supported boundary across clipping and rotation", "[FillVoronoi][Floors]")
+{
+    const double angle = GENERATE(0., 0.37, 1.1);
+    FillParams params;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    const double spacing = params.flow.spacing();
+    const Vec2d side(std::cos(angle), std::sin(angle));
+    const double origin = 3.17;
+    auto rectangle = [angle](double x0, double y0, double x1, double y1) {
+        ExPolygon polygon{Point::new_scale(x0, y0), Point::new_scale(x1, y0),
+                          Point::new_scale(x1, y1), Point::new_scale(x0, y1)};
+        polygon.rotate(angle);
+        return polygon;
+    };
+    for (double clip : {0., 0.13, 0.71}) {
+        const ExPolygon polygon = rectangle(origin - 5. * spacing + clip, -6., origin, 6.);
+        FillVoronoi filler;
+        filler.set_bounding_box(rectangle(-100., -200., 150., 300.).contour.bounding_box());
+        const auto paths = filler.fill_band({polygon, side, origin}, params);
+        size_t rows = 0;
+        for (const auto &path : paths)
+            for (size_t i = 1; i < path.points.size(); ++i) {
+                const Vec2d delta = path.points[i].cast<double>() - path.points[i - 1].cast<double>();
+                if (delta.norm() < scale_(10.) || std::abs(side.dot(delta)) > 3.) continue;
+                ++rows;
+                const double row = unscale_(side.dot(path.points[i].cast<double>()));
+                const double steps = (origin - row) / spacing - 0.5;
+                const double expected = origin - (std::round(steps) + 0.5) * spacing;
+                REQUIRE_THAT(row, Catch::Matchers::WithinAbs(expected, EPSILON + 4. * SCALING_FACTOR));
+            }
+        REQUIRE(rows > 0);
+    }
+}
+
+TEST_CASE("Floor endpoint extensions keep their zigzag connectors inside the allowed region", "[FillVoronoi][Floors][Anchors]")
+{
+    FillParams params;
+    params.flow = Flow(0.45f, 0.2f, 0.4f);
+    const double spacing = params.flow.spacing();
+    const ExPolygon floor {Point::new_scale(-4. * spacing, -4.), Point::new_scale(0., -4.),
+                           Point::new_scale(0., 4.), Point::new_scale(-4. * spacing, 4.)};
+    // Separated support patches let neighboring rows extend, but not the connector between them.
+    ExPolygons support;
+    for (int row = 0; row < 4; ++row) {
+        const double x = -(row + .5) * spacing;
+        support.emplace_back(Points{Point::new_scale(x - .08, 4.), Point::new_scale(x + .08, 4.),
+                                    Point::new_scale(x + .08, 4.3), Point::new_scale(x - .08, 4.3)});
+    }
+    FillVoronoi filler;
+    filler.set_floor_support(&support);
+    const auto paths = filler.fill_band({floor, Vec2d(1., 0.), 0.}, params);
+    REQUIRE_FALSE(paths.empty());
+    ExPolygons allowed = support;
+    allowed.push_back(floor);
+    REQUIRE(diff_pl(paths, union_ex(allowed)).empty());
+}
