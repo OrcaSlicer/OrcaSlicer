@@ -3406,8 +3406,9 @@ msgstr "名称"
 msgid "All Plates"
 msgstr "全プレート"
 
+# AI Translated
 msgid "Order By"
-msgstr ""
+msgstr "並べ替え"
 
 # AI Translated
 msgid "Fix All"
@@ -5550,137 +5551,181 @@ msgstr ""
 "はい - Arachne壁面生成器を有効にする\n"
 "いいえ - Arachne壁面生成器を無効にし、ファジー壁面を[変位]モードに設定する"
 
+# AI Translated
 msgid "Set the maximum volumetric extrusion rate slope above zero to use extrusion rate smoothing."
-msgstr ""
+msgstr "押出レートスムージングを使用するには、「押出レートスムージング」の最大変化率を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Arc fitting is unavailable for belt printers and when extrusion rate smoothing is enabled."
-msgstr ""
+msgstr "ベルトプリンターの場合と、押出レートスムージングが有効な場合は、円弧フィッティングを使用できません。"
 
+# AI Translated
 msgid "Set wall loops above zero to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「壁面層数」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "This setting is hidden because sparse infill density is zero."
-msgstr ""
+msgstr "この設定は、「スパース インフィル密度」が0のため非表示になっています。"
 
+# AI Translated
 msgid "Infill anchors require nonzero sparse infill density and a pattern other than Concentric or Spiral Inset."
-msgstr ""
+msgstr "インフィルアンカーには、0以外の「スパース インフィル密度」と、「同心」「スパイラルインセット」以外のパターンが必要です。"
 
+# AI Translated
 msgid "Enable infill combination and use nonzero sparse infill density to show this setting."
-msgstr ""
+msgstr "この設定を表示するには、「インフィル マージ」を有効にし、「スパース インフィル密度」を0以外にしてください。"
 
+# AI Translated
 msgid "Select Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "「ジャイロイド」「TPMS-D」「TPMS-FK」のいずれかのインフィルを選択し、「スパース インフィル密度」を0より大きく100%未満にしてください。"
 
+# AI Translated
 msgid "Enable adaptive density for Gyroid, TPMS-D or TPMS-FK infill with sparse infill density greater than zero and less than 100%."
-msgstr ""
+msgstr "「ジャイロイド」「TPMS-D」「TPMS-FK」のいずれかのインフィルで「スパース インフィル密度」を0より大きく100%未満にし、「アダプティブ密度」を有効にしてください。"
 
+# AI Translated
 msgid "Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「ジャイロイド」インフィルを選択して「スパース インフィル密度」を0以外にし、「アダプティブ密度」を無効にしてください。"
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support multiline infill."
-msgstr ""
+msgstr "選択したスパース インフィル パターンは「マルチラインフィル」に対応していません。"
 
+# AI Translated
 msgid "The Line infill pattern does not support infill anchors."
-msgstr ""
+msgstr "インフィルパターン「線」はインフィルアンカーに対応していません。"
 
+# AI Translated
 msgid "Select an infill pattern other than Line and set the maximum infill anchor length above zero."
-msgstr ""
+msgstr "「線」以外のインフィルパターンを選択し、「最長インフィルアンカー」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Select the Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパース インフィル パターンで「クロスザグ」または「ロックザグ」を選択してください。"
 
+# AI Translated
 msgid "Select the Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパース インフィル パターンで「ロックザグ」を選択してください。"
 
+# AI Translated
 msgid "Select the Zig Zag, Cross Zag or Locked Zag sparse infill pattern to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパース インフィル パターンで「ジグザグ」「クロスザグ」「ロックザグ」のいずれかを選択してください。"
 
+# AI Translated
 msgid "Select 3D Honeycomb infill with nonzero sparse infill density to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「3D ハニカム」インフィルを選択し、「スパース インフィル密度」を0以外にしてください。"
 
+# AI Translated
 msgid "Enable spiral vase mode to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパイラルモードを有効にしてください。"
 
+# AI Translated
 msgid "Enable spiral vase mode and spiral smoothing to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパイラルモードと「スムーススパイラル」を有効にしてください。"
 
+# AI Translated
 msgid "This setting requires top shell layers, or more than one bottom shell layer in spiral vase mode."
-msgstr ""
+msgstr "この設定には、「上面層数」が1以上であるか、スパイラルモードで「底面層数」が2以上であることが必要です。"
 
+# AI Translated
 msgid "This setting requires a top shell with nonzero top surface density."
-msgstr ""
+msgstr "この設定には、「上面密度」が0以外の上面シェルが必要です。"
 
+# AI Translated
 msgid "Set bottom shell layers above zero to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「底面層数」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."
-msgstr ""
+msgstr "「スパース インフィル密度」を0以外にし、インフィルの平滑化に対応したインフィルパターンと「マルチラインフィル」の設定を使用してください。"
 
+# AI Translated
 msgid "Set top surface expansion above zero to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「上面の拡張」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Use a top or bottom shell with the Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "上面または底面のシェルで、面パターンに「アルキメデス螺旋」または「オクタグラムスパイラル」を使用してください。"
 
+# AI Translated
 msgid "The selected sparse infill pattern does not support separated infills."
-msgstr ""
+msgstr "選択したスパース インフィル パターンは「インフィルを個別に配置」に対応していません。"
 
+# AI Translated
 msgid "Use a top shell with nonzero surface density and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "上面シェルの「上面密度」を0以外にし、面パターンに「同心」「スパイラルインセット」「アルキメデス螺旋」「オクタグラムスパイラル」のいずれかを使用してください。"
 
+# AI Translated
 msgid "Use bottom shell layers and the Concentric, Spiral Inset, Archimedean Chords or Octagram Spiral surface pattern."
-msgstr ""
+msgstr "「底面層数」を1以上にし、面パターンに「同心」「スパイラルインセット」「アルキメデス螺旋」「オクタグラムスパイラル」のいずれかを使用してください。"
 
+# AI Translated
 msgid "Use nonzero sparse infill density or top or bottom shell layers to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、「スパース インフィル密度」を0以外にするか、「上面層数」または「底面層数」を1以上にしてください。"
 
+# AI Translated
 msgid "Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."
-msgstr ""
+msgstr "「上面厚さ」を編集するには、スパイラルモードを無効にし、「上面層数」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Disable spiral vase mode and set bottom shell layers above zero to edit bottom shell thickness."
-msgstr ""
+msgstr "「底面厚さ」を編集するには、スパイラルモードを無効にし、「底面層数」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Set default acceleration above zero to edit acceleration for individual extrusion roles."
-msgstr ""
+msgstr "押出ロールごとの加速度を編集するには、「通常造形」の加速度を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "This setting requires the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "この設定には、G-codeスタイル「Marlin 2」が必要です。"
 
+# AI Translated
 msgid "Jerk settings are unavailable while the printer uses junction deviation."
-msgstr ""
+msgstr "プリンターが接合偏差を使用している間は、Jerkの設定を使用できません。"
 
+# AI Translated
 msgid "Set the printer junction deviation limit above zero with the Marlin firmware G-code flavor to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、G-codeスタイルを「Marlin 2」にし、プリンターの「最大接合偏差」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Set default jerk above zero to edit jerk for individual extrusion roles."
-msgstr ""
+msgstr "押出ロールごとのJerkを編集するには、デフォルトのJerkを0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンター以外のプリンターで「スカートのループ数」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Use a non-belt printer with skirt loops above zero and disable the full-height draft shield to edit skirt height."
-msgstr ""
+msgstr "「スカートの高さ」を編集するには、ベルトプリンター以外のプリンターで「スカートのループ数」を0より大きい値に設定し、全高の保護シールドを無効にしてください。"
 
+# AI Translated
 msgid "Skirts are unavailable for belt printers."
-msgstr ""
+msgstr "ベルトプリンターではスカートを使用できません。"
 
+# AI Translated
 msgid "Select a brim type other than No brim to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「ブリム無し」以外のブリムタイプを選択してください。"
 
+# AI Translated
 msgid "Enable a brim on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、傾斜ベルトのないプリンターでブリムを有効にしてください。"
 
+# AI Translated
 msgid "Select a brim type with an editable width, or enable a brim on a tilted belt printer."
-msgstr ""
+msgstr "幅を編集できるブリムタイプを選択するか、ベルトが傾斜したベルトプリンターでブリムを有効にしてください。"
 
+# AI Translated
 msgid "This setting requires a belt printer with a tilted slicing plane."
-msgstr ""
+msgstr "この設定には、スライス平面が傾斜したベルトプリンターが必要です。"
 
+# AI Translated
 msgid "Enable a brim on a belt printer with a tilted slicing plane to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スライス平面が傾斜したベルトプリンターでブリムを有効にしてください。"
 
+# AI Translated
 msgid "Enable walls or a brim to select the wall filament."
-msgstr ""
+msgstr "壁のフィラメントを選択するには、壁またはブリムを有効にしてください。"
 
 # AI Translated
 msgid "Brim ear radius"
@@ -5689,284 +5734,391 @@ msgstr "ブリムイヤー半径"
 msgid "Brim width"
 msgstr "ブリム幅"
 
+# AI Translated
 msgid "Set brim width above zero to edit brim ear detection."
-msgstr ""
+msgstr "ブリムイヤーの検出設定を編集するには、「ブリム幅」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Use painted brim ears or set brim width above zero to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、ブリムタイプ「ペイント済み」でブリムイヤーを使用するか、「ブリム幅」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Select automatic brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、傾斜ベルトのないプリンターで、ブリムイヤーを自動で配置するブリムタイプ「マウスイヤー」を選択してください。"
 
+# AI Translated
 msgid "Select automatic or painted brim ears on a printer without a tilted belt to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、傾斜ベルトのないプリンターで、ブリムイヤーを使用するブリムタイプ「マウスイヤー」または「ペイント済み」を選択してください。"
 
+# AI Translated
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「エレファントフット補正」を有効にするか、「エレファントフット補正層の密度」を100%未満に設定してください。"
 
+# AI Translated
 msgid "Rafts are unavailable for belt printers."
-msgstr ""
+msgstr "ベルトプリンターではラフトを使用できません。"
 
+# AI Translated
 msgid "Enable support to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、サポートを有効にしてください。"
 
+# AI Translated
 msgid "Enable support or add raft layers to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、サポートを有効にするか、ラフト層を追加してください。"
 
+# AI Translated
 msgid "Select an automatic support type to edit the threshold angle."
-msgstr ""
+msgstr "「閾値角度」を編集するには、自動のサポートタイプを選択してください。"
 
+# AI Translated
 msgid "Select an automatic support type and set the threshold angle to zero to edit threshold overlap."
-msgstr ""
+msgstr "「閾値の重複」を編集するには、自動のサポートタイプを選択し、「閾値角度」を0に設定してください。"
 
+# AI Translated
 msgid "Threshold overlap is unavailable for tree supports."
-msgstr ""
+msgstr "ツリーサポートでは「閾値の重複」を使用できません。"
 
+# AI Translated
 msgid "Enable tree supports and select a style other than Organic or Default to show this setting."
-msgstr ""
+msgstr "この設定を表示するには、ツリーサポートを有効にし、「オーガニック」「デフォルト」以外のスタイルを選択してください。"
 
+# AI Translated
 msgid "Enable tree supports with the Organic or Default style to show this setting."
-msgstr ""
+msgstr "この設定を表示するには、スタイルが「オーガニック」または「デフォルト」のツリーサポートを有効にしてください。"
 
+# AI Translated
 msgid "Independent support layer height is unavailable for organic tree supports."
-msgstr ""
+msgstr "オーガニックツリーサポートでは「独立サポート層ピッチ」を使用できません。"
 
+# AI Translated
 msgid "Enable tree supports and turn off automatic brim width to edit the tree support brim width."
-msgstr ""
+msgstr "「ツリーサポートブリム幅」を編集するには、ツリーサポートを有効にし、「オートブリム幅」をオフにしてください。"
 
+# AI Translated
 msgid "Enable tree supports to show the maximum bridge length."
-msgstr ""
+msgstr "「最大ブリッジ長さ」を表示するには、ツリーサポートを有効にしてください。"
 
+# AI Translated
 msgid "Tree supports use maximum bridge length instead of the bridge support setting."
-msgstr ""
+msgstr "ツリーサポートでは、「ブリッジをサポートしない」の代わりに「最大ブリッジ長さ」を使用します。"
 
+# AI Translated
 msgid "Enable automatic tree supports to show this setting."
-msgstr ""
+msgstr "この設定を表示するには、自動のツリーサポートを有効にしてください。"
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、サポートの「トップ接触面の層数」または「底部接触面層数」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Enable a raft, or enable supports with top interface layers, to use support ironing."
-msgstr ""
+msgstr "「サポート接触面のアイロン」を使用するには、ラフトを有効にするか、トップ接触面層のあるサポートを有効にしてください。"
 
+# AI Translated
 msgid "Enable support ironing with a raft or top support interface layers to show this setting."
-msgstr ""
+msgstr "この設定を表示するには、ラフトまたはトップのサポート接触面層を使用して、「サポート接触面のアイロン」を有効にしてください。"
 
+# AI Translated
 msgid "Set top or bottom support interface layers above zero to edit interface spacing."
-msgstr ""
+msgstr "接触面の間隔を編集するには、サポートの「トップ接触面の層数」または「底部接触面層数」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Support ironing requires a solid interface, so interface spacing cannot be edited."
-msgstr ""
+msgstr "サポート接触面のアイロンにはソリッドな接触面が必要なため、接触面の間隔は編集できません。"
 
+# AI Translated
 msgid "Enable walls, a skirt or a brim to edit inner wall line width."
-msgstr ""
+msgstr "内壁の押出線幅を編集するには、壁、スカート、またはブリムを有効にしてください。"
 
+# AI Translated
 msgid "Enable support, a raft, or a skirt to select the support filament."
-msgstr ""
+msgstr "サポートのフィラメントを選択するには、サポート、ラフト、またはスカートを有効にしてください。"
 
+# AI Translated
 msgid "Add raft layers to show raft contact distance."
-msgstr ""
+msgstr "「ラフト接触面Z間隔」を表示するには、ラフト層を追加してください。"
 
+# AI Translated
 msgid "Raft contact distance is unavailable when the top support Z distance is zero."
-msgstr ""
+msgstr "サポートの「トップ面とのZ間隔」が0の場合、「ラフト接触面Z間隔」は使用できません。"
 
+# AI Translated
 msgid "Add raft layers to show raft expansion."
-msgstr ""
+msgstr "「ラフト拡張」を表示するには、ラフト層を追加してください。"
 
+# AI Translated
 msgid "Slim, Strong and Hybrid tree supports use first layer expansion instead of raft expansion."
-msgstr ""
+msgstr "「ツリースリム」「ツリーストロング」「ツリーハイブリッド」のサポートでは、「ラフト拡張」の代わりに「1層目拡張」を使用します。"
 
+# AI Translated
 msgid "Add a raft or choose a tree support style other than Slim or Strong to edit first layer expansion."
-msgstr ""
+msgstr "「1層目拡張」を編集するには、ラフトを追加するか、「ツリースリム」「ツリーストロング」以外のサポートスタイルを選択してください。"
 
+# AI Translated
 msgid "Enable ironing to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、アイロンを有効にしてください。"
 
+# AI Translated
 msgid "Enable ironing with the Rectilinear pattern to edit ironing angles."
-msgstr ""
+msgstr "アイロンの角度を編集するには、アイロンパターン「直線」でアイロンを有効にしてください。"
 
+# AI Translated
 msgid "Enable ironing or support ironing to edit ironing speed."
-msgstr ""
+msgstr "「アイロン時の造形速度」を編集するには、アイロンまたはサポート接触面のアイロンを有効にしてください。"
 
+# AI Translated
 msgid "Enable Z contouring to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、Z輪郭処理を有効にしてください。"
 
+# AI Translated
 msgid "Print order cannot be edited when the print sequence is By object."
-msgstr ""
+msgstr "造形シーケンスが「オブジェクト順」の場合、「レイヤー内の順序」は編集できません。"
 
+# AI Translated
 msgid "This setting is unavailable for Bambu Lab printers."
-msgstr ""
+msgstr "この設定はBambu Labプリンターでは使用できません。"
 
+# AI Translated
 msgid "This setting is unavailable in single extruder multimaterial mode."
-msgstr ""
+msgstr "シングル押出機・マルチマテリアルモードでは、この設定を使用できません。"
 
+# AI Translated
 msgid "Enable ooze prevention to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、垂れ出し抑止を有効にしてください。"
 
+# AI Translated
 msgid "Enable ooze prevention and use a positive number of preheat steps to show this setting."
-msgstr ""
+msgstr "この設定を表示するには、垂れ出し抑止を有効にし、「予熱ステップ数」を1以上にしてください。"
 
+# AI Translated
 msgid "Enable the belt purge tower in the belt printer settings to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンターの設定でベルトパージタワーを有効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower on a non-belt printer to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンター以外のプリンターでプライムタワーを有効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower and tower interface features on a non-belt printer to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンター以外のプリンターでプライムタワーとタワーインターフェース機能を有効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー" and "ワイプタワー", following the English; align it once the term is settled.
 msgid "Enable the prime tower and select wipe tower Type 2 on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Bambu製でもベルトプリンターでもないプリンターで、プライムタワーを有効にし、ワイプタワータイプで「タイプ2」を選択してください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower on a non-belt printer and turn off skipping sparse tower layers to use layer combination."
-msgstr ""
+msgstr "「スパース層を結合」を使用するには、ベルトプリンター以外のプリンターでプライムタワーを有効にし、「スパース層なし」をオフにしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower with Rib walls on a non-belt printer to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンター以外のプリンターで、壁タイプ「リブ」のプライムタワーを有効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable a Type 2 prime tower with Cone walls on a non-Bambu, non-belt printer."
-msgstr ""
+msgstr "Bambu製でもベルトプリンターでもないプリンターで、壁タイプ「コーン」の「タイプ2」プライムタワーを有効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower on a non-belt printer and choose a wall type other than Rib to edit tower width."
-msgstr ""
+msgstr "タワーの幅を編集するには、ベルトプリンター以外のプリンターでプライムタワーを有効にし、「リブ」以外の壁タイプを選択してください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable a Type 2 prime tower on a non-Bambu, non-belt printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Bambu製でもベルトプリンターでもないプリンターで「タイプ2」のプライムタワーを有効にし、シングル押出機・マルチマテリアルモードを無効にしてください。"
 
+# AI Translated
 msgid "Select Cyclic tool change ordering to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「ツール交換の順序」で「循環」を選択してください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
-msgstr ""
+msgstr "プライムタワーを有効にし、「プライムタワーでフラッシュ」とシングル押出機・マルチマテリアルモードのどちらかを無効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、プライムタワーを有効にしてください。"
 
+# AI Translated
 msgid "Enable avoiding crossing walls to edit the maximum travel detour distance."
-msgstr ""
+msgstr "「最大迂回距離」を編集するには、「壁上の移動を迂回」を有効にしてください。"
 
+# AI Translated
 msgid "Enable setting other flow ratios to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「他の流量比を設定」を有効にしてください。"
 
+# AI Translated
 msgid "Enable slowing down for overhangs to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「オーバーハング減速」を有効にしてください。"
 
+# AI Translated
 msgid "This setting is available in object settings rather than global print settings."
-msgstr ""
+msgstr "この設定は、全体の造形設定ではなく、オブジェクトの設定で使用できます。"
 
+# AI Translated
 msgid "Select a specific support interface filament and use the default support filament to show this setting."
-msgstr ""
+msgstr "この設定を表示するには、サポート接触面に特定のフィラメントを選択し、サポートのフィラメントはデフォルトのままにしてください。"
 
+# AI Translated
 msgid "Enable fuzzy skin to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ファジー壁面を有効にしてください。"
 
+# AI Translated
 msgid "Enable fuzzy skin with Ripple noise to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ノイズタイプ「Ripple」でファジー壁面を有効にしてください。"
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic or Ripple to edit noise scale."
-msgstr ""
+msgstr "「ファジー壁面の特徴サイズ」を編集するには、ファジー壁面を有効にし、「クラシック」「Ripple」以外のノイズタイプを選択してください。"
 
+# AI Translated
 msgid "Enable fuzzy skin and select a noise type other than Classic, Voronoi or Ripple to edit noise octaves."
-msgstr ""
+msgstr "「ファジー壁面のノイズオクターブ」を編集するには、ファジー壁面を有効にし、「クラシック」「Voronoi」「Ripple」以外のノイズタイプを選択してください。"
 
+# AI Translated
 msgid "Enable fuzzy skin with Perlin or Billow noise to edit persistence."
-msgstr ""
+msgstr "「ファジー壁面のノイズ減衰率」を編集するには、ノイズタイプ「Perlin」または「Billow」でファジー壁面を有効にしてください。"
 
+# AI Translated
 msgid "Select the Arachne wall generator to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、壁面生成器で「Arachne」を選択してください。"
 
+# AI Translated
 msgid "Thin wall detection is unavailable with the Arachne wall generator."
-msgstr ""
+msgstr "壁面生成器「Arachne」では「薄い壁を検出」を使用できません。"
 
+# AI Translated
 msgid "Disable role-based wipe speed to edit wipe speed manually."
-msgstr ""
+msgstr "「拭き上げ速度」を手動で編集するには、「ロール基準の拭き上げ速度」を無効にしてください。"
 
+# AI Translated
 msgid "Enable inward wiping to edit inward wipe distance."
-msgstr ""
+msgstr "「内側への拭き上げ距離」を編集するには、「内側へ拭き上げ」を有効にしてください。"
 
+# AI Translated
 msgid "This setting requires the Klipper G-code flavor."
-msgstr ""
+msgstr "この設定には、G-codeスタイル「Klipper」が必要です。"
 
+# AI Translated
 msgid "Enable acceleration to deceleration to edit its factor."
-msgstr ""
+msgstr "係数を編集するには、加減速制御を有効にしてください。"
 
+# AI Translated
 msgid "Enable excluding objects with the Klipper G-code flavor to edit the outline tolerance."
-msgstr ""
+msgstr "「アウトライン許容差」を編集するには、G-codeスタイル「Klipper」で「オブジェクトを除外」を有効にしてください。"
 
+# AI Translated
 msgid "Enable making overhangs printable to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「オーバーハングを印刷可能にする」を有効にしてください。"
 
+# AI Translated
 msgid "Enable only one wall on top surfaces with top shell layers, or use Arachne with a minimum wall length factor above 0.5."
-msgstr ""
+msgstr "「上面層数」を1以上にして「上面は壁1本のみ」を有効にするか、Arachneを使用して「最小壁長さ」を0.5より大きくしてください。"
 
+# AI Translated
 msgid "Enable converting holes to polyholes to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「穴をポリホールに変換」を有効にしてください。"
 
+# AI Translated
 msgid "Enable overhang wall detection to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「オーバーハングを検出」を有効にしてください。"
 
+# AI Translated
 msgid "Reverse overhang direction is unavailable in spiral vase mode."
-msgstr ""
+msgstr "スパイラルモードでは「偶数レイヤーで反転」を使用できません。"
 
+# AI Translated
 msgid "Disable spiral vase mode and enable reverse overhang direction to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパイラルモードを無効にし、「偶数レイヤーで反転」を有効にしてください。"
 
+# AI Translated
 msgid "Enable overhang wall detection and reverse overhang direction, disable spiral vase mode, and turn off reversing internal perimeters only."
-msgstr ""
+msgstr "「オーバーハングを検出」と「偶数レイヤーで反転」を有効にし、スパイラルモードを無効にして、「内部外周のみ反転」をオフにしてください。"
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer."
-msgstr ""
+msgstr "この設定にはBambu Labプリンターが必要です。"
 
+# AI Translated
 msgid "Enable small area infill flow compensation to edit its model."
-msgstr ""
+msgstr "「流量補正モデル」を編集するには、「小面積の流量補正」を有効にしてください。"
 
+# AI Translated
 msgid "Scarf seams are unavailable in spiral vase mode and for belt printers."
-msgstr ""
+msgstr "スパイラルモードとベルトプリンターでは、スカーフ継ぎ目を使用できません。"
 
+# AI Translated
 msgid "Enable scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンター以外のプリンターで、スパイラルモードを無効にしてスカーフ継ぎ目を有効にしてください。"
 
+# AI Translated
 msgid "Disable scarfing the entire loop to edit the minimum scarf length."
-msgstr ""
+msgstr "「スカーフの長さ」を編集するには、「壁全体にスカーフを巻く」を無効にしてください。"
 
+# AI Translated
 msgid "Enable conditional scarf seams on a non-belt printer with spiral vase mode disabled to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンター以外のプリンターで、スパイラルモードを無効にして「条件付きスカーフ継ぎ目」を有効にしてください。"
 
+# AI Translated
 msgid "Enable beam interlocking to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、インターロックビームを有効にしてください。"
 
+# AI Translated
 msgid "Disable beam interlocking to edit segmented region interlocking depth."
-msgstr ""
+msgstr "「分割領域のかみ合わせ深さ」を編集するには、インターロックビームを無効にしてください。"
 
+# AI Translated
 msgid "Select the Lateral Lattice sparse infill pattern to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパース インフィル パターンで「ラテラルラティス」を選択してください。"
 
+# AI Translated
 msgid "Select the Lightning sparse infill pattern to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパース インフィル パターンで「ライトニング」を選択してください。"
 
+# AI Translated
 msgid "Infill rotation templates are unavailable for Adaptive Cubic and Support Cubic infill."
-msgstr ""
+msgstr "「アダプティブ キュービック」と「キュービックサポート」のインフィルでは、インフィル回転テンプレートを使用できません。"
 
+# AI Translated
 msgid "Clear the sparse infill rotation template and choose a pattern other than Adaptive Cubic or Support Cubic to edit infill direction."
-msgstr ""
+msgstr "「スパース インフィルの方向」を編集するには、「スパースインフィル回転テンプレート」を空にし、「アダプティブ キュービック」「キュービックサポート」以外のパターンを選択してください。"
 
+# AI Translated
 msgid "Clear the solid infill rotation template to edit solid infill direction."
-msgstr ""
+msgstr "「ソリッドインフィルの方向」を編集するには、「ソリッドインフィル回転テンプレート」を空にしてください。"
 
+# AI Translated
 msgid "Select the Lateral Honeycomb sparse infill pattern to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、スパース インフィル パターンで「ラテラルハニカム」を選択してください。"
 
+# AI Translated
+# Needs human review: The English says "wrapping detection", but the setting it gates is labelled "Enable clumping detection" (クランピング検出を有効にする); this follows the label.
 msgid "The selected printer does not support wrapping detection."
-msgstr ""
+msgstr "選択したプリンターはクランピング検出に対応していません。"
 
+# AI Translated
+# Needs human review: SLA pad: the catalog has no ja term yet; パッド follows PrusaSlicer. Check it against the SLA pad labels if they get translated.
 msgid "Enable the pad to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、パッドを有効にしてください。"
 
+# AI Translated
+# Needs human review: SLA pad: the catalog has no ja term yet; パッド follows PrusaSlicer. Check it against the SLA pad labels if they get translated.
 msgid "Enable the pad around the object to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、オブジェクト周りのパッドを有効にしてください。"
 
+# AI Translated
+# Needs human review: SLA pad: the catalog has no ja term yet; パッド follows PrusaSlicer. Check it against the SLA pad labels if they get translated.
 msgid "Enable support and disable the pad around the object to edit object elevation."
-msgstr ""
+msgstr "オブジェクトの持ち上げ高さを編集するには、サポートを有効にし、オブジェクト周りのパッドを無効にしてください。"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Settings were quoted differently from their labels.
@@ -9307,19 +9459,23 @@ msgstr ""
 "この種類で利用できるプラグイン機能がありません。\n"
 "使用するには有効化またはインストールしてください。"
 
+# AI Translated
 msgid "Hidden by the current configuration."
-msgstr ""
+msgstr "現在の設定により非表示になっています。"
 
+# AI Translated
 #, boost-format
 msgid "Hidden: %1%"
-msgstr ""
+msgstr "非表示: %1%"
 
+# AI Translated
 msgid "Disabled by the current configuration."
-msgstr ""
+msgstr "現在の設定により無効になっています。"
 
+# AI Translated
 #, boost-format
 msgid "Disabled: %1%"
-msgstr ""
+msgstr "無効: %1%"
 
 # AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
@@ -9541,8 +9697,9 @@ msgstr "全てのオブジェクトの設定"
 msgid "Material settings"
 msgstr "材料設定"
 
+# AI Translated
 msgid "The process flow ratio cannot be edited in this panel."
-msgstr ""
+msgstr "このパネルではプロセスの流量比を編集できません。"
 
 # AI Translated
 msgid "Each mode names the tool heads that take part and the role each one plays. Click a tool button to cycle its role — hover a color below for what each role does."
@@ -10984,13 +11141,15 @@ msgstr "ウィンドウボタンを左側に表示"
 msgid "(Requires restart)"
 msgstr "（再起動が必要）"
 
+# AI Translated
 #. TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
 msgid "Render on the discrete GPU"
-msgstr ""
+msgstr "ディスクリートGPUで描画"
 
+# AI Translated
 #. TRN DRI_PRIME is an environment variable name and must stay as it is.
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
-msgstr ""
+msgstr "GPUを2基搭載したコンピューターで、ディスプレイを駆動しているGPUではなくディスクリートGPUでOrcaSlicerを実行します。一部のWaylandシステムでは、もう一方のGPUで描画したフレームを表示できなかったり、ウィンドウがまったく開かなかったりします。3Dビューが空のままの場合は、この設定をオフにしてください。OrcaSlicerが起動しなくなった場合は、環境変数DRI_PRIME=0を指定して一度起動すると、この設定に戻れます。"
 
 msgid "Downloads folder"
 msgstr "ダウンロードフォルダ"
@@ -13207,8 +13366,9 @@ msgstr ""
 "ヘッド無しのタイムラプスビデオを録画する時に、「タイムラプスプライムタワー」を追加してください。\n"
 "プレートで右クリックして、「プリミティブを追加」→「タイムラプスプライムタワー」で追加できます。"
 
+# AI Translated
 msgid "Setting unavailable"
-msgstr ""
+msgstr "設定を使用できません"
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "現在のシステムプリセットからコピーを作成し、システムプリセットから切り離します。"
@@ -13384,14 +13544,16 @@ msgstr "プラグイン設定"
 msgid "Notes"
 msgstr "メモ"
 
+# AI Translated
 msgid "The selected printer does not support multiple bed types."
-msgstr ""
+msgstr "選択したプリンターは複数のベッドタイプに対応していません。"
 
 msgid "Frequent"
 msgstr "よく使う"
 
+# AI Translated
 msgid "Custom filament print order is unavailable while the plate contains mixed-color filaments."
-msgstr ""
+msgstr "プレートに混合フィラメントが含まれている間は、フィラメント順序をカスタマイズできません。"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Misplaced the line-number placeholder and dropped the print-time-estimation consequence
@@ -13418,14 +13580,17 @@ msgstr "上書き設定"
 msgid "Retraction when switching material"
 msgstr "素材変更時のリトラクション"
 
+# AI Translated
 msgid "Set the filament retraction length above zero, or use the printer's value, to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、フィラメントの「リトラクション長さ」を0より大きい値に設定するか、プリンターの値を使用してください。"
 
+# AI Translated
 msgid "The printer profile must allow filament overrides for long retraction when cutting."
-msgstr ""
+msgstr "プリンタープロファイルで、カット時のロングリトラクションをフィラメント側で上書きできるようにする必要があります。"
 
+# AI Translated
 msgid "Allow long retraction when cutting in the printer profile and enable it in the filament profile to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、プリンタープロファイルでカット時のロングリトラクションを許可し、フィラメントプロファイルで有効にしてください。"
 
 msgid "Basic information"
 msgstr "基本情報"
@@ -13567,59 +13732,80 @@ msgstr "互換プリンター"
 msgid "Compatible process profiles"
 msgstr "互換性のあるプロセスプロファイル"
 
+# AI Translated
 msgid "Enable cooling for overhangs and bridges to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、「オーバーハングとブリッジの強制冷却」を有効にしてください。"
 
+# AI Translated
 msgid "Enable slowing down for layer cooling to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「冷却の為減速」を有効にしてください。"
 
+# AI Translated
 msgid "Set the number of initial layers without cooling to zero to override the first layer fan speed."
-msgstr ""
+msgstr "「1層目のファン速度」を上書きするには、「冷却しない最初の層数」を0に設定してください。"
 
+# AI Translated
 msgid "Enable the auxiliary fan in the printer profile to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、プリンタープロファイルで「補助パーツ冷却ファン」を有効にしてください。"
 
+# AI Translated
 msgid "The selected printer does not support air filtration."
-msgstr ""
+msgstr "選択したプリンターは空気ろ過に対応していません。"
 
+# AI Translated
+# Needs human review: Quotes the label "Activate air filtration" (エアフィルトレーションを有効化), a person's translation that differs from the glossary's 空気ろ過; change the label and these entries together.
 msgid "Activate air filtration to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、「エアフィルトレーションを有効化」をオンにしてください。"
 
+# AI Translated
+# Needs human review: Quotes the label "Activate air filtration" (エアフィルトレーションを有効化), a person's translation that differs from the glossary's 空気ろ過; change the label and these entries together.
 msgid "Activate air filtration and enable it during printing to edit the exhaust fan speed."
-msgstr ""
+msgstr "排気ファンの回転速度を編集するには、「エアフィルトレーションを有効化」をオンにし、「印刷中」を有効にしてください。"
 
+# AI Translated
+# Needs human review: Quotes the label "Activate air filtration" (エアフィルトレーションを有効化), a person's translation that differs from the glossary's 空気ろ過; change the label and these entries together.
 msgid "Activate air filtration and enable it on completion to edit the exhaust fan speed."
-msgstr ""
+msgstr "排気ファンの回転速度を編集するには、「エアフィルトレーションを有効化」をオンにし、「完了時」を有効にしてください。"
 
+# AI Translated
 msgid "Enable pressure advance to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、Pressure Advanceを有効にしてください。"
 
+# AI Translated
 msgid "Select this bed type or enable support for multiple bed types in the printer profile to show its temperature settings."
-msgstr ""
+msgstr "温度設定を表示するには、このベッドタイプを選択するか、プリンタープロファイルで「複数のベッドタイプに対応」を有効にしてください。"
 
+# AI Translated
 msgid "Enable pressure advance and adaptive pressure advance to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、Pressure AdvanceとアダプティブPressure Advanceを有効にしてください。"
 
+# AI Translated
 msgid "Enable the pellet printer option in the printer profile to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、プリンタープロファイルで「ペレット改造プリンター」を有効にしてください。"
 
+# AI Translated
 msgid "Filament diameter is unavailable for pellet printers."
-msgstr ""
+msgstr "ペレット式プリンターでは、フィラメントの直径を使用できません。"
 
+# AI Translated
 msgid "The selected printer does not support chamber temperature control."
-msgstr ""
+msgstr "選択したプリンターは庫内温度の制御に対応していません。"
 
+# AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
-msgstr ""
+msgstr "アダプティブ体積速度を有効にする前に、「最大体積速度の多項式係数」を0以外の値に設定してください。"
 
+# AI Translated
 msgid "Enable multitool ramming to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、マルチツールのラミングを有効にしてください。"
 
+# AI Translated
 msgid "This setting requires a Bambu Lab printer with multiple extruders."
-msgstr ""
+msgstr "この設定には、複数の押出機を備えたBambu Labプリンターが必要です。"
 
+# AI Translated
 msgid "Use a Bambu Lab printer with multiple extruders and enable long retraction when the extruder changes."
-msgstr ""
+msgstr "複数の押出機を備えたBambu Labプリンターを使用し、「押出機切り替え時のロングリトラクション」を有効にしてください。"
 
 msgid "Printable space"
 msgstr "造形可能領域"
@@ -13793,62 +13979,84 @@ msgstr "積層ピッチの制限"
 msgid "Z-Hop"
 msgstr "Z-ホップ"
 
+# AI Translated
 msgid "Power loss recovery requires a Bambu Lab printer or the Marlin firmware G-code flavor."
-msgstr ""
+msgstr "停電復旧には、Bambu LabプリンターまたはG-codeスタイル「Marlin 2」が必要です。"
 
+# AI Translated
 msgid "Build plate tilt is derived from the belt tilt on belt printers."
-msgstr ""
+msgstr "ベルトプリンターでは、ベッドの傾斜はベルトの傾斜から決まります。"
 
+# AI Translated
 msgid "Enable belt printer mode to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンターモードを有効にしてください。"
 
+# AI Translated
 msgid "Enable belt printer mode and select a belt rotation axis to edit its angle."
-msgstr ""
+msgstr "角度を編集するには、ベルトプリンターモードを有効にし、ベルト傾斜軸を選択してください。"
 
+# AI Translated
 msgid "Enable belt printer mode and select Expert or Developer settings visibility to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ベルトプリンターモードを有効にし、設定の表示モードで「エキスパート」または「開発者」を選択してください。"
 
+# AI Translated
 msgid "Enable belt printer mode, select Expert or Developer settings visibility, and decouple the machine frame tilt to edit its angle."
-msgstr ""
+msgstr "角度を編集するには、ベルトプリンターモードを有効にし、設定の表示モードで「エキスパート」または「開発者」を選択して、「機械座標系の傾斜を分離」を有効にしてください。"
 
+# AI Translated
 msgid "Enable support for parallel printheads to edit their count."
-msgstr ""
+msgstr "「並列プリントヘッド数」を編集するには、「並列プリントヘッドに対応」を有効にしてください。"
 
+# AI Translated
 msgid "Collision volume mode selection requires multiple extruders."
-msgstr ""
+msgstr "衝突ボリュームの動作を選択するには、複数の押出機が必要です。"
 
+# AI Translated
 msgid "Select a shared collision volume mode or use a single-extruder printer to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、共有の衝突ボリュームの動作を選択するか、単一押出機のプリンターを使用してください。"
 
+# AI Translated
 msgid "Enable the auxiliary fan to edit its direction."
-msgstr ""
+msgstr "「ファンの向き」を編集するには、「補助パーツ冷却ファン」を有効にしてください。"
 
+# AI Translated
 msgid "Air filtration and the cooling filter are alternative accessories; disable cooling filter support to use air filtration."
-msgstr ""
+msgstr "空気ろ過と冷却フィルターはどちらか一方のみ使用できるアクセサリーです。空気ろ過を使用するには、「冷却フィルターを使用」を無効にしてください。"
 
+# AI Translated
 msgid "Enable cooling filter support in the printer profile to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、プリンタープロファイルで「冷却フィルターを使用」を有効にしてください。"
 
+# AI Translated
 msgid "Enable belt printer mode to use the belt purge tower."
-msgstr ""
+msgstr "ベルトパージタワーを使用するには、ベルトプリンターモードを有効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
 msgid "Wipe tower type selection is unavailable for Bambu Lab printers and belt printers."
-msgstr ""
+msgstr "Bambu Labプリンターとベルトプリンターでは、ワイプタワータイプを選択できません。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
 msgid "Select wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、Bambu以外のプリンターでワイプタワータイプ「タイプ2」を選択してください。"
 
+# AI Translated
 msgid "Extruder count cannot be edited in single extruder multimaterial mode."
-msgstr ""
+msgstr "シングル押出機・マルチマテリアルモードでは、押出機の数を編集できません。"
 
+# AI Translated
 msgid "Enable single extruder multimaterial mode to use manual filament changes."
-msgstr ""
+msgstr "手動フィラメント交換を使用するには、シングル押出機・マルチマテリアルモードを有効にしてください。"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
 msgid "Enable single extruder multimaterial mode with wipe tower Type 2 on a non-Bambu printer to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、Bambu以外のプリンターでワイプタワー「タイプ2」を使用し、シングル押出機・マルチマテリアルモードを有効にしてください。"
 
+# AI Translated
 msgid "Enable IDEX/IQEX printer mode to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、IDEX/IQEXプリンターモードを有効にしてください。"
 
 # AI Translated
 msgid "Front-left"
@@ -13866,35 +14074,46 @@ msgstr "左後ろ"
 msgid "Rear-right"
 msgstr "右後ろ"
 
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "ワイプタワー"; align it once the term is settled.
 msgid "Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode."
-msgstr ""
+msgstr "Bambu以外のプリンターでワイプタワー「タイプ2」と複数の押出機を使用し、シングル押出機・マルチマテリアルモードを無効にしてください。"
 
+# AI Translated
 msgid "Set retraction length above zero or enable firmware retraction to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、「リトラクション長さ」を0より大きい値に設定するか、「ファームウェアリトラクションを使用」を有効にしてください。"
 
+# AI Translated
 msgid "The extruder printable area and height are fixed by the printer profile."
-msgstr ""
+msgstr "押出機の造形可能領域と高さは、プリンタープロファイルで固定されています。"
 
+# AI Translated
 msgid "This setting is shown for printers with exactly two extruders."
-msgstr ""
+msgstr "この設定は、押出機が2つのプリンターでのみ表示されます。"
 
+# AI Translated
 msgid "Select per-extruder collision volumes on a printer with multiple extruders to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、複数の押出機を備えたプリンターで、衝突ボリュームの動作に「押出機ごとに個別」を選択してください。"
 
+# AI Translated
 msgid "Retraction length is controlled by the firmware while firmware retraction is enabled."
-msgstr ""
+msgstr "ファームウェアリトラクションが有効な間は、リトラクション長さはファームウェアが制御します。"
 
+# AI Translated
 msgid "Enable retraction and set Z hop above zero to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、リトラクションを有効にし、「Zホップの高さ」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Set retraction length above zero and disable firmware retraction to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、「リトラクション長さ」を0より大きい値に設定し、「ファームウェアリトラクションを使用」を無効にしてください。"
 
+# AI Translated
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
-msgstr ""
+msgstr "「拭き上げ前のリトラクション量」を編集するには、リトラクションと拭き上げを有効にし、「拭き上げ後のリトラクション量」を100%未満に設定してください。"
 
+# AI Translated
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
-msgstr ""
+msgstr "「拭き上げ後のリトラクション量」を編集するには、リトラクションと拭き上げを有効にし、「拭き上げ前のリトラクション量」を100%未満に設定してください。"
 
 # AI Translated
 msgid ""
@@ -13909,47 +14128,61 @@ msgstr ""
 msgid "Firmware Retraction"
 msgstr "ファームウェアリトラクション"
 
+# AI Translated
 msgid "Enable retraction and wiping to edit wipe distance."
-msgstr ""
+msgstr "「拭き上げ距離」を編集するには、リトラクションと拭き上げを有効にしてください。"
 
+# AI Translated
 msgid "This setting requires multiple extruders."
-msgstr ""
+msgstr "この設定には複数の押出機が必要です。"
 
+# AI Translated
 msgid "Use multiple extruders and set tool change retraction length above zero to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、複数の押出機を使用し、「リトラクション量 (ツール交換)」を0より大きい値に設定してください。"
 
+# AI Translated
 msgid "Disable firmware retraction and allow long retraction when cutting to use this setting."
-msgstr ""
+msgstr "この設定を使用するには、ファームウェアリトラクションを無効にし、カット時のロングリトラクションを許可してください。"
 
+# AI Translated
 msgid "Enable long retraction when cutting to edit the retraction distance."
-msgstr ""
+msgstr "「カット時の後退距離」を編集するには、「カット時のロングリトラクション」を有効にしてください。"
 
+# AI Translated
 msgid "Select a Z hop type other than Normal to edit travel slope."
-msgstr ""
+msgstr "「移動角度」を編集するには、「普通」以外の「Zホップのタイプ」を選択してください。"
 
+# AI Translated
 msgid "Travel acceleration limits are unavailable for the Marlin legacy and Klipper G-code flavors."
-msgstr ""
+msgstr "G-codeスタイル「Marlin (レガシー)」と「Klipper」では、移動加速度の制限を使用できません。"
 
+# AI Translated
 msgid "Jerk limits are unavailable while Marlin uses nonzero junction deviation."
-msgstr ""
+msgstr "「Marlin 2」で接合偏差が0以外の間は、Jerkの制限を使用できません。"
 
+# AI Translated
 msgid "Emitting machine limits requires the Marlin legacy, Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "制限値をG-codeに出力するには、G-codeスタイル「Marlin (レガシー)」「Marlin 2」「RepRapFirmware」のいずれかが必要です。"
 
+# AI Translated
 msgid "Enable resonance avoidance to edit its speed range."
-msgstr ""
+msgstr "速度範囲を編集するには、共振回避を有効にしてください。"
 
+# AI Translated
 msgid "This input shaping setting requires the Marlin or RepRapFirmware G-code flavor."
-msgstr ""
+msgstr "この入力シェーピングの設定には、G-codeスタイル「Marlin 2」または「RepRapFirmware」が必要です。"
 
+# AI Translated
 msgid "Enable emitting machine limits to G-code to emit input shaping settings."
-msgstr ""
+msgstr "入力シェーピングの設定を出力するには、「制限値をG-codeに出力」を有効にしてください。"
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code to edit this setting."
-msgstr ""
+msgstr "この設定を編集するには、「制限値をG-codeに出力」と「入力シェーピングを出力」を有効にしてください。"
 
+# AI Translated
 msgid "Enable emitting machine limits and input shaping to G-code with the Marlin firmware G-code flavor to edit separate Y-axis values."
-msgstr ""
+msgstr "Y軸の値を個別に編集するには、G-codeスタイル「Marlin 2」で「制限値をG-codeに出力」と「入力シェーピングを出力」を有効にしてください。"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Extruder rendered エクストルーダー instead of the glossary 押出機
@@ -14008,8 +14241,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected preset?"
 msgstr "選択したプリセットを削除してもよろしいですか？"
 
+# AI Translated
 msgid "Select \"All\" to edit the compatibility condition instead of using an explicit profile list."
-msgstr ""
+msgstr "プロファイルを個別に指定する代わりに互換性の条件を編集するには、「すべて」を選択してください。"
 
 msgid "Select printers"
 msgstr "プリンターを選択"
@@ -14128,8 +14362,9 @@ msgstr "現在値をデフォルト値に戻します。"
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "クリックして値をリセットします。"
 
+# AI Translated
 msgid "Material print speed cannot be edited for the SL1 printer."
-msgstr ""
+msgstr "SL1プリンターでは、材料の造形速度を編集できません。"
 
 msgid "Process Settings"
 msgstr "プロセス設定"
@@ -19235,11 +19470,13 @@ msgstr "コメント付きG-code"
 msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
 msgstr "これを有効にすると、コメント付きのG-codeファイルが生成され、各行に説明テキストが追加されます。ただし、SDカードからプリントする場合、ファイルサイズの増大によりファームウェアの処理が遅くなる可能性があります。"
 
+# AI Translated
 msgid "High precision G-code (experimental)"
-msgstr ""
+msgstr "高精度G-code (実験的)"
 
+# AI Translated
 msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
-msgstr ""
+msgstr "G-codeの丸め誤差を減らすため、X、Y、Z、I、Jを小数点以下3桁ではなく4桁で、Eを5桁ではなく6桁で出力します。相対E距離を使用している場合は、各移動の丸め誤差も次の移動に繰り越されます。サポートは印刷後に取り除かれるため、標準の精度のままです。小径ノズル (例: 0.2 mm) や小さい積層ピッチ (例: 0.08 mm以下) では、1回の移動で押し出す量がごくわずかで丸め誤差の影響が最も大きくなるため、押出の安定に役立つ場合があります。効果は他の設定の調整具合に大きく左右され、造形プロファイルが十分にキャリブレーションされていないと気づきにくいことがあります。G-codeファイルは約10%大きくなるため、G-codeの解析が遅いプリンターでは動作が遅くなる場合があります。"
 
 msgid "Infill combination"
 msgstr "インフィル マージ"
@@ -33321,8 +33558,9 @@ msgstr "現在の色を保存"
 msgid "Palettes"
 msgstr "パレット"
 
+# AI Translated
 msgid "Pick color from screen"
-msgstr ""
+msgstr "画面から色を取得"
 
 # AI Translated
 msgid "Search colors"

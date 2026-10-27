@@ -102,6 +102,9 @@ protected:
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
+        std::vector<std::string> tray_colors; // Optional: every color of a multi-color spool, in order (same formats).
+                                              // Used when it holds two or more; otherwise tray_color is the only one.
+        bool        colors_gradient = false;  // With tray_colors: blend them as a gradient instead of drawing segments
         std::string tray_info_idx;       // Filament ID (optional)
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional

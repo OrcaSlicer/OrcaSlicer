@@ -218,6 +218,9 @@ private:
     wxCoord m_name_texture_width;
     wxCoord m_name_texture_height;
 
+    // Copies m_name to the Print; invalidates the G-code export if a G-code template uses {plate_name}.
+    void sync_plate_name_to_print();
+
     void init();
     bool valid_instance(int obj_id, int instance_id) const;
     void generate_print_polygon(ExPolygon &print_polygon);
