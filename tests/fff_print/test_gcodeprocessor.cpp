@@ -599,3 +599,76 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
     const Vec3d dense = center_of(masses[1]->total());
     CHECK_THAT((plate - light).dot(dense - light) / (dense - light).squaredNorm(), Catch::Matchers::WithinAbs(0.75, 0.01));
 }
+
+namespace {
+
+// Two nozzles over a 200 mm square bed: nozzle 1 reaches only `nozzle_1_area`, nozzle 2 the whole bed.
+// A 20 mm cube centered on `center` prints with filament 1, mapped to nozzle 1.
+void slice_cube_in_nozzle_area(const Vec2ds &nozzle_1_area, const Vec2d &center, GCodeProcessorResult &result)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",           "0.4,0.4" },
+        { "printer_extruder_id",       "1,2" },
+        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_offset",           "0x0,0x0" },
+        { "printable_area",            "0x0,200x0,200x200,0x200" },
+        { "printable_height",          100 },
+        { "extruder_printable_height", "100,100" },
+        { "skirt_loops",               0 },
+        { "brim_type",                 "no_brim" },
+        { "filament_map_mode",         "Manual" },
+        { "filament_map",              "1" },
+    });
+    const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
+    config.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups(std::vector<Vec2ds>{ nozzle_1_area, bed }));
+
+    TriangleMesh mesh = Test::cube(20);
+    mesh.translate(float(center.x() - 10.), float(center.y() - 10.), 0.f);
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{ std::move(mesh) }, print, model, config, nullptr, false);
+    Test::gcode(print, &result);
+}
+
+// Nozzle 1's area inset from the bed on one side, on two adjacent sides (leaving an L-shaped
+// unprintable region) and on all four sides (a frame). All three contain the bed center.
+Vec2ds inset_nozzle_area(int sides)
+{
+    switch (sides) {
+    case 1: return { Vec2d(0., 0.), Vec2d(150., 0.), Vec2d(150., 200.), Vec2d(0., 200.) };
+    case 2: return { Vec2d(0., 50.), Vec2d(150., 50.), Vec2d(150., 200.), Vec2d(0., 200.) };
+    default: return { Vec2d(50., 50.), Vec2d(150., 50.), Vec2d(150., 150.), Vec2d(50., 150.) };
+    }
+}
+
+} // namespace
+
+TEST_CASE("A path inside its nozzle's printable area passes the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
+{
+    const int sides = GENERATE(1, 2, 4);
+    INFO("area inset on " << sides << " side(s)");
+    GCodeProcessorResult result;
+    slice_cube_in_nozzle_area(inset_nozzle_area(sides), Vec2d(100., 100.), result);
+
+    CHECK((result.gcode_check_result.error_code & 1) == 0);
+    CHECK(result.gcode_check_result.print_area_error_infos.empty());
+    // Nor is nozzle 1 marked as unable to print filament 1.
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == 0);
+}
+
+TEST_CASE("A path leaving its nozzle's printable area fails the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
+{
+    const int sides = GENERATE(1, 2, 4);
+    INFO("area inset on " << sides << " side(s)");
+    // X 165-185: on the bed, past the area's X 150 edge in every shape.
+    GCodeProcessorResult result;
+    slice_cube_in_nozzle_area(inset_nozzle_area(sides), Vec2d(175., 100.), result);
+
+    CHECK((result.gcode_check_result.error_code & 1) == 1);
+    REQUIRE(result.gcode_check_result.print_area_error_infos.count(0) == 1);
+    CHECK_FALSE(result.gcode_check_result.print_area_error_infos.at(0).empty());
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == 1);
+}

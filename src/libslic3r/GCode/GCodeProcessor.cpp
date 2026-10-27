@@ -3011,6 +3011,22 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     } else
         plate_printable_bbox.defined = false; //when this is used, the printable area config was missing, something wrong
 
+    std::vector<Polygons>    plate_unprintable_areas = unprintable_areas;
+    std::vector<BoundingBox> plate_unprintable_bboxes;
+    for (Polygons &polys : plate_unprintable_areas) {
+        for (Polygon &poly : polys)
+            poly.translate(plate_offset);
+        plate_unprintable_bboxes.emplace_back(get_extents(polys));
+    }
+    // An area inset on two adjacent sides or more leaves an L-, U- or frame-shaped unprintable region
+    // with a bed-sized bounding box, so the boxes only pre-filter. The path's box, grown so edge contact
+    // still counts and a straight path still has an area, must reach into the region itself.
+    auto reaches_unprintable_area = [&plate_unprintable_areas, &plate_unprintable_bboxes](size_t extruder_id, const BoundingBox &path_bbox) {
+        const Polygons &area = plate_unprintable_areas[extruder_id];
+        return !area.empty() && plate_unprintable_bboxes[extruder_id].overlap(path_bbox) &&
+               !intersection(area, path_bbox.inflated(SCALED_EPSILON).polygon()).empty();
+    };
+
     for (auto obj_iter = gcode_path_pos.begin(); obj_iter != gcode_path_pos.end(); ++obj_iter) {
         int                                object_label_id = obj_iter->first;
         const std::map<int, GCodePosInfo> &path_pos        = obj_iter->second;
@@ -3062,19 +3078,14 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                 //bbox_custom.offset(-scale_(1.0)); // Narrow the range to provide a tolerance for the custom gcode
                 //bbox.merge(bbox_custom);          // merge the custom gcode pos with other pos*/
                 // check printable area
-                // Simplified use bounding_box, Accurate calculation is not efficient
-                if ((extruder_id < unprintable_areas.size()) && !unprintable_areas[extruder_id].empty())
-                    for (Polygon poly : unprintable_areas[extruder_id]) {
-                        poly.translate(plate_offset);
-                        if (poly.bounding_box().overlap(bbox)) {
-                            m_result.gcode_check_result.error_code |= 1;
-                            std::pair<int, int>         filament_to_object_id;
-                            filament_to_object_id.first = iter->first;
-                            filament_to_object_id.second = object_label_id;
-                            m_result.gcode_check_result.print_area_error_infos[extruder_id].push_back(filament_to_object_id);
-                            valid = false;
-                        }
-                    }
+                if ((extruder_id < plate_unprintable_areas.size()) && reaches_unprintable_area(extruder_id, bbox)) {
+                    m_result.gcode_check_result.error_code |= 1;
+                    std::pair<int, int>         filament_to_object_id;
+                    filament_to_object_id.first = iter->first;
+                    filament_to_object_id.second = object_label_id;
+                    m_result.gcode_check_result.print_area_error_infos[extruder_id].push_back(filament_to_object_id);
+                    valid = false;
+                }
 
                 // check printable height
                 if (!m_belt_printer && (extruder_id < printable_heights.size()) && (iter->second.max_print_z > printable_heights[extruder_id])) {
@@ -3087,13 +3098,9 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     valid = false;
                 }
 
-                for (int i = 0; i < unprintable_areas.size(); ++i) {
-                    for (Polygon poly : unprintable_areas[i]) {
-                        poly.translate(plate_offset);
-                        if (!poly.bounding_box().overlap(bbox)) continue;
-
+                for (int i = 0; i < plate_unprintable_areas.size(); ++i) {
+                    if (reaches_unprintable_area(i, bbox))
                         m_result.limit_filament_maps[iter->first] |= (1 << i);
-                    }
                 }
             }
         }
