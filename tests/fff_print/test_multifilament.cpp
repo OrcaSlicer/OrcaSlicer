@@ -7,6 +7,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/TriangleSelector.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
 
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
@@ -22,8 +24,10 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Print.hpp"
-#include <libslic3r/PrintBase.hpp>
-#include <libslic3r/CustomGCode.hpp>
+#include "libslic3r/PrintBase.hpp"
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/libslic3r.h"
 #include <limits>
 #include <map>
 #include <optional>
@@ -52,6 +56,35 @@ static std::set<int> tools_for_role(const std::string& gcode, const std::string&
             tools.insert(current_tool);
     });
     return tools;
+}
+
+TEST_CASE("Painted filaments slice when the display palette is shorter than the filament list", "[MultiFilament][Regression]")
+{
+    auto config = multifilament_config(2, {
+        { "filament_colour", "#FF0000" },
+        { "enable_prime_tower", "0" },
+        { "gcode_comments", "1" }
+    });
+    Print print;
+    Model model;
+    init_print({cube(10)}, print, model, config);
+    auto *volume = model.objects.front()->volumes.front();
+    TriangleSelector selector(volume->mesh());
+    // Paint one side with the second filament, leaving the rest on the first.
+    selector.set_facet(4, EnforcerBlockerType::Extruder2);
+    selector.set_facet(5, EnforcerBlockerType::Extruder2);
+    REQUIRE(volume->mmu_segmentation_facets.set(selector));
+    print.apply(model, config);
+    PrintObject *object = print.objects_mutable().front();
+    object->slice();
+    const auto segmentation = multi_material_segmentation_by_painting(*object, [] {});
+    REQUIRE_FALSE(segmentation.empty());
+    bool second_filament_present = false;
+    for (const auto &layer : segmentation) {
+        REQUIRE(layer.size() == 2);
+        second_filament_present |= !layer[1].empty();
+    }
+    REQUIRE(second_filament_present);
 }
 
 // X where the nozzle sits while each tagged _WAIT_FOR_TEMP_ON_WIPE_TOWER M109 blocks:
@@ -1935,6 +1968,66 @@ TEST_CASE("Each filament cools with the fan speeds of its extruder variant", "[M
     }
 }
 
+// An object moved onto a second filament makes the plate need a prime tower, and moving it back
+// makes the tower unnecessary again. One apply has to settle each move, so that applying the same
+// model once more leaves the print untouched.
+TEST_CASE("The prime tower follows an object switching filaments within one apply", "[MultiFilament]")
+{
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",               1 },
+        { "independent_support_layer_height", 1 },
+        { "gcode_comments",                   1 }, // init_print sets it, so re-applying config differs in nothing else
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config);
+    REQUIRE_FALSE(print.config().enable_prime_tower.value); // both objects on filament 1
+
+    for (const int filament : { 2, 1 }) {
+        INFO("second object moved to filament " << filament);
+        model.objects.back()->config.set("extruder", filament);
+        print.apply(model, config);
+        const bool two_filaments = filament == 2;
+        CHECK(print.config().enable_prime_tower.value == two_filaments);
+        CHECK(print.config().independent_support_layer_height.value != two_filaments);
+        CHECK(print.apply(model, config) == PrintBase::APPLY_STATUS_UNCHANGED);
+    }
+}
+
+// The tower turns independent_support_layer_height off, which rounds the raft gap up to a whole layer
+// and lifts the objects. Objects sliced before the move have to be sliced again.
+TEST_CASE("Objects above a raft are re-sliced when a filament switch turns the prime tower on", "[MultiFilament]")
+{
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",               1 },
+        { "independent_support_layer_height", 1 },
+        { "raft_layers",                      2 },
+        { "raft_contact_distance",            0.1 },
+        { "layer_height",                     0.2 },
+        { "initial_layer_print_height",       0.2 },
+        { "prime_tower_width",                35 },
+        { "wipe_tower_x",                     120 },
+        { "wipe_tower_y",                     120 },
+        { "printable_area",                   "0x0,200x0,200x200,0x200" },
+    });
+    const auto first_layer_z = [](const Print &print) { return print.objects().front()->layers().front()->print_z; };
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config);
+    print.process();
+
+    model.objects.back()->config.set("extruder", 2);
+    print.apply(model, config);
+    REQUIRE(print.config().enable_prime_tower.value);
+    print.process();
+
+    Print fresh;
+    fresh.apply(model, config);
+    fresh.set_status_silent();
+    fresh.process();
+    CHECK_THAT(first_layer_z(print), Catch::Matchers::WithinAbs(first_layer_z(fresh), EPSILON));
+}
+
 TEST_CASE("Shared heater on IMEX printer stays hot until all filaments on it are done", "[MultiFilament]")
 {
     DynamicPrintConfig cfg = multifilament_config(7);
@@ -2042,6 +2135,33 @@ TEST_CASE("Unused extruder turns off on non-IMEX three-tool print", "[MultiFilam
     // T1 and T2 print up to 10mm — neither should get S0 before that.
     CHECK_FALSE(premature_s0_t1);
     CHECK_FALSE(premature_s0_t2);
+}
+
+// The GUI re-applies the unchanged config after every slice; that must not invalidate it.
+TEST_CASE("Reapplying an unchanged config after slicing reports no change", "[MultiFilament]") {
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wall_filament",                    "1" },
+        { "sparse_infill_filament",           "2" },
+        { "solid_infill_filament",            "2" },
+        { "enable_prime_tower",               "1" },
+        { "independent_support_layer_height", "1" },
+        { "wipe_tower_x",                     "50" },
+        { "wipe_tower_y",                     "50" },
+        // init_print sets it, so the reapply differs only in what apply() itself normalizes.
+        { "gcode_comments",                   "1" },
+    });
+    Model model;
+    Print print;
+    Slic3r::Test::init_print({ TestMesh::cube_with_hole }, print, model, config);
+    print.process();
+    const bool ept_before  = print.config().enable_prime_tower.value;
+    const bool islh_before = print.config().independent_support_layer_height.value;
+
+    const auto status = print.apply(model, config);
+
+    CHECK(print.config().enable_prime_tower.value == ept_before);
+    CHECK(print.config().independent_support_layer_height.value == islh_before);
+    CHECK(status == PrintBase::APPLY_STATUS_UNCHANGED);
 }
 
 static DynamicPrintConfig short_change_length_config() {

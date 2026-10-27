@@ -77,6 +77,7 @@
 #include "DeviceCore/DevStorage.h"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 
@@ -1508,7 +1509,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
 	} else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
-		wxString msg_text = _L("Storage needs to be inserted before send to printer.");
+		wxString msg_text = _L("Insert storage or free up space before sending to the printer.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);

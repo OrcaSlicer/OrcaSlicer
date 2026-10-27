@@ -5,6 +5,12 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../slic3rutils/plugin_test_utils.hpp"
+#include "test_utils.hpp"
+
+#include <boost/filesystem/operations.hpp>
+
+#include <fstream>
+#include <string>
 
 using namespace Slic3r;
 
@@ -219,4 +225,40 @@ TEST_CASE("AppConfig Speed Dial recent count defaults, clamps and parses", "[App
         config.set(SETTING_SPEED_DIAL_RECENT_COUNT, "abc");
         REQUIRE(config.get_speed_dial_recent_count() == SPEED_DIAL_RECENT_COUNT_DEFAULT);
     }
+}
+
+TEST_CASE("peek_bool reads an app boolean from a saved configuration without loading it", "[AppConfig]")
+{
+    ScopedDataDir data_dir("peek-bool");
+    save_main_thread_id();
+    AppConfig config;
+    config.set_bool("prefer_discrete_gpu", true);
+    config.save();
+    const std::string dir = data_dir.dir.string();
+
+    CHECK(AppConfig::peek_bool(dir, "prefer_discrete_gpu"));
+    CHECK_FALSE(AppConfig::peek_bool(dir, "no_such_key"));
+
+    config.set_bool("prefer_discrete_gpu", false);
+    config.save();
+    CHECK_FALSE(AppConfig::peek_bool(dir, "prefer_discrete_gpu"));
+}
+
+TEST_CASE("peek_bool accepts the legacy spellings and tolerates a bad or missing file", "[AppConfig]")
+{
+    ScopedTemporaryDir tmp("orca-peek-bool");
+    // Each case gets its own data dir holding an editor configuration with the given text.
+    const auto write = [&tmp](const std::string &name, const std::string &text) {
+        const std::string dir = (tmp.path() / name).string();
+        boost::filesystem::create_directory(dir);
+        std::ofstream(AppConfig::config_path(dir, AppConfig::EAppMode::Editor)) << text;
+        return dir;
+    };
+
+    CHECK(AppConfig::peek_bool(write("one", R"({"app":{"k":"1"}})"), "k"));
+    CHECK(AppConfig::peek_bool(write("true", R"({"app":{"k":"true"}})"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool(write("zero", R"({"app":{"k":"0"}})"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool(write("noapp", R"({"k":true})"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool(write("broken", "{not json"), "k"));
+    CHECK_FALSE(AppConfig::peek_bool((tmp.path() / "missing").string(), "k"));
 }
