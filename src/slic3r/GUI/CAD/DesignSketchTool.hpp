@@ -229,6 +229,9 @@ public:
     void set_grid_snap(bool on, double step) { m_grid_on = on; m_grid_step = step; }   // show the grid, and its step
     // A new sketch's first entity: a construction point on the sketch origin, held there, for Fix / Coincident / dimensions to pick.
     void add_origin_reference();
+    // The index of the sketch's origin point (a Point held on the origin), adding it when the sketch has none: what the Dimension
+    // tool measures from when the bare origin is clicked. -1 when no sketch is open.
+    int ensure_origin_point();
     // Is this sketch nothing but that point? Then there is nothing to commit.
     static bool is_only_origin_reference(const std::vector<SketchEntity>& ents, const std::vector<SketchEntityConstraintDef>& cons);
     void set_grid_magnet(bool on) { m_grid_magnet = on; }                              // points snap to the grid, shown or not

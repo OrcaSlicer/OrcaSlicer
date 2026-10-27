@@ -2586,18 +2586,30 @@ void DesignSketchTool::keep_segment_as_drawn()
 void DesignSketchTool::add_origin_reference()
 {
     if (!m_active || !m_entities.empty()) return;
+    ensure_origin_point();
+}
+
+int DesignSketchTool::ensure_origin_point()
+{
+    if (!m_active) return -1;
+    for (const SketchEntityConstraintDef& c : m_constraints)   // already there: a point held on the origin
+        if (c.type == SketchConstraintType::Coincident && c.eb == kSketchRefOrigin && c.ea >= 0 && c.ea < int(m_entities.size())
+            && m_entities[c.ea].type == SketchEntity::Type::Point)
+            return c.ea;
     SketchEntity p;
     p.type = SketchEntity::Type::Point;
     p.p0 = Vec2d(0, 0);
     p.construction = true;
     m_entities.push_back(p);
+    const int ei = int(m_entities.size()) - 1;
     SketchEntityConstraintDef c;
     c.type = SketchConstraintType::Coincident;
-    c.ea = 0; c.ra = SketchPointRole::P0; c.eb = kSketchRefOrigin; c.rb = SketchPointRole::P0;
+    c.ea = ei; c.ra = SketchPointRole::P0; c.eb = kSketchRefOrigin; c.rb = SketchPointRole::P0;
     m_constraints.push_back(c);
     m_autoedit_seen = int(m_entities.size());   // not a drawn gesture: no draw-then-edit on it
     resolve_live();
     if (on_constraints_changed) on_constraints_changed();
+    return ei;
 }
 
 bool DesignSketchTool::is_only_origin_reference(const std::vector<SketchEntity>& ents, const std::vector<SketchEntityConstraintDef>& cons)
@@ -12477,7 +12489,11 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             const Vec2d p2 = m_plane.project(r2.a, r2.vector());
             const double tol = std::max(1e-3, (p2 - p).norm());
             int pe; SketchPointRole pr;
-            const bool got_pt = hit_test_point(p, tol, pe, pr);
+            bool got_pt = hit_test_point(p, tol, pe, pr);
+            if (!got_pt && p.norm() < tol) {   // the bare origin: measure from a point held on it (made now if the sketch has none)
+                pe = ensure_origin_point(); pr = SketchPointRole::P0;
+                got_pt = pe >= 0;
+            }
             const int he = hit_test(p, tol);
             if (!m_dim_has0) {
                 if (got_pt) {                          // first point picked: await a second
