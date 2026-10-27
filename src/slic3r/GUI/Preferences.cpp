@@ -557,7 +557,16 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
                         wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Save"), wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE).ShowModal();
 
                     if (result == wxID_YES) {
-                        wxGetApp().plater()->save_project();
+                        if (wxGetApp().plater()->save_project() != wxID_YES) {
+                            // The save was cancelled (e.g. the unresolved-plugin warning): do not
+                            // switch languages as if the project had been saved.
+                            combobox->SetSelection(m_current_language_selected);
+                            return;
+                        }
+                    } else if (result != wxID_NO) {
+                        // Cancel or ESC on the save prompt: keep the current language.
+                        combobox->SetSelection(m_current_language_selected);
+                        return;
                     }
                 }
 
@@ -1714,6 +1723,16 @@ void PreferencesDialog::create_items()
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
     g_sizer->Add(item_window_button_pos);
+
+    // TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
+    auto item_discrete_gpu = create_item_checkbox(_L("Render on the discrete GPU"),
+        // TRN DRI_PRIME is an environment variable name and must stay as it is.
+        _L("On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. "
+           "Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. "
+           "Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 "
+           "in the environment to get back here."),
+        "prefer_discrete_gpu", _L("(Requires restart)"));
+    g_sizer->Add(item_discrete_gpu);
 #endif
 
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
@@ -1873,6 +1892,10 @@ void PreferencesDialog::create_items()
 
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
+
+    auto item_primitive_dialog = create_item_checkbox(_L("Show options when adding a primitive"),
+        _L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added."), "enable_primitive_size_dialog");
+    g_sizer->Add(item_primitive_dialog);
 
     //// CONTROL > Slicing
     g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);

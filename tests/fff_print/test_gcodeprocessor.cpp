@@ -6,10 +6,15 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Utils.hpp"
@@ -25,6 +30,7 @@
 #include "libslic3r/Point.hpp"
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -102,10 +108,11 @@ TEST_CASE("Reserved keyword detection reports every offending line", "[GCodeProc
 
 namespace {
 
-void process_gcode(const std::string &gcode, GCodeProcessorResult &result)
+void process_gcode(const std::string &gcode, GCodeProcessorResult &result, const DynamicPrintConfig &overrides = {})
 {
     FullPrintConfig config;
     config.gcode_flavor.value = gcfMarlinFirmware;
+    config.apply(overrides, true);
     // s_IsBBLPrinter selects the "; FEATURE: " role tags the G-code uses.
     const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
     const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
@@ -138,7 +145,7 @@ void process_squares(int squares, GCodeProcessorResult &result, bool virtual_mov
 
 // Objects A and B on the first layer and A again on the second, with A's brim and support. The skirt and the
 // prime tower belong to neither.
-void process_two_objects(GCodeProcessorResult &result)
+void process_two_objects(GCodeProcessorResult &result, const DynamicPrintConfig &overrides = {})
 {
     std::ostringstream gcode;
     gcode << "M83\nG90\n"
@@ -151,7 +158,7 @@ void process_two_objects(GCodeProcessorResult &result)
           << "; FEATURE: Prime tower\nG1 X80 Y80 F12000\nG1 X90 Y80 E1 F3000\n"
           << "; CHANGE_LAYER\n; LAYER_HEIGHT: 0.2\nG1 Z0.4 F12000\n"
           << "; FEATURE: Outer wall\nG1 X10 Y10 F12000\nG1 X20 Y10 E1 F3000\n";
-    process_gcode(gcode.str(), result);
+    process_gcode(gcode.str(), result, overrides);
 }
 
 // Bead centers of process_two_objects(), half the 0.2 mm layer below the nozzle.
@@ -447,9 +454,58 @@ TEST_CASE("The plate's center of mass takes every extrusion of G-code without a 
     CHECK_THAT(second.x(), Catch::Matchers::WithinRel((304. / 3. + 100. + 2. * 700. / 3. + 2. * 9100. / 3.) / 6., 1e-6));
     CHECK_THAT(second.y(), Catch::Matchers::WithinRel((64. + 1900. / 3. + 2. * 100. + 2. * 2500.) / 6., 1e-6));
     CHECK_THAT(second.z(), Catch::Matchers::WithinRel((5. * 0.01 + 0.09) / 6., 1e-5));
+    // Each bead runs along one axis, so x y is the fixed coordinate times the middle of the other.
+    CHECK_THAT(total.cross.x() / total.mass,
+               Catch::Matchers::WithinRel((8. * 10. + 10. * 25. + 2. * 10. * 15. + 2. * 50. * 55.) / 6., 1e-6));
     // The beads' center lines, brim and support included, from the first layer's bottom to the second's top.
     CHECK_THAT((plate.box.min - Vec3d(8., 8., 0.)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
     CHECK_THAT((plate.box.max - Vec3d(60., 50., 0.4)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
+    CHECK_FALSE(plate.belt_box.defined);
+}
+
+TEST_CASE("A belt print's mass keeps its weight and takes its center, spread and box to the model's frame", "[GCodeProcessor]")
+{
+    DynamicPrintConfig belt;
+    belt.set_deserialize_strict({ { "belt_printer", 1 }, { "belt_slice_rotation", "x" }, { "belt_slice_rotation_angle", 45 } });
+    GCodeProcessorResult result;
+    process_two_objects(result, belt);
+    FullPrintConfig belt_config;
+    belt_config.apply(belt, true);
+    // The back-transform shears; the preview moves it as well, to lay the toolpaths on the model.
+    const Transform3d trafo = Geometry::translation_transform(Vec3d(5., -20., 3.)) *
+                              BeltTransformPipeline::build_gcode_back_transform(belt_config);
+    REQUIRE_FALSE(trafo.linear().isDiagonal());
+    const GCodeProcessorResult::ObjectMass &plate  = result.plate_mass;
+    GCodeProcessorResult::ObjectMass        mapped = plate;
+    mapped.transform(trafo);
+
+    const auto spread = [](const GCodeProcessorResult::ObjectMass::Sum &sum) {
+        const Vec3d center = center_of(sum);
+        return Matrix3d(sum.second_moments() / sum.mass - center * center.transpose());
+    };
+    REQUIRE(mapped.printed_up_to_layer.size() == plate.printed_up_to_layer.size());
+    for (size_t layer = 0; layer < plate.printed_up_to_layer.size(); ++layer) {
+        const GCodeProcessorResult::ObjectMass::Sum &before = plate.printed_up_to_layer[layer];
+        const GCodeProcessorResult::ObjectMass::Sum &after  = mapped.printed_up_to_layer[layer];
+        CHECK_THAT(after.mass, Catch::Matchers::WithinRel(before.mass, 1e-12));
+        CHECK_THAT(after.volume, Catch::Matchers::WithinRel(before.volume, 1e-12));
+        CHECK_THAT((center_of(after) - trafo * center_of(before)).norm(), Catch::Matchers::WithinAbs(0., 1e-9));
+        CHECK_THAT((spread(after) - trafo.linear() * spread(before) * trafo.linear().transpose()).norm(),
+                   Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    // The mapped ends of the beads' center lines at the bottom and the top of their layers: the brim, the support, A's and B's
+    // walls on the first layer and A's on the second.
+    BoundingBoxf3 beads;
+    for (const auto &[from, to, bottom] : { std::tuple(Vec2d(8., 8.), Vec2d(12., 8.), 0.), std::tuple(Vec2d(10., 20.), Vec2d(10., 30.), 0.),
+                                            std::tuple(Vec2d(10., 10.), Vec2d(20., 10.), 0.), std::tuple(Vec2d(50., 50.), Vec2d(60., 50.), 0.),
+                                            std::tuple(Vec2d(10., 10.), Vec2d(20., 10.), 0.2) })
+        for (const Vec2d &end : { from, to })
+            for (const double z : { bottom, bottom + 0.2 })
+                beads.merge(trafo * Vec3d(end.x(), end.y(), z));
+    REQUIRE(mapped.box.defined);
+    CHECK_THAT((mapped.box.min - beads.min).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
+    CHECK_THAT((mapped.box.max - beads.max).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
 }
 
 TEST_CASE("Each sliced cube's center of mass is its center, and the brim lowers the plate's printed one", "[GCodeProcessor]")
@@ -598,4 +654,151 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
     const Vec3d light = center_of(masses[0]->total());
     const Vec3d dense = center_of(masses[1]->total());
     CHECK_THAT((plate - light).dot(dense - light) / (dense - light).squaredNorm(), Catch::Matchers::WithinAbs(0.75, 0.01));
+}
+
+namespace {
+
+// Two nozzles over a 200 mm square bed: nozzle 1 reaches only `nozzle_1_area`, nozzle 2 the whole bed.
+// A 20 mm cube centered on `center` prints with filament 1, mapped to nozzle 1.
+void slice_cube_in_nozzle_area(const Vec2ds &nozzle_1_area, const Vec2d &center, GCodeProcessorResult &result)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",           "0.4,0.4" },
+        { "printer_extruder_id",       "1,2" },
+        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_offset",           "0x0,0x0" },
+        { "printable_area",            "0x0,200x0,200x200,0x200" },
+        { "printable_height",          100 },
+        { "extruder_printable_height", "100,100" },
+        { "skirt_loops",               0 },
+        { "brim_type",                 "no_brim" },
+        { "filament_map_mode",         "Manual" },
+        { "filament_map",              "1" },
+    });
+    const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
+    config.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups(std::vector<Vec2ds>{ nozzle_1_area, bed }));
+
+    TriangleMesh mesh = Test::cube(20);
+    mesh.translate(float(center.x() - 10.), float(center.y() - 10.), 0.f);
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{ std::move(mesh) }, print, model, config, nullptr, false);
+    Test::gcode(print, &result);
+}
+
+// Nozzle 1's area inset from the bed on one side, on two adjacent sides (leaving an L-shaped
+// unprintable region), on three (a U) and on all four (a frame). Each contains the bed center and
+// has an X 150 edge; all but the first also have a Y 50 edge, meeting it in an inner corner.
+Vec2ds inset_nozzle_area(int sides)
+{
+    switch (sides) {
+    case 1: return { Vec2d(0., 0.), Vec2d(150., 0.), Vec2d(150., 200.), Vec2d(0., 200.) };
+    case 2: return { Vec2d(0., 50.), Vec2d(150., 50.), Vec2d(150., 200.), Vec2d(0., 200.) };
+    case 3: return { Vec2d(50., 50.), Vec2d(150., 50.), Vec2d(150., 200.), Vec2d(50., 200.) };
+    default: return { Vec2d(50., 50.), Vec2d(150., 50.), Vec2d(150., 150.), Vec2d(50., 150.) };
+    }
+}
+
+// Runs the post-slice area check alone on one object whose filament 1 extrudes through `path`, in bed
+// coordinates, on a plate whose origin is `plate_origin`. Filament 1 maps to `filament_1_nozzle`;
+// nozzle 1 reaches only `nozzle_1_area` of a 200 mm square bed and nozzle 2 all of it.
+void check_path_in_nozzle_area(const Vec2ds &nozzle_1_area, const Vec2ds &path, const Vec2d &plate_origin, GCodeProcessorResult &result,
+                               int filament_1_nozzle = 1)
+{
+    const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
+    // Built as Print::get_extruder_unprintable_polygons() builds them.
+    const std::vector<Polygons> unprintable_areas { diff(Polygon::new_scale(bed), Polygon::new_scale(nozzle_1_area)), Polygons() };
+
+    GCodeProcessor processor;
+    processor.set_xy_offset(plate_origin.x(), plate_origin.y());
+    for (const Vec2d &point : path) {
+        GCodeProcessorResult::MoveVertex move;
+        move.type            = EMoveType::Extrude;
+        move.extrusion_role  = erExternalPerimeter;
+        move.extruder_id     = 0; // filament 1
+        move.object_label_id = 1;
+        // The processor stores moves with the plate origin added.
+        move.position = Vec3f(float(point.x() + plate_origin.x()), float(point.y() + plate_origin.y()), 0.2f);
+        move.print_z  = 0.2f;
+        processor.result().moves.emplace_back(move);
+    }
+    processor.check_multi_extruder_gcode_valid(2, bed, 100., {}, unprintable_areas, { 100., 100. }, { filament_1_nozzle }, { {}, {} });
+    result = std::move(processor.extract_result());
+}
+
+} // namespace
+
+TEST_CASE("A path inside its nozzle's printable area passes the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
+{
+    // A cube at the bed center, or at X 125-145, Y 55-75: 5 mm inside the X 150 and Y 50 edges, in the
+    // inner corner where they meet. The area inset on one side has no Y 50 edge, so no corner.
+    const auto [sides, in_corner] = GENERATE(table<int, bool>(
+        { { 1, false }, { 2, false }, { 2, true }, { 3, false }, { 3, true }, { 4, false }, { 4, true } }));
+    const Vec2d center = in_corner ? Vec2d(135., 65.) : Vec2d(100., 100.);
+    INFO("area inset on " << sides << " side(s), cube " << (in_corner ? "in the inner corner" : "at the bed center"));
+    GCodeProcessorResult result;
+    slice_cube_in_nozzle_area(inset_nozzle_area(sides), center, result);
+
+    CHECK((result.gcode_check_result.error_code & 1) == 0);
+    CHECK(result.gcode_check_result.print_area_error_infos.empty());
+    // Nor is nozzle 1 marked as unable to print filament 1.
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == 0);
+}
+
+TEST_CASE("A path leaving its nozzle's printable area fails the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
+{
+    const int sides = GENERATE(1, 2, 3, 4);
+    INFO("area inset on " << sides << " side(s)");
+    // X 165-185: on the bed, past the area's X 150 edge in every shape.
+    GCodeProcessorResult result;
+    slice_cube_in_nozzle_area(inset_nozzle_area(sides), Vec2d(175., 100.), result);
+
+    CHECK((result.gcode_check_result.error_code & 1) == 1);
+    REQUIRE(result.gcode_check_result.print_area_error_infos.count(0) == 1);
+    CHECK_FALSE(result.gcode_check_result.print_area_error_infos.at(0).empty());
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == 1);
+}
+
+TEST_CASE("A path flush against its nozzle's printable area edge fails the area check and one 0.1 mm inside it passes", "[GCodeProcessor][Regression]")
+{
+    // Nozzle 1 reaches X 0-150, Y 50-200, leaving an L-shaped unprintable region whose bounding box is
+    // the whole bed. The check tests path centerlines, not the width of the extruded line.
+    const Vec2ds nozzle_1_area = inset_nozzle_area(2);
+    const bool   x_edge        = GENERATE(true, false);
+    const bool   flush         = GENERATE(true, false);
+    // A 20 mm square with one side along the edge, or that side alone, whose bounding box has no area.
+    const bool line = GENERATE(false, true);
+    // A plate origin shifts the path but not the areas, and the check must undo the shift. Plates
+    // after the first sit at positive X and negative Y.
+    const bool  first_plate  = GENERATE(true, false);
+    const Vec2d plate_origin = first_plate ? Vec2d(0., 0.) : Vec2d(240., -240.);
+    INFO((line ? "line " : "square ") << (flush ? "flush against" : "0.1 mm inside") << " the " << (x_edge ? "X 150" : "Y 50")
+                                      << " edge, plate origin at " << plate_origin.x() << ", " << plate_origin.y());
+    const double gap    = flush ? 0. : 0.1;
+    const Vec2d  a      = x_edge ? Vec2d(150. - gap, 100.) : Vec2d(100., 50. + gap);
+    const Vec2d  b      = x_edge ? Vec2d(150. - gap, 120.) : Vec2d(120., 50. + gap);
+    const Vec2d  inward = x_edge ? Vec2d(-20., 0.) : Vec2d(0., 20.);
+    const Vec2ds path   = line ? Vec2ds{ a, b } : Vec2ds{ a, b, Vec2d(b + inward), Vec2d(a + inward) };
+
+    GCodeProcessorResult result;
+    check_path_in_nozzle_area(nozzle_1_area, path, plate_origin, result);
+
+    const int expected = flush ? 1 : 0;
+    CHECK((result.gcode_check_result.error_code & 1) == expected);
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == expected);
+}
+
+TEST_CASE("A filament mapped to no nozzle has no errors listed under a nozzle", "[GCodeProcessor][Regression]")
+{
+    // A filament map entry of 0 names no nozzle. This path, past the bed's X 200 edge, would otherwise
+    // be listed under nozzle index -1, which the error message uses to look up the nozzle's name.
+    const Vec2ds path { Vec2d(210., 100.), Vec2d(230., 100.), Vec2d(230., 120.), Vec2d(210., 120.) };
+    GCodeProcessorResult result;
+    check_path_in_nozzle_area(inset_nozzle_area(2), path, Vec2d(0., 0.), result, 0);
+
+    CHECK(result.gcode_check_result.print_area_error_infos.count(-1) == 0);
 }

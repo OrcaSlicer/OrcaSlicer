@@ -4723,6 +4723,19 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(0));
 
+    def = this->add("high_precision_gcode", coBool);
+    def->label = L("High precision G-code (experimental)");
+    def->tooltip = L("Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce "
+                     "rounding errors in the G-code. With relative E distances, the rounding error of each move is also "
+                     "carried over to the next one. Supports are removed after printing, so they keep the standard "
+                     "precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and "
+                     "thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors "
+                     "matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard "
+                     "to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, "
+                     "which may slow down printers that parse G-code slowly.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
     //BBS
     def = this->add("infill_combination", coBool);
     def->label = L("Infill combination");

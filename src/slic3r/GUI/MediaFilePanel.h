@@ -77,6 +77,7 @@ private:
     ::Button *m_button_download = nullptr;
     ::Button *m_button_refresh = nullptr;
     ::Button *m_button_management = nullptr;
+    ::Button *m_button_select_all = nullptr;
 
     ImageGrid * m_image_grid   = nullptr;
 

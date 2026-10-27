@@ -358,6 +358,25 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
 }
 
 
+// Inherited per-variant printer vectors keep the parent's length; pad them up to this config's
+// variant count. Never truncates, so a longer child vector is left alone.
+static void pad_printer_variant_vectors(DynamicPrintConfig &config)
+{
+    const auto *variants = config.option<ConfigOptionStrings>("printer_extruder_variant");
+    if (variants == nullptr || variants->values.empty())
+        return;
+    const size_t count = variants->values.size();
+    auto pad = [&config](const std::string &key, size_t length) {
+        auto *vec = dynamic_cast<ConfigOptionVectorBase *>(config.option(key));
+        if (vec != nullptr && !vec->empty() && vec->size() < length)
+            vec->resize(length);
+    };
+    for (const std::string &key : printer_options_with_variant_1)
+        pad(key, count);
+    for (const std::string &key : printer_options_with_variant_2)
+        pad(key, count * 2);
+}
+
 VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem::path &path, bool load_all)
 {
     static const std::string printer_model_key = "printer_model:";
@@ -1418,6 +1437,7 @@ static std::vector<std::string> s_Preset_print_options{
     "tree_support_auto_brim",
     "tree_support_brim_width",
     "gcode_comments",
+    "high_precision_gcode",
     "gcode_label_objects",
     "initial_layer_travel_speed",
     "initial_layer_travel_acceleration",
@@ -1896,6 +1916,7 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
             preset.filament_id = inherit_preset->filament_id;
             extend_default_config_length(config, false, {});
             preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+            pad_printer_variant_vectors(preset.config);
         }
         else {
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
@@ -2478,7 +2499,15 @@ void PresetCollection::save_user_presets(const std::string& dir_path, const std:
         if (!preset->is_user()) continue;
         if (preset->sync_info != "save") continue;
         preset->sync_info.clear();
+        fs::path old_file(preset->file);
         preset->file = path_for_preset(*preset);
+        // A cloud update can give a root preset a parent or take it away, which moves its file between base and this
+        // folder. The files at the old place would load as a second copy of the preset, so they go before the save.
+        if (!old_file.empty() && old_file.make_preferred().lexically_normal() != fs::path(preset->file).make_preferred().lexically_normal()) {
+            InstanceLock instance_lock(user_presets_lock_path());
+            boost::nowide::remove(old_file.string().c_str());
+            boost::nowide::remove(old_file.replace_extension(".info").string().c_str());
+        }
 
         //BBS: only save difference for user preset
         std::string inherits = Preset::inherits(preset->config);
@@ -3249,6 +3278,8 @@ bool PresetCollection::clone_presets(std::vector<Preset const *> const &presets,
         preset.is_external = false;
         preset.is_visible = true;
         preset.is_project_embedded = false;
+        // A clone is the user's own preset, even when it was made from a bundle's.
+        preset.bundle_id.clear();
         modifier(preset, m_type);
         if (find_preset(preset.name) && !force_rewritten) {
             failures.push_back(preset.name);
@@ -3330,6 +3361,36 @@ bool PresetCollection::clone_presets_for_filament(Preset const *const &     pres
         force_rewritten);
 }
 
+std::vector<Preset const *> PresetCollection::get_user_presets_for_printer(const std::string &printer_name) const
+{
+    std::vector<Preset const *> presets;
+    for (const Preset &preset : m_presets) {
+        if (!preset.is_user())
+            continue;
+        const auto *compatible_printers = preset.config.option<ConfigOptionStrings>("compatible_printers");
+        if (compatible_printers != nullptr && !compatible_printers->values.empty() &&
+            std::all_of(compatible_printers->values.begin(), compatible_printers->values.end(),
+                        [&printer_name](const std::string &name) { return name == printer_name; }))
+            presets.push_back(&preset);
+    }
+    // A preset that a kept preset inherits from is kept too, since a preset whose parent is gone fails to
+    // load. Each one kept can in turn keep its own parent, so this repeats until nothing changes.
+    for (bool kept_one = true; kept_one;) {
+        kept_one = false;
+        for (const Preset &preset : m_presets) {
+            if (preset.inherits().empty() || std::find(presets.begin(), presets.end(), &preset) != presets.end())
+                continue;
+            auto parent = std::find_if(presets.begin(), presets.end(),
+                                       [&preset](const Preset *candidate) { return candidate->name == preset.inherits(); });
+            if (parent != presets.end()) {
+                presets.erase(parent);
+                kept_one = true;
+            }
+        }
+    }
+    return presets;
+}
+
 std::map<std::string, std::vector<Preset const *>> PresetCollection::get_filament_presets() const
 {
     std::map<std::string, std::vector<Preset const *>> filament_presets;
@@ -3354,6 +3415,19 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
     // initialize it with the edited config.
     auto it = this->find_preset_internal(new_name);
     const bool preset_existed = (it != m_presets.end() && it->name == new_name);
+    // Saving another preset's settings under the name of an existing user preset replaces that preset. The
+    // replacement is made from those settings like a new preset, with its own parent and file, and takes over the
+    // replaced preset's cloud profile, so the sync updates that profile instead of other devices losing the preset.
+    std::optional<Preset> replaced;
+    if (preset_existed && curr_preset.name != new_name) {
+        if (!it->can_overwrite()) {
+            unlock();
+            return;
+        }
+        replaced = *it;
+        set_printer_hold_alias(it->alias, *it, true);
+        it = m_presets.erase(it);
+    }
     if (it != m_presets.end() && it->name == new_name) {
         // Preset with the same name found.
         Preset &preset = *it;
@@ -3420,6 +3494,14 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
 
         preset.bundle_id.clear();
 
+        if (replaced) {
+            preset.setting_id   = replaced->setting_id;
+            preset.user_id      = replaced->user_id;
+            preset.updated_time = replaced->updated_time;
+            if (!preset.setting_id.empty())
+                preset.sync_info = "update";
+        }
+
         preset.file        = this->path_for_preset(preset);
         // The newly saved preset will be activated -> make it visible.
         preset.is_visible  = true;
@@ -3441,6 +3523,9 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         final_inherits = inherits;
         unlock();
     }
+    // The replacement keeps the cloud profile, so the replaced preset's files go without leaving a delete pending.
+    if (replaced)
+        replaced->remove_files(true /* cloud_already_deleted */);
     // 2) Activate the saved preset.
     this->select_preset_by_name(new_name, true);
     // 2) Store the active preset to disk.
