@@ -26,6 +26,7 @@
 #include <wx/gdicmn.h>
 #include <utility>
 #include <wx/image.h>
+#include <wx/imagpng.h>
 #include <wx/mstream.h>
 
 #include "libslic3r/PNGReadWrite.hpp"
