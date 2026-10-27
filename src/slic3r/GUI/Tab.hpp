@@ -675,6 +675,7 @@ public:
     void        init_options_list() override;
     void        clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
+    void        update_custom_dirty(std::vector<std::string>& dirty_options, std::vector<std::string>& nonsys_options) override;
 
 	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
 

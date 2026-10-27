@@ -941,7 +941,8 @@ void Tab::update_label_colours()
                 color = &m_modified_label_clr;
         }
         if (opt.first == "printable_area"            ||
-            opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ) {
+            opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ||
+            opt.first == "filament_id") {
             if (Line* line = get_line(opt.first))
                 line->set_label_colour(color);
             continue;
@@ -985,7 +986,7 @@ void Tab::decorate()
         bool        option_without_field = false;
 
         if (opt.first == "printable_area" ||
-            opt.first == "compatible_prints" || opt.first == "compatible_printers")
+            opt.first == "compatible_prints" || opt.first == "compatible_printers" || opt.first == "filament_id")
             option_without_field = true;
 
         if (!option_without_field) {
@@ -1416,6 +1417,18 @@ void TabFilament::init_options_list()
         else
             m_options_list.emplace(opt_key + "#0", m_opt_status_value);
     }
+    // filament_id is not in the config, but its row is coloured like the others (see update_custom_dirty).
+    m_options_list.emplace("filament_id", m_opt_status_value);
+}
+
+// filament_id lives on the preset, not in its config, so the config comparisons don't see a change to it.
+void TabFilament::update_custom_dirty(std::vector<std::string>& dirty_options, std::vector<std::string>& nonsys_options)
+{
+    const Preset& edited = m_presets->get_edited_preset();
+    if (edited.filament_id != m_presets->get_selected_preset().filament_id)
+        dirty_options.emplace_back("filament_id");
+    if (const Preset* parent = m_presets->get_selected_preset_parent(); parent && parent->filament_id != edited.filament_id)
+        nonsys_options.emplace_back("filament_id");
 }
 
 void Tab::get_sys_and_mod_flags(const std::string& opt_key, bool& sys_page, bool& modified_page)
@@ -1470,6 +1483,9 @@ void Tab::update_changed_tree_ui()
                     get_sys_and_mod_flags(opt_key, sys_page, modified_page);
                 }
             }
+            // The Filament ID row has no config option, so it is not in the group's option map.
+            if (page->title() == "Filament")
+                get_sys_and_mod_flags("filament_id", sys_page, modified_page);
             if (page->title() == "Dependencies") {
                 if (m_type == Slic3r::Preset::TYPE_PRINTER) {
                     sys_page = m_presets->get_selected_preset_parent() != nullptr;
