@@ -284,8 +284,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
                 double mass{ 0. };
                 double volume{ 0. };
                 Vec3d  moment{ Vec3d::Zero() };
-                // Of the mass about the origin along each axis, the sums of m x^2, m y^2 and m z^2.
-                Vec3d second{ Vec3d::Zero() };
+                // Of the mass about the origin, the sum of m x x^T.
+                Matrix3d second{ Matrix3d::Zero() };
 
                 void add(const Sum &other)
                 {
@@ -306,6 +306,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
             Sum  total() const { return printed_up_to_layer.empty() ? Sum{} : printed_up_to_layer.back(); }
             void add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer);
+            // Into the frame an affine map takes the moves to; mass and volume stay as printed, and the box only if the map keeps the axes.
+            void transform(const Transform3d &trafo);
         };
 
         std::string filename;

@@ -7615,6 +7615,21 @@ void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &
     printed_up_to_layer[layer].add(sum);
 }
 
+void GCodeProcessorResult::ObjectMass::transform(const Transform3d &trafo)
+{
+    const Matrix3d linear      = trafo.linear();
+    const Vec3d    translation = trafo.translation();
+    for (Sum &sum : printed_up_to_layer) {
+        const Vec3d moment = linear * sum.moment;
+        sum.second = linear * sum.second * linear.transpose() + moment * translation.transpose() + translation * moment.transpose() +
+                     sum.mass * translation * translation.transpose();
+        sum.moment = moment + sum.mass * translation;
+    }
+    // A map that mixes the axes, as a shear does, would blow up the box of the mapped corners far past the moves.
+    if (box.defined)
+        box = (linear.array().abs() > EPSILON).rowwise().count().maxCoeff() <= 1 ? box.transformed(trafo) : BoundingBoxf3();
+}
+
 void GCodeProcessor::add_object_mass(int filament_id, float volume)
 {
     // Skirt, prime tower and custom G-code belong to no object.
@@ -7630,8 +7645,10 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
     const Vec3d start       = Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]) + offset;
     const Vec3d end         = Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]) + offset;
     // The second moments of a uniform segment.
+    const Matrix3d start_end = start * end.transpose();
     const GCodeProcessorResult::ObjectMass::Sum sum{ mass, double(volume), 0.5 * mass * (start + end),
-                                                     mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)) };
+                                                     mass / 6. * (2. * start * start.transpose() + start_end + start_end.transpose() +
+                                                                  2. * end * end.transpose()) };
     // Of the bead's center line and its height, as its width is only estimated. Merged, as a wall along an axis is flat.
     BoundingBoxf3 extent;
     extent.merge(start.cwiseMin(end) - half_height);

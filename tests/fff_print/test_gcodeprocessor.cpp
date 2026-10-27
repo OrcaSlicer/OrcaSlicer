@@ -446,13 +446,53 @@ TEST_CASE("The plate's center of mass takes every extrusion of G-code without a 
     // B's from x 50 to 60 at y 50 with twice the filament, all at z 0.1 but A's second wall at 0.3.
     const GCodeProcessorResult::ObjectMass::Sum total = plate.total();
     CHECK_THAT(total.mass / total.volume, Catch::Matchers::WithinRel(double(DEFAULT_FILAMENT_DENSITY), 1e-6));
-    const Vec3d second = total.second / total.mass;
-    CHECK_THAT(second.x(), Catch::Matchers::WithinRel((304. / 3. + 100. + 2. * 700. / 3. + 2. * 9100. / 3.) / 6., 1e-6));
-    CHECK_THAT(second.y(), Catch::Matchers::WithinRel((64. + 1900. / 3. + 2. * 100. + 2. * 2500.) / 6., 1e-6));
-    CHECK_THAT(second.z(), Catch::Matchers::WithinRel((5. * 0.01 + 0.09) / 6., 1e-5));
+    const Matrix3d second = total.second / total.mass;
+    CHECK_THAT(second(0, 0), Catch::Matchers::WithinRel((304. / 3. + 100. + 2. * 700. / 3. + 2. * 9100. / 3.) / 6., 1e-6));
+    CHECK_THAT(second(1, 1), Catch::Matchers::WithinRel((64. + 1900. / 3. + 2. * 100. + 2. * 2500.) / 6., 1e-6));
+    CHECK_THAT(second(2, 2), Catch::Matchers::WithinRel((5. * 0.01 + 0.09) / 6., 1e-5));
+    // Each bead runs along one axis, so x y is the fixed coordinate times the middle of the other.
+    CHECK_THAT(second(0, 1), Catch::Matchers::WithinRel((8. * 10. + 10. * 25. + 2. * 10. * 15. + 2. * 50. * 55.) / 6., 1e-6));
     // The beads' center lines, brim and support included, from the first layer's bottom to the second's top.
     CHECK_THAT((plate.box.min - Vec3d(8., 8., 0.)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
     CHECK_THAT((plate.box.max - Vec3d(60., 50., 0.4)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
+}
+
+TEST_CASE("A mapped mass keeps its weight and moves its center and spread with the map, and its box unless sheared", "[GCodeProcessor]")
+{
+    const bool sheared = GENERATE(false, true);
+    INFO((sheared ? "sheared" : "turned and scaled"));
+    GCodeProcessorResult result;
+    process_two_objects(result);
+    const GCodeProcessorResult::ObjectMass &plate = result.plate_mass;
+    GCodeProcessorResult::ObjectMass        mapped = plate;
+    Transform3d                             trafo  = Transform3d::Identity();
+    if (sheared)
+        trafo.linear() << 1., 0., 0., 0., 1., 1., 0., 0., 1.4;
+    else
+        trafo.linear() << 0., -1., 0., 1., 0., 0., 0., 0., 1.4;
+    trafo.translation() = Vec3d(5., -20., 3.);
+    mapped.transform(trafo);
+
+    const auto spread = [](const GCodeProcessorResult::ObjectMass::Sum &sum) {
+        const Vec3d center = center_of(sum);
+        return Matrix3d(sum.second / sum.mass - center * center.transpose());
+    };
+    REQUIRE(mapped.printed_up_to_layer.size() == plate.printed_up_to_layer.size());
+    for (size_t layer = 0; layer < plate.printed_up_to_layer.size(); ++layer) {
+        const GCodeProcessorResult::ObjectMass::Sum &before = plate.printed_up_to_layer[layer];
+        const GCodeProcessorResult::ObjectMass::Sum &after  = mapped.printed_up_to_layer[layer];
+        CHECK_THAT(after.mass, Catch::Matchers::WithinRel(before.mass, 1e-12));
+        CHECK_THAT(after.volume, Catch::Matchers::WithinRel(before.volume, 1e-12));
+        CHECK_THAT((center_of(after) - trafo * center_of(before)).norm(), Catch::Matchers::WithinAbs(0., 1e-9));
+        CHECK_THAT((spread(after) - trafo.linear() * spread(before) * trafo.linear().transpose()).norm(),
+                   Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+    if (sheared)
+        CHECK_FALSE(mapped.box.defined);
+    else {
+        CHECK_THAT((mapped.box.min - plate.box.transformed(trafo).min).norm(), Catch::Matchers::WithinAbs(0., 1e-9));
+        CHECK_THAT((mapped.box.max - plate.box.transformed(trafo).max).norm(), Catch::Matchers::WithinAbs(0., 1e-9));
+    }
 }
 
 TEST_CASE("Each sliced cube's center of mass is its center, and the brim lowers the plate's printed one", "[GCodeProcessor]")

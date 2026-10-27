@@ -28,6 +28,7 @@
 #include "MsgDialog.hpp"
 #include <boost/container_hash/hash.hpp>
 #include "slic3r/GUI/MeshUtils.hpp"
+#include <initializer_list>
 #include <set>
 #include <string>
 #include "libvgcode/include/Types.hpp"
@@ -1565,6 +1566,11 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             const Vec3d d = model_bb.min - tp_bb.min;
             belt_inv = Transform3d(Eigen::Translation3d(d)) * belt_inv;
         }
+        // The masses into the toolpaths' frame.
+        m_plate_mass.transform(belt_inv);
+        for (std::vector<GCodeProcessorResult::ObjectMass>* masses : { &m_object_masses, &m_body_masses, &m_support_masses })
+            for (GCodeProcessorResult::ObjectMass& mass : *masses)
+                mass.transform(belt_inv);
     }
     libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer,
         apply_belt ? &belt_inv : nullptr);
