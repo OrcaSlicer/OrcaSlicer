@@ -173,6 +173,15 @@ static json guide_strings()
         // Used for every count except 1. If your language inflects the noun by number, choose a wording
         // that reads correctly with any number.
         {"count_results", _u8L("%s results")},
+        // TRN Screen reader text spoken after a search in the filament step's columns: how many entries match, of
+        // the column's total. These "_one" forms are used only when the total is 1; the plural forms cover every other
+        // total. If your language inflects the noun by number, choose a wording that reads correctly with any number.
+        {"count_of_printers_one", _u8L("%s of %s printer")},
+        {"count_of_printers", _u8L("%s of %s printers")},
+        {"count_of_filament_types_one", _u8L("%s of %s filament type")},
+        {"count_of_filament_types", _u8L("%s of %s filament types")},
+        {"count_of_vendors_one", _u8L("%s of %s vendor")},
+        {"count_of_vendors", _u8L("%s of %s vendors")},
         {"printers", _u8L("Printers")},
         {"filament_types", _u8L("Filament types")},
         {"filaments", _u8L("Filaments")},

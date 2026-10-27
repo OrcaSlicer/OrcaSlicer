@@ -524,9 +524,18 @@ function addClearBtnEvents(el){
 	});
 }
 
+// ORCA what a column's search count is spoken as, by the column's list: [key, fallback] for a total
+// of 1, then for any other total. T() has no plural forms.
+const ColumnCountText = {
+	MachineList:  [["count_of_printers_one", "%s of %s printer"], ["count_of_printers", "%s of %s printers"]],
+	FilatypeList: [["count_of_filament_types_one", "%s of %s filament type"], ["count_of_filament_types", "%s of %s filament types"]],
+	VendorList:   [["count_of_vendors_one", "%s of %s vendor"], ["count_of_vendors", "%s of %s vendors"]],
+};
+let ColumnSearchTimer = null;
+
 function initInputEvents(){
 	document.querySelectorAll('.cbr-search-bar').forEach(searchBar => {
-        searchBar.addEventListener('input', function() {
+        searchBar.addEventListener('input', function(e) {
             const search = this.value.trim().toLowerCase(),
             	  list   = this.closest('.cbr-column').querySelector('.cbr-content'),
             	  items  = list.querySelectorAll('label');
@@ -542,6 +551,13 @@ function initInputEvents(){
                 item.style.display = hide ? "none" : "block";
                 if(hide) hidden++;
             });
+
+			// ORCA say how many entries the search leaves, once typing pauses; "All" isn't counted
+			const nTotal = items.length - 1;
+			const [strKey, strFallback] = ColumnCountText[list.id][nTotal == 1 ? 0 : 1];
+			const strCount = T(strKey, strFallback, nTotal - hidden, nTotal);
+			clearTimeout(ColumnSearchTimer);
+			ColumnSearchTimer = setTimeout(() => SetStatusText("ColumnSearchText", strCount), e.isTrusted ? 500 : 0);
 
 			if(items.length - hidden == 1){
 				items[0].style.display = "none";
