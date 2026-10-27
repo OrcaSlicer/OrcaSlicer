@@ -288,6 +288,9 @@ public:
     bool get_enter_pressed() const { return bEnterPressed; }
     void set_enter_pressed(bool pressed) { bEnterPressed = pressed; }
 
+	// Index of the Home, Prepare, Preview or Device tab that a Ctrl+1-4 key event selects, or -1
+	static int shortcut_tab_index(const wxKeyEvent& evt);
+
 	// Values of width to alignments of fields
 	static int def_width()			;
 	static int def_width_wider()	;

@@ -8,6 +8,7 @@
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
+#include "KeyChord.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 
@@ -365,28 +366,9 @@ void Field::PostInitialize()
             this->enable();
         }
 		getWindow()->Bind(wxEVT_KEY_UP, [](wxKeyEvent& evt) {
-		    if ((evt.GetModifiers() & wxMOD_CONTROL) != 0) {
-			    int tab_id = -1;
-			    switch (evt.GetKeyCode()) {
-			    case '1': { tab_id = 0; break; }
-			    case '2': { tab_id = 1; break; }
-				case '3': { tab_id = 2; break; }
-				case '4': { tab_id = 3; break; }
-#ifdef __APPLE__
-				case 'f':
-#else /* __APPLE__ */
-				case WXK_CONTROL_F:
-#endif /* __APPLE__ */
-                case 'F': {
-                    //wxGetApp().plater()->search(false, Preset::TYPE_MODEL, nullptr, nullptr);
-                    break;
-                }
-			    default: break;
-			    }
-			    if (tab_id >= 0) {
-					static constexpr const char* kShortcutTabIds[] = {TAB_ID_HOME, TAB_ID_PREPARE, TAB_ID_PREVIEW, TAB_ID_MONITOR};
-					wxGetApp().mainframe->select_tab(kShortcutTabIds[tab_id]);
-				}
+		    if (const int tab_id = shortcut_tab_index(evt); tab_id >= 0) {
+				static constexpr const char* kShortcutTabIds[] = {TAB_ID_HOME, TAB_ID_PREPARE, TAB_ID_PREVIEW, TAB_ID_MONITOR};
+				wxGetApp().mainframe->select_tab(kShortcutTabIds[tab_id]);
 				if (tab_id > 0)
 					// tab panel should be focused for correct navigation between tabs
 				    wxGetApp().tab_panel()->SetFocus();
@@ -395,6 +377,15 @@ void Field::PostInitialize()
 		    evt.Skip();
 	    }, getWindow()->GetId());
     }
+}
+
+int Field::shortcut_tab_index(const wxKeyEvent& evt)
+{
+    // Windows reports AltGr as Ctrl+Alt, so AltGr characters such as "{" must not switch tabs
+    if ((evt.GetModifiers() & wxMOD_CONTROL) == 0 || KeyChord::from_event(evt).edits_text())
+        return -1;
+    const int key = evt.GetKeyCode();
+    return key >= '1' && key <= '4' ? key - '1' : -1;
 }
 
 // Values of width to alignments of fields

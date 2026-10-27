@@ -3,6 +3,7 @@
 
 #include <catch2/catch_message.hpp>
 #include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 
@@ -172,6 +173,19 @@ TEST_CASE("Typing, caret, deletion and clipboard chords edit text", "[Shortcuts]
     CHECK_FALSE(KeyChord{ 'E', wxMOD_ALT }.edits_text());
     CHECK_FALSE(KeyChord{ WXK_LEFT, wxMOD_ALT }.edits_text());
     CHECK_FALSE(KeyChord{ WXK_LEFT, wxMOD_CONTROL | wxMOD_ALT }.edits_text());
+#endif
+}
+
+TEST_CASE("Ctrl+1-4 in a settings field selects a tab, AltGr characters do not", "[Shortcuts]")
+{
+    CHECK(Field::shortcut_tab_index(key_event(wxEVT_KEY_UP, '1', wxMOD_CONTROL)) == 0);
+    CHECK(Field::shortcut_tab_index(key_event(wxEVT_KEY_UP, '4', wxMOD_CONTROL)) == 3);
+    CHECK(Field::shortcut_tab_index(key_event(wxEVT_KEY_UP, '4', wxMOD_CONTROL | wxMOD_SHIFT)) == 3);
+    CHECK(Field::shortcut_tab_index(key_event(wxEVT_KEY_UP, '5', wxMOD_CONTROL)) == -1);
+    CHECK(Field::shortcut_tab_index(key_event(wxEVT_KEY_UP, '4')) == -1);
+#ifndef __APPLE__
+    for (int key : { '1', '2', '3', '4' })
+        CHECK(Field::shortcut_tab_index(key_event(wxEVT_KEY_UP, key, wxMOD_CONTROL | wxMOD_ALT)) == -1);
 #endif
 }
 
