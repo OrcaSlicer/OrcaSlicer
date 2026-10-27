@@ -63,7 +63,7 @@
 #include <wx/menu.h>
 #include <wx/progdlg.h>
 #include <wx/tooltip.h>
-//#include <wx/glcanvas.h>
+#include <wx/glcanvas.h>
 #include <wx/filename.h>
 #include <wx/debug.h>
 #include <wx/toplevel.h>
@@ -817,7 +817,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             }
             return;}
 #endif
-        if (!handle_global_shortcut(KeyChord::from_event(evt)))
+        const KeyChord chord = KeyChord::from_event(evt);
+        if (!handle_global_shortcut(chord) && !handle_canvas_edit_shortcut(chord, evt.IsAutoRepeat()))
             evt.Skip();
     });
 
@@ -971,6 +972,31 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
     default: return false;
     }
     return true;
+}
+
+bool MainFrame::handle_canvas_edit_shortcut(const KeyChord& chord, bool repeat)
+{
+#ifdef __APPLE__
+    // The macOS Edit menu runs these from anywhere through its key equivalents.
+    return false;
+#else
+    // Off macOS the Edit menu lives in the topbar dropdown, which registers no accelerator, so these
+    // shortcuts only run while the canvas holds the keyboard focus, and GTK drops that focus silently
+    // (#10268). Text fields and the sidebar (object list included) give these keys their own meaning.
+    if (m_plater == nullptr || !is_prepare_or_preview_tab())
+        return false;
+    GLCanvas3D* const canvas = m_plater->get_current_canvas3D();
+    wxWindow* const   focus  = wxWindow::FindFocus();
+    if (canvas == nullptr || focus == canvas->get_wxglcanvas() || focus_is_text_field(focus) || m_plater->sidebar().IsDescendant(focus))
+        return false;
+    switch (wxGetApp().shortcuts().lookup(ShortcutContext::Plater, chord).value_or(Shortcut::Count)) {
+    case Shortcut::Cut:
+    case Shortcut::Copy:
+    case Shortcut::Paste:
+    case Shortcut::DeleteSelected: return canvas->handle_forwarded_shortcut(chord, repeat);
+    default: return false;
+    }
+#endif
 }
 
 DiffPresetDialog* MainFrame::make_diff_dialog()

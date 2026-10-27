@@ -74,6 +74,13 @@ static bool is_improper_category(const std::string& category, const int filament
         (!is_object_settings && category == "Support material");
 }
 
+// Menu label followed by the shortcut's current binding, so the label follows a rebind.
+static wxString with_accelerator(const wxString& label, Shortcut shortcut)
+{
+    const std::string accel = wxGetApp().shortcuts().accelerator(shortcut);
+    return accel.empty() ? label : label + "\t" + from_u8(accel);
+}
+
 
 //-------------------------------------
 //            SettingsFactory
@@ -584,14 +591,13 @@ void MenuFactory::append_menu_item_set_visible(wxMenu* menu)
 void MenuFactory::append_menu_item_delete(wxMenu* menu)
 {
 #ifdef __WINDOWS__
-    append_menu_item(menu, wxID_ANY, _L("Delete") + "\t" + _L_CONTEXT("Del", "Keyboard Shortcut"), _L("Delete the selected object"),
-        [](wxCommandEvent&) { plater()->remove_selected(); }, "menu_delete", nullptr,
-        []() { return plater()->can_delete(); }, m_parent);
+    const std::string icon = "menu_delete";
 #else
-    append_menu_item(menu, wxID_ANY, _L("Delete") + "\t" + _L_CONTEXT("Backspace", "Keyboard Shortcut"), _L("Delete the selected object"),
-        [](wxCommandEvent&) { plater()->remove_selected(); }, "", nullptr,
-        []() { return plater()->can_delete(); }, m_parent);
+    const std::string icon;
 #endif
+    append_menu_item(menu, wxID_ANY, with_accelerator(_L("Delete"), Shortcut::DeleteSelected), _L("Delete the selected object"),
+        [](wxCommandEvent&) { plater()->remove_selected(); }, icon, nullptr,
+        []() { return plater()->can_delete(); }, m_parent);
 }
 
 wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType type) {
@@ -1702,6 +1708,9 @@ void MenuFactory::create_default_menu()
         [](wxCommandEvent&) { plater()->add_file(); }, "menu_add_part", &m_default_menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
 
+    // Right clicking empty space clears the selection, so Copy would never be usable here.
+    append_menu_items_copy_paste(&m_default_menu, false);
+
     m_default_menu.AppendSeparator();
 
     append_menu_check_item(&m_default_menu, wxID_ANY, _L("Show Labels"), "",
@@ -1744,6 +1753,8 @@ void MenuFactory::create_object_menu()
 
 void MenuFactory::create_extra_object_menu()
 {
+    // Object Copy / Paste
+    append_menu_items_copy_paste(&m_object_menu);
     // Object Clone
     append_menu_item_clone(&m_object_menu);
 
@@ -2374,14 +2385,24 @@ wxMenu* MenuFactory::assemble_part_menu()
 
 void MenuFactory::append_menu_item_clone(wxMenu* menu)
 {
-    const std::string accel = wxGetApp().shortcuts().accelerator(Shortcut::CloneSelected);
-    append_menu_item(menu, wxID_ANY, _L("Clone") + (accel.empty() ? wxString() : "\t" + from_u8(accel)), "",
+    append_menu_item(menu, wxID_ANY, with_accelerator(_L("Clone"), Shortcut::CloneSelected), "",
         [](wxCommandEvent&) {
             plater()->clone_selection();
         }, "", nullptr,
         []() {
             return true;
         }, m_parent);
+}
+
+void MenuFactory::append_menu_items_copy_paste(wxMenu* menu, bool with_copy)
+{
+    if (with_copy)
+        append_menu_item(menu, wxID_ANY, with_accelerator(_L("Copy"), Shortcut::Copy), _L("Copy selection to clipboard"),
+            [](wxCommandEvent&) { plater()->copy_selection_to_clipboard(); }, "", nullptr,
+            []() { return plater()->can_copy_to_clipboard(); }, m_parent);
+    append_menu_item(menu, wxID_ANY, with_accelerator(_L("Paste"), Shortcut::Paste), _L("Paste clipboard"),
+        [](wxCommandEvent&) { plater()->paste_from_clipboard(); }, "", nullptr,
+        []() { return plater()->can_paste_from_clipboard(); }, m_parent);
 }
 
 void MenuFactory::append_menu_item_simplify(wxMenu* menu)
@@ -2788,7 +2809,7 @@ void MenuFactory::update_object_menu()
 
 void MenuFactory::update_default_menu()
 {
-    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Show Labels") }) {
+    for (auto& name : { _L("Add Primitive") , _L("Add Handy models"), _L("Paste"), _L("Show Labels") }) {
         const auto menu_item_id = m_default_menu.FindItem(name);
         if (menu_item_id != wxNOT_FOUND)
             m_default_menu.Destroy(menu_item_id);

@@ -370,6 +370,7 @@ class GLCanvas3D
             int move_volume_idx{ -1 };
             bool move_requires_threshold{ false };
             Point move_start_threshold_position_2D{ Invalid_2D_Point };
+            Point camera_start_position_2D{ Invalid_2D_Point };
             // Orca: Keep the world-space point selected at the start of a mouse pan.
             std::optional<Vec3d> camera_pan_anchor;
         };
@@ -388,13 +389,21 @@ class GLCanvas3D
         }
         void set_start_position_3D_as_invalid() { drag.start_position_3D = Drag::Invalid_3D_Point; }
         void set_move_start_threshold_position_2D_as_invalid() { drag.move_start_threshold_position_2D = Drag::Invalid_2D_Point; }
+        void set_camera_start_position_2D_as_invalid() { drag.camera_start_position_2D = Drag::Invalid_2D_Point; }
 
         bool is_start_position_2D_defined() const { return (drag.start_position_2D != Drag::Invalid_2D_Point); }
         bool is_start_position_3D_defined() const { return (drag.start_position_3D != Drag::Invalid_3D_Point); }
         bool is_move_start_threshold_position_2D_defined() const { return (drag.move_start_threshold_position_2D != Drag::Invalid_2D_Point); }
-        bool is_move_threshold_met(const Point& mouse_pos) const {
-            return (std::abs(mouse_pos(0) - drag.move_start_threshold_position_2D(0)) > Drag::MoveThresholdPx)
-                || (std::abs(mouse_pos(1) - drag.move_start_threshold_position_2D(1)) > Drag::MoveThresholdPx);
+        static bool is_threshold_met(const Point& mouse_pos, const Point& start_pos) {
+            return (std::abs(mouse_pos(0) - start_pos(0)) > Drag::MoveThresholdPx)
+                || (std::abs(mouse_pos(1) - start_pos(1)) > Drag::MoveThresholdPx);
+        }
+        bool is_move_threshold_met(const Point& mouse_pos) const { return is_threshold_met(mouse_pos, drag.move_start_threshold_position_2D); }
+        // Pointer jitter during a plain click must not read as a camera drag, or it silently cancels
+        // the context menu. An undefined start position means the drag began elsewhere: assume a drag.
+        bool is_camera_drag_threshold_met(const Point& mouse_pos) const {
+            return drag.camera_start_position_2D == Drag::Invalid_2D_Point
+                || is_threshold_met(mouse_pos, drag.camera_start_position_2D);
         }
     };
 
@@ -1280,6 +1289,8 @@ public:
     // Runs the Plater/Preview shortcut bound to chord, swallowing auto-repeats of one-shot
     // shortcuts; false when nothing is bound.
     bool handle_shortcut(const KeyChord& chord);
+    // handle_shortcut() for a key press another window received; repeat says whether it was an auto-repeat.
+    bool handle_forwarded_shortcut(const KeyChord& chord, bool repeat);
     void apply_selection_move(bool slow, bool camera_space);
     void apply_selection_rotate(double angle_z_rad);
     void finish_selection_edit();

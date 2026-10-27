@@ -85,6 +85,13 @@ and open the slider's text box. The macOS
 Edit menu, whose key equivalents run before the canvas sees the key, follows the same rule
 as the canvas.
 
+Cut, copy, paste and delete are the exception off macOS. There the Edit menu sits in the
+topbar dropdown and installs no accelerators, and GTK can drop the canvas focus without
+telling wx, so `MainFrame::handle_canvas_edit_shortcut()` runs these four from the frame's
+char hook when the focus is anywhere in the Prepare or Preview tab except the canvas itself,
+a text field or the sidebar. The canvas then handles them as if it had the key, except that
+only wx's auto-repeat flag marks a repeat, which wxGTK never sets.
+
 ## Which event a chord matches
 
 Letters, digits and special keys match on `wxEVT_KEY_DOWN`. Its key codes do not depend

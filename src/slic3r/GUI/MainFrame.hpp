@@ -281,6 +281,8 @@ class MainFrame : public DPIFrame
     }
     // Runs the Global shortcut bound to chord; false when the focused control should see the key as well.
     bool handle_global_shortcut(const KeyChord& chord);
+    // Runs a canvas edit shortcut (cut, copy, paste, delete) pressed while the canvas lacks the focus.
+    bool handle_canvas_edit_shortcut(const KeyChord& chord, bool repeat);
     void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
     wxMenu* generate_help_menu();
 
