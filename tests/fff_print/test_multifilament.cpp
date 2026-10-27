@@ -26,6 +26,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintBase.hpp"
 #include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/Layer.hpp"
 #include <limits>
 #include <map>
 #include <optional>
@@ -1990,6 +1991,40 @@ TEST_CASE("The prime tower follows an object switching filaments within one appl
         CHECK(print.config().independent_support_layer_height.value != two_filaments);
         CHECK(print.apply(model, config) == PrintBase::APPLY_STATUS_UNCHANGED);
     }
+}
+
+// The tower turns independent_support_layer_height off, which rounds the raft gap up to a whole layer
+// and lifts the objects. Objects sliced before the move have to be sliced again.
+TEST_CASE("Objects above a raft are re-sliced when a filament switch turns the prime tower on", "[MultiFilament]")
+{
+    const DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",               1 },
+        { "independent_support_layer_height", 1 },
+        { "raft_layers",                      2 },
+        { "raft_contact_distance",            0.1 },
+        { "layer_height",                     0.2 },
+        { "initial_layer_print_height",       0.2 },
+        { "prime_tower_width",                35 },
+        { "wipe_tower_x",                     120 },
+        { "wipe_tower_y",                     120 },
+        { "printable_area",                   "0x0,200x0,200x200,0x200" },
+    });
+    const auto first_layer_z = [](const Print &print) { return print.objects().front()->layers().front()->print_z; };
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config);
+    print.process();
+
+    model.objects.back()->config.set("extruder", 2);
+    print.apply(model, config);
+    REQUIRE(print.config().enable_prime_tower.value);
+    print.process();
+
+    Print fresh;
+    fresh.apply(model, config);
+    fresh.set_status_silent();
+    fresh.process();
+    CHECK_THAT(first_layer_z(print), Catch::Matchers::WithinAbs(first_layer_z(fresh), EPSILON));
 }
 
 TEST_CASE("Shared heater on IMEX printer stays hot until all filaments on it are done", "[MultiFilament]")

@@ -2225,6 +2225,12 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         // The following call may stop the background processing.
         update_apply_status(this->invalidate_state_by_config_options(new_full_config, new_changed_keys));
 
+        // The tower also turns independent_support_layer_height off, which moves objects above a raft.
+        // Re-slice them, as done above when enable_prime_tower is in print_diff.
+        if (std::find(new_changed_keys.begin(), new_changed_keys.end(), "enable_prime_tower") != new_changed_keys.end())
+            for (PrintObject *object : m_objects)
+                update_apply_status(object->invalidate_step(posSlice));
+
         update_apply_status(this->invalidate_step(psGCodeExport));
 
         if (full_config_diff.empty()) {
