@@ -1,5 +1,5 @@
-#ifndef slic3r_FillTpmsFK_hpp_
-#define slic3r_FillTpmsFK_hpp_
+#ifndef slic3r_FillTpms_hpp_
+#define slic3r_FillTpms_hpp_
 
 #include <algorithm>
 #include <utility>
@@ -59,4 +59,4 @@ protected:
 
 } // namespace Slic3r
 
-#endif // slic3r_FillTpmsFK_hpp_
+#endif // slic3r_FillTpms_hpp_
