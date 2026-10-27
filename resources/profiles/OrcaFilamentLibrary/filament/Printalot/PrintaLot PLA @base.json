@@ -1,0 +1,44 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OFLDtYZA",
+	"instantiation": "false",
+	"filament_vendor": [
+		"PrintaLot"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"filament_max_volumetric_speed": [
+		"19"
+	],
+	"filament_notes": [
+		"PrintaLot PLA, 1.75 mm. Select the profile for your printer and nozzle diameter. Use the recommended temperature for the selected build plate. Keep the build plate clean and store filament protected from moisture."
+	],
+	"close_additional_fan_first_x_layers": [
+		"1"
+	],
+	"additional_fan_full_speed_layer": [
+		"0"
+	],
+	"no_slow_down_for_cooling_on_outwalls": [
+		"0"
+	],
+	"cooling_slowdown_logic": [
+		"uniform_cooling"
+	],
+	"cooling_perimeter_transition_distance": [
+		"10"
+	]
+}

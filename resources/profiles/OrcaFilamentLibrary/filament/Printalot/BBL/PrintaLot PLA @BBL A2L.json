@@ -1,0 +1,46 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL A2L",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "8m8Ss4y0fsJQWYC7",
+	"instantiation": "true",
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"60"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		""
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.4 nozzle",
+		"Bambu Lab A2L 0.6 nozzle",
+		"Bambu Lab A2L 0.8 nozzle"
+	]
+}
