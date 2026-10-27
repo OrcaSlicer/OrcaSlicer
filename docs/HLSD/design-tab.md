@@ -44,8 +44,8 @@ Two consequences follow from deriving rather than storing:
 
 ## Geometry kernel and dependency surface
 
-The kernel is OCCT, which OrcaSlicer **already** links — `Format/STEP.cpp`, `Format/svg.cpp`
-and `Shape/TextShape.cpp` use it upstream. The Design tab adds no third-party dependency; it
+The kernel is OCCT, which OrcaSlicer **already** links — `Format/STEP.cpp` and `Format/svg.cpp`
+use it upstream. The Design tab adds no third-party dependency; it
 widens the existing OCCT build by one module flag in `deps/OCCT/OCCT.cmake`:
 
 ```cmake

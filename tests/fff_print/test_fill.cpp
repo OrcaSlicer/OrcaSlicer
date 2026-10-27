@@ -37,7 +37,7 @@
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Fill/FillGyroid.hpp"
-#include "libslic3r/Fill/FillTpmsAdaptive.hpp"
+#include "libslic3r/Fill/AdaptiveInfillField.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -1392,6 +1392,27 @@ TEST_CASE("Gyroid infill of an object matches the infill of a larger object with
     }
 }
 
+TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
+{
+    // A left turn by 135 degrees, drawn as two lines half of the 0.4 mm spacing to each side of it.
+    const double turn = 0.75 * PI;
+    Polylines paths{ Polyline{ Point::new_scale(0., 0.), Point::new_scale(10., 0.),
+                               Point::new_scale(10. + 10. * std::cos(turn), 10. * std::sin(turn)) } };
+    FillParams params;
+    params.multiline = 2;
+    multiline_fill(paths, params, 0.4f);
+    REQUIRE(paths.size() == 1);
+
+    // The outer line turns at the miter point, where the lines 0.2 mm out from both legs meet.
+    const Point miter = Point::new_scale(10. + 0.2 * std::tan(0.5 * turn), -0.2);
+    double nearest = std::numeric_limits<double>::max();
+    for (const Point &point : paths.front().points)
+        nearest = std::min(nearest, (point - miter).cast<double>().norm());
+    REQUIRE(nearest < scaled<double>(0.001));
+    // The round ends are flattened to a fraction of the offset rather than to the integer grid.
+    REQUIRE(paths.front().size() < 100);
+}
+
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
     const int    multiline = GENERATE(2, 3);
@@ -1719,9 +1740,10 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     const SparseInfillShape smooth = shape_for("100%");
 
     REQUIRE(sharp.path_count > 0);
-    // Smoothing should leave the loop count about where it was; uncapping the smoothing reach, the
-    // regression this guards against, adds about 10%.
-    const size_t allowed_extra = sharp.path_count / 50; // 2%
+    // Smoothing should leave the path count about where it was; uncapping the smoothing reach, the
+    // regression this guards against, adds a quarter to a third. Outline ends next to each other are
+    // joined into one path, so a few loops more or less are a larger share of the count.
+    const size_t allowed_extra = sharp.path_count / 10; // 10%
     REQUIRE(smooth.path_count <= sharp.path_count + allowed_extra);
     // The outlines are still rounded.
     REQUIRE(smooth.point_count > sharp.point_count);
@@ -2060,9 +2082,9 @@ TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior densi
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(60)}, print,
                                             {{"sparse_infill_pattern", pattern},
                                              {"sparse_infill_density", "25%"},
-                                             {"tpms_adaptive", adaptive},
-                                             {"tpms_interior_density", "5%"},
-                                             {"tpms_adaptive_gradient", "linear"},
+                                             {"adaptive_infill_mode", adaptive},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", "linear"},
                                              {"layer_height", 0.4},
                                              {"initial_layer_print_height", 0.4}});
     };
@@ -2089,9 +2111,9 @@ TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle heigh
     Slic3r::Test::init_and_process_print({make_cube(30., 30., 90.)}, print,
                                         {{"sparse_infill_pattern", "tpmsd"},
                                          {"sparse_infill_density", "25%"},
-                                         {"tpms_adaptive", "lobes"},
-                                         {"tpms_interior_density", "5%"},
-                                         {"tpms_adaptive_gradient", "linear"},
+                                         {"adaptive_infill_mode", "lobes"},
+                                         {"adaptive_infill_interior_density", "5%"},
+                                         {"adaptive_infill_gradient", "linear"},
                                          {"layer_height", 0.4},
                                          {"initial_layer_print_height", 0.4}});
     const Polygons core   = centered_square(5.);
@@ -2111,9 +2133,9 @@ TEST_CASE("2D adaptive TPMS infill does not change along its axis", "[Fill]")
         Slic3r::Test::init_and_process_print({along_x ? make_cube(90., 30., 30.) : make_cube(30., 30., 90.)}, print,
                                                          {{"sparse_infill_pattern", "gyroid"},
                                                           {"sparse_infill_density", "25%"},
-                                                          {"tpms_adaptive", adaptive},
-                                                          {"tpms_interior_density", "5%"},
-                                                          {"tpms_adaptive_gradient", "linear"},
+                                                          {"adaptive_infill_mode", adaptive},
+                                                          {"adaptive_infill_interior_density", "5%"},
+                                                          {"adaptive_infill_gradient", "linear"},
                                                           {"layer_height", 0.4},
                                                           {"initial_layer_print_height", 0.4}});
     };
@@ -2147,9 +2169,9 @@ TEST_CASE("Adaptive TPMS shells and blend keep the whole deep core of a tall obj
         Slic3r::Test::init_and_process_print({make_cube(30., 30., 90.)}, print,
                                             {{"sparse_infill_pattern", "tpmsd"},
                                              {"sparse_infill_density", "25%"},
-                                             {"tpms_adaptive", adaptive},
-                                             {"tpms_interior_density", "5%"},
-                                             {"tpms_adaptive_gradient", "linear"},
+                                             {"adaptive_infill_mode", adaptive},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", "linear"},
                                              {"layer_height", 0.4},
                                              {"initial_layer_print_height", 0.4}});
     };
@@ -2179,9 +2201,9 @@ TEST_CASE("Adaptive TPMS infill is sparse at the center of both of two united sp
         Slic3r::Test::init_and_process_print({TriangleMesh(spheres)}, print,
                                             {{"sparse_infill_pattern", "gyroid"},
                                              {"sparse_infill_density", "25%"},
-                                             {"tpms_adaptive", adaptive},
-                                             {"tpms_interior_density", "5%"},
-                                             {"tpms_adaptive_gradient", "linear"},
+                                             {"adaptive_infill_mode", adaptive},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", "linear"},
                                              {"layer_height", 0.4},
                                              {"initial_layer_print_height", 0.4}});
     };
@@ -2209,9 +2231,9 @@ TEST_CASE("Adaptive TPMS gradients keep the surface density deeper in the order 
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(40)}, print,
                                             {{"sparse_infill_pattern", "tpmsd"},
                                              {"sparse_infill_density", "25%"},
-                                             {"tpms_adaptive", "lobes"},
-                                             {"tpms_interior_density", "5%"},
-                                             {"tpms_adaptive_gradient", gradient},
+                                             {"adaptive_infill_mode", "lobes"},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", gradient},
                                              {"layer_height", 0.4},
                                              {"initial_layer_print_height", 0.4}});
         return sparse_infill_length(print, 0., 40., centered_square(20.));
@@ -2236,9 +2258,9 @@ TEST_CASE("Adaptive TPMS settings leave the infill unchanged when they do not ap
                                         {{"sparse_infill_pattern", pattern},
                                          {"sparse_infill_density", "20%"},
                                          {"layer_height", 0.2},
-                                         {"tpms_adaptive", adaptive},
-                                         {"tpms_interior_density", "40%"},
-                                         {"tpms_adaptive_gradient", "exponential"}});
+                                         {"adaptive_infill_mode", adaptive},
+                                         {"adaptive_infill_interior_density", "40%"},
+                                         {"adaptive_infill_gradient", "exponential"}});
     const SparseInfillShape expected = sparse_infill_shape(reference);
     REQUIRE(expected.path_count > 0);
     CHECK(sparse_infill_shape(tuned).sequence == expected.sequence);
@@ -2252,7 +2274,7 @@ TEST_CASE("Adaptive gyroid infill ignores the Z-buckling optimization", "[Fill]"
                                             {{"sparse_infill_pattern", "gyroid"},
                                              {"sparse_infill_density", "10%"},
                                              {"gyroid_optimized", gyroid_optimized},
-                                             {"tpms_adaptive", "lobes"},
+                                             {"adaptive_infill_mode", "lobes"},
                                              {"layer_height", 0.2}});
         return sparse_infill_shape(print);
     };
@@ -2268,10 +2290,10 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
     // An 80 x 80 x 40 mm box around both regions, which share its radial field.
     const ExPolygons box{ExPolygon(Points{Point::new_scale(60., 20.), Point::new_scale(140., 20.), Point::new_scale(140., 100.),
                                           Point::new_scale(60., 100.)})};
-    std::vector<TpmsRadialField::Slice> slices;
+    std::vector<AdaptiveInfillField::Slice> slices;
     for (int i = 0; i < 200; ++i)
         slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
-    const TpmsRadialField field(slices, get_extents(box), TpmsAdaptiveMode::Lobes, [] {});
+    const AdaptiveInfillField field(slices, get_extents(box), AdaptiveInfillMode::Lobes, [] {});
 
     auto circle = [](double radius) {
         Polygon contour = make_circle_num_segments(scale_(radius), 120);
@@ -2285,13 +2307,13 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
         filler->spacing           = 0.45;
         filler->angle             = float(M_PI / 7.);
         filler->z                 = z;
-        filler->tpms_radial_field = &field;
+        filler->adaptive_infill_field = &field;
 
         FillParams params;
         params.density                = 0.2f;
-        params.tpms_adaptive          = TpmsAdaptiveMode::Lobes;
-        params.tpms_interior_density  = 0.05f;
-        params.tpms_adaptive_gradient = TpmsAdaptiveGradient::Linear;
+        params.adaptive_infill_mode          = AdaptiveInfillMode::Lobes;
+        params.adaptive_infill_interior_density  = 0.05f;
+        params.adaptive_infill_gradient = AdaptiveInfillGradient::Linear;
         params.layer_height           = 0.2;
         params.dont_adjust            = true;
         Surface surface(stInternal, expolygon);
@@ -2328,8 +2350,8 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
     Slic3r::Test::init_and_process_print({Slic3r::Test::cube(30)}, print,
                                         {{"sparse_infill_pattern", pattern},
                                          {"sparse_infill_density", "25%"},
-                                         {"tpms_adaptive", "lobes"},
-                                         {"tpms_interior_density", "5%"},
+                                         {"adaptive_infill_mode", "lobes"},
+                                         {"adaptive_infill_interior_density", "5%"},
                                          {"layer_height", 0.2},
                                          {"initial_layer_print_height", 0.2},
                                          {"resolution", 0.012}});
@@ -2352,4 +2374,134 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
         for (const Point &point : path.equally_spaced_points(scale_(0.25)))
             max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
     CHECK(unscale<double>(max_distance) <= 0.012);
+}
+
+TEST_CASE("Infill lines whose ends are next to each other join into one path", "[Fill]")
+{
+    // An out-and-back pair 1 mm apart, as multiline infill leaves, and a line 19 mm away.
+    Polylines lines { Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)), Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                      Polyline(Point::new_scale(0., 20.), Point::new_scale(10., 20.)) };
+    join_close_ends(lines, scale_(1.5), true);
+
+    REQUIRE(lines.size() == 2);
+    const auto joined = std::find_if(lines.begin(), lines.end(), [](const Polyline &pl) { return pl.size() == 4; });
+    REQUIRE(joined != lines.end());
+    // Both lines plus the 1 mm between them, joined at one end only, as joining the other end too would close a loop.
+    CHECK_THAT(unscale<double>(joined->length()), Catch::Matchers::WithinAbs(21., 1e-6));
+    CHECK(joined->first_point() != joined->last_point());
+}
+
+TEST_CASE("Joined infill lines print each line once", "[Fill]")
+{
+    // The middle line comes first and both of its ends get joined, so the group has to be walked from an outer line.
+    Polylines lines { Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)), Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                      Polyline(Point::new_scale(10., -1.), Point::new_scale(0., -1.)) };
+    join_close_ends(lines, scale_(1.5), true);
+
+    REQUIRE(lines.size() == 1);
+    CHECK(lines.front().size() == 6);
+    // Three 10 mm lines and two 1 mm joins.
+    CHECK_THAT(unscale<double>(lines.front().length()), Catch::Matchers::WithinAbs(32., 1e-6));
+}
+
+TEST_CASE("Infill line ends are not joined across another line", "[Fill]")
+{
+    // A pair 1 mm apart whose left ends have a third line running between them, which a join there would cross.
+    Polylines lines { Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)), Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                      Polyline(Point::new_scale(-5., 0.5), Point::new_scale(5., 0.5)) };
+    join_close_ends(lines, scale_(1.5), true);
+
+    REQUIRE(lines.size() == 2);
+    const auto joined = std::find_if(lines.begin(), lines.end(), [](const Polyline &pl) { return pl.size() == 4; });
+    REQUIRE(joined != lines.end());
+    // Joined on the right, where nothing is in between, so the left ends stay open.
+    CHECK(joined->first_point().x() == 0);
+    CHECK(joined->last_point().x() == 0);
+}
+
+TEST_CASE("Infill lines that cannot reverse join only end to start", "[Fill]")
+{
+    const Point a(Point::new_scale(0., 0.)), b(Point::new_scale(10., 0.)), c(Point::new_scale(10., 1.)), d(Point::new_scale(0., 1.));
+    SECTION("Ends that would need a reversal stay apart") {
+        Polylines lines { Polyline(a, b), Polyline(d, c) };
+        join_close_ends(lines, scale_(1.5), false);
+        CHECK(lines.size() == 2);
+    }
+    SECTION("The end of one line joins the start of the next, both kept in their direction") {
+        Polylines lines { Polyline(c, d), Polyline(a, b) };
+        join_close_ends(lines, scale_(1.5), false);
+        REQUIRE(lines.size() == 1);
+        const Points &points = lines.front().points;
+        REQUIRE(points.size() == 4);
+        auto position = [&points](const Point &p) { return std::find(points.begin(), points.end(), p) - points.begin(); };
+        CHECK(position(a) < position(b));
+        CHECK(position(c) < position(d));
+    }
+}
+
+// Orca: the top surface fills of the topmost layer, which keep their order, each as its extrusions in print order.
+static std::vector<std::vector<const ExtrusionEntity *>> top_surface_fills(const Print &print)
+{
+    std::vector<std::vector<const ExtrusionEntity *>> fills;
+    for (const LayerRegion *region : print.objects().front()->layers().back()->regions())
+        for (const ExtrusionEntity *entity : region->fills.entities)
+            if (auto *fill = dynamic_cast<const ExtrusionEntityCollection *>(entity); fill && fill->no_sort)
+                if (std::any_of(fill->entities.begin(), fill->entities.end(), [](const ExtrusionEntity *ee) { return ee->role() == erTopSolidInfill; }))
+                    fills.emplace_back(fill->entities.begin(), fill->entities.end());
+    return fills;
+}
+
+static double travel_between(const std::vector<const ExtrusionEntity *> &extrusions)
+{
+    double travel = 0.;
+    for (size_t i = 1; i < extrusions.size(); ++ i)
+        travel += unscale<double>((extrusions[i]->first_point() - extrusions[i - 1]->last_point()).cast<double>().norm());
+    return travel;
+}
+
+TEST_CASE("Monotonic line top surfaces print their gap fill next to their lines and keep the lines in order", "[Fill]")
+{
+    // The slanted legs of the letter A leave gap fill along the walls where the lines end.
+    auto slice_letter = [](Print &print, Model &model, const char *gap_fill_target) {
+        auto config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"top_surface_pattern", "monotonicline"},
+                                       {"gap_fill_target", gap_fill_target},
+                                       {"filter_out_gap_fill", 0},
+                                       {"top_shell_layers", 3},
+                                       {"layer_height", 0.2},
+                                       {"initial_layer_print_height", 0.2}});
+        Slic3r::Test::init_print({Slic3r::Test::TestMesh::A}, print, model, config);
+        print.process();
+    };
+    Print print_without, print_with;
+    Model model_without, model_with;
+    slice_letter(print_without, model_without, "nowhere");
+    slice_letter(print_with, model_with, "topbottom");
+    const auto without = top_surface_fills(print_without);
+    const auto with    = top_surface_fills(print_with);
+    REQUIRE(with.size() == without.size());
+
+    auto   is_gap_fill = [](const ExtrusionEntity *ee) { return ee->role() == erGapFill; };
+    size_t gap_fills = 0, gap_fills_before_a_line = 0;
+    for (size_t i = 0; i < with.size(); ++ i) {
+        std::vector<const ExtrusionEntity *> lines, gaps;
+        std::partition_copy(with[i].begin(), with[i].end(), std::back_inserter(gaps), std::back_inserter(lines), is_gap_fill);
+        const auto last_line = std::find_if_not(with[i].rbegin(), with[i].rend(), is_gap_fill);
+        gap_fills += gaps.size();
+        gap_fills_before_a_line += std::count_if(last_line, with[i].rend(), is_gap_fill);
+        // The lines are those of the surface without gap fill, in the same order and direction.
+        REQUIRE(lines.size() == without[i].size());
+        for (size_t j = 0; j < lines.size(); ++ j) {
+            CHECK(lines[j]->first_point() == without[i][j]->first_point());
+            CHECK(lines[j]->last_point() == without[i][j]->last_point());
+        }
+        // Printed where they are, the gap fills travel less than printed after the last line.
+        if (! gaps.empty()) {
+            std::vector<const ExtrusionEntity *> appended = lines;
+            appended.insert(appended.end(), gaps.begin(), gaps.end());
+            CHECK(travel_between(with[i]) < travel_between(appended));
+        }
+    }
+    REQUIRE(gap_fills > 0);
+    CHECK(gap_fills_before_a_line > 0);
 }

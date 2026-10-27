@@ -242,6 +242,14 @@ void AppConfig::set_defaults()
         set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
+    // ORCA: whether the G-code preview keeps the opacity of the filament colors
+    if (get("preview_translucent_filaments").empty())
+        set_bool("preview_translucent_filaments", true);
+
+    // ORCA: whether realistic view gives the opaque toolpaths a glossy highlight
+    if (get(SETTING_OPENGL_REALISTIC_GLOSS).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_GLOSS, true);
+
     // ORCA: view type the G-code preview opens with. "auto" keeps the automatic choice (Filament for
     // multi material prints, Line Type for single material ones), "last" restores the view type the user
     // picked last, any other value is a fixed view type name, see GCodeViewer::view_type_to_config_name().
@@ -410,6 +418,8 @@ void AppConfig::set_defaults()
 
     if (get("show_labels").empty())
         set_bool("show_labels", false);
+    if (get("show_collision_volumes").empty())
+        set_bool("show_collision_volumes", false);
 
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);
@@ -695,6 +705,9 @@ void AppConfig::set_defaults()
     if (get("is_split_compound").empty()) {
         set_bool("is_split_compound", false);
     }
+    if (get("enable_primitive_size_dialog").empty()) {
+        set_bool("enable_primitive_size_dialog", true);
+    }
 
     if(get("installed_networking").empty()) {
         set_bool("installed_networking", false);
@@ -703,6 +716,9 @@ void AppConfig::set_defaults()
 #ifdef __linux__
     if (get("window_buttons_on_left").empty())
         set_bool("window_buttons_on_left", false);
+
+    if (get("prefer_discrete_gpu").empty())
+        set_bool("prefer_discrete_gpu", false);
 #endif
 
     if (get("use_printer_agents").empty())
@@ -927,7 +943,10 @@ std::string AppConfig::load(bool read_only)
                 }
             } else if (it.key() == "orca_presets") {
                 for (auto& j_model : it.value()) {
-                    m_printer_settings[j_model["machine"].get<std::string>()] = j_model;
+                    auto& settings = m_printer_settings[j_model["machine"].get<std::string>()];
+                    settings.clear();
+                    for (auto item = j_model.begin(); item != j_model.end(); ++item)
+                        settings[item.key()] = item.value().is_string() ? item.value().get<std::string>() : item.value().dump();
                 }
             } else if (it.key() == "local_machines") {
                 for (auto m = it.value().begin(); m != it.value().end(); ++m) {
@@ -1890,19 +1909,43 @@ std::string AppConfig::lock_path()
     return Slic3r::data_dir().empty() ? std::string() : config_path() + ".lock";
 }
 
-std::string AppConfig::config_path()
+std::string AppConfig::config_path(const std::string &data_dir, EAppMode mode)
 {
 #ifdef USE_JSON_CONFIG
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".conf")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".conf")).make_preferred().string();
+    const char *extension = ".conf";
 #else
-    std::string path = (m_mode == EAppMode::Editor) ?
-        (boost::filesystem::path(Slic3r::data_dir()) / (SLIC3R_APP_KEY ".ini")).make_preferred().string() :
-        (boost::filesystem::path(Slic3r::data_dir()) / (GCODEVIEWER_APP_KEY ".ini")).make_preferred().string();
+    const char *extension = ".ini";
 #endif
+    const char *name = (mode == EAppMode::Editor) ? SLIC3R_APP_KEY : GCODEVIEWER_APP_KEY;
+    return (boost::filesystem::path(data_dir) / (std::string(name) + extension)).make_preferred().string();
+}
 
-    return path;
+std::string AppConfig::config_path()
+{
+    return config_path(Slic3r::data_dir(), m_mode);
+}
+
+bool AppConfig::peek_bool(const std::string &data_dir, const std::string &key)
+{
+    try {
+        boost::nowide::ifstream ifs(config_path(data_dir, EAppMode::Editor));
+        if (!ifs.is_open())
+            return false;
+        // Parses the leading JSON value only, so the checksum line Windows appends is ignored.
+        json j;
+        ifs >> j;
+        const auto app = j.find("app");
+        if (app == j.end() || !app->is_object())
+            return false;
+        const auto it = app->find(key);
+        if (it == app->end())
+            return false;
+        if (it->is_boolean())
+            return it->get<bool>();
+        return it->is_string() && is_true(it->get<std::string>());
+    } catch (const std::exception &) {
+        return false;
+    }
 }
 
 std::string AppConfig::version_check_url() const

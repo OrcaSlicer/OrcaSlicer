@@ -14,6 +14,7 @@
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "libslic3r/Preset.hpp"
 #include <functional>
+#include <memory>
 #include <wx/busycursor.h>
 #include <cstddef>
 #include "slic3r/GUI/Project.hpp"
@@ -47,9 +48,13 @@
 #include <ctime>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
+#include "slic3r/GUI/ParamsPanel.hpp"
+#include "slic3r/GUI/UnsavedChangesDialog.hpp"
+#include "slic3r/GUI/Widgets/SideButton.hpp"
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <wx/textentry.h>
+#include <wx/spinctrl.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
 #include <wx/simplebook.h>
@@ -107,6 +112,8 @@
 #include "../Utils/PrintHost.hpp"
 
 #include "GUI_App.hpp"
+#include "ImGuiWrapper.hpp"
+#include "OpenGLManager.hpp"
 #include "Shortcuts.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "PublishSettingsDialog.hpp"
@@ -184,18 +191,31 @@ enum class ERescaleTarget
 
 namespace {
 
+bool focus_is_text_field(wxWindow* focus)
+{
+    if (dynamic_cast<wxTextEntryBase*>(focus) || dynamic_cast<wxWebView*>(focus))
+        return true; // a web page can have its own text fields
+    if (dynamic_cast<wxSpinCtrl*>(focus) || dynamic_cast<wxSpinCtrlDouble*>(focus))
+        return true; // the native Windows spin control is not a wxTextEntry
+    return false;
+}
+
+// Only a scene canvas draws ImGui, and a hidden one can keep the wx focus after a tab switch.
+const ImGuiWrapper* focused_canvas_imgui(wxWindow* focus)
+{
+    if (!OpenGLManager::is_scene_canvas(focus) || !focus->IsShownOnScreen())
+        return nullptr;
+    return wxGetApp().imgui();
+}
+
 // Space opens the speed dial, but it is the activation key for buttons, checkboxes and other
-// controls. CHAR_HOOK runs before the focused child, so only take Space when the focused window has
-// no keyboard-activation meaning of its own. Canvases (GLCanvas3D) and panels are not controls and
-// fall through to "open"; the Notebook itself does too, so Space still opens the dial on any page.
+// controls, so only take Space when the focused window has no keyboard-activation meaning of its
+// own. Canvases (GLCanvas3D) and panels are not controls and fall through to "open"; the Notebook
+// itself does too, so Space still opens the dial on any page.
 bool focus_keeps_space(wxWindow* focus)
 {
     if (!focus)
         return false;
-    if (dynamic_cast<wxTextEntryBase*>(focus))
-        return true; // typing a space into a text field
-    if (dynamic_cast<wxWebView*>(focus))
-        return true; // web content scrolls and hosts its own text fields
     if (dynamic_cast<::Button*>(focus))
         return true; // custom button: Space clicks it (it is a wxWindow, not a wxControl)
     if (dynamic_cast<StaticBox*>(focus))
@@ -382,6 +402,8 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
 
+MainFrame::~MainFrame() = default;
+
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
     , m_printhost_queue_dlg(new PrintHostQueueDialog(this))
@@ -389,7 +411,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     , m_recent_projects(18)
     , m_settings_dialog(this)
     , m_idle([] { return wxGetApp().input_idle_ms(); })
-    , m_diff_dialog("compare_presets", 100, [this] { return make_diff_dialog(); })
+    , m_diff_dialog(std::make_unique<Lazy<DiffPresetDialog>>("compare_presets", 100, [this] { return make_diff_dialog(); }))
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
@@ -716,6 +738,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         MarkdownTip::ExitTip();
         // Prevent queued selection/UI refresh work from running as normal during reset.
         wxGetApp().set_closing(true);
+        wxGetApp().start_exit_watchdog();
 
         m_plater->reset();
         this->shutdown();
@@ -785,7 +808,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             this->Iconize();
             return;
         }
-        if (evt.CmdDown() && evt.GetKeyCode() == 'Q') { wxPostEvent(this, wxCloseEvent(wxEVT_CLOSE_WINDOW)); return;}
         if (evt.CmdDown() && evt.RawControlDown() && evt.GetKeyCode() == 'F') {
             EnableFullScreenView(true);
             if (IsFullScreen()) {
@@ -816,16 +838,12 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
 bool MainFrame::handle_global_shortcut(const KeyChord& chord)
 {
-    // ImGui draws its text fields (the text tool's box, a sketch value field) on the GL canvas, so
-    // while one of them is typed into the focused wx window is that canvas or an in-canvas frame:
-    // neither is a wxControl, so focus_keeps_space() cannot see it and CHAR_HOOK takes the chord
-    // here first -- Space opened the Speed Dial, Ctrl+P the Preferences, and the field never saw
-    // the key. ImGui raises WantCaptureKeyboard while one of its items owns the keyboard, so leave
-    // the key to it then. A focused wxControl (text field, list, web view) is untouched: those
-    // keep their own keys, and ImGui's flag can outlive the focus moving to one of them.
+    // CHAR_HOOK runs before the focused window, so leave text-editing keys to a focused text field and
+    // the keys ImGui owns to the focused canvas.
     wxWindow* const focus = wxWindow::FindFocus();
-    ImGuiWrapper* const imgui = wxGetApp().imgui();
-    if (focus != nullptr && imgui != nullptr && imgui->want_keyboard() && dynamic_cast<wxControl*>(focus) == nullptr)
+    if (chord.edits_text() && focus_is_text_field(focus))
+        return false;
+    if (const ImGuiWrapper* imgui = focused_canvas_imgui(focus); imgui != nullptr && imgui->owns_key(chord))
         return false;
 
     const std::optional<Shortcut> shortcut = wxGetApp().shortcuts().lookup(ShortcutContext::Global, chord);
@@ -889,11 +907,18 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
         if (can_export_model())
             publish_project();
         break;
+    case Shortcut::Quit:
+        Close(false);
+        break;
     case Shortcut::ShowLabels:
         if (m_plater && m_plater->is_view3D_shown()) {
             m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown());
             m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
         }
+        break;
+    case Shortcut::ShowCollisionVolumes:
+        if (m_plater && m_plater->is_view3D_shown() && m_plater->printer_technology() == ptFFF)
+            m_plater->show_collision_volumes(!m_plater->are_collision_volumes_shown());
         break;
     case Shortcut::ViewDefault:
         if (m_plater) {
@@ -3104,7 +3129,7 @@ void MainFrame::init_menubar_as_editor()
         fileMenu->AppendSeparator();
 
 #ifndef __APPLE__
-        append_menu_item(fileMenu, wxID_EXIT, _L("Quit"), wxString::Format(_L("Quit")),
+        append_shortcut_item(fileMenu, Shortcut::Quit, false, _L("Quit"), wxString::Format(_L("Quit")),
             [this](wxCommandEvent&) { Close(false); }, "menu_exit", nullptr);
 #else
         append_menu_item(fileMenu, wxID_EXIT, _L("Quit"), wxString::Format(_L("Quit")),
@@ -3118,12 +3143,15 @@ void MainFrame::init_menubar_as_editor()
     {
         editMenu = new wxMenu();
 
+    // Feeds the key to ImGui instead when ImGui has the focused canvas's keyboard, since the menu
+    // handles its key equivalents before the canvas receives the key.
     auto handle_key_event = [](wxKeyEvent& evt) {
-        if (wxGetApp().imgui()->update_key_data(evt)) {
-            wxGetApp().plater()->get_current_canvas3D()->render();
-            return true;
-        }
-        return false;
+        const ImGuiWrapper* imgui = focused_canvas_imgui(wxWindow::FindFocus());
+        if (imgui == nullptr || !imgui->owns_keyboard())
+            return false;
+        wxGetApp().imgui()->update_key_data(evt);
+        wxGetApp().plater()->get_current_canvas3D()->render();
+        return true;
     };
 #ifndef __APPLE__
         // BBS undo
@@ -3452,10 +3480,30 @@ void MainFrame::init_menubar_as_editor()
             this);
 
         viewMenu->AppendSeparator();
+        wxMenuItem* mouse3d_settings = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show 3Dconnexion Settings"), Shortcut::Mouse3DSettings, true),
+            _L("Show/Hide 3Dconnexion devices settings dialog"),
+            [this](wxCommandEvent&) {
+                Mouse3DController& controller = m_plater->get_mouse3d_controller();
+                controller.show_settings_dialog(!controller.is_settings_dialog_shown());
+                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+            },
+            this, [this]() { return is_prepare_or_preview_tab() && m_plater->get_mouse3d_controller().can_show_settings_dialog(); },
+            [this]() { return m_plater->get_mouse3d_controller().is_settings_dialog_shown(); }, this);
+        m_shortcut_menu_items.push_back({ mouse3d_settings, Shortcut::Mouse3DSettings, _L("Show 3Dconnexion Settings"), true });
+
+        viewMenu->AppendSeparator();
         wxMenuItem* show_labels = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show &Labels"), Shortcut::ShowLabels, true), _L("Show object labels in 3D scene."),
             [this](wxCommandEvent&) { m_plater->show_view3D_labels(!m_plater->are_view3D_labels_shown()); m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT)); }, this,
             [this]() { return m_plater->is_view3D_shown(); }, [this]() { return m_plater->are_view3D_labels_shown(); }, this);
         m_shortcut_menu_items.push_back({ show_labels, Shortcut::ShowLabels, _L("Show &Labels"), true });
+
+        wxMenuItem* show_collision_volumes = append_menu_check_item(
+            viewMenu, wxID_ANY, shortcut_label(_L("Show all collision volumes"), Shortcut::ShowCollisionVolumes, true),
+            _L("Show the full height of every configured collision volume, including on an empty bed."),
+            [this](wxCommandEvent&) { m_plater->show_collision_volumes(!m_plater->are_collision_volumes_shown()); }, this,
+            [this]() { return m_plater->is_view3D_shown() && m_plater->printer_technology() == ptFFF; },
+            [this]() { return m_plater->are_collision_volumes_shown(); }, this);
+        m_shortcut_menu_items.push_back({ show_collision_volumes, Shortcut::ShowCollisionVolumes, _L("Show all collision volumes"), true });
 
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show &Overhang"), _L("Show object overhang highlight in 3D scene."),
             [this](wxCommandEvent &) {
@@ -4227,7 +4275,7 @@ void MainFrame::prebuild_pages_when_idle()
     for (LazyBase* page : m_lazy_pages)
         if (page->prebuild_order() >= 0)
             m_idle.add(*page);
-    m_idle.add(m_diff_dialog);
+    m_idle.add(*m_diff_dialog);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": prebuild queue: " << m_idle.names();
     m_idle.start();
     m_prebuild_started = true;

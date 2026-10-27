@@ -1,4 +1,5 @@
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
 #include "GUI_ObjectList.hpp"
@@ -26,6 +27,7 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "SingleChoiceDialog.hpp"
 #include "StepMeshDialog.hpp"
+#include "PrimitiveSizeDialog.hpp"
 
 
 #include "slic3r/GUI/Event.hpp"
@@ -65,6 +67,9 @@
 #include <unordered_map>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/log/trivial.hpp>
 #include <wx/arrstr.h>
 #include <wx/dc.h>
@@ -100,6 +105,7 @@
 #include <wx/renderer.h>
 #endif /* __WXMSW__ */
 #include "Gizmos/GLGizmoScale.hpp"
+#include "Gizmos/GLGizmosManager.hpp"
 
 #include "libslic3r/TriangleMeshDeal.hpp"
 
@@ -1196,10 +1202,7 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
         int plate_idx = -1;
         const ItemType type0 = m_objects_model->GetItemType(item, plate_idx);
         if (plate_idx >= 0) {
-            auto plate = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
-            if (plate->get_plate_name() != name) {
-                plate->set_plate_name(name);
-            }
+            wxGetApp().plater()->rename_plate(plate_idx, name);
             m_objects_model->SetCurSelectedPlateFullName(plate_idx, name);
         }
         return;
@@ -1618,7 +1621,9 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
             get_selected_item_indexes(obj_idx, vol_idx, item);
             if (obj_idx != -1) {
                 Plater::TakeSnapshot snapshot(plater, _u8L("Shift objects to bed"));
-                (*m_objects)[obj_idx]->ensure_on_bed();
+                // Shift on request also when auto drop is off, which ensure_on_bed() skips.
+                ModelObject* mo = (*m_objects)[obj_idx];
+                mo->translate_instances(-mo->min_z() * Vec3d::UnitZ());
                 cnv->reload_scene(true, true);
                 update_info_items(obj_idx);
                 notify_instance_updated(obj_idx);
@@ -2499,41 +2504,112 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
     }
 }
 
-static TriangleMesh create_mesh(const std::string& type_name, const BoundingBoxf3& bb)
+// The dimensions the size dialog asks for, filled with the default size of the primitive.
+static std::vector<PrimitiveSizeDialog::Field> primitive_size_fields(const std::string& type_name)
 {
     const double side = wxGetApp().plater()->canvas3D()->get_size_proportional_to_max_bed_size(0.1);
 
+    if (type_name == "Cube")
+        return {{_L("X"), side}, {_L("Y"), side}, {_L("Z"), side}};
+    if (type_name == "Cylinder" || type_name == "Cone")
+        return {{_L("Diameter"), side}, {_L("Height"), side}};
+    if (type_name == "Sphere")
+        return {{_L("Diameter"), side}};
+    if (type_name == "Disc")
+        return {{_L("Diameter"), side}, {_L("Height"), 0.2}};
+    if (type_name == "Torus")
+        // TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+        return {{_L("Inner diameter"), 0.75 * side}, {_L("Tube diameter"), 0.25 * side}};
+    return {};
+}
+
+// Replaces the default values with the size the user saved for the primitive, stored as space separated numbers.
+static void apply_saved_primitive_size(std::vector<PrimitiveSizeDialog::Field>& fields, const std::string& saved)
+{
+    std::vector<std::string> tokens;
+    boost::split(tokens, saved, boost::is_space(), boost::token_compress_on);
+    if (tokens.size() != fields.size())
+        return;
+    std::vector<double> values;
+    for (const std::string& token : tokens) {
+        const double value = string_to_double_decimal_point(token);
+        if (!std::isfinite(value) || value <= 0.)
+            return;
+        values.push_back(value);
+    }
+    for (size_t i = 0; i < fields.size(); ++i)
+        fields[i].value = values[i];
+}
+
+// interactive starts from the size the user saved and asks for the size unless the user turned the dialog off;
+// otherwise the primitive gets its built-in default size. nullopt when the user cancels.
+static std::optional<std::vector<double>> primitive_size(const std::string& type_name, bool interactive)
+{
+    std::vector<PrimitiveSizeDialog::Field> fields     = primitive_size_fields(type_name);
+    AppConfig*                              app_config = wxGetApp().app_config;
+    if (interactive && !fields.empty()) {
+        apply_saved_primitive_size(fields, app_config->get("primitive_size", type_name));
+        if (app_config->get_bool("enable_primitive_size_dialog")) {
+            PrimitiveSizeDialog dlg(wxGetApp().mainframe, _L(type_name), fields);
+            if (dlg.ShowModal() != wxID_OK)
+                return std::nullopt;
+            if (dlg.dont_show_again())
+                app_config->set_bool("enable_primitive_size_dialog", false);
+            if (dlg.save_as_default()) {
+                std::string saved;
+                for (double value : dlg.get_values())
+                    saved += (saved.empty() ? "" : " ") + float_to_string_decimal_point(value);
+                app_config->set_str("primitive_size", type_name, saved);
+            }
+            return dlg.get_values();
+        }
+    }
+    std::vector<double> size;
+    for (const PrimitiveSizeDialog::Field& field : fields)
+        size.push_back(field.value);
+    return size;
+}
+
+// Angle step that keeps the facets of a circle of this radius within 0.002 mm of it, in 16 to 720 segments.
+static double primitive_angle_step(double radius)
+{
+    const double step = 2. * std::acos(1. - std::min(1., 0.002 / radius));
+    return std::clamp(step, 2. * PI / 720., 2. * PI / 16.);
+}
+
+// size holds the values of primitive_size_fields(type_name).
+static TriangleMesh create_mesh(const std::string& type_name, const std::vector<double>& size, const BoundingBoxf3& bb)
+{
     TriangleMesh mesh;
     if (type_name == "Cube")
         // Sitting on the print bed, left front front corner at (0, 0).
-        mesh = TriangleMesh(its_make_cube(side, side, side));
-    else if (type_name == "Cylinder")
+        mesh = TriangleMesh(its_make_cube(size[0], size[1], size[2]));
+    else if (type_name == "Cylinder" || type_name == "Disc")
         // Centered around 0, sitting on the print bed.
-        // The cylinder has the same volume as the box above.
-        mesh = TriangleMesh(its_make_cylinder(0.5 * side, side));
+        mesh = TriangleMesh(its_make_cylinder(0.5 * size[0], size[1], primitive_angle_step(0.5 * size[0])));
     else if (type_name == "Sphere")
         // Centered around 0, half the sphere below the print bed, half above.
-        // The sphere has the same volume as the box above.
-        mesh = TriangleMesh(its_make_sphere(0.5 * side, PI / 90));
+        mesh = TriangleMesh(its_make_sphere(0.5 * size[0], primitive_angle_step(0.5 * size[0])));
     else if (type_name == "Slab")
         // Sitting on the print bed, left front front corner at (0, 0).
         mesh = TriangleMesh(its_make_cube(bb.size().x() * 1.5, bb.size().y() * 1.5, bb.size().z() * 0.5));
     else if (type_name == "Cone")
-        mesh = TriangleMesh(its_make_cone(0.5 * side, side));
-    else if (type_name == "Disc")
-        mesh = TriangleMesh(its_make_cylinder(0.5 * side, 0.2f));
-    else if (type_name == "Torus")
-        mesh = TriangleMesh(its_make_torus(0.5 * side, 0.125 * side,(PI / 60)));
+        mesh = TriangleMesh(its_make_cone(0.5 * size[0], size[1], primitive_angle_step(0.5 * size[0])));
+    else if (type_name == "Torus") {
+        const double tube_radius = 0.5 * size[1];
+        const double radius      = 0.5 * size[0] + tube_radius;
+        mesh = TriangleMesh(its_make_torus(radius, tube_radius, primitive_angle_step(radius + tube_radius), primitive_angle_step(tube_radius)));
+    }
     return mesh;
 }
 
-void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type)
+void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive)
 {
     // BBS: single snapshot
     Plater::SingleSnapshot single(wxGetApp().plater());
 
     if (type == ModelVolumeType::INVALID) {
-        load_shape_object(type_name);
+        load_shape_object(type_name, interactive);
         return;
     }
 
@@ -2552,6 +2628,10 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     if (instance_idx == -1)
         return;
 
+    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive);
+    if (!size)
+        return;
+
     take_snapshot(_u8L("Add primitive"));
 
     // Selected object
@@ -2559,7 +2639,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     // Bounding box of the selected instance in world coordinate system including the translation, without modifiers.
     BoundingBoxf3 instance_bb = model_object.instance_bounding_box(instance_idx);
 
-    TriangleMesh mesh = create_mesh(type_name, instance_bb);
+    TriangleMesh mesh = create_mesh(type_name, *size, instance_bb);
 
 	// Mesh will be centered when loading.
     ModelVolume *new_volume = model_object.add_volume(std::move(mesh), type);
@@ -2633,7 +2713,7 @@ void ObjectList::switch_to_object_process()
     }
 }
 
-void ObjectList::load_shape_object(const std::string &type_name)
+void ObjectList::load_shape_object(const std::string &type_name, bool interactive)
 {
     const Selection& selection = wxGetApp().plater()->canvas3D()->get_selection();
     //assert(selection.get_object_idx() == -1); // Add nothing is something is selected on 3DScene
@@ -2644,11 +2724,15 @@ void ObjectList::load_shape_object(const std::string &type_name)
     if (obj_idx < 0)
         return;
 
+    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive);
+    if (!size)
+        return;
+
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Add Primitive"));
 
     // Create mesh
     BoundingBoxf3 bb;
-    TriangleMesh mesh = create_mesh(type_name, bb);
+    TriangleMesh mesh = create_mesh(type_name, *size, bb);
     // Rotate the largest overhang area toward the part cooling fan so new shapes start in a
     // cooling friendly orientation. Skip the plain cube: the pressure advance pattern
     // calibration reuses it as an axis-aligned anchor and scales it by its bounding box,
@@ -3651,6 +3735,7 @@ void ObjectList::delete_all_connectors_for_object(int obj_idx)
             if (obj->volumes.empty() || !obj->has_solid_mesh()) {
                 const std::string deleted_obj_name = obj->name;
                 model.delete_object(idx);
+                wxGetApp().plater()->get_partplate_list().notify_instance_removed(idx, -1);
                 {
                     Slic3r::LifecycleEventContext ctx;
                     ctx.name = deleted_obj_name;
@@ -6734,7 +6819,9 @@ void ObjectList::OnEditingStarted(wxDataViewEvent &event)
         Plater::TakeSnapshot snapshot(plater, _u8L("Shift objects to bed"));
         int obj_idx, vol_idx;
         get_selected_item_indexes(obj_idx, vol_idx, item);
-        (*m_objects)[obj_idx]->ensure_on_bed();
+        // Shift on request also when auto drop is off, which ensure_on_bed() skips.
+        ModelObject* mo = (*m_objects)[obj_idx];
+        mo->translate_instances(-mo->min_z() * Vec3d::UnitZ());
         cnv->reload_scene(true, true);
         update_info_items(obj_idx);
         notify_instance_updated(obj_idx);
@@ -6948,6 +7035,71 @@ void ObjectList::reload_all_plates(bool notify_partplate)
     wxGetApp().plater()->update();
     // update printable states on canvas
     wxGetApp().plater()->get_view3D_canvas3D()->update_instance_printable_state_for_objects(obj_idxs);
+}
+
+void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending)
+{
+    struct Entry { wxString name; double value; ModelObject* object; };
+    std::vector<Entry> entries;
+    entries.reserve(objects.size());
+    for (ModelObject* object : objects) {
+        double value = 0.;
+        if (order == ObjectOrder::Filament)
+            value = object->config.has("extruder") ? object->config.extruder() : 1;
+        else if (order != ObjectOrder::Name) {
+            const BoundingBoxf3 bbox = object->instance_convex_hull_bounding_box(object->instances.front());
+            value = order == ObjectOrder::Height ? bbox.max.z() : bbox.size().prod();
+        }
+        entries.push_back({order == ObjectOrder::Name ? from_u8(object->name) : wxString(), value, object});
+    }
+    std::stable_sort(entries.begin(), entries.end(), [order, descending](const Entry& l, const Entry& r) {
+        const Entry& a = descending ? r : l;
+        const Entry& b = descending ? l : r;
+        return order == ObjectOrder::Name ? wxCmpNatural(a.name, b.name) < 0 : a.value < b.value;
+    });
+    for (size_t i = 0; i < objects.size(); ++i)
+        objects[i] = entries[i].object;
+}
+
+void ObjectList::order_objects(ObjectOrder order, bool all_plates)
+{
+    Plater* plater = wxGetApp().plater();
+    if (!plater->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::Undefined))
+        return;
+
+    PartPlateList& plates     = plater->get_partplate_list();
+    const int      curr_plate = plates.get_curr_plate_index();
+    auto sorted = [&](bool descending) {
+        std::vector<ModelObject*> objects = *m_objects;
+        for (int plate_idx = 0; plate_idx < plates.get_plate_count(); ++plate_idx) {
+            if (!all_plates && plate_idx != curr_plate)
+                continue;
+            // Sort within the list positions the plate already holds, so other plates keep their order.
+            std::vector<size_t>       slots;
+            std::vector<ModelObject*> plate_objects;
+            for (size_t obj_idx = 0; obj_idx < objects.size(); ++obj_idx)
+                if (plates.find_instance(int(obj_idx), 0) == plate_idx) {
+                    slots.push_back(obj_idx);
+                    plate_objects.push_back(objects[obj_idx]);
+                }
+            sort_objects(plate_objects, order, descending);
+            for (size_t i = 0; i < slots.size(); ++i)
+                objects[slots[i]] = plate_objects[i];
+        }
+        return objects;
+    };
+    // Choosing the order the objects already have reverses it.
+    std::vector<ModelObject*> objects = sorted(false);
+    if (objects == *m_objects)
+        objects = sorted(true);
+
+    if (objects != *m_objects) {
+        take_snapshot(_u8L("Object order changed"));
+        *m_objects = std::move(objects);
+        plates.reload_all_objects(false, all_plates ? -1 : curr_plate);
+    }
+    // Rebuilt even when the order holds: an object moved to another plate is listed last there.
+    reload_all_plates();
 }
 
 void ObjectList::on_plate_selected(int plate_index)

@@ -20,6 +20,8 @@
 #include "libslic3r/Utils.hpp"
 #include <wx/log.h>
 #include "libslic3r/Config.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "Plater.hpp"
 #include <wx/filefn.h>
 #include <wx/filename.h>
 #include <sstream>
@@ -37,6 +39,8 @@
 #include <wx/toplevel.h>
 #include <wx/url.h>
 #include <wx/uri.h>
+#include <wx/menu.h>
+#include <wx/button.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
@@ -65,7 +69,7 @@ namespace GUI {
 static const char *const kCloudUrl = "https://cloud.orcaslicer.com";
 // #LeftBoard in resources/web/homepage/css/home.css is a 262px column plus a 1px right
 // border; the homepage keeps that width as the nav column while the cloud pane is open.
-static const int kLeftNavWidth = 263;
+static const int kLeftNavWidth = 220 + 1; // 1px border
 
 // The home page's strings (resources/web/homepage), keyed by their data-i18n and T() ids.
 static json home_page_strings()
@@ -84,7 +88,7 @@ static json home_page_strings()
         {"recently_opened", _u8L("Recently opened")},
         {"clear_all", _u8L("Clear all")},
         {"remove", _u8L("Remove")},
-        {"open_containing_folder", _u8L("Open Containing Folder")},
+        {"show_in_folder", _u8L("Show in folder")},
     };
 }
 
@@ -605,7 +609,7 @@ void WebViewPanel::load_url(wxString& url)
 {
     this->Show();
     this->Raise();
-    m_url->SetLabelText(url);
+    m_url->ChangeValue(url);
 
     if (wxGetApp().get_mode() == comDevelop)
         wxLogMessage(m_url->GetValue());
@@ -832,7 +836,7 @@ void WebViewPanel::SendDesignStaffpick(bool on)
 void WebViewPanel::OpenModelDetail(std::string id, NetworkAgent *agent)
 {
     std::string url;
-    if ((agent ? agent->get_model_mall_detail_url(&url, id) : get_model_mall_detail_url(&url, id)) == 0) 
+    if ((agent ? agent->get_model_mall_detail_url(&url, id, wxGetApp().get_printer_cloud_provider()) : get_model_mall_detail_url(&url, id)) == 0)
     {
         if (url.find("?") != std::string::npos) 
         { 

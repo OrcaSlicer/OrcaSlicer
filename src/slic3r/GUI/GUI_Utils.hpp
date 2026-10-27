@@ -6,6 +6,7 @@
 #include <cmath>
 #include <boost/optional/optional.hpp>
 #include <memory>
+#include <optional>
 #include <string>
 #include <ostream>
 #include <functional>
@@ -494,6 +495,8 @@ void dataview_remove_insets(wxDataViewCtrl* dv);
 void staticbox_remove_margin(wxStaticBox* sb);
 // Clip a top-level window (and its webview) to a rounded rect with a native layer.
 void set_window_corner_radius(wxWindow* win, int radius);
+// Returns an opaque sRGB color, or std::nullopt on cancel, on the GUI thread.
+void sample_screen_color(std::function<void(std::optional<ColorRGBA>)> done);
 #endif
 
 #ifdef __WXGTK__
