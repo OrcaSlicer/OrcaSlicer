@@ -7,9 +7,12 @@
 #include "../AABBTreeLines.hpp"
 #include "../AABBTreeIndirect.hpp"
 #include "../AABBMesh.hpp"
+#include "../BoundingBox.hpp"
 #include "../CSGMesh/ModelToCSGMesh.hpp"
 #include "../CSGMesh/PerformCSGMeshBooleans.hpp"
 #include "../ClipperUtils.hpp"
+#include "../Config.hpp"
+#include "../ExPolygon.hpp"
 #include "../Flow.hpp"
 #include "../Geometry.hpp"
 #include "../Geometry/ArcWelder.hpp"
@@ -22,6 +25,7 @@
 #include "../NormalUtils.hpp"
 #include "../Print.hpp"
 #include "../PrintConfig.hpp"
+#include "../Polyline.hpp"
 #include "../SVG.hpp"
 #include "../TriangleMesh.hpp"
 #include "../TriangleMeshSlicer.hpp"
@@ -473,6 +477,7 @@ struct FinBodyEndpoint {
     Vec2d point = Vec2d::Zero();
     FinEndpointOrigin origin = FinEndpointOrigin::unresolved;
     FinContactAction contact = FinContactAction::query;
+    bool z_clipped = false;
 };
 
 struct TracedFin {
@@ -492,6 +497,7 @@ struct TracedFin {
     size_t intent_component_size = 1;
     size_t intent_root_count = 0;
     std::vector<Vec2d> boundary; // Resolved wall-bead contact after geometry preparation.
+    std::vector<double> contact_outer_wall_widths; // External flow width of the hit's owning region.
     std::vector<std::optional<Vec2d>> contact_sources; // Valid model/crease anchors, separate from wall-bead hits.
     // Painted Shape resolves the finite contact axis independently from the
     // fin plane. All directions point outward from the model.
@@ -5030,6 +5036,7 @@ class FinWallGeometry {
         Vec2d a;
         Vec2d b;
         double radius;
+        double outer_wall_width;
     };
     struct LayerWalls {
         std::vector<Segment> segments;
@@ -5043,7 +5050,7 @@ class FinWallGeometry {
         if (m_layers[layer_id])
             return *m_layers[layer_id];
         auto walls = std::make_unique<LayerWalls>();
-        const auto append_path = [&](const ExtrusionPath &path) {
+        const auto append_path = [&](const ExtrusionPath &path, double outer_wall_width) {
             if (path.is_force_no_extrusion() || path.width <= 0. || !std::isfinite(path.width))
                 return;
             const auto &points = path.polyline.points;
@@ -5051,26 +5058,26 @@ class FinWallGeometry {
                 if (points[i - 1].to_point() == points[i].to_point())
                     continue;
                 walls->segments.push_back({points[i - 1].to_point().cast<double>(),
-                    points[i].to_point().cast<double>(), 0.5 * double(path.width) / SCALING_FACTOR});
+                    points[i].to_point().cast<double>(), 0.5 * double(path.width) / SCALING_FACTOR, outer_wall_width});
             }
         };
-        const auto visit = [&](const auto &self, const ExtrusionEntity &entity) -> void {
+        const auto visit = [&](const auto &self, const ExtrusionEntity &entity, double outer_wall_width) -> void {
             if (m_object.print()->canceled())
                 throw CanceledException();
             if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection *>(&entity)) {
                 for (const ExtrusionEntity *child : collection->entities)
-                    self(self, *child);
+                    self(self, *child, outer_wall_width);
             } else if (const auto *loop = dynamic_cast<const ExtrusionLoop *>(&entity)) {
                 for (const ExtrusionPath &path : loop->paths)
-                    append_path(path);
+                    append_path(path, outer_wall_width);
             } else if (const auto *multi = dynamic_cast<const ExtrusionMultiPath *>(&entity)) {
                 for (const ExtrusionPath &path : multi->paths)
-                    append_path(path);
+                    append_path(path, outer_wall_width);
             } else if (const auto *path = dynamic_cast<const ExtrusionPath *>(&entity))
-                append_path(*path);
+                append_path(*path, outer_wall_width);
         };
         for (const LayerRegion *region : m_object.get_layer(int(layer_id))->regions())
-            visit(visit, region->perimeters);
+            visit(visit, region->perimeters, region->flow(frExternalPerimeter).width());
         struct Input {
             size_t id;
             Tree::BoundingBox bounds;
@@ -5095,10 +5102,41 @@ class FinWallGeometry {
 public:
     explicit FinWallGeometry(const PrintObject &object) : m_object(object), m_layers(object.layer_count()) {}
 
+    // Maximum penetration of actual wall beads into a contact footprint, in
+    // mm from its model-facing front. depth_axis measures distance along the
+    // contact axis from that front plane, including an oblique crease front.
+    double overlap_depth(size_t layer_id, const ExPolygons &footprint,
+                         const Vec2d &front, const Vec2d &depth_axis)
+    {
+        if (footprint.empty())
+            return 0.;
+        const LayerWalls &walls = layer(layer_id);
+        if (walls.tree.empty())
+            return 0.;
+        const BoundingBox bounds = get_extents(footprint);
+        const Tree::BoundingBox query(bounds.min.cast<double>(), bounds.max.cast<double>());
+        double depth = 0.;
+        AABBTreeIndirect::traverse(walls.tree, [&](const Tree::Node &node) {
+            return node.bbox.intersects(query);
+        }, [&](const Tree::Node &node) {
+            const Segment &segment = walls.segments[node.idx];
+            const Polyline centerline{Point(coord_t(segment.a.x()), coord_t(segment.a.y())),
+                                      Point(coord_t(segment.b.x()), coord_t(segment.b.y()))};
+            const Polygons bead = offset(centerline, float(segment.radius), jtRound,
+                                         double(SCALED_EPSILON), etOpenRound);
+            for (const ExPolygon &area : intersection_ex(footprint, bead))
+                for (const Point &point : area.contour.points)
+                    depth = std::max(depth, (unscale(point) - front).dot(depth_axis));
+            return true;
+        });
+        return depth;
+    }
+
     // Painted contacts use signed intervals of the bead union. An interior
     // origin reaches the same outward-facing entry by clipping back along the axis.
     std::optional<Vec2d> contact(size_t layer_id, const Vec2d &origin, const Vec2d &direction,
-                                 bool bidirectional = false, Vec2d *surface_normal = nullptr)
+                                 bool bidirectional = false, Vec2d *surface_normal = nullptr,
+                                 double *outer_wall_width = nullptr)
     {
         if (!origin.allFinite() || !direction.allFinite() || direction.norm() <= EPSILON)
             return std::nullopt;
@@ -5116,6 +5154,7 @@ public:
         struct Interval { double begin, end; size_t segment; };
         std::vector<Interval> intervals;
         double first = std::numeric_limits<double>::infinity();
+        double first_outer_wall_width = 0.;
         AABBTreeIndirect::traverse(walls.tree, [&](const Tree::Node &node) {
             std::pair<double, double> interval;
             return Geometry::liang_barsky_line_clipping_interval(start, delta,
@@ -5127,14 +5166,18 @@ public:
                     start, end, segment.a, segment.b, segment.radius, interval)) {
                 if (bidirectional)
                     intervals.push_back({interval.first - backward, interval.second - backward, node.idx});
-                else
-                    first = std::min(first, interval.first);
+                else if (interval.first < first) {
+                    first = interval.first;
+                    first_outer_wall_width = segment.outer_wall_width;
+                }
             }
             return bidirectional || first != 0.;
         });
         if (!bidirectional) {
             if (!std::isfinite(first))
                 return std::nullopt;
+            if (outer_wall_width != nullptr)
+                *outer_wall_width = first_outer_wall_width;
             return origin + unscale<double>(first) * unit;
         }
         std::sort(intervals.begin(), intervals.end(), [](const Interval &a, const Interval &b) {
@@ -5150,6 +5193,8 @@ public:
             if (end_distance < 0.)
                 continue;
             const Vec2d hit = scaled_origin + entry.begin * unit;
+            if (outer_wall_width != nullptr)
+                *outer_wall_width = walls.segments[entry.segment].outer_wall_width;
             if (surface_normal != nullptr) {
                 const Segment &segment = walls.segments[entry.segment];
                 const Vec2d edge = segment.b - segment.a;
@@ -5166,6 +5211,7 @@ struct PaintedContactAxis {
     Vec2d contact_point;
     Vec2d contact_direction;
     Vec2d front_normal;
+    double outer_wall_width = 0.; // Available after the physical wall lookup.
 };
 
 struct PaintedLayerGeometryCache {
@@ -5178,19 +5224,26 @@ struct PaintedLayerGeometryCache {
     ExPolygons bed_center;
 };
 
+size_t fin_upper_layer_end(const PrintObject &object, size_t layer_id)
+{
+    const double gap = object.slicing_parameters().gap_support_object;
+    if (gap <= EPSILON)
+        return layer_id + 1;
+    const double limit = object.get_layer(int(layer_id))->print_z + gap - EPSILON;
+    size_t end = layer_id + 1;
+    while (end < object.layer_count() && object.get_layer(int(end))->bottom_z() <= limit)
+        ++end;
+    return end;
+}
+
 ExPolygons fin_upper_model(const PrintObject &object, size_t layer_id)
 {
     // Match support's top-gap height interval, using physical layer limits.
     // Apply XY model gap to the clipping mask, leaving source sections unchanged.
-    const double gap = object.slicing_parameters().gap_support_object;
-    if (gap <= EPSILON)
-        return {};
-    const double limit = object.get_layer(int(layer_id))->print_z + gap - EPSILON;
     ExPolygons upper;
-    for (size_t i = layer_id + 1; i < object.layer_count(); ++i) {
+    const size_t end = fin_upper_layer_end(object, layer_id);
+    for (size_t i = layer_id + 1; i < end; ++i) {
         const Layer &layer = *object.get_layer(int(i));
-        if (layer.bottom_z() > limit)
-            break;
         expolygons_append(upper, layer.lslices);
     }
     upper = union_ex(upper);
@@ -5315,14 +5368,15 @@ std::optional<PaintedContactAxis> resolve_fin_wall_contact(
     const Vec2d origin = crease ? source.contact_point : body_start;
     const Vec2d inward = crease ? Vec2d(-source.front_normal) : Vec2d(-source.contact_direction);
     Vec2d front_normal = source.front_normal;
+    double outer_wall_width = 0.;
     const auto hit = walls.contact(layer, origin, inward, painted_shape,
-        painted_shape && !crease ? &front_normal : nullptr);
+        painted_shape && !crease ? &front_normal : nullptr, &outer_wall_width);
     if (!hit)
         return std::nullopt;
     Vec2d axis = source.contact_direction;
     if (crease && (body_start - *hit).norm() > EPSILON)
         axis = (body_start - *hit).normalized();
-    return PaintedContactAxis{*hit, axis, front_normal};
+    return PaintedContactAxis{*hit, axis, front_normal, outer_wall_width};
 }
 
 Polygon foot_area(const Vec2d &start, const Vec2d &tip, const Vec2d &normal, double thickness, double width,
@@ -5440,6 +5494,7 @@ bool trace_painted_fin_path(const PrintObject &object, const FinCandidate &candi
                 auto clipped = clipped_fin_path(*retained, upper);
                 if (!clipped || clipped->length() < retained->length() - scale_(EPSILON)) {
                     fin.body_endpoints[i].contact = FinContactAction::stop_band;
+                    fin.body_endpoints[i].z_clipped = true;
                     retained = std::move(clipped);
                     if (!retained)
                         continue;
@@ -5961,6 +6016,10 @@ struct FinContactSlice {
     Vec2d first = Vec2d::Zero();
     Vec2d second = Vec2d::Zero();
     Vec3d surface_normal = Vec3d::Zero(); // Simple/Simulated projection only.
+    double penetration = 0.;
+
+    // Keep the measured wall surface separate from the generated contact front.
+    Vec2d physical_front() const { return wall - penetration * front_normal; }
 };
 
 ExPolygons build_fin_contact_section(const Polygon &bed, const TracedFin &fin,
@@ -5979,7 +6038,7 @@ ExPolygons build_fin_contact_section(const Polygon &bed, const TracedFin &fin,
         neck = fin_contact_center_polygon(contact.first, contact.second, *cap);
     } else {
         neck = fin_contact_polygon(
-            contact.wall + 0.5 * line_width * contact.front_normal,
+            contact.physical_front() + 0.5 * line_width * contact.front_normal,
             fin.body_endpoints[layer_id].point, fin.seed.normal,
             fin.body_cap_normals[layer_id], contact.front_normal,
             contact_width, thickness, line_width);
@@ -6011,13 +6070,14 @@ struct FinContactContinuation {
 };
 
 FinContactSlice make_straight_fin_contact_slice(const Vec2d &wall, const Vec2d &axis, const Vec2d &front_normal,
-                                                double contact_width, double line_width)
+                                                double contact_width, double line_width, double penetration)
 {
     FinContactSlice contact;
     contact.wall = wall;
     contact.axis = axis.normalized();
     contact.front_normal = front_normal.normalized();
-    const Vec2d front = wall + 0.5 * line_width * contact.front_normal;
+    contact.penetration = penetration;
+    const Vec2d front = contact.physical_front() + 0.5 * line_width * contact.front_normal;
     const Vec2d tangent(-contact.front_normal.y(), contact.front_normal.x());
     contact.first = front - 0.5 * contact_width * tangent;
     contact.second = front + 0.5 * contact_width * tangent;
@@ -6027,19 +6087,19 @@ FinContactSlice make_straight_fin_contact_slice(const Vec2d &wall, const Vec2d &
 // Ordinary fronts retain the straight tangent approximation. Lateral samples
 // validate its contact coverage without reconstructing the front endpoints.
 FinContactSlice make_ordinary_fin_contact_slice(const PaintedContactAxis &wall,
-                                                double contact_width, double line_width)
+                                                double contact_width, double line_width, double penetration)
 {
     return make_straight_fin_contact_slice(wall.contact_point, wall.contact_direction,
-        wall.front_normal, contact_width, line_width);
+        wall.front_normal, contact_width, line_width, penetration);
 }
 
 // A crease front is defined by the source exterior bisector. Once this perpendicular
 // segment is built, there is no surface-span search or physical touching-length test.
 FinContactSlice make_crease_fin_contact_slice(const PaintedContactAxis &wall,
-                                              double contact_width, double line_width)
+                                              double contact_width, double line_width, double penetration)
 {
     return make_straight_fin_contact_slice(wall.contact_point, wall.contact_direction,
-        wall.front_normal, contact_width, line_width);
+        wall.front_normal, contact_width, line_width, penetration);
 }
 
 std::optional<PaintedContactAxis> fin_layer_wall_contact(const TracedFin &fin, size_t layer_id)
@@ -6054,17 +6114,18 @@ std::optional<PaintedContactAxis> fin_layer_wall_contact(const TracedFin &fin, s
     if (!front_normal.allFinite() || front_normal.norm() <= EPSILON ||
         !axis.allFinite() || axis.norm() <= EPSILON)
         return std::nullopt;
-    return PaintedContactAxis{wall, axis, front_normal};
+    return PaintedContactAxis{wall, axis, front_normal, fin.contact_outer_wall_widths[layer_id]};
 }
 
 std::optional<FinContactSlice> legacy_fin_layer_contact(const TracedFin &fin, size_t layer_id,
-                                                        double contact_width, double line_width)
+                                                        double contact_width, double line_width,
+                                                        const ConfigOptionPercent &penetration)
 {
     const auto wall = fin_layer_wall_contact(fin, layer_id);
     if (!wall)
         return std::nullopt;
     return make_straight_fin_contact_slice(wall->contact_point, wall->contact_direction,
-        wall->front_normal, contact_width, line_width);
+        wall->front_normal, contact_width, line_width, penetration.get_abs_value(wall->outer_wall_width));
 }
 
 struct ProjectionClip {
@@ -6434,9 +6495,10 @@ private:
         }
         if (!wall)
             return std::nullopt;
+        const double penetration = m_object.config().fin_support_contact_penetration.get_abs_value(wall->outer_wall_width);
         result.contact = crease ?
-            make_crease_fin_contact_slice(*wall, m_fin.seed.dimensions.contact_width, width) :
-            make_ordinary_fin_contact_slice(*wall, m_fin.seed.dimensions.contact_width, width);
+            make_crease_fin_contact_slice(*wall, m_fin.seed.dimensions.contact_width, width, penetration) :
+            make_ordinary_fin_contact_slice(*wall, m_fin.seed.dimensions.contact_width, width, penetration);
         const auto &contact = result.contact;
         const auto cap = fin_cap_segment(m_fin.body_endpoints[i].point, fin_body_direction(m_fin, i),
             contact.axis, 0.5 * (thickness - width), 0.5 * width);
@@ -6516,7 +6578,7 @@ public:
 
 ProjectionResult backfill_legacy_contact_projection(const PrintObject &object, const TracedFin &fin, size_t bottom,
                                                     const Polygon &bed, double thickness,
-                                                    double contact_width, double gap, const Vec3d &surface_normal,
+                                                    double contact_width, double gap, const FinContactSlice &bottom_contact,
                                                     const std::vector<ExPolygons> &body_centers,
                                                     std::vector<ExPolygons> &contacts,
                                                     std::vector<ProjectionClip> &clips,
@@ -6524,6 +6586,7 @@ ProjectionResult backfill_legacy_contact_projection(const PrintObject &object, c
 {
     ProjectionResult result;
     const Vec2d &body_normal = fin.seed.normal;
+    const Vec3d &surface_normal = bottom_contact.surface_normal;
     const auto ray = contact_projection_ray(surface_normal, body_normal,
         object.config().fin_support_contact_projection_angle.value);
     if (!ray) {
@@ -6543,10 +6606,10 @@ ProjectionResult backfill_legacy_contact_projection(const PrintObject &object, c
     // and connects directly to the current lower layer's inner body corners.
     const Layer &contact_layer = *object.get_layer(int(bottom));
     const double contact_line_width = support_material_flow(&object, float(contact_layer.height)).width();
-    Vec2d front = fin.boundary[bottom] + 0.5 * contact_line_width * contact_normal;
+    Vec2d front = bottom_contact.physical_front() + 0.5 * contact_line_width * contact_normal;
     const Vec2d initial_front = front;
     double advance = 0;
-    const double neck_depth = (fin.body_endpoints[bottom].point - fin.boundary[bottom]).dot(projection_direction);
+    const double neck_depth = (fin.body_endpoints[bottom].point - bottom_contact.physical_front()).dot(projection_direction);
     for (size_t remaining = bottom; remaining > 0; --remaining) {
         const size_t i = remaining - 1;
         const Layer &layer = *object.get_layer(int(i));
@@ -6677,7 +6740,7 @@ ProjectionResult backfill_painted_contact_projection(
     // sin(angle)*(P.z-X.z) >= 0. The hinge and plane never change per layer.
     const Vec2d axis = bottom_contact.axis;
     const Vec2d tangent(-axis.y(), axis.x());
-    const Vec2d origin = bottom_contact.wall;
+    const Vec2d origin = bottom_contact.physical_front();
     const double bottom_z = object.get_layer(int(bottom))->slice_z;
     const double horizontal_factor = std::cos(angle);
     const double vertical_factor = std::sin(angle);
@@ -6783,8 +6846,9 @@ ProjectionResult backfill_painted_contact_projection(
         // trapezoid sides. Continuation preserves the last successful axis;
         // an accepted local contact supplies this layer's own wall and axis.
         const FinContactSlice &selected_contact = carried ? continuation->contact : local->contact;
-        const Line contact_axis(scaled_point(selected_contact.wall),
-            scaled_point(selected_contact.wall + selected_contact.axis));
+        const Vec2d contact_front = selected_contact.physical_front();
+        const Line contact_axis(scaled_point(contact_front),
+            scaled_point(contact_front + selected_contact.axis));
         Point axis_intersection;
         const bool has_axis_intersection = plane_trace.intersection_infinite(contact_axis, &axis_intersection);
         // Match build_fin_body_section's physical envelope, including half a
@@ -6846,7 +6910,7 @@ ProjectionResult backfill_contact_projection(
     if (fin.seed.geometry_mode == FinGeometryMode::projected)
         return backfill_legacy_contact_projection(
             object, fin, bottom, bed, thickness, contact_width, gap,
-            bottom_contact.surface_normal, body_centers, contacts, clips,
+            bottom_contact, body_centers, contacts, clips,
             projection_copy);
     return backfill_painted_contact_projection(
         object, fin, bottom, bed, bottom_contact,
@@ -7212,6 +7276,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
     };
     fin.wall_present.assign(count, false);
     fin.contacts.assign(count, false);
+    fin.contact_outer_wall_widths.assign(count, 0.);
     fin.body_axes.assign(count, {});
     fin.body_boundaries.assign(count, {});
     fin.center_caps.assign(count, std::nullopt);
@@ -7240,12 +7305,13 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             const auto clipped = clipped_fin_path(path, upper);
             if (!clipped || clipped->length() < path.length() - scale_(EPSILON)) {
                 endpoint.contact = FinContactAction::stop_band;
+                endpoint.z_clipped = true;
                 fin.path_present[i] = clipped.has_value();
                 if (clipped)
                     endpoint.point = unscale(clipped->last_point());
             }
         }
-        // Publish the contact action after A1 is ready, before cap work.
+        // Publish the initial action after A1 is ready, before cap work.
         const bool has_body = fin.path_present.empty() || fin.path_present[i];
         if (endpoint.contact != FinContactAction::stop_band) {
             endpoint.contact = !has_body || endpoint.origin == FinEndpointOrigin::inherited ?
@@ -7281,6 +7347,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             fin.wall_present[i] = contact.has_value();
             if (contact) {
                 fin.boundary[i] = contact->contact_point;
+                fin.contact_outer_wall_widths[i] = contact->outer_wall_width;
                 fin.contact_directions[i] = contact->contact_direction;
                 fin.contact_front_normals[i] = contact->front_normal;
                 fin.body_cap_normals[i] = contact->contact_direction;
@@ -7294,6 +7361,9 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                 << " query_origin=" << origin.transpose() << " query_direction=" << inward.transpose()
                 << " axis=" << fin.contact_directions[i].transpose()
                 << " hit=" << contact.has_value()
+                << " outer_wall_width=" << (contact ? contact->outer_wall_width : 0.)
+                << " penetration_mm=" << (contact ?
+                    config.fin_support_contact_penetration.get_abs_value(contact->outer_wall_width) : 0.)
                 << " distance=" << (contact ? (contact->contact_point - origin).norm() : -1.)
                 << " signed_distance=" << (contact ? (contact->contact_point - origin).dot(inward) : 0.);
         }
@@ -7369,13 +7439,50 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
     // Without a downstream line, losing the finite endpoint starts tapering
     // immediately below the last contact instead of carrying the band onward.
     // A missing printed bead is a contact failure, not a lost source endpoint.
-    auto clip_contact_band = [&](FinContactBand band) {
-        for (size_t remaining = band.end; remaining > band.begin; --remaining)
-            if (fin.body_endpoints[remaining - 1].contact == FinContactAction::stop_band) {
-                band.begin = remaining;
-                break;
+    auto contact_band_stops_at = [&](size_t i, bool crease, const FinContactSlice *contact,
+                                     const ExPolygons &section, bool continued) {
+        const auto &endpoint = fin.body_endpoints[i];
+        bool stop = endpoint.contact == FinContactAction::stop_band;
+        // Inspect only the validated contact or continuation selected for output.
+        // Failed candidates cannot stop a band or relax a provisional Z stop.
+        if (contact == nullptr || section.empty() || fin_upper_layer_end(object, i) == i + 1)
+            return stop;
+        const double width = support_material_flow(&object,
+            float(object.get_layer(int(i))->height)).width();
+        const ExPolygons footprint = offset_ex(section, float(scale_(0.5 * width)), jtRound);
+        const double alignment = contact->axis.dot(contact->front_normal);
+        if (alignment <= EPSILON)
+            return stop;
+        // Use the physical model-side front, not A1 or the inset centerline
+        // front. Lateral position on an oblique front must not count as depth.
+        const Vec2d depth_axis = contact->front_normal / alignment;
+        double coverage_depth = 0.;
+        std::optional<size_t> covering_layer;
+        const size_t upper_end = fin_upper_layer_end(object, i);
+        for (size_t upper = i + 1; upper < upper_end; ++upper) {
+            const double depth = walls.overlap_depth(upper, footprint, contact->wall, depth_axis);
+            if (depth > coverage_depth) {
+                coverage_depth = depth;
+                covering_layer = upper;
             }
-        return band;
+        }
+        const bool excessive_coverage = coverage_depth > width + EPSILON;
+        stop = excessive_coverage || (stop && !endpoint.z_clipped);
+        if (endpoint.z_clipped || covering_layer) {
+            BOOST_LOG_TRIVIAL(debug) << "Fin support object=" << object.model_object()->name
+                << " stage=fin-z-clearance island=" << fin.seed.intent_island.value_or(size_t(-1))
+                << " edge=" << fin.seed.intent_edge.value_or(size_t(-1))
+                << " layer=" << i << " slice_z=" << object.get_layer(int(i))->slice_z
+                << " crease_contact=" << crease
+                << " continued=" << continued
+                << " z_clipped=" << endpoint.z_clipped
+                << " coverage_depth_mm=" << coverage_depth << " depth_limit_mm=" << width
+                << " coverage_widths=" << coverage_depth / width
+                << " stop_band=" << stop
+                << " upper_layer=" << (covering_layer ? int(*covering_layer) : -1)
+                << " axis=" << contact->axis.transpose();
+        }
+        return stop;
     };
     struct PreparedContactBand {
         std::vector<ExPolygons> sections;
@@ -7386,8 +7493,16 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
         std::optional<FinContactContinuation> bottom_continuation;
     };
     enum class BandResult { geometry_failure = -1, top_failed = 0, accepted = 1, suppressed = 2 };
-    auto prepare_band = [&](const FinContactBand &band, PreparedContactBand &prepared,
+    auto prepare_band = [&](FinContactBand &band, PreparedContactBand &prepared,
                             bool crease, const std::vector<ExPolygons> *suppression = nullptr) {
+        if (!painted_shape) {
+            for (size_t remaining = band.end; remaining > band.begin; --remaining) {
+                if (fin.body_endpoints[remaining - 1].contact == FinContactAction::stop_band) {
+                    band.begin = remaining;
+                    break;
+                }
+            }
+        }
         if (band.begin >= band.end)
             return BandResult::top_failed;
         ++fin.planned_contact_bands;
@@ -7403,7 +7518,8 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                 const Layer &layer = *object.get_layer(int(i));
                 const double width = support_material_flow(&object, float(layer.height)).width();
                 const Polygons *layer_blockers = i < blockers.size() ? &blockers[i] : nullptr;
-                auto contact = legacy_fin_layer_contact(fin, i, contact_width, width);
+                auto contact = legacy_fin_layer_contact(fin, i, contact_width, width,
+                    config.fin_support_contact_penetration);
                 if (!contact) {
                     fin.diagnostics.reject(fin.wall_present[i] ? FinReject::contact_axis : FinReject::missing_wall,
                                            layer.print_z);
@@ -7447,6 +7563,9 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
             const ExPolygons &bed_center = geometry_cache != nullptr ? (*geometry_cache)[i].bed_center : computed_bed;
             const auto &local = painted_contacts.resolve(i, crease);
             ExPolygons section;
+            ExPolygons completed;
+            const PaintedContactLayer *selected = nullptr;
+            std::optional<PaintedContactLayer> continuation;
             if (local) {
                 const Polygon trapezoid = fin_contact_center_polygon(
                     local->contact.first, local->contact.second, local->attachment);
@@ -7462,43 +7581,57 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
                     ++fin.suppressed_contact_bands;
                     return BandResult::suppressed;
                 }
-                ExPolygons completed;
                 if (painted_contacts.validate(i, local->contact, crease, fin.diagnostics))
                     completed = complete_fin_contact_boundary(local->body_boundary, section,
                         local->attachment, bed_center);
-                if (!completed.empty()) {
-                    prepared.contacts[index] = local->contact;
-                    prepared.actual_contacts[index] = true;
-                    prepared.attachments[index] = local->attachment;
-                    prepared.sections[index] = std::move(section);
-                    prepared.completed[index] = std::move(completed);
-                    retained = FinContactContinuation{local->contact, local->axis_cap};
-                    continue;
+                if (!completed.empty())
+                    selected = &*local;
+            }
+            const bool continued = selected == nullptr;
+            if (continued) {
+                if (step == 0)
+                    return BandResult::top_failed;
+                // All lower contact failures use the saved front. Its new
+                // attachment must pass coverage before it becomes band output.
+                section.clear();
+                continuation = painted_contacts.continue_layer(i, *retained);
+                if (continuation) {
+                    const Polygon trapezoid = fin_contact_center_polygon(
+                        continuation->contact.first, continuation->contact.second, continuation->attachment);
+                    if (trapezoid.points.size() >= 3)
+                        section = intersection_ex(Polygons{trapezoid}, bed_center);
+                    completed = complete_fin_contact_boundary(
+                        continuation->body_boundary, section, continuation->attachment, bed_center);
+                    if (!completed.empty())
+                        selected = &*continuation;
                 }
             }
-            if (step == 0)
-                return BandResult::top_failed;
-            // All lower failures use the same continuation, including failed
-            // queries, blockers, span coverage, caps and owned-boundary joins.
-            prepared.contacts[index] = retained->contact;
-            auto &attachment = prepared.attachments[index];
-            const auto continuation = painted_contacts.continue_layer(i, *retained);
-            ExPolygons completed;
-            if (continuation) {
-                attachment = continuation->attachment;
-                const Polygon trapezoid = fin_contact_center_polygon(
-                    retained->contact.first, retained->contact.second, *attachment);
-                if (trapezoid.points.size() >= 3)
-                    section = intersection_ex(Polygons{trapezoid}, bed_center);
-                else
-                    section.clear();
-                completed = complete_fin_contact_boundary(
-                    continuation->body_boundary, section, attachment, bed_center);
+            if (contact_band_stops_at(i, crease, selected ? &selected->contact : nullptr, section, continued)) {
+                if (step == 0)
+                    return BandResult::top_failed;
+                // Keep only the accepted upper suffix. The band top and saved
+                // continuation stay fixed; taper starts below its new bottom.
+                const auto trim = [index](auto &values) {
+                    values.erase(values.begin(), values.begin() + index + 1);
+                };
+                trim(prepared.sections);
+                trim(prepared.completed);
+                trim(prepared.attachments);
+                trim(prepared.contacts);
+                trim(prepared.actual_contacts);
+                band.begin = i + 1;
+                return BandResult::accepted;
             }
-            if (!completed.empty()) {
+            if (selected) {
+                prepared.contacts[index] = selected->contact;
+                prepared.actual_contacts[index] = !continued;
+                prepared.attachments[index] = selected->attachment;
                 prepared.sections[index] = std::move(section);
                 prepared.completed[index] = std::move(completed);
-            }
+                if (!continued)
+                    retained = FinContactContinuation{selected->contact, selected->axis_cap};
+            } else
+                prepared.contacts[index] = retained->contact;
         }
         return BandResult::accepted;
     };
@@ -7538,7 +7671,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
     // periodic contacts below it without regenerating either band.
     std::vector<ExPolygons> seed_reach(count);
     if (include_seed_contact) {
-        const FinContactBand seed_band = clip_contact_band(root_band);
+        FinContactBand seed_band = root_band;
         PreparedContactBand prepared;
         const auto seed_status = prepare_band(seed_band, prepared, bool(fin.seed.crease_intent));
         if (fin.seed.crease_intent) {
@@ -7607,7 +7740,7 @@ bool generate_fin_geometry(const PrintObject &object, TracedFin &fin, const Poly
 
     const std::vector<FinContactBand> periodic_bands = periodic_fin_contact_bands(object, fin);
     for (auto band_it = periodic_bands.rbegin(); band_it != periodic_bands.rend(); ++band_it) {
-        const FinContactBand band = clip_contact_band(*band_it);
+        FinContactBand band = *band_it;
         PreparedContactBand prepared;
         const auto status = prepare_band(band, prepared, fin.seed.path && fin.seed.crease_intent,
             painted_shape ? &seed_reach : nullptr);

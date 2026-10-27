@@ -1345,6 +1345,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               fin_support_contact_height))
     ((ConfigOptionFloat,               fin_support_contact_start_height))
     ((ConfigOptionFloatOrPercent,      fin_support_contact_width))
+    ((ConfigOptionPercent,             fin_support_contact_penetration))
     ((ConfigOptionFloatOrPercent,      fin_support_thickness))
     ((ConfigOptionFloat,               fin_support_contact_spacing))
     ((ConfigOptionFloat,               fin_support_contact_projection_angle))

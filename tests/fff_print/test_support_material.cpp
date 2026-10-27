@@ -8,6 +8,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/TriangleSelector.hpp"
@@ -35,7 +36,6 @@
 // Not self-contained: its inline constructor uses PrintObject, PrintRegion, SlicingParameters and
 // Geometry, so it must follow the headers (pulled in via test_helpers.hpp) that define them.
 #include "libslic3r/Support/SupportParameters.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/Print.hpp"
 
 using namespace Slic3r::Test;
@@ -64,6 +64,7 @@ struct FinRun {
     double support_top_z = 0;
     double contact_top_z = 0;
     double contact_bottom_z = std::numeric_limits<double>::infinity();
+    std::map<double, double> penetration_by_layer;
     size_t projection_layers = 0;
     double projection_front_span = 0;
     double min_projection_gap = std::numeric_limits<double>::infinity();
@@ -96,7 +97,11 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
                          double painted_max_z = std::numeric_limits<double>::infinity(),
                           const char *fin_style = "simulated",
                           double painted_min_z = -std::numeric_limits<double>::infinity(),
-                          double object_gap = 0.6, double first_layer_expansion = 2.)
+                          double object_gap = 0.6, double first_layer_expansion = 2.,
+                          double top_z_distance = 0.2, double layer_height = 0.2,
+                          double contact_penetration = 0.,
+                          const indexed_triangle_set *contact_blocker = nullptr,
+                          double contact_height = 0.6)
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
@@ -106,12 +111,14 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
         { "fin_support_expansion_factor", expansion_factor },
         { "outer_wall_line_width", outer_width },
         { "support_object_xy_distance", object_gap }, { "support_line_width", 0.4 },
+        { "support_top_z_distance", top_z_distance },
         { "raft_first_layer_expansion", first_layer_expansion },
-        { "fin_support_contact_height", 0.6 }, { "fin_support_contact_start_height", 0.0 },
+        { "fin_support_contact_height", contact_height }, { "fin_support_contact_start_height", 0.0 },
+        { "fin_support_contact_penetration", contact_penetration },
         { "fin_support_contact_spacing", contact_spacing },
         { "tree_support_wall_count", wall_count }, { "fin_support_contact_projection_angle", projection_angle },
-        { "layer_height", 0.2 },
-        { "initial_layer_print_height", 0.2 },
+        { "layer_height", layer_height },
+        { "initial_layer_print_height", layer_height },
         { "zaa_enabled", zaa_enabled ? 1 : 0 }, { "zaa_min_z", zaa_min_z },
     });
     config.set_key_value("fin_support_contact_width", new ConfigOptionFloatOrPercent(contact_width, contact_percent));
@@ -147,6 +154,8 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
         }
         REQUIRE(volume->supported_facets.set(selector));
     }
+    if (contact_blocker != nullptr)
+        model.objects.front()->add_volume(TriangleMesh(*contact_blocker), ModelVolumeType::SUPPORT_BLOCKER);
     print.apply(model, config);
     print.process();
     const PrintObject *object = print.objects().front();
@@ -205,6 +214,8 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
         }
         result.gap_layers += distance > 0.4;
         if (layer != layers.front()) {
+            // Keep signed distances on every non-foot layer, including gaps.
+            result.penetration_by_layer.emplace(layer->print_z, -distance);
             ExPolygons fin_center_areas;
             if (result.first_body_z == 0) {
                 result.first_body_z = layer->print_z;
@@ -374,6 +385,35 @@ static FinRun slice_fins(double max_spacing, bool paint = true, double lean = 0,
             }
     }
     return result;
+}
+
+TEST_CASE("Painted shape contacts stop when upper walls cover more than one fin line width", "[SupportMaterial][Regression]")
+{
+    const double slope = 1.25; // More than 45 degrees from vertical.
+    const double layer_height = GENERATE(0.1, 0.2);
+    const double painted_width = GENERATE(4., 60.);
+    const double height = 30.;
+    const indexed_triangle_set mesh = its_make_cube(6., painted_width, height);
+    // Paint only the lower triangle of the +X face. Its trimmed intent ends
+    // below the model top, so upper model sections exist above the root band.
+    // Narrow and wide patches exercise finite-line and point body inputs.
+    auto slice = [&](double z_gap) {
+        return slice_fins(20, true, slope, 1.2, 0.4, 1, 30,
+            false, false, 0.4, 8, 0, height, 6, &mesh, 0,
+            false, false, false, false, 0, height / 2., "painted_shape",
+            -std::numeric_limits<double>::infinity(), 0.6, 2., z_gap, layer_height);
+    };
+    CAPTURE(slope, layer_height, painted_width);
+    // Zero Z gap retains its existing contact behavior.
+    REQUIRE(slice(0.).first_layer_paths > 0);
+    // At most 0.2 mm upward reaches 0.25 mm into the 0.4 mm-wide fin
+    // contact. The steep face can still make its intended side contact.
+    const FinRun shallow_coverage = slice(0.2);
+    REQUIRE(shallow_coverage.first_layer_paths > 0);
+    REQUIRE(shallow_coverage.contact_layers > 0);
+    // The same angle over a taller inspected interval covers more than one
+    // fin line width. The highest band cannot start under that wall coverage.
+    REQUIRE(slice(0.8).first_layer_paths == 0);
 }
 
 TEST_CASE("Fin style defaults to the existing simulated planner", "[SupportMaterial]")
@@ -1251,11 +1291,144 @@ TEST_CASE("Fin percentages resolve against the support line width", "[SupportMat
     REQUIRE_THAT(result.body_thickness, Catch::Matchers::WithinAbs(0.8, 0.02));
 }
 
+TEST_CASE("Fin contact penetration scales with outer wall width in every style", "[SupportMaterial][Regression]")
+{
+    const char *style = GENERATE("simple", "simulated", "painted_shape");
+    const double outer_width = GENERATE(0.4, 0.6);
+    const double percent = GENERATE(25., 100.);
+    auto slice = [&](double penetration) {
+        return slice_fins(20, true, 0, 1.2, 0.4, 1, 30,
+            false, false, outer_width, 8, 0, 60, 6, nullptr, 0,
+            false, false, false, false, 0, std::numeric_limits<double>::infinity(), style,
+            -std::numeric_limits<double>::infinity(), 0.6, 2., 0.2, 0.2, penetration);
+    };
+    CAPTURE(style, outer_width, percent);
+    const FinRun touching = slice(0.);
+    const FinRun penetrating = slice(percent);
+    REQUIRE(touching.contact_layers > 0);
+    REQUIRE(penetrating.contact_layers > 0);
+    size_t checked_layers = 0;
+    for (const auto &[z, depth] : touching.penetration_by_layer) {
+        if (depth < -0.01)
+            continue; // Body-only and taper layers have a deliberate model gap.
+        CAPTURE(z);
+        REQUIRE_THAT(depth, Catch::Matchers::WithinAbs(0., 0.01));
+        const auto found = penetrating.penetration_by_layer.find(z);
+        REQUIRE(found != penetrating.penetration_by_layer.end());
+        REQUIRE_THAT(found->second - depth,
+                     Catch::Matchers::WithinAbs(outer_width * percent / 100., 0.01));
+        ++checked_layers;
+    }
+    REQUIRE(checked_layers >= 3); // At least a complete 0.6 mm contact band.
+}
+
+TEST_CASE("Painted contact continuation checks upper walls against its saved penetrated front", "[SupportMaterial][Regression]")
+{
+    constexpr double height = 30.;
+    constexpr double layer_height = 0.2;
+    constexpr double contact_height = 1.;
+    constexpr double slope = -1.25;
+    const double percent = GENERATE(0., 50.);
+    auto slice = [&](double z_gap, const indexed_triangle_set *blocker) {
+        return slice_fins(20, true, slope, 1.2, 0.4, 1, 30,
+            false, false, 0.4, 8, 0, height, 6, nullptr, 0,
+            false, false, false, false, 0, std::numeric_limits<double>::infinity(), "painted_shape",
+            -std::numeric_limits<double>::infinity(), 0.6, 2., z_gap, layer_height, percent,
+            blocker, contact_height);
+    };
+    const FinRun local_contacts = slice(0.2, nullptr);
+    REQUIRE(local_contacts.support_top_z > contact_height);
+    // Use the resolved seed height: a wide painted island starts at its source
+    // intent, which need not coincide with the model top. Leave that layer
+    // unblocked and force the lower band layers to carry its saved front.
+    indexed_triangle_set blocker = its_make_cube(100., 80., contact_height - layer_height);
+    its_transform(blocker, identity3f().translate(Vec3f{-50.f, -10.f,
+        float(local_contacts.support_top_z - contact_height)}));
+    const FinRun reference = slice(0., &blocker);
+    const FinRun covered = slice(0.2, &blocker);
+    REQUIRE_THAT(reference.support_top_z, Catch::Matchers::WithinAbs(local_contacts.support_top_z, 0.001));
+    REQUIRE_THAT(covered.support_top_z, Catch::Matchers::WithinAbs(reference.support_top_z, 0.001));
+    const auto top = reference.penetration_by_layer.find(reference.support_top_z);
+    REQUIRE(top != reference.penetration_by_layer.end());
+    REQUIRE_THAT(top->second, Catch::Matchers::WithinAbs(0.4 * percent / 100., 0.01));
+    size_t checked_layers = 0;
+    for (const auto &[z, depth] : reference.penetration_by_layer) {
+        const double dz = reference.support_top_z - z;
+        if (dz >= contact_height - EPSILON)
+            continue;
+        CAPTURE(percent, z);
+        // The saved front stays at the top wall's X while the wall advances
+        // below it. With zero Z gap, all five layers carry the same front.
+        REQUIRE_THAT(depth, Catch::Matchers::WithinAbs(top->second - slope * dz, 0.01));
+        const auto found = covered.penetration_by_layer.find(z);
+        REQUIRE(found != covered.penetration_by_layer.end());
+        const auto local = local_contacts.penetration_by_layer.find(z);
+        REQUIRE(local != local_contacts.penetration_by_layer.end());
+        REQUIRE_THAT(local->second, Catch::Matchers::WithinAbs(top->second, 0.01));
+        if (dz < 0.5)
+            REQUIRE_THAT(found->second, Catch::Matchers::WithinAbs(depth, 0.01));
+        else
+            // The immediately upper wall now covers the saved neck by more
+            // than 0.4 mm. Stop and taper even though the rejected local
+            // candidate's own surface reference would report no coverage.
+            REQUIRE(found->second < depth - 0.01);
+        ++checked_layers;
+    }
+    REQUIRE(checked_layers == 5);
+}
+
+TEST_CASE("A painted crease advances every root contact layer along its bisector", "[SupportMaterial][Regression]")
+{
+    const double outer_width = GENERATE(0.4, 0.6);
+    const double percent = GENERATE(25., 100.);
+    // Rotating the square leaves exactly two +X-facing painted sides. They
+    // share a convex vertical crease whose exterior bisector is +X.
+    indexed_triangle_set mesh = its_make_cube(6., 6., 30.);
+    const double diagonal = std::sqrt(0.5);
+    for (Vec3f &vertex : mesh.vertices) {
+        const double x = vertex.x(), y = vertex.y();
+        vertex.x() = float(diagonal * (x - y));
+        vertex.y() = float(diagonal * (x + y));
+    }
+    auto slice = [&](double penetration) {
+        return slice_fins(20, true, 0, 1.2, 0., 1, 30,
+            false, false, outer_width, 8, 0, 30, 6, &mesh, 0,
+            false, false, false, false, 0, std::numeric_limits<double>::infinity(), "painted_shape",
+            -std::numeric_limits<double>::infinity(), 0.6, 2., 0.2, 0.2, penetration);
+    };
+    const FinRun touching = slice(0.);
+    const FinRun penetrating = slice(percent);
+    REQUIRE(touching.top_body_paths == 1);
+    REQUIRE(penetrating.top_body_paths == 1);
+    REQUIRE(touching.top_contact_y.size() == 1);
+    REQUIRE(penetrating.top_contact_y.size() == 1);
+    REQUIRE_THAT(touching.top_contact_y.front(), Catch::Matchers::WithinAbs(0., 0.01));
+    REQUIRE_THAT(penetrating.top_contact_y.front(), Catch::Matchers::WithinAbs(0., 0.01));
+    REQUIRE_THAT(penetrating.support_top_z, Catch::Matchers::WithinAbs(touching.support_top_z, 0.001));
+    size_t checked_layers = 0;
+    for (const auto &[z, depth] : touching.penetration_by_layer) {
+        if (touching.support_top_z - z >= 0.6 - EPSILON)
+            continue;
+        CAPTURE(outer_width, percent, z);
+        const auto found = penetrating.penetration_by_layer.find(z);
+        REQUIRE(found != penetrating.penetration_by_layer.end());
+        // The rounded wall corner need not coincide with the nominal vertex;
+        // compare its displacement instead of assuming a zero baseline gap.
+        REQUIRE_THAT(found->second - depth,
+                     Catch::Matchers::WithinAbs(outer_width * percent / 100., 0.01));
+        ++checked_layers;
+    }
+    REQUIRE(checked_layers == 3);
+}
+
 TEST_CASE("Fin defaults use full support line contact length and absolute thickness", "[SupportMaterial]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     const auto *contact = config.option<ConfigOptionFloatOrPercent>("fin_support_contact_width");
     const auto *thickness = config.option<ConfigOptionFloatOrPercent>("fin_support_thickness");
+    const auto *penetration = config.option<ConfigOptionPercent>("fin_support_contact_penetration");
+    REQUIRE(penetration != nullptr);
+    REQUIRE_THAT(penetration->value, Catch::Matchers::WithinAbs(0., 0.001));
     REQUIRE(contact->percent);
     REQUIRE_FALSE(thickness->percent);
     REQUIRE_THAT(contact->value, Catch::Matchers::WithinAbs(100, 0.001));

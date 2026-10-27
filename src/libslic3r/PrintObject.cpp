@@ -1609,6 +1609,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "fin_support_contact_height"
             || opt_key == "fin_support_contact_start_height"
             || opt_key == "fin_support_contact_width"
+            || opt_key == "fin_support_contact_penetration"
             || opt_key == "fin_support_thickness"
             || opt_key == "fin_support_contact_spacing"
             || opt_key == "fin_support_contact_projection_angle"

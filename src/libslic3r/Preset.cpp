@@ -1249,7 +1249,7 @@ static std::vector<std::string> s_Preset_print_options{
     "raft_layers", "raft_first_layer_density", "raft_first_layer_expansion", "raft_contact_distance", "raft_expansion",
     "support_base_pattern", "support_base_pattern_spacing", "support_expansion", "support_style",
     "fin_support_style", "fin_support_contact_height", "fin_support_contact_start_height", "fin_support_contact_spacing", "fin_support_depth", "fin_support_max_spacing",
-    "fin_support_contact_width", "fin_support_thickness",
+    "fin_support_contact_width", "fin_support_contact_penetration", "fin_support_thickness",
     "fin_support_contact_projection_angle",
     "fin_support_painted_shape_line_angle",
     "fin_support_expansion_factor",

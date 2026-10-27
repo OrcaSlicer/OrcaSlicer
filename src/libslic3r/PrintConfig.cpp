@@ -7696,6 +7696,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
 
+    def = this->add("fin_support_contact_penetration", coPercent);
+    def->label = L("Fin contact penetration");
+    def->category = L("Support");
+    def->tooltip = L("Depth that the fin contact extends into the model, measured along the contact front normal as a percentage of the outer wall line width for the contacted model region. Zero touches the wall surface; 100 percent penetrates by one outer wall line width.");
+    def->sidetext = L("%");
+    def->ratio_over = "outer_wall_line_width";
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0));
+
     def = this->add("fin_support_thickness", coFloatOrPercent);
     def->label = L("Fin thickness");
     def->category = L("Support");
