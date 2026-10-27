@@ -132,7 +132,7 @@ exit /b %errorlevel%
         if errorlevel 1 exit /b 1
     )
     if not exist "./resources/i18n/!lang!" mkdir "./resources/i18n/!lang!"
-    .\tools\msgfmt.exe --check-format -o "./resources/i18n/!lang!/OrcaSlicer.mo" "%file%"
+    .\tools\msgfmt.exe --check-format --check-header -o "./resources/i18n/!lang!/OrcaSlicer.mo" "%file%"
     if errorlevel 1 (
         echo Error encountered with msgfmt command for language !lang!.
         exit /b 1

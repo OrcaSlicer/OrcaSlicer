@@ -127,6 +127,8 @@ set(lisbslic3r_sources
     Emboss.hpp
     EmbossShape.hpp
     enum_bitmask.hpp
+    ExclusionVolumeGeometry.cpp
+    ExclusionVolumeGeometry.hpp
     Execution/Execution.hpp
     Execution/ExecutionSeq.hpp
     Execution/ExecutionTBB.hpp
@@ -182,8 +184,8 @@ set(lisbslic3r_sources
     Fill/FillPlanePath.hpp
     Fill/FillRectilinear.cpp
     Fill/FillRectilinear.hpp
-    Fill/FillTpmsAdaptive.cpp
-    Fill/FillTpmsAdaptive.hpp
+    Fill/AdaptiveInfillField.cpp
+    Fill/AdaptiveInfillField.hpp
     Fill/FillTpmsD.cpp
     Fill/FillTpmsD.hpp
     Fill/FillTpmsFK.cpp
@@ -221,6 +223,7 @@ set(lisbslic3r_sources
     Format/DRC.hpp
     Format/bbs_3mf.cpp
     Format/bbs_3mf.hpp
+    Format/ProjectStrategy.hpp
     format.hpp
     Format/OBJ.cpp
     Format/OBJ.hpp
@@ -257,6 +260,10 @@ set(lisbslic3r_sources
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
+    GCode/ExclusionVolumePathCheck.cpp
+    GCode/ExclusionVolumePathCheck.hpp
+    GCode/ExclusionVolumeTravelAvoidance.cpp
+    GCode/ExclusionVolumeTravelAvoidance.hpp
     GCode/TimelapsePosPicker.cpp
     GCode/TimelapsePosPicker.hpp
     GCode.cpp
@@ -265,6 +272,8 @@ set(lisbslic3r_sources
     GCode/FanMover.hpp
     GCode/GCodeProcessor.cpp
     GCode/GCodeProcessor.hpp
+    GCode/GCodeStatistics.cpp
+    GCode/GCodeStatistics.hpp
     GCode/ElegooGCodeProcessorHelper.cpp
     GCode.hpp
     GCode/PchipInterpolatorHelper.cpp
@@ -279,6 +288,8 @@ set(lisbslic3r_sources
     GCode/RetractWhenCrossingPerimeters.hpp
     GCode/SeamPlacer.cpp
     GCode/SeamPlacer.hpp
+    GCode/SeamContour.cpp
+    GCode/SeamContour.hpp
     GCode/PreciseSeam.cpp
     GCode/PreciseSeam.hpp
     GCode/PreciseSeamInternal.hpp
@@ -431,8 +442,6 @@ set(lisbslic3r_sources
     QuadricEdgeCollapse.cpp
     QuadricEdgeCollapse.hpp
     Semver.cpp
-    Shape/TextShape.cpp
-    Shape/TextShape.hpp
     ShortEdgeCollapse.cpp
     ShortEdgeCollapse.hpp
     ShortestPath.cpp
@@ -664,6 +673,9 @@ endif ()
 encoding_check(libslic3r)
 
 target_compile_definitions(libslic3r PUBLIC -DUSE_TBB -DTBB_USE_CAPTURED_EXCEPTION=0)
+# CGAL changes Kd_tree's member layout when TBB is enabled. Match libslic3r_cgal
+# in every consumer so inline constructors/destructors cannot mix the two layouts.
+target_compile_definitions(libslic3r PUBLIC CGAL_LINKED_WITH_TBB)
 if (USE_SLIC3R_CONSOLE_LOG)
     target_compile_definitions(libslic3r PRIVATE $<$<CONFIG:RelWithDebInfo>:SLIC3R_CONSOLE_LOG>)
 endif()
@@ -775,20 +787,6 @@ target_link_libraries(libslic3r
         ZLIB::ZLIB
         OpenSSL::Crypto
     )
-
-if(NOT WIN32)
-    # OCCT's static targets name FreeType as a bare "freetype", which the macOS linker cannot
-    # find; this target maps that name to FREETYPE_LIBRARIES.
-    if (NOT TARGET freetype)
-        add_library(freetype INTERFACE IMPORTED GLOBAL)
-        target_link_libraries(freetype INTERFACE ${FREETYPE_LIBRARIES})
-    endif ()
-    # Link freetype for OCCT dependency (CAD operations need font rendering)
-    target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
-    if (NOT APPLE)
-        target_link_libraries(libslic3r PRIVATE fontconfig)
-    endif()
-endif()
 
 if (APPLE)
     find_library(FOUNDATION Foundation REQUIRED)

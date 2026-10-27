@@ -1,54 +1,16 @@
 #include <catch2/catch_all.hpp>
 
-#include <clocale>
-#include <locale.h>
-
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/LocalesUtils.hpp"
+#include "test_utils.hpp"
 
 #include <string>
 
 using namespace Slic3r;
-
-namespace {
-
-// Switches this thread's numeric locale to one whose decimal separator is a comma,
-// when the system has one installed.
-struct CommaNumericLocale
-{
-#ifdef _WIN32
-    bool apply()
-    {
-        for (const char* name : { "de-DE", "German_Germany.1252" })
-            if (std::setlocale(LC_NUMERIC, name) != nullptr)
-                return true;
-        return false;
-    }
-#else
-    locale_t locale { (locale_t) 0 };
-    bool apply()
-    {
-        for (const char* name : { "de_DE.UTF-8", "de_DE.utf8", "de_DE" })
-            if ((locale = newlocale(LC_NUMERIC_MASK, name, (locale_t) 0)) != (locale_t) 0) {
-                uselocale(locale);
-                return true;
-            }
-        return false;
-    }
-    // Freed once the setters around apply() have put the thread's own locale back.
-    ~CommaNumericLocale()
-    {
-        if (locale != (locale_t) 0)
-            freelocale(locale);
-    }
-#endif
-};
-
-} // namespace
 
 TEST_CASE("Floats print as printf prints them in the C locale", "[LocalesUtils]")
 {

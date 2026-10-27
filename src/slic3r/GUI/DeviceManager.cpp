@@ -11,6 +11,7 @@
 
 #include "GUI_App.hpp"
 #include "DeviceErrorDialog.hpp"
+#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "ReleaseNote.hpp"
 #include <string>
@@ -1798,7 +1799,8 @@ int MachineObject::command_ams_calibrate(int ams_id)
     return command_with_dialog(m_agent->command_ams_calibrate(get_dev_id(), ams_id, MachineObject::m_sequence_id++, is_lan_mode_printer()));
 }
 
-int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type, int nozzle_temp_min, int nozzle_temp_max)
+int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::string filament_id, std::string setting_id, std::string tray_color, std::string tray_type,
+                                                 int nozzle_temp_min, int nozzle_temp_max, const std::vector<std::string>& tray_colors, int tray_ctype)
 {
     int tag_tray_id = 0;
     int tag_ams_id  = ams_id;
@@ -1827,6 +1829,10 @@ int MachineObject::command_ams_filament_settings(int ams_id, int slot_id, std::s
     j["print"]["nozzle_temp_min"]   = nozzle_temp_min;
     j["print"]["nozzle_temp_max"]   = nozzle_temp_max;
     j["print"]["tray_type"]         = tray_type;
+    if (!tray_colors.empty()) {
+        j["print"]["cols"]  = tray_colors;
+        j["print"]["ctype"] = tray_ctype;
+    }
 
     return this->publish_json(j);
 }
@@ -2685,7 +2691,7 @@ int MachineObject::connect()
     std::string port;
     std::string input = get_dev_ip();
 
-    const bool use_ssl = input.rfind("https", 0) == 0;
+    bool use_ssl = input.rfind("https", 0) == 0;
 
     // This strips out the http/https prefix
     std::string host = Http::get_host_from_url(input, &port);
@@ -2702,6 +2708,7 @@ int MachineObject::connect()
         if (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID && config.opt_string("printer_agent") == MOONRAKER_PRINTER_AGENT_ID &&
             !print_host.empty() && dev_id_from_address(print_host, config.opt_string("printhost_port")) == get_dev_id()) {
             password = config.opt_string("printhost_apikey");
+            use_ssl  = boost::istarts_with(print_host, "https://");
             if (password != get_access_code())
                 set_access_code(password);
         }
@@ -4746,7 +4753,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 void MachineObject::set_ctt_dlg( wxString text){
     if (!m_set_ctt_dlg) {
         m_set_ctt_dlg = true;
-        auto print_error_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
+        // Parented so it is destroyed with the main frame: a parentless top-level window,
+        // even hidden, keeps wx from leaving the event loop on exit.
+        auto print_error_dlg = new GUI::SecondaryCheckDialog(GUI::wxGetApp().mainframe, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle
         print_error_dlg->update_text(text);
         print_error_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
             if (!e.IsShown()) {
@@ -4781,7 +4790,8 @@ void MachineObject::show_unsupported_dlg(int code)
     // note: constructed directly rather than through CallAfter because every publish_json caller
     // is on the UI thread - clicks come from wx handlers, and the agent marshals its own push
     // callbacks back to main before parse_json runs. set_ctt_dlg relies on the same property.
-    auto unsupported_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"),
+    // Parented for the same reason as in set_ctt_dlg.
+    auto unsupported_dlg = new GUI::SecondaryCheckDialog(GUI::wxGetApp().mainframe, wxID_ANY, _L("Warning"),
                                                          GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM);
     unsupported_dlg->update_text(text);
     unsupported_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
@@ -4870,7 +4880,7 @@ void MachineObject::update_model_task()
             unsigned int http_code = 404;
             std::string  http_error;
             int          res = -1;
-            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error);
+            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             request_model_result++;
             BOOST_LOG_TRIVIAL(info) << "request times: " << request_model_result << " http code: " << http_code;
             auto rating_info = new DevPrintTaskRatingInfo();
@@ -5059,7 +5069,7 @@ void MachineObject::get_firmware_info()
             unsigned int http_code;
             std::string  http_body;
             if (!m_agent) return;
-            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body);
+            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             if (result < 0) {
                 // get upgrade list failed
                 return;
@@ -5478,6 +5488,7 @@ void MachineObject::parse_new_info(json print)
         is_support_pa_mode = (get_flag_bits_no_border(fun2, 3) == 1);
         is_support_remote_dry = (get_flag_bits_no_border(fun2, 5) == 1);
         is_support_check_track_switch_match_slice_printer = get_flag_bits_no_border(fun2, 19) == 1;
+        is_support_filament_manual_multi_color = (get_flag_bits_no_border(fun2, 23) == 1);
 
         if (DevPrinterConfigUtil::support_print_check_firmware_for_tpu_left(printer_type)) {
             m_firmware_support_print_tpu_left = get_flag_bits_no_border(fun2, 7) == 1;

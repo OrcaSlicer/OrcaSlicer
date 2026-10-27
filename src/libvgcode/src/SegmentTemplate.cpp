@@ -19,7 +19,9 @@ namespace libvgcode {
 // The eight corners the vertex shader knows how to place. Each is sent once and
 // referenced by INDEX_DATA below, so the post-transform cache can reuse it across
 // the triangles that share it: the shader runs 8 times per segment instead of 24.
-static constexpr const std::array<uint8_t, 8> VERTEX_DATA = { 0, 1, 2, 3, 4, 5, 6, 7 };
+// ORCA: 32-bit, as Metal takes only vertex strides that are a multiple of 4 bytes, and
+// the OpenGL driver Parallels Desktop builds on it draws no segment from packed uint8 ones.
+static constexpr const std::array<uint32_t, 8> VERTEX_DATA = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 // 16-bit indices: GCN 1/2 GPUs have no 8-bit index support, and some of their drivers
 // emulate it wrongly in instanced draws.
@@ -39,7 +41,7 @@ void SegmentTemplate::init()
     if (m_vao_id != 0)
         return;
 
-    m_size_in_bytes_gpu += VERTEX_DATA.size() * sizeof(uint8_t) + INDEX_DATA.size() * sizeof(uint16_t);
+    m_size_in_bytes_gpu += VERTEX_DATA.size() * sizeof(uint32_t) + INDEX_DATA.size() * sizeof(uint16_t);
 
     int curr_vertex_array;
     glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
@@ -51,12 +53,12 @@ void SegmentTemplate::init()
 
     glsafe(glGenBuffers(1, &m_vbo_id));
     glsafe(glBindBuffer(GL_ARRAY_BUFFER, m_vbo_id));
-    glsafe(glBufferData(GL_ARRAY_BUFFER, VERTEX_DATA.size() * sizeof(uint8_t), VERTEX_DATA.data(), GL_STATIC_DRAW));
+    glsafe(glBufferData(GL_ARRAY_BUFFER, VERTEX_DATA.size() * sizeof(uint32_t), VERTEX_DATA.data(), GL_STATIC_DRAW));
     glsafe(glEnableVertexAttribArray(0));
 #ifdef ENABLE_OPENGL_ES
-    glsafe(glVertexAttribPointer(0, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, (const void*)0));
+    glsafe(glVertexAttribPointer(0, 1, GL_UNSIGNED_INT, GL_FALSE, 0, (const void*)0));
 #else
-    glsafe(glVertexAttribIPointer(0, 1, GL_UNSIGNED_BYTE, 0, (const void*)0));
+    glsafe(glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (const void*)0));
 #endif // ENABLE_OPENGL_ES
 
     // The element buffer binding is part of the vao state, so it is left bound here

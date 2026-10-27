@@ -77,7 +77,9 @@
 #include "DeviceCore/DevStorage.h"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <boost/filesystem.hpp>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -1229,7 +1231,7 @@ void SendToPrinterDialog::update_user_printer()
     }
     else {
         m_printer_last_select = "";
-        m_comboBox_printer->SetTextLabel("");
+        m_comboBox_printer->SetValue(_L("No available printers"));
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "for send task, current printer id =  " << m_printer_last_select << std::endl;
@@ -1507,7 +1509,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
 	} else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
-		wxString msg_text = _L("Storage needs to be inserted before send to printer.");
+		wxString msg_text = _L("Insert storage or free up space before sending to the printer.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
@@ -1831,7 +1833,7 @@ what();
                     }
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : Tutk url error: ress = " << res;
                 }
-            });
+            }, wxGetApp().get_printer_cloud_provider());
         }
     }
 }

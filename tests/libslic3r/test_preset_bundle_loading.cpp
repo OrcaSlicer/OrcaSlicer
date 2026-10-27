@@ -740,7 +740,9 @@ TEST_CASE("Local reload reconciles filament slots and purge volumes while retain
 {
     LocalReloadFixture f;
     DynamicPrintConfig printer_config(f.bundle.printers.get_selected_preset().config);
+    // A tool changer, whose filament slots follow its nozzle count.
     printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.4, 0.4};
+    printer_config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
     write_preset_with_inherits(printer_config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
     f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = {0.};
     f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values = {111., 222.};
@@ -985,6 +987,37 @@ TEST_CASE("A user filament synced to the cloud and back keeps its values and uns
     }
 }
 
+TEST_CASE("A project filament storing one value for a per-variant key applies it to every variant", "[Preset][Bundle][Regression]")
+{
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    Preset &parent = add_inmemory_preset(filaments, "Parent Filament");
+    parent.config.set_key_value("filament_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow"}));
+    parent.config.set_key_value("adaptive_pressure_advance_model", new ConfigOptionStrings({"parent standard", "parent high flow"}));
+    parent.config.set_deserialize_strict("pressure_advance", "0.02,0.03");
+    parent.is_system = true;
+
+    // A filament saved before these keys became per-variant lists both variants but stores each key once.
+    const std::string model = "0.025,15.6,5000";
+    DynamicPrintConfig config;
+    config.set_key_value(BBL_JSON_KEY_INHERITS, new ConfigOptionString("Parent Filament"));
+    config.set_key_value("filament_extruder_variant", new ConfigOptionStrings({"Direct Drive Standard", "Direct Drive High Flow"}));
+    config.set_key_value("adaptive_pressure_advance_model", new ConfigOptionStrings({model}));
+    config.set_deserialize_strict("pressure_advance", "0.016");
+    auto embedded                 = std::make_unique<Preset>(Preset::TYPE_FILAMENT, "Project Filament", false);
+    embedded->config              = std::move(config);
+    embedded->is_project_embedded = true;
+
+    std::vector<Preset *>      project_presets{embedded.get()};
+    PresetsConfigSubstitutions substitutions;
+    filaments.load_project_embedded_presets(project_presets, PRESET_FILAMENT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+
+    const Preset *loaded = filaments.find_preset("Project Filament");
+    REQUIRE(loaded != nullptr);
+    CHECK(loaded->config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values == std::vector<std::string>{model, model});
+    check_double_vector(loaded->config.option<ConfigOptionFloats>("pressure_advance")->values, {0.016, 0.016});
+}
+
 TEST_CASE("Repeated loads of a user preset directory produce the same presets", "[Preset][Bundle]")
 {
     ScopedTemporaryDir temp_dir;
@@ -1186,6 +1219,181 @@ TEST_CASE("find_preset2 auto-matches removed Generic vendor profiles to the libr
 
     // No library preset exists for an unrelated material => still no match.
     CHECK(bundle.filaments.find_preset2("BrandX Generic PETG", /*auto_match=*/true) == nullptr);
+}
+
+TEST_CASE("The selected preset is its own base when its parent is not loaded", "[Preset]")
+{
+    PresetCollection printers(Preset::TYPE_PRINTER, Preset::printer_options(),
+                              static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    add_inmemory_preset(printers, "Printer");
+    add_inmemory_preset(printers, "User Printer", "Printer");
+    add_inmemory_preset(printers, "Orphan Printer", "Uninstalled Vendor Printer");
+
+    printers.select_preset_by_name("User Printer", true);
+    REQUIRE(printers.get_selected_preset_name() == "User Printer");
+    CHECK(printers.get_selected_preset_base().name == "Printer");
+
+    printers.select_preset_by_name("Orphan Printer", true);
+    REQUIRE(printers.get_selected_preset_name() == "Orphan Printer");
+    REQUIRE(printers.get_preset_base(printers.get_selected_preset()) == nullptr);
+    CHECK(printers.get_selected_preset_base().name == "Orphan Printer");
+}
+
+TEST_CASE("A printer's own presets are the user presets made for it alone", "[Preset]")
+{
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    // load_preset() inserts in name order, so each preset is adjusted before the next one is added.
+    auto add = [&filaments](const std::string &name, std::vector<std::string> compatible_printers) -> Preset & {
+        Preset &preset = add_inmemory_preset(filaments, name);
+        preset.config.option<ConfigOptionStrings>("compatible_printers", true)->values = std::move(compatible_printers);
+        return preset;
+    };
+    add("Made For It", {"My Printer"});
+    add("Also For Other", {"My Printer", "Other Printer"});
+    add("For Other", {"Other Printer"});
+    add("Unrestricted", {});
+    add("By Condition", {}).config.option<ConfigOptionString>("compatible_printers_condition", true)->value = "nozzle_diameter[0]==0.4";
+    add("System For It", {"My Printer"}).is_system = true;
+    add("Bundle For It", {"My Printer"}).bundle_id = "bundle";
+    add("Project For It", {"My Printer"}).is_project_embedded = true;
+
+    auto names_for = [&filaments](const std::string &printer) {
+        std::vector<std::string> names;
+        for (const Preset *preset : filaments.get_user_presets_for_printer(printer))
+            names.push_back(preset->name);
+        return names;
+    };
+    CHECK(names_for("My Printer") == std::vector<std::string>{"Made For It"});
+    CHECK(names_for("Other Printer") == std::vector<std::string>{"For Other"});
+    CHECK(names_for("Unknown Printer").empty());
+}
+
+TEST_CASE("A printer's own preset stays while a kept preset inherits from it", "[Preset]")
+{
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    auto add = [&filaments](const std::string &name, const std::string &inherits, std::vector<std::string> compatible_printers) {
+        add_inmemory_preset(filaments, name, inherits).config.option<ConfigOptionStrings>("compatible_printers", true)->values =
+            std::move(compatible_printers);
+    };
+    // Root <- Middle <- Shared: Shared also lists another printer, so it is kept along with its parents.
+    add("Root", "", {"My Printer"});
+    add("Middle", "Root", {"My Printer"});
+    add("Shared", "Middle", {"My Printer", "Other Printer"});
+    // Alone <- Child: both are made for the printer alone, so both go with it.
+    add("Alone", "", {"My Printer"});
+    add("Child", "Alone", {"My Printer"});
+
+    std::vector<std::string> names;
+    for (const Preset *preset : filaments.get_user_presets_for_printer("My Printer"))
+        names.push_back(preset->name);
+    CHECK(names == std::vector<std::string>{"Alone", "Child"});
+}
+
+TEST_CASE("A preset cloned from a bundle's for a new printer is the user's own", "[Preset]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetCollection   filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                                 static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    PresetsConfigSubstitutions substitutions;
+    filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    boost::filesystem::create_directories(temp_dir.path() / PRESET_FILAMENT_NAME / "base");
+    add_inmemory_preset(filaments, "Bundle PLA @Template").bundle_id = "bundle";
+
+    std::vector<std::string> failures;
+    REQUIRE(filaments.clone_presets_for_printer({filaments.find_preset("Bundle PLA @Template")}, failures, "My Printer",
+                                                [](const std::string &) { return std::string("GFU01"); }));
+
+    const std::vector<Preset const *> own = filaments.get_user_presets_for_printer("My Printer");
+    REQUIRE(own.size() == 1);
+    CHECK(own[0]->name == "Bundle PLA @My Printer");
+    CHECK(own[0]->is_user());
+}
+
+TEST_CASE("Saving another preset over a synced user preset keeps its cloud profile", "[Preset]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetCollection   filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                                 static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    PresetsConfigSubstitutions substitutions;
+    filaments.load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    const boost::filesystem::path base_dir = temp_dir.path() / PRESET_FILAMENT_NAME / "base";
+    boost::filesystem::create_directories(base_dir);
+    add_inmemory_preset(filaments, "Base PLA").is_system = true;
+
+    // The user's synced root preset, which is replaced by one made from "Base PLA".
+    Preset &mine    = add_inmemory_preset(filaments, "Mine");
+    mine.file       = (base_dir / "Mine.json").string();
+    mine.setting_id = "cloud-1";
+    mine.user_id    = "u1";
+    mine.save(nullptr);
+    mine.save_info();
+
+    filaments.select_preset_by_name("Base PLA", true);
+    filaments.save_current_preset("Mine");
+
+    const Preset *saved = filaments.find_preset("Mine", false, true);
+    REQUIRE(saved != nullptr);
+    // It is made from the saved settings ...
+    CHECK(saved->inherits() == "Base PLA");
+    CHECK(saved->file == (temp_dir.path() / PRESET_FILAMENT_NAME / "Mine.json").make_preferred().string());
+    // ... and takes over the cloud profile of the preset it replaces, to update it with those settings.
+    CHECK(saved->setting_id == "cloud-1");
+    CHECK(saved->user_id == "u1");
+    CHECK(saved->sync_info == "update");
+    // The replaced preset leaves no .info for the startup scan to turn into a delete of that profile.
+    CHECK_FALSE(boost::filesystem::exists(base_dir / "Mine.json"));
+    CHECK_FALSE(boost::filesystem::exists(base_dir / "Mine.info"));
+}
+
+TEST_CASE("A cloud update that gives a root user preset a parent leaves no copy of it in base", "[Preset]")
+{
+    auto make_collection = [] {
+        auto coll = std::make_unique<PresetCollection>(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                                                       static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+        Preset &parent    = add_inmemory_preset(*coll, "Base PLA");
+        parent.is_system  = true;
+        parent.setting_id = "base-id";
+        return coll;
+    };
+
+    // Another device saved a preset made from "Base PLA" over the root preset "Mine".
+    auto  other   = make_collection();
+    Preset &saved = add_inmemory_preset(*other, "Mine", "Base PLA");
+    saved.version = Semver(1, 0, 0);
+    std::map<std::string, std::string> values;
+    REQUIRE(other->get_differed_values_to_update(saved, values) == 0);
+    values[BBL_JSON_KEY_SETTING_ID]  = "cloud-1";
+    values[BBL_JSON_KEY_USER_ID]     = "u1";
+    values[ORCA_JSON_KEY_UPDATE_TIME] = "200";
+
+    // This device still has "Mine" as the root preset it was, in base.
+    ScopedTemporaryDir         temp_dir;
+    auto                       filaments = make_collection();
+    PresetsConfigSubstitutions substitutions;
+    filaments->load_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    const boost::filesystem::path filament_dir = temp_dir.path() / PRESET_FILAMENT_NAME;
+    boost::filesystem::create_directories(filament_dir / "base");
+    Preset &mine      = add_inmemory_preset(*filaments, "Mine");
+    mine.file         = (filament_dir / "base" / "Mine.json").string();
+    mine.setting_id   = "cloud-1";
+    mine.user_id      = "u1";
+    mine.updated_time = 100;
+    REQUIRE(mine.save(nullptr));
+
+    filaments->load_user_preset("Mine", values, substitutions, ForwardCompatibilitySubstitutionRule::Disable);
+    std::map<std::string, std::string> unused_delete_list;
+    filaments->save_user_presets(temp_dir.path().string(), PRESET_FILAMENT_NAME, unused_delete_list);
+
+    const Preset *updated = filaments->find_preset("Mine", false, true);
+    REQUIRE(updated != nullptr);
+    CHECK(updated->inherits() == "Base PLA");
+    CHECK(boost::filesystem::exists(filament_dir / "Mine.json"));
+    CHECK(boost::filesystem::exists(filament_dir / "Mine.info"));
+    // A copy left in base would load as a second "Mine".
+    CHECK_FALSE(boost::filesystem::exists(filament_dir / "base" / "Mine.json"));
+    CHECK_FALSE(boost::filesystem::exists(filament_dir / "base" / "Mine.info"));
 }
 
 TEST_CASE("Renamed parent is normalized into a loaded preset's inherits", "[Preset][Rename]")
@@ -1525,6 +1733,14 @@ TEST_CASE("Plugin capability override keys are scoped per preset type", "[Preset
             CAPTURE(owner.first, key);
             CHECK(contains(*owner.second, key) == (owner.first == scoped.first));
         }
+}
+
+TEST_CASE("G-code precision belongs only to print presets", "[Preset]")
+{
+    const std::string key = "high_precision_gcode";
+    CHECK(contains(Preset::print_options(), key));
+    CHECK_FALSE(contains(Preset::printer_options(), key));
+    CHECK_FALSE(contains(Preset::filament_options(), key));
 }
 
 namespace {
@@ -2393,6 +2609,101 @@ TEST_CASE("Sizing the filament list to a multi-tool nozzle count keeps mixed slo
         CHECK(bundle.filament_presets.size() == nozzle_count);
         CHECK(bundle.num_mixed_filaments() == 0);
     }
+}
+
+// Select an in-memory printer with the given nozzle count, either feeding every filament through
+// shared nozzles (single_extruder_multi_material, as on a Bambu Lab H2D) or giving each nozzle a
+// filament of its own (a tool changer).
+namespace {
+void select_multi_nozzle_printer(PresetBundle &bundle, size_t nozzle_count, bool single_extruder_multi_material)
+{
+    Preset &printer = add_inmemory_preset(bundle.printers, single_extruder_multi_material ? "Shared Nozzle Printer" : "Tool Changer");
+    printer.config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = std::vector<double>(nozzle_count, 0.4);
+    printer.config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = single_extruder_multi_material;
+    bundle.printers.select_preset_by_name(printer.name, true);
+}
+} // namespace
+
+// A printer that maps filaments onto shared nozzles can run fewer filaments than it has nozzles,
+// so the sidebar lets the user delete down to one. The deleted slot must not come back in the
+// preset list alone, or the project saves a filament with no colour that returns on reload.
+TEST_CASE("Deleting a filament on a shared-nozzle printer keeps it deleted", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, 2, true);
+    bundle.set_num_filaments(2u, std::string("#FF0000"));
+    REQUIRE(bundle.filament_presets.size() == 2);
+
+    bundle.update_num_filaments(1);
+
+    CHECK(bundle.filament_presets.size() == 1);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
+}
+
+// Each tool of a tool changer carries its own filament, so the filament list never drops below the
+// tool count.
+TEST_CASE("A tool changer keeps a filament for every tool", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, 4, false);
+    bundle.filament_presets = { bundle.filaments.get_selected_preset_name() };
+
+    bundle.update_multi_material_filament_presets();
+
+    CHECK(bundle.filament_presets.size() == 4);
+}
+
+// The app config keeps each printer's filament list. The next start (load_selections) and a switch
+// back to the printer with remember_printer_config on (update_selections) restore it from there: a
+// shared-nozzle printer gets back the one filament it was left with, a tool changer still gets one
+// per tool.
+TEST_CASE("A remembered one-filament list comes back at the printer's minimum length", "[Preset][Bundle]")
+{
+    const bool   shared_nozzles = GENERATE(true, false);
+    const bool   on_startup     = GENERATE(true, false);
+    const size_t nozzle_count   = shared_nozzles ? 2 : 4;
+    const size_t expected       = shared_nozzles ? 1 : nozzle_count;
+    CAPTURE(shared_nozzles, on_startup);
+
+    AppConfig app_config;
+    {
+        PresetBundle bundle;
+        select_multi_nozzle_printer(bundle, nozzle_count, shared_nozzles);
+        add_inmemory_preset(bundle.filaments, "Test Filament");
+        bundle.filaments.select_preset_by_name("Test Filament", true);
+        // Set the one-filament list directly: set_num_filaments() runs the padding under test.
+        bundle.filament_presets = { "Test Filament" };
+        bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values = { "#123456" };
+        bundle.export_selections(app_config);
+    }
+
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, nozzle_count, shared_nozzles);
+    add_inmemory_preset(bundle.filaments, "Test Filament");
+    if (on_startup)
+        bundle.load_selections(app_config);
+    else
+        bundle.update_selections(app_config);
+
+    CHECK(bundle.filament_presets.size() == expected);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == expected);
+}
+
+// A one-colour print for a shared-nozzle printer, as Bambu Studio saves it for an H2D or X2D, opens
+// with that one filament rather than one per nozzle.
+TEST_CASE("A one-filament project for a shared-nozzle printer opens with one filament", "[Preset][Bundle]")
+{
+    DynamicPrintConfig config = published_pla_file_config();
+    config.opt<ConfigOptionFloats>("nozzle_diameter")->values = { 0.4, 0.4 };
+    config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = true;
+    // The GUI normalizes the config before load; mirror that so only the production path runs.
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    CHECK(bundle.filament_presets.size() == 1);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
 }
 
 // A "published" 3MF keeps the user's currently-selected presets and overlays only the
@@ -5343,13 +5654,15 @@ TEST_CASE("Adding a filament preserves slots with incomplete mixed metadata", "[
     }
 }
 
-// The nozzle-count top-up in update_multi_material_filament_presets() grows filament_presets on
-// its own, so a physical count derived from that list reports a slot no per-filament array has
-// yet. That is what made the extruder-count handler conclude there was nothing to add and leave
-// the new sidebar combo with no colour to draw.
+// On a tool changer the nozzle-count top-up in update_multi_material_filament_presets() grows
+// filament_presets on its own, so a physical count derived from that list reports a slot no
+// per-filament array has yet. That is what made the extruder-count handler conclude there was
+// nothing to add and leave the new sidebar combo with no colour to draw.
 TEST_CASE("The physical filament count is not fooled by a lone filament_presets top-up", "[Preset][Bundle][FilamentMixer]")
 {
     PresetBundle bundle;
+    // The extruder-count handler that adds filaments runs on tool changers only.
+    bundle.printers.get_edited_preset().config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
 
     SECTION("no mixed slots") {
         bundle.set_num_filaments(4u, std::string("#FF0000"));
@@ -5382,6 +5695,7 @@ TEST_CASE("The physical filament count is not fooled by a lone filament_presets 
 TEST_CASE("New filament colours are placed by array position", "[Preset][Bundle][FilamentMixer]")
 {
     PresetBundle bundle;
+    bundle.printers.get_edited_preset().config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
     bundle.set_num_filaments(4u, std::string("#FF0000"));
     bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
         { 0.4, 0.4, 0.4, 0.4, 0.4 };
@@ -8367,4 +8681,59 @@ TEST_CASE("An empty choice list in a G-code's settings keeps the value it had be
 
     CHECK(config.opt_serialize("nozzle_volume_type") == "High Flow");
     CHECK(config.option<ConfigOptionStrings>("filament_multi_colour")->values.empty());
+}
+
+TEST_CASE("A disabled filament override is saved and reloaded column by column", "[Preset][Bundle]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+
+    Preset &parent = add_inmemory_preset(bundle.filaments, "Parent PLA @System");
+    parent.config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard", "Direct Drive High Flow" };
+    parent.config.option<ConfigOptionPercentsNullable>("filament_retract_before_wipe", true)->values = { 100., 100. };
+    parent.config.option<ConfigOptionFloatsNullable>("filament_flow_ratio", true)->values = { 1., 1. };
+
+    // The child turns the override off on the first variant and changes a plain option on the second.
+    const fs::path file = data_dir.tmp.path() / PRESET_FILAMENT_NAME / "Child PLA.json";
+    Preset         child(Preset::TYPE_FILAMENT, "Child PLA");
+    child.file    = file.string();
+    child.version = *Semver::parse("1.0.0");
+    child.config  = parent.config;
+    child.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = parent.name;
+    child.config.option<ConfigOptionPercentsNullable>("filament_retract_before_wipe")->set_at_to_nil(0);
+    child.config.option<ConfigOptionFloatsNullable>("filament_flow_ratio")->values = { 1., 1.1 };
+    REQUIRE(child.save(&parent.config));
+
+    // On disk the override keeps every column, so its nil can only mean "off"; a plain
+    // option still stores nil for the columns that match the parent.
+    DynamicPrintConfig                 saved;
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    saved.load_from_json(file.string(), ForwardCompatibilitySubstitutionRule::EnableSilent, key_values, reason);
+    REQUIRE(reason.empty());
+    CHECK(saved.opt_serialize("filament_retract_before_wipe") == "nil,100%");
+    CHECK(saved.opt_serialize("filament_flow_ratio") == "nil,1.1");
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.filaments.load_presets(data_dir.tmp.path().string(), PRESET_FILAMENT_NAME, substitutions,
+                                  ForwardCompatibilitySubstitutionRule::EnableSilent);
+    const Preset *loaded = bundle.filaments.find_preset("Child PLA");
+    REQUIRE(loaded != nullptr);
+    CHECK(loaded->config.opt_serialize("filament_retract_before_wipe") == "nil,100%");
+    CHECK(loaded->config.opt_serialize("filament_flow_ratio") == "1,1.1");
+}
+
+TEST_CASE("The cloud diff force-emits a disabled override only where the cloud would fill a value in", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_inmemory_preset(bundle.filaments, "Parent PLA @System");
+    Preset &child = add_inmemory_preset(bundle.filaments, "Child PLA", "Parent PLA @System");
+    // Every override is nil in both parent and child, so none is in the plain diff.
+    std::map<std::string, std::string> key_values;
+    REQUIRE(bundle.filaments.get_differed_values_to_update(child, key_values) >= 0);
+    // Retract Before Wipe defaults to 100%: an absent key would come back as 100%, so nil is sent.
+    CHECK(key_values.count("filament_retract_before_wipe") == 1);
+    CHECK(key_values["filament_retract_before_wipe"] == "nil");
+    // An ironing override defaults to nil: an absent key stays nil, so it is not sent.
+    CHECK(key_values.count("filament_ironing_flow") == 0);
 }

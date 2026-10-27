@@ -9,13 +9,22 @@
 #include "pybind11/pybind11.h"
 #include <exception>
 #include <functional>
+#include <pybind11/cast.h>
 #include <pybind11/pytypes.h>
 #include <boost/log/trivial.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <atomic>
+#include <chrono>
+#include <future>
+#include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
+#include <system_error>
+#include <thread>
 
 #include <type_traits>
 
@@ -65,7 +74,11 @@ public:
 
     int disconnect_printer() override
     {
-        ORCA_PY_AGENT_OVERRIDE(int, disconnect_printer);
+        // While the app closes, the UI thread waits here; a plugin that never returns would keep it
+        // open, so the call gets a deadline and is left running past it.
+        if (!PluginManager::instance().is_shutting_down())
+            return python_disconnect_printer();
+        return disconnect_printer_at_shutdown();
     }
 
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override
@@ -282,11 +295,11 @@ public:
     int request_bind_ticket(std::string* ticket) override
     {
         try {
-            ORCA_PY_AUDIT_SCOPE();
             ::Slic3r::PluginCapabilityInterface::RefCounter _orca_ref_counter(*this);
             ::Slic3r::PythonGILState gil;
             if (!gil)
                 throw std::runtime_error("Python interpreter is shutting down");
+            ORCA_PY_AUDIT_SCOPE();
             pybind11::function override =
                 pybind11::get_override(static_cast<const PrinterAgentPluginCapability*>(this), "request_bind_ticket");
             if (!override)
@@ -305,6 +318,75 @@ public:
     }
 
 private:
+    int python_disconnect_printer()
+    {
+        ORCA_PY_AGENT_OVERRIDE(int, disconnect_printer);
+    }
+
+    // One disconnect per agent at shutdown: the live agent and the agent cache both disconnect the
+    // same object, and a plugin need not handle two concurrent calls. Shared with the call's thread,
+    // which can outlive an abandoned wait.
+    struct ShutdownDisconnect
+    {
+        enum : int { Pending, Started, Abandoned };
+        std::atomic<int>                      state{Pending};
+        std::promise<int>                     result;
+        std::shared_future<int>               done{result.get_future().share()};
+        std::chrono::steady_clock::time_point deadline{std::chrono::steady_clock::now() + std::chrono::seconds(3)};
+    };
+
+    int disconnect_printer_at_shutdown()
+    {
+        std::shared_ptr<ShutdownDisconnect> call;
+        bool                                start = false;
+        {
+            std::lock_guard<std::mutex> lock(m_shutdown_disconnect_mutex);
+            if (!m_shutdown_disconnect) {
+                m_shutdown_disconnect = std::make_shared<ShutdownDisconnect>();
+                start                 = true;
+            }
+            call = m_shutdown_disconnect;
+        }
+        if (start) {
+            try {
+                std::thread([agent = this, call] { run_shutdown_disconnect(agent, *call); }).detach();
+            } catch (const std::system_error&) {
+                // No thread, so no deadline either: call the plugin directly as before.
+                call->state.store(ShutdownDisconnect::Started);
+                const int result = python_disconnect_printer();
+                call->result.set_value(result);
+                return result;
+            }
+        }
+        if (call->done.wait_until(call->deadline) == std::future_status::ready)
+            return call->done.get();
+        int expected = ShutdownDisconnect::Pending;
+        call->state.compare_exchange_strong(expected, ShutdownDisconnect::Abandoned);
+        log_failure("disconnect_printer", "did not return within 3 s while the app is closing");
+        return printer_agent_failure<int>();
+    }
+
+    // Static so that nothing touches the agent, which may already be gone, before the call is claimed.
+    static void run_shutdown_disconnect(PyPrinterAgentPluginCapabilityTrampoline* agent, ShutdownDisconnect& call)
+    {
+        ::Slic3r::PythonGILState gil;
+        int                      expected = ShutdownDisconnect::Pending;
+        if (!gil || !call.state.compare_exchange_strong(expected, ShutdownDisconnect::Started)) {
+            // Abandoned before it started: the agent may already be gone, so it is not touched.
+            call.result.set_value(printer_agent_failure<int>());
+            return;
+        }
+        // The plugin may be force-unloaded while the call runs past its deadline. This reference keeps
+        // the Python object, and with it the agent, alive until the call has fully unwound; it is
+        // released before the GIL.
+        const pybind11::object self = pybind11::cast(static_cast<PrinterAgentPluginCapability*>(agent),
+                                                     pybind11::return_value_policy::reference);
+        call.result.set_value(agent->python_disconnect_printer());
+    }
+
+    std::mutex                          m_shutdown_disconnect_mutex;
+    std::shared_ptr<ShutdownDisconnect> m_shutdown_disconnect;
+
     void log_failure(const char* operation, const char* error) const
     {
         BOOST_LOG_TRIVIAL(error) << "Printer agent plugin '" << this->audit_plugin_key() << "': " << operation << " failed: " << error;

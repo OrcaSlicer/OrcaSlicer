@@ -258,6 +258,8 @@ private:
 	// but once set, it cannot be re-set.
 	std::string 				m_export_path;
 	bool 						m_export_path_on_removable_media = false;
+	// Read from the preferences when the export is scheduled, as the background thread may not read them.
+	bool 						m_export_statistics = false;
 	// Print host upload job to schedule after slicing is complete, used by schedule_upload(),
 	// empty by default (ie. no upload to schedule)
 	PrintHostJob                m_upload_job;

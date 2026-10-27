@@ -7,21 +7,16 @@
 #include <map>
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Color.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Format/ProjectStrategy.hpp"
 #include <functional>
 #include <array>
 #include "libslic3r/Point.hpp"
-#include "libslic3r/PublishSettings.hpp"
-#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"
 #include <atomic>
 #include <memory>
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include <string>
-#include "slic3r/GUI/ObjectDataViewModel.hpp"
-#include "slic3r/GUI/SettingsIndex.hpp"
-#include "slic3r/GUI/Widgets/TextInput.hpp"
 #include <vector>
 #include <boost/filesystem/path.hpp>
 
@@ -43,8 +38,6 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "Jobs/Job.hpp"
 #include "Jobs/Worker.hpp"
-#include "Search.hpp"
-#include "PartPlate.hpp"
 #include "GUI_App.hpp"
 #include "Jobs/PrintJob.hpp"
 #include "Jobs/SendJob.hpp"
@@ -63,8 +56,18 @@ class wxScrolledWindow;
 class wxString;
 class ComboBox;
 class Button;
+class TextInput;
 
 namespace Slic3r {
+
+struct PlateData;
+typedef std::vector<PlateData*> PlateDataPtrs;
+struct PublishedMaterialEntry;
+class TriangleMesh;
+namespace Search {
+class OptionsSearcher;
+class SettingsIndex;
+}
 
 class BuildVolume;
 class MachineObject;
@@ -105,7 +108,9 @@ class DailyTipsWindow;
 struct Camera;
 class GLToolbar;
 class PlaterPresetComboBox;
+class PartPlate;
 class PartPlateList;
+class ObjectDataViewModelNode;
 class SyncNozzleAndAmsDialog;
 class FinishSyncAmsDialog;
 
@@ -434,6 +439,7 @@ public:
     bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
     wxString get_project_name();
     void update_all_plate_thumbnails(bool force_update = false);
+    void update_plate_thumbnails(int plate_idx, bool force_update);
     void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<Slic3r::ColorRGBA> colors, int camera_view_angle_type);
     void invalid_all_plate_thumbnails();
     void force_update_all_plate_thumbnails();
@@ -503,6 +509,9 @@ public:
 
     bool are_view3D_labels_shown() const;
     void show_view3D_labels(bool show);
+
+    bool are_collision_volumes_shown() const;
+    void show_collision_volumes(bool show);
 
     bool is_view3D_overhang_shown() const;
     void show_view3D_overhang(bool show);
@@ -596,7 +605,6 @@ public:
     bool has_toolpaths_to_export() const;
     void export_toolpaths_to_obj() const;
     void reslice();
-    void record_slice_preset(std::string action);
     void reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_hollowing(const ModelObject &object, bool postpone_error_messages = false);
     void reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &object, bool postpone_error_messages = false);
@@ -762,18 +770,6 @@ public:
     //BBS: add clone logic
     void clone_selection();
     void center_selection();
-    void distribute_selection_x();
-    void distribute_selection_y();
-    void distribute_selection_z();
-    void align_selection_x_min();
-    void align_selection_x_center();
-    void align_selection_x_max();
-    void align_selection_y_min();
-    void align_selection_y_center();
-    void align_selection_y_max();
-    void align_selection_z_min();
-    void align_selection_z_center();
-    void align_selection_z_max();
     void drop_selection();
     void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
     void mirror(Axis axis);
@@ -782,7 +778,9 @@ public:
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
-    static std::vector<Vec2f> get_empty_cells(const Vec2f step);
+    static std::vector<Vec2f> get_empty_cells(const Vec2f step,
+                                              const std::vector<BoundingBoxf> &local_exclude_boxes = {},
+                                              bool include_plate_exclude_areas = true);
 
     //BBS:
     void fill_color(int extruder_id);
@@ -793,6 +791,8 @@ public:
     bool can_add_model() const;
     bool can_add_plate() const;
     bool can_delete_plate() const;
+    // Undoable rename; use for user edits instead of PartPlate::set_plate_name().
+    void rename_plate(int plate_index, const std::string& name);
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
@@ -847,6 +847,9 @@ public:
     // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
     // notification is active, so it clears automatically once the required plugin is available.
     void revalidate_current_plate_if_plugins_missing();
+    // Rebuilds the missing-plugin notices for the active presets without validating the plate, e.g.
+    // after a plugin loads or unloads, and refreshes the Slice button when the block toggles.
+    void refresh_missing_plugin_notifications();
     // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
     // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
     // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.
@@ -1083,6 +1086,8 @@ public:
     void mark_plate_toolbar_image_dirty();
     bool is_plate_toolbar_image_dirty() const;
     void clear_plate_toolbar_image_dirty();
+    // Bumped each time the plate thumbnails go stale, so each consumer can track it on its own.
+    unsigned plate_toolbar_image_version() const { return m_plate_toolbar_image_version; }
 
 private:
     struct priv;
@@ -1107,6 +1112,7 @@ private:
     int m_valid_plates_count { 0 };
     int m_check_status = 0; // 0 not check, 1 check success, 2 check failed
     bool m_b_plate_toolbar_image_dirty{ true };
+    unsigned m_plate_toolbar_image_version{ 0 };
 
     void suppress_snapshots();
     void allow_snapshots();

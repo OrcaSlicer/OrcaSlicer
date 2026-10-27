@@ -12,7 +12,7 @@
 #include "PrintBase.hpp"
 #include "Fill/FillAdaptive.hpp"
 #include "Fill/FillLightning.hpp"
-#include "Fill/FillTpmsAdaptive.hpp"
+#include "Fill/AdaptiveInfillField.hpp"
 
 #include "BoundingBox.hpp"
 #include "ExtrusionEntityCollection.hpp"
@@ -249,9 +249,9 @@ struct PrintInstance
     // SoftFever
     // 
     // instance id
-    size_t               id;
+    size_t               id{0};
     // Orca: unique id used by marlin/rrf cancel object feature
-    size_t               unique_id;
+    size_t               unique_id{0};
 
     //BBS: instance_shift is too large because of multi-plate, apply without plate offset.
     Point shift_without_plate_offset() const;
@@ -407,7 +407,7 @@ public:
     double                      max_z() const         { return m_max_z; }
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
-    const TpmsRadialField*       tpms_radial_field(TpmsAdaptiveMode mode) const { return m_tpms_radial_fields[size_t(mode)].get(); }
+    const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
 
     // BBS
     void generate_support_preview();
@@ -503,9 +503,12 @@ public:
     std::vector<std::reference_wrapper<const PrintRegion>> all_regions() const;
     const PrintObjectRegions*   shared_regions() const throw() { return m_shared_regions; }
 
-    bool                        has_support()           const { return m_config.enable_support || m_config.enforce_support_layers > 0; }
-    bool                        has_raft()              const { return m_config.raft_layers > 0; }
-    bool                        has_support_material()  const { return this->has_support() || this->has_raft(); }
+    static bool                 has_support(const PrintObjectConfig &config)          { return config.enable_support || config.enforce_support_layers > 0; }
+    static bool                 has_raft(const PrintObjectConfig &config)             { return config.raft_layers > 0; }
+    static bool                 has_support_material(const PrintObjectConfig &config) { return has_support(config) || has_raft(config); }
+    bool                        has_support()           const { return has_support(m_config); }
+    bool                        has_raft()              const { return has_raft(m_config); }
+    bool                        has_support_material()  const { return has_support_material(m_config); }
     // Checks if the model object is painted using the multi-material painting gizmo.
     bool                        is_mm_painted()         const { return this->model_object()->is_mm_painted(); }
     // Checks if the model object is painted using the fuzzy skin painting gizmo.
@@ -513,6 +516,7 @@ public:
 
     // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
     std::vector<unsigned int>   object_extruders() const;
+    std::vector<unsigned int>   printing_extruders() const;
 
     // Called by make_perimeters()
     void slice();
@@ -652,7 +656,7 @@ private:
     FillAdaptive::RegionOctrees prepare_adaptive_infill_data(
         const std::vector<std::pair<const Surface*, const Layer*>>& surfaces_w_layer) const;
     FillLightning::GeneratorPtr prepare_lightning_infill_data();
-    TpmsRadialFields prepare_tpms_radial_fields() const;
+    AdaptiveInfillFields prepare_adaptive_infill_fields() const;
 
     // BBS
     SupportNecessaryType is_support_necessary();
@@ -703,7 +707,7 @@ private:
     FillAdaptive::RegionOctrees             m_adaptive_fill_octrees;
     std::vector<BoundingBox>                m_separated_body_bboxes;
     FillLightning::GeneratorPtr m_lightning_generator;
-    TpmsRadialFields m_tpms_radial_fields;
+    AdaptiveInfillFields m_adaptive_infill_fields;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
@@ -735,7 +739,7 @@ private:
     // SoftFever
     // 
     // object id
-    size_t               m_id;
+    size_t               m_id{0};
     void apply_conical_overhang();
 
  public:
@@ -1153,6 +1157,8 @@ public:
         struct Brim {
             ExtrusionEntityCollection brim;
             std::vector<ObjectInstanceID> instances;
+            // Zero-based logical filament selected when the brim was planned.
+            unsigned int filament_id { unsigned(-1) };
         };
 
         ExtrusionEntityCollection skirt;
@@ -1323,7 +1329,9 @@ public:
     }
 
     //BBS
-    static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
+    // warning, if given, names the instances printed later than their place in the object list to avoid a collision.
+    static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr,
+                                                                  StringObjectException *warning = nullptr);
     // Orca: pre-slice clearance check for a prime tower compacted by "No sparse layers".
     static StringObjectException compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
     ConflictResultOpt            get_conflict_result() const { return m_conflict_result; }
@@ -1385,10 +1393,11 @@ public:
     size_t config_index_generation() const { return m_config_index_generation; }
 
     // Orca: Implement prusa's filament shrink compensation approach
+    // Both are decided by apply() from the filaments the model uses, before the PrintObject transformations are built.
     // Returns if all used filaments have same shrinkage compensations.
-     bool has_same_shrinkage_compensations() const;
+    bool has_same_shrinkage_compensations() const { return m_same_shrinkage_compensations; }
     // Returns scaling for each axis representing shrinkage compensations in each axis.
-     Vec3d shrinkage_compensation() const;
+    Vec3d shrinkage_compensation() const { return m_shrinkage_compensation; }
 
     std::tuple<float, float> object_skirt_offset(double margin_height = 0) const;
 
@@ -1484,11 +1493,19 @@ private:
             s_slicing_pipeline_hook_fn(*this, object, step);
     }
 
+    static void append_model_object_extruders(const ModelObject &mo, std::vector<unsigned int> &extruders);
+    static bool append_support_extruders(const PrintObjectConfig &config, unsigned int num_extruders, std::vector<unsigned int> &extruders);
+    void        append_tool_change_extruders(std::vector<unsigned int> &extruders) const;
+    void        append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const;
+    void        update_shrinkage_compensation(size_t num_extruders, std::vector<int> &variant_index);
+
     PrintConfig                             m_config;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;
     PrintRegionPtrs                         m_print_regions;
+    bool                                    m_same_shrinkage_compensations { false };
+    Vec3d                                   m_shrinkage_compensation { Vec3d::Ones() };
     
     //SoftFever
     bool m_isBBLPrinter = false;
@@ -1499,6 +1516,8 @@ private:
     bool                                    m_has_shared_per_object_skirt { false };
     // Orca: Object-keyed brim paths kept for existing code.
     std::map<ObjectID, ExtrusionEntityCollection>         m_brimMap;
+    // Zero-based logical filament selected for each object's brim.
+    std::map<ObjectID, unsigned int>                       m_brimFilamentMap;
     // Orca: Actual brim paths keyed by object instance.
     std::map<ObjectInstanceID, ExtrusionEntityCollection> m_brimMapByInstance;
     // Orca: Translated brim areas keyed by instance, used to find touching brims.

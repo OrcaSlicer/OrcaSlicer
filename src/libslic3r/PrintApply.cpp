@@ -25,7 +25,9 @@
 #include <vector>
 #include <cstddef>
 #include <initializer_list>
+#include <iterator>
 #include <set>
+#include <string>
 #include <cstdlib>
 #include <functional>
 #include <memory>
@@ -1257,6 +1259,80 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
+// Orca: The shrinkage compensation is baked into the PrintObject transformations, so it has to be known before apply()
+// creates them. Derive it from the filaments the new model prints with instead of from the existing PrintObjects and
+// their regions, which do not exist yet on the first apply(). Every feature filament of every part, height range and
+// modifier counts, whether the feature ends up printing or not, so filaments that disagree switch the compensation
+// off rather than letting a wrong compensation through.
+void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int> &variant_index)
+{
+    const auto set_compensation = [this](unsigned int extruder) {
+        // 100% from the user is the equivalent to 0 in orca.
+        const double xy_compensation = 100.0 / m_config.filament_shrink.get_at(extruder);
+        const double z_compensation  = 100.0 / m_config.filament_shrinkage_compensation_z.get_at(extruder);
+        m_shrinkage_compensation = { xy_compensation, xy_compensation, z_compensation };
+    };
+    const auto same_shrinkage = [this](unsigned int a, unsigned int b) {
+        return m_config.filament_shrink.get_at(a) == m_config.filament_shrink.get_at(b) &&
+               m_config.filament_shrinkage_compensation_z.get_at(a) == m_config.filament_shrinkage_compensation_z.get_at(b);
+    };
+    // Usually all filaments share the same shrinkage, then it does not matter which of them print.
+    bool uniform = true;
+    for (unsigned int extruder = 1; extruder < num_extruders && uniform; ++ extruder)
+        uniform = same_shrinkage(0, extruder);
+    if (uniform) {
+        m_same_shrinkage_compensations = true;
+        set_compensation(0);
+        return;
+    }
+
+    std::vector<unsigned int> extruders;
+    const auto append_feature_extruders = [num_extruders, &extruders](const PrintRegionConfig &config) {
+        for (int id : { config.outer_wall_filament_id.value, config.inner_wall_filament_id.value, config.sparse_infill_filament_id.value,
+                        config.internal_solid_filament_id.value, config.top_surface_filament_id.value, config.bottom_surface_filament_id.value }) {
+            const unsigned int i = (unsigned int)std::max(0, id - 1);
+            extruders.emplace_back(i >= num_extruders ? 0 : i);
+        }
+    };
+    for (const ModelObject *model_object : m_model.objects) {
+        if (std::none_of(model_object->instances.begin(), model_object->instances.end(), [](const ModelInstance *mi) { return mi->is_printable(); }))
+            continue;
+        std::vector<const ModelVolume*> modifiers;
+        std::copy_if(model_object->volumes.begin(), model_object->volumes.end(), std::back_inserter(modifiers), [](const ModelVolume *mv) { return mv->is_modifier(); });
+        for (const ModelVolume *part : model_object->volumes) {
+            if (! part->is_model_part())
+                continue;
+            std::vector<PrintRegionConfig> parents { region_config_from_model_volume(m_default_region_config, nullptr, *part, num_extruders, variant_index) };
+            for (const auto &[range, range_config] : model_object->layer_config_ranges)
+                parents.emplace_back(region_config_from_model_volume(m_default_region_config, &range_config.get(), *part, num_extruders, variant_index));
+            for (const PrintRegionConfig &parent : parents) {
+                append_feature_extruders(parent);
+                for (const ModelVolume *modifier : modifiers)
+                    append_feature_extruders(region_config_from_model_volume(parent, nullptr, *modifier, num_extruders, variant_index));
+            }
+        }
+        append_model_object_extruders(*model_object, extruders);
+        const PrintObjectConfig object_config = PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, variant_index);
+        if (PrintObject::has_support_material(object_config))
+            append_support_extruders(object_config, (unsigned int)num_extruders, extruders);
+    }
+    this->append_tool_change_extruders(extruders);
+    // A mixed slot prints with its physical components.
+    const auto expand_and_sort = [this, &extruders]() {
+        extruders = expand_mixed_filaments(extruders, m_config.filament_is_mixed.values, m_config.filament_mixed_components.values);
+    };
+    expand_and_sort();
+    // The wipe tower filament may also be flushed into the objects.
+    this->append_wipe_tower_extruder(extruders);
+    expand_and_sort();
+
+    m_same_shrinkage_compensations = ! extruders.empty() &&
+        std::all_of(extruders.begin(), extruders.end(), [&](unsigned int extruder) { return same_shrinkage(extruders.front(), extruder); });
+    m_shrinkage_compensation = Vec3d::Ones();
+    if (m_same_shrinkage_compensations)
+        set_compensation(extruders.front());
+}
+
 Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
@@ -1287,6 +1363,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //new_full_config.normalize_fdm(used_filaments);
     new_full_config.normalize_fdm_1();
+    // Orca: used_filaments and objects() still describe the previous model. The check after the
+    // region update normalizes this copy again by the current ones.
+    DynamicPrintConfig unnormalized_config = new_full_config;
     t_config_option_keys changed_keys = new_full_config.normalize_fdm_2(objects().size(), used_filaments.size());
     if (changed_keys.size() > 0) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got changed_keys, size=%1%")%changed_keys.size();
@@ -1443,7 +1522,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         if (is_auto_filament_map_mode(map_mode)) {
             if (print_diff_set.find("filament_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_map");
-                //full_config_diff.erase("filament_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_map", true);
                 old_opt->set(new_opt);
@@ -1451,7 +1530,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             }
             if (print_diff_set.find("filament_volume_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_volume_map");
-                //full_config_diff.erase("filament_volume_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_volume_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_volume_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_volume_map", true);
                 old_opt->set(new_opt);
@@ -1459,7 +1538,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             }
             if (print_diff_set.find("filament_nozzle_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_nozzle_map");
-                //full_config_diff.erase("filament_nozzle_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_nozzle_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 old_opt->set(new_opt);
@@ -1471,6 +1550,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             if (map_mode == fmmManual) {
                 // filament_nozzle_map is an engine output, not a GUI input, in manual mode
                 print_diff_set.erase("filament_nozzle_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_nozzle_map"), full_config_diff.end());
             }
             std::vector<int> old_filament_map = m_config.filament_map.values;
             std::vector<int> new_filament_map = new_full_config.option<ConfigOptionInts>("filament_map", true)->values;
@@ -1864,6 +1944,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     // 4) Generate PrintObjects from ModelObjects and their instances.
     {
+        this->update_shrinkage_compensation(num_extruders, print_variant_index);
         PrintObjectPtrs print_objects_new;
         print_objects_new.reserve(std::max(m_objects.size(), m_model.objects.size()));
         bool new_objects = false;
@@ -1974,53 +2055,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             for (PrintObject *object : m_objects)
                 update_apply_status(object->invalidate_step(posSlice));
         }
-    }
-
-    //BBS: check the config again
-    int new_used_filaments = this->extruders(true).size();
-    t_config_option_keys new_changed_keys = new_full_config.normalize_fdm_2(objects().size(), new_used_filaments);
-    if (new_changed_keys.size() > 0) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got new_changed_keys, size=%1%")%new_changed_keys.size();
-        for (int i = 0; i < new_changed_keys.size(); i++)
-        {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %new_changed_keys[i];
-        }
-
-        update_apply_status(false);
-
-        // The following call may stop the background processing.
-        update_apply_status(this->invalidate_state_by_config_options(new_full_config, new_changed_keys));
-
-        update_apply_status(this->invalidate_step(psGCodeExport));
-
-        if (full_config_diff.empty()) {
-            //BBS: previous empty
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: full_config_diff previous empty, need to apply now.")%__LINE__;
-
-            m_placeholder_parser.clear_config();
-            // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
-            m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
-            // Set the profile aliases for the PrintBase::output_filename()
-            m_placeholder_parser.set("print_preset",              new_full_config.option("print_settings_id")->clone());
-            m_placeholder_parser.set("filament_preset",           new_full_config.option("filament_settings_id")->clone());
-            m_placeholder_parser.set("printer_preset",            new_full_config.option("printer_settings_id")->clone());
-
-            //m_placeholder_parser.apply_config(filament_overrides);
-        }
-        // It is also safe to change m_config now after this->invalidate_state_by_config_options() call.
-        m_config.apply_only(new_full_config, new_changed_keys, true);
-        // Handle changes to object config defaults
-        m_default_object_config.apply_only(new_full_config, new_changed_keys, true);
-        // Handle changes to regions config defaults
-        m_default_region_config.apply_only(new_full_config, new_changed_keys, true);
-        // Orca: keep the pre-expansion snapshot in sync with this late normalization pass.
-        // The engine map write-back rebuilds m_full_print_config from m_ori_full_print_config
-        // after slicing; a stale snapshot would resurrect the un-normalized values (e.g.
-        // enable_prime_tower on a single-filament print) in the dumped config and spuriously
-        // re-invalidate the g-code on the next apply.
-        m_ori_full_print_config.apply_only(new_full_config, new_changed_keys, true);
-        m_full_print_config = std::move(new_full_config);
-        update_filament_self_index_cache();
     }
 
     // Per-part gradient: compute the per-slot enable bit vector once for this Print::apply pass.
@@ -2169,6 +2203,65 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                         print_region->m_print_region_id = (*it)->print_region_id();
                     }
             }
+    }
+
+    //BBS: check the config again
+    int new_used_filaments = this->extruders(true).size();
+    t_config_option_keys new_changed_keys = unnormalized_config.normalize_fdm_2(objects().size(), new_used_filaments);
+    // Compare both passes with what was applied above, so a key disabled there can be enabled again.
+    append(new_changed_keys, changed_keys);
+    new_changed_keys.erase(std::remove_if(new_changed_keys.begin(), new_changed_keys.end(), [&](const std::string &key) {
+        return *new_full_config.option(key) == *unnormalized_config.option(key);
+    }), new_changed_keys.end());
+    new_full_config.apply_only(unnormalized_config, new_changed_keys);
+    if (new_changed_keys.size() > 0) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", got new_changed_keys, size=%1%")%new_changed_keys.size();
+        for (int i = 0; i < new_changed_keys.size(); i++)
+        {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %new_changed_keys[i];
+        }
+
+        update_apply_status(false);
+
+        // The following call may stop the background processing.
+        update_apply_status(this->invalidate_state_by_config_options(new_full_config, new_changed_keys));
+
+        // The tower also turns independent_support_layer_height off, which moves objects above a raft.
+        // Re-slice them, as done above when enable_prime_tower is in print_diff.
+        if (std::find(new_changed_keys.begin(), new_changed_keys.end(), "enable_prime_tower") != new_changed_keys.end())
+            for (PrintObject *object : m_objects)
+                update_apply_status(object->invalidate_step(posSlice));
+
+        update_apply_status(this->invalidate_step(psGCodeExport));
+
+        if (full_config_diff.empty()) {
+            //BBS: previous empty
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: full_config_diff previous empty, need to apply now.")%__LINE__;
+
+            m_placeholder_parser.clear_config();
+            // clear_config() wiped the constructor-set "version"; restore it for custom G-code.
+            m_placeholder_parser.set("version", std::string(SoftFever_VERSION));
+            // Set the profile aliases for the PrintBase::output_filename()
+            m_placeholder_parser.set("print_preset",              new_full_config.option("print_settings_id")->clone());
+            m_placeholder_parser.set("filament_preset",           new_full_config.option("filament_settings_id")->clone());
+            m_placeholder_parser.set("printer_preset",            new_full_config.option("printer_settings_id")->clone());
+
+            //m_placeholder_parser.apply_config(filament_overrides);
+        }
+        // It is also safe to change m_config now after this->invalidate_state_by_config_options() call.
+        m_config.apply_only(new_full_config, new_changed_keys, true);
+        // Handle changes to object config defaults
+        m_default_object_config.apply_only(new_full_config, new_changed_keys, true);
+        // Handle changes to regions config defaults
+        m_default_region_config.apply_only(new_full_config, new_changed_keys, true);
+        // Orca: keep the pre-expansion snapshot in sync with this late normalization pass.
+        // The engine map write-back rebuilds m_full_print_config from m_ori_full_print_config
+        // after slicing; a stale snapshot would resurrect the un-normalized values (e.g.
+        // enable_prime_tower on a single-filament print) in the dumped config and spuriously
+        // re-invalidate the g-code on the next apply.
+        m_ori_full_print_config.apply_only(new_full_config, new_changed_keys, true);
+        m_full_print_config = std::move(new_full_config);
+        update_filament_self_index_cache();
     }
 
     // Update SlicingParameters for each object where the SlicingParameters is not valid.

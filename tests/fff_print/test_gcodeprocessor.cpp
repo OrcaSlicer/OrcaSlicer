@@ -7,9 +7,12 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Utils.hpp"
@@ -280,6 +283,48 @@ TEST_CASE("A seam takes the actual speed of the move it follows", "[GCodeProcess
             CHECK_THAT(moves[i].actual_feedrate, Catch::Matchers::WithinAbs(moves[i - 1].actual_feedrate, 1e-4));
         }
     REQUIRE(seams > 0);
+}
+
+TEST_CASE("A pause keeps the moves around it in order and on their own layers", "[GCodeProcessor][Regression]")
+{
+    // libvgcode numbers layers from the order of the moves, so the moves around a pause must stay in layer and
+    // line order. The pause vertex itself moves to the first extrusion after it and keeps its own line.
+    std::ostringstream gcode;
+    gcode << "M83\nG90\n";
+    for (int layer = 1; layer <= 3; ++layer) {
+        gcode << "; CHANGE_LAYER\n; LAYER_HEIGHT: 0.2\n";
+        if (layer == 2)
+            gcode << "G1 E-0.8 F3000\n; PAUSE_PRINTING\nM601\n";
+        gcode << "G1 X10 Y10 F12000\nG1 Z" << 0.2 * layer << "\n";
+        if (layer == 2)
+            gcode << "G1 E0.8 F3000\n";
+        gcode << "; FEATURE: Outer wall\n"
+              << "G1 X50 Y10 E2 F3000\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n";
+    }
+    GCodeProcessorResult result;
+    process_gcode(gcode.str(), result);
+    const auto &moves = result.moves;
+
+    REQUIRE(result.custom_gcode_per_print_z.size() == 1);
+    CHECK_THAT(result.custom_gcode_per_print_z.front().print_z, Catch::Matchers::WithinAbs(0.4, 1e-4));
+    REQUIRE(std::count_if(moves.begin(), moves.end(), [](const auto &move) { return move.internal_only; }) > 0);
+
+    const auto pause = std::find_if(moves.begin(), moves.end(), [](const auto &move) { return move.type == EMoveType::Pause_Print; });
+    REQUIRE(pause != moves.end());
+    CHECK(pause->layer_id == 1);
+    CHECK_THAT(pause->position.z(), Catch::Matchers::WithinAbs(0.4f, 1e-4f));
+
+    const GCodeProcessorResult::MoveVertex *previous = nullptr;
+    for (const auto &move : moves) {
+        if (move.type == EMoveType::Pause_Print)
+            continue;
+        if (previous != nullptr) {
+            CAPTURE(previous->gcode_id, move.gcode_id, static_cast<int>(move.type));
+            CHECK(move.layer_id >= previous->layer_id);
+            CHECK(move.gcode_id >= previous->gcode_id);
+        }
+        previous = &move;
+    }
 }
 
 TEST_CASE("Line ends of the exported G-code mark every newline in the file", "[GCodeProcessor]")
@@ -556,4 +601,151 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
     const Vec3d light = center_of(masses[0]->total());
     const Vec3d dense = center_of(masses[1]->total());
     CHECK_THAT((plate - light).dot(dense - light) / (dense - light).squaredNorm(), Catch::Matchers::WithinAbs(0.75, 0.01));
+}
+
+namespace {
+
+// Two nozzles over a 200 mm square bed: nozzle 1 reaches only `nozzle_1_area`, nozzle 2 the whole bed.
+// A 20 mm cube centered on `center` prints with filament 1, mapped to nozzle 1.
+void slice_cube_in_nozzle_area(const Vec2ds &nozzle_1_area, const Vec2d &center, GCodeProcessorResult &result)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",           "0.4,0.4" },
+        { "printer_extruder_id",       "1,2" },
+        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_offset",           "0x0,0x0" },
+        { "printable_area",            "0x0,200x0,200x200,0x200" },
+        { "printable_height",          100 },
+        { "extruder_printable_height", "100,100" },
+        { "skirt_loops",               0 },
+        { "brim_type",                 "no_brim" },
+        { "filament_map_mode",         "Manual" },
+        { "filament_map",              "1" },
+    });
+    const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
+    config.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups(std::vector<Vec2ds>{ nozzle_1_area, bed }));
+
+    TriangleMesh mesh = Test::cube(20);
+    mesh.translate(float(center.x() - 10.), float(center.y() - 10.), 0.f);
+    Print print;
+    Model model;
+    Test::init_print(std::vector<TriangleMesh>{ std::move(mesh) }, print, model, config, nullptr, false);
+    Test::gcode(print, &result);
+}
+
+// Nozzle 1's area inset from the bed on one side, on two adjacent sides (leaving an L-shaped
+// unprintable region), on three (a U) and on all four (a frame). Each contains the bed center and
+// has an X 150 edge; all but the first also have a Y 50 edge, meeting it in an inner corner.
+Vec2ds inset_nozzle_area(int sides)
+{
+    switch (sides) {
+    case 1: return { Vec2d(0., 0.), Vec2d(150., 0.), Vec2d(150., 200.), Vec2d(0., 200.) };
+    case 2: return { Vec2d(0., 50.), Vec2d(150., 50.), Vec2d(150., 200.), Vec2d(0., 200.) };
+    case 3: return { Vec2d(50., 50.), Vec2d(150., 50.), Vec2d(150., 200.), Vec2d(50., 200.) };
+    default: return { Vec2d(50., 50.), Vec2d(150., 50.), Vec2d(150., 150.), Vec2d(50., 150.) };
+    }
+}
+
+// Runs the post-slice area check alone on one object whose filament 1 extrudes through `path`, in bed
+// coordinates, on a plate whose origin is `plate_origin`. Filament 1 maps to `filament_1_nozzle`;
+// nozzle 1 reaches only `nozzle_1_area` of a 200 mm square bed and nozzle 2 all of it.
+void check_path_in_nozzle_area(const Vec2ds &nozzle_1_area, const Vec2ds &path, const Vec2d &plate_origin, GCodeProcessorResult &result,
+                               int filament_1_nozzle = 1)
+{
+    const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
+    // Built as Print::get_extruder_unprintable_polygons() builds them.
+    const std::vector<Polygons> unprintable_areas { diff(Polygon::new_scale(bed), Polygon::new_scale(nozzle_1_area)), Polygons() };
+
+    GCodeProcessor processor;
+    processor.set_xy_offset(plate_origin.x(), plate_origin.y());
+    for (const Vec2d &point : path) {
+        GCodeProcessorResult::MoveVertex move;
+        move.type            = EMoveType::Extrude;
+        move.extrusion_role  = erExternalPerimeter;
+        move.extruder_id     = 0; // filament 1
+        move.object_label_id = 1;
+        // The processor stores moves with the plate origin added.
+        move.position = Vec3f(float(point.x() + plate_origin.x()), float(point.y() + plate_origin.y()), 0.2f);
+        move.print_z  = 0.2f;
+        processor.result().moves.emplace_back(move);
+    }
+    processor.check_multi_extruder_gcode_valid(2, bed, 100., {}, unprintable_areas, { 100., 100. }, { filament_1_nozzle }, { {}, {} });
+    result = std::move(processor.extract_result());
+}
+
+} // namespace
+
+TEST_CASE("A path inside its nozzle's printable area passes the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
+{
+    // A cube at the bed center, or at X 125-145, Y 55-75: 5 mm inside the X 150 and Y 50 edges, in the
+    // inner corner where they meet. The area inset on one side has no Y 50 edge, so no corner.
+    const auto [sides, in_corner] = GENERATE(table<int, bool>(
+        { { 1, false }, { 2, false }, { 2, true }, { 3, false }, { 3, true }, { 4, false }, { 4, true } }));
+    const Vec2d center = in_corner ? Vec2d(135., 65.) : Vec2d(100., 100.);
+    INFO("area inset on " << sides << " side(s), cube " << (in_corner ? "in the inner corner" : "at the bed center"));
+    GCodeProcessorResult result;
+    slice_cube_in_nozzle_area(inset_nozzle_area(sides), center, result);
+
+    CHECK((result.gcode_check_result.error_code & 1) == 0);
+    CHECK(result.gcode_check_result.print_area_error_infos.empty());
+    // Nor is nozzle 1 marked as unable to print filament 1.
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == 0);
+}
+
+TEST_CASE("A path leaving its nozzle's printable area fails the area check however many sides the area is inset on", "[GCodeProcessor][Regression]")
+{
+    const int sides = GENERATE(1, 2, 3, 4);
+    INFO("area inset on " << sides << " side(s)");
+    // X 165-185: on the bed, past the area's X 150 edge in every shape.
+    GCodeProcessorResult result;
+    slice_cube_in_nozzle_area(inset_nozzle_area(sides), Vec2d(175., 100.), result);
+
+    CHECK((result.gcode_check_result.error_code & 1) == 1);
+    REQUIRE(result.gcode_check_result.print_area_error_infos.count(0) == 1);
+    CHECK_FALSE(result.gcode_check_result.print_area_error_infos.at(0).empty());
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == 1);
+}
+
+TEST_CASE("A path flush against its nozzle's printable area edge fails the area check and one 0.1 mm inside it passes", "[GCodeProcessor][Regression]")
+{
+    // Nozzle 1 reaches X 0-150, Y 50-200, leaving an L-shaped unprintable region whose bounding box is
+    // the whole bed. The check tests path centerlines, not the width of the extruded line.
+    const Vec2ds nozzle_1_area = inset_nozzle_area(2);
+    const bool   x_edge        = GENERATE(true, false);
+    const bool   flush         = GENERATE(true, false);
+    // A 20 mm square with one side along the edge, or that side alone, whose bounding box has no area.
+    const bool line = GENERATE(false, true);
+    // A plate origin shifts the path but not the areas, and the check must undo the shift. Plates
+    // after the first sit at positive X and negative Y.
+    const bool  first_plate  = GENERATE(true, false);
+    const Vec2d plate_origin = first_plate ? Vec2d(0., 0.) : Vec2d(240., -240.);
+    INFO((line ? "line " : "square ") << (flush ? "flush against" : "0.1 mm inside") << " the " << (x_edge ? "X 150" : "Y 50")
+                                      << " edge, plate origin at " << plate_origin.x() << ", " << plate_origin.y());
+    const double gap    = flush ? 0. : 0.1;
+    const Vec2d  a      = x_edge ? Vec2d(150. - gap, 100.) : Vec2d(100., 50. + gap);
+    const Vec2d  b      = x_edge ? Vec2d(150. - gap, 120.) : Vec2d(120., 50. + gap);
+    const Vec2d  inward = x_edge ? Vec2d(-20., 0.) : Vec2d(0., 20.);
+    const Vec2ds path   = line ? Vec2ds{ a, b } : Vec2ds{ a, b, Vec2d(b + inward), Vec2d(a + inward) };
+
+    GCodeProcessorResult result;
+    check_path_in_nozzle_area(nozzle_1_area, path, plate_origin, result);
+
+    const int expected = flush ? 1 : 0;
+    CHECK((result.gcode_check_result.error_code & 1) == expected);
+    REQUIRE_FALSE(result.limit_filament_maps.empty());
+    CHECK((result.limit_filament_maps[0] & 1) == expected);
+}
+
+TEST_CASE("A filament mapped to no nozzle has no errors listed under a nozzle", "[GCodeProcessor][Regression]")
+{
+    // A filament map entry of 0 names no nozzle. This path, past the bed's X 200 edge, would otherwise
+    // be listed under nozzle index -1, which the error message uses to look up the nozzle's name.
+    const Vec2ds path { Vec2d(210., 100.), Vec2d(230., 100.), Vec2d(230., 120.), Vec2d(210., 120.) };
+    GCodeProcessorResult result;
+    check_path_in_nozzle_area(inset_nozzle_area(2), path, Vec2d(0., 0.), result, 0);
+
+    CHECK(result.gcode_check_result.print_area_error_infos.count(-1) == 0);
 }
