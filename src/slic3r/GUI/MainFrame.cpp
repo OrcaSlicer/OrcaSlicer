@@ -936,6 +936,17 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
         if (m_plater)
             m_plater->get_current_canvas3D()->select_plate();
         break;
+    case Shortcut::TabHome:        select_tab(TAB_ID_HOME); break;
+#ifdef SLIC3R_CAD
+    case Shortcut::TabDesign:      select_tab(TAB_ID_DESIGN); break;
+#endif
+    case Shortcut::TabPrepare:     select_tab(TAB_ID_PREPARE); break;
+    case Shortcut::TabPreview:     select_tab(TAB_ID_PREVIEW); break;
+    case Shortcut::TabDevice:      select_tab(TAB_ID_MONITOR); break;
+    case Shortcut::TabDeviceWeb:   select_tab(TAB_ID_MONITOR_WEB); break;
+    case Shortcut::TabMultiDevice: select_tab(TAB_ID_MULTI_DEVICE); break;
+    case Shortcut::TabProject:     select_tab(TAB_ID_PROJECT); break;
+    case Shortcut::TabCalibration: select_tab(TAB_ID_CALIBRATION); break;
     default: return false;
     }
     return true;

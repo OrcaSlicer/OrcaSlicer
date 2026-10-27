@@ -222,6 +222,8 @@ TEST_CASE("Every shortcut is listed under the section of its table row", "[Short
     CHECK(shortcut_section(Shortcut::MovesSliderEnd) == ShortcutSection::Sliders);
     CHECK(shortcut_section(Shortcut::ViewDefault) == ShortcutSection::Camera);
     CHECK(shortcut_section(Shortcut::ShowCollisionVolumes) == ShortcutSection::Display);
+    CHECK(shortcut_section(Shortcut::TabHome) == ShortcutSection::Tabs);
+    CHECK(shortcut_section(Shortcut::TabCalibration) == ShortcutSection::Tabs);
     CHECK(shortcut_section(Shortcut::KeyboardShortcuts) == ShortcutSection::Application);
     CHECK(shortcut_section(Shortcut::Quit) == ShortcutSection::Application);
     CHECK(std::string(section_name(ShortcutSection::SlicingAndPrinting)) == "Slicing and printing");
@@ -388,6 +390,26 @@ TEST_CASE("Custom bindings replace the default and survive a config round trip",
         CHECK(registry.lookup(ShortcutContext::Plater, { 'A' }) == Shortcut::Arrange);
         CHECK_FALSE(registry.is_customized(Shortcut::Arrange));
     }
+}
+
+TEST_CASE("A shortcut with no default is saved only while the user has it bound", "[Shortcuts]")
+{
+    ShortcutRegistry registry;
+    CHECK_FALSE(registry.binding(Shortcut::TabPreview).valid());
+    CHECK(registry.accelerator(Shortcut::TabPreview).empty());
+
+    const KeyChord alt_3{ '3', wxMOD_ALT };
+    registry.bind(Shortcut::TabPreview, alt_3);
+    CHECK(registry.lookup(ShortcutContext::Global, alt_3) == Shortcut::TabPreview);
+
+    AppConfig config;
+    registry.save(config);
+    CHECK(config.get("shortcuts", "tab_preview") == alt_3.to_string());
+
+    registry.bind(Shortcut::TabPreview, KeyChord{});
+    CHECK_FALSE(registry.is_customized(Shortcut::TabPreview));
+    registry.save(config);
+    CHECK_FALSE(config.has("shortcuts", "tab_preview"));
 }
 
 TEST_CASE("A Global shortcut refuses a config binding that would swallow typing", "[Shortcuts]")

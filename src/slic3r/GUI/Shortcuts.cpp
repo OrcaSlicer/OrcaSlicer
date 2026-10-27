@@ -39,6 +39,7 @@ constexpr KeyChord PREFERENCES_CHORD{ 'P', CTRL };
 constexpr KeyChord DELETE_CHORD{ WXK_DELETE };
 constexpr KeyChord MOUSE3D_CHORD{ 'M', CTRL };
 #endif
+constexpr KeyChord NO_DEFAULT{};
 
 // Each row: enum value, AppConfig key, description shown in the dialog, contexts the key is
 // looked up in, and the default chord. Rows are in the order the dialog lists them, within
@@ -153,6 +154,19 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(ToggleOneLayerMode,  "toggle_one_layer_mode", L("On/Off one layer mode of the vertical slider"),    PREVIEW, { 'L' }),
     SHORTCUT(ToggleBeltRawGcode,  "toggle_belt_raw_gcode", L("Show raw G-code (belt only)"),                     PREVIEW, { 'B' }),
 
+    // Tabs
+    SHORTCUT(TabHome,           "tab_home",           L("Home"),                                                 GLOBAL, NO_DEFAULT),
+#ifdef SLIC3R_CAD
+    SHORTCUT(TabDesign,         "tab_design",         L("Design"),                                               GLOBAL, NO_DEFAULT),
+#endif
+    SHORTCUT(TabPrepare,        "tab_prepare",        L("Prepare"),                                              GLOBAL, NO_DEFAULT),
+    SHORTCUT(TabPreview,        "tab_preview",        L("Preview"),                                              GLOBAL, NO_DEFAULT),
+    SHORTCUT(TabDevice,         "tab_device",         L("Device"),                                               GLOBAL, NO_DEFAULT),
+    SHORTCUT(TabDeviceWeb,      "tab_device_web",     L("Device (Web)"),                                         GLOBAL, NO_DEFAULT),
+    SHORTCUT(TabMultiDevice,    "tab_multi_device",   L("Multi-device"),                                         GLOBAL, NO_DEFAULT),
+    SHORTCUT(TabProject,        "tab_project",        L("Project"),                                              GLOBAL, NO_DEFAULT),
+    SHORTCUT(TabCalibration,    "tab_calibration",    L("Calibration"),                                          GLOBAL, NO_DEFAULT),
+
     // Application
     SHORTCUT(Preferences,       "preferences",        L("Preferences"),                                          GLOBAL, PREFERENCES_CHORD),
     SHORTCUT(Search,            "search",             L("Search"),                                               GLOBAL, { 'F', CTRL }),
@@ -190,6 +204,7 @@ constexpr std::array<SectionInfo, size_t(ShortcutSection::Count)> section_table 
     { Shortcut::PaintToolCircle, L("Painting tools") },
     { Shortcut::ViewDefault,     L("Camera") },
     { Shortcut::ShowLabels,      L("Display") },
+    { Shortcut::TabHome,         L("Tabs") },
     { Shortcut::Preferences,     L("Application") },
     { Shortcut::SpeedDial,       L("Speed Dial") },
 }};
