@@ -1,4 +1,5 @@
 #include "VoronoiPointCloud.hpp"
+#include "../I18N.hpp"
 #include "../KDTreeIndirect.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
@@ -158,10 +159,14 @@ bool ActivePointCloud::update(const BoundingBox &bounds, double z, double margin
         wanted.min.z() = std::max(wanted.min.z(), m_retired);
         const double limit = double(std::numeric_limits<coord_t>::max()) * SCALING_FACTOR / 4.;
         if (!wanted.min.allFinite() || !wanted.max.allFinite() ||
-            wanted.min.cwiseAbs().maxCoeff() > limit || wanted.max.cwiseAbs().maxCoeff() > limit) return false;
+            wanted.min.cwiseAbs().maxCoeff() > limit || wanted.max.cwiseAbs().maxCoeff() > limit)
+            throw std::invalid_argument(_u8L("Voronoi point coverage exceeds coordinate limits"));
         if (m_known.defined && std::isfinite(r) && contains(m_known, wanted)) return true;
         if (!std::isfinite(r) && source_extent && contains(m_known, *source_extent) &&
-            (m_known.max.array() > source_extent->max.array()).all()) return false;
+            (m_known.max.array() > source_extent->max.array()).all()) {
+            if (m_sites.empty()) return false;
+            throw std::invalid_argument(_u8L("Voronoi point coverage could not be established"));
+        }
         if (!std::isfinite(r) && !source_extent && ++empty_expansions > 4)
             throw std::invalid_argument("Voronoi point sampling found no control points; check infill density and modifiers");
 

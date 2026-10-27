@@ -1058,3 +1058,27 @@ TEST_CASE("Voronoi engines retain independent networks for alternating spacings 
     REQUIRE(engines.get({}, 3.) == engines.get({}, 3.));
     REQUIRE(engines.get({}, 3.) != engines.get({}, 5.));
 }
+
+TEST_CASE("Voronoi reports coverage failures instead of silently dropping infill", "[FillVoronoi]")
+{
+    const auto bounds = rectangle(-1., -1., 1., 1.).contour.bounding_box();
+    Voronoi::ActivePointCloud unbounded;
+    REQUIRE_THROWS_WITH(unbounded.update(bounds, 0., 0., 1., [](const auto &) { return 1e20; }),
+                        "Voronoi point coverage exceeds coordinate limits");
+    auto provider = std::make_shared<FixedProvider>();
+    provider->sites.emplace_back(0., 0., 0.);
+    Voronoi::ActivePointCloud finite(provider);
+    REQUIRE_THROWS_WITH(finite.update(bounds, 0., 0., 1., [](const auto &) {
+        return std::numeric_limits<double>::infinity();
+    }), "Voronoi point coverage could not be established");
+
+    class EmptyFiniteProvider : public FixedProvider {
+    public:
+        std::optional<BoundingBoxf3> extent() const override
+            { return BoundingBoxf3(Vec3d(-1., -1., -1.), Vec3d(1., 1., 1.)); }
+    };
+    Voronoi::ActivePointCloud empty(std::make_shared<EmptyFiniteProvider>());
+    REQUIRE_FALSE(empty.update(bounds, 0., 0., 1., [](const auto &) {
+        return std::numeric_limits<double>::infinity();
+    }));
+}
