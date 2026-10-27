@@ -8,6 +8,7 @@
 #include "VoronoiPointCloud.hpp"
 #include <limits>
 #include <memory>
+#include <map>
 #include <utility>
 #include <vector>
 #include <cstddef>
@@ -60,7 +61,14 @@ private:
 // Successive fillers in an ascending worker batch reuse the same engine.
 // Clients are sequential; concurrent workers own independent engines.
 struct VoronoiEngineRegistry {
-    std::shared_ptr<VoronoiInfill> infill;
+    std::shared_ptr<VoronoiInfill> get(std::shared_ptr<const Voronoi::PointCloudProvider> provider, double spacing)
+    {
+        auto &engine = m_engines[{provider, spacing}];
+        if (!engine) engine = provider ? std::make_shared<VoronoiInfill>(std::move(provider)) : std::make_shared<VoronoiInfill>();
+        return engine;
+    }
+private:
+    std::map<std::pair<std::shared_ptr<const Voronoi::PointCloudProvider>, double>, std::shared_ptr<VoronoiInfill>> m_engines;
 };
 
 } // namespace Slic3r

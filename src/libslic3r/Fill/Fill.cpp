@@ -429,8 +429,8 @@ static void configure_voronoi(Fill &fill, const SurfaceFill &surface_fill, const
     const auto &params = surface_fill.params;
     if (params.pattern != ipVoronoi) return;
     auto &voronoi = static_cast<FillVoronoi &>(fill);
-    voronoi.set_engine_registry(*engines);
     voronoi.point_spacing = params.voronoi_point_spacing;
+    voronoi.set_engine_registry(*engines);
     if (layer.lower_layer) {
         // Perimeters are complete before parallel infill generation; lower-layer
         // infill is not. Use bead footprints rather than solid slice outlines.
