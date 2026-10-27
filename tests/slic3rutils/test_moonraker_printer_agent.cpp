@@ -139,6 +139,29 @@ protected:
     }
 };
 
+// Fails its first `refusals` device info queries, as when macOS refuses the app's first local network connections.
+class RefusedAgent : public StreamAgent
+{
+public:
+    using StreamAgent::StreamAgent;
+    int refusals = 0;
+    mutable std::atomic<int> fetches{0};
+
+protected:
+    bool fetch_device_info(const std::string&           base_url,
+                           const std::string&           api_key,
+                           MoonrakerDeviceInfo&         info,
+                           std::string&                 error,
+                           const std::function<bool()>& cancelled) const override
+    {
+        if (++fetches <= refusals) {
+            error = "Couldn't connect to server";
+            return false;
+        }
+        return StreamAgent::fetch_device_info(base_url, api_key, info, error, cancelled);
+    }
+};
+
 enum class Behavior {
     SilentBeforeHandshake,     // Accepts the connection and never answers
     Silent,                    // Completes the upgrade, then never reads or sends
@@ -784,4 +807,33 @@ TEST_CASE("Destroying the agent stops a stalled status query", "[MoonrakerPrinte
 
     // The stalled query sees the change within 1 s of curl progress.
     CHECK(destroys_within(agent, 2s));
+}
+
+TEST_CASE("A connection the printer refuses at first is retried", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::AnswersPings);
+    RefusedAgent agent("");
+    agent.refusals                   = 2;
+    agent.ws_timings.reconnect_delay = 10ms;
+    agent.connect_printer(connection_to(printer));
+
+    // The status stream starts only once a device info query succeeds.
+    CHECK(printer.wait_for_ready_connections(1));
+    CHECK(agent.fetches == 3);
+    printer.release();
+}
+
+TEST_CASE("Destroying the agent does not wait out a connection retry's delay", "[MoonrakerPrinterAgent][Connect]")
+{
+    FakePrinter printer(Behavior::AnswersPings);
+    auto agent                        = std::make_unique<RefusedAgent>("");
+    agent->refusals                   = 1;
+    agent->ws_timings.reconnect_delay = 10s;
+    agent->connect_printer(connection_to(printer));
+    const auto deadline = std::chrono::steady_clock::now() + 5s;
+    while (agent->fetches == 0 && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(10ms);
+    REQUIRE(agent->fetches == 1);
+
+    CHECK(destroys_within(agent, 1s));
 }
