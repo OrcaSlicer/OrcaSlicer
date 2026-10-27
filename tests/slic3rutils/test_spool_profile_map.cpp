@@ -33,6 +33,16 @@ TEST_CASE("A printer's report becomes a spool identity whatever the key spelling
     CHECK(spool.extra.front().first == "mood");
 }
 
+TEST_CASE("A spool's name drops the words its group heading already says", "[SpoolProfileMap]")
+{
+    CHECK(spool_name_without_group("Elegoo PETG", "PETG") == "Elegoo");
+    CHECK(spool_name_without_group("ELEGOO PLA MATTE", "Elegoo") == "PLA MATTE");
+    CHECK(spool_name_without_group("Snapmaker PLA HIGH SPEED", "PLA HIGH SPEED") == "Snapmaker");
+    CHECK(spool_name_without_group("eSun PLA+", "PLA") == "eSun PLA+");
+    CHECK(spool_name_without_group("PETG", "PETG") == "PETG");
+    CHECK(spool_name_without_group("Elegoo PETG", "") == "Elegoo PETG");
+}
+
 TEST_CASE("A spool described by its material alone is generic", "[SpoolProfileMap]")
 {
     CHECK(spool_is_generic(spool_identity_from_fields(0, true, {{"material", "PLA"}})));
@@ -80,30 +90,40 @@ TEST_CASE("A remembered profile wins over the filament id", "[SpoolProfileMap]")
     CHECK(spool_choose_preset(candidates, spool, "Other PLA") == "Other PLA");
 }
 
-TEST_CASE("The store keeps its links, colors and settings through a round trip", "[SpoolProfileMap]")
+TEST_CASE("The store keeps its links and colors through a round trip", "[SpoolProfileMap]")
 {
     SpoolStore store;
     spool_remember(store.links, "name:rapid|pla", "Elegoo PLA", "Rapid", "#FF0000,#00FF00");
     spool_remember_color(store.links, "name:rapid|pla", "#0000FF", "Elegoo PLA Blue");
-    store.settings.ask_only_new     = false;
-    store.settings.remember_generic = true;
 
     const auto loaded = spool_store_from_json(spool_store_to_json(store));
 
     REQUIRE(loaded.has_value());
     CHECK(spool_remembered_preset(loaded->links, "name:rapid|pla") == "Elegoo PLA");
     CHECK(spool_remembered_preset(loaded->links, "name:rapid|pla", "#0000FF") == "Elegoo PLA Blue");
-    CHECK_FALSE(spool_is_new(loaded->links, "name:rapid|pla", "#FF0000,#00FF00"));
-    CHECK(spool_is_new(loaded->links, "name:rapid|pla", "#123456"));
-    CHECK_FALSE(loaded->settings.ask_only_new);
-    CHECK(loaded->settings.remember_generic);
-    CHECK(loaded->settings.enabled);
 }
 
-TEST_CASE("A store written before the generic flag existed does not link generic spools", "[SpoolProfileMap]")
+TEST_CASE("A filament seen in a colour never answered for is new", "[SpoolProfileMap]")
 {
-    const auto loaded = spool_store_from_json(R"({"version":2,"settings":{"enabled":true},"links":{}})");
+    std::map<std::string, SpoolLink> links;
+    CHECK(spool_is_new(links, "name:elegoo pla matte|pla matte", "#F9C2D5"));
+
+    spool_remember_spool(links, "name:elegoo pla matte|pla matte", "Elegoo PLA Matte", "Elegoo PLA Matte", "#F9C2D5");
+
+    CHECK_FALSE(spool_is_new(links, "name:elegoo pla matte|pla matte", "#F9C2D5"));
+    CHECK(spool_is_new(links, "name:elegoo pla matte|pla matte", "#1E6FD9"));
+    CHECK_FALSE(spool_is_new(links, "name:elegoo pla matte|pla matte", ""));
+
+    spool_remember_spool(links, "name:elegoo pla matte|pla matte", "Elegoo PLA Matte", "Elegoo PLA Matte", "#1E6FD9");
+
+    CHECK_FALSE(spool_is_new(links, "name:elegoo pla matte|pla matte", "#1E6FD9"));
+}
+
+TEST_CASE("A store saved with the settings it once held still loads its links", "[SpoolProfileMap]")
+{
+    const auto loaded = spool_store_from_json(
+        R"({"version":2,"settings":{"enabled":true,"remember_generic":true},"links":{"name:rapid|pla":{"preset":"Elegoo PLA"}}})");
 
     REQUIRE(loaded.has_value());
-    CHECK_FALSE(loaded->settings.remember_generic);
+    CHECK(spool_remembered_preset(loaded->links, "name:rapid|pla") == "Elegoo PLA");
 }

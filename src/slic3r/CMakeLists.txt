@@ -312,6 +312,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SyncAmsInfoDialog.hpp
     GUI/SpoolProfileMapDialog.cpp
     GUI/SpoolProfileMapDialog.hpp
+    GUI/SpoolProfileLinker.cpp
+    GUI/SpoolProfileLinker.hpp
     GUI/SpoolTile.cpp
     GUI/SpoolTile.hpp
     GUI/ImGuiWrapper.hpp
@@ -481,6 +483,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PresetHints.hpp
     GUI/PrimitiveSizeDialog.cpp
     GUI/PrimitiveSizeDialog.hpp
+    GUI/RecentFileHistory.cpp
+    GUI/RecentFileHistory.hpp
     GUI/RecentThumbnailHandler.cpp
     GUI/RecentThumbnailHandler.hpp
     GUI/RecentProjectFinder.cpp

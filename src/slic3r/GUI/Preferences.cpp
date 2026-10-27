@@ -77,6 +77,7 @@
 #include "Widgets/StaticBox.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Shortcuts.hpp"
+#include "SpoolProfileMapDialog.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "NetworkPluginDialog.hpp"
@@ -2109,15 +2110,8 @@ void PreferencesDialog::create_items()
     auto item_remember_printer = create_item_checkbox(_L("Remember printer configuration"), _L("If enabled, Orca will remember and switch filament/process configuration for each printer automatically."), "remember_printer_config");
     g_sizer->Add(item_remember_printer);
 
-    auto item_top_up_filaments = create_item_checkbox(_L("Top up filaments to the number of extruders"), _L("If enabled, when a printer is loaded with fewer filaments than extruders, Orca adds copies of the last filament until every extruder has one."), "top_up_filaments_to_extruders");
-    g_sizer->Add(item_top_up_filaments);
-
     auto item_remember_nozzle_types = create_item_checkbox(_L("Remember nozzle types for each printer"), _L("If enabled, Orca will remember the nozzle types for each printer preset. Otherwise all printers of the same model share them."), "remember_nozzle_types_per_printer");
     g_sizer->Add(item_remember_nozzle_types);
-
-    auto item_filament_preset_grouping = create_item_combobox(_L("Group user filament presets"), _L("Group user filament presets based on selection"),
-        "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
-    g_sizer->Add(item_filament_preset_grouping);
 
     // prevent burst calling on keyboard / spin events
     m_filament_height_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
@@ -2188,6 +2182,40 @@ void PreferencesDialog::create_items()
         SPEED_DIAL_RECENT_COUNT_MIN,
         SPEED_DIAL_RECENT_COUNT_MAX);
     g_sizer->Add(item_speed_dial_recents);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// FILAMENTS TAB
+    /////////////////////////////////////
+    m_pref_tabs->AppendItem(_L("Filaments"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// FILAMENTS > Presets
+    g_sizer->Add(create_item_title(_L("Presets")), 1, wxEXPAND);
+
+    auto item_filament_preset_grouping = create_item_combobox(_L("Group user filament presets"), _L("Group user filament presets based on selection"),
+        "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
+    g_sizer->Add(item_filament_preset_grouping);
+
+    auto item_top_up_filaments = create_item_checkbox(_L("Top up filaments to the number of extruders"), _L("If enabled, when a printer is loaded with fewer filaments than extruders, Orca adds copies of the last filament until every extruder has one."), "top_up_filaments_to_extruders");
+    g_sizer->Add(item_top_up_filaments);
+
+    //// FILAMENTS > Profile linker
+    g_sizer->Add(create_item_title(_L("Profile linker")), 1, wxEXPAND);
+
+    auto item_link_spools = create_item_checkbox(_L("Link filaments to profiles when synchronizing with a printer"),
+        _L("If enabled, the profile you pick for a filament in the slot edit window is remembered, and every later synchronization puts that filament on it."),
+        "link_spools_to_profiles");
+    g_sizer->Add(item_link_spools);
+
+    auto item_saved_links = create_item_button(_L("Saved filament links"), _L("Open") + dots, "", _L("See, change or forget the profile each filament is linked to."), [this]() {
+        SpoolProfileLinksDialog::run_manage(this);
+    });
+    g_sizer->Add(item_saved_links);
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);

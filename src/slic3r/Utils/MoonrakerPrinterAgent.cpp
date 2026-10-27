@@ -13,6 +13,7 @@
 #include "libslic3r/miniz_extension.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/SpoolProfileLinker.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
@@ -20,6 +21,7 @@
 #include "../GUI/DeviceCore/DevFirmware.h"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -625,6 +627,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     // Calculate ams_exist_bits and tray_exist_bits
     unsigned long ams_exist_bits = 0;
     unsigned long tray_exist_bits = 0;
+    std::vector<SpoolIdentity> spools;
 
     for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
         ams_exist_bits |= (1 << ams_id);
@@ -650,6 +653,8 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 }
             }
 
+            spools.push_back(tray_spool(slot_index, tray));
+
             nlohmann::json tray_json = nlohmann::json::object();
             tray_json["id"] = std::to_string(slot_id);
             tray_json["tag_uid"] = "0000000000000000";
@@ -657,7 +662,10 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
             if (tray && tray->has_filament) {
                 tray_exist_bits |= (1 << slot_index);
 
-                tray_json["tray_info_idx"] = tray->tray_info_idx;
+                // A spool the user linked to a profile is reported with that profile's id, so the
+                // stock sync lands on it.
+                const std::string linked_id = GUI::spool_linked_filament_id(spools.back());
+                tray_json["tray_info_idx"] = linked_id.empty() ? tray->tray_info_idx : linked_id;
                 tray_json["tray_type"] = tray->tray_type;
                 tray_json["tray_color"] = normalize_color_value(tray->tray_color);
                 // "ctype" uses the filament_colour_type values (0 = gradient, 1 = solid or segments).
@@ -671,12 +679,6 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 }
                 tray_json["cols"]  = cols;
                 tray_json["ctype"] = multi && tray->colors_gradient ? 0 : 1;
-                tray_json["orca_fields"] = nlohmann::json::object();
-                for (const auto& [key, value] : tray->fields)
-                    tray_json["orca_fields"][key] = value;
-                // tray_type is replaced on parse by the type of the profile picked for it, a fallback
-                // one when no system profile has the type, so the spool keeps what the printer said.
-                tray_json["orca_fields"]["MATERIAL"] = tray->tray_type;
 
                 // Add temperature data if provided
                 if (tray->bed_temp > 0) {
@@ -719,6 +721,8 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     nlohmann::json print_json = nlohmann::json::object();
     print_json["ams"] = ams_json;
 
+    SpoolProfileMap::get().publish(device_info.dev_id, std::move(spools));
+
     // Call the parser to populate DevFilaSystem
     DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem().get(), false);
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
@@ -747,6 +751,19 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
         ota_info.sw_ver = "1.0.0";  // Placeholder version for Moonraker printers
         obj->module_vers.emplace("ota", ota_info);
     }
+}
+
+// The printer's own fields come first, so they win over the ones read out of the tray.
+SpoolIdentity MoonrakerPrinterAgent::tray_spool(int slot_index, const AmsTrayData* tray)
+{
+    if (tray == nullptr || !tray->has_filament)
+        return spool_identity_from_fields(slot_index, false, {});
+
+    SpoolFields fields = tray->fields;
+    fields.emplace_back("MATERIAL", tray->tray_type);
+    fields.emplace_back("COLOR", tray->tray_colors.size() > 1 ? boost::algorithm::join(tray->tray_colors, ",") : tray->tray_color);
+    fields.emplace_back("FILAMENT_ID", tray->tray_info_idx);
+    return spool_identity_from_fields(slot_index, true, fields);
 }
 
 bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
@@ -1274,6 +1291,18 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
         }
 
         const std::string cmd = command.get<std::string>();
+
+        // The slot edit window. Nothing goes to the printer: the profile picked becomes the link for
+        // the filament in that slot.
+        if (cmd == "ams_filament_setting") {
+            const nlohmann::json& print    = json["print"];
+            const bool            has_slot = print.contains("ams_id") && print["ams_id"].is_number_integer() &&
+                                  print.contains("slot_id") && print["slot_id"].is_number_integer();
+            if (has_slot)
+                GUI::spool_link_from_slot(dev_id, print["ams_id"].get<int>() * 4 + print["slot_id"].get<int>(),
+                                          safe_json_string(print, "tray_info_idx"));
+            return BAMBU_NETWORK_SUCCESS;
+        }
 
         // Handle gcode_line command - this is how G-code commands are sent from OrcaSlicer
         if (cmd == "gcode_line") {

@@ -74,8 +74,6 @@ public:
     std::string              nozzle_temp_min;
     std::string              xcam_info;
     std::string              uuid;
-    // What a non-Bambu printer reported about the spool that has no field of its own here.
-    std::vector<std::pair<std::string, std::string>> extra;
     int                      ctype    = 0;
     float                    k        = 0.0f; // k range: 0 ~ 0.5
     float                    n        = 0.0f; // k range: 0.6 ~ 2.0

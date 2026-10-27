@@ -193,13 +193,6 @@ enum class ERescaleTarget
     SettingsDialog
 };
 
-enum class RecentFileKind
-{
-    Project,
-    Mesh,
-    Step
-};
-
 // Number of top history files that are in the Recent list, kept apart from the history so clearing
 // the Recent list leaves the files listed in the other Home page tabs.
 const char* const recent_count_key = "recent_projects_recent_count";
@@ -209,8 +202,6 @@ const char* const recent_added_section  = "recent_project_added";
 const char* const recent_tabs_section   = "recent_project_tabs";
 // The File menu binds wxID_FILE1 .. wxID_FILE1 + 49; ids past that belong to stock items like wxID_OK.
 const size_t max_recent_menu_items = 50;
-
-static RecentFileKind recent_file_kind(const wxString &path);
 
 namespace {
 
@@ -4554,117 +4545,12 @@ void MainFrame::add_to_recent_projects(const wxString& filename)
     }
 }
 
-const std::string& MainFrame::FileHistory::GetThumbnail(int index) const
-{
-    static const std::string no_thumbnail;
-    return index >= 0 && index < static_cast<int>(m_thumbnails.size()) ? m_thumbnails[index] : no_thumbnail;
-}
-
-bool MainFrame::FileHistory::GetPublished(int index) const
-{
-    return index >= 0 && index < static_cast<int>(m_listing_info.size()) && m_listing_info[index].published;
-}
-
-bool MainFrame::FileHistory::GetHasDesigner(int index) const
-{
-    return index >= 0 && index < static_cast<int>(m_listing_info.size()) && m_listing_info[index].has_designer;
-}
-
-void MainFrame::FileHistory::AddFileToHistory(const wxString &file)
-{
-    if (this->m_fileMaxFiles == 0)
-        return;
-    // The base class removes a file already in the history before adding it on top: keep what is known of it.
-    const size_t   old_index = FindFileInHistory(file);
-    RecentFileInfo info      = old_index < m_file_info.size() ? m_file_info[old_index] : RecentFileInfo{{}, std::time(nullptr), {}};
-    wxFileHistory::AddFileToHistory(file);
-    if (m_load_called) {
-        m_thumbnails.push_front(bbs_3mf_get_thumbnail(into_u8(file).c_str()));
-        m_listing_info.push_front(bbs_3mf_get_listing_info(into_u8(file)));
-        // Hashed again each time, as a project saved over has changed.
-        if (recent_file_kind(file) == RecentFileKind::Project)
-            info.hash = project_file_hash(file);
-    } else {
-        m_thumbnails.push_front("");
-        m_listing_info.push_front({});
-    }
-    m_file_info.push_front(std::move(info));
-    m_recent_count = std::min(m_recent_count + 1, GetCount());
-}
-
-void MainFrame::FileHistory::RemoveFileFromHistory(size_t i)
-{
-    if (i >= m_thumbnails.size()) // FIX zero max
-        return;
-    wxFileHistory::RemoveFileFromHistory(i);
-    m_thumbnails.erase(m_thumbnails.begin() + i);
-    m_listing_info.erase(m_listing_info.begin() + i);
-    m_file_info.erase(m_file_info.begin() + i);
-    if (i < m_recent_count)
-        --m_recent_count;
-}
-
-bool MainFrame::FileHistory::AppendFileToHistory(const FoundProject &file)
-{
-    if (GetCount() >= m_fileMaxFiles)
-        return false;
-    m_fileHistory.Add(file.path);
-    m_thumbnails.push_back(file.thumbnail);
-    m_listing_info.push_back(file.listing);
-    m_file_info.push_back({file.hash, std::time(nullptr), {}});
-    return true;
-}
-
-void MainFrame::FileHistory::RelinkFile(size_t index, const FoundProject &file)
-{
-    m_fileHistory[index]  = file.path;
-    m_thumbnails[index]   = file.thumbnail;
-    m_listing_info[index] = file.listing;
-    m_file_info[index].hash = file.hash;
-}
-
-void MainFrame::FileHistory::SetMaxFiles(size_t max)
-{
-    m_fileMaxFiles = max;
-    while (GetCount() > max)
-        RemoveFileFromHistory(GetCount() - 1);
-}
-
-size_t MainFrame::FileHistory::FindFileInHistory(const wxString & file) const
-{
-    return m_fileHistory.Index(file);
-}
-
-void MainFrame::FileHistory::LoadThumbnails()
-{
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, GetCount()), [this](tbb::blocked_range<size_t> range) {
-        for (size_t i = range.begin(); i < range.end(); ++i) {
-            auto thumbnail = bbs_3mf_get_thumbnail(into_u8(GetHistoryFile(i)).c_str());
-            if (!thumbnail.empty()) {
-                m_thumbnails[i] = thumbnail;
-            }
-            m_listing_info[i] = bbs_3mf_get_listing_info(into_u8(GetHistoryFile(i)));
-        }
-    });
-    m_load_called = true;
-}
-
 static size_t max_recent_count()
 {
     long count = 0;
     if (!from_u8(wxGetApp().app_config->get("max_recent_count")).ToLong(&count))
         return 18;
     return std::clamp(count, 0L, 999L);
-}
-
-static RecentFileKind recent_file_kind(const wxString &path)
-{
-    const wxString extension = wxFileName(path).GetExt().Lower();
-    if (extension == "3mf")
-        return RecentFileKind::Project;
-    if (extension == "step" || extension == "stp")
-        return RecentFileKind::Step;
-    return RecentFileKind::Mesh;
 }
 
 // The history positions of the files the Recent list shows, newest first.

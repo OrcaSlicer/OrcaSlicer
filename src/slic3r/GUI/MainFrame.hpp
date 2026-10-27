@@ -4,16 +4,12 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <cstdint>
-#include <ctime>
 #include <memory>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/Format/bbs_3mf.hpp"
 #include "slic3r/GUI/Lazy.hpp"
 #include <wx/event.h>
 #include <functional>
-#include <algorithm>
 #include <cstddef>
-#include <deque>
 #include <wx/frame.h>
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
@@ -37,6 +33,7 @@
 
 #include <boost/property_tree/ptree_fwd.hpp>
 
+#include "RecentFileHistory.hpp"
 #include "RecentProjectFinder.hpp"
 #include "slic3r/plugin/host/PluginPages.hpp"
 
@@ -288,47 +285,6 @@ class MainFrame : public DPIFrame
     void add_common_view_menu_items(wxMenu* view_menu, std::function<bool(void)> can_change_view);
     wxMenu* generate_help_menu();
 
-    // What the history knows of a file beyond its path. Saved by path, apart from the history.
-    struct RecentFileInfo
-    {
-        std::string hash;      // md5 of a 3MF, to find it again once moved
-        std::time_t added = 0; // 0 when the file was in the history before dates were kept
-        std::string tab;       // Home page tab the user moved the file to, empty to follow the path rule
-    };
-
-    struct FileHistory : wxFileHistory
-    {
-        FileHistory(int max) : wxFileHistory(max) {}
-        const std::string& GetThumbnail(int index) const;
-        bool        GetPublished(int index) const;
-        bool        GetHasDesigner(int index) const;
-        const RecentFileInfo& GetFileInfo(size_t index) const { return m_file_info[index]; }
-        void                  SetFileInfo(size_t index, RecentFileInfo info) { m_file_info[index] = std::move(info); }
-
-        virtual void AddFileToHistory(const wxString &file);
-        virtual void RemoveFileFromHistory(size_t i);
-        size_t FindFileInHistory(const wxString &file) const;
-        // Adds a file found on disk at the bottom, out of the Recent list. False when the history is full.
-        bool AppendFileToHistory(const FoundProject &file);
-        // Points a missing file to where it is now, keeping its place in the history.
-        void RelinkFile(size_t index, const FoundProject &file);
-        // Drops the oldest files that no longer fit.
-        void SetMaxFiles(size_t max);
-
-        void LoadThumbnails();
-
-        // How many files at the top of the history were opened since the Recent list was last cleared.
-        size_t GetRecentCount() const { return m_recent_count; }
-        void   SetRecentCount(size_t count) { m_recent_count = std::min(count, GetCount()); }
-        void   ClearRecent() { m_recent_count = 0; }
-    private:
-        std::deque<std::string> m_thumbnails;
-        std::deque<Bbs3mfListingInfo> m_listing_info; // parallel to m_thumbnails
-        std::deque<RecentFileInfo> m_file_info; // parallel to m_thumbnails
-        size_t m_recent_count = 0;
-        bool m_load_called = false;
-    };
-
     std::vector<size_t> recent_file_indices() const;
     void                refresh_recent_menu();
 
@@ -338,7 +294,7 @@ class MainFrame : public DPIFrame
     void                            apply_recent_project_moves(const RecentProjectMoves &moves);
     void                            show_recent_scan_running(bool running);
 
-    FileHistory         m_recent_projects;
+    RecentFileHistory   m_recent_projects;
     wxMenu*             m_recent_menu{nullptr};
     RecentProjectFinder m_recent_finder;
 

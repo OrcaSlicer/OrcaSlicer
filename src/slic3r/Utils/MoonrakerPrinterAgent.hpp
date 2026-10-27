@@ -3,6 +3,7 @@
 
 #include "IPrinterAgent.hpp"
 #include "bambu_networking.hpp"
+#include "SpoolProfileMap.hpp"
 
 #include <functional>
 #include <chrono>
@@ -124,6 +125,9 @@ protected:
     void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
     // Name shown for a filament unit, or empty for the AMS Lite name
     virtual std::string ams_unit_name(int /*ams_id*/) const { return {}; }
+
+    // One lane as the spool linker sees it. Null or empty trays are lanes with no filament.
+    static SpoolIdentity tray_spool(int slot_index, const AmsTrayData* tray);
 
     // The scalar entries of a JSON object as text, in order, minus the keys the caller already read.
     // Objects and arrays are skipped: this is material to recognise a spool by, not to parse.

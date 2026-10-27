@@ -3,8 +3,9 @@
 // Spool -> filament profile map.
 //
 // A printer that can report what is loaded in each of its lanes publishes that report here
-// (SpoolProfileMap::get().publish). When the user hits "sync", the sidebar offers one filament
-// profile per reported spool and remembers the choice, so the next sync is silent.
+// (SpoolProfileMap::get().publish). The first time a filament, or a colour of it, shows up, the
+// sync asks which profile it takes; the slot edit window can change it later. Every later sync
+// puts that filament on that profile.
 //
 // The whole feature is inert until something publishes: with nothing published the slicer takes
 // exactly the path it took before. Grep for "SpoolProfileMap" to find every call site.
@@ -74,21 +75,10 @@ struct SpoolLink
     std::map<std::string, std::string> color_presets;
 };
 
-// The answers the user gives on the saved-links panel, kept next to the links themselves.
-struct SpoolMapSettings
-{
-    bool enabled      = true;  // off means the picker never opens and synchronizing behaves as it always did
-    bool ask_only_new = true;  // ask only about a filament, or a colour of it, that has no link yet
-    // Off asks about a generic spool on every sync: a printer that only says "PLA" says it for every
-    // PLA, so one link would put all of them on one profile.
-    bool remember_generic = false;
-};
-
 // Everything spool_profile_map.json holds.
 struct SpoolStore
 {
     std::map<std::string, SpoolLink> links;
-    SpoolMapSettings                 settings;
 };
 
 // Stable identifier for "this filament", used to remember the user's choice. Built from the name
@@ -106,6 +96,11 @@ bool spool_is_generic(const SpoolIdentity& spool);
 // What to call a spool in a list: the name the printer reported, else its vendor and material.
 // Empty only when the printer reported nothing at all.
 std::string spool_display_name(const SpoolIdentity& spool);
+
+// A spool's name with the words its group heading already says taken out, matched without regard
+// to case: "Elegoo PETG" under "PETG" is "Elegoo". The name as it is when the group is not in it,
+// or when nothing would be left.
+std::string spool_name_without_group(const std::string& name, const std::string& group);
 
 // "#RRGGBB" out of whatever the printer sent ("RRGGBBAA", "0xRRGGBB"...), empty when it cannot be
 // read at all.
@@ -125,7 +120,7 @@ std::vector<std::string> spool_variant_colors(const std::string& variant);
 // 0 = same material, 1 = same material family (PLA-CF vs PLA), 2 = unrelated.
 int spool_material_rank(const std::string& candidate_material, const std::string& reported_material);
 
-// The profiles the picker offers for one spool, most likely first. With include_all set nothing
+// The profiles offered for one spool, most likely first. With include_all set nothing
 // is dropped, only reordered. A profile named by always_include is always kept and sorted first,
 // so a remembered choice never disappears from the list that offers it.
 std::vector<SpoolPresetCandidate> spool_filter_candidates(const std::vector<SpoolPresetCandidate>& all,
@@ -163,7 +158,7 @@ void spool_remember_color(std::map<std::string, SpoolLink>& links,
                           const std::string&                color,
                           const std::string&                preset_name);
 
-// The picker's answer for one spool. It goes on the filament while the filament has no profile
+// The profile picked for one spool. It goes on the filament while the filament has no profile
 // yet, and on the colour once it has a different one, so answering for a colour never moves the
 // colours that were already answered for.
 void spool_remember_spool(std::map<std::string, SpoolLink>& links,
@@ -208,9 +203,6 @@ public:
                         const std::string& preset_name,
                         const std::string& label,
                         const std::string& color);
-
-    SpoolMapSettings settings();
-    void             set_settings(const SpoolMapSettings& settings);
 
 private:
     SpoolProfileMap() = default;

@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iterator>
+#include <sstream>
 #include <system_error>
 
 #include <boost/filesystem/operations.hpp>
@@ -52,6 +53,34 @@ std::string normalize(const std::string& value)
         out.push_back(static_cast<char>(std::toupper(c)));
     }
     return out;
+}
+
+std::vector<std::string> split_words(const std::string& text)
+{
+    std::vector<std::string> words;
+    std::istringstream       stream(text);
+    for (std::string word; stream >> word;)
+        words.push_back(word);
+    return words;
+}
+
+bool group_starts_at(const std::vector<std::string>& words, size_t start, const std::vector<std::string>& group_words)
+{
+    for (size_t index = 0; index < group_words.size(); ++index)
+        if (normalize(words[start + index]) != group_words[index])
+            return false;
+    return true;
+}
+
+std::string join_words_except(const std::vector<std::string>& words, size_t start, size_t count)
+{
+    std::string joined;
+    for (size_t index = 0; index < words.size(); ++index) {
+        if (index >= start && index < start + count)
+            continue;
+        joined += joined.empty() ? words[index] : " " + words[index];
+    }
+    return joined;
 }
 
 // "PLA-CF" -> "PLA", "PETG HF" -> "PETG", "PLA HIGH SPEED" -> "PLA".
@@ -161,24 +190,6 @@ std::string string_field(const nlohmann::json& object, const char* name)
 {
     const auto field = object.find(name);
     return field != object.end() && field->is_string() ? field->get<std::string>() : std::string();
-}
-
-bool bool_field(const nlohmann::json& object, const char* name, bool fallback)
-{
-    const auto field = object.find(name);
-    return field != object.end() && field->is_boolean() ? field->get<bool>() : fallback;
-}
-
-SpoolMapSettings settings_from_json(const nlohmann::json& json)
-{
-    SpoolMapSettings settings;
-    const auto       saved = json.find("settings");
-    if (saved == json.end() || !saved->is_object())
-        return settings;
-    settings.enabled          = bool_field(*saved, "enabled", settings.enabled);
-    settings.ask_only_new     = bool_field(*saved, "ask_only_new", settings.ask_only_new);
-    settings.remember_generic = bool_field(*saved, "remember_generic", settings.remember_generic);
-    return settings;
 }
 
 std::vector<std::string> colors_from_json(const nlohmann::json& saved_link)
@@ -329,6 +340,18 @@ std::string spool_display_name(const SpoolIdentity& spool)
     if (!spool.material.empty())
         return spool.vendor.empty() ? spool.material : spool.vendor + " " + spool.material;
     return spool.vendor;
+}
+
+std::string spool_name_without_group(const std::string& name, const std::string& group)
+{
+    const std::vector<std::string> words       = split_words(name);
+    const std::vector<std::string> group_words = split_words(normalize(group));
+    if (group_words.empty() || group_words.size() >= words.size())
+        return name;
+    for (size_t start = 0; start + group_words.size() <= words.size(); ++start)
+        if (group_starts_at(words, start, group_words))
+            return join_words_except(words, start, group_words.size());
+    return name;
 }
 
 SpoolIdentity spool_identity_from_key(const std::string& key)
@@ -764,17 +787,14 @@ std::optional<SpoolStore> spool_store_from_json(const std::string& json_text)
 
     std::map<std::string, SpoolLink> links = links_from_json(json);
     add_printer_lists(json, links);
-    return SpoolStore{refiled_by_label(std::move(links)), settings_from_json(json)};
+    return SpoolStore{refiled_by_label(std::move(links))};
 }
 
 std::string spool_store_to_json(const SpoolStore& store)
 {
     nlohmann::json json;
-    json["version"]                  = 2;
-    json["settings"]["enabled"]          = store.settings.enabled;
-    json["settings"]["ask_only_new"]     = store.settings.ask_only_new;
-    json["settings"]["remember_generic"] = store.settings.remember_generic;
-    json["links"]                    = nlohmann::json::object();
+    json["version"] = 2;
+    json["links"]   = nlohmann::json::object();
     for (const auto& entry : store.links)
         json["links"][entry.first] = link_to_json(entry.second);
     // A name the printer sent in a broken encoding must not stop every link from being saved.
@@ -844,19 +864,6 @@ void SpoolProfileMap::remember_spool(const std::string& key,
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     spool_remember_spool(store().links, key, preset_name, label, color);
-    save();
-}
-
-SpoolMapSettings SpoolProfileMap::settings()
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return store().settings;
-}
-
-void SpoolProfileMap::set_settings(const SpoolMapSettings& settings)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    store().settings = settings;
     save();
 }
 

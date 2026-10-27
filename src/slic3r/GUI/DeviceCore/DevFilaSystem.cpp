@@ -79,7 +79,6 @@ void DevAmsTray::reset()
     nozzle_temp_min     = "";
     xcam_info           = "";
     uuid                = "";
-    extra.clear();
     k                   = 0.0f;
     n                   = 0.0f;
     is_bbl              = false;
@@ -779,13 +778,6 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                         curr_tray->cols.push_back(it.value().get<std::string>());
                                     }
                                 }
-                            }
-
-                            curr_tray->extra.clear();
-                            if (tray_it->contains("orca_fields") && (*tray_it)["orca_fields"].is_object())
-                            {
-                                for (const auto& [key, value] : (*tray_it)["orca_fields"].items())
-                                    curr_tray->extra.emplace_back(key, value.get<std::string>());
                             }
 
                             if (tray_it->contains("remain"))
