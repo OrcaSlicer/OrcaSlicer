@@ -324,7 +324,6 @@ TEST_CASE("Worker-local Voronoi engines survive temporary fillers and isolate cl
     };
     auto provider = std::make_shared<CountingCloud>();
     VoronoiEngineRegistry engines;
-    engines.infill = std::make_shared<VoronoiInfill>(provider);
     FillParams params;
     params.density = 0.25f;
     params.flow = Flow(0.45f, 0.2f, 0.4f);
@@ -333,7 +332,7 @@ TEST_CASE("Worker-local Voronoi engines survive temporary fillers and isolate cl
                              Point::new_scale(10., 10.), Point::new_scale(-10., 10.)};
     const Surface surface(stInternal, outline);
     const auto configure = [&](FillVoronoi &fill) {
-        fill.set_engine_registry(engines);
+        fill.set_point_cloud(provider, &engines);
         fill.set_bounding_box(outline.contour.bounding_box());
         fill.spacing = params.flow.spacing();
         fill.angle = 0.f;
