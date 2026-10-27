@@ -36,7 +36,7 @@
 #include "FillLightning.hpp"
 #include "FillConcentricInternal.hpp"
 #include "FillTpmsD.hpp"
-#include "FillTpmsFK.hpp"
+#include "FillTpms.hpp"
 #include "FillConcentric.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Point.hpp"
