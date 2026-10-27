@@ -1,4 +1,5 @@
 #include "GLGizmoMove.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
@@ -343,7 +344,7 @@ double GLGizmoMove3D::calc_projection(const UpdateData& data) const
         projection = inters_vec.dot(starting_vec.normalized());
     }
 
-    if (wxGetKeyState(WXK_SHIFT))
+    if (Slic3r::GUI::get_key_state(WXK_SHIFT))
         projection = m_snap_step * (double)std::round(projection / m_snap_step);
 
     return projection;

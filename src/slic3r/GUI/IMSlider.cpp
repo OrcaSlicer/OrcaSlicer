@@ -1,4 +1,5 @@
 #include "IMSlider.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "NotificationManager.hpp"
@@ -1659,14 +1660,14 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
     wheel = wheel > 0 ? 1.0f : -1.0f;
 
 #ifdef __WXOSX__
-    if (wxGetKeyState(WXK_SHIFT)) {
+    if (Slic3r::GUI::get_key_state(WXK_SHIFT)) {
         wheel *= -5;
     }
-    else if (wxGetKeyState(WXK_RAW_CONTROL)) {
+    else if (Slic3r::GUI::get_key_state(WXK_RAW_CONTROL)) {
         wheel *= 5;
     }
 #else
-    if (wxGetKeyState(WXK_COMMAND) || wxGetKeyState(WXK_SHIFT))
+    if (Slic3r::GUI::get_key_state(WXK_COMMAND) || Slic3r::GUI::get_key_state(WXK_SHIFT))
         wheel *= 5;
 #endif
     if (is_horizontal()) {

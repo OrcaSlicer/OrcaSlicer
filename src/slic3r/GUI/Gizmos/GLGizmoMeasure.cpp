@@ -1,4 +1,5 @@
 #include "GLGizmoMeasure.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -746,7 +747,7 @@ void GLGizmoMeasure::on_render()
         else {
             std::optional<Measure::SurfaceFeature> curr_feature = std::nullopt;
             if (m_curr_measuring) {
-                curr_feature = wxGetMouseState().LeftIsDown() ? m_curr_feature :
+                curr_feature = Slic3r::GUI::get_mouse_state().LeftIsDown() ? m_curr_feature :
                                mouse_on_object                ? m_curr_measuring->get_feature(model_facet_idx, position_on_model,
                                                                                m_mesh_raycaster_map[m_last_hit_volume]->get_transform(), m_only_select_plane) :
                                                               std::nullopt;

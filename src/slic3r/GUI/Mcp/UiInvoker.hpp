@@ -59,6 +59,12 @@ public:
     };
     std::optional<Probe> probe(std::chrono::milliseconds timeout);
 
+    // Applies the mutate guard from inside a closure that run() is executing under a weaker class:
+    // the GUI input tools run as recover calls so they can answer the topmost dialog, and call
+    // this once their target turns out to be elsewhere. Throws ToolFailure when another call's
+    // nested loop is running or a modal dialog is open. UI thread only.
+    void require_mutate() const;
+
     // Wakes every waiting caller with "shutting down"; closures that run afterwards do nothing.
     void shutdown();
     bool is_shutdown() const;

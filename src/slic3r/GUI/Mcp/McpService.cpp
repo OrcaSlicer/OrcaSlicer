@@ -5,6 +5,7 @@
 #include "McpToken.hpp"
 #include "McpTools.hpp"
 #include "ModalTracker.hpp"
+#include "UiInspector.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
@@ -108,6 +109,7 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
         m_options    = options;
         m_dispatcher = std::make_unique<WxDispatcher>();
         m_modals     = std::make_unique<ModalTracker>();
+        m_inspector  = std::make_unique<UiInspector>(*this);
         m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); });
         m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal);
         register_tools();
@@ -185,7 +187,42 @@ void McpService::stop()
     if (wxTheApp != nullptr)
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
             imgui->set_item_recording(false);
+    m_inspector.reset();
     m_modals.reset();
+}
+
+std::string McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const std::set<std::string>& lineage)
+{
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    // A running script in the caller's lineage owns the rules.
+    for (const std::string& job : lineage)
+        if (auto it = m_script_rule_layers.find(job); it != m_script_rule_layers.end()) {
+            if (!rules.empty())
+                it->second.push_back(m_modals->push_rules(std::move(rules)));
+            return "script";
+        }
+    if (m_session_rule_layer != 0)
+        m_modals->pop_rules(m_session_rule_layer);
+    m_session_rule_layer = rules.empty() ? 0 : m_modals->push_rules(std::move(rules));
+    return "session";
+}
+
+void McpService::begin_script_scope(const std::string& job)
+{
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    m_script_rule_layers.emplace(job, std::vector<int>{});
+}
+
+void McpService::end_script_scope(const std::string& job)
+{
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    auto it = m_script_rule_layers.find(job);
+    if (it == m_script_rule_layers.end())
+        return;
+    if (m_modals)
+        for (int layer : it->second)
+            m_modals->pop_rules(layer);
+    m_script_rule_layers.erase(it);
 }
 
 void McpService::suspend()

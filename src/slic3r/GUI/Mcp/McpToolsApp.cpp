@@ -83,6 +83,7 @@ json app_state(McpService& service)
                {"display_backend", display_backend()},
                {"ready", service.ready()},
                {"dialogs", service.modals().snapshot()},
+               {"auto_answer_rules", service.modals().rules_json()},
                {"jobs", service.jobs().list()}};
     MainFrame* frame  = wxGetApp().mainframe;
     Plater*    plater = wxGetApp().plater();

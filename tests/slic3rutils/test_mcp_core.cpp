@@ -289,6 +289,56 @@ TEST_CASE("a mutate call is refused inside another call's nested loop but inspec
     CHECK(nested_inspect == "seen");
 }
 
+TEST_CASE("a recover call that targets outside the dialog applies the mutate guard itself", "[Mcp]")
+{
+    ManualDispatcher ui;
+    GuardState       guards;
+    UiInvoker        invoker(ui, [&] { return guards; });
+    auto attempt = [&]() -> std::string {
+        auto fut = std::async(std::launch::async, [&]() -> std::string {
+            try {
+                invoker.run(GuardClass::Recover, "ui_click", [&] {
+                    invoker.require_mutate();
+                    return json();
+                });
+                return "ok";
+            } catch (const ToolFailure& f) {
+                return f.what();
+            }
+        });
+        ui.pump_until([&] { return fut.wait_for(0ms) == std::future_status::ready; });
+        return fut.get();
+    };
+    CHECK(attempt() == "ok");
+    guards.modal = true;
+    CHECK(attempt().find("modal dialog") != std::string::npos);
+    guards = {};
+
+    // Inside another call's nested loop it is busy, as a mutate call would be.
+    std::string nested;
+    auto outer = std::async(std::launch::async, [&] {
+        return invoker.run(GuardClass::Mutate, "outer", [&] {
+            auto m = std::async(std::launch::async, [&]() -> std::string {
+                try {
+                    invoker.run(GuardClass::Recover, "ui_click", [&] {
+                        invoker.require_mutate();
+                        return json();
+                    });
+                    return "ok";
+                } catch (const ToolFailure& f) {
+                    return f.what();
+                }
+            });
+            ui.pump_until([&] { return m.wait_for(0ms) == std::future_status::ready; });
+            nested = m.get();
+            return json();
+        });
+    });
+    ui.pump_until([&] { return outer.wait_for(0ms) == std::future_status::ready; });
+    outer.get();
+    CHECK(nested.find("Busy: outer") != std::string::npos);
+}
+
 TEST_CASE("a job outlives its reply and wait() returns its result", "[Mcp]")
 {
     Harness h;

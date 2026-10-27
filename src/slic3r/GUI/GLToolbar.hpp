@@ -398,6 +398,7 @@ public:
     bool is_any_item_pressed() const;
 
     unsigned int get_items_count() const { return (unsigned int)m_items.size(); }
+    const std::vector<GLToolbarItem*>& get_items() const { return m_items; }
     int get_item_id(const std::string& name) const;
 
     void force_left_action(int item_id, GLCanvas3D& parent) { do_action(GLToolbarItem::Left, item_id, parent, false); }

@@ -1,4 +1,5 @@
 #include "ImGuiWrapper.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -611,14 +612,14 @@ void ImGuiWrapper::new_frame()
     // values from 33 to 126 are reserved for the standard ASCII characters
     for (size_t i = 33; i <= 126; ++i) {
         wxKeyCode keycode = static_cast<wxKeyCode>(i);
-        if (io.KeysDown[i] && keycode != WXK_NONE && !wxGetKeyState(keycode))
+        if (io.KeysDown[i] && keycode != WXK_NONE && !Slic3r::GUI::get_key_state(keycode))
             io.KeysDown[i] = false;
     }
 
     // special keys: delete, backspace, ...
     for (int key : io.KeyMap) {
         wxKeyCode keycode = static_cast<wxKeyCode>(key);
-        if (io.KeysDown[key] && keycode != WXK_NONE && !wxGetKeyState(keycode))
+        if (io.KeysDown[key] && keycode != WXK_NONE && !Slic3r::GUI::get_key_state(keycode))
             io.KeysDown[key] = false;
     }
 

@@ -136,6 +136,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionRegistry.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
+    GUI/SyntheticInput.cpp
+    GUI/SyntheticInput.hpp
     GUI/Mcp/JobRegistry.cpp
     GUI/Mcp/JobRegistry.hpp
     GUI/Mcp/McpCore.cpp
@@ -167,14 +169,19 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsPending.cpp
     GUI/Mcp/McpToolsProject.cpp
     GUI/Mcp/McpToolsScene.cpp
+    GUI/Mcp/McpToolsUi.cpp
     GUI/Mcp/McpToolsView.cpp
     GUI/Mcp/ScreenCapture.cpp
     GUI/Mcp/ScreenCapture.hpp
     GUI/Mcp/McpTypes.hpp
     GUI/Mcp/ModalTracker.cpp
     GUI/Mcp/ModalTracker.hpp
+    GUI/Mcp/UiInspector.cpp
+    GUI/Mcp/UiInspector.hpp
     GUI/Mcp/UiInvoker.cpp
     GUI/Mcp/UiInvoker.hpp
+    GUI/Mcp/UiRefs.cpp
+    GUI/Mcp/UiRefs.hpp
     GUI/PluginsConfigDialog.cpp
     GUI/PluginsConfigDialog.hpp
     GUI/ProcessRunner.cpp

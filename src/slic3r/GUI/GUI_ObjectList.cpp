@@ -1,4 +1,5 @@
 #include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/LifecycleEvents.hpp"
@@ -251,7 +252,7 @@ ObjectList::ObjectList(wxWindow* parent) :
 		// Workaround for entering the column editing mode on Windows. Simulate keyboard enter when another column of the active line is selected.
 		int new_selected_column = -1;
 #endif //__WXMSW__
-        if (wxGetKeyState(WXK_SHIFT))
+        if (Slic3r::GUI::get_key_state(WXK_SHIFT))
         {
             wxDataViewItemArray sels;
             GetSelections(sels);
@@ -1509,7 +1510,7 @@ void ObjectList::OnChar(wxKeyEvent& event)
     if (event.GetKeyCode() == WXK_BACK){
         remove();
     }
-    else if (wxGetKeyState(wxKeyCode('A')) && wxGetKeyState(WXK_SHIFT))
+    else if (Slic3r::GUI::get_key_state(wxKeyCode('A')) && Slic3r::GUI::get_key_state(WXK_SHIFT))
         select_item_all_children();
 
     event.Skip();
@@ -5507,7 +5508,7 @@ bool ObjectList::check_last_selection(wxString& msg_str)
     if (!m_last_selected_item)
         return true;
 
-    const bool is_shift_pressed = wxGetKeyState(WXK_SHIFT);
+    const bool is_shift_pressed = Slic3r::GUI::get_key_state(WXK_SHIFT);
 
     /* We can't mix Volumes, Layers and Objects/Instances.
      * So, show information about it

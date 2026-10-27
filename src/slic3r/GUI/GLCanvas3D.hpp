@@ -1038,6 +1038,7 @@ public:
 
     const GLGizmosManager& get_gizmos_manager() const { return m_gizmos; }
     GLGizmosManager& get_gizmos_manager() { return m_gizmos; }
+    GLToolbar& get_main_toolbar() { return m_main_toolbar; }
 
     void bed_shape_changed();
 

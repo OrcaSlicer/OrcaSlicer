@@ -79,12 +79,11 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
                 error = "OrcaSlicer is shutting down";
             else if (g.suspended)
                 error = "The UI is being recreated (language change); retry in a moment";
-            else if (guard == GuardClass::Mutate && !shared->running_tools.empty())
-                error = "Busy: " + shared->running_tools.front() + " is still running; only inspection and dialog tools can run now";
             else if (guard == GuardClass::Mutate && g.modal) {
                 error   = "A modal dialog is open; answer it first (ui_snapshot, dialog_respond)";
                 details = {{"dialogs", g.dialogs}};
-            }
+            } else if (guard == GuardClass::Mutate && !shared->running_tools.empty())
+                error = "Busy: " + shared->running_tools.front() + " is still running; only inspection and dialog tools can run now";
         }
         if (error.empty()) {
             shared->running_tools.push_back(tool);
@@ -156,6 +155,20 @@ std::optional<UiInvoker::Probe> UiInvoker::probe(std::chrono::milliseconds timeo
     if (!call->cv.wait_for(lock, timeout, [&] { return call->done; }))
         return std::nullopt;
     return call->probe;
+}
+
+void UiInvoker::require_mutate() const
+{
+    // The calling closure is the last entry; anything before it is a call whose nested loop we
+    // are running in.
+    if (m_shared->guards_on_ui) {
+        const GuardState g = m_shared->guards_on_ui();
+        if (g.modal)
+            throw ToolFailure("A modal dialog is open; answer it first (ui_snapshot, dialog_respond)", {{"dialogs", g.dialogs}});
+    }
+    if (m_shared->running_tools.size() > 1)
+        throw ToolFailure("Busy: " + m_shared->running_tools.front() +
+                          " is still running; only inspection and dialog tools can run now");
 }
 
 void UiInvoker::shutdown()

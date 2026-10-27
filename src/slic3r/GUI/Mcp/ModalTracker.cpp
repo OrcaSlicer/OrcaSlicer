@@ -4,6 +4,8 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 
+#include <boost/log/trivial.hpp>
+
 #include <wx/button.h>
 #include <wx/dialog.h>
 #include <wx/dirdlg.h>
@@ -220,6 +222,8 @@ int ModalTracker::Enter(wxDialog* dialog)
                         const int id = resolve_dialog_button(dialog, rule.button);
                         if (id != wxID_NONE) {
                             ++rule.uses;
+                            BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered dialog \"" << info["title"].get<std::string>() << "\" with "
+                                                    << rule.button << " (rule \"" << rule.pattern << "\")";
                             return id; // ShowModal() returns it without showing the dialog
                         }
                     }

@@ -93,14 +93,20 @@ class OrcaMcp:
         """Call a tool and return its JSON result; raise McpError when the tool reports an error.
 
         A call that returns a job envelope (running / blocked_by_dialog) is returned as is."""
+        return self.call_with_text(tool, _timeout, **args)[0]
+
+    def call_with_text(self, tool, _timeout=None, **args):
+        """Like call(), plus the text blocks after the JSON one (ui_snapshot's tree)."""
         result = self.call_raw(tool, args, timeout=_timeout)
-        text = next((c["text"] for c in result.get("content", []) if c.get("type") == "text"), "")
+        texts = [c["text"] for c in result.get("content", []) if c.get("type") == "text"]
+        text = texts[0] if texts else ""
         if result.get("isError"):
             raise McpError(text, result)
         try:
-            return json.loads(text) if text else {}
+            data = json.loads(text) if text else {}
         except json.JSONDecodeError:
-            return {"text": text}
+            data = {"text": text}
+        return data, texts[1:]
 
     def images(self, tool, **args):
         """Call a tool and return (json_result, [png bytes...]) for image content blocks."""
@@ -263,7 +269,8 @@ def main():
     p.add_argument("--wait", action="store_true", help="follow a returned job to its result")
 
     sub.add_parser("tools", help="list tools")
-    sub.add_parser("snapshot", help="print the ui_snapshot tree")
+    p = sub.add_parser("snapshot", help="print the ui_snapshot tree")
+    p.add_argument("args", nargs="?", help="ui_snapshot arguments as JSON")
 
     p = sub.add_parser("screenshot", help="save a screenshot")
     p.add_argument("out")
@@ -281,15 +288,19 @@ def main():
     client, _ = session_client()
     try:
         if args.cmd == "call":
-            result = client.call(args.tool, **json.loads(args.args))
+            result, texts = client.call_with_text(args.tool, **json.loads(args.args))
             if args.wait:
                 result = client.await_job(result)
             print(json.dumps(result, indent=2))
+            for t in texts:
+                print(t)
         elif args.cmd == "tools":
             for t in client.tools():
                 print(f"{t['name']:20} {t.get('description', '').splitlines()[0][:100]}")
         elif args.cmd == "snapshot":
-            print(client.call("ui_snapshot").get("tree", ""))
+            a = json.loads(args.args) if getattr(args, "args", None) else {}
+            data, texts = client.call_with_text("ui_snapshot", **a)
+            print("\n".join(texts) or json.dumps(data, indent=2))
         elif args.cmd == "screenshot":
             out = os.path.abspath(args.out)
             print(json.dumps(client.call("screenshot", target=args.target, save_path=out, overwrite=True, include_image=False), indent=2))

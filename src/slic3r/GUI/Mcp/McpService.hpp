@@ -12,15 +12,21 @@
 
 #include <atomic>
 #include <cstdint>
+#include <map>
 #include <memory>
+#include <mutex>
+#include <set>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 class McpHttpServer;
 class McpProtocol;
 class ModalTracker;
+class UiInspector;
+struct AutoAnswerRule;
 
 // The MCP server inside the running app: owns the tool catalog, the UI invoker, jobs, the session
 // journal, the modal-dialog tracker and the HTTP endpoint, and runs a --mcp-script once the app is
@@ -65,6 +71,16 @@ public:
     UiInvoker&    ui() { return *m_invoker; }
     McpCore&      core() { return *m_core; }
     ModalTracker& modals() { return *m_modals; }
+    // Refs from ui_snapshot live here, so they survive between calls. UI thread only.
+    UiInspector&  inspector() { return *m_inspector; }
+
+    // Auto-answer rules from dialog_auto_answer. Rules registered from inside a script (a job in
+    // `lineage` is a running script) last until that script ends; a client's rules replace the
+    // ones it registered before. Returns "script" or "session". Any thread.
+    std::string set_auto_answer(std::vector<AutoAnswerRule> rules, const std::set<std::string>& lineage);
+    // run_script brackets its steps with these.
+    void begin_script_scope(const std::string& job);
+    void end_script_scope(const std::string& job);
 
     // Where screenshots and script outputs go when no path is given.
     boost::filesystem::path output_dir() const;
@@ -93,6 +109,11 @@ private:
     std::unique_ptr<McpProtocol>   m_protocol;
     std::unique_ptr<McpHttpServer> m_http;
     std::unique_ptr<ModalTracker>  m_modals;
+    std::unique_ptr<UiInspector>   m_inspector;
+
+    std::mutex                              m_rules_mutex;
+    std::map<std::string, std::vector<int>> m_script_rule_layers; // running script job -> layers
+    int                                     m_session_rule_layer = 0;
 
     std::atomic<bool>     m_ready{false};
     std::atomic<bool>     m_suspended{false};

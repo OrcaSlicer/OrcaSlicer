@@ -1,4 +1,5 @@
 #include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "libslic3r/Point.hpp"
 #include <limits>
 #include <string>
@@ -4427,7 +4428,7 @@ static std::set<int> s_keys_down;
 static bool key_repeats(int key)
 {
     for (auto it = s_keys_down.begin(); it != s_keys_down.end();)   // drops keys released while no canvas had the focus
-        it = wxGetKeyState(wxKeyCode(*it)) ? std::next(it) : s_keys_down.erase(it);
+        it = Slic3r::GUI::get_key_state(wxKeyCode(*it)) ? std::next(it) : s_keys_down.erase(it);
     return !s_keys_down.insert(key).second;
 }
 
@@ -4821,11 +4822,11 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // For other events, all buttons are reported as non-pressed, such as window leaving event. This causes
     // imgui stopped responding if cursor moved out of window, such as
     // https://github.com/OrcaSlicer/OrcaSlicer/pull/14999#issuecomment-5151344759
-    // We solve this by correcting the state of the event from the actual mouse state querying with `wxGetMouseState()`
+    // We solve this by correcting the state of the event from the actual mouse state querying with `get_mouse_state()`
     // so it works like on other platforms.
     // Only fill in state the event does not carry, to preserve wx's synthetic right button for Ctrl+left.
     if (!evt.ButtonIsDown(wxMOUSE_BTN_ANY)) {
-        const auto state = wxGetMouseState();
+        const auto state = Slic3r::GUI::get_mouse_state();
         evt.SetLeftDown(state.LeftIsDown());
         evt.SetMiddleDown(state.MiddleIsDown());
         evt.SetRightDown(state.RightIsDown());
@@ -8063,7 +8064,7 @@ void GLCanvas3D::_picking_pass()
                 const GLVolume* volume = m_volumes.volumes[hit.raycaster_id];
                 if (volume->is_active && !volume->disabled && (volume->composite_id.volume_id >= 0 || m_render_sla_auxiliaries)) {
                     // do not add the volume id if CTRL is pressed while a gizmo that does not allow Ctrl+click selection is active
-                    if (m_gizmos.is_allow_multi_select_parts_or_objects() || !wxGetKeyState(WXK_CONTROL))
+                    if (m_gizmos.is_allow_multi_select_parts_or_objects() || !Slic3r::GUI::get_key_state(WXK_CONTROL))
                         m_hover_volume_idxs.emplace_back(hit.raycaster_id);
                     m_gizmos.set_hover_id(-1);
                 }
@@ -12028,9 +12029,9 @@ void GLCanvas3D::_update_volumes_hover_state()
     if (m_hover_volume_idxs.empty())
         return;
 
-    bool ctrl_pressed = wxGetKeyState(WXK_CONTROL); // additive select/deselect
-    bool shift_pressed = wxGetKeyState(WXK_SHIFT);  // select by rectangle
-    bool alt_pressed = wxGetKeyState(WXK_ALT);      // deselect by rectangle
+    bool ctrl_pressed = Slic3r::GUI::get_key_state(WXK_CONTROL); // additive select/deselect
+    bool shift_pressed = Slic3r::GUI::get_key_state(WXK_SHIFT);  // select by rectangle
+    bool alt_pressed = Slic3r::GUI::get_key_state(WXK_ALT);      // deselect by rectangle
 
     if (alt_pressed && (shift_pressed || ctrl_pressed)) {
         // illegal combinations of keys
@@ -12775,7 +12776,7 @@ bool GLCanvas3D::_is_any_volume_outside() const
 
 void GLCanvas3D::_update_selection_from_hover()
 {
-    bool ctrl_pressed = wxGetKeyState(WXK_CONTROL);
+    bool ctrl_pressed = Slic3r::GUI::get_key_state(WXK_CONTROL);
 
     if (m_hover_volume_idxs.empty()) {
         if (!ctrl_pressed && (m_rectangle_selection.get_state() == GLSelectionRectangle::Select))

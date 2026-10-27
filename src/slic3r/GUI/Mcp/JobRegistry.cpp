@@ -93,8 +93,14 @@ nlohmann::json JobRegistry::list() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     const auto     now = std::chrono::steady_clock::now();
+    // Newest first.
+    std::vector<std::pair<std::string, const Job*>> jobs;
+    for (const auto& [id, job] : m_jobs)
+        jobs.emplace_back(id, &job);
+    std::sort(jobs.begin(), jobs.end(), [](const auto& a, const auto& b) { return a.second->created > b.second->created; });
     nlohmann::json out = nlohmann::json::array();
-    for (const auto& [id, job] : m_jobs) {
+    for (const auto& [id, job_ptr] : jobs) {
+        const Job&     job = *job_ptr;
         nlohmann::json j{{"id", id},
                          {"tool", job.tool},
                          {"state", job.finished ? (job.result.is_error ? "failed" : "done") : "running"},
