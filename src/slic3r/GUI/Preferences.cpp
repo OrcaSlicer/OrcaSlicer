@@ -587,7 +587,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
 wxBoxSizer *PreferencesDialog::create_item_region_combobox(wxString title, wxString tooltip)
 {
 
-    std::vector<wxString> Regions         = {_L("Asia-Pacific"), _L("China"), _L("Europe"), _L("North America"), _L("Others")};
+    std::vector<wxString> Regions         = {_L("Asia-Pacific"), _L("China"), _L("Europe"), _L("North America"), _L_CONTEXT("Others", "Region")};
     std::vector<wxString> local_regions = {"Asia-Pacific", "China", "Europe", "North America", "Others"};
 
     auto vlist = Regions;
@@ -645,7 +645,7 @@ wxBoxSizer *PreferencesDialog::create_item_region_combobox(wxString title, wxStr
                 combobox->SetSelection(current_region);
                 return;
             } else {
-                wxGetApp().request_user_logout();
+                wxGetApp().request_user_logout(ORCA_CLOUD_PROVIDER, /*user_initiated=*/true);
                 config->set("region", region.ToStdString());
                 auto area = config->get_country_code();
                 if (agent) {
@@ -1097,6 +1097,16 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 home->SendCloudProvidersInfo();
             }
         }
+        // ORCA: apply the filament translucency change immediately to the currently loaded preview
+        else if (param == "preview_translucent_filaments") {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_translucent_filaments(app_config->get_bool(param));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
@@ -1435,8 +1445,10 @@ wxBoxSizer *PreferencesDialog::create_item_network_plugin_version(wxString title
 #ifdef WIN32
 wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix, wxString website_name)
 {
-    wxString title = _L("Associate") + (boost::format(" %1%://") % url_prefix.c_str()).str();
-    wxString tooltip = _L("Associate") + " " + url_prefix + ":// " + _L("with OrcaSlicer so that Orca can open models from") + " " + website_name;
+    // TRN %s is a URL scheme, for example "prusaslicer".
+    wxString title = wxString::Format(_L("Associate %s://"), url_prefix);
+    // TRN The first %s is a URL scheme, for example "prusaslicer"; the second is a website name.
+    wxString tooltip = wxString::Format(_L("Associate %s:// with OrcaSlicer so that Orca can open models from %s"), url_prefix, website_name);
 
     std::wstring registered_bin; // not used, just here to provide a ref to check fn
     bool reg_to_current_instance = wxGetApp().check_url_association(url_prefix.ToStdWstring(), registered_bin);
@@ -1702,6 +1714,16 @@ void PreferencesDialog::create_items()
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
     g_sizer->Add(item_window_button_pos);
+
+    // TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
+    auto item_discrete_gpu = create_item_checkbox(_L("Render on the discrete GPU"),
+        // TRN DRI_PRIME is an environment variable name and must stay as it is.
+        _L("On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. "
+           "Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. "
+           "Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 "
+           "in the environment to get back here."),
+        "prefer_discrete_gpu", _L("(Requires restart)"));
+    g_sizer->Add(item_discrete_gpu);
 #endif
 
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
@@ -1862,6 +1884,10 @@ void PreferencesDialog::create_items()
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
 
+    auto item_primitive_dialog = create_item_checkbox(_L("Show options when adding a primitive"),
+        _L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added."), "enable_primitive_size_dialog");
+    g_sizer->Add(item_primitive_dialog);
+
     //// CONTROL > Slicing
     g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);
 
@@ -2014,6 +2040,14 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_REALISTIC_SHADOWS, ShadowsLabels, ShadowsValues);
     g_sizer->Add(item_realistic_shadows);
 
+    auto item_realistic_gloss = create_item_checkbox(
+        _L("Glossy toolpaths"),
+        _L("Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
+           "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."),
+        SETTING_OPENGL_REALISTIC_GLOSS
+    );
+    g_sizer->Add(item_realistic_gloss);
+
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
 
@@ -2152,6 +2186,13 @@ void PreferencesDialog::create_items()
         }
     );
     g_sizer->Add(item_dim_previous_layers_brightness);
+
+    auto item_translucent_filaments = create_item_checkbox(
+        _L("Translucent filaments"),
+        _L("Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."),
+        "preview_translucent_filaments"
+    );
+    g_sizer->Add(item_translucent_filaments);
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
@@ -2309,6 +2350,13 @@ void PreferencesDialog::create_items()
   
     auto item_show_unsupported = create_item_checkbox(_L("Show unsupported presets"), _L("Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."), "show_unsupported_presets");
     g_sizer->Add(item_show_unsupported);
+
+    auto item_export_statistics = create_item_checkbox(_L("Export statistics with G-code"),
+                                                       _L("If enabled, exporting a G-code file also writes its statistics as JSON next to it, as <name>.statistics.json, "
+                                                          "and an exported sliced 3MF file holds them inside: print time, filament and feature totals, "
+                                                          "and the same per layer and per object."),
+                                                       "export_statistics");
+    g_sizer->Add(item_export_statistics);
 
     //// DEVELOPER > Experimental Features
     g_sizer->Add(create_item_title(_L("Experimental Features")), 1, wxEXPAND);
@@ -2479,7 +2527,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
                 AppConfig* config = GUI::wxGetApp().app_config;
                 std::string country_code = config->get_country_code();
                 if (agent) {
-                    wxGetApp().request_user_logout();
+                    wxGetApp().request_user_logout(ORCA_CLOUD_PROVIDER, /*user_initiated=*/true);
                     agent->set_country_code(country_code);
                 }
                 ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::VisibleButtons::ONLY_CONFIRM);  // ORCA VisibleButtons instead ButtonStyle 

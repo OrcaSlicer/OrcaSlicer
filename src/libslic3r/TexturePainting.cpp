@@ -25,6 +25,7 @@
 #include "TextureToColor/ColorUtils.hpp"
 
 #include "Model.hpp"
+#include "TextureDisplacement.hpp"
 #include "TextureToColor/TriMesh.hpp"
 #include "TriangleMesh.hpp"
 #include "TriangleSelector.hpp"
@@ -554,8 +555,28 @@ bool apply_painted_mesh_to_volume(
                 << ", unit_scale=" << unit_scale << ")";
     }
 
+    // The model's own UV channel is indexed by triangle, and this replaces the triangles, so it has
+    // to be resampled onto them. Kept rather than dropped because it is the layout the model was
+    // authored against: a texture-displacement layer set to ModelUV maps through it, and the colour
+    // import is exactly the path a model that carries one arrives by.
+    const indexed_triangle_set old_its = volume.has_texture_uv() ? volume.mesh().its : indexed_triangle_set{};
+    const std::vector<Vec2f>   old_uv  = volume.texture_uv;
+
     volume.set_mesh(std::move(new_mesh));
     volume.calculate_convex_hull();
+
+    // Resampled here and not further down, while the two meshes still share a frame: the painted mesh
+    // was just shifted by the same source.mesh_offset the old one was centred by, so the only thing
+    // between them is whatever drift the repair introduced. The re-centering below translates the mesh
+    // again, and a translation is exactly what a closest-point transfer cannot see through - it would
+    // read every uv off a point that far away. A uv is a coordinate in the texture, so it does not care
+    // about either shift; it just has to be read before the second one happens.
+    if (!old_its.indices.empty())
+        volume.texture_uv = transfer_uv_channel(old_its, old_uv, volume.mesh().its);
+    else
+        // No channel to carry, so make sure none is left behind either: a leftover of the right length
+        // would read as a valid channel against a mesh it was never measured on.
+        volume.reset_texture_uv();
 
     // Re-center the replaced mesh so its bbox center sits at the origin,
     // matching what center_geometry_after_creation did for the original mesh.

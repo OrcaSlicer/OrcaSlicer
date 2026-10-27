@@ -20,6 +20,7 @@
 #include <memory>
 #include <cstddef>
 #include <wx/string.h>
+#include <wx/stattext.h>
 #include "libslic3r/Config.hpp"
 #include <map>
 #include <vector>
@@ -97,6 +98,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
 
     m_settings_list_sizer->Clear(true);
     m_og_settings.resize(0);
+    m_option_state_registry.clear();
     Show(true);
 
     if (!config || is_multiple_selection || !object)
@@ -301,14 +303,16 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         m_settings_list_sizer->Add(optgroup->sizer, 0, wxEXPAND | wxALL, 0);
         m_og_settings.push_back(optgroup);
 
-        auto toggle_field = [optgroup](const t_config_option_key & opt_key, bool toggle, int opt_index)
+        auto toggle_field = [this, optgroup](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString& reason)
         {
-            Field* field = optgroup->get_fieldc(opt_key, opt_index);;
+            m_option_state_registry.set_enabled(opt_key, toggle, reason);
+            Field* field = optgroup->get_fieldc(opt_key, opt_index);
             if (field)
                 field->toggle(toggle);
         };
-        auto toggle_line = [optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index)
+        auto toggle_line = [this, optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index, const wxString& reason)
         {
+            m_option_state_registry.set_visible(opt_key, toggle, reason);
             Line* line = optgroup->get_line(opt_key);
             if (line) line->toggle_visible = toggle;
         };
@@ -319,6 +323,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
 
         printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&m_current_config, 0) :
                                         config_manipulation.toggle_print_sla_options(&m_current_config) ;
+        update_option_tooltips(*optgroup);
         optgroup->update_visibility(wxGetApp().get_mode());
     }
 
@@ -386,6 +391,22 @@ int ObjectTableSettings::update_extra_column_visible_status(ConfigOptionsGroup* 
     return count;
 }
 
+void ObjectTableSettings::update_option_tooltips(ConfigOptionsGroup& group)
+{
+    // Object-table settings have one option per row and use native text labels.
+    for (const Line& line : group.get_lines()) {
+        if (line.get_options().empty())
+            continue;
+        const Option& option = line.get_options().front();
+        const wxString availability = m_option_state_registry.description(option.opt_id);
+        const wxString prefix = availability.empty() ? wxString() : availability + "\n\n";
+        if (line.label_widget)
+            line.label_widget->SetToolTip(prefix + line.label_tooltip);
+        if (Field* field = group.get_field(option.opt_id); field && field->getWindow())
+            field->getWindow()->SetToolTip(prefix + field->get_tooltip_text(wxEmptyString));
+    }
+}
+
 void ObjectTableSettings::update_config_values(bool is_object, ModelObject* object, ModelConfig* config, const std::string& category, const std::string& changed_opt_key)
 {
     int different_count = 0;
@@ -394,12 +415,15 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
     if (!object || !config)
         return;
 
+    m_option_state_registry.clear();
+
     // update config values according to configuration hierarchy
     DynamicPrintConfig  &main_config   = m_current_config;
 
 
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString& reason)
     {
+        m_option_state_registry.set_enabled(opt_key, toggle, reason);
         Field* field = nullptr;
         for (auto og : m_og_settings) {
             field = og->get_fieldc(opt_key, opt_index);
@@ -409,7 +433,8 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
         if (field)
             field->toggle(toggle);
     };
-    auto toggle_line = [this](const t_config_option_key &opt_key, bool toggle, int opt_index) {
+    auto toggle_line = [this](const t_config_option_key &opt_key, bool toggle, int opt_index, const wxString& reason) {
+        m_option_state_registry.set_visible(opt_key, toggle, reason);
         for (auto og : m_og_settings) {
             Line *line = og->get_line(opt_key);
             if (line) { line->toggle_visible = toggle; break; }
@@ -429,6 +454,7 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
     printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config, 0) :
                                     config_manipulation.toggle_print_sla_options(&main_config) ;
     for (auto og : m_og_settings) {
+        update_option_tooltips(*og);
         og->update_visibility(wxGetApp().get_mode());
     }
     m_parent->Layout();

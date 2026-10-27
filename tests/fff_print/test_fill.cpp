@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -36,6 +37,7 @@
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Fill/FillGyroid.hpp"
+#include "libslic3r/Fill/AdaptiveInfillField.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/IntersectionPoints.hpp"
@@ -1390,6 +1392,27 @@ TEST_CASE("Gyroid infill of an object matches the infill of a larger object with
     }
 }
 
+TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
+{
+    // A left turn by 135 degrees, drawn as two lines half of the 0.4 mm spacing to each side of it.
+    const double turn = 0.75 * PI;
+    Polylines paths{ Polyline{ Point::new_scale(0., 0.), Point::new_scale(10., 0.),
+                               Point::new_scale(10. + 10. * std::cos(turn), 10. * std::sin(turn)) } };
+    FillParams params;
+    params.multiline = 2;
+    multiline_fill(paths, params, 0.4f);
+    REQUIRE(paths.size() == 1);
+
+    // The outer line turns at the miter point, where the lines 0.2 mm out from both legs meet.
+    const Point miter = Point::new_scale(10. + 0.2 * std::tan(0.5 * turn), -0.2);
+    double nearest = std::numeric_limits<double>::max();
+    for (const Point &point : paths.front().points)
+        nearest = std::min(nearest, (point - miter).cast<double>().norm());
+    REQUIRE(nearest < scaled<double>(0.001));
+    // The round ends are flattened to a fraction of the offset rather than to the integer grid.
+    REQUIRE(paths.front().size() < 100);
+}
+
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
     const int    multiline = GENERATE(2, 3);
@@ -1717,9 +1740,10 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     const SparseInfillShape smooth = shape_for("100%");
 
     REQUIRE(sharp.path_count > 0);
-    // Smoothing should leave the loop count about where it was; uncapping the smoothing reach, the
-    // regression this guards against, adds about 10%.
-    const size_t allowed_extra = sharp.path_count / 50; // 2%
+    // Smoothing should leave the path count about where it was; uncapping the smoothing reach, the
+    // regression this guards against, adds a quarter to a third. Outline ends next to each other are
+    // joined into one path, so a few loops more or less are a larger share of the count.
+    const size_t allowed_extra = sharp.path_count / 10; // 10%
     REQUIRE(smooth.path_count <= sharp.path_count + allowed_extra);
     // The outlines are still rounded.
     REQUIRE(smooth.point_count > sharp.point_count);
@@ -1779,7 +1803,7 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 
     // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr, nullptr),
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
                                               shrink(to_polygons(layer.lslices), scale_(3.)));
     REQUIRE_FALSE(anchors.empty());
     double max_distance = 0.;
@@ -1789,4 +1813,695 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     // Orca: Allow only the configured simplification tolerance; infill-scale offsets
     // would hide anchors that no longer coincide with printed lines.
     CHECK(unscale<double>(max_distance) <= config.opt_float("resolution"));
+}
+
+// Orca: Slices the meshes as the parts of one object, where they are, with modifiers of their own config.
+static Print &slice_parts(Print &print, DynamicPrintConfig config, const std::vector<TriangleMesh> &parts,
+                          const std::vector<std::pair<TriangleMesh, DynamicPrintConfig>> &modifiers = {})
+{
+    config.set_deserialize_strict({{"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"elefant_foot_compensation", 0},
+                                   {"top_shell_thickness", 0},
+                                   {"bottom_shell_thickness", 0}});
+    Model model;
+    Slic3r::Test::init_print({parts.front()}, print, model, config, nullptr, false);
+    for (size_t i = 1; i < parts.size(); ++ i)
+        model.objects.front()->add_volume(TriangleMesh(parts[i]), ModelVolumeType::MODEL_PART, false);
+    for (const auto &[mesh, modifier_config] : modifiers)
+        model.objects.front()->add_volume(TriangleMesh(mesh), ModelVolumeType::PARAMETER_MODIFIER, false)->config.apply(modifier_config);
+    print.apply(model, config);
+    print.process();
+    return print;
+}
+
+// Orca: Two identical cubes in one mesh that never touch, so each is a body of its own.
+static Print &slice_two_bodies(Print &print, const DynamicPrintConfig &config, double height)
+{
+    TriangleMesh mesh = make_cube(20, 20, height);
+    TriangleMesh second = make_cube(20, 20, height);
+    second.translate(33, 7, 0);
+    mesh.merge(second);
+    return slice_parts(print, config, {mesh});
+}
+
+// Orca: Counts the points sampled along both sets that the other set does not repeat.
+static void count_unmatched(const Polylines &a, const Polylines &b, size_t &sampled, size_t &unmatched)
+{
+    const std::array<const Polylines *, 2> sets{&a, &b};
+    for (size_t i = 0; i < 2; ++ i) {
+        const Polylines                          &other = *sets[1 - i];
+        const AABBTreeLines::LinesDistancer<Line> distancer(to_lines(other));
+        for (const Polyline &path : *sets[i])
+            for (const Point &point : path.equally_spaced_points(scale_(0.2))) {
+                ++ sampled;
+                unmatched += other.empty() || distancer.distance_from_lines<false>(point) > scale_(0.05);
+            }
+    }
+}
+
+static Polylines layer_paths(const Layer &layer, ExtrusionRole role)
+{
+    Polylines polylines;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (entity->role() == role)
+                entity->collect_polylines(polylines);
+    return polylines;
+}
+
+// Orca: Share of the paths of a role that the other body does not repeat around its own center.
+static double unmatched_between_bodies(const Print &print, ExtrusionRole role)
+{
+    size_t sampled = 0, unmatched = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        REQUIRE(layer->lslices.size() == 2);
+        const Polylines          polylines = layer_paths(*layer, role);
+        std::array<Polylines, 2> paths;
+        for (size_t body = 0; body < 2; ++ body) {
+            // Orca: Exclude the links along the walls, which each body may chain differently.
+            paths[body] = intersection_pl(polylines, shrink(to_polygons(layer->lslices[body]), scale_(3.)));
+            for (Polyline &path : paths[body])
+                path.translate(-layer->lslices_bboxes[body].center());
+        }
+        count_unmatched(paths[0], paths[1], sampled, unmatched);
+    }
+    REQUIRE(sampled > 0);
+    return double(unmatched) / double(sampled);
+}
+
+// Orca: Share of the paths of a role inside a bed region that two slices of the same body do not share.
+static double unmatched_between_prints(const Print &a, const Print &b, ExtrusionRole role, const Polygons &region)
+{
+    const PrintObject &object_a = *a.objects().front(), &object_b = *b.objects().front();
+    REQUIRE(object_a.layer_count() == object_b.layer_count());
+    size_t sampled = 0, unmatched = 0;
+    for (size_t i = 0; i < object_a.layer_count(); ++ i) {
+        std::array<Polylines, 2> paths;
+        for (const PrintObject *object : {&object_a, &object_b}) {
+            Polylines &out = paths[object == &object_b];
+            out = layer_paths(*object->get_layer(int(i)), role);
+            for (Polyline &path : out)
+                path.translate(object->instances().front().shift);
+            out = intersection_pl(out, region);
+        }
+        count_unmatched(paths[0], paths[1], sampled, unmatched);
+    }
+    REQUIRE(sampled > 0);
+    return double(unmatched) / double(sampled);
+}
+
+TEST_CASE("Separated infill centers the sparse infill of each body on itself", "[Fill][Regression]")
+{
+    const std::string pattern = GENERATE("line", "zigzag", "crosszag", "honeycomb", "3dhoneycomb", "crosshatch", "tpmsd", "tpmsfk", "gyroid");
+    const bool separated = GENERATE(false, true);
+    CAPTURE(pattern, separated);
+    auto config = DynamicPrintConfig::full_print_config();
+    // Orca: The Zig Zag patterns mirror each body about its own center.
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "20%"},
+                                   {"symmetric_infill_y_axis", true},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"separated_infills", separated}});
+    Print print;
+    const double unmatched = unmatched_between_bodies(slice_two_bodies(print, config, 2.), erInternalInfill);
+    // Orca: Without separation both bodies cut one object-wide pattern at different places.
+    if (separated)
+        CHECK(unmatched < 0.02);
+    else
+        CHECK(unmatched > 0.5);
+}
+
+TEST_CASE("Separated infill centers monotonic and rectilinear bridges on each body", "[Fill][InternalBridge][Regression]")
+{
+    // Orca: Bridges use the Monotonic pattern below monotonic top surfaces and Rectilinear otherwise.
+    const std::string top_pattern = GENERATE("monotonicline", "rectilinear");
+    const bool separated = GENERATE(false, true);
+    CAPTURE(top_pattern, separated);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", "rectilinear"},
+                                   {"sparse_infill_density", "15%"},
+                                   {"top_surface_pattern", top_pattern},
+                                   {"top_shell_layers", 4},
+                                   {"bottom_shell_layers", 0},
+                                   {"separated_infills", separated}});
+    Print print;
+    const double unmatched = unmatched_between_bodies(slice_two_bodies(print, config, 4.), erInternalBridgeInfill);
+    if (separated)
+        CHECK(unmatched < 0.02);
+    else
+        CHECK(unmatched > 0.5);
+}
+
+// Orca: Share of the infill of an off center pillar, and of the frame of four overlapping bars around it,
+// that each body sliced alone does not repeat. The frame is one body of several parts that holds the pillar.
+static std::pair<double, double> frame_and_pillar_unmatched(const DynamicPrintConfig &config)
+{
+    auto box = [](double x, double y, double size_x, double size_y) {
+        TriangleMesh mesh = make_cube(size_x, size_y, 6);
+        mesh.translate(x, y, 0);
+        return mesh;
+    };
+    const std::vector<TriangleMesh> frame{box(0, 0, 60, 14), box(0, 46, 60, 14), box(0, 0, 14, 60), box(46, 0, 14, 60)};
+    const std::vector<TriangleMesh> pillar{box(18, 20, 16, 16)};
+    std::vector<TriangleMesh>       both = frame;
+    both.push_back(pillar.front());
+    Print print_both, print_frame, print_pillar;
+    slice_parts(print_both, config, both);
+    slice_parts(print_frame, config, frame);
+    slice_parts(print_pillar, config, pillar);
+
+    // Orca: Bed regions 3 mm inside the walls, away from the links along them.
+    auto rect = [](double x0, double y0, double x1, double y1) {
+        return Polygon({Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1), Point::new_scale(x0, y1)});
+    };
+    return {unmatched_between_prints(print_both, print_pillar, erInternalInfill, {rect(21, 23, 31, 33)}),
+            unmatched_between_prints(print_both, print_frame, erInternalInfill, diff(Polygons{rect(3, 3, 57, 57)}, Polygons{rect(11, 11, 49, 49)}))};
+}
+
+TEST_CASE("Separated infill fills each body like the body sliced alone", "[Fill][Regression]")
+{
+    // Orca: Hilbert Curve and the Zig Zag links follow the extent of the box, not only its center.
+    const std::string pattern = GENERATE("hilbertcurve", "zigzag", "crosszag", "gyroid");
+    CAPTURE(pattern);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "20%"},
+                                   {"symmetric_infill_y_axis", true},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"separated_infills", true}});
+    const std::pair<double, double> unmatched = frame_and_pillar_unmatched(config);
+    CHECK(unmatched.first < 0.02);
+    CHECK(unmatched.second < 0.02);
+}
+
+TEST_CASE("Adaptive infill fills each body like the body sliced alone", "[Fill][Regression]")
+{
+    const std::string pattern = GENERATE("adaptivecubic", "supportcubic");
+    // Orca: Octree infill centers each body whether or not separated infills are enabled.
+    const bool separated = GENERATE(false, true);
+    CAPTURE(pattern, separated);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "40%"},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"separated_infills", separated}});
+    // Orca: The octree of the whole object is laid out from its center, which the off center pillar does not share.
+    const std::pair<double, double> unmatched = frame_and_pillar_unmatched(config);
+    CHECK(unmatched.first < 0.02);
+    CHECK(unmatched.second < 0.02);
+}
+
+TEST_CASE("Adaptive infill of a modifier leaves the density of the other regions", "[Fill][Regression]")
+{
+    const std::string pattern = GENERATE("adaptivecubic", "supportcubic");
+    CAPTURE(pattern);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "15%"},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0}});
+    TriangleMesh bodies = make_cube(30, 30, 6), second = make_cube(30, 30, 6);
+    second.translate(40, 0, 0);
+    bodies.merge(second);
+    // Orca: A denser modifier over the right half of the second body.
+    TriangleMesh modifier = make_cube(20, 40, 10);
+    modifier.translate(55, -5, -2);
+    DynamicPrintConfig dense = config;
+    dense.set_deserialize_strict({{"sparse_infill_density", "60%"}});
+    Print print, print_sparse, print_dense;
+    slice_parts(print, config, {bodies}, {{modifier, dense}});
+    slice_parts(print_sparse, config, {bodies});
+    slice_parts(print_dense, dense, {bodies});
+
+    // Orca: Bed regions 3 mm inside the walls and the modifier, away from the links along them.
+    auto rect = [](double x0, double y0, double x1, double y1) {
+        return Polygon({Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1), Point::new_scale(x0, y1)});
+    };
+    CHECK(unmatched_between_prints(print, print_sparse, erInternalInfill, {rect(3, 3, 27, 27), rect(43, 3, 52, 27)}) < 0.02);
+    CHECK(unmatched_between_prints(print, print_dense, erInternalInfill, {rect(58, 3, 67, 27)}) < 0.02);
+}
+
+// Length of the sparse infill of the first object over the layers with print_z in [z_min, z_max], inside clip.
+static double sparse_infill_length(const Print &print, coordf_t z_min, coordf_t z_max, const Polygons &clip)
+{
+    Polylines polylines;
+    for (const Layer *layer : print.objects().front()->layers())
+        if (layer->print_z >= z_min && layer->print_z <= z_max)
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erInternalInfill)
+                        entity->collect_polylines(polylines);
+    return unscale<double>(total_length(intersection_pl(polylines, clip)));
+}
+
+static Polygons centered_square(double half)
+{
+    return {Polygon({Point::new_scale(-half, -half), Point::new_scale(half, -half), Point::new_scale(half, half), Point::new_scale(-half, half)})};
+}
+
+TEST_CASE("Adaptive TPMS infill thins out from the surface to the interior density", "[Fill]")
+{
+    // The modes following the distance print more lines than their target where its levels meet: along the shells, or
+    // where the patterns blend.
+    const auto row = GENERATE(table<std::string, std::string, double>({{"tpmsd", "lobes", 0.5},
+                                                                        {"tpmsfk", "lobes", 0.5},
+                                                                        {"gyroid", "lobes", 0.5},
+                                                                        {"gyroid", "stepped_shells", 0.6},
+                                                                        {"tpmsfk", "smooth_blend", 0.6},
+                                                                        {"tpmsd", "distance_warp", 0.5}}));
+    const std::string pattern  = std::get<0>(row);
+    const std::string mode     = std::get<1>(row);
+    const double      max_core = std::get<2>(row);
+    CAPTURE(pattern, mode);
+    // A 60 mm cube in 0.4 mm layers, centered on the origin in XY. Its center is 30 mm from every face.
+    auto slice = [&pattern](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(60)}, print,
+                                            {{"sparse_infill_pattern", pattern},
+                                             {"sparse_infill_density", "25%"},
+                                             {"adaptive_infill_mode", adaptive},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", "linear"},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("disabled", uniform);
+    slice(mode, adaptive);
+
+    // The middle of the cube, at most 10 mm from the center: at most 5% + 20% * 10 / 30 = 11.7% dense.
+    const Polygons core = centered_square(10.);
+    // Along the sides at mid height, 24 to 28 mm from the center: at least 5% + 20% * 24 / 30 = 21% dense.
+    const Polygons shell = diff(centered_square(28.), centered_square(24.));
+    const double core_uniform = sparse_infill_length(uniform, 25., 35., core);
+    const double shell_uniform = sparse_infill_length(uniform, 25., 35., shell);
+    REQUIRE(core_uniform > 0.);
+    REQUIRE(shell_uniform > 0.);
+    CHECK(sparse_infill_length(adaptive, 25., 35., core) < max_core * core_uniform);
+    CHECK(sparse_infill_length(adaptive, 25., 35., shell) > 0.75 * shell_uniform);
+}
+
+TEST_CASE("Adaptive TPMS infill of a tall object is sparsest at its middle height", "[Fill]")
+{
+    // A 30 x 30 x 90 mm box in 0.4 mm layers: its center is 45 mm high, the middle of its core, not a column.
+    Print print;
+    Slic3r::Test::init_and_process_print({make_cube(30., 30., 90.)}, print,
+                                        {{"sparse_infill_pattern", "tpmsd"},
+                                         {"sparse_infill_density", "25%"},
+                                         {"adaptive_infill_mode", "lobes"},
+                                         {"adaptive_infill_interior_density", "5%"},
+                                         {"adaptive_infill_gradient", "linear"},
+                                         {"layer_height", 0.4},
+                                         {"initial_layer_print_height", 0.4}});
+    const Polygons core   = centered_square(5.);
+    const double   middle = sparse_infill_length(print, 40., 50., core);
+    const double   low    = sparse_infill_length(print, 10., 20., core);
+    REQUIRE(low > 0.);
+    CHECK(middle < 0.7 * low);
+}
+
+TEST_CASE("2D adaptive TPMS infill does not change along its axis", "[Fill]")
+{
+    // A box of 30 x 30 mm sections, 90 mm long along the axis, centered on the origin in XY.
+    const std::string mode = GENERATE("normal_x", "normal_z");
+    CAPTURE(mode);
+    const bool   along_x = mode == "normal_x";
+    auto         slice   = [&](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({along_x ? make_cube(90., 30., 30.) : make_cube(30., 30., 90.)}, print,
+                                                         {{"sparse_infill_pattern", "gyroid"},
+                                                          {"sparse_infill_density", "25%"},
+                                                          {"adaptive_infill_mode", adaptive},
+                                                          {"adaptive_infill_interior_density", "5%"},
+                                                          {"adaptive_infill_gradient", "linear"},
+                                                          {"layer_height", 0.4},
+                                                          {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("disabled", uniform);
+    slice(mode, adaptive);
+
+    // The core of the sections near an end and at the middle of the box, at most 5 mm from their center.
+    auto rectangle = [](double x0, double x1) {
+        return Polygons{Polygon({Point::new_scale(x0, -5.), Point::new_scale(x1, -5.), Point::new_scale(x1, 5.), Point::new_scale(x0, 5.)})};
+    };
+    auto core = [&](const Print &print, bool end) {
+        return along_x ? sparse_infill_length(print, 10., 20., rectangle(end ? -40. : -5., end ? -30. : 5.)) :
+                         sparse_infill_length(print, end ? 10. : 40., end ? 20. : 50., centered_square(5.));
+    };
+    const double end    = core(adaptive, true);
+    const double middle = core(adaptive, false);
+    REQUIRE(end > 0.);
+    CHECK(middle > 0.8 * end);
+    CHECK(middle < 1.25 * end);
+    CHECK(middle < 0.7 * core(uniform, false));
+}
+
+TEST_CASE("Adaptive TPMS shells and blend keep the whole deep core of a tall object sparse", "[Fill]")
+{
+    // Distance warp grades it partly along the height, like Lobes, as its warp is centered on the middle.
+    const std::string mode = GENERATE("stepped_shells", "smooth_blend");
+    CAPTURE(mode);
+    // A 30 x 30 x 90 mm box: from 15 to 75 mm high its axis is 15 mm deep, as deep as its center.
+    auto slice = [](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({make_cube(30., 30., 90.)}, print,
+                                            {{"sparse_infill_pattern", "tpmsd"},
+                                             {"sparse_infill_density", "25%"},
+                                             {"adaptive_infill_mode", adaptive},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", "linear"},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, distance;
+    slice("disabled", uniform);
+    slice(mode, distance);
+    // At 15 to 25 mm high the axis is as sparse as at the middle, where Lobes grades it towards the bottom.
+    const Polygons core        = centered_square(5.);
+    const double   uniform_low = sparse_infill_length(uniform, 15., 25., core);
+    const double   low         = sparse_infill_length(distance, 15., 25., core);
+    const double   middle      = sparse_infill_length(distance, 40., 50., core);
+    CAPTURE(uniform_low, low, middle);
+    REQUIRE(middle > 0.);
+    CHECK(low < 0.7 * uniform_low);
+    CHECK(low < 1.25 * middle);
+}
+
+TEST_CASE("Adaptive TPMS infill is sparse at the center of both of two united spheres", "[Fill]")
+{
+    // Two spheres of 20 mm, their centers 32 mm apart at 20 mm high: centered on the origin, they are at x = -16 and 16.
+    TriangleMesh spheres = make_sphere(20., 2. * PI / 90.);
+    spheres.translate(-16.f, 0.f, 20.f);
+    TriangleMesh second = make_sphere(20., 2. * PI / 90.);
+    second.translate(16.f, 0.f, 20.f);
+    spheres.merge(second);
+    auto slice = [&spheres](const std::string &adaptive, Print &print) {
+        Slic3r::Test::init_and_process_print({TriangleMesh(spheres)}, print,
+                                            {{"sparse_infill_pattern", "gyroid"},
+                                             {"sparse_infill_density", "25%"},
+                                             {"adaptive_infill_mode", adaptive},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", "linear"},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+    };
+    Print uniform, adaptive;
+    slice("disabled", uniform);
+    slice("lobes", adaptive);
+    // Within 5 mm of either center: at most 5% + 20% * 7.1 / 20 = 12.1% dense, where one center for both
+    // would leave the other sphere at more than 60% of the uniform density.
+    for (const double x : {-16., 16.}) {
+        CAPTURE(x);
+        Polygons core = centered_square(5.);
+        for (Polygon &square : core)
+            square.translate(Point::new_scale(x, 0.));
+        const double core_uniform = sparse_infill_length(uniform, 18., 22., core);
+        REQUIRE(core_uniform > 0.);
+        CHECK(sparse_infill_length(adaptive, 18., 22., core) < 0.45 * core_uniform);
+    }
+}
+
+TEST_CASE("Adaptive TPMS gradients keep the surface density deeper in the order quadratic, linear, exponential", "[Fill]")
+{
+    // With a denser surface, t^2 <= t and the geometric interpolation is below the linear one at every depth.
+    auto length_for = [](const std::string &gradient) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(40)}, print,
+                                            {{"sparse_infill_pattern", "tpmsd"},
+                                             {"sparse_infill_density", "25%"},
+                                             {"adaptive_infill_mode", "lobes"},
+                                             {"adaptive_infill_interior_density", "5%"},
+                                             {"adaptive_infill_gradient", gradient},
+                                             {"layer_height", 0.4},
+                                             {"initial_layer_print_height", 0.4}});
+        return sparse_infill_length(print, 0., 40., centered_square(20.));
+    };
+    const double quadratic   = length_for("quadratic");
+    const double linear      = length_for("linear");
+    const double exponential = length_for("exponential");
+    CHECK(quadratic > linear);
+    CHECK(linear > exponential);
+}
+
+TEST_CASE("Adaptive TPMS settings leave the infill unchanged when they do not apply", "[Fill]")
+{
+    // Adaptive density turned off, or turned on for a pattern that is no TPMS.
+    const auto [pattern, adaptive] = GENERATE(
+        table<std::string, std::string>({{"tpmsd", "disabled"}, {"tpmsfk", "disabled"}, {"gyroid", "disabled"}, {"grid", "lobes"}, {"grid", "stepped_shells"}, {"grid", "smooth_blend"}, {"grid", "distance_warp"}, {"grid", "normal_z"}}));
+    CAPTURE(pattern, adaptive);
+    Print reference, tuned;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, reference,
+                                        {{"sparse_infill_pattern", pattern}, {"sparse_infill_density", "20%"}, {"layer_height", 0.2}});
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, tuned,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "20%"},
+                                         {"layer_height", 0.2},
+                                         {"adaptive_infill_mode", adaptive},
+                                         {"adaptive_infill_interior_density", "40%"},
+                                         {"adaptive_infill_gradient", "exponential"}});
+    const SparseInfillShape expected = sparse_infill_shape(reference);
+    REQUIRE(expected.path_count > 0);
+    CHECK(sparse_infill_shape(tuned).sequence == expected.sequence);
+}
+
+TEST_CASE("Adaptive gyroid infill ignores the Z-buckling optimization", "[Fill]")
+{
+    auto shape_for = [](const std::string &gyroid_optimized) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", "gyroid"},
+                                             {"sparse_infill_density", "10%"},
+                                             {"gyroid_optimized", gyroid_optimized},
+                                             {"adaptive_infill_mode", "lobes"},
+                                             {"layer_height", 0.2}});
+        return sparse_infill_shape(print);
+    };
+    const SparseInfillShape expected = shape_for("0");
+    REQUIRE(expected.path_count > 0);
+    CHECK(shape_for("1").sequence == expected.sequence);
+}
+
+TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger region of the same object", "[Fill]")
+{
+    const InfillPattern pattern = GENERATE(ipGyroid, ipTpmsD, ipTpmsFK);
+    CAPTURE(pattern);
+    // An 80 x 80 x 40 mm box around both regions, which share its radial field.
+    const ExPolygons box{ExPolygon(Points{Point::new_scale(60., 20.), Point::new_scale(140., 20.), Point::new_scale(140., 100.),
+                                          Point::new_scale(60., 100.)})};
+    std::vector<AdaptiveInfillField::Slice> slices;
+    for (int i = 0; i < 200; ++i)
+        slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
+    const AdaptiveInfillField field(slices, get_extents(box), AdaptiveInfillMode::Lobes, [] {});
+
+    auto circle = [](double radius) {
+        Polygon contour = make_circle_num_segments(scale_(radius), 120);
+        contour.translate(Point::new_scale(100., 60.));
+        return ExPolygon(std::move(contour));
+    };
+    const ExPolygon region = circle(20.);
+    const ExPolygon larger = circle(30.);
+    auto fill = [pattern, &field](const ExPolygon &expolygon, double z) {
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing           = 0.45;
+        filler->angle             = float(M_PI / 7.);
+        filler->z                 = z;
+        filler->adaptive_infill_field = &field;
+
+        FillParams params;
+        params.density                = 0.2f;
+        params.adaptive_infill_mode          = AdaptiveInfillMode::Lobes;
+        params.adaptive_infill_interior_density  = 0.05f;
+        params.adaptive_infill_gradient = AdaptiveInfillGradient::Linear;
+        params.layer_height           = 0.2;
+        params.dont_adjust            = true;
+        Surface surface(stInternal, expolygon);
+        return filler->fill_surface(&surface, params);
+    };
+    // Away from the boundary of the region, where both are clipped and connected the same way.
+    const Polygons inner = shrink(to_polygons(region), scale_(1.));
+    auto farthest = [&inner](const Polylines &from, const Polylines &to) {
+        const AABBTreeLines::LinesDistancer<Line> tree(to_lines(to));
+        double distance = 0.;
+        for (const Polyline &path : intersection_pl(from, inner))
+            for (const Point &point : path.equally_spaced_points(scale_(0.2)))
+                distance = std::max(distance, tree.distance_from_lines<false>(point));
+        return unscale<double>(distance);
+    };
+    // Marching squares simplifies rings that start elsewhere in each region. At 15.325 mm TPMS-FK has a saddle,
+    // whose lines connect one way or the other with the sampling grid.
+    const double tolerance = SPARSE_INFILL_RESOLUTION + 0.01;
+    for (const double z : {5.1, 12.3, 15.325, 20.1, 27.9, 34.7}) {
+        CAPTURE(z);
+        const Polylines paths = fill(region, z);
+        REQUIRE_FALSE(paths.empty());
+        const Polylines reference = fill(larger, z);
+        CHECK(farthest(reference, paths) < tolerance);
+        CHECK(farthest(paths, reference) < tolerance);
+    }
+}
+
+TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBridge]")
+{
+    const std::string pattern = GENERATE("tpmsd", "tpmsfk", "gyroid");
+    CAPTURE(pattern);
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(30)}, print,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "25%"},
+                                         {"adaptive_infill_mode", "lobes"},
+                                         {"adaptive_infill_interior_density", "5%"},
+                                         {"layer_height", 0.2},
+                                         {"initial_layer_print_height", 0.2},
+                                         {"resolution", 0.012}});
+
+    const Layer &layer = *print.objects().front()->get_layer(40);
+    Polylines printed;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (entity->role() == erInternalInfill)
+                entity->collect_polylines(printed);
+    REQUIRE_FALSE(printed.empty());
+    const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
+
+    // Exclude the perimeter connections, which anchoring and extrusion trim differently.
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
+                                              shrink(to_polygons(layer.lslices), scale_(3.)));
+    REQUIRE_FALSE(anchors.empty());
+    double max_distance = 0.;
+    for (const Polyline &path : anchors)
+        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
+            max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
+    CHECK(unscale<double>(max_distance) <= 0.012);
+}
+
+TEST_CASE("Infill lines whose ends are next to each other join into one path", "[Fill]")
+{
+    // An out-and-back pair 1 mm apart, as multiline infill leaves, and a line 19 mm away.
+    Polylines lines { Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)), Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                      Polyline(Point::new_scale(0., 20.), Point::new_scale(10., 20.)) };
+    join_close_ends(lines, scale_(1.5), true);
+
+    REQUIRE(lines.size() == 2);
+    const auto joined = std::find_if(lines.begin(), lines.end(), [](const Polyline &pl) { return pl.size() == 4; });
+    REQUIRE(joined != lines.end());
+    // Both lines plus the 1 mm between them, joined at one end only, as joining the other end too would close a loop.
+    CHECK_THAT(unscale<double>(joined->length()), Catch::Matchers::WithinAbs(21., 1e-6));
+    CHECK(joined->first_point() != joined->last_point());
+}
+
+TEST_CASE("Joined infill lines print each line once", "[Fill]")
+{
+    // The middle line comes first and both of its ends get joined, so the group has to be walked from an outer line.
+    Polylines lines { Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)), Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                      Polyline(Point::new_scale(10., -1.), Point::new_scale(0., -1.)) };
+    join_close_ends(lines, scale_(1.5), true);
+
+    REQUIRE(lines.size() == 1);
+    CHECK(lines.front().size() == 6);
+    // Three 10 mm lines and two 1 mm joins.
+    CHECK_THAT(unscale<double>(lines.front().length()), Catch::Matchers::WithinAbs(32., 1e-6));
+}
+
+TEST_CASE("Infill line ends are not joined across another line", "[Fill]")
+{
+    // A pair 1 mm apart whose left ends have a third line running between them, which a join there would cross.
+    Polylines lines { Polyline(Point::new_scale(0., 0.), Point::new_scale(10., 0.)), Polyline(Point::new_scale(0., 1.), Point::new_scale(10., 1.)),
+                      Polyline(Point::new_scale(-5., 0.5), Point::new_scale(5., 0.5)) };
+    join_close_ends(lines, scale_(1.5), true);
+
+    REQUIRE(lines.size() == 2);
+    const auto joined = std::find_if(lines.begin(), lines.end(), [](const Polyline &pl) { return pl.size() == 4; });
+    REQUIRE(joined != lines.end());
+    // Joined on the right, where nothing is in between, so the left ends stay open.
+    CHECK(joined->first_point().x() == 0);
+    CHECK(joined->last_point().x() == 0);
+}
+
+TEST_CASE("Infill lines that cannot reverse join only end to start", "[Fill]")
+{
+    const Point a(Point::new_scale(0., 0.)), b(Point::new_scale(10., 0.)), c(Point::new_scale(10., 1.)), d(Point::new_scale(0., 1.));
+    SECTION("Ends that would need a reversal stay apart") {
+        Polylines lines { Polyline(a, b), Polyline(d, c) };
+        join_close_ends(lines, scale_(1.5), false);
+        CHECK(lines.size() == 2);
+    }
+    SECTION("The end of one line joins the start of the next, both kept in their direction") {
+        Polylines lines { Polyline(c, d), Polyline(a, b) };
+        join_close_ends(lines, scale_(1.5), false);
+        REQUIRE(lines.size() == 1);
+        const Points &points = lines.front().points;
+        REQUIRE(points.size() == 4);
+        auto position = [&points](const Point &p) { return std::find(points.begin(), points.end(), p) - points.begin(); };
+        CHECK(position(a) < position(b));
+        CHECK(position(c) < position(d));
+    }
+}
+
+// Orca: the top surface fills of the topmost layer, which keep their order, each as its extrusions in print order.
+static std::vector<std::vector<const ExtrusionEntity *>> top_surface_fills(const Print &print)
+{
+    std::vector<std::vector<const ExtrusionEntity *>> fills;
+    for (const LayerRegion *region : print.objects().front()->layers().back()->regions())
+        for (const ExtrusionEntity *entity : region->fills.entities)
+            if (auto *fill = dynamic_cast<const ExtrusionEntityCollection *>(entity); fill && fill->no_sort)
+                if (std::any_of(fill->entities.begin(), fill->entities.end(), [](const ExtrusionEntity *ee) { return ee->role() == erTopSolidInfill; }))
+                    fills.emplace_back(fill->entities.begin(), fill->entities.end());
+    return fills;
+}
+
+static double travel_between(const std::vector<const ExtrusionEntity *> &extrusions)
+{
+    double travel = 0.;
+    for (size_t i = 1; i < extrusions.size(); ++ i)
+        travel += unscale<double>((extrusions[i]->first_point() - extrusions[i - 1]->last_point()).cast<double>().norm());
+    return travel;
+}
+
+TEST_CASE("Monotonic line top surfaces print their gap fill next to their lines and keep the lines in order", "[Fill]")
+{
+    // The slanted legs of the letter A leave gap fill along the walls where the lines end.
+    auto slice_letter = [](Print &print, Model &model, const char *gap_fill_target) {
+        auto config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"top_surface_pattern", "monotonicline"},
+                                       {"gap_fill_target", gap_fill_target},
+                                       {"filter_out_gap_fill", 0},
+                                       {"top_shell_layers", 3},
+                                       {"layer_height", 0.2},
+                                       {"initial_layer_print_height", 0.2}});
+        Slic3r::Test::init_print({Slic3r::Test::TestMesh::A}, print, model, config);
+        print.process();
+    };
+    Print print_without, print_with;
+    Model model_without, model_with;
+    slice_letter(print_without, model_without, "nowhere");
+    slice_letter(print_with, model_with, "topbottom");
+    const auto without = top_surface_fills(print_without);
+    const auto with    = top_surface_fills(print_with);
+    REQUIRE(with.size() == without.size());
+
+    auto   is_gap_fill = [](const ExtrusionEntity *ee) { return ee->role() == erGapFill; };
+    size_t gap_fills = 0, gap_fills_before_a_line = 0;
+    for (size_t i = 0; i < with.size(); ++ i) {
+        std::vector<const ExtrusionEntity *> lines, gaps;
+        std::partition_copy(with[i].begin(), with[i].end(), std::back_inserter(gaps), std::back_inserter(lines), is_gap_fill);
+        const auto last_line = std::find_if_not(with[i].rbegin(), with[i].rend(), is_gap_fill);
+        gap_fills += gaps.size();
+        gap_fills_before_a_line += std::count_if(last_line, with[i].rend(), is_gap_fill);
+        // The lines are those of the surface without gap fill, in the same order and direction.
+        REQUIRE(lines.size() == without[i].size());
+        for (size_t j = 0; j < lines.size(); ++ j) {
+            CHECK(lines[j]->first_point() == without[i][j]->first_point());
+            CHECK(lines[j]->last_point() == without[i][j]->last_point());
+        }
+        // Printed where they are, the gap fills travel less than printed after the last line.
+        if (! gaps.empty()) {
+            std::vector<const ExtrusionEntity *> appended = lines;
+            appended.insert(appended.end(), gaps.begin(), gaps.end());
+            CHECK(travel_between(with[i]) < travel_between(appended));
+        }
+    }
+    REQUIRE(gap_fills > 0);
+    CHECK(gap_fills_before_a_line > 0);
 }

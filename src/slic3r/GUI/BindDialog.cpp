@@ -46,13 +46,14 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "MainFrame.hpp"
-#include "GUI_App.hpp"
 #include "Plater.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 #include "Widgets/WebView.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "HMS.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 using json = nlohmann::json;
 

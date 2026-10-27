@@ -56,7 +56,7 @@ PurgeModeDialog::PurgeModeDialog(wxWindow *parent, PurgeModeDialogType dialog_ty
 
     bool is_fast_mode = (m_dialog_type == PurgeModeDialogType::FastMode);
 
-    m_standard_panel = new PurgeModeBtnPanel(options_panel, _L("Standard"), _L("Perform full purging with speed and temperature transition for the best print quality."),
+    m_standard_panel = new PurgeModeBtnPanel(options_panel, _L_CONTEXT("Standard", "Mode"), _L("Perform full purging with speed and temperature transition for the best print quality."),
                                              "shield");
     m_standard_panel->SetMinSize(wxSize(FromDIP(200), FromDIP(150)));
     m_standard_panel->Select(mode == pvmDefault);

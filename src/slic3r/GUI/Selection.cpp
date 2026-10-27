@@ -17,6 +17,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/LayOnFace.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include <string>
 #include <vector>
@@ -474,17 +475,14 @@ void Selection::add_curr_plate()
     if (!m_valid)
         return;
 
+    std::vector<unsigned int> volume_idxs = get_volume_idxs_from_plate(wxGetApp().plater()->get_partplate_list().get_curr_plate_index());
+    if (volume_idxs.empty())
+        return;
+
     wxGetApp().plater()->take_snapshot(std::string("Selection-Add Curr Plate All!"));
     m_mode = Instance;
     clear();
-
-    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-        if (plate && plate->contain_instance_totally(obj_idx, 0)) {
-            std::vector<unsigned int> volume_idxs = get_volume_idxs_from_object(obj_idx);
-            do_add_volumes(volume_idxs);
-        }
-    }
+    do_add_volumes(volume_idxs);
 
     update_type();
     this->set_bounding_boxes_dirty();
@@ -511,20 +509,14 @@ void Selection::remove_curr_plate()
     if (!m_valid)
         return;
 
-    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    if (plate->empty())
+    std::vector<unsigned int> volume_idxs = get_volume_idxs_from_plate(wxGetApp().plater()->get_partplate_list().get_curr_plate_index());
+    if (volume_idxs.empty())
         return;
 
     wxGetApp().plater()->take_snapshot(std::string("Selection-Delete Curr Plate All"));
     m_mode = Instance;
     clear();
-
-    for (int obj_idx = 0; obj_idx < m_model->objects.size(); obj_idx++) {
-        if (plate && plate->contain_instance(obj_idx, 0)) {
-            std::vector<unsigned int> volume_idxs = get_volume_idxs_from_object(obj_idx);
-            do_add_volumes(volume_idxs);
-        }
-    }
+    do_add_volumes(volume_idxs);
 
     update_type();
     this->set_bounding_boxes_dirty();
@@ -558,37 +550,42 @@ void Selection::center()
     return;
 }
 
+double Selection::get_drop_min_z() const
+{
+    if (!m_valid)
+        return 0.;
+    if (m_mode == Volume)
+        return get_bounding_box().min.z();
+
+    double min_z = DBL_MAX;
+    for (const auto& [obj_idx, inst_idxs] : m_cache.content) {
+        if (obj_idx >= (int)m_model->objects.size())
+            continue; // wipe tower
+        for (int inst_idx : inst_idxs)
+            min_z = std::min(min_z, m_model->objects[obj_idx]->get_instance_min_z(inst_idx));
+    }
+    return min_z == DBL_MAX ? 0. : min_z;
+}
+
+bool Selection::can_drop() const
+{
+    return std::abs(get_drop_min_z()) > -SINKING_Z_THRESHOLD;
+}
+
 void Selection::drop()
 {
-    if (std::abs(this->get_bounding_box().min.z()) < -SINKING_Z_THRESHOLD) {
-        return; // shouldnt happen, but better check anyways, already checked in append_menu_item_drop()
-    }
+    const double min_z = get_drop_min_z();
+    if (std::abs(min_z) < -SINKING_Z_THRESHOLD)
+        return; // already checked in can_drop()
 
     wxGetApp().plater()->take_snapshot(L("Move object"));
 
-    this->move_to_center(Vec3d(0, 0, -this->get_bounding_box().min.z()));
-
-    for (unsigned int i : m_list) {
-        GLVolume&    volume = *(*m_volumes)[i];
-        // Skip the wipe tower: its synthetic id (>= 1000) is not an index into m_model->objects.
-        if (volume.object_idx() >= 1000)
-            continue;
-        ModelObject* model_object = m_model->objects[volume.object_idx()];
-
-        if (model_object != nullptr) {
-            if (m_mode == Volume) {
-                ModelVolume* cur_mv = model_object->volumes[volume.volume_idx()];
-                cur_mv->set_transformation(volume.get_volume_transformation());
-            } else if (m_mode == Instance) {
-                model_object->instances[volume.instance_idx()]->set_transformation(volume.get_instance_transformation());
-            }
-
-            model_object->invalidate_bounding_box();
-            this->notify_instance_update(volume.object_idx(), volume.instance_idx());
-        }
-    }
-
-    wxGetApp().plater()->get_view3D_canvas3D()->post_event(SimpleEvent(EVT_GLCANVAS_INSTANCE_MOVED));
+    // do_move() writes every volume back to the model and refreshes the view.
+    setup_cache();
+    TransformationType transformation_type;
+    transformation_type.set_relative();
+    translate(Vec3d(0, 0, -min_z), transformation_type);
+    wxGetApp().plater()->get_view3D_canvas3D()->do_move("");
 }
 
 void Selection::center_plate(const int plate_idx) {
@@ -638,26 +635,21 @@ void Selection::set_printable(bool printable)
 }
 
 bool Selection::get_auto_drop() const {
-    // The wipe tower is not a ModelObject and has no per-instance auto_drop;
+    // The wipe tower is not a ModelObject and has no auto_drop state;
     // return the default to avoid indexing m_model->objects with its synthetic id.
     if (!m_valid || is_wipe_tower())
         return true;
 
-    std::set<std::pair<int, int>> instances_idxs;
+    std::set<int> object_idxs;
     for (const auto& [obj_idx, inst_list] : m_cache.content) {
-        for (int inst_idx : inst_list) {
-            instances_idxs.insert({obj_idx, inst_idx});
-        }
+        object_idxs.insert(obj_idx);
     }
 
-    // return false, if one of the instances in the selection has auto_drop disabled, otherwise return true
-    for (const auto& [obj_idx, inst_idx] : instances_idxs) {
+    // Return false if one selected object has auto_drop disabled.
+    for (int obj_idx : object_idxs) {
         ModelObject* object = m_model->objects[obj_idx];
-        for (const auto* inst : object->instances) {
-            if (!inst->auto_drop) {
-                return false;
-            }
-        }
+        if (!object->auto_drop)
+            return false;
     }
 
     return true;
@@ -668,22 +660,18 @@ void Selection::set_auto_drop(bool enabled)
     if (!m_valid)
         return;
 
-    std::set<std::pair<int, int>> instances_idxs;
+    std::set<int> object_idxs;
     for (const auto& [obj_idx, inst_list] : m_cache.content) {
-        for (int inst_idx : inst_list) {
-            instances_idxs.insert({obj_idx, inst_idx});
-        }
+        object_idxs.insert(obj_idx);
     }
 
     std::string snapshot_text = (boost::format("%1%") % (enabled ? "Set Selection Auto-Drop Enabled" : "Set Selection Auto-Drop Disabled")).str();
     wxGetApp().plater()->take_snapshot(snapshot_text);
 
-    // set auto_drop value for all instances in object
-    for (const auto& [obj_idx, inst_idx] : instances_idxs) {
+    // auto_drop is shared by all instances of an object.
+    for (int obj_idx : object_idxs) {
         ModelObject* object = m_model->objects[obj_idx];
-        for (auto* inst : object->instances) {
-            inst->auto_drop = enabled;
-        }
+        object->auto_drop = enabled;
     }
 
     // update scene
@@ -1468,11 +1456,9 @@ void Selection::flattening_rotate(const Vec3d& normal)
 
     for (unsigned int i : m_list) {
         GLVolume& v = *(*m_volumes)[i];
-        // Normal transformed from the object coordinate space to the world coordinate space.
+        // Additional rotation to align the face normal with the down vector in the world coordinate space.
         const Geometry::Transformation& old_inst_trafo = v.get_instance_transformation();
-        const Vec3d tnormal = old_inst_trafo.get_matrix().matrix().block(0, 0, 3, 3).inverse().transpose() * normal;
-        // Additional rotation to align tnormal with the down vector in the world coordinate space.
-        const Transform3d rotation_matrix = Transform3d(Eigen::Quaterniond().setFromTwoVectors(tnormal, -Vec3d::UnitZ()));
+        const Transform3d rotation_matrix = lay_on_face_rotation(normal, old_inst_trafo.get_matrix_no_offset());
         v.set_instance_transformation(old_inst_trafo.get_offset_matrix() * rotation_matrix * old_inst_trafo.get_matrix_no_offset());
     }
 
@@ -1492,7 +1478,7 @@ void Selection::scale(const Vec3d& scale, TransformationType transformation_type
 }
 
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
-void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
+void Selection::scale_to_fit_print_volume(const BuildVolume& volume, const Vec2d& bed_center, const std::vector<BoundingBoxf3>& print_volumes)
 {
     auto fit = [this](double s, Vec3d offset) {
         if (s <= 0.0 || s == 1.0)
@@ -1522,22 +1508,30 @@ void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
         //wxGetApp().obj_manipul()->set_dirty();
     };
 
-    auto fit_rectangle = [this, fit](const BuildVolume& volume) {
-        const BoundingBoxf3 print_volume = volume.bounding_volume();
-        const Vec3d print_volume_size = print_volume.size();
-
+    auto fit_rectangle = [this, fit, &print_volumes]() {
         // adds 1/100th of a mm on all sides to avoid false out of print volume detections due to floating-point roundings
         const Vec3d box_size = get_bounding_box().size() + 0.02 * Vec3d::Ones();
 
-        const double sx = (box_size.x() != 0.0) ? print_volume_size.x() / box_size.x() : 0.0;
-        const double sy = (box_size.y() != 0.0) ? print_volume_size.y() / box_size.y() : 0.0;
-        const double sz = (box_size.z() != 0.0) ? print_volume_size.z() / box_size.z() : 0.0;
+        double best_s = 0.0;
+        const BoundingBoxf3* best = nullptr;
+        for (const BoundingBoxf3& print_volume : print_volumes) {
+            const Vec3d print_volume_size = print_volume.size();
 
-        if (sx != 0.0 && sy != 0.0 && sz != 0.0)
-            fit(std::min(sx, std::min(sy, sz)), print_volume.center() - get_bounding_box().center());
+            const double sx = (box_size.x() != 0.0) ? print_volume_size.x() / box_size.x() : 0.0;
+            const double sy = (box_size.y() != 0.0) ? print_volume_size.y() / box_size.y() : 0.0;
+            const double sz = (box_size.z() != 0.0) ? print_volume_size.z() / box_size.z() : 0.0;
+
+            if (sx != 0.0 && sy != 0.0 && sz != 0.0 && std::min(sx, std::min(sy, sz)) > best_s) {
+                best_s = std::min(sx, std::min(sy, sz));
+                best = &print_volume;
+            }
+        }
+
+        if (best != nullptr)
+            fit(best_s, best->center() - get_bounding_box().center());
     };
 
-    auto fit_circle = [this, fit](const BuildVolume& volume) {
+    auto fit_circle = [this, fit, &bed_center](const BuildVolume& volume) {
         const Geometry::Circled& print_circle = volume.circle();
         double print_circle_radius = unscale<double>(print_circle.radius);
 
@@ -1568,7 +1562,9 @@ void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
         const double s = std::min(print_circle_radius / circle_radius, volume.printable_height() / max_z);
         const Vec3d sel_center = get_bounding_box().center();
         const Vec3d offset = s * (Vec3d(unscale<double>(circle.center.x()), unscale<double>(circle.center.y()), 0.5 * max_z) - sel_center);
-        const Vec3d print_center = { unscale<double>(print_circle.center.x()), unscale<double>(print_circle.center.y()), 0.5 * volume.printable_height() };
+        // The active plate's bed is the same circle, moved by its centre.
+        const Vec3d plate_shift = Vec3d(bed_center.x() - volume.bed_center().x(), bed_center.y() - volume.bed_center().y(), 0.);
+        const Vec3d print_center = Vec3d(unscale<double>(print_circle.center.x()), unscale<double>(print_circle.center.y()), 0.5 * volume.printable_height()) + plate_shift;
         fit(s, print_center - (sel_center + offset));
     };
 
@@ -1577,7 +1573,7 @@ void Selection::scale_to_fit_print_volume(const BuildVolume& volume)
 
     switch (volume.type())
     {
-    case BuildVolume_Type::Rectangle: { fit_rectangle(volume); break; }
+    case BuildVolume_Type::Rectangle: { fit_rectangle(); break; }
     case BuildVolume_Type::Circle:    { fit_circle(volume); break; }
     default: { break; }
     }
@@ -1766,50 +1762,27 @@ void Selection::translate(unsigned int object_idx, unsigned int instance_idx, co
 
     //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": obj %1%, instance %2%") % object_idx % instance_idx;
     //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, displacement {%2%, %3%, %4%}") % __LINE__ % displacement(X) % displacement(Y) % displacement(Z);
-    for (unsigned int i : m_list) {
-        GLVolume& v = *(*m_volumes)[i];
-        if (v.object_idx() == (int)object_idx && v.instance_idx() == (int)instance_idx)
-            v.set_instance_offset(v.get_instance_offset() + displacement);
-    }
-
-    std::set<unsigned int> done;  // prevent processing volumes twice
-    done.insert(m_list.begin(), m_list.end());
-
-    for (unsigned int i : m_list) {
-        if (done.size() == m_volumes->size())
-            break;
-
-        int object_idx = (*m_volumes)[i]->object_idx();
-        if (object_idx >= 1000)
-            continue;
-
-        // Process unselected volumes of the object.
-        for (unsigned int j = 0; j < (unsigned int)m_volumes->size(); ++j) {
-            if (done.size() == m_volumes->size())
-                break;
-
-            if (done.find(j) != done.end())
-                continue;
-
-            GLVolume& v = *(*m_volumes)[j];
-            if (v.object_idx() != object_idx || v.instance_idx() != (int)instance_idx)
-                continue;
-
-            v.set_instance_offset(v.get_instance_offset() + displacement);
-            done.insert(j);
-        }
+    // Every volume of the instance, selected or not, so that the instance moves as a whole.
+    for (GLVolume* v : *m_volumes) {
+        if (v->object_idx() == (int)object_idx && v->instance_idx() == (int)instance_idx)
+            v->set_instance_offset(v->get_instance_offset() + displacement);
     }
 
     this->set_bounding_boxes_dirty();
 }
 
-void Selection::translate(unsigned int object_idx, unsigned int instance_idx, unsigned int volume_idx, const Vec3d &displacement) {
+void Selection::translate(unsigned int object_idx, unsigned int instance_idx, unsigned int volume_idx, const Vec3d &displacement, bool local)
+{
     if (!m_valid) return;
 
     for (unsigned int i : m_list) {
         GLVolume &v = *(*m_volumes)[i];
-        if (v.object_idx() == (int) object_idx && v.instance_idx() == (int) instance_idx && v.volume_idx() == (int) volume_idx)
-            v.set_volume_offset(v.get_volume_offset() + displacement);
+        if (v.object_idx() == (int) object_idx && v.instance_idx() == (int) instance_idx && v.volume_idx() == (int) volume_idx) {
+            Vec3d local_displacement = displacement;
+            if (!local)
+                local_displacement = v.get_instance_transformation().get_matrix_no_offset().inverse() * displacement;
+            v.set_volume_offset(v.get_volume_offset() + local_displacement);
+        }
     }
 
     this->set_bounding_boxes_dirty();
@@ -2274,6 +2247,27 @@ std::vector<unsigned int> Selection::get_volume_idxs_from_volume(unsigned int ob
         {
             if (((int)instance_idx != -1) && (v->instance_idx() == (int)instance_idx))
                 idxs.push_back(i);
+        }
+    }
+
+    return idxs;
+}
+
+std::vector<unsigned int> Selection::get_volume_idxs_from_plate(const int plate_idx) const
+{
+    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
+    std::vector<unsigned int> idxs;
+    if (!plate)
+        return idxs;
+
+    for (int obj_idx = 0; obj_idx < (int)m_model->objects.size(); obj_idx++) {
+        const ModelObject* obj = m_model->objects[obj_idx];
+        for (int inst_idx = 0; inst_idx < (int)obj->instances.size(); inst_idx++) {
+            // on this plate or overlapping it in some way (fully inside, oversized or partly outside)
+            if (plate->contain_instance(obj_idx, inst_idx) || plate->intersect_instance(obj_idx, inst_idx)) {
+                std::vector<unsigned int> inst_idxs = get_volume_idxs_from_instance(obj_idx, inst_idx);
+                idxs.insert(idxs.end(), inst_idxs.begin(), inst_idxs.end());
+            }
         }
     }
 
@@ -3088,8 +3082,9 @@ void Selection::synchronize_unselected_instances(SyncRotationType sync_rotation_
             else if (sync_rotation_type != SyncRotationType::NONE || mirrored)
                 new_inst_trafo_j.linear() = (old_inst_trafo_j.linear() * old_inst_trafo_i.linear().inverse()) * curr_inst_trafo_i.linear();
 
-            bool should_synchronize_z = m_model->objects[volume_j->object_idx()]->instances[volume_j->instance_idx()]->auto_drop == false;
-            if (should_synchronize_z && wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptSLA)
+            // Instances of the same object must remain at the same height. auto_drop
+            // only controls snapping after the move, not the instance transform itself.
+            if (wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology() != ptSLA)
                 new_inst_trafo_j.translation().z() = curr_inst_trafo_i.translation().z();
 
             assert(is_rotation_xy_synchronized(curr_inst_trafo_i, new_inst_trafo_j));
@@ -3136,9 +3131,7 @@ void Selection::ensure_on_bed()
     for (size_t i = 0; i < m_volumes->size(); ++i) {
         GLVolume* volume    = (*m_volumes)[i];
         ModelObject*   mo   = m_model->objects[volume->object_idx()];
-        ModelInstance* mi   = mo->instances[volume->instance_idx()];
-
-        if (mi->auto_drop == false
+        if (mo->auto_drop == false
             || volume->is_wipe_tower 
             || volume->is_modifier 
             || std::find(m_cache.sinking_volumes.begin(), m_cache.sinking_volumes.end(), i) != m_cache.sinking_volumes.end()) 
@@ -3338,7 +3331,7 @@ void Selection::paste_objects_from_clipboard()
         if (shift_all(0) != 0 || shift_all(1) != 0) {
             // BBS: if multiple objects are selected, move them as a whole after copy
             if (i == 0) empty_cell_all = wxGetApp().plater()->canvas3D()->get_nearest_empty_cell({start_point(0), start_point(1)}, {bbox.size()(0)+1,bbox.size()(1)+1});
-            auto instance_shift = src_object->instances.front()->get_offset() - src_objects[0]->instances.front()->get_offset();
+            const Vec3d instance_shift = src_object->instances.front()->get_offset() - src_objects[0]->instances.front()->get_offset();
             displacement        = {shift_all.x() + empty_cell_all.x() + instance_shift.x(), shift_all.y() + empty_cell_all.y() + instance_shift.y(), start_offset(2)};
         } else {
             // BBS: if only one object is copied, find an empty cell to put it

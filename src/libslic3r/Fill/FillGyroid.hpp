@@ -20,6 +20,7 @@ public:
     // require bridge flow since most of this pattern hangs in air
     bool use_bridge_flow() const override { return false; }
     bool is_self_crossing() override { return false; }
+    bool aligned_to_origin() const override { return true; }
 
     // Correction applied to regular infill angle to maximize printing
     // speed in default configuration (degrees)

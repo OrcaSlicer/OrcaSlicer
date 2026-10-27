@@ -55,10 +55,13 @@
 #include "TriangleMesh.hpp"
 #include "Config.hpp"
 #include "Exception.hpp"
+#include "IMEXHelpers.hpp"
+#include "IMEXZones.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
+#include "ExclusionVolumeGeometry.hpp"
 #include "Extruder.hpp"
 #include "FilamentMixer.hpp"
 #include "Flow.hpp"
@@ -69,6 +72,8 @@
 #include "Thread.hpp"
 #include "Time.hpp"
 #include "GCode.hpp"
+#include "BeltGCode.hpp"
+#include "BeltTransform.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
 #include "GCode/WipeTowerEstimate.hpp"
@@ -77,11 +82,13 @@
 #include "MaterialType.hpp"
 #include "Model.hpp"
 #include "format.hpp"
+#include "LocalesUtils.hpp"
 #include <float.h>
 
 #include <algorithm>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <sstream>
@@ -103,6 +110,7 @@
 #include "Format/STEP.hpp"
 #include "PlaceholderParser.hpp"
 #include "SurfaceCollection.hpp"
+#include "BeltBrim.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -120,6 +128,98 @@ template class PrintState<PrintObjectStep, posCount>;
 
 PrintRegion::PrintRegion(const PrintRegionConfig &config) : PrintRegion(config, config.hash()) {}
 PrintRegion::PrintRegion(PrintRegionConfig &&config) : PrintRegion(std::move(config), config.hash()) {}
+
+static std::vector<BedExcludeRegion> translated_bed_exclusion_volumes(const Print &print)
+{
+    std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(print.config());
+    const Point print_origin(scale_(print.get_plate_origin().x()), scale_(print.get_plate_origin().y()));
+
+    for (BedExcludeRegion &region : regions)
+        region.polygon.translate(print_origin);
+
+    return regions;
+}
+
+static std::vector<std::vector<BedExcludeRegion>> translated_bed_exclusion_volumes_by_extruder(const Print &print)
+{
+    std::vector<std::vector<BedExcludeRegion>> regions_by_extruder = get_bed_excluded_regions_by_extruder(print.config());
+    const Point print_origin(scale_(print.get_plate_origin().x()), scale_(print.get_plate_origin().y()));
+    for (std::vector<BedExcludeRegion> &regions : regions_by_extruder)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(print_origin);
+    return regions_by_extruder;
+}
+
+struct BedExclusionCollision
+{
+    size_t extruder_id;
+    bool   collision_volume;
+};
+
+static bool intersects_bed_exclusion_purpose(
+    const ModelInstance &instance,
+    const std::vector<BedExcludeRegion> &regions,
+    const bool collision_volume)
+{
+    return std::any_of(regions.begin(), regions.end(), [&](const BedExcludeRegion &region) {
+        return region.is_collision_volume() == collision_volume &&
+               instance.intersects_bed_exclude_region(region);
+    });
+}
+
+static std::optional<BedExclusionCollision> colliding_bed_exclusion(
+    const Print &print,
+    const PrintObject &print_object,
+    const ModelInstance &instance,
+    const std::vector<std::vector<BedExcludeRegion>> &regions_by_extruder)
+{
+    if (regions_by_extruder.empty())
+        return std::nullopt;
+
+    // The legacy area is shared by every nozzle. Report it with Orca's
+    // established wording even when opt-in collision volumes coexist.
+    if (intersects_bed_exclusion_purpose(instance, regions_by_extruder.front(), false))
+        return BedExclusionCollision{ 0, false };
+
+    const bool automatic = is_auto_filament_map_mode(print.get_filament_map_mode());
+    if (automatic && print.is_BBL_printer()) {
+        // Bambu automatic grouping owns the concrete filament assignment and
+        // the config starts with a non-authoritative [1, 1, ...] seed. Its
+        // geometric-unprintable input steers individual filaments away from
+        // colliding nozzles; validation only blocks an object when no nozzle
+        // can print it.
+        std::optional<size_t> first_collision;
+        for (size_t extruder_id = 0; extruder_id < regions_by_extruder.size(); ++extruder_id) {
+            if (!intersects_bed_exclusion_purpose(instance, regions_by_extruder[extruder_id], true))
+                return std::nullopt;
+            if (!first_collision.has_value())
+                first_collision = extruder_id;
+        }
+        return first_collision.has_value() ?
+            std::optional<BedExclusionCollision>(BedExclusionCollision{ *first_collision, true }) : std::nullopt;
+    }
+
+    for (const unsigned int filament_id : print_object.printing_extruders()) {
+        const int resolved_extruder = bed_exclusion_extruder_for_filament(
+            filament_id, print.get_filament_maps(), print.get_filament_map_mode(), print.is_BBL_printer(),
+            true, regions_by_extruder.size());
+        if (resolved_extruder < 0)
+            continue;
+        const size_t extruder_id = size_t(resolved_extruder);
+        if (intersects_bed_exclusion_purpose(instance, regions_by_extruder[extruder_id], true))
+            return BedExclusionCollision{ extruder_id, true };
+    }
+    return std::nullopt;
+}
+
+static Polygons full_height_bed_exclusion_polygons(const std::vector<BedExcludeRegion> &regions)
+{
+    Polygons out;
+    for (const BedExcludeRegion &region : regions)
+        if (! region.has_z_range)
+            out.emplace_back(region.polygon);
+    return out;
+}
 
 //BBS
 // ORCA: Now this is a parameter
@@ -143,6 +243,8 @@ void Print::clear()
     m_print_regions.clear();
     m_model.clear_objects();
     m_statistics_by_extruder_count.clear();
+    m_same_shrinkage_compensations = false;
+    m_shrinkage_compensation = Vec3d::Ones();
 }
 
 bool Print::has_tpu_filament() const
@@ -166,13 +268,19 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
     // Cache the plenty of parameters, which influence the G-code generator only,
     // or they are only notes not influencing the generated G-code.
     static std::unordered_set<std::string> steps_gcode = {
+        // Belt printer G-code axis remap (only affects G-code output, not slicing).
+        "gcode_remap_x",
+        "gcode_remap_y",
+        "gcode_remap_z",
+        // Machine-frame transform (derived from belt tilt; only affects G-code output).
+        "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
+        // Only inflates the GUI bed volume, like printable_area.
+        "belt_printer_infinite_y",
         //BBS
         "additional_cooling_fan_speed",
         "reduce_crossing_wall",
         "max_travel_detour_distance",
         "printable_area",
-        //BBS: add bed_exclude_area
-        "bed_exclude_area",
         "thumbnail_size",
         "before_layer_change_gcode",
         "enable_pressure_advance",
@@ -196,7 +304,6 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "extruder_clearance_radius",
         "nozzle_height",
         "extruder_colour",
-        "extruder_offset",
         "filament_flow_ratio",
         "reduce_fan_stop_start_freq",
         "dont_slow_down_outer_wall",
@@ -291,8 +398,10 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "wipe_inward",
         "wipe_inward_distance",
         "gcode_comments",
+        "high_precision_gcode",
         "gcode_label_objects", 
         "exclude_object",
+        "exclude_object_tolerance",
         "support_material_interface_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
         "ironing_fan_speed",
@@ -320,13 +429,27 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
     };
 
     static std::unordered_set<std::string> steps_ignore;
+    static const std::unordered_set<std::string> steps_exclusion_geometry = {
+        "bed_exclude_area",
+        "bed_exclude_volumes",
+        "bed_exclude_volume_mode",
+        "extruder_bed_exclude_volumes",
+        "extruder_offset"
+    };
 
     std::vector<PrintStep> steps;
     std::vector<PrintObjectStep> osteps;
     bool invalidated = false;
 
     for (const t_config_option_key &opt_key : opt_keys) {
-        if (steps_gcode.find(opt_key) != steps_gcode.end()) {
+        if (steps_exclusion_geometry.find(opt_key) != steps_exclusion_geometry.end()) {
+            // Exclusions are consumed while generating brims, support, tree
+            // support and wipe-tower geometry, not only during final export.
+            steps.emplace_back(psWipeTower);
+            steps.emplace_back(psSkirtBrim);
+            osteps.emplace_back(posSupportMaterial);
+            osteps.emplace_back(posSimplifySupportPath);
+        } else if (steps_gcode.find(opt_key) != steps_gcode.end()) {
             // These options only affect G-code export or they are just notes without influence on the generated G-code,
             // so there is nothing to invalidate.
             steps.emplace_back(psGCodeExport);
@@ -367,8 +490,18 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             // Spiral Vase forces different kind of slicing than the normal model:
             // In Spiral Vase mode, holes are closed and only the largest area contour is kept at each layer.
             // Therefore toggling the Spiral Vase on / off requires complete reslicing.
-            || opt_key == "spiral_mode") {
+            || opt_key == "spiral_mode"
+            // Build plate tilt changes slicing plane orientation.
+            || opt_key == "build_plate_tilt_x"
+            || opt_key == "build_plate_tilt_y"
+            // Belt printer transform options change the mesh geometry before slicing.
+            || opt_key == "belt_printer"
+            || opt_key == "belt_slice_rotation"
+            || opt_key == "belt_slice_rotation_angle") {
             osteps.emplace_back(posSlice);
+        } else if (
+               opt_key == "belt_support_floor_offset") {
+            osteps.emplace_back(posSupportMaterial);
         } else if (
                opt_key == "print_sequence"
             || opt_key == "filament_type"
@@ -403,6 +536,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "hot_plate_temp"
             || opt_key == "textured_plate_temp"
             || opt_key == "enable_prime_tower"
+            || opt_key == "enable_belt_purge_tower"
             || opt_key == "enable_wrapping_detection"
             || opt_key == "prime_tower_enable_framework"
             || opt_key == "prime_tower_width"
@@ -437,6 +571,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_volume"
             || opt_key == "flush_into_infill"
             || opt_key == "flush_into_support"
+            || opt_key == "belt_purge_tower_width"
             || opt_key == "initial_layer_infill_speed"
             || opt_key == "travel_speed"
             || opt_key == "travel_speed_z"
@@ -495,6 +630,12 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         }
         else if (opt_key == "z_hop_types") {
             osteps.emplace_back(posDetectOverhangsForLift);
+        }
+        // The bed-zone colour scheme and the advisory margin bands are drawn from the printer
+        // config but never reach the slice: compute_imex_zone_layout keeps the margin out of
+        // primary_zone_box, which is the only part of the layout update_imex_slice_offset reads.
+        // imex_tool_layout does move that box, so it is left to the fallback below.
+        else if (opt_key == "imex_viz_theme" || opt_key == "imex_carriage_margin") {
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
             //FIXME invalidate all steps of all objects as well?
@@ -552,30 +693,34 @@ std::vector<unsigned int> Print::object_extruders() const
 		for (const PrintRegion &region : object->all_regions())
         	region.collect_object_printing_extruders(*this, extruders);
 
-    for (const PrintObject* object : m_objects) {
-        const ModelObject* mo = object->model_object();
-        for (const ModelVolume* mv : mo->volumes) {
-            std::vector<int> volume_extruders = mv->get_extruders();
-            for (int extruder : volume_extruders) {
-                assert(extruder > 0);
-                extruders.push_back(extruder - 1);
-            }
-        }
-
-        // layer range
-        for (auto layer_range : mo->layer_config_ranges) {
-            if (layer_range.second.has("extruder")) {
-                //BBS: actually when user doesn't change filament by height range(value is default 0), height range should not save key "extruder".
-                //Don't know why height range always save key "extruder" because of no change(should only save difference)...
-                //Add protection here to avoid overflow
-                auto value = layer_range.second.option("extruder")->getInt();
-                if (value > 0)
-                    extruders.push_back(value - 1);
-            }
-        }
-    }
+    for (const PrintObject* object : m_objects)
+        append_model_object_extruders(*object->model_object(), extruders);
     sort_remove_duplicates(extruders);
     return extruders;
+}
+
+// Appends 0-based indices of the filaments assigned to the volumes of model_object (painting included) and to its height ranges.
+void Print::append_model_object_extruders(const ModelObject &mo, std::vector<unsigned int> &extruders)
+{
+    for (const ModelVolume* mv : mo.volumes) {
+        std::vector<int> volume_extruders = mv->get_extruders();
+        for (int extruder : volume_extruders) {
+            assert(extruder > 0);
+            extruders.push_back(extruder - 1);
+        }
+    }
+
+    // layer range
+    for (auto layer_range : mo.layer_config_ranges) {
+        if (layer_range.second.has("extruder")) {
+            //BBS: actually when user doesn't change filament by height range(value is default 0), height range should not save key "extruder".
+            //Don't know why height range always save key "extruder" because of no change(should only save difference)...
+            //Add protection here to avoid overflow
+            auto value = layer_range.second.option("extruder")->getInt();
+            if (value > 0)
+                extruders.push_back(value - 1);
+        }
+    }
 }
 
 // returns 0-based indices of used extruders
@@ -587,22 +732,8 @@ std::vector<unsigned int> Print::support_material_extruders() const
     auto num_extruders = (unsigned int)m_config.filament_diameter.size();
 
     for (PrintObject *object : m_objects) {
-        if (object->has_support_material()) {
-        	assert(object->config().support_filament >= 0);
-            if (object->config().support_filament == 0)
-                support_uses_current_extruder = true;
-            else {
-            	unsigned int i = (unsigned int)object->config().support_filament - 1;
-                extruders.emplace_back((i >= num_extruders) ? 0 : i);
-            }
-        	assert(object->config().support_interface_filament >= 0);
-            if (object->config().support_interface_filament == 0)
-                support_uses_current_extruder = true;
-            else {
-            	unsigned int i = (unsigned int)object->config().support_interface_filament - 1;
-                extruders.emplace_back((i >= num_extruders) ? 0 : i);
-            }
-        }
+        if (object->has_support_material() && append_support_extruders(object->config(), num_extruders, extruders))
+            support_uses_current_extruder = true;
     }
 
     if (support_uses_current_extruder)
@@ -613,31 +744,61 @@ std::vector<unsigned int> Print::support_material_extruders() const
     return extruders;
 }
 
+// Appends 0-based indices of the support and support interface filaments of an object printing support material.
+// Returns true if support or support interface is printed with the filament of the object.
+bool Print::append_support_extruders(const PrintObjectConfig &config, unsigned int num_extruders, std::vector<unsigned int> &extruders)
+{
+    bool uses_current_extruder = false;
+    assert(config.support_filament >= 0);
+    if (config.support_filament == 0)
+        uses_current_extruder = true;
+    else {
+        unsigned int i = (unsigned int)config.support_filament - 1;
+        extruders.emplace_back((i >= num_extruders) ? 0 : i);
+    }
+    assert(config.support_interface_filament >= 0);
+    if (config.support_interface_filament == 0)
+        uses_current_extruder = true;
+    else {
+        unsigned int i = (unsigned int)config.support_interface_filament - 1;
+        extruders.emplace_back((i >= num_extruders) ? 0 : i);
+    }
+    return uses_current_extruder;
+}
+
 // returns 0-based indices of used extruders
 std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 {
     std::vector<unsigned int> extruders = this->object_extruders();
     append(extruders, this->support_material_extruders());
 
-    if (conside_custom_gcode) {
-        //BBS
-        int num_extruders = m_config.filament_colour.size();
-        if (m_model.plates_custom_gcodes.find(m_model.curr_plate_index) != m_model.plates_custom_gcodes.end()) {
-            for (auto item : m_model.plates_custom_gcodes.at(m_model.curr_plate_index).gcodes) {
-                if (item.type == CustomGCode::Type::ToolChange && item.extruder <= num_extruders)
-                    extruders.push_back((unsigned int)(item.extruder - 1));
-            }
+    if (conside_custom_gcode)
+        this->append_tool_change_extruders(extruders);
+    this->append_wipe_tower_extruder(extruders);
+    sort_remove_duplicates(extruders);
+    return extruders;
+}
+
+// Appends 0-based indices of the filaments the tool changes of the current plate switch to.
+void Print::append_tool_change_extruders(std::vector<unsigned int> &extruders) const
+{
+    //BBS
+    int num_extruders = m_config.filament_colour.size();
+    if (m_model.plates_custom_gcodes.find(m_model.curr_plate_index) != m_model.plates_custom_gcodes.end()) {
+        for (auto item : m_model.plates_custom_gcodes.at(m_model.curr_plate_index).gcodes) {
+            if (item.type == CustomGCode::Type::ToolChange && item.extruder <= num_extruders)
+                extruders.push_back((unsigned int)(item.extruder - 1));
         }
     }
+}
 
+void Print::append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const
+{
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
     if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
         assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament <= int(config().filament_diameter.size()));
         extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
-
-    sort_remove_duplicates(extruders);
-    return extruders;
 }
 
 unsigned int Print::num_object_instances() const
@@ -668,6 +829,9 @@ std::vector<ObjectID> Print::print_object_ids() const
 
 bool Print::has_infinite_skirt() const
 {
+    // Belt printer: no skirt support.
+    if (m_config.belt_printer.value)
+        return false;
     // Orca: unclear why (m_config.ooze_prevention && this->extruders().size() > 1) logic is here, removed.
     // return (m_config.draft_shield == dsEnabled && m_config.skirt_loops > 0) || (m_config.ooze_prevention && this->extruders().size() > 1);
 
@@ -676,12 +840,33 @@ bool Print::has_infinite_skirt() const
 
 bool Print::has_skirt() const
 {
+    // Belt printer: no skirt support.
+    if (m_config.belt_printer.value)
+        return false;
     return (m_config.skirt_height > 0);
 }
 
 bool Print::has_brim() const
 {
     return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject *object) { return object->has_brim(); });
+}
+
+bool Print::has_tilted_belt() const
+{
+    if (! m_config.belt_printer.value)
+        return false;
+    // A Z rotation leaves the belt floor flat (BeltTransform forces shear = 0) and no
+    // rotation at all means the machine is geometrically a flat bed.
+    const BeltRotationAxis axis = m_config.belt_slice_rotation.value;
+    if (axis != BeltRotationAxis::X && axis != BeltRotationAxis::Y)
+        return false;
+    const double tilt = std::abs(m_config.belt_slice_rotation_angle.value);
+    return tilt >= BELT_BRIM_MIN_TILT_DEG && tilt <= BELT_BRIM_MAX_TILT_DEG;
+}
+
+bool Print::has_belt_brim() const
+{
+    return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject *object) { return object->has_belt_brim(); });
 }
 
 //BBS
@@ -708,10 +893,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 {
     StringObjectException single_object_exception;
     const auto& print_config = print.config();
-    Polygons exclude_polys = get_bed_excluded_area(print_config);
     const Vec3d print_origin = print.get_plate_origin();
-    std::for_each(exclude_polys.begin(), exclude_polys.end(),
-                  [&print_origin](Polygon& p) { p.translate(scale_(print_origin.x()), scale_(print_origin.y())); });
+    const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
 
     struct print_instance_info
     {
@@ -762,22 +945,26 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     // Convert the shift from the PrintObject's coordinates into ModelObject's coordinates by removing the centering offset.
                     convex_hull.translate(instance.shift - print_object->center_offset());
                 }
-                convex_hull_no_offset.translate(instance.shift - print_object->center_offset());
-                //juedge the exclude area
-                if (!intersection(exclude_polys, convex_hull_no_offset).empty()) {
+                const std::optional<BedExclusionCollision> exclusion_collision = colliding_bed_exclusion(
+                    print, *print_object, *instance.model_instance, exclusion_volumes);
+                if (exclusion_collision.has_value()) {
+                    const std::string collision_message = !exclusion_collision->collision_volume ?
+                        (boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) % instance.model_instance->get_object()->name).str() :
+                        is_auto_filament_map_mode(print.get_filament_map_mode()) && print.is_BBL_printer() ?
+                            // TRN %1% is the object name.
+                            (boost::format(L("%1% intersects collision volumes for every available extruder.")) % instance.model_instance->get_object()->name).str() :
+                            // TRN %1% is the object name, %2% the extruder number counted from 1.
+                            (boost::format(L("%1% intersects a collision volume for extruder %2%.")) % instance.model_instance->get_object()->name % (exclusion_collision->extruder_id + 1)).str();
                     if (single_object_exception.string.empty()) {
-                        single_object_exception.string = (boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
+                        single_object_exception.string = collision_message;
                         // single_object_exception.object = instance.model_instance->get_object();
                         //ORCA: Pass ModelInstance instead of ModelObject
                         single_object_exception.object = instance.model_instance;
                     }
                     else {
-                        single_object_exception.string += "\n"+(boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
+                        single_object_exception.string += "\n" + collision_message;
                         single_object_exception.object = nullptr;
                     }
-                    //if (polygons) {
-                    //    intersecting_idxs.emplace_back(convex_hulls_other.size());
-                    //}
                 }
 
                 // if output needed, collect indices (inside convex_hulls_other) of intersecting hulls
@@ -1401,10 +1588,9 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
         return {};
 
     const auto& print_config = print.config();
-    Polygons exclude_polys = get_bed_excluded_area(print_config);
     const Vec3d print_origin = print.get_plate_origin();
-    std::for_each(exclude_polys.begin(), exclude_polys.end(),
-                  [&print_origin](Polygon& p) { p.translate(scale_(print_origin.x()), scale_(print_origin.y())); });
+    const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
+    const Polygons prime_tower_exclude_polys = full_height_bed_exclusion_polygons(translated_bed_exclusion_volumes(print));
 
     Pointfs wrapping_detection_area = print_config.wrapping_exclude_area.values;
     Polygon wrapping_poly;
@@ -1424,22 +1610,23 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
                                                                                   inst->model_instance->get_scaling_factor(), inst->model_instance->get_mirror()));
             volume_hull.translate(inst->shift - inst->print_object->center_offset());
 
-            if (!intersection(exclude_polys, volume_hull).empty()) {
-                // return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
-                //        inst->model_instance->get_object()};
-                //ORCA: Pass ModelInstance instead of ModelObject
-                return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
-                        inst->model_instance};
-            }
-
             if (print_config.enable_wrapping_detection.value && !intersection(wrapping_poly, volume_hull).empty()) {
                 // return {inst->model_instance->get_object()->name + L(" is too close to clumping detection area, there may be collisions when printing.") + "\n",
                 //        inst->model_instance->get_object()};
                 //ORCA: Pass ModelInstance instead of ModelObject
-                return {inst->model_instance->get_object()->name + L(" is too close to clumping detection area, there may be collisions when printing.") + "\n",
+                return {(boost::format(L("%1% is too close to the clumping detection area. There may be collisions when printing.")) % inst->model_instance->get_object()->name).str() + "\n",
                         inst->model_instance};
             }
             current_instance_hulls.emplace_back(volume_hull);
+        }
+        if (const std::optional<BedExclusionCollision> exclusion_collision = colliding_bed_exclusion(
+                print, *inst->print_object, *inst->model_instance, exclusion_volumes); exclusion_collision.has_value()) {
+            const std::string message = !exclusion_collision->collision_volume ?
+                (boost::format(L("%1% is too close to exclusion area. There may be collisions when printing.")) % inst->model_instance->get_object()->name).str() :
+                is_auto_filament_map_mode(print.get_filament_map_mode()) && print.is_BBL_printer() ?
+                    (boost::format(L("%1% intersects collision volumes for every available extruder.")) % inst->model_instance->get_object()->name).str() :
+                    (boost::format(L("%1% intersects a collision volume for extruder %2%.")) % inst->model_instance->get_object()->name % (exclusion_collision->extruder_id + 1)).str();
+            return {message + "\n", inst->model_instance};
         }
 
         if (!intersection(convex_hulls_other, current_instance_hulls).empty()) {
@@ -1521,20 +1708,20 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     // many setups that print fine.
     if (!intersection(convex_hulls_other, convex_hulls_temp).empty()) {
         if (warning) {
-            warning->string += L("Prime Tower") + L(" is too close to others, and collisions may be caused.\n");
+            warning->string += L("Prime tower is too close to others, and collisions may be caused.\n");
         }
     }
-    if (!intersection(exclude_polys, tower_polys_checked).empty()) {
-        return {L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n")};
+    if (!intersection(prime_tower_exclude_polys, tower_polys_checked).empty()) {
+        return {L("Prime tower is too close to an exclusion area, and collisions will be caused.\n")};
     }
     if (print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, tower_polys_checked).empty()) {
-        return {L("Prime Tower") + L(" is too close to clumping detection area, and collisions will be caused.\n")};
+        return {L("Prime tower is too close to the clumping detection area, and collisions will be caused.\n")};
     }
-    if (warning && !intersection(exclude_polys, tower_polys_estimated).empty()) {
-        warning->string += L("Prime Tower") + L(" is too close to exclusion area, there may be collisions when printing.") + "\n";
+    if (warning && !intersection(prime_tower_exclude_polys, tower_polys_estimated).empty()) {
+        warning->string += L("Prime tower is too close to an exclusion area. There may be collisions when printing.") + "\n";
     }
     if (warning && print_config.enable_wrapping_detection.value && !intersection({wrapping_poly}, tower_polys_estimated).empty()) {
-        warning->string += L("Prime Tower") + L(" is too close to clumping detection area, there may be collisions when printing.") + "\n";
+        warning->string += L("Prime tower is too close to the clumping detection area. There may be collisions when printing.") + "\n";
     }
     // No gate on "is there a tower": one that is not printed estimates to zero, so the hulls
     // are degenerate and every check passes. Re-deriving it here missed the wrapping-detection
@@ -1544,9 +1731,9 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     for (Polygon &p : printable_polys)
         p.translate(plate_shift);
     if (!diff(tower_polys_checked, printable_polys).empty())
-        return {L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n")};
+        return {L("Prime tower is partially outside the printable area, and it cannot be printed.\n")};
     if (warning && !diff(tower_polys_estimated, printable_polys).empty())
-        warning->string += L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n");
+        warning->string += L("Prime tower is partially outside the printable area, and it cannot be printed.\n");
     return {};
 }
 
@@ -1803,6 +1990,223 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
 
+    // A flow ratio of 0 would extrude nothing, and a nil one would write NaN extrusion lengths.
+    {
+        const std::vector<double> &flow_ratios = m_config.filament_flow_ratio.values;
+        const std::vector<int>    &self_index  = m_config.filament_self_index.values;
+        for (size_t column = 0; column < flow_ratios.size(); ++column) {
+            // filament_self_index maps a column to its filament once the filament arrays hold one column per variant
+            const unsigned int filament_id = self_index.size() == flow_ratios.size() ? self_index[column] - 1 : column;
+            if (flow_ratios[column] > 0. || !std::binary_search(extruders.begin(), extruders.end(), filament_id))
+                continue;
+            StringObjectException err;
+            // TRN %1% is the filament number as shown in the filament list, starting from 1.
+            err.string  = Slic3r::format(L("The flow ratio of filament %1% must be greater than 0."), filament_id + 1);
+            err.opt_key = "filament_flow_ratio";
+            return err;
+        }
+    }
+
+    // IDEX/IQEX: block multi-color in non-primary parallel modes when the active
+    // configuration can't physically support it (no within-gantry toolchange path
+    // or MMU lane sharing). See imex_multicolor_block_reason() for the full rule.
+    // Both IMEX checks below need the active mode's tools string and its declared primary,
+    // so imex_resolve_routing() derives them once for the whole block -- and is the same call
+    // the plater's pre-slice warning makes, so the two cannot describe the plate differently.
+    // Note this block is NOT gated on extruders.size() > 1: the primary
+    // routing check applies to a single-filament plate too, which is its most common case.
+    if (m_config.is_imex.value && !m_objects.empty()) {
+        const std::string& parallel_mode = m_objects.front()->config().imex_parallel_mode.value;
+        if (!parallel_mode.empty() && parallel_mode != kImexPrimaryMode) {
+            // Tool changes added from the layer slider switch heads mid-print as a painted color
+            // does, so they count here, as the plate's warning badge counts them.
+            const std::vector<unsigned int> imex_extruders = this->extruders(/*conside_custom_gcode=*/true);
+            std::vector<int> used_filaments_0b;
+            std::vector<int> used_slots_1b;
+            used_filaments_0b.reserve(imex_extruders.size());
+            used_slots_1b.reserve(imex_extruders.size());
+            for (unsigned int e : imex_extruders) {
+                used_filaments_0b.push_back((int)e);
+                used_slots_1b.push_back((int)e + 1);
+            }
+
+            // The active mode's tools string, its declared primary, and whether this plate's
+            // filaments reach that primary are all derived ONCE, here. The plater's pre-slice
+            // warning (collect_imex_warnings) makes the identical call, so the sentence it
+            // shows before slicing and the refusal below cannot describe the plate
+            // differently. An unresolved mode, and a mode the tools array is too short to
+            // cover, both yield an empty roster and no primary.
+            const ImexRouting routing = imex_resolve_routing(m_config, parallel_mode, used_slots_1b,
+                                                             m_config.physical_extruder_map);
+
+            // A mixed filament is blended at the nozzle by its component toolheads, and a
+            // parallel mode is already using those toolheads to print copies or mirrors, so
+            // the two cannot run at once -- regardless of where the components are routed.
+            //
+            // Runs before BOTH rules below. Against the routing rule it would otherwise be
+            // reported as merely unrouted: mixed slots are kept at the tail of the filament
+            // arrays, past the physical filament count, so on a printer whose logical extruder
+            // count equals that count they fall outside physical_extruder_map and resolve to no
+            // head. Against the multi-color rule, a mixed slot plus any second filament trips
+            // the >1 gate and earns a lecture about gantry topology the user never configured.
+            // Being unsupported outright, this dominates both.
+            {
+                const auto& is_mixed = m_config.filament_is_mixed.values;
+                if (std::any_of(used_filaments_0b.begin(), used_filaments_0b.end(),
+                                [&](int slot) { return slot >= 0 && slot < (int) is_mixed.size() && is_mixed[slot]; })) {
+                    StringObjectException err;
+                    // "Mixed filament" is the term the rest of the UI uses -- the button that
+                    // creates one, and the sibling refusal for the wipe tower filament.
+                    err.string = L("Mixed filaments are not supported in IDEX/IQEX parallel modes. "
+                                   "Switch this plate to Primary mode.");
+                    err.object = m_objects.front();
+                    return err;
+                }
+            }
+
+            // Multi-color has the more specific rule and its remedies are self-contained
+            // (an MMU manifold sharing one head cannot be fixed by switching mode), so it runs
+            // ahead of the routing block below, which would otherwise mask it with advice that
+            // leads to this error on the next slice. validate() returns on the first error.
+            if (used_filaments_0b.size() > 1) {
+                const std::string reason = imex_multicolor_block_reason(
+                    parallel_mode,
+                    routing.active_tools,
+                    m_config.imex_tools_per_gantry.value,
+                    used_filaments_0b,
+                    m_config.physical_extruder_map);
+                if (!reason.empty())
+                    return { reason };
+            }
+
+            // The IMEX Primary tool prints the sliced paths directly, so it can only use a
+            // filament the printer's physical_extruder_map routes to it. The ghost filament
+            // picker already enforces this for the secondary tools; the primary's filament
+            // comes from the ordinary object filament selector, which has no IMEX awareness,
+            // so nothing detected the mismatch. collect_imex_warnings() reads the SAME
+            // routing.primary_logical off the same derivation, and discards it into a display
+            // fallback so its warning still has a filament to name.
+            //
+            // Blocks rather than warns, matching the multi-color rule above -- but on intent,
+            // not on physics, and the distinction matters to anyone tempted to relax it. The
+            // emitter does not use the declared primary: it re-derives an effective one from
+            // the filament actually in use (GCode.cpp's initial_extruder_id -> pem lookups), so
+            // a plate whose only filament sits on a Span tool sharing the primary's gantry does
+            // produce coherent G-code. It is refused anyway. A parallel mode exists to run
+            // carriages in parallel; a single-colour plate riding one span lane is not that, and
+            // silently accepting it would make the mode's declared roster meaningless.
+            //
+            // Where the routed head is absent from the mode's active tools the plate is broken
+            // outright, not merely off-intent: the 1st->2nd layer temperature
+            // branch (GCode.cpp, mutually exclusive with the standard path) skips it too, so
+            // that head holds nozzle_temperature_initial_layer for the whole job. First-layer
+            // temperatures are unaffected -- _print_first_layer_extruder_temperatures is not
+            // IMEX-branched -- so this is a stuck-hot nozzle, not a cold one.
+            //
+            // `primary_unrouted` is the whole condition: a declared primary, a populated
+            // routing map, and nothing used reaching it. Blended slots would also read as
+            // unrouted -- they sit past the map by construction -- but they never get here,
+            // the mixed-filament rule above returns first.
+            if (routing.primary_unrouted) {
+                std::string routed_list;
+                for (int head : routing.routed_heads)
+                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
+                // Print::apply() normalises physical_extruder_map through
+                // effective_physical_extruder_map (PrintApply.cpp) before validate() runs, so
+                // an unauthored map arrives here as the identity and every slot is in range.
+                // What is left is a printer with more filaments than logical extruders, where
+                // the tail slots fall outside the map. Narrow, but without this the sentence
+                // ends in a dangling "on .".
+                StringObjectException err;
+                if (routed_list.empty())
+                    err.string = Slic3r::format(
+                        // TRN %1% is the IDEX/IQEX mode name, %2% the tool number.
+                        L("IDEX/IQEX mode \"%1%\" prints with T%2%, but none of this plate's filaments are on a configured tool. "
+                          "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
+                        parallel_mode, routing.primary_phys);
+                else
+                    err.string = Slic3r::format(
+                        // TRN %1% is the IDEX/IQEX mode name, %2% the tool number, %3% a list of tools such as "T1, T2".
+                        L("IDEX/IQEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
+                          "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
+                        parallel_mode, routing.primary_phys, routed_list);
+                // Gives the notification a "Jump to <object>" link, which selects the object
+                // and switches to Prepare -- directly enabling the first suggested remedy.
+                err.object = m_objects.front();
+                return err;
+            }
+        }
+    }
+
+    // Belt printer validation: incompatible features.
+    if (m_config.belt_printer.value) {
+        for (const PrintObject *object : m_objects) {
+            if (object->config().raft_layers > 0)
+                return { L("Raft is not compatible with belt printer mode.") };
+        }
+        if (m_config.draft_shield != dsDisabled)
+            return { L("Draft shield is not compatible with belt printer mode.") };
+
+        // Belt brim spans many layers and owns the layers below the object, which
+        // spiral vase cannot share. The prime tower setting is no obstacle: belt
+        // printers never print the classic tower, and the belt purge prism is an
+        // ordinary object that never takes a brim.
+        if (this->has_belt_brim()) {
+            if (m_config.spiral_mode.value)
+                return { L("Brim is not compatible with spiral vase mode on a belt printer. "
+                           "Disable one of them.") };
+        }
+
+        for (const PrintObject *object : m_objects) {
+            const PrintObjectConfig &ocfg = object->config();
+            // Mirror PrintObject::has_belt_brim(): an inner-only brim needs a positive
+            // brim_width (leading/extra widen only the outer ring), so keep this
+            // predicate in step or the belt-brim warnings below would fire for a brim
+            // that has_belt_brim() rejects.
+            const bool wants_brim = ocfg.brim_type != btNoBrim
+                                 && (ocfg.brim_type == btInnerOnly
+                                         ? ocfg.brim_width.value > 0.
+                                         : (ocfg.brim_width.value > 0. || ocfg.leading_brim_length.value > 0.
+                                            || ocfg.extra_brim_width.value > 0.));
+            if (! wants_brim)
+                continue;
+
+            if (! this->has_tilted_belt()) {
+                if (std::abs(m_config.belt_slice_rotation_angle.value) > BELT_BRIM_MAX_TILT_DEG)
+                    warn(L("The belt is too steep for a brim, so no brim will be generated."),
+                         "brim_width", object->model_object());
+                else
+                    warn(L("A brim is only generated when the belt is tilted. Set a belt tilt angle, "
+                           "or remove the brim setting."),
+                         "brim_type", object->model_object());
+            }
+
+            if (ocfg.brim_type == btAutoBrim || ocfg.brim_type == btEar || ocfg.brim_type == btPainted)
+                warn(L("Belt printers support outer and inner brim only. Auto, Mouse ear and Painted "
+                       "brim are printed as Outer brim only, using Brim width."),
+                     "brim_type", object->model_object());
+
+            if (ocfg.leading_brim_length.value > 0. && ocfg.brim_object_gap.value > 0.)
+                warn(L("Brim-object gap separates the leading brim from the object's leading edge, "
+                       "which is the edge it is meant to anchor. Set the gap to 0 when using leading "
+                       "brim length."),
+                     "brim_object_gap", object->model_object());
+        }
+        if (this->has_belt_brim() && m_objects.size() > 1)
+            warn(L("Leading brim length extends ahead of each object along the belt, and Arrange does "
+                   "not reserve that space. Leave room between objects."),
+                 "leading_brim_length");
+    } else {
+        // "Leading edge only" describes where a part meets a moving belt, so it has no
+        // meaning on a fixed bed.  Brim.cpp prints it as an ordinary outer brim rather
+        // than silently producing nothing; say so.
+        for (const PrintObject *object : m_objects)
+            if (object->config().brim_type == btLeadingEdgeOnly)
+                warn(L("\"Leading edge only\" brim applies to belt printers. On this printer it is "
+                       "printed as an ordinary outer brim."),
+                     "brim_type", object->model_object());
+    }
+
     // Orca: a gradient mixed filament only renders its gradient with "Mixed color sublayer" on;
     // without it ToolOrdering::resolve_mixed_filaments prints one whole component per layer and
     // the gradient is dropped silently. extruders() already covers painting, height ranges,
@@ -1868,6 +2272,40 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         }
     }
 
+    if (m_config.belt_printer.value && m_config.enable_belt_purge_tower.value
+        && m_config.print_sequence == PrintSequence::ByObject
+        && extruders.size() > 1) {
+        StringObjectException warningtemp;
+        warningtemp.string     = L("The belt purge tower is not generated in \"By object\" print sequence; "
+                                   "filament changes will not be purged.");
+        warningtemp.opt_key    = "enable_belt_purge_tower";
+        warningtemp.is_warning = true;
+        add_warning(warningtemp);
+    }
+
+    // The purge tower is a model object the GUI creates and sizes; libslic3r only purges
+    // into one that exists. A project sliced without it (the CLI on a project saved before
+    // the tower was generated) changes filament with nowhere to purge.
+    if (m_config.belt_printer.value && m_config.enable_belt_purge_tower.value
+        && m_config.print_sequence != PrintSequence::ByObject
+        && ! m_config.spiral_mode.value && this->object_extruders().size() > 1 && ! this->has_belt_purge_tower()) {
+        StringObjectException warningtemp;
+        warningtemp.string     = L("The belt purge tower is enabled but the project has no purge tower object; "
+                                   "filament changes will not be purged. Open the project in the application "
+                                   "to generate the tower.");
+        warningtemp.opt_key    = "enable_belt_purge_tower";
+        warningtemp.is_warning = true;
+        add_warning(warningtemp);
+    }
+
+    if (m_config.belt_printer.value && m_config.enable_belt_purge_tower.value) {
+        const size_t prism_count = std::count_if(m_objects.begin(), m_objects.end(), [](const PrintObject *object) {
+            return object->config().belt_purge_tower_object.value;
+        });
+        if (prism_count > 1)
+            return {L("The project contains multiple managed belt purge towers. Reload the plate or toggle the belt purge tower off and on to regenerate it.")};
+    }
+
     if (m_config.enable_prime_tower) {
         for (const PrintObject* object : m_objects) {
             if (object->config().precise_z_height.value) {
@@ -1921,34 +2359,62 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         return profile;
     };
 
-    // Checks that the print does not exceed the max print height
+    // Checks that the print does not exceed the max print height.
+    // For belt printers the slicing-frame Z spans the sheared X-length and
+    // is not comparable to printable_height (which is gantry clearance in the
+    // build-volume frame).  Compare against the model's pre-shear Z instead,
+    // mirroring the bbox computed in PrintObject::update_slicing_parameters.
+    // The machine-frame transform only changes how that height is written to
+    // G-code, not how much room there is under the gantry.
+    const bool belt_printer = this->config().belt_printer.value;
+    const double shrinkage_compensation_z = this->shrinkage_compensation().z();
     for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx) {
         const PrintObject &print_object = *m_objects[print_object_idx];
-        //FIXME It is quite expensive to generate object layers just to get the print height!
-        if (auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.config().precise_z_height.value);
-            !layers.empty()) {
 
-            Vec3d test =this->shrinkage_compensation();
-            const double shrinkage_compensation_z = this->shrinkage_compensation().z();
-            
-            if (shrinkage_compensation_z != 1. && layers.back() > (this->config().printable_height / shrinkage_compensation_z + EPSILON)) {
-                // The object exceeds the maximum build volume height because of shrinkage compensation.
-                return StringObjectException{
-                    Slic3r::format(_u8L("While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."), print_object.model_object()->name),
-                    print_object.model_object(),
-                    ""
-                };
-            } else if (layers.back() > this->config().printable_height + EPSILON) {
-                // Test whether the last slicing plane is below or above the print volume.
-                return StringObjectException{
-                    0.5 * (layers[layers.size() - 2] + layers.back()) > this->config().printable_height + EPSILON ?
-                    Slic3r::format(_u8L("The object %1% exceeds the maximum build volume height."), print_object.model_object()->name) :
-                    Slic3r::format(_u8L("While the object %1% itself fits the build volume, its last layer exceeds the maximum build volume height."), print_object.model_object()->name) +
-                    " " + _u8L("You might want to reduce the size of your model or change current print settings and retry."),
-                    print_object.model_object(),
-                    ""
-                };
+        double effective_max_z       = 0;
+        bool   last_layer_below_max  = false;
+        bool   have_height           = false;
+
+        if (belt_printer) {
+            const double raw_z = print_object.model_object()->max_z();
+            effective_max_z = raw_z;
+            have_height     = raw_z > 0;
+        } else {
+            //FIXME It is quite expensive to generate object layers just to get the print height!
+            auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.config().precise_z_height.value);
+            if (!layers.empty()) {
+                // The object layers start above the raft.
+                const double raft_z  = print_object.slicing_parameters().object_print_z_min;
+                effective_max_z      = raft_z + layers.back();
+                last_layer_below_max = layers.size() >= 2 &&
+                    raft_z + 0.5 * (layers[layers.size() - 2] + layers.back()) <= this->config().printable_height + EPSILON;
+                have_height          = true;
             }
+        }
+
+        if (!have_height)
+            continue;
+
+        // The layers of a regular printer already carry the Z shrinkage compensation, the belt height does not.
+        const double compensated_max_z   = belt_printer ? effective_max_z * shrinkage_compensation_z : effective_max_z;
+        const double uncompensated_max_z = belt_printer ? effective_max_z : print_object.slicing_parameters().object_print_z_uncompensated_max;
+        if (shrinkage_compensation_z != 1. && compensated_max_z > this->config().printable_height + EPSILON &&
+            uncompensated_max_z <= this->config().printable_height + EPSILON) {
+            // The object exceeds the maximum build volume height because of shrinkage compensation.
+            return StringObjectException{
+                Slic3r::format(_u8L("While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."), print_object.model_object()->name),
+                print_object.model_object(),
+                ""
+            };
+        } else if (effective_max_z > this->config().printable_height + EPSILON) {
+            return StringObjectException{
+                last_layer_below_max ?
+                Slic3r::format(_u8L("While the object %1% itself fits the build volume, its last layer exceeds the maximum build volume height."), print_object.model_object()->name) +
+                " " + _u8L("You might want to reduce the size of your model or change current print settings and retry.") :
+                Slic3r::format(_u8L("The object %1% exceeds the maximum build volume height."), print_object.model_object()->name),
+                print_object.model_object(),
+                ""
+            };
         }
     }
 
@@ -1969,12 +2435,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                     return {_u8L("Variable layer height is not supported with Organic supports.") };
         }
 
-    if (this->has_wipe_tower() && ! m_objects.empty()) {
+    if ((this->has_wipe_tower() || this->has_belt_purge_tower()) && ! m_objects.empty()) {
         // Orca: wipe_tower_filament (issue #10971) is inserted into the tool order after
         // resolve_mixed_filaments has expanded every mixed (virtual) slot, so a mixed slot here
         // would reach the G-code as a tool change to a slot no nozzle carries. The GUI hides
         // mixed slots from the option; this guards loaded projects and the CLI.
-        if (m_config.wipe_tower_filament > 0) {
+        if (this->has_wipe_tower() && m_config.wipe_tower_filament > 0) {
             const auto  &is_mixed = m_config.filament_is_mixed.values;
             const size_t wipe_idx = size_t(m_config.wipe_tower_filament - 1);
             if (wipe_idx < is_mixed.size() && is_mixed[wipe_idx])
@@ -1996,12 +2462,17 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 }
         }
 
-        if (! m_config.use_relative_e_distances)
-            return { L("The Wipe Tower is currently only supported with the relative extruder addressing (use_relative_e_distances=1).") };
+        // The following two constraints come from the classic wipe tower G-code
+        // generator; purging into the belt purge prism uses normal object
+        // extrusions and does not need them.
+        if (this->has_wipe_tower()) {
+            if (! m_config.use_relative_e_distances)
+                return { L("The Wipe Tower is currently only supported with the relative extruder addressing (use_relative_e_distances=1).") };
 
-        if (m_config.ooze_prevention && m_config.single_extruder_multi_material)
-            return {L("Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off.")};
-            
+            if (m_config.ooze_prevention && m_config.single_extruder_multi_material)
+                return {L("Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off.")};
+        }
+
 #if 0
         if (m_config.gcode_flavor != gcfRepRapSprinter && m_config.gcode_flavor != gcfRepRapFirmware &&
             m_config.gcode_flavor != gcfRepetier && m_config.gcode_flavor != gcfMarlinLegacy && m_config.gcode_flavor != gcfMarlinFirmware)
@@ -2229,7 +2700,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             for (const PrintRegion &region : object->all_regions()) {
                 const auto &bridge_width_opt = region.config().bridge_line_width;
                 for (FlowRole bridge_role : { frPerimeter, frInfill, frSolidInfill, frTopSolidInfill }) {
-                    const double nozzle_diameter = m_config.nozzle_diameter.get_at(region.extruder(bridge_role) - 1);
+                    const double nozzle_diameter = nozzle_diameter_for_filament(m_config, region.extruder(bridge_role), this->is_BBL_printer());
                     const double bridge_width    = bridge_width_opt.get_abs_value(nozzle_diameter);
                     if (bridge_width <= 0.)
                         continue;
@@ -2606,7 +3077,7 @@ Flow Print::brim_flow() const
         frPerimeter,
         // Flow::new_from_config_width takes care of the percent to value substitution
 		width,
-        (float)m_config.nozzle_diameter.get_at(m_print_regions.front()->config().outer_wall_filament_id-1),
+        (float)nozzle_diameter_for_filament(m_config, m_print_regions.front()->config().outer_wall_filament_id, this->is_BBL_printer()),
 		(float)this->skirt_first_layer_height());
 }
 
@@ -2623,12 +3094,13 @@ Flow Print::skirt_flow() const
        extruders and take the one with, say, the smallest index;
        The same logic should be applied to the code that selects the extruder during G-code
        generation as well. */
-    return Flow::new_from_config_width(frPerimeter,
-                                       // Flow::new_from_config_width takes care of the percent to value substitution
-                                       width,
-                                       (float) m_config.nozzle_diameter.get_at(
-                                           m_objects.empty() ? 0 : m_objects.front()->config().support_filament - 1),
-                                       (float) this->skirt_first_layer_height());
+    return Flow::new_from_config_width(
+        frPerimeter,
+        // Flow::new_from_config_width takes care of the percent to value substitution
+        width,
+        // ORCA: resolve the actual nozzle the support filament is printed with (dual-nozzle printers).
+        (float)nozzle_diameter_for_filament(m_config, m_objects.empty() ? 0 : m_objects.front()->config().support_filament, this->is_BBL_printer()),
+        (float)this->skirt_first_layer_height());
 }
 
 bool Print::has_support_material() const
@@ -2678,6 +3150,15 @@ void  PrintObject::clear_shared_object()
 void  PrintObject::copy_layers_from_shared_object()
 {
     if (m_shared_object) {
+        // Orca: Print::process() calls this once per slice for each sharing object, after clear_shared_object() has
+        // emptied any earlier alias, so the vectors hold only layers this object sliced itself before it started sharing
+        // (or nothing). Free them here, as clear_support_layers() / clear_layers() would; those skip deletion while
+        // m_shared_object is set. The belt-only data they also free is always empty here, because belt printers never
+        // share layers.
+        for (SupportLayer *layer : m_support_layers)
+            delete layer;
+        for (Layer *layer : m_layers)
+            delete layer;
         m_layers.clear();
         m_support_layers.clear();
 
@@ -2727,8 +3208,28 @@ BoundingBox PrintObject::get_first_layer_bbox(float& a, float& layer_height, std
             a += area(slice);
         }
     }
-    if (has_brim())
+    // Guard on `defined`: make_brim() can return before assigning this (it does on
+    // belt printers, where has_brim() is still true but the plate brim is skipped),
+    // and overwriting a valid bbox with an undefined one corrupted the first-layer
+    // centre and the GUI's first-layer area readout.
+    if (has_brim() && firstLayerObjectBrimBoundingBox.defined)
         bbox = firstLayerObjectBrimBoundingBox;
+    // Belt brim: the apron reaches ahead of the object along the belt.
+    if (has_belt_brim()) {
+        const Point shift = instances().empty() ? Point(0, 0) : instances()[0].shift_without_plate_offset();
+        for (const ExPolygons &areas : m_belt_brim_areas_by_layer)
+            for (const ExPolygon &ex : areas) {
+                BoundingBox bb = get_extents(ex.contour);
+                bb.translate(shift.x(), shift.y());
+                bbox.merge(bb);
+            }
+        for (const BeltBrimBand &band : m_belt_brim_prologue)
+            for (const ExPolygon &ex : band.areas) {
+                BoundingBox bb = get_extents(ex.contour);
+                bb.translate(shift.x(), shift.y());
+                bbox.merge(bb);
+            }
+    }
     return bbox;
 }
 
@@ -2770,10 +3271,27 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     name_tbb_thread_pool_threads_set_locale();
 
+    // IMEX firmware-managed zones: settle the emission-frame shift from the applied config
+    // before anything runs. Zero for every printer that is not IMEX + firmware-managed.
+    this->update_imex_slice_offset();
+
     //compute the PrintObject with the same geometries
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, enter, use_cache=%2%, object size=%3%")%this%use_cache%m_objects.size();
     if (m_objects.empty())
         return;
+
+    // Belt purge prism: _plan_belt_purge() (psWipeTower) truncates the prism's
+    // layers and drops its unclaimed fills, stashing both so a replan can undo
+    // them. The object steps below regenerate per-layer content over m_layers
+    // ONLY, so if any of them is about to rerun the stashes must go back first;
+    // otherwise truncated layers keep stale perimeters/fills and dropped fills
+    // are re-inserted next to freshly generated ones. Every object-step
+    // invalidation also invalidates psWipeTower, so "psWipeTower not done" is
+    // exactly "some object step may rerun" -- and when it IS done nothing below
+    // regenerates, and the plan's edits have to stay.
+    if (!this->is_step_done(psWipeTower))
+        for (PrintObject *obj : m_objects)
+            obj->belt_undo_purge_plan();
 
     {
         LifecycleEventContext ctx;
@@ -2836,15 +3354,20 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     int object_count = m_objects.size();
     std::set<PrintObject*> need_slicing_objects;
     std::set<PrintObject*> re_slicing_objects;
+    // Belt global modes couple each object's bed position into its layer Z values,
+    // so sharing layers between "identical" objects is wrong.
+    bool belt_no_share = m_config.belt_printer.value;
     if (!use_cache) {
         for (int index = 0; index < object_count; index++)
         {
             PrintObject *obj =  m_objects[index];
-            for (PrintObject *slicing_obj : need_slicing_objects)
-            {
-                if (is_print_object_the_same(obj, slicing_obj)) {
-                    obj->set_shared_object(slicing_obj);
-                    break;
+            if (!belt_no_share) {
+                for (PrintObject *slicing_obj : need_slicing_objects)
+                {
+                    if (is_print_object_the_same(obj, slicing_obj)) {
+                        obj->set_shared_object(slicing_obj);
+                        break;
+                    }
                 }
             }
             if (!obj->get_shared_object())
@@ -2863,12 +3386,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             PrintObject *obj =  m_objects[index];
             bool found_shared = false;
             if (need_slicing_objects.find(obj) == need_slicing_objects.end()) {
-                for (PrintObject *slicing_obj : need_slicing_objects)
-                {
-                    if (is_print_object_the_same(obj, slicing_obj)) {
-                        obj->set_shared_object(slicing_obj);
-                        found_shared = true;
-                        break;
+                if (!belt_no_share) {
+                    for (PrintObject *slicing_obj : need_slicing_objects)
+                    {
+                        if (is_print_object_the_same(obj, slicing_obj)) {
+                            obj->set_shared_object(slicing_obj);
+                            found_shared = true;
+                            break;
+                        }
                     }
                 }
                 if (!found_shared) {
@@ -2991,7 +3516,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 for (int i = range.begin(); i < range.end(); i++) {
                     PrintObject* obj = m_objects[i];
                     if (need_slicing_objects.count(obj) != 0) {
-                        obj->generate_support_material();
+                        // The belt brim follows sequentially below.
+                        obj->generate_support_material(false);
                     }
                     else {
                         if (obj->set_started(posSupportMaterial))
@@ -3000,6 +3526,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 }
             }
         );
+        // The belt brim keeps clear of every object's layers and support layers,
+        // so it runs once no support step is rebuilding them any more.
+        for (PrintObject *obj : m_objects)
+            obj->generate_belt_brim();
 
         if (m_pipeline_plugin_active)
             for (size_t i = 0; i < m_objects.size(); ++i)
@@ -3076,7 +3606,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         m_wipe_tower_data.clear();
         m_tool_ordering.clear();
-        if (this->has_wipe_tower()) {
+        if (this->has_belt_purge_tower() && this->config().print_sequence != PrintSequence::ByObject) {
+            this->_plan_belt_purge();
+        }
+        else if (this->has_wipe_tower()) {
             this->_make_wipe_tower();
         }
         else if (this->config().print_sequence != PrintSequence::ByObject) {
@@ -3084,7 +3617,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             m_tool_ordering = ToolOrdering(*this, -1, false);
             m_tool_ordering.sort_and_build_data(*this, -1, false);
             if (m_tool_ordering.empty() || m_tool_ordering.last_extruder() == unsigned(-1))
-                throw Slic3r::SlicingError("The print is empty. The model is not printable with current print settings.");
+                throw Slic3r::SlicingError(L("The print is empty. The model is not printable with current print settings."));
 
         }
         this->set_done(psWipeTower);
@@ -3316,7 +3849,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         // Orca: Build both the old object-keyed brim map and the per-instance
         // maps used by skirt/brim groups.
         m_brimMap.clear();
+        m_brimFilamentMap.clear();
         m_brimMapByInstance.clear();
+        for (const auto& [object_id, filament] : objPrintVec)
+            if (filament > 0)
+                m_brimFilamentMap.emplace(object_id, filament - 1);
         m_first_layer_convex_hull.points.clear();
         if (this->has_brim()) {
             Polygons islands_area;
@@ -3330,6 +3867,26 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
 
 
+        // Belt brim: bound the first-layer convex hull by the lowest apron band, so
+        // bed levelling and the initial purge line account for brim that reaches
+        // ahead of every object.
+        if (this->has_belt_brim()) {
+            for (PrintObject *object : m_objects) {
+                if (! object->has_belt_brim() || object->belt_brim_prologue().empty())
+                    continue;
+                const BeltBrimBand &lowest = object->belt_brim_prologue().front();
+                for (const PrintInstance &instance : object->instances())
+                    for (const ExPolygon &ex : lowest.areas) {
+                        Polygon poly = ex.contour;
+                        poly.translate(instance.shift);
+                        append(m_first_layer_convex_hull.points, std::move(poly.points));
+                    }
+            }
+        }
+
+        // Unchanged for belt printers: _make_skirt() already returns early for them, and
+        // the belt brim does not populate m_brimMapByInstance, which is what the
+        // skirt/brim grouping reads.
         if (has_skirt() || has_infinite_skirt() || has_brim()) {
             // Generate skirt/brim groups after brim so per-object and draft-shield footprints
             // include brims when grouping and offsetting skirt loops.
@@ -3433,12 +3990,26 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     this->set_status(80, message);
 
     // The following line may die for multiple reasons.
-    GCode gcode;
+    // Factory: use BeltGCode for belt printers, plain GCode otherwise.
+    std::unique_ptr<GCode> gcode;
+    if (m_config.belt_printer.value)
+        gcode = std::make_unique<BeltGCode>();
+    else
+        gcode = std::make_unique<GCode>();
     //BBS: compute plate offset for gcode-generator
     const Vec3d origin = this->get_plate_origin();
-    gcode.set_gcode_offset(origin(0), origin(1));
-    gcode.do_export(this, path.c_str(), result, thumbnail_cb);
-    gcode.export_layer_filaments(result);
+    // IMEX firmware-managed zones: writer offset gets the IMEX shift so emitted gcode is
+    // centered at bed origin; processor offset stays at plate_origin so the gcode-preview
+    // visualizer renders the centered slice at the bed center rather than the prepare-view
+    // zone placement. Both arms reduce to set_gcode_offset() semantics when shift is zero.
+    // Derived here rather than read as pushed-in state, so an exporter reached without a
+    // preceding process() (or after a config change that only invalidated psGCodeExport)
+    // still emits in the frame the current config asks for.
+    this->update_imex_slice_offset();
+    const Vec2d imex_off = this->get_imex_slice_offset();
+    gcode->set_gcode_offset_with_imex_shift(origin(0), origin(1), imex_off.x(), imex_off.y());
+    gcode->do_export(this, path.c_str(), result, thumbnail_cb);
+    gcode->export_layer_filaments(result);
     //BBS
     if (result != nullptr) {
         result->conflict_result = m_conflict_result;
@@ -3453,6 +4024,10 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
 
 void Print::_make_skirt()
 {
+    // Belt printer: skirt is not compatible.
+    if (m_config.belt_printer.value)
+        return;
+  
     const bool generate_skirt = this->has_skirt() || this->has_infinite_skirt();
 
     // First off we need to decide how tall the skirt must be.
@@ -3706,7 +4281,22 @@ void Print::_make_skirt()
             }
         }
 
-        auto make_brims_for_skirt_brim_group = [this](const std::vector<ObjectInstanceID>& group_instances) {
+        std::vector<std::vector<BedExcludeRegion>> brim_exclusion_regions;
+        if (has_bed_exclude_volumes(m_config)) {
+            brim_exclusion_regions = translated_bed_exclusion_volumes_by_extruder(*this);
+            for (std::vector<BedExcludeRegion> &regions : brim_exclusion_regions)
+                regions.erase(std::remove_if(regions.begin(), regions.end(),
+                    [](const BedExcludeRegion &region) { return !region.is_collision_volume(); }), regions.end());
+        }
+        const bool has_brim_exclusions = std::any_of(
+            brim_exclusion_regions.begin(), brim_exclusion_regions.end(),
+            [](const std::vector<BedExcludeRegion> &regions) { return !regions.empty(); });
+        const bool has_nozzle_specific_brim_exclusions = has_brim_exclusions &&
+            active_bed_exclude_volume_mode(m_config) != BedExcludeVolumeMode::Shared;
+
+        auto make_brims_for_skirt_brim_group =
+            [this, &brim_exclusion_regions, has_nozzle_specific_brim_exclusions]
+            (const std::vector<ObjectInstanceID>& group_instances) {
             std::vector<SkirtBrimGroup::Brim> brims;
             std::vector<ObjectInstanceID> brim_instances;
             for (const ObjectInstanceID& instance : group_instances) {
@@ -3715,10 +4305,31 @@ void Print::_make_skirt()
                     brim_instances.push_back(instance);
             }
 
+            auto brim_filament = [this](const ObjectInstanceID& instance) -> std::optional<unsigned int> {
+                const auto it = m_brimFilamentMap.find(instance.object_id);
+                return it == m_brimFilamentMap.end() ? std::nullopt :
+                    std::optional<unsigned int>(it->second);
+            };
+            auto compatible_brim_nozzles =
+                [this, &brim_filament, &brim_exclusion_regions, has_nozzle_specific_brim_exclusions]
+                (const ObjectInstanceID& first, const ObjectInstanceID& second) {
+                    if (!has_nozzle_specific_brim_exclusions)
+                        return true;
+                    const std::optional<unsigned int> first_filament = brim_filament(first);
+                    const std::optional<unsigned int> second_filament = brim_filament(second);
+                    return first_filament.has_value() && second_filament.has_value() &&
+                        bed_exclusion_physical_extruders(
+                            *this, { *first_filament, *second_filament },
+                            brim_exclusion_regions.size(), 0).size() == 1;
+                };
+
             const bool combine_group_brims = m_config.combine_brims && brim_instances.size() > 1;
             if (!combine_group_brims) {
-                for (const ObjectInstanceID& instance : brim_instances)
-                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
+                for (const ObjectInstanceID& instance : brim_instances) {
+                    const std::optional<unsigned int> filament = brim_filament(instance);
+                    if (filament.has_value())
+                        brims.push_back({ m_brimMapByInstance.at(instance), { instance }, *filament });
+                }
                 return brims;
             }
 
@@ -3746,6 +4357,7 @@ void Print::_make_skirt()
                 for (size_t j = i + 1; j < brim_instances.size(); ++j) {
                     const auto area_j = m_objectBrimAreasByInstance.find(brim_instances[j]);
                     if (area_j != m_objectBrimAreasByInstance.end() &&
+                        compatible_brim_nozzles(brim_instances[i], brim_instances[j]) &&
                         !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
                         unite_brims(i, j);
                 }
@@ -3756,9 +4368,12 @@ void Print::_make_skirt()
                 combined_brim_ids[find_brim_parent(i)].push_back(brim_instances[i]);
 
             for (const auto& [_, instances] : combined_brim_ids) {
+                const std::optional<unsigned int> filament = brim_filament(instances.front());
+                if (!filament.has_value())
+                    continue;
                 if (instances.size() == 1) {
                     const ObjectInstanceID& instance = instances.front();
-                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance }, *filament });
                     continue;
                 }
 
@@ -3770,8 +4385,26 @@ void Print::_make_skirt()
                 const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
                 combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
 
+                // The group has one known physical nozzle. Clip after union and
+                // cleanup so the geometry consumed by path generation remains
+                // valid for the exact filament recorded on the combined brim.
+                const std::vector<size_t> physical_extruders = bed_exclusion_physical_extruders(
+                    *this, { *filament }, brim_exclusion_regions.size(), 0);
+                const coord_t width_spacing_delta = std::max<coord_t>(
+                    0, brim_flow().scaled_width() - brim_flow().scaled_spacing());
+                const coord_t exclusion_clearance =
+                    (width_spacing_delta + 1) / 2 + coord_t(SCALED_EPSILON);
+                const ExPolygons exclusions = active_bed_exclusion_footprints(
+                    brim_exclusion_regions, physical_extruders, 0.0,
+                    std::max(0.0, skirt_first_layer_height()), Point(0, 0), exclusion_clearance);
+                if (!exclusions.empty())
+                    combined_area = diff_ex(combined_area, exclusions);
+                if (combined_area.empty())
+                    continue;
+
                 Polygons islands_area;
-                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), instances });
+                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area),
+                                  instances, *filament });
             }
 
             return brims;
@@ -3843,9 +4476,11 @@ Points Print::first_layer_wipe_tower_corners(bool check_wipe_tower_existance) co
                                    Vec2d(pt0.x(),pt0.y()+depth)
                                  };
 
-        // Now the stabilization cone.
+        // Now the stabilization cone, which only a Type2 tower with a cone wall prints.
         Vec2d center = (pts[0] + pts[2])/2.;
-        const auto [cone_R, cone_x_scale] = WipeTower2::get_wipe_tower_cone_base(m_config.prime_tower_width, m_wipe_tower_data.height, m_wipe_tower_data.depth, m_config.wipe_tower_cone_angle);
+        const bool   has_cone   = wipe_tower_type() == WipeTowerType::Type2 && m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwCone;
+        const double cone_angle = has_cone ? m_config.wipe_tower_cone_angle.value : 0.;
+        const auto [cone_R, cone_x_scale] = WipeTower2::get_wipe_tower_cone_base(m_config.prime_tower_width, m_wipe_tower_data.height, m_wipe_tower_data.depth, cone_angle);
         double r = cone_R + m_wipe_tower_data.brim_width;
         for (double alpha = 0.; alpha<2*M_PI; alpha += M_PI/20.)
             pts.emplace_back(center + r*Vec2d(std::cos(alpha)/cone_x_scale, std::sin(alpha)));
@@ -3860,14 +4495,60 @@ Points Print::first_layer_wipe_tower_corners(bool check_wipe_tower_existance) co
     return corners;
 }
 
+// IMEX firmware-managed zones: derive the slice-time XY shift from the config that has
+// already been applied to this Print, so the engine never has to be told what it can work
+// out. Deriving it here rather than taking a push from PartPlate is what makes a headless
+// slice correct: the CLI builds a PartPlateList but drives no plater, so nothing ever ran
+// the GUI-side handoff and the shift silently stayed at zero while the mode G-code told the
+// firmware to fan copies out — parts in the wrong place, no diagnostic.
+//
+// Inputs, all reachable without a GUI:
+//   * m_full_print_config — the printer preset's IMEX keys, read from the full config so this
+//     sees the same values the preset holds whichever representation carries them.
+//   * the plate's `imex_parallel_mode`, read off the object config. That is the same source
+//     GCode.cpp and validate() resolve the active mode from (the plate's own config is
+//     merged into the full config before apply() by BackgroundSlicingProcess in the GUI and
+//     by CLI_Main in the CLI), so the shift can never disagree with the mode actually
+//     emitted. compute_imex_zone_layout() yields no zones for a mode the printer does not
+//     define, matching GCode.cpp's fallback to Primary for an unresolved mode name.
+//   * printable_area — the bed in PLATE-LOCAL mm. This must not be the plate's world-frame
+//     outline: translate_to_print_space() and the writer offset already subtract m_origin,
+//     so an offset carrying the plate origin would subtract it twice and put every plate
+//     but the first one a full plate stride out.
+//
+// A non-IMEX printer, or one with firmware-managed zones off, costs two bool reads and
+// keeps m_imex_slice_offset at exactly Vec2d::Zero() — which is what keeps its G-code
+// byte-identical.
+void Print::update_imex_slice_offset()
+{
+    m_imex_slice_offset = Vec2d::Zero();
+    if (!m_config.is_imex.value || !m_config.imex_firmware_managed_zones.value || m_objects.empty())
+        return;
+
+    // Already the resolved plate-or-process mode: the plate config overrides the process
+    // preset's key on the way in, exactly as PartPlate::get_imex_mode() prefers the plate.
+    const std::string& active_mode = m_objects.front()->config().imex_parallel_mode.value;
+    const ImexZoneLayout layout    = compute_imex_zone_layout(m_full_print_config, active_mode,
+                                                              std::string(),
+                                                              get_extents(m_config.printable_area.values));
+    // Empty / Primary mode and an empty layout both come back as Vec2d::Zero() here.
+    m_imex_slice_offset = compute_imex_slice_offset(true, active_mode, layout.primary_zone_box);
+}
+
 //SoftFever
+// "Print space" is the frame the emitted gcode uses. IMEX firmware-managed mode
+// shifts that frame by `m_imex_slice_offset` (the primary zone center in plate-local
+// coords) so the centered slice can be fanned out by firmware. Offset is zero in
+// every other case → identical behavior for non-firmware-managed printers.
 Vec2d Print::translate_to_print_space(const Vec2d &point) const {
     //const BoundingBoxf bed_bbox(config().printable_area.values);
-    return Vec2d(point(0) - m_origin(0), point(1) - m_origin(1));
+    return Vec2d(point(0) - m_origin(0) - m_imex_slice_offset.x(),
+                 point(1) - m_origin(1) - m_imex_slice_offset.y());
 }
 
 Vec2d Print::translate_to_print_space(const Point &point) const {
-    return Vec2d(unscaled(point.x()) - m_origin(0), unscaled(point.y()) - m_origin(1));
+    return Vec2d(unscaled(point.x()) - m_origin(0) - m_imex_slice_offset.x(),
+                 unscaled(point.y()) - m_origin(1) - m_imex_slice_offset.y());
 }
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
@@ -4501,6 +5182,13 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
 // Wipe tower support.
 bool Print::has_wipe_tower() const
 {
+    // Belt printers never get the classic wipe tower: its G-code is generated
+    // directly in machine XY coordinates and bypasses the belt rotation
+    // transform. Purging is routed into the belt purge prism instead
+    // (see has_belt_purge_tower() / _plan_belt_purge()).
+    if (m_config.belt_printer.value)
+        return false;
+
     if (m_config.enable_prime_tower.value == true) {
         if (m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2)
             return true;
@@ -4512,6 +5200,7 @@ bool Print::has_wipe_tower() const
     }
     return false;
 }
+
 
 const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 {
@@ -4541,6 +5230,7 @@ bool Print::enable_timelapse_print() const
 {
     return m_config.timelapse_type.value == TimelapseType::tlSmooth;
 }
+
 
 void Print::_make_wipe_tower()
 {
@@ -4905,13 +5595,14 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
+        // Only a cone wall prints the stabilization cone, whatever cone angle the config holds.
+        const float cone_angle = config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
+                                     static_cast<float>(config().wipe_tower_cone_angle.value) : 0.f;
         m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
                                          wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
                                          config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
                                          wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
-                                         config().wipe_tower_fillet_wall.value,
-                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwCone ?
-                                             (float) config().wipe_tower_cone_angle.value : 0.f);
+                                         config().wipe_tower_fillet_wall.value, cone_angle);
         const Vec3d origin                      = Vec3d::Zero();
         // FakeWipeTower::pos is a bed-frame translation applied after rotation
         // (getFakeExtrusionPathsFromWipeTower2 rotates about the local origin), so the
@@ -4921,7 +5612,7 @@ void Print::_make_wipe_tower()
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position() + m_fake_wipe_tower.rib_offset, wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
                                                   m_wipe_tower_data.z_and_depth_pairs, m_wipe_tower_data.brim_width,
-                                                  config().wipe_tower_rotation_angle, config().wipe_tower_cone_angle,
+                                                  config().wipe_tower_rotation_angle, cone_angle,
                                                   {scale_(origin.x()), scale_(origin.y())});
     }
 
@@ -4940,11 +5631,11 @@ void Print::_make_wipe_tower()
             BOOST_LOG_TRIVIAL(error) << boost::format("wipe tower footprint [%1%,%2%]-[%3%,%4%] leaves printable [%5%,%6%]-[%7%,%8%]") %
                 unscaled(fp.min.x()) % unscaled(fp.min.y()) % unscaled(fp.max.x()) % unscaled(fp.max.y()) %
                 unscaled(pr.min.x()) % unscaled(pr.min.y()) % unscaled(pr.max.x()) % unscaled(pr.max.y());
-            throw Slic3r::SlicingError(L("Prime Tower") + L(" is partially outside the printable area, and it cannot be printed.\n"));
+            throw Slic3r::SlicingError(L("Prime tower is partially outside the printable area, and it cannot be printed.\n"));
         }
         // The cutter/purge corner is a physical obstacle — the brim must stay out like the body.
         if (!intersection(get_bed_excluded_area(m_config), Polygons{footprint}).empty())
-            throw Slic3r::SlicingError(L("Prime Tower") + L(" is too close to an exclusion area, and collisions will be caused.\n"));
+            throw Slic3r::SlicingError(L("Prime tower is too close to an exclusion area, and collisions will be caused.\n"));
     }
 }
 
@@ -5038,6 +5729,7 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
         // (via ensure_nozzle_group_result), so the multi-nozzle send/monitor mapping survives here.
         if (result != nullptr && result->nozzle_group_result)
             processor.initialize_from_context(result->nozzle_group_result);
+        processor.configure_exclusion_volume_path_check(this->config());
         //processor.enable_producers(true);
         processor.process_file(file);
 
@@ -5059,7 +5751,8 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
             fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
         }
         throw Slic3r::RuntimeError(
-            std::string("Failed to process the G-code file ") + file + " from previous 3mf\n");
+            // TRN %1% is a file path.
+            Slic3r::format(L("Failed to process the G-code file %1% from the previous 3MF file."), file) + "\n");
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<  boost::format(":  process the G-code file %1% successfully")%file.c_str();
@@ -5073,6 +5766,31 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
         ctx.cancellation_check = [this]() { return canceled(); };
         fire_lifecycle_event(LifecycleEvent::GCodeExportFinished, ctx);
     }
+}
+
+void Print::reload_gcode_moves(GCodeProcessorResult* result) const
+{
+    GCodeProcessor processor;
+    GCodeProcessor::s_IsBBLPrinter = is_BBL_printer();
+    const Vec3d origin = this->get_plate_origin();
+    processor.set_xy_offset(origin(0), origin(1));
+    // Estimate the per-move times with the same nozzle-grouping slot context as the export.
+    if (result->nozzle_group_result)
+        processor.initialize_from_context(result->nozzle_group_result);
+    try {
+        processor.process_file(result->filename);
+    } catch (const std::exception& ex) {
+        // The edited file is what gets printed, so failing to preview it must not fail the slice.
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": cannot re-read the G-code file " << result->filename << ": " << ex.what();
+        std::lock_guard<std::mutex> lock(result->result_mutex);
+        result->lines_ends.clear();
+        return;
+    }
+
+    GCodeProcessorResult& reloaded = processor.result();
+    std::lock_guard<std::mutex> lock(result->result_mutex);
+    result->moves      = std::move(reloaded.moves);
+    result->lines_ends = std::move(reloaded.lines_ends);
 }
 
 std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
@@ -5146,44 +5864,6 @@ std::string PrintStatistics::finalize_output_path(const std::string &path_in) co
         final_path = path_in;
     }
     return final_path;
-}
-
-// Orca: Implement prusa's filament shrink compensation approach
-// Returns if all used filaments have same shrinkage compensations.
- bool Print::has_same_shrinkage_compensations() const {
-     const std::vector<unsigned int> extruders = this->extruders();
-     if (extruders.empty())
-         return false;
-
-     const double filament_shrinkage_compensation_xy = m_config.filament_shrink.get_at(extruders.front());
-     const double filament_shrinkage_compensation_z  = m_config.filament_shrinkage_compensation_z.get_at(extruders.front());
-
-     for (unsigned int extruder : extruders) {
-         if (filament_shrinkage_compensation_xy != m_config.filament_shrink.get_at(extruder) ||
-             filament_shrinkage_compensation_z  != m_config.filament_shrinkage_compensation_z.get_at(extruder)) {
-             return false;
-         }
-     }
-
-     return true;
- }
-
-// Orca: Implement prusa's filament shrink compensation approach, but amended so 100% from the user is the equivalent to 0 in orca.
- // Returns scaling for each axis representing shrinkage compensations in each axis.
-Vec3d Print::shrinkage_compensation() const
-{
-    if (!this->has_same_shrinkage_compensations())
-        return Vec3d::Ones();
-
-    const unsigned int first_extruder = this->extruders().front();
-
-    const double xy_shrinkage_percent = m_config.filament_shrink.get_at(first_extruder);
-    const double z_shrinkage_percent  = m_config.filament_shrinkage_compensation_z.get_at(first_extruder);
-
-    const double xy_compensation = 100.0 / xy_shrinkage_percent;
-    const double z_compensation  = 100.0 / z_shrinkage_percent;
-
-    return { xy_compensation, xy_compensation, z_compensation };
 }
 
 const std::string PrintStatistics::FilamentUsedG     = "filament used [g]";
@@ -6441,7 +7121,7 @@ BoundingBoxf3 PrintInstance::get_bounding_box() const {
 
 Polygon PrintInstance::get_convex_hull_2d() {
     Polygon poly = print_object->model_object()->convex_hull_2d(model_instance->get_matrix());
-    poly.douglas_peucker(scale_(0.1));
+    poly.douglas_peucker(scale_(print_object->print()->config().exclude_object_tolerance.value));
     return poly;
 }
 

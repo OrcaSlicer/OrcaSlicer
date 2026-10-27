@@ -10,7 +10,6 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include <string>
 #include <wx/string.h>
 #include "Jobs/ProgressIndicator.hpp"
 

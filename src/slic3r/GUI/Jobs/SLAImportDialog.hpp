@@ -34,13 +34,13 @@ class SLAImportDialog : public wxDialog, public SLAImportJobView
     wxComboBox       *m_import_dropdown, *m_quality_dropdown;
 
 public:
-    SLAImportDialog(Plater *plater) : wxDialog{plater, wxID_ANY, "Import SLA archive"}
+    SLAImportDialog(Plater *plater) : wxDialog{plater, wxID_ANY, _L("Import SLA archive")}
     {
         auto szvert    = new wxBoxSizer{wxVERTICAL};
         auto szfilepck = new wxBoxSizer{wxHORIZONTAL};
 
         m_filepicker = new wxFilePickerCtrl(this, wxID_ANY, from_u8(wxGetApp().app_config->get_last_dir()), _(L("Choose SLA archive:")),
-                                            "SL1 / SL1S archive files (*.sl1, *.sl1s, *.zip)|*.sl1;*.SL1;*.sl1s;*.SL1S;*.zip;*.ZIP",
+                                            _L("SL1 / SL1S archive files") + " (*.sl1, *.sl1s, *.zip)|*.sl1;*.SL1;*.sl1s;*.SL1S;*.zip;*.ZIP",
                                             wxDefaultPosition, wxDefaultSize, wxFLP_DEFAULT_STYLE | wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
         szfilepck->Add(new wxStaticText(this, wxID_ANY, _L("Import file") + ": "), 0, wxALIGN_CENTER);

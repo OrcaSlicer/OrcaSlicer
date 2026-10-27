@@ -3,6 +3,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <ios>
+#include <libslic3r/Utils.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
@@ -10,12 +11,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include "catch2/catch_message.hpp"
 #include "plugin_test_utils.hpp"
+#include "test_utils.hpp"
 
 #include <boost/filesystem.hpp>
 
 #include <fstream>
 #include <string>
+
+#include <libslic3r/Zipper.hpp>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
@@ -29,6 +34,14 @@ fs::path write_py_file(const fs::path& dir, const std::string& filename, const s
     std::ofstream out(p.string(), std::ios::binary);
     out << contents;
     return p;
+}
+
+// The shared production helper: makes the path absolute and lexically normalized and, on
+// Windows, prefixes it with the extended-length "\\?\" form, so the test can create, verify and
+// clean up a tree past MAX_PATH even with LongPathsEnabled off. Identity on other platforms.
+fs::path to_extended_path(const fs::path& p)
+{
+    return Slic3r::extended_path(p);
 }
 
 } // namespace
@@ -122,6 +135,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     state.permissions.network_http  = {"https://api.example.com"};
     state.permissions.network_socket = {"192.168.45.6:443"};
     state.permissions.process        = {"/usr/bin/curl"};
+    state.permissions.threading      = {"thread"};
     REQUIRE(write_install_state(plugin_dir, state));
 
     // Permission data is persisted in the same sidecar as the installation metadata.
@@ -132,6 +146,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     CHECK(persisted.permissions.network_http == state.permissions.network_http);
     CHECK(persisted.permissions.network_socket == state.permissions.network_socket);
     CHECK(persisted.permissions.process == state.permissions.process);
+    CHECK(persisted.permissions.threading == state.permissions.threading);
 
     // Reading the sidecar back onto a freshly-scanned descriptor (whose header version is still
     // 1.0.0) must surface the cloud-installed 1.2.0. This is what lets update_cloud_metadata compare
@@ -141,4 +156,100 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     scanned.version = "1.0.0"; // as parsed from the unchanged PEP723 header
     read_install_state(plugin_dir, scanned);
     CHECK(scanned.installed_version == "1.2.0");
+}
+
+TEST_CASE("a local plugin's installed version follows its entry file header", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("local-installed-version");
+
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    // Sidecar written when the local plugin was first installed at 1.0.0.
+    PluginInstallState state;
+    state.installed_from    = "local";
+    state.installed_version = "1.0.0";
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    // The user then edited the plugin file: the freshly scanned header says 1.1.0.
+    PluginDescriptor scanned;
+    scanned.version = "1.1.0";
+    REQUIRE(read_install_state(plugin_dir, scanned));
+    CHECK(scanned.installed_version == "1.1.0");
+}
+
+TEST_CASE("an unsubscribed cloud plugin follows its header version", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("unsubscribed-installed-version");
+
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+    fs::create_directories(plugin_dir);
+
+    // What keep_installed_plugin_as_local leaves behind: a normal local package. The sidecar still
+    // holds the version fetched from the cloud (1.2.0), but the header (1.0.0) is the source of truth.
+    PluginInstallState state;
+    state.installed_from    = "local";
+    state.installed_version = "1.2.0";
+    REQUIRE(write_install_state(plugin_dir, state));
+
+    PluginDescriptor scanned;
+    scanned.version = "1.0.0";
+    REQUIRE(read_install_state(plugin_dir, scanned));
+    CHECK(scanned.installed_version == "1.0.0");
+}
+
+TEST_CASE("extract_zip_to_directory writes entries under a destination longer than MAX_PATH",
+          "[PluginInstall][PluginFsUtils]")
+{
+    ScopedTemporaryDir dir("deep-extract");
+
+    const fs::path wheel = dir.path() / "deep_pkg-1.0-py3-none-any.whl";
+    const std::string payload = "print('hello from a deep path')\n";
+    {
+        Zipper zipper(wheel.string(), Zipper::NO_COMPRESSION);
+        zipper.add_entry("pkg/", "", 0); // explicit directory entry
+        zipper.add_entry("pkg/module.py", payload.data(), payload.size());
+        zipper.finalize();
+    }
+
+    // A single 240-char component keeps every filename below the NTFS 255 limit while pushing the
+    // full destination (temp dir + component) past the 260-char MAX_PATH the Win32 APIs enforce
+    // when LongPathsEnabled is off.
+    const fs::path destination = dir.path() / std::string(240, 'd');
+    REQUIRE(destination.string().size() > 260);
+
+    std::string error;
+    REQUIRE(extract_zip_to_directory(wheel, destination, error));
+    INFO("extract error: " << error);
+    CHECK(error.empty());
+
+    // Verify through a long-path-capable path, otherwise the check itself is bounded by MAX_PATH.
+    const fs::path module_py = destination / "pkg" / "module.py";
+    REQUIRE(fs::exists(to_extended_path(module_py)));
+    REQUIRE(fs::is_regular_file(to_extended_path(module_py)));
+
+    // Remove the deep subtree here: ScopedTemporaryDir's plain remove_all cannot reach past
+    // MAX_PATH on Windows.
+    boost::system::error_code ec;
+    fs::remove_all(to_extended_path(destination), ec);
+    CHECK_FALSE(ec);
+}
+
+TEST_CASE("extract_zip_to_directory rejects an entry that escapes the destination",
+          "[PluginInstall][PluginFsUtils]")
+{
+    ScopedTemporaryDir dir("escape-extract");
+
+    const fs::path wheel = dir.path() / "evil-1.0-py3-none-any.whl";
+    {
+        Zipper zipper(wheel.string(), Zipper::NO_COMPRESSION);
+        zipper.add_entry("pkg/module.py", "print('ok')\n", 12);
+        zipper.add_entry("../escape.txt", "escaped\n", 8);
+        zipper.finalize();
+    }
+
+    std::string error;
+    CHECK_FALSE(extract_zip_to_directory(wheel, dir.path() / "out", error));
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("escapes the plugin package"));
+    CHECK_FALSE(fs::exists(dir.path() / "escape.txt"));
 }

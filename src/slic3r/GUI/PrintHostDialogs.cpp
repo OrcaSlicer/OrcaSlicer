@@ -79,7 +79,6 @@
 #include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 
-#include <nlohmann/json.hpp>
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -818,7 +817,8 @@ void FlashforgePrintHostSendDialog::init()
     content_sizer->Add(m_flashforge_options_sizer, 0, wxEXPAND);
 
     if (m_supports_material_station)
-        m_status_text->SetLabel(wxString::Format(_L("Detected %d IFS slots on printer."), static_cast<int>(m_slots.size())));
+        m_status_text->SetLabel(wxString::Format(_L_PLURAL("Detected %d IFS slot on printer.", "Detected %d IFS slots on printer.", m_slots.size()),
+                                                 static_cast<int>(m_slots.size())));
     else
         m_status_text->SetLabel(_L("This printer does not report a material station."));
 
@@ -950,7 +950,8 @@ void FlashforgePrintHostSendDialog::load_slots()
     m_use_material_station = m_supports_material_station;
 
     if (m_supports_material_station)
-        m_status_text->SetLabel(wxString::Format(_L("Detected %d IFS slots on printer."), static_cast<int>(m_slots.size())));
+        m_status_text->SetLabel(wxString::Format(_L_PLURAL("Detected %d IFS slot on printer.", "Detected %d IFS slots on printer.", m_slots.size()),
+                                                 static_cast<int>(m_slots.size())));
     else
         m_status_text->SetLabel(_L("This printer does not report a material station."));
 }

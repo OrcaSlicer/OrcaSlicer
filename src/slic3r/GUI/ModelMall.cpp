@@ -21,7 +21,6 @@
 #include "wx/evtloop.h"
 
 #include "MainFrame.hpp"
-#include "GUI_App.hpp"
 #include "Plater.hpp"
 
 using json = nlohmann::json;

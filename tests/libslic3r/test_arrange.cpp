@@ -14,6 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
@@ -219,11 +220,39 @@ TEST_CASE("An item larger than the bed cannot be placed", "[Arrange]")
     ArrangePolygons items;
     items.emplace_back(make_square(scaled(20.)));
     items.emplace_back(make_square(scaled(400.))); // far bigger than the bed
+    // An item that cannot be placed keeps the position it came in with, so the
+    // caller can leave it where the user had it.
+    items[1].translation = {scaled(10.), scaled(20.)};
 
     arrange(items, bed(200, 200), quiet_params(scaled(1.)));
 
     REQUIRE(items[0].bed_idx == 0);
     REQUIRE(items[1].bed_idx == UNARRANGED);
+    REQUIRE(items[1].translation.x() == scaled(10.));
+    REQUIRE(items[1].translation.y() == scaled(20.));
+}
+
+TEST_CASE("An item filling the printable area is arranged", "[Arrange]")
+{
+    // The arrange bed keeps a margin from the printable area and the item is widened by
+    // its brim. Neither may keep an item that fits the printable area from being placed.
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+
+    ArrangePolygons items = squares(1, 197.);
+    items.front().brim_width = 1.;
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+    REQUIRE(items.front().bed_idx == 0);
+
+    // Larger than the printable area is still refused.
+    ArrangeParams   p_large = quiet_params();
+    ArrangePolygons large   = squares(1, 201.);
+    update_arrange_params(p_large, &cfg, large);
+    update_selected_items_inflation(large, &cfg, p_large);
+    arrange(large, get_shrink_bedpts(&cfg, p_large), p_large);
+    REQUIRE(large.front().bed_idx == UNARRANGED);
 }
 
 TEST_CASE("Items overflowing one bed spill onto virtual beds", "[Arrange]")
@@ -260,18 +289,163 @@ TEST_CASE("Arrange without final alignment keeps items disjoint", "[Arrange]")
     require_no_overlap(items);
 }
 
-TEST_CASE("Arrange aligns the pile to a custom center", "[Arrange]")
+TEST_CASE("Arrange centers a pile that fits on the custom alignment point", "[Arrange]")
 {
-    // align_center != (0.5, 0.5) selects Alignment::USER_DEFINED.
-    ArrangePolygons items  = squares(5, 30.);
+    ArrangePolygons items  = squares(4, 30.);
     ArrangeParams   params = quiet_params(scaled(2.));
     params.align_center    = Vec2d(0.3, 0.7);
 
     arrange(items, bed(250, 250), params);
 
-    for (const ArrangePolygon &ap : items)
+    BoundingBox pile;
+    for (const ArrangePolygon &ap : items) {
         REQUIRE(ap.bed_idx == 0);
+        pile.merge(ap.transformed_poly().contour.bounding_box());
+    }
+    // best_object_pos is align_center scaled to the bed.
+    const Point expected(scaled(250. * 0.3), scaled(250. * 0.7));
+    REQUIRE(std::abs(pile.center().x() - expected.x()) <= scaled(0.5));
+    REQUIRE(std::abs(pile.center().y() - expected.y()) <= scaled(0.5));
     require_no_overlap(items);
+}
+
+// A row of four 40 mm parts centred on the 30% mark of a 200 x 50 mm bed would start 24 mm
+// left of it (#15727). The pile stops at the left edge instead.
+TEST_CASE("Arrange keeps a custom-aligned pile within the bed", "[Arrange]")
+{
+    const BoundingBox bed_   = bed(200, 50);
+    ArrangePolygons   items  = squares(4, 40.);
+    ArrangeParams     params = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.3, 0.5);
+
+    arrange(items, bed_, params);
+
+    coord_t leftmost = std::numeric_limits<coord_t>::max();
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        const BoundingBox bb = ap.transformed_poly().contour.bounding_box();
+        CHECK(bed_.contains(bb));
+        leftmost = std::min(leftmost, bb.min.x());
+    }
+    // Stopped at the edge it was aimed at, not re-centred.
+    CHECK(leftmost < scaled(10.));
+    require_no_overlap(items);
+}
+
+// Arranging a selection leaves the unselected parts where they are, but the final alignment
+// centres the box around both, so the selection does not move by its own centring. The check
+// against the bed and the fixed part must test where the selection actually lands.
+TEST_CASE("Arrange keeps a selection on the bed and clear of a fixed part", "[Arrange]")
+{
+    ArrangePolygons fixed = squares(1, 40.);
+    fixed.front().translation = {scaled(80.), scaled(80.)};
+    ArrangePolygons items = squares(3, 40.);
+    for (ArrangePolygon &ap : items)
+        ap.inflation = scaled(1.);
+
+    arrange(items, fixed, bed(200, 200), quiet_params());
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    items.insert(items.end(), fixed.begin(), fixed.end());
+    require_no_overlap(items);
+}
+
+// A belt printer starts its parts at the leading end of the belt (best_object_pos 0.5, 0.05).
+// Centring a pile on a point that close to the edge pushed everything longer than the room
+// around it off the bed: four 90 mm parts on a 95 x 500 mm belt ended with one across the
+// edge and one outside, with 290 mm of belt free behind them. The pile stops at the edge.
+TEST_CASE("Arrange keeps a pile aligned near an edge on the bed", "[Arrange][belt]")
+{
+    const BoundingBox belt   = bed(95, 500);
+    ArrangePolygons   items  = squares(4, 90.);
+    ArrangeParams     params = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.5, 0.05);
+    params.is_belt           = true;
+    params.belt_axis         = 1;
+    params.belt_tilt_slope   = 1.f;
+
+    arrange(items, belt, params);
+
+    coord_t lowest = std::numeric_limits<coord_t>::max();
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        const BoundingBox bb = ap.transformed_poly().contour.bounding_box();
+        CHECK(belt.contains(bb));
+        lowest = std::min(lowest, bb.min.y());
+    }
+    // Snapped to the edge it was aimed at, less the spacing margin, not re-centred.
+    CHECK(lowest < scaled(10.));
+    require_no_overlap(items);
+}
+
+// Flat-bed printers with an off-centre best_object_pos (the A1 mini and the H2 family) get
+// the same clamp: centring the pile on that point used to push it off the bed (#15727).
+TEST_CASE("Arrange keeps a flat-bed pile aligned near an edge on the bed", "[Arrange]")
+{
+    const BoundingBox bed_   = bed(95, 500);
+    ArrangePolygons   items  = squares(4, 90.);
+    ArrangeParams     params = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.5, 0.05);
+
+    arrange(items, bed_, params);
+
+    coord_t lowest = std::numeric_limits<coord_t>::max();
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        const BoundingBox bb = ap.transformed_poly().contour.bounding_box();
+        CHECK(bed_.contains(bb));
+        lowest = std::min(lowest, bb.min.y());
+    }
+    // Stopped at the edge it was aimed at, not re-centred.
+    CHECK(lowest < scaled(10.));
+    require_no_overlap(items);
+}
+
+// On a belt the parts print in belt order, so two colours that alternate along the
+// belt, or sit side by side, cost a filament change on every shared layer. Arrange
+// keeps each colour together: no part shares belt length with a part of another
+// colour, counting the tilted layers that run cot(angle) * height past its far edge,
+// whichever end of the belt prints first.
+TEST_CASE("Arrange groups the colours of a belt print along the belt", "[Arrange][belt]")
+{
+    const bool reversed = GENERATE(false, true);
+    CAPTURE(reversed);
+    const BoundingBox belt   = bed(95, 500);
+    ArrangePolygons   items  = squares(6, 30., 20.);
+    for (size_t i = 0; i < items.size(); ++i)
+        items[i].extrude_ids = { int(i % 3) + 1 };   // three colours, two parts each
+    ArrangeParams params     = quiet_params(scaled(2.));
+    params.align_center      = Vec2d(0.5, 0.05);
+    params.is_belt           = true;
+    params.belt_axis         = 1;
+    params.belt_reversed     = reversed;
+    params.belt_tilt_slope   = 1.f;   // 45 degrees
+
+    arrange(items, belt, params);
+    require_no_overlap(items);
+
+    // Belt position in print order, so the same check serves both directions.
+    const coord_t dir = reversed ? -1 : 1;
+    auto start = [&](const ArrangePolygon &ap) { const BoundingBox bb = ap.transformed_poly().contour.bounding_box(); return dir * (reversed ? bb.max.y() : bb.min.y()); };
+    auto end   = [&](const ArrangePolygon &ap) { const BoundingBox bb = ap.transformed_poly().contour.bounding_box(); return dir * (reversed ? bb.min.y() : bb.max.y()) + scaled(ap.height * params.belt_tilt_slope); };
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        CHECK(belt.contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    for (const ArrangePolygon &a : items)
+        for (const ArrangePolygon &b : items) {
+            if (a.extrude_ids == b.extrude_ids)
+                continue;
+            // The part printed later starts after the earlier one has finished.
+            const coord_t earlier_end = start(a) <= start(b) ? end(a) : end(b);
+            const coord_t later_start = std::max(start(a), start(b));
+            INFO("colour " << a.extrude_ids.front() << " vs " << b.extrude_ids.front());
+            CHECK(earlier_end <= later_start);
+        }
 }
 
 TEST_CASE("Sequential print floors the object distance by object height", "[Arrange]")
@@ -330,4 +504,72 @@ TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")
 
     update_selected_items_inflation(items, &cfg, p);
     CHECK(p.min_obj_distance == 0);
+}
+
+TEST_CASE("Bed exclusions apply by physical nozzle and overlapping Z range", "[Arrange][ExclusionVolume][MultiNozzle]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.has_z_range = true;
+    object.z_min = 0.0;
+    object.z_max = 20.0;
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon exclusion = make_square(scaled(20.));
+    exclusion.is_bed_exclusion = true;
+    exclusion.has_z_range = true;
+    exclusion.z_min = 10.0;
+    exclusion.z_max = 30.0;
+    exclusion.bed_exclusion_extruder_id = 1;
+
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    exclusion.bed_exclusion_extruder_id = 0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Empty physical-nozzle assignments mean unresolved, so arrangement stays conservative.
+    object.bed_exclusion_extruder_ids.clear();
+    CHECK(bed_exclusion_applies(object, exclusion));
+
+    object.bed_exclusion_extruder_ids = {0};
+    object.z_max = 9.0;
+    CHECK_FALSE(bed_exclusion_applies(object, exclusion));
+
+    // Touching at one Z plane is intentionally treated as a collision.
+    object.z_max = 10.0;
+    CHECK(bed_exclusion_applies(object, exclusion));
+}
+
+TEST_CASE("Shared bed exclusions apply to every arranged object", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon object = make_square(scaled(20.));
+    object.bed_exclusion_extruder_ids = {1};
+
+    ArrangePolygon shared = make_square(scaled(20.));
+    shared.is_bed_exclusion = true;
+    shared.bed_exclusion_extruder_id = -1;
+
+    CHECK(has_bed_exclusion_regions({shared}));
+    CHECK_FALSE(has_bed_exclusion_regions({object}));
+    CHECK(bed_exclusion_applies(object, shared));
+}
+
+TEST_CASE("Arrange keeps relevant objects outside conditional exclusion obstacles", "[Arrange][ExclusionVolume]")
+{
+    ArrangePolygon exclusion = make_square(scaled(30.));
+    exclusion.translation = Vec2crd(scaled(35.0), scaled(35.0));
+    exclusion.is_bed_exclusion = true;
+    exclusion.bed_exclusion_extruder_id = 0;
+
+    ArrangePolygons items = squares(4, 20.0);
+    for (ArrangePolygon &item : items)
+        item.bed_exclusion_extruder_ids = {0};
+
+    arrange(items, {exclusion}, bed(100.0, 100.0), quiet_params(scaled(1.0)));
+
+    const ExPolygon excluded_shape = exclusion.transformed_poly();
+    for (const ArrangePolygon &item : items) {
+        REQUIRE(item.bed_idx == 0);
+        CHECK(intersection(ExPolygons{item.transformed_poly()}, ExPolygons{excluded_shape}).empty());
+    }
+    require_no_overlap(items);
 }

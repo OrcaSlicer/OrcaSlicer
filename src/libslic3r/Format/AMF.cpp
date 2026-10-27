@@ -314,8 +314,13 @@ void AMFParserContext::startElement(const char *name, const char **atts)
     case 2:
         if (strcmp(name, "metadata") == 0) {
             if (m_path[1] == NODE_TYPE_MATERIAL || m_path[1] == NODE_TYPE_OBJECT) {
-                m_value[0] = get_attribute(atts, "type");
-                node_type_new = NODE_TYPE_METADATA;
+                const char *type = get_attribute(atts, "type");
+                if (type == nullptr)
+                    this->stop();
+                else {
+                    m_value[0] = type;
+                    node_type_new = NODE_TYPE_METADATA;
+                }
             }
         }/* else if (strcmp(name, "layer_config_ranges") == 0 && m_path[1] == NODE_TYPE_OBJECT)
                 node_type_new = NODE_TYPE_LAYER_CONFIG;*/

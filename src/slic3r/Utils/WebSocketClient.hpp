@@ -16,11 +16,6 @@
 #include <iostream>
 #include <string>
 #include <chrono>
-namespace beast = boost::beast;         // from <boost/beast.hpp>
-namespace http = beast::http;           // from <boost/beast/http.hpp>
-namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
-namespace net = boost::asio;            // from <boost/asio.hpp>
-using tcp = net::ip::tcp;               // from <boost/asio/ip/tcp.hpp>
 
 class WebSocketClient {
 public:
@@ -36,7 +31,7 @@ public:
         }
         try {
             // Close the WebSocket connection
-            ws_.close(websocket::close_code::normal);
+            ws_.close(boost::beast::websocket::close_code::normal);
         } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;
         }
@@ -49,7 +44,7 @@ public:
         auto const results = resolver_.resolve(host, port);
 
         // Make the connection on the IP address we get from a lookup
-        auto ep = net::connect(ws_.next_layer(), results);
+        auto ep = boost::asio::connect(ws_.next_layer(), results);
         std::string _host = host;
         //if _host last char is  '/', remove it
         if(_host.size()>0&&_host[host.size()-1] == '/'){
@@ -58,10 +53,10 @@ public:
 
         // _host += ':' + std::to_string(ep.port());
         // Set a decorator to change the User-Agent of the handshake
-        ws_.set_option(websocket::stream_base::decorator(
-            [](websocket::request_type& req)
+        ws_.set_option(boost::beast::websocket::stream_base::decorator(
+            [](boost::beast::websocket::request_type& req)
             {
-                req.set(http::field::user_agent,"ElegooSlicer");
+                req.set(boost::beast::http::field::user_agent,"ElegooSlicer");
             }));
         // Perform the WebSocket handshake
         ws_.handshake(_host, path);
@@ -70,25 +65,25 @@ public:
 
     void send(const std::string& message){
         // Send a message
-        ws_.write(net::buffer(message));
+        ws_.write(boost::asio::buffer(message));
     }
 
     std::string receive(int timeout = 0){
         // This buffer will hold the incoming message
-        beast::flat_buffer buffer;
+        boost::beast::flat_buffer buffer;
 
         // Read a message into our buffer
         ws_.read(buffer);
 
         // Return the message as a string
-        return beast::buffers_to_string(buffer.data());
+        return boost::beast::buffers_to_string(buffer.data());
     }
 
 
 private:
-    net::io_context ioc_;
-    tcp::resolver resolver_;
-    websocket::stream<tcp::socket> ws_;
+    boost::asio::io_context ioc_;
+    boost::asio::ip::tcp::resolver resolver_;
+    boost::beast::websocket::stream<boost::asio::ip::tcp::socket> ws_;
     bool is_connect;
 };
 

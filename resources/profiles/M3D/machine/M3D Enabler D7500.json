@@ -5,6 +5,6 @@
 	"family": "M3D",
 	"machine_tech": "FFF",
 	"nozzle_diameter": "0.4",
-	"bed_texture": "model/M3D_bed_texture.png",
+	"bed_texture": "m3d_enabler_D7500_bed_texture.svg",
 	"default_materials": "Generic PLA @System"
 }

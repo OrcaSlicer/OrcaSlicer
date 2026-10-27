@@ -2,12 +2,13 @@
 #
 # Local twin of the "Check profiles" CI job (.github/workflows/check_profiles.yml).
 #
-# Runs the same five checks, in the same order, with the same validator flags, and with the
+# Runs the same six checks, in the same order, with the same validator flags, and with the
 # same semantics: every check runs even after an earlier one fails (the workflow's
 # continue-on-error), then the script exits non-zero once at the end.
 #
-# Everything that has to be downloaded - the profile validator and the custom-preset fixture
-# archives - lands under a per-user cache directory and is reused on the next run. Being outside
+# Everything that has to be downloaded - the profile validator, the custom-preset fixture
+# archives and the v2.4.2 profile tree - lands under a per-user cache directory and is reused on
+# the next run. Being outside
 # the checkout, that directory is shared by every worktree on the machine. It also holds one log
 # per check plus a copy of the comment CI would post on the PR.
 #
@@ -58,7 +59,7 @@ LOG_LEVEL=2
 PREFER_DOWNLOAD=0
 REFRESH=0
 
-ALL_CHECKS=(profile_tool validate_system validate_slice validate_filament_subtypes validate_custom)
+ALL_CHECKS=(profile_tool legacy_compat validate_system validate_slice validate_filament_subtypes validate_custom)
 CHECKS=()
 # "<check><TAB>pass|fail" per check that ran, plus "<check><TAB>skip<TAB>why" for one a vendor
 # scope left out; a string rather than an array because bash 3.2 (still the /bin/bash on macOS)
@@ -73,6 +74,8 @@ Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
 Checks (default: all, in this order):
   profile_tool                  scripts/orca_profile_tool.py check
+  legacy_compat                 scripts/orca_profile_tool.py legacy-compat --check against the
+                                v2.4.2 profiles
   validate_system               validator -p <profiles> -l <level>
   validate_slice                validator -p <profiles> -s -l <level>
   validate_filament_subtypes    validator -p <profiles> -l <level> -f
@@ -100,7 +103,8 @@ Note: --vendor narrows validate_custom too, by keeping only that vendor's preset
 fixture tree. The one check it cannot narrow is validate_slice for a vendor that ships no
 printers; the summary reports that one as skipped, and naming it explicitly still runs it.
 profile_tool keeps its two cross-vendor checks (setting_id and filament_id) tree-wide, so a
-scoped run can still fail on another vendor's files.
+scoped run can still fail on another vendor's files, and legacy_compat is tree-wide too: the map
+it checks covers every vendor.
 EOF
 }
 
@@ -379,6 +383,44 @@ check_profile_tool() {
     python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" check --profiles "${PROFILES_DIR}" --vendor "${VENDOR}"
 }
 
+# The profile tree of the release resources/info/legacy_compatible_printers.json is generated
+# against. The tag is immutable, so the extracted tree is cached in the work dir and --refresh
+# re-extracts it. A checkout without the tag (a shallow clone, a fork that never fetched tags)
+# gets it from upstream, as CI does.
+LEGACY_BASE_TAG="v2.4.2"
+LEGACY_BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer.git"
+
+legacy_base_profiles() {
+    local base="${WORK_DIR}/legacy-base/${LEGACY_BASE_TAG}"
+    if [ "${REFRESH}" -eq 1 ] || [ ! -d "${base}/resources/profiles" ]; then
+        if ! git -C "${REPO_ROOT}" rev-parse -q --verify "refs/tags/${LEGACY_BASE_TAG}^{commit}" >/dev/null; then
+            msg "fetching tag ${LEGACY_BASE_TAG} from ${LEGACY_BASE_URL} ..."
+            git -C "${REPO_ROOT}" fetch --no-tags "${LEGACY_BASE_URL}" \
+                "refs/tags/${LEGACY_BASE_TAG}:refs/tags/${LEGACY_BASE_TAG}" || return 1
+        fi
+        # Extracted beside its final place and moved there whole, so an interrupted extraction is
+        # never mistaken for the tree on the next run.
+        local partial="${base}.partial"
+        rm -rf "${base}" "${partial}"
+        mkdir -p "${partial}" || return 1
+        if ! git -C "${REPO_ROOT}" archive "${LEGACY_BASE_TAG}" resources/profiles | tar -x -C "${partial}"; then
+            rm -rf "${partial}"
+            return 1
+        fi
+        mv "${partial}" "${base}" || return 1
+    fi
+    printf '%s\n' "${base}/resources/profiles"
+}
+
+# The map says which printers a user filament preset made against 2.4.2 can be migrated back
+# to, so a profile change that renames a filament preset or narrows its compatible_printers has
+# to regenerate it (the CI comment gives the command).
+check_legacy_compat() {
+    local base
+    base="$(legacy_base_profiles)" || return 1
+    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" legacy-compat --profiles "${PROFILES_DIR}" --base "${base}" --check
+}
+
 check_validate_system() {
     "${VALIDATOR}" -p "${PROFILES_DIR}" -v "${VENDOR}" -l "${LOG_LEVEL}"
 }
@@ -563,6 +605,7 @@ EOF
 comment_heading() {
     case "$1" in
         profile_tool) echo "### Profile Check Failed (orca_profile_tool.py)" ;;
+        legacy_compat) echo "### Legacy Compatible Printers Map Out of Date" ;;
         validate_system) echo "### System Profile Validation Failed" ;;
         validate_slice) echo "### Slice Validation Failed (custom g-code expansion)" ;;
         validate_filament_subtypes) echo "### Filament Subtype Validation Failed" ;;

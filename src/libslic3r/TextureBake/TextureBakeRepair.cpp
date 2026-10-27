@@ -72,7 +72,8 @@ size_t count_area_slivers(const TriSoup &geometry)
     return n;
 }
 
-TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts)
+TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts,
+                            std::vector<int> *face_color)
 {
     const size_t n_tri  = geometry.triangle_count();
     const double on_tol2 = opts.on_seg_tol * opts.on_seg_tol;
@@ -98,7 +99,12 @@ TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts)
     // grid. A needle reads as watertight yet is deleted downstream, and dropping it leaves exactly
     // the on-edge-vertex topology the pass below closes.
     std::vector<std::array<int, 3>> faces;
+    // Parallel to `faces` throughout, so a split or a dropped degenerate keeps the two in step.
+    const bool       track_color = face_color != nullptr && !face_color->empty();
+    std::vector<int> colors;
     faces.reserve(n_tri);
+    if (track_color)
+        colors.reserve(n_tri);
     for (size_t t = 0; t < n_tri; ++t) {
         const int a = vid[t * 3], b = vid[t * 3 + 1], c = vid[t * 3 + 2];
         if (a == b || b == c || a == c)
@@ -108,6 +114,8 @@ TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts)
         if (u.cross(w).squaredNorm() < DEGENERATE_AREA_SQ)
             continue;
         faces.push_back({ a, b, c });
+        if (track_color)
+            colors.push_back(t < face_color->size() ? (*face_color)[t] : -1);
     }
 
     for (int iter = 0; iter < opts.max_iters; ++iter) {
@@ -166,11 +174,16 @@ TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts)
             break;
 
         std::vector<std::array<int, 3>> next;
+        std::vector<int>                next_colors;
         next.reserve(faces.size() + splits.size() * 2);
+        if (track_color)
+            next_colors.reserve(next.capacity());
         for (size_t fi = 0; fi < faces.size(); ++fi) {
             const auto it = splits.find(fi);
             if (it == splits.end()) {
                 next.push_back(faces[fi]);
+                if (track_color)
+                    next_colors.push_back(colors[fi]);
                 continue;
             }
             const auto &f  = faces[fi];
@@ -195,11 +208,18 @@ TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts)
                 seq.insert(seq.end(), sp.mids.rbegin(), sp.mids.rend());
                 seq.push_back(sp.a);
             }
-            for (size_t s = 0; s + 1 < seq.size(); ++s)
+            for (size_t s = 0; s + 1 < seq.size(); ++s) {
                 next.push_back({ seq[s], seq[s + 1], apex });
+                if (track_color)
+                    next_colors.push_back(colors[fi]); // every piece of a split face keeps its colour
+            }
         }
         faces.swap(next);
+        if (track_color)
+            colors.swap(next_colors);
     }
+    if (track_color)
+        *face_color = std::move(colors);
 
     TriSoup out;
     out.pos.reserve(faces.size() * 3);

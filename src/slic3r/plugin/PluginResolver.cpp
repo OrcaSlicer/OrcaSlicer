@@ -7,6 +7,7 @@
 #include "../GUI/GUI.hpp"
 #include "../GUI/GUI_App.hpp"
 #include "../GUI/I18N.hpp"
+#include "../GUI/format.hpp"
 #include "../GUI/Plater.hpp"
 #include "../GUI/NotificationManager.hpp"
 
@@ -384,7 +385,7 @@ static void report_install_failure(const std::string& message)
         if (GUI::Plater* plater = GUI::wxGetApp().plater())
             plater->get_notification_manager()->push_notification(GUI::NotificationType::OrcaCloudAPIError,
                                                                   GUI::NotificationManager::NotificationLevel::ErrorNotificationLevel,
-                                                                  _u8L("Plugin installation failed") + ": " + message);
+                                                                  GUI::format(_u8L("Plugin installation failed: %1%"), message));
     });
 }
 
@@ -427,13 +428,14 @@ void resolve_missing_plugins(const std::vector<std::string>& refs, PluginInstall
             }
             PluginDescriptor descriptor;
             if (!mgr.try_get_plugin_descriptor(uuid, descriptor)) {
-                report_install_failure(uuid + ": installed plugin was not found in the catalog.");
+                // TRN %1% is the plugin's cloud ID.
+                report_install_failure(GUI::format(_u8L("%1%: installed plugin was not found in the catalog."), uuid));
                 continue;
             }
             mgr.load_plugin(descriptor.plugin_key, false);
             if (!mgr.wait_for_plugin_load(descriptor.plugin_key, std::chrono::minutes(5), error) ||
                 !mgr.is_plugin_loaded(descriptor.plugin_key)) {
-                report_install_failure(descriptor.name + ": " + (error.empty() ? "plugin failed to load." : error));
+                report_install_failure(descriptor.name + ": " + (error.empty() ? _u8L("Plugin failed to load.") : error));
             }
         }
         if (progress.on_finished)

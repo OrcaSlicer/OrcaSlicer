@@ -18,7 +18,6 @@
 #include <wx/string.h>
 #include <wx/toplevel.h>
 #include <wx/timer.h>
-#include "Widgets/Button.hpp"
 #include "CapsuleButton.hpp"
 
 namespace Slic3r::GUI { struct IntEvent; }

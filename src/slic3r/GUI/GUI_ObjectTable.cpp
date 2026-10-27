@@ -386,7 +386,7 @@ void GridCellFilamentsRenderer::Draw(wxGrid &grid, wxGridCellAttr &attr, wxDC &d
             dc.DrawBitmap(*bitmap, wxPoint(rect.x + offset_x, rect.y + offset_y));
         }
         else if (grid_row->model_volume_type == ModelVolumeType::PARAMETER_MODIFIER){
-            dc.DrawText("Default", wxPoint(rect.x + offset_x, rect.y + offset_y));
+            dc.DrawText(_L("Default"), wxPoint(rect.x + offset_x, rect.y + offset_y));
         }
 
         text_rect.x += bitmap_width + grid_cell_border_width * 2;

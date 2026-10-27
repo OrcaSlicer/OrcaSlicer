@@ -49,7 +49,6 @@ public:
     using TColor = typename PixelRenderer::color_type;
     using TValue = typename TColor::value_type;
     using TPixel = typename PixelRenderer::pixel_type;
-    using TRawBuffer = agg::rendering_buffer;
 
 protected:
     

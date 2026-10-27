@@ -46,7 +46,7 @@ RUN set -eux; \
     tar -xzf /tmp/assimp.tar.gz -C /tmp/assimp-src --strip-components=1; \
     DESTDIR=/OrcaSlicer/deps/build/destdir/usr/local; \
     cmake -S /tmp/assimp-src -B /tmp/assimp-build -G Ninja \
-        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.10 \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$DESTDIR" \
         -DCMAKE_PREFIX_PATH="$DESTDIR" \

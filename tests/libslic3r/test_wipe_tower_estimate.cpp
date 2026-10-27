@@ -11,6 +11,7 @@
 #include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 
 #include <cmath>
 #include "libslic3r/Config.hpp"
@@ -19,6 +20,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include <numeric>
+#include <optional>
 #include <string>
 #include <vector>
 #include "libslic3r/clonable_ptr.hpp"
@@ -130,6 +132,28 @@ TEST_CASE("Type1 sizes the tower from each filament's own prime volume", "[WipeT
     const WipeTowerFootprint rib = estimate(config, 2, 0.21, 5., WipeTowerType::Type1);
     CHECK_THAT(rib.width, WithinAbs(rib.depth, 1e-9));
     CHECK_THAT(rib.depth, WithinAbs(WipeTower::estimate_rib_tower_bbox_side({{30.f, 0}, {45.f, 0}}, 35.f, 0.21f, 0.4f, 1.5f, 8.f, 0.f, 5.f), 1e-4));
+}
+
+TEST_CASE("A mixed slot is purged as its physical components", "[WipeTowerEstimate]") {
+    // Slots 4 and 5 blend 1+2 and 1+3: every layer prints one component per mixed slot, so a
+    // plate using all five slots purges the three physical filaments and nothing more.
+    const WipeTowerType type = GENERATE(WipeTowerType::Type1, WipeTowerType::Type2);
+    DynamicPrintConfig  config = make_config();
+    config.set_key_value("filament_prime_volume", new ConfigOptionFloats({100., 100., 100., 100., 100.}));
+    config.set_key_value("filament_adhesiveness_category", new ConfigOptionInts({0, 0, 0, 0, 0}));
+    config.set_key_value("filament_is_mixed", new ConfigOptionBools(std::vector<unsigned char>{0, 0, 0, 1, 1}));
+    config.set_key_value("filament_mixed_components", new ConfigOptionStrings({"", "", "", "1,2", "1,3"}));
+    const double physical = estimate(config, 3, 0.2, 5., type).depth;
+    REQUIRE(physical > estimate(config, 2, 0.2, 5., type).depth);
+    CHECK_THAT(estimate(config, 5, 0.2, 5., type).depth, WithinAbs(physical, 1e-9));
+    // The same slots with the mixed flags cleared are five filaments, which is what sized the
+    // tower before and refused positions the printed tower fits.
+    DynamicPrintConfig unmixed = config;
+    unmixed.set_key_value("filament_is_mixed", new ConfigOptionBools(std::vector<unsigned char>{0, 0, 0, 0, 0}));
+    CHECK(estimate(unmixed, 5, 0.2, 5., type).depth > physical);
+    // Mixed slots alone still purge their components, and a single one already changes tools.
+    CHECK_THAT(estimate_wipe_tower_footprint(config, type, {3, 4}, 0.2, 5.).depth, WithinAbs(physical, 1e-9));
+    CHECK_THAT(estimate_wipe_tower_footprint(config, type, {3}, 0.2, 5.).depth, WithinAbs(estimate(config, 2, 0.2, 5., type).depth, 1e-9));
 }
 
 TEST_CASE("A second nozzle adds the ramming of one nozzle change per layer", "[WipeTowerEstimate]") {
@@ -364,4 +388,146 @@ TEST_CASE("A config missing a tower key falls back to that key's default", "[Wip
     defaulted.set_key_value("wipe_tower_extra_spacing",
                             print_config_def.get("wipe_tower_extra_spacing")->default_value->clone());
     CHECK_THAT(estimate(partial, 3, 0.2, 5.).depth, WithinAbs(estimate(defaulted, 3, 0.2, 5.).depth, 1e-9));
+}
+
+TEST_CASE("prime_tower_is_printed answers exactly what normalize_fdm_2 decides", "[WipeTowerEstimate]") {
+    // The estimate says how big a tower is; this says whether there is one, and the authority is
+    // normalize_fdm_2, which clears enable_prime_tower before the plate is sliced. Pre-slice
+    // consumers cannot call it (it mutates a config), so the rule is mirrored - and mirrored rules
+    // drift, which is what this pins. Every combination the rule looks at, both verdicts compared.
+    const int  used_filaments = GENERATE(1, 2, 3);
+    const bool has_mixed      = GENERATE(false, true);
+    const int  num_objects    = GENERATE(1, 2);
+    const bool by_object      = GENERATE(false, true);
+    const bool smooth         = GENERATE(false, true);
+    const bool wrapping       = GENERATE(false, true);
+
+    DynamicPrintConfig config = preset_shaped_defaults();
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    config.set_deserialize_strict("print_sequence", by_object ? "by object" : "by layer");
+    config.set_deserialize_strict("timelapse_type", smooth ? "1" : "0");
+    config.set_key_value("enable_wrapping_detection", new ConfigOptionBool(wrapping));
+    config.set_key_value("filament_is_mixed", new ConfigOptionBools(
+        has_mixed ? std::vector<unsigned char>{0, 1} : std::vector<unsigned char>{0, 0}));
+    REQUIRE(has_any_mixed_filament(config.option<ConfigOptionBools>("filament_is_mixed")->values) == has_mixed);
+
+    DynamicPrintConfig normalized = config;
+    normalized.normalize_fdm_2(num_objects, used_filaments);
+    const bool slicer_prints_one = normalized.opt_bool("enable_prime_tower");
+
+    CHECK(prime_tower_is_printed(config, used_filaments, num_objects, has_mixed) == slicer_prints_one);
+}
+
+TEST_CASE("prime_tower_is_printed follows the option the user set", "[WipeTowerEstimate]") {
+    DynamicPrintConfig config = preset_shaped_defaults();
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
+    CHECK_FALSE(prime_tower_is_printed(config, 2, 1, false));
+
+    // Below one filament normalize_fdm_2 leaves the option alone, so this does too.
+    config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+    CHECK(prime_tower_is_printed(config, 0, 1, false));
+}
+
+// A size x size mm footprint anchored at its lower-left corner, on a plate whose anchors may
+// lie anywhere in [0, 90] x [0, 90].
+static Polygon square_footprint(double size) { return Polygon({ {0, 0}, {scaled(size), 0}, {scaled(size), scaled(size)}, {0, scaled(size)} }); }
+static Polygon box(double x0, double y0, double x1, double y1)
+{
+    return Polygon({ {scaled(x0), scaled(y0)}, {scaled(x1), scaled(y0)}, {scaled(x1), scaled(y1)}, {scaled(x0), scaled(y1)} });
+}
+static const BoundingBox plate_anchors(Point(0, 0), Point(scaled(90.), scaled(90.)));
+
+// The footprint placed at `anchor` overlaps no obstacle: at most it touches one.
+static bool clear_of(Polygon footprint, const Point &anchor, const Polygons &obstacles)
+{
+    footprint.translate(anchor);
+    double overlap = 0.;
+    for (const Polygon &shared : intersection(Polygons{ footprint }, obstacles))
+        overlap += std::abs(shared.area());
+    return overlap < scaled(0.01) * scaled(0.01);
+}
+
+TEST_CASE("A tower already clear of every object stays where it is", "[WipeTowerEstimate]") {
+    const Point target(scaled(10.), scaled(70.));
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), { box(40., 0., 60., 100.) }, target);
+    REQUIRE(anchor.has_value());
+    CHECK(*anchor == target);
+}
+
+TEST_CASE("A tower that lands on an object moves to the nearest side of it", "[WipeTowerEstimate]") {
+    // A strip from x 40 to 60 covers the plate's full depth. Anchored at x 42 the footprint
+    // spans 42-52, so it clears the strip at x 30 (12 mm left) or x 60 (18 mm right).
+    const Polygons obstacles = { box(40., 0., 60., 100.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), obstacles,
+                                                                        Point(scaled(42.), scaled(50.)));
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(30., 1e-3));
+    CHECK_THAT(unscaled(anchor->y()), WithinAbs(50., 1e-3));
+}
+
+TEST_CASE("A tower is placed nearest its saved position even when that is off the plate", "[WipeTowerEstimate]") {
+    // Saved at y 120, past the plate. An object covers the top-left corner, so the nearest
+    // anchor on the plate is the top edge right of the object (x 30), not straight below.
+    const Polygons obstacles = { box(0., 60., 30., 100.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), obstacles,
+                                                                        Point(scaled(20.), scaled(120.)));
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(30., 1e-3));
+    CHECK_THAT(unscaled(anchor->y()), WithinAbs(90., 1e-3));
+}
+
+TEST_CASE("A rotated tower keeps its turned footprint off the objects", "[WipeTowerEstimate]") {
+    // Turned 90 degrees about its anchor, the footprint spans x - 10 to x. Saved at x 65 it
+    // would reach back to 55, so it moves right until it starts at the strip's edge.
+    Polygon footprint = square_footprint(10.);
+    footprint.rotate(PI / 2.);
+    const Polygons obstacles = { box(40., 0., 60., 100.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, footprint, obstacles,
+                                                                        Point(scaled(65.), scaled(50.)));
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(footprint, *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(70., 1e-3));
+}
+
+TEST_CASE("A plate with no room for the tower reports that no anchor is clear", "[WipeTowerEstimate]") {
+    CHECK_FALSE(nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), { box(-5., -5., 105., 105.) },
+                                                Point(scaled(50.), scaled(50.)))
+                    .has_value());
+}
+
+TEST_CASE("A tower pinned to one coordinate by a cramped plate can still move along the other", "[WipeTowerEstimate]") {
+    // The plate is only as wide as the tower: every anchor has x 0.
+    const BoundingBox column(Point(0, 0), Point(0, scaled(90.)));
+    const Polygons obstacles = { box(-5., 42., 15., 62.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(column, square_footprint(10.), obstacles,
+                                                                        Point(0, scaled(45.)));
+    // Blocked from y 32 to 62: down 13 mm beats up 17 mm.
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(0., 1e-3));
+    CHECK_THAT(unscaled(anchor->y()), WithinAbs(32., 1e-3));
+}
+
+TEST_CASE("A single anchor is kept when clear and refused when taken", "[WipeTowerEstimate]") {
+    // Bounds that are one point ask whether that exact spot is clear.
+    const Point     spot(scaled(10.), scaled(10.));
+    const BoundingBox only_spot(spot, spot);
+    const std::optional<Point> clear = nearest_clear_wipe_tower_anchor(only_spot, square_footprint(10.), { box(40., 0., 60., 100.) }, spot);
+    REQUIRE(clear.has_value());
+    CHECK(*clear == spot);
+    CHECK_FALSE(nearest_clear_wipe_tower_anchor(only_spot, square_footprint(10.), { box(15., 0., 60., 100.) }, spot).has_value());
+}
+
+TEST_CASE("A tower slides off a slanted side of an object", "[WipeTowerEstimate]") {
+    // The triangle's left side runs from (40, 0) to (50, 40), x = 40 + y / 4. The footprint's
+    // lower-right corner leads into it, so the clear anchors stop at x = 30 + y / 4, a line
+    // 13.75 / sqrt(1 + 1/16) mm from the saved anchor (45, 5): shorter than moving straight left.
+    const Polygons obstacles = { Polygon({ {scaled(40.), 0}, {scaled(60.), 0}, {scaled(50.), scaled(40.)} }) };
+    const Point    target(scaled(45.), scaled(5.));
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), obstacles, target);
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled((*anchor - target).cast<double>().norm()), WithinAbs(13.75 / std::sqrt(1. + 1. / 16.), 1e-3));
 }

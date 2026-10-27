@@ -47,25 +47,45 @@ while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
     u )
         export BUILD_TARGET="universal"
         ;;
-    h ) echo "Usage: ./build_release_macos.sh [-d]"
+    h ) echo "Usage: ./build_release_macos.sh [-d] [-- CMAKE_ARGS...]"
         echo "   -d: Build deps only"
         echo "   -a: Set ARCHITECTURE (arm64 or x86_64 or universal)"
         echo "   -s: Build slicer only"
         echo "   -u: Build universal app only (requires existing arm64 and x86_64 app bundles)"
         echo "   -n: Nightly build"
         echo "   -t: Specify minimum version of the target platform, default is 12.0"
-        echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode"
+        echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode (requires ninja; install with 'brew install ninja')"
         echo "   -b: Build without reconfiguring CMake"
         echo "   -c: Set CMake build configuration, default is Release"
         echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
         echo "   -j: Set the number of parallel build jobs (CMAKE_BUILD_PARALLEL_LEVEL)"
         echo "   -T: Build and run tests (set ORCA_TESTS_BUILD_ONLY=1 to build without running)"
+        echo "   -- CMAKE_ARGS...: pass everything after '--' to the cmake configure step of the deps (-d) and slicer (-s) builds,"
+        echo "       e.g. -DDESTDIR=<dir> for the deps, -DCMAKE_PREFIX_PATH=<dir>/usr/local -DSLIC3R_PCH=OFF for the slicer, --fresh."
+        echo "       They come last on the cmake command line. Use absolute paths: cmake runs in the build directory."
         exit 0
         ;;
+    : )
+        echo "Option -${OPTARG} requires an argument, aborting."
+        exit 1
+        ;;
     * )
+        echo "Unknown option -${OPTARG}, aborting. CMake arguments must follow '--'."
+        exit 1
         ;;
   esac
 done
+
+# getopts stops at '--'; whatever follows is handed to cmake unchanged.
+if [[ ${OPTIND} -le $# ]] ; then
+    separator_index=$((OPTIND-1))
+    if [[ "${!separator_index}" != "--" ]] ; then
+        echo "Unexpected argument '${!OPTIND}': cmake arguments must follow '--', aborting."
+        exit 1
+    fi
+fi
+shift $((OPTIND-1))
+EXTRA_CMAKE_ARGS=("$@")
 
 # Set defaults
 
@@ -102,13 +122,67 @@ if [ -z "$CMAKE_IGNORE_PREFIX_PATH" ]; then
   export CMAKE_IGNORE_PREFIX_PATH="/opt/local:/usr/local:/opt/homebrew"
 fi
 
+if [[ "$SLICER_CMAKE_GENERATOR" == Ninja* || "$DEPS_CMAKE_GENERATOR" == Ninja* ]] && ! command -v ninja >/dev/null 2>&1; then
+  echo "Error: Ninja is required when using the -x generator option."
+  echo "Install it with Homebrew: brew install ninja"
+  exit 1
+fi
+
 CMAKE_VERSION=$(cmake --version | head -1 | sed 's/[^0-9]*\([0-9]*\).*/\1/')
 if [ "$CMAKE_VERSION" -ge 4 ] 2>/dev/null; then
-  export CMAKE_POLICY_VERSION_MINIMUM=3.5
-  export CMAKE_POLICY_COMPAT="-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+  export CMAKE_POLICY_VERSION_MINIMUM=3.10
+  export CMAKE_POLICY_COMPAT="-DCMAKE_POLICY_VERSION_MINIMUM=3.10"
   echo "Detected CMake 4.x, adding compatibility flag (env + cmake arg)"
 else
   export CMAKE_POLICY_COMPAT=""
+fi
+
+# Compiler cache, as in build_linux.sh. The program comes from CMAKE_CCACHE, else from a
+# launcher already set in the environment (the CI build sets ccache there), else sccache or
+# ccache from PATH; one program serves both languages. Each run applies its own choice to the
+# build directories, replacing a launcher an earlier run or a hand-run configure recorded.
+CMAKE_CCACHE_ARGS=()
+CCACHE_VAR=""
+for var in CMAKE_CCACHE CMAKE_CXX_COMPILER_LAUNCHER CMAKE_C_COMPILER_LAUNCHER; do
+    if [ -n "${!var:-}" ]; then
+        CCACHE_VAR=$var
+        break
+    fi
+done
+if [ -n "$CCACHE_VAR" ]; then
+    CCACHE_PROGRAM=${!CCACHE_VAR}
+    echo "Checking ${CCACHE_VAR} environment variable for compiler cache program..."
+    CMAKE_CCACHE=$(command -v "${CCACHE_PROGRAM}") || {
+        echo "${CCACHE_VAR} environment variable is set to '${CCACHE_PROGRAM}' but it was not found in PATH."
+        CMAKE_CCACHE=""
+    }
+elif command -v sccache >/dev/null 2>&1 ; then
+    CMAKE_CCACHE=$(command -v sccache)
+elif command -v ccache >/dev/null 2>&1 ; then
+    CMAKE_CCACHE=$(command -v ccache)
+fi
+if [ -n "${CMAKE_CCACHE}" ] ; then
+    echo "${CMAKE_CCACHE} found, enabling compiler caching..."
+    CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER="${CMAKE_CCACHE}" -DCMAKE_CXX_COMPILER_LAUNCHER="${CMAKE_CCACHE}")
+    # The same ccache settings as the CI build. Without this sloppiness ccache refuses every
+    # compile that uses the precompiled header, which is most of OrcaSlicer, and skips headers
+    # a checkout has just written. It is added to the sloppiness already configured, and
+    # CCACHE_SLOPPINESS or CCACHE_(NO)DEPEND set in the environment win.
+    if [[ "$(basename "${CMAKE_CCACHE}")" == ccache ]] ; then
+        if [[ -z "${CCACHE_SLOPPINESS+x}" ]] ; then
+            CCACHE_SLOPPINESS=$("${CMAKE_CCACHE}" --get-config sloppiness 2>/dev/null || true)
+            export CCACHE_SLOPPINESS="${CCACHE_SLOPPINESS:+${CCACHE_SLOPPINESS},}pch_defines,time_macros,include_file_mtime,include_file_ctime"
+        fi
+        # Hash the includes the compiler reports instead of preprocessing every miss.
+        if [[ -z "${CCACHE_DEPEND+x}${CCACHE_NODEPEND+x}" ]] ; then
+            export CCACHE_DEPEND=1
+        fi
+    fi
+else
+    echo "Note: ccache or sccache are not found. Install either of them for faster rebuilds."
+    # Clear a launcher recorded by an earlier configure. The entries must be set empty rather
+    # than removed: CMake fills a missing launcher entry from the environment.
+    CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER:STRING= -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=)
 fi
 
 echo "Build params:"
@@ -162,7 +236,9 @@ function build_deps() {
                         -DCMAKE_OSX_ARCHITECTURES:STRING="${_ARCH}" \
                         -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
                         -DCMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH}" \
-                        ${CMAKE_POLICY_COMPAT}
+                        "${CMAKE_CCACHE_ARGS[@]}" \
+                        ${CMAKE_POLICY_COMPAT} \
+                        "${EXTRA_CMAKE_ARGS[@]}"
                 fi
                 cmake --build . --config "$BUILD_CONFIG" --target deps
             )
@@ -264,7 +340,9 @@ function build_slicer() {
                     -DCMAKE_OSX_ARCHITECTURES="${_ARCH}" \
                     -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
                     -DCMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH}" \
-                    ${CMAKE_POLICY_COMPAT}
+                    "${CMAKE_CCACHE_ARGS[@]}" \
+                    ${CMAKE_POLICY_COMPAT} \
+                    "${EXTRA_CMAKE_ARGS[@]}"
             fi
             cmake --build . --config "$BUILD_CONFIG" --target "$SLICER_BUILD_TARGET"
         )

@@ -55,6 +55,13 @@
   /* Speed dial icon tile treatment */
   --speed-tile-bg: #efefef;
   --speed-tile-border: #d8d8d8;
+
+  /* Transparency and control markers are UI surfaces, never color data. */
+  --checker-light: #eeeeee;
+  --checker-dark: #aaaaaa;
+  --color-marker-outline: #ffffff;
+  --color-marker-shadow: rgba(0, 0, 0, 0.7);
+  --control-invalid: var(--plugin-status-danger);
 }
 
 :root[data-orca-theme="dark"] {
@@ -93,6 +100,8 @@
   /* Speed dial icon tile treatment */
   --speed-tile-bg: #34343b;
   --speed-tile-border: #50505a;
+  --checker-light: #68686f;
+  --checker-dark: #414148;
 }
 
 /* Re-theme the shared common.css chrome through variables (replaces dark.css's

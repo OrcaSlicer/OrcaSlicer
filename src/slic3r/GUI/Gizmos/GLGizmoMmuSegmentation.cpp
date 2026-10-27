@@ -56,8 +56,12 @@ static inline void show_notification_extruders_limit_exceeded()
         .plater()
         ->get_notification_manager()
         ->push_notification(NotificationType::MmSegmentationExceededExtrudersLimit, NotificationManager::NotificationLevel::PrintInfoNotificationLevel,
-                            GUI::format(_L("Filament count exceeds the maximum number that painting tool supports. Only the "
-                                           "first %1% filaments will be available in painting tool."), GLGizmoMmuSegmentation::EXTRUDERS_LIMIT));
+                            GUI::format(_L_PLURAL("Filament count exceeds the maximum number that painting tool supports. Only the "
+                                                  "first %1% filament will be available in painting tool.",
+                                                  "Filament count exceeds the maximum number that painting tool supports. Only the "
+                                                  "first %1% filaments will be available in painting tool.",
+                                                  unsigned(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT)),
+                                        GLGizmoMmuSegmentation::EXTRUDERS_LIMIT));
 }
 
 void GLGizmoMmuSegmentation::on_opening()
@@ -459,7 +463,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_selected_extruder_idx = extruder_idx;
         }
 
-        if (extruder_idx < int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT) && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
+        if (extruder_idx < int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT) && ImGui::IsItemHovered()) m_imgui->tooltip(wxString::Format(_L("Shortcut Key %d"), extruder_idx + 1), max_tooltip_width);
     }
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.

@@ -8,8 +8,8 @@
 #include "ConfigValueFormatter.hpp"
 #include "FilamentBitmapUtils.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
-#include "Widgets/HyperLink.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/StaticLine.hpp"
@@ -32,6 +32,7 @@
 #include "libslic3r/CustomGCode.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Widgets/TabCtrl.hpp"
+#include "Plater.hpp"
 #include <wx/display.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
@@ -756,11 +757,24 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
 
     // Guide links, bottom-left, sharing the footer row with the OK/Cancel buttons (pushed right).
-    wxBoxSizer* links_sizer = new wxBoxSizer(wxVERTICAL);
-    auto* wiki_link = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf.html");
-    auto* video_link = new HyperLink(this, _L("Video Guide"), "https://www.youtube.com/watch?v=-xt1N29UIOg");
-    links_sizer->Add(wiki_link , 0, wxALIGN_LEFT);
-    links_sizer->Add(video_link, 0, wxTOP | wxALIGN_LEFT, FromDIP(4));
+    wxBoxSizer* links_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+    auto wiki_url = "https://www.orcaslicer.com/wiki/publishing_3mf/publish_3mf";
+    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    wiki_btn->SetCanFocus(false);
+    wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+    auto video_btn  = new Button(this, "", "toolbar_video_guide", 0, 15);
+    auto video_url = "https://www.youtube.com/watch?v=-xt1N29UIOg";
+    video_btn->SetToolTip(_L("Video Guide") + "\n" + video_url);
+    video_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+    video_btn->SetCanFocus(false);
+    video_btn->Bind(wxEVT_LEFT_DOWN, ([video_url](auto& e) {wxLaunchDefaultBrowser(video_url);}));
+
+    links_sizer->Add(wiki_btn , 0, wxLEFT, FromDIP(10));
+    links_sizer->Add(video_btn, 0, wxLEFT, FromDIP(10));
 
     wxBoxSizer* footer = new wxBoxSizer(wxHORIZONTAL);
     footer->Add(links_sizer, 0, wxALIGN_CENTER_VERTICAL);
@@ -771,7 +785,7 @@ PublishSettingsDialog::PublishSettingsDialog(wxWindow* parent,
     footer_line->SetMinSize(wxSize(-1, 1));
     footer_line->SetMaxSize(wxSize(-1, 1));
     w_sizer->Add(footer_line, 0, wxRIGHT | wxLEFT | wxTOP | wxEXPAND, FromDIP(10));
-    w_sizer->Add(footer, 0, wxRIGHT | wxLEFT | wxTOP | wxBOTTOM | wxEXPAND, FromDIP(10));
+    w_sizer->Add(footer, 0, wxEXPAND, FromDIP(10));
 
     SetSizerAndFit(w_sizer);
     fit_to_content(); // initial size only; the dialog is resizable
@@ -2212,8 +2226,10 @@ void PublishSettingsDialog::refresh_tab_indicators()
             if (section.variant_switch != nullptr) {
                 const wxString& title = m_categories[section.categories[i]].title;
                 const wxString  text  = on ? title + wxString(" ") + wxString(wxUniChar(0x2022)) : title;
-                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(i)) != text)
+                if (section.variant_switch->GetOptionText(static_cast<unsigned int>(i)) != text) {
                     section.variant_switch->SetOptionText(static_cast<unsigned int>(i), text);
+                    section.page->Layout();
+                }
             }
             any = any || on;
         }

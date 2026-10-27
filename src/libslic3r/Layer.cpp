@@ -380,7 +380,7 @@ void Layer::simplify_support_path(ExtrusionPath * path)
 {
     const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
+    const bool enable_arc_fitting = print_config.enable_arc_fitting.value == ArcFittingMode::Enabled;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
     if (enable_arc_fitting &&
@@ -395,7 +395,7 @@ void Layer::simplify_support_multi_path(ExtrusionMultiPath* multipath)
 {
     const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
+    const bool enable_arc_fitting = print_config.enable_arc_fitting.value == ArcFittingMode::Enabled;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
     for (size_t i = 0; i < multipath->paths.size(); ++i) {
@@ -412,7 +412,7 @@ void Layer::simplify_support_loop(ExtrusionLoop* loop)
 {
     const auto &print_config = this->object()->print()->config();
     const bool spiral_mode = print_config.spiral_mode;
-    const bool enable_arc_fitting = print_config.enable_arc_fitting;
+    const bool enable_arc_fitting = print_config.enable_arc_fitting.value == ArcFittingMode::Enabled;
     const auto scaled_resolution = scaled<double>(print_config.resolution.value);
 
     for (size_t i = 0; i < loop->paths.size(); ++i) {
@@ -437,10 +437,14 @@ coordf_t Layer::get_sparse_infill_max_void_area()
     double max_void_area = 0.;
     for (auto layerm : m_regions) {
         Flow flow = layerm->flow(frInfill);
-        float density = layerm->region().config().sparse_infill_density;
-        InfillPattern pattern = layerm->region().config().sparse_infill_pattern;
+        const PrintRegionConfig &config = layerm->region().config();
+        float density = config.sparse_infill_density;
+        InfillPattern pattern = config.sparse_infill_pattern;
         if (density == 0.)
             return -1;
+        // Orca: the adaptive TPMS infill is as sparse as its interior density.
+        if (density < 100.f && config.adaptive_infill_mode != AdaptiveInfillMode::Disabled && is_adaptive_infill_pattern(pattern))
+            density = std::min(density, std::max(1.f, float(config.adaptive_infill_interior_density)));
 
         //BBS: rough estimation and need to be optimized
         double spacing = flow.scaled_spacing() * (100 - density) / density;

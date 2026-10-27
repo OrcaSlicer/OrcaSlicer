@@ -18,6 +18,7 @@
 #include <iostream>
 #include <float.h>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <unordered_map>
 #include <vector>
@@ -46,10 +47,12 @@ CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_g
         m_num_extruders = std::max(ex.id() + 1, m_num_extruders);
         m_extruder_ids.emplace_back(ex.id());
     }
+
 }
 
 void CoolingBuffer::reset(const Vec3d &position)
 {
+    m_belt_band_active = false;
     // BBS: add I and J axis to store center of arc
     m_current_pos.assign(7, 0.f);
     m_current_pos[0] = float(position.x());
@@ -89,6 +92,9 @@ struct CoolingLine
         // ORCA: Add support for ironing fan speed control
         TYPE_IRONING_FAN_START         = 1 << 19,
         TYPE_IRONING_FAN_END           = 1 << 20,
+        // Belt printers: extrusions within the first-layer band above the belt.
+        TYPE_BELT_BAND_START           = 1 << 21,
+        TYPE_BELT_BAND_END             = 1 << 22,
     };
 
     CoolingLine(unsigned int type, size_t  line_start, size_t  line_end) :
@@ -549,6 +555,10 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_IRONING_FAN_START;
         } else if (boost::starts_with(sline, ";_IRONING_FAN_END")) { // ORCA: Add support for ironing fan speed control
             line.type = CoolingLine::TYPE_IRONING_FAN_END;
+        } else if (boost::starts_with(sline, ";_BELT_BAND_START")) {
+            line.type = CoolingLine::TYPE_BELT_BAND_START;
+        } else if (boost::starts_with(sline, ";_BELT_BAND_END")) {
+            line.type = CoolingLine::TYPE_BELT_BAND_END;
         } else if (boost::starts_with(sline, "G4 ")) {
             // Parse the wait time.
             line.type = CoolingLine::TYPE_G4;
@@ -891,7 +901,9 @@ std::string CoolingBuffer::apply_layer_cooldown(
                                                                {CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START, false},
                                                                {CoolingLine::TYPE_IRONING_FAN_START, false}, // ORCA: Add support for ironing fan speed control
                                                                {CoolingLine::TYPE_FORCE_RESUME_FAN, false}};
-    bool need_set_fan = false;
+    // Belt printers: a band still open from the previous layer has to take the fan back from
+    // the layer-level speed issued just above.
+    bool need_set_fan = m_belt_band_active;
 
     for (const CoolingLine *line : lines) {
         const char *line_start  = gcode.c_str() + line->line_start;
@@ -905,6 +917,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 if (new_extruder != m_current_extruder) {
                     m_current_extruder = new_extruder;
                     change_extruder_set_fan(true);
+                    if (m_belt_band_active)
+                        need_set_fan = true;
                 }
             }
             new_gcode.append(line_start, line_end - line_start);
@@ -956,6 +970,13 @@ std::string CoolingBuffer::apply_layer_cooldown(
             }
             if (m_additional_fan_speed != -1 && m_config.auxiliary_fan.value)
                 new_gcode += GCodeWriter::set_additional_fan(m_additional_fan_speed);
+        }
+        else if (line->type & CoolingLine::TYPE_BELT_BAND_START) {
+            m_belt_band_active = true;
+            need_set_fan       = true;
+        } else if (line->type & CoolingLine::TYPE_BELT_BAND_END) {
+            m_belt_band_active = false;
+            need_set_fan       = true;
         }
         else if (line->type & CoolingLine::TYPE_EXTRUDE_END) {
             // Just remove this comment.
@@ -1049,7 +1070,15 @@ std::string CoolingBuffer::apply_layer_cooldown(
                     m_current_fan_speed = speed;
                 }
             };
-            if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
+            if (m_belt_band_active) {
+                // Belt printers: a tilted layer runs from the belt to the top of the part, so
+                // "the first layers" are a band along the belt rather than the first slicing
+                // layers. Extrusions GCode::_extrude() marks as inside that band print with the
+                // fan off, whatever overhang, bridge or resume request is pending, as the first
+                // layers of a flat bed do. Leaving the band falls through to the branches below.
+                set_fan(0);
+                fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
+            } else if (fan_speed_change_requests[CoolingLine::TYPE_OVERHANG_FAN_START]){
                 set_fan(overhang_fan_speed);
             } else if (fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START]){ // ORCA: Add support for separate internal bridge fan speed control
                 set_fan(internal_bridge_fan_speed);

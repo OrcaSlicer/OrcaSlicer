@@ -1,3 +1,5 @@
+#pragma once
+
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <map>
 #include <cstdint>

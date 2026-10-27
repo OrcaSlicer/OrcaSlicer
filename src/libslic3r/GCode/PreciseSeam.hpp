@@ -22,9 +22,6 @@
 namespace Slic3r {
 namespace PreciseSeam {
 
-// Import EnforcedBlockedSeamPoint from SeamPlacerImpl namespace for convenience
-using SeamPlacerImpl::EnforcedBlockedSeamPoint;
-
 // Geometry and its exterior bounds are prepared together, then treated as read-only.
 struct ModifierRegion {
     ExPolygon polygon;
@@ -52,18 +49,20 @@ struct PreciseSeamWarnings {
     // Masks of the Precise Seam types that caused each warning reason, one bit per type (type_bit()).
     // The user warning lists the types instead of naming modifiers.
     std::atomic<unsigned> multiple_intersections{0}; // Center/Left/Right with several segments on a perimeter.
-    std::atomic<unsigned> full_containment{0};       // Skipped for a perimeter fully inside: Center/Left/Right, Blocked.
+    std::atomic<unsigned> full_containment{0};       // Skipped for a perimeter fully inside: Center/Left/Right.
     std::atomic<unsigned> failed_types{0};           // Types with at least one discarded fragment.
     std::atomic<size_t> failed_fragments{0}; // Total discarded fragments, for the log summary.
     // Fragments saved by the rare-case fallback or accepted as contacts; log only, no user warning.
     // Clipper is deterministic, so a prismatic model can repeat the same case on every layer.
     std::atomic<size_t> recovered_fragments{0};
 
-    // Per-modifier flags for the "had no effect" warning. Modifiers are registered before the parallel
-    // phase, so workers only set flags; unregistered ones (e.g. in tests) are not tracked.
+    // Per-modifier flags for the "had no effect" and "covers an entire perimeter" warnings. Modifiers are
+    // registered before the parallel phase, so workers only set flags; unregistered ones (e.g. in tests)
+    // are not tracked.
     struct ModifierUsage {
-        std::atomic<bool> checked{false}; // Extracted on at least one perimeter.
-        std::atomic<bool> reached{false}; // Gave a segment, full containment or a discarded fragment.
+        std::atomic<bool> checked{false};       // Extracted on at least one perimeter.
+        std::atomic<bool> reached{false};       // Gave a segment, full containment or a discarded fragment.
+        std::atomic<bool> fully_blocked{false}; // Seam Blocked whole zone in effect on a perimeter left Blocked.
     };
     std::unordered_map<const ModelVolume*, ModifierUsage> modifier_usage;
 
@@ -73,12 +72,17 @@ struct PreciseSeamWarnings {
         assert(is_precise_seam(type));
         return 1u << (int(type) - int(ModelVolumeType::PRECISE_SEAM_CENTER));
     }
-    // Load before fetch_or: most calls find the bit already set, so shared cache lines stay clean.
+    // Load before writing: most calls find the bit or flag already set, so shared cache lines stay clean.
     static void mark(std::atomic<unsigned> &mask, ModelVolumeType type)
     {
         const unsigned bit = type_bit(type);
         if ((mask.load(std::memory_order_relaxed) & bit) == 0)
             mask.fetch_or(bit, std::memory_order_relaxed);
+    }
+    static void set(std::atomic<bool> &flag)
+    {
+        if (!flag.load(std::memory_order_relaxed))
+            flag.store(true, std::memory_order_relaxed);
     }
 };
 
@@ -137,14 +141,15 @@ SegmentExtraction extract_perimeter_segments(const PreparedPerimeter &prepared, 
 
 // Result of weak modifier segment processing
 struct WeakModifierSegment {
-    EnforcedBlockedSeamPoint type;  // Enforced/Blocked/Neutral
+    SeamPlacerImpl::EnforcedBlockedSeamPoint type;  // Enforced/Blocked/Neutral
     Point left_point;               // Coordinates of left (first) point of segment
     PerimeterPosition left_position; // Position on the source perimeter before insertion/refinement.
     Point right_point;              // Coordinates of right (last) point of segment
     PerimeterPosition right_position; // Retained provenance, not an index into the modified polygon.
-    // Full containment of an Enforced or Neutral modifier: the zone is the whole perimeter, without
-    // boundaries (the points and positions above are unused and nothing is inserted for it).
+    // Full containment of a weak modifier: the zone is the whole perimeter, without boundaries
+    // (the points and positions above are unused and nothing is inserted for it).
     bool whole_perimeter = false;
+    const ModelVolume *modifier = nullptr; // Source modifier, for the warnings.
 };
 
 // Collects the object's Precise Seam volumes: strong ones in priority order, weak ones in application
@@ -176,12 +181,14 @@ std::vector<WeakModifierSegment> collect_weak_modifier_segments(
     PreciseSeamWarnings* warnings = nullptr);
 
 // Retypes the candidates inside each zone in the given order (pass zones lowest priority first);
-// sets some_point_enforced when an Enforced zone applies.
+// sets some_point_enforced when an Enforced zone applies. When the whole perimeter ends up Blocked and
+// the highest whole-perimeter zone is Blocked, flags that zone's modifier for the warning.
 void apply_weak_modifiers_to_perimeter(
     const std::vector<WeakModifierSegment> &weak_segments,
     PrintObjectSeamData::LayerSeams &result,
     const SeamPlacerImpl::Perimeter &perimeter,
-    bool &some_point_enforced);
+    bool &some_point_enforced,
+    PreciseSeamWarnings *warnings = nullptr);
 
 // Restore precise seam positions that may have been modified by alignment
 // Iterates through all perimeters and restores precise_seam_point positions

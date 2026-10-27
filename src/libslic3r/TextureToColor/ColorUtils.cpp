@@ -26,7 +26,7 @@
 #include <boost/next_prior.hpp>
 
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
-#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_traits_3.h>
 #include <CGAL/AABB_tree.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Point_3.h>
@@ -98,7 +98,7 @@ typedef boost::graph_traits<CGALMesh>::halfedge_descriptor halfedge_descriptor;
 typedef boost::graph_traits<CGALMesh>::edge_descriptor edge_descriptor;
 typedef boost::graph_traits<CGALMesh>::vertex_descriptor vertex_descriptor;
 typedef CGAL::AABB_face_graph_triangle_primitive<CGALMesh> Primitive;
-typedef CGAL::AABB_traits<CGALKernel, Primitive> Traits;
+typedef CGAL::AABB_traits_3<CGALKernel, Primitive> Traits;
 typedef CGAL::AABB_tree<Traits> Tree;
 typedef CGALMesh::template Property_map<vertex_descriptor, CGALKernel::Vector_3> VNMap;
 

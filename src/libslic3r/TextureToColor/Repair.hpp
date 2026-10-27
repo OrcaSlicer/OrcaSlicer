@@ -2,7 +2,8 @@
 #include "TriMesh.hpp"
 #include "CgalUtils.hpp"
 #include "Callbacks.hpp"
-#include <CGAL/Polygon_mesh_processing/border.h>
+#include <CGAL/boost/graph/border.h>
+#include <CGAL/Named_function_parameters.h>
 #include <CGAL/Polygon_mesh_processing/manifoldness.h>
 #include <CGAL/Polygon_mesh_processing/repair_degeneracies.h>
 #include <CGAL/Polygon_mesh_processing/repair_polygon_soup.h>
@@ -22,8 +23,6 @@
 #include <vector>
 
 namespace Slic3r { namespace tex2color {
-
-namespace PMP = CGAL::Polygon_mesh_processing;
 
 // Default upper bound on the number of half-edges in any single boundary cycle
 // that CloseBoundariesAndRepairManifoldness will attempt to triangulate. The
@@ -60,11 +59,12 @@ struct BoundaryEdgeStats
 // any pre-processing (e.g. stitch_borders) needed for the count to be meaningful.
 inline BoundaryEdgeStats ComputeBoundaryEdgeStats(const cgalutils::CGALMesh& cgal_mesh)
 {
+    namespace PMP = CGAL::Polygon_mesh_processing;
     using CGALMesh = cgalutils::CGALMesh;
     using HalfedgeDescriptor = boost::graph_traits<CGALMesh>::halfedge_descriptor;
 
     std::vector<HalfedgeDescriptor> border_cycles;
-    PMP::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
+    CGAL::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
 
     BoundaryEdgeStats stats;
     stats.cycle_count = border_cycles.size();
@@ -86,6 +86,7 @@ inline BoundaryEdgeStats ComputeBoundaryEdgeStats(const cgalutils::CGALMesh& cga
 // boundary statistics; entering this function always triggers triangulation.
 inline void CloseBoundariesAndRepairManifoldness(cgalutils::CGALMesh& cgal_mesh)
 {
+    namespace PMP = CGAL::Polygon_mesh_processing;
     using CGALMesh = cgalutils::CGALMesh;
     using HalfedgeDescriptor = boost::graph_traits<CGALMesh>::halfedge_descriptor;
     using FaceDescriptor = boost::graph_traits<CGALMesh>::face_descriptor;
@@ -94,11 +95,11 @@ inline void CloseBoundariesAndRepairManifoldness(cgalutils::CGALMesh& cgal_mesh)
     PMP::duplicate_non_manifold_vertices(cgal_mesh);
 
     std::vector<HalfedgeDescriptor> border_cycles;
-    PMP::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
+    CGAL::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
 
     for (const HalfedgeDescriptor h : border_cycles) {
         std::vector<FaceDescriptor> patch_faces;
-        PMP::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_faces));
+        PMP::triangulate_hole(cgal_mesh, h, CGAL::parameters::face_output_iterator(std::back_inserter(patch_faces)));
     }
 
     PMP::remove_degenerate_faces(cgal_mesh);
@@ -111,6 +112,7 @@ inline bool RepairMesh(const TriMesh& mesh,
                        AlgoCancelCallback cancel_callback = nullptr,
                        const RepairSetting& setting = RepairSetting{})
 {
+    namespace PMP = CGAL::Polygon_mesh_processing;
     using Clock = std::chrono::steady_clock;
     auto elapsed_ms = [](Clock::time_point t0) {
         return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - t0).count();

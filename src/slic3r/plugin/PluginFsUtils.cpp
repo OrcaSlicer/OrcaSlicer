@@ -9,10 +9,13 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/nowide/fstream.hpp>
 
 #include "PluginAuditManager.hpp"
 #include "PythonInterpreter.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 
 #include <exception>
 #include <miniz.h>
@@ -30,10 +33,6 @@
 #include <sstream>
 #include <unordered_set>
 #include <vector>
-
-#ifdef WIN32
-#include <boost/locale/encoding_utf.hpp>
-#endif
 
 namespace Slic3r {
 
@@ -93,7 +92,7 @@ bool resolve_allowed_plugin_root(const PluginDescriptor& descriptor,
 
     const fs::path plugin_root = resolve_plugin_root_from_descriptor(descriptor);
     if (plugin_root.empty()) {
-        error = "Plugin folder could not be determined.";
+        error = _u8L("Plugin folder could not be determined.");
         return false;
     }
 
@@ -104,7 +103,7 @@ bool resolve_allowed_plugin_root(const PluginDescriptor& descriptor,
         resolved_root = fs::absolute(plugin_root, ec);
     }
     if (ec || resolved_root.empty()) {
-        error = "Failed to resolve plugin folder: " + plugin_root.string();
+        error = GUI::format(_u8L("Failed to resolve plugin folder: %1%"), plugin_root.string());
         return false;
     }
 
@@ -123,7 +122,8 @@ bool delete_plugin_root(const boost::filesystem::path& resolved_root, const std:
     boost::system::error_code ec;
     const auto removed_count = fs::remove_all(resolved_root, ec);
     if (ec) {
-        error = "Failed to delete plugin folder " + resolved_root.string() + ": " + ec.message();
+        // TRN %1% is a folder path, %2% the system error message.
+        error = GUI::format(_u8L("Failed to delete plugin folder %1%: %2%"), resolved_root.string(), ec.message());
         return false;
     }
 
@@ -661,7 +661,7 @@ bool extract_zip_to_directory(const boost::filesystem::path& zip_path, const boo
     namespace fs = boost::filesystem;
 
     boost::system::error_code ec;
-    fs::create_directories(destination, ec);
+    fs::create_directories(extended_path(destination), ec);
     if (ec) {
         error = "Failed to create plugin staging directory: " + ec.message();
         return false;
@@ -705,7 +705,7 @@ bool extract_zip_to_directory(const boost::filesystem::path& zip_path, const boo
 
         const fs::path output_path = destination / relative_path;
         if (stat.m_is_directory || mz_zip_reader_is_file_a_directory(&reader.archive, stat.m_file_index)) {
-            fs::create_directories(output_path, ec);
+            fs::create_directories(extended_path(output_path), ec);
             if (ec) {
                 error = "Failed to create plugin zip directory " + output_path.string() + ": " + ec.message();
                 return false;
@@ -713,26 +713,19 @@ bool extract_zip_to_directory(const boost::filesystem::path& zip_path, const boo
             continue;
         }
 
-        fs::create_directories(output_path.parent_path(), ec);
+        fs::create_directories(extended_path(output_path.parent_path()), ec);
         if (ec) {
             error = "Failed to create plugin zip parent directory " + output_path.parent_path().string() + ": " + ec.message();
             return false;
         }
 
-        if (fs::exists(output_path, ec) && fs::is_directory(output_path, ec)) {
+        if (fs::exists(extended_path(output_path), ec) && fs::is_directory(extended_path(output_path), ec)) {
             error = "Plugin zip file conflicts with an existing directory: " + output_path.string();
             return false;
         }
 
-        const std::string encoded_output_path = encode_path(output_path.string().c_str());
-        mz_bool extracted = mz_zip_reader_extract_to_file(&reader.archive, stat.m_file_index, encoded_output_path.c_str(), 0);
-#ifdef WIN32
-        if (!extracted) {
-            const std::wstring wide_output_path = boost::locale::conv::utf_to_utf<wchar_t>(output_path.generic_string());
-            extracted = mz_zip_reader_extract_to_file_w(&reader.archive, stat.m_file_index, wide_output_path.c_str(), 0);
-        }
-#endif
-        if (!extracted) {
+        // Shared with the rest of the archive code: long-path capable and binary-safe.
+        if (!extract_zip_entry_to_file(&reader.archive, stat.m_file_index, output_path)) {
             error = "Failed to extract plugin zip entry " + relative_key + ": " +
                     MZ_Archive::get_errorstr(mz_zip_get_last_error(&reader.archive));
             return false;
@@ -754,7 +747,14 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
     // truth for a cloud plugin's installed version: it records the version fetched from
     // the cloud at install time, independent of the (possibly stale) manifest/PEP723
     // header that scan_directory parses into entry.version.
-    if (!state.installed_version.empty())
+    //
+    // A local plugin has no cloud copy to diverge from: the entry file's own header is the only
+    // source of truth for its version. Trusting the sidecar there would pin the version shown
+    // in the UI to whatever it was at first install, even after the file is edited.
+    const bool is_local_install = state.installed_from == "local" && state.cloud_uuid.empty();
+    if (is_local_install && !entry.version.empty())
+        entry.installed_version = entry.version;
+    else if (!state.installed_version.empty())
         entry.installed_version = state.installed_version;
     if (!state.cloud_uuid.empty())
         entry.cloud = CloudPluginState{state.cloud_uuid, true, false, false};
@@ -807,6 +807,8 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             read_string_list("network_http", parsed.permissions.network_http);
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
+            read_string_list("threading", parsed.permissions.threading);
+            read_string_list("events", parsed.permissions.events);
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -831,6 +833,29 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
     }
 }
 
+namespace {
+
+// The single descriptor -> sidecar metadata mapping. Prefer installed_version (fetched at install
+// time and preserved across rewrites) over a possibly stale manifest version.
+void apply_install_metadata(PluginInstallState& state, const PluginDescriptor& entry)
+{
+    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
+    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
+    state.plugin_name       = entry.name;
+    state.cloud_uuid        = entry.cloud_uuid();
+}
+
+} // namespace
+
+void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry)
+{
+    if (!state.plugin_name.empty())
+        return;
+
+    apply_install_metadata(state, entry);
+    state.enabled = true;
+}
+
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state)
 {
     namespace fs                = boost::filesystem;
@@ -850,6 +875,8 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"network_http", state.permissions.network_http},
         {"network_socket", state.permissions.network_socket},
         {"process", state.permissions.process},
+        {"threading", state.permissions.threading},
+        {"events", state.permissions.events},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();
@@ -872,16 +899,9 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
     // during register_capabilities() or by a previous runtime audit prompt.
     read_install_state(plugin_dir, state);
-    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
-    // Prefer the descriptor's recorded installed_version (the version fetched from the cloud
-    // at install time, preserved across sidecar re-writes) so a stale manifest/PEP723 header
-    // never overwrites the source-of-truth version. Fall back to the manifest version for
-    // first-time/local installs where installed_version is not yet populated.
-    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
-    state.plugin_name       = entry.name;
-    state.cloud_uuid        = entry.cloud_uuid();
-    state.enabled           = enabled;
-    state.capabilities      = capabilities;
+    apply_install_metadata(state, entry);
+    state.enabled      = enabled;
+    state.capabilities = capabilities;
     return write_install_state(plugin_dir, state);
 }
 
@@ -892,11 +912,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // permissions on a fresh install/reinstall. PluginManager writes the real per-capability flags
     // while preserving permissions once the package is loaded, via the overload above.
     PluginInstallState state;
-    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
-    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
-    state.plugin_name       = entry.name;
-    state.cloud_uuid        = entry.cloud_uuid();
-    state.enabled           = true;
+    seed_install_metadata(state, entry);
     return write_install_state(plugin_dir, state);
 }
 
@@ -1195,7 +1211,7 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
     namespace fs = boost::filesystem;
 
     if (!fs::exists(plugin_dir) || !fs::is_directory(plugin_dir)) {
-        error = "Plugin directory does not exist: " + plugin_dir.string();
+        error = GUI::format(_u8L("Plugin directory does not exist: %1%"), plugin_dir.string());
         return {};
     }
 
@@ -1211,15 +1227,17 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
         const fs::path ext = it->path().extension();
         if (ext == ".py") {
             if (!py_entry.empty()) {
-                error = "Plugin directory contains multiple .py files: " + py_entry.filename().string() +
-                        " and " + it->path().filename().string();
+                // TRN %1% and %2% are file names.
+                error = GUI::format(_u8L("Plugin directory contains multiple .py files: %1% and %2%"),
+                                    py_entry.filename().string(), it->path().filename().string());
                 return {};
             }
             py_entry = it->path();
         } else if (ext == ".whl") {
             if (!whl_entry.empty()) {
-                error = "Plugin directory contains multiple .whl files: " + whl_entry.filename().string() +
-                        " and " + it->path().filename().string();
+                // TRN %1% and %2% are file names.
+                error = GUI::format(_u8L("Plugin directory contains multiple .whl files: %1% and %2%"),
+                                    whl_entry.filename().string(), it->path().filename().string());
                 return {};
             }
             whl_entry = it->path();
@@ -1227,7 +1245,7 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
     }
 
     if (!py_entry.empty() && !whl_entry.empty()) {
-        error = "Plugin directory contains both .py and .whl entry files";
+        error = _u8L("Plugin directory contains both .py and .whl entry files");
         return {};
     }
 
@@ -1237,8 +1255,80 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
     if (!whl_entry.empty())
         return whl_entry;
 
-    error = "Plugin directory does not contain a .py or .whl entry file";
+    error = _u8L("Plugin directory does not contain a .py or .whl entry file");
     return {};
+}
+
+std::vector<std::string> collect_resource_texture_files(const std::string& dir,
+                                                        const std::string& plugin_root,
+                                                        std::string& error)
+{
+    namespace fs = boost::filesystem;
+
+    // Picker sanity bound, not a security control: the popup draws every entry in its grid.
+    constexpr size_t kMaxResourceTextureFiles = 64;
+
+    std::vector<std::string> files;
+    error.clear();
+
+    if (dir.empty()) {
+        error = _u8L("Resource texture directory is not set");
+        return files;
+    }
+    if (plugin_root.empty()) {
+        error = _u8L("Plugin folder could not be determined.");
+        return files;
+    }
+
+    boost::system::error_code ec;
+    const fs::path resolved_dir = fs::weakly_canonical(fs::path(dir), ec);
+    if (ec) {
+        error = _u8L("Resource texture directory could not be resolved");
+        return files;
+    }
+
+    if (!fs::is_directory(resolved_dir, ec) || ec) {
+        error = _u8L("Resource texture path is not a directory");
+        return files;
+    }
+
+    const fs::path resolved_root = fs::weakly_canonical(fs::path(plugin_root), ec);
+    if (ec) {
+        error = _u8L("Plugin folder could not be resolved");
+        return files;
+    }
+
+    if (!is_inside_allowed_root(resolved_dir, resolved_root)) {
+        error = _u8L("Resource texture directory is outside the plugin folder");
+        return files;
+    }
+
+    for (fs::directory_iterator it(resolved_dir, ec), end; it != end && !ec; it.increment(ec)) {
+        const fs::path& path = it->path();
+
+        if (!fs::is_regular_file(path, ec) || ec)
+            continue;
+
+        std::string ext = path.extension().string();
+        boost::algorithm::to_lower(ext);
+        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".bmp")
+            continue;
+
+        // Re-check per file: a symlink inside the pack must not resolve outside it.
+        if (!is_inside_allowed_root(path, resolved_root))
+            continue;
+
+        files.push_back(path.string());
+        if (files.size() >= kMaxResourceTextureFiles)
+            break;
+    }
+
+    if (ec) {
+        error = _u8L("Resource texture directory could not be read");
+        return {};
+    }
+
+    return files;
 }
 
 } // namespace Slic3r

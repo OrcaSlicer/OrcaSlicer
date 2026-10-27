@@ -9,6 +9,8 @@
 //   - action.input "percent"/"tab" -> NativeCommands catalog (phases handled in activateEntry)
 //   - action.icon SVG base name   -> AppAction::icon / resources/images/<name>.svg
 //   - action.desc/wiki            -> AppAction::tooltip / help_url (footer detail strip)
+//   - action.*_en / tab.title_en  -> ActionRegistry action_json / tab_options (English search aliases,
+//                                    sent only when they differ from the displayed text)
 //   - payload.tooltip_expanded    -> ActionRegistry::tooltip_expanded (persisted footer state)
 //   - action list is frecency-sorted -> ActionRegistry::snapshot()
 
@@ -97,45 +99,85 @@ var ghostEl = null, ghostTypedEl = null, ghostSuffixEl = null;
 var activeCompletion = null;
 
 // ---- pure helpers (no DOM; unit-tested) -------------------------------------
-// Pre-normalized haystacks, cached on the action object. The fold is length-preserving (1:1 per
-// char) so the ranges FuzzyRangesNorm returns slice the ORIGINAL title/group/source text correctly.
-// The action objects arrive from C++ and are stable for the dialog's lifetime, so we compute these once.
-function titleNorm(a) {
-    if (a._tn === undefined)
-        a._tn = NormText(a.title, false);
-    return a._tn;
+// Every searchable field of an action: its text, its ranking weight (title > group/category >
+// source/aliases) and the matchIndex key its highlight ranges go to (null for a search-only field).
+//   - group vs source: the eyebrow (header) line shows group when present, else source. Settings keep
+//     an empty group so their source path is the eyebrow; commands / plates / recents carry a non-empty
+//     group. Splitting the two lets a match range stay aligned to whichever string the eyebrow renders.
+//   - full_label: search-only alias for the descriptive name when the title differs (e.g. "Reverse on
+//     even" vs "Overhang reversal"). Never rendered, so no highlight ranges.
+//   - plugin category / type: the visible "Plugins" category, plus the plugin kind as searchable
+//     metadata, so typing "plugin" finds runnable plugin actions even when neither their capability
+//     nor plugin name contains that word. Keep both category forms.
+//   - *_en: English counterparts of the translated fields, sent by C++ only when they differ from the
+//     displayed text (a non-English UI), so the page can still be searched in English. Each carries the
+//     weight of the localized field it mirrors, so a match ranks the same in either language. Search-only,
+//     except their ranges, which drive the row's English hint (see ENGLISH_HINT_FIELDS).
+var SEARCH_FIELDS = [
+    { text: function (a) { return a.title; }, weight: SCORE_TITLE, range: "title" },
+    { text: function (a) { return a.group; }, weight: SCORE_GROUP, range: "group" },
+    { text: function (a) { return a.source; }, weight: 0, range: "source" },
+    { text: function (a) { return a.full_label; }, weight: 0, range: null },
+    { text: function (a) { return a.kind === "plugin" ? T("sd_plugins", "Plugins") : ""; }, weight: SCORE_GROUP, range: "plugin" },
+    { text: function (a) { return a.kind === "plugin" ? "plugin plugins" : ""; }, weight: SCORE_GROUP, range: null },
+    { text: function (a) { return a.title_en; }, weight: SCORE_TITLE, range: "title_en" },
+    { text: function (a) { return a.group_en; }, weight: SCORE_GROUP, range: "group_en" },
+    { text: function (a) { return a.source_en; }, weight: 0, range: "source_en" },
+    { text: function (a) { return a.full_label_en; }, weight: 0, range: "full_label_en" }
+];
+var MATCH_RANGE_KEYS = SEARCH_FIELDS.map(function (f) { return f.range; }).filter(Boolean);
+
+// English aliases a row can match through. `range` names the matchIndex key matchFields fills for that
+// field; the hint shows the action's English name (title_en), falling back to whichever alias matched.
+var ENGLISH_HINT_FIELDS = [
+    { range: "title_en", text: function (a) { return a.title_en; } },
+    { range: "group_en", text: function (a) { return a.group_en; } },
+    { range: "source_en", text: function (a) { return a.source_en; } },
+    { range: "full_label_en", text: function (a) { return a.full_label_en; } }
+];
+
+// The English alias to show as a muted hint on an action row, or null. Only a row whose match came
+// through an English alias gets one (a visible translated highlight, or a local-only alias, needs
+// none). The hint is the action's English NAME - highlighted when the name itself matched, otherwise
+// shown plain - so the row identifies the action instead of repeating its translated eyebrow: a
+// "Process : Speed" breadcrumb match still names the setting ("Inner wall"), not the breadcrumb again.
+function englishHint(a, mi, visibleMatch) {
+    if (!mi || visibleMatch) return null;
+    var matched = null;
+    for (var i = 0; i < ENGLISH_HINT_FIELDS.length; i++) {
+        if (mi[ENGLISH_HINT_FIELDS[i].range]) { matched = ENGLISH_HINT_FIELDS[i]; break; }
+    }
+    if (!matched) return null;
+    if (a.title_en) return { text: a.title_en, ranges: mi.title_en || null };
+    var text = matched.text(a);
+    return text ? { text: text, ranges: mi[matched.range] } : null;
 }
-// The eyebrow (header) line shows group when present, else source. Settings keep an empty group so
-// their source path is the eyebrow; commands / plates / recents carry a non-empty group. Splitting the
-// two lets a match range stay aligned to whichever string the eyebrow actually renders.
-function groupNorm(a) {
-    if (a._gn === undefined)
-        a._gn = NormText(a.group || "", false);
-    return a._gn;
+
+// The English breadcrumb a row matched through (a command's group, a setting's source path), with its
+// highlight ranges, or null when neither matched. Shown beside the translated eyebrow so an English
+// hit is visible where it landed, alongside the English name hint on the row-name line.
+function englishBreadcrumb(a, mi) {
+    if (!mi) return null;
+    if (mi.group_en && a.group_en) return { text: a.group_en, ranges: mi.group_en };
+    if (mi.source_en && a.source_en) return { text: a.source_en, ranges: mi.source_en };
+    return null;
 }
-function sourceNorm(a) {
-    if (a._sn === undefined)
-        a._sn = NormText(a.source || "", false);
-    return a._sn;
-}
-function pluginCategoryNorm(a) {
-    if (a._pcn === undefined)
-        a._pcn = a.kind === "plugin" ? NormText(T("sd_plugins", "Plugins"), false) : "";
-    return a._pcn;
-}
-// Plugin type is searchable metadata, so typing "plugin" can find runnable plugin actions even
-// when neither their capability nor plugin name contains that word. Keep both category forms.
-function pluginTypeNorm(a) {
-    if (a._pn === undefined)
-        a._pn = a.kind === "plugin" ? NormText("plugin plugins", false) : "";
-    return a._pn;
-}
-// Search-only alias for the descriptive name when the title differs (e.g. "Reverse on even" vs
-// "Overhang reversal"). Never rendered, so no highlight ranges.
-function fullNorm(a) {
-    if (a._fn === undefined)
-        a._fn = NormText(a.full_label || "", false);
-    return a._fn;
+
+// The action's non-empty SEARCH_FIELDS as pre-normalized haystacks ({norm, weight, range}), cached on
+// the action object. The action objects arrive from C++ and are stable for the dialog's lifetime, so
+// this runs once per action; skipping empty fields keeps the per-keystroke scan to the text an action
+// actually has (an English UI pays nothing for the aliases it never receives). The fold is
+// length-preserving (1:1 per char) so the ranges FuzzyRangesNorm returns slice the ORIGINAL text.
+function searchFields(a) {
+    if (a._sf === undefined) {
+        a._sf = [];
+        for (var i = 0; i < SEARCH_FIELDS.length; i++) {
+            var norm = NormText(SEARCH_FIELDS[i].text(a) || "", false);
+            if (norm)
+                a._sf.push({ norm: norm, weight: SEARCH_FIELDS[i].weight, range: SEARCH_FIELDS[i].range });
+        }
+    }
+    return a._sf;
 }
 
 // Match one pre-normalized field vs one pre-normalized needle. Returns {score, ranges, contiguous}
@@ -175,26 +217,22 @@ function tokenWordRe(token) {
     return new RegExp("\\b" + EscapeRegExp(token) + "\\b");
 }
 
-// One token's best match across an action's searchable fields, keeping per-field ranges for
-// highlighting. Returns {score, title, group, source}, or null if no field matches.
-function tokenMatch(a, token, wwRe) {
-    var t = fieldMatchScore(titleNorm(a), token, wwRe);
-    var g = fieldMatchScore(groupNorm(a), token, wwRe);
-    var s = fieldMatchScore(sourceNorm(a), token, wwRe);
-    var f = fieldMatchScore(fullNorm(a), token, wwRe);
-    var p = fieldMatchScore(pluginCategoryNorm(a), token, wwRe);
-    var typeMatch = fieldMatchScore(pluginTypeNorm(a), token, wwRe);
-    if (!t && !g && !s && !f && !p && !typeMatch) return null;
-    var score = Math.max(
-        t ? (t.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_TITLE + t.score : -Infinity,
-        g ? (g.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_GROUP + g.score : -Infinity,
-        s ? (s.contiguous ? SCORE_CONTIGUOUS : 0) + s.score : -Infinity,
-        f ? (f.contiguous ? SCORE_CONTIGUOUS : 0) + f.score : -Infinity,
-        p ? (p.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_GROUP + p.score : -Infinity,
-        typeMatch ? (typeMatch.contiguous ? SCORE_CONTIGUOUS : 0) + SCORE_GROUP + typeMatch.score : -Infinity
-    );
-    return { score: score, title: t ? t.ranges : null, group: g ? g.ranges : null, source: s ? s.ranges : null,
-             plugin: p ? p.ranges : null };
+// One needle (the whole query, or one token of it) against every SEARCH_FIELDS field of an action.
+// Returns {score, ranges}: the best weighted field score (contiguous > fuzzy, then field weight, then
+// start/gaps) and the ranges of each matching highlighted field keyed by its range name. Null when no
+// field matches.
+function matchFields(a, needle, wwRe) {
+    var fields = searchFields(a);
+    var best = null, ranges = null; // allocated on the first match: most actions match nothing
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var m = fieldMatchScore(field.norm, needle, wwRe);
+        if (!m) continue;
+        var v = (m.contiguous ? SCORE_CONTIGUOUS : 0) + field.weight + m.score;
+        if (best === null || v > best) best = v;
+        if (field.range) (ranges || (ranges = {}))[field.range] = m.ranges;
+    }
+    return best === null ? null : { score: best, ranges: ranges || {} };
 }
 
 // Merge per-field token ranges into sorted, coalesced ranges for highlighting. Overlapping or adjacent
@@ -217,24 +255,6 @@ function mergeRanges(ranges) {
     return out;
 }
 
-// Combine per-field scores into one value, or null when nothing matched.
-// Ranking: contiguous > fuzzy, then title > group/category > source/full alias, then start/gaps.
-function scoreFields(t, g, s, f, p, typeMatch) {
-    var best = null;
-    function consider(m, weight) {
-        if (!m) return;
-        var v = (m.contiguous ? SCORE_CONTIGUOUS : 0) + weight + m.score;
-        best = best === null ? v : Math.max(best, v);
-    }
-    consider(t, SCORE_TITLE);
-    consider(g, SCORE_GROUP);
-    consider(s, 0);
-    consider(f, 0);
-    consider(p, SCORE_GROUP);
-    consider(typeMatch, SCORE_GROUP);
-    return best;
-}
-
 // The unified main-phase search: every action (command/plugin/setting) matching the query, ranked
 // by relevance (not by action type). Sets matchIndex so rows highlight their match ranges. The query
 // is normalized ONCE per pass - FuzzyRangesNorm then runs against each action's pre-normalized
@@ -245,8 +265,8 @@ function scoreFields(t, g, s, f, p, typeMatch) {
 //   - tokens: every whitespace-separated word must match SOME field, but different words may match
 //     different fields. This is what lets "speed acceleration inner" find "Inner wall" whose path is
 //     "Process : Speed : Acceleration" (title + source breadcrumb together).
-// full_label and canonical plugin kind are searchable aliases. The visible category is also searchable
-// so its own match can be highlighted in plugin rows.
+// full_label, canonical plugin kind and the English counterparts (*_en) are searchable aliases. The
+// visible category is also searchable so its own match can be highlighted in plugin rows.
 // A phrase match always outranks a distributed token match.
 function searchActions(actions, query) {
     var q = (query || "").trim();
@@ -262,50 +282,43 @@ function searchActions(actions, query) {
     // Compiled once per pass, reused over every field: non-global so no exec()/lastIndex state leaks
     // between fields, and EscapeRegExp keeps regex metachars in the query literal.
     var wwRe = new RegExp("\\b" + EscapeRegExp(searchNeedle) + "\\b");
+    // A one-word query's only token is the needle itself, so its token pass would repeat the failed
+    // phrase match exactly; such an action is dropped without it.
+    var tokenPass = searchTokens.length !== 1 || searchTokens[0] !== searchNeedle;
 
     var scored = [];
     var seen = {};
     for (var i = 0; i < list.length; i++) {
         var a = list[i];
-        var t = fieldMatchScore(titleNorm(a), searchNeedle, wwRe);
-        var g = fieldMatchScore(groupNorm(a), searchNeedle, wwRe);
-        var s = fieldMatchScore(sourceNorm(a), searchNeedle, wwRe);
-        var f = fieldMatchScore(fullNorm(a), searchNeedle, wwRe);
-        var p = fieldMatchScore(pluginCategoryNorm(a), searchNeedle, wwRe);
-        var typeMatch = fieldMatchScore(pluginTypeNorm(a), searchNeedle, wwRe);
-        var phrase = scoreFields(t, g, s, f, p, typeMatch);
-        var score, ranges;
-        if (phrase !== null) {
-            score = phrase + SCORE_PHRASE;
-            ranges = { title: t ? t.ranges : null, group: g ? g.ranges : null, source: s ? s.ranges : null,
-                       plugin: p ? p.ranges : null };
+        var phrase = matchFields(a, searchNeedle, wwRe);
+        var score, perField;
+        if (phrase) {
+            score = phrase.score + SCORE_PHRASE;
         } else {
+            if (!tokenPass) continue;
             // Require every token; a token that matches nothing drops the action immediately. Ranges
             // from all matching tokens are merged per field so each matched word highlights.
-            var sum = 0, titleR = null, groupR = null, sourceR = null, pluginR = null, all = true;
+            var sum = 0, all = true;
+            perField = {};
             for (var tokenIndex = 0; tokenIndex < searchTokens.length; tokenIndex++) {
-                var m = tokenMatch(a, searchTokens[tokenIndex], searchTokenRes[tokenIndex]);
+                var m = matchFields(a, searchTokens[tokenIndex], searchTokenRes[tokenIndex]);
                 if (!m) { all = false; break; }
                 sum += m.score;
-                if (m.title) (titleR || (titleR = [])).push(m.title);
-                if (m.group) (groupR || (groupR = [])).push(m.group);
-                if (m.source) (sourceR || (sourceR = [])).push(m.source);
-                if (m.plugin) (pluginR || (pluginR = [])).push(m.plugin);
+                for (var key in m.ranges)
+                    (perField[key] || (perField[key] = [])).push(m.ranges[key]);
             }
             if (!all) continue;
             score = sum;
-            ranges = { title: mergeRanges(titleR), group: mergeRanges(groupR), source: mergeRanges(sourceR),
-                       plugin: mergeRanges(pluginR) };
         }
-        // Ranges are per-field against the ACTUAL text drawn: title for the row-name, and group (or
-        // source when group is empty) for the eyebrow - so highlight offsets stay aligned to the label.
-        matchIndex[a.id] = {
-            title: ranges.title,
-            group: ranges.group,
-            source: ranges.source,
-            plugin: ranges.plugin,
-            useEyebrowGroup: !!(a.group)
-        };
+        // Ranges are per-field against the ACTUAL text drawn: title for the row-name, group (or source
+        // when group is empty) for the eyebrow, and title_en for the English hint - so highlight offsets
+        // stay aligned to the label.
+        var entry = { useEyebrowGroup: !!(a.group) };
+        for (var k = 0; k < MATCH_RANGE_KEYS.length; k++) {
+            var rangeKey = MATCH_RANGE_KEYS[k];
+            entry[rangeKey] = phrase ? phrase.ranges[rangeKey] || null : mergeRanges(perField[rangeKey]);
+        }
+        matchIndex[a.id] = entry;
         scored.push({ a: a, s: score });
         seen[a.id] = true;
     }
@@ -350,7 +363,8 @@ function completionFor(query, list) {
     var top = (list || []).slice(0, 10);
     for (var i = 0; i < top.length; i++) {
         var a = top[i];
-        var fields = [a.title, a.group, a.source, a.full_label];
+        // English aliases after the displayed text, so English typing completes in a localized UI.
+        var fields = [a.title, a.group, a.source, a.full_label, a.title_en, a.group_en, a.source_en, a.full_label_en];
         for (var f = 0; f < fields.length; f++) {
             var words = completionWords(fields[f]);
             for (var w = 0; w < words.length; w++) {
@@ -427,14 +441,28 @@ function tabTitle(t) {
     return title || prettySource((t && t.id) || "");
 }
 
-// Filter the tab list by a fuzzy title/id match. Pure so the node-vm test can exercise it.
+// Filter the tab list by a fuzzy title/id/English-title match (title_en is sent only when the page
+// label is translated). Pure so the node-vm test can exercise it.
 function filterTabs(tabs, query) {
     var q = (query || "").trim();
     if (!q)
         return (tabs || []).slice(0);
     return (tabs || []).filter(function (t) {
-        return FuzzyRanges(tabTitle(t), q, false) || FuzzyRanges(t.id, q, false);
+        return FuzzyRanges(tabTitle(t), q, false) || FuzzyRanges(t.id, q, false) ||
+               (t.title_en && FuzzyRanges(t.title_en, q, false));
     });
+}
+
+// The English title of a tab matched only through it, with its highlight ranges, or null when the tab
+// matched its translated title or id (so it already shows why) or has no English title.
+function tabAliasHint(t, query) {
+    var q = (query || "").trim();
+    if (!q || !t || !t.title_en)
+        return null;
+    if (FuzzyRanges(tabTitle(t), q, false) || FuzzyRanges(t.id, q, false))
+        return null;
+    var ranges = FuzzyRanges(t.title_en, q, false);
+    return ranges ? { text: t.title_en, ranges: ranges } : null;
 }
 
 function shouldRenderActionList(query) {
@@ -648,7 +676,7 @@ function labelParts(actions) {
 // Accessible label "Title from Pretty Source", disambiguated with the opaque action id when another
 // action shares the same title+source (case/separator-insensitive) - so two rows never read out identically.
 function actionLabel(action, actions) {
-    var label = action.title + " from " + prettySource(action.source || action.group || "");
+    var label = T("sd_action_from", "%s from %s", action.title, prettySource(action.source || action.group || ""));
     if (actions && actions.length) {
         var cache = labelParts(actions);
         var mine  = cache.sig[action.id];
@@ -971,8 +999,21 @@ function renderActionRow(a, i) {
     var showPluginCategory = a.kind === "plugin" && (typedQuery || isRecent);
     var eyebrow = actionEyebrow(a, query, isRecent);
     var eyebrowMatch = mi ? (showPluginCategory ? mi.plugin : (mi.useEyebrowGroup ? mi.group : mi.source)) : null;
-    shell.left.insertBefore(markedText("row-eyebrow", eyebrow, eyebrowMatch), shell.line);
+    // The eyebrow line: the translated breadcrumb, and beside it the English breadcrumb when the query
+    // matched that (non-English UI), so an English hit on a breadcrumb is visible where it landed.
+    var eyebrowLine = document.createElement("div");
+    eyebrowLine.className = "row-eyebrow-line";
+    eyebrowLine.appendChild(markedText("row-eyebrow", eyebrow, eyebrowMatch));
+    var enBreadcrumb = englishBreadcrumb(a, mi);
+    if (enBreadcrumb)
+        eyebrowLine.appendChild(markedText("row-eyebrow-en", enBreadcrumb.text, enBreadcrumb.ranges));
+    shell.left.insertBefore(eyebrowLine, shell.line);
     shell.line.appendChild(markedText("row-name", a.title, mi ? mi.title : null));
+    // A row found only through an English alias shows the action's English name, highlighted when the
+    // name itself matched, so the match makes sense even when the translated row resembles nothing.
+    var hint = englishHint(a, mi, mi ? (mi.title || eyebrowMatch) : null);
+    if (hint)
+        shell.line.appendChild(markedText("row-alias", hint.text, hint.ranges));
     var badge = modeBadge(a, USER_MODE);
     if (badge) {
         var tag = document.createElement("span");
@@ -1150,6 +1191,11 @@ function renderTabRow(t, i) {
     name.className = "row-name";
     name.textContent = label;
     shell.line.appendChild(name);
+    // A tab found only through its English title shows that title, highlighted, so the match is
+    // explained even when the translated label looks nothing like the query.
+    var hint = tabAliasHint(t, query);
+    if (hint)
+        shell.line.appendChild(markedText("row-alias", hint.text, hint.ranges));
     shell.row.onclick = function () { sel = { zone: "list", i: i }; render({ resize: true }); };
     shell.row.ondblclick = function () { sel = { zone: "list", i: i }; jumpToTab(t); };
     return shell.row;
@@ -1421,8 +1467,8 @@ function focusInput() { setTimeout(function () { if (qEl) qEl.focus(); }, 0); }
 function OnInit() {
     qEl = $("q"); listEl = $("list"); favEl = $("favBar"); clearEl = $("clear"); eyeEl = $("favEyebrow"); countEl = $("count"); detailEl = $("detail");
     ghostEl = $("ghost"); ghostTypedEl = $("ghostTyped"); ghostSuffixEl = $("ghostSuffix");
-    // text.js's TranslatePage() targets jQuery `.trans` nodes; this page has none and defines its own
-    // `$`, so don't call it. Runtime strings go through T() instead.
+    // This page has no data-i18n markup and defines its own `$` and T(), so it does not load
+    // include/i18n.js. Its strings all go through T().
     qEl.placeholder = T("sd_search", "Search actions");
     qEl.setAttribute("aria-label", T("sd_search", "Search actions"));
     if (clearEl) {

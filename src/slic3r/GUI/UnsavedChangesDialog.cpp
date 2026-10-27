@@ -11,6 +11,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Config.hpp"
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <memory>
 #include "slic3r/GUI/GUI_Utils.hpp"
@@ -40,9 +41,11 @@
 #include <wx/textctrl.h>
 #include <wx/settings.h>
 #include <wx/tokenzr.h>
+#include <wx/utils.h>
 #include <wx/variant.h>
 #include <wx/window.h>
 #include <wx/toplevel.h>
+#include <wx/statline.h>
 
 #include "CalibUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -62,7 +65,6 @@
 #include "PresetComboBoxes.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/HyperLink.hpp"
 
 #ifdef __linux__
 #define wxLinux true
@@ -1011,8 +1013,14 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {
-        auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
-        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+        auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+        auto wiki_url = "https://www.orcaslicer.com/wiki/transfer_discard_changes";
+        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+        wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+        wiki_btn->SetCanFocus(false);
+        wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+        m_sizer_button->Add(wiki_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
     }
 
     m_sizer_button->Add(0, 0, 1, 0, 0);
@@ -1616,10 +1624,6 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
             wxString label = option.label_local;
             if (type == Preset::TYPE_PRINTER && variant_index >= 0 &&
                 printer_options_with_variant_2.count(get_pure_opt_key(opt_key)) > 0) {
-                // Orca: silent_mode is obsolete on import, but its option and two-column UI still exist.
-                // Keep mode labels for configs that explicitly enable it; omit them in the default single-mode UI.
-                if (new_config.opt_bool("silent_mode"))
-                    label += " (" + (variant_index % 2 == 0 ? _L("Normal") : _L("Silent")) + ")";
                 variant_index /= 2;
             }
             if (variant_index >= 0 && extruder_variant && variant_index < extruder_variant->size()) {
@@ -2159,7 +2163,8 @@ void DiffPresetDialog::update_tree()
 
         preset_combos.equal_bmp->SetToolTip(wxEmptyString);
 
-        m_tree->model->AddPreset(type, "\"" + from_u8(left_preset->name) + "\" vs \"" + from_u8(right_preset->name) + "\"", left_pt);
+        // TRN Header of a preset comparison: the two preset names.
+        m_tree->model->AddPreset(type, format_wxstr(_L("\"%1%\" vs \"%2%\""), left_preset->name, right_preset->name), left_pt);
 
         const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(type)->get_category_icon_map();
         auto get_category_icon = [&category_icon_map](const wxString& key) {

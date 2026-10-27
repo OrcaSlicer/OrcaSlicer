@@ -22,7 +22,7 @@ public:
     void request_show();
 
 private:
-    void add_user_scripts() override;
+    nlohmann::json localized_strings() const override;
     void on_script_message(const nlohmann::json& payload) override;
     void handle_web_command(const nlohmann::json& payload);
     void resize_to_content(int height);

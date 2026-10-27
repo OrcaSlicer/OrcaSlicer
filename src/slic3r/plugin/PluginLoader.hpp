@@ -14,12 +14,14 @@ struct Plugin;
 } // namespace Slic3r
 
 namespace Slic3r::plugin_loader {
+// registration_failed, when given, is set if the plugin's own registration step rejected the load.
 bool load(const PluginDescriptor&                          descriptor,
           bool                                             skip_deps,
           const std::vector<std::string>&                  capabilities_to_enable,
           const std::function<std::string(const Plugin&)>& registry_precheck,
           Plugin&                                          out,
-          std::string&                                     error);
+          std::string&                                     error,
+          bool*                                            registration_failed = nullptr);
 
 // Run on_unload() on every capability, drop them, and release the module. Safe to call on a
 // not-loaded Plugin, and safe after the interpreter has been finalized (in which case the module

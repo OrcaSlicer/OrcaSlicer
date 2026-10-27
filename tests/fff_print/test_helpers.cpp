@@ -223,7 +223,10 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 	// These are read by filament id during export but absent from filament_option_keys(),
 	// so set_num_filaments leaves them size 1; size them too, else out-of-range access.
 	const auto &defaults = FullPrintConfig::defaults();
-	for (const char *key : { "filament_type", "filament_vendor", "filament_start_gcode" })
+	for (const char *key : { "filament_type", "filament_vendor", "filament_start_gcode", "filament_change_length", "filament_change_length_nc",
+	                         "filament_ramming_travel_time", "filament_ramming_travel_time_nc",
+	                         "filament_ramming_volumetric_speed", "filament_ramming_volumetric_speed_nc",
+	                         "nozzle_temperature", "nozzle_temperature_initial_layer" })
 		static_cast<ConfigOptionVectorBase *>(config.option(key, true))->resize(filaments, defaults.option(key));
 
 	// flush_volumes_matrix must be sized filaments*filaments or export rejects it.
@@ -232,6 +235,19 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 	if (extra.size() > 0)
 		config.set_deserialize_strict(extra);
 	return config;
+}
+
+void size_flush_to_nozzles(DynamicPrintConfig &config)
+{
+	// One filaments x filaments flush block and one flush multiplier per nozzle, as the GUI
+	// sizes them when the nozzle count changes; a single block leaves each nozzle's slice short.
+	const size_t nozzles = config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+	auto        &flush   = config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values;
+	const std::vector<double> block = flush;
+	for (size_t i = 1; i < nozzles; ++i)
+		flush.insert(flush.end(), block.begin(), block.end());
+	for (const char *key : { "flush_multiplier", "flush_multiplier_fast" })
+		config.option<ConfigOptionFloats>(key, true)->resize(nozzles);
 }
 
 void init_print(std::vector<TriangleMesh> &&meshes, Slic3r::Print &print, Slic3r::Model &model, const DynamicPrintConfig &config_in,
@@ -457,7 +473,10 @@ int role_passes(const std::string &gcode, const std::string &role)
     bool in_role = false;
     GCodeReader reader;
     reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (! line.extruding(self)) return;
+        // E-only unretraction moves have positive E but do not lay down material. Ignoring
+        // them keeps a role pass contiguous across travel/retraction bookkeeping.
+        if (! line.extruding(self) || (line.dist_XY(self) <= EPSILON && std::abs(line.dist_Z(self)) <= EPSILON))
+            return;
         const bool is_role = line.comment().find(role) != std::string_view::npos;
         if (is_role && ! in_role) ++passes;
         in_role = is_role;

@@ -1,7 +1,6 @@
 #include <boost/log/trivial.hpp>
 #include "MedialAxis.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <boost/polygon/polygon.hpp>
 #include <cassert>
 #include <cmath>

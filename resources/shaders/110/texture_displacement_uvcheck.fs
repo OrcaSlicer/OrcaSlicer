@@ -36,13 +36,19 @@ varying vec4  world_pos;
 varying float distortion;
 varying vec2  vertex_uv;
 
+// Right handed (up x right), like libslic3r's project_cylindrical(), so the angle taken from it grows
+// anticlockwise about the axis - to the viewer's right when seen from outside the cylinder.
 void cylinder_frame(out vec3 up, out vec3 right, out vec3 fwd)
 {
     up = (length(patch_axis) > 1e-8) ? normalize(patch_axis) : vec3(0.0, 0.0, 1.0);
     vec3 arbitrary = (abs(up.z) < 0.9) ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
     right = normalize(cross(up, arbitrary));
-    fwd   = normalize(cross(right, up));
+    fwd   = normalize(cross(up, right));
 }
+
+// Which side of a world plane a face is on, with zero counting as the positive side. Not GLSL's own
+// sign(), which returns 0 there and would collapse the coordinate onto a line.
+float box_face_sign(float n) { return n >= 0.0 ? 1.0 : -1.0; }
 
 // Term for term libslic3r's project_planar() / project_cylindrical() / project_spherical(), in mm.
 vec2 projection_raw(vec3 p, vec3 n)
@@ -53,7 +59,7 @@ vec2 projection_raw(vec3 p, vec3 n)
         vec3  rel = p - patch_center;
         float x   = dot(rel, right);
         float y   = dot(rel, fwd);
-        return vec2(atan(y, x) * sqrt(x * x + y * y), dot(rel, up));
+        return vec2(atan(y, x) * sqrt(x * x + y * y), -dot(rel, up));
     }
     if (projection_mode == 2) {
         vec3  rel    = p - patch_center;
@@ -61,10 +67,16 @@ vec2 projection_raw(vec3 p, vec3 n)
         if (radius < 1e-8)
             return vec2(0.0);
         vec3 dir = rel / radius;
-        return vec2(atan(dir.y, dir.x), asin(clamp(dir.z, -1.0, 1.0))) * radius;
+        return vec2(atan(dir.y, dir.x), -asin(clamp(dir.z, -1.0, 1.0))) * radius;
     }
+    // v negated so the image's first pixel row sits at the top of the model, u flipped on the far side
+    // of each plane so the two faces sharing it are not mirror images - see libslic3r's box_plane_yz().
     vec3 an = abs(n);
-    return (an.x >= an.y && an.x >= an.z) ? p.yz : ((an.y >= an.x && an.y >= an.z) ? p.xz : p.xy);
+    if (an.x >= an.y && an.x >= an.z)
+        return vec2(box_face_sign(n.x) * p.y, -p.z);
+    if (an.y >= an.x && an.y >= an.z)
+        return vec2(-box_face_sign(n.y) * p.x, -p.z);
+    return vec2(box_face_sign(n.z) * p.x, -p.y);
 }
 
 vec2 project_uv(vec3 p, vec3 n)

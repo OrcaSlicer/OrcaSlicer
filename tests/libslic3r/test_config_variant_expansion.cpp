@@ -863,3 +863,23 @@ TEST_CASE("The device drying options are rebuilt as each filament's values in sl
     set_filament_dev_options(config, {&two_values, &no_value});
     REQUIRE(config.option<ConfigOptionStrings>("filament_dev_ams_drying_ams_limitations")->values == std::vector<std::string>({"1", "0", ""}));
 }
+
+TEST_CASE("The mixed filament metadata is sized to the filament count", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionBools>("filament_is_mixed", true)->values            = {false, false, true};
+    config.option<ConfigOptionStrings>("filament_mixed_components", true)->values  = {"", "", "1,2"};
+    config.option<ConfigOptionBools>("filament_mixed_gradient", true)->values      = {false};
+    config.option<ConfigOptionStrings>("filament_mixed_gradient_range", true)->values = {""};
+
+    resize_mixed_filament_metadata(config, 3, 3);
+    REQUIRE(config.option<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>({false, false, true}));
+    REQUIRE(config.option<ConfigOptionStrings>("filament_mixed_components")->values == std::vector<std::string>({"", "", "1,2"}));
+    REQUIRE(config.option<ConfigOptionBools>("filament_mixed_gradient")->values == std::vector<unsigned char>({false, false, false}));
+    REQUIRE(config.option<ConfigOptionStrings>("filament_mixed_gradient_range")->values == std::vector<std::string>({"", "", ""}));
+    REQUIRE(config.option<ConfigOptionStrings>("filament_mixed_gradient_curve")->values == std::vector<std::string>({"", "", ""}));
+
+    resize_mixed_filament_metadata(config, 2, 4);
+    REQUIRE(config.option<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>({false, false, false, false}));
+    REQUIRE(config.option<ConfigOptionStrings>("filament_mixed_components")->values == std::vector<std::string>({"", "", "", ""}));
+}

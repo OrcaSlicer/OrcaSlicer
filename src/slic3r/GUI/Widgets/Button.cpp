@@ -223,6 +223,12 @@ void Button::SetStyle(const ButtonStyle style, const ButtonType type)
         this->SetMinSize(FromDIP(wxSize(26, 26)));
         this->SetSize(FromDIP(wxSize(26, 26)));
         this->SetCornerRadius(this->FromDIP(4));
+    } else if (type == ButtonType::Circle) {
+        this->SetPaddingSize(FromDIP(wxSize(6, 6)));
+        this->SetMinSize(FromDIP(wxSize(25, 25)));
+        this->SetMaxSize(FromDIP(wxSize(25, 25)));
+        this->SetSize(FromDIP(wxSize(25, 25)));
+        this->SetCornerRadius(this->FromDIP(12));
     } else if (type == ButtonType::Expanded) {
         this->SetMinSize(FromDIP(wxSize(-1, 32)));
         this->SetPaddingSize(FromDIP(wxSize(12, 8)));
