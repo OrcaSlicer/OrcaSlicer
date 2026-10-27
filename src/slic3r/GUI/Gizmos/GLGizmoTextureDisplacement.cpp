@@ -4344,8 +4344,9 @@ void GLGizmoTextureDisplacement::set_layer_texture(TextureDisplacementLayer &lay
     }
 
     Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Change texture displacement texture"), UndoRedo::SnapshotType::GizmoAction);
-    layer.name = entry.name;
-    layer.path = entry.path;
+    layer.name           = entry.name;
+    layer.path           = entry.path;
+    layer.preview_adjust = TextureAdjustments{};
     // Handing over the library's own buffer (rather than a copy) is what lets decode_height_texture()
     // - whose cache is keyed by exactly this pointer - hit straight away instead of re-decoding
     // the PNG the first time the layer is previewed or baked.
@@ -4354,6 +4355,7 @@ void GLGizmoTextureDisplacement::set_layer_texture(TextureDisplacementLayer &lay
     if (entry.source == TextureSource::User)
         touch_user_texture(entry.path);
 
+    invalidate_adjust_textures();
     rebuild_preview();
     m_parent.set_as_dirty();
 }
@@ -4869,15 +4871,18 @@ void GLGizmoTextureDisplacement::open_image_adjust(const TextureDisplacementLaye
     if (layer.empty() || layer.slot < 0)
         return;
 
-    close_image_adjust(); // reverts and clears any previous panel
+    close_image_adjust(false); // closes any previous panel while keeping its adjustments
 
     if (!load_image_adjust_source(layer))
         return;
 
-    m_adjust            = TextureAdjustments{};
-    m_adjust_applied    = TextureAdjustments{};
-    m_adjust_bg_picking = false;
-    m_adjust_slot       = layer.slot;
+    m_adjust               = layer.preview_adjust;
+    m_adjust_applied       = layer.preview_adjust;
+    m_adjust_initial       = layer.preview_adjust;
+    m_adjust_preview_shown = TextureAdjustments{};
+    m_adjust_preview_valid = false;
+    m_adjust_bg_picking    = false;
+    m_adjust_slot          = layer.slot;
     const ModelVolume *mv = texture_volume();
     m_adjust_volume_id = mv != nullptr ? mv->id().id : 0;
 }
@@ -4956,25 +4961,23 @@ void GLGizmoTextureDisplacement::invalidate_adjust_textures()
     m_palette_cache.clear();
 }
 
-void GLGizmoTextureDisplacement::close_image_adjust()
+void GLGizmoTextureDisplacement::close_image_adjust(bool revert)
 {
-    // Revert the layer's live adjustment. Every exit that reaches here is a discard: a commit resets
-    // preview_adjust itself, before pointing the layer at the file that already carries the edit, so this
-    // cannot undo a committed adjustment.
+    // When `revert` is true (Cancel), restore the layer's live adjustment to what it had when the panel
+    // opened. Closing the panel via the window close button, Apply, or gizmo shutdown leaves `preview_adjust`
+    // in place so the adjusted image (including background removal) stays active for preview and Bake.
     //
     // Found by the id recorded when the panel opened rather than through texture_volume(), which answers
-    // for the *current* selection. One of the ways to get here is the selection having moved on, and
-    // reverting the newly selected object's layer instead would both miss the adjustment that is still
-    // live on the original volume and clear one the user never touched.
+    // for the *current* selection.
     bool reverted = false;
-    if (m_adjust_slot >= 0 && m_adjust_volume_id != 0)
+    if (revert && m_adjust_slot >= 0 && m_adjust_volume_id != 0)
         for (ModelObject *mo : wxGetApp().model().objects) {
             for (ModelVolume *mv : mo->volumes) {
                 if (mv->id().id != m_adjust_volume_id)
                     continue;
                 for (TextureDisplacementLayer &l : mv->texture_displacement_layers)
-                    if (l.slot == m_adjust_slot && !l.preview_adjust.identity()) {
-                        l.preview_adjust = TextureAdjustments{};
+                    if (l.slot == m_adjust_slot && l.preview_adjust != m_adjust_initial) {
+                        l.preview_adjust = m_adjust_initial;
                         reverted         = true;
                     }
             }
@@ -4993,6 +4996,7 @@ void GLGizmoTextureDisplacement::close_image_adjust()
     m_adjust_slot           = -1;
     m_adjust                = TextureAdjustments{};
     m_adjust_applied        = TextureAdjustments{};
+    m_adjust_initial        = TextureAdjustments{};
     m_adjust_bg_picking     = false;
     m_adjust_source         = DecodedHeightTexture{};
     m_adjust_preview_source = DecodedHeightTexture{};
@@ -5088,8 +5092,17 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     ModelVolume *mv = texture_volume();
     // A different volume is selected than the one this panel was opened on. Slots are numbered per
     // volume, so looking m_adjust_slot up here would find an unrelated layer rather than nothing.
+    // However, prepare_mesh() assigns a new ObjectID to the same volume after subdividing/remeshing;
+    // if the current volume still carries the exact same slot and source image, follow its new id.
+    if (mv != nullptr && mv->id().id != m_adjust_volume_id) {
+        for (const TextureDisplacementLayer &l : mv->texture_displacement_layers)
+            if (l.slot == m_adjust_slot && l.image_data.get() == m_adjust_source_image) {
+                m_adjust_volume_id = mv->id().id;
+                break;
+            }
+    }
     if (mv == nullptr || mv->id().id != m_adjust_volume_id) {
-        close_image_adjust();
+        close_image_adjust(false);
         return;
     }
 
@@ -5099,7 +5112,7 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
             layer = &l;
     if (layer == nullptr) {
         // The layer went away under the panel (removed, or merged away by an undo).
-        close_image_adjust();
+        close_image_adjust(false);
         return;
     }
 
@@ -5109,7 +5122,7 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     // the new image (decode_height_texture() reads layer.image_data, which changed), so re-reading here is
     // also what keeps the panel's photo and the model showing the same thing.
     if (layer->image_data.get() != m_adjust_source_image && !load_image_adjust_source(*layer)) {
-        close_image_adjust(); // the new image cannot be decoded; nothing left to adjust
+        close_image_adjust(false); // the new image cannot be decoded; nothing left to adjust
         return;
     }
 
@@ -5127,7 +5140,7 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
                       ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
         ImGui::End();
         if (!keep_open)
-            close_image_adjust();
+            close_image_adjust(false);
         return;
     }
 
@@ -5350,17 +5363,21 @@ void GLGizmoTextureDisplacement::render_image_adjust_window(const ImVec2 &panel_
     m_imgui->text_wrapped(_u8L("The model updates when you release a slider. Save as copy writes the "
                                "adjusted image to your texture library and points this layer at it."), img_w);
 
-    const bool cancel = m_imgui->button(_L("Cancel"));
+    const bool apply = m_imgui->button(_L("Apply"));
     ImGui::SameLine();
     // Nothing to save until a slider has actually moved.
     m_imgui->disabled_begin(m_adjust.identity());
     const bool as_copy = m_imgui->button(_L("Save as copy"));
     m_imgui->disabled_end();
+    ImGui::SameLine();
+    const bool cancel = m_imgui->button(_L("Cancel"));
 
     ImGui::End();
 
-    if (cancel || !keep_open)
-        close_image_adjust();
+    if (cancel)
+        close_image_adjust(true);
+    else if (apply || !keep_open)
+        close_image_adjust(false);
     else if (as_copy)
         commit_image_adjust(*layer);
 }
@@ -5954,15 +5971,19 @@ const std::vector<GLGizmoTextureDisplacement::PaletteEntry> &GLGizmoTextureDispl
     // The images themselves rather than their addresses, so a freed and reallocated image can never
     // pass for the old one. Whether one has colour, and whether its colours are flat, follows from it.
     std::vector<std::shared_ptr<std::vector<unsigned char>>> images;
+    std::vector<TextureAdjustments>                          adjusts;
     if (mv != nullptr)
         for (const TextureDisplacementLayer &layer : mv->texture_displacement_layers)
-            if (layer.color_enabled && !layer.empty())
+            if (layer.color_enabled && !layer.empty()) {
                 images.push_back(layer.image_data);
+                adjusts.push_back(layer.preview_adjust);
+            }
 
-    const bool ranking_stale = filaments != m_palette_filaments || images != m_palette_images;
+    const bool ranking_stale = filaments != m_palette_filaments || images != m_palette_images || adjusts != m_palette_adjusts;
     if (ranking_stale) {
         m_palette_filaments = std::move(filaments);
         m_palette_images    = std::move(images);
+        m_palette_adjusts   = std::move(adjusts);
         m_mix_ranking.reset();
     }
     if (mixing && !m_mix_ranking)

@@ -1622,14 +1622,18 @@ TEST_CASE("background removal keys out corner or chosen colours into alpha witho
     CHECK(keyed.alpha[0 * 4 + 0] == 255); // stray black corner is not white
     CHECK(keyed.alpha[0 * 4 + 3] == 0);   // white background is keyed out
 
-    // sample_layer_color skips transparent texels and keeps opaque ones.
+    // sample_layer_color skips transparent texels and keeps opaque ones, and sample_layer_height
+    // returns midlevel (zero displacement) where the background was keyed out.
     TextureDisplacementLayer layer;
     layer.tiling_scale = 4.f;
     layer.tile_enabled = false;
+    layer.midlevel     = 0.25f;
     Vec3f rgb          = Vec3f::Zero();
     CHECK_FALSE(sample_layer_color(keyed, layer, Vec3f(3.5f, -0.5f, 0.f), Vec3f::UnitZ(), rgb));
+    CHECK(sample_layer_height(keyed, layer, Vec3f(3.5f, -0.5f, 0.f), Vec3f::UnitZ()) == Approx(layer.midlevel));
     CHECK(sample_layer_color(keyed, layer, Vec3f(1.5f, -1.5f, 0.f), Vec3f::UnitZ(), rgb));
     CHECK(rgb.x() > 0.8f);
+    CHECK(sample_layer_height(keyed, layer, Vec3f(1.5f, -1.5f, 0.f), Vec3f::UnitZ()) > layer.midlevel);
 
     // Explicit colour key overrides the corners.
     adj.bg_from_corners = false;

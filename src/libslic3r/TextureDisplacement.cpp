@@ -2360,8 +2360,15 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
     const bool        normalized_uv = layer.projection_method == TextureProjectionMethod::ModelUV &&
                                       lscm_uv != nullptr;
     const UVTransform xf(layer, aspect, normalized_uv);
+    auto sample_uv = [&](const Vec2f &uv) {
+        const float h = texture.sample(uv, layer.tile_enabled, layer.tile_method);
+        if (!texture.has_alpha())
+            return h;
+        const float a = texture.sample_alpha(uv, layer.tile_enabled, layer.tile_method);
+        return layer.midlevel + a * (h - layer.midlevel);
+    };
     auto sample_at = [&](const Vec2f &planar) {
-        return texture.sample(xf(planar), layer.tile_enabled, layer.tile_method);
+        return sample_uv(xf(planar));
     };
 
     // A precomputed per-patch uv - the LSCM solve, or the model's own channel - wins over the layer's
@@ -2384,8 +2391,8 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
             // the user just aligned. A point behind the projector has no uv at all -> no height.
             Vec2f uv;
             if (!project_uv_projective(layer.view_project_matrix, position, uv))
-                return 0.f;
-            return texture.sample(uv, layer.tile_enabled, layer.tile_method);
+                return texture.has_alpha() ? layer.midlevel : 0.f;
+            return sample_uv(uv);
         }
         // Flat projection onto the captured projector plane. Single-valued per point, so unlike
         // blended triplanar it is one sample, and it is what "project from view" places. The

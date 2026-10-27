@@ -213,6 +213,12 @@ struct TextureAdjustments
                bg_color[0] == o.bg_color[0] && bg_color[1] == o.bg_color[1] && bg_color[2] == o.bg_color[2];
     }
     bool operator!=(const TextureAdjustments &o) const { return !(*this == o); }
+
+    template<class Archive> void serialize(Archive &ar)
+    {
+        ar(brightness, contrast, sharpness, blur, hue_deg, bg_remove, bg_tolerance, bg_from_corners,
+           bg_color[0], bg_color[1], bg_color[2]);
+    }
 };
 
 // One texture asset plus its projection/displacement parameters. Several layers may be painted
@@ -375,7 +381,7 @@ struct TextureDisplacementLayer
            static_cast<int>(tile_method), static_cast<int>(projection_method), lscm_seam_angle_deg, islands,
            static_cast<int>(blend_mode), midlevel, island_padding_mm, lscm_seam_edges, view_project_right,
            view_project_up, smoothing, edge_smoothing, edge_smoothing_amount, auto_connect_islands, island_groups,
-           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled);
+           lscm_uv_overrides, view_project_projective, view_project_matrix, color_enabled, preview_adjust);
     }
     template<class Archive> void load(Archive &ar)
     {
@@ -387,7 +393,7 @@ struct TextureDisplacementLayer
            tile_method_int, projection_method_int, lscm_seam_angle_deg, islands, blend_mode_int, midlevel,
            island_padding_mm, lscm_seam_edges, view_project_right, view_project_up, smoothing, edge_smoothing,
            edge_smoothing_amount, auto_connect_islands, island_groups, lscm_uv_overrides, view_project_projective,
-           view_project_matrix, color_enabled);
+           view_project_matrix, color_enabled, preview_adjust);
         image_data        = blob.empty() ? nullptr : std::make_shared<std::vector<unsigned char>>(blob.begin(), blob.end());
         tile_method       = static_cast<TextureTileMethod>(tile_method_int);
         projection_method = static_cast<TextureProjectionMethod>(projection_method_int);

@@ -131,6 +131,8 @@ bool encode_color_png_bytes(const wxImage &image, std::vector<unsigned char> &ou
     }
     wxMemoryOutputStream stream;
     wxImage              out_image = image;
+    if (out_image.HasMask() && !out_image.HasAlpha())
+        out_image.InitAlpha();
     out_image.SetOption(wxIMAGE_OPTION_PNG_FORMAT, wxPNG_TYPE_COLOUR);
     if (!out_image.SaveFile(stream, wxBITMAP_TYPE_PNG)) {
         error = _u8L("Failed to prepare the texture for use.");
@@ -189,8 +191,8 @@ bool encode_gray_png_bytes(const wxImage &image, std::vector<unsigned char> &out
 // Grayscale in, grayscale out; colour (or alpha) in, colour/RGBA out.
 bool encode_png_bytes(const wxImage &image, std::vector<unsigned char> &out, std::string &error)
 {
-    return (image_has_color(image) || image.HasAlpha()) ? encode_color_png_bytes(image, out, error)
-                                                        : encode_gray_png_bytes(image, out, error);
+    return (image_has_color(image) || image.HasAlpha() || image.HasMask()) ? encode_color_png_bytes(image, out, error)
+                                                                           : encode_gray_png_bytes(image, out, error);
 }
 
 // A wxImage over decoded pixels, so the encoders above can be reached from an in-memory image as well as
