@@ -291,6 +291,29 @@ TEST_CASE("Lookups are scoped to the context of the key press", "[Shortcuts]")
     CHECK(registry.lookup(ShortcutContext::Painting, c) == Shortcut::PaintToolCircle);
 }
 
+TEST_CASE("Tab shortcuts: jump-to-tab is unbound by default, Ctrl+Tab cycles", "[Shortcuts]")
+{
+    ShortcutRegistry registry;
+
+    // The jump-to-tab shortcuts ship without a key, so F1-F4 stay free (F2 renames in the object list).
+    for (Shortcut shortcut : { Shortcut::GoToPrepare, Shortcut::GoToPreview, Shortcut::GoToDevice, Shortcut::GoToProject })
+        CHECK_FALSE(registry.binding(shortcut).valid());
+    CHECK_FALSE(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F2 }).has_value());
+
+    // Cycling needs the physical Control key on macOS, where Cmd+Tab belongs to the system.
+#ifdef __APPLE__
+    constexpr int ctrl = wxMOD_RAW_CONTROL;
+#else
+    constexpr int ctrl = wxMOD_CONTROL;
+#endif
+    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_TAB, ctrl }) == Shortcut::TabNext);
+    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_TAB, ctrl | wxMOD_SHIFT }) == Shortcut::TabPrevious);
+
+    // A user can bind a key to a tab.
+    registry.bind(Shortcut::GoToDevice, KeyChord{ WXK_F3 });
+    CHECK(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F3 }) == Shortcut::GoToDevice);
+}
+
 TEST_CASE("Stepping shortcuts match with Shift or Ctrl added to their binding", "[Shortcuts]")
 {
     ShortcutRegistry registry;
