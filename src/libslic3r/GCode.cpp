@@ -8023,7 +8023,7 @@ LayerResult GCode::process_layer(
                     m_nominal_z            = entry.sub_z;
                     // Use the same lazy-Z mechanism as change_layer(): set the flag so travel_to
                     // fires even when m_last_pos coincides with the first extrusion point,
-                    // ensuring Z reaches sub_z via the combined XY+Z move.
+                    // ensuring Z reaches sub_z on the travel to it.
                     m_need_change_layer_lift_z = true;
 
                     for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
@@ -10501,6 +10501,15 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                 const auto& dest2d = this->point_to_gcode(travel.points.back());
                 Vec3d dest3d(dest2d(0), dest2d(1), z == DBL_MAX ? m_nominal_z : z);
                 gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
+                m_need_change_layer_lift_z = false;
+            } else if (const double target_z = z == DBL_MAX ? m_nominal_z : z;
+                       m_writer.get_zhop() > EPSILON && m_writer.get_position().z() > target_z + EPSILON) {
+                // A lifted nozzle keeps its height over the whole detour and descends only at the
+                // last point, so it never sinks over the print.
+                for (size_t i = 1; i + 1 < travel.size(); ++i)
+                    gcode += m_writer.travel_to_xy(this->point_to_gcode(travel.points[i]), comment);
+                const Vec2d dest2d = this->point_to_gcode(travel.points.back());
+                gcode += m_writer.travel_to_xyz(Vec3d(dest2d.x(), dest2d.y(), target_z), comment, m_need_change_layer_lift_z);
                 m_need_change_layer_lift_z = false;
             } else if (exclusion_volume_travel_rerouted && z != DBL_MAX) {
                 // Preserve the original sloped-Z move over the longer detour.

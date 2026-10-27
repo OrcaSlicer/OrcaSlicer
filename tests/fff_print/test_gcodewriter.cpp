@@ -2042,11 +2042,26 @@ TEST_CASE("Initial filament start G-code tolerates a list shorter than the filam
     REQUIRE_NOTHROW(Slic3r::Test::gcode(print));
 }
 
+// Counts the travels (no E) that move in X or Y while lowering Z: each drags the nozzle down over the print.
+static int count_descending_travels(const std::string &gcode)
+{
+    int         descending_travels = 0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&descending_travels](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.travel() && line.dist_Z(self) < -EPSILON && (line.dist_X(self) != 0.f || line.dist_Y(self) != 0.f)) {
+            UNSCOPED_INFO(line.raw());
+            ++descending_travels;
+        }
+    });
+    return descending_travels;
+}
+
 TEST_CASE("A lifted nozzle reaches its target height only after the travel back to the print", "[GCodeWriter]") {
     // Two filaments on one nozzle with a prime tower: after each tool change the nozzle is
     // lifted at the tower and travels back to the object.
-    const int lift = GENERATE(int(zhtNormal), int(zhtSlope), int(zhtSpiral), int(zhtAuto));
-    CAPTURE(lift);
+    const int         lift        = GENERATE(int(zhtNormal), int(zhtSlope), int(zhtSpiral), int(zhtAuto));
+    const std::string arc_fitting = GENERATE("disabled", "enabled");
+    CAPTURE(lift, arc_fitting);
     DynamicPrintConfig config = Test::multifilament_config(2, {
         {"filament_self_index", "1,2"},
         {"filament_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
@@ -2057,6 +2072,8 @@ TEST_CASE("A lifted nozzle reaches its target height only after the travel back 
         {"wipe_tower_y", "50"},
         {"skirt_loops", 0},
         {"brim_type", "no_brim"},
+        // A spiral lift is written as G2/G3 when arc fitting is on.
+        {"enable_arc_fitting", arc_fitting},
     });
     config.option<ConfigOptionEnumsGeneric>("z_hop_types", true)->values = {lift};
     Print print;
@@ -2065,30 +2082,35 @@ TEST_CASE("A lifted nozzle reaches its target height only after the travel back 
     const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", "1"}}, {{"extruder", "2"}}};
     Test::init_print({Test::cube(20), Test::cube(20)}, print, model, config, &overrides);
 
-    // A travel (no E) that changes X or Y while lowering Z drags the nozzle down over the print.
-    std::istringstream lines(Test::gcode(print));
-    std::string        line;
-    double             z = 0.;
-    int                descending_travels = 0;
-    while (std::getline(lines, line)) {
-        if (line.rfind("G0 ", 0) != 0 && line.rfind("G1 ", 0) != 0)
-            continue;
-        std::istringstream words(line.substr(0, line.find(';')));
-        std::string        word;
-        words >> word; // the command
-        bool   xy = false, e = false;
-        double new_z = z;
-        while (words >> word) {
-            xy |= word[0] == 'X' || word[0] == 'Y';
-            e |= word[0] == 'E';
-            if (word[0] == 'Z')
-                new_z = std::stod(word.substr(1));
-        }
-        if (xy && !e && new_z < z - EPSILON) {
-            INFO(line);
-            ++descending_travels;
-        }
-        z = new_z;
+    CHECK(count_descending_travels(Test::gcode(print)) == 0);
+}
+
+TEST_CASE("A lifted travel that ends lower descends only at its destination", "[GCodeWriter]") {
+    // Reverse X maps the X and Z of a move together, so the descent re-emits X and Y.
+    const bool remap   = GENERATE(false, true);
+    // Forced: a layer change. Not forced: a destination below the layer, like a scarf seam start.
+    const bool force_z = GENERATE(false, true);
+    CAPTURE(remap, force_z);
+    GCodeWriter writer;
+    configure_lift_writer(writer);
+    if (remap) {
+        writer.set_axis_remap(6, 1, 2);
+        writer.set_build_volume_max(Vec3d(250.0, 250.0, 250.0));
     }
-    CHECK(descending_travels == 0);
+    // The whole output is parsed, so the reader starts from the position the writer is at.
+    std::string gcode = writer.travel_to_xyz(Vec3d(20.0, 20.0, 5.0));
+    gcode += writer.lazy_lift(LiftType::NormalLift);
+    gcode += writer.travel_to_xyz(Vec3d(30.0, 30.0, 5.0));
+    REQUIRE_THAT(writer.get_position().z(), Catch::Matchers::WithinAbs(5.4, EPSILON));
+
+    const double target_z = force_z ? 5.0 : 4.9;
+    gcode += writer.travel_to_xyz(Vec3d(40.0, 40.0, target_z), "", force_z);
+    INFO(gcode);
+    CHECK(count_descending_travels(gcode) == 0);
+    CHECK_THAT(writer.get_position().z(), Catch::Matchers::WithinAbs(target_z, EPSILON));
+
+    // Already above the destination, the descent is a single move.
+    writer.lazy_lift(LiftType::NormalLift);
+    writer.travel_to_xyz(Vec3d(50.0, 50.0, target_z));
+    CHECK(count_g1(writer.travel_to_xyz(Vec3d(50.0, 50.0, target_z), "", true)) == 1);
 }
