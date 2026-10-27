@@ -1522,7 +1522,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         if (is_auto_filament_map_mode(map_mode)) {
             if (print_diff_set.find("filament_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_map");
-                //full_config_diff.erase("filament_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_map", true);
                 old_opt->set(new_opt);
@@ -1530,7 +1530,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             }
             if (print_diff_set.find("filament_volume_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_volume_map");
-                //full_config_diff.erase("filament_volume_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_volume_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_volume_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_volume_map", true);
                 old_opt->set(new_opt);
@@ -1538,7 +1538,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             }
             if (print_diff_set.find("filament_nozzle_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_nozzle_map");
-                //full_config_diff.erase("filament_nozzle_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_nozzle_map"), full_config_diff.end());
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 old_opt->set(new_opt);
@@ -1550,6 +1550,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             if (map_mode == fmmManual) {
                 // filament_nozzle_map is an engine output, not a GUI input, in manual mode
                 print_diff_set.erase("filament_nozzle_map");
+                full_config_diff.erase(std::remove(full_config_diff.begin(), full_config_diff.end(), "filament_nozzle_map"), full_config_diff.end());
             }
             std::vector<int> old_filament_map = m_config.filament_map.values;
             std::vector<int> new_filament_map = new_full_config.option<ConfigOptionInts>("filament_map", true)->values;
