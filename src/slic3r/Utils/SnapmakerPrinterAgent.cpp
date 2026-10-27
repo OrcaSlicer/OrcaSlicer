@@ -75,6 +75,54 @@ bool contains_word_ci(const std::string& haystack, const std::string& needle)
 // field, e.g. vendor "Anycubic PLA Basic" with an empty sub type, while profiles may use either
 // "Anycubic" or "Anycubic PLA Basic". Treat the vendors as matching when they are equal or when
 // either contains the other as whole words, ignoring case.
+// A tag reports the fibre loading in its sub type ("CF10", "GF30"), while the material types in
+// MaterialType::all() and the profile names only ever say CF or GF. Expects upper case input.
+std::string normalize_fibre_sub_type(const std::string& sub)
+{
+    for (const char* fibre : {"CF", "GF"}) {
+        const std::string prefix = fibre;
+        if (sub.size() >= prefix.size() && sub.compare(0, prefix.size(), prefix) == 0 &&
+            std::all_of(sub.begin() + static_cast<std::string::difference_type>(prefix.size()), sub.end(),
+                        [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; }))
+            return prefix;
+    }
+    return sub;
+}
+
+// Like contains_word_ci, but a trailing digit run belongs to the same word, so a CF sub type
+// matches a "PA12-CF10" preset as well as "PA12-CF". A trailing letter does not: "CFX" is
+// a different product.
+bool contains_sub_type_ci(const std::string& haystack, const std::string& needle)
+{
+    if (needle.empty() || needle.size() > haystack.size())
+        return false;
+
+    const auto equal_ci = [](unsigned char a, unsigned char b) { return std::toupper(a) == std::toupper(b); };
+    const auto is_word  = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) != 0; };
+
+    for (auto it = haystack.begin(); it != haystack.end(); ++it) {
+        it = std::search(it, haystack.end(), needle.begin(), needle.end(), equal_ci);
+        if (it == haystack.end())
+            return false;
+
+        auto after = it + static_cast<std::string::difference_type>(needle.size());
+        while (after != haystack.end() && std::isdigit(static_cast<unsigned char>(*after)) != 0)
+            ++after;
+
+        const bool left_ok  = it == haystack.begin() || !is_word(*(it - 1));
+        const bool right_ok = after == haystack.end() || !is_word(*after);
+        if (left_ok && right_ok)
+            return true;
+    }
+    return false;
+}
+
+// Silk is its own material rather than a finish on another one, so a silk spool has to reach a
+// silk preset rather than a plain preset of the same type. Every other sub type -- a grade or
+// brand word (Basic, Tough, Pure, PolyLite), or a fibre already folded into filament_type --
+// names the same material, so it stays a preference and may fall back to colour alone.
+bool is_type_defining_finish(const std::string& sub) { return contains_word_ci(sub, "SILK"); }
+
 bool vendor_matches(const std::string& tag_vendor, const std::string& profile_vendor)
 {
     if (tag_vendor.empty() || profile_vendor.empty())
@@ -99,6 +147,13 @@ std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(
     unsigned int target_color_value = 0;
     if (!parse_rgb(color_rgba, target_color_value))
         return best_match_id;
+
+    const std::string sub_wanted = normalize_fibre_sub_type(trim_and_upper(sub_type));
+    // A finish lives in the preset name alone, and changes how the filament prints, so a spool
+    // that reports one must not settle for a preset without it: Silk PLA is not plain PLA. CF and
+    // GF are already folded into filament_type by combine_filament_type(), and a grade or brand
+    // word names the same material, so both of those stay a preference.
+    const bool require_sub = is_type_defining_finish(sub_wanted);
 
     for (const auto& p : filaments.get_presets()) {
         // Only a base preset can be loaded: sync_ams_list() resolves a filament_id to the first
@@ -131,9 +186,12 @@ std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(
             // legacy tag may still name the variant in its vendor field ("Anycubic PLA Silk"),
             // so look for the profile's subtype, or the whole tag vendor, there instead.
             const std::string p_sub = p.config.has("filament_subtype") ? p.config.opt_string("filament_subtype", 0u) : std::string();
-            const bool matches_sub  = !sub_type.empty() ? (contains_word_ci(p.name, sub_type) || contains_word_ci(p_sub, sub_type))
-                                                        : (contains_word_ci(vendor_name, p_sub) || contains_word_ci(p.name, vendor_name) ||
-                                                           contains_word_ci(vendor_name, p.name));
+            const bool matches_sub  = !sub_wanted.empty() ?
+                                          (contains_sub_type_ci(p.name, sub_wanted) || contains_sub_type_ci(p_sub, sub_wanted)) :
+                                          (contains_word_ci(vendor_name, p_sub) || contains_word_ci(p.name, vendor_name) ||
+                                           contains_word_ci(vendor_name, p.name));
+            if (require_sub && !matches_sub)
+                continue;
             if (best_matches_sub && !matches_sub)
                 continue;
 
@@ -165,9 +223,11 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     if (sub.empty() || sub == "NONE")
         return base;
 
-    // Only CF and GF are material types; skip the suffix when the base already carries it.
-    if (sub == "CF" || sub == "GF") {
-        const std::string suffix     = "-" + sub;
+    // Only CF and GF are material types, whatever fibre loading the tag reports ("CF10"); skip
+    // the suffix when the base already carries it.
+    const std::string fibre = normalize_fibre_sub_type(sub);
+    if (fibre == "CF" || fibre == "GF") {
+        const std::string suffix     = "-" + fibre;
         const bool        has_suffix = base.size() >= suffix.size() &&
                                 base.compare(base.size() - suffix.size(), suffix.size(), suffix) == 0;
         return has_suffix ? base : base + suffix;

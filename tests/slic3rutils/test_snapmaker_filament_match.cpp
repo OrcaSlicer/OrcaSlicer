@@ -72,6 +72,7 @@ std::string match(const std::vector<FilamentSpec> &specs, const std::string &ven
 const std::vector<FilamentSpec> pla_variants{
     {"Snapmaker PLA Basic", "PLA-BASIC", "PLA", "Snapmaker", "#102030"},
     {"Snapmaker PLA Matte", "PLA-MATTE", "PLA", "Snapmaker", "#F0A0B0"},
+    {"Snapmaker PLA Silk",  "PLA-SILK",  "PLA", "Snapmaker", "#30F060"},
 };
 
 } // namespace
@@ -93,15 +94,80 @@ TEST_CASE("An unusable spool colour returns no match instead of throwing", "[Sna
     CHECK(match(pla_variants, "Snapmaker", "PLA", "Matte", "#").empty());
 }
 
-// Orca: the sub type is matched on whole words, so "CF" must not be found inside "CF10". The CF10
-// preset here is an exact colour match and still has to lose to the one the spool actually names.
-TEST_CASE("A CF spool matches PA12-CF but not PA12-CF10", "[Snapmaker]")
+// Orca: a finish lives in the preset name only and changes how the filament prints, so Silk PLA
+// is not plain PLA - a Silk spool must reach the Silk preset however far its colour is, and must
+// report no match rather than settle for a plain PLA preset when the vendor ships none.
+TEST_CASE("A finish sub type is required, not merely preferred", "[Snapmaker]")
+{
+    // Basic is an exact colour match and still loses to the Silk preset the spool asks for.
+    CHECK(match(pla_variants, "Snapmaker", "PLA", "Silk", "102030FF") == "PLA-SILK");
+
+    const std::vector<FilamentSpec> no_silk{
+        {"Snapmaker PLA Basic", "PLA-BASIC", "PLA", "Snapmaker", "#102030"},
+        {"Snapmaker PLA Matte", "PLA-MATTE", "PLA", "Snapmaker", "#F0A0B0"},
+    };
+    CHECK(match(no_silk, "Snapmaker", "PLA", "Silk", "102030FF").empty());
+}
+
+// Orca: a grade or brand word names the same material, so it stays a preference. A Polar Filament
+// "Pure" spool has no "Pure" preset to find - Snapmaker ships Generic PLA, High Speed, Silk and
+// Matte for the U1 - and must still resolve by colour rather than coming back empty.
+TEST_CASE("A brand sub type stays a preference", "[Snapmaker]")
+{
+    CHECK(match(pla_variants, "Snapmaker", "PLA", "Pure", "102030FF") == "PLA-BASIC");
+    CHECK(match(pla_variants, "Snapmaker", "PLA", "Basic", "30F060FF") == "PLA-BASIC");
+}
+
+// Orca: CF10, CF15 and friends are fibre loadings of the same material, so a CF sub type has to
+// match them all and colour decides between them. A trailing letter is a different product.
+TEST_CASE("A CF sub type matches every CF fibre loading", "[Snapmaker]")
 {
     const std::vector<FilamentSpec> cf_presets{
         {"Snapmaker PA12-CF",   "PA12-CF",   "PA12-CF", "Snapmaker", "#F0A0B0"},
         {"Snapmaker PA12-CF10", "PA12-CF10", "PA12-CF", "Snapmaker", "#102030"},
     };
-    CHECK(match(cf_presets, "Snapmaker", "PA12-CF", "CF", "102030FF") == "PA12-CF");
+    // Both match the sub type, so the closer colour wins - either way round.
+    CHECK(match(cf_presets, "Snapmaker", "PA12-CF", "CF", "102030FF") == "PA12-CF10");
+    CHECK(match(cf_presets, "Snapmaker", "PA12-CF", "CF", "F0A0B0FF") == "PA12-CF");
+    // And a tag that reports the loading itself still matches the plain -CF preset.
+    CHECK(match(cf_presets, "Snapmaker", "PA12-CF", "CF10", "F0A0B0FF") == "PA12-CF");
+    CHECK(match(cf_presets, "Snapmaker", "PA12-CF", "CF15", "102030FF") == "PA12-CF10");
+}
+
+// Orca: the same for glass fibre. QIDI ships "QIDI PPS-GF" (filament_type PPS-GF), and a GF20
+// spool has to reach it as readily as a preset that spells the loading out.
+TEST_CASE("A GF sub type matches every GF fibre loading", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> gf_presets{
+        {"QIDI PPS-GF",   "PPS-GF",   "PPS-GF", "QIDI", "#F0A0B0"},
+        {"QIDI PPS-GF20", "PPS-GF20", "PPS-GF", "QIDI", "#102030"},
+    };
+    CHECK(match(gf_presets, "QIDI", "PPS-GF", "GF", "102030FF") == "PPS-GF20");
+    CHECK(match(gf_presets, "QIDI", "PPS-GF", "GF", "F0A0B0FF") == "PPS-GF");
+    // A tag reporting the loading reaches the plain -GF preset too.
+    CHECK(match(gf_presets, "QIDI", "PPS-GF", "GF20", "F0A0B0FF") == "PPS-GF");
+    CHECK(match(gf_presets, "QIDI", "PPS-GF", "GF20", "102030FF") == "PPS-GF20");
+}
+
+// Orca: the fibre word still has to end at a digit or a boundary. "CFX" is its own product, so a
+// CF spool must not prefer it - here it is an exact colour match and still has to lose.
+TEST_CASE("A CF sub type does not match a CFX preset", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> cfx_presets{
+        {"Snapmaker PA12-CF",  "PA12-CF",  "PA12-CF", "Snapmaker", "#F0A0B0"},
+        {"Snapmaker PA12-CFX", "PA12-CFX", "PA12-CF", "Snapmaker", "#102030"},
+    };
+    CHECK(match(cfx_presets, "Snapmaker", "PA12-CF", "CF", "102030FF") == "PA12-CF");
+}
+
+// Orca: combine_filament_type() has already folded CF into filament_type, so a CF spool may still
+// take a correctly typed preset whose name does not repeat the fibre - unlike a finish sub type.
+TEST_CASE("A CF sub type stays a preference once the type carries the fibre", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> unnamed_fibre{
+        {"Snapmaker PA12 Structural", "PA12-STRUCT", "PA12-CF", "Snapmaker", "#102030"},
+    };
+    CHECK(match(unnamed_fibre, "Snapmaker", "PA12-CF", "CF", "102030FF") == "PA12-STRUCT");
 }
 
 // Orca: sync_ams_list() resolves a filament_id to the first base preset carrying it, so a derived
@@ -122,6 +188,12 @@ TEST_CASE("Only CF and GF change the material type", "[Snapmaker]")
     CHECK(SnapmakerPrinterAgent::combine_filament_type("PLA", "CF") == "PLA-CF");
     CHECK(SnapmakerPrinterAgent::combine_filament_type("PETG", "GF") == "PETG-GF");
     CHECK(SnapmakerPrinterAgent::combine_filament_type("PA12-CF", "CF") == "PA12-CF");
+    // A fibre loading is not a material type: MaterialType::all() has PA12-CF, never PA12-CF10.
+    CHECK(SnapmakerPrinterAgent::combine_filament_type("PA12", "CF10") == "PA12-CF");
+    CHECK(SnapmakerPrinterAgent::combine_filament_type("PA12-CF", "CF10") == "PA12-CF");
+    CHECK(SnapmakerPrinterAgent::combine_filament_type("ABS", "GF30") == "ABS-GF");
+    CHECK(SnapmakerPrinterAgent::combine_filament_type("PPS", "GF20") == "PPS-GF");
+    CHECK(SnapmakerPrinterAgent::combine_filament_type("PPS-GF", "GF20") == "PPS-GF");
     CHECK(SnapmakerPrinterAgent::combine_filament_type("PLA", "Silk") == "PLA");
     CHECK(SnapmakerPrinterAgent::combine_filament_type("PLA", "NONE") == "PLA");
     CHECK(SnapmakerPrinterAgent::combine_filament_type("", "CF") == "PLA");
