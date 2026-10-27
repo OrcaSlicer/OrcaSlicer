@@ -561,6 +561,40 @@ TEST_CASE("Print: {first_object_name} is not replaced by the saved-project file 
     CHECK(resolved_output_name(model, "{first_object_name}", "SavedProject") == "WidgetPart.gcode");
 }
 
+TEST_CASE("{printing_filament_types} lists the filament types really printed", "[Print]")
+{
+    // Two filaments of different types. The start G-code uses the placeholder too: it has to
+    // resolve there as well as in the file name.
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "filament_type", "ABS;PLA" },
+        { "enable_prime_tower", 0 },
+        { "filename_format", "{printing_filament_types}-{filament_type[initial_tool]}" },
+        { "machine_start_gcode", "; printing types: {printing_filament_types}" },
+    });
+
+    SECTION("only the filament the object is printed with, not filament 1") {
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 2 } } };
+        Print print;
+        Model model;
+        init_print({ cube(20) }, print, model, config, &overrides);
+        const std::string gcode = Slic3r::Test::gcode(print);
+
+        CHECK(gcode.find("; printing types: PLA\n") != std::string::npos);
+        CHECK(print.output_filename() == "PLA-PLA.gcode");
+    }
+
+    SECTION("every type printed, joined with an underscore") {
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{ { { "extruder", 1 } }, { { "extruder", 2 } } };
+        Print print;
+        Model model;
+        init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+        const std::string gcode = Slic3r::Test::gcode(print);
+
+        CHECK(gcode.find("; printing types: ABS_PLA\n") != std::string::npos);
+        CHECK(print.output_filename() == "ABS_PLA-ABS.gcode");
+    }
+}
+
 TEST_CASE("Print::validate stacks independent warnings", "[Print][validate]")
 {
     // Two unrelated checks (region precise-wall + machine acceleration) must each
