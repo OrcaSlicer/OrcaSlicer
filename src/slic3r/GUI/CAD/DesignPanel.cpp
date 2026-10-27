@@ -7579,8 +7579,7 @@ void DesignPanel::on_tab_shown()
         if (want != m_imgui_ribbon) set_imgui_ribbon(want);
         const bool top = cfg->get("design_imgui_topbar").empty() ? true : cfg->get_bool("design_imgui_topbar");   // on unless a profile chose the wx row
         if (top != m_imgui_topbar) set_imgui_topbar(top);
-        const bool side = cfg->get("design_imgui_sidebar").empty() ? true : cfg->get_bool("design_imgui_sidebar");   // likewise the left panel
-        if (side != m_imgui_sidebar) set_imgui_sidebar(side);
+        if (!m_imgui_sidebar) set_imgui_sidebar(true);   // the left panel is always the ImGui one: there is no wx form behind it to fall back to
     }
     m_imgui_menu = wxGetApp().app_config->get_bool("design_imgui_menu");
     if (show_clock.Time() > 100)   // a slow first show is what users report; the usual one is not news
@@ -12339,7 +12338,6 @@ void DesignPanel::set_imgui_sidebar(bool on)
     m_imgui_sidebar = on;
     if (on) m_sidebar_collapsed = false;   // a layout saved with the (hidden) wx pane reads back as collapsed: the panel opens shown
     AppConfig* cfg = wxGetApp().app_config;
-    cfg->set_bool("design_imgui_sidebar", on);
     if (m_viewport) {
         DesignSidebarOverlay& sb = m_viewport->sidebar_overlay();
         sb.draw = [this] { draw_sidebar_imgui(); };

@@ -104,7 +104,6 @@ public:
     void         mcp_set_imgui_tree(bool on) { set_imgui_tree(on); }
     void         mcp_set_imgui_ribbon(bool on) { set_imgui_ribbon(on); }
     void         mcp_set_imgui_topbar(bool on) { set_imgui_topbar(on); }
-    void         mcp_set_imgui_sidebar(bool on) { set_imgui_sidebar(on); }
     void         mcp_set_imgui_menu(bool on);
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
     void         mcp_commit_meshes() { on_commit(false); }

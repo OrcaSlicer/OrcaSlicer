@@ -6,6 +6,7 @@
 //
 // To add a control to a card: one line in the card's builder in DesignPanel.cpp. Nothing here has to know about it.
 
+#include "libslic3r/LocalesUtils.hpp"
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignCardModel.hpp"
@@ -104,9 +105,7 @@ void post_command(wxWindow* w, wxEventType type, int value = 0, const wxString& 
 // A number as the spin shows it: its own digits, trailing zeros kept.
 std::string fmt_number(double v, int digits)
 {
-    char b[48];
-    std::snprintf(b, sizeof(b), "%.*f", std::clamp(digits, 0, 6), v);
-    return b;
+    return float_to_string_decimal_point(v, std::clamp(digits, 0, 6));   // a '.', whatever the UI language: the field only accepts one
 }
 
 // What the field being typed in holds, and which control owns it.
@@ -163,9 +162,9 @@ void draw_num_field(NumField* sp, float em, float width)
     const float  total = width > 0.f ? width : ImGui::GetContentRegionAvail().x;
     std::string typed;
     if (text_field(sp, "##v", fmt_number(v, sp->GetDigits()), typed, std::max(total - 2.f * bw - 2.f * ImGui::GetStyle().ItemSpacing.x, 40.f * em), ImGuiInputTextFlags_CharsDecimal)) {
-        char* end = nullptr;
-        const double nv = std::strtod(typed.c_str(), &end);
-        if (end != typed.c_str()) sp->user_set(nv);
+        size_t used = 0;
+        const double nv = string_to_double_decimal_point(typed, &used);   // not strtod: it stops at a '.' under a decimal-comma locale
+        if (used > 0) sp->user_set(nv);
     }
     ImGui::SameLine();
     if (ImGui::Button("-", ImVec2(bw, 0.f))) sp->user_set(std::clamp(v - inc, lo, hi));

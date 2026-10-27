@@ -2878,8 +2878,7 @@ json action_ui_option(DesignPanel* panel, const json& params)
     if (name == "imgui_ribbon") { panel->mcp_set_imgui_ribbon(on); return json{{"ok", true}, {"imgui_ribbon", on}}; }
     if (name == "imgui_menu")   { panel->mcp_set_imgui_menu(on);   return json{{"ok", true}, {"imgui_menu", on}}; }
     if (name == "imgui_topbar") { panel->mcp_set_imgui_topbar(on); return json{{"ok", true}, {"imgui_topbar", on}}; }
-    if (name == "imgui_sidebar") { panel->mcp_set_imgui_sidebar(on); return json{{"ok", true}, {"imgui_sidebar", on}}; }
-    throw std::runtime_error("unknown ui option: " + name + " (imgui_tree, imgui_ribbon, imgui_menu, imgui_topbar, imgui_sidebar)");
+    throw std::runtime_error("unknown ui option: " + name + " (imgui_tree, imgui_ribbon, imgui_menu, imgui_topbar)");
 }
 
 json action_plane(DesignPanel* panel, const json& params)
@@ -5099,6 +5098,10 @@ void server_thread(std::string sock_path)
     for (;;) {
         int cfd = ::accept(sfd, nullptr, nullptr);
         if (cfd < 0) continue;
+        // The watchdog reports the call a client has in flight: until one connects there is nothing for it to report. It is a wx timer, so it
+        // is installed on the UI thread; a call that arrives first is dispatched through wxApp::CallAfter, which is what it falls back to.
+        static std::once_flag watchdog_once;
+        std::call_once(watchdog_once, [] { wxGetApp().CallAfter([] { install_ui_watchdog(); }); });
 #if !defined(MSG_NOSIGNAL) && defined(SO_NOSIGPIPE)
         const int on = 1;                                   // macOS/BSD equivalent of MSG_NOSIGNAL
         ::setsockopt(cfd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
@@ -5121,7 +5124,6 @@ void start_mcp_control_if_enabled()
     static bool started = false;
     if (started) return;
     started = true;
-    install_ui_watchdog();
     std::thread(server_thread, path).detach();
 }
 

@@ -14,7 +14,8 @@
 //
 // RULES: group ids are never reused or renumbered; fields are only ever APPENDED to a group, and only
 // to the end of its function; a field that is an index into features[] is declared with v.ref().
-// The test "the recipe groups cover every serialised CadFeature field" fails if a field is in none.
+// The test "the recipe groups cover every serialised CadFeature field" checks that every field the legacy list writes is in a group;
+// it cannot see a new field that is in no list at all: adding it to a group is on you.
 
 #include "CadDocument.hpp"
 

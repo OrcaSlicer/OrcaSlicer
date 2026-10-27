@@ -2560,7 +2560,9 @@ TEST_CASE("the recipe groups cover every serialised CadFeature field", "[CadDocu
     CHECK(v.n == v.addrs.size());   // none twice
     // type, name and enabled are the stream's header, not in a group
     v.addrs.insert(&f.type); v.addrs.insert(&f.name); v.addrs.insert(&f.enabled);
-    CHECK(v.addrs == members);
+    // Every field the legacy list writes is in a group. Not equality: a field added the way CadFeatureFields.hpp says goes into the groups
+    // only, and must not fail this.
+    for (const void* m : members) CHECK(v.addrs.count(m) == 1);
 }
 
 TEST_CASE("a feature written as v7 reads back with every group intact", "[CadDocument][recipe]")
