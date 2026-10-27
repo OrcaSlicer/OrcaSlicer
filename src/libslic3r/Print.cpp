@@ -402,6 +402,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "gcode_label_objects", 
         "exclude_object",
         "exclude_object_tolerance",
+        // Orca: Changing preview metadata requires regenerating the exported G-code.
+        "gcode_overhangs",
         "support_material_interface_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
         "ironing_fan_speed",
@@ -5791,6 +5793,9 @@ void Print::reload_gcode_moves(GCodeProcessorResult* result) const
     std::lock_guard<std::mutex> lock(result->result_mutex);
     result->moves      = std::move(reloaded.moves);
     result->lines_ends = std::move(reloaded.lines_ends);
+    // The moves' profile ids index the edited file's line profiles, and the script may have removed the metadata.
+    result->overhang_line_profiles = std::move(reloaded.overhang_line_profiles);
+    result->has_overhang_metadata  = reloaded.has_overhang_metadata;
 }
 
 std::tuple<float, float> Print::object_skirt_offset(double margin_height) const

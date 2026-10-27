@@ -2152,6 +2152,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,                gcode_label_objects))
     ((ConfigOptionBool,                exclude_object))
     ((ConfigOptionFloat,               exclude_object_tolerance))
+    // Orca: Controls emission of percentage metadata used by the overhang preview.
+    ((ConfigOptionBool,                gcode_overhangs))
     ((ConfigOptionFloats,             grab_length))
     ((ConfigOptionBool,                gcode_comments))
     ((ConfigOptionInt,                 slow_down_layers))

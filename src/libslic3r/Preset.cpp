@@ -1425,6 +1425,8 @@ static std::vector<std::string> s_Preset_print_options{
     "initial_layer_travel_jerk",
     "exclude_object",
     "exclude_object_tolerance",
+    // Orca: Persist the opt-in overhang metadata switch in process presets.
+    "gcode_overhangs",
     "slow_down_layers",
     "infill_anchor",
     "infill_anchor_max",

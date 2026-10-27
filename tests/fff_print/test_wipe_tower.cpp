@@ -2,6 +2,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -24,6 +25,7 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -276,6 +278,63 @@ TEST_CASE("The wipe tower's flow tags keep a decimal point in a comma-decimal lo
     }
     CHECK(heights > 0);
     CHECK(widths > 0);
+}
+
+// Wipe-tower output bypasses model-path metadata generation, so returning to a model must
+// repeat its percentage even when the value is unchanged. This cube's vertical walls stay at 0%,
+// while infill can overhang the gaps between lower-layer extrusion paths.
+TEST_CASE("Overhang metadata resets across wipe tower toolchanges", "[WipeTower][Overhang][Regression]")
+{
+    DynamicPrintConfig config = wipe_tower_toolchange_config("marlin");
+    config.set_deserialize_strict({
+        {"gcode_overhangs", "1"},
+        {"enable_overhang_speed", "0"},
+        {"enable_overhang_bridge_fan", "0"},
+    });
+    const std::string exported = slice_with_prime_tower(config);
+
+    // Every first model extrusion after a tower needs a fresh scalar tag. Only the vertical walls
+    // are guaranteed to stay at 0%; infill has its own support reference and may report nonzero values.
+    const std::string &tower_end_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End);
+    const std::string &overhang_tag  = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang);
+    const std::string &role_tag      = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    bool awaiting_model_extrusion = false;
+    bool saw_fresh_percentage = false;
+    float percentage = 0.0f;
+    size_t checked_returns = 0;
+    size_t checked_wall_returns = 0;
+    std::string lines_after_tower;
+    ExtrusionRole role = erNone;
+    GCodeReader reader;
+    reader.parse_buffer(exported, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.comment().find(tower_end_tag) != std::string_view::npos) {
+            awaiting_model_extrusion = true;
+            saw_fresh_percentage = false;
+            lines_after_tower.clear();
+            return;
+        }
+        if (!awaiting_model_extrusion)
+            return;
+        lines_after_tower += line.raw() + "\n";
+        if (line.comment().find(overhang_tag) == 0) {
+            saw_fresh_percentage = true;
+            percentage = std::stof(std::string(line.comment().substr(overhang_tag.size())));
+        }
+        if (GCodeProcessor::measures_overhang(role) && line.extruding(self) && (line.has_x() || line.has_y())) {
+            CAPTURE(lines_after_tower);
+            CHECK(saw_fresh_percentage);
+            if (is_perimeter(role)) {
+                CHECK_THAT(percentage, Catch::Matchers::WithinAbs(0.0, 1e-6));
+                ++checked_wall_returns;
+            }
+            ++checked_returns;
+            awaiting_model_extrusion = false;
+        }
+    });
+    REQUIRE(checked_returns > 0);
+    REQUIRE(checked_wall_returns > 0);
 }
 
 // What Print feeds the shared estimate. The libslic3r WipeTowerEstimate cases cannot see this:
