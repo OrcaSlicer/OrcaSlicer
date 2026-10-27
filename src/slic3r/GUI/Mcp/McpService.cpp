@@ -147,7 +147,9 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
     ServerInfo info;
     info.version      = SLIC3R_VERSION;
     info.instructions = kInstructions;
-    m_protocol        = std::make_unique<McpProtocol>(m_registry, *m_core, info);
+    // Request threads of an endpoint closed earlier may still be using the protocol object.
+    if (!m_protocol)
+        m_protocol = std::make_unique<McpProtocol>(m_registry, *m_core, info);
     m_http            = std::make_unique<McpHttpServer>(token, [this](const PostRequest& r) { return m_protocol->handle_post(r); });
     if (!m_http->start(uint16_t(port), err)) {
         err = "MCP server: cannot listen on 127.0.0.1:" + std::to_string(port) + " (" + err + ")";
@@ -178,10 +180,7 @@ void McpService::stop()
     m_invoker->shutdown();
     m_jobs.wake_all();
     m_core->shutdown();
-    if (m_http) {
-        m_http->stop();
-        remove_discovery(fs::path(data_dir()));
-    }
+    stop_serving();
     if (m_script_thread.joinable())
         m_script_thread.join();
     if (wxTheApp != nullptr)
@@ -223,6 +222,17 @@ void McpService::end_script_scope(const std::string& job)
         for (int layer : it->second)
             m_modals->pop_rules(layer);
     m_script_rule_layers.erase(it);
+}
+
+void McpService::stop_serving()
+{
+    if (!m_http)
+        return;
+    // Requests in flight may be waiting on the UI thread, which is running this.
+    m_http->stop(m_stopping);
+    m_http.reset();
+    remove_discovery(fs::path(data_dir()));
+    BOOST_LOG_TRIVIAL(info) << "MCP server endpoint closed";
 }
 
 void McpService::suspend()

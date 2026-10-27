@@ -64,8 +64,10 @@ public:
     bool start(uint16_t port, std::string& error);
     // Stops accepting, waits (up to stop_timeout) for running handlers, then closes every connection.
     // The owner makes handlers return first (see UiInvoker::shutdown); a handler that still has not
-    // returned keeps the server's internals alive until it does.
-    void stop();
+    // returned keeps the server's internals alive until it does, and its reply is dropped.
+    // `wait_for_handlers` false skips the wait, for a caller on the UI thread that handlers may be
+    // waiting on.
+    void stop(bool wait_for_handlers = true);
     bool running() const;
     uint16_t port() const;
 

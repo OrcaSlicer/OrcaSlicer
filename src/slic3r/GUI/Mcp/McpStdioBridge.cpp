@@ -131,8 +131,13 @@ std::optional<Endpoint> read_discovery(const fs::path& datadir)
 }
 
 // POSTs one message; nullopt when the endpoint does not accept a connection.
-std::optional<std::pair<int, std::string>> post(const Endpoint& e, const std::string& body, const std::map<std::string, std::string>& headers)
+// `sent` (when given) tells whether the request left this process, so the caller knows whether the
+// server may have acted on it.
+std::optional<std::pair<int, std::string>> post(const Endpoint& e, const std::string& body, const std::map<std::string, std::string>& headers,
+                                                bool* sent = nullptr)
 {
+    if (sent != nullptr)
+        *sent = false;
     try {
         net::io_context ioc;
         tcp::socket     socket(ioc);
@@ -147,6 +152,8 @@ std::optional<std::pair<int, std::string>> post(const Endpoint& e, const std::st
         req.body() = body;
         req.prepare_payload();
         http::write(socket, req);
+        if (sent != nullptr)
+            *sent = true;
         boost::beast::flat_buffer          buffer;
         http::response<http::string_body> res;
         http::read(socket, buffer, res);
@@ -313,8 +320,8 @@ int run_stdio_bridge(int argc, char** argv)
     std::string             failure;
     if (!endpoint) {
         if (!launch_app(self_executable(argv), datadir_arg))
-            failure = "OrcaSlicer is running without the MCP server, or could not be started. Enable Preferences > "
-                      "MCP server in OrcaSlicer (or start it with --mcp) and reconnect.";
+            failure = "OrcaSlicer is running without the MCP server, or could not be started. Turn on \"MCP server for "
+                      "AI agents\" in OrcaSlicer's Preferences (or start it with --mcp) and reconnect.";
         else
             for (int i = 0; i < 120 && !endpoint; ++i) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -342,12 +349,26 @@ int run_stdio_bridge(int argc, char** argv)
                 write_line(error_reply(msg["id"], -32603, failure).dump());
             continue;
         }
-        auto reply = post(*endpoint, line, bridge_headers(msg, negotiated));
-        if (!reply) {
-            // The app went away; one reconnect attempt for a restarted instance.
-            endpoint = resolve();
-            if (endpoint)
-                reply = post(*endpoint, line, bridge_headers(msg, negotiated));
+        bool sent  = false;
+        auto reply = post(*endpoint, line, bridge_headers(msg, negotiated), &sent);
+        if ((!reply && !sent) || (reply && reply->first == 401)) {
+            // The app restarted, or its port or token changed in Preferences: the discovery file
+            // has the current ones. Only a request the server cannot have acted on is sent again.
+            if (auto fresh = resolve()) {
+                endpoint = fresh;
+                reply    = post(*endpoint, line, bridge_headers(msg, negotiated), &sent);
+            }
+        } else if (!reply) {
+            // Sent, but the connection closed before the reply (the call restarted the server, or
+            // the app quit). Sending it again could run it twice; later calls go to the new endpoint.
+            if (auto fresh = resolve())
+                endpoint = fresh;
+            if (is_request)
+                write_line(error_reply(msg["id"], -32603,
+                                       "OrcaSlicer closed the connection before replying; the call may have run. Check with "
+                                       "get_state before repeating it.")
+                               .dump());
+            continue;
         }
         if (!reply) {
             if (is_request)

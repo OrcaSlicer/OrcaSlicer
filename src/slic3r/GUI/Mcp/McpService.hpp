@@ -47,6 +47,11 @@ public:
     bool start(const McpLaunchOptions& options, bool serve, std::string& err);
     // Stops everything; idempotent. Wakes every waiting call first, so no thread is left behind.
     void stop();
+    // Closes the HTTP endpoint and removes the discovery file; the catalog, running jobs and a
+    // launch script carry on, and start() with `serve` opens the endpoint again. This is what
+    // turning the server off in Preferences does: a running call may have opened that very dialog,
+    // so the service itself must outlive it.
+    void stop_serving();
     bool started() const { return m_core != nullptr; }
     bool serving() const;
     uint16_t port() const;

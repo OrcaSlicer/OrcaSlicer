@@ -20,6 +20,13 @@
 #include <boost/beast/http/write.hpp>
 #include <boost/system/error_code.hpp>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <windows.h>
+#else
+#include <fcntl.h>
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -41,6 +48,18 @@ namespace http  = boost::beast::http;
 using tcp       = net::ip::tcp;
 
 namespace {
+
+// Child processes (web view helpers, post-processing scripts, anything the app starts) must not
+// inherit the server's sockets: a child holding the listener keeps the port bound after the
+// server closes, and connections then queue on a socket nobody accepts.
+void keep_from_children(tcp::socket::native_handle_type handle)
+{
+#ifdef _WIN32
+    ::SetHandleInformation(reinterpret_cast<HANDLE>(handle), HANDLE_FLAG_INHERIT, 0);
+#else
+    ::fcntl(handle, F_SETFD, ::fcntl(handle, F_GETFD) | FD_CLOEXEC);
+#endif
+}
 
 std::string lower(std::string s)
 {
@@ -288,6 +307,7 @@ void McpHttpServer::Impl::do_accept()
         if (!self->acceptor.is_open())
             return;
         if (!ec) {
+            keep_from_children(socket.native_handle());
             // At the cap, make room by closing the connection that has waited longest on its client
             // (idle between requests, or still sending one); a dispatched request is never cut off.
             if (int(self->sessions.size()) >= self->limits.max_connections) {
@@ -328,6 +348,7 @@ bool McpHttpServer::start(uint16_t port, std::string& error)
     try {
         const tcp::endpoint endpoint(net::ip::address_v4::loopback(), port);
         m_impl->acceptor.open(endpoint.protocol());
+        keep_from_children(m_impl->acceptor.native_handle());
 #ifndef _WIN32
         // Lets a restarted server bind while its old connections sit in TIME_WAIT. POSIX still
         // refuses a second listener on the port; Windows' SO_REUSEADDR would not, so it stays off.
@@ -348,7 +369,7 @@ bool McpHttpServer::start(uint16_t port, std::string& error)
     return true;
 }
 
-void McpHttpServer::stop()
+void McpHttpServer::stop(bool wait_for_handlers)
 {
     if (!m_impl || !m_impl->running.exchange(false))
         return;
@@ -357,7 +378,8 @@ void McpHttpServer::stop()
     {
         std::unique_lock<std::mutex> lock(m_impl->requests_mutex);
         m_impl->accepting_requests = false;
-        m_impl->requests_cv.wait_for(lock, m_impl->limits.stop_timeout, [this] { return m_impl->active_requests == 0; });
+        if (wait_for_handlers)
+            m_impl->requests_cv.wait_for(lock, m_impl->limits.stop_timeout, [this] { return m_impl->active_requests == 0; });
     }
 
     m_impl->ioc.stop();

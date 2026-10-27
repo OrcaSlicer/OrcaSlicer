@@ -667,6 +667,9 @@ public:
     // endpoint; a --mcp-script alone needs only the tool catalog. UI thread.
     bool            start_mcp_service(bool serve, std::string* error = nullptr);
     void            stop_mcp_service();
+    // Reopens a serving MCP endpoint so a new port or token takes effect; no-op when not serving.
+    // A port changed in Preferences replaces one given on the command line.
+    bool            restart_mcp_endpoint(bool port_from_preferences, std::string* error = nullptr);
     Mcp::McpService* mcp_service() { return m_mcp.get(); }
 
     void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);

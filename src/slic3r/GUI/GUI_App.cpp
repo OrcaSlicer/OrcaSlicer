@@ -8486,6 +8486,16 @@ bool GUI_App::start_mcp_service(bool serve, std::string* error)
     return ok;
 }
 
+bool GUI_App::restart_mcp_endpoint(bool port_from_preferences, std::string* error)
+{
+    if (!m_mcp || !m_mcp->serving())
+        return true;
+    if (port_from_preferences && init_params != nullptr)
+        init_params->mcp.port = 0;
+    m_mcp->stop_serving();
+    return start_mcp_service(true, error);
+}
+
 void GUI_App::stop_mcp_service()
 {
     if (!m_mcp)
