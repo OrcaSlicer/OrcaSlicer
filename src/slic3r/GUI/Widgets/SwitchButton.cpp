@@ -34,6 +34,9 @@
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"
 #endif
+#ifdef __WXMSW__
+#include <wx/msw/wrapwin.h>
+#endif
 
 #include <wx/dcmemory.h>
 #include <wx/dcclient.h>
@@ -111,6 +114,17 @@ bool SwitchButton::SetBackgroundColour(const wxColour& colour)
 
     return false;
 }
+
+#ifdef __WXMSW__
+bool SwitchButton::MSWCommand(WXUINT param, WXWORD id)
+{
+    // Same as CheckBox::MSWCommand: the background colour makes the button owner-drawn, so a double
+    // click sends BN_DBLCLK on top of a BN_CLICKED per click and would undo the second click.
+    if (param == BN_DBLCLK)
+        return true;
+    return wxBitmapToggleButton::MSWCommand(param, id);
+}
+#endif
 
 void SwitchButton::Rescale()
 {

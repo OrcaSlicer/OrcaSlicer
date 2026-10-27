@@ -44,6 +44,11 @@ public:
 
     bool SetBackgroundColour(const wxColour& colour) override;
 
+protected:
+#ifdef __WXMSW__
+    bool MSWCommand(WXUINT param, WXWORD id) override;
+#endif
+
 private:
 	void update();
 
