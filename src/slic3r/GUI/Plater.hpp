@@ -791,6 +791,8 @@ public:
     bool can_add_model() const;
     bool can_add_plate() const;
     bool can_delete_plate() const;
+    // Undoable rename; use for user edits instead of PartPlate::set_plate_name().
+    void rename_plate(int plate_index, const std::string& name);
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
@@ -845,6 +847,9 @@ public:
     // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
     // notification is active, so it clears automatically once the required plugin is available.
     void revalidate_current_plate_if_plugins_missing();
+    // Rebuilds the missing-plugin notices for the active presets without validating the plate, e.g.
+    // after a plugin loads or unloads, and refreshes the Slice button when the block toggles.
+    void refresh_missing_plugin_notifications();
     // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
     // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
     // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.

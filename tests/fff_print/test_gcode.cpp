@@ -6,6 +6,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/calib.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
@@ -25,6 +26,8 @@
 #include <cstddef>
 #include <fstream>
 #include <ios>
+#include <regex>
+#include <set>
 #include <map>
 #include <sstream>
 #include <string>
@@ -459,4 +462,67 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     REQUIRE(multiplier.size() == 1);
     CHECK_THAT(matrix[1] * multiplier[0], Catch::Matchers::WithinAbs(140., 1e-6));
     CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
+}
+
+// A temperature tower re-targets the hotend at every layer. On a multi-tool printer that
+// command has to name the tool printing the tower: a bare M104 goes to whichever tool the
+// firmware considers active, which the first-layer M109 right before it already addresses by
+// tool index. A single-tool printer keeps the bare form.
+TEST_CASE("The temperature tower steps the temperature of the tool printing it", "[GCode][Calib]")
+{
+    const bool multi_tool = GENERATE(false, true);
+    DYNAMIC_SECTION((multi_tool ? "two direct drive tools, the tower on the second one (filament 2 -> T1)" : "one tool")) {
+        DynamicPrintConfig config = multi_tool ?
+            Test::multifilament_config(2, {
+                {"nozzle_diameter", "0.4,0.4"},
+                {"printer_extruder_id", "1,2"},
+                {"printer_extruder_variant", "Direct Drive Standard,Direct Drive Standard"},
+                {"extruder_printable_height", "0,0"},
+                {"filament_self_index", "1,2"},
+                {"single_extruder_multi_material", 0},
+                {"enable_prime_tower", 0},
+                {"nozzle_temperature_initial_layer", "230,230"},
+                {"nozzle_temperature", "230,230"},
+            }) :
+            DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            {"skirt_loops", 0},
+            {"brim_type", "no_brim"},
+            // Without the end G-code's heater-off M104 S0, every temperature command after the
+            // first layer change is the tower's.
+            {"machine_end_gcode", ""},
+        });
+        if (multi_tool)
+            Test::size_flush_to_nozzles(config);
+
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{{"extruder", multi_tool ? 2 : 1}}};
+        Print print;
+        Model model;
+        // A 20 mm cube at the default 0.2 mm layer height is 100 layers, more than ten per band.
+        Test::init_print({Test::cube(20)}, print, model, config, &overrides);
+        Calib_Params params;
+        params.mode  = CalibMode::Calib_Temp_Tower;
+        params.start = 230;
+        params.end   = 190;
+        params.step  = 5;
+        print.set_calib_params(params);
+        const std::string gcode = Test::gcode(print);
+
+        const size_t layers_begin = gcode.find(";LAYER_CHANGE");
+        REQUIRE(layers_begin != std::string::npos);
+        const std::regex      temperature_command(R"(^M10[49] S(\d+)(?: T(\d+))?)");
+        std::set<int>         temperatures;
+        std::set<std::string> tools;
+        std::istringstream    stream(gcode.substr(layers_begin));
+        for (std::string line; std::getline(stream, line);) {
+            std::smatch m;
+            if (!std::regex_search(line, m, temperature_command))
+                continue;
+            temperatures.insert(std::stoi(m[1]));
+            tools.insert(m[2].matched ? m[2].str() : "none");
+        }
+        // Every 5 degree band from the start to the end temperature, and nothing else.
+        CHECK(temperatures == std::set<int>{190, 195, 200, 205, 210, 215, 220, 225, 230});
+        CHECK(tools == std::set<std::string>{multi_tool ? "1" : "none"});
+    }
 }
