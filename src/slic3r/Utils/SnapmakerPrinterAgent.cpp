@@ -81,12 +81,13 @@ bool vendor_matches(const std::string& tag_vendor, const std::string& profile_ve
         return false;
     return contains_word_ci(tag_vendor, profile_vendor) || contains_word_ci(profile_vendor, tag_vendor);
 }
+} // anonymous namespace
 
-std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
-                                                         const std::string&      vendor_name,
-                                                         const std::string&      filament_type,
-                                                         const std::string&      sub_type,
-                                                         const std::string&      color_rgba)
+std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
+                                                                                const std::string&      vendor_name,
+                                                                                const std::string&      filament_type,
+                                                                                const std::string&      sub_type,
+                                                                                const std::string&      color_rgba)
 {
     std::string  best_match_id       = "";
     unsigned int best_color_distance = 0xffffffffu;
@@ -100,12 +101,9 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
         return best_match_id;
 
     for (const auto& p : filaments.get_presets()) {
-        // A preset only needs a filament_id to serve as a tray identity. A user preset derived
-        // from a system one inherits its parent's filament_id, which is also what the plate's
-        // filament carries, so derived presets resolve correctly -- and the mapping uses the id
-        // only to break ties between equal colour distances. Requiring a detached preset here
-        // excluded essentially every user-made profile.
-        if (p.is_visible && p.is_compatible && !p.filament_id.empty() &&
+        // Only a base preset can be loaded: sync_ams_list() resolves a filament_id to the first
+        // base preset carrying it, so a derived copy never loads and could outrank its parent.
+        if (p.is_visible && p.is_compatible && filaments.get_preset_base(p) == &p && !p.filament_id.empty() &&
             vendor_matches(vendor_name, p.config.opt_string("filament_vendor", 0u)) &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
             // Default to black when the profile specifies no color, or one that cannot be
@@ -149,8 +147,6 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
     return best_match_id;
 }
 
-} // anonymous namespace
-
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
 AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
@@ -169,16 +165,15 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     if (sub.empty() || sub == "NONE")
         return base;
 
-    if (sub == "CF")
-        return base + "-CF";
-    if (sub == "GF")
-        return base + "-GF";
+    // Only CF and GF are material types; skip the suffix when the base already carries it.
+    if (sub == "CF" || sub == "GF") {
+        const std::string suffix     = "-" + sub;
+        const bool        has_suffix = base.size() >= suffix.size() &&
+                                base.compare(base.size() - suffix.size(), suffix.size(), suffix) == 0;
+        return has_suffix ? base : base + suffix;
+    }
 
-    // Every other sub type is a finish or a brand name (Basic, Silk, Matte, Wood,
-    // Marble, SnapSpeed, Polylite, ...), not a material. Presets are matched on
-    // `filament_type`, whose values come from MaterialType::all(); "PLA SILK" is not
-    // one of them, so composing it only makes the vendor+color search miss and leaves
-    // filament_id_by_type to strip the modifier back to "PLA". Return the base type.
+    // Every other sub type is a finish or a brand name, not a material type.
     return base;
 }
 
@@ -296,10 +291,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
             if (nfc_info.is_array() && i < static_cast<int>(nfc_info.size()) && nfc_info[i].is_object()) {
                 auto& nfc_slot = nfc_info[i];
                 tray.bed_temp  = safe_json_int(nfc_slot, "BED_TEMP");
-                // build_ams_payload publishes tray.nozzle_temp as `nozzle_temp_max`, so it
-                // has to be the hotend maximum. FIRST_LAYER_TEMP is neither that nor
-                // dependable -- the firmware does not accept it through filament_detect/set,
-                // so it stays 0 for every spool reported by an external tag reader.
+                // build_ams_payload publishes this as `nozzle_temp_max`, and FIRST_LAYER_TEMP is 0 for external tags.
                 tray.nozzle_temp = safe_json_int(nfc_slot, "HOTEND_MAX_TEMP");
             }
         }
