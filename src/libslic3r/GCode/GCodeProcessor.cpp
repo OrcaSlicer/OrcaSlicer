@@ -1427,15 +1427,17 @@ void GCodeProcessor::run_post_process()
         return processed;
     };
 
-    // Tool change priming: size each block between Toolchange_Prime_Start_Tag and Toolchange_Prime_End_Tag
-    // by how long the new tool sat parked, and drop it entirely below the skip time.
+    // Tool change priming: size the prime in each block between Toolchange_Prime_Start_Tag and Toolchange_Prime_End_Tag
+    // by how long the new tool sat parked: the minimum length after a short park, the maximum once the nozzle has cooled
+    // down on standby. Below the skip time the prime is dropped. Lines marked "restore retraction" are never changed:
+    // the writer counts the tool's retraction as restored by the block.
     std::vector<float> tool_parked_since;
     // Estimated time of the last pause or filament change. Its real length is unknown, so a tool parked across it gets a full prime.
     float last_pause_time       = -1.0f;
     bool  in_toolchange_prime   = false;
     bool  skip_toolchange_prime = false;
     float toolchange_prime_scale = 1.0f;
-    // return: true if the line was a move commented out by a skipped block
+    // return: true if the line was a prime move commented out because the prime was skipped
     auto process_toolchange_prime = [&](std::string& gcode_line) {
         if (!in_toolchange_prime &&
             (boost::starts_with(gcode_line, ";" + reserved_tag(ETags::Pause_Print)) ||
@@ -1464,15 +1466,15 @@ void GCodeProcessor::run_post_process()
                 after_pause = last_pause_time >= tool_parked_since[next];
                 idle        = after_pause ? std::numeric_limits<float>::max() : now - tool_parked_since[next];
             }
+            // A step, not a ramp: a nozzle that has cooled on standby needs the full prime, a hot one only the minimum.
             const float min_length = std::clamp(m_toolchange_prime_length_min, 0.0f, max_length);
-            const float ratio      = m_toolchange_prime_idle_time > 0.0f ? std::clamp(idle / m_toolchange_prime_idle_time, 0.0f, 1.0f) : 1.0f;
-            const float length     = min_length + (max_length - min_length) * ratio;
+            const float length     = idle >= m_toolchange_prime_idle_time ? max_length : min_length;
             in_toolchange_prime    = true;
             skip_toolchange_prime  = !first_use && idle < m_toolchange_prime_skip_time;
             toolchange_prime_scale = max_length > 0.0f ? length / max_length : 1.0f;
             char buf[96];
             if (skip_toolchange_prime)
-                std::snprintf(buf, sizeof(buf), " (idle %.0fs, skipped)", idle);
+                std::snprintf(buf, sizeof(buf), " (idle %.0fs, prime skipped)", idle);
             else if (after_pause)
                 std::snprintf(buf, sizeof(buf), " (after pause, %.2fmm)", length);
             else if (idle == std::numeric_limits<float>::max())
@@ -1488,27 +1490,28 @@ void GCodeProcessor::run_post_process()
             in_toolchange_prime = false;
             return false;
         }
-        const bool is_move = GCodeReader::GCodeLine::cmd_is(gcode_line, "G0") || GCodeReader::GCodeLine::cmd_is(gcode_line, "G1");
-        if (skip_toolchange_prime) {
-            if (gcode_line.front() != ';' && gcode_line.front() != '\n' && gcode_line.front() != '\r')
-                gcode_line.insert(0, "; ");
-            return is_move;
-        }
-        if (toolchange_prime_scale >= 1.0f || !is_move)
+        // Only the prime itself is sized: positive (relative) extrusions, not retractions or restoring the retraction.
+        if (!(GCodeReader::GCodeLine::cmd_is(gcode_line, "G0") || GCodeReader::GCodeLine::cmd_is(gcode_line, "G1")) ||
+            gcode_line.find("restore retraction") != std::string::npos)
             return false;
-        // Scale positive (relative) extrusions only; retractions are left alone.
         const size_t comment = gcode_line.find(';');
         for (size_t pos = 2; pos < std::min(comment, gcode_line.size()); ++pos) {
             if ((gcode_line[pos] != 'E' && gcode_line[pos] != 'e') || !std::isspace((unsigned char) gcode_line[pos - 1]))
                 continue;
             char* end = nullptr;
             const double e = std::strtod(gcode_line.c_str() + pos + 1, &end);
-            if (e > 0.0) {
+            if (e <= 0.0)
+                return false;
+            if (skip_toolchange_prime) {
+                gcode_line.insert(0, "; ");
+                return true;
+            }
+            if (toolchange_prime_scale < 1.0f) {
                 char buf[32];
                 std::snprintf(buf, sizeof(buf), "%.5f", e * toolchange_prime_scale);
                 gcode_line.replace(pos + 1, end - (gcode_line.c_str() + pos + 1), buf);
             }
-            break;
+            return false;
         }
         return false;
     };
