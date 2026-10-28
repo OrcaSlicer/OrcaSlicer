@@ -1498,8 +1498,11 @@ void TreeSupport::generate_toolpaths()
         filler_interface->angle = M_PI_2;  // interface should be perpendicular to base
         filler_interface->spacing = support_flow.spacing();
 
+        const bool top_raft_interface =
+            layer_nr + 1 == m_slicing_params.base_raft_layers + m_slicing_params.interface_raft_layers;
         FillParams fill_params;
-        fill_params.density = interface_density;
+        // ORCA: ironing runs over the top raft interface only, so fill just that layer solid like the organic raft contact does.
+        fill_params.density = (m_support_params.ironing && top_raft_interface) ? m_support_params.raft_interface_density : interface_density;
         fill_params.dont_adjust = true;
 
         fill_expolygons_generate_paths(ts_layer->support_fills.entities, raft_interface_areas,
@@ -1510,8 +1513,7 @@ void TreeSupport::generate_toolpaths()
             filler_interface, fill_params, erSupportMaterial, support_flow);
 
         // Iron the raft top under the object, the surface the object sits on, like the organic support does.
-        if (m_support_params.ironing &&
-            layer_nr + 1 == m_slicing_params.base_raft_layers + m_slicing_params.interface_raft_layers)
+        if (m_support_params.ironing && top_raft_interface)
             generate_support_ironing(ts_layer->support_fills.entities,
                 offset_ex(intersection_ex(raft_interface_areas, offset_ex(object_first_layer, scale_(object_config.raft_first_layer_expansion))),
                           -0.5 * support_flow.scaled_spacing(), jtSquare),

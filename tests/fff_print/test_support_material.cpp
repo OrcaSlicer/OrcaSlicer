@@ -13,7 +13,6 @@
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Polyline.hpp"
-#include "libslic3r/libslic3r.h"
 
 #include <cmath>
 #include <cstddef>
@@ -390,6 +389,42 @@ TEST_CASE("Support interface ironing fills the roof solid even with a wide inter
     };
 
     // Ironing turns the spaced out roof into a solid one, which needs far more extrusion.
+    REQUIRE(interface_length(1) > 1.5 * interface_length(0));
+}
+
+// Total length of the support interface extrusions in the raft layers.
+static double raft_interface_length(const Print &print, size_t raft_layers)
+{
+    double length = 0.;
+    const auto &layers = print.objects().front()->support_layers();
+    for (size_t i = 0; i < raft_layers && i < layers.size(); ++i)
+        for (const ExtrusionEntity *entity : layers[i]->support_fills.flatten().entities)
+            if (entity->role() == erSupportMaterialInterface)
+                length += entity->length();
+    return length;
+}
+
+TEST_CASE("Support interface ironing fills the raft top solid even with a wide interface spacing", "[SupportMaterial]")
+{
+    const std::string style = GENERATE("tree_slim", "tree_strong", "tree_hybrid");
+    const size_t raft_layers = 3;
+    CAPTURE(style);
+
+    auto interface_length = [&](int ironing) {
+        Slic3r::Print print;
+        Slic3r::Test::init_and_process_print({ TestMesh::overhang }, print, {
+            { "enable_support",               1 },
+            { "support_type",                 "tree(auto)" },
+            { "support_style",                style },
+            { "support_interface_top_layers", 2 },
+            { "support_interface_spacing",    2 },
+            { "raft_layers",                  int(raft_layers) },
+            { "support_ironing",              ironing }
+        });
+        return raft_interface_length(print, raft_layers);
+    };
+
+    // The raft interface under the ironing is solid when ironing is on, so it needs far more extrusion.
     REQUIRE(interface_length(1) > 1.5 * interface_length(0));
 }
 
