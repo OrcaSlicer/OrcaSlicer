@@ -294,14 +294,18 @@ static void ws_close(net::io_context& ioc, websocket::stream<beast::tcp_stream>&
 }
 
 // K1-family firmware stores gcodes under /usr/data and uses a stricter WebSocket
-// protocol (TEXT frames, heartbeat acks). Add verified K1-family model IDs here.
+// protocol (TEXT frames, heartbeat acks). The /info model is the literal name on
+// K1-family, including the *_CFS-C bundle variants. Add verified model IDs here.
 static bool is_k1_family(const std::string& model)
 {
     static const std::unordered_set<std::string> k1_models = {
         "K1",
         "K1 Max",
+        "K1 Max_CFS-C",
         "K1 SE",
+        "K1 SE_CFS-C",
         "K1C",
+        "K1C_CFS-C",
         "K1_CFS-C",
     };
     return k1_models.count(model) > 0;
@@ -327,8 +331,11 @@ static const std::map<std::string, std::string>& cfs_capable_models()
         {"F022", "SPARKX i7"},
         {"K1", "K1"},
         {"K1 Max", "K1 Max"},
+        {"K1 Max_CFS-C", "K1 Max_CFS-C"},
         {"K1 SE", "K1 SE"},
+        {"K1 SE_CFS-C", "K1 SE_CFS-C"},
         {"K1C", "K1C"},
+        {"K1C_CFS-C", "K1C_CFS-C"},
         {"K1_CFS-C", "K1_CFS-C"},
     };
     return models;
