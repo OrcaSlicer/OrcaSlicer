@@ -6446,8 +6446,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             // (the author's "left or right" whichever came first), the rest are reported as
             // skipped. Per-target, so the process and printer passes each track their own bases.
             std::set<std::string> collapsed_bases;
-            // Printer pass only: process keys keep the positional import.
-            const bool by_identity = allowlist != nullptr && !published_config->printer_layout.extruder_ids.empty();
+            // Per-extruder keys map by extruder identity when the file carries this pass's layout. Printer
+            // keys do so on any receiver; process keys only on a multi-extruder receiver, a single-extruder
+            // receiver keeps the positional / collapse import.
+            const bool is_printer_pass = allowlist != nullptr;
+            const PublishedExtruderLayout& layout = is_printer_pass ? published_config->printer_layout : published_config->print_layout;
+            const bool by_identity = !layout.extruder_ids.empty() && (is_printer_pass || this->get_printer_extruder_count() >= 2);
             for (const std::string& key : published_config->published_keys) {
                 if (applied_keys.count(key) != 0)
                     continue; // already applied
@@ -6503,9 +6507,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                             continue; // malformed or out-of-range on the author's side: cannot apply; reported as skipped
                         const size_t dst_size = static_cast<const ConfigOptionVectorBase*>(dst_opt)->size();
                         if (by_identity) {
-                            // Printer keys go to the receiver's extruder with the author's number, in the
-                            // nozzle type it runs now. Anything that does not resolve stays unapplied and is reported.
-                            const int slot = resolve_published_extruder_slot(published_config->printer_layout, idx, target, this->project_config);
+                            // Each key goes to the receiver's extruder with the author's number, in the nozzle
+                            // type it runs now. Anything that does not resolve stays unapplied and is reported.
+                            const int slot = is_printer_pass ?
+                                resolve_published_extruder_slot(layout, idx, target, this->project_config) :
+                                resolve_published_extruder_slot(layout, idx, this->printers.get_edited_preset().config, this->project_config,
+                                                                target, "print_extruder_id", "print_extruder_variant");
                             if (slot < 0 || size_t(slot) >= dst_size)
                                 continue;
                             static_cast<ConfigOptionVectorBase*>(dst_opt)->set_at(src_opt, size_t(slot), idx);
