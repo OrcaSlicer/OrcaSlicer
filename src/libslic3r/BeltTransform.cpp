@@ -1,4 +1,5 @@
 #include "BeltTransform.hpp"
+#include "GCode/MachineFrameTransform.hpp"
 #include "Model.hpp"
 #include "BoundingBox.hpp"
 #include "Config.hpp"
@@ -42,6 +43,44 @@ Transform3d BeltTransformPipeline::build_forward_transform(const PrintConfig &co
     Transform3d combined = Transform3d::Identity();
     combined.linear() = build_rotation_matrix(config);
     return combined;
+}
+
+Transform3d BeltTransformPipeline::build_gcode_back_transform(const PrintConfig &cfg)
+{
+    if (!cfg.belt_printer.value)
+        return Transform3d::Identity();
+
+    MachineFrameTransform mft;
+    mft.init_from_config(cfg);
+    const Transform3d mf_inv = mft.is_active() ? Transform3d(mft.transform().inverse())
+                                               : Transform3d::Identity();
+
+    // Forward G-code axis remap as an affine matrix (out_i = sign * in[r_i % 3], plus a
+    // build-volume offset for Rev axes). This is the matrix form of the per-point
+    // GCodeWriter::apply_axis_remap (row convention: each OUTPUT axis selects an input
+    // axis + sign) and MUST stay in sync with it. The build-volume max matches what the
+    // writer is fed in GCode.cpp (printable_area max + printable_height). (Follow-up:
+    // precompute this matrix once in GCodeWriter and share it with apply_axis_remap to
+    // remove the parallel encoding.)
+    Transform3d ar = Transform3d::Identity();
+    const int rr[3] = { int(cfg.gcode_remap_x.value), int(cfg.gcode_remap_y.value), int(cfg.gcode_remap_z.value) };
+    if (rr[0] != 0 || rr[1] != 1 || rr[2] != 2) {
+        BoundingBoxf bbox_bed(cfg.printable_area.values);
+        const Vec3d vmax(bbox_bed.max.x(), bbox_bed.max.y(), cfg.printable_height.value);
+        Matrix3d M = Matrix3d::Zero();
+        Vec3d    t = Vec3d::Zero();
+        for (int i = 0; i < 3; ++i) {
+            const int axis = rr[i] % 3;
+            if (rr[i] < 3)      M(i, axis) =  1.0;
+            else if (rr[i] < 6) M(i, axis) = -1.0;
+            else              { M(i, axis) = -1.0; t[i] = vmax[axis]; }
+        }
+        ar.linear()      = M;
+        ar.translation() = t;
+    }
+    const Transform3d ar_inv = ar.inverse();
+
+    return ar_inv * mf_inv;
 }
 
 // ---- Belt floor parameters ------------------------------------------------
