@@ -2245,9 +2245,7 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
                 // Cache guard. The marker plan below is resolved from preset/plate state only,
                 // so it is rebuilt when that state moves and reused otherwise — the sequential
                 // slider is sticky, and re-resolving the zone layout on every frame of the rest
-                // of the session showed up as a measurable per-frame cost. The comparison is
-                // made against the live config rather than against a freshly built key, so an
-                // unchanged frame copies nothing into the key.
+                // of the session showed up as a measurable per-frame cost.
                 ImexMarkerKey::Plate plate;
                 plate.plate_index = plate_list.get_curr_plate_index();
                 plate.bed_min_x   = bed_extents.min.x();

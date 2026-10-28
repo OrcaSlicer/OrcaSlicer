@@ -273,12 +273,11 @@ private:
     // Invalidation key for the plan above: every input the plan is derived from, and
     // nothing that changes between frames. A stale plan would put the preview markers
     // somewhere the plate's own zones and ghosts do not agree with, which is exactly the
-    // drift the shared layout call exists to prevent -- so its core is the plate's own key,
-    // ImexLayoutKey. The preview adds what the plate gets for free: zone centers scale with
-    // the bed extents, and one preview serves every plate, while a plate re-bakes on
-    // set_shape() and is keyed by being that plate. The layout key also holds
-    // imex_carriage_margin, which only sizes the plate's advisory bands; a change to it
-    // re-resolves the plan for nothing.
+    // drift the shared layout call exists to prevent -- so the layout half is the plate's own
+    // key. The preview adds the plate index and bed extents, which a plate gets for free: zone
+    // centers scale with the bed, and one preview serves every plate, while each plate rebuilds
+    // its zones in set_shape(). The layout key also holds imex_carriage_margin, which only sizes
+    // the plate's advisory bands, so a margin change re-resolves the plan needlessly.
     struct ImexMarkerKey
     {
         std::optional<ImexLayoutKey> layout;

@@ -387,8 +387,8 @@ bool update_imex_layout_key(std::optional<ImexLayoutKey>& key, const DynamicPrin
     const ConfigOptionStrings* names = nullptr;
     const ConfigOptionStrings* tools = nullptr;
     if (is_imex != nullptr && is_imex->value) {
-        // Through the accessors compute_imex_zone_layout() reads them with, so the key holds the
-        // values it lays out from.
+        // The same accessors compute_imex_zone_layout() uses, so the key holds the values it lays
+        // out from.
         s.imex             = true;
         s.gantry_count     = imex_cfg_int(*printer_cfg, "imex_gantry_count");
         s.tools_per_gantry = imex_cfg_int(*printer_cfg, "imex_tools_per_gantry");

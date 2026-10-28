@@ -746,7 +746,7 @@ void PartPlate::refresh_imex_layout_key()
         if (is_imex != nullptr && is_imex->value)
             printer_cfg = &cfg;
     }
-    // Every printer runs this every frame, so the mode is resolved only while IMEX is on.
+    // With IMEX off the key ignores the mode, so don't resolve it.
     if (!update_imex_layout_key(m_imex_layout_key, printer_cfg, printer_cfg != nullptr ? get_effective_imex_mode() : std::string()))
         return;
 
@@ -754,8 +754,8 @@ void PartPlate::refresh_imex_layout_key()
     m_imex_zones_stale = true;
     m_imex_active_mode = {};
     if (m_imex_layout_key->s.imex && m_imex_layout_key->mode != kImexPrimaryMode) {
-        // A tools array too short to reach this row hands back an empty string, which declares
-        // no Primary, so the mode reads as unresolved, as one missing from the table does.
+        // A mode missing from the table, or past the end of a short imex_mode_active_tools, gets
+        // empty tools, which declare no Primary, so the mode stays unresolved.
         m_imex_active_mode.tools   = find_imex_mode(*printer_cfg, m_imex_layout_key->mode).active_tools;
         m_imex_active_mode.primary = imex_primary_tool_for_mode(m_imex_active_mode.tools);
     }
@@ -790,7 +790,6 @@ void PartPlate::refresh_imex_icon()
 }
 
 // Ensure zone geometry (secondary boxes, collision strips, visual meshes) is up to date.
-// Called before any collision check AND before rendering so both paths share the same data.
 void PartPlate::ensure_imex_zones()
 {
     // CLI / headless slice: no GUI_App, no plater, no IMEX state to track. Bail out
@@ -849,9 +848,7 @@ void PartPlate::calc_imex_ghosts()
         return;
 
     // Zone centers are the basis for ghost placement; make sure they exist before
-    // we read them. render_imex_zones already ensures this, but ghost rebuild can
-    // also be driven from mode/preset invalidation paths that don't touch zones.
-    // render() has checked the layout key already.
+    // we read them.
     rebuild_stale_imex_zones();
 
     const auto heads = parse_imex_active_tools(active_tools_str);
@@ -991,8 +988,7 @@ void PartPlate::update_imex_ghost_transforms(
     if (m_imex_ghost_volumes.empty() || !m_plater || !m_model) return;
 
     // Reuse zone-center-derived offsets (same source calc_imex_ghosts uses), so
-    // update and rebuild paths always agree on where each ghost belongs. This runs
-    // outside render(), so it checks the layout key itself.
+    // update and rebuild paths always agree on where each ghost belongs.
     ensure_imex_zones();
     const ImexActiveMode& active = m_imex_active_mode;
     if (!active.resolved()) return;
@@ -1234,7 +1230,7 @@ bool PartPlate::has_imex_multimaterial_conflict() const
     // which the raw key's single default entry does not describe.
     const ConfigOptionInts pem = effective_physical_extruder_map(*pb);
 
-    // Resolve the active mode's tools string from the printer config. Print::validate()
+    // The active mode's roster, as refresh_imex_layout_key() resolved it. Print::validate()
     // resolves the same name the same way and keeps going on an empty result -- the mixed
     // filament rule below does not depend on the roster -- so this must too, or the badge
     // goes quiet on exactly the plates the slicer refuses.
@@ -5277,8 +5273,6 @@ bool PartPlate::intersects(const BoundingBoxf3& bb) const
 
 void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body, bool force_background_color, HeightLimitMode mode, int hover_id, bool render_cali, bool show_grid, bool hide_chrome)
 {
-    // The IMEX zones, ghosts, mode icon and warning badge drawn below all work from the
-    // layout key checked here, once a frame.
     refresh_imex_layout_key();
 
     glsafe(::glEnable(GL_DEPTH_TEST));

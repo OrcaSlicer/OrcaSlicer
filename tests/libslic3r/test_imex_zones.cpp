@@ -619,7 +619,7 @@ TEST_CASE("a plate's IMEX layout key changes with each input of its zones and gh
     CHECK_FALSE(update_imex_layout_key(key, cfg_ptr, mode));
 }
 
-TEST_CASE("a plate's IMEX layout key holds still for a mode's G-code and for a NaN clearance", "[IMEXZones]")
+TEST_CASE("a plate's IMEX layout key ignores a mode's G-code and settles on a NaN clearance", "[IMEXZones]")
 {
     PrinterCfg p;
     p.active_tools     = "0:P,1:M";
@@ -634,7 +634,7 @@ TEST_CASE("a plate's IMEX layout key holds still for a mode's G-code and for a N
         cfg.option<ConfigOptionStrings>("imex_mode_gcodes")->values[1] = "G28";
         CHECK_FALSE(update_imex_layout_key(key, &cfg, kMode));
     }
-    // A clearance field accepts "nan" typed in. It counts once, then no more.
+    // A clearance field accepts "nan". Setting it changes the key once, then the key holds still.
     SECTION("a NaN clearance")
     {
         cfg.set_key_value("imex_nozzle_clearance_x", new ConfigOptionFloat(std::nan("")));
