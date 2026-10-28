@@ -108,9 +108,11 @@ public:
     // does not include (the table is generated and belongs to the offer-menu code).
     bool mcp_run_verb(const char* verb_id);
     // Would a request from the control socket collide with what the GUI is doing — a rebuild
-    // in progress, an open feature card, a sketch session? `sketch_method` = it drives the live
-    // sketch rather than the feature list. Fills `why` when it would.
-    bool mcp_busy(bool sketch_method, std::string& why) const;
+    // in progress, an open feature card, a sketch session? A rebuild refuses every request, since
+    // its worker owns the document; the rest refuse only one that changes something
+    // (`read_only` false). `sketch_method` = it drives the live sketch rather than the feature
+    // list. Fills `why` when it would.
+    bool mcp_busy(bool read_only, bool sketch_method, std::string& why) const;
     // Load the project's recipe into an empty document, as showing the tab does. The control
     // socket may be the first thing to touch the Design tab after a project was opened.
     void hydrate_from_model();

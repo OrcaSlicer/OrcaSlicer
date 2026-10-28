@@ -2022,22 +2022,22 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     DesignPanel* panel = DesignPanel::ensure();
     if (!panel)
         return rpc_error(id, -32001, "Design panel not ready");
-    // A project opened without ever showing the Design tab has its recipe only in the Model;
-    // load it, as showing the tab would, before anything reads or writes the document.
-    panel->hydrate_from_model();
 
     // Methods that only LOOK. Everything else changes the document or the live sketch, and
-    // must not do it under a GUI editor, a sketch session it does not own, or a rebuild in
-    // progress (the GUI's worker thread holds the document then).
+    // must not do it under a GUI editor or a sketch session it does not own. No method may run
+    // during a rebuild, not even these: the rebuild's busy loop runs this request while the
+    // GUI's worker thread holds the document. Checked before hydrating, which writes it.
     static const std::set<std::string> kReadOnly = {
         "describe_tools", "describe_scene", "query_topology", "measure", "mass_properties",
         "slice_body", "validate_against", "list_verbs", "sketch_describe", "sketch_validate",
         "check_interference" };
-    if (kReadOnly.count(method) == 0) {
-        std::string why;
-        if (panel->mcp_busy(method.rfind("sketch_", 0) == 0, why))
-            return rpc_error(id, -32002, "Design tab busy: " + why);
-    }
+    std::string why;
+    if (panel->mcp_busy(kReadOnly.count(method) != 0, method.rfind("sketch_", 0) == 0, why))
+        return rpc_error(id, -32002, "Design tab busy: " + why);
+
+    // A project opened without ever showing the Design tab has its recipe only in the Model;
+    // load it, as showing the tab would, before anything reads or writes the document.
+    panel->hydrate_from_model();
 
     // Stale-id guard, checked here rather than in each handler.
     //

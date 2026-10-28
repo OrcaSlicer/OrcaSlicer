@@ -4849,8 +4849,8 @@ void DesignPanel::on_import_svg()
 // touched while the worker owns it. Exceptions must not escape the worker: `work` is expected
 // to swallow them.
 // True while a worker owns the document. wxYield below runs pending events — and a queued MCP
-// request is one — so the control socket must check this and refuse rather than change the
-// document under the worker (DesignPanel::mcp_busy).
+// request is one — so the control socket must check this and refuse rather than read or change
+// the document under the worker (DesignPanel::mcp_busy).
 static std::atomic<int> s_doc_worker_busy{0};
 
 static void run_off_ui_thread(wxWindow* parent, const wxString& message, const std::function<void()>& work)
@@ -4881,9 +4881,12 @@ static void run_off_ui_thread(wxWindow* parent, const wxString& message, const s
     worker.join();
 }
 
-bool DesignPanel::mcp_busy(bool sketch_method, std::string& why) const
+bool DesignPanel::mcp_busy(bool read_only, bool sketch_method, std::string& why) const
 {
     if (s_doc_worker_busy.load() > 0) { why = "the model is being rebuilt; try again when it finishes"; return true; }
+    // Reading is safe under the rest: an open card, dialog or sketch only keeps a change from
+    // landing under it.
+    if (read_only) return false;
     // A GUI editor holds a candidate built from the document as it was when it opened; a
     // feature added or removed underneath it would be overwritten, or overwrite, on Confirm.
     if (m_active != Tool::None || m_edit_index >= 0) { why = "a feature card is open in the Design tab"; return true; }

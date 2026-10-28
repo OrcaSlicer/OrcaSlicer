@@ -9,8 +9,9 @@
 //                                    left alone and the server does not start)
 // The socket is created 0600 and removed at exit. All CAD work is marshalled onto the wx main
 // thread and runs through the SAME CadDocument kernel the GUI uses (no parallel engine);
-// describe_tools lists the methods. A method that changes the document is refused (-32002)
-// while the Design tab is busy with it — a rebuild, an open feature card, a sketch session.
+// describe_tools lists the methods. Every method is refused (-32002) during a rebuild, whose
+// worker owns the document; one that changes the document is also refused while the Design tab
+// is busy with it — an open feature card, a sketch session.
 //
 // The socket is POSIX only; on Windows the same methods are reached through the app's MCP server
 // (its cad_call tool), which calls cad_control_call().
