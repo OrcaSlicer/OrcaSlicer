@@ -65,6 +65,23 @@ TEST_CASE("expand_mixed_filaments replaces mixed slots with their components", "
     }
 }
 
+TEST_CASE("expand_mixed_filament_ids replaces 1-based mixed filaments with their components", "[FilamentMixer]")
+{
+    // Filament 4 is a mix of filaments 2 and 3.
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("filament_is_mixed", new ConfigOptionBools({false, false, false, true}));
+    cfg.set_key_value("filament_mixed_components", new ConfigOptionStrings({"", "", "", "2,3"}));
+
+    REQUIRE(expand_mixed_filament_ids({4}, cfg) == std::vector<int>{2, 3});
+
+    SECTION("Physical filaments pass through, ids below 1 are dropped, result is sorted and deduplicated") {
+        REQUIRE(expand_mixed_filament_ids({4, 0, 3, 1}, cfg) == std::vector<int>{1, 2, 3});
+    }
+    SECTION("A config without mixed filaments leaves the ids as they are") {
+        REQUIRE(expand_mixed_filament_ids({4, 1}, DynamicPrintConfig()) == std::vector<int>{1, 4});
+    }
+}
+
 TEST_CASE("belt purge tower island count ignores virtual mixed slots", "[FilamentMixer][belt]")
 {
     // Regression for the "extra purge tower" on a belt printer with a mixed
