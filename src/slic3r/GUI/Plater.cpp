@@ -100,6 +100,7 @@
 #include <atomic>
 #include <mutex>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -20365,10 +20366,28 @@ void Plater::export_stl(bool extended, bool selection_only, bool multi_stls, Fil
         case FT_DRC: ext = ".drc"; break;
         }
 
-        auto path = dir + name + ext;
+        // ORCA fix duplicate extensions, hidden files with leading dots ...
+        static const std::vector<std::string> model_exts{   // longest first
+            ".gcode.3mf", ".zip.amf",
+            ".stl", ".3mf", ".obj", ".step", ".stp", ".amf", ".xml", ".drc", ".ply", ".svg", ".oltp",
+            ".gltf", ".glb", ".fbx", ".usd", ".usda", ".usdc", ".usdz", ".abc"
+        };
+        std::string base_name = name;
+        for (bool stripped = true; stripped; ) {           // handles x.stl.stl
+            boost::algorithm::trim_if(base_name, boost::is_any_of(". "));   // leading/trailing dots & spaces
+            stripped = false;
+            for (const auto& e : model_exts)
+                if (boost::algorithm::iends_with(base_name, e)) {
+                    base_name.resize(base_name.size() - e.size());
+                    stripped = true;
+                    break;
+                }
+        }
+        if (base_name.empty()) base_name = "object";       // e.g. name was "..."
+        auto path = dir + base_name + ext;
         int n = 1;
         while (boost::filesystem::exists(path))
-            path = dir + name + "(" + std::to_string(n++) + ")"+ext;
+            path = dir + base_name + "(" + std::to_string(n++) + ")"+ext;
         return path;
     };
 
