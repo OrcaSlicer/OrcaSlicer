@@ -13,7 +13,11 @@
 #include <sstream>
 #include <string>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <cerrno>
+#include <csignal>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -28,6 +32,33 @@ namespace {
 bool is_token(const std::string& s)
 {
     return s.size() == 64 && std::all_of(s.begin(), s.end(), [](unsigned char c) { return std::isxdigit(c) != 0; });
+}
+
+int current_pid()
+{
+#ifdef _WIN32
+    return int(GetCurrentProcessId());
+#else
+    return int(getpid());
+#endif
+}
+
+// A process that exists but belongs to another user still counts: the question is whether the pid is taken.
+bool process_running(int pid)
+{
+    if (pid <= 0)
+        return false;
+#ifdef _WIN32
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, DWORD(pid));
+    if (process == nullptr)
+        return GetLastError() == ERROR_ACCESS_DENIED;
+    DWORD      code    = 0;
+    const bool running = GetExitCodeProcess(process, &code) && code == STILL_ACTIVE;
+    CloseHandle(process);
+    return running;
+#else
+    return ::kill(pid_t(pid), 0) == 0 || errno == EPERM;
+#endif
 }
 
 } // namespace
@@ -135,10 +166,32 @@ bool write_discovery(const fs::path& datadir, const nlohmann::json& info, std::s
     return write_private_file(discovery_path(datadir), info.dump(2) + "\n", err);
 }
 
+nlohmann::json load_discovery(const fs::path& datadir)
+{
+    boost::nowide::ifstream in(path_to_utf8(discovery_path(datadir)).c_str());
+    if (!in)
+        return nullptr;
+    nlohmann::json info = nlohmann::json::parse(in, nullptr, false);
+    return info.is_object() ? info : nlohmann::json();
+}
+
 void remove_discovery(const fs::path& datadir)
 {
+    // A file that does not parse names no owner and is removed.
+    const nlohmann::json info = load_discovery(datadir);
+    if (info.is_object() && info.value("pid", 0) != current_pid())
+        return;
     boost::system::error_code ec;
     fs::remove(discovery_path(datadir), ec);
+}
+
+bool discovery_held_by_other(const fs::path& datadir, int port)
+{
+    const nlohmann::json info = load_discovery(datadir);
+    if (!info.is_object() || info.value("port", 0) != port)
+        return false;
+    const int pid = info.value("pid", 0);
+    return pid != current_pid() && process_running(pid);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

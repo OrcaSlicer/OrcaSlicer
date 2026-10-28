@@ -75,12 +75,13 @@ The bearer token is 32 random bytes as 64 hex characters in `<datadir>/mcp/token
 and file created 0600 with `O_CREAT|O_EXCL` on POSIX, the per-user ACL of `%APPDATA%` on Windows.
 It stays out of AppConfig, whose writes and backups use default permissions. `ORCA_MCP_TOKEN`
 (preferred, as it stays out of the process list) or `--mcp-token` overrides it for one run;
-`get_state.mcp.token_source` says which is in force, and "New token" in Preferences says it takes
-effect on the next start while an override holds. While
+`get_state.mcp.token_source` says which is in force. Every start of the endpoint reads the file, so
+deleting it and turning the server off and on in Preferences issues a new token. While
 serving, `<datadir>/mcp/server.json` holds `{url, port, pid, version, token}` with the token in
 use, so the stdio bridge and the harness connect without the launch environment. It is written
 owner-only via an exclusive temporary file and a rename (`write_private_file()`), and removed on
-stop.
+stop, but only by the process its `pid` names: windows that share a configuration folder share the
+file, and one that stops must not hide another's server from the stdio bridge.
 
 ## Lifecycle
 
@@ -113,10 +114,22 @@ service: the transport stays up, the UI generation is bumped so every GUI ref go
 fail with a request to retry, and `ready` is false until `recreate_GUI()` resumes it. A UI closure
 posted before the rebuild refuses to run after it ("not run, safe to retry").
 
+Several OrcaSlicer windows may run at once, and those that share a configuration folder share the
+`mcp_enabled` preference and the port. The bind is exclusive (`SO_REUSEADDR` stays off on
+Windows, and POSIX refuses a second listener), so the first window to start serves and agents,
+over HTTP or stdio, reach it. A later window that wants to serve finds the port taken by the
+process the discovery file names (`discovery_held_by_other()`): it reports no error, Preferences
+says another window is serving agents, and `GUI_App` tries the port every 3 s, so when the serving
+window closes, one of the others takes over and writes the discovery file. A window that cannot
+bind for any other reason reports it and stops trying. Windows meant to serve side by side need
+their own configuration folders (`--datadir`) or `--mcp-port`; agents then pick one by its URL, or
+the stdio bridge by `--datadir`. The server makes no attempt to route between windows.
+
 Preferences turns the server on with `GUI_App::start_mcp_service()` and off with
-`McpService::stop_serving()`, which closes only the endpoint and removes the discovery file. The
+`GUI_App::stop_mcp_endpoint()`, which stops the takeover retries and calls
+`McpService::stop_serving()` to close only the endpoint and remove the discovery file. The
 catalog, running jobs and a launch script carry on, because the call that opened Preferences may
-itself be an MCP call still on the stack. A new port or token reopens the endpoint through
+itself be an MCP call still on the stack. A new port reopens the endpoint through
 `GUI_App::restart_mcp_endpoint()`, and a port set in Preferences replaces `--mcp-port` for the rest
 of the session. Closing the endpoint drops the session's auto-answer rules, and a client's rules
 that a call still running registers afterwards are refused, so a person using the app afterwards
@@ -543,22 +556,41 @@ A line that is valid JSON but not one message object, such as a batch, gets an e
 
 The CLI options are in `CLIMiscConfigDef`, so the GUI still starts: `--mcp`, `--mcp-port N`,
 `--mcp-token T`, `--mcp-script FILE`, `--mcp-script-out DIR` and `--mcp-stdio`. The AppConfig `app`
-section holds `mcp_enabled` (false) and `mcp_port` (13619). Preferences › General › Features has
-three rows:
+section holds `mcp_enabled` (false) and `mcp_port` (13619). Preferences › General › AI features
+opens with a line on what agents can do and who can connect, then has four rows:
 
-- **"MCP server for AI agents"**: checked while the server runs, with its URL or the reason it
-  could not start.
-- **"MCP server port"**.
-- **"Connect an AI agent"**, with two buttons. "Copy setup command" copies
-  `claude mcp add --scope user orcaslicer -- "<executable>" --mcp-stdio`, which uses the AppImage's
-  own path inside an AppImage. It holds no token, so it keeps working after port and token
-  changes. "New token" renews the token and reopens the endpoint.
+- **"MCP server"**: checked while the server runs. A dot and a line beside it give the state:
+  "Running", "Off", "Not running" (enabled, but the start failed), that another window serves
+  agents and this one takes over when it closes (refreshed every second while so), or the reason it
+  could not start. A message from the last change, such as a rejected port, follows "Running".
+- **"Server port"**.
+- **"Server address"**: the URL, dimmed while the server is off, when it shows the port turning
+  it on would use.
+- **"Add to an agent"**: a picker, "Copy", and a line under them saying what to do with the copied
+  text. The agents connect over HTTP, with the URL and the token in force:
+  - Claude Code: `claude mcp add --transport http --scope user orcaslicer <url> --header "Authorization: Bearer <token>"`.
+  - Codex: an `[mcp_servers.orcaslicer]` table with `url` and `http_headers` for
+    `~/.codex/config.toml`, since `codex mcp add` takes a token only from an environment variable.
+  - opencode: an `mcp.orcaslicer` entry of type `remote` with `url` and `headers`.
+  - DeepSeek Harness: an `insert` row with a `@deepseek-ai/dsh-mcp-client` entry (`streamable-http`,
+    `url`, `headers`) for `~/.dsh/cordis.patch.yml`, which every profile applies.
+  - "Other apps": an `mcpServers.orcaslicer` entry that runs `<executable> --mcp-stdio`, for apps
+    that only take a command, such as Claude Desktop. It uses the AppImage's own path inside an
+    AppImage.
+
+HTTP is the default because its URL stays the same whichever OrcaSlicer build runs, and starting an
+agent session never starts OrcaSlicer: the stdio bridge launches the app as soon as a client
+starts it, so a user-wide registration would open OrcaSlicer with every agent session. The cost is
+that OrcaSlicer must be running with the server on before the agent connects, and a registration
+holds the token: a new token (delete the token file, then turn the server off and on) or a new port
+means copying the setup again.
 
 ## Testing
 
 Unit tests are Catch2 cases tagged `[Mcp]` in `tests/slic3rutils/test_mcp_*.cpp`, run with
 `slic3rutils_tests "[Mcp]"`. `test_mcp_protocol` covers both eras and argument validation;
-`test_mcp_http` the endpoint rules and a live server (deadlines, eviction, stop); `test_mcp_core`
+`test_mcp_http` the endpoint rules and a live server (deadlines, eviction, stop); `test_mcp_token`
+who owns the discovery file and when a port counts as held by another window; `test_mcp_core`
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
 jobs, blocked_by_dialog, admission, slots, idle, journal); `test_mcp_operations` the slice and
 export outcomes; `test_mcp_script` parsing, substitution, matchers and await; `test_mcp_ui` labels,

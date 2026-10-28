@@ -348,8 +348,8 @@ int run_stdio_bridge(int argc, char** argv)
     std::string             failure;
     if (!endpoint) {
         if (!launch_app(self_executable(argv), datadir_arg))
-            failure = "OrcaSlicer is running without the MCP server, or could not be started. Turn on \"MCP server for "
-                      "AI agents\" in OrcaSlicer's Preferences (or start it with --mcp) and reconnect.";
+            failure = "OrcaSlicer is running without the MCP server, or could not be started. Turn on \"MCP server\" under "
+                      "AI features in OrcaSlicer's Preferences (or start it with --mcp) and reconnect.";
         else
             for (int i = 0; i < 120 && !endpoint; ++i) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));

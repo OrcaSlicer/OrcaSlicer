@@ -63,6 +63,9 @@ public:
     void stop_serving();
     bool started() const { return m_core != nullptr; }
     bool serving() const;
+    // The last start() could not open the endpoint because another OrcaSlicer window that shares the
+    // configuration folder serves on the port. Cleared when the endpoint opens or stop_serving() runs.
+    bool port_held_by_other_window() const { return m_port_held_by_other; }
     uint16_t port() const;
     const std::string& token() const { return m_token; }
 
@@ -123,6 +126,7 @@ private:
     std::string      m_token;
     std::string      m_token_source;
     std::string      m_discovery_error;
+    bool             m_port_held_by_other = false;
 
     std::unique_ptr<UiDispatcher>  m_dispatcher;
     ToolRegistry                   m_registry;

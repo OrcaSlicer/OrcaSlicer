@@ -8470,11 +8470,28 @@ bool GUI_App::start_mcp_service(bool serve, std::string* error)
     }
     if (!m_mcp)
         m_mcp.reset(new Mcp::McpService());
+    if (serve)
+        m_mcp_wanted = true;
     std::string err;
     const bool  ok = m_mcp->start(options, serve, err);
-    if (!ok) {
-        BOOST_LOG_TRIVIAL(error) << err;
-        if (plater() != nullptr)
+    if (!ok && serve && m_mcp->port_held_by_other_window()) {
+        // Another window that shares the configuration folder serves agents. Not an error: try the
+        // port every few seconds, so agents keep a server once that window closes.
+        if (!m_mcp_takeover_timer) {
+            m_mcp_takeover_timer = std::make_unique<wxTimer>();
+            m_mcp_takeover_timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+                if (m_mcp_wanted && m_mcp && !m_mcp->serving() && !is_closing())
+                    start_mcp_service(true);
+                else
+                    m_mcp_takeover_timer->Stop();
+            });
+        }
+        if (!m_mcp_takeover_timer->IsRunning())
+            m_mcp_takeover_timer->Start(3000);
+    } else {
+        if (m_mcp_takeover_timer)
+            m_mcp_takeover_timer->Stop();
+        if (!ok && plater() != nullptr)
             plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,
                                                                     NotificationManager::NotificationLevel::ErrorNotificationLevel,
                                                                     err);
@@ -8486,11 +8503,20 @@ bool GUI_App::start_mcp_service(bool serve, std::string* error)
     return ok;
 }
 
-bool GUI_App::restart_mcp_endpoint(bool port_from_preferences, std::string* error)
+void GUI_App::stop_mcp_endpoint()
+{
+    m_mcp_wanted = false;
+    if (m_mcp_takeover_timer)
+        m_mcp_takeover_timer->Stop();
+    if (m_mcp)
+        m_mcp->stop_serving();
+}
+
+bool GUI_App::restart_mcp_endpoint(std::string* error)
 {
     if (!m_mcp || !m_mcp->serving())
         return true;
-    if (port_from_preferences && init_params != nullptr)
+    if (init_params != nullptr)
         init_params->mcp.port = 0;
     m_mcp->stop_serving();
     return start_mcp_service(true, error);
@@ -8498,12 +8524,17 @@ bool GUI_App::restart_mcp_endpoint(bool port_from_preferences, std::string* erro
 
 void GUI_App::stop_mcp_service()
 {
+    m_mcp_wanted = false;
+    if (m_mcp_takeover_timer)
+        m_mcp_takeover_timer->Stop();
     if (m_mcp)
         m_mcp->stop();
 }
 
 void GUI_App::destroy_mcp_service()
 {
+    // Before wxApp::CleanUp(): a timer must not outlive the toolkit.
+    m_mcp_takeover_timer.reset();
     // Outside any event loop: the deleter waits for running calls, and leaks a service whose calls
     // never return.
     m_mcp.reset();

@@ -231,10 +231,18 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
     });
     if (!m_http->start(uint16_t(port), err)) {
         err = "MCP server: cannot listen on 127.0.0.1:" + std::to_string(port) + " (" + err + ")";
-        BOOST_LOG_TRIVIAL(error) << err;
         m_http.reset();
+        // Expected with several windows on one configuration folder, and retried until that window
+        // closes, so logged once rather than as an error.
+        const bool held_before = m_port_held_by_other;
+        m_port_held_by_other   = discovery_held_by_other(path_from_utf8(data_dir()), port);
+        if (!m_port_held_by_other)
+            BOOST_LOG_TRIVIAL(error) << err;
+        else if (!held_before)
+            BOOST_LOG_TRIVIAL(info) << "MCP server: another OrcaSlicer window serves on port " << port;
         return false;
     }
+    m_port_held_by_other = false;
     {
         std::lock_guard<std::mutex> lock(m_rules_mutex);
         m_endpoint_open = true;
@@ -335,6 +343,7 @@ void McpService::end_script_scope(const std::string& job)
 
 void McpService::stop_serving()
 {
+    m_port_held_by_other = false;
     {
         // A client's rules end with its endpoint; a person using the app afterwards must not have
         // dialogs answered for them.

@@ -23,10 +23,18 @@ std::string regenerate_token(const boost::filesystem::path& datadir, std::string
 bool write_private_file(const boost::filesystem::path& path, const std::string& content, std::string& err);
 
 // <datadir>/mcp/server.json: {url, port, pid, version, token} with the effective token, for the
-// stdio bridge and the developer harness.
+// stdio bridge and the developer harness. OrcaSlicer windows that share a configuration folder share
+// the file: the one that wrote it last owns it.
 boost::filesystem::path discovery_path(const boost::filesystem::path& datadir);
 bool write_discovery(const boost::filesystem::path& datadir, const nlohmann::json& info, std::string& err);
+// The parsed file, or null when it is missing or not a JSON object.
+nlohmann::json load_discovery(const boost::filesystem::path& datadir);
+// Removes the file only when this process wrote it, so a window that stops never hides another
+// window's server from the stdio bridge.
 void remove_discovery(const boost::filesystem::path& datadir);
+// Whether the file names `port` and a running process other than this one: another window that
+// shares the configuration folder serves agents there.
+bool discovery_held_by_other(const boost::filesystem::path& datadir, int port);
 
 // 32 random bytes as lowercase hex.
 std::string random_token();

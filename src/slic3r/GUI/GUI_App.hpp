@@ -56,6 +56,7 @@
 
 class wxMenuItem;
 class wxMenuBar;
+class wxTimer;
 class wxTopLevelWindow;
 class wxDataViewCtrl;
 class wxBookCtrlBase;
@@ -385,6 +386,8 @@ private:
     wxString         m_info_dialog_content;
     std::unique_ptr<HttpServer> m_http_server;
     Mcp::McpServicePtr m_mcp;
+    bool               m_mcp_wanted = false;        // the endpoint should be open: --mcp, the preference, or Preferences
+    std::unique_ptr<wxTimer> m_mcp_takeover_timer;  // retries the port another window holds; created on first need
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:
@@ -664,15 +667,20 @@ public:
     void            stop_http_server();
 
     // MCP server for AI agents, from Preferences or --mcp/--mcp-script. `serve` opens the HTTP
-    // endpoint; a --mcp-script alone needs only the tool catalog. UI thread.
+    // endpoint; a --mcp-script alone needs only the tool catalog. While another window that shares
+    // the configuration folder holds the port, this one keeps trying and takes it over when that
+    // window closes. UI thread.
     bool            start_mcp_service(bool serve, std::string* error = nullptr);
+    // Closes the endpoint until the next start, as turning the server off in Preferences does; the
+    // service lives on, since an MCP call may have opened Preferences.
+    void            stop_mcp_endpoint();
     // Stops the MCP service but keeps it: a call may still be on the stack (a nested event loop).
     void            stop_mcp_service();
     // Stops it and frees it once no call runs in it. Outside any event loop only (OnExit, CleanUp).
     void            destroy_mcp_service();
-    // Reopens a serving MCP endpoint so a new port or token takes effect; no-op when not serving.
-    // A port changed in Preferences replaces one given on the command line.
-    bool            restart_mcp_endpoint(bool port_from_preferences, std::string* error = nullptr);
+    // Reopens a serving MCP endpoint on the port set in Preferences, which replaces one given on the
+    // command line; no-op when not serving.
+    bool            restart_mcp_endpoint(std::string* error = nullptr);
     Mcp::McpService* mcp_service() { return m_mcp.get(); }
 
     void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);

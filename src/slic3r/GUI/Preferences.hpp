@@ -22,6 +22,8 @@
 #include "Widgets/TextInput.hpp"
 #include "Widgets/SpinInput.hpp"
 #include "Widgets/TabCtrl.hpp"
+#include "Widgets/Label.hpp"
+#include "Widgets/Button.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
 namespace Slic3r { namespace GUI {
@@ -75,6 +77,7 @@ public:
 
     wxString m_backup_interval_time;
     wxTimer m_filament_height_timer;
+    wxTimer m_mcp_status_timer;   // refreshes the MCP status while another window holds the port
 
     void      create();
 
@@ -84,7 +87,12 @@ public:
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
     ::CheckBox * m_sync_user_preset_checkbox = {nullptr};
     ::CheckBox * m_bambu_cloud_checkbox      = {nullptr};
-    wxStaticText* m_mcp_status               = {nullptr};
+    ::Label *    m_mcp_intro                 = {nullptr};
+    ::Label *    m_mcp_status_dot            = {nullptr};
+    ::Label *    m_mcp_status                = {nullptr};
+    ::Label *    m_mcp_address               = {nullptr};
+    ::Label *    m_mcp_agent_hint            = {nullptr};
+    ::Button *   m_mcp_copy_button           = {nullptr};
     ::CheckBox * m_skip_identical_frames_checkbox = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
     ::SpinInput *m_dim_previous_layers_brightness_input = {nullptr};
@@ -118,8 +126,9 @@ public:
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
     wxBoxSizer *create_item_bambu_cloud(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_server(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_mcp_address(wxString title, wxString tooltip);
     wxBoxSizer *create_item_mcp_connect(wxString title, wxString tooltip);
-    void        update_mcp_status(const std::string& error = {});
+    void        update_mcp_status(const std::string& note = {});
     wxBoxSizer *create_item_network_plugin_version(wxString title, wxString tooltip);
 #ifdef WIN32
     wxBoxSizer *create_item_link_association(wxString url_prefix, wxString website_name);
