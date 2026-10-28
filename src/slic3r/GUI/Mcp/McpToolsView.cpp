@@ -20,6 +20,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
+#include <wx/bookctrl.h>
 #include <wx/dialog.h>
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
@@ -141,6 +142,15 @@ void register_view_tools(McpService& service)
                         wxWindow*      w = t.window.get();
                         if (t.kind != UiTarget::Kind::Window || w == nullptr)
                             throw ToolFailure("target must be window, canvas, dialog or the ref of a widget");
+                        if (t.page >= 0) {
+                            // A tab: its page, which only the selected tab shows.
+                            auto* book = dynamic_cast<wxBookCtrlBase*>(w);
+                            if (book == nullptr || t.page >= int(book->GetPageCount()))
+                                throw ToolFailure("The tab is gone; take a new ui_snapshot");
+                            if (book->GetSelection() != t.page)
+                                throw ToolFailure("The tab's page is not shown; click the tab (ui_click) first");
+                            w = book->GetPage(size_t(t.page));
+                        }
                         if (GLCanvas3D* canvas = service.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
                             cap = capture_canvas(*canvas, err);
                         } else {

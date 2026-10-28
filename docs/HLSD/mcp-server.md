@@ -97,12 +97,16 @@ The service stops, idempotently, at the start of `MainFrame::shutdown()` when th
 drops every auto-answer rule, clears `SyntheticInput` and turns ImGui recording off. It frees
 nothing: a call may still be on the UI thread's stack inside a nested event loop, using the
 inspector and the modal tracker, and job and request threads may still be returning.
-`GUI_App::destroy_mcp_service()`, called from `OnExit()` and from `CleanUp()` after a failed
-initialization, runs outside any event loop, so no closure can be running. It waits with
-`McpService::drain()` until no request, call or job thread is inside the service, and frees it. A
-call that never returns would make freeing a crash, so the service is then left in place instead.
-HTTP request threads reach the protocol through a shared `RequestGate`, which `drain()` closes, so a
-late request gets 503 rather than a freed object.
+A stopped service never starts again. `GUI_App` holds the service in an `McpServicePtr`, whose
+deleter (`McpServiceDeleter`) is the only way to destroy one: the destructor is private. The
+deleter stops the service, waits with `McpService::drain()` until no request, call or job thread
+is inside it, and frees it; a call that never returns would make freeing a crash, so after 10 s the
+service is left in place instead. `GUI_App::destroy_mcp_service()` runs it from `OnExit()`, and
+from `CleanUp()` after a failed initialization, outside any event loop, so no closure can be
+running. HTTP request threads reach the protocol through a shared `RequestGate`, which `drain()`
+closes, so a late request gets 503 rather than a freed object. `McpCore`'s own destructor waits for
+every call and job thread to leave, however long that takes; its owner drains first, so it returns
+at once.
 
 A language change runs `MainFrame::shutdown()` from `recreate_GUI()`, which only suspends the
 service: the transport stays up, the UI generation is bumped so every GUI ref goes stale, UI calls
@@ -114,8 +118,9 @@ Preferences turns the server on with `GUI_App::start_mcp_service()` and off with
 catalog, running jobs and a launch script carry on, because the call that opened Preferences may
 itself be an MCP call still on the stack. A new port or token reopens the endpoint through
 `GUI_App::restart_mcp_endpoint()`, and a port set in Preferences replaces `--mcp-port` for the rest
-of the session. Closing the endpoint drops the session's auto-answer rules, so a person using the
-app afterwards never has a prompt answered for them, and doesn't wait for in-flight requests, which
+of the session. Closing the endpoint drops the session's auto-answer rules, and a client's rules
+that a call still running registers afterwards are refused, so a person using the app afterwards
+never has a prompt answered for them. Closing doesn't wait for in-flight requests, which
 may be waiting on the UI thread that closes it; their replies are dropped. A bind failure is
 logged, shown as a notification and in Preferences, and a start from Preferences never reruns a
 command-line script. The modal tracker is created with the service and picks up modal dialogs that
@@ -156,8 +161,8 @@ another call's nested loop keeps it out.
 thread. Every tool that can activate UI runs as a job on its own thread, recover tools that click
 in dialogs included, since a click can open another modal (Preferences, Keyboard shortcuts, Edit).
 `JobRegistry` names jobs `j1`, `j2`, …, records each job's tool and parent, allows 64 running and
-keeps the last 64 results, plus every finished job whose parent (a running script) may still wait
-for it. The request thread waits up to `ToolDef::budget_ms` (45 s, under
+keeps the last 64 results, plus finished jobs whose parent (a running script) may still wait for
+them, up to 1024 in all. The request thread waits up to `ToolDef::budget_ms` (45 s, under
 Codex's 60 s tool timeout); after that the reply is `{status: "running", job, tool, note}` and the
 job keeps going until `wait {for: "job"}` (at most 50 s per call) returns its result. The server
 never retries a mutating call, and every envelope tells the model not to either.
@@ -190,19 +195,27 @@ run.
 **Identity.** An operation must never take another's completion for its own. `Plater` numbers
 slice requests (`slice_request_seq`, bumped through `request_slice()` by every user-facing slice
 entry point, not by internal restarts) and background runs (`slice_run_seq`). It keeps a
-`SliceRunRecord` per run with the request it ran for, its plate, and the project revision and
-request sequence at its finish. A slice the validation refused before running is recorded too, as
-a finished run carrying the validation error.
+`SliceRunRecord` per run with the request it ran for, its plate, whether it finished with a
+result, and the project revision and request sequence at its finish. A slice request the validation
+refused before running is recorded too, as a finished run carrying the validation error; other
+updates validate as well, but only a refusal met by a slice request, or by Slice All moving to its
+next plate, is recorded. `Plater` also notes each request that a later request reached while it was
+still slicing (`slice_request_interrupted()`).
 `Plater::project_revision()` rises with every undoable model edit, undo/redo, load, new project and
 config change, but not when a plate is selected (`Plater::take_plate_selection_snapshot()`), since
 Slice All selects each plate in turn. A ticket's own runs are those numbered after it began that
-ran for its request; Slice All's later plates run for the same request. A run for a later request
-means someone sliced again, and the ticket is `superseded` at once, without waiting for that slice.
-Otherwise the ticket ends once nothing slices and it either saw slicing run or waited 1.5 s with
-nothing scheduled, and is `superseded` when the project changed, or another slice was requested,
-during its own runs (or, with none, by the final poll). Each plate is then `ok` (a valid result),
-`error` with its own run's message, `cancelled`, `empty`, or `skipped` when no run reached it
-(Slice All stops at a failing plate). An export is numbered in `export_seq` once scheduled, so an
+ran for its request; Slice All's later plates run for the same request. A run already slicing when
+the request was made, which the request left running (it returns early, for instance while a gizmo
+is in editing mode), is adopted as the ticket's own. A later request means someone sliced again:
+if it came while the ticket's request was still slicing, the ticket is `superseded` at once,
+without waiting for that slice; if it came after, the ticket's result stands and their slice isn't
+waited for. Otherwise the ticket ends once nothing slices and it either saw slicing run or waited
+1.5 s with nothing scheduled, and is `superseded` when the project changed, or another slice was
+requested, during its own runs (or, with none, by the final poll). Each plate is then `ok` (a valid
+result, or its own run finished with one that a later edit has since replaced), `error` with its
+own run's message (or, when the configuration was refused before the request so no run started,
+the latest validation message for the plate, `Plater::plate_validation_error()`), `cancelled`,
+`empty`, or `skipped` when no run reached it (Slice All stops at a failing plate). An export is numbered in `export_seq` once scheduled, so an
 unchanged number means it never started; otherwise its `ExportRecord` ends `ok`, `failed`,
 `cancelled` or `superseded`. A G-code export with a path is refused while slicing runs, and
 `run_action export_gcode` needs a path: without one it would ask in a native file dialog that MCP
@@ -236,7 +249,7 @@ the UI thread.
 | Objects | `list_objects` | objects, instances, parts, bounding boxes, overrides, paged |
 | | `select` | select objects, instances or parts, all, or none |
 | | `transform` | translate, rotate or scale one instance, relative or absolute |
-| Slice | `slice` | current, one or all plates; outcome and stats for each plate |
+| Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome and stats for each plate |
 | | `cancel` | stop the running slice or G-code export, or a pending automatic reslice (optionally only a given job); allowed during an operation |
 | View | `set_view` | tab, camera, preview layers and color scheme, window size |
 | | `screenshot` | window, 3D canvas, topmost dialog or one widget: a downscaled image and a full-size PNG |
@@ -346,6 +359,12 @@ journal stores. A locator is one of:
 - `{menu: "File>Export>Export G-code"}`, `{gltoolbar: "arrange"}` or `{gizmo: "Move"}`;
 - `{imgui: "label", window, canvas, index}` for an ImGui item.
 
+The object list's rows are items of a `wxDataViewCtrl`, not windows, so no locator names one.
+`select` selects objects, instances and parts, after which `run_action` runs the object operations
+the catalog has (delete, split, mirror, center, drop, instances, arrange, orient) and `set_settings`
+with the object or volume scope edits their settings. Adding a part or modifier and changing a
+part's type have no tool yet.
+
 A label that matches both a row's label and the one field it names resolves to the field.
 `within` names a window other than the main one, whose title follows the project name and is left
 out of locators. A locator that matches several elements needs `index`; the journal records one
@@ -362,8 +381,8 @@ gestures and ImGui items get synthesized wx events with a render between steps.
 state; `ui_input` on an ImGui checkbox clicks it only when its state differs. `SyntheticInput` holds
 a gesture's keys, buttons and pointer for code that reads hardware state through `get_key_state()`
 and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Held
-keys are released however the gesture ends; a `ui_mouse` `down` keeps its button held until an
-`up`, another gesture or the service's stop. Keys without a target go to the
+keys are released however the gesture ends; a `ui_mouse` `down` keeps its button held, and a
+`move` drags with it, until an `up`, another gesture or the service's stop. Keys without a target go to the
 focused window inside the topmost modal, else that modal, else the focused window, else the 3D
 canvas.
 
@@ -395,7 +414,8 @@ without the UI; a JSON result comes back parsed.
 - `dialog`: the topmost modal, captured like a window.
 - a widget's ref or locator: its top-level window captured like a window (a window that is not
   modal, such as an object's settings, has no other target) and cropped to the widget, or the
-  canvas capture for a 3D canvas. The journal records the locator.
+  canvas capture for a 3D canvas. A tab is cropped to its page, which must be the one shown. The
+  journal records the locator.
 
 When the capture may differ from the screen, the result carries `approximate: true` and a `note`.
 
@@ -461,7 +481,8 @@ GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
 `McpService::script_exit_code()` after `wxEntry()`.
 
 The session journal records client calls to journaled tools in order: every mutate tool, plus
-`wait` and `screenshot`, which a replay needs. GUI tools record locators instead of refs through
+`wait` and `screenshot`, which a replay needs. It keeps the last 5000 calls, dropping the oldest
+call that has replied; a call still waiting for its reply keeps its place. GUI tools record locators instead of refs through
 `ToolContext::set_journal_args()`. `export_script` returns it, and with `path` writes it, through `Journal::to_script()`; `clear`
 starts a new recording. `Journal::to_script()`
 drops failed calls, turns a call that returned a job into a step with `"await": false` and

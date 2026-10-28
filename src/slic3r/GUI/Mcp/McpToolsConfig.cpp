@@ -26,6 +26,7 @@
 #include <cmath>
 #include <cstddef>
 #include <exception>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -251,13 +252,32 @@ json list_presets(const json& args)
 
 std::string to_config_string(const json& v, const std::string& key)
 {
-    if (v.is_array() && !key.empty())
-        if (const ConfigOptionDef* def = print_config_def.get(key); def != nullptr && def->type == coStrings) {
-            std::vector<std::string> values;
-            for (const json& e : v)
-                values.push_back(to_config_string(e));
-            return ConfigOptionStrings(values).serialize();
+    const ConfigOptionDef* def = v.is_array() && !key.empty() ? print_config_def.get(key) : nullptr;
+    // A point given as [x, y] is written "XxY", the way point options read it.
+    const auto point = [](const json& e) -> std::optional<std::string> {
+        if (!e.is_array() || e.size() != 2 || !e[0].is_number() || !e[1].is_number())
+            return std::nullopt;
+        return to_config_string(e[0]) + "x" + to_config_string(e[1]);
+    };
+    if (def != nullptr && def->type == coStrings) {
+        std::vector<std::string> values;
+        for (const json& e : v)
+            values.push_back(to_config_string(e));
+        return ConfigOptionStrings(values).serialize();
+    }
+    if (def != nullptr && def->type == coPoint)
+        if (auto p = point(v))
+            return *p;
+    if (def != nullptr && def->type == coPoints) {
+        std::string out;
+        for (const json& e : v) {
+            if (!out.empty())
+                out += ",";
+            const auto p = point(e);
+            out += p ? *p : to_config_string(e);
         }
+        return out;
+    }
     if (v.is_string())
         return v.get<std::string>();
     if (v.is_boolean())
@@ -414,7 +434,7 @@ void register_config_tools(McpService& service)
         "set_settings", "Change settings",
         "Change settings as if typed into the settings tab: all values are parsed strictly first and applied together, and "
         "nothing changes if any is invalid. Values may be strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON "
-        "numbers, booleans and arrays. object/volume scopes set per-object or per-part overrides; a null value removes an "
+        "numbers, booleans and arrays (a point as [x, y]). object/volume scopes set per-object or per-part overrides; a null value removes an "
         "override.",
         object_schema({{"scope", scope_prop},
                        {"values", {{"type", "object"}, {"description", "{key: value}"}}},

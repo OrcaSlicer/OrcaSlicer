@@ -17,6 +17,7 @@ bool is_key_down(int key_code);
 // The pointer automation drives, in screen coordinates, with its buttons.
 void set_mouse(const wxMouseState& state);
 void release_mouse();
+bool is_mouse_held();
 // Drops everything held, e.g. when a gesture fails half-way.
 void clear();
 } // namespace SyntheticInput

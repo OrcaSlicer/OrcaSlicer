@@ -73,7 +73,7 @@ std::optional<fs::path> resolve_output_path(const std::string& path, bool overwr
         return std::nullopt;
     }
     if (!fs::is_directory(p->parent_path(), ec)) {
-        err = "directory does not exist: " + p->parent_path().string();
+        err = "directory does not exist: " + path_to_utf8(p->parent_path());
         return std::nullopt;
     }
     if (fs::exists(*p, ec) && !overwrite) {

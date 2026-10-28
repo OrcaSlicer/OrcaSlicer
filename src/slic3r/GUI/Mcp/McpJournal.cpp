@@ -23,9 +23,13 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args)
     e.args = args;
     m_entries.push_back(std::move(e));
     // A session kept open for days must not grow without bound; a script is exported from the
-    // recent calls anyway (export_script {clear:true} starts afresh).
-    if (m_entries.size() > kMaxEntries)
-        m_entries.erase(m_entries.begin(), m_entries.begin() + std::ptrdiff_t(m_entries.size() - kMaxEntries));
+    // recent calls anyway (export_script {clear:true} starts afresh). The oldest call that has
+    // replied goes; a call still waiting for its reply keeps its place.
+    if (m_entries.size() > kMaxEntries) {
+        const auto oldest = std::find_if(m_entries.begin(), m_entries.end(), [](const Entry& entry) { return entry.finished; });
+        if (oldest != m_entries.end())
+            m_entries.erase(oldest);
+    }
     return m_entries.back().seq;
 }
 

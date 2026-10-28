@@ -143,7 +143,6 @@ struct Harness
         CoreTiming t;
         t.soft_budget   = 100ms;
         t.probe_timeout = 500ms;
-        t.join_timeout  = 2000ms;
         return t;
     }();
     std::unique_ptr<McpCore> core;
@@ -651,6 +650,33 @@ TEST_CASE("a finished job stays while its parent script runs", "[Mcp]")
     CHECK_THROWS_AS(jobs.wait(saved, 0ms), ToolFailure);
 }
 
+TEST_CASE("finished jobs stay bounded while their parent script runs", "[Mcp]")
+{
+    JobRegistry       jobs;
+    const std::string script = jobs.create("run_script", "");
+    const std::string first  = jobs.create("t", script);
+    jobs.finish(first, ToolResult::ok());
+    for (std::size_t i = 0; i < JobRegistry::kKeepFinishedMax; ++i)
+        jobs.finish(jobs.create("t", script), ToolResult::ok());
+    CHECK_THROWS_AS(jobs.wait(first, 0ms), ToolFailure);
+    const std::string recent = jobs.create("t", script);
+    jobs.finish(recent, ToolResult::ok());
+    CHECK(jobs.wait(recent, 0ms).has_value());
+}
+
+TEST_CASE("the journal keeps a call waiting for its reply when it drops old calls", "[Mcp]")
+{
+    Journal        journal;
+    const uint64_t waiting = journal.begin("slice", json::object());
+    for (int i = 0; i < 6000; ++i)
+        journal.end(journal.begin("set_settings", {{"values", {{"wall_loops", i}}}}), ToolResult::ok());
+    journal.end(waiting, ToolResult::ok());
+    const json steps = journal.to_script("s")["steps"];
+    REQUIRE_FALSE(steps.empty());
+    CHECK(steps[0]["tool"] == "slice");
+    CHECK(steps.size() == 5000);
+}
+
 TEST_CASE("drain reports a job thread that has not returned", "[Mcp]")
 {
     Harness           h;
@@ -669,6 +695,31 @@ TEST_CASE("drain reports a job thread that has not returned", "[Mcp]")
     release = true;
     call.get();
     CHECK(h.core->drain(2000ms));
+}
+
+TEST_CASE("destroying a core waits for a job thread still inside it", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    std::atomic<bool> returned{false};
+    h.registry.add(tool("stuck", GuardClass::Mutate, [&](const json&, ToolContext&) {
+        while (!release)
+            std::this_thread::sleep_for(10ms);
+        std::this_thread::sleep_for(50ms);
+        returned = true;
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = 50ms;
+    h.start();
+    auto call = std::async(std::launch::async, [&] { return h.call("stuck"); });
+    std::this_thread::sleep_for(100ms);
+    h.core->shutdown();
+    auto destroy = std::async(std::launch::async, [&] { h.core.reset(); });
+    CHECK(destroy.wait_for(300ms) == std::future_status::timeout);
+    release = true;
+    destroy.get();
+    CHECK(returned);
+    call.get();
 }
 
 TEST_CASE("the journal records client calls in order and replays jobs with await false", "[Mcp]")

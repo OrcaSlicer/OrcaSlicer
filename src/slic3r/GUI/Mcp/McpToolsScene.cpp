@@ -24,6 +24,8 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
 
+#include <wx/string.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -336,6 +338,12 @@ void register_scene_tools(McpService& service)
                 plater.request_slice(all);
                 ticket->state.request_seq_mine = plater.slice_request_seq();
                 ticket->state.seen_running     = plater.is_slicing_any();
+                if (plater.slice_run_seq() == ticket->state.run_seq_before)
+                    if (auto running = plater.slice_run(ticket->state.run_seq_before); running && !running->finished)
+                        ticket->state.adopted_run = running->seq;
+                // The Preview tab shows the result, as after the Slice button.
+                if (MainFrame* frame = wxGetApp().mainframe)
+                    frame->select_tab(wxString(TAB_ID_PREVIEW));
                 return json();
             });
             const auto timeout = std::chrono::seconds(arg_int(args, "timeout_s", 1800));
@@ -346,11 +354,14 @@ void register_scene_tools(McpService& service)
                     SliceObservation obs;
                     obs.slicing_any      = plater.is_slicing_any();
                     obs.request_seq      = plater.slice_request_seq();
+                    obs.interrupted      = plater.slice_request_interrupted(ticket->state.request_seq_mine);
                     obs.current_revision = plater.project_revision();
-                    for (uint64_t seq = ticket->state.run_seq_before + 1; seq <= plater.slice_run_seq(); ++seq)
+                    const uint64_t first = ticket->state.adopted_run != 0 ? ticket->state.adopted_run : ticket->state.run_seq_before + 1;
+                    for (uint64_t seq = first; seq <= plater.slice_run_seq(); ++seq)
                         if (auto run = plater.slice_run(seq))
-                            obs.runs_since_start.push_back({run->seq, run->finished, run->cancelled, run->error, run->revision_at_finish,
-                                                            run->request_seq_at_finish, run->request_seq_at_start, run->plate});
+                            obs.runs_since_start.push_back({run->seq, run->finished, run->cancelled, run->ok, run->error,
+                                                            run->revision_at_finish, run->request_seq_at_finish,
+                                                            run->request_seq_at_start, run->plate});
                     ticket->state.seen_running = ticket->state.seen_running || obs.slicing_any || !obs.runs_since_start.empty();
                     const TicketStatus status  = slice_status(ticket->state, obs, std::chrono::steady_clock::now());
                     if (status == TicketStatus::Pending)

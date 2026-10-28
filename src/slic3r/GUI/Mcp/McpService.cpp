@@ -4,6 +4,7 @@
 
 #include "McpHttpServer.hpp"
 #include "McpProtocol.hpp"
+#include "McpServicePtr.hpp"
 #include "McpToken.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
@@ -103,14 +104,20 @@ const char* kInstructions =
 
 } // namespace
 
+void McpServiceDeleter::operator()(McpService* service) const
+{
+    service->stop();
+    if (service->drain(std::chrono::seconds(10)))
+        delete service;
+    else
+        BOOST_LOG_TRIVIAL(error) << "MCP server: a call did not return; leaving the service in place";
+}
+
 McpService::McpService() = default;
 
-McpService::~McpService()
-{
-    stop();
-    if (!drain(std::chrono::seconds(30)))
-        BOOST_LOG_TRIVIAL(error) << "MCP server: a call is still running while the service is destroyed";
-}
+// Reached only through McpServiceDeleter, after stop() joined the script thread and drain() saw
+// every thread leave.
+McpService::~McpService() = default;
 
 int McpService::script_exit_code() { return g_script_exit_code.load(); }
 
@@ -140,6 +147,10 @@ GuardState McpService::guards_on_ui() const
 
 bool McpService::start(const McpLaunchOptions& options, bool serve, std::string& err)
 {
+    if (m_stopping) {
+        err = "MCP server: stopped for exit";
+        return false;
+    }
     if (m_core == nullptr) {
         m_options    = options;
         m_dispatcher = std::make_unique<WxDispatcher>();
@@ -221,6 +232,10 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
         m_http.reset();
         return false;
     }
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        m_endpoint_open = true;
+    }
 
     m_discovery_error.clear();
     if (!write_discovery(path_from_utf8(data_dir()),
@@ -288,6 +303,9 @@ std::string McpService::set_auto_answer(std::vector<AutoAnswerRule> rules, const
                 it->second.push_back(m_modals->push_rules(std::move(rules)));
             return "script";
         }
+    // A call that was running when the endpoint closed must not bring its client's rules back.
+    if (!m_endpoint_open)
+        throw ToolFailure("The MCP server was turned off while the rules were being set; they were not applied");
     if (m_session_rule_layer != 0)
         m_modals->pop_rules(m_session_rule_layer);
     m_session_rule_layer = rules.empty() ? 0 : m_modals->push_rules(std::move(rules));
@@ -314,6 +332,15 @@ void McpService::end_script_scope(const std::string& job)
 
 void McpService::stop_serving()
 {
+    {
+        // A client's rules end with its endpoint; a person using the app afterwards must not have
+        // dialogs answered for them.
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        m_endpoint_open = false;
+        if (m_session_rule_layer != 0)
+            m_modals->pop_rules(m_session_rule_layer);
+        m_session_rule_layer = 0;
+    }
     if (!m_http)
         return;
     // Requests in flight may be waiting on the UI thread, which is running this; drain() waits for
@@ -321,14 +348,6 @@ void McpService::stop_serving()
     m_http->stop(false);
     m_http.reset();
     remove_discovery(path_from_utf8(data_dir()));
-    {
-        // A client's rules end with its endpoint; a person using the app afterwards must not have
-        // dialogs answered for them.
-        std::lock_guard<std::mutex> lock(m_rules_mutex);
-        if (m_session_rule_layer != 0)
-            m_modals->pop_rules(m_session_rule_layer);
-        m_session_rule_layer = 0;
-    }
     BOOST_LOG_TRIVIAL(info) << "MCP server endpoint closed";
 }
 

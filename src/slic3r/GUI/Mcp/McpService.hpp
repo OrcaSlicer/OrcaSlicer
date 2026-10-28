@@ -4,6 +4,7 @@
 #include "McpCore.hpp"
 #include "McpJournal.hpp"
 #include "McpOptions.hpp"
+#include "McpServicePtr.hpp"
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
 
@@ -35,11 +36,11 @@ struct RequestGate;
 // ready. Created by GUI_App; started, suspended and stopped on the UI thread.
 //
 // Off unless the preference or --mcp/--mcp-script asks for it; when off, none of this exists.
+// Held in an McpServicePtr, whose deleter is the only way to destroy one.
 class McpService
 {
 public:
     McpService();
-    ~McpService();
     McpService(const McpService&)            = delete;
     McpService& operator=(const McpService&) = delete;
 
@@ -47,9 +48,9 @@ public:
     // `options` runs after mark_ready(). Returns false with `err` set when the endpoint can't start;
     // the catalog stays usable for the script either way.
     bool start(const McpLaunchOptions& options, bool serve, std::string& err);
-    // Stops everything; idempotent. Wakes every waiting call and closes the endpoint, but frees
-    // nothing: a call may still be on the UI thread's stack inside a nested event loop, and job and
-    // request threads may still be returning. Destroy the service only after drain() succeeds.
+    // Stops everything; idempotent, and final: start() refuses afterwards. Wakes every waiting call
+    // and closes the endpoint, but frees nothing: a call may still be on the UI thread's stack inside
+    // a nested event loop, and job and request threads may still be returning.
     void stop();
     // After stop(): waits until no request, call or job thread is inside the service. False when one
     // is still running after `timeout`; the service must then be kept alive (leaked) rather than
@@ -90,7 +91,8 @@ public:
     // Auto-answer rules from dialog_auto_answer. Rules registered from inside a script (the nearest
     // running script in `ancestry`, the caller's job chain, nearest first) last until that script
     // ends; a client's rules replace the ones it registered before, and end when the endpoint
-    // closes. Returns "script" or "session". Any thread.
+    // closes: with no endpoint open (the server turned off meanwhile), a client's rules are refused.
+    // Returns "script" or "session". Any thread.
     std::string set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
     // run_script brackets its steps with these.
     void begin_script_scope(const std::string& job);
@@ -110,6 +112,9 @@ public:
     static int script_exit_code();
 
 private:
+    friend struct McpServiceDeleter;
+    ~McpService();
+
     void register_tools();
     void run_launch_script();
     GuardState guards_on_ui() const;
@@ -134,6 +139,7 @@ private:
     std::mutex                              m_rules_mutex;
     std::map<std::string, std::vector<int>> m_script_rule_layers; // running script job -> layers
     int                                     m_session_rule_layer = 0;
+    bool                                    m_endpoint_open      = false;
 
     std::atomic<bool>     m_ready{false};
     std::atomic<bool>     m_suspended{false};

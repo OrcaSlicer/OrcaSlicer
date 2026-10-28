@@ -37,7 +37,8 @@ std::vector<SliceRunRecord> own_runs(const SliceTicketState& ticket, const Slice
 {
     std::vector<SliceRunRecord> out;
     for (const SliceRunRecord& run : obs.runs_since_start)
-        if (run.seq > ticket.run_seq_before && run.request_seq_at_start == ticket.request_seq_mine)
+        if ((run.seq > ticket.run_seq_before && run.request_seq_at_start == ticket.request_seq_mine) ||
+            (ticket.adopted_run != 0 && run.seq == ticket.adopted_run))
             out.push_back(run);
     return out;
 }
@@ -63,6 +64,8 @@ std::vector<PlateResult> classify_plates(const std::vector<int>& requested, cons
             out.push_back({PlateOutcome::Error, last->error});
         else if (last != nullptr && last->cancelled)
             out.push_back({PlateOutcome::Cancelled, {}});
+        else if (last != nullptr && last->ok)
+            out.push_back({PlateOutcome::Ok, {}});
         else if (last != nullptr)
             out.push_back({PlateOutcome::Error, "the slice finished without a result"});
         else if (!it->error.empty())
@@ -75,13 +78,14 @@ std::vector<PlateResult> classify_plates(const std::vector<int>& requested, cons
 
 TicketStatus slice_status(const SliceTicketState& ticket, const SliceObservation& obs, std::chrono::steady_clock::time_point now)
 {
-    for (const SliceRunRecord& run : obs.runs_since_start)
-        if (run.seq > ticket.run_seq_before && run.request_seq_at_start > ticket.request_seq_mine)
-            return TicketStatus::Superseded;
-    if (obs.slicing_any)
+    const bool later_request = obs.request_seq != ticket.request_seq_mine;
+    if (later_request && obs.interrupted)
+        return TicketStatus::Superseded;
+    // After a later request, whatever is slicing is someone else's.
+    if (obs.slicing_any && !later_request)
         return TicketStatus::Pending;
     const std::vector<SliceRunRecord> mine = own_runs(ticket, obs);
-    if (!ticket.seen_running && mine.empty() && now - ticket.started < kSliceStartGrace)
+    if (!later_request && !ticket.seen_running && mine.empty() && now - ticket.started < kSliceStartGrace)
         return TicketStatus::Pending;
     for (const SliceRunRecord& run : mine) {
         if (!run.finished)
@@ -89,7 +93,7 @@ TicketStatus slice_status(const SliceTicketState& ticket, const SliceObservation
         if (run.request_seq_at_finish != ticket.request_seq_mine || run.revision_at_finish != ticket.revision_at_start)
             return TicketStatus::Superseded;
     }
-    if (mine.empty() && (obs.request_seq != ticket.request_seq_mine || obs.current_revision != ticket.revision_at_start))
+    if (mine.empty() && obs.current_revision != ticket.revision_at_start)
         return TicketStatus::Superseded;
     return TicketStatus::Done;
 }

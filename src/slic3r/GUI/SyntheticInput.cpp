@@ -53,6 +53,8 @@ void set_mouse(const wxMouseState& state) { held_mouse() = state; }
 
 void release_mouse() { held_mouse().reset(); }
 
+bool is_mouse_held() { return held_mouse().has_value(); }
+
 void clear()
 {
     held_keys().clear();

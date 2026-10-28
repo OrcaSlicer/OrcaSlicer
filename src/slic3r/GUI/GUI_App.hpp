@@ -23,6 +23,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
+#include "slic3r/GUI/Mcp/McpServicePtr.hpp"
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "libslic3r/Point.hpp"
@@ -114,7 +115,6 @@ class SpeedDialWebDialog;
 class TerminalDialog;
 class ActionRegistry;
 class HttpServer;
-namespace Mcp { class McpService; }
 class ImGuiWrapper;
 class OpenGLManager;
 class UpgradeNetworkJob;
@@ -384,7 +384,7 @@ private:
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     std::unique_ptr<HttpServer> m_http_server;
-    std::unique_ptr<Mcp::McpService> m_mcp;
+    Mcp::McpServicePtr m_mcp;
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:

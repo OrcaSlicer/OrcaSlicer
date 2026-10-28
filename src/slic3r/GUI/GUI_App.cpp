@@ -8469,7 +8469,7 @@ bool GUI_App::start_mcp_service(bool serve, std::string* error)
         options.token = init_params->mcp.token;
     }
     if (!m_mcp)
-        m_mcp = std::make_unique<Mcp::McpService>();
+        m_mcp.reset(new Mcp::McpService());
     std::string err;
     const bool  ok = m_mcp->start(options, serve, err);
     if (!ok) {
@@ -8504,16 +8504,9 @@ void GUI_App::stop_mcp_service()
 
 void GUI_App::destroy_mcp_service()
 {
-    if (!m_mcp)
-        return;
-    m_mcp->stop();
-    if (m_mcp->drain(std::chrono::seconds(10))) {
-        m_mcp.reset();
-    } else {
-        // A call is still running inside the service; freeing it under that call would crash.
-        BOOST_LOG_TRIVIAL(error) << "MCP server: a call did not return at exit; leaving the service in place";
-        (void) m_mcp.release();
-    }
+    // Outside any event loop: the deleter waits for running calls, and leaks a service whose calls
+    // never return.
+    m_mcp.reset();
 }
 
 #ifdef __linux__

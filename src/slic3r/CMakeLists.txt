@@ -155,6 +155,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpScript.hpp
     GUI/Mcp/McpService.cpp
     GUI/Mcp/McpService.hpp
+    GUI/Mcp/McpServicePtr.hpp
     GUI/Mcp/McpStdioBridge.cpp
     GUI/Mcp/McpStdioBridge.hpp
     GUI/Mcp/McpToken.cpp

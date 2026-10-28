@@ -7241,9 +7241,16 @@ struct Plater::priv
     uint64_t                      export_seq {0};
     std::deque<Plater::SliceRun>  slice_runs;
     std::deque<Plater::ExportRun> export_runs;
+    std::deque<uint64_t>          interrupted_slice_requests;
+    // Set while a slice request, or Slice All moving to its next plate, validates and starts its
+    // run: only such a refusal is recorded as a run of that request. Other updates validate too.
+    bool                          in_slice_request {false};
+    // Numbers a new slice request, noting whether the previous one was still slicing.
+    void begin_slice_request();
     // A background run started; a run still open from before was restarted, so it ends cancelled.
     void note_run_started();
     void note_run_rejected(const std::string& error);
+    // The message of the latest validation of the current plate, "" when it passed.
     std::string last_validation_error;
     // The background process reported completion: closes the open run and any export in flight.
     void note_process_completed(bool cancelled, bool success, const std::string& error);
@@ -11538,6 +11545,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 
         if (err.string.empty())
             err.string = imex_placement_error(partplate_list.get_curr_plate());
+        last_validation_error = err.string;
 
         if (err.string.empty()) {
             this->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -11560,7 +11568,6 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
             // The print is not valid.
             // Show error as notification.
             notification_manager->push_validate_error_notification(err);
-            last_validation_error = err.string;
             //also update the warnings
             process_validation_warnings(warnings);
             return_state |= UPDATE_BACKGROUND_PROCESS_INVALID;
@@ -11611,7 +11618,8 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         this->main_frame->update_slice_print_status(MainFrame::eEventSliceUpdate, false);
 
         process_completed_with_error = partplate_list.get_curr_plate_index();
-        note_run_rejected(delayed_error_message.empty() ? last_validation_error : delayed_error_message);
+        if (in_slice_request)
+            note_run_rejected(delayed_error_message.empty() ? last_validation_error : delayed_error_message);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: set to process_completed_with_error, return_state=%2%")%__LINE__%return_state;
     }
     else
@@ -13596,6 +13604,8 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         m_cur_slice_plate++;
 
         q->Freeze();
+        in_slice_request = true;
+        ScopeGuard end_request([this] { in_slice_request = false; });
         q->select_plate(m_cur_slice_plate);
         partplate_list.select_plate_view();
         int ret = q->start_next_slice();
@@ -13806,7 +13816,9 @@ static std::vector<wxString> collect_imex_warnings(PartPlate* plate)
 void Plater::priv::on_action_slice_plate(SimpleEvent&)
 {
     if (q != nullptr) {
-        ++slice_request_seq;
+        begin_slice_request();
+        in_slice_request = true;
+        ScopeGuard end_request([this] { in_slice_request = false; });
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice plate event\n" ;
         // IMEX parallel mode warnings (current plate only)
         if (wxGetApp().app_config->get("imex_pre_slice_warnings") != "false") {
@@ -13848,7 +13860,9 @@ void Plater::priv::on_action_slice_plate(SimpleEvent&)
 void Plater::priv::on_action_slice_all(SimpleEvent&)
 {
     if (q != nullptr) {
-        ++slice_request_seq;
+        begin_slice_request();
+        in_slice_request = true;
+        ScopeGuard end_request([this] { in_slice_request = false; });
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice project event\n" ;
         // IMEX parallel mode warnings (all plates)
         if (wxGetApp().app_config->get("imex_pre_slice_warnings") != "false") {
@@ -22959,6 +22973,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
             if (!err.string.empty())
                 model_fits = false;
         }
+        p->last_validation_error = err.string;
 
         if (err.string.empty()) {
             p->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -23764,6 +23779,13 @@ bool Plater::export_gcode_to(const boost::filesystem::path& output_path)
 
 uint64_t Plater::project_revision() const { return p->project_revision; }
 uint64_t Plater::slice_request_seq() const { return p->slice_request_seq; }
+
+bool Plater::slice_request_interrupted(uint64_t request_seq) const
+{
+    const auto& interrupted = p->interrupted_slice_requests;
+    return std::find(interrupted.begin(), interrupted.end(), request_seq) != interrupted.end();
+}
+
 uint64_t Plater::slice_run_seq() const { return p->slice_run_seq; }
 uint64_t Plater::export_seq() const { return p->export_seq; }
 
@@ -23789,6 +23811,16 @@ std::optional<Plater::ExportRun> Plater::export_run(uint64_t seq) const
         if (run.seq == seq)
             return run;
     return std::nullopt;
+}
+
+void Plater::priv::begin_slice_request()
+{
+    if (m_is_slicing || background_process.running()) {
+        interrupted_slice_requests.push_back(slice_request_seq);
+        while (interrupted_slice_requests.size() > kKeepSliceRuns)
+            interrupted_slice_requests.pop_front();
+    }
+    ++slice_request_seq;
 }
 
 void Plater::priv::note_run_started()
@@ -23830,6 +23862,7 @@ void Plater::priv::note_process_completed(bool cancelled, bool success, const st
         if (!it->finished) {
             it->finished              = true;
             it->cancelled             = cancelled;
+            it->ok                    = success && !cancelled && error.empty();
             it->error                 = error;
             it->revision_at_finish    = project_revision;
             it->request_seq_at_finish = slice_request_seq;

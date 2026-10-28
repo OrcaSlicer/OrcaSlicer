@@ -22,6 +22,7 @@ SliceRunRecord run(uint64_t seq, uint64_t revision, uint64_t request, bool cance
     r.seq                   = seq;
     r.finished              = finished;
     r.cancelled             = cancelled;
+    r.ok                    = finished && !cancelled;
     r.revision_at_finish    = revision;
     r.request_seq_at_finish = request;
     r.request_seq_at_start  = started_for;
@@ -32,6 +33,7 @@ SliceRunRecord run(uint64_t seq, uint64_t revision, uint64_t request, bool cance
 SliceRunRecord plate_run(uint64_t seq, int plate, std::string error = {}, bool cancelled = false)
 {
     SliceRunRecord r = run(seq, 1, 5, cancelled, true, 5, plate);
+    r.ok             = r.ok && error.empty();
     r.error          = std::move(error);
     return r;
 }
@@ -75,6 +77,17 @@ TEST_CASE("classify_plates reports ok, error, empty, skipped and cancelled", "[M
                                                          PlateOutcome::Skipped, PlateOutcome::Skipped});
     CHECK(results[1].error == "boom");
     CHECK(outcomes(classify_plates({3}, plates, {plate_run(11, 0, {}, true)})) == std::vector<PlateOutcome>{PlateOutcome::Cancelled});
+    // Finished without a result and without saying why.
+    SliceRunRecord no_result = plate_run(11, 1);
+    no_result.ok             = false;
+    const auto failed        = classify_plates({1}, plates, {no_result});
+    CHECK(failed[0].outcome == PlateOutcome::Error);
+    CHECK(failed[0].error == "the slice finished without a result");
+}
+
+TEST_CASE("a plate whose result a later edit replaced still reports its slice ok", "[Mcp]")
+{
+    CHECK(outcomes(classify_plates({0}, {{0, false, false}}, {plate_run(11, 0)})) == std::vector<PlateOutcome>{PlateOutcome::Ok});
 }
 
 TEST_CASE("Slice All stopping at a failing plate leaves the later plates skipped", "[Mcp]")
@@ -146,14 +159,41 @@ TEST_CASE("cancellation is taken only from the operation's own runs", "[Mcp]")
     CHECK_FALSE(slice_cancelled(t, observe(6, 1, {run(11, 1, 5), run(12, 1, 6, true, true, 6)})));
 }
 
-TEST_CASE("a later request's run supersedes at once, without waiting for it", "[Mcp]")
+TEST_CASE("a later request supersedes at once only when it came while the slice ran", "[Mcp]")
 {
     const auto             now = std::chrono::steady_clock::now();
     const SliceTicketState t   = ticket(5, 10, 1);
-    // Our run finished; a person's slice for request 6 is still running.
-    CHECK(slice_status(t, observe(6, 1, {run(11, 1, 5), run(12, 0, 0, false, false, 6)}, true), now) == TicketStatus::Superseded);
+    // A person's slice for request 6, still running, restarted ours.
+    SliceObservation during = observe(6, 1, {run(11, 1, 6, true), run(12, 0, 0, false, false, 6)}, true);
+    during.interrupted      = true;
+    CHECK(slice_status(t, during, now) == TicketStatus::Superseded);
+    // Slice All asked again between two of its plates: the first plate's run finished cleanly.
+    SliceObservation between = observe(6, 1, {run(11, 1, 5), run(12, 0, 0, false, false, 6)}, true);
+    between.interrupted      = true;
+    CHECK(slice_status(t, between, now) == TicketStatus::Superseded);
+    // Requested after ours had finished: our result stands, and their slice is not waited for.
+    CHECK(slice_status(t, observe(6, 1, {run(11, 1, 5), run(12, 0, 0, false, false, 6)}, true), now) == TicketStatus::Done);
     // Our own run still running, nobody else's: pending.
     CHECK(slice_status(t, observe(5, 1, {run(11, 0, 0, false, false)}, true), now) == TicketStatus::Pending);
+}
+
+TEST_CASE("a run already slicing that the request left running is the operation's", "[Mcp]")
+{
+    const auto       now = std::chrono::steady_clock::now();
+    SliceTicketState t   = ticket(5, 10, 1);
+    t.adopted_run        = 10;
+    // Started for an earlier request, finished under ours with an error.
+    SliceRunRecord adopted = run(10, 1, 5, false, true, 4);
+    adopted.ok             = false;
+    adopted.error          = "Floating regions";
+    const SliceObservation obs = observe(5, 1, {adopted});
+    REQUIRE(own_runs(t, obs).size() == 1);
+    CHECK(slice_status(t, obs, now) == TicketStatus::Done);
+    const auto results = classify_plates({0}, {{0, false, false}}, own_runs(t, obs));
+    CHECK(results[0].outcome == PlateOutcome::Error);
+    CHECK(results[0].error == "Floating regions");
+    // Not adopted, the same run is someone else's.
+    CHECK(own_runs(ticket(5, 10, 1), obs).empty());
 }
 
 TEST_CASE("early runs of a long Slice All are still seen", "[Mcp]")

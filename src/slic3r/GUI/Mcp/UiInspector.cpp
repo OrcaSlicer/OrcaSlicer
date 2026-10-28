@@ -1521,9 +1521,14 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g)
     const std::string button = g.value("button", "left");
     const bool right = button == "right", middle = button == "middle", left = !right && !middle;
     const wxPoint from(g.value("x", 0), g.value("y", 0));
+    // Buttons an earlier `down` left held: a `move` drags with them and keeps them held.
+    const wxMouseState held     = SyntheticInput::is_mouse_held() ? get_mouse_state() : wxMouseState();
+    const bool         held_any = held.LeftIsDown() || held.RightIsDown() || held.MiddleIsDown();
     CanvasMouse m(canvas, mods);
     if (action == "move") {
-        m.event(wxEVT_MOTION, from, false, false, false);
+        m.event(wxEVT_MOTION, from, held.LeftIsDown(), held.RightIsDown(), held.MiddleIsDown());
+        if (held_any)
+            m.keep_held();
     } else if (action == "down") {
         m.event(wxEVT_MOTION, from, false, false, false);
         m.event(left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN, from, left, right, middle);

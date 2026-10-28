@@ -39,12 +39,12 @@ void JobRegistry::finish(const std::string& id, ToolResult result)
         it->second.result   = std::move(result);
         m_finished_order.push_back(id);
         // Forget the oldest finished jobs beyond the limit, except those a running parent may
-        // still wait for (a script's await:false steps).
+        // still wait for (a script's await:false steps) while fewer than kKeepFinishedMax are kept.
         auto old = m_finished_order.begin();
         while (m_finished_order.size() > kKeepFinished && old != m_finished_order.end()) {
             const auto job    = m_jobs.find(*old);
             const auto parent = job == m_jobs.end() ? m_jobs.end() : m_jobs.find(job->second.parent);
-            if (parent != m_jobs.end() && !parent->second.finished) {
+            if (parent != m_jobs.end() && !parent->second.finished && m_finished_order.size() <= kKeepFinishedMax) {
                 ++old;
                 continue;
             }

@@ -908,13 +908,14 @@ public:
     // back.
     std::string plate_validation_error(int plate) const;
 
-    // A background run, or a slice the validation refused before running (recorded finished, with
-    // the validation error).
+    // A background run, or a slice request the validation refused before running (recorded
+    // finished, with the validation error).
     struct SliceRun
     {
         uint64_t    seq       = 0;
         bool        finished  = false;
         bool        cancelled = false;
+        bool        ok        = false; // finished with a result
         std::string error;
         uint64_t    revision_at_finish    = 0;
         uint64_t    request_seq_at_finish = 0;
@@ -933,6 +934,8 @@ public:
     };
     uint64_t                 project_revision() const;
     uint64_t                 slice_request_seq() const;
+    // Whether a later request came while request `request_seq` was still slicing.
+    bool                     slice_request_interrupted(uint64_t request_seq) const;
     uint64_t                 slice_run_seq() const;
     std::optional<SliceRun>  slice_run(uint64_t seq) const;
     uint64_t                 export_seq() const;

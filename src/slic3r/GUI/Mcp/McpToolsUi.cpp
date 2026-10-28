@@ -315,8 +315,9 @@ void register_ui_tools(McpService& service)
         "ui_mouse", "Mouse gesture on the 3D view",
         "Synthesize a mouse gesture on a 3D canvas at logical pixel coordinates from its top left: move, down, up, click, "
         "drag (from x,y to `to`, in `steps` moves; the left button rotates the camera, right or middle pans, on an object it "
-        "moves it) or wheel (delta in notches, positive zooms in). Coordinates come from a canvas screenshot divided by the "
-        "screen scale, or from ui_snapshot's ImGui item rectangles.",
+        "moves it) or wheel (delta in notches, positive zooms in). A down keeps its button held, so moves drag with it, "
+        "until an up or another gesture. Coordinates come from a canvas screenshot divided by the screen scale, or from "
+        "ui_snapshot's ImGui item rectangles.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
                        {"canvas", enum_prop({"3d", "preview", "assemble", "current"}, "Default current.")},
                        {"x", prop("integer", "Start x.")},

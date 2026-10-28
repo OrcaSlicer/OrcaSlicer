@@ -21,7 +21,6 @@ struct CoreTiming
 {
     std::chrono::milliseconds soft_budget{1500};  // before probing for a blocking dialog
     std::chrono::milliseconds probe_timeout{1000};
-    std::chrono::milliseconds join_timeout{5000}; // drain() in the destructor
     int                       blocking_slots = 32;
 };
 
@@ -33,6 +32,8 @@ class McpCore : public ToolCaller
 {
 public:
     McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing = {});
+    // Refuses new calls and waits for every call and job thread to leave, however long that takes:
+    // they use the core. The owner drains first, so this returns at once.
     ~McpCore() override;
 
     // A call from a client. Mutate tools become top-level jobs.

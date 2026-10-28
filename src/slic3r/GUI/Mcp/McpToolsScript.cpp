@@ -173,7 +173,7 @@ void register_script_tools(McpService& service)
                 if (!path)
                     throw ToolFailure(err);
                 write_file(*path, script.dump(2));
-                out["path"] = path->string();
+                out["path"] = path_to_utf8(*path);
             }
             if (arg_bool(args, "clear", false))
                 service.journal().clear();

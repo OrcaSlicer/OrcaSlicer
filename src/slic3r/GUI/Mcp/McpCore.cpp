@@ -12,6 +12,7 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <utility>
 
@@ -108,7 +109,8 @@ McpCore::McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs,
 McpCore::~McpCore()
 {
     shutdown();
-    drain(m_timing.join_timeout);
+    std::unique_lock<std::mutex> lock(m_threads_mutex);
+    m_threads_cv.wait(lock, [this] { return m_active == 0; });
 }
 
 bool McpCore::enter()
@@ -122,10 +124,10 @@ bool McpCore::enter()
 
 void McpCore::leave()
 {
-    {
-        std::lock_guard<std::mutex> lock(m_threads_mutex);
-        --m_active;
-    }
+    // Notified under the lock: once the count reaches zero, drain() may return and the owner free
+    // the core, so nothing here may touch it after the unlock.
+    std::lock_guard<std::mutex> lock(m_threads_mutex);
+    --m_active;
     m_threads_cv.notify_all();
 }
 
@@ -182,12 +184,19 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     }
     // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
     // core only once drain() has seen every job thread leave.
-    std::thread([this, def, args, job, parent, seq]() {
-        CallContext ctx(*this, def, job, parent, m_journal, seq);
-        ToolResult  result = invoke(def, args, ctx);
-        m_jobs.finish(job, std::move(result));
+    try {
+        std::thread([this, def, args, job, parent, seq]() {
+            CallContext ctx(*this, def, job, parent, m_journal, seq);
+            ToolResult  result = invoke(def, args, ctx);
+            m_jobs.finish(job, std::move(result));
+            leave();
+        }).detach();
+    } catch (const std::system_error& e) {
+        const ToolResult failed = ToolResult::error(std::string("Cannot start the call: ") + e.what());
+        m_jobs.finish(job, failed);
         leave();
-    }).detach();
+        return finish(failed);
+    }
 
     auto envelope = [&](const char* status, nlohmann::json extra) {
         nlohmann::json out{{"status", status}, {"job", job}, {"tool", def.name}};

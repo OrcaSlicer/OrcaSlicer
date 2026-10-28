@@ -20,13 +20,14 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 // Bookkeeping for mutate tool calls that run on their own threads. A call that outlives its reply
 // budget stays here until it finishes, so a later `wait {for:"job"}` can return its result; the
-// most recent finished jobs are kept for that purpose, and so is every finished job whose parent (a
-// running script) may still wait for it. Thread-safe.
+// most recent finished jobs are kept for that purpose, and so is a finished job whose parent (a
+// running script) may still wait for it, up to kKeepFinishedMax in all. Thread-safe.
 class JobRegistry
 {
 public:
     static constexpr std::size_t kMaxRunning  = 64;
     static constexpr std::size_t kKeepFinished = 64;
+    static constexpr std::size_t kKeepFinishedMax = 1024;
 
     // Registers a running job. Throws ToolFailure when kMaxRunning jobs are already running.
     std::string create(const std::string& tool, const std::string& parent);

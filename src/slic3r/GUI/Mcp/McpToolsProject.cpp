@@ -147,7 +147,7 @@ void register_project_tools(McpService& service)
             settle(ctx);
             if (!fs::exists(*path))
                 throw ToolFailure("The project was not saved (see get_log)");
-            return ToolResult::ok({{"path", path->string()}, {"bytes", fs::file_size(*path)}});
+            return ToolResult::ok({{"path", path_to_utf8(*path)}, {"bytes", fs::file_size(*path)}});
         }));
 
     reg.add(mutate_tool(
@@ -209,7 +209,7 @@ void register_project_tools(McpService& service)
             settle(ctx);
             if (!fs::exists(*path))
                 throw ToolFailure("The file was not written (see get_log)");
-            return ToolResult::ok({{"path", path->string()}, {"bytes", fs::file_size(*path)}});
+            return ToolResult::ok({{"path", path_to_utf8(*path)}, {"bytes", fs::file_size(*path)}});
         }));
 }
 
