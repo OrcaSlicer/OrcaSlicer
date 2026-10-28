@@ -23,6 +23,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -572,4 +573,58 @@ TEST_CASE("Only a cone wall gives the tower a stabilization cone", "[WipeTower]"
         CHECK(unscaled(footprint.min.y()) > plate_max_y);
         CHECK_FALSE(print.get_conflict_result().has_value());
     }
+}
+
+TEST_CASE("Without sparse layers the filament change starts at the tallest printed layer", "[WipeTower]")
+{
+    // Filament 2 on top surfaces only, so the layers between the short cube's top and the tall
+    // cube's top have no toolchange and the tower skips them: at the tall cube's top it is still
+    // about 2 mm high. change_filament_gcode may travel anywhere, so it must not start that low.
+    const std::string tower_type = GENERATE("type1", "type2");
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "top_surface_filament_id",     2     },
+        { "enable_prime_tower",          true  },
+        { "wipe_tower_type",             tower_type },
+        { "wipe_tower_no_sparse_layers", true  },
+        { "wipe_tower_x",                30    },
+        { "wipe_tower_y",                30    },
+        { "layer_height",                0.2   },
+        { "change_filament_gcode",       "; TOOLCHANGE_MARK\n" },
+        { "timelapse_type",              "0"   },
+        { "enable_wrapping_detection",   false },
+        { "raft_layers",                 "0"   } });
+
+    const double short_height = 2., tall_height = 10.;
+    TriangleMesh tall = make_cube(10., 10., tall_height);
+    tall.translate(120.f, 120.f, 0.f);
+    TriangleMesh low = make_cube(10., 10., short_height);
+    low.translate(150.f, 120.f, 0.f);
+
+    Print print;
+    Model model;
+    init_print({ std::move(tall), std::move(low) }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    // Z where each change_filament_gcode starts, next to the highest Z extruded before it.
+    std::vector<std::pair<double, double>> changes;
+    double extruded_z = 0.;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.extruding(self))
+            extruded_z = std::max(extruded_z, double(self.z()));
+        else if (line.raw().find("; TOOLCHANGE_MARK") != std::string_view::npos)
+            changes.emplace_back(self.z(), extruded_z);
+    });
+
+    size_t above_short = 0;
+    for (const auto &[change_z, printed_z] : changes) {
+        if (printed_z <= short_height + EPSILON)
+            continue;
+        ++above_short;
+        INFO(tower_type << ": change_filament_gcode at Z " << change_z << ", printed up to Z " << printed_z);
+        CHECK(change_z >= printed_z - EPSILON);
+    }
+    // The tall cube's top surface needs at least one change above the short cube.
+    CHECK(above_short > 0);
 }
