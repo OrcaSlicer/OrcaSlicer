@@ -844,6 +844,8 @@ void PublishSettingsDialog::build_option_model()
 
     PresetBundle* bundle    = wxGetApp().preset_bundle;
     DynamicPrintConfig full = bundle->full_config();
+    // Printer rows index the uncompacted variant columns (as the Tab does); full_config() compacts them per extruder.
+    const DynamicPrintConfig printer_full = bundle->full_config(false);
 
     m_info_nonsel = _L("No selected items...");
     m_info_allsel = _L("All items selected...");
@@ -861,8 +863,8 @@ void PublishSettingsDialog::build_option_model()
     // Shared per-option label/value computation; returns false when the option must be skipped
     // (denylisted / unknown / empty label). value is the stringified value; unit the translated
     // sidetext (may be empty).
-    auto option_text = [&denylist, &full](const std::string& opt_id, const std::string& pure_key, wxString& label, wxString& value,
-                                          wxString& unit) -> bool {
+    auto option_text = [&denylist](const DynamicPrintConfig& cfg, const std::string& opt_id, const std::string& pure_key, wxString& label,
+                                   wxString& value, wxString& unit) -> bool {
         if (denylist.count(pure_key) > 0)
             return false;
         const ConfigOptionDef* def = print_config_def.get(pure_key);
@@ -871,7 +873,7 @@ void PublishSettingsDialog::build_option_model()
         label = _(def->full_label.empty() ? def->label : def->full_label);
         if (label.IsEmpty())
             return false;
-        value = get_string_value(opt_id, full);
+        value = get_string_value(opt_id, cfg);
         unit  = _(def->sidetext);
         if (unit == "%" && value.EndsWith("%"))
             unit.clear();
@@ -913,7 +915,7 @@ void PublishSettingsDialog::build_option_model()
                         if (!printer_added.insert(opt_id).second)
                             continue;
                         wxString label, value, unit;
-                        if (!option_text(opt_id, pure_key, label, value, unit))
+                        if (!option_text(printer_full, opt_id, pure_key, label, value, unit))
                             continue;
                         size_t cat_index = category_index_for(page_title, Section::Printer, g, extruder_idx);
                         size_t sub_index = subcategory_index_for(cat_index, subcategory, optgroup->icon);
@@ -1008,7 +1010,7 @@ void PublishSettingsDialog::build_option_model()
                                     if (vec->size() > 0 && slot >= vec->size())
                                         value_opt_id = base + "#0";
                             wxString label, value, unit;
-                            if (!option_text(value_opt_id, base, label, value, unit))
+                            if (!option_text(full, value_opt_id, base, label, value, unit))
                                 continue;
                             size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
                             add_row_ui(base, label, value, unit, category_index, sub_index);
@@ -1040,7 +1042,7 @@ void PublishSettingsDialog::build_option_model()
                         if (!added.insert(pure_key).second)
                             continue;
                         wxString label, value, unit;
-                        if (!option_text(opt_id, pure_key, label, value, unit))
+                        if (!option_text(full, opt_id, pure_key, label, value, unit))
                             continue;
                         size_t sub_index = subcategory_index_for(category_index, _(optgroup->title), optgroup->icon);
                         add_row_ui(opt_id, label, value, unit, category_index, sub_index);
