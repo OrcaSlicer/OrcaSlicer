@@ -851,7 +851,8 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
             t.locator["name"] = name;
         if (!node.option.empty())
             t.locator = {{"option", node.option}};
-        if (tlw != nullptr && tlw != w)
+        // The main window's title follows the project name, so its widgets are found without it.
+        if (tlw != nullptr && tlw != w && tlw != wxGetApp().mainframe)
             t.locator["within"] = label_of(tlw);
         push(std::move(node), std::move(t), nodes, omitted, o);
         child_depth = depth + 1;

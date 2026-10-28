@@ -5,6 +5,7 @@
 #include "McpTools.hpp"
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
+#include "UiInspector.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -18,6 +19,8 @@
 #include <boost/filesystem/path.hpp>
 
 #include <wx/dialog.h>
+#include <wx/gdicmn.h>
+#include <wx/glcanvas.h>
 #include <wx/toplevel.h>
 
 #include <algorithm>
@@ -72,16 +75,20 @@ void register_view_tools(McpService& service)
         "screenshot", "Take a screenshot",
         "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), "
         "plus the full-size PNG written to save_path (or the session's output folder). target: \"window\" (the main "
-        "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels) or "
-        "\"dialog\" (the topmost modal dialog). The result says when parts may differ from the screen (approximate). "
-        "Point the view first with set_view.",
-        object_schema({{"target", enum_prop({"window", "canvas", "dialog"}, "Default window.")},
+        "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels), "
+        "\"dialog\" (the topmost modal dialog), or a widget's ref from ui_snapshot (a window that is not modal, or just "
+        "that widget). The result says when parts may differ from the screen (approximate). Point the view first with "
+        "set_view.",
+        object_schema({{"target", {{"type", json::array({"string", "object"})},
+                                    {"description", "window (default), canvas, dialog, or a widget's ref or locator from ui_snapshot."}}},
                        {"max_dim", {{"type", "integer"}, {"minimum", 256}, {"maximum", 2000}, {"description", "Long edge of the returned image."}}},
                        {"save_path", prop("string", "Absolute .png path for the full-size image.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
                        {"include_image", prop("boolean", "Return the image itself (default true); false returns only the path.")}}),
         [&service](const json& args, ToolContext& ctx) {
-            const std::string target = arg_string(args, "target", "window");
+            const json        target_arg = args.value("target", json("window"));
+            const std::string target     = target_arg.is_string() ? target_arg.get<std::string>() : std::string();
+            json              locator;
             fs::path          path;
             if (args.contains("save_path")) {
                 std::string err;
@@ -109,6 +116,28 @@ void register_view_tools(McpService& service)
                     if (top == nullptr)
                         throw ToolFailure("No modal dialog is open");
                     cap = capture_window(*top, err);
+                } else if (target != "window") {
+                    // A widget: its top-level window, cropped to the widget unless it is that window.
+                    const UiTarget t = service.inspector().resolve(target_arg);
+                    locator          = t.locator;
+                    wxWindow*      w = t.window.get();
+                    if (t.kind != UiTarget::Kind::Window || w == nullptr)
+                        throw ToolFailure("target must be window, canvas, dialog or the ref of a widget");
+                    if (GLCanvas3D* canvas = service.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
+                        cap = capture_canvas(*canvas, err);
+                    } else {
+                        auto* tlw = dynamic_cast<wxTopLevelWindow*>(wxGetTopLevelParent(w));
+                        if (tlw == nullptr)
+                            throw ToolFailure("The widget has no window");
+                        cap = capture_window(*tlw, err);
+                        if (cap && w != tlw) {
+                            const wxPoint at = w->GetScreenPosition() - tlw->ClientToScreen(wxPoint(0, 0));
+                            const wxRect  r  = wxRect(at, w->GetSize()).Intersect(wxRect(cap->image.GetSize()));
+                            if (r.IsEmpty())
+                                throw ToolFailure("The widget is outside its window's visible area");
+                            cap->image = cap->image.GetSubImage(r);
+                        }
+                    }
                 } else {
                     wxTopLevelWindow* frame = wxGetApp().mainframe;
                     if (frame == nullptr)
@@ -118,13 +147,19 @@ void register_view_tools(McpService& service)
                 if (!cap)
                     throw ToolFailure(err);
                 full = cap->image;
-                info = {{"source", target}, {"width", full.GetWidth()}, {"height", full.GetHeight()}};
+                info = {{"source", target.empty() ? json(target_arg) : json(target)}, {"width", full.GetWidth()}, {"height", full.GetHeight()}};
                 if (cap->approximate)
                     info["approximate"] = true;
                 if (!cap->note.empty())
                     info["note"] = cap->note;
                 return json();
             });
+            if (target_arg.is_string() && !locator.is_null()) {
+                // A replay needs the locator; refs mean nothing in another session.
+                json recorded      = args;
+                recorded["target"] = locator;
+                ctx.set_journal_args(std::move(recorded));
+            }
             // Encoding and scaling run off the UI thread.
             if (!full.SaveFile(wxString::FromUTF8(path.string()), wxBITMAP_TYPE_PNG))
                 throw ToolFailure("Could not write " + path.string());

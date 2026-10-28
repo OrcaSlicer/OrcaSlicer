@@ -1,6 +1,7 @@
 // list_objects, select, transform, slice and cancel: the model on the plates, and the slice
 // operation, which reports its own outcome per plate (see McpOperations).
 
+#include "JobRegistry.hpp"
 #include "McpOperations.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -20,6 +21,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <memory>
@@ -381,9 +383,16 @@ void register_scene_tools(McpService& service)
     ToolDef cancel = mutate_tool(
         "cancel", "Cancel slicing",
         "Stop the running slice or G-code export, as the cancel button on the slicing progress does. The slice or export "
-        "job then reports cancelled. Allowed while a slice or export holds the project.",
-        object_schema({}),
-        [](const json&, ToolContext& ctx) {
+        "job then reports cancelled. With job, only when that job is the running slice or export. Allowed while a slice or "
+        "export holds the project.",
+        object_schema({{"job", prop("string", "The slice or export job to cancel, e.g. \"j12\".")}}),
+        [&service](const json& args, ToolContext& ctx) {
+            if (args.contains("job")) {
+                const std::string job = arg_string(args, "job");
+                const auto        ops = service.jobs().running_operations();
+                if (std::find(ops.begin(), ops.end(), job) == ops.end())
+                    throw ToolFailure("Job " + job + " is not a running slice or export", {{"running", ops}});
+            }
             json out = ctx.run_ui([] {
                 Plater&    plater  = ui_plater();
                 const bool running = plater.is_slicing_any();

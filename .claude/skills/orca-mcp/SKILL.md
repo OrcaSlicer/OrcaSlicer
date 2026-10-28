@@ -76,7 +76,8 @@ You can talk to the app in two ways:
    Use `"camera": "fit_objects"` to frame the model.
 8. Take a screenshot:
    `screenshot {"target": "canvas", "save_path": "/abs/work/before.png", "overwrite": true}`. Use
-   `"target": "window"` for the whole UI and `"dialog"` for the topmost modal. The reply carries
+   `"target": "window"` for the whole UI, `"dialog"` for the topmost modal, and a widget's ref or
+   locator (`{"label": "Slice plate"}`) for one widget or a window that is not modal. The reply carries
    a scaled-down image; open the full-size PNG with Read to look closer.
 9. Save the session as a script with `export_script {"path": "/abs/work/repro.json"}`. Failed calls
    are left out; `export_script {"clear": true}` at the start drops the calls made while you

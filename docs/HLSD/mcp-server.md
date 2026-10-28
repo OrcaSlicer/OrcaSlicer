@@ -169,7 +169,8 @@ slice requests (`slice_request_seq`, bumped through `request_slice()` by every u
 entry point, not by internal restarts) and background runs (`slice_run_seq`), keeping a
 `SliceRunRecord` per run with the project revision and request sequence at its finish.
 `Plater::project_revision()` rises with every undoable model edit, undo/redo, load, new project and
-config change. A slice ticket ends once nothing slices and it either saw slicing run or waited
+config change, but not when a plate is selected (`Plater::take_plate_selection_snapshot()`), since
+Slice All selects each plate in turn. A slice ticket ends once nothing slices and it either saw slicing run or waited
 1.5 s with nothing scheduled. It is `superseded` when another request or a revision change came
 during its own runs (or, with none, by the final poll); otherwise each plate is `ok`, `error`,
 `cancelled`, `empty` or `skipped`. An export is numbered in `export_seq` once scheduled, so an
@@ -177,8 +178,9 @@ unchanged number means it never started; otherwise its `ExportRecord` ends `ok`,
 `cancelled` or `superseded`. A G-code export with a path is refused while slicing runs. The
 decision logic is in `McpOperations`, which uses neither wx nor `Plater`.
 
-**Idle.** `wait {for: "idle"}` holds when no modal is open, nothing slices and the UI job worker
-(arrange, orient) is idle. It also needs no job running other than the caller and its ancestors,
+**Idle.** `wait {for: "idle"}` holds when no modal is open, nothing slices (`Plater::is_slicing_any()`:
+the background process, Slice All, a scheduled background update or a pending automatic reslice)
+and the UI job worker (arrange, orient) is idle. It also needs no job running other than the caller and its ancestors,
 so a script waiting for idle doesn't wait on itself. Only the job registry, the `ModalTracker`
 snapshot and the journal are shared between threads, each behind a mutex. All app state is read on
 the UI thread.
@@ -204,9 +206,9 @@ the UI thread.
 | | `select` | select objects, instances or parts, all, or none |
 | | `transform` | translate, rotate or scale one instance, relative or absolute |
 | Slice | `slice` | current, one or all plates; outcome and stats for each plate |
-| | `cancel` | stop the running slice or G-code export; allowed during an operation |
+| | `cancel` | stop the running slice or G-code export (optionally only a given job); allowed during an operation |
 | View | `set_view` | tab, camera, preview layers and color scheme, window size |
-| | `screenshot` | window, 3D canvas or topmost dialog: a downscaled image and a full-size PNG |
+| | `screenshot` | window, 3D canvas, topmost dialog or one widget: a downscaled image and a full-size PNG |
 | GUI | `ui_snapshot` | widgets, menus, GL toolbar items, gizmos and ImGui items, with refs |
 | | `ui_click` | activate a ref or locator |
 | | `ui_input` | set a control's text, value, selection or checked state |
@@ -310,7 +312,9 @@ journal stores. A locator is one of:
 - `{menu: "File>Export>Export G-code"}`, `{gltoolbar: "arrange"}` or `{gizmo: "Move"}`;
 - `{imgui: "label", window, canvas}` for an ImGui item.
 
-A label that matches both a row's label and the one field it names resolves to the field. Before
+A label that matches both a row's label and the one field it names resolves to the field.
+`within` names a window other than the main one, whose title follows the project name and is left
+out of locators. Before
 acting, a widget is scrolled into view, as a person would. On GTK this goes through the scrolled
 window's adjustment, as the mouse wheel does, because `wxScrollHelper::Scroll()` leaves native
 labels unpainted.
@@ -347,6 +351,9 @@ force. `webview_eval` runs JavaScript with `RunScriptAsync` and waits for the re
   every visible 3D canvas composited in from its canvas capture, since window capture loses OpenGL
   content on several platforms.
 - `dialog`: the topmost modal, captured like a window.
+- a widget's ref or locator: its top-level window captured like a window (a window that is not
+  modal, such as an object's settings, has no other target) and cropped to the widget, or the
+  canvas capture for a 3D canvas. The journal records the locator.
 
 When the capture may differ from the screen, the result carries `approximate: true` and a `note`.
 

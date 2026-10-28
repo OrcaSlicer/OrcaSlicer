@@ -888,8 +888,8 @@ public:
     void set_bed_position(Vec2d& pos);
     //BBS: is the background process slicing currently
     bool is_background_process_slicing() const;
-    // Slicing in any form: the background process running, Slice All in progress, or an update
-    // scheduled to start one.
+    // Slicing in any form: the background process running, Slice All in progress, or an update or
+    // an automatic reslice after a change scheduled to start one.
     bool is_slicing_any() const;
 
     // A slice request from a user-facing entry point (toolbar, menu, shortcut, Speed Dial, MCP):

@@ -23716,7 +23716,7 @@ bool Plater::is_background_process_slicing() const
 
 bool Plater::is_slicing_any() const
 {
-    return p->m_is_slicing || p->background_process.running() || is_background_process_update_scheduled();
+    return p->m_is_slicing || p->background_process.running() || is_background_process_update_scheduled() || p->auto_reslice_pending;
 }
 
 void Plater::request_slice(bool all_plates)
