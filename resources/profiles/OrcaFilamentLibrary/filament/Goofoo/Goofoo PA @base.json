@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "Goofoo PA @base",
+	"inherits": "Generic PA @System",
+	"from": "system",
+	"filament_id": "OFc2x7Ly",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_type": [
+		"PA"
+	]
+}

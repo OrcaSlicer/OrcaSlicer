@@ -9,6 +9,7 @@
 		"0.4"
 	],
 	"printer_variant": "0.4",
+	"use_3mf": "1",
 	"best_object_pos": "0.3x0.5",
 	"bed_exclude_area": [],
 	"bed_temperature_formula": "by_highest_temp",

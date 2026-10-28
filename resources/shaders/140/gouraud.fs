@@ -29,6 +29,7 @@ struct SlopeDetection
     bool actived;
 	float normal_z;
     mat3 volume_world_normal_matrix;
+    vec3 up_direction;
 };
 
 uniform vec4 uniform_color;
@@ -39,6 +40,10 @@ uniform SlopeDetection slope;
 
 //BBS: add outline_color
 uniform bool is_outline;
+// ORCA: a part of a translucent filament, drawn as its print would show in premultiplied color, see
+// GLVolumeCollection::render(). It catches a highlight only with translucent_gloss, in realistic view.
+uniform bool translucent_filament;
+uniform bool translucent_gloss;
 // The outline is a per-fragment discard mask, which the framebuffer MSAA cannot smooth, so the
 // silhouette is resolved per sample from a multisample copy of the outlined model's depth buffer.
 #ifdef GL_ARB_texture_multisample
@@ -223,6 +228,14 @@ float shadow_shade()
     return 1.0 - shadow_intensity * (sum / 25.0);
 }
 
+// ORCA: the view ray crosses two shells of the part, the front and the back one, of two 0.45 mm walls each,
+// longer at grazing angles, and the opacity of the filament is that of 0.4 mm of it, as in the G-code preview.
+vec4 translucent_filament_color(vec3 diffuse, float alpha, vec3 highlight, float cos_view)
+{
+    float a = 1.0 - pow(1.0 - alpha, 2.0 * 0.9 / 0.4 / max(cos_view, 0.25));
+    return vec4(diffuse * a + highlight, a);
+}
+
 out vec4 out_color;
 
 void main()
@@ -284,11 +297,16 @@ void main()
         if (s < 0.01)
             discard;
         out_color = vec4(mix(color.rgb, getBackfaceColor(color.rgb), s), color.a);
+        if (translucent_filament)
+            out_color.rgb *= out_color.a;
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
         out_color = vec4((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * intensity.x) * shade, color.a);
 #endif
+    else if (translucent_filament)
+        out_color = translucent_filament_color(color.rgb * intensity.x * shade, color.a,
+                                               translucent_gloss ? vec3(intensity.y * shade) : ZERO, abs(normalize(eye_normal).z));
     else
         out_color = vec4((vec3(intensity.y) + color.rgb * intensity.x) * shade, color.a);
 }

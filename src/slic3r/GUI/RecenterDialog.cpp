@@ -25,8 +25,11 @@ namespace Slic3r { namespace GUI {
 RecenterDialog::RecenterDialog(wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
       : DPIDialog(parent, id, _L("Confirm"), pos, size, style)
 {
-    hint1 = _L("Please home all axes (click ");
-    hint2 = _L(") to locate the toolhead's position. This prevents device moving beyond the printable boundary and causing equipment wear.");
+    // TRN %1% marks where the Home button icon is drawn; keep it in the translation.
+    const wxString hint = _L("Please home all axes (click %1%) to locate the toolhead's position. This prevents device moving beyond the printable boundary and causing equipment wear.");
+    const int      icon_pos = hint.Find("%1%");
+    hint1 = icon_pos == wxNOT_FOUND ? hint : hint.Left(icon_pos);
+    hint2 = icon_pos == wxNOT_FOUND ? wxString() : hint.Mid(icon_pos + 3);
 
     init_bitmap();
 

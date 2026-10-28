@@ -36,7 +36,7 @@ void Filler::_fill_surface_single(
     const double branch_width   = scaled<double>(this->spacing) * params.multiline;
     const double branch_spacing = branch_width / std::max(double(params.density), EPSILON);
     const double max_reach      = 0.5 * (params.multiline > 1 ? branch_width : branch_spacing);
-    smooth_polylines_corners(fill_lines, params.smooth_factor, scaled<double>(params.resolution), max_reach);
+    smooth_polylines_corners(fill_lines, params.corner_smoothing(), max_reach);
 
     // Apply multiline offset if needed
     multiline_fill(fill_lines, params, spacing);

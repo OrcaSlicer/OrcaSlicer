@@ -19,6 +19,7 @@
 #include <wx/chartype.h>
 #include <wx/log.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 
 #include <algorithm>
 #include <wx/webview.h>
@@ -152,6 +153,11 @@ std::string WebViewHostDialog::document_start_injector(const std::string& markup
     return s;
 }
 
+std::string WebViewHostDialog::localized_strings_script(const nlohmann::json& strings)
+{
+    return "window.ORCA_UI_STRINGS = " + strings.dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore) + ";";
+}
+
 WebViewHostDialog::WebViewHostDialog(wxWindow* parent,
                                      wxWindowID id,
                                      const wxString& title,
@@ -174,7 +180,8 @@ bool WebViewHostDialog::create_webview(const std::string& resource_path,
     const wxString target_url = build_resource_url(resource_path);
     wxBoxSizer*    topsizer   = new wxBoxSizer(wxVERTICAL);
 
-    m_browser = WebView::CreateWebView(this, target_url);
+    // Created empty and loaded below, after the user scripts are added, so the first load already has them.
+    m_browser = WebView::CreateWebView(this, wxEmptyString);
     if (m_browser == nullptr) {
         wxLogError("Could not init m_browser");
         delete topsizer;
@@ -284,6 +291,8 @@ void WebViewHostDialog::register_theme_user_scripts()
     // some backends RemoveAllUserScripts() drops it too, which would break
     // window.wx.postMessage / HandleStudio. Live re-theme goes through apply_theme_live().
     m_browser->AddUserScript(wxString::FromUTF8(theme_user_script()));
+    if (const nlohmann::json strings = localized_strings(); !strings.is_null())
+        m_browser->AddUserScript(wxString::FromUTF8(localized_strings_script(strings)));
     add_user_scripts();
 }
 

@@ -1912,13 +1912,13 @@ void GLGizmoMeasure::show_selection_ui()
         float selection_cap_length = 0;
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = std::max(ImGui::CalcTextSize(_u8L("Face 1 (Fixed)").c_str()).x, ImGui::CalcTextSize(_u8L("Face 2 (Moving)").c_str()).x) * 1.2;
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1" + _u8L(" (Moving)")).c_str()).x * 1.2;
+                selection_cap_length = std::max(ImGui::CalcTextSize(_u8L("Point 1 (Fixed)").c_str()).x, ImGui::CalcTextSize(_u8L("Point 2 (Moving)").c_str()).x) * 1.2;
             }
         }
         else {
-            selection_cap_length = ImGui::CalcTextSize((_u8L("Selection") + " 1").c_str()).x * 1.2;
+            selection_cap_length = ImGui::CalcTextSize(_u8L("Selection 1").c_str()).x * 1.2;
         }
         auto        feature_first_text        = format_item_text(m_selected_features.first);
         const float feature_first_text_length = ImGui::CalcTextSize((_u8L(feature_first_text)).c_str()).x;
@@ -1934,13 +1934,13 @@ void GLGizmoMeasure::show_selection_ui()
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_1ST_COLOR));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->text(_u8L("Face 1 (Fixed)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 1" + _u8L(" (Fixed)"));
+                m_imgui->text(_u8L("Point 1 (Fixed)"));
             }
         }
         else {
-            m_imgui->text(_u8L("Selection") + " 1");
+            m_imgui->text(_u8L("Selection 1"));
         }
         ImGui::SameLine(selection_cap_length + space_size);
         ImGui::PushItemWidth(feature_first_text_length);
@@ -1960,12 +1960,12 @@ void GLGizmoMeasure::show_selection_ui()
         ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_2ND_COLOR));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->text(_u8L("Face") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->text(_u8L("Face 2 (Moving)"));
             } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->text(_u8L("Point") + " 2"+ _u8L(" (Moving)"));
+                m_imgui->text(_u8L("Point 2 (Moving)"));
             }
         } else {
-            m_imgui->text(_u8L("Selection") + " 2");
+            m_imgui->text(_u8L("Selection 2"));
         }
         ImGui::SameLine(selection_cap_length + space_size);
         ImGui::PushItemWidth(feature_second_text_length);

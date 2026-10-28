@@ -3,6 +3,7 @@
 #include "ActionRegistry.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NotificationManager.hpp"
@@ -36,6 +37,7 @@
 #ifdef __linux__
 #include <gtk/gtk.h>
 #endif
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -84,9 +86,8 @@ void focus_webview(wxWebView* browser, bool page_ready)
         browser->RunScript("focusInput();");
 }
 
-// Localized strings for the Speed Dial page, injected as a document-start user script. The page's
-// T() reads window.ORCA_UI_STRINGS, so these flow through the same .po pipeline as the rest of the
-// UI (the JS literals are only a fallback before the script runs / in the node vm test).
+// Localized strings for the Speed Dial page (see WebViewHostDialog::localized_strings). The page's own T()
+// reads them; its JS literals are only a fallback before the script runs / in the node vm test.
 // %% is a literal '%': T() collapses it after substituting %s. Keep the shortcut tokens out of the
 // translated text so the platform prefix (Alt+/⌥+, Ctrl+/⌘+) stays correct.
 nlohmann::json speed_dial_ui_strings()
@@ -94,6 +95,8 @@ nlohmann::json speed_dial_ui_strings()
     const std::string alt  = GUI::shortkey_alt_prefix();
     const std::string ctrl = GUI::shortkey_ctrl_prefix();
     return {
+        // TRN Screen-reader label of a Speed Dial action: the first %s is the action name, the second where it comes from (a menu, tab or settings group). Keep the two %s in this order.
+        {"sd_action_from", _u8L("%s from %s")},
         {"shortcut_alt", alt},
         {"shortcut_ctrl", ctrl},
 
@@ -156,7 +159,7 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     if (!create_webview("web/dialog/SpeedDial/index.html", wxEmptyString, wxSize(kPopupWidth, kPopupMaxHeight),
                         wxSize(kPopupWidth, kPopupMinHeight))) {
         auto* sizer = new wxBoxSizer(wxVERTICAL);
-        sizer->Add(new wxStaticText(this, wxID_ANY, wxS("wxWebView unavailable")), wxSizerFlags().Border(wxALL, 20));
+        sizer->Add(new wxStaticText(this, wxID_ANY, _L("Web view is unavailable.")), wxSizerFlags().Border(wxALL, 20));
         SetSizer(sizer);
         SetClientSize(FromDIP(wxSize(kPopupWidth, kPopupMinHeight)));
     }
@@ -175,17 +178,7 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
 
 SpeedDialWebDialog::~SpeedDialWebDialog() { m_alive->store(false, std::memory_order_release); }
 
-// Document-start hook: hand the page its translated strings before speeddial.js runs, so the first
-// paint is already localized. The table is built when the dialog is created; a live language switch
-// rebuilds the GUI (and with it this dialog), so the next open re-injects the new locale.
-void SpeedDialWebDialog::add_user_scripts()
-{
-    if (wxWebView* wv = browser()) {
-        const std::string js = "window.ORCA_UI_STRINGS = " +
-                               speed_dial_ui_strings().dump(-1, ' ', false, nlohmann::json::error_handler_t::ignore) + ";";
-        wv->AddUserScript(wxString::FromUTF8(js));
-    }
-}
+nlohmann::json SpeedDialWebDialog::localized_strings() const { return speed_dial_ui_strings(); }
 
 void SpeedDialWebDialog::request_show()
 {

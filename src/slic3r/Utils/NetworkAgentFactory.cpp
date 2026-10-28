@@ -20,6 +20,7 @@
 #include <utility>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/I18N.hpp>
+#include <slic3r/GUI/format.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <vector>
@@ -75,16 +76,20 @@ template<typename T> void register_agent()
                                                     if (cloud_agent)
                                                         agent->set_cloud_agent(cloud_agent);
                                                     return agent;
-                                                });
+                                                },
+                                                info.native_device_tab);
 }
 
 } // anonymous namespace
 
-bool NetworkAgentFactory::register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory)
+bool NetworkAgentFactory::register_printer_agent(const std::string& id, const std::string& display_name, PrinterAgentFactory factory,
+                                                 bool native_device_tab)
 {
     std::lock_guard<std::mutex> lock(s_registry_mutex);
     auto& agents = get_printer_agents();
-    return agents.emplace(id, PrinterAgentInfo(id, display_name, std::move(factory))).second;
+    PrinterAgentInfo info(id, display_name, std::move(factory));
+    info.native_device_tab = native_device_tab;
+    return agents.emplace(id, std::move(info)).second;
 }
 
 bool NetworkAgentFactory::is_printer_agent_registered(const std::string& id)
@@ -165,8 +170,12 @@ std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_printer_agent_by_id(c
 
 void NetworkAgentFactory::clear_printer_agent_cache()
 {
-    std::lock_guard<std::mutex> lock(s_registry_mutex);
-    auto& cache = get_printer_agent_cache();
+    // Disconnects and destroys the agents outside the lock, since a destructor waits for its agent's threads
+    std::map<std::string, std::shared_ptr<IPrinterAgent>> cache;
+    {
+        std::lock_guard<std::mutex> lock(s_registry_mutex);
+        cache.swap(get_printer_agent_cache());
+    }
     for (auto& pair : cache) {
         if (pair.second)
             pair.second->disconnect_printer();
@@ -356,8 +365,10 @@ void NetworkAgentFactory::register_python_printer_agent(const std::string& plugi
         auto& python_agent_ids = get_python_printer_agent_ids();
         for (const auto& pair : python_agent_ids) {
             if (pair.first != capability_key && pair.second == info.id) {
-                const std::string error_message = "Printer-agent '" + info.name + "' could not be enabled: agent ID '" + info.id +
-                                                  "' is already registered by capability '" + pair.first.second + "' from plugin '" + pair.first.first + "'.";
+                const std::string error_message = GUI::format(
+                    // TRN %1% is the printer agent name, %2% its ID, %3% the capability and %4% the plugin already using that ID.
+                    _u8L("Printer-agent '%1%' could not be enabled: agent ID '%2%' is already registered by capability '%3%' from plugin '%4%'."),
+                    info.name, info.id, pair.first.second, pair.first.first);
                 BOOST_LOG_TRIVIAL(warning) << error_message;
                 reject_conflicting_capability(error_message);
                 return;
@@ -384,8 +395,10 @@ void NetworkAgentFactory::register_python_printer_agent(const std::string& plugi
         //   IS the same plugin_full_ref, this capability is just re-registering itself, so fall
         //   through and refresh.
         if (agent_it != agents.end() && agent_it->second.plugin_identifier != plugin_full_ref) {
-            const std::string error_message = "Printer-agent '" + info.name + "' could not be enabled: agent ID '" + info.id +
-                                              "' is already registered by '" + agent_it->second.display_name + "'.";
+            const std::string error_message = GUI::format(
+                // TRN %1% is the printer agent name, %2% its ID and %3% the printer agent already using that ID.
+                _u8L("Printer-agent '%1%' could not be enabled: agent ID '%2%' is already registered by '%3%'."),
+                info.name, info.id, agent_it->second.display_name);
             BOOST_LOG_TRIVIAL(warning) << error_message;
             reject_conflicting_capability(error_message);
             return;

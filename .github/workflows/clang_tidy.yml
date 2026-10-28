@@ -8,6 +8,9 @@ name: clang-tidy
 # No paths filter: the job is a required check, and a workflow skipped by a
 # paths filter leaves a required check pending forever. A PR with no C++
 # changes finishes after the first step.
+#
+# approve_pr_checks.yml approves this workflow's runs for first-time
+# contributors and finds it by its file name.
 on:
   pull_request:
     branches:
@@ -16,6 +19,15 @@ on:
 
 permissions:
   contents: read
+  # Listing caches and builds while waiting for a deps cache.
+  actions: read
+
+# Read by scripts/ci_deps_cache.sh.
+env:
+  REPO: ${{ github.repository }}
+  WORKFLOW: build_all.yml
+  BASE_REF: ${{ github.base_ref }}
+  JOB: build_linux (${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }})
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -27,6 +39,10 @@ jobs:
     # that gate.
     name: clang-tidy
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+    # approve_pr_checks.yml starts first-time contributors' runs without a
+    # maintainer looking at the pull request first. The deps-cache wait alone may
+    # take 100 minutes; this bounds a runaway run without cutting a real one.
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -35,7 +51,7 @@ jobs:
           # The PR merge commit plus its first parent, the base it is diffed against.
           fetch-depth: 2
 
-      - name: Look for changed C++ files
+      - name: Look for changed files
         id: changes
         run: |
           if git -c core.quotePath=false diff --name-only HEAD^1 -- src tests | grep -qE '\.(cpp|cc|cxx|hpp|h|hxx)$'; then
@@ -43,17 +59,74 @@ jobs:
           else
             echo "No C++ changes under src/ or tests/."
           fi
+          if ! git diff --quiet HEAD^1 -- deps; then
+            echo "deps=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "deps-key=linux-clang-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }}" >> "$GITHUB_OUTPUT"
 
-      # Parsing needs the dependency headers, not a build of this PR's deps/, so
-      # a PR that changes deps/ falls back to the newest cache main has.
+      # Parsing needs the dependency headers, not a build of this PR's deps/.
+      # Without an exact match the job waits for the build that saves it: this
+      # PR's own when it changes deps/, otherwise a running push build of the
+      # base branch with the same deps. With neither, a PR that keeps deps/
+      # falls back to the newest cache.
       - name: Restore cached deps
+        id: deps_cache
         if: steps.changes.outputs.cpp == 'true'
         uses: actions/cache/restore@v6
         with:
           path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep
-          key: linux-clang-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }}
+          key: ${{ steps.changes.outputs.deps-key }}
+
+      - name: Look for a build to wait for
+        id: wait_check
+        if: steps.changes.outputs.cpp == 'true' && steps.deps_cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/ci_deps_cache.sh ${{ steps.changes.outputs.deps == 'true' && 'own' || 'check' }}
+
+      # Linux Build Deps takes about 35 minutes on GitHub-hosted runners. The
+      # wait ends early when the deps job fails.
+      - name: Wait for the deps cache
+        if: steps.wait_check.outputs.wait-for != ''
+        timeout-minutes: 100
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEY: ${{ steps.changes.outputs.deps-key }}
+          CACHE_REF: ${{ steps.changes.outputs.deps == 'true' && github.ref || format('refs/heads/{0}', github.base_ref) }}
+          KEY_INPUTS: ${{ steps.wait_check.outputs.key-inputs }}
+          WAIT_FOR: ${{ steps.wait_check.outputs.wait-for }}
+          WAIT_SINCE: ${{ steps.wait_check.outputs.wait-since }}
+          WAIT_MINUTES: 90
+        run: bash scripts/ci_deps_cache.sh wait
+
+      - name: Restore the deps cache after waiting
+        id: waited_cache
+        if: steps.wait_check.outputs.wait-for != ''
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep
+          key: ${{ steps.changes.outputs.deps-key }}
+
+      - name: Fail without this PR's deps cache
+        if: steps.changes.outputs.deps == 'true' && steps.wait_check.outcome == 'success' && steps.waited_cache.outputs.cache-hit != 'true'
+        run: |
+          echo "::error::No deps cache ${{ steps.changes.outputs.deps-key }}. Check this PR's Linux Build Deps job, then rerun clang-tidy."
+          exit 1
+
+      - name: Restore the newest cached deps
+        id: newest_cache
+        if: steps.changes.outputs.deps != 'true' && steps.wait_check.outcome == 'success' && steps.waited_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep
+          key: ${{ steps.changes.outputs.deps-key }}
           restore-keys: linux-clang-cache-orcaslicer_deps-build-
           fail-on-cache-miss: true
+
+      - name: Warn about older deps
+        if: steps.newest_cache.outcome == 'success' && steps.newest_cache.outputs.cache-hit != 'true'
+        run: echo "::warning title=Older deps::No cache matches this PR's deps/, so clang-tidy parsed against ${{ steps.newest_cache.outputs.cache-matched-key }}. If it reports errors in code that uses a dependency, rerun clang-tidy once the base branch's Build all has saved the new deps."
 
       - name: Apt-Install Dependencies
         if: steps.changes.outputs.cpp == 'true' && !vars.SELF_HOSTED

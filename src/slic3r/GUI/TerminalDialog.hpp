@@ -4,6 +4,7 @@
 #include "Widgets/WebViewHostDialog.hpp"
 
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
 #include <wx/event.h>
@@ -32,6 +33,7 @@ public:
 
 private:
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
 
     void resolve_and_run(const std::string& cmd);
 

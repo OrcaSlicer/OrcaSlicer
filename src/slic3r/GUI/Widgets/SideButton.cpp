@@ -17,6 +17,7 @@
 BEGIN_EVENT_TABLE(SideButton, wxWindow)
 EVT_LEFT_DOWN(SideButton::mouseDown)
 EVT_LEFT_UP(SideButton::mouseReleased)
+EVT_MOUSE_CAPTURE_LOST(SideButton::mouseCaptureLost)
 EVT_PAINT(SideButton::paintEvent)
 END_EVENT_TABLE()
 
@@ -331,18 +332,28 @@ void SideButton::mouseDown(wxMouseEvent& event)
     event.Skip();
     pressedDown = true;
     SetFocus();
-    CaptureMouse();
+    // Capturing twice pushes this button onto the capture stack twice, and the
+    // release would then hand the capture straight back to it.
+    if (!HasCapture())
+        CaptureMouse();
 }
 
 void SideButton::mouseReleased(wxMouseEvent& event)
 {
     event.Skip();
+    // A press whose release went elsewhere still holds the capture.
+    if (HasCapture())
+        ReleaseMouse();
     if (pressedDown) {
         pressedDown = false;
-        ReleaseMouse();
         if (wxRect({0, 0}, GetSize()).Contains(event.GetPosition()))
             sendButtonEvent();
     }
+}
+
+void SideButton::mouseCaptureLost(wxMouseCaptureLostEvent&)
+{
+    pressedDown = false;
 }
 
 void SideButton::sendButtonEvent()

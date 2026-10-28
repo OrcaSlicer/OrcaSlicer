@@ -20,7 +20,9 @@
 # and nothing else. Only a vendor that has a cache is pruned, so an ungenerated
 # vendor keeps its JSONs and is simply parsed at startup; non-vendor JSONs
 # (blacklist.json) are left alone, as are the vendor directories themselves —
-# thumbnails, covers and bed models still live there.
+# thumbnails, covers and bed models still live there. Only the preset files the
+# vendor profile lists are deleted: data files beside them (BBL's
+# filaments_color_codes.json, cli_config.json, ...) are read at runtime.
 #
 #   -b <dir>    build tree holding the tool
 #               (default: build/arm64, build/x86_64, or build — first that exists)
@@ -87,6 +89,20 @@ find_tool() {
     printf '%s' "$best"
 }
 
+# The preset files a vendor profile lists, relative to its vendor directory, one
+# per line. Nothing when the profile is missing.
+listed_presets() {
+    [ -f "$1" ] || return 0
+    python3 - "$1" <<'EOF'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    profile = json.load(f)
+for key in ("machine_model_list", "process_list", "filament_list", "machine_list"):
+    for entry in profile.get(key, []):
+        print(entry["sub_path"])
+EOF
+}
+
 tool=$(find_tool)
 if [ -z "$config" ]; then
     case "$tool" in
@@ -147,15 +163,21 @@ for target in "$@"; do
     for cache in "$profiles_dir"/*.opc; do
         vendor=$(basename "$cache" .opc)
         shipped=$(( shipped + 1 ))
+        # Read the list before the profile goes: with --prune-source it is the
+        # same file as the target's.
+        listed=$(listed_presets "$profiles_dir/$vendor.json")
         if [ -f "$resolved/$vendor.json" ]; then
             rm -f "$resolved/$vendor.json"
             pruned=$(( pruned + 1 ))
         fi
         [ -d "$resolved/$vendor" ] || continue
-        n=$(find "$resolved/$vendor" -name '*.json' | wc -l)
-        find "$resolved/$vendor" -name '*.json' -delete
+        while IFS= read -r sub_path; do
+            if [ -n "$sub_path" ] && [ -f "$resolved/$vendor/$sub_path" ]; then
+                rm -f "$resolved/$vendor/$sub_path"
+                pruned=$(( pruned + 1 ))
+            fi
+        done <<< "$listed"
         find "$resolved/$vendor" -type d -empty -delete
-        pruned=$(( pruned + n ))
     done
     echo "$resolved: $shipped caches, dropped $pruned preset JSONs"
 done

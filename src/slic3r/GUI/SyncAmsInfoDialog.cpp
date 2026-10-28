@@ -1829,7 +1829,7 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
         wxString msg_text = _L("Storage is not available or is in read-only mode.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
-        wxString msg_text = _L("Storage needs to be inserted before printing.");
+        wxString msg_text = _L("Insert storage or free up space before printing.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusUnsupportedPrinter) {
         wxString msg_text;
@@ -2212,7 +2212,7 @@ void SyncAmsInfoDialog::update_user_printer()
             {
                 m_list.push_back(it->second);
                 wxString dev_name_text = from_u8(it->second->get_dev_name());
-                if (it->second->is_lan_mode_printer()) { dev_name_text += "(LAN)"; }
+                if (it->second->is_lan_mode_printer()) { dev_name_text += _L("(LAN)"); }
                 machine_list_name.Add(dev_name_text);
                 break;
             }

@@ -10,23 +10,23 @@
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
 <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
-<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
 <script type="text/javascript" src="../js/common.js"></script>
 <script type="text/javascript" src="11.js"></script>		
 </head>
 <body onLoad="OnInit()">
 <div id="Title">
-	<div class="trans" tid="t47">Please select your login region</div>
+	<div data-i18n="login_region">Please select your login region</div>
 </div>
 <div id="Content">
 	<div id="EarthIcon"><img src="earth.png"/></div>
 	<div id="RegionList">
-		<div class="trans RegionItem RegionSelected TextS1" tid="t48" region="Asia-Pacific" onclick="ChooseRegion('Asia-Pacific')">Asia-Pacific</div>
-		<div class="trans RegionItem" tid="t49" region="China" onclick="ChooseRegion('China')">China</div>
-		<div class="trans RegionItem" tid="t60" region="Europe" onclick="ChooseRegion('Europe')">Europe</div>
-		<div class="trans RegionItem" tid="t61" region="North America" onclick="ChooseRegion('North America')">North America</div>
-		<div class="trans RegionItem" tid="t62" region="Others" onclick="ChooseRegion('Others')">Others</div>
+		<div class="RegionItem RegionSelected TextS1" region="Asia-Pacific" onclick="ChooseRegion('Asia-Pacific')" data-i18n="asia_pacific">Asia-Pacific</div>
+		<div class="RegionItem" region="China" onclick="ChooseRegion('China')" data-i18n="china">China</div>
+		<div class="RegionItem" region="Europe" onclick="ChooseRegion('Europe')" data-i18n="europe">Europe</div>
+		<div class="RegionItem" region="North America" onclick="ChooseRegion('North America')" data-i18n="north_america">North America</div>
+		<div class="RegionItem" region="Others" onclick="ChooseRegion('Others')" data-i18n="others">Others</div>
 	</div>
 <!--	<div id="ChangeTip">
 		<div><img class="TipIcon" src="tip.png" /></div>
@@ -34,7 +34,7 @@
 	</div>-->
 </div>
 <div id="AcceptArea">
-	<div class="ButtonStyleConfirm ButtonTypeChoice trans" id="AcceptBtn" tid="t9"  onclick="GotoPolicyPage()">Next</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice" id="AcceptBtn" onclick="GotoPolicyPage()" data-i18n="next">Next</div>
 </div>	
 </body>
 </html>
