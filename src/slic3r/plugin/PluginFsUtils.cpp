@@ -808,6 +808,7 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
             read_string_list("threading", parsed.permissions.threading);
+            read_string_list("events", parsed.permissions.events);
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -832,6 +833,29 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstall
     }
 }
 
+namespace {
+
+// The single descriptor -> sidecar metadata mapping. Prefer installed_version (fetched at install
+// time and preserved across rewrites) over a possibly stale manifest version.
+void apply_install_metadata(PluginInstallState& state, const PluginDescriptor& entry)
+{
+    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
+    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
+    state.plugin_name       = entry.name;
+    state.cloud_uuid        = entry.cloud_uuid();
+}
+
+} // namespace
+
+void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry)
+{
+    if (!state.plugin_name.empty())
+        return;
+
+    apply_install_metadata(state, entry);
+    state.enabled = true;
+}
+
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state)
 {
     namespace fs                = boost::filesystem;
@@ -852,6 +876,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"network_socket", state.permissions.network_socket},
         {"process", state.permissions.process},
         {"threading", state.permissions.threading},
+        {"events", state.permissions.events},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();
@@ -874,16 +899,9 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // Loading a plugin updates its lifecycle/capability state, but must retain permissions granted
     // during register_capabilities() or by a previous runtime audit prompt.
     read_install_state(plugin_dir, state);
-    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
-    // Prefer the descriptor's recorded installed_version (the version fetched from the cloud
-    // at install time, preserved across sidecar re-writes) so a stale manifest/PEP723 header
-    // never overwrites the source-of-truth version. Fall back to the manifest version for
-    // first-time/local installs where installed_version is not yet populated.
-    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
-    state.plugin_name       = entry.name;
-    state.cloud_uuid        = entry.cloud_uuid();
-    state.enabled           = enabled;
-    state.capabilities      = capabilities;
+    apply_install_metadata(state, entry);
+    state.enabled      = enabled;
+    state.capabilities = capabilities;
     return write_install_state(plugin_dir, state);
 }
 
@@ -894,11 +912,7 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     // permissions on a fresh install/reinstall. PluginManager writes the real per-capability flags
     // while preserving permissions once the package is loaded, via the overload above.
     PluginInstallState state;
-    state.installed_from    = entry.is_cloud_plugin() ? "cloud" : "local";
-    state.installed_version = !entry.installed_version.empty() ? entry.installed_version : entry.version;
-    state.plugin_name       = entry.name;
-    state.cloud_uuid        = entry.cloud_uuid();
-    state.enabled           = true;
+    seed_install_metadata(state, entry);
     return write_install_state(plugin_dir, state);
 }
 

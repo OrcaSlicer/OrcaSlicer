@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "School House Spools Matte PLA @System",
+    "inherits": "School House Spools Matte PLA @base",
+    "from": "system",
+    "setting_id": "HlZ93lZcHerJYqK6",
+    "instantiation": "true",
+    "compatible_printers": []
+}

@@ -45,6 +45,7 @@
 #include <wx/variant.h>
 #include <wx/window.h>
 #include <wx/toplevel.h>
+#include <wx/statline.h>
 
 #include "CalibUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -1049,9 +1050,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     // "Transfer" / "Keep" button
     if (ActionButtons::TRANSFER & m_buttons) {
         const PresetCollection* switched_presets = type == Preset::TYPE_INVALID ? nullptr : wxGetApp().get_tab(type)->get_presets();
-        if (dependent_presets && switched_presets && (type == dependent_presets->type() ?
-            dependent_presets->get_edited_preset().printer_technology() == dependent_presets->find_preset(new_selected_preset)->printer_technology() :
-            switched_presets->get_edited_preset().printer_technology() == switched_presets->find_preset(new_selected_preset)->printer_technology()))
+        const PresetCollection* technology_source = (dependent_presets && type == dependent_presets->type()) ? dependent_presets : switched_presets;
+        // find_preset() can return nullptr (e.g. an unresolved alias); guard against a null deref.
+        const Preset* target_preset = technology_source ? technology_source->find_preset(new_selected_preset) : nullptr;
+        if (dependent_presets && switched_presets && technology_source && target_preset &&
+            technology_source->get_edited_preset().printer_technology() == target_preset->printer_technology())
             add_btn(&m_transfer_btn, m_move_btn_id, "menu_paste", Action::Transfer, switched_presets->get_edited_preset().name == new_selected_preset ? _L("Transfer") : _L("Transfer"), true);
     }
     if (!m_transfer_btn && (ActionButtons::KEEP & m_buttons))
@@ -1623,10 +1626,6 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
             wxString label = option.label_local;
             if (type == Preset::TYPE_PRINTER && variant_index >= 0 &&
                 printer_options_with_variant_2.count(get_pure_opt_key(opt_key)) > 0) {
-                // Orca: silent_mode is obsolete on import, but its option and two-column UI still exist.
-                // Keep mode labels for configs that explicitly enable it; omit them in the default single-mode UI.
-                if (new_config.opt_bool("silent_mode"))
-                    label += " (" + (variant_index % 2 == 0 ? _L("Normal") : _L("Silent")) + ")";
                 variant_index /= 2;
             }
             if (variant_index >= 0 && extruder_variant && variant_index < extruder_variant->size()) {

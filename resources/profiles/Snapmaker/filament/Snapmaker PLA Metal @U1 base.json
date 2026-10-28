@@ -40,5 +40,8 @@
 	],
 	"nozzle_temperature": [
 		"220"
+	],
+	"temperature_vitrification": [
+		"45"
 	]
 }

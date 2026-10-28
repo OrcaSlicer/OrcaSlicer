@@ -74,6 +74,8 @@
 #include "MainFrame.hpp"
 #include "libslic3r_version.h"
 #include "Widgets/HyperLink.hpp" // ORCA
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "Plater.hpp"
 
 #define NAME_OPTION_COMBOBOX_SIZE wxSize(FromDIP(200), FromDIP(24))
 #define FILAMENT_PRESET_COMBOBOX_SIZE wxSize(FromDIP(300), FromDIP(24))
@@ -305,7 +307,7 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
         if (!need_delete_preset) BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't find delete preset and name: %1%") % delete_preset_name;
         if (!need_delete_preset->setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << need_delete_preset->name << ", setting_id = " << need_delete_preset->setting_id;
-            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id, need_delete_preset->file);
+            wxGetApp().delete_preset_from_cloud(*need_delete_preset);
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't preset setting id is empty and name: %1%") % delete_preset_name;
         }
@@ -3151,7 +3153,7 @@ void CreatePrinterPresetDialog::set_current_visible_printer()
     m_printer_name_to_preset.clear();
     for (const Preset &printer_preset : printer_presets) {
         if (!printer_preset.is_visible) continue;
-        if (preset_bundle->printers.get_preset_base(printer_preset)->name != printer_preset.name) continue;
+        if (preset_bundle->printers.get_preset_base(printer_preset) != &printer_preset) continue;
         if (auto printer_model = dynamic_cast<ConfigOptionString*>(const_cast<Preset&>(printer_preset).config.option("printer_model", false))) {
             if (m_printer_name_to_preset.find(printer_model->value) == m_printer_name_to_preset.end()) {
                 printer_choice.push_back(from_u8(printer_model->value));
@@ -4962,7 +4964,7 @@ void CreatePresetForPrinterDialog::get_visible_printer_and_compatible_filament_p
                     if (filament_preset.is_default || !filament_preset.is_compatible || filament_preset.is_project_embedded) continue;
                     ConfigOptionStrings *filament_types;
                     const Preset *       filament_preset_base = m_preset_bundle->filaments.get_preset_base(filament_preset);
-                    if (filament_preset_base == &filament_preset) {
+                    if (filament_preset_base == &filament_preset || filament_preset_base == nullptr) {
                         filament_types = dynamic_cast<ConfigOptionStrings *>(const_cast<Preset *>(&filament_preset)->config.option("filament_type"));
                     } else {
                         filament_types = dynamic_cast<ConfigOptionStrings *>(const_cast<Preset *>(filament_preset_base)->config.option("filament_type"));

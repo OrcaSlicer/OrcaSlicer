@@ -29,6 +29,7 @@
 #include <wx/string.h>
 #include <wx/colour.h>
 #include <wx/dataobj.h>
+#include <wx/statline.h>
 
 namespace Slic3r {
 namespace GUI {
