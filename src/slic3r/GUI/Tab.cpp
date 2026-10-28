@@ -3716,6 +3716,15 @@ void TabPrint::update()
     }
 }
 
+int TabPrint::extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type)
+{
+    const auto *extruders = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnumsGeneric>("extruder_type");
+    if (extruders == nullptr || extruder_id < 0 || extruder_id >= int(extruders->size()))
+        return -1;
+    return m_config->get_index_for_extruder(extruder_id + 1, "print_extruder_id", ExtruderType(extruders->values[extruder_id]), nozzle_type,
+                                            "print_extruder_variant");
+}
+
 void TabPrint::clear_pages()
 {
     Tab::clear_pages();

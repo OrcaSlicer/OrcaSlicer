@@ -206,6 +206,9 @@ struct PublishedConfig
     // The author's printer extruder layout. When set, published printer keys map to the receiver's
     // extruder with the author's number (see resolve_published_extruder_slot).
     PublishedExtruderLayout     printer_layout;
+    // The author's process extruder layout (print_extruder_id / print_extruder_variant). Empty for
+    // files published before per-extruder process keys were exported; those import positionally.
+    PublishedExtruderLayout     print_layout;
 };
 
 // Bundle of Print + Filament + Printer presets.
