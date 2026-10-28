@@ -21,6 +21,7 @@
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <utility>
 #include <vector>
+#include <wx/app.h>
 #include <wx/utils.h>
 
 #include <algorithm>
