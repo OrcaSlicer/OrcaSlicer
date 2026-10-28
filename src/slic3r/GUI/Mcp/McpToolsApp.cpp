@@ -7,8 +7,12 @@
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
+#include "UiInspector.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
@@ -125,6 +129,15 @@ json app_state(McpService& service)
 
     PartPlateList& plates = plater->get_partplate_list();
     state["plates"]       = {{"count", plates.get_plate_count()}, {"current", plates.get_curr_plate_index()}};
+    // The open gizmo, on the canvas shown first.
+    state["gizmo"] = nullptr;
+    std::vector<GLCanvas3D*> canvases = live_canvases();
+    std::stable_partition(canvases.begin(), canvases.end(), [&](GLCanvas3D* c) { return c == plater->get_current_canvas3D(); });
+    for (GLCanvas3D* c : canvases)
+        if (const auto type = c->get_gizmos_manager().get_current_type(); type != GLGizmosManager::Undefined) {
+            state["gizmo"] = {{"name", gizmo_name(type)}, {"canvas", canvas_name(c)}};
+            break;
+        }
     state["objects"]      = plater->model().objects.size();
     state["slicing"]      = plater->is_slicing_any();
 
@@ -148,7 +161,13 @@ bool condition_holds(McpService& service, const std::string& condition, const st
         if (service.modals().any_open() || service.jobs().any_running_except(own_jobs))
             return false;
         Plater* plater = wxGetApp().plater();
-        return plater == nullptr || (!plater->is_slicing_any() && plater->get_ui_job_worker().is_idle());
+        if (plater == nullptr)
+            return true;
+        if (plater->is_slicing_any() || !plater->get_ui_job_worker().is_idle())
+            return false;
+        // Gizmos working in the background (Simplify's calculation, a texture preview).
+        const auto canvases = live_canvases();
+        return std::none_of(canvases.begin(), canvases.end(), [](GLCanvas3D* c) { return c->get_gizmos_manager().is_busy(); });
     }
     throw ToolFailure("Unknown condition " + condition);
 }
@@ -162,14 +181,16 @@ void register_app_tools(McpService& service)
     reg.add(inspect_tool(
         "get_state", "Get app state",
         "Snapshot of OrcaSlicer: version, platform, whether it is ready, current tab and mode, project, selected printer/process/"
-        "filament presets, plates, object count, slicing state, open modal dialogs, notifications and running jobs. Call it "
+        "filament presets, plates, object count, slicing state, the open gizmo, open modal dialogs, notifications and running "
+        "jobs. Call it "
         "first and whenever you are unsure what the app is doing.",
         object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));
 
     ToolDef wait = inspect_tool(
         "wait", "Wait for a condition",
         "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
-        "no running job, nothing slicing or arranging), \"dialog\" / \"no_dialog\", or \"job\" with a job id returned by "
+        "no running job, nothing slicing or arranging, no gizmo working in the background), \"dialog\" / \"no_dialog\", or "
+        "\"job\" with a job id returned by "
         "an earlier call - then the reply is that job's result. Returns {satisfied:false} on timeout; call it again.",
         object_schema({{"for", enum_prop({"ready", "idle", "dialog", "no_dialog", "job"}, "What to wait for.")},
                        {"job", prop("string", "Job id, for \"job\".")},

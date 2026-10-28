@@ -82,9 +82,22 @@ when a step fails and 2 when the script is invalid. The run leaves `result.json`
 screenshots in the output directory. `tests/script_basic.json` is the smallest such check: load,
 change a setting, slice and capture.
 
+`tests/gizmos.json` drives every gizmo through the GUI tools, the way a person does: each one's icon,
+its panel's fields, combos, toggles and links, and clicks or strokes at points of the model, then
+checks what it left on the model (`list_objects`), with an undo and redo and a canvas screenshot per
+gizmo. It uses the fixtures beside it (`tests/fixtures/star.svg`, `tests/fixtures/heightmap.png`).
+Run it at a second window size through `run_script`'s `vars`:
+
+```bash
+tools/mcp/orca_mcp.py call run_script '{"path": "/abs/tools/mcp/tests/gizmos.json", "out_dir": "/tmp/gizmos-small", "vars": {"window_size": [1100, 760]}}' --wait
+```
+
 `test_stdio_bridge.py [--bin PATH]` checks `orca-slicer --mcp-stdio` against the launched instance:
 the handshake, notifications, tool calls in both protocol eras, and errors.
 `test_recovery_under_load.py` fills the server's connections with 32 blocked `wait` calls and 32
 idle or half-sent connections while a dialog is open, and checks that `dialog_respond` on a new
 connection still closes it. `test_cancel_pending_slice.py` cancels a slice while it still waits for
-the update a setting change scheduled, and checks that it never starts.
+the update a setting change scheduled, and checks that it never starts. `test_ref_locator_export.py`
+uses ImGui refs after their items changed (the Text gizmo's font button, whose label shows the font,
+and a Texture Displacement layer row renamed by its place when a layer before it goes) and checks
+that the exported session replays.

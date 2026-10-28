@@ -119,8 +119,9 @@ void draw(const IconManager::Icon &icon,
 /// </summary>
 /// <param name="icon">Draw when no hover</param>
 /// <param name="icon_hover">Draw when hover</param>
+/// <param name="name">Names the icon for automation (ImGuiWrapper::record_named_item())</param>
 /// <returns>True when click, otherwise False</returns>
-bool clickable(const IconManager::Icon &icon, const IconManager::Icon &icon_hover);
+bool clickable(const IconManager::Icon &icon, const IconManager::Icon &icon_hover, const std::string &name = {});
 
 /// <summary>
 /// Use icon as button with 3 states activ hover and disabled 
@@ -128,8 +129,10 @@ bool clickable(const IconManager::Icon &icon, const IconManager::Icon &icon_hove
 /// <param name="activ">Not disabled not hovered image</param>
 /// <param name="hover">Hovered image</param>
 /// <param name="disable">Disabled image</param>
+/// <param name="name">Names the button for automation (ImGuiWrapper::record_named_item())</param>
 /// <returns>True when click on enabled, otherwise False</returns>
-bool button(const IconManager::Icon &activ, const IconManager::Icon &hover, const IconManager::Icon &disable, bool disabled = false);
+bool button(const IconManager::Icon &activ, const IconManager::Icon &hover, const IconManager::Icon &disable, bool disabled = false,
+            const std::string &name = {});
 
 } // namespace Slic3r::GUI
 #endif // slic3r_IconManager_hpp_

@@ -759,7 +759,8 @@ enum ImGuiItemStatusFlags_
     ImGuiItemStatusFlags_Openable           = 1 << 20,  //
     ImGuiItemStatusFlags_Opened             = 1 << 21,  //
     ImGuiItemStatusFlags_Checkable          = 1 << 22,  //
-    ImGuiItemStatusFlags_Checked            = 1 << 23   //
+    ImGuiItemStatusFlags_Checked            = 1 << 23,  //
+    ImGuiItemStatusFlags_Inputable          = 1 << 24   // [OrcaSlicer, as upstream] Takes typed input (a slider or drag without ImGuiSliderFlags_NoInput, an input field)
 #endif
 };
 
@@ -2666,17 +2667,25 @@ extern void         ImGuiTestEngineHook_ItemInfo(ImGuiContext* ctx, ImGuiID id, 
 extern void         ImGuiTestEngineHook_IdInfo(ImGuiContext* ctx, ImGuiDataType data_type, ImGuiID id, const void* data_id);
 extern void         ImGuiTestEngineHook_IdInfo(ImGuiContext* ctx, ImGuiDataType data_type, ImGuiID id, const void* data_id, const void* data_id_end);
 extern void         ImGuiTestEngineHook_Log(ImGuiContext* ctx, const char* fmt, ...);
+// OrcaSlicer: what a field shows and what kind of widget it is ("slider", "drag", "input", "multiline", "combo"), and the
+// text TextEx() draws, for automation; upstream's test engine reads these by other means.
+extern void         ImGuiTestEngineHook_ItemValue(ImGuiContext* ctx, ImGuiID id, const char* kind, const char* value, ImGuiItemStatusFlags flags);
+extern void         ImGuiTestEngineHook_Text(ImGuiContext* ctx, const ImRect& bb, const char* text, const char* text_end);
+#define IMGUI_TEST_ENGINE_ITEM_VALUE(_ID,_KIND,_VALUE,_FLAGS) if (g.TestEngineHookItems) ImGuiTestEngineHook_ItemValue(&g, _ID, _KIND, _VALUE, _FLAGS)
+#define IMGUI_TEST_ENGINE_TEXT(_BB,_TEXT,_TEXT_END)         if (g.TestEngineHookItems) ImGuiTestEngineHook_Text(&g, _BB, _TEXT, _TEXT_END)
 #define IMGUI_TEST_ENGINE_ITEM_ADD(_BB,_ID)                 if (g.TestEngineHookItems) ImGuiTestEngineHook_ItemAdd(&g, _BB, _ID)               // Register item bounding box
 #define IMGUI_TEST_ENGINE_ITEM_INFO(_ID,_LABEL,_FLAGS)      if (g.TestEngineHookItems) ImGuiTestEngineHook_ItemInfo(&g, _ID, _LABEL, _FLAGS)   // Register item label and status flags (optional)
 #define IMGUI_TEST_ENGINE_LOG(_FMT,...)                     if (g.TestEngineHookItems) ImGuiTestEngineHook_Log(&g, _FMT, __VA_ARGS__)          // Custom log entry from user land into test log
 #define IMGUI_TEST_ENGINE_ID_INFO(_ID,_TYPE,_DATA)          if (g.TestEngineHookIdInfo == id) ImGuiTestEngineHook_IdInfo(&g, _TYPE, _ID, (const void*)(_DATA));
-#define IMGUI_TEST_ENGINE_ID_INFO2(_ID,_TYPE,_DATA,_DATA2)  if (g.TestEngineHookIdInfo == id) ImGuiTestEngineHook_IdInfo(&g, _TYPE, _ID, (const void*)(_DATA), (const void*)(_DATA2));
+#define IMGUI_TEST_ENGINE_ID_INFO2(_ID,_TYPE,_DATA,_DATA2)  if (g.TestEngineHookItems || g.TestEngineHookIdInfo == id) ImGuiTestEngineHook_IdInfo(&g, _TYPE, _ID, (const void*)(_DATA), (const void*)(_DATA2));
 #else
 #define IMGUI_TEST_ENGINE_ITEM_ADD(_BB,_ID)                 do { } while (0)
 #define IMGUI_TEST_ENGINE_ITEM_INFO(_ID,_LABEL,_FLAGS)      do { } while (0)
 #define IMGUI_TEST_ENGINE_LOG(_FMT,...)                     do { } while (0)
 #define IMGUI_TEST_ENGINE_ID_INFO(_ID,_TYPE,_DATA)          do { } while (0)
 #define IMGUI_TEST_ENGINE_ID_INFO2(_ID,_TYPE,_DATA,_DATA2)  do { } while (0)
+#define IMGUI_TEST_ENGINE_ITEM_VALUE(_ID,_KIND,_VALUE,_FLAGS) do { } while (0)
+#define IMGUI_TEST_ENGINE_TEXT(_BB,_TEXT,_TEXT_END)         do { } while (0)
 #endif
 
 //-----------------------------------------------------------------------------

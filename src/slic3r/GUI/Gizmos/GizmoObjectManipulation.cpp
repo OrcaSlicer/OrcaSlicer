@@ -509,8 +509,13 @@ void GizmoObjectManipulation::on_change(const std::string &opt_key, int axis, do
         change_size_value(axis, new_value);
 }
 
-bool GizmoObjectManipulation::render_combo(
-    ImGuiWrapper *imgui_wrapper, const std::string &label, const std::vector<std::string> &lines, size_t &selection_idx, float label_width, float item_width)
+bool GizmoObjectManipulation::render_combo(ImGuiWrapper                   *imgui_wrapper,
+                                           const std::string              &label,
+                                           const std::vector<std::string> &lines,
+                                           size_t                         &selection_idx,
+                                           float                           label_width,
+                                           float                           item_width,
+                                           const std::string              &name)
 {
     if(!label.empty()){
         ImGui::AlignTextToFramePadding();
@@ -523,10 +528,14 @@ bool GizmoObjectManipulation::render_combo(
     size_t selection_out = selection_idx;
 
     const char *selected_str = (selection_idx >= 0 && selection_idx < int(lines.size())) ? lines[selection_idx].c_str() : "";
-    if (ImGui::BBLBeginCombo(("##" + label).c_str(), selected_str, 0)) {
+    const std::string combo_label = "##" + label;
+    // Taken before the combo, as an open combo leaves its popup as the current window.
+    const ImGuiID combo_id = ImGui::GetCurrentWindow()->GetIDNoKeepAlive(combo_label.c_str());
+    if (ImGui::BBLBeginCombo(combo_label.c_str(), selected_str, 0)) {
         for (size_t line_idx = 0; line_idx < lines.size(); ++line_idx) {
             ImGui::PushID(int(line_idx));
             if (ImGui::Selectable("", line_idx == selection_idx)) selection_out = line_idx;
+            imgui_wrapper->record_named_item(lines[line_idx], "option");
 
             ImGui::SameLine();
             ImGui::Text("%s", lines[line_idx].c_str());
@@ -535,6 +544,7 @@ bool GizmoObjectManipulation::render_combo(
 
         ImGui::EndCombo();
     }
+    imgui_wrapper->record_item_name(combo_id, name, "combo");
 
     bool is_changed = selection_idx != selection_out;
     selection_idx   = selection_out;
@@ -670,6 +680,7 @@ bool GizmoObjectManipulation::reset_button(ImGuiWrapper *imgui_wrapper, bool ena
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
     pressed = ImGui::ImageButton3(normal_id, hover_id, button_size, {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, enabled ? 1.f : 0.f});  // ORCA make icon invisible to prevent changes on layout
+    imgui_wrapper->record_named_item("Reset");
 
     ImGui::PopStyleVar(1);
 
@@ -694,6 +705,7 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper,  bo
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
     pressed = ImGui::ImageButton3(normal_id, hover_id, button_size, {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, enabled ? 1.f : 0.f});  // ORCA make icon invisible to prevent changes on layout
+    imgui_wrapper->record_named_item("Reset to zero");
 
     ImGui::PopStyleVar(1);
 
@@ -855,7 +867,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
 
     ImGuiWrapper::push_combo_style(m_glcanvas.get_scale());
     bool combox_changed = false;
-    if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
+    if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width, "coordinates")) {
         combox_changed = true;
     }
     ImGuiWrapper::pop_combo_style();
@@ -970,7 +982,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         ImGuiWrapper::push_combo_style(m_glcanvas.get_scale());
         // render_combo() takes its ImGui id from the empty label, which the coordinate combo uses too.
         ImGui::PushID("align_mode");
-        if (render_combo(imgui_wrapper, "", align_modes, align_mode_idx, 0, coord_combo_width))
+        if (render_combo(imgui_wrapper, "", align_modes, align_mode_idx, 0, coord_combo_width, "align_to"))
             m_align_to_parent = align_mode_idx + 1 == align_modes.size();
         ImGui::PopID();
         ImGuiWrapper::pop_combo_style();
@@ -982,8 +994,10 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
 
         const bool dark_mode    = wxGetApp().dark_mode();
         int        current_axis = -1;
+        // `name` is English, as automation names the button; the tooltip translates it.
         auto align_icon = [&](int axis, AlignType type, GLGizmosManager::MENU_ICON_NAME icon,
-                              GLGizmosManager::MENU_ICON_NAME dark_icon, const wxString &tip) {
+                              GLGizmosManager::MENU_ICON_NAME dark_icon, const char *name, const char *suffix) {
+            const wxString tip = _(name) + suffix;
             const bool distribute = type >= AlignType::DISTRIBUTE_X;
             const bool enabled    = m_align_to_parent ? m_alignment_helper.can_align(type, true) :
                                     distribute        ? m_alignment_helper.can_distribute(type) :
@@ -1002,7 +1016,9 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
                 ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyle().Colors[ImGuiCol_Button]);
             }
             ImTextureID texture = m_glcanvas.get_gizmos_manager().get_icon_texture_id(dark_mode ? dark_icon : icon);
-            if (ImGui::ImageButton3(texture, texture, ImVec2(align_icon_size, align_icon_size)) && enabled) {
+            const bool clicked = ImGui::ImageButton3(texture, texture, ImVec2(align_icon_size, align_icon_size));
+            imgui_wrapper->record_named_item(name);
+            if (clicked && enabled) {
                 if (distribute)
                     m_alignment_helper.distribute_objects(type);
                 else
@@ -1030,26 +1046,26 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             }
         };
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-        align_icon(0, AlignType::X_MIN, GLGizmosManager::IC_ALIGN_X_MIN, GLGizmosManager::IC_ALIGN_X_MIN_DARK, _L("Align left") + " (-X)");
-        align_icon(0, AlignType::CENTER_X, GLGizmosManager::IC_ALIGN_X_CENTER, GLGizmosManager::IC_ALIGN_X_CENTER_DARK, _L("Align left-right center") + " (X)");
-        align_icon(0, AlignType::X_MAX, GLGizmosManager::IC_ALIGN_X_MAX, GLGizmosManager::IC_ALIGN_X_MAX_DARK, _L("Align right") + " (+X)");
+        align_icon(0, AlignType::X_MIN, GLGizmosManager::IC_ALIGN_X_MIN, GLGizmosManager::IC_ALIGN_X_MIN_DARK, L("Align left"), " (-X)");
+        align_icon(0, AlignType::CENTER_X, GLGizmosManager::IC_ALIGN_X_CENTER, GLGizmosManager::IC_ALIGN_X_CENTER_DARK, L("Align left-right center"), " (X)");
+        align_icon(0, AlignType::X_MAX, GLGizmosManager::IC_ALIGN_X_MAX, GLGizmosManager::IC_ALIGN_X_MAX_DARK, L("Align right"), " (+X)");
 
-        align_icon(1, AlignType::Y_MIN, GLGizmosManager::IC_ALIGN_Y_MIN, GLGizmosManager::IC_ALIGN_Y_MIN_DARK, _L("Align front") + " (-Y)");
-        align_icon(1, AlignType::CENTER_Y, GLGizmosManager::IC_ALIGN_Y_CENTER, GLGizmosManager::IC_ALIGN_Y_CENTER_DARK, _L("Align front-back center") + " (Y)");
-        align_icon(1, AlignType::Y_MAX, GLGizmosManager::IC_ALIGN_Y_MAX, GLGizmosManager::IC_ALIGN_Y_MAX_DARK, _L("Align back") + " (+Y)");
+        align_icon(1, AlignType::Y_MIN, GLGizmosManager::IC_ALIGN_Y_MIN, GLGizmosManager::IC_ALIGN_Y_MIN_DARK, L("Align front"), " (-Y)");
+        align_icon(1, AlignType::CENTER_Y, GLGizmosManager::IC_ALIGN_Y_CENTER, GLGizmosManager::IC_ALIGN_Y_CENTER_DARK, L("Align front-back center"), " (Y)");
+        align_icon(1, AlignType::Y_MAX, GLGizmosManager::IC_ALIGN_Y_MAX, GLGizmosManager::IC_ALIGN_Y_MAX_DARK, L("Align back"), " (+Y)");
 
-        align_icon(2, AlignType::Z_MIN, GLGizmosManager::IC_ALIGN_Z_MIN, GLGizmosManager::IC_ALIGN_Z_MIN_DARK, _L("Align bottom") + " (-Z)");
-        align_icon(2, AlignType::CENTER_Z, GLGizmosManager::IC_ALIGN_Z_CENTER, GLGizmosManager::IC_ALIGN_Z_CENTER_DARK, _L("Align top-bottom center") + " (Z)");
-        align_icon(2, AlignType::Z_MAX, GLGizmosManager::IC_ALIGN_Z_MAX, GLGizmosManager::IC_ALIGN_Z_MAX_DARK, _L("Align top") + " (+Z)");
+        align_icon(2, AlignType::Z_MIN, GLGizmosManager::IC_ALIGN_Z_MIN, GLGizmosManager::IC_ALIGN_Z_MIN_DARK, L("Align bottom"), " (-Z)");
+        align_icon(2, AlignType::CENTER_Z, GLGizmosManager::IC_ALIGN_Z_CENTER, GLGizmosManager::IC_ALIGN_Z_CENTER_DARK, L("Align top-bottom center"), " (Z)");
+        align_icon(2, AlignType::Z_MAX, GLGizmosManager::IC_ALIGN_Z_MAX, GLGizmosManager::IC_ALIGN_Z_MAX_DARK, L("Align top"), " (+Z)");
 
         if (!m_align_to_parent) {
             row          = 1;
             current_axis = -1;
             ImGui::SetCursorPosY(center_in_row(row, ImGui::GetTextLineHeight()));
             imgui_wrapper->text(_L("Distribute"));
-            align_icon(0, AlignType::DISTRIBUTE_X, GLGizmosManager::IC_DISTRIBUTE_X, GLGizmosManager::IC_DISTRIBUTE_X_DARK, _L("Distribute left-right") + " (X)");
-            align_icon(1, AlignType::DISTRIBUTE_Y, GLGizmosManager::IC_DISTRIBUTE_Y, GLGizmosManager::IC_DISTRIBUTE_Y_DARK, _L("Distribute front-back") + " (Y)");
-            align_icon(2, AlignType::DISTRIBUTE_Z, GLGizmosManager::IC_DISTRIBUTE_Z, GLGizmosManager::IC_DISTRIBUTE_Z_DARK, _L("Distribute top-bottom") + " (Z)");
+            align_icon(0, AlignType::DISTRIBUTE_X, GLGizmosManager::IC_DISTRIBUTE_X, GLGizmosManager::IC_DISTRIBUTE_X_DARK, L("Distribute left-right"), " (X)");
+            align_icon(1, AlignType::DISTRIBUTE_Y, GLGizmosManager::IC_DISTRIBUTE_Y, GLGizmosManager::IC_DISTRIBUTE_Y_DARK, L("Distribute front-back"), " (Y)");
+            align_icon(2, AlignType::DISTRIBUTE_Z, GLGizmosManager::IC_DISTRIBUTE_Z, GLGizmosManager::IC_DISTRIBUTE_Z_DARK, L("Distribute top-bottom"), " (Z)");
         }
         ImGui::PopStyleVar();
         ImGui::SetCursorPosY(row_top(row + 1));
@@ -1384,7 +1400,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
 
     ImGuiWrapper::push_combo_style(m_glcanvas.get_scale());
     bool combox_changed = false;
-    if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
+    if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width, "coordinates")) {
         combox_changed = true;
     }
     ImGuiWrapper::pop_combo_style();

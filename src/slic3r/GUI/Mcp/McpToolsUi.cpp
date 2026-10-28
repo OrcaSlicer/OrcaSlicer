@@ -2,6 +2,7 @@
 // dialogs and run JavaScript in web views.
 
 #include "JobRegistry.hpp"
+#include "McpPaths.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
@@ -10,6 +11,10 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
@@ -48,7 +53,7 @@ const json kTargetSchema = {{"type", json::array({"string", "object"})},
                             {"description",
                              "A ref from the latest ui_snapshot (\"w12\") or a locator: {label, class, name, within, index} for "
                              "widgets, {option:\"layer_height\"} for a setting field, {menu:\"File>Export>Export G-code\"}, {gltoolbar:\"arrange\"}, {gizmo:\"Move\"}, or "
-                             "{imgui:\"label\", window?, canvas?}."}};
+                             "{imgui:\"label\", imgui_name?:\"name\", window?, canvas?, index?} for an ImGui item, by its label, its name or both."}};
 
 const json kModifiersSchema = {{"type", "array"},
                                {"items", {{"type", "string"}, {"enum", {"ctrl", "cmd", "rawctrl", "shift", "alt"}}}},
@@ -203,7 +208,8 @@ void register_ui_tools(McpService& service)
             "ui_snapshot", "List the GUI",
             "Describe what is on screen as an indented tree, one element per line with a ref: wx widgets of every shown window "
             "(buttons, fields, checkboxes, combos, tabs, labels), the main menus, the 3D canvas's toolbar items and gizmos, and "
-            "the ImGui items drawn in the last frame. Pass the refs to ui_click / ui_input / ui_key. Refs go stale when the "
+            "each ImGui panel drawn in the last frame with its items (kind, value, name) and text. Pass the refs to ui_click / "
+            "ui_input / ui_key. Refs go stale when the "
             "element goes away; take a new snapshot then. root: \"all\" (default), \"main\", \"dialog\" (topmost modal) or a "
             "window's ref. query filters by label, value, name or class. Prefer run_action and the typed tools when one fits.",
             object_schema({{"root", prop("string", "all | main | dialog | <ref of a window>.")},
@@ -232,7 +238,9 @@ void register_ui_tools(McpService& service)
     reg.add(recover_input_tool(
         "ui_click", "Click an element",
         "Activate a GUI element: menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and gizmos are activated "
-        "the way their owners expect; other widgets and ImGui items get a synthesized mouse click. With x/y on a 3D canvas "
+        "the way their owners expect (a gizmo as its toolbar icon: it opens, a second click closes it, and Text on an object "
+        "with no text creates a text part and replies created); other widgets and ImGui items get a synthesized mouse click, "
+        "after the item is scrolled into view. With x/y on a 3D canvas "
         "target, clicks that point (logical pixels from the canvas's top left). Modifiers are seen by the 3D canvas, the "
         "object list and handlers that read the event. A click that opens a dialog returns blocked_by_dialog with the job.",
         object_schema({{"target", kTargetSchema},
@@ -250,14 +258,33 @@ void register_ui_tools(McpService& service)
             o.at_point     = args.contains("x") || args.contains("y");
             o.x            = arg_int(args, "x", 0);
             o.y            = arg_int(args, "y", 0);
-            json locator;
+            json        locator;
+            GLCanvas3D* canvas = nullptr;
+            int         gizmo  = -1;
             json out = ctx.run_ui([&] {
                 UiTarget t = service.inspector().resolve(args["target"]);
                 locator    = service.inspector().locator_for(t);
                 guard_target(service, target_window(t));
+                canvas = t.canvas;
+                gizmo  = t.gizmo;
                 return service.inspector().click(t, o);
             });
             journal_with_locator(ctx, args, locator);
+            if (out.value("creating", false)) {
+                // The Text gizmo's icon with no text selected queued a job that creates a text part
+                // and opens the gizmo when it ends.
+                out = poll_ui(
+                    ctx,
+                    [&]() -> json {
+                        if (!ui_plater().get_ui_job_worker().is_idle())
+                            return json();
+                        const auto canvases = live_canvases();
+                        const bool active   = std::find(canvases.begin(), canvases.end(), canvas) != canvases.end() &&
+                                            int(canvas->get_gizmos_manager().get_current_type()) == gizmo;
+                        return json{{"gizmo", out["gizmo"]}, {"created", true}, {"active", active}};
+                    },
+                    std::chrono::seconds(30), "the new text part");
+            }
             settle(ctx);
             return ToolResult::ok(out);
         }));
@@ -266,8 +293,11 @@ void register_ui_tools(McpService& service)
         "ui_input", "Set a control's value",
         "Set the text, number, selection or checked state of a control and send the event a person's edit would: text fields "
         "(submit:true also presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, "
-        "sliders, choice / combo / list boxes (by option text or index), checkboxes and toggles (true/false). On an ImGui "
-        "field it clicks, selects all and types. For settings, set_settings is more reliable.",
+        "sliders, choice / combo / list boxes (by option text or index), checkboxes and toggles (true/false). An ImGui item "
+        "is set by its kind and its value read back: a field is typed into (a slider through the number field beside it, "
+        "multiline text with \\n), a combo's option is picked by its text or 0-based index, a checkbox, radio or toggle "
+        "clicked when it differs. For "
+        "settings, set_settings is more reliable.",
         object_schema({{"target", kTargetSchema},
                        {"value", {{"type", json::array({"string", "number", "boolean"})}, {"description", "The new value."}}},
                        {"submit", prop("boolean", "Press Enter / commit after setting (default true).")}},
@@ -312,35 +342,114 @@ void register_ui_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
+    const json target_schema = {
+        {"type", "object"},
+        {"description", "A point of the model: {object, instance (default 0), volume (part, default 0), and point [x, y, z] in "
+                        "the part's own mesh coordinates (frame \"volume\", the default) or the scene's (frame \"world\"), or "
+                        "spot: top | bottom | front | back | left | right, where a ray along that axis first meets the part}."},
+        {"properties",
+         {{"object", {{"type", "integer"}, {"minimum", 0}}},
+          {"instance", {{"type", "integer"}, {"minimum", 0}}},
+          {"volume", {{"type", "integer"}, {"minimum", 0}}},
+          {"point", array_prop({{"type", "number"}}, "[x, y, z] mm")},
+          {"frame", enum_prop({"volume", "world"}, "Default volume.")},
+          {"spot", enum_prop({"top", "bottom", "front", "back", "left", "right"}, "A side of the part.")}}},
+        {"required", {"object"}},
+        {"additionalProperties", false}};
+    const json pixel_or_target = {{"type", json::array({"array", "object"})},
+                                  {"description", "A canvas pixel [x, y] or a point of the model, as for at."}};
     reg.add(mutate_tool(
         "ui_mouse", "Mouse gesture on the 3D view",
-        "Synthesize a mouse gesture on a 3D canvas at logical pixel coordinates from its top left: move, down, up, click, "
-        "drag (from x,y to `to`, in `steps` moves; the left button rotates the camera, right or middle pans, on an object it "
-        "moves it) or wheel (delta in notches, positive zooms in). A down keeps its button held, so moves drag with it, "
-        "until an up or another gesture. Coordinates come from a canvas screenshot divided by the screen scale, or from "
-        "ui_snapshot's ImGui item rectangles.",
+        "Synthesize a mouse gesture on a 3D canvas, as a person's would: move, down, up, click, drag (from the start through "
+        "`path` to `to`, `steps` moves per leg; the left button rotates the camera, right or middle pans, on an object it "
+        "moves it, in a painting gizmo it paints) or wheel (delta in notches, positive zooms in or scrolls a panel up). Give "
+        "the start as `at`, a point of the model, which is projected through the camera and by default checked to land on "
+        "that part there (check \"point\" only projects it), or as x/y, logical pixels from the canvas's top left. "
+        "Modifiers are pressed as keys for the gesture (shift for Measure's point picking, alt for erasing). A down keeps "
+        "its button and modifiers held, so moves drag with it, until an up or another gesture. Grabbers are set through "
+        "the gizmo's panel fields or transform, not dragged.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
                        {"canvas", enum_prop({"3d", "preview", "assemble", "current"}, "Default current.")},
-                       {"x", prop("integer", "Start x.")},
-                       {"y", prop("integer", "Start y.")},
-                       {"to", array_prop({{"type", "integer"}}, "Drag end [x, y].")},
-                       {"steps", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Drag moves (default 10)."}}},
+                       {"at", target_schema},
+                       {"x", prop("integer", "Start x, instead of at.")},
+                       {"y", prop("integer", "Start y, instead of at.")},
+                       {"to", pixel_or_target},
+                       {"path", array_prop(pixel_or_target, "Drag waypoints after the start, before to.")},
+                       {"check", enum_prop({"surface", "point"}, "For model points: surface (default) or projection only.")},
+                       {"tolerance", {{"type", "number"}, {"minimum", 0}, {"description", "Surface check distance in mm (default 1% of the part's size, at least 0.1)."}}},
+                       {"steps", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Moves per drag leg (default 10)."}}},
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},
                        {"double", prop("boolean", "Double click.")},
                        {"delta", prop("integer", "Wheel notches.")},
-                       {"modifiers", kModifiersSchema}},
-                      {"x", "y"}),
+                       {"modifiers", kModifiersSchema}}),
         [&service](const json& args, ToolContext& ctx) {
+            const std::string owner = service.script_owner(service.jobs().ancestry(ctx.job_id()));
             json out = ctx.run_ui([&] {
-                const std::string name   = arg_string(args, "canvas", "current");
-                Plater&           plater = ui_plater();
-                GLCanvas3D*       canvas = name == "3d"       ? plater.get_view3D_canvas3D() :
-                                           name == "preview"  ? plater.get_preview_canvas3D() :
-                                           name == "assemble" ? plater.get_assmeble_canvas3D() :
-                                                                plater.get_current_canvas3D();
-                if (canvas == nullptr || !canvas->get_wxglcanvas()->IsShownOnScreen())
-                    throw ToolFailure("That 3D view is not shown; switch to it with set_view first");
-                return service.inspector().mouse(*canvas, args);
+                // A client's press that runs after the endpoint closed would stay held, with no one left
+                // to release it.
+                if (owner.empty() && !service.endpoint_open())
+                    throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
+                try {
+                    const std::string name   = arg_string(args, "canvas", "current");
+                    Plater&           plater = ui_plater();
+                    GLCanvas3D*       canvas = name == "3d"       ? plater.get_view3D_canvas3D() :
+                                               name == "preview"  ? plater.get_preview_canvas3D() :
+                                               name == "assemble" ? plater.get_assmeble_canvas3D() :
+                                                                    plater.get_current_canvas3D();
+                    if (canvas == nullptr || !canvas->get_wxglcanvas()->IsShownOnScreen())
+                        throw ToolFailure("That 3D view is not shown; switch to it with set_view first");
+                    return service.inspector().mouse(*canvas, args, owner);
+                } catch (...) {
+                    // A gesture that fails ends a press held from before it, as any other gesture would.
+                    service.inspector().release_held(nullptr);
+                    throw;
+                }
+            });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+
+    reg.add(mutate_tool(
+        "gizmo_file", "Use a file in the open gizmo",
+        "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG "
+        "file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with "
+        "overwrite), texture_import imports a height-map image into the texture library and puts it on Texture "
+        "Displacement's active layer. To add an SVG part, use run_action add_primitive_svg with a path.",
+        object_schema({{"action", enum_prop({"svg_change", "svg_save_as", "texture_import"}, "What to do.")},
+                       {"path", prop("string", "Absolute path of the file to read or write.")},
+                       {"overwrite", prop("boolean", "svg_save_as: replace an existing file.")}},
+                      {"action", "path"}),
+        [](const json& args, ToolContext& ctx) {
+            const std::string action = arg_string(args, "action");
+            json out = ctx.run_ui([&]() -> json {
+                GLCanvas3D* canvas = ui_plater().get_current_canvas3D();
+                if (canvas == nullptr)
+                    throw ToolFailure("No 3D view is shown");
+                GLGizmosManager&                 gizmos = canvas->get_gizmos_manager();
+                const GLGizmosManager::EType     needed = action == "texture_import" ? GLGizmosManager::TextureDisplacement : GLGizmosManager::Svg;
+                if (gizmos.get_current_type() != needed)
+                    throw ToolFailure(needed == GLGizmosManager::Svg ? "Open the SVG gizmo on an SVG part first" :
+                                                                       "Open the Texture displacement gizmo first");
+                std::string err;
+                const auto  path = action == "svg_save_as" ? resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err) :
+                                                             resolve_input_path(arg_string(args, "path"), err);
+                if (!path)
+                    throw ToolFailure(err);
+                const std::string file = path_to_utf8(*path);
+                if (action == "texture_import") {
+                    if (!dynamic_cast<GLGizmoTextureDisplacement*>(gizmos.get_current())->import_texture(file, err))
+                        throw ToolFailure(err);
+                    return {{"imported", file}};
+                }
+                auto* svg = dynamic_cast<GLGizmoSVG*>(gizmos.get_current());
+                if (action == "svg_change") {
+                    if (!svg->change_file(file))
+                        throw ToolFailure("The file has no shapes the SVG gizmo can use");
+                    return {{"changed_to", file}};
+                }
+                if (!svg->save_svg_as(file))
+                    throw ToolFailure("Could not write " + file);
+                return {{"saved", file}};
             });
             settle(ctx);
             return ToolResult::ok(out);

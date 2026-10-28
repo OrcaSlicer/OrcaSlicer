@@ -1,30 +1,43 @@
 #include "libslic3r/Config.hpp"
 #include "UiInspector.hpp"
 
+#include "CanvasTarget.hpp"
 #include "McpService.hpp"
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
+#include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/BBLTopbar.hpp"
+#include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/SideButton.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "libslic3r/AABBMesh.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "UiRefs.hpp"
 
+#include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
 #include <wx/button.h>
@@ -66,12 +79,15 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cfloat>
 #include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -395,11 +411,13 @@ wxMenuItem* find_menu_path(const std::string& wanted, int& id)
     return nullptr;
 }
 
+} // namespace
+
 // Stable English gizmo names for refs and locators: the names Orca uses for the gizmos it names,
 // and the enum's own for the rest.
-std::string gizmo_name(GLGizmosManager::EType type)
+std::string gizmo_name(int type)
 {
-    if (std::string name = get_name_from_gizmo_etype(type); !name.empty())
+    if (std::string name = get_name_from_gizmo_etype(GLGizmosManager::EType(type)); !name.empty())
         return name;
     switch (type) {
     case GLGizmosManager::Svg: return "SVG";
@@ -407,9 +425,11 @@ std::string gizmo_name(GLGizmosManager::EType type)
     case GLGizmosManager::Assembly: return "Assembly";
     case GLGizmosManager::Simplify: return "Simplify";
     case GLGizmosManager::BrimEars: return "Brim Ears";
-    default: return "Gizmo " + std::to_string(int(type));
+    default: return "Gizmo " + std::to_string(type);
     }
 }
+
+namespace {
 
 GLGizmosManager::EType gizmo_from_name(const std::string& name)
 {
@@ -557,23 +577,39 @@ void click_window(wxWindow* w, const ClickOptions& o)
 }
 
 // Delivers synthesized mouse events to a 3D canvas, drawing a frame after each so ImGui sees the
-// hover, the press and the release on separate frames, as with a real mouse.
+// hover, the press and the release on separate frames, as with a real mouse. Its modifiers are
+// pressed as a keyboard does, with a key-down event each before the gesture and a key-up after it,
+// so gizmos that switch modes on the key (Measure's Shift point picking) see them.
 class CanvasMouse
 {
 public:
-    CanvasMouse(GLCanvas3D& canvas, const std::vector<std::string>& mods) : m_canvas(canvas), m_mods(parse_modifiers(mods))
+    // `keys_down`: the modifiers' keys are already down, held by an earlier gesture.
+    CanvasMouse(GLCanvas3D& canvas, int mods, bool keys_down = false) : m_canvas(canvas), m_mods(mods)
     {
-        for (int k : modifier_keys(m_mods))
+        if (keys_down)
+            return;
+        int down = wxMOD_NONE;
+        for (int k : modifier_keys(m_mods)) {
             SyntheticInput::press_key(k);
+            down |= modifier_of(k);
+            key_event(wxEVT_KEY_DOWN, k, down);
+        }
     }
     ~CanvasMouse()
     {
-        if (!m_keep_held)
+        if (!m_keep_held) {
+            int down = m_mods;
+            for (int k : modifier_keys(m_mods)) {
+                SyntheticInput::release_key(k);
+                down &= ~modifier_of(k);
+                key_event(wxEVT_KEY_UP, k, down);
+            }
             SyntheticInput::clear();
+        }
         m_canvas.set_as_dirty();
     }
-    // A press that the next call releases: the button stays down for code that asks for the mouse
-    // state, until a later gesture or the service's stop clears it.
+    // A press that a later call releases: the button and the modifier keys stay down for code that
+    // asks for their state, until UiInspector::release_held() ends the gesture.
     void keep_held() { m_keep_held = true; }
     void event(wxEventType type, const wxPoint& pos, bool left, bool right, bool middle, int wheel = 0)
     {
@@ -595,14 +631,47 @@ public:
     }
 
 private:
+    static int modifier_of(int key)
+    {
+        switch (key) {
+        case WXK_CONTROL: return wxMOD_CONTROL;
+#ifdef __APPLE__
+        case WXK_RAW_CONTROL: return wxMOD_RAW_CONTROL;
+#endif
+        case WXK_SHIFT: return wxMOD_SHIFT;
+        case WXK_ALT: return wxMOD_ALT;
+        default: return wxMOD_NONE;
+        }
+    }
+    // A modifier key's own event, carrying the modifiers down once it has happened.
+    void key_event(wxEventType type, int key, int down)
+    {
+        wxKeyEvent evt(type);
+        evt.m_keyCode = key;
+        set_modifiers(evt, down);
+        send(m_canvas.get_wxglcanvas(), evt);
+        m_canvas.render();
+    }
+
     GLCanvas3D& m_canvas;
     int         m_mods;
     bool        m_keep_held = false;
 };
 
+// The pointer arriving with no modifier held, as a person moves onto a spot before holding Shift to
+// click it: gizmos that prepare on hover (Measure's point picking) see the spot first.
+void hover(GLCanvas3D& canvas, const wxPoint& pos)
+{
+    CanvasMouse m(canvas, wxMOD_NONE);
+    m.event(wxEVT_MOTION, pos, false, false, false);
+}
+
 void canvas_click(GLCanvas3D& canvas, const wxPoint& pos, const ClickOptions& o)
 {
-    CanvasMouse m(canvas, o.modifiers);
+    const int mods = parse_modifiers(o.modifiers);
+    if (mods != wxMOD_NONE)
+        hover(canvas, pos);
+    CanvasMouse m(canvas, mods);
     const bool  right = o.button == "right", middle = o.button == "middle", left = !right && !middle;
     m.event(wxEVT_MOTION, pos, false, false, false);
     m.event(left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN, pos, left, right, middle);
@@ -620,6 +689,145 @@ wxPoint imgui_to_canvas(GLCanvas3D& canvas, float x, float y)
     return {int(std::lround(x / scale)), int(std::lround(y / scale))};
 }
 
+// Kinds of ImGui items that hold a value a person types or picks.
+bool is_imgui_field(const std::string& kind)
+{
+    return kind == "slider" || kind == "drag" || kind == "input" || kind == "multiline" || kind == "combo";
+}
+
+// What a listed ImGui item is: its widget kind, else a checkbox or a button.
+std::string imgui_kind(const ImGuiWrapper::RecordedItem& item)
+{
+    if (!item.kind.empty())
+        return item.kind;
+    return (item.flags & ImGuiItemStatusFlags_Checkable) != 0 ? "checkbox" : "button";
+}
+
+// What an item shows as its value: a field's recorded value, or for a combo drawn as a button (the
+// Text gizmo's font list) the button's own label.
+std::string imgui_value(const ImGuiWrapper::RecordedItem& item)
+{
+    return item.value.empty() && item.kind == "combo" ? clean_imgui_label(item.label) : item.value;
+}
+
+// Whether an item is in the popup of a combo or a popup-list (ImGui names those windows
+// "##Combo_NN" and "##Popup_XXXXXXXX", and their children after them).
+bool in_popup(const ImGuiWrapper::RecordedItem& item)
+{
+    return item.window.rfind("##Combo", 0) == 0 || item.window.rfind("##Popup", 0) == 0;
+}
+
+// The logical pixel of `canvas` showing a point of the model: {object, instance, volume} and either
+// `point` (with `frame` "volume", the part's mesh coordinates, or "world", the scene's) or `spot`.
+// With `check` "surface" a click there must land on that part at that point (see check_surface()).
+wxPoint target_pixel(GLCanvas3D& canvas, const json& target, const std::string& check, double tolerance)
+{
+    if (!target.is_object())
+        throw ToolFailure("A model target is {object, instance, volume, point | spot}");
+    const int oi = target.value("object", -1), ii = target.value("instance", 0), vi = target.value("volume", 0);
+    const std::string what = "object " + std::to_string(oi) + " instance " + std::to_string(ii) + " part " + std::to_string(vi);
+    // The instance the open gizmo works on draws its parts itself, even while their scene entries are
+    // inactive (the painters deactivate them).
+    GLGizmosManager& gizmos    = canvas.get_gizmos_manager();
+    const Selection& selection = canvas.get_selection();
+    const bool       gizmo     = gizmos.get_current_type() != GLGizmosManager::Undefined;
+    auto             own       = [&](const GLVolume* v) {
+        return gizmo && v->object_idx() == selection.get_object_idx() && v->instance_idx() == selection.get_instance_idx();
+    };
+    const GLVolume* shown = nullptr;
+    for (const GLVolume* v : canvas.get_volumes().volumes)
+        if (v->object_idx() == oi && v->instance_idx() == ii && v->volume_idx() == vi && !v->is_wipe_tower)
+            shown = v;
+    // The assemble view shows only the objects selected when it opened, and clears `visible` on the rest.
+    if (shown == nullptr || shown->mesh_raycaster == nullptr || !shown->visible || (!shown->is_active && !own(shown)))
+        throw ToolFailure(what + " is not shown in the " + std::string(canvas_name(&canvas)) +
+                          " view (list_objects lists objects and parts; the assemble view shows the objects selected when it opened)");
+    const Transform3d world = shown->world_matrix();
+    const AABBMesh&   mesh  = shown->mesh_raycaster->get_aabb_mesh();
+
+    Vec3d point;
+    if (target.contains("spot")) {
+        const std::string spot = target["spot"].get<std::string>();
+        const auto        hit  = spot_point(mesh, world, spot);
+        if (!hit)
+            throw ToolFailure("No " + spot + " spot on " + what + " (spot: top, bottom, front, back, left, right)");
+        point = *hit;
+    } else if (target.contains("point")) {
+        const json& p = target["point"];
+        if (!p.is_array() || p.size() != 3)
+            throw ToolFailure("point is [x, y, z]");
+        point = Vec3d(p[0].get<double>(), p[1].get<double>(), p[2].get<double>());
+        const std::string frame = target.value("frame", "volume");
+        if (frame == "volume")
+            point = world * point;
+        else if (frame != "world")
+            throw ToolFailure("frame is volume or world");
+    } else {
+        throw ToolFailure("A model target needs point or spot");
+    }
+
+    CanvasView view;
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    view.view            = camera.get_view_matrix();
+    view.projection      = camera.get_projection_matrix();
+    view.viewport        = camera.get_viewport();
+    view.scale           = canvas.get_scale();
+    const auto projected = project_point(view, point);
+    if (!projected)
+        throw ToolFailure("The point of " + what + " is off screen; turn or zoom the camera with set_view");
+    // Events carry whole logical pixels: the click goes through this one, not the projected point.
+    const wxPoint pixel(int(std::lround(projected->x())), int(std::lround(projected->y())));
+
+    if (check == "surface") {
+        // What a person sees: active parts, and the parts of the instance the open gizmo works on.
+        // Other inactive parts are hidden, modifiers are see-through, and gizmo geometry takes clicks
+        // as it would from a person.
+        // The manager hands the plane out flipped, for drawing; the gizmos' own raycasts use it as
+        // the object clipper holds it.
+        std::optional<ClippingPlane> clip;
+        if (gizmo)
+            if (const auto drawn = gizmos.get_clipping_plane())
+                clip = drawn->inverted_normal();
+        std::vector<SurfaceMesh> meshes;
+        BoundingBoxf3            target_box;
+        for (const GLVolume* v : canvas.get_volumes().volumes) {
+            if (v->mesh_raycaster == nullptr || !v->visible || v->is_modifier || (!v->is_active && !own(v)))
+                continue;
+            meshes.push_back({&v->mesh_raycaster->get_aabb_mesh(), v->world_matrix(), v == shown, own(v),
+                              "object " + std::to_string(v->object_idx()) + " instance " + std::to_string(v->instance_idx()) +
+                                  " part " + std::to_string(v->volume_idx())});
+        }
+        for (const Vec3f& vertex : mesh.vertices())
+            target_box.merge(world * vertex.cast<double>());
+        std::vector<Polygon> beds;
+        PartPlateList&       plates = wxGetApp().plater()->get_partplate_list();
+        for (int i = 0; i < plates.get_plate_count(); ++i)
+            if (PartPlate* plate = plates.get_plate(i))
+                beds.push_back(Polygon::new_scale(plate->get_shape()));
+        const double      limit = tolerance > 0. ? tolerance : std::max(0.1, 0.01 * target_box.size().norm());
+        const std::string why   = check_surface(point, pixel_ray(view, Vec2d(pixel.x, pixel.y)), meshes, clip ? &*clip : nullptr, beds, limit);
+        if (!why.empty())
+            throw ToolFailure("A click at the point of " + what + " would miss it: " + why +
+                              ". Turn the camera with set_view, or pass check:\"point\" for a point off the surface");
+    } else if (check != "point") {
+        throw ToolFailure("check is surface or point");
+    }
+    return pixel;
+}
+
+// Whether the selection is one SVG part, the only selection the SVG gizmo opens on.
+bool selection_is_svg_part(GLCanvas3D& canvas)
+{
+    const GLVolume* gl_volume = get_selected_gl_volume(canvas.get_selection());
+    const Model*    model     = canvas.get_selection().get_model();
+    if (gl_volume == nullptr || model == nullptr)
+        return false;
+    const ModelVolume* volume = get_model_volume(*gl_volume, model->objects);
+    return volume != nullptr && GLGizmoSVG::is_svg(*volume);
+}
+
+} // namespace
+
 const char* canvas_name(GLCanvas3D* canvas)
 {
     Plater* plater = wxGetApp().plater();
@@ -633,6 +841,8 @@ const char* canvas_name(GLCanvas3D* canvas)
         return "assemble";
     return "";
 }
+
+namespace {
 
 GLCanvas3D* canvas_by_name(const std::string& name)
 {
@@ -724,14 +934,9 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
     case UiTarget::Kind::ImGuiItem: {
         kind = 'g';
         GLCanvas3D* canvas = target.canvas;
-        const unsigned id = target.imgui_id;
-        alive = [canvas, id] {
-            if (!is_live_canvas(canvas) || wxGetApp().imgui() == nullptr)
-                return false;
-            for (const auto& item : wxGetApp().imgui()->recorded_items(canvas))
-                if (item.id == id)
-                    return true;
-            return false;
+        alive = [canvas, id = target.imgui_id, name = target.imgui_name, window = target.imgui_window, twins = target.imgui_twins] {
+            return is_live_canvas(canvas) && wxGetApp().imgui() != nullptr &&
+                   imgui_find_item(wxGetApp().imgui()->recorded_items(canvas), id, name, window, twins).has_value();
         };
         break;
     }
@@ -801,13 +1006,21 @@ void UiInspector::add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<Ui
     if (gizmos.is_enabled())
         for (int type = 0; type < int(GLGizmosManager::Undefined); ++type) {
             GLGizmoBase* g = gizmos.get_gizmo(GLGizmosManager::EType(type));
-            if (g == nullptr || !g->is_selectable())
+            if (g == nullptr)
+                continue;
+            // The toolbar's gizmos, and on the Prepare canvas the two that open from the object list
+            // while they can open now: Simplify, and SVG on a selected SVG part.
+            const bool on_toolbar = gizmos.is_on_toolbar(GLGizmosManager::EType(type));
+            const bool prepare    = cname == std::string("3d");
+            if (!on_toolbar && !(prepare && type == GLGizmosManager::Simplify && g->is_activable()) &&
+                !(prepare && type == GLGizmosManager::Svg && selection_is_svg_part(canvas)))
                 continue;
             UiNode node;
             node.kind    = "gizmo";
-            node.label   = gizmo_name(GLGizmosManager::EType(type));
+            node.label   = gizmo_name(type);
             node.enabled = g->is_activable();
             node.checked = gizmos.get_current_type() == GLGizmosManager::EType(type) ? 1 : 0;
+            node.note    = on_toolbar ? "toolbar" : "no toolbar icon";
             node.depth   = depth;
             UiTarget t;
             t.kind    = UiTarget::Kind::Gizmo;
@@ -818,32 +1031,145 @@ void UiInspector::add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<Ui
             t.locator = {{"gizmo", node.label}, {"canvas", cname}};
             push(std::move(node), std::move(t), nodes, omitted, o);
         }
-    if (!o.include_imgui || wxGetApp().imgui() == nullptr)
-        return;
-    for (const ImGuiWrapper::RecordedItem& item : wxGetApp().imgui()->recorded_items(&canvas)) {
-        const std::string label = clean_imgui_label(item.label);
-        if (label.empty())
-            continue;
-        const wxPoint at = imgui_to_canvas(canvas, item.x, item.y);
-        const wxPoint br = imgui_to_canvas(canvas, item.x + item.w, item.y + item.h);
-        UiNode        node;
-        node.kind  = "imgui";
-        node.label = label;
-        if (item.flags & ImGuiItemStatusFlags_Checkable)
-            node.checked = (item.flags & ImGuiItemStatusFlags_Checked) ? 1 : 0;
-        node.cls   = clean_imgui_label(item.window);
-        node.depth = depth;
-        node.x = at.x, node.y = at.y, node.w = br.x - at.x, node.h = br.y - at.y;
-        UiTarget t;
-        t.kind         = UiTarget::Kind::ImGuiItem;
-        t.window       = canvas.get_wxglcanvas();
-        t.canvas       = &canvas;
-        t.imgui_id     = item.id;
-        t.imgui_label  = label;
-        t.imgui_window = item.window;
-        t.x = item.x, t.y = item.y, t.w = item.w, t.h = item.h;
-        t.locator      = {{"imgui", label}, {"window", clean_imgui_label(item.window)}, {"canvas", cname}};
-        push(std::move(node), std::move(t), nodes, omitted, o);
+    if (o.include_imgui && wxGetApp().imgui() != nullptr)
+        add_imgui_items(canvas, depth, nodes, omitted, o);
+}
+
+// The ImGui windows of a canvas's last frame, each with its items and text in reading order. Text
+// is listed for reading only: it has no ref and no locator matches it.
+void UiInspector::add_imgui_items(GLCanvas3D& canvas, int depth, std::vector<UiNode>& nodes, std::size_t& omitted, const SnapshotOptions& o)
+{
+    const std::string cname  = canvas_name(&canvas);
+    const auto        items  = wxGetApp().imgui()->recorded_items(&canvas);
+    const auto        texts  = wxGetApp().imgui()->recorded_texts(&canvas);
+    const auto        labels = imgui_display_labels(items, texts);
+
+    // A window's items and texts, row by row (by their middles: a label sits lower than its field's
+    // frame) and left to right.
+    struct Entry
+    {
+        float       y, x; // middle, left
+        int         item; // index into items, or -1 for texts[text]
+        std::size_t text;
+    };
+    std::vector<std::string>                   windows;
+    std::map<std::string, std::vector<Entry>> entries;
+    auto add = [&](const std::string& window, Entry e) {
+        if (entries.find(window) == entries.end())
+            windows.push_back(window);
+        entries[window].push_back(e);
+    };
+    for (std::size_t i = 0; i < items.size(); ++i)
+        if (!labels[i].empty() || !imgui_item_name(items[i]).empty())
+            add(items[i].window, {items[i].y + items[i].h / 2.f, items[i].x, int(i), 0});
+    for (std::size_t i = 0; i < texts.size(); ++i)
+        add(texts[i].window, {texts[i].y + texts[i].h / 2.f, texts[i].x, -1, i});
+
+    // Nodes without a ref (window headers, text) obey the query and the node limit too.
+    auto push_plain = [&](UiNode node) {
+        if (!o.query.empty()) {
+            const std::string q = lower(o.query);
+            if (lower(node.label).find(q) == std::string::npos && lower(node.kind) != q)
+                return;
+        }
+        if (int(nodes.size()) >= o.max_nodes) {
+            ++omitted;
+            return;
+        }
+        node.ref = "-";
+        nodes.push_back(std::move(node));
+    };
+    for (const std::string& window : windows) {
+        UiNode header;
+        header.kind  = "imgui_window";
+        header.label = imgui_window_label(window);
+        header.depth = depth;
+        // A child window is "<parent>/<name>_<8 hex digits>"; its name says which part of the panel it is.
+        if (const auto slash = window.rfind('/'); slash != std::string::npos) {
+            const std::string child = window.substr(slash + 1);
+            const std::string stem  = child.size() > 9 ? child.substr(0, child.size() - 9) : child;
+            header.name             = imgui_label_name(stem).empty() ? clean_imgui_label(stem) : imgui_label_name(stem);
+        }
+        if (ImGuiWindow* w = ImGui::GetCurrentContext() != nullptr ? ImGui::FindWindowByName(window.c_str()) : nullptr) {
+            const wxPoint at = imgui_to_canvas(canvas, w->Pos.x, w->Pos.y);
+            const wxPoint br = imgui_to_canvas(canvas, w->Pos.x + w->Size.x, w->Pos.y + w->Size.y);
+            header.x = at.x, header.y = at.y, header.w = br.x - at.x, header.h = br.y - at.y;
+            if (w->ScrollMax.y > 0.f)
+                header.note = "scroll " + std::to_string(int(w->Scroll.y)) + "/" + std::to_string(int(w->ScrollMax.y)) +
+                              "; ui_mouse wheel over it scrolls it";
+        }
+        push_plain(std::move(header));
+
+        std::vector<Entry>& list = entries[window];
+        std::stable_sort(list.begin(), list.end(), [](const Entry& a, const Entry& b) { return a.y < b.y; });
+        for (auto row = list.begin(); row != list.end();) {
+            const auto end = std::find_if(row, list.end(), [&](const Entry& e) { return e.y - row->y > 4.f; });
+            std::stable_sort(row, end, [](const Entry& a, const Entry& b) { return a.x < b.x; });
+            row = end;
+        }
+        for (const Entry& e : list) {
+            if (e.item < 0) {
+                const ImGuiWrapper::RecordedText& text = texts[e.text];
+                UiNode node;
+                node.kind  = "text";
+                node.label = text.text.size() > 120 ? text.text.substr(0, 117) + "..." : text.text;
+                std::replace(node.label.begin(), node.label.end(), '\n', ' ');
+                node.depth = depth + 1;
+                const wxPoint at = imgui_to_canvas(canvas, text.x, text.y);
+                const wxPoint br = imgui_to_canvas(canvas, text.x + text.w, text.y + text.h);
+                node.x = at.x, node.y = at.y, node.w = br.x - at.x, node.h = br.y - at.y;
+                push_plain(std::move(node));
+                continue;
+            }
+            const ImGuiWrapper::RecordedItem& item = items[std::size_t(e.item)];
+            const std::string                 name = imgui_item_name(item);
+            const wxPoint at = imgui_to_canvas(canvas, item.x, item.y);
+            const wxPoint br = imgui_to_canvas(canvas, item.x + item.w, item.y + item.h);
+            UiNode        node;
+            node.kind  = "imgui";
+            node.cls   = imgui_kind(item);
+            node.label = labels[std::size_t(e.item)];
+            node.name  = name == node.label ? std::string() : name;
+            node.value = imgui_value(item);
+            if (item.flags & ImGuiItemStatusFlags_Checkable)
+                node.checked = (item.flags & ImGuiItemStatusFlags_Checked) ? 1 : 0;
+            if ((node.cls == "slider" || node.cls == "drag") && (item.flags & ImGuiItemStatusFlags_Inputable) == 0)
+                node.note = "no typing";
+            if (item.clipped)
+                node.note += std::string(node.note.empty() ? "" : ", ") + "clipped: ui_click and ui_input scroll it into view";
+            node.depth = depth + 1;
+            node.x = at.x, node.y = at.y, node.w = br.x - at.x, node.h = br.y - at.y;
+            UiTarget t;
+            t.kind         = UiTarget::Kind::ImGuiItem;
+            t.window       = canvas.get_wxglcanvas();
+            t.canvas       = &canvas;
+            t.imgui_id     = item.id;
+            t.imgui_label  = node.label.empty() ? name : node.label;
+            t.imgui_name   = name;
+            t.imgui_window = item.window;
+            t.imgui_twins  = imgui_twins(items, name, item.window);
+            t.x = item.x, t.y = item.y, t.w = item.w, t.h = item.h;
+            // The shown label when no other item in its window shares it, else the name when that is
+            // unique, else both (Cut's "Keep" checkboxes, named by their row); locator_for() adds an
+            // index when even both repeat.
+            const std::string wlabel = imgui_window_label(item.window);
+            int               same_label = 0, same_name = 0;
+            for (std::size_t j = 0; j < items.size(); ++j)
+                if (imgui_window_label(items[j].window) == wlabel) {
+                    same_label += labels[j] == node.label ? 1 : 0;
+                    same_name += imgui_item_name(items[j]) == name ? 1 : 0;
+                }
+            if (!node.label.empty() && (same_label == 1 || name.empty()))
+                t.locator = {{"imgui", node.label}};
+            else if (node.label.empty() || same_name == 1)
+                t.locator = {{"imgui_name", name}};
+            else
+                t.locator = {{"imgui", node.label}, {"imgui_name", name}};
+            if (!wlabel.empty())
+                t.locator["window"] = wlabel;
+            t.locator["canvas"] = cname;
+            push(std::move(node), std::move(t), nodes, omitted, o);
+        }
     }
 }
 
@@ -976,10 +1302,17 @@ UiTarget UiInspector::resolve(const json& target)
         if (t == nullptr)
             throw ToolFailure(err);
         UiTarget out = *t;
-        if (out.kind == UiTarget::Kind::ImGuiItem) // the item may have moved since the snapshot
-            for (const auto& item : wxGetApp().imgui()->recorded_items(out.canvas))
-                if (item.id == out.imgui_id)
-                    out.x = item.x, out.y = item.y, out.w = item.w, out.h = item.h;
+        // The item may have moved since the snapshot, changed its id with its label, or been renamed by
+        // its place ("Layer 3" becoming "Layer 2" when a layer before it goes).
+        if (out.kind == UiTarget::Kind::ImGuiItem) {
+            const auto items = wxGetApp().imgui()->recorded_items(out.canvas);
+            if (const auto at = imgui_find_item(items, out.imgui_id, out.imgui_name, out.imgui_window, out.imgui_twins)) {
+                const ImGuiWrapper::RecordedItem& item = items[*at];
+                out.imgui_id   = item.id;
+                out.imgui_name = imgui_item_name(item);
+                out.x = item.x, out.y = item.y, out.w = item.w, out.h = item.h;
+            }
+        }
         return out;
     }
     if (!target.is_object())
@@ -998,8 +1331,9 @@ UiTarget UiInspector::resolve(const json& target)
         t.menu_path = path;
         return t;
     }
-    if (target.contains("gltoolbar") || target.contains("gizmo") || target.contains("imgui")) {
-        t.canvas = canvas_by_name(target.value("canvas", target.contains("imgui") ? "" : "3d"));
+    const bool imgui = target.contains("imgui") || target.contains("imgui_name");
+    if (target.contains("gltoolbar") || target.contains("gizmo") || imgui) {
+        t.canvas = canvas_by_name(target.value("canvas", imgui ? "" : "3d"));
         if (t.canvas == nullptr)
             throw ToolFailure("No such canvas");
         t.window = t.canvas->get_wxglcanvas();
@@ -1022,7 +1356,7 @@ UiTarget UiInspector::resolve(const json& target)
         const auto matches = match_imgui(target);
         const int  index   = target.value("index", -1);
         if (matches.empty())
-            throw ToolFailure("No ImGui item \"" + target["imgui"].get<std::string>() + "\" in the last frame; show its panel first");
+            throw ToolFailure("No ImGui item matches " + target.dump() + " in the last frame; show its panel first (ui_snapshot lists them)");
         if (matches.size() > 1 && index < 0)
             throw ToolFailure(std::to_string(matches.size()) + " ImGui items match " + target.dump() + "; add \"index\" (0-based) or use a ref");
         if (index >= int(matches.size()))
@@ -1032,8 +1366,10 @@ UiTarget UiInspector::resolve(const json& target)
         t.canvas       = canvas;
         t.window       = canvas->get_wxglcanvas();
         t.imgui_id     = item.id;
-        t.imgui_label  = clean_imgui_label(item.label);
+        t.imgui_label  = target.contains("imgui") ? target["imgui"].get<std::string>() : target["imgui_name"].get<std::string>();
+        t.imgui_name   = imgui_item_name(item);
         t.imgui_window = item.window;
+        t.imgui_twins  = imgui_twins(wxGetApp().imgui()->recorded_items(canvas), t.imgui_name, item.window);
         t.x = item.x, t.y = item.y, t.w = item.w, t.h = item.h;
         return t;
     }
@@ -1057,7 +1393,7 @@ UiTarget UiInspector::resolve(const json& target)
 
     // A wx window by option key, class, label or name, optionally within a titled top-level window.
     if (!target.contains("option") && !target.contains("class") && !target.contains("label") && !target.contains("name"))
-        throw ToolFailure("A locator needs option, label, name or class (or menu, tab, gltoolbar, gizmo, imgui)");
+        throw ToolFailure("A locator needs option, label, name or class (or menu, tab, gltoolbar, gizmo, imgui, imgui_name)");
     const std::vector<wxWindow*> matches = match_windows(target);
     if (matches.empty())
         throw ToolFailure("Nothing matches " + target.dump() + "; take a ui_snapshot");
@@ -1108,20 +1444,30 @@ std::vector<wxWindow*> UiInspector::match_windows(const json& locator)
     return matches;
 }
 
+// {imgui: <label>} finds items by the label they are listed by, {imgui_name: <name>} by name, and
+// both together by both; text is never matched.
 std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> UiInspector::match_imgui(const json& locator)
 {
-    const std::string label  = locator["imgui"].get<std::string>();
-    const std::string window = locator.value("window", "");
+    const bool        by_label = locator.contains("imgui"), by_name = locator.contains("imgui_name");
+    const std::string label    = locator.value("imgui", ""), name = locator.value("imgui_name", "");
+    const std::string window   = locator.value("window", "");
     std::vector<GLCanvas3D*> canvases = live_canvases();
     if (locator.contains("canvas")) {
         GLCanvas3D* named = canvas_by_name(locator["canvas"].get<std::string>());
         canvases          = named != nullptr ? std::vector<GLCanvas3D*>{named} : std::vector<GLCanvas3D*>{};
     }
     std::vector<std::pair<GLCanvas3D*, ImGuiWrapper::RecordedItem>> out;
-    for (GLCanvas3D* c : canvases)
-        for (const auto& item : wxGetApp().imgui()->recorded_items(c))
-            if (clean_imgui_label(item.label) == label && (window.empty() || clean_imgui_label(item.window) == window))
-                out.emplace_back(c, item);
+    for (GLCanvas3D* c : canvases) {
+        // A hidden canvas keeps the items of the last frame it drew.
+        if (!c->get_wxglcanvas()->IsShownOnScreen())
+            continue;
+        const auto items  = wxGetApp().imgui()->recorded_items(c);
+        const auto labels = by_label ? imgui_display_labels(items, wxGetApp().imgui()->recorded_texts(c)) : std::vector<std::string>();
+        for (std::size_t i = 0; i < items.size(); ++i)
+            if ((!by_label || labels[i] == label) && (!by_name || imgui_item_name(items[i]) == name) &&
+                (window.empty() || imgui_window_label(items[i].window) == window))
+                out.emplace_back(c, items[i]);
+    }
     return out;
 }
 
@@ -1152,12 +1498,22 @@ json UiInspector::locator_for(const UiTarget& t)
     json loc = t.locator;
     loc.erase("index");
     int position = -1, count = 0;
-    if (t.kind == UiTarget::Kind::ImGuiItem && loc.contains("imgui")) {
-        const auto matches = match_imgui(loc);
-        count              = int(matches.size());
-        for (int i = 0; i < count; ++i)
-            if (matches[i].first == t.canvas && matches[i].second.id == t.imgui_id)
-                position = i;
+    if (t.kind == UiTarget::Kind::ImGuiItem && (loc.contains("imgui") || loc.contains("imgui_name"))) {
+        auto find = [&] {
+            const auto matches = match_imgui(loc);
+            count              = int(matches.size());
+            for (int i = 0; i < count; ++i)
+                if (matches[i].first == t.canvas && matches[i].second.id == t.imgui_id)
+                    position = i;
+        };
+        find();
+        // A ref taken while an item showed another label (Text's font button) or had another name
+        // ("Layer 3", now "Layer 2") no longer finds it that way; its current name does.
+        if (position < 0 && !t.imgui_name.empty()) {
+            loc.erase("imgui");
+            loc["imgui_name"] = t.imgui_name;
+            find();
+        }
     } else if (t.kind == UiTarget::Kind::Window && t.page >= 0 && loc.contains("tab")) {
         const auto matches = match_tabs(loc);
         count              = int(matches.size());
@@ -1176,10 +1532,50 @@ json UiInspector::locator_for(const UiTarget& t)
     return loc;
 }
 
-void UiInspector::reveal(const UiTarget& target)
+void UiInspector::reveal(UiTarget& target)
 {
     if (wxWindow* w = target.kind == UiTarget::Kind::Window ? target.window.get() : nullptr)
         scroll_into_view(w);
+    if (target.kind != UiTarget::Kind::ImGuiItem)
+        return;
+    // The item where a frame drawn now puts it: a panel that just opened can still be settling its
+    // size. A clipped item is scrolled to the middle of its window, then of each window it is a child
+    // of, until it shows. ImGui applies a scroll at the window's next Begin(), so each step takes a
+    // frame to apply and one to draw the item where it now is. A window that just appeared clips all
+    // of its items in its first frame, which only sizes it: up to two more frames come first.
+    target.canvas->set_as_dirty();
+    target.canvas->render();
+    ImGuiWrapper::RecordedItem item = imgui_record(target);
+    for (int frame = 0; item.clipped && frame < 2; ++frame) {
+        target.canvas->set_as_dirty();
+        target.canvas->render();
+        item = imgui_record(target);
+    }
+    for (ImGuiWindow* w = ImGui::FindWindowByName(item.window.c_str()); item.clipped && w != nullptr;
+         w = (w->Flags & ImGuiWindowFlags_ChildWindow) != 0 ? w->ParentWindow : nullptr) {
+        if (w->ScrollMax.y <= 0.f)
+            continue;
+        ImGui::SetScrollFromPosY(w, item.y + item.h / 2.f - w->Pos.y, 0.5f);
+        for (int frame = 0; frame < 2; ++frame) {
+            target.canvas->set_as_dirty();
+            target.canvas->render();
+        }
+        item = imgui_record(target);
+    }
+    if (item.clipped)
+        throw ToolFailure("\"" + target.imgui_label + "\" is outside the visible part of its panel, which does not scroll to it; "
+                          "make the window taller with set_view window_size");
+    target.x = item.x, target.y = item.y, target.w = item.w, target.h = item.h;
+}
+
+ImGuiWrapper::RecordedItem UiInspector::imgui_record(const UiTarget& t) const
+{
+    if (!is_live_canvas(t.canvas) || wxGetApp().imgui() == nullptr)
+        throw ToolFailure("The 3D view of the ImGui item is gone");
+    const auto items = wxGetApp().imgui()->recorded_items(t.canvas);
+    if (const auto at = imgui_find_item(items, t.imgui_id, t.imgui_name, t.imgui_window, t.imgui_twins))
+        return items[*at];
+    throw ToolFailure("\"" + t.imgui_label + "\" is no longer shown; take a new ui_snapshot");
 }
 
 GLCanvas3D* UiInspector::canvas_of(const UiTarget* target) const
@@ -1249,18 +1645,36 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         if (o.button != "left" || o.double_click)
             throw ToolFailure("A gizmo opens with a single left click");
         GLGizmosManager& gizmos = t.canvas->get_gizmos_manager();
-        GLGizmoBase*     g      = gizmos.get_gizmo(GLGizmosManager::EType(t.gizmo));
-        if (g == nullptr || !g->is_activable())
+        const auto       type   = GLGizmosManager::EType(t.gizmo);
+        GLGizmoBase*     g      = gizmos.get_gizmo(type);
+        if (g == nullptr || !gizmos.is_enabled())
+            throw ToolFailure("The " + t.name + " gizmo is not available in this view");
+        if (!g->is_activable() && gizmos.get_current_type() != type)
             throw ToolFailure("The " + t.name + " gizmo cannot be opened now (select an object first?)");
-        gizmos.open_gizmo(GLGizmosManager::EType(t.gizmo));
-        t.canvas->set_as_dirty();
-        t.canvas->render();
-        return {{"gizmo", t.name}, {"active", gizmos.get_current_type() == GLGizmosManager::EType(t.gizmo)}};
+        // What the gizmo's toolbar icon does, which for Text starts creating a text part when no text
+        // is selected; the caller waits for that job.
+        const GLGizmosManager::ToolbarClick outcome = gizmos.click_toolbar_icon(type);
+        // Two frames: a panel's first one only sizes it, so its items are where they show from the second.
+        for (int frame = 0; frame < 2; ++frame) {
+            t.canvas->set_as_dirty();
+            t.canvas->render();
+        }
+        switch (outcome) {
+        case GLGizmosManager::ToolbarClick::Opened: return {{"gizmo", t.name}, {"active", true}};
+        case GLGizmosManager::ToolbarClick::Closed: return {{"gizmo", t.name}, {"active", false}};
+        case GLGizmosManager::ToolbarClick::CreationStarted: return {{"gizmo", t.name}, {"creating", true}};
+        case GLGizmosManager::ToolbarClick::Nothing: break;
+        }
+        if (type == GLGizmosManager::Svg)
+            throw ToolFailure("The SVG gizmo opens on a selected SVG part: select one, or add one with run_action add_primitive_svg");
+        throw ToolFailure("The " + t.name + " gizmo did not open (select an object first?)");
     }
     case UiTarget::Kind::ImGuiItem: {
-        const wxPoint pos = imgui_to_canvas(*t.canvas, t.x + t.w / 2.f, t.y + t.h / 2.f);
-        canvas_click(*t.canvas, pos, o);
-        return {{"clicked", t.imgui_label}, {"at", {pos.x, pos.y}}};
+        UiTarget shown = t;
+        reveal(shown);
+        const wxPoint pos = imgui_to_canvas(*shown.canvas, shown.x + shown.w / 2.f, shown.y + shown.h / 2.f);
+        canvas_click(*shown.canvas, pos, o);
+        return {{"clicked", shown.imgui_label}, {"at", {pos.x, pos.y}}};
     }
     case UiTarget::Kind::Window: break;
     }
@@ -1321,23 +1735,8 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
 
 json UiInspector::input(const UiTarget& t, const json& value, bool submit)
 {
-    if (t.kind == UiTarget::Kind::ImGuiItem) {
-        // A checkbox is toggled when its state differs; anything else is a field to type into.
-        for (const auto& item : wxGetApp().imgui()->recorded_items(t.canvas))
-            if (item.id == t.imgui_id && (item.flags & ImGuiItemStatusFlags_Checkable) != 0) {
-                const bool want = value.is_boolean() ? value.get<bool>() : (value == "1" || value == "true");
-                if (((item.flags & ImGuiItemStatusFlags_Checked) != 0) != want)
-                    click(t, ClickOptions{});
-                return {{"checked", want}};
-            }
-        // Focus the field, select what is there, type the value.
-        click(t, ClickOptions{});
-        key(&t, "Ctrl+A", "");
-        key(&t, "", value.is_string() ? value.get<std::string>() : value.dump());
-        if (submit)
-            key(&t, "Return", "");
-        return {{"typed", value}};
-    }
+    if (t.kind == UiTarget::Kind::ImGuiItem)
+        return imgui_input(t, value, submit);
     if (t.kind != UiTarget::Kind::Window || t.window.get() == nullptr)
         throw ToolFailure("ui_input works on controls and ImGui fields");
     wxWindow* w = t.window.get();
@@ -1403,6 +1802,138 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
         return {{"value", into_u8(te->GetValue())}};
     }
     throw ToolFailure("This element (" + short_class(w) + ") takes no input; use ui_click");
+}
+
+// Sets an ImGui control the way a person does, chosen by its kind, and reads the value back.
+json UiInspector::imgui_input(UiTarget t, const json& value, bool submit)
+{
+    reveal(t);
+    const ImGuiWrapper::RecordedItem item = imgui_record(t);
+    const std::string kind = imgui_kind(item);
+    const std::string text = value.is_string() ? value.get<std::string>() : value.is_boolean() ? (value.get<bool>() ? "true" : "false") : value.dump();
+    if ((item.flags & ImGuiItemStatusFlags_Checkable) != 0) {
+        const bool want = value.is_boolean() ? value.get<bool>() : (text == "1" || lower(text) == "true");
+        if (((item.flags & ImGuiItemStatusFlags_Checked) != 0) != want)
+            click(t, ClickOptions{});
+        const bool now = (imgui_record(t).flags & ImGuiItemStatusFlags_Checked) != 0;
+        if (now != want)
+            throw ToolFailure("\"" + t.imgui_label + "\" is still " + (now ? "on" : "off") + " after a click");
+        return {{"checked", now}};
+    }
+
+    if (kind == "combo") {
+        // Open it, then click the option, which its popup lists from the next frame on.
+        if ((item.flags & ImGuiItemStatusFlags_Opened) == 0) {
+            click(t, ClickOptions{});
+            // A new popup sizes itself on its first frame; its options are where they show from the next.
+            t.canvas->set_as_dirty();
+            t.canvas->render();
+        }
+        // The options: the popup's items that show a label or were named as options (a filtered list's
+        // search field and clear button are neither), picked by text or by 0-based index.
+        const auto items  = wxGetApp().imgui()->recorded_items(t.canvas);
+        const auto labels = imgui_display_labels(items, wxGetApp().imgui()->recorded_texts(t.canvas));
+        json       options = json::array();
+        UiTarget   option  = t;
+        option.imgui_id    = 0;
+        for (std::size_t i = 0; i < items.size(); ++i) {
+            if (!in_popup(items[i]) || imgui_kind(items[i]) == "input" || (labels[i].empty() && items[i].kind != "option"))
+                continue;
+            const std::string shown = labels[i].empty() ? imgui_item_name(items[i]) : labels[i];
+            const bool        wanted = value.is_number_integer() ? value.get<int>() == int(options.size()) :
+                                                                   (shown == text || imgui_item_name(items[i]) == text);
+            options.push_back(shown);
+            if (option.imgui_id == 0 && wanted) {
+                option.imgui_id     = items[i].id;
+                option.imgui_label  = shown;
+                option.imgui_name   = imgui_item_name(items[i]);
+                option.imgui_window = items[i].window;
+                option.x = items[i].x, option.y = items[i].y, option.w = items[i].w, option.h = items[i].h;
+            }
+        }
+        if (option.imgui_id == 0) {
+            key(nullptr, "Escape", "");
+            throw ToolFailure("\"" + text + "\" is not one of the options of \"" + t.imgui_label + "\"", {{"options", options}});
+        }
+        click(option, ClickOptions{});
+        // A list that can't use the option (Text's font list on a font it can't load) drops it and
+        // stays open.
+        bool open = false, listed = false;
+        for (const auto& i : wxGetApp().imgui()->recorded_items(t.canvas))
+            if (in_popup(i)) {
+                open   = true;
+                listed = listed || i.id == option.imgui_id;
+            }
+        if (open) {
+            key(nullptr, "Escape", "");
+            throw ToolFailure(listed ? "The options of \"" + t.imgui_label + "\" are still open after picking \"" + option.imgui_label + "\"" :
+                                       "\"" + t.imgui_label + "\" did not take \"" + option.imgui_label + "\" and dropped it from its options");
+        }
+        // A list shortens a long option to fit ("Academy Engraved L .."); the combo shows it whole.
+        const std::string shown  = imgui_value(imgui_record(t));
+        std::string       picked = option.imgui_label;
+        if (const auto dots = picked.rfind(" .."); dots != std::string::npos && dots + 3 == picked.size())
+            picked.resize(dots);
+        if (shown.compare(0, picked.size(), picked) != 0)
+            throw ToolFailure("\"" + t.imgui_label + "\" shows \"" + shown + "\" after picking \"" + option.imgui_label + "\"", {{"value", shown}});
+        return {{"selected", shown}};
+    }
+
+    // A slider is set through the number field beside it when it has one, as Orca pairs them.
+    UiTarget field = t;
+    std::string field_kind = kind;
+    if (kind == "slider") {
+        float best = FLT_MAX;
+        for (const auto& i : wxGetApp().imgui()->recorded_items(t.canvas)) {
+            const std::string k  = imgui_kind(i);
+            const float       cy = i.y + i.h / 2.f;
+            if (i.window != item.window || (k != "drag" && k != "input") || i.x < item.x + item.w - 1.f || cy < item.y || cy > item.y + item.h)
+                continue;
+            if (i.x - item.x < best) {
+                best               = i.x - item.x;
+                field.imgui_id     = i.id;
+                field.imgui_name   = imgui_item_name(i);
+                field.imgui_window = i.window;
+                field.x = i.x, field.y = i.y, field.w = i.w, field.h = i.h;
+                field_kind = k;
+            }
+        }
+        if (field_kind == "slider" && (item.flags & ImGuiItemStatusFlags_Inputable) == 0)
+            throw ToolFailure("\"" + t.imgui_label + "\" is a slider that takes no typing and has no number field beside it; drag it with ui_mouse");
+    }
+    if (field_kind != "input" && field_kind != "multiline" && field_kind != "drag" && field_kind != "slider")
+        throw ToolFailure("\"" + t.imgui_label + "\" is a " + field_kind + ", which takes no typed value; use ui_click");
+
+    // A Ctrl+click turns a slider or drag into a text field; an input field takes a plain click.
+    ClickOptions focus;
+    if (field_kind == "drag" || field_kind == "slider")
+        focus.modifiers = {"ctrl"};
+    click(field, focus);
+    // Select all and delete it, so an empty value empties the field too.
+    key(&field, "Ctrl+A", "");
+    key(&field, "Delete", "");
+    if (field_kind == "multiline") {
+        // Return adds a line, so it goes between lines and never after the last; the gizmo applies
+        // the text as it changes.
+        std::size_t start = 0;
+        for (;;) {
+            const std::size_t end = text.find('\n', start);
+            key(&field, "", text.substr(start, end == std::string::npos ? std::string::npos : end - start));
+            if (end == std::string::npos)
+                break;
+            key(&field, "Return", "");
+            start = end + 1;
+        }
+    } else {
+        key(&field, "", text);
+        if (!submit)
+            return {{"typed", value}, {"note", "Not submitted: the field keeps the text until Return or a click elsewhere"}};
+        key(&field, "Return", "");
+    }
+    const std::string shown = imgui_record(field).value;
+    if (!imgui_value_matches(shown, field_kind == "multiline" ? json(text) : value))
+        throw ToolFailure("\"" + t.imgui_label + "\" shows \"" + shown + "\" after typing \"" + text + "\"", {{"value", shown}});
+    return {{"value", shown}};
 }
 
 wxWindow* UiInspector::key_target(const UiTarget* t) const
@@ -1485,53 +2016,201 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
     return {{"sent", chord_text.empty() ? json(nullptr) : json(chord_text)}, {"typed", text}, {"to", short_class(target)}};
 }
 
-json UiInspector::mouse(GLCanvas3D& canvas, const json& g)
+json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& owner)
 {
     const std::string action = g.value("action", "click");
-    const std::vector<std::string> mods = g.value("modifiers", std::vector<std::string>{});
+    static const std::set<std::string> actions{"move", "down", "up", "click", "drag", "wheel"};
+    if (actions.count(action) == 0)
+        throw ToolFailure("Unknown mouse action " + action + " (move, down, up, click, drag, wheel)");
+    const std::vector<std::string> mod_names = g.value("modifiers", std::vector<std::string>{});
+    const int         mods   = parse_modifiers(mod_names);
     const std::string button = g.value("button", "left");
-    const bool right = button == "right", middle = button == "middle", left = !right && !middle;
-    const wxPoint from(g.value("x", 0), g.value("y", 0));
-    // Buttons an earlier `down` left held: a `move` drags with them and keeps them held.
-    const wxMouseState held     = SyntheticInput::is_mouse_held() ? get_mouse_state() : wxMouseState();
-    const bool         held_any = held.LeftIsDown() || held.RightIsDown() || held.MiddleIsDown();
-    CanvasMouse m(canvas, mods);
-    if (action == "move") {
-        m.event(wxEVT_MOTION, from, held.LeftIsDown(), held.RightIsDown(), held.MiddleIsDown());
-        if (held_any)
+    const bool        right = button == "right", middle = button == "middle", left = !right && !middle;
+    const wxEventType down  = left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN;
+    const wxEventType up    = left ? wxEVT_LEFT_UP : right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP;
+
+    // Every point is resolved before the first event, so a bad one leaves no button held and no
+    // stroke half drawn.
+    const bool by_pixel = g.contains("x") || g.contains("y");
+    const std::string check     = g.value("check", "surface");
+    const double      tolerance = g.value("tolerance", 0.);
+    json              pixels    = json::array();
+    auto pixel_of = [&](const json& p) {
+        if (p.is_array() && p.size() != 2)
+            throw ToolFailure("A pixel is [x, y]");
+        const wxPoint px = p.is_array() ? wxPoint(p[0].get<int>(), p[1].get<int>()) : target_pixel(canvas, p, check, tolerance);
+        pixels.push_back({px.x, px.y});
+        return px;
+    };
+    if (by_pixel == g.contains("at"))
+        throw ToolFailure(by_pixel ? "Give the position as x and y or as at, not both" : "Give the position as x and y, or as at");
+    const wxPoint        from = by_pixel ? wxPoint(g.value("x", 0), g.value("y", 0)) : pixel_of(g["at"]);
+    std::vector<wxPoint> stops; // where a drag goes after `from`
+    if (by_pixel)
+        pixels.push_back({from.x, from.y});
+    if (action == "drag") {
+        for (const json& p : g.value("path", json::array()))
+            stops.push_back(pixel_of(p));
+        if (g.contains("to"))
+            stops.push_back(pixel_of(g["to"]));
+        if (stops.empty())
+            throw ToolFailure("drag needs to or path");
+    }
+    json out{{"action", action}, {"canvas", canvas_name(&canvas)}, {"pixels", pixels}};
+
+    // A press an earlier `down` left held: a `move` drags with it and an `up` releases it; any other
+    // gesture releases it first.
+    if (m_held && (m_held->canvas != &canvas || (action != "move" && action != "up")))
+        release_held(nullptr);
+    if (m_held) {
+        const HeldGesture h = *m_held;
+        CanvasMouse       m(canvas, h.mods, true);
+        if (action == "move") {
             m.keep_held();
-    } else if (action == "down") {
-        m.event(wxEVT_MOTION, from, false, false, false);
-        m.event(left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN, from, left, right, middle);
-        m.keep_held();
-    } else if (action == "up") {
-        m.event(left ? wxEVT_LEFT_UP : right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP, from, false, false, false);
-    } else if (action == "click") {
+            m_held->pos = from;
+            m.event(wxEVT_MOTION, from, h.left, h.right, h.middle);
+            out["held"] = true;
+        } else {
+            m_held.reset();
+            m.event(h.left ? wxEVT_LEFT_UP : h.right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP, from, false, false, false);
+        }
+        return out;
+    }
+
+    if (action == "click") {
         ClickOptions o;
         o.button       = button;
         o.double_click = g.value("double", false);
-        o.modifiers    = mods;
+        o.modifiers    = mod_names;
         canvas_click(canvas, from, o);
-    } else if (action == "drag") {
-        if (!g.contains("to") || !g["to"].is_array() || g["to"].size() != 2)
-            throw ToolFailure("drag needs to: [x, y]");
-        const wxPoint to(g["to"][0].get<int>(), g["to"][1].get<int>());
-        const int     steps = std::clamp(g.value("steps", 10), 1, 200);
-        m.event(wxEVT_MOTION, from, false, false, false);
-        m.event(left ? wxEVT_LEFT_DOWN : right ? wxEVT_RIGHT_DOWN : wxEVT_MIDDLE_DOWN, from, left, right, middle);
-        for (int i = 1; i <= steps; ++i) {
-            const wxPoint p(from.x + (to.x - from.x) * i / steps, from.y + (to.y - from.y) * i / steps);
-            m.event(wxEVT_MOTION, p, left, right, middle);
-        }
-        m.event(left ? wxEVT_LEFT_UP : right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP, to, false, false, false);
-    } else if (action == "wheel") {
-        const int clicks = g.value("delta", 1);
-        m.event(wxEVT_MOTION, from, false, false, false);
-        m.event(wxEVT_MOUSEWHEEL, from, false, false, false, clicks * 120);
-    } else {
-        throw ToolFailure("Unknown mouse action " + action + " (move, down, up, click, drag, wheel)");
+        return out;
     }
-    return {{"action", action}, {"canvas", canvas_name(&canvas)}};
+    if (mods != wxMOD_NONE && (action == "down" || action == "drag"))
+        hover(canvas, from);
+    CanvasMouse m(canvas, mods);
+    if (action == "move") {
+        m.event(wxEVT_MOTION, from, false, false, false);
+    } else if (action == "down") {
+        m.keep_held();
+        m_held = HeldGesture{&canvas, from, mods, left, right, middle, owner};
+        m.event(wxEVT_MOTION, from, false, false, false);
+        m.event(down, from, left, right, middle);
+        out["held"] = true;
+    } else if (action == "up") {
+        m.event(up, from, false, false, false);
+    } else if (action == "drag") {
+        const int steps = std::clamp(g.value("steps", 10), 1, 200);
+        m.event(wxEVT_MOTION, from, false, false, false);
+        m.event(down, from, left, right, middle);
+        wxPoint at = from;
+        for (const wxPoint& to : stops) {
+            for (int i = 1; i <= steps; ++i)
+                m.event(wxEVT_MOTION, wxPoint(at.x + (to.x - at.x) * i / steps, at.y + (to.y - at.y) * i / steps), left, right, middle);
+            at = to;
+        }
+        m.event(up, at, false, false, false);
+    } else { // wheel
+        m.event(wxEVT_MOTION, from, false, false, false);
+        m.event(wxEVT_MOUSEWHEEL, from, false, false, false, g.value("delta", 1) * 120);
+    }
+    return out;
+}
+
+void UiInspector::release_held(const std::string* owner)
+{
+    if (!m_held || (owner != nullptr && m_held->owner != *owner))
+        return;
+    const HeldGesture h = *m_held;
+    m_held.reset();
+    if (!is_live_canvas(h.canvas)) {
+        SyntheticInput::clear();
+        return;
+    }
+    CanvasMouse m(*h.canvas, h.mods, true);
+    m.event(h.left ? wxEVT_LEFT_UP : h.right ? wxEVT_RIGHT_UP : wxEVT_MIDDLE_UP, h.pos, false, false, false);
+}
+
+std::vector<std::string> imgui_display_labels(const std::vector<ImGuiWrapper::RecordedItem>& items,
+                                              const std::vector<ImGuiWrapper::RecordedText>& texts)
+{
+    std::vector<std::string> out(items.size());
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        out[i] = clean_imgui_label(items[i].label);
+        if (!out[i].empty() || !is_imgui_field(items[i].kind))
+            continue;
+        // The nearest text left of the field whose middle is on the field's row...
+        const ImGuiWrapper::RecordedItem& field = items[i];
+        const ImGuiWrapper::RecordedText* best  = nullptr;
+        for (const ImGuiWrapper::RecordedText& text : texts) {
+            const float cy = text.y + text.h / 2.f;
+            if (text.window != field.window || text.x + text.w > field.x + 1.f || cy < field.y || cy > field.y + field.h)
+                continue;
+            if (best == nullptr || text.x + text.w > best->x + best->w)
+                best = &text;
+        }
+        if (best == nullptr)
+            continue;
+        // ...unless another field sits between them: the text labels the first field after it.
+        const bool first = std::none_of(items.begin(), items.end(), [&](const ImGuiWrapper::RecordedItem& other) {
+            const float cy = other.y + other.h / 2.f;
+            return &other != &field && other.window == field.window && is_imgui_field(other.kind) && other.x >= best->x + best->w - 1.f &&
+                   other.x < field.x && cy >= field.y && cy <= field.y + field.h;
+        });
+        if (first)
+            out[i] = clean_imgui_label(best->text);
+    }
+    return out;
+}
+
+std::string imgui_item_name(const ImGuiWrapper::RecordedItem& item)
+{
+    return item.name.empty() ? imgui_label_name(item.label) : item.name;
+}
+
+int imgui_twins(const std::vector<ImGuiWrapper::RecordedItem>& items, const std::string& name, const std::string& window)
+{
+    if (name.empty())
+        return 0;
+    return int(std::count_if(items.begin(), items.end(),
+                             [&](const ImGuiWrapper::RecordedItem& i) { return i.window == window && imgui_item_name(i) == name; }));
+}
+
+std::optional<std::size_t> imgui_find_item(const std::vector<ImGuiWrapper::RecordedItem>& items,
+                                           unsigned                                        id,
+                                           const std::string&                              name,
+                                           const std::string&                              window,
+                                           int                                             twins)
+{
+    const int same_name = imgui_twins(items, name, window);
+    if (twins > 0 && same_name != twins && std::max(twins, same_name) > 1)
+        return std::nullopt;
+    std::optional<std::size_t> named;
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        if (items[i].id == id)
+            return i;
+        if (!name.empty() && items[i].window == window && imgui_item_name(items[i]) == name)
+            named = i;
+    }
+    return same_name == 1 ? named : std::nullopt;
+}
+
+bool imgui_value_matches(const std::string& shown, const json& wanted)
+{
+    const std::string text = wanted.is_string() ? wanted.get<std::string>() : wanted.dump();
+    if (shown == text)
+        return true;
+    // Numbers: the shown one printed with some decimals, and maybe a unit after it.
+    char*        end   = nullptr;
+    const double want  = std::strtod(text.c_str(), &end);
+    if (end == text.c_str() || *end != '\0')
+        return false;
+    const char*  begin = shown.c_str();
+    const double got   = std::strtod(begin, &end);
+    if (end == begin)
+        return false;
+    const char* dot      = std::find(begin, static_cast<const char*>(end), '.');
+    const int   decimals = dot == end ? 0 : int(end - dot - 1);
+    return std::abs(got - want) <= 0.5 * std::pow(10., -decimals) + 1e-9;
 }
 
 }}} // namespace Slic3r::GUI::Mcp

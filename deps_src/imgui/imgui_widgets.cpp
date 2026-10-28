@@ -234,6 +234,7 @@ void ImGui::TextEx(const char* text, const char* text_end, ImGuiTextFlags flags)
 
         ImRect bb(text_pos, text_pos + text_size);
         ItemSize(text_size, 0.0f);
+        IMGUI_TEST_ENGINE_TEXT(bb, text_begin, text_end);
         ItemAdd(bb, 0);
     }
     else
@@ -243,6 +244,7 @@ void ImGui::TextEx(const char* text, const char* text_end, ImGuiTextFlags flags)
 
         ImRect bb(text_pos, text_pos + text_size);
         ItemSize(text_size, 0.0f);
+        IMGUI_TEST_ENGINE_TEXT(bb, text_begin, text_end);
         if (!ItemAdd(bb, 0))
             return;
 
@@ -837,6 +839,10 @@ bool ImGui::InvisibleButton(const char* str_id, const ImVec2& size_arg, ImGuiBut
     bool hovered, held;
     bool pressed = ButtonBehavior(bb, id, &hovered, &held, flags);
 
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    ImGuiContext& g = *GImGui;
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, str_id, window->DC.LastItemStatusFlags);
+#endif
     return pressed;
 }
 
@@ -1329,6 +1335,7 @@ bool ImGui::ImageTextButton(const ImVec2& button_size, const char* text, ImTextu
 
     bool hovered, held;
     bool pressed = ButtonBehavior(bb, id, &hovered, &held);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, text, window->DC.LastItemStatusFlags);
 
     // Render
     const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
@@ -1556,7 +1563,8 @@ bool ImGui::RadioButton(const char* label, bool active)
     if (label_size.x > 0.0f)
         RenderText(label_pos, label);
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | ImGuiItemStatusFlags_Checkable | (active ? ImGuiItemStatusFlags_Checked : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "radio", "", 0);
     return pressed;
 }
 
@@ -1603,7 +1611,8 @@ bool ImGui::BBLRadioButton(const char *label, bool active)
     if (g.LogEnabled) LogRenderedText(&label_pos, active ? "(x)" : "( )");
     if (label_size.x > 0.0f) RenderText(label_pos, label);
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | ImGuiItemStatusFlags_Checkable | (active ? ImGuiItemStatusFlags_Checked : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "radio", "", 0);
     return pressed;
 }
 
@@ -2052,6 +2061,8 @@ bool ImGui::BeginCombo(const char* label, const char* preview_value, ImGuiComboF
         popup_open = true;
     }
 
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | ImGuiItemStatusFlags_Openable | (popup_open ? ImGuiItemStatusFlags_Opened : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "combo", preview_value, 0);
     if (!popup_open)
         return false;
 
@@ -2168,6 +2179,8 @@ bool ImGui::BBLBeginCombo(const char *label, const char *preview_value, ImGuiCom
         popup_open = true;
     }
     if (push_color_count > 0) { ImGui::PopStyleColor(push_color_count); }
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | ImGuiItemStatusFlags_Openable | (popup_open ? ImGuiItemStatusFlags_Opened : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "combo", preview_value, 0);
     if (!popup_open) return false;
 
     if (has_window_size_constraint) {
@@ -2933,7 +2946,8 @@ bool ImGui::DragScalar(const char* label, ImGuiDataType data_type, void* p_data,
     if (label_size.x > 0.0f)
         RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, frame_bb.Min.y + style.FramePadding.y), label);
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | (temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "drag", value_buf, temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0);
     return value_changed;
 }
 
@@ -3019,7 +3033,8 @@ bool ImGui::BBLDragScalar(const char *label, ImGuiDataType data_type, void *p_da
     if (label_size.x > 0.0f) RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, frame_bb.Min.y + style.FramePadding.y), label);
     if (push_color_count) { ImGui::PopStyleColor(1); }
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | (temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "drag", value_buf, temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0);
     return value_changed;
 }
 
@@ -3643,7 +3658,8 @@ bool ImGui::SliderScalar(const char* label, ImGuiDataType data_type, void* p_dat
     if (label_size.x > 0.0f)
         RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, frame_bb.Min.y + style.FramePadding.y), label);
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | (temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "slider", value_buf, temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0);
     return value_changed;
 }
 
@@ -3719,7 +3735,8 @@ bool ImGui::BBLSliderScalarIn(const char *label, ImGuiDataType data_type, void *
     float value_size = CalcTextSize(value_buf).x;
     RenderTextClipped(ImVec2(frame_bb.Min.x + end_x,frame_bb.Min.y),ImVec2(frame_bb.Max.x + value_size,frame_bb.Max.y), value_buf, value_buf_end, NULL, ImVec2(0.5f, 0.5f));
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | (temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, "slider", value_buf, temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0);
     return value_changed;
 }
 
@@ -3833,7 +3850,15 @@ bool ImGui::BBLSliderScalar(const char *label, ImGuiDataType data_type, void *p_
 
     if (label_size.x > 0.0f) RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, frame_bb.Min.y + style.FramePadding.y), label);
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | (temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0));
+#ifdef IMGUI_ENABLE_TEST_ENGINE
+    if (g.TestEngineHookItems)
+    {
+        char value_buf[64];
+        DataTypeFormatString(value_buf, IM_ARRAYSIZE(value_buf), data_type, p_data, format);
+        IMGUI_TEST_ENGINE_ITEM_VALUE(id, "slider", value_buf, temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0);
+    }
+#endif
     return value_changed;
 }
 
@@ -5564,7 +5589,8 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
     if (value_changed && !(flags & ImGuiInputTextFlags_NoMarkEdited))
         MarkItemEdited(id);
 
-    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags);
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | (is_readonly ? 0 : ImGuiItemStatusFlags_Inputable));
+    IMGUI_TEST_ENGINE_ITEM_VALUE(id, is_multiline ? "multiline" : "input", is_password ? "" : buf, is_readonly ? 0 : ImGuiItemStatusFlags_Inputable);
     if ((flags & ImGuiInputTextFlags_EnterReturnsTrue) != 0)
         return enter_pressed;
     else

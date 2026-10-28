@@ -115,7 +115,8 @@ void register_view_tools(McpService& service)
             if (target != "window" && target != "canvas" && target != "dialog")
                 // Scrolled into view first, and painted before the capture below runs.
                 ctx.run_ui([&] {
-                    service.inspector().reveal(service.inspector().resolve(target_arg));
+                    UiTarget t = service.inspector().resolve(target_arg);
+                    service.inspector().reveal(t);
                     return json();
                 });
             // A canvas that comes back blank has not drawn yet; it does within moments.
@@ -225,10 +226,12 @@ void register_view_tools(McpService& service)
 
     reg.add(mutate_tool(
         "set_view", "Point the view",
-        "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D camera (a named direction, the "
-        "default view, or fit to bed / objects / selection), the preview's layer or layer range (1-based) and color "
-        "scheme, and the window size. Only the given fields change.",
+        "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (Prepare's, the preview or "
+        "the assemble view, which has its own gizmos), the 3D camera (a named direction, the default view, or fit to bed / "
+        "objects / selection), the preview's layer or layer range (1-based) and color scheme, and the window size. Only "
+        "the given fields change.",
         object_schema({{"tab", enum_prop({"home", "prepare", "preview", "device", "multi_device", "project", "calibration"}, "Main window tab.")},
+                       {"view", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
                        {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection"},
                                             "Camera direction or fit.")},
                        {"layer", {{"type", "integer"}, {"minimum", 1}, {"description", "Preview: show layers up to this one (1-based)."}}},
@@ -256,8 +259,32 @@ void register_view_tools(McpService& service)
                     frame->select_tab(wxString(id));
                     done["tab"] = arg_string(args, "tab");
                 }
+                if (args.contains("view")) {
+                    const std::string view     = arg_string(args, "view");
+                    GLCanvas3D*       assemble = plater.get_assmeble_canvas3D();
+                    const bool        in_assemble = assemble != nullptr && plater.get_current_canvas3D() == assemble;
+                    if (view == "assemble") {
+                        if (!plater.has_assmeble_view())
+                            throw ToolFailure("The assemble view needs an object on the plate");
+                        frame->select_tab(wxString(TAB_ID_PREPARE));
+                        plater.select_view_3D("Assemble");
+                    } else if (in_assemble) {
+                        // What the assemble view's Return button does.
+                        assemble->get_gizmos_manager().reset_all_states();
+                        plater.select_view_3D("3D");
+                        if (GLCanvas3D* view3d = plater.get_view3D_canvas3D()) {
+                            view3d->get_gizmos_manager().reset_all_states();
+                            view3d->reload_scene(true);
+                        }
+                    }
+                    if (view == "3d")
+                        frame->select_tab(wxString(TAB_ID_PREPARE));
+                    else if (view == "preview")
+                        frame->select_tab(wxString(TAB_ID_PREVIEW));
+                    done["view"] = view;
+                }
                 const bool preview_args = args.contains("layer") || args.contains("layer_range") || args.contains("view_type");
-                if (preview_args && !args.contains("tab")) {
+                if (preview_args && !args.contains("tab") && !args.contains("view")) {
                     plater.select_view_3D("Preview", false);
                     frame->select_tab(wxString(TAB_ID_PREVIEW));
                 }
@@ -324,6 +351,16 @@ void register_view_tools(McpService& service)
                     canvas->set_as_dirty();
                 return done;
             });
+            if (out.value("view", "") == "assemble")
+                // A canvas shown for the first time loads its scene at its first frame, once its GL
+                // surface exists (a moment later on Wayland), and the next call may act on its objects.
+                poll_ui(
+                    ctx,
+                    []() -> json {
+                        const GLCanvas3D* assemble = ui_plater().get_assmeble_canvas3D();
+                        return assemble != nullptr && assemble->is_initialized() && !assemble->is_reload_delayed() ? json(true) : json();
+                    },
+                    std::chrono::seconds(15), "the assemble view to show its objects");
             settle(ctx);
             return ToolResult::ok(out);
         }));

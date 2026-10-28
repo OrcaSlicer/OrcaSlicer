@@ -283,6 +283,8 @@ void McpService::stop()
                 m_modals->pop_rules(layer);
         m_script_rule_layers.clear();
     }
+    if (m_inspector)
+        m_inspector->release_held(nullptr);
     SyntheticInput::clear();
     if (wxTheApp != nullptr)
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
@@ -331,19 +333,47 @@ void McpService::begin_script_scope(const std::string& job)
 
 void McpService::end_script_scope(const std::string& job)
 {
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        auto it = m_script_rule_layers.find(job);
+        if (it == m_script_rule_layers.end())
+            return;
+        if (m_modals)
+            for (int layer : it->second)
+                m_modals->pop_rules(layer);
+        m_script_rule_layers.erase(it);
+    }
+    // Found again on the UI thread: the service may be gone by the time the closure runs.
+    if (m_dispatcher && !m_stopping)
+        m_dispatcher->post([job] {
+            if (McpService* service = wxGetApp().mcp_service(); service != nullptr && service->m_inspector)
+                service->m_inspector->release_held(&job);
+        });
+}
+
+std::string McpService::script_owner(const std::vector<std::string>& ancestry) const
+{
     std::lock_guard<std::mutex> lock(m_rules_mutex);
-    auto it = m_script_rule_layers.find(job);
-    if (it == m_script_rule_layers.end())
-        return;
-    if (m_modals)
-        for (int layer : it->second)
-            m_modals->pop_rules(layer);
-    m_script_rule_layers.erase(it);
+    for (const std::string& job : ancestry)
+        if (m_script_rule_layers.count(job) != 0)
+            return job;
+    return {};
+}
+
+bool McpService::endpoint_open() const
+{
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    return m_endpoint_open;
 }
 
 void McpService::stop_serving()
 {
     m_port_held_by_other = false;
+    // So does a press a client's ui_mouse left held.
+    if (m_inspector) {
+        const std::string client;
+        m_inspector->release_held(&client);
+    }
     {
         // A client's rules end with its endpoint; a person using the app afterwards must not have
         // dialogs answered for them.

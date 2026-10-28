@@ -13,8 +13,16 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// The part of a label ImGui shows: "Move##gizmo" -> "Move", "###id" -> "".
+// The part of a label ImGui shows, as text: "Move##gizmo" -> "Move", "###id" -> "", and Orca's
+// icon glyphs and color markers left out.
 std::string clean_imgui_label(const std::string& label);
+// The id part of a label, which names a control whose shown label is empty or says little:
+// "##cursor_radius" -> "cursor_radius", "Select##select_source_volume" -> "select_source_volume",
+// "N###extruder_color_N" -> "extruder_color_N", "Move" -> "".
+std::string imgui_label_name(const std::string& label);
+// An ImGui window as locators name it: the shown title of its top window, so a panel's child
+// windows ("Move##gizmo/##body_1A2B3C4D") count as the panel.
+std::string imgui_window_label(const std::string& window);
 
 // One line of a ui_snapshot.
 struct UiNode
@@ -26,6 +34,8 @@ struct UiNode
     std::string value;
     std::string name;    // wx name, when it is not a default one
     std::string option;  // config option key of a setting field
+    std::string window;  // the ImGui window an ImGui item or text is in
+    std::string note;    // anything else worth saying, e.g. "clipped"
     bool        enabled = true;
     bool        focused = false;
     int         checked = -1; // -1 not checkable, 0/1 state

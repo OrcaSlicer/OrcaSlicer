@@ -582,7 +582,6 @@ void ImGuiWrapper::new_frame()
     if (m_new_frame_open) {
         return;
     }
-    m_frame_items.clear();
 
     if (m_font_texture == 0) {
         init_font(true);
@@ -629,7 +628,10 @@ void ImGuiWrapper::new_frame()
 ImDrawData* ImGuiWrapper::end_frame()
 {
     if (m_item_recording && m_frame_owner != nullptr)
-        m_recorded_items[m_frame_owner] = m_frame_items;
+        m_recorded[m_frame_owner] = m_frame;
+    m_frame.items.clear();
+    m_frame.texts.clear();
+    m_last_string_id = 0;
 #ifdef __APPLE__
     // io.ImeWindowHandle is the focused canvas' view (GLCanvas3D::on_set_focus()).
     if (void* view = ImGui::GetIO().ImeWindowHandle)
@@ -643,43 +645,141 @@ ImDrawData* ImGuiWrapper::end_frame()
 void ImGuiWrapper::set_item_recording(bool on)
 {
     m_item_recording = on;
-    if (ImGuiContext* ctx = ImGui::GetCurrentContext())
+    // The hooks find the recorder through the context, the slot ImGui keeps for its test engine.
+    if (ImGuiContext* ctx = ImGui::GetCurrentContext()) {
         ctx->TestEngineHookItems = on;
+        ctx->TestEngine          = on ? this : nullptr;
+    }
     if (!on) {
-        m_frame_items.clear();
-        m_recorded_items.clear();
+        m_frame = {};
+        m_recorded.clear();
     }
 }
 
 std::vector<ImGuiWrapper::RecordedItem> ImGuiWrapper::recorded_items(const void* owner) const
 {
-    auto it = m_recorded_items.find(owner);
-    return it == m_recorded_items.end() ? std::vector<RecordedItem>{} : it->second;
+    auto it = m_recorded.find(owner);
+    return it == m_recorded.end() ? std::vector<RecordedItem>{} : it->second.items;
 }
 
-void ImGuiWrapper::record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window)
+std::vector<ImGuiWrapper::RecordedText> ImGuiWrapper::recorded_texts(const void* owner) const
+{
+    auto it = m_recorded.find(owner);
+    return it == m_recorded.end() ? std::vector<RecordedText>{} : it->second.texts;
+}
+
+// The status flags of a control that reports `checked` (0 or 1, -1 for none).
+static int checked_flags(int checked)
+{
+    return checked < 0 ? 0 : ImGuiItemStatusFlags_Checkable | (checked > 0 ? ImGuiItemStatusFlags_Checked : 0);
+}
+
+void ImGuiWrapper::record_named_item(const std::string& name, const char* kind, int checked)
+{
+    if (!m_item_recording || name.empty() || ImGui::GetCurrentContext() == nullptr)
+        return;
+    if (const ImGuiID id = ImGui::GetItemID(); id == 0 || !record_item_name(id, name, kind, checked))
+        record_named_item(name, kind, ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), checked);
+}
+
+bool ImGuiWrapper::record_item_name(unsigned id, const std::string& name, const char* kind, int checked)
+{
+    if (!m_item_recording || name.empty())
+        return false;
+    for (auto it = m_frame.items.rbegin(); it != m_frame.items.rend(); ++it)
+        if (it->id == id) {
+            it->name = name;
+            if (it->kind.empty() && kind != nullptr)
+                it->kind = kind;
+            it->flags |= checked_flags(checked);
+            return true;
+        }
+    return false;
+}
+
+void ImGuiWrapper::record_named_item(const std::string& name, const char* kind, const ImVec2& min, const ImVec2& max, int checked)
+{
+    if (!m_item_recording || name.empty() || ImGui::GetCurrentContext() == nullptr)
+        return;
+    ImGuiWindow* window = ImGui::GetCurrentWindowRead();
+    if (window == nullptr)
+        return;
+    RecordedItem item;
+    // Same-named controls in one ID scope (rows a loop draws without PushID) stay apart by their
+    // order in the frame.
+    const ImGuiID base = window->GetIDNoKeepAlive(name.c_str());
+    item.id            = base;
+    for (int n = 1; std::any_of(m_frame.items.begin(), m_frame.items.end(), [&](const RecordedItem& i) { return i.id == item.id; }); ++n)
+        item.id = ImHashData(&n, sizeof(n), base);
+    item.name    = name;
+    item.kind    = kind != nullptr ? kind : "";
+    item.window  = window->Name;
+    item.x = min.x, item.y = min.y, item.w = max.x - min.x, item.h = max.y - min.y;
+    item.flags   = checked_flags(checked);
+    item.clipped = !ImRect(min, max).Overlaps(window->ClipRect);
+    m_frame.items.push_back(std::move(item));
+}
+
+void ImGuiWrapper::record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window, bool clipped)
 {
     // ImGui reports an item again when it re-submits it within a frame; keep the last rectangle.
-    for (RecordedItem& item : m_frame_items)
+    for (RecordedItem& item : m_frame.items)
         if (item.id == id) {
             item.x = x0, item.y = y0, item.w = x1 - x0, item.h = y1 - y0;
+            item.clipped = clipped;
             return;
         }
     RecordedItem item;
-    item.id     = id;
-    item.window = window != nullptr ? window : "";
+    item.id      = id;
+    item.window  = window != nullptr ? window : "";
     item.x = x0, item.y = y0, item.w = x1 - x0, item.h = y1 - y0;
-    m_frame_items.push_back(std::move(item));
+    item.clipped = clipped;
+    // A clipped widget returns before it reports its label; the string its id was hashed from is that
+    // label. ImGui's own "#image"-style ids are not labels.
+    if (id == m_last_string_id && !(m_last_string.size() > 1 && m_last_string[0] == '#' && m_last_string[1] != '#'))
+        item.label = m_last_string;
+    m_frame.items.push_back(std::move(item));
 }
 
 void ImGuiWrapper::record_item_info(unsigned id, const char* label, int flags)
 {
-    for (auto it = m_frame_items.rbegin(); it != m_frame_items.rend(); ++it)
+    for (auto it = m_frame.items.rbegin(); it != m_frame.items.rend(); ++it)
         if (it->id == id) {
             it->label = label != nullptr ? label : "";
             it->flags = flags;
             return;
         }
+}
+
+void ImGuiWrapper::record_item_value(unsigned id, const char* kind, const char* value, int flags)
+{
+    for (auto it = m_frame.items.rbegin(); it != m_frame.items.rend(); ++it)
+        if (it->id == id) {
+            it->kind  = kind != nullptr ? kind : "";
+            it->value = value != nullptr ? value : "";
+            it->flags |= flags;
+            return;
+        }
+}
+
+void ImGuiWrapper::record_text(const char* window, float x0, float y0, float x1, float y1, const char* text, const char* text_end)
+{
+    if (text == nullptr || text == text_end)
+        return;
+    RecordedText t;
+    t.window = window != nullptr ? window : "";
+    t.text.assign(text, text_end != nullptr ? text_end : text + strlen(text));
+    t.x = x0, t.y = y0, t.w = x1 - x0, t.h = y1 - y0;
+    m_frame.texts.push_back(std::move(t));
+}
+
+void ImGuiWrapper::record_string_id(unsigned id, const char* str, const char* str_end)
+{
+    m_last_string_id = id;
+    if (str_end != nullptr)
+        m_last_string.assign(str, str_end);
+    else
+        m_last_string.assign(str);
 }
 
 void ImGuiWrapper::render(ImDrawData* draw_data)
@@ -821,6 +921,8 @@ bool ImGuiWrapper::bbl_combo_with_filter(const char* label, const std::string& p
         ImGui::OpenPopup(label);
         is_new_open = true;
     }
+    // A combo to automation, which picks its options in the popup; the button shows the value.
+    record_named_item(label + std::strspn(label, "#"), "combo");
     g.Style.ButtonTextAlign.x = ButtonTextAlignX;
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
@@ -1045,7 +1147,7 @@ bool ImGuiWrapper::button(const wxString& label, const ImVec2 &size, bool enable
 // ORCA Glyph based button for correctly rendering icon size based Glyph
 // excludes spacings after Glyph and centers icon properly
 // compared to image_button this supports styling
-bool ImGuiWrapper::glyph_button(wchar_t icon_char, ImVec2 icon_size)
+bool ImGuiWrapper::glyph_button(wchar_t icon_char, ImVec2 icon_size, const std::string& name)
 {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImFont*     font      = ImGui::GetFont();
@@ -1062,6 +1164,7 @@ bool ImGuiWrapper::glyph_button(wchar_t icon_char, ImVec2 icon_size)
     ImVec2 rc_max = ImVec2(rc_min.x + width, rc_min.y + height);
 
     ImGui::Dummy(ImVec2(width, height));
+    record_named_item(name, "button", rc_min, rc_max);
 
     ImGuiCol bg_color     = ImGuiCol_Button;
     ImGuiCol border_color = ImGuiCol_Border;
@@ -1403,7 +1506,7 @@ bool ImGuiWrapper::image_button(ImTextureID user_texture_id, const ImVec2& size,
     return image_button_ex(id, user_texture_id, size, uv0, uv1, padding, bg_col, tint_col, flags);
 }
 
-bool ImGuiWrapper::image_button(const wchar_t icon, const wxString& tooltip)
+bool ImGuiWrapper::image_button(const wchar_t icon, const wxString& tooltip, const std::string& name)
 {
     const ImGuiIO& io = ImGui::GetIO();
     const ImTextureID tex_id = io.Fonts->TexID;
@@ -1418,6 +1521,7 @@ bool ImGuiWrapper::image_button(const wchar_t icon, const wxString& tooltip)
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.4f, 0.4f, 0.4f, 1.0f });
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.25f, 0.25f, 0.25f, 1.0f });
     const bool res = image_button(tex_id, size, uv0, uv1);
+    record_named_item(name);
     ImGui::PopStyleColor(3);
 
     if (!tooltip.empty() && ImGui::IsItemHovered())
@@ -3751,19 +3855,48 @@ bool IMTexture::load_from_svg_file(const std::string& filename, unsigned width, 
 } // namespace Slic3r
 
 // ImGui's test-engine hooks (IMGUI_ENABLE_TEST_ENGINE in imconfig.h). ImGui calls them only while
-// ImGuiContext::TestEngineHookItems is set, i.e. while ImGuiWrapper records items for automation.
-void ImGuiTestEngineHook_ItemAdd(ImGuiContext* ctx, const ImRect& bb, ImGuiID id)
+// ImGuiContext::TestEngineHookItems is set, i.e. while an ImGuiWrapper records items for automation;
+// that wrapper is the context's TestEngine.
+static Slic3r::GUI::ImGuiWrapper* recorder(ImGuiContext* ctx)
 {
-    if (Slic3r::GUI::ImGuiWrapper* imgui = Slic3r::GUI::wxGetApp().imgui(); imgui != nullptr && imgui->item_recording())
-        imgui->record_item_add(id, bb.Min.x, bb.Min.y, bb.Max.x, bb.Max.y, ctx->CurrentWindow ? ctx->CurrentWindow->Name : nullptr);
+    auto* imgui = static_cast<Slic3r::GUI::ImGuiWrapper*>(ctx->TestEngine);
+    return imgui != nullptr && imgui->item_recording() ? imgui : nullptr;
 }
 
-void ImGuiTestEngineHook_ItemInfo(ImGuiContext*, ImGuiID id, const char* label, ImGuiItemStatusFlags flags)
+void ImGuiTestEngineHook_ItemAdd(ImGuiContext* ctx, const ImRect& bb, ImGuiID id)
 {
-    if (Slic3r::GUI::ImGuiWrapper* imgui = Slic3r::GUI::wxGetApp().imgui(); imgui != nullptr && imgui->item_recording())
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx)) {
+        ImGuiWindow* window = ctx->CurrentWindow;
+        imgui->record_item_add(id, bb.Min.x, bb.Min.y, bb.Max.x, bb.Max.y, window ? window->Name : nullptr,
+                               window != nullptr && !bb.Overlaps(window->ClipRect));
+    }
+}
+
+void ImGuiTestEngineHook_ItemInfo(ImGuiContext* ctx, ImGuiID id, const char* label, ImGuiItemStatusFlags flags)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
         imgui->record_item_info(id, label, int(flags));
 }
 
+void ImGuiTestEngineHook_ItemValue(ImGuiContext* ctx, ImGuiID id, const char* kind, const char* value, ImGuiItemStatusFlags flags)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
+        imgui->record_item_value(id, kind, value, int(flags));
+}
+
+void ImGuiTestEngineHook_Text(ImGuiContext* ctx, const ImRect& bb, const char* text, const char* text_end)
+{
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
+        imgui->record_text(ctx->CurrentWindow ? ctx->CurrentWindow->Name : nullptr, bb.Min.x, bb.Min.y, bb.Max.x, bb.Max.y, text, text_end);
+}
+
 void ImGuiTestEngineHook_IdInfo(ImGuiContext*, ImGuiDataType, ImGuiID, const void*) {}
-void ImGuiTestEngineHook_IdInfo(ImGuiContext*, ImGuiDataType, ImGuiID, const void*, const void*) {}
+
+void ImGuiTestEngineHook_IdInfo(ImGuiContext* ctx, ImGuiDataType data_type, ImGuiID id, const void* data_id, const void* data_id_end)
+{
+    if (data_type != ImGuiDataType_String)
+        return;
+    if (Slic3r::GUI::ImGuiWrapper* imgui = recorder(ctx))
+        imgui->record_string_id(id, static_cast<const char*>(data_id), static_cast<const char*>(data_id_end));
+}
 void ImGuiTestEngineHook_Log(ImGuiContext*, const char*, ...) {}

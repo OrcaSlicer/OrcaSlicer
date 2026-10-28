@@ -138,6 +138,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/NativeCommands.hpp
     GUI/SyntheticInput.cpp
     GUI/SyntheticInput.hpp
+    GUI/Mcp/CanvasTarget.cpp
+    GUI/Mcp/CanvasTarget.hpp
     GUI/Mcp/JobRegistry.cpp
     GUI/Mcp/JobRegistry.hpp
     GUI/Mcp/McpCore.cpp

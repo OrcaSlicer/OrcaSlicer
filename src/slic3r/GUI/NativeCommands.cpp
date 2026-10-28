@@ -9,6 +9,8 @@
 #include "GUI_App.hpp"
 #include "GUI_Factories.hpp"
 #include "GUI_ObjectList.hpp"
+#include "Gizmos/GLGizmoSVG.hpp"
+#include "Gizmos/GLGizmosManager.hpp"
 #include "I18N.hpp"
 #include "Shortcuts.hpp"
 #include "IMSlider.hpp"
@@ -248,6 +250,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"obj_instances_down", "Remove an instance of the selected object."},
         {"obj_arrange", "Arrange all objects on the plates (runs in the background)."},
         {"obj_orient", "Auto-orient the selection (runs in the background)."},
+        {"add_primitive_svg", "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the part is created in the background (wait for idle), and the SVG gizmo opens on it.", CommandParamType::Path, "absolute path of an .svg file"},
         {"plate_add", "Add a plate."},
         {"plate_duplicate", "Duplicate the current plate."},
         {"plate_delete", "Delete the current plate."},
@@ -652,14 +655,27 @@ std::vector<NativeCommand> build_command_catalog()
         }
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
-    add_with_icon("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", [](const std::string&) {
+    add_with_icon("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", [](const std::string& param) {
         Plater* plater = wxGetApp().plater();
-        if (plater) {
-            ensure_3d_view(plater);
-            if (GLCanvas3D* canvas = plater->canvas3D())
-                canvas->clear_popup_menu_position();
+        if (plater == nullptr)
+            return AppActionRunResult{};
+        ensure_3d_view(plater);
+        GLCanvas3D* canvas = plater->canvas3D();
+        if (canvas != nullptr)
+            canvas->clear_popup_menu_position();
+        if (param.empty()) {
             MenuFactory::add_svg_volume(ModelVolumeType::INVALID);
+            return AppActionRunResult{AppActionRunResult::Level::Success};
         }
+        // What the dialog path does once a file is picked: a new object with nothing selected, else
+        // a part of the selected object.
+        AppActionRunResult fail;
+        const auto         path = path_param(param, false, fail);
+        if (!path)
+            return fail;
+        auto* svg = canvas != nullptr ? dynamic_cast<GLGizmoSVG*>(canvas->get_gizmos_manager().get_gizmo(GLGizmosManager::Svg)) : nullptr;
+        if (svg == nullptr || !svg->create_volume(into_u8(from_path(*path)), ModelVolumeType::MODEL_PART))
+            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The SVG file could not be added.")};
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
 

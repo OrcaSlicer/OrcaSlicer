@@ -263,7 +263,10 @@ decision logic is in `McpOperations`, which uses neither wx nor `Plater`.
 
 **Idle.** `wait {for: "idle"}` holds when no modal is open, nothing slices (`Plater::is_slicing_any()`:
 the background process, Slice All, a scheduled background update or a pending automatic reslice)
-and the UI job worker (arrange, orient) is idle. It also needs no job running other than the caller and its ancestors,
+and the UI job worker (arrange, orient) is idle, and no gizmo on any canvas reports
+`GLGizmoBase::is_busy()`: work a gizmo started in the background whose result it has yet to show
+(Simplify's calculation until `worker_finished()` has run, Texture Displacement's adjustment
+preview). It also needs no job running other than the caller and its ancestors,
 so a script waiting for idle doesn't wait on itself. Only the job registry, the `ModalTracker`
 snapshot and the journal are shared between threads, each behind a mutex. All app state is read on
 the UI thread.
@@ -272,7 +275,7 @@ the UI thread.
 
 | Group | Tool | Purpose |
 |---|---|---|
-| App | `get_state` | version, platform and display backend, ready, tab, mode, project, presets, plates, objects, slicing, dialogs, notifications, jobs, window |
+| App | `get_state` | version, platform and display backend, ready, tab, mode, project, presets, plates, objects, slicing, the open gizmo, dialogs, notifications, jobs, window |
 | | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job`; `timeout_s` up to 50 |
 | | `get_log` | end of the current log file, filtered by minimum level |
 | Speed Dial | `list_actions` | search the action catalog, paged |
@@ -285,18 +288,19 @@ the UI thread.
 | | `select_preset` | select by name through the selector (filament per slot) |
 | | `get_settings` | values and metadata of a preset, or of an object's or part's overrides |
 | | `set_settings` | set values the way the settings tab does, all or none; object and part overrides |
-| Objects | `list_objects` | objects, instances, parts, bounding boxes, overrides, paged |
+| Objects | `list_objects` | objects, instances (with their canvas rectangles on request), parts (triangles, mesh volume, painted facets, text and SVG sources), bounding boxes, brim ears, overrides, paged |
 | | `select` | select objects, instances or parts, all, or none |
 | | `transform` | translate, rotate or scale one instance, relative or absolute |
 | Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome and stats for each plate |
 | | `cancel` | stop the running slice or G-code export, or a pending automatic reslice (optionally only a given job); allowed during an operation |
-| View | `set_view` | tab, camera, preview layers and color scheme, window size |
+| View | `set_view` | tab, 3D view (Prepare, preview, assemble), camera, preview layers and color scheme, window size |
 | | `screenshot` | window, 3D canvas, topmost dialog or one widget: a downscaled image and a full-size PNG |
 | GUI | `ui_snapshot` | widgets, menus, GL toolbar items, gizmos and ImGui items, with refs |
 | | `ui_click` | activate a ref or locator |
 | | `ui_input` | set a control's text, value, selection or checked state |
 | | `ui_key` | send a key chord to a target or the focused window |
-| | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel |
+| | `ui_mouse` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model |
+| | `gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
 | | `dialog_respond` | press a button of the topmost wx dialog |
 | | `dialog_auto_answer` | answer matching modals before they show, and one already open |
 | | `webview_eval` | run JavaScript in a web view and return the result |
@@ -348,6 +352,7 @@ turns a bad path into an Error result.
 | `export_stl` | output `.stl` | `Plater::export_stl(..., path)` |
 | `export_3mf` | output `.3mf` | `Plater::export_core_3mf(path)` |
 | `export_stl_multi` | existing directory | `Plater::export_stl(..., multiple, dir)` |
+| `add_primitive_svg` | `.svg` | `GLGizmoSVG::create_volume(path, type)`: a new object, or a part of the selected one; a job |
 
 Commands that still open a dialog, such as `export_config` or `plate_rename`, return
 `blocked_by_dialog`, and the agent answers the dialog.
@@ -396,7 +401,7 @@ journal stores. A locator is one of:
 - `{label, class, name, within, index}` for other widgets;
 - `{tab: "General", within}` for a notebook page;
 - `{menu: "File>Export>Export G-code"}`, `{gltoolbar: "arrange"}` or `{gizmo: "Move"}`;
-- `{imgui: "label", window, canvas, index}` for an ImGui item.
+- `{imgui: "label", imgui_name: "name", window, canvas, index}` for an ImGui item, by either or both.
 
 The object list's rows are items of a `wxDataViewCtrl`, not windows, so no locator names one.
 `select` selects objects, instances and parts, after which `run_action` runs the object operations
@@ -413,19 +418,99 @@ window's adjustment, as the mouse wheel does, because `wxScrollHelper::Scroll()`
 labels unpainted.
 
 Activation prefers a widget's own dispatch: `wxEVT_MENU`, `GLToolbar::force_left_action()` (or
-`force_right_action()` for a right click), `GLGizmosManager::open_gizmo()`, a notebook's
+`force_right_action()` for a right click), `GLGizmosManager::click_toolbar_icon()`, a notebook's
 `SetSelection()`, a native control's semantic event, or a custom widget's public API. Canvas
 gestures and ImGui items get synthesized wx events with a render between steps.
-`ImGuiWrapper::set_item_recording()` supplies the ImGui items with their rectangles and checked
-state; `ui_input` on an ImGui checkbox clicks it only when its state differs. `SyntheticInput` holds
+`ImGuiWrapper::set_item_recording()` supplies the ImGui items (see below). `SyntheticInput` holds
 a gesture's keys, buttons and pointer for code that reads hardware state through `get_key_state()`
 and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Mouse
 modifiers take the names `ui_key` chords use, through `KeyChord::parse_modifier()`, so `ctrl` means
 the shortcut modifier (Command on macOS) in both, and `rawctrl` the macOS Control key. Held
 keys are released however the gesture ends; a `ui_mouse` `down` keeps its button held, and a
-`move` drags with it, until an `up`, another gesture or the service's stop. Keys without a target go to the
+`move` drags with it, until an `up`, another gesture (one that fails included; a request the server
+rejects for its arguments never runs and changes nothing), the end of the script that pressed it,
+the closing of the endpoint for a client's press, or the service's stop. A client's gesture that
+reaches the UI thread after its endpoint closed is refused. Keys without a target go to the
 focused window inside the topmost modal, else that modal, else the focused window, else the 3D
 canvas.
+
+### ImGui items and gizmos
+
+The 3D canvases draw their panels with ImGui, which has no widgets to walk. ImGui's test-engine
+hooks (`IMGUI_ENABLE_TEST_ENGINE`) report every item a frame adds while
+`ImGuiContext::TestEngineHookItems` is set, which `ImGuiWrapper` does only while the service runs;
+otherwise ImGui skips each hook with one branch. `ImGuiWrapper` keeps the items of each canvas's
+last frame: id, label, window, rectangle and status flags, and whether the item lies outside the
+visible part of its window. The hooks reach the recorder through `ImGuiContext::TestEngine`, so they
+work without the app. Orca's copy of ImGui adds two hooks upstream lacks: `ItemValue`, through which
+sliders, drags, inputs, combos and radio buttons report their kind, the value they show and whether
+they take typed input (`ImGuiItemStatusFlags_Inputable`, upstream's flag), and `Text`, through which
+`TextEx` reports text, kept apart from the items. A clipped widget returns before it reports its
+label, so the string its id was hashed from (`GetID()`'s hook) stands in for it.
+
+Some controls have no label, or no item at all: icon buttons drawn as a `Dummy` or an `Image` with a
+hand-made click test (the painters' tools, the Text and SVG icons), links that are bold text with a
+hover test, image buttons, combos with an empty label, options drawn as an empty `Selectable` and
+text. Their code calls `ImGuiWrapper::record_named_item()` with an English name right after drawing
+them: a real item is named in its own record, so its value stays on it; anything else gets a record
+of its own at its rectangle, with the id the name hashes to in the current ID scope, so repeated
+rows under `PushID` stay apart. Same-named ones in one scope can only be told apart by their order,
+so their ids follow it: a target taken among them is not found once their number changes, and after
+a reorder it names the control now in its place. Call sites give each control a name of its own
+(Text's "Revert Depth", Texture's "Remove <texture>"). A synthesized click at the rectangle goes
+through the code's own click test. Nothing about the controls changes for a person, and the call costs one branch while
+recording is off.
+
+`ui_snapshot` lists each ImGui window (its scroll range when it scrolls), then its items and text in
+reading order. An item is listed by its shown label, or, for a field with none, by the text left of
+it on its row, which only the first field after that text takes; its name is the one it was given or
+its label's `##` part (`##cursor_radius` → `cursor_radius`). Orca's icon glyphs are not label text.
+The locator is the label when no other item in the window shares it, else the name, else both;
+text is never matched. A ref follows its item by id, or by name when the label shows a value that
+changes (Text's font button); it takes the item's current name (a layer row renamed by its place),
+and the locator recorded for a call is the one that finds the item then. Before acting on a clipped item, the inspector scrolls its window, and the
+windows it is a child of, to bring it into view (`SetScrollFromPosY()`, then two frames). A list that
+draws no item for rows out of view, such as Texture Displacement's library, is scrolled with the
+mouse wheel over its window, as a person does.
+
+`ui_input` on an ImGui item acts by its kind and reads the value back, failing when the field shows
+something else (numbers compared at the precision it prints): a checkbox, radio button or named
+toggle is clicked when its state differs; an input is clicked, its text selected and replaced,
+then Return pressed; a multiline input gets Return only between lines; a drag or a slider that takes
+typing is Ctrl+clicked first; a slider set through the number field beside it when it has one, as
+Orca pairs them; a combo is opened and its option, by its text or its 0-based place, clicked in
+its popup.
+
+A gizmo is listed per canvas as its toolbar shows it (`GLGizmosManager::is_on_toolbar()`), and
+on the Prepare canvas Simplify and SVG too while they can open (Simplify when activable, SVG on a
+selected SVG part). Clicking one does what its icon does (`click_toolbar_icon()`): it opens, or
+closes the open one; Text with no text selected starts a job that creates a text part and opens the
+gizmo, which `ui_click` waits for. `get_state.gizmo` names the open gizmo and its canvas. The
+assemble view is entered and left with `set_view view` (leaving does what its Return button does;
+entering returns once the canvas has loaded its objects, which waits for its GL surface on Wayland),
+and `select` and `list_objects` act on it while it is shown. Grabbers are not dragged: a gizmo's
+panel fields or `transform` set those values. Pickers inside a gizmo go through `gizmo_file`, whose
+actions are the bodies of those pickers (`GLGizmoSVG::change_file()`, `save_svg_as()`,
+`GLGizmoTextureDisplacement::import_texture()`).
+
+`ui_mouse` takes points of the model (`CanvasTarget`): `{object, instance, volume}` with `point` in
+the part's mesh coordinates (`frame: "volume"`, mapped by `GLVolume::world_matrix()`, which follows
+the assemble view's offset and explosion) or in the scene's (`"world"`), or `spot`, where a ray along
+an axis through the part's displayed bounding box first meets it. A point is projected through the
+camera the canvas was drawn with and converted to logical pixels. With `check: "surface"` (the
+default) the point must lie on the part, above the bed and on the side the clipping plane keeps;
+the ray through the whole pixel the click goes to must meet nothing before it (active parts, the
+parts of the instance the open gizmo works on, which it draws itself while their scene entries are
+inactive, and the plates), and must then meet the part near the point. A part the view does not
+draw (`GLVolume::visible`, false for objects the assemble view left out) is neither a target nor in
+the way. Other inactive parts are hidden by the gizmo and modifiers are see-through, so neither counts.
+`check: "point"` only projects, for points off the surface such as a cut plane. Every point of a
+gesture is resolved before its first event, and the journal keeps the model points, so a script
+replays at another window size or camera. A gesture's modifiers are pressed as a keyboard does: a
+key-down event each before it and a key-up after, which is what switches Measure and Assembly to
+point picking and the painters to their Shift and Alt modes.
+
+### Dialogs and web views
 
 `ModalTracker`, a `wxModalDialogHook`, sees every `ShowModal()`, native dialogs included, and
 publishes the snapshot `[{title, message, class, native, buttons}]`. Message boxes and file and folder
@@ -604,10 +689,14 @@ who owns the discovery file and when a port counts as held by another window; `t
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
 jobs, blocked_by_dialog, admission, slots, idle, journal); `test_mcp_operations` the slice and
 export outcomes; `test_mcp_script` parsing, substitution, matchers and await; `test_mcp_ui` labels,
-snapshot text, ref liveness and synthetic key state; `test_mcp_tools` setting serialization. End to end, `tools/mcp/orca_mcp.py` launches
+snapshot text, ref liveness, synthetic key state, how ImGui items are labelled and named, value
+matching and the model-target projection and surface check (`CanvasTarget`); `test_imgui_wrapper` the
+ImGui recorder (named items, kinds, values, text, clipping) on frames drawn without OpenGL;
+`test_mcp_tools` setting serialization. End to end, `tools/mcp/orca_mcp.py` launches
 the app on a private Xvfb display on Linux (with `-noreset`, and the pointer parked in a corner so no
 tooltip lands in a screenshot), or on the desktop on macOS and Windows, and runs
 `tools/mcp/smoke_test.json`. `tools/mcp/tests/script_basic.json`
-checks `--mcp-script` headless, `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
+checks `--mcp-script` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
+`tools/mcp/test_stdio_bridge.py` the stdio bridge, and
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
 connection. See `tools/mcp/README.md` and the `orca-mcp` skill.

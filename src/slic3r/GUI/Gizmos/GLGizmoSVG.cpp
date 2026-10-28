@@ -41,6 +41,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include <imgui.h>
 #include <vector>
+#include <boost/nowide/fstream.hpp>
 #include "libslic3r/Utils.hpp"
 #include <algorithm>
 #include "libslic3r/Line.hpp"
@@ -458,12 +459,13 @@ IconManager::VIcons init_icons(IconManager &mng, const GuiCfg &cfg)
     //    icons.push_back(i.front());
     //return icons;
 }
-bool draw_clickable(const IconManager::VIcons &icons, IconType type)
+// `name` is the button's English name, for automation.
+bool draw_clickable(const IconManager::VIcons &icons, IconType type, const std::string &name)
 {
-    return clickable(get_icon(icons, type, IconState::activable), get_icon(icons, type, IconState::hovered));
+    return clickable(get_icon(icons, type, IconState::activable), get_icon(icons, type, IconState::hovered), name);
 }
 
-bool reset_button(const IconManager::VIcons &icons)
+bool reset_button(const IconManager::VIcons &icons, const std::string &name)
 {
     float reset_offset = ImGui::GetStyle().WindowPadding.x;
     ImGui::SameLine(reset_offset);
@@ -475,7 +477,7 @@ bool reset_button(const IconManager::VIcons &icons)
     //return ImGui::Button((btn_label + "##" + label_id).c_str());
 
     auto icon = get_icon(icons, IconType::reset_value, IconState::hovered);
-    return clickable(icon, icon); // ORCA use orange color for both states
+    return clickable(icon, icon, name); // ORCA use orange color for both states
 }
 
 } // namespace 
@@ -1514,7 +1516,7 @@ void GLGizmoSVG::draw_filename(){
     bool can_reload = !m_volume_shape.svg_file->path.empty();
     if (can_reload) {
         ImGui::SameLine();
-        if (draw_clickable(m_icons, IconType::refresh)) {
+        if (draw_clickable(m_icons, IconType::refresh, "Reload")) {
             if (!boost::filesystem::exists(m_volume_shape.svg_file->path)) {
                 m_volume_shape.svg_file->path.clear();
             } else {
@@ -1606,23 +1608,7 @@ void GLGizmoSVG::draw_filename(){
             wxFileDialog dlg(parent, dlg_title, last_used_directory, dlg_file, wildcard, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
             if (dlg.ShowModal() == wxID_OK ){
                 last_used_directory = dlg.GetDirectory();
-                wxString out_path = dlg.GetPath();
-                std::string path{out_path.c_str()};
-                //Slic3r::save(*m_volume_shape.svg_file.image, path);
-
-                std::ofstream stream(path);
-                if (stream.is_open()){
-                    stream << *svg.file_data;
-
-                    // change source file
-                    m_filename_preview.clear();
-                    m_volume_shape.svg_file->path = path;
-                    m_volume_shape.svg_file->path_in_3mf.clear(); // possible change name
-                    m_volume->emboss_shape->svg_file = m_volume_shape.svg_file; // copy - write changes into volume
-                } else {
-                    BOOST_LOG_TRIVIAL(error) << "Opening file: \"" << path << "\" Failed";
-                }
-
+                save_svg_as(into_u8(dlg.GetPath()));
             }
         } else if (ImGui::IsItemHovered()) {
             tooltip = _u8L("Save as SVG file.");
@@ -1652,17 +1638,52 @@ void GLGizmoSVG::draw_filename(){
     if (!tooltip.empty())
         m_imgui->tooltip(tooltip, m_gui_cfg->max_tooltip_width);
 
-    if (file_changed) {
-        float scale = get_scale_for_tolerance();
-        double tes_tol = get_tesselation_tolerance(scale);
-        EmbossShape es_ = select_shape(m_volume_shape.svg_file->path, tes_tol);
-        m_volume_shape.svg_file = std::move(es_.svg_file);
-        m_volume_shape.shapes_with_ids = std::move(es_.shapes_with_ids);
-        m_volume_shape.final_shape = {}; // clear cache
-        m_shape_warnings = create_shape_warnings(m_volume_shape, scale);
-        init_texture(m_texture, m_volume_shape.shapes_with_ids, m_gui_cfg->texture_max_size_px, m_shape_warnings);
-        process();
+    if (file_changed)
+        load_svg_file();
+}
+
+void GLGizmoSVG::load_svg_file()
+{
+    float scale = get_scale_for_tolerance();
+    double tes_tol = get_tesselation_tolerance(scale);
+    EmbossShape es_ = select_shape(m_volume_shape.svg_file->path, tes_tol);
+    m_volume_shape.svg_file = std::move(es_.svg_file);
+    m_volume_shape.shapes_with_ids = std::move(es_.shapes_with_ids);
+    m_volume_shape.final_shape = {}; // clear cache
+    m_shape_warnings = create_shape_warnings(m_volume_shape, scale);
+    init_texture(m_texture, m_volume_shape.shapes_with_ids, m_gui_cfg->texture_max_size_px, m_shape_warnings);
+    process();
+}
+
+bool GLGizmoSVG::change_file(const std::string &path)
+{
+    if (m_volume == nullptr || m_gui_cfg == nullptr)
+        return false;
+    EmbossShape::SvgFile svg_file_new;
+    svg_file_new.path = path;
+    m_volume_shape.svg_file = svg_file_new; // clear data
+    m_filename_preview.clear();             // draw_filename() makes it again from the new file
+    load_svg_file();
+    return !m_volume_shape.shapes_with_ids.empty();
+}
+
+bool GLGizmoSVG::save_svg_as(const std::string &path)
+{
+    if (m_volume == nullptr || !m_volume_shape.svg_file.has_value() || m_volume_shape.svg_file->file_data == nullptr)
+        return false;
+    boost::nowide::ofstream stream(path);
+    if (!stream.is_open()) {
+        BOOST_LOG_TRIVIAL(error) << "Opening file: \"" << path << "\" Failed";
+        return false;
     }
+    stream << *m_volume_shape.svg_file->file_data;
+
+    // change source file
+    m_filename_preview.clear();
+    m_volume_shape.svg_file->path = path;
+    m_volume_shape.svg_file->path_in_3mf.clear(); // possible change name
+    m_volume->emboss_shape->svg_file = m_volume_shape.svg_file; // copy - write changes into volume
+    return bool(stream);
 }
 
 void GLGizmoSVG::draw_depth()
@@ -1806,7 +1827,7 @@ void GLGizmoSVG::draw_size()
     ImGui::SameLine(m_gui_cfg->lock_offset);
     const IconManager::Icon &icon       = get_icon(m_icons, m_keep_ratio ? IconType::lock : IconType::unlock, IconState::activable);
     const IconManager::Icon &icon_hover = get_icon(m_icons, m_keep_ratio ? IconType::lock : IconType::unlock, IconState::hovered);
-    if (button(icon, icon_hover, icon))
+    if (button(icon, icon_hover, icon, false, "Keep ratio"))
         m_keep_ratio = !m_keep_ratio;    
     if (ImGui::IsItemHovered())
         m_imgui->tooltip(_u8L("Lock/unlock the aspect ratio of the SVG."), m_gui_cfg->max_tooltip_width);
@@ -1815,7 +1836,7 @@ void GLGizmoSVG::draw_size()
     // reset button
     //bool can_reset = m_scale_width.has_value() || m_scale_height.has_value(); // ORCA update variable above if condition change
     if (can_reset) {
-        if (reset_button(m_icons)) {
+        if (reset_button(m_icons, "Reset size")) {
             new_relative_scale = Vec3d(1./m_scale_width.value_or(1.f), 1./m_scale_height.value_or(1.f), 1.);
             make_snap = true;
         } else if (ImGui::IsItemHovered())
@@ -1909,7 +1930,7 @@ void GLGizmoSVG::draw_distance()
     bool is_stop_sliding = m_imgui->get_last_slider_status().deactivated_after_edit;
     bool is_reseted = false;
     if (m_distance.has_value()) {
-        if (reset_button(m_icons)) {
+        if (reset_button(m_icons, "Reset distance")) {
             m_distance.reset();
             is_reseted = true;
         } else if (ImGui::IsItemHovered())
@@ -1957,7 +1978,7 @@ void GLGizmoSVG::draw_rotation()
     // Reset button
     bool is_reseted = false;
     if (m_angle.has_value()) {
-        if (reset_button(m_icons)) {
+        if (reset_button(m_icons, "Reset rotation")) {
             do_local_z_rotate(m_parent.get_selection(), -(*m_angle));
             m_angle.reset();
 
@@ -1979,7 +2000,7 @@ void GLGizmoSVG::draw_rotation()
         ImGui::SameLine(m_gui_cfg->lock_offset);
         const IconManager::Icon &icon       = get_icon(m_icons, m_keep_up ? IconType::lock : IconType::unlock, IconState::activable);
         const IconManager::Icon &icon_hover = get_icon(m_icons, m_keep_up ? IconType::lock : IconType::unlock, IconState::hovered);
-        if (button(icon, icon_hover, icon))
+        if (button(icon, icon_hover, icon, false, "Keep up"))
             m_keep_up = !m_keep_up;    
         if (ImGui::IsItemHovered())
             m_imgui->tooltip(_u8L("Lock/unlock rotation angle when dragging above the surface."), m_gui_cfg->max_tooltip_width);
@@ -1992,14 +2013,14 @@ void GLGizmoSVG::draw_mirroring()
     ImGui::Text("%s", m_gui_cfg->translations.mirror.c_str());
     ImGui::SameLine(m_gui_cfg->input_offset);
     Axis axis = Axis::UNKNOWN_AXIS;
-    if (draw_clickable(m_icons, IconType::reflection_x)) {
+    if (draw_clickable(m_icons, IconType::reflection_x, "Mirror horizontally")) {
         axis = Axis::X;
     } else if (ImGui::IsItemHovered()) {
         m_imgui->tooltip(_u8L("Mirror vertically"), m_gui_cfg->max_tooltip_width);
     }
 
     ImGui::SameLine();
-    if (draw_clickable(m_icons, IconType::reflection_y)) {
+    if (draw_clickable(m_icons, IconType::reflection_y, "Mirror vertically")) {
         axis = Axis::Y;
     } else if (ImGui::IsItemHovered()) {
         m_imgui->tooltip(_u8L("Mirror horizontally"), m_gui_cfg->max_tooltip_width);

@@ -802,6 +802,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
             ImVec2 min = ImGui::GetItemRectMin();
             ImVec2 max = ImGui::GetItemRectMax();
             ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, max.y - 2.0f), ImVec2(max.x, max.y - 2.0f), HyperColor);
+            m_imgui->record_named_item("Set brim type to painted", "button", min, max);
 
             if (ImGui::IsMouseHoveringRect(min, max)) {
                 m_link_text_hover = true;

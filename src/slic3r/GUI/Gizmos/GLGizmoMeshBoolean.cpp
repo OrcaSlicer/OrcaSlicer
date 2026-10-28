@@ -369,7 +369,7 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_Button));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_Button));
         ImGui::PushStyleColor(ImGuiCol_Border, { 0, 0, 0, 0 });
-        if (ImGui::Button((into_u8(ImGui::TextSearchCloseIcon) + "tool").c_str(), {18, 18}))
+        if (ImGui::Button((into_u8(ImGui::TextSearchCloseIcon) + "##tool").c_str(), {18, 18}))
         {
             m_tool.reset();
         }

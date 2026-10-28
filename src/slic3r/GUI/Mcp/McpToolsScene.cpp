@@ -1,6 +1,7 @@
 // list_objects, select, transform, slice and cancel: the model on the plates, and the slice
 // operation, which reports its own outcome per plate (see McpOperations).
 
+#include "CanvasTarget.hpp"
 #include "JobRegistry.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Point.hpp"
@@ -8,6 +9,8 @@
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -19,9 +22,14 @@
 #include "slic3r/GUI/Selection.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/EmbossShape.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/TextConfiguration.hpp"
+#include "libslic3r/TextureDisplacement.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include <wx/string.h>
@@ -64,15 +72,106 @@ const char* volume_type_name(ModelVolumeType type)
     }
 }
 
-// The Prepare view and its selection: object operations act on the 3D view.
-void show_prepare()
+// The 3D canvas object operations act on: the assemble view while it is shown, else the Prepare
+// view, switched to when another is shown.
+GLCanvas3D& object_canvas()
 {
     Plater& plater = ui_plater();
+    if (GLCanvas3D* assemble = plater.get_assmeble_canvas3D(); assemble != nullptr && plater.get_current_canvas3D() == assemble)
+        return *assemble;
     if (!plater.is_view3D_shown()) {
         plater.select_view_3D("3D");
         if (MainFrame* mf = wxGetApp().mainframe)
             mf->select_tab(TAB_ID_PREPARE);
     }
+    return *plater.canvas3D();
+}
+
+// Facets painted in each state of an annotation: [none, state 1, state 2, ...], empty when unpainted.
+std::vector<std::size_t> painted_facets(const FacetsAnnotation& paint, const ModelVolume& volume)
+{
+    std::vector<std::size_t> out;
+    if (paint.empty())
+        return out;
+    std::vector<indexed_triangle_set> per_state;
+    paint.get_facets(volume, per_state);
+    for (const indexed_triangle_set& its : per_state)
+        out.push_back(its.indices.size());
+    return out;
+}
+
+std::size_t painted_in(const std::vector<std::size_t>& counts, EnforcerBlockerType state)
+{
+    return std::size_t(state) < counts.size() ? counts[std::size_t(state)] : 0;
+}
+
+// A part as list_objects describes it: its mesh, what is painted on it, and what a text or SVG part
+// was made from.
+json volume_info(const ModelVolume& v, std::size_t index)
+{
+    const TriangleMesh& mesh = v.mesh();
+    json out{{"index", index},
+             {"name", v.name},
+             {"type", volume_type_name(v.type())},
+             {"triangles", mesh.its.indices.size()},
+             {"mesh_volume", std::round(its_volume(mesh.its) * 1000.) / 1000.}};
+    json painted = json::object();
+    if (const auto c = painted_facets(v.supported_facets, v); !c.empty())
+        painted["supports"] = {{"enforcers", painted_in(c, EnforcerBlockerType::ENFORCER)}, {"blockers", painted_in(c, EnforcerBlockerType::BLOCKER)}};
+    if (const auto c = painted_facets(v.seam_facets, v); !c.empty())
+        painted["seam"] = {{"enforcers", painted_in(c, EnforcerBlockerType::ENFORCER)}, {"blockers", painted_in(c, EnforcerBlockerType::BLOCKER)}};
+    if (const auto c = painted_facets(v.fuzzy_skin_facets, v); !c.empty())
+        painted["fuzzy_skin"] = painted_in(c, EnforcerBlockerType::FUZZY_SKIN);
+    if (const auto c = painted_facets(v.mmu_segmentation_facets, v); !c.empty()) {
+        json mmu = json::object();
+        for (std::size_t state = 1; state < c.size(); ++state)
+            if (c[state] > 0)
+                mmu[std::to_string(state)] = c[state]; // filament (extruder) number
+        painted["mmu"] = std::move(mmu);
+    }
+    if (!v.texture_displacement_layers.empty()) {
+        json layers = json::array();
+        for (const TextureDisplacementLayer& layer : v.texture_displacement_layers) {
+            json l{{"slot", layer.slot}, {"name", layer.name}, {"path", layer.path}, {"depth_mm", layer.depth_mm}};
+            if (layer.slot >= 0 && layer.slot < int(TEXTURE_DISPLACEMENT_MAX_LAYERS))
+                l["painted"] = painted_in(painted_facets(v.texture_displacement_facet(layer.slot), v), EnforcerBlockerType::ENFORCER);
+            layers.push_back(std::move(l));
+        }
+        painted["texture"] = std::move(layers);
+    }
+    if (!painted.empty())
+        out["painted"] = std::move(painted);
+    if (v.text_configuration) {
+        const EmbossStyle& style = v.text_configuration->style;
+        out["text"] = {{"text", v.text_configuration->text},
+                       {"style", style.name},
+                       {"font", style.prop.face_name ? *style.prop.face_name : style.path}};
+    }
+    if (v.emboss_shape && v.emboss_shape->svg_file)
+        out["svg"] = {{"path", v.emboss_shape->svg_file->path}, {"path_in_3mf", v.emboss_shape->svg_file->path_in_3mf}};
+    return out;
+}
+
+// The rectangle of logical canvas pixels an instance covers in the shown 3D view, or null when none
+// of it is on screen.
+json screen_rect(GLCanvas3D& canvas, int object, int instance)
+{
+    BoundingBoxf3 box;
+    for (const GLVolume* v : canvas.get_volumes().volumes)
+        if (v->object_idx() == object && v->instance_idx() == instance && !v->is_wipe_tower)
+            box.merge(v->transformed_bounding_box());
+    if (!box.defined)
+        return nullptr;
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    CanvasView    view{camera.get_view_matrix(), camera.get_projection_matrix(), camera.get_viewport(), canvas.get_scale()};
+    BoundingBoxf  rect;
+    for (int corner = 0; corner < 8; ++corner)
+        if (const auto p = project_point(view, Vec3d(corner & 1 ? box.max.x() : box.min.x(), corner & 2 ? box.max.y() : box.min.y(),
+                                                     corner & 4 ? box.max.z() : box.min.z())))
+            rect.merge(*p);
+    if (!rect.defined)
+        return nullptr;
+    return {std::lround(rect.min.x()), std::lround(rect.min.y()), std::lround(rect.size().x()), std::lround(rect.size().y())};
 }
 
 json list_objects(const json& args)
@@ -81,6 +180,13 @@ json list_objects(const json& args)
     PartPlateList&   plates = plater.get_partplate_list();
     const ModelObjectPtrs& objects = plater.model().objects;
     const int        only_plate = arg_int(args, "plate", -1);
+    // Screen rectangles are of the 3D view shown, Prepare's or the assemble view's.
+    GLCanvas3D* canvas = nullptr;
+    if (arg_bool(args, "screen", false)) {
+        canvas = plater.get_current_canvas3D();
+        if (canvas == nullptr || canvas == plater.get_preview_canvas3D())
+            throw ToolFailure("screen needs the Prepare view or the assemble view shown (set_view)");
+    }
     json             items = json::array();
     for (size_t i = 0; i < objects.size(); ++i) {
         const ModelObject* o = objects[i];
@@ -97,12 +203,14 @@ json list_objects(const json& args)
                                  {"rotation_deg", vec3(Vec3d(Geometry::rad2deg(rot.x()), Geometry::rad2deg(rot.y()), Geometry::rad2deg(rot.z())))},
                                  {"scale", vec3(inst->get_scaling_factor())},
                                  {"printable", inst->printable}});
+            if (canvas != nullptr)
+                instances.back()["screen"] = screen_rect(*canvas, int(i), int(j));
         }
         if (!on_plate)
             continue;
         json volumes = json::array();
         for (size_t v = 0; v < o->volumes.size(); ++v)
-            volumes.push_back({{"index", v}, {"name", o->volumes[v]->name}, {"type", volume_type_name(o->volumes[v]->type())}});
+            volumes.push_back(volume_info(*o->volumes[v], v));
         const BoundingBoxf3 bb = o->instance_bounding_box(0);
         json overrides = json::array();
         for (const std::string& key : o->config.keys())
@@ -112,6 +220,7 @@ json list_objects(const json& args)
                          {"instances", std::move(instances)},
                          {"volumes", std::move(volumes)},
                          {"bbox", {{"min", vec3(bb.min)}, {"max", vec3(bb.max)}, {"size", vec3(bb.size())}}},
+                         {"brim_ears", o->brim_points.size()},
                          {"overrides", std::move(overrides)}});
     }
     json out    = page(items, args, 200);
@@ -119,11 +228,9 @@ json list_objects(const json& args)
     return out;
 }
 
-json selection_summary()
+json selection_summary(const Selection& sel)
 {
-    Plater&          plater = ui_plater();
-    const Selection& sel    = plater.get_selection();
-    json             out{{"empty", sel.is_empty()}};
+    json out{{"empty", sel.is_empty()}};
     if (!sel.is_empty()) {
         out["object"]   = sel.get_object_idx();
         out["instance"] = sel.get_instance_idx();
@@ -171,17 +278,20 @@ void register_scene_tools(McpService& service)
 
     reg.add(inspect_tool(
         "list_objects", "List objects",
-        "Objects in the project with their instances (plate, position, rotation in degrees, scale), parts and modifiers, "
-        "bounding box and the settings they override. Indices are what select, transform and the object/volume settings "
+        "Objects in the project with their instances (plate, position, rotation in degrees, scale), parts and modifiers "
+        "(triangle count and mesh volume in mm3; painted facets: supports and seam enforcers/blockers, fuzzy_skin, mmu per "
+        "filament, texture per layer; a text part's text and font, an SVG part's file), bounding box, brim ear count and "
+        "the settings they override. Indices are what select, transform, ui_mouse targets and the object/volume settings "
         "scopes take.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Only objects on this plate."}}},
+                       {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h].")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 
     reg.add(mutate_tool(
         "select", "Select objects",
-        "Select objects, instances or parts in the 3D view (switching to Prepare), as clicking them would. Give objects, "
+        "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances ([[object, instance], ...]) or volumes ([[object, part], ...]); add keeps the current selection; all / "
         "none select everything or nothing.",
         object_schema({{"objects", array_prop({{"type", "integer"}}, "Object indices.")},
@@ -192,17 +302,26 @@ void register_scene_tools(McpService& service)
                        {"none", prop("boolean", "Clear the selection.")}}),
         [](const json& args, ToolContext& ctx) {
             json out = ctx.run_ui([&] {
-                Plater& plater = ui_plater();
-                show_prepare();
+                Plater&     plater   = ui_plater();
+                GLCanvas3D& canvas   = object_canvas();
+                Selection&  sel      = canvas.get_selection();
+                const bool  assemble = &canvas == plater.get_assmeble_canvas3D();
                 if (arg_bool(args, "none", false)) {
-                    plater.deselect_all();
-                    return selection_summary();
+                    if (assemble)
+                        sel.remove_all();
+                    else
+                        plater.deselect_all();
+                    canvas.set_as_dirty();
+                    return selection_summary(sel);
                 }
                 if (arg_bool(args, "all", false)) {
-                    plater.select_all();
-                    return selection_summary();
+                    if (assemble)
+                        sel.add_all();
+                    else
+                        plater.select_all();
+                    canvas.set_as_dirty();
+                    return selection_summary(sel);
                 }
-                Selection&    sel   = plater.canvas3D()->get_selection();
                 const size_t  count = plater.model().objects.size();
                 bool          first = !arg_bool(args, "add", false);
                 auto check_obj = [&](int o) {
@@ -225,8 +344,8 @@ void register_scene_tools(McpService& service)
                     first = false;
                 }
                 wxGetApp().obj_list()->update_selections();
-                plater.canvas3D()->set_as_dirty();
-                return selection_summary();
+                canvas.set_as_dirty();
+                return selection_summary(sel);
             });
             settle(ctx);
             return ToolResult::ok(out);

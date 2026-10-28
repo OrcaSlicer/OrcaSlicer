@@ -120,8 +120,8 @@ You can talk to the app in two ways:
 - GUI tools act on a `target`: a ref from the latest `ui_snapshot` (`"w12"`), or a locator such
   as `{"option": "layer_height"}` (a setting field), `{"label": "Slice plate"}`,
   `{"label": "Show splash screen", "within": "Preferences"}`,
-  `{"menu": "File>Export>Export G-code"}`, `{"gltoolbar": "arrange"}`, `{"gizmo": "Move"}` or
-  `{"imgui": "label"}`. Examples: `ui_snapshot {"query": "Arrange"}` (`"root": "dialog"` for the
+  `{"menu": "File>Export>Export G-code"}`, `{"gltoolbar": "arrange"}`, `{"gizmo": "Move"}`,
+  `{"imgui": "label"}` or `{"imgui_name": "name"}`. Examples: `ui_snapshot {"query": "Arrange"}` (`"root": "dialog"` for the
   topmost modal), `ui_click {"target": "w12"}`,
   `ui_input {"target": {"option": "layer_height"}, "value": "0.16"}`, `ui_key {"keys": "Ctrl+Z"}`
   (to the topmost dialog when one is open), `dialog_respond {"button": "ok"}`. A target is scrolled
@@ -137,6 +137,41 @@ You can talk to the app in two ways:
 - When something fails, `get_log {"level": "warning"}` shows why. Startup problems go to
   `<datadir>/mcp-launch.log`.
 - Never point `--datadir` at your real OrcaSlicer profile.
+
+## Gizmos
+
+Every gizmo is driven like a person drives it: its icon, its panel's controls, clicks on the model.
+`tools/mcp/tests/gizmos.json` does it for all of them; copy its steps.
+
+- Select the object (`select`), then `ui_click {"target": {"gizmo": "Seam"}}`. `ui_snapshot` lists
+  the gizmos of the shown 3D view, `[toolbar]` or `[no toolbar icon]` (Simplify, and SVG on a selected
+  SVG part). A second click closes the gizmo (`"active": false`); Text on an object with no text
+  creates a text part and replies `"created": true`. `get_state.gizmo` names the open one.
+- `ui_snapshot` lists each ImGui panel with its items and text, in reading order. A control is
+  found by its label (a field with none takes the text left of it on its row, `{"imgui": "Brush size"}`)
+  or its name (`{"imgui_name": "Fill"}` for an icon button, `{"imgui_name": "extruder_color_2"}`).
+  Each item shows its kind and value: `slider`, `drag`, `input`, `multiline`, `combo`, `checkbox`,
+  `radio`, `toggle`, `button`; `[no typing]` marks a slider that takes no typed value.
+- `ui_input` sets a control by its kind and reads the value back: a combo by option text or 0-based
+  index, a slider
+  through the number field beside it, multiline text with `\n`, a checkbox, radio or toggle with
+  true/false. A control below the visible part of a panel is scrolled into view first; a list that
+  only draws what shows (Texture Displacement's library) scrolls with `ui_mouse` `wheel` over it.
+- Click the model at a point instead of a pixel: `ui_mouse {"at": {"object": 0, "spot": "top"}}`, or
+  `"point": [x, y, z]` in the part's mesh coordinates (`"frame": "world"` for scene coordinates;
+  add `"volume"` for a part). It fails, naming what is in the way, when the point is hidden, below
+  the bed or cut away; turn the camera with `set_view`. `"check": "point"` skips that, for a point
+  that is not on the surface (a cut plane). Strokes: `"action": "drag"` with `"path"` and `"to"`
+  points. `"modifiers": ["shift"]` holds Shift as a key (Measure's point picking); `"button":
+  "right"` paints blockers or erases.
+- The panel's fields set grabber values (Position, rotation, scale, cut height); grabbers are not
+  dragged. File pickers inside a gizmo: `gizmo_file` (`svg_change`, `svg_save_as`,
+  `texture_import`); add an SVG with `run_action add_primitive_svg` and a path.
+- The assemble view: `set_view {"view": "assemble"}`, gizmo targets with `"canvas": "assemble"`,
+  and its Return button (`{"imgui": "Return"}`) or `set_view {"view": "3d"}` to leave.
+- Check the result in `list_objects`: per part `painted` (supports, seam, fuzzy_skin, mmu, texture),
+  `triangles`, `mesh_volume`, `text`, `svg`; per object `brim_ears`. After Simplify or a texture
+  preview, `wait {"for": "idle"}` first.
 
 ## Script format
 

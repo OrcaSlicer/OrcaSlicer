@@ -97,9 +97,15 @@ public:
     // closes: with no endpoint open (the server turned off meanwhile), a client's rules are refused.
     // Returns "script" or "session". Any thread.
     std::string set_auto_answer(std::vector<AutoAnswerRule> rules, const std::vector<std::string>& ancestry);
-    // run_script brackets its steps with these.
+    // run_script brackets its steps with these. A mouse press the script left held is released
+    // when it ends.
     void begin_script_scope(const std::string& job);
     void end_script_scope(const std::string& job);
+    // The job of the nearest running script in `ancestry`, or "" for a client's own call. Any thread.
+    std::string script_owner(const std::vector<std::string>& ancestry) const;
+    // Whether clients can reach the server: false from stop_serving() until the endpoint opens again.
+    // A client's call still running then must not leave state behind that the closing ended. Any thread.
+    bool endpoint_open() const;
 
     // Where screenshots and script outputs go when no path is given.
     boost::filesystem::path output_dir() const;
@@ -141,7 +147,7 @@ private:
     std::shared_ptr<RequestGate>   m_gate;
     std::unique_ptr<UiInspector>   m_inspector;
 
-    std::mutex                              m_rules_mutex;
+    mutable std::mutex                      m_rules_mutex;
     std::map<std::string, std::vector<int>> m_script_rule_layers; // running script job -> layers
     int                                     m_session_rule_layer = 0;
     bool                                    m_endpoint_open      = false;

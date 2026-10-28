@@ -1,0 +1,322 @@
+// Drives every gizmo the way a person does, through the generic GUI tools (gizmo icons, panel fields
+// by label or name, clicks at points of the model), and checks what each one leaves on the model.
+// Each section undoes and redoes its change and takes a canvas screenshot. Run it on a fresh datadir:
+//   tools/mcp/orca_mcp.py run-script tools/mcp/tests/gizmos.json --out /tmp/gizmos
+// and again at another window size, through run_script's vars:
+//   tools/mcp/orca_mcp.py call run_script '{"path": "/abs/tools/mcp/tests/gizmos.json",
+//       "out_dir": "/tmp/gizmos-small", "vars": {"window_size": [1100, 760]}}' --wait
+{
+  "orca_script": 1,
+  "name": "every gizmo",
+  "vars": {
+    "window_size": [1440, 960],
+    "svg": "${script_dir}/fixtures/star.svg",
+    "heightmap": "${script_dir}/fixtures/heightmap.png"
+  },
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "dialog_auto_answer", "args": {"rules": [
+      {"match": "Uniform scale", "button": "ok"},
+      {"match": "discard current style modification", "button": "yes"},
+      {"match": "unsaved changes", "button": "no"},
+      {"match": "text volume is empty", "button": "ok"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:mode_expert:orca"}},
+    {"tool": "set_view", "args": {"tab": "prepare", "window_size": "${vars.window_size}"}},
+    // Two filaments, so Color Painting is offered.
+    {"tool": "ui_click", "args": {"target": {"label": "Add one filament"}}},
+    {"tool": "get_state", "expect": {"/presets/filaments/1": {"exists": true}}},
+
+    // Object 0 and object 1: two 25.6 mm cubes (the default size on this bed), moved with their
+    // centres 12.8 mm up so they stand on the bed.
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "transform", "args": {"object": 0, "translate": [100, 100, 12.8], "mode": "absolute"}},
+    {"tool": "transform", "args": {"object": 1, "translate": [160, 100, 12.8], "mode": "absolute"}},
+    // A gesture that fails ends a press held from before it.
+    {"tool": "ui_mouse", "args": {"action": "down", "button": "middle", "x": 300, "y": 300}, "expect": {"/held": {"eq": true}}},
+    {"tool": "ui_mouse", "args": {"action": "move", "at": {"object": 0, "point": [0, 0, 5000], "frame": "world"}}, "optional": true},
+    {"tool": "ui_mouse", "args": {"action": "move", "x": 310, "y": 300}, "expect": {"/held": {"exists": false}}},
+    {"tool": "set_view", "args": {"camera": "iso"}},
+    {"tool": "set_view", "args": {"camera": "fit_objects"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 2}}},
+
+    // ---- Move: opens, a field sets X, the coordinate combo switches, a second click closes ----
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Move"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "get_state", "expect": {"/gizmo/name": {"eq": "Move"}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Position", "window": "Object operations"}, "value": 90}, "expect": {"/value": {"eq": "90.00"}}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/offset/0": {"eq": 90}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/offset/0": {"eq": 100}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/offset/0": {"eq": 90}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "coordinates"}, "value": "Object"}, "expect": {"/selected": {"eq": "Object"}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "coordinates"}, "value": 0}, "expect": {"/selected": {"eq": "World"}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/move.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Move"}}, "expect": {"/active": {"eq": false}}},
+    {"tool": "get_state", "expect": {"/gizmo": {"eq": null}}},
+
+    // ---- Move's alignment: both cubes to the same front edge ----
+    {"tool": "select", "args": {"all": true}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Move"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Align front"}}},
+    {"tool": "list_objects", "expect": {"/items/1/instances/0/offset/1": {"eq": 100}}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Move"}}},
+
+    // ---- Rotate: the absolute Z angle ----
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Rotate"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "absolute_rotation_z"}, "value": 30}, "expect": {"/value": {"eq": "30.00"}}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/rotation_deg/2": {"gt": 29.9}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/rotation_deg/2": {"gt": 29.9}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/rotate.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "absolute_rotation_z"}, "value": 0}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Rotate"}}, "expect": {"/active": {"eq": false}}},
+
+    // ---- Scale: uniform scale by the X field ----
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Scale"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Scale"}, "value": 120}, "expect": {"/value": {"eq": "120.00"}}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/scale/2": {"gt": 1.19}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/instances/0/scale/2": {"eq": 1}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/scale.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Scale"}, "value": 100}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Scale"}}, "expect": {"/active": {"eq": false}}},
+
+    // ---- Flatten: object 1 laid on its front face ----
+    {"tool": "select", "args": {"objects": [1]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Flatten"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 1, "spot": "front"}}},
+    {"tool": "list_objects", "expect": {"/items/1/instances/0/rotation_deg/0": {"gt": 89}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/1/instances/0/rotation_deg/0": {"lt": 1}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/flatten.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Flatten"}}},
+
+    // ---- Supports: a stroke on the top, Fill on the front, seen through object 1 where it would hide the front ----
+    {"tool": "transform", "args": {"object": 1, "translate": [100, 60, 12.8], "mode": "absolute"}},
+    {"tool": "set_view", "args": {"camera": "front"}},
+    {"tool": "set_view", "args": {"camera": "fit_objects"}},
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "FdmSupports"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Fill"}}},
+    // Object 1 stands in front of object 0's front face; the gizmo hides it, so the point is clickable.
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "spot": "front"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/supports/enforcers": {"gt": 0}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted": {"exists": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "set_view", "args": {"camera": "iso"}},
+    {"tool": "set_view", "args": {"camera": "fit_objects"}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Circle"}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Brush size"}, "value": 3}, "expect": {"/value": {"eq": "3.00"}}},
+    {"tool": "ui_mouse", "args": {"action": "drag", "button": "right", "at": {"object": 0, "spot": "top"}, "to": {"object": 0, "point": [6, 6, 12.8]}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/supports/blockers": {"gt": 0}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/supports.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+    {"tool": "transform", "args": {"object": 1, "translate": [160, 100, 12.8], "mode": "absolute"}},
+
+    // ---- Seam ----
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Seam"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "spot": "front"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/seam/enforcers": {"gt": 0}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/seam": {"exists": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/seam.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+
+    // ---- Fuzzy skin: with it off for the object, the "enable painted fuzzy skin" link; then a Fill on the left face ----
+    {"tool": "set_settings", "args": {"scope": "object", "object": 0, "values": {"fuzzy_skin": "disabled_fuzzy"}}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Fuzzy Skin Painting"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Enable painted fuzzy skin"}}},
+    {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["fuzzy_skin"]}, "expect": {"/items/0/value": {"eq": "none"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Fill"}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "spot": "left"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/fuzzy_skin": {"gt": 0}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/fuzzy_skin": {"gt": 0}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/fuzzy_skin.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+
+    // ---- Color painting: filament 2 filled on the front; the painted volume's scene entry is inactive ----
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Color Painting"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "extruder_color_2"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Fill"}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "spot": "front"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/mmu/2": {"gt": 0}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/mmu/2": {"gt": 0}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/color.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+
+    // ---- Texture displacement: import a height map, paint the top, a second layer added and removed ----
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Texture Displacement"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "gizmo_file", "args": {"action": "texture_import", "path": "${vars.heightmap}"}},
+    {"tool": "ui_mouse", "args": {"action": "drag", "at": {"object": 0, "spot": "top"}, "path": [{"object": 0, "point": [8, 0, 12.8]}], "to": {"object": 0, "point": [8, 8, 12.8]}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/texture/0/name": {"contains": "heightmap"}, "/items/0/volumes/0/painted/texture/0/painted": {"gt": 0}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "add_layer"}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/texture/1": {"exists": true}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Remove", "index": 1}}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/texture/1": {"exists": false}}},
+    // The remaining layer's card, collapsed when the second one was added, opens on its row; its
+    // "more settings" link is scrolled into view when the panel is too short to show it.
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Layer 1"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "more"}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/texture.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "close"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+
+    // ---- Text: the icon on a selected cube creates a text part; multiline text and a style ----
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}, "/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "Text"}, "value": ""}, "expect": {"/value": {"eq": ""}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "Text"}, "value": "Orca\nMCP"}, "expect": {"/value": {"eq": "Orca\nMCP"}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Style"}, "value": "ITALIC"}, "expect": {"/selected": {"eq": "ITALIC"}}},
+    // A font Orca ships, so every system lists it; the font button's label, and so its id, changes
+    // with the font. It may lack some letters of the text, so it is reverted at once.
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "Combo_Font"}, "value": "HarmonyOS Sans SC"}, "expect": {"/selected": {"eq": "HarmonyOS Sans SC"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Revert font"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    // The second property's revert button resets that property.
+    {"tool": "ui_input", "args": {"target": {"imgui": "Depth"}, "value": 2.5}, "expect": {"/value": {"eq": "2.50 mm"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Revert Depth"}}},
+    {"tool": "ui_snapshot", "args": {"query": "2.50 mm"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/text/text": {"eq": "Orca\nMCP"}, "/items/0/volumes/1/text/style": {"eq": "ITALIC"}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/text.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+
+    // ---- SVG: a new object with nothing selected, a part of the selected cube, then Change file and Save as ----
+    {"tool": "select", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_svg:orca", "param": "${vars.svg}"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 3}, "/items/2/volumes/0/svg/path": {"contains": "star.svg"}}},
+    {"tool": "get_state", "expect": {"/gizmo/name": {"eq": "SVG"}}},
+    {"tool": "gizmo_file", "args": {"action": "svg_save_as", "path": "${out_dir}/star-copy.svg", "overwrite": true}},
+    {"tool": "list_objects", "expect": {"/items/2/volumes/0/svg/path": {"contains": "star-copy.svg"}}},
+    {"tool": "gizmo_file", "args": {"action": "svg_change", "path": "${vars.svg}"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/2/volumes/0/svg/path": {"contains": "star.svg"}}},
+    // The panel shows the new file's name.
+    {"tool": "ui_snapshot", "args": {"query": "star-copy"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "SVG"}}},
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_svg:orca", "param": "${vars.svg}"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/2/svg/path": {"contains": "star.svg"}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/svg.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "SVG"}}},
+
+    // ---- Measure: two faces at 90 degrees; then a Shift-clicked point in place of the second, a distance ----
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Measure"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_mouse", "args": {"action": "move", "at": {"object": 0, "spot": "front"}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "spot": "front"}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "spot": "left"}}},
+    {"tool": "ui_snapshot", "args": {"query": "90.000"}, "expect": {"/nodes": {"gt": 0}}},
+    {"tool": "ui_mouse", "args": {"modifiers": ["shift"], "at": {"object": 0, "point": [-12.8, 0, -8]}}},
+    {"tool": "ui_snapshot", "args": {"query": "Point on plane"}, "expect": {"/nodes": {"gt": 0}}},
+    {"tool": "ui_snapshot", "args": {"query": "Distance"}, "expect": {"/nodes": {"gt": 0}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/measure.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Measure"}}},
+
+    // ---- Simplify: the text part cut by 90 %; its count depends on the system font, so the bound is loose ----
+    {"tool": "select", "args": {"volumes": [[0, 1]]}},
+    // Closed while it calculates, it leaves nothing to wait for.
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Simplify"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "use_count"}, "value": true}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Decimate ratio"}, "value": 60}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Simplify"}}, "expect": {"/active": {"eq": false}}},
+    {"tool": "wait", "args": {"for": "idle", "timeout_s": 15}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Simplify"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "use_count"}, "value": true}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Decimate ratio"}, "value": 90}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Apply"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/1/triangles": {"lt": 1000}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/simplify.png", "overwrite": true, "include_image": false}},
+
+    // ---- Brim ears: the "set to painted" link, auto-generated ears and one more by a click ----
+    {"tool": "select", "args": {"objects": [1]}},
+    {"tool": "set_view", "args": {"camera": "iso"}},
+    {"tool": "set_view", "args": {"camera": "fit_selection"}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Brim Ears"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "Set brim type to painted"}}},
+    {"tool": "list_objects", "expect": {"/items/1/overrides": {"contains": "brim_type"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Auto-generate"}}},
+    {"tool": "list_objects", "expect": {"/items/1/brim_ears": {"gt": 0}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 1, "point": [172.8, 100, 0.5], "frame": "world"}, "check": "point"}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/brim_ears.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Done"}}},
+
+    // ---- Mesh boolean: the cube and its SVG part united into one part ----
+    {"tool": "select", "args": {"objects": [0]}},
+    {"tool": "set_view", "args": {"camera": "fit_selection"}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "MeshBoolean"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Union", "index": 0}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "select_source_volume"}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "volume": 0, "spot": "front"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "select_tool_volume"}}},
+    {"tool": "ui_mouse", "args": {"at": {"object": 0, "volume": 2, "spot": "top"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui_name": "btn"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/2": {"exists": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects", "expect": {"/items/0/volumes/2": {"exists": true}}},
+    {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/mesh_boolean.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "MeshBoolean"}}},
+
+    // ---- Assembly, in the assemble view: a face of each object picked, then mated at a distance ----
+    // The assemble view shows the objects selected when it opens, where they sit in the assembly. Both
+    // cubes were made at the same spot, so its Move gizmo first moves object 1 apart there.
+    {"tool": "select", "args": {"objects": [0, 1]}},
+    {"tool": "set_view", "args": {"view": "assemble"}},
+    {"tool": "set_view", "args": {"camera": "iso"}},
+    {"tool": "select", "args": {"objects": [1]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Move", "canvas": "assemble"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Position", "canvas": "assemble"}, "value": 60}, "expect": {"/value": {"eq": "60.00"}}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Move", "canvas": "assemble"}}, "expect": {"/active": {"eq": false}}},
+    {"tool": "set_view", "args": {"camera": "fit_objects"}},
+    {"tool": "select", "args": {"all": true}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Assembly", "canvas": "assemble"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Mode"}, "value": "Face and face assembly"}},
+    {"tool": "ui_mouse", "args": {"canvas": "assemble", "action": "move", "at": {"object": 0, "spot": "left"}}},
+    {"tool": "ui_mouse", "args": {"canvas": "assemble", "at": {"object": 0, "spot": "left"}}},
+    {"tool": "ui_mouse", "args": {"canvas": "assemble", "action": "move", "at": {"object": 1, "spot": "left"}}},
+    {"tool": "ui_mouse", "args": {"canvas": "assemble", "at": {"object": 1, "spot": "left"}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "parallel_distance_z"}, "value": 0}, "expect": {"/value": {"eq": "0.00"}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/assembly.png", "overwrite": true, "include_image": false}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Return"}}},
+    {"tool": "get_state", "expect": {"/gizmo": {"eq": null}}},
+
+    // ---- Cut: a connector on the plane, Frustum and Square in their combos, then the cut ----
+    {"tool": "set_view", "args": {"camera": "iso"}},
+    {"tool": "select", "args": {"objects": [1]}},
+    {"tool": "ui_click", "args": {"target": {"gizmo": "Cut"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "ui_input", "args": {"target": {"imgui_name": "move_Z"}, "value": 10}, "expect": {"/value": {"eq": "10.00"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Add connectors"}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Style"}, "value": "Frustum"}, "expect": {"/selected": {"eq": "Frustum"}}},
+    {"tool": "ui_input", "args": {"target": {"imgui": "Shape"}, "value": "Square"}, "expect": {"/selected": {"eq": "Square"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Confirm connectors"}}},
+    {"tool": "ui_click", "args": {"target": {"imgui": "Perform cut"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 4}}},
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/cut.png", "overwrite": true, "include_image": false}}
+  ]
+}

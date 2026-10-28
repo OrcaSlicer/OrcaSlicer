@@ -521,6 +521,11 @@ void GLGizmoMeasure::on_set_state()
         m_editing_distance = false;
         m_is_editing_distance_first_frame = true;
         std::map<GLVolume *, std::shared_ptr<Measure::Measuring>>().swap(m_mesh_measure_map);
+        // The raycasters point into the scene's volumes, which a reload frees while the gizmo is
+        // closed; the next open rebuilds them in data_changed(), which must not take the path kept
+        // for the gizmo's own pending transform.
+        reset_all_pick();
+        m_pending_scale = 0;
     }
     else {
         m_mode = EMode::FeatureSelection;
@@ -1350,7 +1355,7 @@ void GLGizmoMeasure::render_dimensioning()
             m_imgui->text(txt);
             if (m_hit_different_volumes.size() < 2 && wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D) {
                 ImGui::SameLine();
-                if (m_imgui->image_button(ImGui::SliderFloatEditBtnIcon, _L("Edit to scale"))) {
+                if (m_imgui->image_button(ImGui::SliderFloatEditBtnIcon, _L("Edit to scale"), "Edit to scale")) {
                     m_editing_distance = true;
                     edit_value         = curr_value;
                     m_imgui->requires_extra_frame();
@@ -1950,7 +1955,7 @@ void GLGizmoMeasure::show_selection_ui()
             ImGui::SameLine(selection_cap_length + feature_first_text_length + space_size * 2);
             ImGui::PushItemWidth(space_size * 2);
             ImGui::PushID("Reset1"); // for image_button
-            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"))) { reset_feature1(); }
+            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"), "Reset feature 1")) { reset_feature1(); }
             ImGui::PopID();
         }
         ImGui::PopStyleColor();
@@ -1976,7 +1981,7 @@ void GLGizmoMeasure::show_selection_ui()
             ImGui::SameLine(selection_cap_length + feature_second_text_length + space_size * 2);
             ImGui::PushItemWidth(space_size * 2);
             ImGui::PushID("Reset2");
-            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"))) { reset_feature2(); }
+            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"), "Reset feature 2")) { reset_feature2(); }
             ImGui::PopID();
         }
         ImGui::PopStyleColor();
@@ -2006,7 +2011,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
         ImGui::TableSetColumnIndex(1);
         m_imgui->text_colored(col_2_color, col_2);
         ImGui::TableSetColumnIndex(2);
-        if (m_imgui->image_button(m_is_dark_mode ? ImGui::ClipboardBtnDarkIcon : ImGui::ClipboardBtnIcon, _L("Copy to clipboard"))) {
+        if (m_imgui->image_button(m_is_dark_mode ? ImGui::ClipboardBtnDarkIcon : ImGui::ClipboardBtnIcon, _L("Copy to clipboard"), "Copy to clipboard")) {
             wxTheClipboard->Open();
             wxTheClipboard->SetData(new wxTextDataObject(wxString((col_1 + ": " + col_2).c_str(), wxConvUTF8)));
             wxTheClipboard->Close();

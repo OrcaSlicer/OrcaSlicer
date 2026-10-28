@@ -60,16 +60,28 @@ class ImGuiWrapper
 public:
     // Automation (the MCP server) lists and clicks ImGui items, which have no window handles. While
     // recording is on, every item a frame adds is recorded with its id, label, window and rectangle
-    // (in ImGui coordinates), per canvas: the canvas calls set_frame_owner() before new_frame(), and
-    // end_frame() publishes the frame's items as that owner's latest. Off unless the MCP server runs;
-    // ImGui then skips the hooks with one branch per item.
+    // (in ImGui coordinates), along with the values fields show and the text the frame draws, per
+    // canvas: the canvas calls set_frame_owner() before new_frame(), and end_frame() publishes the
+    // frame's items as that owner's latest. Off unless the MCP server runs; ImGui then skips the
+    // hooks with one branch per item.
     struct RecordedItem
     {
         unsigned    id = 0;
         std::string label;  // as passed to ImGui, "##" suffix included
+        std::string name;   // given by record_named_item(), for a control whose label names nothing
         std::string window; // name of the ImGui window the item belongs to
+        std::string kind;   // slider, drag, input, multiline, combo, or a named control's kind; empty for buttons and checkboxes
+        std::string value;  // what a field or a combo shows
         float       x = 0.f, y = 0.f, w = 0.f, h = 0.f;
-        int         flags = 0; // ImGuiItemStatusFlags
+        int         flags   = 0;     // ImGuiItemStatusFlags
+        bool        clipped = false; // outside the visible part of its window when drawn
+    };
+    // Text a frame draws with ImGui::Text() and the like; never an item.
+    struct RecordedText
+    {
+        std::string window;
+        std::string text;
+        float       x = 0.f, y = 0.f, w = 0.f, h = 0.f;
     };
 
 private:
@@ -95,10 +107,18 @@ private:
     // Keys held down, each with whether ImGui claimed its press.
     std::map<int, bool> m_key_claims;
     // Item recording for automation, see set_item_recording(). UI thread only.
+    struct RecordedFrame
+    {
+        std::vector<RecordedItem> items;
+        std::vector<RecordedText> texts;
+    };
     bool                                                m_item_recording{ false };
     const void*                                         m_frame_owner{ nullptr };
-    std::vector<RecordedItem>                           m_frame_items;
-    std::map<const void*, std::vector<RecordedItem>>    m_recorded_items;
+    RecordedFrame                                       m_frame;
+    std::map<const void*, RecordedFrame>                m_recorded;
+    // The last string ImGui hashed into an id, the label of the item it is about to add.
+    unsigned                                            m_last_string_id{ 0 };
+    std::string                                         m_last_string;
     // Whether ImGui claimed the last key-down, for the char event that follows it.
     std::optional<bool> m_char_claim;
 
@@ -138,9 +158,26 @@ public:
     bool                      item_recording() const { return m_item_recording; }
     void                      set_frame_owner(const void* owner) { m_frame_owner = owner; }
     std::vector<RecordedItem> recorded_items(const void* owner) const;
+    std::vector<RecordedText> recorded_texts(const void* owner) const;
+    // Names the control just drawn for automation when its ImGui label names nothing: an empty or
+    // "##"-only label, or no item at all (Dummy, Image, a hand-made click test). A real item (an
+    // image button, an empty-label combo) is named in its own record; anything else gets a record of
+    // its own at the last item's rectangle, or at [min, max], with the id `name` hashes to in the
+    // current ID scope (and its place among same-named ones there). Changes nothing ImGui does, and
+    // costs one branch while recording is off.
+    // `checked` (0 or 1) makes it a toggle that reports its state; -1 leaves it a plain control.
+    void record_named_item(const std::string& name, const char* kind = "button", int checked = -1);
+    void record_named_item(const std::string& name, const char* kind, const ImVec2& min, const ImVec2& max, int checked = -1);
+    // Names the item `id` drawn earlier this frame, for a control that is no longer the current
+    // window's last item (a combo, whose popup is the current window while it is open). Returns
+    // whether this frame recorded that item.
+    bool record_item_name(unsigned id, const std::string& name, const char* kind, int checked = -1);
     // Called by the ImGui test-engine hooks; not for other use.
-    void record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window);
+    void record_item_add(unsigned id, float x0, float y0, float x1, float y1, const char* window, bool clipped);
     void record_item_info(unsigned id, const char* label, int flags);
+    void record_item_value(unsigned id, const char* kind, const char* value, int flags);
+    void record_text(const char* window, float x0, float y0, float x1, float y1, const char* text, const char* text_end);
+    void record_string_id(unsigned id, const char* str, const char* str_end);
     void render(ImDrawData* draw_data);
     // Hash of every draw list's vertices, indices and commands.
     static ImGuiID draw_data_signature(const ImDrawData* draw_data);
@@ -180,7 +217,8 @@ public:
     bool bbl_button(const wxString &label, const wxString& tooltip = {});
     bool button(const wxString& label, float width, float height);
     bool button(const wxString& label, const ImVec2 &size, bool enable); // default size = ImVec2(0.f, 0.f)
-    bool glyph_button(wchar_t icon_char, ImVec2 icon_size); // ORCA
+    // `name` names the button for automation (see record_named_item()).
+    bool glyph_button(wchar_t icon_char, ImVec2 icon_size, const std::string& name = {}); // ORCA
     bool radio_button(const wxString &label, bool active);
     static ImVec4          to_ImVec4(const ColorRGB &color);
     bool input_double(const std::string &label, const double &value, const std::string &format = "%.3f");
@@ -224,7 +262,8 @@ public:
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
 
     bool image_button(ImTextureID user_texture_id, const ImVec2& size, const ImVec2& uv0 = ImVec2(0.0, 0.0), const ImVec2& uv1 = ImVec2(1.0, 1.0), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0.0, 0.0, 0.0, 0.0), const ImVec4& tint_col = ImVec4(1.0, 1.0, 1.0, 1.0), ImGuiButtonFlags flags = 0);
-    bool image_button(const wchar_t icon, const wxString& tooltip = L"");
+    // `name` names the button for automation (see record_named_item()).
+    bool image_button(const wchar_t icon, const wxString& tooltip = L"", const std::string& name = {});
 
     // Use selection = -1 to not mark any option as selected
     bool combo(const std::string& label, const std::vector<std::string>& options, int& selection, ImGuiComboFlags flags = 0, float label_width = 0.0f, float item_width = 0.0f);

@@ -238,6 +238,7 @@ bool GLGizmoBase::render_combo(const std::string &label, const std::vector<std::
         for (size_t line_idx = 0; line_idx < lines.size(); ++line_idx) {
             ImGui::PushID(int(line_idx));
             if (ImGui::Selectable("", line_idx == selection_idx)) selection_out = line_idx;
+            m_imgui->record_named_item(lines[line_idx], "option");
 
             ImGui::SameLine();
             ImGui::Text("%s", lines[line_idx].c_str());
