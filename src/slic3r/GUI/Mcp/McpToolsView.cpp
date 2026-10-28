@@ -28,6 +28,7 @@
 #include <cmath>
 #include <ctime>
 #include <string>
+#include <thread>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
@@ -109,62 +110,75 @@ void register_view_tools(McpService& service)
                     service.inspector().reveal(service.inspector().resolve(target_arg));
                     return json();
                 });
-            ctx.run_ui([&] {
-                std::string             err;
-                std::optional<Capture>  cap;
-                if (target == "canvas") {
-                    Plater&     plater = ui_plater();
-                    GLCanvas3D* canvas = plater.get_current_canvas3D();
-                    if (canvas == nullptr)
-                        throw ToolFailure("No 3D view is shown; switch to Prepare or Preview (set_view tab)");
-                    cap = capture_canvas(*canvas, err);
-                } else if (target == "dialog") {
-                    wxDialog* top = service.modals().top();
-                    if (top == nullptr)
-                        throw ToolFailure("No modal dialog is open");
-                    cap = capture_window(*top, err);
-                } else if (target != "window") {
-                    // A widget: its top-level window, cropped to the widget unless it is that window.
-                    const UiTarget t = service.inspector().resolve(target_arg);
-                    locator          = t.locator;
-                    wxWindow*      w = t.window.get();
-                    if (t.kind != UiTarget::Kind::Window || w == nullptr)
-                        throw ToolFailure("target must be window, canvas, dialog or the ref of a widget");
-                    if (GLCanvas3D* canvas = service.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
+            // A canvas that comes back blank has not drawn yet; it does within moments.
+            bool blank = false;
+            for (int attempt = 0;; ++attempt) {
+                ctx.run_ui([&] {
+                    std::string             err;
+                    std::optional<Capture>  cap;
+                    if (target == "canvas") {
+                        Plater&     plater = ui_plater();
+                        GLCanvas3D* canvas = plater.get_current_canvas3D();
+                        if (canvas == nullptr)
+                            throw ToolFailure("No 3D view is shown; switch to Prepare or Preview (set_view tab)");
                         cap = capture_canvas(*canvas, err);
-                    } else {
-                        auto* tlw = dynamic_cast<wxTopLevelWindow*>(wxGetTopLevelParent(w));
-                        if (tlw == nullptr)
-                            throw ToolFailure("The widget has no window");
-                        tlw->Update();
-                        cap = capture_window(*tlw, err);
-                        if (cap && w != tlw) {
-                            // The capture is in physical pixels, like client_offset_in().
-                            const wxPoint at    = client_offset_in(*w, *tlw);
-                            const double  scale = tlw->GetContentScaleFactor();
-                            const wxSize  size(int(std::lround(w->GetSize().x * scale)), int(std::lround(w->GetSize().y * scale)));
-                            const wxRect  r = wxRect(at, size).Intersect(wxRect(cap->image.GetSize()));
-                            if (r.IsEmpty())
-                                throw ToolFailure("The widget is outside its window's visible area");
-                            cap->image = cap->image.GetSubImage(r);
+                    } else if (target == "dialog") {
+                        wxDialog* top = service.modals().top();
+                        if (top == nullptr)
+                            throw ToolFailure("No modal dialog is open");
+                        cap = capture_window(*top, err);
+                    } else if (target != "window") {
+                        // A widget: its top-level window, cropped to the widget unless it is that window.
+                        const UiTarget t = service.inspector().resolve(target_arg);
+                        locator          = t.locator;
+                        wxWindow*      w = t.window.get();
+                        if (t.kind != UiTarget::Kind::Window || w == nullptr)
+                            throw ToolFailure("target must be window, canvas, dialog or the ref of a widget");
+                        if (GLCanvas3D* canvas = service.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
+                            cap = capture_canvas(*canvas, err);
+                        } else {
+                            auto* tlw = dynamic_cast<wxTopLevelWindow*>(wxGetTopLevelParent(w));
+                            if (tlw == nullptr)
+                                throw ToolFailure("The widget has no window");
+                            tlw->Update();
+                            cap = capture_window(*tlw, err);
+                            if (cap && w != tlw) {
+                                // The capture is in physical pixels, like client_offset_in().
+                                const wxPoint at    = client_offset_in(*w, *tlw);
+                                const double  scale = tlw->GetContentScaleFactor();
+                                const wxSize  size(int(std::lround(w->GetSize().x * scale)), int(std::lround(w->GetSize().y * scale)));
+                                const wxRect  r = wxRect(at, size).Intersect(wxRect(cap->image.GetSize()));
+                                if (r.IsEmpty())
+                                    throw ToolFailure("The widget is outside its window's visible area");
+                                cap->image = cap->image.GetSubImage(r);
+                            }
                         }
+                    } else {
+                        wxTopLevelWindow* frame = wxGetApp().mainframe;
+                        if (frame == nullptr)
+                            throw ToolFailure("The main window is not up yet");
+                        cap = capture_window(*frame, err);
                     }
-                } else {
-                    wxTopLevelWindow* frame = wxGetApp().mainframe;
-                    if (frame == nullptr)
-                        throw ToolFailure("The main window is not up yet");
-                    cap = capture_window(*frame, err);
-                }
-                if (!cap)
-                    throw ToolFailure(err);
-                full = cap->image;
-                info = {{"source", target.empty() ? json(target_arg) : json(target)}, {"width", full.GetWidth()}, {"height", full.GetHeight()}};
-                if (cap->approximate)
-                    info["approximate"] = true;
-                if (!cap->note.empty())
-                    info["note"] = cap->note;
-                return json();
-            });
+                    if (!cap)
+                        throw ToolFailure(err);
+                    full = cap->image;
+                    info = {{"source", target.empty() ? json(target_arg) : json(target)}, {"width", full.GetWidth()}, {"height", full.GetHeight()}};
+                    if (cap->approximate)
+                        info["approximate"] = true;
+                    if (!cap->note.empty())
+                        info["note"] = cap->note;
+                    blank = cap->blank_canvas;
+                    return json();
+                });
+                if (!blank || attempt >= 10 || ctx.cancelled())
+                    break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            }
+            if (blank) {
+                info["approximate"] = true;
+                info["note"] = info.value("note", std::string()) + (info.contains("note") ? "; " : "") +
+                               "the 3D view came back blank, as if not drawn yet";
+            }
             if (target_arg.is_string() && !locator.is_null()) {
                 // A replay needs the locator; refs mean nothing in another session.
                 json recorded      = args;

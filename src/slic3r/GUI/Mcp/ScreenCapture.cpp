@@ -69,11 +69,26 @@ wxPoint client_offset_in(wxWindow& child, wxTopLevelWindow& top)
 #endif
 }
 
+bool is_blank(const wxImage& image)
+{
+    // A surface that is not ready reads back black, give or take a stray pixel.
+    const unsigned char* data   = image.GetData();
+    const std::size_t    pixels = std::size_t(image.GetWidth()) * std::size_t(image.GetHeight());
+    if (data == nullptr || pixels == 0)
+        return true;
+    std::size_t lit = 0;
+    for (std::size_t i = 0; i < pixels; ++i, data += 3)
+        if ((data[0] | data[1] | data[2]) != 0 && ++lit > pixels / 1000)
+            return false;
+    return true;
+}
+
 std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err)
 {
     Capture c;
     if (!canvas.render_and_capture(c.image, err))
         return std::nullopt;
+    c.blank_canvas = is_blank(c.image);
     return c;
 }
 
@@ -103,6 +118,7 @@ std::optional<Capture> capture_window(wxTopLevelWindow& window, std::string& err
                 c.note += (c.note.empty() ? "" : "; ") + std::string("3D view not composited: ") + canvas_err;
                 continue;
             }
+            c.blank_canvas = c.blank_canvas || is_blank(frame);
             composite(c.image, frame, client_offset_in(*glc, window));
         }
     return c;

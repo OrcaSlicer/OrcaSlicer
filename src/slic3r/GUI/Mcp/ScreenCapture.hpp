@@ -22,7 +22,13 @@ struct Capture
     // off-screen, a canvas that was mid-frame); `note` says which.
     bool        approximate = false;
     std::string note;
+    // A 3D canvas came back entirely black. The view is never drawn black, so its surface was not
+    // ready yet, as on Wayland for a moment after the canvas is first shown; capture again later.
+    bool        blank_canvas = false;
 };
+
+// True when all but a stray few pixels are black.
+bool is_blank(const wxImage& image);
 
 // The canvas exactly as presented: scene, toolpaths, toolbars and ImGui overlays. All platforms.
 std::optional<Capture> capture_canvas(GLCanvas3D& canvas, std::string& err);
