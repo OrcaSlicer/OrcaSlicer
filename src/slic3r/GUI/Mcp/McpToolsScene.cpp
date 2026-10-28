@@ -361,7 +361,7 @@ void register_scene_tools(McpService& service)
                         if (auto run = plater.slice_run(seq))
                             obs.runs_since_start.push_back({run->seq, run->finished, run->cancelled, run->ok, run->error,
                                                             run->revision_at_finish, run->request_seq_at_finish,
-                                                            run->request_seq_at_start, run->plate});
+                                                            run->request_seq_at_start, run->for_request, run->plate});
                     ticket->state.seen_running = ticket->state.seen_running || obs.slicing_any || !obs.runs_since_start.empty();
                     const TicketStatus status  = slice_status(ticket->state, obs, std::chrono::steady_clock::now());
                     if (status == TicketStatus::Pending)

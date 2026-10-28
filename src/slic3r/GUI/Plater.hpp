@@ -920,6 +920,10 @@ public:
         uint64_t    revision_at_finish    = 0;
         uint64_t    request_seq_at_finish = 0;
         uint64_t    request_seq_at_start  = 0;
+        // Started by a slice request, or by Slice All moving to its next plate. A reslice from a
+        // Preview switch or automatic slicing, or an export, also runs under the latest request
+        // number but is not that request's.
+        bool        for_request           = false;
         int         plate                 = -1;
     };
     struct ExportRun

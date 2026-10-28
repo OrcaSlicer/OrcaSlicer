@@ -199,6 +199,21 @@ TEST_CASE("a plate's result is the operation's until someone else slices it", "[
     CHECK(plate_result_is_own(0, t, observe(6, 1, {plate_run(11, 0), run(12, 1, 6, false, true, 6, 1)})));
 }
 
+TEST_CASE("a reslice or export under the request's number that the request did not start is not the operation's", "[Mcp]")
+{
+    const SliceTicketState t = ticket(5, 10, 1);
+    // Our run, then a GUI export of the same plate that failed (no new slice request).
+    SliceRunRecord export_run = run(12, 1, 5, false, true, 5, 0);
+    export_run.for_request    = false;
+    export_run.ok             = false;
+    export_run.error          = "Disk full";
+    const SliceObservation obs = observe(5, 1, {plate_run(11, 0), export_run});
+    REQUIRE(own_runs(t, obs).size() == 1);
+    CHECK(outcomes(classify_plates({0}, {{0, true, false}}, own_runs(t, obs))) == std::vector<PlateOutcome>{PlateOutcome::Ok});
+    // Its result is no longer known to be ours, so no statistics.
+    CHECK_FALSE(plate_result_is_own(0, t, obs));
+}
+
 TEST_CASE("a slice request refused before validating reports the refusal over a cached result", "[Mcp]")
 {
     // Plater records the refusal (a broken mixed filament here) as a rejected run of the request.

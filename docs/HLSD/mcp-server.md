@@ -206,7 +206,9 @@ still slicing (`slice_request_interrupted()`).
 `Plater::project_revision()` rises with every undoable model edit, undo/redo, load, new project and
 config change, but not when a plate is selected (`Plater::take_plate_selection_snapshot()`), since
 Slice All selects each plate in turn. A ticket's own runs are those numbered after it began that
-ran for its request; Slice All's later plates run for the same request. A run already slicing when
+its request started (`SliceRun::for_request`); Slice All's later plates run for the same request,
+while a reslice from a Preview switch or automatic slicing, or an export, merely runs under the
+request's number and is not the ticket's. A run already slicing when
 the request was made, which the request left running (it returns early, for instance while a gizmo
 is in editing mode), is adopted as the ticket's own. A later request means someone sliced again:
 if it came while the ticket's request was still slicing, the ticket is `superseded` at once,

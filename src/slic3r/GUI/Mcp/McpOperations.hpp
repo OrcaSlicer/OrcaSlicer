@@ -34,7 +34,8 @@ struct SliceRunRecord
     std::string error;
     uint64_t    revision_at_finish    = 0;
     uint64_t    request_seq_at_finish = 0;
-    uint64_t    request_seq_at_start  = 0; // the slice request it runs for
+    uint64_t    request_seq_at_start  = 0; // the latest slice request when it started
+    bool        for_request           = true;  // started by that request (not a reslice or export after it)
     int         plate                 = -1;
 };
 
@@ -77,9 +78,10 @@ struct SliceObservation
     std::vector<SliceRunRecord> runs_since_start; // the adopted run, if any, and runs numbered after run_seq_before
 };
 
-// The runs that belong to the operation: the adopted run, and runs numbered after it began and
-// started for its own request. Runs for a later request are someone else's slice; Slice All's later
-// plates run for the same request, so they count.
+// The runs that belong to the operation: the adopted run, and runs numbered after it began that its
+// own request started. Runs for a later request are someone else's slice, and so is a reslice or
+// export that merely started under its request number; Slice All's later plates run for the same
+// request, so they count.
 std::vector<SliceRunRecord> own_runs(const SliceTicketState& ticket, const SliceObservation& obs);
 
 // Whether the plate's current result can be the operation's: no run touched the plate since the

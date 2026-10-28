@@ -37,7 +37,7 @@ std::vector<SliceRunRecord> own_runs(const SliceTicketState& ticket, const Slice
 {
     std::vector<SliceRunRecord> out;
     for (const SliceRunRecord& run : obs.runs_since_start)
-        if ((run.seq > ticket.run_seq_before && run.request_seq_at_start == ticket.request_seq_mine) ||
+        if ((run.seq > ticket.run_seq_before && run.request_seq_at_start == ticket.request_seq_mine && run.for_request) ||
             (ticket.adopted_run != 0 && run.seq == ticket.adopted_run))
             out.push_back(run);
     return out;
