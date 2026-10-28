@@ -10336,9 +10336,6 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             result.append(to_local_point(gcode_point));
         return result;
     };
-    const auto nominal_writer_z = [this]() {
-        return m_writer.get_position().z() - m_writer.get_zhop();
-    };
     const auto route_around_exclusion_volumes = [&](
         Polyline &path,
         const std::optional<double> &start_z_override,
@@ -10347,7 +10344,8 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             return false;
 
         const double target_z = z == DBL_MAX ? m_nominal_z : z;
-        double route_start_z = start_z_override.value_or(nominal_writer_z());
+        // A lifted nozzle travels at its lifted height, so the route is checked from there.
+        double route_start_z = start_z_override.value_or(m_writer.get_position().z());
         double route_end_z = target_z;
         if (include_planned_lift) {
             const Vec2d destination_xy = this->point_to_gcode(path.back());
