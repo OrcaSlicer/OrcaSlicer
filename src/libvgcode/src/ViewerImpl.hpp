@@ -193,6 +193,7 @@ public:
     float get_estimated_time() const { return m_total_time[static_cast<size_t>(m_settings.time_mode)]; }
     float get_estimated_time_at(size_t id) const;
     Color get_vertex_color(const PathVertex& vertex) const;
+    size_t find_extrusion_vertex(size_t layer_id, EGCodeExtrusionRole role) const;
 
     size_t get_extrusion_roles_count() const { return m_extrusion_roles.get_roles_count(); }
     std::vector<EGCodeExtrusionRole> get_extrusion_roles() const { return m_extrusion_roles.get_roles(); }

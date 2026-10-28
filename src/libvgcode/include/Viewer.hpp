@@ -405,6 +405,11 @@ public:
     //
     Color get_vertex_color(const PathVertex& vertex) const;
     //
+    // Return the index of the first extrusion vertex of the given role in the given layer,
+    // or get_vertices_count() if the layer has none.
+    //
+    size_t find_extrusion_vertex(size_t layer_id, EGCodeExtrusionRole role) const;
+    //
     // Return the count of detected extrusion roles
     //
     size_t get_extrusion_roles_count() const;

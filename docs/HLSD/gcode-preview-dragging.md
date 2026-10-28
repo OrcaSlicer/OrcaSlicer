@@ -56,14 +56,14 @@ With the mode off the reduced flag is never raised, and a drag changes nothing i
 ## The solid model
 
 The preview already loads the sliced objects as shells for its translucent ghost.
-`GCodeViewer::render_solid_model()` draws those shells opaque, in their filament colors, with the
+`GCodeViewer::render_solid_model()` draws those shells opaque with the
 `gouraud` shader, whose z range cuts them to the visible layer range: from the top of the bottom
 band to the bottom of the top band, since those layers are drawn as toolpaths and a face of the
 model in either plane would flicker against them. The translucent ghost is
 drawn first, as in every other mode, so the part above the cut stays visible while dragging. The
 cut itself is capped, one body at a time: a pass counts, per pixel and with the depth test off,
 the body's back faces less its front faces into the stencil buffer, which is zero for a closed
-body and one where the cut has opened it, and a quad in each cut plane, in the body's colour
+body and one where the cut has opened it, and a quad in each cut plane, in the cap's colour
 darkened, is drawn where it is not zero. Between the lines of a sparse layer on the cut, that quad is what shows, rather than
 the first layer or the bed far below moving with the camera. A view through both cut planes of
 a body with neither wall in the way is not capped. The toolpath layers of the reduced set are
@@ -75,6 +75,15 @@ translucent shells, and stays out of their bounding box. Supports have no mesh, 
 keeps their toolpaths whole on every layer, as the shell mode does, and the objects stand on them
 as they do at rest. `load_shells()` drops every non-model-part volume, so a negative volume is not
 cut out.
+
+The solid stands in for the toolpaths, so it wears their colours. In the views that colour by
+filament (Summary, Filament, Tool) each body keeps the filament colour its shell was loaded with.
+In every other view `GCodeViewer::update_solid_model_colors()` samples the toolpaths through
+`Viewer::get_vertex_color()`: the body takes the colour of the first outer wall vertex in the top
+band's lowest layer, each cap that of the first infill vertex in the layer it is cut under, sparse
+infill before solid, and the prime tower that of its own role. One vertex stands for the role, so a
+view that grades the toolpaths shows the solid in the first grade printed there. The colours are
+resolved when a drag starts and when the view type or the bands change, not per frame.
 
 A plate whose shells are not loaded keeps drawing toolpaths, since the solid model would leave
 only the end bands. So does a print whose layers do not rise in height from one to the next, as

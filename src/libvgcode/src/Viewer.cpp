@@ -394,6 +394,11 @@ Color Viewer::get_vertex_color(const PathVertex& vertex) const
     return m_impl->get_vertex_color(vertex);
 }
 
+size_t Viewer::find_extrusion_vertex(size_t layer_id, EGCodeExtrusionRole role) const
+{
+    return m_impl->find_extrusion_vertex(layer_id, role);
+}
+
 size_t Viewer::get_extrusion_roles_count() const
 {
     return m_impl->get_extrusion_roles_count();
