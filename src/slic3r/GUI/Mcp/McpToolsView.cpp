@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <string>
 
@@ -131,8 +132,11 @@ void register_view_tools(McpService& service)
                             throw ToolFailure("The widget has no window");
                         cap = capture_window(*tlw, err);
                         if (cap && w != tlw) {
-                            const wxPoint at = w->GetScreenPosition() - tlw->ClientToScreen(wxPoint(0, 0));
-                            const wxRect  r  = wxRect(at, w->GetSize()).Intersect(wxRect(cap->image.GetSize()));
+                            // The capture is in physical pixels, like client_offset_in().
+                            const wxPoint at    = client_offset_in(*w, *tlw);
+                            const double  scale = tlw->GetContentScaleFactor();
+                            const wxSize  size(int(std::lround(w->GetSize().x * scale)), int(std::lround(w->GetSize().y * scale)));
+                            const wxRect  r = wxRect(at, size).Intersect(wxRect(cap->image.GetSize()));
                             if (r.IsEmpty())
                                 throw ToolFailure("The widget is outside its window's visible area");
                             cap->image = cap->image.GetSubImage(r);

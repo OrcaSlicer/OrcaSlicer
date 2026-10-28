@@ -244,13 +244,15 @@ bool capture_native_window(wxTopLevelWindow& window, wxImage& out, bool& approxi
 #endif
     // Wayland offers no way to read a window back; draw the widget tree into an image instead.
     // Widgets drawn by GTK come out right; web views may stay blank, and the 3D canvases are
-    // composited by the caller.
-    const int scale = gtk_widget_get_scale_factor(widget);
-    const int w = gtk_widget_get_allocated_width(widget), h = gtk_widget_get_allocated_height(widget);
+    // composited by the caller. The toplevel's allocation includes the shadow of its client-side
+    // decoration; its child is the window as it shows, with the client area where wx puts it.
+    GtkWidget* content = GTK_IS_BIN(widget) && gtk_bin_get_child(GTK_BIN(widget)) != nullptr ? gtk_bin_get_child(GTK_BIN(widget)) : widget;
+    const int  scale   = gtk_widget_get_scale_factor(content);
+    const int  w = gtk_widget_get_allocated_width(content), h = gtk_widget_get_allocated_height(content);
     cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w * scale, h * scale);
     cairo_surface_set_device_scale(surface, scale, scale);
     cairo_t* cr = cairo_create(surface);
-    gtk_widget_draw(widget, cr);
+    gtk_widget_draw(content, cr);
     cairo_destroy(cr);
     out = from_cairo(surface);
     cairo_surface_destroy(surface);
