@@ -6589,13 +6589,20 @@ void GUI::ObjectList::smooth_mesh()
         }
         for (auto mv : obj->volumes) {
             bool ok;
-            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok);
+            TriangleMesh unsmoothed_mesh;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok, keep_painting ? &unsmoothed_mesh : nullptr);
             if (ok) {
                 const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ?
                                                                                           mv->save_painting() :
                                                                                           std::optional<TriangleSelector::SavedPainting>{};
-                mv->set_mesh(result_mesh);
+                // Remap the paint onto the subdivided mesh before its vertices are smoothed. That mesh lies on the old surface,
+                // so the paint lands where it was, also on sharp edges the smoothing rounds off. The smoothed mesh has the
+                // same triangles, so the paint carries over to it as it is. Without painting to keep, restore_painting() only
+                // clears it.
+                if (keep_painting)
+                    mv->set_mesh(unsmoothed_mesh);
                 mv->restore_painting(saved_painting);
+                mv->set_mesh(result_mesh);
                 mv->calculate_convex_hull();
                 mv->invalidate_convex_hull_2d();
                 mv->set_new_unique_id();
@@ -6618,13 +6625,17 @@ void GUI::ObjectList::smooth_mesh()
                 return;
             }
             bool ok;
-            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(),ok);
+            TriangleMesh unsmoothed_mesh;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok, keep_painting ? &unsmoothed_mesh : nullptr);
             if (ok) {
                 const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ?
                                                                                           mv->save_painting() :
                                                                                           std::optional<TriangleSelector::SavedPainting>{};
-                mv->set_mesh(result_mesh);
+                // Remap the paint before smoothing, as above.
+                if (keep_painting)
+                    mv->set_mesh(unsmoothed_mesh);
                 mv->restore_painting(saved_painting);
+                mv->set_mesh(result_mesh);
                 mv->calculate_convex_hull();
                 mv->invalidate_convex_hull_2d();
                 mv->set_new_unique_id();
