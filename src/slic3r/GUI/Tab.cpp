@@ -6927,8 +6927,8 @@ void TabPrinter::toggle_options()
         const wxString dual_extruder_reason = _L("This setting is shown for printers with exactly two extruders.");
         toggle_line("extruder_printable_area", m_preset_bundle->get_printer_extruder_count() == 2, i, dual_extruder_reason);  //hide
 
-        // extruder_movable_area is user-editable; only show it when multiple extruders are configured.
-        toggle_line("extruder_movable_area", m_preset_bundle->get_printer_extruder_count() > 1 , i); // hide
+        toggle_option("extruder_movable_area", false, i, extruder_geometry_reason); // disable
+        toggle_line("extruder_movable_area", m_preset_bundle->get_printer_extruder_count() == 2 , i, dual_extruder_reason); // hide
 
         const bool per_extruder_exclusions =
             m_config->opt_enum<BedExcludeVolumeMode>("bed_exclude_volume_mode") == BedExcludeVolumeMode::PerExtruder;

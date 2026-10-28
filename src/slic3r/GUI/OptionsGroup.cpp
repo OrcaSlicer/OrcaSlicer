@@ -83,7 +83,6 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
 			case coPercents:
 			case coString:
 			case coStrings:
-			case coPointsGroups:
                 m_fields.emplace(id, TextCtrl::Create<TextCtrl>(this->ctrl_parent(), opt, id));
                 break;
 			case coBool:
@@ -1218,12 +1217,11 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
         break;
     case coPointsGroups:
         if (opt_key == "extruder_printable_area" || opt_key == "extruder_movable_area") {
-            const auto* groups = config.option<ConfigOptionPointsGroups>(opt_key);
-            if (groups != nullptr && idx < groups->values.size() && !groups->values[idx].empty())
-                ret = get_thumbnails_string(groups->values[idx]);
-        } else {
+            auto values = config.option<ConfigOptionPointsGroups>(opt_key)->values;
+            if (!values.empty())
+                ret = get_thumbnails_string(config.option<ConfigOptionPointsGroups>(opt_key)->get_at(idx));
+        } else
             ret = config.option<ConfigOptionPointsGroups>(opt_key)->get_at(idx);
-        }
         break;
     case coNone:
     default: break;
@@ -1327,14 +1325,6 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else
             ret = config.option<ConfigOptionPoints>(opt_key)->get_at(idx);
-        break;
-    case coPointsGroups:
-        if (opt_key == "extruder_printable_area" ||opt_key == "extruder_movable_area") {
-            auto& values = config.option<ConfigOptionPointsGroups>(opt_key)->values;
-            if (!values.empty())
-                ret = get_thumbnails_string(config.option<ConfigOptionPointsGroups>(opt_key)->get_at(idx));
-        } else
-            ret = config.option<ConfigOptionPointsGroups>(opt_key)->get_at(idx);
         break;
     case coNone:
     default: break;
