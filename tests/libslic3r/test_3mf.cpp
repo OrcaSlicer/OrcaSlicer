@@ -2082,17 +2082,18 @@ SCENARIO("Published per-extruder printer keys mask the other extruders to their 
 // the printer keys do. A bare process key keeps whole-vector serialization.
 TEST_CASE("Published per-extruder process keys mask the other extruders to their defaults", "[3mf]")
 {
+    // outer_wall_speed is a nullable float vector, so its values and default use ConfigOptionFloatsNullable.
     DynamicPrintConfig full_cfg = DynamicPrintConfig::full_print_config();
-    full_cfg.opt<ConfigOptionFloats>("outer_wall_speed")->values = { 200., 150., 120. };
+    full_cfg.opt<ConfigOptionFloatsNullable>("outer_wall_speed")->values = { 200., 150., 120. };
 
-    const ConfigOptionFloats* default_speed = print_config_def.get("outer_wall_speed")->get_default_value<ConfigOptionFloats>();
+    const ConfigOptionFloatsNullable* default_speed = print_config_def.get("outer_wall_speed")->get_default_value<ConfigOptionFloatsNullable>();
     REQUIRE(default_speed != nullptr);
     REQUIRE(!default_speed->values.empty());
     const double default_value = default_speed->values.front();
 
     SECTION("the selected extruder's value survives and the others hold the default") {
         DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "outer_wall_speed#1" }, {});
-        const std::vector<double>& values = filtered_cfg.opt<ConfigOptionFloats>("outer_wall_speed")->values;
+        const std::vector<double>& values = filtered_cfg.opt<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
         REQUIRE(values.size() == 3);
         CHECK_THAT(values[1], Catch::Matchers::WithinAbs(150., 1e-6));
         CHECK_THAT(values[0], Catch::Matchers::WithinAbs(default_value, 1e-6));
@@ -2101,7 +2102,7 @@ TEST_CASE("Published per-extruder process keys mask the other extruders to their
 
     SECTION("the bare key serializes the whole vector") {
         DynamicPrintConfig filtered_cfg = filter_published_config(full_cfg, { "outer_wall_speed" }, {});
-        const std::vector<double>& values = filtered_cfg.opt<ConfigOptionFloats>("outer_wall_speed")->values;
+        const std::vector<double>& values = filtered_cfg.opt<ConfigOptionFloatsNullable>("outer_wall_speed")->values;
         REQUIRE(values.size() == 3);
         CHECK_THAT(values[0], Catch::Matchers::WithinAbs(200., 1e-6));
         CHECK_THAT(values[1], Catch::Matchers::WithinAbs(150., 1e-6));
