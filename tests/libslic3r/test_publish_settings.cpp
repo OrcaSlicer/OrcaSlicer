@@ -462,15 +462,18 @@ TEST_CASE("A per-slot filament key after a multi-variant slot keeps its own slot
 
 TEST_CASE("Full Publish leaves the receiver's value when the file carries a variant key short of the layout", "[PublishSettings]")
 {
-    // A file that never laid a variant-bearing key out per variant (Preset::normalize leaves such
-    // keys at their single default value) publishes nothing for a slot past the first column: the
-    // copy keeps the receiver's value and the key is not reported as skipped.
+    // A file that never laid a variant-bearing key out per variant carries one value for the whole
+    // slot list, so it publishes nothing for a slot past the first column: the copy keeps the
+    // receiver's value and the key is not reported as skipped.
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.option<ConfigOptionFloats>("filament_diameter", true)->values          = { 1.75, 1.75 };
     config.option<ConfigOptionStrings>("filament_colour", true)->values           = { "#FF0000", "#00FF00" };
     config.option<ConfigOptionInts>("filament_self_index", true)->values          = { 1, 2 };
     config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard",
                                                                                      "Direct Drive Standard" };
+    // The nullable filament overrides are added to the config def at run time, so they are not part
+    // of the static full_print_config() key set: create the key before reading it back.
+    config.option<ConfigOptionFloatsNullable>("filament_retraction_length", true)->values = { 0.9 };
     Preset::normalize(config);
     REQUIRE(config.opt<ConfigOptionFloatsNullable>("filament_retraction_length")->size() == 1);
 
