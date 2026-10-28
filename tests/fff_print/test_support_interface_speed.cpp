@@ -294,7 +294,9 @@ TEST_CASE("Support interface geometry is cached per layer until the next export"
 static std::string cool_support_markers(const DynamicPrintConfig &dynamic, std::string gcode, size_t layer_id)
 {
     PrintConfig config;
-    config.apply(dynamic);
+    // The full dynamic config also contains object/region options. The cooling
+    // buffer needs only the print-level subset represented by PrintConfig.
+    config.apply_only(dynamic, config.keys());
     GCode generator;
     generator.apply_print_config(config);
     generator.writer().set_extruders({0});
@@ -317,13 +319,8 @@ static DynamicPrintConfig support_cooling_config()
 TEST_CASE("Cooling parses nonzero support fan blends and removes their markers", "[SupportInterfaceSpeed][Regression]")
 {
     const auto [blend, speed] = GENERATE(table<const char *, int>({{"B0", 80}, {"B50", 50}, {"B100", 20}}));
-    const std::string input = std::string("G1 X0 Y0 F600
-;_ABOVE_SUPPORT_FAN_START ") + blend +
-        "
-G1 X10 Y0 E1 F600
-;_ABOVE_SUPPORT_FAN_END
-G1 X20 Y0 E1 F600
-";
+    const std::string input = std::string("G1 X0 Y0 F600\n;_ABOVE_SUPPORT_FAN_START ") + blend +
+        "\nG1 X10 Y0 E1 F600\n;_ABOVE_SUPPORT_FAN_END\nG1 X20 Y0 E1 F600\n";
     const std::string output = cool_support_markers(support_cooling_config(), input, 5);
     CHECK(output.find(GCodeWriter::set_fan(gcfMarlinLegacy, speed, 0)) != std::string::npos);
     CHECK(output.find("_ABOVE_SUPPORT_FAN") == std::string::npos);
@@ -337,11 +334,8 @@ TEST_CASE("Above-support cooling follows the fan ramp and its initial-layer anch
     DynamicPrintConfig config = support_cooling_config();
     config.set_deserialize_strict({{"first_layer_above_support_fan_speed", 100}, {"full_fan_speed_layer", 5},
         {"initial_layer_fan_speed", anchored ? 20 : -1}});
-    const std::string input = "G1 X0 Y0 F600
-;_ABOVE_SUPPORT_FAN_START B0
-G1 X10 Y0 E1 F600
-;_ABOVE_SUPPORT_FAN_END
-";
+    const std::string input = "G1 X0 Y0 F600\n;_ABOVE_SUPPORT_FAN_START B0\n"
+        "G1 X10 Y0 E1 F600\n;_ABOVE_SUPPORT_FAN_END\n";
     // Second physical layer: 2/5 from zero, or 1/4 from an explicit 20% anchor.
     const std::string output = cool_support_markers(config, input, 1);
     CHECK(output.find(GCodeWriter::set_fan(gcfMarlinLegacy, 40, 0)) != std::string::npos);
@@ -354,14 +348,8 @@ TEST_CASE("Above-support cooling respects suppressed layers and overhang cooling
     DynamicPrintConfig config = support_cooling_config();
     config.set_deserialize_strict({{"overhang_fan_speed", 100}, {"first_layer_above_support_fan_speed", 40},
         {"close_fan_the_first_x_layers", suppressed ? 2 : 0}});
-    const std::string input = "G1 X0 Y0 F600
-;_OVERHANG_FAN_START
-;_ABOVE_SUPPORT_FAN_START B0
-"
-        "G1 X10 Y0 E1 F600
-;_ABOVE_SUPPORT_FAN_END
-;_OVERHANG_FAN_END
-";
+    const std::string input = "G1 X0 Y0 F600\n;_OVERHANG_FAN_START\n;_ABOVE_SUPPORT_FAN_START B0\n"
+        "G1 X10 Y0 E1 F600\n;_ABOVE_SUPPORT_FAN_END\n;_OVERHANG_FAN_END\n";
     const std::string output = cool_support_markers(config, input, 1);
     CHECK((output.find(GCodeWriter::set_fan(gcfMarlinLegacy, 100, 0)) != std::string::npos) == !suppressed);
     CHECK(output.find(GCodeWriter::set_fan(gcfMarlinLegacy, 40, 0)) == std::string::npos);
