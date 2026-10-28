@@ -403,6 +403,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "exclude_object",
         "exclude_object_tolerance",
         "support_material_interface_fan_speed",
+        "first_layer_above_support_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
         "ironing_fan_speed",
         "single_extruder_multi_material_priming",

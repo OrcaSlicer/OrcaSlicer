@@ -25,6 +25,7 @@
 #include "GCode/ThumbnailData.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
+#include "GCode/SupportInterfaceSpeed.hpp"
 
 #include "GCode/PressureEqualizer.hpp"
 #include "GCode/SmallAreaInfillFlowCompensator.hpp"
@@ -836,6 +837,7 @@ protected:
     // Current layer processed. In sequential printing mode, only a single copy will be printed.
     // In non-sequential mode, all its copies will be printed.
     const Layer*                        m_layer;
+    SupportInterfaceRegionCache         m_above_support_cache;
     const Layer*                        m_above_support_layer = nullptr;
     std::vector<std::pair<ExPolygons, double>> m_above_support_regions;
     bool                                m_above_support_fan_on = false;

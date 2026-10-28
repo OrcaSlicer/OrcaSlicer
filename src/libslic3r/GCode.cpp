@@ -3388,6 +3388,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 {
     PROFILE_FUNC();
 
+    m_above_support_cache.clear();
     m_above_support_layer = nullptr;
     m_above_support_regions.clear();
     m_above_support_fan_on = false;
@@ -9645,14 +9646,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
     }
 
     bool support_speed_applied = false;
-    const bool support_fan_enabled = FILAMENT_CONFIG(first_layer_above_support_fan_speed) >= 0;
+    std::vector<std::vector<SupportFanSpan>> support_fan_sections;
+    bool support_fan_path = false;
+    const bool support_fan_enabled = m_enable_cooling_markers && FILAMENT_CONFIG(first_layer_above_support_fan_speed) >= 0;
     if ((m_config.first_layer_above_support_speed.value > 0 || support_fan_enabled) && m_layer != nullptr &&
         (is_perimeter(path.role()) || is_infill(path.role()) || path.role() == erGapFill) &&
         path.role() != erIroning && !path.is_force_no_extrusion() && path.mm3_per_mm > 0) {
         if (m_above_support_layer != m_layer) {
             const size_t slow_layers = size_t(std::max(1, m_config.slow_layers_above_support.value));
             m_above_support_regions.clear();
-            for (SupportInterfaceLayerRegion &result : support_interface_regions_for_slow_layers(*m_layer, slow_layers)) {
+            for (SupportInterfaceLayerRegion &result : support_interface_regions_for_slow_layers(*m_layer, slow_layers, m_above_support_cache)) {
                 if (m_config.slow_area_above_support_expansion.value > 0.)
                     result.regions = offset_ex(result.regions, scale_(m_config.slow_area_above_support_expansion.value));
                 m_above_support_regions.emplace_back(std::move(result.regions), double(result.layer_offset) / double(slow_layers));
@@ -9660,22 +9663,32 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
             m_above_support_layer = m_layer;
         }
         if (!m_above_support_regions.empty()) {
-            // Use the existing variable-speed writer, which preserves scarf Z/flow,
-            // cooling markers and adaptive PA. Only affected paths lose arc fitting.
-            std::vector<ProcessedPoint> points;
-            if (requires_segmented_extrusion)
-                points = new_points;
-            else
-                for (const Point3 &p : path.polyline.points)
-                    points.push_back({p, float(speed), 1.f});
-            for (const auto &[regions, blend_to_normal] : m_above_support_regions)
-                support_speed_applied |= limit_speed_above_support(points, regions,
-                                                                   m_config.first_layer_above_support_speed,
-                                                                   support_fan_enabled, blend_to_normal);
-            if (support_speed_applied) {
-                new_points = std::move(points);
-                requires_segmented_extrusion = true;
+            support_fan_path = support_fan_enabled;
+            // Keep uniform overhang overlap data even if that pass did not need
+            // the segmented writer. Fan-only settings must not select a different
+            // speed writer or discard fitted arcs.
+            if (m_config.first_layer_above_support_speed.value > 0 || requires_segmented_extrusion) {
+                std::vector<ProcessedPoint> points = new_points;
+                if (points.empty())
+                    for (const Point3 &p : path.polyline.points)
+                        points.push_back({p, float(speed), 1.f});
+                bool support_regions_applied = false;
+                for (const auto &[regions, blend_to_normal] : m_above_support_regions)
+                    support_regions_applied |= limit_speed_above_support(points, regions,
+                        m_config.first_layer_above_support_speed, support_fan_enabled, blend_to_normal);
+                if (support_regions_applied) {
+                    // Fan markers alone must not change the feedrate tolerance.
+                    support_speed_applied = std::any_of(points.begin(), points.end(), [](const ProcessedPoint &point) {
+                        return point.above_support_original_speed >= 0.f && point.speed < point.above_support_original_speed;
+                    });
+                    if (requires_segmented_extrusion || support_speed_applied) {
+                        new_points = std::move(points);
+                        requires_segmented_extrusion = true;
+                    }
+                }
             }
+            if (support_fan_enabled && !requires_segmented_extrusion)
+                support_fan_sections = support_fan_spans(path.polyline.points, m_above_support_regions);
         }
     }
 
@@ -9971,8 +9984,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 }
 
                 apply_role_based_fan_speed();
-                append_above_support_fan_marker(false);
             }
+            const std::vector<SupportFanSpan> normal_fan_span{{0., 1., -1.}};
+            const auto fan_sections = [&](size_t segment) -> const std::vector<SupportFanSpan> & {
+                return support_fan_sections.empty() ? normal_fan_span : support_fan_sections[segment];
+            };
+            const auto interpolate_fan_point = [](const Point3 &a, const Point3 &b, double t) {
+                if (t <= 0.) return a;
+                if (t >= 1.) return b;
+                const Vec3d p = a.cast<double>() + t * (b - a).cast<double>();
+                return Point3(p.x(), p.y(), p.z());
+            };
             // BBS: use G1 if not enable arc fitting or has no arc fitting result or in spiral_mode mode or we are doing sloped extrusion
             // Attention: G2 and G3 is not supported in spiral_mode mode
             if (m_config.enable_arc_fitting.value == ArcFittingMode::Disabled || path.polyline.fitting_result.empty() || m_config.spiral_mode || sloped != nullptr || path.z_contoured || this->should_disable_arc_fitting()) {
@@ -9980,58 +10002,71 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 double total_length = sloped == nullptr ? 0. : path.polyline.length() * SCALING_FACTOR;
                 double saved_z      = m_writer.get_position().z();
 
-                for (const Line3& line : path.polyline.lines()) {
+                for (size_t segment = 0; segment + 1 < path.polyline.points.size(); ++segment) {
+                    const Line3 original_line(path.polyline.points[segment], path.polyline.points[segment + 1]);
                     std::string flow_description;
-                    const double line_length = line.length() * SCALING_FACTOR;
-                    if (line_length < EPSILON)
+                    const double original_length = original_line.length() * SCALING_FACTOR;
+                    if (original_length < EPSILON)
                         continue;
-                    path_length += line_length;
-                    auto dE = e_per_mm * line_length;
+                    auto original_dE = e_per_mm * original_length;
                     if (_needSAFC(path)) {
-                        auto oldE = dE;
-                        dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
+                        auto oldE = original_dE;
+                        original_dE = m_small_area_infill_flow_compensator->modify_flow(original_length, original_dE, path.role());
 
-                        if (m_config.gcode_comments && oldE > 0 && oldE != dE) {
-                            flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
+                        if (m_config.gcode_comments && oldE > 0 && oldE != original_dE) {
+                            flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, original_length);
                         }
                     }
-                    tag_belt_band((line.a.x() + line.b.x()) / 2, (line.a.y() + line.b.y()) / 2);
-                    if (path.z_contoured) {
-                        // ZAA: Z anti-aliased extrusion with variable Z per point
-                        Vec2d dest2d = this->point_to_gcode(line.b.to_point());
-                        coordf_t z_diff = unscale_(line.b.z());
+                    const double segment_start_length = path_length;
+                    // Fan-only boundaries change cooling, not the original move's
+                    // extrusion accounting (including scarf/Z flow and SAFC).
+                    double original_extrusion_ratio = 1.;
+                    if (path.z_contoured && path.role() != erIroning)
+                        original_extrusion_ratio = (path.height + unscale_(original_line.b.z())) / path.height;
+                    else if (!path.z_contoured && sloped != nullptr)
+                        original_extrusion_ratio = sloped->interpolate((segment_start_length + original_length) / total_length).e_ratio;
+                    for (const SupportFanSpan &span : fan_sections(segment)) {
+                        const Line3 line(interpolate_fan_point(original_line.a, original_line.b, span.start),
+                                         interpolate_fan_point(original_line.a, original_line.b, span.end));
+                        const double line_length = line.length() * SCALING_FACTOR;
+                        if (line_length < EPSILON)
+                            continue;
+                        const double dE = original_dE * (span.end - span.start);
+                        path_length = segment_start_length + span.end * original_length;
+                        append_above_support_fan_marker(span.blend >= 0., std::max(0., span.blend));
+                        tag_belt_band((line.a.x() + line.b.x()) / 2, (line.a.y() + line.b.y()) / 2);
+                        if (path.z_contoured) {
+                            // ZAA: Z anti-aliased extrusion with variable Z per point
+                            Vec2d dest2d = this->point_to_gcode(line.b.to_point());
+                            coordf_t z_diff = unscale_(line.b.z());
 
-                        double extrusion_ratio = 1;
-                        if (path.role() != erIroning) {
-                            extrusion_ratio = (path.height + z_diff) / path.height;
+                            double e = dE * original_extrusion_ratio;
+
+                            double z = m_nominal_z + z_diff;
+                            if (z < 0.1) {
+                                throw RuntimeError("GCode: very low z");
+                            }
+                            m_writer.extrude_to_xyz(gcode, Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                                    flow_description.empty() ? description : flow_description);
+
+                        } else if (sloped == nullptr) {
+                            // Normal extrusion
+                            m_writer.extrude_to_xy(gcode,
+                                this->point_to_gcode(line.b.to_point()),
+                                dE,
+                                flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                        } else {
+                            // Sloped extrusion
+                            const double z_ratio = sloped->interpolate(path_length / total_length).z_ratio;
+                            Vec2d dest2d = this->point_to_gcode(line.b.to_point());
+                            Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
+                            m_writer.extrude_to_xyz(gcode,
+                                dest3d,
+                                dE * original_extrusion_ratio,
+                                flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
                         }
-
-                        double e = dE * extrusion_ratio;
-
-                        double z = m_nominal_z + z_diff;
-                        if (z < 0.1) {
-                            throw RuntimeError("GCode: very low z");
-                        }
-                        m_writer.extrude_to_xyz(gcode, Vec3d(dest2d.x(), dest2d.y(), z), e,
-                                                flow_description.empty() ? description : flow_description);
-
-                    } else if (sloped == nullptr) {
-                        // Normal extrusion
-                        m_writer.extrude_to_xy(gcode,
-                            this->point_to_gcode(line.b.to_point()),
-                            dE,
-                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
-                    } else {
-                        // Sloped extrusion
-                        const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
-                        Vec2d dest2d = this->point_to_gcode(line.b.to_point());
-                        Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
-                        m_writer.extrude_to_xyz(gcode,
-                            dest3d,
-                            dE * e_ratio,
-                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                        check_and_insert_timelapse(line.b.to_point()); // Inline farthest-point snapshot
                     }
-                    check_and_insert_timelapse(line.b.to_point()); // Inline farthest-point snapshot
                 }
             } else {
                 // BBS: start to generate gcode from arc fitting data which includes line and arc
@@ -10057,10 +10092,14 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                     flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, line_length);
                                 }
                             }
-                            m_writer.extrude_to_xy(gcode,
-                                this->point_to_gcode(line.b),
-                                dE,
-                                flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                            for (const SupportFanSpan &span : fan_sections(point_index - 1)) {
+                                append_above_support_fan_marker(span.blend >= 0., std::max(0., span.blend));
+                                const Point3 end = interpolate_fan_point(path.polyline.points[point_index - 1],
+                                                                        path.polyline.points[point_index], span.end);
+                                m_writer.extrude_to_xy(gcode, this->point_to_gcode(end.to_point()),
+                                    dE * (span.end - span.start),
+                                    flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                            }
                             check_and_insert_timelapse(line.b); // Inline farthest-point snapshot
                         }
                         break;
@@ -10071,7 +10110,6 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                         const double arc_length = fitting_result[fitting_index].arc_data.length * SCALING_FACTOR;
                         if (arc_length < EPSILON)
                             continue;
-                        const Vec2d center_offset = this->point_to_gcode(arc.center) - this->point_to_gcode(arc.start_point);
                         auto dE = e_per_mm * arc_length;
                         if (_needSAFC(path)) {
                             auto oldE = dE;
@@ -10081,12 +10119,18 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                                 flow_description = description + Slic3r::format(" | Old Flow Value: %0.5f Length: %0.5f",oldE, arc_length);
                             }
                         }
-                        m_writer.extrude_arc_to_xy(gcode,
-                            this->point_to_gcode(arc.end_point),
-                            center_offset,
-                            dE,
-                            arc.direction == ArcDirection::Arc_Dir_CCW,
-                            flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                        const auto spans = support_fan_path ? support_fan_spans(arc, m_above_support_regions) : normal_fan_span;
+                        for (const SupportFanSpan &span : spans) {
+                            append_above_support_fan_marker(span.blend >= 0., std::max(0., span.blend));
+                            const Point start = support_arc_point(arc, span.start);
+                            const Point end = support_arc_point(arc, span.end);
+                            if (start == end)
+                                continue;
+                            const Vec2d center_offset = this->point_to_gcode(arc.center) - this->point_to_gcode(start);
+                            m_writer.extrude_arc_to_xy(gcode, this->point_to_gcode(end), center_offset,
+                                dE * (span.end - span.start), arc.direction == ArcDirection::Arc_Dir_CCW,
+                                flow_description.empty() ? description : flow_description, path.is_force_no_extrusion());
+                        }
                         check_and_insert_timelapse(arc.end_point); // Inline farthest-point snapshot
                         break;
                     }
@@ -10189,9 +10233,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_d
                 }
             }// ORCA: End of adaptive PA code segment
             
-            // Ignore small speed variations - emit speed change if the delta between current and new is greater than 60mm/min / 1mm/sec
-            // Reset speed to F if delta to F is less than 1mm/sec
-            if ((std::abs(last_set_speed - new_speed) > 60)) {
+            // Preserve the normal tolerance for fan-only changes. Explicit support
+            // speed caps must also honour reductions smaller than 1 mm/s.
+            if (std::abs(last_set_speed - new_speed) > (support_speed_applied ? EPSILON : 60.)) {
                 m_writer.set_speed(gcode, new_speed, "", comment);
                 last_set_speed = new_speed;
             } else if (!support_speed_applied && (std::abs(F - new_speed) <= 60)) {
