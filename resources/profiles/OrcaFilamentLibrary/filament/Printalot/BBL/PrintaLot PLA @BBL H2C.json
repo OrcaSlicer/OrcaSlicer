@@ -128,6 +128,11 @@
 		"Spiral Lift",
 		"Spiral Lift"
 	],
+	"long_retractions_when_ec": [
+		"1",
+		"1",
+		"1"
+	],
 	"nozzle_temperature": [
 		"220",
 		"220",
@@ -137,6 +142,11 @@
 		"220",
 		"220",
 		"220"
+	],
+	"retraction_distances_when_ec": [
+		"10",
+		"10",
+		"10"
 	],
 	"slow_down_layer_time": [
 		"8"
