@@ -211,11 +211,14 @@ if it came while the ticket's request was still slicing, the ticket is `supersed
 without waiting for that slice; if it came after, the ticket's result stands and their slice isn't
 waited for. Otherwise the ticket ends once nothing slices and it either saw slicing run or waited
 1.5 s with nothing scheduled, and is `superseded` when the project changed, or another slice was
-requested, during its own runs (or, with none, by the final poll). Each plate is then `ok` (a valid
-result, or its own run finished with one that a later edit has since replaced), `error` with its
-own run's message (or, when the configuration was refused before the request so no run started,
-the latest validation message for the plate, `Plater::plate_validation_error()`), `cancelled`,
-`empty`, or `skipped` when no run reached it (Slice All stops at a failing plate). An export is numbered in `export_seq` once scheduled, so an
+requested, during its own runs (or, with none, by the final poll). Each plate's last own run then
+decides its outcome, whatever someone did to the plate after it finished: `ok`, `error` with the
+run's message, or `cancelled`. A plate no own run reached is `empty`, `ok` when it was already
+sliced, `error` with the latest validation message when the configuration was refused before the
+request so no run started (`Plater::plate_validation_error()`), `cancelled` when the operation was
+cancelled, or `skipped` (Slice All stops at a failing plate). Statistics come with an `ok` plate
+only while the project is as the operation sliced it. `cancel` also drops a pending automatic
+reslice, including one already queued to run. An export is numbered in `export_seq` once scheduled, so an
 unchanged number means it never started; otherwise its `ExportRecord` ends `ok`, `failed`,
 `cancelled` or `superseded`. A G-code export with a path is refused while slicing runs, and
 `run_action export_gcode` needs a path: without one it would ask in a native file dialog that MCP

@@ -85,9 +85,18 @@ TEST_CASE("classify_plates reports ok, error, empty, skipped and cancelled", "[M
     CHECK(failed[0].error == "the slice finished without a result");
 }
 
-TEST_CASE("a plate whose result a later edit replaced still reports its slice ok", "[Mcp]")
+TEST_CASE("a plate keeps the outcome of its own run whatever happened to it afterwards", "[Mcp]")
 {
+    // An edit replaced the result.
     CHECK(outcomes(classify_plates({0}, {{0, false, false}}, {plate_run(11, 0)})) == std::vector<PlateOutcome>{PlateOutcome::Ok});
+    // Someone deleted the objects.
+    CHECK(outcomes(classify_plates({0}, {{0, false, true}}, {plate_run(11, 0)})) == std::vector<PlateOutcome>{PlateOutcome::Ok});
+    // Someone else's slice succeeded after ours failed.
+    const auto results = classify_plates({0}, {{0, true, false}}, {plate_run(11, 0, "Floating regions")});
+    CHECK(results[0].outcome == PlateOutcome::Error);
+    CHECK(results[0].error == "Floating regions");
+    // The plate was deleted.
+    CHECK(outcomes(classify_plates({0}, {}, {plate_run(11, 0)})) == std::vector<PlateOutcome>{PlateOutcome::Ok});
 }
 
 TEST_CASE("Slice All stopping at a failing plate leaves the later plates skipped", "[Mcp]")

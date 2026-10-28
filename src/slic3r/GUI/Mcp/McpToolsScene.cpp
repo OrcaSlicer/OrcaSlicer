@@ -377,9 +377,16 @@ void register_scene_tools(McpService& service)
                     json       plates  = json::array();
                     for (size_t i = 0; i < ticket->plates.size(); ++i) {
                         json p{{"index", ticket->plates[i]}, {"outcome", to_string(results[i].outcome)}};
-                        if (results[i].outcome == PlateOutcome::Ok)
-                            if (PartPlate* plate = list.get_plate(ticket->plates[i]))
+                        if (results[i].outcome == PlateOutcome::Ok) {
+                            // The statistics are the plate's current result, so only while the
+                            // project is as the operation sliced it.
+                            PartPlate* plate = list.get_plate(ticket->plates[i]);
+                            if (plate != nullptr && plate->is_slice_result_valid() &&
+                                plater.project_revision() == ticket->state.revision_at_start)
                                 p.update(plate_stats(*plate));
+                            else
+                                p["note"] = "The plate changed after it was sliced; slice again for its statistics.";
+                        }
                         if (!results[i].error.empty())
                             p["error"] = results[i].error;
                         plates.push_back(std::move(p));

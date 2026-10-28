@@ -44,12 +44,13 @@ struct PlateResult
     std::string  error;
 };
 
-// Per-plate outcome once the operation is terminal, from the plates' state and the operation's own
-// runs (see own_runs()): a valid result is Ok; otherwise the plate's last run decides (Error with
-// its message, Cancelled, or Ok when it finished with a result that a later edit has since
-// replaced); a plate no run reached is Error when its configuration fails
-// validation (validated before the request, so no run was even attempted), Cancelled when the
-// operation was cancelled, and Skipped otherwise (Slice All stops at a failing plate).
+// Per-plate outcome once the operation is terminal, from the operation's own runs (see own_runs())
+// and the plates' state: the plate's last own run decides (Error with its message, Cancelled, or Ok
+// when it finished with a result), whatever someone did to the plate after it finished. A plate no
+// own run reached is Empty when it has nothing to print, Ok when it was already sliced, Error when
+// its configuration fails validation (validated before the request, so no run was even attempted),
+// Cancelled when the operation was cancelled, and Skipped otherwise (Slice All stops at a failing
+// plate, or the plate is gone).
 std::vector<PlateResult> classify_plates(const std::vector<int>& requested, const std::vector<PlateObservation>& plates,
                                          const std::vector<SliceRunRecord>& own_runs);
 

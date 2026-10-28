@@ -54,13 +54,8 @@ std::vector<PlateResult> classify_plates(const std::vector<int>& requested, cons
         for (const SliceRunRecord& run : own_runs)
             if (run.plate == index && run.finished)
                 last = &run;
-        if (it == plates.end())
-            out.push_back({PlateOutcome::Skipped, {}}); // the plate no longer exists
-        else if (it->empty)
-            out.push_back({PlateOutcome::Empty, {}});
-        else if (it->valid)
-            out.push_back({PlateOutcome::Ok, {}});
-        else if (last != nullptr && !last->error.empty())
+        // The operation's own run decides, whatever happened to the plate after it finished.
+        if (last != nullptr && !last->error.empty())
             out.push_back({PlateOutcome::Error, last->error});
         else if (last != nullptr && last->cancelled)
             out.push_back({PlateOutcome::Cancelled, {}});
@@ -68,6 +63,12 @@ std::vector<PlateResult> classify_plates(const std::vector<int>& requested, cons
             out.push_back({PlateOutcome::Ok, {}});
         else if (last != nullptr)
             out.push_back({PlateOutcome::Error, "the slice finished without a result"});
+        else if (it == plates.end())
+            out.push_back({PlateOutcome::Skipped, {}}); // the plate no longer exists
+        else if (it->empty)
+            out.push_back({PlateOutcome::Empty, {}});
+        else if (it->valid)
+            out.push_back({PlateOutcome::Ok, {}}); // already sliced, so no run was needed
         else if (!it->error.empty())
             out.push_back({PlateOutcome::Error, it->error});
         else

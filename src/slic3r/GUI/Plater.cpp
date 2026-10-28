@@ -7263,6 +7263,9 @@ struct Plater::priv
     std::string m_inactive_shown_sig;
     std::string m_broken_shown_sig;
     bool auto_reslice_pending {false};
+    // Moves on when Plater::cancel_slicing() drops a pending automatic reslice, so a queued
+    // zero-delay reslice from before the cancel does nothing.
+    uint64_t auto_reslice_generation {0};
     bool auto_reslice_after_cancel {false};
     int m_is_RightClickInLeftUI{-1};
     int m_cur_slice_plate;
@@ -11211,7 +11214,10 @@ void Plater::priv::schedule_auto_reslice_if_needed()
 
     auto_reslice_pending = true;
     auto_reslice_timer.Stop();
-    wxGetApp().CallAfter([this]() { this->trigger_auto_reslice_now(); });
+    wxGetApp().CallAfter([this, generation = auto_reslice_generation]() {
+        if (generation == this->auto_reslice_generation)
+            this->trigger_auto_reslice_now();
+    });
 }
 
 void Plater::priv::trigger_auto_reslice_now()
@@ -23751,6 +23757,7 @@ void Plater::cancel_slicing()
 {
     // A pending automatic reslice counts as slicing (is_slicing_any()), so it is dropped too.
     p->auto_reslice_timer.Stop();
+    ++p->auto_reslice_generation;
     p->auto_reslice_pending      = false;
     p->auto_reslice_after_cancel = false;
     if (!p->background_process.idle())
