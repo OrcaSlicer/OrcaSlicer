@@ -12,6 +12,7 @@
 #include "Tab.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "format.hpp"
 
 #include <algorithm>
@@ -3620,7 +3621,9 @@ void NotificationManager::bbl_show_filament_map_invalid_notification_before_slic
         return false;
     };
 
-    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,_u8L("Click here to regroup"),callback }, 0);
+    // Only Bambu printers can regroup; without the link the callback is unreachable.
+    const std::string regroup = wxGetApp().preset_bundle->is_bbl_vendor() ? _u8L("Click here to regroup") : "";
+    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,regroup,callback }, 0);
 }
 
 void NotificationManager::bbl_close_filament_map_invalid_notification_before_slice(const NotificationType type)
@@ -3643,7 +3646,9 @@ void NotificationManager::bbl_show_filament_map_invalid_notification_after_slice
         return false;
     };
 
-    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,_u8L("Click here to regroup"),callback }, 0);
+    // Only Bambu printers can regroup; without the link the callback is unreachable.
+    const std::string regroup = wxGetApp().preset_bundle->is_bbl_vendor() ? _u8L("Click here to regroup") : "";
+    push_notification_data({ type,NotificationLevel::ErrorNotificationLevel,0,_u8L("Error:") + "\n" + text,regroup,callback }, 0);
 }
 
 void NotificationManager::bbl_close_filament_map_invalid_notification_after_slice(const NotificationType type)

@@ -3633,15 +3633,18 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
             filament_ids.emplace(interface_filament);
     }
 
+    // A mixed filament prints with its component filaments.
+    std::vector<int> physical_filament_ids =
+        expand_mixed_filament_ids(std::vector<int>(filament_ids.begin(), filament_ids.end()), g_config);
     // Match Orca's normal fallback for an unassigned object.
-    if (filament_ids.empty())
-        filament_ids.emplace(1);
+    if (physical_filament_ids.empty())
+        physical_filament_ids.emplace_back(1);
 
-    const size_t required_filament_count = filament_ids.empty() ? 0 : size_t(*filament_ids.rbegin());
+    const size_t required_filament_count = size_t(physical_filament_ids.back());
     const std::vector<int> filament_map = get_effective_exclusion_filament_maps(
         g_config, required_filament_count, extruder_count);
     std::map<int, size_t> result;
-    for (const int filament_id : filament_ids) {
+    for (const int filament_id : physical_filament_ids) {
         if (filament_id <= 0)
             continue;
 
@@ -5529,9 +5532,6 @@ int PartPlate::load_gcode_from_file(const std::string& filename)
 	}
 	DynamicPrintConfig full_config   = preset_bundle->full_config(false, filament_maps, f_volume_maps);
 	full_config.apply(m_config, true);
-	m_print->apply(*m_model, full_config, false);
-	//BBS: need to apply two times, for after the first apply, the m_print got its object,
-	//which will affect the config when new_full_config.normalize_fdm(used_filaments);
 	m_print->apply(*m_model, full_config, false);
 
 	// BBS: use backup path to save temp gcode

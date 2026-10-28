@@ -307,7 +307,7 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
         if (!need_delete_preset) BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't find delete preset and name: %1%") % delete_preset_name;
         if (!need_delete_preset->setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << need_delete_preset->name << ", setting_id = " << need_delete_preset->setting_id;
-            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id, need_delete_preset->file);
+            wxGetApp().delete_preset_from_cloud(*need_delete_preset);
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't preset setting id is empty and name: %1%") % delete_preset_name;
         }
