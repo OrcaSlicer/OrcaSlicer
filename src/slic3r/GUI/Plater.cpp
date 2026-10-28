@@ -14,7 +14,6 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/case_conv.hpp>
 #include <climits>
 #include <array>
 #include <boost/filesystem/fstream.hpp>
