@@ -3,6 +3,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Exception.hpp"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/CommonDefs.hpp"
 #include "ExtrusionEntity.hpp"
@@ -3260,6 +3261,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_machine_frame_transform.init_from_config(config);
     m_result.machine_frame_transform_active = m_machine_frame_transform.is_active();
     m_belt_printer = config.belt_printer.value;
+    m_belt_linear  = m_belt_printer ? std::optional<Matrix3d>(BeltTransformPipeline::build_gcode_back_transform(config).linear()) :
+                                      std::nullopt;
 
     auto filament_maps = config.option<ConfigOptionInts>("filament_map");
     if (filament_maps != nullptr) {
@@ -3296,6 +3299,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     // a belt printer is selected switches the preview's belt view off, and a belt file
     // loaded on another printer brings its own tilt, remaps and bed along.
     m_belt_render_config.clear();
+    m_belt_linear.reset();
     {
         const auto *belt = config.option<ConfigOptionBool>("belt_printer");
         if (belt != nullptr) {
@@ -3310,10 +3314,15 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
             // The Rev remaps mirror inside the build volume, so the designed view needs
             // the bed the file was sliced for. Only a belt file may override it.
             static const char *bed_keys[] = { "printable_area", "printable_height" };
-            if (belt->value)
+            if (belt->value) {
                 for (const char *key : bed_keys)
                     if (const ConfigOption *opt = config.option(key); opt != nullptr)
                         m_belt_render_config.set_key_value(key, opt->clone());
+                // The preview maps the file by these keys as well.
+                FullPrintConfig belt_config;
+                belt_config.apply(m_belt_render_config, true);
+                m_belt_linear = BeltTransformPipeline::build_gcode_back_transform(belt_config).linear();
+            }
         }
     }
 
@@ -7607,12 +7616,28 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     }
 }
 
-void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer)
+void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, const BoundingBoxf3 &belt_extent, size_t layer)
 {
     box.merge(extent);
+    belt_box.merge(belt_extent);
     if (printed_up_to_layer.size() <= layer)
         printed_up_to_layer.resize(layer + 1);
     printed_up_to_layer[layer].add(sum);
+}
+
+void GCodeProcessorResult::ObjectMass::transform(const Transform3d &trafo)
+{
+    const Matrix3d linear      = trafo.linear();
+    const Vec3d    translation = trafo.translation();
+    for (Sum &sum : printed_up_to_layer) {
+        const Vec3d moment = linear * sum.moment;
+        sum.set_second_moments(linear * sum.second_moments() * linear.transpose() + moment * translation.transpose() +
+                               translation * moment.transpose() + sum.mass * translation * translation.transpose());
+        sum.moment = moment + sum.mass * translation;
+    }
+    box = belt_box;
+    if (box.defined)
+        box.translate(translation);
 }
 
 void GCodeProcessor::add_object_mass(int filament_id, float volume)
@@ -7629,26 +7654,40 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
     const Vec3d offset      = Vec3d(m_x_offset, m_y_offset, -m_z_offset) - half_height + m_extruder_offsets[filament_id].cast<double>();
     const Vec3d start       = Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]) + offset;
     const Vec3d end         = Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]) + offset;
-    // The second moments of a uniform segment.
-    const GCodeProcessorResult::ObjectMass::Sum sum{ mass, double(volume), 0.5 * mass * (start + end),
-                                                     mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)) };
+    // The second moments of a uniform segment, m (2 s s^T + s e^T + e s^T + 2 e e^T) / 6: its diagonal, and the entries for
+    // the axis pairs xy, xz and yz.
+    const auto lhs = [](const Vec3d &v) { return Vec3d(v.x(), v.x(), v.y()); };
+    const auto rhs = [](const Vec3d &v) { return Vec3d(v.y(), v.z(), v.z()); };
+    const GCodeProcessorResult::ObjectMass::Sum sum{
+        mass, double(volume), 0.5 * mass * (start + end),
+        mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)),
+        mass / 6. * (2. * lhs(start).cwiseProduct(rhs(start)) + lhs(start).cwiseProduct(rhs(end)) + lhs(end).cwiseProduct(rhs(start)) +
+                     2. * lhs(end).cwiseProduct(rhs(end))) };
     // Of the bead's center line and its height, as its width is only estimated. Merged, as a wall along an axis is flat.
     BoundingBoxf3 extent;
     extent.merge(start.cwiseMin(end) - half_height);
     extent.merge(start.cwiseMax(end) + half_height);
+    BoundingBoxf3 belt_extent;
+    if (m_belt_linear) {
+        const Vec3d belt_start       = *m_belt_linear * start;
+        const Vec3d belt_end         = *m_belt_linear * end;
+        const Vec3d belt_half_height = (*m_belt_linear * half_height).cwiseAbs();
+        belt_extent.merge(belt_start.cwiseMin(belt_end) - belt_half_height);
+        belt_extent.merge(belt_start.cwiseMax(belt_end) + belt_half_height);
+    }
     const bool   part  = role != erBrim && !is_support(role);
     const size_t layer = std::max<unsigned int>(1, m_layer_id) - 1;
 
-    m_result.plate_mass.add(sum, extent, layer);
+    m_result.plate_mass.add(sum, extent, belt_extent, layer);
     // The brim belongs to the plate alone.
     if (role == erBrim || !m_mass_locator)
         return;
-    const auto add = [&sum, &extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
+    const auto add = [&sum, &extent, &belt_extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
         if (index < 0)
             return;
         if (masses.size() <= size_t(index))
             masses.resize(index + 1);
-        masses[index].add(sum, extent, layer);
+        masses[index].add(sum, extent, belt_extent, layer);
     };
     // At the nozzle's height, which the layers print at.
     const MassLocation location = m_mass_locator(0.5 * (start + end) + half_height, !part);

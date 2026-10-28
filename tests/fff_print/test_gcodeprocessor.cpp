@@ -6,9 +6,11 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
@@ -28,6 +30,7 @@
 #include "libslic3r/Point.hpp"
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -105,10 +108,11 @@ TEST_CASE("Reserved keyword detection reports every offending line", "[GCodeProc
 
 namespace {
 
-void process_gcode(const std::string &gcode, GCodeProcessorResult &result)
+void process_gcode(const std::string &gcode, GCodeProcessorResult &result, const DynamicPrintConfig &overrides = {})
 {
     FullPrintConfig config;
     config.gcode_flavor.value = gcfMarlinFirmware;
+    config.apply(overrides, true);
     // s_IsBBLPrinter selects the "; FEATURE: " role tags the G-code uses.
     const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
     const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
@@ -141,7 +145,7 @@ void process_squares(int squares, GCodeProcessorResult &result, bool virtual_mov
 
 // Objects A and B on the first layer and A again on the second, with A's brim and support. The skirt and the
 // prime tower belong to neither.
-void process_two_objects(GCodeProcessorResult &result)
+void process_two_objects(GCodeProcessorResult &result, const DynamicPrintConfig &overrides = {})
 {
     std::ostringstream gcode;
     gcode << "M83\nG90\n"
@@ -154,7 +158,7 @@ void process_two_objects(GCodeProcessorResult &result)
           << "; FEATURE: Prime tower\nG1 X80 Y80 F12000\nG1 X90 Y80 E1 F3000\n"
           << "; CHANGE_LAYER\n; LAYER_HEIGHT: 0.2\nG1 Z0.4 F12000\n"
           << "; FEATURE: Outer wall\nG1 X10 Y10 F12000\nG1 X20 Y10 E1 F3000\n";
-    process_gcode(gcode.str(), result);
+    process_gcode(gcode.str(), result, overrides);
 }
 
 // Bead centers of process_two_objects(), half the 0.2 mm layer below the nozzle.
@@ -450,9 +454,58 @@ TEST_CASE("The plate's center of mass takes every extrusion of G-code without a 
     CHECK_THAT(second.x(), Catch::Matchers::WithinRel((304. / 3. + 100. + 2. * 700. / 3. + 2. * 9100. / 3.) / 6., 1e-6));
     CHECK_THAT(second.y(), Catch::Matchers::WithinRel((64. + 1900. / 3. + 2. * 100. + 2. * 2500.) / 6., 1e-6));
     CHECK_THAT(second.z(), Catch::Matchers::WithinRel((5. * 0.01 + 0.09) / 6., 1e-5));
+    // Each bead runs along one axis, so x y is the fixed coordinate times the middle of the other.
+    CHECK_THAT(total.cross.x() / total.mass,
+               Catch::Matchers::WithinRel((8. * 10. + 10. * 25. + 2. * 10. * 15. + 2. * 50. * 55.) / 6., 1e-6));
     // The beads' center lines, brim and support included, from the first layer's bottom to the second's top.
     CHECK_THAT((plate.box.min - Vec3d(8., 8., 0.)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
     CHECK_THAT((plate.box.max - Vec3d(60., 50., 0.4)).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
+    CHECK_FALSE(plate.belt_box.defined);
+}
+
+TEST_CASE("A belt print's mass keeps its weight and takes its center, spread and box to the model's frame", "[GCodeProcessor]")
+{
+    DynamicPrintConfig belt;
+    belt.set_deserialize_strict({ { "belt_printer", 1 }, { "belt_slice_rotation", "x" }, { "belt_slice_rotation_angle", 45 } });
+    GCodeProcessorResult result;
+    process_two_objects(result, belt);
+    FullPrintConfig belt_config;
+    belt_config.apply(belt, true);
+    // The back-transform shears; the preview moves it as well, to lay the toolpaths on the model.
+    const Transform3d trafo = Geometry::translation_transform(Vec3d(5., -20., 3.)) *
+                              BeltTransformPipeline::build_gcode_back_transform(belt_config);
+    REQUIRE_FALSE(trafo.linear().isDiagonal());
+    const GCodeProcessorResult::ObjectMass &plate  = result.plate_mass;
+    GCodeProcessorResult::ObjectMass        mapped = plate;
+    mapped.transform(trafo);
+
+    const auto spread = [](const GCodeProcessorResult::ObjectMass::Sum &sum) {
+        const Vec3d center = center_of(sum);
+        return Matrix3d(sum.second_moments() / sum.mass - center * center.transpose());
+    };
+    REQUIRE(mapped.printed_up_to_layer.size() == plate.printed_up_to_layer.size());
+    for (size_t layer = 0; layer < plate.printed_up_to_layer.size(); ++layer) {
+        const GCodeProcessorResult::ObjectMass::Sum &before = plate.printed_up_to_layer[layer];
+        const GCodeProcessorResult::ObjectMass::Sum &after  = mapped.printed_up_to_layer[layer];
+        CHECK_THAT(after.mass, Catch::Matchers::WithinRel(before.mass, 1e-12));
+        CHECK_THAT(after.volume, Catch::Matchers::WithinRel(before.volume, 1e-12));
+        CHECK_THAT((center_of(after) - trafo * center_of(before)).norm(), Catch::Matchers::WithinAbs(0., 1e-9));
+        CHECK_THAT((spread(after) - trafo.linear() * spread(before) * trafo.linear().transpose()).norm(),
+                   Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+
+    // The mapped ends of the beads' center lines at the bottom and the top of their layers: the brim, the support, A's and B's
+    // walls on the first layer and A's on the second.
+    BoundingBoxf3 beads;
+    for (const auto &[from, to, bottom] : { std::tuple(Vec2d(8., 8.), Vec2d(12., 8.), 0.), std::tuple(Vec2d(10., 20.), Vec2d(10., 30.), 0.),
+                                            std::tuple(Vec2d(10., 10.), Vec2d(20., 10.), 0.), std::tuple(Vec2d(50., 50.), Vec2d(60., 50.), 0.),
+                                            std::tuple(Vec2d(10., 10.), Vec2d(20., 10.), 0.2) })
+        for (const Vec2d &end : { from, to })
+            for (const double z : { bottom, bottom + 0.2 })
+                beads.merge(trafo * Vec3d(end.x(), end.y(), z));
+    REQUIRE(mapped.box.defined);
+    CHECK_THAT((mapped.box.min - beads.min).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
+    CHECK_THAT((mapped.box.max - beads.max).norm(), Catch::Matchers::WithinAbs(0., 1e-5));
 }
 
 TEST_CASE("Each sliced cube's center of mass is its center, and the brim lowers the plate's printed one", "[GCodeProcessor]")

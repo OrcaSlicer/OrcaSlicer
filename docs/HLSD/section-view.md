@@ -71,6 +71,8 @@ closes the open gizmo, so neither tab ever shows a stale cut.
   Preview shells are drawn by another shader and are not clipped.
 - **Picking.** `get_raycaster_clipping_plane()` returns the same plane, so hover, selection and
   the perspective pan anchor ignore what the user cannot see.
+- **Center of mass markers.** Drawn without the depth test, they would show through the cut, so
+  each is cut away whole by its centre, as the option markers are.
 
 ## Gizmos
 

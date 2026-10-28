@@ -10,6 +10,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <fstream>
+#include <ios>
 #include <string>
 
 using namespace Slic3r;
@@ -262,3 +263,46 @@ TEST_CASE("peek_bool accepts the legacy spellings and tolerates a bad or missing
     CHECK_FALSE(AppConfig::peek_bool(write("broken", "{not json"), "k"));
     CHECK_FALSE(AppConfig::peek_bool((tmp.path() / "missing").string(), "k"));
 }
+
+TEST_CASE("A configuration without the checksum line loads", "[AppConfig][Regression]")
+{
+    ScopedDataDir data_dir("no-checksum");
+    // A person or a tool editing the file drops the checksum line, often with the newline after the closing brace.
+    const std::string ending = GENERATE("", "\n");
+    std::ofstream(AppConfig::config_path(data_dir.dir.string(), AppConfig::EAppMode::Editor), std::ios::binary)
+        << R"({"app":{"k":"v"}})" << ending;
+
+    AppConfig config;
+    REQUIRE(config.load().empty());
+    CHECK(config.get("k") == "v");
+}
+
+#ifdef _WIN32
+// Only Windows saves the checksum line, and a backup to restore a corrupted configuration from.
+TEST_CASE("A corrupted configuration is restored from a backup whose checksum matches", "[AppConfig]")
+{
+    ScopedDataDir data_dir("restore-backup");
+    save_main_thread_id();
+    AppConfig saved;
+    saved.set("k", "v");
+    saved.save();
+    std::ofstream(saved.config_path(), std::ios::binary) << "{not json";
+
+    AppConfig config;
+    REQUIRE(config.load().empty());
+    CHECK(config.get("k") == "v");
+}
+
+TEST_CASE("A backup without the checksum line is not restored", "[AppConfig][Regression]")
+{
+    ScopedDataDir data_dir("unverified-backup");
+    const std::string path = AppConfig::config_path(data_dir.dir.string(), AppConfig::EAppMode::Editor);
+    std::ofstream(path, std::ios::binary) << "{not json";
+    const std::string ending = GENERATE("", "\n");
+    std::ofstream(path + ".bak", std::ios::binary) << R"({"app":{"k":"v"}})" << ending;
+
+    AppConfig config;
+    CHECK_FALSE(config.load().empty());
+    CHECK(config.get("k").empty());
+}
+#endif

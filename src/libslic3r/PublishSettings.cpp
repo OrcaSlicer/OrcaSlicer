@@ -234,23 +234,23 @@ DynamicPrintConfig filter_published_config(
         mask_exempt_keys.insert(key);
     }
 
-    // 3. Process and printer published keys. Printer per-extruder keys carry a "#N" variant
-    // (e.g. retraction_length#2): mask the base to the author's extruder index so a partial
-    // publish does not serialize every extruder's value (same slot-masking as the material side).
+    // 3. Process and printer published keys. Per-extruder keys carry a "#N" variant (e.g.
+    // retraction_length#2, outer_wall_speed#1): mask the base to the author's extruder index so a
+    // partial publish does not serialize every extruder's value (same slot-masking as the material side).
     const std::set<std::string> &printer_keys = publishable_printer_keys();
     for (const std::string &key : published_keys) {
         const std::string base_key = publish_base_key(key);
         if (base_key.empty())
             continue;
         base_keys_to_include.insert(base_key);
-        if (printer_keys.count(base_key) != 0) {
+        if (printer_keys.count(base_key) != 0 || print_options_with_variant.count(base_key) != 0) {
             const int variant_idx = publish_variant_index(key, base_key);
             if (variant_idx >= 0)
                 slot_mask_map[base_key].insert(variant_idx);
             else
-                mask_exempt_keys.insert(base_key); // bare printer key or malformed variant: whole vector
+                mask_exempt_keys.insert(base_key); // bare key or malformed variant: whole vector
         } else {
-            mask_exempt_keys.insert(base_key); // process key: whole vector
+            mask_exempt_keys.insert(base_key); // other process keys: whole vector
         }
     }
 
@@ -319,6 +319,14 @@ DynamicPrintConfig filter_published_config(
 int resolve_published_extruder_slot(const PublishedExtruderLayout &author, size_t author_index,
                                     const DynamicPrintConfig &receiver_printer, const DynamicPrintConfig &receiver_project)
 {
+    return resolve_published_extruder_slot(author, author_index, receiver_printer, receiver_project, receiver_printer,
+                                           "printer_extruder_id", "printer_extruder_variant");
+}
+
+int resolve_published_extruder_slot(const PublishedExtruderLayout &author, size_t author_index,
+                                    const DynamicPrintConfig &receiver_printer, const DynamicPrintConfig &receiver_project,
+                                    const DynamicPrintConfig &receiver_target, const std::string &id_key, const std::string &variant_key)
+{
     if (author_index >= author.extruder_ids.size() || author_index >= author.variants.size())
         return -1;
     const int author_extruder = author.extruder_ids[author_index];
@@ -335,7 +343,7 @@ int resolve_published_extruder_slot(const PublishedExtruderLayout &author, size_
     const NozzleVolumeType nozzle_type   = NozzleVolumeType(volumes->values[e]);
     if (nozzle_type == nvtHybrid || author.variants[author_index] != get_extruder_variant_string(extruder_type, nozzle_type))
         return -1;
-    return receiver_printer.get_index_for_extruder(author_extruder, "printer_extruder_id", extruder_type, nozzle_type, "printer_extruder_variant");
+    return receiver_target.get_index_for_extruder(author_extruder, id_key, extruder_type, nozzle_type, variant_key);
 }
 
 } // namespace Slic3r
