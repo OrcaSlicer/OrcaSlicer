@@ -11230,7 +11230,7 @@ void Plater::priv::schedule_auto_reslice_if_needed()
 
 void Plater::priv::trigger_auto_reslice_now()
 {
-    // Plater::cancel_slicing() dropped it, though its timer event or call was already queued.
+    // Plater::cancel_slicing() dropped it, though its zero-delay call was already queued.
     if (!this->auto_reslice_pending)
         return;
     this->auto_reslice_pending = false;
