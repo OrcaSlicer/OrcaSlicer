@@ -201,6 +201,9 @@ std::vector<PluginCapabilityId> capabilities_in_use(Preset::Type type, const Pre
 static std::string resolve_cloud_base_url()
 {
     std::string cloud_base_url = "https://cloud.orcaslicer.com";
+    // Without the app (unit tests, headless callers) there is no agent to ask: keep the default.
+    if (wxTheApp == nullptr)
+        return cloud_base_url;
     if (auto agent = GUI::wxGetApp().getAgent()) {
         if (auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(agent->get_cloud_agent())) {
             if (!orca_agent->get_cloud_base_url().empty())
