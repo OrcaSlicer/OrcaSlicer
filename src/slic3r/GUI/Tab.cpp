@@ -2135,7 +2135,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
-    // Keep this preset's "plugins" manifest in sync when a plugin picker changes, so full_config() and
+    // Keep this preset's plugin manifest in sync when a plugin picker changes, so full_config() and
     // save_to_json() always find resolved "name;uuid;capability" references and rebuild it nowhere else.
     // Also drop any plugin config override entries for a capability the change just stopped
     // referencing (e.g. a plugin removed from slicing_pipeline_plugin), so a saved preset never

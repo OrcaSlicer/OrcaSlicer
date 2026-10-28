@@ -23,11 +23,7 @@ struct MissingPlugin
     PluginCapabilityType type{PluginCapabilityType::Unknown};
 };
 
-// The manifest key of a preset type: printer presets keep theirs in "printer_plugins", every other
-// type in "plugins" (see ConfigBase::plugin_manifest_key).
-const char* plugin_manifest_key(Preset::Type type);
-
-// Rebuild one preset type's missing-plugin set from its "plugins" manifest, comparing each ref
+// Rebuild one preset type's missing-plugin set from its plugin manifest, comparing each ref
 // against the live catalog and loaded/enabled capabilities. A null/empty manifest clears the set.
 // Only TYPE_PRINT, TYPE_PRINTER and TYPE_FILAMENT are tracked.
 void refresh_missing_plugins(Preset::Type type, const ConfigOptionStrings* manifest, const Preset* preset = nullptr);
@@ -82,7 +78,7 @@ void open_missing_plugins_on_cloud(const std::vector<std::string>& local_refs);
 std::string create_full_ref(const PluginCapabilityRef& ref);
 std::string resolve_recovery_url(const PluginCapabilityRef& ref);
 
-// The capabilities `preset`'s "plugins" manifest declares AND that one of its plugin-backed options
+// The capabilities `preset`'s plugin manifest declares AND that one of its plugin-backed options
 // (ConfigOptionDef::is_plugin_backed) currently references: a manifest entry nobody points at is not
 // in use. Pure preset logic — the catalog and loader are not consulted. Empty for untracked types.
 std::vector<PluginCapabilityRef> referenced_capabilities(Preset::Type type, const Preset& preset);

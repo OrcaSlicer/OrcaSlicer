@@ -1585,10 +1585,10 @@ void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const s
         }
     }
 
-    // Serialize the top-level "plugins" manifest: the individual plugin-backed options keep bare
+    // Serialize the top-level plugin manifest: the individual plugin-backed options keep bare
     // capability names; the full "name;uuid;capability" references are derived here (same helper as
     // update_plugin_manifest). Only with a resolver (GUI); without one (CLI/headless) leave whatever
-    // the "plugins" option already serialized above, so a round-trip never drops the manifest. A value
+    // the manifest option already serialized above, so a round-trip never drops the manifest. A value
     // the resolver cannot map keeps its existing manifest entry; one with no entry is omitted, and
     // unresolved_plugin_capabilities() reports it so a GUI save entry point can prompt before writing.
     if (resolve_capability_fn) {
@@ -1709,7 +1709,7 @@ std::vector<UnresolvedPluginCapability> ConfigBase::unresolved_plugin_capabiliti
 
 void ConfigBase::update_plugin_manifest()
 {
-    // Writes the derived manifest back into this config's "plugins" option (save_to_json writes the
+    // Writes the derived manifest back into this config's manifest option (save_to_json writes the
     // same manifest into a JSON document instead), so an in-memory backend config carries a resolved
     // manifest even when the source preset was never serialized (picked-but-unsaved). Without a
     // resolver (CLI/headless) leave whatever manifest was loaded from disk untouched.

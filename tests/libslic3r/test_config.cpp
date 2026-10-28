@@ -975,6 +975,25 @@ TEST_CASE("unresolved_plugin_capabilities skips a value whose manifest entry is 
     CHECK(unresolved.empty());
     CHECK(manifest == std::vector<std::string>{"Pack;3f2a6c1e;offline"});
 }
+
+TEST_CASE("A printer preset keeps the printer_plugins entry of a capability not loaded here", "[Config][plugins]") {
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name == "gone" ? std::string() : name + ";;" + type;
+    });
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"printer_agent", "printer_plugins"}));
+    config->option<ConfigOptionString>("printer_agent", true)->value = "gone";
+    config->option<ConfigOptionStrings>("printer_plugins", true)->values = {"Pack;3f2a6c1e;gone"};
+
+    const std::vector<UnresolvedPluginCapability> unresolved = config->unresolved_plugin_capabilities();
+    config->update_plugin_manifest();
+    const std::vector<std::string> manifest = config->option<ConfigOptionStrings>("printer_plugins")->values;
+    ConfigBase::set_resolve_capability_fn(nullptr);
+
+    CHECK(unresolved.empty());
+    CHECK(manifest == std::vector<std::string>{"Pack;3f2a6c1e;gone"});
+    CHECK(config->option("plugins") == nullptr);
+}
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
     // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time
     // model, and wipe-tower nozzle-change handling. Defaults must keep existing
