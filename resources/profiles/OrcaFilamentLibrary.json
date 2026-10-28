@@ -169,8 +169,8 @@
 			"sub_path": "filament/Polymaker/PolyLite ABS @base.json"
 		},
 		{
-			"name": "Printalot ABS @base",
-			"sub_path": "filament/Printalot/Printalot ABS @base.json"
+			"name": "PrintaLot ABS @base",
+			"sub_path": "filament/Printalot/PrintaLot ABS @base.json"
 		},
 		{
 			"name": "BETA ASA @base",
@@ -1449,8 +1449,8 @@
 			"sub_path": "filament/Polymaker/PolyLite ABS @System.json"
 		},
 		{
-			"name": "Printalot ABS @System",
-			"sub_path": "filament/Printalot/Printalot ABS @System.json"
+			"name": "PrintaLot ABS @System",
+			"sub_path": "filament/Printalot/PrintaLot ABS @System.json"
 		},
 		{
 			"name": "BETA ASA @BBL A1 0.4 nozzle",
