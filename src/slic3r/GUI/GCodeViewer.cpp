@@ -60,6 +60,7 @@
 #include "libvgcode/include/GCodeInputData.hpp"
 #include "libvgcode/include/ColorRange.hpp"
 #include <cfloat>
+#include <initializer_list>
 #include <optional>
 #include "libslic3r_version.h"
 #include <wx/busycursor.h>
@@ -2806,6 +2807,9 @@ void GCodeViewer::set_interacting(bool interacting)
     const bool sectioned = m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f;
     const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
                         (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising && !sectioned));
+    // the legend may have recoloured the toolpaths since the last drag
+    if (interacting && !m_viewer.is_reduced_detail())
+        m_solid_model_colors.valid = false;
     m_viewer.set_reduced_detail(interacting && usable);
 }
 
@@ -3574,10 +3578,24 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     if (z_top <= z_bottom)
         return;
 
-    std::vector<float> alphas;
-    alphas.reserve(m_shells.volumes.volumes.size());
-    for (GLVolume* volume : m_shells.volumes.volumes) {
-        alphas.push_back(volume->color.a());
+    // the volumes wear the solid's colours for the frame, over their own filament colours
+    update_solid_model_colors(whole);
+    const SolidModelColors& colors = m_solid_model_colors;
+    std::vector<ColorRGBA> own_colors;
+    own_colors.reserve(m_shells.volumes.volumes.size());
+    // the tower draws itself in its own colours and leaves the volume's at the default; one list per volume
+    std::vector<std::vector<ColorRGBA>> own_tower_colors(m_shells.volumes.volumes.size());
+    for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
+        GLVolume* volume = m_shells.volumes.volumes[k];
+        own_colors.push_back(volume->color);
+        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr) {
+            if (colors.tower.has_value()) {
+                own_tower_colors[k] = tower->colors();
+                tower->colors().assign(own_tower_colors[k].size(), *colors.tower);
+            }
+        }
+        else if (colors.body.has_value())
+            volume->color = *colors.body;
         volume->color.a(1.0f);
         volume->set_render_color();
     }
@@ -3596,9 +3614,9 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 
     // The cut faces, one body at a time. A pixel looks into a body where, with the depth test off,
     // its back faces outnumber its front faces: zero for a closed body, one where the cut has
-    // opened it. There a quad in the cut plane, in the body's own colour darkened, stands in for
-    // the material, so that a sparse layer on the cut shows a solid inside between its lines
-    // rather than whatever lies further down.
+    // opened it. There a quad in the cut plane, in the colour of the infill it is cut under
+    // darkened, or the body's own, stands in for the material, so that a sparse layer on the cut
+    // shows a solid inside between its lines rather than whatever lies further down.
     GLShaderProgram* cap_shader = wxGetApp().get_shader("flat");
     if (cap_shader != nullptr) {
         const bool bottom_cut = layers[0] > 0;
@@ -3655,20 +3673,25 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
             glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
             glsafe(::glStencilMask(0x00));
 
-            // the tower draws itself in its own colours and leaves the volume's at the default
-            ColorRGBA inside = volume->color;
-            if (const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume); tower != nullptr && !tower->colors().empty())
-                inside = tower->colors().front();
-            inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
+            const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume);
             cap_shader->start_using();
             cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
             cap_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
             glsafe(::glDisable(GL_CULL_FACE));
-            for (GLModel* cap : { &top_cap, &bottom_cap }) {
-                if (cap->is_initialized()) {
-                    cap->set_color(inside);
-                    cap->render();
+            for (size_t k = 0; k < 2; ++k) {
+                GLModel& cap = (k == 0) ? bottom_cap : top_cap;
+                if (!cap.is_initialized())
+                    continue;
+                ColorRGBA inside = volume->color;
+                if (tower != nullptr) {
+                    if (!tower->colors().empty())
+                        inside = tower->colors().front();
                 }
+                else if (colors.caps[k].has_value())
+                    inside = *colors.caps[k];
+                inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
+                cap.set_color(inside);
+                cap.render();
             }
             glsafe(::glEnable(GL_CULL_FACE));
             cap_shader->stop_using();
@@ -3678,10 +3701,54 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     }
 
     m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
-    size_t k = 0;
-    for (GLVolume* volume : m_shells.volumes.volumes) {
-        volume->color.a(alphas[k++]);
+    for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
+        GLVolume* volume = m_shells.volumes.volumes[k];
+        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr && !own_tower_colors[k].empty())
+            tower->colors() = own_tower_colors[k];
+        volume->color = own_colors[k];
         volume->set_render_color();
+    }
+}
+
+// The solid stands in for the toolpaths, so it takes their colours in the view that colours them
+// by something other than the filament: the body the outer wall's, each cap the infill's of the
+// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's.
+// The views that colour by filament leave every body its own colour. Each colour is that of the
+// first vertex of the role in the layer, so a view that grades the toolpaths, by speed or height,
+// shows the solid in the first grade printed there.
+void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
+{
+    SolidModelColors& colors = m_solid_model_colors;
+    const libvgcode::EViewType view_type = m_viewer.get_view_type();
+    if (colors.valid && colors.view_type == view_type && colors.whole_layers == whole_layers)
+        return;
+    colors = SolidModelColors();
+    colors.valid = true;
+    colors.view_type = view_type;
+    colors.whole_layers = whole_layers;
+    if (view_type == libvgcode::EViewType::Summary || view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Tool)
+        return;
+
+    using Role = libvgcode::EGCodeExtrusionRole;
+    auto sample = [this](size_t layer_id, std::initializer_list<Role> roles) -> std::optional<ColorRGBA> {
+        for (Role role : roles) {
+            const size_t id = m_viewer.find_extrusion_vertex(layer_id, role);
+            if (id < m_viewer.get_vertices_count())
+                return libvgcode::convert(m_viewer.get_vertex_color(m_viewer.get_vertex_at(id)));
+        }
+        return std::nullopt;
+    };
+    const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
+    const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
+                                                 Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
+    colors.body = sample(whole_layers[1], walls);
+    if (!colors.body.has_value())
+        colors.body = sample(whole_layers[0], walls);
+    colors.tower = sample(whole_layers[1], { Role::WipeTower });
+    for (size_t k = 0; k < 2; ++k) {
+        colors.caps[k] = sample(whole_layers[k], infill);
+        if (!colors.caps[k].has_value())
+            colors.caps[k] = colors.body;
     }
 }
 

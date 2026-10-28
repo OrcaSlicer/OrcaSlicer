@@ -44,6 +44,10 @@ public:
     bool layer_contains_colorprint_options(std::size_t layer_id) const {
         return (layer_id < m_items.size()) ? m_items[layer_id].contains_colorprint_options : false;
     }
+    // the ids of the layer's first and last vertex, which bound its vertices in any print order
+    Interval get_layer_vertex_range(std::size_t layer_id) const {
+        return (layer_id < m_items.size()) ? m_items[layer_id].range.get() : Interval{ 0, 0 };
+    }
     // whether the layer has an infill extrusion of any kind, sparse or solid
     bool layer_has_infill(std::size_t layer_id) const {
         return (layer_id < m_items.size()) ? m_items[layer_id].has_infill : false;

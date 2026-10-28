@@ -25,6 +25,7 @@
 #include <libvgcode/include/Types.hpp>
 
 #include <array>
+#include <optional>
 #include <cstdint>
 #include <float.h>
 #include <set>
@@ -361,6 +362,21 @@ private:
     // whether no layer is lower than the one before, as the solid model's cut needs
     bool m_layers_z_rising{ true };
     void render_solid_model(int canvas_width, int canvas_height);
+    // The solid model's colours in the current view, sampled from the toolpaths when the view
+    // colours them by something other than the filament; see update_solid_model_colors()
+    struct SolidModelColors
+    {
+        bool valid{ false };
+        libvgcode::EViewType view_type{ libvgcode::EViewType::COUNT };
+        libvgcode::Interval  whole_layers{ 0, 0 };
+        // unset where the view colours by filament, or no vertex of the role was found
+        std::optional<ColorRGBA> body;
+        std::optional<ColorRGBA> tower;
+        // the objects' bottom and top caps
+        std::array<std::optional<ColorRGBA>, 2> caps;
+    };
+    SolidModelColors m_solid_model_colors;
+    void update_solid_model_colors(const libvgcode::Interval& whole_layers);
     // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
     void update_shell_wipe_tower(const Print& print, bool initialized);
 

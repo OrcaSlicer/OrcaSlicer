@@ -2173,7 +2173,7 @@ void PreferencesDialog::create_items()
         _L("What the sliced preview draws while you drag the camera or a preview slider, or zoom with the mouse wheel, so that large prints stay responsive. "
            "The full toolpaths are restored as soon as you let go.\n"
            "Off: the full toolpaths.\n"
-           "Solid model: the sliced objects and the prime tower as solid shapes in their filament colors, cut to the visible layer range, "
+           "Solid model: the sliced objects and the prime tower as solid shapes in the colors of the current view, cut to the visible layer range, "
            "with its bottom and top layers and the supports drawn as toolpaths. Negative volumes are not cut out. "
            "A print made object by object, or one cut open by the section view, keeps its full toolpaths.\n"
            "Shell only: every layer without its sparse infill, internal solid infill, internal bridges and gap fill, which lie under the walls and skins. "

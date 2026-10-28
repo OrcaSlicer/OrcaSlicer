@@ -1840,6 +1840,19 @@ float ViewerImpl::get_estimated_time_at(size_t id) const
     return time;
 }
 
+// The first extrusion of the role in the layer, or the vertex count. The layer's vertices lie
+// between its first and last ids, with those of other layers among them in a print by object.
+size_t ViewerImpl::find_extrusion_vertex(size_t layer_id, EGCodeExtrusionRole role) const
+{
+    const Interval range = m_layers.get_layer_vertex_range(layer_id);
+    for (size_t i = range[0]; i <= range[1] && i < m_vertices.size(); ++i) {
+        const PathVertex& v = m_vertices[i];
+        if (v.layer_id == layer_id && v.is_extrusion() && v.role == role)
+            return i;
+    }
+    return m_vertices.size();
+}
+
 Color ViewerImpl::get_vertex_color(const PathVertex& v) const
 {
     if (v.type == EMoveType::Noop)
