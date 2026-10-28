@@ -93,10 +93,10 @@
 					<option value="2" data-i18n="unchecked">Unchecked</option>
 				</select>
 			</div>
-			<!-- ORCA "13 / 289 [16]" reads as bare numbers, so a hidden twin says what they count, and announces each change -->
+			<!-- ORCA "13 / 289 [16]" reads as bare numbers, so a hidden twin says what they count, and announces each change (SortUI() makes them statuses once filled) -->
 			<div class="list-item-count" aria-hidden="true"></div>
-			<span class="A11yOnly" id="FilamentCountText" role="status"></span>
-			<span class="A11yOnly" id="FilamentShownText" role="status"></span>
+			<span class="A11yOnly" id="FilamentCountText"></span>
+			<span class="A11yOnly" id="FilamentShownText"></span>
 			<div class="cbr-filter-btns" role="group" aria-labelledby="FilterModeVisible">
 				<span class="cbr-filter-mode-filter" id="FilterModeFilter" data-i18n="select_filtered">Select filtered</span>
 				<span class="cbr-filter-mode-visible" id="FilterModeVisible" data-i18n="select_visible">Select visible</span>

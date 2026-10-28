@@ -209,8 +209,10 @@ function SortUI()
 
 	if(SelectNumber==0)
 		ChooseDefaultFilament();
-	
+
 	UpdateStats();
+	// ORCA the counts are filled silently, so they don't talk over the page loading, and speak only their changes
+	$("#FilamentCountText, #FilamentShownText").attr("role", "status");
 }
 
 function ChooseAllMachine()
@@ -383,7 +385,10 @@ function UpdateStats(nShownDelay)
 	// ORCA selection and filtering are announced apart, so a change speaks only the count that changed
 	SetStatusText("FilamentCountText", T("count_selected", "%s of %s selected", nChecked, nAll));
 	clearTimeout(ShownTimer);
-	ShownTimer = setTimeout(() => SetStatusText("FilamentShownText", ResultsText(visibleCount)), nShownDelay || 0);
+	if (nShownDelay)
+		ShownTimer = setTimeout(() => SetStatusText("FilamentShownText", ResultsText(visibleCount)), nShownDelay);
+	else
+		SetStatusText("FilamentShownText", ResultsText(visibleCount));
 }
 
 // Write a status only when its text changes: Chromium announces every write.
@@ -619,7 +624,6 @@ function initInputEvents(){
 	filterTags.addEventListener('change', e => {
 		let v = e.target.value;
 		filterBar.value = v == "1" ? "::checked" : v == "2" ? "::unchecked" : "";
-		filterBar.dispatchEvent(new Event('input', {bubbles: true}));
-		filterBar.focus();
+		filterBar.dispatchEvent(new Event('input', {bubbles: true})); // focus stays, so arrows go on through the states
     });
 }
