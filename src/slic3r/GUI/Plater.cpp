@@ -9187,6 +9187,19 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                 }
                             }
 
+                            auto layout_it = model.model_info->metadata_items.find(ORCA_PUBLISHED_LAYOUT_TAG);
+                            if (layout_it != model.model_info->metadata_items.end()) {
+                                try {
+                                    auto jl = nlohmann::json::parse(layout_it->second);
+                                    PublishedExtruderLayout layout;
+                                    layout.extruder_ids = jl.at("extruder_ids").get<std::vector<int>>();
+                                    layout.variants     = jl.at("variants").get<std::vector<std::string>>();
+                                    published_config.printer_layout = std::move(layout);
+                                } catch (const nlohmann::json::exception&) {
+                                    // Malformed layout: the printer keys fall back to the positional import.
+                                }
+                            }
+
                             // Rebuild the published values from the metadata payload: a published
                             // file carries no project_settings.config, so config_loaded is filled
                             // from here; a missing or malformed payload leaves it empty and the
@@ -9509,6 +9522,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_KEYS_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_MATERIAL_TAG);
                     this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+                    this->model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
                 }
 
                 if (load_config) {
@@ -19820,6 +19834,7 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
                 model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = prev_payload;
             else
                 model.model_info->metadata_items.erase(ORCA_PUBLISHED_CONFIG_TAG);
+            model.model_info->metadata_items.erase(ORCA_PUBLISHED_LAYOUT_TAG);
         }
     };
     bool state_restored = false;
@@ -19861,6 +19876,12 @@ int Plater::export_published_3mf(const std::vector<std::string>& published_keys,
             payload += key + " = " + value + "\n";
         }
         model.model_info->metadata_items[ORCA_PUBLISHED_CONFIG_TAG] = std::move(payload);
+        // The author's extruder layout, so the receiver can place each printer key on the extruder with the same number.
+        const auto *layout_ids      = full_cfg.option<ConfigOptionInts>("printer_extruder_id");
+        const auto *layout_variants = full_cfg.option<ConfigOptionStrings>("printer_extruder_variant");
+        if (layout_ids != nullptr && layout_variants != nullptr)
+            model.model_info->metadata_items[ORCA_PUBLISHED_LAYOUT_TAG] =
+                nlohmann::json{{"extruder_ids", layout_ids->values}, {"variants", layout_variants->values}}.dump();
 
         // Same file layout as save_project(), plus Silence (so export_3mf does not set the project
         // filename on success, keeping this a pure export like export_core_3mf()) and MinimalPublished.
