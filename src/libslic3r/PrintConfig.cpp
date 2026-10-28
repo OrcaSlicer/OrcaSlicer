@@ -154,6 +154,21 @@ double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, 
     return config.nozzle_diameter.get_at(extruder - 1);
 }
 
+// Orca: >= 2 nozzles and not single_extruder_multi_material.
+static bool one_filament_per_nozzle(const ConfigBase& printer_config)
+{
+    const ConfigOptionFloats* nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle_diameter == nullptr || nozzle_diameter->size() < 2)
+        return false;
+    const ConfigOption* semm = printer_config.option("single_extruder_multi_material");
+    return semm == nullptr || !semm->getBool();
+}
+
+bool printer_has_viewable_filaments(const ConfigBase& printer_config, const std::string& reported_changer)
+{
+    return one_filament_per_nozzle(printer_config) || !reported_changer.empty();
+}
+
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)

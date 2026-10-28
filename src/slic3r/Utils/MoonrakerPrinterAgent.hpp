@@ -21,6 +21,47 @@ namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 
+// One reported slot, before build_ams_payload turns it into a device-model tray.
+struct MoonrakerAmsTrayData {
+    int         slot_index = 0;      // 0-based index in the agent's slot order
+    bool        has_filament = false;
+    std::string tray_type;           // Material type (e.g., "PLA", "ASA")
+    std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
+    std::vector<std::string> tray_colors; // Optional: every color of a multi-color spool, in order (same formats).
+                                          // Used when it holds two or more; otherwise tray_color is the only one.
+    bool        colors_gradient = false;  // With tray_colors: blend them as a gradient instead of drawing segments
+    std::string tray_info_idx;       // Filament ID (optional)
+    int         bed_temp = 0;        // Optional
+    int         nozzle_temp = 0;     // Optional
+    std::string tag_uid;             // Non-empty for NFC/RFID-tagged slots, which are never pushed
+    std::string slot_name;           // Printer's slot name (AFC lane key, e.g. "lane1"); "" = none
+    std::string unit;                // Changer unit's stable id ("Turtle_1"); "" = flat
+    std::string unit_label;          // Unit display name; falls back to the id
+    std::string head;                // Klipper extruder fed ("extruder1"); "" = unknown
+    int         slot = 0;            // Position within its unit
+    int         extruder = -1;       // 0-based extruder fed; -1 = unknown
+    int         virtual_tool = -1;   // T<n> currently mapped to the slot; -1 = unknown
+};
+
+// Orca: filament-changer dialects a Moonraker printer reports slots in, and the g-code each takes.
+// AFC addresses lanes by name, Happy Hare gates by index; neither carries vendor or sub-type.
+namespace MoonrakerFilamentDialect {
+enum class Dialect { none, afc_lane_data, happy_hare };
+bool        dialect_supports_push(Dialect dialect);
+std::string dialect_name(Dialect dialect);
+std::vector<std::string> afc_push_scripts(const IPrinterAgent::FilamentSlotInfo& info);
+std::string              happy_hare_push_script(const IPrinterAgent::FilamentSlotInfo& info);
+// The lane_data record ("lane" = virtual tool, "unit", optional "unit_name", "slot", "extruder" or
+// "extruder_index") was defined together with the AFC developers. A field the record leaves out or
+// blank keeps what the tray already holds, so an AFC_stepper status object only fills gaps.
+int  extruder_index_from_name(const std::string& name); // "extruder" -> 0, "extruder2" -> 2, else -1
+void apply_lane_topology(const nlohmann::json& lane, MoonrakerAmsTrayData& tray);
+// Every lane names its unit and its slot in that unit, so no AFC_stepper query is needed.
+bool lane_data_has_topology(const nlohmann::json& lanes);
+// One lane_data entry; false when it has no lane index. Leaves tray_info_idx to the caller.
+bool read_lane_data_entry(const std::string& key, const nlohmann::json& lane, MoonrakerAmsTrayData& tray);
+} // namespace MoonrakerFilamentDialect
+
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
 public:
@@ -70,6 +111,10 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+    // Writes use the dialect the last fetch read.
+    bool supports_filament_push() const override;
+    bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) override;
+    bool bind_device_connection(const std::string& dev_id, const std::string& address, const std::string& access_code, bool use_ssl) override;
 
 protected:
     struct MoonrakerDeviceInfo
@@ -98,22 +143,15 @@ protected:
         std::chrono::milliseconds storage_check{std::chrono::seconds(30)};  // How often the free space of the gcodes root is re-read
     } ws_timings;
 
-    // Tray data for AMS payload building
-    struct AmsTrayData {
-        int         slot_index = 0;      // 0-based slot index
-        bool        has_filament = false;
-        std::string tray_type;           // Material type (e.g., "PLA", "ASA")
-        std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
-        std::vector<std::string> tray_colors; // Optional: every color of a multi-color spool, in order (same formats).
-                                              // Used when it holds two or more; otherwise tray_color is the only one.
-        bool        colors_gradient = false;  // With tray_colors: blend them as a gradient instead of drawing segments
-        std::string tray_info_idx;       // Filament ID (optional)
-        int         bed_temp = 0;        // Optional
-        int         nozzle_temp = 0;     // Optional
-    };
+    using AmsTrayData = MoonrakerAmsTrayData;
+
+    // Toolchanger: one 1-slot unit per lane, ams_count = lane count.
+    // Box4: one AMS_LITE unit per 4 lanes, ams_count = box count.
+    enum class AmsUnitShape { Toolchanger, Box4 };
 
     // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                            AmsUnitShape shape = AmsUnitShape::Box4);
     // Name shown for a filament unit, or empty for the AMS Lite name
     virtual std::string ams_unit_name(int /*ams_id*/) const { return {}; }
 
@@ -129,6 +167,10 @@ protected:
     virtual bool print_uploaded_file(const PrintParams& params, const std::string& filename);
     void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
     void stop_status_stream();
+
+    // Rebuilds device_info from the MachineObject when dev_id was never bound via
+    // bind_device_connection(). No-op if already current.
+    bool ensure_device_info(const std::string& dev_id);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;
@@ -149,19 +191,28 @@ protected:
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
-private:
-    int handle_request(const std::string& dev_id, const std::string& json_str);
-    int send_version_info(const std::string& dev_id);
-    int send_access_code(const std::string& dev_id);
-
+    // Blocking GET of a raw body; false on any non-200. Gives up once `cancelled` returns true.
+    bool fetch_body(const std::string&           url,
+                    const std::string&           api_key,
+                    std::string&                 response_body,
+                    std::string&                 error,
+                    const std::function<bool()>& cancelled = {}) const;
     // GETs a Moonraker endpoint and parses its JSON answer, giving up once `cancelled` returns true
     bool get_json(const std::string&           url,
                   const std::string&           api_key,
                   const std::function<bool()>& cancelled,
                   nlohmann::json&              json,
                   std::string&                 error) const;
+
+private:
+    int handle_request(const std::string& dev_id, const std::string& json_str);
+    int send_version_info(const std::string& dev_id);
+    int send_access_code(const std::string& dev_id);
+
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool fetch_has_free_storage(const std::string& base_url, const std::string& api_key, bool& has_free, std::string& error) const;
+    // AFC keeps a lane's unit/extruder/map in its Klipper status object, not in lane_data.
+    void fetch_afc_lane_topology(std::vector<AmsTrayData>& trays) const;
     bool query_printer_status(const std::string&           base_url,
                               const std::string&           api_key,
                               nlohmann::json&              status,
@@ -203,7 +254,10 @@ private:
 
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
-    bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    // `has_topology`: every lane carries its unit and slot (lane_data_has_topology).
+    bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index, bool& has_topology);
+    // Dialect of the last successful fetch; published with the slots so a send can re-confirm it.
+    MoonrakerFilamentDialect::Dialect m_filament_dialect = MoonrakerFilamentDialect::Dialect::none;
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
