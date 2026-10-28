@@ -1373,8 +1373,12 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
     for (SurfaceFill &surface_fill : surface_fills) {
-        // Create the filler object.
-        std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+        // Create the filler object. A plugin pattern is dispatched by the exact project capability
+        // reference resolved before slicing, not by its bare sparse_infill_pattern key.
+        const PluginCapabilityRef* plugin_ref = surface_fill.params.pattern == ipPlugin
+            ? this->object()->plugin_infill_ref(m_regions[surface_fill.region_id]->region().config().sparse_infill_pattern.value)
+            : nullptr;
+        std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern, plugin_ref));
         f->set_bounding_box(bbox);
         f->layer_id = this->id();
         {
@@ -1575,7 +1579,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 
         switch (surface_fill.params.pattern) {
         case ipCount: continue; break;
-        case ipPlugin: throw Slic3r::InvalidArgument("unknown or plugin-provided infill pattern; plugin infill patterns require the infill plugin API, which is not available");
+        case ipPlugin: break;
         case ipSupportBase: continue; break;
         case ipConcentricInternal: continue; break;
         case ipLightning:
@@ -1607,8 +1611,12 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 		case ipLockedZag: break;
         }
 
-        // Create the filler object.
-        std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
+        // Create the filler object. A plugin pattern is dispatched by the exact project capability
+        // reference resolved before slicing, not by its bare sparse_infill_pattern key.
+        const PluginCapabilityRef* plugin_ref = surface_fill.params.pattern == ipPlugin
+            ? this->object()->plugin_infill_ref(m_regions[surface_fill.region_id]->region().config().sparse_infill_pattern.value)
+            : nullptr;
+        std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern, plugin_ref));
         f->set_bounding_box(bbox);
         f->layer_id = this->id() - this->object()->get_layer(0)->id(); // We need to subtract raft layers.
         {

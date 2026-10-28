@@ -3806,10 +3806,14 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     // A free-form string rather than coEnum so that plugins can name their own patterns while the
-    // built-in keys below stay byte-identical in saved presets and projects. enum_values/enum_labels
-    // still describe the built-in choices for the GUI; enum_keys_map lets the GUI resolve them back
-    // to InfillPattern. See infill_pattern_from_key().
+    // built-in keys below stay byte-identical in saved presets and projects. A plugin-provided
+    // value is the infill capability's canonical name (PluginCapabilityInterface::name()), the same
+    // convention slicing_pipeline_plugin uses; plugin_type lets the manifest resolver turn it into a
+    // full plugin reference. enum_values/enum_labels still describe the built-in choices for the
+    // GUI; enum_keys_map lets the GUI resolve them back to InfillPattern. See
+    // infill_pattern_from_key().
     def = this->add("sparse_infill_pattern", coString);
+    def->plugin_type = "infill";
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
     def->tooltip = L("This is the line pattern for internal sparse infill.");

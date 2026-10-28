@@ -10,6 +10,7 @@
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -368,6 +369,24 @@ bool load(const PluginDescriptor&                          descriptor,
                     instance->set_audit_plugin_key(descriptor.plugin_key);
                     instance->set_resolved_identity(found.name, type);
                     instance->set_enabled(enabled);
+
+                    // sparse_infill_pattern stores an infill capability's name verbatim, so the name
+                    // is the pattern key and must be usable as one: never empty, never shadowing a
+                    // built-in pattern. Uniqueness is enforced generically per type above and in the
+                    // registry, so no separate infill-identifier cache or collision check is needed.
+                    if (type == PluginCapabilityType::Infill) {
+                        if (found.name.empty()) {
+                            materialization_error = _u8L("Plugin infill capability has an empty name");
+                            break;
+                        }
+                        if (is_builtin_infill_pattern_key(found.name)) {
+                            // TRN %1% is the built-in sparse_infill_pattern key the capability name collides with.
+                            materialization_error = GUI::format(
+                                _u8L("Plugin infill capability name '%1%' collides with a built-in sparse infill pattern"),
+                                found.name);
+                            break;
+                        }
+                    }
 
                     // Cache has_config_ui() once, under this same GIL, so the GUI can pick the
                     // capability's custom UI vs. the host JSON editor without touching Python. It is

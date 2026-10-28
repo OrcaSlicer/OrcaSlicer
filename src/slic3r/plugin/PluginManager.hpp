@@ -179,6 +179,18 @@ public:
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
 
+    // Record a runtime capability failure in the plugin's existing error store. The diagnostic is
+    // deliberately verbose (plugin, capability, exception) and persists until the plugin is
+    // reloaded or unloaded; there is no clear-on-success path. The optional refresh callback is
+    // invoked after the store is updated and must not be called with the registry lock held.
+    bool report_plugin_diagnostic(const std::string& plugin_key, std::string error);
+    // Narrow GUI refresh hook: called with the plugin key after report_plugin_diagnostic() stores a
+    // diagnostic. It is the only notification a runtime plugin failure emits.
+    void subscribe_on_runtime_error_callback(PluginLifecycleCompleteFn fn);
+    // Generic, user-facing message for a plugin infill failure. The actionable detail lives in the
+    // plugin's diagnostic store, not in this string.
+    static std::string plugin_infill_failure_message();
+
     bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
 
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
@@ -334,6 +346,9 @@ private:
 
     std::map<CallbackType, std::vector<PluginLifecycleCompleteFn>> m_callbacks;
     std::map<CallbackType, std::vector<CapabilityLifecycleFn>> m_capability_callbacks;
+    // Narrow runtime-error subscribers; see report_plugin_diagnostic(). Copied and invoked outside
+    // the registry lock, so a GUI refresh may safely query the manager.
+    std::vector<PluginLifecycleCompleteFn> m_runtime_error_callbacks;
 
     bool m_discovery_complete    = false;
     bool m_discovery_in_progress = false;

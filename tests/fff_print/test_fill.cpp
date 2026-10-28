@@ -62,8 +62,35 @@ TEST_CASE("Adjusted solid distance", "[Fill]") {
 }
 #endif
 
+TEST_CASE("Plugin infill creation receives the exact capability reference", "[Fill]")
+{
+    Slic3r::PluginCapabilityRef received;
+    bool                        called = false;
+    Fill::set_plugin_infill_hooks(
+        nullptr,
+        [&received, &called](const Slic3r::PluginCapabilityRef& ref) -> Fill* {
+            received = ref;
+            called   = true;
+            return nullptr;
+        });
+    // Restore the uninstalled state even if the assertion below fails.
+    struct CallbackReset {
+        ~CallbackReset() { Fill::set_plugin_infill_hooks(nullptr, nullptr); }
+    } reset;
+
+    const Slic3r::PluginCapabilityRef reference{"plugin-name", "my-infill-capability", "plugin-uuid"};
+    CHECK_THROWS_AS(Fill::new_from_type(ipPlugin, &reference), Slic3r::SlicingError);
+    CHECK(called);
+    CHECK(received.name == "plugin-name");
+    CHECK(received.capability_name == "my-infill-capability");
+    CHECK(received.uuid == "plugin-uuid");
+
+    // Without a resolved reference a plugin pattern must never dispatch.
+    CHECK_THROWS_AS(Fill::new_from_type(ipPlugin), Slic3r::SlicingError);
+}
+
 TEST_CASE("Pattern path length", "[Fill]") {
-    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipRectilinear));
     filler->angle = float(-(PI)/2.0);
 	FillParams fill_params;
 	filler->spacing = 5;
@@ -157,7 +184,7 @@ TEST_CASE("Pattern path length", "[Fill]") {
     SECTION("Rotated Square") {
         Slic3r::Points square { Point::new_scale(0,0), Point::new_scale(50,0), Point::new_scale(50,50), Point::new_scale(0,50)};
         Slic3r::ExPolygon expolygon(square);
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipRectilinear));
 		filler->bounding_box = get_extents(expolygon.contour);
         filler->angle = 0;
         
@@ -467,7 +494,7 @@ for my $pattern (qw(rectilinear honeycomb hilbertcurve concentric)) {
 
 bool test_if_solid_surface_filled(const ExPolygon& expolygon, double flow_spacing, double angle, double density)
 {
-    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipRectilinear));
 	filler->bounding_box = get_extents(expolygon.contour);
     filler->angle = float(angle);
 
@@ -858,7 +885,7 @@ namespace {
 
 Slic3r::Polylines spiral_inset_fill(const Slic3r::ExPolygon &surface_shape, double spacing)
 {
-    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipSpiralInset));
     filler->spacing = spacing;
     // Cancel the half-spacing contraction fill_surface() applies, so the filler sees the shape as given.
     filler->overlap = 0.5 * spacing;
@@ -1013,7 +1040,7 @@ TEST_CASE("Spiral inset fill closes the gaps with variable width walls", "[Fill]
     Slic3r::PrintConfig       print_config;
     Slic3r::PrintObjectConfig object_config;
     auto make_filler = [&]() {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipSpiralInset));
         filler->spacing             = spacing;
         filler->overlap             = 0.5 * spacing; // cancel the contraction, so both see the same surface
         filler->print_config        = &print_config;
@@ -1064,7 +1091,7 @@ TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[F
     const double spacing = 0.45;
     const double density = 0.1;
     auto         fill    = [spacing, density](double smooth_factor) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("honeycomb"));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipHoneycomb));
         filler->spacing = spacing;
 
         FillParams params;
@@ -1424,7 +1451,7 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
     const ExPolygon region{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.),
                                             Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
     auto fill = [&region, spacing](int lines, double density, size_t layer_id, double z) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("cubic"));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipCubic));
         filler->spacing  = spacing;
         filler->angle    = float(M_PI / 7.);
         filler->layer_id = layer_id;
@@ -1681,7 +1708,7 @@ TEST_CASE("Smoothed concentric infill stays inside the fill region", "[Fill][Reg
     CAPTURE(thin_region);
 
     auto fill = [&region](double smooth_factor) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("concentric"));
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipConcentric));
         filler->spacing = 0.45;
 
         FillParams params;

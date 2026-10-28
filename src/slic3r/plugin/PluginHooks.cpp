@@ -15,10 +15,16 @@
 
 #include <boost/log/trivial.hpp>
 
+#include <algorithm>
 #include <exception>
+#include <chrono>
 #include <cstddef>
+#include <map>
 #include <memory>
+#include <utility>
+#include <vector>
 #include "slic3r/plugin/PluginDescriptor.hpp"
+#include <slic3r/plugin/pluginTypes/infill/InfillPluginCapability.hpp>
 #include <string>
 #include <stdexcept>
 #include "libslic3r/PrintBase.hpp"
@@ -140,12 +146,249 @@ void install_slicing_pipeline_hook()
         });
 }
 
+void install_infill_hook()
+{
+    const auto plugin_key_of = [](const PluginCapabilityRef& ref) {
+        return ref.uuid.empty() ? ref.name : ref.uuid;
+    };
+
+    // Resolve one project reference as an Infill capability of exactly that identity. A reference to
+    // another capability type that shares the name simply does not resolve here.
+    const auto resolve_infill = [](const PluginCapabilityRef& ref, std::string& error)
+        -> std::shared_ptr<InfillPluginCapability> {
+        const std::string plugin_key = ref.uuid.empty() ? ref.name : ref.uuid;
+        if (plugin_key.empty() || ref.capability_name.empty()) {
+            error = "Plugin infill capability reference is incomplete";
+            return nullptr;
+        }
+
+        PluginManager& mgr = PluginManager::instance();
+        const PluginCapabilityId id{PluginCapabilityType::Infill, ref.capability_name, plugin_key};
+        std::shared_ptr<PluginCapabilityInterface> capability =
+            mgr.get_plugin_capability(id, /*only_enabled=*/false);
+        if (!capability) {
+            error = "Plugin infill capability '" + ref.capability_name + "' is not loaded from plugin '" +
+                    plugin_key + "'";
+            return nullptr;
+        }
+        if (capability->type() != PluginCapabilityType::Infill ||
+            capability->name() != ref.capability_name) {
+            error = "Plugin capability '" + ref.capability_name + "' from plugin '" + plugin_key +
+                    "' is not the requested infill capability";
+            return nullptr;
+        }
+        if (!capability->is_enabled()) {
+            error = "Plugin infill capability '" + ref.capability_name + "' from plugin '" + plugin_key +
+                    "' is disabled";
+            return nullptr;
+        }
+
+        auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+        if (!infill)
+            error = "Plugin capability '" + ref.capability_name + "' from plugin '" + plugin_key +
+                    "' is not an infill provider";
+        return infill;
+    };
+
+    const auto record_failure = [plugin_key_of](const PluginCapabilityRef& ref, const std::string& error) {
+        const std::string plugin_key = plugin_key_of(ref);
+        if (!plugin_key.empty())
+            PluginManager::instance().report_plugin_diagnostic(plugin_key, error);
+    };
+
+    const auto record_capability_failure = [](const std::shared_ptr<InfillPluginCapability>& capability,
+                                              const std::string&                                     error) {
+        if (!capability)
+            return;
+        const std::string& plugin_key = capability->audit_plugin_key();
+        if (!plugin_key.empty())
+            PluginManager::instance().report_plugin_diagnostic(plugin_key, error);
+    };
+
+    Fill::set_plugin_infill_hooks(
+        // Prepare: one bounded wait, then select exactly one unambiguous Infill provider per selected
+        // key from that key's candidate manifest references. Runs once per PrintObject, before fill
+        // work enters any worker pool.
+        [plugin_key_of, record_capability_failure](
+            const std::vector<std::string>&         capability_names,
+            const std::vector<PluginCapabilityRef>& manifest_refs)
+            -> std::map<std::string, PluginCapabilityRef> {
+            if (capability_names.empty())
+                return {};
+
+            PluginManager& mgr = PluginManager::instance();
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            std::vector<std::string> waited_plugin_keys;
+            for (const std::string& capability_name : capability_names) {
+                for (const PluginCapabilityRef& ref : manifest_refs) {
+                    if (ref.capability_name != capability_name)
+                        continue;
+                    const std::string plugin_key = plugin_key_of(ref);
+                    if (plugin_key.empty() ||
+                        std::find(waited_plugin_keys.begin(), waited_plugin_keys.end(), plugin_key) != waited_plugin_keys.end())
+                        continue;
+                    waited_plugin_keys.emplace_back(plugin_key);
+
+                    const auto now = std::chrono::steady_clock::now();
+                    const auto remaining = now < deadline
+                        ? std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now)
+                        : std::chrono::milliseconds::zero();
+                    std::string load_error;
+                    if (!mgr.wait_for_plugin_load(plugin_key, remaining, load_error)) {
+                        auto capability = std::dynamic_pointer_cast<InfillPluginCapability>(
+                            mgr.get_plugin_capability(
+                                {PluginCapabilityType::Infill, capability_name, plugin_key},
+                                /*only_enabled=*/false));
+                        if (capability)
+                            record_capability_failure(
+                                capability, "Plugin infill capability '" + capability_name +
+                                                "' failed while waiting for its plugin load: " + load_error);
+                        else
+                            BOOST_LOG_TRIVIAL(error) << "Plugin infill capability '" << capability_name
+                                                     << "' failed while waiting for plugin '" << plugin_key
+                                                     << "': " << load_error;
+                        throw SlicingError(PluginManager::plugin_infill_failure_message());
+                    }
+                }
+            }
+
+            std::map<std::string, PluginCapabilityRef> selected;
+
+            struct MatchedProvider
+            {
+                PluginCapabilityRef                     ref;
+                std::shared_ptr<InfillPluginCapability> capability;
+            };
+
+            for (const std::string& capability_name : capability_names) {
+                // Candidate refs that resolve as the explicit Infill capability with exact identity.
+                // A same-named ref of another capability type does not resolve here and is ignored.
+                std::vector<MatchedProvider> matched;
+                for (const PluginCapabilityRef& ref : manifest_refs) {
+                    if (ref.capability_name != capability_name)
+                        continue;
+                    const std::string plugin_key = plugin_key_of(ref);
+                    if (plugin_key.empty())
+                        continue;
+
+                    auto capability = std::dynamic_pointer_cast<InfillPluginCapability>(
+                        mgr.get_plugin_capability(
+                            {PluginCapabilityType::Infill, capability_name, plugin_key},
+                            /*only_enabled=*/false));
+                    if (!capability) {
+                        BOOST_LOG_TRIVIAL(warning)
+                            << "Plugin infill candidate '" << capability_name << "' from plugin '" << plugin_key
+                            << "' does not resolve as an Infill capability; ignoring it";
+                        continue;
+                    }
+                    if (capability->type() != PluginCapabilityType::Infill ||
+                        capability->name() != capability_name) {
+                        BOOST_LOG_TRIVIAL(warning)
+                            << "Plugin infill candidate '" << capability_name << "' from plugin '" << plugin_key
+                            << "' resolved to a different capability; ignoring it";
+                        continue;
+                    }
+                    if (std::find_if(matched.begin(), matched.end(), [&](const MatchedProvider& existing) {
+                            return existing.capability->identity() == capability->identity();
+                        }) == matched.end())
+                        matched.push_back({ref, std::move(capability)});
+                }
+
+                if (matched.size() > 1) {
+                    for (const MatchedProvider& provider : matched)
+                        record_capability_failure(
+                            provider.capability, "Project references more than one infill provider for pattern '" +
+                                                     capability_name + "'");
+                    throw SlicingError(PluginManager::plugin_infill_failure_message());
+                }
+
+                if (matched.empty()) {
+                    // Loaded Infill providers with this name, deduplicated by identity. They are used
+                    // only to explain the failure: a project must be sliced with the provider it was
+                    // saved with, so there is never a fallback to a provider it does not reference.
+                    std::vector<std::shared_ptr<InfillPluginCapability>> loaded;
+                    for (const auto& capability : mgr.get_plugin_capabilities(
+                             /*plugin_key=*/"", PluginCapabilityType::Infill, /*only_enabled=*/false)) {
+                        if (!capability || capability->type() != PluginCapabilityType::Infill ||
+                            capability->name() != capability_name)
+                            continue;
+                        auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+                        if (!infill)
+                            continue;
+                        if (std::find_if(loaded.begin(), loaded.end(), [&](const auto& existing) {
+                                return existing->identity() == infill->identity();
+                            }) == loaded.end())
+                            loaded.emplace_back(std::move(infill));
+                    }
+
+                    if (loaded.empty()) {
+                        // No loaded Infill provider has this name. Log the candidate refs, but do not
+                        // mark a non-infill plugin as failed: a ref without an Infill provider is not
+                        // evidence that its plugin is broken.
+                        size_t candidate_count = 0;
+                        for (const PluginCapabilityRef& ref : manifest_refs)
+                            if (ref.capability_name == capability_name)
+                                ++candidate_count;
+                        BOOST_LOG_TRIVIAL(error) << "No loaded Infill capability named '" << capability_name
+                                                 << "' for the project reference(s); candidates="
+                                                 << candidate_count;
+                        throw SlicingError(PluginManager::plugin_infill_failure_message());
+                    }
+                    if (loaded.size() > 1) {
+                        for (const auto& provider : loaded)
+                            record_capability_failure(
+                                provider, "More than one loaded infill provider is named '" + capability_name + "'");
+                        throw SlicingError(PluginManager::plugin_infill_failure_message());
+                    }
+                    record_capability_failure(
+                        loaded.front(), "Loaded infill provider '" + capability_name +
+                                            "' does not match any plugin reference in the project manifest");
+                    throw SlicingError(PluginManager::plugin_infill_failure_message());
+                }
+
+                if (!matched.front().capability->is_enabled()) {
+                    record_capability_failure(
+                        matched.front().capability, "Plugin infill capability '" + capability_name +
+                                                        "' from plugin '" + plugin_key_of(matched.front().ref) +
+                                                        "' is disabled");
+                    throw SlicingError(PluginManager::plugin_infill_failure_message());
+                }
+
+                selected.emplace(capability_name, matched.front().ref);
+            }
+
+            return selected;
+        },
+        // Factory: create the Fill for one already-selected exact reference. Never waits; the prepare
+        // pass resolved it, and a late unload/disable is still reported as a slicing failure.
+        [resolve_infill, record_failure](const PluginCapabilityRef& ref) -> Fill* {
+            std::string error;
+            std::shared_ptr<InfillPluginCapability> infill = resolve_infill(ref, error);
+            if (!infill) {
+                if (!error.empty())
+                    record_failure(ref, std::move(error));
+                throw SlicingError(PluginManager::plugin_infill_failure_message());
+            }
+
+            try {
+                return infill->create_fill(infill);
+            } catch (const CanceledException&) {
+                throw;
+            } catch (const std::exception& ex) {
+                record_failure(ref, "Plugin infill capability '" + ref.capability_name +
+                                        "' could not create a filler: " + ex.what());
+                throw SlicingError(PluginManager::plugin_infill_failure_message());
+            }
+        });
+}
+
 } // namespace
 
 void install()
 {
     install_capability_resolver();
     install_slicing_pipeline_hook();
+    install_infill_hook();
     install_lifecycle_event_hook();
 }
 
@@ -153,6 +396,7 @@ void uninstall()
 {
     ConfigBase::set_resolve_capability_fn(nullptr);
     Print::set_slicing_pipeline_hook_fn(nullptr);
+    Fill::set_plugin_infill_hooks(nullptr, nullptr);
     set_lifecycle_hook_fn(nullptr);
 }
 

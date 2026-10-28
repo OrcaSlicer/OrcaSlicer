@@ -42,6 +42,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <map>
 #include <Shiny/ShinyMacros.h>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -624,11 +625,64 @@ void PrintObject::make_perimeters()
     this->set_done(posPerimeters);
 }
 
+void PrintObject::prepare_plugin_infills()
+{
+    m_plugin_infill_refs.clear();
+
+    // Collect the canonical plugin pattern keys selected by any region. A nonempty non-builtin
+    // sparse_infill_pattern value names an infill capability.
+    std::vector<std::string> selected;
+    for (const PrintRegion &region : this->all_regions()) {
+        const std::string &key = region.config().sparse_infill_pattern.value;
+        if (!is_plugin_infill_pattern_key(key) ||
+            std::find(selected.begin(), selected.end(), key) != selected.end())
+            continue;
+        selected.emplace_back(key);
+    }
+    if (selected.empty())
+        return;
+
+    // Parse every reference the project manifest stores. A plugin-backed option keeps only the bare
+    // capability name, and PluginCapabilityRef carries no type, so another capability type may
+    // legally expose the same name. The plugin layer resolves these candidates with an explicit
+    // Infill type and exact identity and returns one selected ref per key; PrintObject must not
+    // pick a same-named manifest ref itself.
+    std::vector<PluginCapabilityRef> manifest_refs;
+    if (const auto *manifest = m_print->full_print_config().option<ConfigOptionStrings>("plugins"))
+        for (const std::string &entry : manifest->values)
+            if (auto ref = parse_capability_ref(entry))
+                manifest_refs.emplace_back(std::move(*ref));
+
+    // One bounded wait for pending plugin loads is inside this call and covers every selected key.
+    // It also validates each key and fails the slice for an unresolved, ambiguous, disabled or
+    // mistyped provider before any fill worker runs.
+    std::map<std::string, PluginCapabilityRef> selected_refs =
+        Fill::prepare_plugin_infills(selected, manifest_refs);
+    for (const std::string &key : selected) {
+        const auto it = selected_refs.find(key);
+        if (it == selected_refs.end() || it->second.capability_name != key)
+            throw SlicingError(L("Plugin infill is unavailable. Check the plugin's diagnostic details."));
+    }
+    m_plugin_infill_refs = std::move(selected_refs);
+}
+
+const PluginCapabilityRef* PrintObject::plugin_infill_ref(const std::string &capability_name) const
+{
+    const auto it = m_plugin_infill_refs.find(capability_name);
+    return it == m_plugin_infill_refs.end() ? nullptr : &it->second;
+}
+
 void PrintObject::prepare_infill()
 {
     if (! this->set_started(posPrepareInfill))
         return;
     m_print->set_status(25, L("Generating infill regions"));
+
+    // Resolve plugin infill before any fill work: bridge_over_infill() below and infill() both enter
+    // worker pools, and neither may block on a plugin load per surface.
+    this->prepare_plugin_infills();
+    m_print->throw_if_canceled();
+
     if (m_typed_slices) {
         // To improve robustness of detect_surfaces_type() when reslicing (working with typed slices), see GH issue #7442.
         // The preceding step (perimeter generator) only modifies extra_perimeters and the extra perimeters are only used by discover_vertical_shells()

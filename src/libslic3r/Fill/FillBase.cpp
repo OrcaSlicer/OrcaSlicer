@@ -25,6 +25,8 @@
 #include "../libslic3r.h"
 #include "../VariableWidth.hpp"
 
+#include <map>
+
 #include "FillBase.hpp"
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Config.hpp"
@@ -57,18 +59,21 @@
 
 namespace Slic3r {
 
+static Fill::PluginInfillPrepareFn m_plugin_infill_prepare = nullptr;
+static Fill::PluginInfillFactoryFn m_plugin_infill_factory = nullptr;
+
 //BBS: 0% of sparse_infill_line_width, no anchor at the start of sparse infill
 float Fill::infill_anchor = 400;
 //BBS: 20mm
 float Fill::infill_anchor_max = 20;
 
-Fill* Fill::new_from_type(const InfillPattern type)
+Fill* Fill::new_from_type(const InfillPattern type, const PluginCapabilityRef* plugin_ref)
 {
     switch (type) {
     case ipConcentric:          return new FillConcentric();
-    case ipSpiralInset:    return new FillSpiralInset();
+    case ipSpiralInset:         return new FillSpiralInset();
     case ipHoneycomb:           return new FillHoneycomb();
-    case ipLateralHoneycomb:         return new FillLateralHoneycomb();
+    case ipLateralHoneycomb:    return new FillLateralHoneycomb();
     case ip3DHoneycomb:         return new Fill3DHoneycomb();
     case ipGyroid:              return new FillGyroid();
     case ipTpmsD:               return new FillTpmsD();//from creality print
@@ -79,7 +84,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipMonotonic:           return new FillMonotonic();
     case ipLine:                return new FillLine();
     case ipGrid:                return new FillGrid();
-    case ipLateralLattice:           return new FillLateralLattice();
+    case ipLateralLattice:      return new FillLateralLattice();
     case ipTriangles:           return new FillTriangles();
     case ipStars:               return new FillStars();
     case ipCubic:               return new FillCubic();
@@ -99,22 +104,20 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipZigZag:              return new FillZigZag();
     case ipCrossZag:            return new FillCrossZag();
     case ipLockedZag:           return new FillLockedZag();
-    // sparse_infill_pattern may hold a plugin-provided identifier, but this build has no plugin
-    // infill API. Fail clearly instead of falling through to an unrelated filler.
-    case ipPlugin:              throw Slic3r::InvalidArgument("unknown or plugin-provided infill pattern; plugin infill patterns require the infill plugin API, which is not available");
+    case ipPlugin: {
+        // An enum alone carries no plugin identity. The exact project capability reference is
+        // resolved by PrintObject before slicing starts and passed down to this seam; never fall
+        // back to a global name lookup, which could dispatch another plugin's pattern.
+        if (plugin_ref == nullptr || m_plugin_infill_factory == nullptr)
+            throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
+
+        Fill* infill_plugin = m_plugin_infill_factory(*plugin_ref);
+        if (infill_plugin == nullptr)
+            throw SlicingError("Plugin infill failed. Check the plugin's diagnostic details.");
+        return infill_plugin;
+    }
     default: throw Slic3r::InvalidArgument("unknown type");
     }
-}
-
-Fill* Fill::new_from_type(const std::string &type)
-{
-    const InfillPattern pattern = infill_pattern_from_key(type);
-    if (pattern == ipPlugin)
-        // A nonempty non-builtin key is a plugin identifier (or a typo); either way this build
-        // cannot create it. Never return nullptr for a value that can pass config validation.
-        throw Slic3r::InvalidArgument("unknown or plugin-provided infill pattern '" + type +
-            "'; plugin infill patterns require the infill plugin API, which is not available");
-    return new_from_type(pattern);
 }
 
 // Force initialization of the Fill::use_bridge_flow() internal static map in a thread safe fashion even on compilers
@@ -390,6 +393,25 @@ coord_t Fill::_adjust_solid_spacing(const coord_t width, const coord_t distance)
     if (factor > factor_max)
         distance_new = coord_t(floor((coordf_t(distance) * factor_max + 0.5)));
     return distance_new;
+}
+
+void Fill::set_plugin_infill_hooks(PluginInfillPrepareFn prepare, PluginInfillFactoryFn factory)
+{
+    m_plugin_infill_prepare = std::move(prepare);
+    m_plugin_infill_factory = std::move(factory);
+}
+
+std::map<std::string, PluginCapabilityRef> Fill::prepare_plugin_infills(
+    const std::vector<std::string>& capability_names,
+    const std::vector<PluginCapabilityRef>& manifest_refs)
+{
+    if (capability_names.empty())
+        return {};
+    if (!m_plugin_infill_prepare)
+        // A project referencing plugin infill cannot be sliced without the plugin API. SlicingError
+        // is non-critical: the GUI reports it as a slicing error instead of a fatal crash.
+        throw SlicingError("Plugin infill pattern is unavailable; plugin infill support is not loaded");
+    return m_plugin_infill_prepare(capability_names, manifest_refs);
 }
 
 // Returns orientation of the infill and the reference point of the infill pattern.

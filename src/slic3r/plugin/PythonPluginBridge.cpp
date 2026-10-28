@@ -24,6 +24,7 @@
 #include "PyPluginPackage.hpp"
 #include "PyPluginTrampoline.hpp"
 #include "pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
+#include "pluginTypes/infill/InfillPluginCapability.hpp"
 #include "pluginTypes/pages/PagesPluginCapability.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
 #include "pluginTypes/script/ScriptPluginCapability.hpp"
@@ -528,6 +529,7 @@ void bind_python_api(pybind11::module_& m)
 
     // Make sure you register your bindings here
     PrinterAgentPluginCapability::RegisterBindings(m);
+    InfillPluginCapability::RegisterBindings(m);
     PagesPluginCapability::RegisterBindings(m);
     ScriptPluginCapability::RegisterBindings(m);
     SlicingPipelinePluginCapability::RegisterBindings(m);

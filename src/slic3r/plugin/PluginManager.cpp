@@ -1283,6 +1283,7 @@ void PluginManager::clear_callbacks()
     std::lock_guard<std::mutex> lock(m_mutex);
     m_callbacks.clear();
     m_capability_callbacks.clear();
+    m_runtime_error_callbacks.clear();
 }
 
 std::vector<PluginManager::PluginLifecycleCompleteFn> PluginManager::copy_callbacks(CallbackType type) const
@@ -1421,6 +1422,37 @@ bool PluginManager::clear_plugin_error(const std::string& plugin_key)
 
     plugin->descriptor.clear_error();
     return true;
+}
+
+bool PluginManager::report_plugin_diagnostic(const std::string& plugin_key, std::string error)
+{
+    BOOST_LOG_TRIVIAL(error) << "Plugin runtime diagnostic [" << plugin_key << "]: " << error;
+    if (!set_plugin_error(plugin_key, std::move(error)))
+        return false;
+
+    // Copy the callbacks under the lock and invoke them without it: a GUI refresh may query the
+    // manager, and the registry lock must never be held across that re-entry.
+    std::vector<PluginLifecycleCompleteFn> callbacks;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        callbacks = m_runtime_error_callbacks;
+    }
+    for (const PluginLifecycleCompleteFn& callback : callbacks)
+        if (callback)
+            callback(plugin_key);
+    return true;
+}
+
+void PluginManager::subscribe_on_runtime_error_callback(PluginLifecycleCompleteFn fn)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_runtime_error_callbacks.emplace_back(std::move(fn));
+}
+
+std::string PluginManager::plugin_infill_failure_message()
+{
+    // Deliberately generic: the plugin, capability and exception belong in the diagnostic store.
+    return _u8L("Plugin infill failed. Check the plugin's diagnostic details.");
 }
 
 // ── Install / inspect ───────────────────────────────────────────────────────────────────────

@@ -718,6 +718,9 @@ set(SLIC3R_GUI_SOURCES
     plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp
     plugin/pluginTypes/printerAgent/PrinterAgentPluginCapability.cpp
     plugin/pluginTypes/printerAgent/PrinterAgentPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/infill/InfillPluginCapability.hpp
+    plugin/pluginTypes/infill/InfillPluginCapability.cpp
+    plugin/pluginTypes/infill/InfillPluginCapabilityTrampoline.hpp
     plugin/pluginTypes/pages/PagesPluginCapability.hpp
     plugin/pluginTypes/pages/PagesPluginCapability.cpp
     plugin/pluginTypes/pages/PagesPluginCapabilityTrampoline.hpp

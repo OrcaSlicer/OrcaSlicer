@@ -503,6 +503,10 @@ public:
     std::vector<std::reference_wrapper<const PrintRegion>> all_regions() const;
     const PrintObjectRegions*   shared_regions() const throw() { return m_shared_regions; }
 
+    // Exact plugin capability reference selected by a region's sparse_infill_pattern, resolved once
+    // by prepare_infill() from the project manifest. Null when the key is not a plugin pattern.
+    const PluginCapabilityRef*  plugin_infill_ref(const std::string &capability_name) const;
+
     static bool                 has_support(const PrintObjectConfig &config)          { return config.enable_support || config.enforce_support_layers > 0; }
     static bool                 has_raft(const PrintObjectConfig &config)             { return config.raft_layers > 0; }
     static bool                 has_support_material(const PrintObjectConfig &config) { return has_support(config) || has_raft(config); }
@@ -577,6 +581,11 @@ public:
 private:
     void make_perimeters();
     void prepare_infill();
+    // Resolve the project's selected plugin infill references from full_print_config() and validate
+    // them exactly once, with a single bounded wait for pending plugin loads. Candidate refs are
+    // handed to the plugin layer, which selects the unambiguous Infill provider per key. Called
+    // before fill surfaces are prepared, so no worker pool ever waits on a plugin per surface.
+    void prepare_plugin_infills();
     void infill();
     void ironing();
     bool need_z_contouring() const;
@@ -708,6 +717,9 @@ private:
     std::vector<BoundingBox>                m_separated_body_bboxes;
     FillLightning::GeneratorPtr m_lightning_generator;
     AdaptiveInfillFields m_adaptive_infill_fields;
+    // Exact project references for the plugin infill patterns selected by any region, resolved once
+    // per prepare_infill(). Keyed by the canonical sparse_infill_pattern value (the capability name).
+    std::map<std::string, PluginCapabilityRef> m_plugin_infill_refs;
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;

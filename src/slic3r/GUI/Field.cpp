@@ -10,6 +10,8 @@
 #include "format.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
+#include "slic3r/plugin/PluginManager.hpp"
+#include "slic3r/plugin/pluginTypes/infill/InfillPluginCapability.hpp"
 
 #include <algorithm>
 #include <boost/algorithm/string/erase.hpp>
@@ -1541,6 +1543,54 @@ bool is_key_choice_option(const ConfigOptionDef& opt)
            !opt.enum_values.empty() && opt.enum_values.size() == opt.enum_labels.size();
 }
 
+static std::vector<std::pair<std::string, std::string>> registered_infill_choices()
+{
+    std::vector<std::pair<std::string, std::string>> choices;
+    for (const auto& capability : PluginManager::instance().get_plugin_capabilities("", PluginCapabilityType::Infill, true)) {
+        auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+        if (!infill || infill->identity().name.empty())
+            continue;
+        PluginDescriptor descriptor;
+        const std::string label = PluginManager::instance().try_get_plugin_descriptor(
+                                      infill->identity().plugin_key, descriptor)
+                                      ? descriptor.name
+                                      : infill->name();
+        choices.emplace_back(infill->identity().name, label);
+    }
+    return choices;
+}
+
+static std::vector<Choice*>& plugin_infill_choices()
+{
+    static std::vector<Choice*> choices;
+    return choices;
+}
+
+void Choice::refresh_plugin_infill_choices()
+{
+    for (Choice* choice : plugin_infill_choices()) {
+        auto* ctrl = dynamic_cast<choice_ctrl*>(choice->window);
+        if (!ctrl)
+            continue;
+        const boost::any& current = choice->get_value();
+        const std::string* current_value = boost::any_cast<std::string>(&current);
+        const std::string value = current_value ? *current_value : choice->m_key_choice_value;
+        ctrl->Clear();
+        for (size_t i = 0; i < choice->m_opt.enum_labels.size(); ++i)
+            ctrl->Append(_(choice->m_opt.enum_labels[i]));
+        const auto plugins = registered_infill_choices();
+        if (!plugins.empty()) {
+            ctrl->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
+            for (const auto& plugin : plugins) {
+                const int item = ctrl->Append(from_u8(plugin.second));
+                ctrl->SetItemAlias(item, from_u8(plugin.first));
+            }
+        }
+        // set_value preserves orphaned stored capability names as editable display text.
+        choice->set_value(value);
+    }
+}
+
 void DynamicList::update()
 {
     for (auto c : m_choices) apply_on(c);
@@ -1562,6 +1612,8 @@ void DynamicList::remove_choice(Choice *choice)
 
 Choice::~Choice()
 {
+    auto& infill_choices = plugin_infill_choices();
+    infill_choices.erase(std::remove(infill_choices.begin(), infill_choices.end(), this), infill_choices.end());
     if (m_list) { m_list->remove_choice(this); }
 }
 
@@ -1640,6 +1692,17 @@ void Choice::BUILD()
                 }
                 ++i;
             }
+		}
+		if (m_opt.opt_key == "sparse_infill_pattern") {
+			plugin_infill_choices().push_back(this);
+			const auto plugins = registered_infill_choices();
+			if (!plugins.empty()) {
+				temp->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
+				for (const auto& plugin : plugins) {
+					const int item = temp->Append(from_u8(plugin.second));
+					temp->SetItemAlias(item, from_u8(plugin.first));
+				}
+			}
 		}
 		set_selection();
     } else if (m_list) {
@@ -1838,6 +1901,15 @@ void Choice::set_value(const boost::any& value, bool change_event)
         if (m_list)
 			field->SetSelection(m_list->index_of(text_value));
         else if (idx == enums.size()) {
+            if (is_key_choice_option(m_opt) && m_opt.opt_key == "sparse_infill_pattern") {
+                for (unsigned int row = 0; row < field->GetCount(); ++row) {
+                    if (into_u8(field->GetItemAlias(row)) == into_u8(text_value)) {
+                        field->SetSelection(row);
+                        m_disable_change_event = false;
+                        return;
+                    }
+                }
+            }
             // For editable Combobox under OSX is needed to set selection to -1 explicitly,
             // otherwise selection doesn't be changed
             field->SetSelection(-1);
@@ -2021,9 +2093,12 @@ boost::any& Choice::get_value()
         // cleared by the user, so return the key that was last loaded instead of dropping it.
         // Selecting a built-in choice replaces it, and set_na_value() clears it.
         const int selection = field->GetSelection();
-        m_value = selection >= 0 && selection < int(m_opt.enum_values.size())
-                      ? m_opt.enum_values[selection]
-                      : m_key_choice_value;
+        if (selection >= 0 && selection < int(m_opt.enum_values.size()))
+            m_value = m_opt.enum_values[selection];
+        else if (selection >= 0 && selection < int(field->GetCount()) && !into_u8(field->GetItemAlias(selection)).empty())
+            m_value = into_u8(field->GetItemAlias(selection));
+        else
+            m_value = m_key_choice_value;
     }
     else if (m_opt.gui_type == ConfigOptionDef::GUIType::f_enum_open || m_opt.gui_type == ConfigOptionDef::GUIType::i_enum_open) {
         const int ret_enum = field->GetSelection();

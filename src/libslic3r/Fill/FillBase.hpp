@@ -2,6 +2,7 @@
 #define slic3r_FillBase_hpp_
 
 #include <assert.h>
+#include <functional>
 #include <map>
 #include <cstddef>
 #include <math.h>
@@ -17,6 +18,7 @@
 
 #include "../libslic3r.h"
 #include "../BoundingBox.hpp"
+#include "../Config.hpp"
 #include "../Exception.hpp"
 #include "../Utils.hpp"
 #include "../ExPolygon.hpp"
@@ -183,9 +185,30 @@ public:
     virtual ~Fill() {}
     virtual Fill* clone() const = 0;
 
-    static Fill* new_from_type(const InfillPattern type);
-    static Fill* new_from_type(const std::string &type);
+    // Plugin infill is identified by the exact capability reference the project manifest resolved,
+    // never by a bare pattern key: two plugins may serve patterns with the same display name, and
+    // only the reference pins the plugin identity the project was saved with. Built-in patterns
+    // ignore the reference.
+    static Fill* new_from_type(const InfillPattern type, const PluginCapabilityRef* plugin_ref = nullptr);
     static bool  use_bridge_flow(const InfillPattern type);
+
+    // Plugin layer seams, installed by PluginHooks. The prepare callback receives every selected
+    // sparse_infill_pattern key (a capability name) and every reference parsed from the project
+    // manifest. PluginCapabilityRef carries no type, so refs for other capability types may legally
+    // share a name; only the plugin layer, which can resolve against the registry with an explicit
+    // Infill type, can tell which ref is the infill provider. The callback waits once for pending
+    // plugin loads and returns exactly one exact project reference per name it could resolve, or
+    // throws SlicingError. It is invoked once per PrintObject before infill enters any worker pool.
+    // The factory then creates the Fill for one already-validated reference on each surface and
+    // never waits.
+    using PluginInfillPrepareFn = std::function<std::map<std::string, PluginCapabilityRef>(
+        const std::vector<std::string>& capability_names,
+        const std::vector<PluginCapabilityRef>& manifest_refs)>;
+    using PluginInfillFactoryFn = std::function<Fill*(const PluginCapabilityRef&)>;
+    static void set_plugin_infill_hooks(PluginInfillPrepareFn prepare, PluginInfillFactoryFn factory);
+    static std::map<std::string, PluginCapabilityRef> prepare_plugin_infills(
+        const std::vector<std::string>& capability_names,
+        const std::vector<PluginCapabilityRef>& manifest_refs);
 
     void         set_bounding_box(const Slic3r::BoundingBox &bbox) { bounding_box = bbox; }
     BoundingBox  extended_object_bounding_box() const;

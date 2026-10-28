@@ -490,7 +490,8 @@ public:
 	void			disable() override;//{ dynamic_cast<wxBitmapComboBox*>(window)->Disable(); };
 	wxWindow*		getWindow() override { return window; }
 
-    void            suppress_scroll();
+	void            suppress_scroll();
+    static void refresh_plugin_infill_choices();
 };
 
 // printer_agent is a coString whose choices come from the live agent registry.
