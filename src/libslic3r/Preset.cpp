@@ -4095,13 +4095,18 @@ inline t_config_option_keys deep_diff(const ConfigBase &config_this, const Confi
     } else {
         keys = config_this.keys();
     }
+    auto is_serialized = [&config_other](const t_config_option_key &opt_key) {
+        const ConfigOptionDef *opt_def = config_other.def() ? config_other.def()->get(opt_key) : nullptr;
+        return opt_def != nullptr && opt_def->gui_flags == "serialized";
+    };
     for (const t_config_option_key &opt_key : keys) {
         const ConfigOption *this_opt  = config_this.option(opt_key);
         const ConfigOption *other_opt = config_other.option(opt_key);
         if (this_opt != nullptr && other_opt != nullptr && *this_opt != *other_opt)
         {
             //BBS: add bed_exclude_area
-            if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" ||  opt_key == "wrapping_exclude_area" || opt_key == "slicing_pipeline_plugin") {
+            if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" ||  opt_key == "wrapping_exclude_area" || opt_key == "slicing_pipeline_plugin" ||
+                is_serialized(opt_key)) {
                 // Scalar variable, or a vector variable, which is independent from number of extruders,
                 // thus the vector is presented to the user as a single input.
                 diff.emplace_back(opt_key);

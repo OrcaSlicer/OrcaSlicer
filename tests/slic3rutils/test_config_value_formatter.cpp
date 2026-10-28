@@ -38,3 +38,27 @@ TEST_CASE("An enum value outside the label list reads as undefined", "[ConfigVal
 
     CHECK(get_string_value(key + "#0", config) == "Undefined");
 }
+
+TEST_CASE("A string list read without an index lists every entry", "[ConfigValueFormatter]")
+{
+    DynamicPrintConfig config;
+    config.set_key_value("post_process", new ConfigOptionStrings({"a.ps1", "b.ps1"}));
+
+    CHECK(get_string_value("post_process", config).utf8_string() == "a.ps1\nb.ps1");
+}
+
+TEST_CASE("A compatible printers list reads as its printers, one per line", "[ConfigValueFormatter]")
+{
+    DynamicPrintConfig config;
+    config.set_key_value("compatible_printers", new ConfigOptionStrings({"Printer A", "Printer B"}));
+
+    CHECK(get_string_value("compatible_printers", config).utf8_string() == "Printer A\nPrinter B");
+}
+
+TEST_CASE("An empty compatible printers list reads as all printers", "[ConfigValueFormatter]")
+{
+    DynamicPrintConfig config;
+    config.set_key_value("compatible_printers", new ConfigOptionStrings());
+
+    CHECK(get_string_value("compatible_printers", config) == "All");
+}
