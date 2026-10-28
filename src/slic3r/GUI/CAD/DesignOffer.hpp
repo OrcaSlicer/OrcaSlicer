@@ -195,6 +195,7 @@ static const OfferVerb kOfferVerbs[] = {
     // toolbar icon, and constraints read as absent — see the Onshape-comparison report.
     // It sits in the Reference row, the address the sketch-mode Constrain has: one verb, one row.
     {"constrain", L_CONTEXT("Constrain sketch", "Design"), 6, nullptr, "btn:constrain", L("Select a sketch to constrain it"), 0x00004000u, 0, 1, false, false, nullptr, "design_constrain", L("Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch")},
+    {"sk_include", L_CONTEXT("Include", "Design"), 6, "U", "key:U", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, nullptr, L("Include the model's edges that lie in this plane as fixed reference lines to dimension and constrain to")},
     {"sk_construct", L_CONTEXT("Construction", "Design"), 6, "Q", "key:Q", nullptr, 0x000b8000u, 0, 0, false, true, nullptr, nullptr, L("Toggle construction: geometry that guides but is never built")},
     {"sk_extend", L_CONTEXT("Extend", "Design"), 7, "X", "key:X", nullptr, 0x000b0000u, 0, 0, false, true, nullptr, "design_extend", L("Extend — click a line/arc to extend it")},
     {"sk_delete", L_CONTEXT("Delete", "Design"), 7, "Del", "btn:sk_delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_delete", L("Delete the selected sketch entities")},

@@ -505,6 +505,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     sk_key('M', DesignSketchTool::Mode::Mirror,       _L("Mirror — pick axis, then entities"));
     sk_key('F', DesignSketchTool::Mode::Fillet,       _L("Fillet — pick two lines, set the radius"));
     sk_key('H', DesignSketchTool::Mode::Chamfer,      _L("Chamfer — pick two lines, set the distance"));
+    sk_key('W', DesignSketchTool::Mode::Move,         _L("Move — pick entities, then drag the handle or click the distance"));
+    sk_key('Y', DesignSketchTool::Mode::Rotate,       _L("Rotate — pick entities, then drag around the pivot or click the angle"));
+    sk_key('Z', DesignSketchTool::Mode::Scale,        _L("Scale — pick entities, then drag the handle or click the factor"));
     // Polygon needs its side count / circumscribed flag pushed to the tool before it starts.
     m_keys_sketch['G'] = [this, select_tool] {
         if (m_viewport) {
@@ -526,6 +529,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
             set_status(_L("Nothing here has a value to type — pick a line, an arc, a circle, or two entities"));
     };
     m_keys_sketch['K'] = [this] { enter_constrain_inline(); };
+    // U: Include. The edges of the model that lie in this sketch's plane come in as fixed construction lines, so what is drawn can be
+    // dimensioned and constrained to the part it sits on (a hole to the edge of the face, a boss to its outline).
+    m_keys_sketch['U'] = [this] {
+        if (!m_viewport || !m_viewport->is_sketching()) return;
+        const int n = m_viewport->include_into_sketch(m_doc.in_plane_edges(m_viewport->sketch_plane()));
+        set_status(n > 0 ? StatusKind::Info : StatusKind::Warning,
+                   n > 0 ? wxString::Format(_L("Included %d edge(s) of the model as fixed reference lines"), n)
+                         : _L("No edge of the model lies in this sketch's plane (or they are already included)"));
+    };
     // N: square up to the plane. Not a view preference but part of drawing — a sketch read at an
     // angle is a sketch whose right angles do not look like right angles, and no hand-orbit lands
     // exactly normal. Sketch map only: in Feature mode the navigator orb owns orientation.

@@ -235,6 +235,9 @@ public:
     // The same for a sketch axis: a construction line lying on the X (or Y) axis from the origin, added when the sketch has none. The
     // Dimension tool measures a point's distance to it. -1 when no sketch is open.
     int ensure_axis_line(bool y_axis);
+    // Take entities from outside the sketch (the edges of the model it sits on) in as REFERENCE geometry: construction, and held where
+    // they are, so new geometry can be constrained to them. One already in the sketch is skipped. Returns how many were added.
+    int add_reference_entities(const std::vector<SketchEntity>& ents);
     // Is this sketch nothing but that point? Then there is nothing to commit.
     static bool is_only_origin_reference(const std::vector<SketchEntity>& ents, const std::vector<SketchEntityConstraintDef>& cons);
     void set_grid_magnet(bool on) { m_grid_magnet = on; }                              // points snap to the grid, shown or not

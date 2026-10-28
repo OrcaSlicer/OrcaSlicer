@@ -2840,6 +2840,44 @@ void DesignSketchTool::keep_segment_as_drawn()
     m_awaiting_length = false;
 }
 
+int DesignSketchTool::add_reference_entities(const std::vector<SketchEntity>& ents)
+{
+    if (!m_active) return 0;
+    using Ty = SketchEntity::Type;
+    auto same = [](const SketchEntity& a, const SketchEntity& b) {
+        if (a.type != b.type) return false;
+        constexpr double T = 1e-6;
+        if (a.type == Ty::Circle) return (a.center - b.center).norm() < T && std::abs(a.radius - b.radius) < T;
+        if (a.type == Ty::Arc)    return (a.center - b.center).norm() < T && std::abs(a.radius - b.radius) < T && (a.p0 - b.p0).norm() < T && (a.p1 - b.p1).norm() < T;
+        return ((a.p0 - b.p0).norm() < T && (a.p1 - b.p1).norm() < T) || ((a.p0 - b.p1).norm() < T && (a.p1 - b.p0).norm() < T);
+    };
+    int added = 0;
+    for (SketchEntity e : ents) {
+        bool dup = false;
+        for (const SketchEntity& o : m_entities) if (same(o, e)) { dup = true; break; }
+        if (dup) continue;
+        e.construction = true;
+        m_entities.push_back(e);
+        const int ei = int(m_entities.size()) - 1;
+        auto fix = [&](SketchPointRole r) {
+            SketchEntityConstraintDef c; c.type = SketchConstraintType::Fix; c.ea = ei; c.ra = r; m_constraints.push_back(c);
+        };
+        if (e.type == Ty::Line)        { fix(SketchPointRole::P0); fix(SketchPointRole::P1); }
+        else if (e.type == Ty::Arc)    { fix(SketchPointRole::P0); fix(SketchPointRole::P1); fix(SketchPointRole::Center); }
+        else if (e.type == Ty::Circle) {
+            fix(SketchPointRole::Center);
+            SketchEntityConstraintDef c; c.type = SketchConstraintType::Radius; c.ea = ei; c.value = e.radius; m_constraints.push_back(c);
+        }
+        ++added;
+    }
+    if (added) {
+        m_autoedit_seen = int(m_entities.size());
+        resolve_live();
+        if (on_constraints_changed) on_constraints_changed();
+    }
+    return added;
+}
+
 int DesignSketchTool::ensure_axis_line(bool y_axis)
 {
     if (!m_active) return -1;
@@ -3269,6 +3307,39 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
                 c.type = SketchConstraintType::Coincident;
                 c.ea = i; c.ra = roles[k]; c.eb = kSketchRefOrigin; c.rb = SketchPointRole::P0;
                 try_add_constraints({ c });   // one at a time: a refused one (already fixed another way) must not cost the others
+            }
+        }
+    }
+
+    // 1c) An endpoint drawn onto the middle of another line, or onto the edge of a line / circle / arc, is held there: Midpoint for the
+    //     middle, PointOnObject for the rest. Without it the point sits on the curve only until the next drag or dimension moves one of
+    //     them. A point already welded to an endpoint is left to Coincident. Drawn gestures only, like the origin hook above.
+    if (weld_tol > 0.0) {
+        using Ty = SketchEntity::Type;
+        for (int i = base; i < n; ++i) {
+            SketchPointRole ir[2]; const int ni = sketch_endpoint_roles(m_entities[i], ir);
+            for (int a = 0; a < ni; ++a) {
+                Vec2d pa; if (!point_at(i, ir[a], pa)) continue;
+                bool welded = pa.norm() <= weld_tol;                       // on the origin: 1b has it
+                for (int j = 0; j < n && !welded; ++j) {
+                    if (j == i) continue;
+                    SketchPointRole jr[2]; const int nj = sketch_endpoint_roles(m_entities[j], jr);
+                    for (int b = 0; b < nj && !welded; ++b) {
+                        Vec2d pb; if (point_at(j, jr[b], pb) && (pa - pb).norm() <= weld_tol) welded = true;
+                    }
+                }
+                if (welded) continue;
+                for (int j = 0; j < base; ++j) {                           // against what was already there, not the shape's own parts
+                    const SketchEntity& o = m_entities[j];
+                    if (o.type != Ty::Line && o.type != Ty::Circle && o.type != Ty::Arc) continue;
+                    if (entity_pick_dist(pa, o) > weld_tol) continue;
+                    SketchEntityConstraintDef c;
+                    c.ea = i; c.ra = ir[a]; c.eb = j;
+                    c.type = (o.type == Ty::Line && ((pa - 0.5 * (o.p0 + o.p1)).norm() <= weld_tol)) ? SketchConstraintType::Midpoint
+                                                                                                       : SketchConstraintType::PointOnObject;
+                    try_add_constraints({ c });
+                    break;
+                }
             }
         }
     }

@@ -835,3 +835,62 @@ TEST_CASE("A zero-radius circle does not build a wire (and does not throw)", "[S
     REQUIRE_NOTHROW(w = SketchEngine::entities_to_wires({ c }, SketchPlane::XY(), true));
     CHECK(w.empty());
 }
+
+// ---- trim_split: only the piece under the pick goes ----------------------------------------------------------------------
+
+static SketchEntity ts_line(double x0, double y0, double x1, double y1)
+{
+    SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = Vec2d(x0, y0); e.p1 = Vec2d(x1, y1); return e;
+}
+
+TEST_CASE("Trim between two crossings leaves two lines", "[SketchEdit][trim]")
+{
+    const SketchEntity e = ts_line(-10, 0, 10, 0);
+    std::vector<SketchEngine::TrimPiece> out;
+    REQUIRE(SketchEngine::trim_split(e, { ts_line(-3, -5, -3, 5), ts_line(4, -5, 4, 5) }, Vec2d(0, 0), out));
+    REQUIRE(out.size() == 2);
+    REQUIRE_THAT(out[0].ent.p0.x(), WithinAbs(-10.0, 1e-9));
+    REQUIRE_THAT(out[0].ent.p1.x(), WithinAbs(-3.0, 1e-9));
+    REQUIRE(out[0].has_p0); REQUIRE_FALSE(out[0].has_p1);
+    REQUIRE(out[0].cutter_p1 == 0);
+    REQUIRE_THAT(out[1].ent.p0.x(), WithinAbs(4.0, 1e-9));
+    REQUIRE_THAT(out[1].ent.p1.x(), WithinAbs(10.0, 1e-9));
+    REQUIRE(out[1].has_p1); REQUIRE_FALSE(out[1].has_p0);
+    REQUIRE(out[1].cutter_p0 == 1);
+}
+
+TEST_CASE("Trim an end piece leaves the rest in one piece", "[SketchEdit][trim]")
+{
+    const SketchEntity e = ts_line(-10, 0, 10, 0);
+    std::vector<SketchEngine::TrimPiece> out;
+    REQUIRE(SketchEngine::trim_split(e, { ts_line(-3, -5, -3, 5), ts_line(4, -5, 4, 5) }, Vec2d(8, 0), out));
+    REQUIRE(out.size() == 1);
+    REQUIRE_THAT(out[0].ent.p0.x(), WithinAbs(-10.0, 1e-9));
+    REQUIRE_THAT(out[0].ent.p1.x(), WithinAbs(4.0, 1e-9));
+    REQUIRE(out[0].has_p0); REQUIRE(out[0].cutter_p1 == 1);
+}
+
+TEST_CASE("Trim of an entity nothing crosses removes all of it", "[SketchEdit][trim]")
+{
+    std::vector<SketchEngine::TrimPiece> out;
+    REQUIRE(SketchEngine::trim_split(ts_line(-10, 0, 10, 0), { ts_line(-3, 2, -3, 5) }, Vec2d(0, 0), out));
+    REQUIRE(out.empty());
+}
+
+TEST_CASE("Trim of an arc between two crossings leaves two arcs on the same circle", "[SketchEdit][trim]")
+{
+    SketchEntity a; a.type = SketchEntity::Type::Arc; a.center = Vec2d(0, 0); a.radius = 10.0;
+    a.start_angle = 0.0; a.end_angle = M_PI;                              // the upper half
+    a.p0 = Vec2d(10, 0); a.p1 = Vec2d(-10, 0);
+    std::vector<SketchEngine::TrimPiece> out;
+    // two vertical lines cut it at x = +6 and x = -6; pick the top
+    REQUIRE(SketchEngine::trim_split(a, { ts_line(6, -20, 6, 20), ts_line(-6, -20, -6, 20) }, Vec2d(0, 10), out));
+    REQUIRE(out.size() == 2);
+    for (const auto& p : out) {
+        REQUIRE_THAT(p.ent.radius, WithinAbs(10.0, 1e-9));
+        REQUIRE_THAT((p.ent.center - Vec2d(0, 0)).norm(), WithinAbs(0.0, 1e-9));
+    }
+    REQUIRE(out[0].has_p0); REQUIRE(out[1].has_p1);
+    REQUIRE_THAT(out[0].ent.p1.x(), WithinAbs(6.0, 1e-6));
+    REQUIRE_THAT(out[1].ent.p0.x(), WithinAbs(-6.0, 1e-6));
+}

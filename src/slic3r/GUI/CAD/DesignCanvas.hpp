@@ -123,6 +123,9 @@ public:
     // number of entities changed (0 = nothing selected, caller falls back to the mode).
     // Open the in-canvas value field on the sketch selection's defining number.
     bool edit_sketch_selection_value();
+    // The open sketch's plane, and a way to take outside geometry into it as fixed reference lines (Include).
+    const SketchPlane& sketch_plane() const { return m_sketch_tool.plane(); }
+    int include_into_sketch(const std::vector<SketchEntity>& ents);
     int  toggle_sketch_construction_selection();
     // Is the sketch tool on Select (as opposed to a draw/edit tool being armed)? The
     // Construction box needs it to tell "convert what I picked" from "arm what I draw next".

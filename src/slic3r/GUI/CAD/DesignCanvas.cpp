@@ -589,6 +589,13 @@ void DesignCanvas::set_sketch_grid_magnet(bool on)
     request_repaint();
 }
 
+int DesignCanvas::include_into_sketch(const std::vector<SketchEntity>& ents)
+{
+    const int n = m_sketch_tool.add_reference_entities(ents);
+    if (n) request_repaint();
+    return n;
+}
+
 bool DesignCanvas::edit_sketch_selection_value()
 {
     const bool ok = m_sketch_tool.open_selection_dimension_editor();

@@ -736,6 +736,10 @@ public:
     static TopoDS_Wire build_sketch3d_wire(const CadFeature& f, std::string& err);
     int  add_use_sketch(int source_sketch, const std::vector<int>& entities,
                         const SketchPlane& plane, const std::string& name);
+    // The edges of every body that lie in `plane` (all their points within `tol` of it), as 2D CONSTRUCTION entities in that plane's
+    // coordinates: what a sketch drawn on a face needs to include of the model it sits on. Edges that only cross the plane are not
+    // included (they would be points); use Project for a view along the normal.
+    std::vector<SketchEntity> in_plane_edges(const SketchPlane& plane, double tol = 1e-4) const;
     int  project_edges_into_sketch(int sketch_feature, int source_body,
                                    const std::vector<int>& edge_ids, int face);
     // Append a bridging BSpline entity connecting endpoint `end_a` of entity `ent_a` to

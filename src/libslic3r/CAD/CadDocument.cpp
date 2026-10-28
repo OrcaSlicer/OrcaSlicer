@@ -1575,6 +1575,23 @@ int CadDocument::add_use_sketch(int source_sketch, const std::vector<int>& entit
     return append_feature(f);
 }
 
+std::vector<SketchEntity> CadDocument::in_plane_edges(const SketchPlane& plane, double tol) const
+{
+    std::vector<TopoDS_Edge> flat;
+    for (const auto& b : bodies) {
+        if (b.shape.IsNull()) continue;
+        for (const TopoDS_Edge& e : GeometryEngine::edges_of(b.shape)) {
+            bool in = true;
+            for (const Vec3d& p : GeometryEngine::sample_edge_world(e))
+                if (std::abs((p - plane.origin).dot(plane.normal)) > tol) { in = false; break; }
+            if (in) flat.push_back(e);
+        }
+    }
+    std::vector<SketchEntity> out;
+    project_edges_to_entities(flat, plane, /*construction=*/true, out);
+    return out;
+}
+
 int CadDocument::project_edges_into_sketch(int sketch_feature, int source_body,
                                            const std::vector<int>& edge_ids, int face)
 {
