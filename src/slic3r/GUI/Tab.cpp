@@ -5201,8 +5201,8 @@ void TabFilament::toggle_options()
             for (auto el : {"overhang_fan_speed", "overhang_fan_threshold", "internal_bridge_fan_speed"})
                 toggle_option(el, has_enable_overhang_bridge_fan);
 
-        // Orca: toggle dont slow down for external perimeters if
-        bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
+            // Orca: toggle dont slow down for external perimeters if
+            bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
         toggle_option("dont_slow_down_outer_wall", has_slow_down_for_layer_cooling, -1, _L("Enable slowing down for layer cooling to use this setting."));
 
             // Re-enable the basics
@@ -5216,14 +5216,14 @@ void TabFilament::toggle_options()
             // grey out the UI line and force the underlying value to -1 so the cooling buffer never enters the
             // override branch.
         const int close_fan_first_n = m_config->opt_int("close_fan_the_first_x_layers", 0);
-        const bool initial_layer_fan_speed_enabled = close_fan_first_n <= 0;
+            const bool initial_layer_fan_speed_enabled = close_fan_first_n <= 0;
         toggle_line("initial_layer_fan_speed", initial_layer_fan_speed_enabled, -1, _L("Set the number of initial layers without cooling to zero to override the first layer fan speed."));
-        if (!initial_layer_fan_speed_enabled) {
-            if (auto* opt = dynamic_cast<const ConfigOptionInts*>(m_config->option("initial_layer_fan_speed"))) {
-                bool needs_reset = false;
-                for (int v : opt->values) {
+            if (!initial_layer_fan_speed_enabled) {
+                if (auto* opt = dynamic_cast<const ConfigOptionInts*>(m_config->option("initial_layer_fan_speed"))) {
+                    bool needs_reset = false;
+                    for (int v : opt->values) {
                     if (v != -1) { needs_reset = true; break; }
-                    }
+                        }
                     if (needs_reset) {
                         std::vector<int> reset_values(opt->values.size(), -1);
                         m_config->set_key_value("initial_layer_fan_speed", new ConfigOptionInts(reset_values));
@@ -5235,19 +5235,20 @@ void TabFilament::toggle_options()
 
         toggle_line("additional_cooling_fan_speed", printer_cfg.opt_bool("auxiliary_fan"), 256 + variant_index, _L("Enable the auxiliary fan in the printer profile to use this setting."));
 
-        bool support_air_filtration = printer_cfg.opt_bool("support_air_filtration");
-        for (auto el : {"activate_air_filtration", "during_print_exhaust_fan_speed", "complete_print_exhaust_fan_speed"})
-            toggle_line(el, support_air_filtration, -1, _L("The selected printer does not support air filtration."));
+            bool support_air_filtration = printer_cfg.opt_bool("support_air_filtration");
+            for (auto el : {"activate_air_filtration", "during_print_exhaust_fan_speed", "complete_print_exhaust_fan_speed"})
+                toggle_line(el, support_air_filtration, -1, _L("The selected printer does not support air filtration."));
 
-        if (support_air_filtration) {
+            if (support_air_filtration) {
             bool activate_air_filtration = m_config->opt_bool("activate_air_filtration", 0);
-            const wxString air_filtration_reason = _L("Activate air filtration to edit this setting.");
-            toggle_option("activate_air_filtration_during_print", activate_air_filtration, -1, air_filtration_reason);
+                const wxString air_filtration_reason = _L("Activate air filtration to edit this setting.");
+                toggle_option("activate_air_filtration_during_print", activate_air_filtration, -1, air_filtration_reason);
             toggle_option("during_print_exhaust_fan_speed", activate_air_filtration && m_config->opt_bool("activate_air_filtration_during_print", 0), -1,
-                _L("Activate air filtration and enable it during printing to edit the exhaust fan speed."));
-            toggle_option("activate_air_filtration_on_completion", activate_air_filtration, -1, air_filtration_reason);
+                              _L("Activate air filtration and enable it during printing to edit the exhaust fan speed."));
+                toggle_option("activate_air_filtration_on_completion", activate_air_filtration, -1, air_filtration_reason);
             toggle_option("complete_print_exhaust_fan_speed", activate_air_filtration && m_config->opt_bool("activate_air_filtration_on_completion", 0), -1,
-                _L("Activate air filtration and enable it on completion to edit the exhaust fan speed."));
+                              _L("Activate air filtration and enable it on completion to edit the exhaust fan speed."));
+            }
         }
     }
     if (m_active_page->title() == L("Filament"))
