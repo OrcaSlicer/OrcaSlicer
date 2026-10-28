@@ -117,12 +117,6 @@ bool contains_sub_type_ci(const std::string& haystack, const std::string& needle
     return false;
 }
 
-// Silk is its own material rather than a finish on another one, so a silk spool has to reach a
-// silk preset rather than a plain preset of the same type. Every other sub type -- a grade or
-// brand word (Basic, Tough, Pure, PolyLite), or a fibre already folded into filament_type --
-// names the same material, so it stays a preference and may fall back to colour alone.
-bool is_type_defining_finish(const std::string& sub) { return contains_word_ci(sub, "SILK"); }
-
 // Tags written by older tools (or as a workaround) carry the full product name in the vendor
 // field, e.g. vendor "Anycubic PLA Basic" with an empty sub type, while profiles may use either
 // "Anycubic" or "Anycubic PLA Basic". Treat the vendors as matching when they are equal or when
@@ -133,37 +127,23 @@ bool vendor_matches(const std::string& tag_vendor, const std::string& profile_ve
         return false;
     return contains_word_ci(tag_vendor, profile_vendor) || contains_word_ci(profile_vendor, tag_vendor);
 }
-} // anonymous namespace
-
-std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
-                                                                                const std::string&      vendor_name,
-                                                                                const std::string&      filament_type,
-                                                                                const std::string&      sub_type,
-                                                                                const std::string&      color_rgba)
+// Rank the visible, compatible base presets of one filament type by colour distance, preferring a
+// name that carries the spool's sub type. An empty vendor_name matches any vendor; require_sub
+// drops candidates that do not carry the sub type at all.
+std::string closest_preset_by_colour(const PresetCollection& filaments, const std::string& vendor_name,
+                                     const std::string& filament_type, const std::string& sub_wanted,
+                                     bool require_sub, unsigned int target_color_value)
 {
     std::string  best_match_id       = "";
     unsigned int best_color_distance = 0xffffffffu;
     bool         best_matches_sub    = false;
-
-    // The printer returns RGBA in the format RRGGBBAA, but profiles store color as #RRGGBB,
-    // so we must remove # and ignore alpha channel for distance calculation.
-    // An unusable colour cannot rank candidates; leave the match to the type-only lookup.
-    unsigned int target_color_value = 0;
-    if (!parse_rgb(color_rgba, target_color_value))
-        return best_match_id;
-
-    const std::string sub_wanted = normalize_fibre_sub_type(trim_and_upper(sub_type));
-    // A finish lives in the preset name alone, and changes how the filament prints, so a spool
-    // that reports one must not settle for a preset without it: Silk PLA is not plain PLA. CF and
-    // GF are already folded into filament_type by combine_filament_type(), and a grade or brand
-    // word names the same material, so both of those stay a preference.
-    const bool require_sub = is_type_defining_finish(sub_wanted);
+    const bool   match_vendor        = !vendor_name.empty();
 
     for (const auto& p : filaments.get_presets()) {
         // Only a base preset can be loaded: sync_ams_list() resolves a filament_id to the first
         // base preset carrying it, so a derived copy never loads and could outrank its parent.
         if (p.is_visible && p.is_compatible && filaments.get_preset_base(p) == &p && !p.filament_id.empty() &&
-            vendor_matches(vendor_name, p.config.opt_string("filament_vendor", 0u)) &&
+            (!match_vendor || vendor_matches(vendor_name, p.config.opt_string("filament_vendor", 0u))) &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
             // A profile that specifies no colour, or one that cannot be parsed, is unranked: it
             // is kept as a last resort rather than scored as black, which would otherwise let a
@@ -206,6 +186,37 @@ std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(
         }
     }
     return best_match_id;
+}
+
+} // anonymous namespace
+
+std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
+                                                                                const std::string&      vendor_name,
+                                                                                const std::string&      filament_type,
+                                                                                const std::string&      sub_type,
+                                                                                const std::string&      color_rgba)
+{
+    // The printer returns RGBA in the format RRGGBBAA, but profiles store color as #RRGGBB,
+    // so we must remove # and ignore alpha channel for distance calculation.
+    // An unusable colour cannot rank candidates; leave the match to the type-only lookup.
+    unsigned int target_color_value = 0;
+    if (!parse_rgb(color_rgba, target_color_value))
+        return {};
+
+    const std::string sub_wanted = normalize_fibre_sub_type(trim_and_upper(sub_type));
+
+    // The spool's own vendor first, with the sub type as a preference.
+    const std::string vendor_match = closest_preset_by_colour(filaments, vendor_name, filament_type, sub_wanted,
+                                                              /*require_sub=*/false, target_color_value);
+    if (!vendor_match.empty() || sub_wanted.empty())
+        return vendor_match;
+
+    // Orca ships no preset for this spool's vendor. A profile that names the spool's sub type is
+    // still closer than the caller's fallback, filament_id_by_type(), which ignores the sub type
+    // and takes the first visible preset of the type -- a silk spool would land on a plain one.
+    // Vendor is ignored here, so the sub type has to be carried rather than merely preferred.
+    return closest_preset_by_colour(filaments, std::string(), filament_type, sub_wanted,
+                                    /*require_sub=*/true, target_color_value);
 }
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
@@ -330,8 +341,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 
             auto* bundle = GUI::wxGetApp().preset_bundle;
             // Try to find a matching preset for this filament based on vendor, type and color.
-            // If not found, default to traditional search by type only or generic type mapping,
-            // except for a sub type that has to be matched -- see below.
+            // If not found, default to traditional search by type only or generic type mapping.
             if (bundle) {
                 std::string vendor   = safe_at(filament_vendor, i, empty_str);
                 std::string sub_type = raw_sub_type;
@@ -344,12 +354,6 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                     tray.tray_info_idx = filament_id;
                     BOOST_LOG_TRIVIAL(warning) << "Filament sync: Found manufacturer-specific profile for slot " << i << ": "
                                                << filament_id;
-                } else if (is_type_defining_finish(sub_type)) {
-                    // filament_id_by_type() takes the first visible system preset of the type, whatever
-                    // its vendor and finish, so it cannot serve a sub type that must be matched: a silk
-                    // spool would be handed somebody's plain PLA. Leave the slot without a profile.
-                    BOOST_LOG_TRIVIAL(warning) << "Filament sync: no " << sub_type << " profile for slot " << i
-                                               << ", leaving it unmapped";
                 } else {
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
                 }

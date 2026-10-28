@@ -116,10 +116,12 @@ TEST_CASE("Vendor matching ignores case and accepts a product name in the vendor
     CHECK(match(anycubic, "Anycubic PLA Basic", "PLA", "", "F0A0B0FF") == "ANY-BASIC");
 }
 
-// Orca: a finish lives in the preset name only and changes how the filament prints, so Silk PLA
-// is not plain PLA - a Silk spool must reach the Silk preset however far its colour is, and must
-// report no match rather than settle for a plain PLA preset when the vendor ships none.
-TEST_CASE("A finish sub type is required, not merely preferred", "[Snapmaker]")
+// Orca: a finish lives in the preset name - only a handful of profiles put it in filament_type,
+// and first_visible_idx_by_type() strips anything after the first space - so the name match is
+// what finds it. A silk spool takes the silk preset however far its colour is, and when the
+// vendor ships none it falls back to that vendor's nearest preset rather than to no match:
+// sync_ams_list() reads an empty filament_id as an empty slot, which drops the spool entirely.
+TEST_CASE("A finish sub type is preferred, and falls back within the vendor", "[Snapmaker]")
 {
     // Basic is an exact colour match and still loses to the Silk preset the spool asks for.
     CHECK(match(pla_variants, "Snapmaker", "PLA", "Silk", "102030FF") == "PLA-SILK");
@@ -128,7 +130,8 @@ TEST_CASE("A finish sub type is required, not merely preferred", "[Snapmaker]")
         {"Snapmaker PLA Basic", "PLA-BASIC", "PLA", "Snapmaker", "#102030"},
         {"Snapmaker PLA Matte", "PLA-MATTE", "PLA", "Snapmaker", "#F0A0B0"},
     };
-    CHECK(match(no_silk, "Snapmaker", "PLA", "Silk", "102030FF").empty());
+    CHECK(match(no_silk, "Snapmaker", "PLA", "Silk", "102030FF") == "PLA-BASIC");
+    CHECK(match(no_silk, "Snapmaker", "PLA", "Silk", "F0A0B0FF") == "PLA-MATTE");
 }
 
 // Orca: a grade or brand word names the same material, so it stays a preference. A Polar Filament
@@ -209,6 +212,39 @@ TEST_CASE("A preset with no colour is unranked, not black", "[Snapmaker]")
         {"Snapmaker PETG", "PETG-PLAIN", "PETG", "Snapmaker", ""},
     };
     CHECK(match(colourless, "Snapmaker", "PETG", "", "292929FF") == "PETG-PLAIN");
+}
+
+// Orca: Orca ships U1-compatible presets for a handful of vendors, so a spool from any other
+// brand finds nothing in the vendor pass. A profile naming its sub type is still closer than the
+// caller's fallback, filament_id_by_type(), which ignores the sub type entirely.
+TEST_CASE("A spool from an unknown vendor still reaches its sub type", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> library{
+        {"Generic PLA",      "PLA-GENERIC", "PLA", "Generic", "#102030"},
+        {"Generic PLA Silk", "PLA-SILK",    "PLA", "Generic", "#F0A0B0"},
+    };
+    // Nothing carries the spool's vendor, and the plain preset is the exact colour match, so only
+    // the sub type can decide it.
+    CHECK(match(library, "Polar Filament", "PLA", "Silk", "102030FF") == "PLA-SILK");
+    // Within the sub type, colour still ranks.
+    const std::vector<FilamentSpec> two_silks{
+        {"Generic PLA",           "PLA-GENERIC", "PLA", "Generic", "#102030"},
+        {"Generic PLA Silk",      "PLA-SILK",    "PLA", "Generic", "#F0A0B0"},
+        {"Snapmaker PLA Silk",    "SM-SILK",     "PLA", "Snapmaker", "#102030"},
+    };
+    CHECK(match(two_silks, "Polar Filament", "PLA", "Silk", "102030FF") == "SM-SILK");
+}
+
+// Orca: the second pass only helps a sub type some profile actually carries. A brand word that
+// names no preset must not drag in an unrelated vendor's filament - the slot falls through to the
+// caller's type-only lookup, as it did before.
+TEST_CASE("An unknown vendor and an unknown sub type fall through", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> library{
+        {"Generic PLA",      "PLA-GENERIC", "PLA", "Generic", "#102030"},
+        {"Generic PLA Silk", "PLA-SILK",    "PLA", "Generic", "#F0A0B0"},
+    };
+    CHECK(match(library, "Polar Filament", "PLA", "Pure", "102030FF").empty());
 }
 
 // Orca: sync_ams_list() resolves a filament_id to the first base preset carrying it, so a derived
