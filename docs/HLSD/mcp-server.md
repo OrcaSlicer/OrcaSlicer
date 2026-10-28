@@ -362,10 +362,13 @@ When the capture may differ from the screen, the result carries `approximate: tr
 | Windows | `PrintWindow(PW_CLIENTONLY \| PW_RENDERFULLCONTENT)` | `PrintWindow` fails and the screen is copied instead |
 | macOS | `cacheDisplayInRect:toBitmapImageRep:` on the content view | always: web views may be blank |
 | Linux X11, Xvfb, XWayland | `XGetImage` of the top-level X window | part of it is off-screen or under another application's window |
-| Linux Wayland | `gtk_widget_draw()` of the top-level window | always: web views may be blank |
+| Linux Wayland | `gtk_widget_draw()` of the top-level window's child, which leaves out the client-side decoration's shadow | always: web views may be blank |
 
 On every platform, a canvas that can't be captured keeps whatever the window capture drew, and the
-result is approximate. Minimized and hidden windows fail. X11 keeps no backing store, so a part
+result is approximate. A canvas frame that reads back black (`is_blank()`, a stray pixel aside) has
+not been drawn yet. This happens on Wayland for a moment after the canvas is first shown, and while
+GNOME's overview hides an XWayland window. Such a capture is taken again every 300 ms for up to 3 s,
+then returned as approximate, saying so. Minimized and hidden windows fail. X11 keeps no backing store, so a part
 covered by another window reads back black. OrcaSlicer's own popups and tooltips stacked above the
 window are read and drawn in, as they appear on screen; another application's window leaves the
 hole, and the result is approximate. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/screenshot-<timestamp>.png`. The image
