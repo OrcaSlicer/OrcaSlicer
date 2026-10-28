@@ -101,6 +101,8 @@ private:
     // Picks dialog (width, height) based on current state and sizes the triangle and the
     // gradient curve editor to fill the dialog width, keeping it on its display.
     wxSize compute_dialog_size();
+    // Resizes the dialog to compute_dialog_size() around its centre, clamped to its display.
+    void resize_keeping_centre();
     void rebuild_all_combos();
     void rebuild_recommendation_items();
     void refresh_curve_editor_colors();

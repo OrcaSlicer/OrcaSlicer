@@ -1400,15 +1400,7 @@ void MixedFilamentDialog::on_gradient_toggled()
     // Toggling the curve editor changes the right column height (and width when
     // turning gradient on), so the dialog must follow or the recommendation list
     // gets squeezed off-screen. Same trick as 2-color -> 3-color switching.
-    const wxSize new_size = compute_dialog_size();
-    if (GetSize() != new_size) {
-        const wxRect old_rect = GetRect();
-        const wxPoint center(old_rect.x + old_rect.width / 2,
-                             old_rect.y + old_rect.height / 2);
-        SetSize(new_size);
-        SetPosition(wxPoint(center.x - new_size.x / 2,
-                            center.y - new_size.y / 2));
-    }
+    resize_keeping_centre();
 
     Layout();
     Refresh();
@@ -1849,14 +1841,23 @@ void MixedFilamentDialog::update_component_count_ui()
         m_btn_remove_material->SetToolTip(is_three ? _L("Remove the third material") : wxString());
     }
 
-    const wxSize new_size = compute_dialog_size();
-    const wxRect old_rect = GetRect();
-    const wxPoint center(old_rect.x + old_rect.width / 2,
-                         old_rect.y + old_rect.height / 2);
-    SetSize(new_size);
-    SetPosition(wxPoint(center.x - new_size.x / 2,
-                        center.y - new_size.y / 2));
+    resize_keeping_centre();
     Layout();
+}
+
+void MixedFilamentDialog::resize_keeping_centre()
+{
+    const wxSize new_size = compute_dialog_size();
+    if (GetSize() == new_size)
+        return;
+    // Grow or shrink around the current centre, but keep the whole dialog inside its display
+    // so the buttons don't end up under the taskbar. compute_dialog_size() already caps the
+    // height at the display height.
+    const wxRect  area   = wxDisplay(this).GetClientArea();
+    const wxPoint centre = GetPosition() + GetSize() / 2;
+    const int     x      = std::max(area.x, std::min(centre.x - new_size.x / 2, area.GetRight() + 1 - new_size.x));
+    const int     y      = std::max(area.y, std::min(centre.y - new_size.y / 2, area.GetBottom() + 1 - new_size.y));
+    SetSize(x, y, new_size.x, new_size.y, wxSIZE_ALLOW_MINUS_ONE);
 }
 
 } // namespace GUI
