@@ -29,6 +29,12 @@
 		"0.98",
 		"0.98"
 	],
+	"filament_flush_volumetric_speed": [
+		"3",
+		"3",
+		"3",
+		"3"
+	],
 	"filament_long_retractions_when_cut": [
 		"nil",
 		"nil",
@@ -82,6 +88,9 @@
 		"nil",
 		"nil",
 		"nil"
+	],
+	"filament_tower_interface_print_temp": [
+		"220"
 	],
 	"filament_wipe": [
 		"nil",

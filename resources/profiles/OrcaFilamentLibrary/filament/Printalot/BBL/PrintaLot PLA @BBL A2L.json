@@ -23,6 +23,9 @@
 	"filament_extruder_variant": [
 		"Direct Drive Standard"
 	],
+	"filament_flush_temp_fast": [
+		"220"
+	],
 	"overhang_fan_threshold": [
 		"25%"
 	],
